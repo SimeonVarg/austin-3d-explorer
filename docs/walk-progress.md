@@ -2404,6 +2404,51 @@ subscription alone doesn't deliver that promise on its own schedule.
 
 Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
 
+---
+
+**2026-08-24, acer lane, `acer/si-gaps` — the eleven buildings the router had
+no answer for.** A schedule import hands the router a building code, so the
+eleven UT codes that came back with nothing were the feature's real ceiling.
+Re-checked the list first (`walkmeter.mjs` still said the same eleven), then
+measured each one two ways: how far UT's own surveyed door is from the nearest
+piece of mapped pavement, and whether the app draws a building there at all.
+The answer split them three orders of magnitude apart. Ten are 10.8–11.8 km
+north at the Pickle Research Campus with no pavement within nine kilometres —
+the brief's claim about those was right. The eleventh, **SSW, the School of
+Social Work, is on this map**: UT's two published doors land 0.4 m and 2.5 m
+from the wall of a building we already draw, 37 m from the path network. It was
+not a pavement problem and not a door problem — the code simply was not in any
+index the search could reach, because our copy of UT's building register is
+missing that row, so it answered the same word a typo gets.
+
+**SSW now routes** (JES → SSW, 660 m; PCL → SSW, 755 m) through the same
+mechanism that already made HLB work — walk to UT's own coordinate when we have
+no door of our own. `walkmeter`'s "cannot route to at all" count went **11 → 10**,
+routable buildings scored 56 → 57 with all 57 landing inside 15 m of UT's own
+door, step-free reachability 56/56 → 57/57, and the avoid-stairs door check
+9/9 → 10/10 clean. **All twenty baseline pairs are identical across all seventeen
+measured fields — 340 comparisons, no differences** — and the live UI gate still
+passes. The ten Pickle codes now return a specific `why: 'offmap'` carrying the
+building's name, campus, distance and direction, through a new
+`window.wayfindOffMap()`, so the import lane gets a real reason instead of
+silence. Across the whole 209-code surface a schedule can name, codes answering
+`notfound` went **11 → 0**.
+
+Nothing was re-baked. The obvious fix — add SSW to `entrances.geojson` and
+re-run the bake — was tried and rolled back after measuring what it dragged in:
+`data/walk_graph.json` on `main` is stale (`snapshot: 2026-08-16` against the
+app's `2026-08-24`), and a clean re-bake with no input changes at all moves
++50 doors and +69 nodes. That is a real finding for whoever owns
+`scripts/bake_walk.py`, not something to smuggle in under a one-building fix,
+so the graph is left byte-for-byte `main`'s. Four other things found and
+deliberately not fixed — a now-stale line in `walkmeter.mjs`, the missing copy
+for an off-map building, the stale bake, and two buildings the search list greys
+out even though they route — are written up with exact patches in
+`docs/si-gaps.md`. Frames: `shots/si/gaps/`. `WAYFIND.on` untouched; the change
+is additive only, five hunks, no deletions.
+
+---
+
 ## 2026-08-24 — critic verdict on the schedule-import "UI" piece, round 3: `acer/si-ui` does not exist, oursWins = false
 
 Assigned to drive `acer/si-ui` at phone size against a Google-Calendar-import
@@ -2484,6 +2529,138 @@ One frame kept because this entry cites it:
 `shots/import/main-walk1-mobile.png` (the panel `main` actually renders,
 proving the "nothing to import with" finding rather than asserting it).
 
+---
+
+## 2026-08-24 — the schedule importer's parser (`acer/si-parser`)
+
+There is now a class-schedule importer, or at least the half of it that does
+the reading. Give it a calendar file from Google, from Apple, or from UT
+Registration Plus, or a `webcal://` subscribe link, or just a block of text
+typed by hand, and it comes back with the same answer every time: a list of
+classes, each pinned to a UT building code the walking router already knows how
+to route to. Three ways in, one thing out. The parsing lives at the end of
+`js/wayfind.js` and added 1,185 lines without deleting a single one, which
+matters because four other lanes were editing that file at the same time.
+
+The part worth caring about is what happens when a file is wrong, because a
+real schedule usually is. The bar was Google Calendar's own import — one bad
+row must never kill the file. So the test file has one good class surrounded by
+eight broken ones: a typo'd building code, a class with no room at all, a date
+with a letter O typed for a zero, a street address instead of a building, a
+class at the Pickle Research Campus eleven kilometres north, a building UT knows
+about and this app does not, and a file that just stops in the middle of an
+event. The good class still comes through, the answer reads *"Imported 1 of 9
+classes. 8 could not be used,"* and each of the eight gets a plain sentence
+naming the class and saying what to do — *"MAII 220 is not a UT building code.
+Did you mean MAI (UT Tower)?"* rather than a shrug.
+
+One near-miss is worth recording because it was the exact accident this
+codebase already had a warning against. The first version let that typo `MAII`
+slip past the building-code check and into the loose name search, which
+helpfully decided `maii` was close enough to `mail` and routed a history
+lecture to the Comal Mail Service Building — confidently, with correct
+distances. It only surfaced because the test asserts the *sentence a student
+reads*, not just that something failed. The fix was to make the parser suggest
+a near miss and never apply one.
+
+Two things the brief said turned out to be wrong, and running it rather than
+believing it is what caught both. It was right that ten codes are off the map
+at Pickle (measured 10.8–11.8 km from the Tower's own door). It was wrong that
+SSW is missing from UT's records — SSW is 0.9 km away on the main campus with
+two surveyed doors sitting in this repo already; what it is missing from is
+*our* building list, which is a much smaller fix, and the exact patch is written
+into `docs/si-parser.md` for whoever owns that file. And the brief missed a
+twelfth building, HLB, which the app *labels* unroutable and then routes to
+perfectly well at 1,339 m. So "is it routable" cannot be read off a flag; the
+importer routes for real before it promises anything.
+
+Verified by driving the real app: 209 assertions, all green, and thirteen
+class-to-class walks routed out of the three clean schedules. The Monday walk
+from the Gates Computer Science Complex to Welch Hall — a real leg out of a real
+parsed calendar — is photographed twice, fitted and down on the ribbon, in
+`shots/si/parser/`. The proof that the route is actually painted and not merely
+present in a data structure got rebuilt three times before it was honest: the
+first two versions needed a threshold picked after seeing the answer. The one
+that shipped measures the renderer's own noise first (it moves 0 pixels when
+nothing changes) and then removes the route from an unmoved camera (1,437
+pixels move). Nothing left running: server on 8911 stopped, port confirmed free.
+
+The drop zone, the error list and the import bar itself are still to build —
+that is the interface lane's half. Everything it needs is five functions and a
+paragraph in `docs/si-parser.md`. Nothing here is wired into the shipped app;
+`WAYFIND.on` is untouched and still false.
+
+---
+
+## 2026-08-24 — the schedule-import screen exists now, and it says what failed (`acer/si-ui`, round 4)
+
+The last critic's verdict on this piece was that there was nothing to judge:
+no branch, no code, no button, no paste box anywhere in the repo. That is
+closed. `acer/si-ui` now carries the screen a student adds their class
+schedule on, behind `?walk=1` like the rest of the walk feature, with
+`WAYFIND.on` still `false` so `main` is unchanged for anyone who has not
+asked for it.
+
+It has three ways in, and each one is shaped by what the two recon lanes
+actually found rather than by what a calendar import usually looks like.
+**Google** leads with a file, because Google's export is a download — and it
+hands you a `.zip`, which every guide forgets and which now has its own
+sentence on screen when you pick one. **Apple** leads with an address,
+because Apple's flow is a `webcal://` subscription the OS registers, and the
+address is the thing a student already has; the field takes `webcal://` or
+`https://` and swaps the scheme itself. **UT** leads with a paste box,
+because `docs/import-bar-ut.md` looked hard for a first-party UT `.ics` feed
+and could not find one, so a URL field there would have been a control that
+cannot work. Underneath, all three land in one place: Google's export,
+Apple's export and Apple's live feed are the same ICS payload, so there is
+one decoder behind all of them and the tabs differ only in what they tell you
+to go and fetch.
+
+The half that took the work is the other screen — what did **not** import. A
+real schedule names a real building and some of those this router cannot
+reach, so the brief's "11 unroutable codes" was re-checked rather than
+believed: every code in the app's own tables was put to the live page's
+`wayfindSearch` after the graph loaded, and it is **twelve**, not eleven.
+`HLB`, Dell Med's Health Learning Building, has zero walkable doors and is
+not in the brief's list — and it is not off-map, it is on main campus. The
+Pickle claim holds for all ten. The "SSW isn't in UT's register" claim is
+false; SSW is a registered main-campus building this codebase already has
+coordinates for, so its unroutability is our graph's gap, not UT's. That is
+three different pieces of news and the screen now says three different
+things, because telling a student their real building 400 m away "couldn't be
+imported" is the wrong-building failure with the lights off.
+
+Six defects were found by photographing it at 390 x 844 and reading the
+frame, not by reasoning about the code. The failures were listed *under* the
+six that worked, so a phone showed nothing but ticks. The error message was
+the last child of a scrolling body, so pressing Import on an address that
+cannot be fetched appeared to do nothing at all — and the re-render wiped the
+address too. Then, with that fixed, the message said "choose the file
+instead" while the file button was scrolled off the bottom of the same frame.
+A course number was being read as a room (`RHE 306` became a building), and a
+day abbreviation nearly was too — `MW 3:00 pm` is two capitals, a space and a
+digit, which is a UT room's exact shape. All fixed, all now asserted rather
+than eyeballed, and written up with the pictures in `docs/si-ui.md`.
+
+It is invisible on every recording surface — `?clip=1`, `?autopilot=1` and
+`?sliderdemo=1` were each loaded with the import screen **opened on purpose**
+first, and all five of the feature's elements measure zero. That needed one
+edit to the `.clip` rule in `style.css`: the old rule listed three ids and
+carried a comment saying every element this feature adds is a child of one of
+them, "which is why the rule has not had to grow". The import panel is a
+fourth child of `#wf-root`, because a panel that covers the search sheet
+cannot live inside it. It is listed now and the comment says why, since that
+sentence is exactly what would have let this ship visible in the AWS
+recording.
+
+Nothing above §9 of `js/wayfind.js` was edited and no existing function was
+touched — the block is appended whole and the entry row is a DOM append onto
+the sheet, so the four other lanes in this file have nothing to collide with.
+Image-OCR and a Registration-Plus API are deliberately **not** built, per
+Simeon; both have a named seat in the source and a one-function contract, so
+adding either later is a decoder plus one table row and touches no placement,
+no failure taxonomy and no line of the screen. Branch `acer/si-ui`, pushed,
+not merged. Server on 8913 killed and the port confirmed free.
 ## 2026-08-24 — critic round 4 verdict on `acer/si-parser`: oursWins = true, one real gap found in the auto-sniff path
 
 Fresh context. `acer/si-parser` finally exists (e855af3, "Schedule import, the
@@ -2592,6 +2769,8 @@ scripts I wrote into `scripts/verify` before finishing, and reverted the two
 I re-ran it (same camera, same fixture — not a real change, just noise from
 running their own script). Server on 8951 killed, port re-confirmed free by
 `netstat`. No files the builder owns were edited.
+
+---
 
 ## 2026-08-24 — critic round 3 on the privacy piece (`acer/si-privacy`), oursWins=true
 
@@ -2994,6 +3173,258 @@ under `scripts/verify/_critic_ssw.mjs` and deleted before finishing,
 `npm install`, `scripts/verify/node_modules` is gitignored and not committed,
 server on 8952 killed by PID and the port re-confirmed free by `netstat`.
 
+## 2026-08-24 — the class schedule stays on the phone: storage, one-tap delete, and the proof (`acer/si-privacy`)
+
+Built the storage half of the class-schedule import Simeon asked for: where a
+student's schedule lives, how it gets deleted, and the one sentence that tells
+them the truth about both. The three importers themselves are other lanes'; this
+lane owns what happens to the data once they hand it over.
+
+The sentence, in the footer of the walk panel: **"Your schedule stays on this
+device — saved in this browser only, never uploaded anywhere, and Delete wipes
+it for good."** Under it, a line saying what is actually stored ("4 classes from
+a Google Calendar export, on this device only") and a Delete button that only
+exists when there is something to delete. One tap, no "are you sure" — the brief
+asked for one tap, and an undo would mean keeping the data around after telling
+someone it was gone. The wording lives in `index.html` as a `<template>` so it is
+a one-line edit, and the audit fails on purpose if that copy and the JS defaults
+ever say different things.
+
+The interesting part is that all three clauses of that sentence are now things a
+machine checks rather than things a doc claims. A real Google Calendar `.ics` is
+parsed and imported, every request the page and its workers make is recorded
+across the import window, and every one of them is scanned for the schedule's own
+strings: zero carried any. That zero would be worth nothing from a blind
+instrument, so the same run disarms the in-page guard, fires one real POST with
+the schedule as its body, and proves the capture sees it and the scanner flags
+it — then re-arms and proves the identical request is refused before it reaches
+the wire. Delete is a real mouse click on the real button, followed by a reload,
+followed by reading storage out of the fresh document: nothing left but the
+graphics preference the app already had. 34 assertions, five runs, all green, and
+`walkmeter.mjs` still passes on this branch including its live click-the-checkbox
+gate, so the shipped walk feature and another lane's stairs work are intact.
+
+Two things worth carrying forward. The stored format already reserves the three
+fields a photo-of-a-schedule import or a Registration-Plus API would otherwise
+force a rewrite for — a list of sources rather than one, per-class confidence and
+provenance, and a version chain — and Delete already sweeps a whole key prefix
+plus the IndexedDB database an OCR pass will need, so a source added next month
+is covered by a delete written today. And the guard that enforces "nothing
+leaves" sits on MapLibre's per-tile worker path, so it was measured rather than
+assumed: the first version cost 42.6 µs a message, the fixed one costs 3.8 µs,
+which is about 19 ms across an entire heavy session and only when a schedule is
+stored at all. Two earlier attempts at that measurement were wrong in instructive
+ways and both are written down in `docs/si-privacy.md` §8.
+
+Write-up and the audit script verbatim: `docs/si-privacy.md`. Frames:
+`shots/si/privacy/`. `WAYFIND.on` untouched; the whole section is inside the
+feature's existing off-switch and the audit proves the page is unchanged without
+`?walk=1`.
+
+## 2026-08-24 — the storage lane, round 4 (`acer/si-privacy`): a retraction, and nine doors instead of one
+
+A reviewer read round 3 of `docs/si-privacy.md` and found the worst kind of
+mistake in it: the doc's central factual claim about the SSW building was
+sourced, four times, to a file that has never existed on any branch — and the
+claim itself, that SSW was demolished in 2024 and the school moved to Walter
+Webb Hall, was wrong as well as unsourced. That is retracted. All eleven
+unroutable codes were re-measured on this branch from the repo's own files:
+SSW's UT-surveyed door sits 0.4 m from the edge of a building footprint this app
+already draws, and 37 m from mapped pavement, while the ten Pickle codes are
+nine to ten kilometres from the nearest walk-graph node with nothing within
+200 m of them. A demolished building does not have that. The numbers land
+exactly on the ones `acer/si-gaps` measured independently, and its one-row fix
+is what takes the count from eleven to ten.
+
+The fix that matters is not "be more careful" — nothing was checking. So the
+doc now has a gate in front of it that resolves every path it cites, either
+here, or in a sibling branch's tree if the doc names the branch, or declared
+proposed if it is a file this lane may not write. It also asserts the privacy
+sentence the doc quotes is byte-identical to the one `index.html` serves and
+the one `js/wayfind.js` falls back to. It failed on its first run and named the
+phantom, which is the only evidence worth having that a gate works.
+
+The other half of the round: the negative control went from one channel to
+nine. The guard advertises that it closes seven doors and rounds 1–3 had only
+ever shown it closing `fetch`. Every channel is now fired twice — once disarmed
+to prove the channel really carries and the capture really sees it, once armed
+to prove the guard is what stopped it — and each asserts the two outcomes
+*differ*, because a case that fails identically in both states proves nothing.
+Building it found a real blind spot in the instrument rather than in the guard:
+the form test was submitting into `target="_blank"`, so the request belonged to
+a popup the page-scoped capture could never see, and the disarmed control was
+reporting a clean zero that meant the test was blind. It submits into a hidden
+same-page iframe now. `form.submit()` and `form.requestSubmit()` are also two
+genuinely different doors — only the second fires the `submit` event the guard's
+capture listener watches — so both are tested. 88 assertions, exit 0.
+
+And because a lane's own pass has already been wrong about this once in this
+project, the branch was merged with `si-gaps`, `si-ui` and `si-parser` and
+everything was run again on the merged tree: audit ALL PASS, `walkmeter` green
+with the stairs UI gate still working and the unroutable count down to ten, and
+a screenshot showing this lane's sentence sitting correctly under `si-ui`'s
+import row with no overlap. Two notes for whoever integrates: all four lanes
+append their new section at the same seam above `function boot()`, and git
+aligns coincidentally identical trailing braces between the unrelated bodies, so
+a naive "keep both sides" silently drops a closing brace and leaves a file that
+still reads plausibly — `node --check js/wayfind.js` catches it in a second and
+reading the diff does not. `si-dayview` collides the same way and was
+deliberately left unresolved rather than guessed at. There is also one piece of
+copy for Simeon to choose on, written up in §9: the promise is currently made
+twice on that screen, once by `si-ui`'s row subtitle and once by this lane's
+sentence, and it would read better made once.
+
+Branch `acer/si-privacy`, not merged, no PR. Server on 8915 killed and the port
+re-confirmed free; one browser; scratch frames stayed in the scratchpad, and the
+six frames in `shots/si/privacy/` are all cited by the doc.
+
+## 2026-08-24 — critic round 4 on the privacy piece (`acer/si-privacy`), oursWins=true, one real hole found in the safety net itself
+
+Fresh context, port 8955, own scripts (not `docs/si-privacy.md`'s own
+`schedule-privacy.mjs`) — own canary strings, own route, own delete-then-reload
+check. `harness-drift.mjs` PASS first; `npm install` fresh (empty
+`node_modules`).
+
+**Round 3's finding is really fixed.** It flagged a citation to
+`docs/schedule-gaps.md`, a file that never existed, backing a claim that SSW was
+demolished. This round retracted the claim, added a gate (`§5.0`) that resolves
+every path the doc cites before anything else runs, and independently re-derived
+the correction: SSW's UT-surveyed door really is 0.4 m off a footprint this app
+draws and 37 m from the walk graph — a real main-campus building missing a row
+in our own register, not a demolition. Confirmed `docs/si-gaps.md` really exists
+on `origin/acer/si-gaps` (fetched it myself) and really does fix SSW the way
+this doc says it does.
+
+**THE BAR, both halves, re-driven for real and independently measured.**
+Imported a schedule carrying my own canary strings (a class title, an
+instructor, a room — none of them borrowed from the builder's fixtures), routed
+GDC→PAR to generate real traffic, and scanned all captured requests — page-level
+via `page.on('request')` and worker-level via an injected `self.fetch`/`XHR`
+recorder, because `scripts/verify/README.md` documents a page-scoped capture
+missing MapLibre's own worker fetches. Zero of 25 import-window requests (153
+total) carried any canary string. Proved the capture instrument itself isn't
+blind by disarming the guard, firing one real probe fetch with the canary, and
+confirming the capture DID catch it — then re-arming and confirming the guard
+refused it and nothing reached the wire. Delete: a real click on `#wf-priv-del`
+on a sheet the click reopened itself, then a hard reload to a fresh document —
+no `austin3d.schedule.*` key anywhere, `store.has()` false, no reserved
+IndexedDB database, panel back to "No schedule saved on this device yet."
+Screenshots looked at with the Read tool at every stage, not trusted from the
+exit code: the panel names no class, ever, only a count and a source
+(`shots/si/privacy/r4-critic-panel-saved.png`, `-panel-deleted.png`). With
+`?walk=1` absent, `window.fetch` and `XMLHttpRequest.prototype.open` are still
+the native functions and nothing of the panel exists — confirmed separately.
+Also reran `walkmeter.mjs --baseline` against this branch: self-check drift
+0.00 m on every pair, the live "Avoid stairs" UI gate still passes with a real
+click, 56/56 buildings step-free-reachable, stranded-before/after both none —
+this branch has not broken the door or stairs lanes' work.
+
+**The one real hole, found by going past the builder's own negative control
+rather than repeating it.** The guard's `bodyToText()` returns `undefined` for
+a `Blob` or `ReadableStream` request body — documented in the code as "fails
+open, counted, not blocked." Neither this round's negative control nor mine
+originally tested that path; both only fired string bodies. So I built a
+separate probe: `fetch(url, { body: new Blob([canary]) })` while the guard was
+installed and armed, aimed at a bare TCP listener on another port so nothing
+about HTTP semantics or CORS could hide the answer. The guard did not block it
+— `blocked` stayed 0, only `unreadableBodies` ticked up — and the raw bytes the
+listener received contained the canary string verbatim. This is a real,
+reproducible channel past the guard, not a hypothetical: any future code in
+this app (or a library it pulls in) that ever posts a `Blob`- or
+stream-bodied request while a schedule is stored gets through unblocked. It
+also means the audit's own capture has the identical blind spot as its subject:
+Playwright's `request.postData()` returns nothing for a Blob body either, so if
+this ever leaks for real, `docs/si-privacy.md`'s own script would report a
+clean "zero requests carried schedule content" while being wrong — the same
+shape of bug this whole round's citation gate exists to catch, just in the
+capture instrument instead of the doc. Nothing in this branch's OWN code
+constructs a Blob-bodied request, so nothing ships broken today — normal use of
+the feature, including everything the brief asks to be driven, is clean. But
+"the seatbelt is not the safety case" undersells it: the seatbelt has a
+buckle that doesn't close over one input shape, and the crash-test only ever
+used the other shape.
+
+**oursWins = true.** Both halves of THE BAR hold under a harder, independent
+test than the one the doc itself ran, the round-3 citation defect is genuinely
+fixed rather than hidden, and this branch does not regress the stairs or door
+lanes.
+
+**The single biggest remaining gap, concretely:** in `js/wayfind.js`'s egress
+guard (§12), make an **unreadable body fail CLOSED, not open, whenever
+`schedWatch.length` is non-zero** — a `Blob`/`ReadableStream` body on `fetch`,
+`XMLHttpRequest.send`, or `sendBeacon` while a schedule is stored should be
+refused the same way a string match is refused (nothing in this app has a
+legitimate reason to POST an opaque binary body while a schedule is on the
+device; the tile/basemap traffic the guard has to stay fast for is all GET).
+Separately, `docs/si-privacy.md`'s own capture needs a body-reading path that
+doesn't rely on Playwright's `postData()` — a `page.route()` interceptor that
+reads `request.postDataBuffer()` or the raw request body would actually see a
+Blob payload — or its "zero requests carried schedule content" claim is only
+proven for string-shaped leaks, which is exactly the gap this round's fix to
+the guard should also close.
+
+Server on 8955 killed by PID, port re-confirmed free by `netstat`. No file the
+builder owns (`js/wayfind.js`, `docs/si-privacy.md`, `index.html`) was edited —
+only `docs/walk-progress.md` and two cited frames in `shots/si/privacy/`
+(`r4-critic-panel-saved.png`, `r4-critic-panel-deleted.png`) were added. Four
+scratch scripts written into `scripts/verify` during this pass were deleted
+before finishing; nothing else was left in the repo.
+
+## 2026-08-24 — round 5 on the privacy piece (`acer/si-privacy`): the Blob hole is shut, and a socket says so
+
+Round 4's critic found something real: the thing that stops a stored schedule
+leaving the browser could read a normal request body, but not a `Blob` or a
+stream. It counted those and let them through — so it fired a `Blob` carrying a
+schedule at a bare socket, with the guard switched on, and watched the schedule
+land. A seatbelt with a buckle that doesn't close over one shape of passenger.
+
+That is fixed. While a schedule is on the device, anything the guard can't read
+is now refused instead of waved past, and the same rule covers a `Blob` handed
+to a background worker. Both are named switches at the top of the section, so
+either can be turned back off in one line if some later feature genuinely needs
+to upload a file.
+
+I didn't take my own word for it. The test stands up a **bare TCP listener** and
+reads the literal bytes that arrive, because the round-4 finding was partly a
+claim about what the browser-automation tool can see, and a socket has no
+opinion about its own input. With the guard off, a schedule sent as a `Blob`
+turns up in the socket's buffer at `fetch`, at `XMLHttpRequest` and at
+`sendBeacon` — so the channel really carries and the listener really sees. With
+the guard on, all four doors refuse and **nothing arrives at all**. A
+`ReadableStream` body is refused the same way. A plain page request still gets
+its 200, which is the whole app.
+
+**One correction back to the critic.** It also said this audit's own capture was
+blind to `Blob` bodies — that the tool reports nothing for one, so a clean
+result could be a wrong result. Measured on this machine, that isn't true:
+playwright-core 1.62.0 builds the string capture out of the byte capture, so the
+two can't disagree about whether a body is there, and the run shows both reading
+the canary. The critic reasoned where it could have measured. The socket stays
+anyway, since "what the tool can see" is a version-dependent variable.
+
+Cost: nothing. With a schedule seeded *before* the app boots — so the guard is
+armed for the whole cold load rather than switched on afterwards, which is where
+round 4 measured — a cold load of the city runs 2,086 to 2,679 worker messages
+through the guard across four runs and blocks zero of them every time. Every
+request this app makes on that path asks for a file and sends no body.
+
+Also ran the other lanes' scoreboard rather than assuming: `walkmeter.mjs`
+passes on this branch — the door lane's nine doors clean, 56/56 buildings
+reachable without stairs, nobody stranded, the live "Avoid stairs" click still
+turning routing on and back off, drift 0, no route errors. And the round-4
+nine-door test passes unchanged, so the fix didn't cost the old coverage.
+
+The write-up got shorter on purpose — it had grown to 1,452 lines over four
+rounds, the verdict was buried, and round 5's reviewer came back with nothing at
+all. It now opens with the result and the three commands that reproduce it, and
+the unchanged nine-door script is pointed at in this branch's own history
+(`git show 83382d4:docs/si-privacy.md`) rather than carried twice.
+
+Branch `acer/si-privacy`, pushed, not merged, no PR. Server on 8915 killed and
+the port re-confirmed free; one browser; scratch frames stayed in the
+scratchpad; the two scratch scripts written into `scripts/verify` were deleted
+before finishing, along with the output directories they created. Three new
+frames in `shots/si/privacy/` (135 KB together), all three cited by the doc.
 ---
 
 ## 2026-08-24 — critic verdict on the "dayview" piece, round 4: oursWins = true, and a real defect the harness cannot see
@@ -3211,3 +3642,766 @@ screenshot was taken and looked at with the Read tool to confirm the panel
 premise before trusting any DOM assertion about it, and it was left in the
 scratchpad, not committed — nothing here cites it as evidence, so per CLAUDE.md
 rule 12 it does not belong in the repo.
+---
+
+**2026-08-24, acer lane, `acer/si-gaps` round 3 — the building a schedule names,
+now findable as well as routable.** Round 2 taught the router about eleven UT
+codes it had no answer for: SSW, which is a real main-campus building our copy of
+UT's register simply does not list, and ten at the Pickle campus eleven
+kilometres north. This pass re-measured all of that from scratch rather than
+inheriting it — the eleven, the eleven-kilometre distances, and the fact that
+UT's two SSW doors land within half a metre of a building this app already draws
+— and then fixed the one thing round 2 had written off as somebody else's job.
+
+Typing `SSW` into the walk box on the shipped build gives an empty list, which
+reads as "you typed it wrong". Round 2 made the router take you there but left
+the list greying the row out and refusing the click, because the row counted
+doors and the count was zero until the route ran. So the door is now worked out
+when the list is built instead of when the walk starts: the row reads *School of
+Social Work Building — 2 doors* and opens. Same for the Health Learning
+Building, which had the same problem and predates this branch. Two before/after
+pictures of the box are in `shots/si/gaps/`, plus one of the walk itself from
+walking height.
+
+Nothing else moved, and that was checked rather than assumed: the twenty
+reference walks come back with every distance, door, timing and stair count
+identical, all sixty-seven surveyed buildings offer the same doors down to the
+seventh decimal with the new behaviour on and off, and the count of UT buildings
+this build cannot reach at all goes 11 → 10. The ten that remain are at another
+campus and are answered as such instead of in silence. `data/walk_graph.json`
+and `data/entrances.geojson` deliberately untouched — the graph bake is eight
+days behind the city and re-running it would drag fifty unreviewed doors in
+behind a one-building fix; that, and three other things found and not fixed, are
+written up with exact patches in `docs/si-gaps.md`. `WAYFIND.on` untouched.
+---
+
+## 2026-08-24 — the walk feature can show a whole day now, not one leg at a time
+
+Branch `acer/si-dayview`. Until now the walking directions answered one question
+at a time: I am here, my next class is in WEL. A student with four classes asks
+that three times a day, retypes both ends every time, and the thing they actually
+want to know — **which of today's three walks is the one that will make me
+late** — is not any single one of those three answers. It is the sequence.
+
+So there is a day plan. Give it an imported schedule and it lays the whole day
+out in order: every class, and between each pair, the walk. How long it takes,
+how far, which one is next, and what is wrong with the ones that have something
+wrong with them. Tapping a walk draws it on the ground and fills in the answer
+bar that already existed — nothing was rebuilt, it just picks the two ends for
+you.
+
+The best picture of it is `shots/si/dayview/mwf-desktop.jpg`: a Monday with three
+walks, and you can see which one has the problem before reading a word, because
+each walk gets a little bar showing the gap the timetable leaves and the walk
+drawn inside it. Two of them sit comfortably inside their ten minutes. The third
+runs off the end of its bar.
+
+The one rule this stuck to hardest: **it warns and it never reassures.** That was
+already the law for the single-leg card and it is easier to break on a day view,
+because it would be so natural to print "12 minutes spare" on every row. It does
+not, anywhere, and there is a check that greps the whole screen for that kind of
+sentence on every run. What it does print is the gap the timetable itself holds —
+which is a real improvement on the old card, because that one had to *assume* a
+fifteen-minute passing period, and a schedule actually knows. On a Monday-
+Wednesday-Friday day with real ten-minute gaps, that is the difference between
+one warning and three.
+
+Three things were found only by opening the pictures and looking at them, none of
+which was red in any test: the same twelve-word explanation of why a building is
+out of reach was on screen three times in a five-row panel; a 43-metre walk
+printed "0–1 min" where the answer bar says "Under 1 min"; and on a laptop the
+last class of the day sat permanently one scroll below the fold, which rather
+defeats a thing whose whole argument is that you can see the day.
+
+The forcing function was re-checked rather than taken on trust. Eleven UT
+building codes still cannot be routed to. Ten of them really are ten to twelve
+kilometres north at the Pickle Research Campus, measured off UT's own surveyed
+door for each one. **The eleventh, SSW, is not — it is 900 metres from the Tower,
+on main campus, with two surveyed doors already sitting in this codebase.** And
+all eleven fail in a way nobody had noticed: the app has never heard of the codes
+at all, rather than failing to find a path. So SSW is a smaller and different fix
+than anyone had written down, and it is upstream of the walking graph. Written
+down, not made — that file belongs to another lane.
+
+Nothing about the routing moved: the ruler reads the same 87 metres of wasted
+walking it read before, all 38 ends still land at UT's own door, and the "avoid
+stairs" tickbox still works under a real mouse click. The change is 1,025 lines
+added to `js/wayfind.js` and **not one line removed**, which is deliberate with
+four other lanes inside that file. Everything is behind `?walk=1` as before and
+`WAYFIND.on` is untouched. Details, the fixtures, and every number:
+`docs/si-dayview.md`; the ruler is `scripts/verify/dayview.mjs` (59 checks, all
+green).
+
+---
+
+## 2026-08-24 — the day plan takes a real imported schedule, and doing that found two bugs
+
+Branch `acer/si-dayview`, round 4. Round 3 built the panel that lays a whole day
+out. This round plugged it into an actual import, and plugging it in is what
+turned up the things nobody's own harness could see.
+
+**It reads a parsed schedule now.** `wayfindDayFromSchedule(schedule, {day})`
+takes the shape the parser lane publishes — a whole week — and shows one of its
+days. Round 3 had written down what a day looks like and left the conversion to
+whoever called it, which meant nothing had ever made the trip end to end.
+`?walk=1&day=week` is that trip.
+
+**A class the importer could not place used to disappear.** If your calendar had
+a 2:00pm class with the room field left blank, the panel quietly deleted it —
+and then showed a two-hour gap your day does not have, while the header still
+said "3 classes". It looked complete and it was wrong. Every class with a time
+is on the day now; the ones with no building say so, in the importer's own
+words, and the walks either side say they can't be taken.
+
+**A typo in a building code used to send you to the wrong building.** `MAII 220`
+is a real mis-typing of `MAI 220` and it is sitting in the parser lane's own
+test file. The panel was handing that code to the search box's forgiving
+type-ahead — the thing that lets you type "wel" and get Welch — and drawing a
+confident 10-14 minute walk to the UT Tower for a class that is not in it. Every
+number on that row was measured correctly. The building was wrong and nothing
+was red. A code off a schedule is exact now: a near miss is offered as a
+question on the row ("Did you mean MAI (UT Tower)?") and never as a route. That
+bug could only be found by running the two lanes together, because every fixture
+written on this branch spells its codes correctly.
+
+**Three things it now says at a glance.** A line across the list at the current
+time, which is the one thing Google Calendar's day view has that this did not —
+everything above the line has happened. The header names the walk that is tight
+("WEL to ART is the tight one") instead of only counting them, which matters
+most on a phone where the header is all you can see. And the tight row itself
+gets a faint warm wash, so scanning the list finds the problem before you read a
+word. Plus the day's total on foot on the top line.
+
+**What was checked.** `scripts/verify/dayview.mjs` — 59 checks in round 3, 103
+now, all green, and the new ones are the ones that would have caught this
+round's bugs. The eleven unroutable codes were re-probed live again and the
+figures are unchanged (ten at 10.8-11.8 km north at Pickle; SSW 0.90 km from the
+Tower with two UT-surveyed doors, so the brief's second claim is still false).
+Separately, the two lanes were merged in a scratch tree and the parser's own
+four `.ics` files were driven all the way to this panel — 17 checks, none
+failed. That merge is not pushed; what is now known rather than assumed is that
+the resolution is a plain concatenation, that it compiles, and that the halves
+work together. Full account and every number: `docs/si-dayview.md`.
+
+Still behind `?walk=1`, `WAYFIND.on` untouched, and the whole branch is two pure
+inserts into `js/wayfind.js` with zero lines changed or removed anywhere else.
+---
+
+## 2026-08-24 — the schedule parser, round 5: fixing the bug the test could not see (`acer/si-parser`)
+
+Short version: a student who uploads the wrong file used to get nine wrong
+sentences. Now they get one right one.
+
+The importer's job is to read a schedule and tell you plainly what it could not
+use. Last round it did that well for a *calendar* with broken rows. But the
+likeliest wrong file a student uploads is not a broken calendar — it is a saved
+web page, because the export link bounced them through a UT EID sign-in wall and
+they saved that instead. There was already a good sentence written for exactly
+that case: *"That is not a calendar file. If you saved it from a page that asked
+you to sign in, you probably saved the sign-in page instead of the .ics."* The
+problem was that nothing could reach it. Handed a saved sign-in page, the
+importer decided it must be typed-out text, read it a line at a time, and
+reported nine errors — one per line of HTML — each saying *"Line 3 (...) names a
+course but no building."* There is no course on that line. It was nine lies
+about a file it had already been taught how to describe.
+
+The uncomfortable part is that the test suite was green over it, and green for a
+specific reason: the test told the importer what kind of file it was looking at.
+The one fixture that most needed the importer to work that out for itself was
+the one fixture it never had to. So the test has been changed to stop helping:
+every fixture now goes in with no hint at all, which is how the app will really
+use it, and each bad-file case carries a hard ceiling of **one** error message
+so "one error per line" cannot come back.
+
+Three things were fixed underneath. The importer now tells three kinds of text
+apart instead of two — a calendar, a paste, and a web page — and it catches a
+web page both when it starts with the usual markup and when it is only a
+fragment copied out of a course site. A pasted line that names no course now
+gets the sentence written for that case instead of one written for a different
+case. And a paste where *nothing* looks like a class — someone's syllabus, a
+page of registration boilerplate — is turned down once with a single sentence
+rather than line by line.
+
+That last one introduced a risk worth naming, because it is the same risk the
+whole feature is built to avoid: a verdict on a whole file can swallow a good
+class. So there is now a fixture that is five lines of junk with one real class
+buried in the middle, and it must still import that one class and name the five
+junk lines individually. One good row cancels the verdict.
+
+Also re-measured the list of buildings that cannot be routed to, rather than
+carrying last round's numbers forward: still exactly eleven, ten of them at the
+Pickle Research Campus 10.8–11.8 km north, plus SSW. And corrected something
+this lane's own write-up had overstated. It had flatly called the brief's claim
+about SSW "false"; checking each source properly, it is half true — SSW really
+is missing from our copy of UT's building register (198 rows, no social-work
+entry under any name), but UT's own entrances survey does know it, with two
+surveyed doors already sitting in this repo. Which matters, because it changes
+the fix from "handle a building nobody has a record of" to "copy one row across
+from the table next door."
+
+The whole lane is still strictly additive to the shared file: 1,351 lines added
+to `js/wayfind.js`, none deleted, which is worth knowing with five lanes writing
+into it. 286 assertions pass, up from 209. The Monday walk out of a real parsed
+Google calendar — Gates Computer Science to Welch Hall, 140 m, no stairs — was
+re-photographed against this code and looked at. Nothing here is switched on:
+`WAYFIND.on` is still false and the import bar itself is the interface lane's
+half. Server on 8911 stopped and the port confirmed free; the scratch script
+written to reproduce the bug was deleted.
+
+One thing worth passing on to the other lanes, because it cost a run here and
+will cost someone else one: `scripts/verify/node_modules` in the main checkout
+went empty mid-session, and every worktree that borrows it lost its browser
+driver at the same moment — the failure reads as `Cannot find package
+'playwright-core'`, which looks like your own setup being wrong rather than
+someone else's `npm install` in progress. It is shared, mutable, and not
+covered by the file-ownership split. If your harness dies that way, it is
+probably not you.
+## 2026-08-24 — the import screen, round 5: honest names, a screen that fits, and a race that made it lie (`acer/si-ui`)
+
+The round-4 critic said this piece won its blind comparison but that the
+screenshots it shipped were fake. It was right, and it was the first thing
+fixed. `shots/import/bar-google/` and `shots/import/bar-apple/` held **this
+app's own screens** under names like `si-google-add.png` and
+`si-apple-result.png` — a reviewer opening `bar-apple/si-apple-add.png` would
+read that as a picture of Apple Calendar. The honest admission existed, in a
+`NOTE.md` nobody linked, and the file names said otherwise. Names beat notes.
+Every frame is `ours-*` now, each folder carries a `README.md` at its top level
+saying plainly that no capture of Google's or Apple's real product is in this
+repo and why (Google's import screen is behind a signed-in account; Apple
+Calendar is macOS/iOS software this harness cannot drive), and the same
+statement sits above the pictures in `docs/si-ui.md` instead of two directories
+away.
+
+Then three defects, and only one of them was visible in a frame.
+
+**The result screen was hiding most of the count it was quoting.** Round 4's
+own committed evidence shows it: nine events in, *6 of 9 classes placed*,
+`PLACED 6` — and then one placed row whole, the second cut through its middle
+by the edge of the scroller, and four more below the fold with nothing anywhere
+on the panel to say they exist. `+ N more` never fired, because six is exactly
+`IMP.resultPeek` and nothing had been truncated, and the button underneath said
+`Use these 6`. Two fixes: `+ N more` became a real full-width `Show N more`
+button at thumb size, and the peek stopped being a fixed number. How many
+placed rows fit depends entirely on what is above them — three failures whose
+reasons each wrap to two or three lines eat about 210 px of a 373 px body — so
+it is measured now: render, count the rows that landed whole, re-render with
+the list cut to what fits and a real control under it. `Use these 6` and
+`Show 6 more` add up to the 6 the headline claims, and both are on screen.
+
+**Importing too fast said every class was unreachable.** This one was not
+visible in any frame and was not being looked for; it fell out of running the
+same UT paste twice in a script and getting two different answers. The panel
+starts loading the walking graph when it opens, deliberately, so the fetch
+overlaps the student reading the instructions — but nothing waited for it.
+Paste twelve real UT rows, press Import inside two seconds, and the screen said
+*Couldn't place 12 · Nothing here can be routed to* for a schedule with seven
+routable classes in it. Five seconds later, the same rows gave *7 of 12 classes
+placed*. Same input, same build, two answers, the wrong one delivered as
+confidently as the right one, and nothing on screen suggesting waiting. The
+import awaits the graph now; the two `window.wayfindImport*` helpers return
+promises for the same reason.
+
+**A cut edge looked exactly like a finished edge.** The panel body is the one
+child that yields height, so on a phone it is nearly always shorter than its
+contents, and it clipped them against a crisp border with no mark of any kind.
+Worst on the error screen, which scrolls the body to its end **on purpose** so
+the control the message names sits under the message — and the end landed
+mid-line, leaving the bottom halves of the letters of "…Subscription Calendar"
+under the tab divider looking like a rendering fault. Each end that has content
+past it is faded now and an end that has nothing past it keeps its hard edge,
+which is what makes the fade mean anything. It is a CSS mask rather than a
+gradient overlay because the panel is glass over a live 3D city and there is no
+colour this stylesheet can name that would hide the text under an overlay.
+Measured rather than eyeballed: in the top 78 px of the scroller, 317 pixels
+change to a maximum of 131/255 with the shade on versus off; below the fade
+band, in the same strip, 0 pixels change, maximum delta 1/255.
+
+Two of the fixes were themselves wrong first, and both were caught by measuring
+instead of reasoning. The fit loop stopped as soon as the rows fitted — and the
+`Show 6 more` it had just added landed below the fold, which is the identical
+defect this panel had already fixed once when an error message named a file
+button the same frame was hiding. And the loop chained one
+`requestAnimationFrame` per shrink, which reads perfectly sensibly and measures
+badly: a UT paste with five failures was still visibly mid-shrink four seconds
+after the result rendered. It is one synchronous loop now, at most seven
+layouts of one small panel.
+
+**35 assertions, all passing, on the branch after `origin/main` was merged into
+it — not before.** Including the two the existing feature makes:
+`wayfindRoute('JES','WEL')` still returns *"5-7 min walk · 450 m · No stairs on
+this route"*, the same 450 m round 4 measured; and `?walk=0&from=JES&to=WEL`
+still leaves zero of this feature's elements, zero `input[type=file]`, no
+`wayfind*` function on `window` and no `wayfind*` map source, measured six
+seconds after the map exists. On `?clip=1`, `?autopilot=1` and `?sliderdemo=1`
+everything measures zero **with the import screen opened on purpose first** —
+"hidden because nobody opened it" is not the claim. `harness-drift.mjs`: 31
+scripts in both files, unchanged, because §9 needs no new `<script>` tag.
+
+Seventeen frames committed, 4.4 MB, every one of them cited by `docs/si-ui.md`
+and none of them named after somebody else's product. Three scratch drivers
+lived in `scripts/verify/_si-ui-*.mjs` and were deleted after the runs; scratch
+frames stayed in the scratchpad. Branch `acer/si-ui`, pushed, not merged.
+Server on 8913 killed and the port confirmed free.
+
+## 2026-08-24 — critic pass, round 5 on the schedule-import UI (`acer/si-ui`): oursWins = true, and a real gap found at a phone size nobody had tested
+
+Fresh context, own port (8953), own scripts, no memory of how hard this round
+was to build. Checked out `origin/acer/si-ui` at `305ca80` and drove the real
+`?walk=1` panel with playwright-core and real Chrome — not the builder's own
+screenshots, and not `docs/si-ui.md`'s word for any of it.
+
+**Every claim I could re-derive, I re-derived myself, and all of them held.**
+The forcing function: pulled the same 12 codes and called `window.wayfindSearch`
+myself after the graph loaded — 10 PRC codes plus SSW came back `[]` and HLB
+came back `{doors:0}`, matching the branch's sharper claim exactly (this cost
+one false start: calling `wayfindSearch` before the graph finishes its own
+~3 s background load returns `[]` for everything, including codes that do
+resolve once it's warm — an instrument-timing trap worth naming for whoever
+tests this file next). `wayfindRoute('JES','WEL')` still returns *450 m / 5-7
+min*, unchanged. `?walk=0` still drops every `wf-*` id, every `wayfind*`
+function, and every `input[type=file]` — zero of each, checked fresh. Capture
+hiding held on `.clip`, `.autopilot` and `.sliderdemo` alike, panel opened on
+purpose first, measured as zero bounding-box rather than trusted from
+`display:none` alone. The race fix holds under a real reproduction, not just
+the builder's word: opened a fresh page, opened the panel, pasted twelve UT
+rows and hit Import at both 300 ms and 8 s — identical `7 of 12 classes
+placed` both times. The `Show 6 more` control is real, not decorative: 0 rows
+visible before the click, 6 after. The real entry point works too — a literal
+`page.click('#wf-imp-entry')` on the actual search-sheet row opens the panel,
+not just the `window.wayfindImportOpen()` API the doc's own screenshots use.
+
+**The blind comparison was re-run from scratch, not inherited from round 4.**
+The panel changed shape this round (the fold fix, the race fix, the shade), so
+round 4's verdict doesn't automatically carry over. Fetched the same class of
+real bar this branch was honest about never obtaining itself: Google's own
+`customguide.com` Import & Export lesson (the real Settings panel, and the
+real "Imported 10 out of 10 events." dialog) and `howtogeek.com`'s Apple
+Calendar walkthrough (the real "Enter the URL of the calendar" dialog and the
+real post-subscribe sidebar). Cropped this branch's own `#wf-imp` panel at four
+matching moments, saved all eight images under neutral `pairX-A/B.png` names,
+shuffled the ours/bar assignment with `Math.random()` into a JSON file I did
+not read, wrote a preference and reasoning for all four pairs from the images
+alone, then revealed the mapping. **Preferred ours on all four, and every
+preference turned out to be ours**: the Google add screen, because it explains
+where the .ics actually comes from and is phone-shaped where Google's own
+Settings page is a generic desktop panel; the Google result, because it names
+each failure and why where Google's dialog is a bare "10 of 10" count with no
+room for a real partial failure to explain itself; the Apple add screen,
+because it covers Mac and iPhone and the webcal/https equivalence Apple's own
+minimal dialog assumes you already know; the Apple result, because it says
+something at all next to a native UI that just checks a calendar in a sidebar
+and calls it done.
+
+**oursWins = true.**
+
+**The single biggest remaining gap, concretely, and it is a real one this
+round did not find.** The fold/shade fix this round shipped was verified only
+at 390×844 and desktop 1280×800. `impFitList()` in `js/wayfind.js` only ever
+shrinks the number of visible `.wf-imp-row.ok` (placed) rows to make room —
+it never touches the `.wf-imp-row.bad` (failure) rows above them, and its exit
+condition (`rows.length <= IMP.minPeek`) gives up the moment zero placed rows
+remain, without ever checking whether the `Show N more` button itself ended up
+inside the visible body. On an iPhone SE / iPhone 8-class phone (375×667,
+common and untested this round) with the branch's own nine-event Google
+fixture — the exact fixture used for every screenshot in `docs/si-ui.md` —
+this reproduces the precise defect class the round's own writeup says it
+fixed: the third failure reason (`RHE 306`, no room) and the entire `PLACED 6`
+/ `Show 6 more` control render **100 px below the visible fold**
+(`moreTop:481` against `bodyBottom:381`, measured), reachable only by a scroll
+nothing on screen asks for except a 16 px CSS fade that is easy to miss at
+this size (confirmed present in computed style, `linear-gradient(to top,
+transparent 0px, black 16px)`, but visually subtle in an actual frame). Fix:
+make `impFitList()` also account for the height the failure rows are
+consuming — either by giving the failure list its own scroll allowance
+independent of the placed list, or by including `.wf-imp-row.bad` in what the
+fit loop is allowed to measure against — and add 375×667 to whatever
+viewport set this branch's own verification runs next time; 390×844 alone
+missed this.
+
+**What I looked at or measured:** the live page, not the diff — `js/wayfind.js`
+and `style.css` were read only to understand `impFitList`/`impShade` after the
+375×667 reproduction, never edited. Ten screenshots and one JSON results file
+in the scratchpad (not committed — CLAUDE.md rule 12; nothing here is cited by
+a doc, so nothing came into the repo). Five real bar images downloaded
+directly from `customguide.com` and `howtogeek.com`. Server on 8953 killed by
+PID, port reconfirmed free (`netstat` empty). One browser. Nothing the builder
+owns (`js/wayfind.js`, `style.css`, `index.html`, `_harness.html`) was edited;
+every scratch script (`scripts/verify/_critic-si-ui-*.mjs`, thirteen of them)
+was deleted before finishing. This entry is the only change on top of
+`305ca80`.
+
+## 2026-08-24 — round 6 on the privacy piece (`acer/si-privacy`): the walk is closed by default now, and the socket stayed silent
+
+Round 5's critic put a class title through a worker and onto a raw TCP socket
+with the guard armed, and the guard did not even count it. The line was
+`if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` — skip, no
+flag — defended by a comment saying a buffer "cannot hold a JS string".
+`TextEncoder` makes that false in one line.
+
+**Did not patch the third shape.** Rounds 4 and 5 each shut exactly the shape
+that had been demonstrated (a `Blob` body, then a `Blob` leaf) and left the next
+one open, so this round inverted the default instead. `scanStructured()` now
+recognises a closed list of node kinds it can genuinely read — string, array,
+plain object, binary, `Map`, `Set`, `RegExp`, `Error`, `Date`, wrappers — and
+**flags everything else as unread**. A `Blob`, a `File`, an `ImageData`, an
+`ImageBitmap` and every cloneable type the platform grows next all land in that
+default without needing a line of their own, because what they have in common is
+that a `for...in` walk sees nothing on them. Adding a type to the platform can
+make this guard over-refuse; it cannot make it under-refuse.
+
+**Binary is scanned, not skipped and not blocked, because blocking it was never
+available.** Measured first: one cold load pushes 4,742 `Uint8Array` leaves and
+22.5 MB of real MapLibre tile bytes through `Worker.postMessage`, median leaf
+4 KB. So `scanBytesForSchedule()` matches the watched tokens' bytes against the
+buffer's bytes, allocating nothing — no decode, no lowercase copy — in UTF-8 and
+UTF-16LE, behind a 65,536-entry two-byte prefilter.
+
+**A second silent bypass nobody had reported, found while fixing the first.**
+The walk gave up at `maxNodes`, returned `complete: false`, and every caller
+dropped it on the floor. 21 of this app's own messages per cold load exceed the
+old 4,000-node cap. Twenty-one payloads a load were sailing past uninspected
+with nothing recorded. Running out now refuses.
+
+**Two more holes this round found in its own probes rather than a critic's.**
+`fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams` form
+body both sailed past an armed guard, because a percent-encoded canary does not
+contain the canary — now retried decoded, gated on the string containing a `%`
+or `+` so tile URLs pay nothing. And `MessagePort` / `BroadcastChannel` were
+never inspected at all, which would have been the round-7 finding; a cold load
+makes zero calls to either, so closing them cost nothing measured.
+
+**Proved the way it was broken.** Bare TCP listener, guard's counters read
+before and after each probe, own canaries. Armed: the ArrayBuffer transfer
+refused, `blocked +1`, 30 bytes scanned, socket received **0 bytes**. Disarmed:
+the same probe went through, the worker's own `fetch` returned 204, and the
+socket read `Zygomorphic Percussion Seminar` verbatim — which is what makes the
+armed result mean anything. Sixteen more shapes in the table, all refused,
+including a real 16 KB MapLibre tile buffer that **still crosses untouched**.
+
+**And the map still draws.** Cold load with a schedule already on the device,
+guard armed, driven across five pan-and-zoom steps: `blocked: 0`,
+`truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`, 19,165 buffers and
+**141 MB** of tile bytes read by the guard and passed, `styleLoaded: true`,
+`tilesLoaded: true`. Frame committed at `shots/si/privacy/r6-map-guarded.jpg`.
+
+**One correction the first cap needed.** `workerScanNodes` was set to 400,000
+from a census taken on a page that loaded and then sat still, and it **blocked
+one of MapLibre's own payloads** the moment the camera moved. Re-measured under
+a punishing drive: 634,093 nodes in the largest real payload. Cap is 8,000,000
+now. The map came back red and that is why the number changed, not because the
+reasoning improved.
+
+**What it costs, and this round cannot say "nothing".** Minimum of three
+interleaved reps, time inside `Worker.prototype.postMessage` across a cold load:
+827 ms with a schedule stored against 261 ms with none — about 570 ms of extra
+main-thread work spread over a whole load, ~0.22 ms per message, to read ~20 MB.
+Only on a device that has a schedule. Two optimisation theories were measured
+and were wrong: widening the prefilter from 256 to 65,536 entries bought 6%, not
+the predicted order of magnitude (64 KB does not fit in L1, and bit-packing it
+to 8 KB was worse than both); and hoisting the walk out of a per-call closure
+made no difference at all (215 ms → 216 ms). Both are written into §8 rather
+than quietly dropped.
+
+**Also fixed the fabricated citation §7 has been carrying.** Round 3 sourced
+"SSW was demolished" to `docs/schedule-gaps.md`, which was on no branch at the
+time. That file is real now — rescued onto `main` on 2026-08-24 (`ed74cc3`) —
+and read directly it does argue demolition. But `docs/si-gaps.md` on
+`origin/acer/si-gaps` checked that conclusion and it is wrong: our
+`data/ut_buildings.json` is a 198-code snapshot, UT files SSW under its own
+main-campus path, and UT's two published SSW doors land 0.37 m and 2.45 m from a
+footprint this app already draws. SSW is a real current building our register
+copy is one row short of; the sibling lane fixed it and took the count 11 → 10.
+§7 now says that, with the sources it can actually open.
+
+Branch `acer/si-privacy`, pushed, not merged and no PR. `js/wayfind.js` passes
+`node --check`; `harness-drift.mjs` PASS 31/31; the doc's own citation gate
+(§11a) ALL PASS, 20 paths resolved. Nothing outside this lane's files was
+touched except this log. Every scratch script and every scratch frame stayed in
+the scratchpad; one frame is committed because §6 cites it. Server on 8951
+killed and the port re-confirmed free.
+
+## 2026-08-24 — round 7 on the privacy piece (`acer/si-privacy`): round 6 fixed half the default, and an array walked the rest of the way out
+
+Round 6 said it had stopped patching shapes and inverted the default. It had
+inverted half of it. The walk asked *which node kinds do I recognise* and got
+that right; it never asked *what does recognising one mean*. So the array branch
+still read `for (let i = 0; i < x.length; i++)` — an index loop, which is not
+what a structured clone does to an array — and this went out:
+
+```js
+const a = [1, 2, 3];
+a.note = classTitle;
+worker.postMessage({ a });     // guard armed → blocked: 0, opaque: 0
+```
+
+`structuredClone` carries a tacked-on property, the worker decoded it, and its
+own `fetch` put the title on a raw TCP socket verbatim. `blocked: 0,
+opaqueWorkerLeaves: 0` — **uncounted and unlogged**, the exact reading round 5
+got from the ArrayBuffer hole that round 6 existed to close, sitting inside the
+one branch round 6's own comment called fully read. Five variants leaked: an
+array in an object, a bare top-level array, an `Array` subclass, a sparse array,
+and a whole object tree hanging off an array property.
+
+**Fixed by the rule rather than the case.** For every kind the walk claims to
+read, it now reads exactly what the clone algorithm reads. For `Array` and for a
+plain object that is the same thing — own enumerable properties — so they are
+one loop now and an array is no longer the special case that got optimised into
+being wrong.
+
+**A second hole, in the half of the guard nobody was looking at.** Round 6 built
+a byte scanner that reads UTF-8 *and* UTF-16LE and wired it to one of the two
+doors. `fetch(sink, { body: utf16leBufferOfTheTitle })` came back **204** on the
+socket with the guard armed, while the same title UTF-8-encoded was refused.
+Network bodies now go through the same byte scan, and `inspect()` takes the body
+as the caller had it rather than a string the caller already flattened.
+
+**Four doors that were never inspected at all**, each returning `checked: 0`
+against an armed round-6 guard: `window.postMessage`,
+`iframe.contentWindow.postMessage`, `navigator.serviceWorker.register(url)`,
+`RTCDataChannel.send`. The iframe one carries a fact worth keeping — **a
+same-origin child iframe is a separate JavaScript realm with its own
+intrinsics**, so patching our `Window.prototype` never reaches it and its own
+`fetch` reaches the network the way a worker's does. The guard now follows the
+reference into any child realm this page holds a handle on.
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, counters read
+before and after each probe. Armed: all seventeen shapes refused and the socket
+received nothing. Disarmed: every one of them put `Palaeobotanical Ensemble
+Studio` on that socket verbatim, which is what makes the armed column mean
+anything. `<img src>` still reaches the wire and is still a named residual in §9,
+not a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom legs:
+`blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+**15,351 buffers and 122.5 MB of real tile bytes read and passed**,
+`styleLoaded`/`tilesLoaded` true. Frame at `shots/si/privacy/r7-map-guarded.jpg`.
+
+**What it costs — and the two measurements disagree, so both are written down.**
+On the real city there is **no result**: three interleaved reps each way, guard
+time across an identical drive, 0.250–0.271 ms/message against 0.213–0.273, and
+overlapping spreads mean no result. Isolated on a fixed payload it is real: a
+600,000-element numeric array is **103.4 ms/message against 13.6**, 7.6×. Both
+are true because MapLibre's real payloads are binary and the byte scan of ~120 MB
+dwarfs the walk. The obvious speed-up — `Object.keys(x).length !== x.length` as a
+"has extras" test — was rejected for being **unsound**, not slow: an array with
+both a hole and an extra has the two cancel (`length` 3, keys `['0','1','note']`),
+and that shape is now a probe so nobody reintroduces it.
+
+**§7's citation was already right.** Round 6 had fixed the fabricated
+`docs/schedule-gaps.md` reference; re-read both sources this round to confirm it.
+`docs/schedule-gaps.md` is real on `main` (`ed74cc3`) and does argue demolition;
+`docs/si-gaps.md` on `origin/acer/si-gaps` checks that and shows SSW is a current
+main-campus building our 198-code register is one row short of, with UT's two
+published doors 0.37 m and 2.45 m from a footprint this app already draws. §7
+says that, and the doc's own citation gate is ALL PASS at 21 paths.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check` clean;
+`harness-drift.mjs` PASS 31/31; the storage path re-driven end to end after the
+`inspect()` rewiring (panel empty → save → real click on Delete → a genuinely
+fresh document finds nothing → feature off is still off), 9/9. Nothing outside
+this lane's files touched except this log. Every scratch script and frame stayed
+in the scratchpad; one frame is committed because the doc cites it. Server on
+8951 killed and the port re-confirmed free.
+
+## 2026-08-24 — round 8 on the privacy piece (`acer/si-privacy`): the same bug for the fifth time, so this round fixed the shape of it
+
+Rounds 4, 5, 6 and 7 each found one hole, and read like four different
+oversights. They are one: **a check that exists, is correct, and is wired to one
+of the two doors.** So round 8 stopped asking what shape is unhandled and asked,
+for every capability the guard has, which doors it is wired to. Two answers came
+back wrong and both put a class title on a raw TCP socket with the guard armed.
+
+**One. The decode retry was wired to the network door only.** Round 6 found that
+a percent-encoded canary does not contain the canary — and fixed it in a
+*second* function, called from the URL and body paths. The worker walk kept
+calling the raw one, and so did the top-level string branch and the `RegExp`,
+`Error` and boxed-`String` branches. `worker.postMessage({ t:
+encodeURIComponent(title) })`: **ten shapes crossed at `blocked: 0, opaque: 0`**
+— uncounted and unlogged, the identical reading round 5 got from the
+ArrayBuffer hole and round 7 got from the array hole — and six of the ten landed
+`Thaumaturgical Marimba Rhetoric` on the listener verbatim after the worker
+decoded them.
+
+**Two. Request headers had never been inspected by anything, ever.** `inspect()`
+is handed a method, a URL and a body, and nobody had ever handed it the headers.
+`fetch(sink, { headers: { 'X-Sched': title } })`, the same through a `Headers`
+object, and `xhr.setRequestHeader` all came back 204 at `blocked: 0` with the
+title on the wire. Not exotic — attaching a context header is what every
+analytics library does, which is the exact scenario this guard exists for. Worth
+naming what nearly hid it: `fetch(new Request(url, { headers }))` **was**
+refused, by round 5's unreadable-body rule on the Request's stream body, having
+never looked at a header. A guard can pass a probe for the wrong reason.
+
+**The fix is the shape, not the cases.** There is now exactly ONE function
+anybody can call to ask whether a string carries the schedule, and it does the
+whole job. The raw test still exists, is not exported, and has precisely one
+caller: that function's own retry. Wiring the weak version to a new door is no
+longer possible, because the weak version has no name a caller can reach. The
+byte scanner cannot decode its haystack — percent-decoding 120 MB of tile bytes
+a load is not a thing to do on the tile path — so **the needle carries the
+encodings instead**, which costs nothing in the hot loop and almost nothing in
+the prefilter. And `inspect()` takes a LIST of header sources, never one,
+because `fetch(new Request(u, {headers}), {headers})` has two and picking either
+is how this class of bug starts.
+
+Two more doors of the same family closed while the file was open, both strings
+that reach the wire and neither ever scanned: a **WebSocket's subprotocols**
+(they travel as `Sec-WebSocket-Protocol` in the handshake) and an
+**`RTCDataChannel`'s label** (carried in the SDP, so the name alone is a leak
+that never calls `send`).
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, the guard's
+counters read before and after each probe. Armed: all fourteen shapes and all
+six channels refused, and the socket received nothing. Disarmed: every one of
+them carried and the socket read the canary back — which is what makes the armed
+column mean anything. Round 7's own probe re-run unchanged on round 8's code:
+**no shape leaks**, and the only channel still on the wire is `<img src>`, which
+is a named residual in §9 rather than a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom
+legs: `blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+`unreadableHeaders: 0`, **15,413 buffers and 120.1 MB of real tile bytes read and
+passed**, `styleLoaded`/`tilesLoaded` true. Frame at
+`shots/si/privacy/r8-map-guarded.jpg`.
+
+**What it costs, and the A/B is a true one this round.** `--baseline` serves the
+round-7 `js/wayfind.js` to the page and changes nothing on disk, so the only
+difference is the round-8 diff — and the R7 rows self-check, because they carry
+no `headersScanned` field at all. On the real city there is **no result**: three
+interleaved, counterbalanced reps each way, 0.261–0.332 ms/message against
+0.244–0.298, and overlapping spreads mean no result. Isolated it is real:
+20,000 string leaves cost **1.30×** when the new gate never fires and 2.63× when
+it fires on every one — and 1.30× is the row this app pays, because MapLibre's
+payloads are binary and a byte scan of 120 MB does not notice 0.3 µs a leaf.
+
+**One prediction in the doc was wrong and the correction is written next to
+it.** The header change was written up as costing nil, because this app sets one
+header on one request in its whole source. True of the source, false of the
+traffic: measured, the guard reads headers on **248–411 requests per drive**,
+because MapLibre passes a headers object on essentially every tile fetch.
+Nothing is broken by it, but the claim had been read off the code instead of
+run.
+
+**§7's citation is still correct** — round 6 replaced the fabricated
+`docs/schedule-gaps.md` reference and round 7 re-checked it; re-read both
+sources again this round. `docs/schedule-gaps.md` is real on `main` (`ed74cc3`)
+and does argue demolition; `docs/si-gaps.md` on `origin/acer/si-gaps` checks it
+and shows SSW is a current main-campus building our 198-code register is one row
+short of. The doc's own citation gate is ALL PASS at 22 paths.
+
+**A landmine for whoever integrates these five branches.** `js/wayfind.js` is
+committed with LF endings and `core.autocrlf` is true on this machine, so an
+editor that writes CRLF turns a 230-line change into a **19,932-line whole-file
+diff** that `git status` will not warn about until you touch the file. It read
+as a full rewrite here until the file was converted back to LF, at which point
+the same edits diffed as 230 insertions and 34 deletions. Check
+`git diff --stat` before committing this file, and if it is four figures, that
+is why — not your edit.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check`
+clean; `harness-drift.mjs` PASS 31/31; the storage path re-driven end to end
+after the `inspect()` rewiring (panel empty → save → real click on Delete → a
+genuinely fresh document finds nothing → feature off is still off), 9/9. Nothing
+outside this lane's files touched except this log. Every scratch script and
+frame stayed in the scratchpad; one frame is committed because the doc cites it.
+Server on 8951 killed and the port re-confirmed free.
+
+
+## 2026-08-25 — all five schedule-import lanes merged and driven end to end (`acer/si-combined`, pushed, NO PR)
+
+The five pieces merge cleanly and the feature does not work. That sentence is
+the whole result, and both halves of it are measured.
+
+**The merge is clean.** `si-gaps` → `si-dayview` → `si-parser` → `si-ui` →
+`si-privacy` onto a fresh branch off `origin/main`. Four of the five append a
+whole new section to `js/wayfind.js` at the same anchor, so every conflict was
+"two complete sections, one insertion point" and every one was resolved by
+keeping both in merge order. Checked rather than claimed: of the 307 / 1546 /
+1351 / 1243 / 1834 lines the five branches add to that file, exactly **one** is
+not in the merged result, and it is one this pass deliberately changed. No two
+lanes declare the same name in the shared scope — no top-level collisions, no
+`window.*` collisions, none with `main` either.
+
+**The CRLF landmine is real and now root-caused.** It fired on the privacy
+merge: a 1,834-line change presenting as 14,519 insertions / 12,685 deletions.
+The cause is not `core.autocrlf` by itself — it is a **raw 0x00 byte** sitting
+in a string literal in the privacy section's dedup key. Git calls any file
+containing a NUL binary, and binary files are exempt from autocrlf
+normalisation, so for that one file the round trip silently stopped happening.
+It is also why `grep` answers "Binary file js/wayfind.js matches". Replacing the
+raw byte with its six-character escape (identical string value, checked in node)
+made the file text again and the diff went to a clean 1,834 insertions, 0
+deletions. That is the only line of anyone's code this pass altered.
+
+**What the merged tree actually does, driven through the real UI on a phone.**
+A real UT Registration Plus .ics, six classes, four on Tuesday, one of them at
+`MER 1.906` on the Pickle campus. The import screen reads it, places 5 of 6, and
+names the sixth: *"Microelectronics & Engineering Research — Pickle Research
+Campus, about 11 km north of here, outside the city this app models."* That is
+`si-gaps`'s fact in `si-ui`'s sentence across a branch boundary with no
+coordination, and it is the best thing in the round. The day view, given a
+schedule in the shape it accepts, lays out the whole Tuesday in order with the
+next leg marked, and clicking a leg draws the ribbon and prints the answer bar
+the single-leg feature already shipped — same numbers as the row it came from.
+Nothing leaves the device: every request made while the schedule was on screen,
+captured at context level and on a raw socket, and scanned for seventeen strings
+out of the fixture, came back clean — after the instrument was shown catching
+the same strings fired through `fetch`, `sendBeacon` and a real `Worker` with the
+guard disarmed.
+
+**And then the seams.** Four lanes each wrote a hook for a lane that did not
+exist yet, and when the real one arrived it had a different shape:
+
+* the import screen calls `wayfindParseSchedule` and keeps the answer only if
+  `Array.isArray(r)` — the parser ships it `async` returning an object, so the
+  test never passes and **every import in this tree is read by the fallback
+  decoder si-ui wrote for the case where the parser had not landed**. On the
+  parser's own `manual-paste.txt` that is 2 classes placed instead of 5;
+* the day view reads `schedule.events`, the import publishes `schedule.classes`
+  — so `wayfindDayFromSchedule(window.wayfindSchedule)` returns `why: 'empty'`,
+  and the day-plan button, whose label says *"Import my class schedule"*, shows a
+  **hard-coded demo of four classes that are not yours**;
+* **nothing calls `WAYFIND.store.save()`.** After a successful import
+  `localStorage` holds only the graphics key. A reload loses the schedule,
+  *Delete my schedule* has nothing to delete, and the egress guard — which arms
+  its watchlist off the *stored* schedule — is on its fast path with
+  `watched=0` during the one event it was built for;
+* si-ui carries its own hard-coded unreachable list that still says SSW has no
+  door, which is the exact building `si-gaps` spent round 3 fixing. The search
+  box takes you there; the import screen says it cannot;
+* `dayPlace()` tests `entry.routable` before `entry.offMap`, and `si-gaps` put
+  the Pickle codes into `search()`, so the day view now gives a Pickle building
+  the *wrong* excuse — "nothing is mapped to walk to" instead of "11 km north";
+* and both lanes appended their own way in to the same sheet, so it now offers
+  two buttons that say almost the same sentence, with 157 px past the fold on a
+  390x844 phone taking the privacy line, the Delete button and the OSM credit
+  with them. Measured in the page: 494 px of content in a 337 px sheet with
+  `overflow-y: hidden`; without this round's three additions the same content is
+  279 px and fits.
+
+None of that is a lane doing bad work, and no attempt was made to fix it here —
+wiring five separately-judged pieces together with unreviewed integration code
+would be the one thing this process exists to avoid. `docs/si-integration.md`
+has each defect with its line number, its measurement and the change it needs,
+so the wiring can be built as its own piece and put through the same bar.
+
+**The gate, on the merged tree.** `harness-drift.mjs` PASS 31/31.
+`walkmeter.mjs` PASS with every number reproducing the record — 87.0 m route
+extra, 90.6 m door extra, 38/38 ends at the right door, 0.00 m self-check drift
+on all twenty pairs, live UI gate pass. "UT buildings this build cannot route to
+at all" goes **11 to 10** against `origin/main`'s recorded eleven; the ten that
+remain are all at Pickle. `wayfindRoute('WEL','PAI')` still returns 291 m on a
+page nobody imported on. `?clip=1`, `?autopilot=1&preset=cinematic` and
+`?sliderdemo=1&preset=cinematic` at 390x844 with touch show no walk UI, no
+day-plan button, no import row and no privacy footer, with zero console errors,
+and all three are photographed. The plain page carries none of the feature in the
+DOM at all and the OSM attribution is visible. `WAYFIND.on` untouched.
+
+39 gates pass, 11 fail, and every failure is a seam between two lanes rather
+than anything inside one. Branch `acer/si-combined` pushed. **No PR and not
+merged to main** — that is the next stage's call, and on this evidence the
+answer to "is it safe to ship" is no, not yet. New in this branch:
+`scripts/verify/si-integration.mjs`,
+`scripts/verify/schedule-fixtures/integration-tuesday.ics`,
+`docs/si-integration.md`, and eleven frames the doc cites. One browser, killed on
+exit; server on 8971 stopped and the port re-confirmed free.

@@ -1,5 +1,94 @@
 # Austin 3D Explorer — Full Handoff
 
+## 183. Aug 25 2026 — the import screen stopped keeping its own list of buildings, the day view stopped calling Pickle a missing door, and Delete came back onto the phone (branch `acer/si-combined`, `docs/si-fold.md` + `docs/si-doors.md`)
+
+`si-integration.mjs`: **45/50 → 49/50**. The one still red is the taste half of
+SI4 and it is Simeon's — one picture, `shots/si/doors/two-doors-vs-one.jpg`, and
+the choice written out in plain words in `docs/si-doors.md`. Nothing was applied
+for it.
+
+- **SI5.** The import screen carried its own twelve-row table of unreachable
+  building codes. Every row was measured honestly the day it was written — and
+  then `si-gaps` made SSW and HLB routable and the screen went on refusing them,
+  because the answer had been remembered instead of asked for. Table deleted;
+  `impPlace()` asks `wayfindOffMap()` and `wayfindSearch()` instead, which cannot
+  go stale because they ARE the router. **The unroutable count reads 10 and all
+  ten are Pickle** (`gaps-recheck.mjs` and `walkmeter.mjs` agree, independently);
+  the screen now answers SSW, HLB and GDC `ok`, the ten Pickle codes `offmap`
+  with a per-building distance, and nothing `nodoor`. The distance and the
+  building's name now come off the same record the day view measures from, so the
+  two surfaces cannot drift.
+- **SI6, and it really was one line.** `dayPlace()`'s `nodoor` clause is now
+  `if (entry && !entry.offMap)`, so an off-map entry falls through to the branch
+  that was already there and already right. MER's row went from "It is in the
+  building list, but nothing is mapped to walk to" — the sentence for a building
+  on this campus — to "MER is 11.1 km north of campus — off this map". One thing
+  went with it, said out loud rather than buried: the day view prints no
+  building-name line for an off-map class (its own design), so that row lost the
+  words "Microelectronics & Engineering Research Center". The name is sitting in
+  `entry.display` now if the day-view lane wants it.
+- **SI4, measurable half.** The panel was 337 px tall around 494 px of content
+  with `overflow-y: hidden` — 157 px unreachable, and in them the privacy
+  promise, the Delete button and the OpenStreetMap credit. Ceiling raised to the
+  `84vh` the import screen already uses (named `--wf-sheet-vh`, one line to
+  move; the bottom edge does not move, so the joystick rule is untouched) **and**
+  the panel scrolls, with the close button made sticky so the way out cannot
+  scroll off. Honest about what that buys: with nothing imported everything is on
+  screen and nothing scrolls; after a real import and a reload the content is
+  548 px against 523 px of phone — the privacy line and Delete are on screen at
+  rest, the map credit takes a 27 px swipe. **548 does not fit and no ceiling
+  makes it fit**; 100vh minus the clearances above and below is 538. One door
+  instead of two is worth 66 px and would close it, which is why the taste
+  question is worth answering. Frame: `shots/si/fold/sheet-phone-fixed.jpg`,
+  instrument: `scripts/verify/si-fold-shots.mjs`.
+
+Untouched and re-verified on this tree: `WAYFIND.on` still `false`; the
+parser/day-view/store seam not touched; `walkmeter.mjs` 87.0 m / −393.7 m /
+38 of 38 / drift 0.00 m / 0 route errors / live UI gate PASS; `harness-drift`
+PASS; `dayview.mjs` 100 ok / 2 failed, the same two the merge itself causes.
+
+## 182. Aug 25 2026 — the three schedule-import seams closed: the screen now calls the parser, the day view shows YOUR classes, and an import is actually saved (branch `acer/si-combined`, `docs/si-seams.md`)
+
+SI1, SI2 and SI3 were one job, not three — all three were the same question,
+which object shape crosses the seam between the parser and everything
+downstream. **The parser's `ut-walk-schedule` object is that shape**, because it
+is the only producer carrying `startMin`/`endMin` as numbers and per-row
+`problems[]`, and both consumers need exactly those. The argument in full,
+including what was NOT chosen and what the decision costs, is in
+`docs/si-seams.md` §0.
+
+- **SI1**: `impRawRows()` is async and awaits the parser; its `events[]` are
+  adapted down to the rows `impPlace()` reads. The stand-in decoders survive as
+  a genuine fallback for when the parser throws. **2 of 7 classes placed → 5.**
+- **SI2**: the published object carries `events`, `#wf-day-btn` asks for the
+  imported schedule first, and the `wayfind:schedule` listener that never
+  existed now exists. The demo can only appear when nothing has been imported,
+  and when it does it says `EXAMPLE` in the header and "sample data, not your
+  schedule" in the footer. Frames: `shots/si/seams/`.
+- **SI3**: `impUse()` calls `WAYFIND.store.save()`. A reload keeps the import
+  (the store republishes it), Delete has something to delete, and the SHIPPED
+  egress guard now arms off a real import — **watched 0 → 30, worker messages
+  inspected 0 → 107**.
+
+`si-integration.mjs`: **39/50 → 45/50**. The five that remain are SI4 (3), SI5
+and SI6, none of them this pass's scope. One instrument in that gate was
+corrected and it is flagged in the doc: gate 1 asserted `Array.isArray()` on the
+parser's return value, which is false by construction for an `async` function
+however the screen behaves — with the gate left exactly as it was the number is
+44/50, and both numbers are published.
+
+Untouched and re-verified: `WAYFIND.on` is still `false`; `walkmeter.mjs`
+reproduces 87.0 m / −393.7 m / 38 of 38 with zero drift; `dayview.mjs` is
+100 ok / 2 failed, byte-identical to its baseline on this tree with the changes
+reverted (both failures are the merge's, not ours).
+
+**Still open on this branch, and one of them is worse than it looks**: SI4's
+`overflow-y: hidden` clips 157 px off the bottom of the sheet on a 390 px
+phone, and the Delete control is inside that 157 px. **A student on a phone
+cannot currently tap Delete.** That makes SI4 a privacy defect, not only a
+layout one. The one-door-or-two half of SI4 is still Simeon's taste call.
+
+
 ## 180. Aug 23 2026 — the K7 round, judged and shipped: the sweep's three defects all closed, the floater family named object by object, and the judging itself found a fourth (ship lane, branch `acer/k7-ship`)
 
 Four lanes ran on the first finished sweep's findings (`acer/k7-floater`,

@@ -1077,6 +1077,20 @@
     graphUrl: 'data/walk_graph.json',
     registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
                            // codes the graph lacks still deserve an answer
+
+    // ── THE CODES THE REGISTER FILE ITSELF MISSES ─────────────────────────
+    // Two switches, one each for the two tables below §4b. Both default on;
+    // either one off restores the behaviour this file had before 2026-08-24,
+    // which was to answer `notfound` — the same word a typo gets.
+    campusExtraCodes: true,  // a code UT surveys and files as main campus that
+                           // `registerUrl`'s snapshot does not list. SSW.
+    offMapCodes: true,     // a code UT surveys at a campus this app does not
+                           // draw. The ten at Pickle, 11 km north.
+    // ROUND 3 — materialise doorSet()'s rule-4 door AT INDEX TIME for the two
+    // buildings that route only through it, so the search list can offer them
+    // instead of greying them out. Measured before it was believed: §4c and
+    // docs/si-gaps.md §6. Off restores the round-2 behaviour exactly.
+    utDoorsIndexed: true,
     minZoom: 13,
   };
 
@@ -2259,6 +2273,39 @@
         entries.push(e);
       }
     }
+    // THE TWO MERGES THE REGISTER MERGE ABOVE CANNOT DO, because the register
+    // file does not contain these codes to merge (§4b). Both run AFTER it and
+    // both skip anything already indexed, so neither can take a code away from
+    // the register or from the graph — they can only fill a hole the register
+    // left. Order matters only in that direction.
+    if (WAYFIND.campusExtraCodes) {
+      for (const row of CAMPUS_EXTRA) {
+        if (byCode.has(row[0])) continue;
+        // `reg: true` on purpose. This IS a register building — ours is the
+        // register snapshot that is short a row — so it deserves the same
+        // "findable, and honestly answered if it will not route" treatment,
+        // and doorSet()'s rule 4 will in fact route it from UT's own door.
+        const e = { kind: 'reg', reg: true, extra: true, code: row[0],
+          name: norm(row[1]), number: row[2] || '', display: row[1], doors: [] };
+        byCode.set(row[0], e);
+        entries.push(e);
+      }
+    }
+    if (WAYFIND.offMapCodes) {
+      for (const r of offMapIndex().values()) {
+        if (byCode.has(r.code)) continue;
+        // NO `reg` FLAG, and that is the point of the whole table: a register
+        // entry means "not walkable in this build YET", which is a promise.
+        // This one is not walkable in any build, because it is not in this
+        // city. The record rides along on the entry so anything that resolves
+        // the code — the route card, the search list, a schedule import — has
+        // the reason in hand without a second lookup.
+        const e = { kind: 'offmap', offMap: r, code: r.code,
+          name: norm(r.name), number: '', display: r.name, doors: [] };
+        byCode.set(r.code, e);
+        entries.push(e);
+      }
+    }
     for (const e of entries) {
       // TOKENS COME FROM BOTH NAMES, NOT ONE (QUEUE Z9). The index key and the
       // door's own register name genuinely differ — JCD is `jester residence
@@ -2271,6 +2318,86 @@
       for (const w of norm(e.display).split(' ')) if (w) t.add(w);
       e.tokens = Array.from(t);
       e.routable = e.doors.some(di => g.doors[di][2] && g.doors[di][2].length);
+      // ── `routable` IS NARROWER THAN THE ROUTER, AND SAYING SO COSTS NOTHING
+      //
+      // `e.routable` means "has a door OUR BAKE anchored". That was the whole
+      // truth when it was written and stopped being it when doorSet() grew
+      // rule 4 — walk to UT's own coordinate when we have no door of our own.
+      // Since then two buildings have routed perfectly well while the search
+      // list greyed their row out and refused to let anybody pick it.
+      //
+      // MEASURED rather than argued: exactly two entries are in that state —
+      // HLB (PCL -> HLB, 1339 m) and SSW (JES -> SSW, 660 m). Both route. The
+      // set is small because rule 4 needs UT to have surveyed the building AND
+      // our bake to have missed it, which is a narrow overlap.
+      //
+      // THIS FLAG CHANGES NO BEHAVIOUR ON PURPOSE. Widening `routable` itself
+      // was tried and reverted: the row became pickable and then read
+      // "0 doors", because renderList() counts `e.doors`, which is empty for
+      // exactly these two until virtualDoor() runs at route time. Both the
+      // count and the tag live in the copy/render block this lane does not
+      // own, so the honest move is to publish the fact and let that lane make
+      // one coherent change. The patch is written out in docs/si-gaps.md §6.
+      //
+      // `utTruth` and not `utIndex`, so the useUTSurvey gate applies here
+      // exactly as it does on the routing path. `!e.offMap` because a Pickle
+      // building has UT rows and still cannot be reached — virtualDoor() finds
+      // no node within utVirtualSnapM of a point eleven kilometres away.
+      e.utRoutable = !e.routable &&
+        !!(!e.offMap && WAYFIND.utVirtualDoors && utTruth(e.code));
+    }
+    // ── §4c. AND THEN ROUND 3 SHUT THAT GAP INSTEAD OF DESCRIBING IT ───────
+    //
+    // The paragraph above says publishing the fact is the honest move. It was
+    // half right: `utRoutable` costs nothing and it also FIXES nothing — a
+    // student who types SSW still gets a grey row that will not open, and a
+    // schedule import that hands the search box a code gets the same. The
+    // reason the row reads "0 doors" was never a copy problem. `e.doors` is
+    // simply EMPTY until virtualDoor() runs at route time.
+    //
+    // So run it here instead. The list then counts real doors, `routable` is
+    // true because those doors really are anchored to the network, and the
+    // copy/render block this lane does not own needs no change at all.
+    //
+    // THE TRAP THIS NEARLY WALKED INTO. virtualDoor() snaps DIFFERENTLY with
+    // "avoid stairs" on — the anchor has to sit in the step-free component
+    // (utVirtualStepFree). Filling `e.doors` hands doorSet() a non-empty
+    // `all`, so it stops taking its `!pool.length` branch, and that branch is
+    // where the step-free re-snap lives. Giving an avoid-stairs walker the
+    // stair-climbing anchor is the exact bug utVirtualStepFree exists to
+    // prevent, reintroduced one level up.
+    //
+    // It does not happen, because of a line that was already there:
+    // doorSet() filters the pool through stepFreeDoor(), which keeps a door
+    // only when one of its anchors is in the big step-free component. If the
+    // plain snap landed somewhere a step-free walker can stand, using it is
+    // correct; if it did not, the pool empties and the `!pool.length` branch
+    // re-snaps exactly as before. MEASURED, not reasoned: with this switch
+    // off and on, all 67 UT-surveyed buildings return the identical candidate
+    // doors AS COORDINATES in both stairs modes, and walkmeter's stairs and
+    // reachability rows do not move. docs/si-gaps.md §4.
+    //
+    // Scope, measured on this graph rather than assumed: `utRoutable` is true
+    // for exactly two entries — HLB and SSW — so this loop makes at most
+    // three node scans, once, at load.
+    if (WAYFIND.utDoorsIndexed) {
+      for (const e of entries) {
+        if (!e.utRoutable) continue;
+        const truth = utTruth(e.code);
+        if (!truth) continue;
+        const made = [];
+        // avoidStairs FALSE on purpose — see the trap above. The step-free
+        // variant stays lazy so it is snapped under its own constraint.
+        for (const t of utWant(truth, false)) {
+          const v = virtualDoor(g, e, t, false);
+          if (v >= 0 && made.indexOf(v) < 0) made.push(v);
+        }
+        if (!made.length) continue;
+        e.doors = made;
+        e.utIndexed = true;          // provenance: UT's own coordinate, not a
+                                     // door this project's bake ever placed.
+        e.routable = e.doors.some(di => g.doors[di][2] && g.doors[di][2].length);
+      }
     }
     g.entries = entries;
     g.byCode = byCode;
@@ -2608,6 +2735,169 @@
     }
     return { doors: UT_CELEBRATED.length, buildings: codes.length, codes };
   };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4b. THE CODES `registerUrl` DOES NOT COVER — AND WHY THEY GET AN ANSWER
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // A class schedule is a list of building CODES. Import one and every code in
+  // it lands in exactly one of four buckets, and until 2026-08-24 two of those
+  // four buckets were the same silence:
+  //
+  //   1. routable                 136 of the 209 codes a schedule can name
+  //   2. known, not walkable yet   62  — the register merge above already
+  //                                     gives these the honest sentence
+  //   3. real, but not on this map  10  <- said `notfound`, i.e. "you typed it
+  //   4. not a UT code at all        —      wrong". So did bucket 4.
+  //
+  // Buckets 3 and 4 reading identically is the whole defect. A student whose
+  // Tuesday 2 pm is at MER should be told MER is eleven kilometres north at
+  // another campus, not that MER does not exist. The two tables below are the
+  // only thing standing between those two answers, and they exist because
+  // `data/ut_buildings.json` — UT's own register, retrieved 2026-08-05 — is a
+  // MAIN-CAMPUS snapshot: 198 codes, none of them at a satellite campus, and
+  // (measured, not assumed) missing one main-campus building outright.
+  //
+  // MEASURED 2026-08-24, on this repo's own files, before either table existed:
+  // eleven UT-surveyed codes answered `notfound`. Every one of them was put
+  // through the same two questions — how far is UT's own surveyed door from
+  // the nearest node of `data/walk_graph.json`, and is there a footprint in
+  // the snapshot the app actually draws:
+  //
+  //   SSW   nearest walk node  37.4 m   both UT doors land 0.4 m and 2.5 m
+  //                                     from the edge of ONE drawn footprint
+  //                                     (id 3fcbe266-…, h 9.8 m, unnamed)
+  //   the other ten          9.6–10.6 km to the nearest node; no footprint
+  //                                     within 200 m of any of them
+  //
+  // Three orders of magnitude apart, so they are two different problems and
+  // they get two different tables. Full working: docs/si-gaps.md.
+
+  // The middle of the Forty Acres, for saying how far away "away" is. It is
+  // the Main Building's OWN surveyed door out of UT_CELEBRATED above ('MAI
+  // 30.286023 -97.739757') rather than a second hand-typed coordinate, so
+  // there is exactly one place a campus centre can be wrong.
+  const OFF_MAP_ORIGIN = ['MAI', -97.739757, 30.286023];
+
+  // ── TABLE A: on this map, surveyed by UT, absent from the register ────────
+  //
+  // `[CODE, display name, UT building number]`.
+  //
+  // SSW is the only member, and it is not a special case bolted on — it is the
+  // register file being incomplete. UT files SSW as main campus (its own
+  // maps.utexas.edu record redirects to the `UTM` path, not the `PRC` one; see
+  // docs/import-bar-ut.md, which checked three public sources). Our register
+  // snapshot simply does not list it, so the register merge never made an
+  // entry, so `resolve('SSW')` returned null, so `doorSet()`'s rule 4 — walk to
+  // UT's own coordinate when we have no door of our own, the rule that already
+  // makes HLB work — never got the chance to fire.
+  //
+  // NOTHING ELSE IS NEEDED. Adding the entry is the entire fix: UT_CELEBRATED
+  // already carries SSW's two doors, and `utVirtualSnapM` (75 m) already
+  // reaches the network from both of them.
+  const CAMPUS_EXTRA = [
+    ['SSW', 'School of Social Work Building', '0625'],
+  ];
+
+  // ── TABLE B: a real UT building, at a campus this app does not draw ───────
+  //
+  // `[CODE, display name, campus]`.
+  //
+  // The coordinate is deliberately NOT repeated here — it is read back out of
+  // UT_CELEBRATED, which already has every one of these, so the distance below
+  // cannot drift away from the survey. Names are UT Direct's own Pickle
+  // Research Campus building index, quoted in docs/import-bar-ut.md.
+  //
+  // ROUTING TO THESE IS NOT THE FIX AND WOULD BE A LIE: there is no pavement
+  // in `data/walk_graph.json` within nine kilometres of any of them. Saying so
+  // is the fix.
+  const OFF_MAP_CAMPUS_PICKLE = 'J.J. Pickle Research Campus';
+  const OFF_MAP = [
+    ['BE1', 'BEG Lab Building', OFF_MAP_CAMPUS_PICKLE],
+    ['BEG', 'BEG Main Building', OFF_MAP_CAMPUS_PICKLE],
+    ['EME', 'Electro-Mechanical Engineering Research Center', OFF_MAP_CAMPUS_PICKLE],
+    ['FS1', 'Ferguson Engineering Lab Annex', OFF_MAP_CAMPUS_PICKLE],
+    ['FSL', 'Ferguson Laboratory — Main Building', OFF_MAP_CAMPUS_PICKLE],
+    ['MER', 'Microelectronics & Engineering Research Center', OFF_MAP_CAMPUS_PICKLE],
+    ['PX3', 'PETEX', OFF_MAP_CAMPUS_PICKLE],
+    ['ROC', 'Research Office Complex', OFF_MAP_CAMPUS_PICKLE],
+    ['SV1', 'PRC Service Center Trades', OFF_MAP_CAMPUS_PICKLE],
+    ['TCB', 'J. Neils Thompson Commons', OFF_MAP_CAMPUS_PICKLE],
+  ];
+
+  // Eight points is as fine as a direction can honestly be for a place eleven
+  // kilometres away that the reader cannot see on the map anyway.
+  const COMPASS_8 = ['north', 'northeast', 'east', 'southeast',
+    'south', 'southwest', 'west', 'northwest'];
+
+  let offMapByCode = null;
+  /**
+   * What we know about a code that names a building this map does not draw:
+   * its name, its campus, UT's own coordinate for it, and how far and which
+   * way that is from the middle of campus.
+   *
+   * Everything derived is derived HERE rather than stored, so the table above
+   * holds only facts that are not computable from another fact in this file.
+   * `km` uses the same flat MPD_LON/MPD_LAT this whole file routes with; over
+   * a span that is 99% north-south the longitude term barely participates and
+   * the error against a great circle is under a metre.
+   */
+  function offMapIndex() {
+    if (!offMapByCode) {
+      offMapByCode = new Map();
+      for (const row of OFF_MAP) {
+        const ut = utIndex().get(row[0]) || [];
+        const p = ut.length ? ut[0] : null;
+        let km = null, dir = null;
+        if (p) {
+          const dx = (p.lon - OFF_MAP_ORIGIN[1]) * MPD_LON;
+          const dy = (p.lat - OFF_MAP_ORIGIN[2]) * MPD_LAT;
+          // Two decimals. A reader is going to see "11 km"; more precision
+          // than a centidegree of it would be false confidence in a straight
+          // line nobody walks.
+          km = Math.round(Math.hypot(dx, dy) / 10) / 100;
+          // Bearing clockwise from north, bucketed to eight.
+          const deg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+          dir = COMPASS_8[Math.round(deg / 45) % 8];
+        }
+        offMapByCode.set(row[0], {
+          code: row[0], name: row[1], campus: row[2],
+          lat: p ? p.lat : null, lon: p ? p.lon : null,
+          km: km, direction: dir, doors: ut.length,
+          from: OFF_MAP_ORIGIN[0],
+        });
+      }
+    }
+    return offMapByCode;
+  }
+
+  /**
+   * THE SEAM A SCHEDULE IMPORT CONSUMES. With a code, the record above or
+   * null; with nothing, the whole table plus the campuses in it.
+   *
+   * This is the contract, and it is deliberately data rather than a sentence:
+   * an import bar, a search box and a route card each want to phrase "MER is
+   * at the J.J. Pickle Research Campus, 11 km north" differently, and the copy
+   * block is somebody else's file. Adding a second satellite campus later — UT
+   * has several — is a row in OFF_MAP and nothing else.
+   *
+   * NOT gated on `offMapCodes`, for the same reason `wayfindUTDoors` is not
+   * gated on `useUTSurvey`: the switch turns the behaviour off inside the
+   * ROUTER, and a harness that flips it still has to be able to ask what the
+   * table says.
+   */
+  window.wayfindOffMap = function (code) {
+    if (code) return offMapIndex().get(String(code).toUpperCase()) || null;
+    const idx = offMapIndex();
+    const campuses = {};
+    for (const r of idx.values()) campuses[r.campus] = (campuses[r.campus] || 0) + 1;
+    return {
+      buildings: idx.size, campuses,
+      codes: Array.from(idx.keys()),
+      extras: CAMPUS_EXTRA.map(r => r[0]),
+      origin: { code: OFF_MAP_ORIGIN[0], lon: OFF_MAP_ORIGIN[1], lat: OFF_MAP_ORIGIN[2] },
+    };
+  };
   // Where a door index actually is. A verify script cannot read this out of
   // data/walk_graph.json any more, because a door UT surveyed and our bake
   // never placed is created here at run time and has no index in that file.
@@ -2643,6 +2933,11 @@
       code: e.code, display: e.display,
       doors: doorSet(G, e, !!avoidStairs).map(di => window.wayfindDoorAt(di)),
       ut: (utTruth(e.code) || []).slice(),
+      // §4b. Present only on a code that names a building at another campus.
+      // The doors array is still empty for those, so anything counting
+      // routable buildings counts them exactly as it did before — this adds a
+      // reason next to the zero, it does not change the zero.
+      offMap: e.offMap || null,
     };
   };
 
@@ -8020,6 +8315,18 @@
     opts = opts || {};
     await loadGraph();
     const f = resolve(from), t = resolve(to);
+    // §4b — THE CLEAN "NOT ON THIS MAP" SIGNAL, and it has to come out BEFORE
+    // the UI is built. Without this branch an off-map code takes one of two
+    // wrong exits: `notfound` when the tables are off, which is the word a
+    // typo gets, or `nodoor` when they are on, which the card renders as
+    // "not walkable in this build yet" — a promise nobody can keep about a
+    // building eleven kilometres away. Named `offmap` so a caller can tell the
+    // three apart, with the whole record attached so it never has to ask twice.
+    const offEnd = (f && f.offMap) || (t && t.offMap) || null;
+    if (offEnd) {
+      return { ok: false, why: 'offmap', offMap: offEnd, from: f, to: t,
+        fromOffMap: (f && f.offMap) || null, toOffMap: (t && t.offMap) || null };
+    }
     if (!f || !t) return { ok: false, why: 'notfound', from: f, to: t };
     buildUI();
     state.from = f; state.to = t;
@@ -8199,6 +8506,6357 @@
     })();
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 10. THE DAY PLAN — a schedule's whole day of walks, not one leg at a time
+  //
+  // WHAT THIS IS FOR. Everything above answers ONE question: "I am here, my
+  // next class is in WEL". A student with four classes asks it three times a
+  // day and has to retype both ends every time, and the answer that matters —
+  // which of today's three walks is the one that will make me late — is not
+  // any single one of those three answers. It is the SEQUENCE. So this is the
+  // sequence: every class the schedule holds, every walk between them, in
+  // order, with the one that is next marked, before you pick one to navigate.
+  //
+  // IT IS A CHOOSER, NOT A SECOND FEATURE. Tapping a walk row calls the same
+  // run() the search panel calls, with the same two ends, so the ribbon, the
+  // answer bar, `Walk it`, the stairs card and the lighting card are all the
+  // ones that already shipped. Nothing here re-implements a route or re-prints
+  // a number the bar prints; every figure on a row comes out of the same
+  // computeRoute() the bar is drawn from, which is why they cannot disagree.
+  //
+  // ── THE SEAM, AND WHY IT IS SHAPED LIKE THIS ─────────────────────────────
+  // A schedule import's whole job is turning "MAI 220, TTh 2:00pm" into the
+  // three-letter code this router already speaks. `docs/import-bar-ut.md`
+  // established that UT's own location field IS `{CODE} {FLOOR.ROOM}`, space
+  // separated, code first — the same vocabulary as UT_ENTRANCES above — so the
+  // normalised shape below is deliberately thin. A plan is:
+  //
+  //   { day, date, tz, source, items: [ { course, title, code, room, raw,
+  //       startMin, endMin, unique, codeSource, codeConfidence } ] }
+  //
+  // Only `code`, `startMin` and `endMin` are load-bearing. Everything else is
+  // display or provenance.
+  //
+  // THE THREE FIELDS THAT ARE NOT FOR TODAY'S THREE IMPORTERS. `raw`,
+  // `codeSource` and `codeConfidence` exist so that an image-OCR importer or a
+  // Registration-Plus API importer can land later WITHOUT a rewrite here.
+  // Google's, Apple's and UT's .ics all give a code we either read or do not;
+  // confidence is 1 or the item is dropped by the parser. An OCR of a
+  // photographed timetable cannot do that — it will hand over `MA1` for `MAI`
+  // with 0.6 of a belief — and a renderer with no branch for "the code might
+  // be wrong" would have to grow one, which is exactly the rewrite. So the
+  // branch is here now and today's importers simply never take it: an item
+  // with `codeConfidence < WF_DAY.confidenceSure` renders with the raw string
+  // it came from and asks to be checked, instead of silently routing to a
+  // building nobody has a class in. Nothing else in this file reads a calendar
+  // field of any kind.
+  //
+  // ── WHAT IT MAY SAY ABOUT TIME ───────────────────────────────────────────
+  // docs/walk/what-we-can-honestly-say.md §15 rules that this feature may WARN
+  // and may never REASSURE, which is why SAY.passingOver and SAY.passingTight
+  // exist above with deliberately no third sentence for the good case. That
+  // rule gets STRICTER here, not looser, because a day plan is tempting in a
+  // way a single leg is not: it would be very easy to print "12 min spare" on
+  // every row. It does not. What it prints is the gap the SCHEDULE itself
+  // holds — a fact read off the calendar, not a claim about a walk — and it
+  // draws the walk's range inside that gap. An empty tail on the bar is left
+  // empty and unlabelled. No row anywhere says you will make it.
+  //
+  // The one thing this does better than the single-leg bar: that bar measures
+  // against `WAYFIND.passingMin`, which its own comment calls the only value
+  // in the feature with no file behind it. A schedule KNOWS the real gap, so
+  // when there is one it is used instead, and the row says which it used.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── TASTE (CLAUDE.md rule 11). Every judgement on this surface is one line ─
+  const WF_DAY = {
+    // Which built-in fixture `?walk=1&day=1` shows. The fixtures are demo and
+    // verification data (see DAY_FIXTURES); a real import replaces them.
+    demoPlan: 'tth',
+    // A walk row is "next" until the class it leads to has begun. After that it
+    // is behind you and dims. `nextGraceMin` keeps the row you are ON marked as
+    // next for a few minutes after that class started, because someone running
+    // late is exactly who is looking at this.
+    nextGraceMin: 5,
+    // Below this the parser is telling us it is not sure of the code, and the
+    // row asks rather than routes. Today's three importers always send 1.
+    confidenceSure: 1,
+    // ── the gap bar ───────────────────────────────────────────────────────
+    // The single strongest thing on a row: the track is the gap the schedule
+    // holds, and the walk's own range is drawn inside it. Overflow past the
+    // right-hand end is the whole point, so it is drawn, not clipped away.
+    gapBar: true,
+    gapBarH: 8,            // px. Thick enough to read as a bar, thin enough
+                           // that four of them stacked are not the row.
+    gapBarR: 2,            // and NOT a pill — same argument as --wf-rail-r
+                           // above: a rounded track with a cap is a slider.
+    gapBarMinPct: 3,       // a 43 m walk in a 15 minute gap is 3 % of the
+                           // track and would otherwise render as nothing at
+                           // all, which reads as "no walk" rather than "a
+                           // short one"
+    gapBarOverPct: 14,     // how much of the track the overflow stub takes
+                           // when the slow end of the range runs past the gap
+    // The longest gap a bar is drawn for. Past this the bar is all tail and
+    // says nothing — a 105-minute lunch gap is not a race, and drawing an
+    // eleven-twelfths-empty track next to a 14-22 minute walk makes the walk
+    // look like nothing when it is the longest one of the day.
+    gapBarMaxMin: 45,
+    // ── the ladder (§15) ──────────────────────────────────────────────────
+    // 'late'  the FAST end of the range already exceeds the gap
+    // 'tight' the SLOW end does
+    // null    nothing is printed. There is no third rung and there must not be.
+    warnOn: true,
+    // A crossing chip is worth a row only when the lights are a real part of
+    // the trip. Under this it is noise the answer bar already carries.
+    signalChipMin: 3,
+    // ── the summary, and the three things it may add (round 4) ────────────
+    // NAME THE BAD LEG IN THE HEADER. "2 of 3 walks have something to check"
+    // makes you scan three rows to find out which two, and on a phone only two
+    // rows are on screen at once — so the header is the only part of this
+    // surface that is ALWAYS visible and it was spending itself on a count. It
+    // now names the leg, which is a warning and therefore §15-legal; there is
+    // still no sentence anywhere for a leg that fits.
+    headlineWorst: true,
+    // How far you walk today, rolled into the count line. A fact off the
+    // router, not a claim about it — and the one number a day plan can give
+    // that no per-leg row can.
+    totalOnFoot: true,
+    // A CLASS THE IMPORTER COULD NOT PLACE IS STILL ON YOUR TIMETABLE. Before
+    // round 4 it was dropped, which silently turned a 10am class with a blank
+    // room field into a three-hour gap — the worst kind of wrong, because the
+    // panel looked complete. Off, it drops them again.
+    showUnplaced: true,
+    // ── the now line ──────────────────────────────────────────────────────
+    // Google Calendar's day view has exactly one thing this list did not: a
+    // line across the column at the current time. It is what makes "which one
+    // is next" spatial instead of a badge you have to find. Pure fact — the
+    // clock — so §15 has no opinion about it.
+    nowLine: true,
+    nowLineDot: 4,         // px radius of the pip in the time gutter
+    // Tint the walk row's own rail when the router says the leg is tight or
+    // longer than its gap, so scanning the left edge finds the trouble before
+    // any word is read. The NEXT rail stays amber and stays wider — it is a
+    // different question and must not be confused with this one.
+    warnRail: true,
+    // ── layout ────────────────────────────────────────────────────────────
+    panelW: 348,           // matches #wf-sheet, because it takes the same slot
+    // The scroller's share of the viewport on a DESKTOP (the phone rule lets it
+    // fill the sheet instead). 66, not 56: at 56 a four-class day is 470 px of
+    // rows in a 448 px scroller, so the last class of the day was permanently
+    // one scroll below the fold — photographed, and the whole argument for this
+    // surface is that you can see the day. 66 fits four classes and three walks
+    // on an 800 px window with the header and the footer.
+    listMaxVh: 66,
+    railW: 2,
+    dotR: 4.5,             // the class pip on the spine
+    // ── the clock ─────────────────────────────────────────────────────────
+    // `?dayat=HH:MM` freezes it. A screenshot of "which walk is next" cannot be
+    // taken against a real clock and be the same picture tomorrow.
+    clockFrom: 'real',
+    // ── the demo, and the one thing that makes it safe ────────────────────
+    // EVERY BUILT-IN FIXTURE DAY IS LABELLED ON SCREEN. Off, the demo is
+    // indistinguishable from an import, which is exactly the defect this round
+    // found: import M 340L / RTF 305 / C S 439 / EE 460R, tap the button that
+    // says "Import my class schedule", and be shown CMS 306M / C S 429 /
+    // BA 101S / J 310F — four classes that are not yours, presented as your
+    // day. Nothing may turn this off while demoWhenEmpty is on.
+    exampleBadge: true,
+    // Whether the button may fall back to the demo AT ALL when nothing has
+    // been imported. On, because an empty panel reads as a broken feature —
+    // and it is only ever honest because of exampleBadge above.
+    demoWhenEmpty: true,
+    // A parsed schedule is a WEEK. Which of its days opens, when the caller did
+    // not say: 'today', or 'first' to always open the first day the schedule
+    // has a class on. Either way a day with no classes falls through to the
+    // first that has one, because an empty panel reads as a broken import.
+    weekFrom: 'today',
+  };
+
+  // COPY. Same rule as SAY above: docs/walk/what-we-can-honestly-say.md
+  // outranks this file on every question of wording, and §15 is why there is
+  // no sentence anywhere below for the case where the walk fits the gap.
+  const SAY_D = {
+    title: 'My day',
+    open: 'Import my class schedule',
+    openHint: 'Google Calendar, Apple Calendar or a UT registration export',
+    heading: (n, w) => n + (n === 1 ? ' class' : ' classes') + ' · ' +
+      w + (w === 1 ? ' walk' : ' walks'),
+    toCheck: (n, w) => n + ' of ' + w + (w === 1 ? ' walk has' : ' walks have') +
+      ' something to check',
+    // ── the header names the leg (round 4) ────────────────────────────────
+    // §15 again, and it survives it for the same reason the chips do: every
+    // sentence here is a WARNING about a specific leg. There is deliberately no
+    // header sentence for a day whose walks all fit — a day with nothing wrong
+    // says "4 classes · 3 walks · 2.1 km on foot" and stops.
+    worstLate: (a, b) => a + ' → ' + b + ' is longer than its gap',
+    worstTight: (a, b) => a + ' → ' + b + ' is the tight one',
+    worstTightN: (n) => n + ' of the walks are tight for their gaps',
+    onFoot: (d) => d + ' on foot',
+    next: 'NEXT',
+    now: 'NOW',
+    // A real schedule holds classes the importer could not place at all — a
+    // blank LOCATION, or a string nothing in this app recognises. Before round
+    // 4 such a class was DROPPED, and a dropped 10am class reads on this panel
+    // as a three-hour gap, which is worse than any error message: the panel
+    // looks complete and is wrong. It now takes an ordinary class row, at its
+    // real time, carrying this sentence and — when the importer supplied one —
+    // the importer's own explanation underneath it.
+    unplaced: (label) => "We don't know where " + label + ' is',
+    unplacedWhy: 'The import could not read a building for this class.',
+    cannotToLabel: (label) => "We can't take you to " + label,
+    cannotFromLabel: (label) => "We can't take you from " + label,
+    done: 'Every walk in this day is behind you',
+    walkTo: (code) => 'Walk to ' + code,
+    gapWas: (m) => m + ' min between them',
+    // The passing period, when the schedule does NOT give us a real gap (a
+    // day with one class, or two classes that overlap). Same wording as the
+    // single-leg bar so the two surfaces cannot be read as two claims.
+    gapAssumed: (m) => 'assuming a ' + m + '-minute passing period',
+    late: 'Longer than the gap, even at a walking pace',
+    tight: 'Tight for this gap',
+    stairsOnly: (n) => n + (n === 1 ? ' set' : ' sets') + ' of stairs · no way round it',
+    stairs: (n) => n + (n === 1 ? ' set' : ' sets') + ' of stairs',
+    stairsFree: (d) => 'a step-free way is ' + d + ' further',
+    stairsFreeShorter: (d) => 'a step-free way is ' + d + ' shorter',
+    stairsFreeSame: 'a step-free way is no further',
+    signals: (n) => 'Crosses ' + n + ' signalised crossings',
+    // ── the three ways a real schedule breaks this router ─────────────────
+    // Each says WHICH KIND of gap it is, because the three need three
+    // different things from a person and lumping them into "can't route
+    // there" tells them nothing about which.
+    offMap: (code, d, dir) => code + ' is ' + d + ' ' + dir + ' of campus — off this map',
+    offMapWhy: 'This map is main campus only.',
+    unknown: (code) => "We've never heard of " + code,
+    unknownWhy: 'Not in the building list this map was built from.',
+    // ...and when the type-ahead had a near miss, SAY it rather than silently
+    // walking there. `MAII 220` is a real typo in a real UT calendar export;
+    // the useful answer names both halves and lets the student decide.
+    unknownMaybe: (code, name) => 'Did you mean ' + code + (name ? ' (' + name + ')' : '') + '?',
+    noDoor: (code) => 'No door or path for ' + code,
+    noDoorWhy: 'It is in the building list, but nothing is mapped to walk to.',
+    // What a WALK row says about the same building. The explanation is on the
+    // class row; this is only the consequence for this one leg.
+    cannotTo: (code) => "We can't take you to " + code,
+    cannotFrom: (code) => "We can't take you from " + code,
+    noRoute: 'No walking route between these two',
+    lowConf: (raw) => 'Read as “' + raw + '” — check this one',
+    // The whole-day banner when a plan holds a building we cannot reach.
+    someUnreachable: (n) => n + (n === 1 ? ' class is' : ' classes are') +
+      ' somewhere this map cannot take you',
+    someUnplaced: (n) => n + (n === 1 ? ' class has' : ' classes have') +
+      ' no building we could read',
+    close: 'Close the day plan',
+    source: { google: 'Google Calendar', apple: 'Apple Calendar', ut: 'UT registration',
+      image: 'a photo of a schedule', api: 'Registration Plus', manual: 'typed in' },
+    from: (s) => 'From ' + s,
+    // THE DEMO SAYS IT IS A DEMO, IN TWO PLACES. The badge rides in the header,
+    // which is the one strip of this panel always on screen on a 390 px phone;
+    // the footer replaces "From UT registration" — a sentence that, on a demo,
+    // was a claim about a file the student never gave us.
+    exampleBadge: 'EXAMPLE',
+    // PROVENANCE AND AUTHENTICITY ARE TWO DIFFERENT FACTS, and the footer says
+    // both. "From UT registration" is what the DATA claims about where it came
+    // from — true of a fixture built out of real UT LOCATION lines, and a trip
+    // dayview.mjs already asserts survives from the parser's shape to here.
+    // What the footer could not say before is that the data is not the
+    // student's, which is the half that matters and the half the badge repeats
+    // in the header.
+    fromExample: (s) => 'From ' + s + ' — sample data, not your schedule',
+  };
+
+  /**
+   * THE DAY PLAN'S STYLESHEET, injected rather than added to style.css.
+   *
+   * WHY INJECTED. style.css belongs to another lane this round. More
+   * importantly the RECORDING GATE lives in it, as
+   * `.clip #wf-button,.clip #wf-sheet,.clip #wf-pill{display:none!important}`,
+   * with a comment claiming "every element this feature has ever added is a
+   * CHILD of one of these three, which is why the rule has not had to grow as
+   * the bar did". This surface adds two elements that are children of
+   * `#wf-root` and of neither of those three, so that claim stops being true
+   * here. The gate for them is therefore in this block, one line, next to the
+   * elements it covers — and the one-line consolidation for whoever owns
+   * style.css is written down in docs/si-dayview.md rather than made from here.
+   *
+   * `?clip=1`, `?autopilot=1` and `?sliderdemo=1` all put `.clip` on <html> in
+   * index.html's head script, so one rule covers all three recording surfaces.
+   *
+   * Every size and colour below is either a token off `#wf-root` (so the day
+   * plan cannot drift from the answer bar it feeds) or a WF_DAY value written
+   * in from JS. Nothing here is a number typed twice.
+   */
+  const DAY_CSS = `
+.clip #wf-day,.clip #wf-day-btn{display:none!important}
+#wf-day.hidden{display:none}
+
+/* THE WAY IN. A row at the foot of the search sheet, above the small print. It
+   is a row and not a chip because what it offers is a different SHAPE of answer
+   — a whole day rather than one leg — and a two-line label is what says that. */
+#wf-day-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;
+  margin:0;padding:10px 14px;background:rgba(255,255,255,.05);border:none;
+  border-top:1px solid var(--wf-edge-soft);color:var(--wf-ink);font:inherit;
+  text-align:left;cursor:pointer}
+#wf-day-btn:hover,#wf-day-btn.on{background:var(--wf-hot)}
+#wf-day-btn .wf-day-btn-ic{width:17px;height:17px;flex:none;color:var(--wf-accent)}
+.wf-day-btn-l{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wf-day-btn-l1{font-size:12.5px;font-weight:600}
+.wf-day-btn-l2{font-size:var(--wf-small);color:var(--wf-dimmer)}
+
+/* THE PANEL takes the search sheet's slot, because it answers the same
+   question at a different scale and two panels in one corner is two panels. */
+#wf-day{position:absolute;top:68px;left:16px;z-index:30;
+  width:__PANELW__px;max-width:calc(100vw - 32px);
+  background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;overflow:hidden;
+  display:flex;flex-direction:column;text-align:left}
+#wf-day-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 10px 6px 14px;flex:none}
+#wf-day-title{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--wf-dim)}
+/* THE EXAMPLE BADGE rides INSIDE the title line rather than taking a row of
+   its own, so labelling the demo costs the panel no height — dayview.mjs
+   asserts the whole panel fits a 390x844 phone, and a new row would have been
+   a real risk to a shipped assertion for a purely additive label. */
+.wf-d-example{margin-left:7px;padding:1px 5px;border-radius:4px;
+  background:rgba(255,190,90,.16);color:#ffc077;font-weight:800;font-size:9.5px;
+  letter-spacing:.14em}
+#wf-day-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
+  width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
+#wf-day-close svg{width:15px;height:15px}
+#wf-day-close:hover{opacity:1;background:rgba(255,255,255,.07)}
+
+/* THE SUMMARY. Three facts, in falling order of how much they change what you
+   do: how big the day is, how many of its walks have something wrong with
+   them, and whether any of its classes is somewhere this map cannot go. The
+   second is the one this whole surface exists to put on screen at a glance. */
+#wf-day-sum{display:flex;flex-direction:column;gap:3px;padding:0 14px 9px;flex:none;
+  border-bottom:1px solid var(--wf-edge-soft)}
+.wf-d-count{font-size:14px;font-weight:600}
+.wf-d-count-sub{font-weight:400;color:var(--wf-dim)}
+/* The COUNT of flagged walks sits below the NAMED one and is set quieter than
+   it, because two amber lines running together read as one paragraph nobody
+   ranks. Which leg is the actionable half; how many is the footnote. */
+.wf-d-checks{font-size:11.5px;color:var(--wf-dim)}
+.wf-d-unreach{font-size:11.5px;color:var(--wf-dim)}
+/* THE HEADER'S NAMED LEG. Set in the same warning amber the tight chip on the
+   row carries, so the header and the row you scroll to are visibly one claim
+   and not two. */
+.wf-d-worst{font-size:11.5px;color:#ffc077;font-weight:600}
+
+#wf-day-list{overflow-y:auto;min-height:0;max-height:__LISTVH__vh;padding:4px 0 2px}
+#wf-day-foot{padding:7px 14px 9px;border-top:1px solid rgba(255,190,90,.11);
+  font-size:9.5px;color:var(--wf-dimmer);flex:none}
+
+/* A ROW IS THREE COLUMNS: when, the spine, and what happens.
+   The spine is continuous down the whole list — the same argument as the
+   itinerary's thread above: the picture and the list cannot say different
+   things if the picture IS the list. */
+.wf-d-row{display:grid;grid-template-columns:46px 16px 1fr;align-items:stretch;
+  width:100%;box-sizing:border-box;padding:0 12px 0 10px;text-align:left;
+  background:none;border:none;color:inherit;font:inherit}
+.wf-d-when{padding-top:7px;text-align:right;padding-right:2px}
+.wf-d-t1{font-size:11.5px;font-weight:600;color:var(--wf-ink)}
+.wf-d-t2{font-size:10px;color:var(--wf-dimmer)}
+.wf-d-t3{font-size:10px;color:var(--wf-dimmer);padding-top:2px}
+.wf-d-walk.next .wf-d-t3{color:var(--wf-dim)}
+.wf-d-rail{position:relative}
+.wf-d-rail:before{content:"";position:absolute;left:50%;top:0;bottom:0;
+  width:__RAILW__px;margin-left:-__RAILHALF__px;background:var(--wf-spine-col)}
+.wf-d-dot{position:absolute;left:50%;top:11px;width:__DOTD__px;height:__DOTD__px;
+  margin-left:-__DOTR__px;border-radius:50%;background:var(--wf-mk-col);
+  box-shadow:0 0 0 3px var(--wf-glass-solid)}
+.wf-d-body{padding:6px 0 8px;min-width:0}
+
+/* ── A CLASS ──────────────────────────────────────────────────────────────
+   Deliberately the quiet row. The classes are the anchors; the WALKS are the
+   thing you can act on, and a day plan that gives them the same weight is a
+   calendar with a map in it rather than a walking plan. */
+.wf-d-class .wf-d-course{font-size:13px;font-weight:600;line-height:1.25}
+.wf-d-class.in .wf-d-course{color:var(--wf-accent)}
+.wf-d-class.in .wf-d-dot{background:var(--wf-accent)}
+.wf-d-nowtag{margin-left:7px;font-size:9px;font-weight:700;letter-spacing:.14em;
+  color:var(--wf-go-ink);background:var(--wf-accent);border-radius:4px;padding:1px 4px;
+  vertical-align:1px}
+.wf-d-place{font-size:11px;color:var(--wf-dim);line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-d-where{display:flex;align-items:baseline;gap:6px;margin-top:1px}
+.wf-d-code{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#ffcf7a}
+/* An end of a walk that has NO building code — the class stands in for it. It
+   must not be set in the code's colour and weight: a course number that looks
+   like a building code is this surface asserting a code it never read. */
+.wf-d-noplace{font-size:11.5px;font-weight:600;color:var(--wf-dim);font-style:italic}
+.wf-d-room{font-size:11px;color:var(--wf-dimmer)}
+
+/* ── A WALK ───────────────────────────────────────────────────────────────
+   The row you can press. The minutes are the biggest thing on it, for the same
+   reason they are the biggest thing on the answer bar: it is the one number
+   read at a glance. */
+.wf-d-walk{cursor:pointer;position:relative}
+.wf-d-walk:disabled{cursor:default}
+.wf-d-walk .wf-d-rail-w:before{background:var(--wf-rail)}
+.wf-d-walk:hover:not(:disabled){background:rgba(255,255,255,.045)}
+.wf-d-walk.past{opacity:.42}
+/* THE ROW THAT DOES NOT FIT ITS GAP, WASHED. Google Calendar's day view puts
+   colour on the BLOCK; ours had colour only on the rail, and the rail was
+   already spent on "next". So this is a second, independent channel: "next"
+   owns the rail and the gutter badge, "does not fit" owns the row's ground,
+   and a row can be both without either mark being misread. Faint on purpose —
+   it has to survive being stacked three deep without turning the list into a
+   warning, and .picked below deliberately outranks it, because which row you
+   are actually navigating is the more urgent fact once you have chosen one. */
+.wf-d-walk.warn{background:rgba(255,192,119,.055)}
+.wf-d-walk.warn-late{background:rgba(255,143,107,.08)}
+.wf-d-walk.picked{background:rgba(245,166,35,.13)}
+/* WHICH ONE IS NEXT, and it is the only amber rail in the list. Everything
+   else on this surface is set in the answer bar's quiet cream; one warm rail
+   and one warm word is the whole "at a glance" budget, spent on the one row
+   that is about to matter. */
+.wf-d-walk.next .wf-d-rail-w:before{background:var(--wf-accent);width:__RAILNEXTW__px;
+  margin-left:-__RAILNEXTH__px}
+.wf-d-walk.next .wf-d-min{color:var(--wf-accent)}
+.wf-d-next{font-size:9px;font-weight:700;letter-spacing:.13em;color:var(--wf-accent);
+  padding-top:9px}
+.wf-d-fig{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+.wf-d-mode{width:var(--wf-mode);height:var(--wf-mode);font-size:17px;flex:none;
+  align-self:center;color:var(--wf-dim)}
+.wf-d-min{font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.wf-d-unit{font-size:10.5px;color:var(--wf-dim)}
+.wf-d-dist{font-size:11px;color:var(--wf-dim);margin-left:2px}
+.wf-d-figoff .wf-d-min{color:var(--wf-dimmer)}
+.wf-d-ends{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.wf-d-arr{width:12px;height:12px;color:var(--wf-dimmer);flex:none}
+.wf-d-gap{font-size:10px;color:var(--wf-dimmer);margin-left:2px}
+
+/* ── THE NOW LINE ─────────────────────────────────────────────────────────
+   The one thing Google Calendar's day view has that this list did not. It
+   answers "which one is next" SPATIALLY — everything above it has happened,
+   everything below it has not — which is a different and faster act of reading
+   than finding a badge. It is drawn between two rows, at the position in the
+   sequence the clock is actually at, and it carries the time in the same
+   gutter every other row puts its time in, so the column stays one clock.
+
+   Deliberately NOT proportional. A calendar column is a ruler and this is a
+   list, so the line sits BETWEEN rows rather than at a pixel offset inside
+   one: a 105-minute lunch gap would otherwise push the afternoon off the
+   bottom to make room for empty air. */
+.wf-d-now{display:grid;grid-template-columns:46px 16px 1fr;align-items:center;
+  width:100%;box-sizing:border-box;padding:0 12px 0 10px;margin:1px 0}
+.wf-d-now-t{text-align:right;padding-right:2px;font-size:10px;font-weight:700;
+  color:var(--wf-accent);letter-spacing:.02em}
+.wf-d-now-p{position:relative;height:__NOWD__px}
+.wf-d-now-p:before{content:"";position:absolute;left:50%;top:0;
+  width:__NOWD__px;height:__NOWD__px;margin-left:-__NOWR__px;border-radius:50%;
+  background:var(--wf-accent)}
+.wf-d-now-l{height:1px;background:var(--wf-accent);opacity:.55}
+
+/* ── THE GAP BAR ──────────────────────────────────────────────────────────
+   The track is the gap the schedule holds. Solid to the fast end of the walk,
+   lighter out to the slow end, and the tail left EMPTY AND UNLABELLED — the
+   honesty doc's §15 lets us draw what the calendar says and forbids us saying
+   you will make it, and an empty tail says the first without saying the
+   second. Overflow is drawn OUTSIDE the track, because a walk that does not
+   fit is the one state worth seeing from across the room. */
+.wf-d-bar{margin:5px 0 1px;display:flex;align-items:center}
+.wf-d-bar-tr{display:flex;height:__BARH__px;border-radius:__BARR__px;overflow:hidden;
+  width:100%;background:rgba(255,255,255,.07)}
+.wf-d-bar-lo{background:var(--wf-fill)}
+.wf-d-bar-hi{background:var(--wf-rail)}
+.wf-d-bar-ov{background:repeating-linear-gradient(-45deg,#ff8f6b 0 3px,#7a2f18 3px 6px);
+  flex:none;margin-left:auto}
+.wf-d-bar.over .wf-d-bar-tr{box-shadow:inset 0 0 0 1px rgba(255,143,107,.5)}
+
+/* ── A CHIP ───────────────────────────────────────────────────────────────
+   One problem, one line, and its own colour only where the colour is earned.
+   Only the late chip changes what you do today; everything else is amber
+   or grey, because five colours on a four-row list is a colour key nobody
+   reads. */
+.wf-d-chip{display:flex;align-items:flex-start;gap:5px;margin-top:4px;
+  font-size:11px;line-height:1.35;color:var(--wf-dim)}
+.wf-d-chip-ic{width:13px;height:13px;flex:none;margin-top:1px}
+.wf-d-chip-s{color:var(--wf-dimmer)}
+.wf-d-late{color:#ffab8c}
+.wf-d-tight{color:#ffc077}
+.wf-d-stairsOnly{color:#ffc077}
+.wf-d-stairs{color:var(--wf-dim)}
+.wf-d-off{color:#ffab8c}
+.wf-d-class .wf-d-off{color:rgba(255,171,140,.85)}
+
+@media(max-width:640px){
+  /* Same slot the search sheet takes on a phone, and for the same reasons:
+     above the drive controls, clear of the time-of-day panel on the right.
+     IT IS TALLER THAN THE SEARCH SHEET, THOUGH, AND MEASURED RATHER THAN
+     COPIED. At the sheet's 62vh the day plan is 337 px on an 844 px phone: it
+     showed one class, one walk and the top of the next class, with 321 px of
+     empty sky above it. A search panel is short by nature and a day is not.
+     78vh puts its top edge at y186 — below the two rows of top buttons
+     (16..112), which is the thing that must not be covered.
+     WITH A ROUTE DRAWN it goes back to 62vh, because the answer bar then owns
+     the top of the screen (--wf-pill-top is 120 px and the closed bar runs
+     to about 310) and a taller list would slide underneath it. wf-routed is
+     already on <body> whenever a route exists, so this costs no new state. */
+  #wf-day{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
+    top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);width:auto;
+    max-width:none;max-height:calc(78vh - var(--drive-clear));border-radius:16px}
+  body.wf-routed #wf-day{max-height:calc(62vh - var(--drive-clear))}
+  #wf-day-list{max-height:none;flex:1 1 auto}
+  /* A WALK ROW IS A THUMB TARGET. It is the control that decides which of
+     three walks gets drawn on the ground, so it takes --touch-min like the
+     result rows next door do. The class rows do not: they are not pressable
+     and giving them the same height would push the walks off the screen. */
+  .wf-d-walk{min-height:var(--touch-min)}
+  .wf-d-walk .wf-d-body{padding:8px 0 10px}
+}
+`.replace(/__PANELW__/g, String(WF_DAY.panelW))
+  .replace(/__LISTVH__/g, String(WF_DAY.listMaxVh))
+  .replace(/__RAILNEXTW__/g, String(WF_DAY.railW + 1))
+  .replace(/__RAILNEXTH__/g, String((WF_DAY.railW + 1) / 2))
+  .replace(/__RAILHALF__/g, String(WF_DAY.railW / 2))
+  .replace(/__RAILW__/g, String(WF_DAY.railW))
+  .replace(/__DOTD__/g, String(WF_DAY.dotR * 2))
+  .replace(/__DOTR__/g, String(WF_DAY.dotR))
+  .replace(/__NOWD__/g, String(WF_DAY.nowLineDot * 2))
+  .replace(/__NOWR__/g, String(WF_DAY.nowLineDot))
+  .replace(/__BARH__/g, String(WF_DAY.gapBarH))
+  .replace(/__BARR__/g, String(WF_DAY.gapBarR));
+
+  /** This surface's own glyphs. A separate object from IC above on purpose:
+   *  four lanes are inside this file this round and appending a key to a shared
+   *  literal is the one edit that conflicts every time. */
+  const IC_D = {
+    cal: 'M4.5 6.8a1.8 1.8 0 0 1 1.8-1.8h11.4a1.8 1.8 0 0 1 1.8 1.8v11.4a1.8 1.8 0 0 1-1.8 1.8H6.3a1.8 1.8 0 0 1-1.8-1.8zM4.5 9.6h15M8.6 3.2v3.4M15.4 3.2v3.4',
+    warn: 'M12 4.4 21 19.6H3zM12 10v4M12 17.2v.01',
+    stairs: 'M3 20h4v-4h4v-4h4V8h4V4',
+    info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 11v5.4M12 7.6v.01',
+    arrowR: 'M4.5 12h14M13 6.5 18.5 12 13 17.5',
+  };
+
+  /**
+   * THE FIXTURES. Demo and verification data, not a shipped feature — a real
+   * import replaces `items` wholesale. They are here rather than in a JSON file
+   * for the same reason UT_CELEBRATED is a literal table: a fixture in the file
+   * cannot go stale against a fetch that fails.
+   *
+   * `tth` and `mwf` are ordinary days on UT's own two class grids (TTh: 75
+   * minutes, 15 between; MWF: 50 minutes, 10 between). Every location string in
+   * `tth` is verbatim a real UT `LOCATION:` line quoted in
+   * `docs/import-bar-ut.md` from UT-Registration-Plus's own test fixtures, so
+   * the format being parsed is a real one and not one invented here.
+   *
+   * `gaps` is CONSTRUCTED, and says so: it is `tth` with two classes moved onto
+   * the two codes the forcing function names — SSW, which is a real registered
+   * main-campus building this app has never heard of, and BE1, which is a real
+   * UT building eleven kilometres north at the Pickle Research Campus. Nobody's
+   * real Tuesday looks like that; the renderer still has to survive it.
+   */
+  const DAY_FIXTURES = {
+    tth: {
+      day: 'Tuesday', source: 'ut', tz: 'America/Chicago',
+      items: [
+        { course: 'CMS 306M', title: 'Professional Communication Skills',
+          raw: 'CMA 6.146', startMin: 570, endMin: 645 },
+        { course: 'C S 429', title: 'Computer Organization and Architecture',
+          raw: 'UTC 3.102', startMin: 660, endMin: 735, unique: '54795' },
+        { course: 'BA 101S', title: 'Business Foundations',
+          raw: 'GSB 2.122', startMin: 750, endMin: 825 },
+        { course: 'J 310F', title: 'Fundamental Issues in Journalism',
+          raw: 'DMC 3.208', startMin: 840, endMin: 915 },
+      ],
+    },
+    mwf: {
+      day: 'Monday', source: 'google', tz: 'America/Chicago',
+      items: [
+        { course: 'ECO 304K', title: 'Introduction to Microeconomics',
+          raw: 'WAG 214', startMin: 540, endMin: 590 },
+        { course: 'UGS 302', title: 'Undergraduate Signature Course',
+          raw: 'FAC 21', startMin: 600, endMin: 650 },
+        { course: 'CH 301', title: 'Principles of Chemistry I',
+          raw: 'WEL 2.122', startMin: 660, endMin: 710 },
+        { course: 'ARH 301', title: 'Introduction to the Visual Arts',
+          raw: 'ART 1.102', startMin: 720, endMin: 770 },
+      ],
+    },
+    gaps: {
+      day: 'Thursday', source: 'apple', tz: 'America/Chicago',
+      items: [
+        { course: 'SW 327', title: 'Social Work Practice',
+          raw: 'SSW 2.132', startMin: 570, endMin: 645 },
+        { course: 'C S 429', title: 'Computer Organization and Architecture',
+          raw: 'UTC 3.102', startMin: 660, endMin: 735 },
+        // ONE LEG OF THIS DAY HAS TO WORK. A fixture where every walk is
+        // blocked cannot show that the good rows and the bad rows sit in one
+        // list and read as one sequence — which is the whole claim being made
+        // about a mixed day. UTC -> GSB is 43 m and routes.
+        { course: 'BA 101S', title: 'Business Foundations',
+          raw: 'GSB 2.122', startMin: 750, endMin: 825 },
+        { course: 'BME 383J', title: 'Laboratory Rotation',
+          raw: 'BE1 1.100', startMin: 900, endMin: 1020 },
+      ],
+    },
+  };
+
+  /**
+   * A WEEK, IN THE PARSER LANE'S OWN PUBLISHED SHAPE (`ut-walk-schedule` v1,
+   * docs/si-parser.md). Round 3 documented the day shape and stopped there,
+   * so nothing had ever made the trip from a parsed calendar to this panel.
+   * `?walk=1&day=week` makes it, through `wayfindDayFromSchedule` below.
+   *
+   * WHAT IT IS AND IS NOT. It is hand-written to the published shape, so it
+   * proves the ADAPTER without needing the parser branch in the tree — which
+   * is what lets this lane verify itself. It is NOT a claim that the parser
+   * emits exactly this; that claim needs the parser's own .ics run through the
+   * parser's own code, and docs/si-dayview.md records that run separately.
+   *
+   * The Tuesday it holds is UT's real TTh grid (75-minute classes, 15 between)
+   * and its four LOCATION strings are the same real ones the `tth` fixture
+   * uses. The Monday/Wednesday classes exist so that picking a day is a real
+   * choice rather than a formality, and PSY 301 exists because a real export
+   * has a class with a blank LOCATION in it and this panel used to silently
+   * delete that class from the student's day.
+   */
+  const DAY_SCHED_FIXTURE = {
+    shape: 'ut-walk-schedule', version: 1, tz: 'America/Chicago',
+    source: { kind: 'ics', label: 'My Schedule',
+      producer: '-//UT Registration Plus//Course Schedule//EN',
+      url: '', importedAt: null },
+    events: [
+      { index: 1, id: 'ev-1', course: 'CMS 306M', title: 'CMS 306M – PROFESSIONAL COMMUNICATION',
+        locationText: 'CMA 6.146', code: 'CMA', room: '6.146', days: ['TU', 'TH'],
+        startMin: 570, endMin: 645, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 2, id: 'ev-2', course: 'C S 429', title: 'C S 429 – COMP ORGANIZATN AND ARCH',
+        locationText: 'UTC 3.102', code: 'UTC', room: '3.102', days: ['TU', 'TH'],
+        startMin: 660, endMin: 735, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 3, id: 'ev-3', course: 'BA 101S', title: 'BA 101S – BUSINESS FOUNDATIONS',
+        locationText: 'GSB 2.122', code: 'GSB', room: '2.122', days: ['TU', 'TH'],
+        startMin: 750, endMin: 825, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      // THE ONE THAT DID NOT IMPORT. A blank LOCATION is the commonest way a
+      // real export loses a class, and before round 4 this row was dropped —
+      // which turned a 2:00pm class into empty afternoon on a panel that
+      // otherwise looked complete.
+      { index: 4, id: 'ev-4', course: 'PSY 301', title: 'PSY 301 – INTRODUCTION TO PSYCHOLOGY',
+        locationText: '', code: null, room: '', days: ['TU', 'TH'],
+        startMin: 840, endMin: 915, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'failed', confidence: null,
+        problems: [{ level: 'error', code: 'LOCATION_MISSING',
+          text: 'Row 4 (PSY 301 – INTRODUCTION TO PSYCHOLOGY) has no location, so there is nowhere to walk to.',
+          hint: 'Every class needs a building before it can be walked to.',
+          at: { event: 4, line: 31, field: 'LOCATION' } }] },
+      { index: 5, id: 'ev-5', course: 'ACC 311', title: 'ACC 311 – FUNDAMENTALS OF ACCOUNTING',
+        locationText: 'WAG 214', code: 'WAG', room: '214', days: ['MO', 'WE'],
+        startMin: 570, endMin: 620, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 6, id: 'ev-6', course: 'CH 301', title: 'CH 301 – PRINCIPLES OF CHEMISTRY I',
+        locationText: 'WEL 2.122', code: 'WEL', room: '2.122', days: ['MO', 'WE'],
+        startMin: 630, endMin: 680, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      // THE TYPO, kept off Tuesday so the demo day stays an ordinary four-class
+      // one. `MAII 220` is a real mis-typing of `MAI 220` and it is verbatim in
+      // the parser lane's own `messy.ics`; the parser reads the shape, hands
+      // back the code `MAII`, and marks the row failed. Before round 4 this
+      // panel drew a confident walk to the UT TOWER for it, because the code
+      // went through `resolve()`, which is the field's forgiving type-ahead.
+      // See dayPlace(). This event is the fixture for that fix.
+      { index: 7, id: 'ev-7', course: 'HIS 315K', title: 'HIS 315K – THE UNITED STATES 1492-1865',
+        locationText: 'MAII 220', code: 'MAII', room: '220', days: ['MO', 'WE'],
+        startMin: 720, endMin: 770, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'failed', confidence: null,
+        problems: [{ level: 'error', code: 'BUILDING_UNKNOWN',
+          text: 'Row 7 (HIS 315K): "MAII 220" is not a UT building code.',
+          hint: 'Class locations read like "WEL 2.224".',
+          at: { event: 7, line: 44, field: 'LOCATION' } }] },
+    ],
+    problems: [], counts: { total: 7, ok: 5, failed: 2, errors: 2, warnings: 0 },
+    summary: 'Imported 5 of 7 classes. 2 could not be used.',
+  };
+
+  let dayEl = null;              // the panel, built once
+  let dayPlan = null;            // the normalised plan on screen
+  let dayRows = null;            // the computed sequence (classes and walks)
+  let dayPicked = -1;            // which walk row is drawn on the ground
+  let dayBtn = null;             // the way in, appended to the search sheet
+  let dayBBox = null;            // the routable graph's own extent
+
+  // ── THE SEAM, IN CODE ─────────────────────────────────────────────────────
+  /**
+   * Take whatever an importer produced and make it safe to render. It is
+   * deliberately forgiving about what it is given and strict about what it
+   * hands on: an item with no usable time or no code is DROPPED rather than
+   * rendered half-formed, because half a row on a schedule is worse than a
+   * missing one.
+   *
+   * `raw` is split exactly as docs/import-bar-ut.md's recon says UT's own
+   * field is shaped — first token is the code, the rest is the room — but only
+   * when the importer did not already separate them. An importer that knows
+   * better (an API, say) sets `code` and `room` itself and this never runs.
+   */
+  function dayNormalise(plan) {
+    if (!plan || !plan.items) return null;
+    const items = [];
+    for (const it of plan.items) {
+      let code = it.code, room = it.room, src = it.codeSource;
+      if (!code && it.raw) {
+        const parts = String(it.raw).trim().split(/\s+/);
+        code = parts[0]; room = parts.slice(1).join(' ');
+        src = src || 'location-field';
+      }
+      // A CLASS WITH NO USABLE TIME IS STILL DROPPED. Time is the one field
+      // this surface cannot render around: the whole panel is an ordering, and
+      // a row with no place in the order has nowhere to go.
+      const a = Number(it.startMin), b = Number(it.endMin);
+      if (!isFinite(a) || !isFinite(b) || b <= a) continue;
+      // A CLASS WITH NO CODE IS NOT. Round 3 dropped it, and dropping it is the
+      // worst available answer: a 10am class whose LOCATION field was blank
+      // vanished, and the panel then showed a three-hour gap that the student's
+      // day does not have. It looked complete and it was wrong. It now takes an
+      // ordinary row at its real time, marked as unplaced, and the two walks
+      // either side of it say they cannot be taken. `note` is whatever the
+      // importer wanted to say about it — the parser lane's own sentence for
+      // this event, when there is one.
+      if (!code) {
+        if (!WF_DAY.showUnplaced) continue;
+        items.push({
+          course: it.course || null, title: it.title || null,
+          code: null, room: '', raw: it.raw || null,
+          label: it.course || it.title || String(it.raw || '').trim() || null,
+          note: it.note || null,
+          startMin: a, endMin: b, unique: it.unique || null,
+          codeSource: src || 'none', codeConfidence: 0, unplaced: true,
+        });
+        continue;
+      }
+      items.push({
+        course: it.course || null, title: it.title || null,
+        code: String(code).toUpperCase(), room: room || '',
+        raw: it.raw || (room ? code + ' ' + room : code),
+        label: it.course || it.title || String(code).toUpperCase(),
+        note: it.note || null,
+        startMin: a, endMin: b, unique: it.unique || null,
+        codeSource: src || 'given',
+        codeConfidence: it.codeConfidence == null ? 1 : Number(it.codeConfidence),
+        unplaced: false,
+      });
+    }
+    items.sort((x, y) => x.startMin - y.startMin);
+    if (!items.length) return null;
+    return { day: plan.day || null, date: plan.date || null,
+      source: plan.source || 'manual', tz: plan.tz || null,
+      example: !!plan.example, items };
+  }
+
+  /** The routable city's own extent, so "off this map" is measured rather than
+   *  asserted against a hardcoded list of eleven codes that would go stale the
+   *  next time the graph is rebaked. */
+  function dayBounds() {
+    if (dayBBox || !G) return dayBBox;
+    let w = 180, s = 90, e = -180, n = -90;
+    for (let i = 0; i < G.X.length; i++) {
+      if (G.X[i] < w) w = G.X[i];
+      if (G.X[i] > e) e = G.X[i];
+      if (G.Y[i] < s) s = G.Y[i];
+      if (G.Y[i] > n) n = G.Y[i];
+    }
+    dayBBox = { w, s, e, n, c: [(w + e) / 2, (s + n) / 2] };
+    return dayBBox;
+  }
+
+  /**
+   * WHICH OF THE FOUR THINGS A CODE IS. A real schedule names a real building
+   * and this app can be in one of four states about it, and they need four
+   * different sentences:
+   *
+   *   ok       routable, walk to it
+   *   nodoor   in the register, but we hold no door or no path — "not walkable
+   *            in this build yet", which SAY.notWalkable already says
+   *   offmap   UT publishes a door for it and the door is outside the extent of
+   *            the graph we route on. Ten of the eleven codes the forcing
+   *            function names are this, at 10.8-11.8 km north (Pickle Research
+   *            Campus), measured here rather than looked up.
+   *   unknown  nothing in this app has ever heard of it. SSW is this, and it is
+   *            NOT the same problem as Pickle: SSW is a real registered
+   *            main-campus building 900 m from the Tower with two doors in
+   *            UT_CELEBRATED above, which the search index simply does not
+   *            carry. Telling a student "off the map" about a building they
+   *            can see from the Tower would be a lie.
+   */
+  function dayPlace(code) {
+    const up = String(code || '').toUpperCase();
+    const hit = G ? resolve(up) : null;
+    // ── A CODE OFF A SCHEDULE IS EXACT VOCABULARY, NOT A TYPE-AHEAD QUERY ──
+    // `resolve()` is `search()[0]`, and `search()` is the FORGIVING type-ahead
+    // the field uses so that typing "wel" finds Welch. Handing a schedule's
+    // building code straight to it means a typo routes: the parser lane's
+    // `messy.ics` carries the real-world typo `MAII 220`, the parser correctly
+    // hands back the code `MAII` and marks the row failed — and until this line
+    // existed, this panel drew a confident 10-14 minute walk to the UT TOWER
+    // for a class that is not in it. Nothing was red; the walk was measured,
+    // the row was pretty, and the building was wrong.
+    //
+    // Found by running the merged tree (this lane + acer/si-parser) against the
+    // parser's own fixture files, which is the only place it can be found:
+    // every fixture on this branch alone spells its codes correctly.
+    //
+    // So an inexact hit is not a hit. It is kept only as a SUGGESTION, which is
+    // the useful half of what the type-ahead knew.
+    const entry = hit && String(hit.code || '').toUpperCase() === up ? hit : null;
+    const near = (hit && !entry) ? { code: hit.code, name: hit.display } : null;
+    if (entry && entry.routable) return { kind: 'ok', code: up, entry, name: entry.display };
+    // ── SI6: `nodoor` IS THE SENTENCE FOR A BUILDING ON THIS CAMPUS ────────
+    // `si-gaps` put the ten Pickle codes into `search()` as entries carrying an
+    // `offMap` record. They have no doors, so `entry.routable` is false, so
+    // before this clause tested for it every one of them was answered "It is in
+    // the building list, but nothing is mapped to walk to" — which is true of a
+    // building 400 m away whose door we have not surveyed, and a lie about one
+    // eleven kilometres north. Falling through instead reaches this function's
+    // own off-map branch below, which measures the distance and says it.
+    if (entry && !entry.offMap) return { kind: 'nodoor', code: up, entry, name: entry.display };
+    const code2 = up;
+    const ut = utIndex().get(up);
+    const bb = dayBounds();
+    if (ut && ut.length && bb) {
+      const ll = [ut[0].lon, ut[0].lat];
+      const out = ll[0] < bb.w || ll[0] > bb.e || ll[1] < bb.s || ll[1] > bb.n;
+      if (out) {
+        const d = metresBetween(ll, bb.c);
+        const brg = (Math.atan2(ll[0] - bb.c[0], ll[1] - bb.c[1]) * 180 / Math.PI + 360) % 360;
+        return { kind: 'offmap', code: code2, entry: null, name: null,
+          distM: d, dir: COMPASS8[Math.round(brg / 45) % 8] };
+      }
+      // UT knows it, it is on this map's ground, and we still cannot route to
+      // it. That is a hole in this app, not in the schedule.
+      return { kind: 'unknown', code: code2, entry: null, name: null, utKnows: true, near };
+    }
+    return { kind: 'unknown', code: code2, entry: null, name: null, utKnows: false, near };
+  }
+
+  /** §15's ladder, and there are only two rungs on purpose. */
+  function dayVerdict(lo, hi, gapMin) {
+    if (!WF_DAY.warnOn || gapMin == null) return null;
+    if (lo > gapMin) return 'late';
+    if (hi > gapMin) return 'tight';
+    return null;
+  }
+
+  /**
+   * The sequence. Classes and the walks between them, in one array, each walk
+   * routed ONCE through the same computeRoute() the answer bar is drawn from.
+   */
+  function dayBuild(plan) {
+    const out = [];
+    // `unreachable` and `unplaced` are counted apart because they are not the
+    // same news. "This map cannot take you there" is a fact about the map;
+    // "we could not read a building for this class" is a fact about the import,
+    // and only the second one is something the student can go and fix.
+    let checks = 0, unreachable = 0, unplaced = 0, onFootM = 0;
+    // WORST-FIRST, not first-worst. The header names ONE leg and there may be
+    // two, so 'late' outranks 'tight' and, within a rung, the earlier leg wins
+    // — the one you hit first is the one you can still do something about.
+    let worst = null, tights = 0;
+    // An unplaced class has no code to look up, so it never reaches dayPlace()
+    // — which resolves against the building register and would answer
+    // `unknown` about a null, i.e. the wrong one of its four sentences.
+    const places = plan.items.map(it => (it.unplaced
+      ? { kind: 'unplaced', code: null, entry: null, name: null,
+          label: it.label || it.course || it.title || '', note: it.note || null }
+      : dayPlace(it.code)));
+    for (let i = 0; i < plan.items.length; i++) {
+      const it = plan.items[i], pl = places[i];
+      if (pl.kind === 'unplaced') unplaced++;
+      else if (pl.kind !== 'ok') unreachable++;
+      out.push({ type: 'class', i, item: it, place: pl });
+      const nx = plan.items[i + 1];
+      if (!nx) continue;
+      const pn = places[i + 1];
+      // The gap the SCHEDULE holds. When two classes overlap or abut there is
+      // no gap to measure against and we fall back to the same assumed passing
+      // period the single-leg bar uses — and the row says which one it used.
+      const raw = nx.startMin - it.endMin;
+      const gapMin = raw > 0 ? raw : null;
+      const leg = { type: 'walk', i, from: it, to: nx, fromPlace: pl, toPlace: pn,
+        gapMin, gapAssumed: gapMin == null ? WAYFIND.passingMin : null,
+        problems: [], route: null };
+      const budget = gapMin == null ? WAYFIND.passingMin : gapMin;
+      if (pl.kind !== 'ok' || pn.kind !== 'ok') {
+        leg.status = 'blocked';
+        for (const p of [pl, pn]) if (p.kind !== 'ok') leg.problems.push({ kind: p.kind, place: p });
+      } else {
+        const r = computeRoute(G, pl.entry, pn.entry, {});
+        if (!r.ok) { leg.status = 'noroute'; leg.problems.push({ kind: 'noroute' }); }
+        else {
+          leg.status = 'ok';
+          leg.route = r;
+          leg.lo = r.time.lo; leg.hi = r.time.hi; leg.distM = r.distM;
+          leg.sets = r.m.stairSets; leg.signals = r.m.signals;
+          onFootM += r.distM;
+          leg.verdict = dayVerdict(r.time.lo, r.time.hi, budget);
+          if (leg.verdict) {
+            leg.problems.push({ kind: leg.verdict });
+            if (leg.verdict === 'tight') tights++;
+            if (!worst || (worst.verdict === 'tight' && leg.verdict === 'late')) worst = leg;
+          }
+          if (leg.sets > 0) {
+            // The stairs lane already computed the way round, or established
+            // there is none, on this same answer object. Do not re-route it.
+            const sf = r.stepFree;
+            if (!sf) leg.problems.push({ kind: 'stairsOnly', sets: leg.sets });
+            else leg.problems.push({ kind: 'stairs', sets: leg.sets,
+              extraM: Math.round(sf.distM - r.distM) });
+          }
+          if (leg.signals >= WF_DAY.signalChipMin) leg.problems.push({ kind: 'signals', n: leg.signals });
+        }
+      }
+      if (leg.problems.length) checks++;
+      out.push(leg);
+    }
+    return { rows: out, checks, walks: out.filter(r => r.type === 'walk').length,
+      classes: plan.items.length, unreachable, unplaced, onFootM, worst, tights };
+  }
+
+  // ── THE CLOCK ────────────────────────────────────────────────────────────
+  /** Minutes past local midnight, or a frozen value so a screenshot of "which
+   *  walk is next" is the same picture tomorrow. */
+  function dayNow() {
+    const s = q.get('dayat');
+    if (s) {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+      if (m) return (+m[1]) * 60 + (+m[2]);
+    }
+    if (WF_DAY.clockFrom !== 'real') return null;
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function dayFmtTime(min) {
+    let h = Math.floor(min / 60), m = min % 60;
+    const ap = h >= 12 ? 'pm' : 'am';
+    h = h % 12; if (h === 0) h = 12;
+    return h + ':' + String(m).padStart(2, '0') + ap;
+  }
+
+  // ── THE PANEL ────────────────────────────────────────────────────────────
+  function dayEnsureCss() {
+    if (document.getElementById('wf-day-css')) return;
+    const s = document.createElement('style');
+    s.id = 'wf-day-css';
+    s.textContent = DAY_CSS;
+    document.head.appendChild(s);
+  }
+
+  /**
+   * The panel is a CHILD OF #wf-root and its stylesheet is injected from here
+   * rather than added to style.css, for one reason each.
+   *
+   * Child of #wf-root: it inherits every type and colour token the answer bar
+   * uses, so the day plan cannot drift from the bar it feeds.
+   *
+   * Injected: style.css belongs to another lane this round, and the recording
+   * gate lives in it. `.clip #wf-button,.clip #wf-sheet,.clip #wf-pill` names
+   * three ids and its own comment claims "every element this feature has ever
+   * added is a CHILD of one of these three" — which stops being true the moment
+   * this panel exists. So the gate for the two elements this surface adds is in
+   * DAY_CSS below, next to them, and the one-line consolidation for whoever
+   * owns style.css is written down in docs/si-dayview.md.
+   */
+  function dayBuildPanel() {
+    if (dayEl) return dayEl;
+    dayEnsureCss();
+    buildUI();
+    const panel = h('div', 'hidden'); panel.id = 'wf-day';
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', SAY_D.title);
+    const head = h('div', null); head.id = 'wf-day-head';
+    const hl = h('div', null); hl.id = 'wf-day-title';
+    head.appendChild(hl);
+    const close = h('button', null); close.id = 'wf-day-close';
+    close.setAttribute('aria-label', SAY_D.close);
+    close.appendChild(icon(null, IC.close, 2.1));
+    close.addEventListener('click', (ev) => { ev.stopPropagation(); dayHide(); });
+    head.appendChild(close);
+    panel.appendChild(head);
+    const sum = h('div', null); sum.id = 'wf-day-sum';
+    panel.appendChild(sum);
+    const list = h('div', null); list.id = 'wf-day-list';
+    panel.appendChild(list);
+    const foot = h('div', null); foot.id = 'wf-day-foot';
+    panel.appendChild(foot);
+    el.root.appendChild(panel);
+    dayEl = { panel, title: hl, sum, list, foot };
+    return dayEl;
+  }
+
+  function dayHide() {
+    if (dayEl) dayEl.panel.classList.add('hidden');
+    if (dayBtn) dayBtn.classList.remove('on');
+  }
+  function dayShow() {
+    dayBuildPanel();
+    dayEl.panel.classList.remove('hidden');
+    if (dayBtn) dayBtn.classList.add('on');
+    // Two panels in one slot is two panels. The search sheet and the day plan
+    // take the same corner, so opening one closes the other — the same rule
+    // run() already applies when the answer replaces the question.
+    if (el && el.sheet) { el.sheet.classList.add('hidden'); el.btn.classList.remove('active'); }
+  }
+
+  /** A chip: one problem, one line, its own severity. */
+  function dayChip(kind, text, sub) {
+    const c = h('div', 'wf-d-chip wf-d-' + kind);
+    c.appendChild(icon('wf-d-chip-ic', kind === 'late' || kind === 'tight' ? IC_D.warn
+      : (kind === 'stairs' || kind === 'stairsOnly' ? IC_D.stairs : IC_D.info), 2));
+    const t = h('span', 'wf-d-chip-t', text);
+    if (sub) { t.appendChild(h('span', 'wf-d-chip-s', ' · ' + sub)); }
+    c.appendChild(t);
+    return c;
+  }
+
+  /**
+   * THE GAP BAR. The track is the gap the schedule holds; the walk's own range
+   * is drawn inside it, solid to the fast end and lighter out to the slow end.
+   * The tail is left EMPTY AND UNLABELLED on purpose — §15 permits drawing what
+   * the calendar says and forbids saying you will make it, and an empty tail
+   * says the first without saying the second. Overflow past the end is drawn as
+   * a stub outside the track, because that is the one state worth seeing from
+   * across the room.
+   */
+  function dayGapBar(leg) {
+    if (!WF_DAY.gapBar || leg.status !== 'ok') return null;
+    const gap = leg.gapMin == null ? leg.gapAssumed : leg.gapMin;
+    if (!gap || gap > WF_DAY.gapBarMaxMin) return null;
+    const wrap = h('div', 'wf-d-bar');
+    wrap.setAttribute('aria-hidden', 'true');
+    const track = h('div', 'wf-d-bar-tr');
+    const pct = (m) => Math.max(0, Math.min(100, (m / gap) * 100));
+    const lo = Math.max(WF_DAY.gapBarMinPct, pct(leg.lo));
+    const hi = Math.max(lo, pct(leg.hi));
+    const sure = h('div', 'wf-d-bar-lo'); sure.style.width = lo.toFixed(1) + '%';
+    const maybe = h('div', 'wf-d-bar-hi'); maybe.style.width = (hi - lo).toFixed(1) + '%';
+    track.appendChild(sure); track.appendChild(maybe);
+    if (leg.hi > gap) {
+      const over = h('div', 'wf-d-bar-ov');
+      over.style.width = WF_DAY.gapBarOverPct + '%';
+      track.appendChild(over);
+      wrap.classList.add('over');
+    }
+    wrap.appendChild(track);
+    return wrap;
+  }
+
+  /**
+   * WHERE THE NOW LINE GOES, and it is a rule about reading rather than about
+   * arithmetic. Google Calendar draws its line at a pixel offset inside a
+   * proportional column; this is a list, so the line goes BETWEEN two rows and
+   * has to land where "everything above has happened" is actually true.
+   *
+   *   before the first row that has not ENDED yet — so at 10:50, in a
+   *   10:45→11:00 passing period, the line sits above the walk row and the
+   *   walk reads as ahead of you, which it is;
+   *
+   *   except when the clock is INSIDE a class, where it goes after that class
+   *   instead — you are in the room, the class is current, and what is below
+   *   the line is what is left of the day. (Not for a walk row: the walk you
+   *   have not finished is still ahead of you.)
+   *
+   * Returns rows.length for a day that is over, which draws the line at the
+   * foot of the list, and 0 for a day that has not started.
+   */
+  function dayNowIndex(rows, nowMin) {
+    if (!WF_DAY.nowLine || nowMin == null || !rows.length) return -1;
+    const endOf = (r) => r.type === 'class' ? r.item.endMin : r.to.startMin;
+    const startOf = (r) => r.type === 'class' ? r.item.startMin : r.from.endMin;
+    for (let i = 0; i < rows.length; i++) {
+      if (endOf(rows[i]) <= nowMin) continue;
+      if (rows[i].type === 'class' && nowMin >= startOf(rows[i])) return i + 1;
+      return i;
+    }
+    return rows.length;
+  }
+
+  /** The line itself: the clock in the same gutter every row puts its time in,
+   *  a pip on the spine, and a hairline across the body. Three columns, the
+   *  same three a row has, so it cannot drift out of the grid. */
+  function dayNowLine(nowMin) {
+    const w = h('div', 'wf-d-now');
+    w.setAttribute('aria-hidden', 'true');
+    w.appendChild(h('div', 'wf-d-now-t', dayFmtTime(nowMin)));
+    w.appendChild(h('div', 'wf-d-now-p'));
+    w.appendChild(h('div', 'wf-d-now-l'));
+    return w;
+  }
+
+  function dayRenderClass(row, nowMin) {
+    const r = h('div', 'wf-d-row wf-d-class');
+    if (nowMin != null && nowMin >= row.item.startMin && nowMin < row.item.endMin) r.classList.add('in');
+    const when = h('div', 'wf-d-when');
+    when.appendChild(h('div', 'wf-d-t1', dayFmtTime(row.item.startMin)));
+    when.appendChild(h('div', 'wf-d-t2', dayFmtTime(row.item.endMin)));
+    r.appendChild(when);
+    const rail = h('div', 'wf-d-rail'); rail.setAttribute('aria-hidden', 'true');
+    rail.appendChild(h('span', 'wf-d-dot'));
+    r.appendChild(rail);
+    const body = h('div', 'wf-d-body');
+    const t = h('div', 'wf-d-course', row.item.course || row.item.code);
+    if (nowMin != null && nowMin >= row.item.startMin && nowMin < row.item.endMin) {
+      t.appendChild(h('span', 'wf-d-nowtag', SAY_D.now));
+    }
+    body.appendChild(t);
+    const nm = row.place.name || (row.place.kind === 'offmap' || row.place.kind === 'unknown'
+      ? null : row.item.code);
+    if (nm) body.appendChild(h('div', 'wf-d-place', nm));
+    // AN UNPLACED CLASS SHOWS THE STRING IT ACTUALLY HAD, not a blank where a
+    // code goes. Whatever the calendar put in LOCATION is what the student will
+    // recognise and what they have to go and fix, so it is printed verbatim.
+    if (row.place.kind === 'unplaced') {
+      if (row.item.raw) {
+        const where = h('div', 'wf-d-where');
+        where.appendChild(h('span', 'wf-d-room', String(row.item.raw)));
+        body.appendChild(where);
+      }
+    } else {
+      const where = h('div', 'wf-d-where');
+      where.appendChild(h('span', 'wf-d-code', row.item.code));
+      if (row.item.room) where.appendChild(h('span', 'wf-d-room', row.item.room));
+      body.appendChild(where);
+    }
+    // "Read as X — check this one" is for a code we DID read and are not sure
+    // of. An unplaced class has no code and no raw string to quote, and printing
+    // this for it produced a literal `Read as "null" — check this one` on screen
+    // next to a sentence that already said the true thing. Caught by looking at
+    // the harness's own output, not by any gate.
+    if (row.place.kind !== 'unplaced' && row.item.raw &&
+        row.item.codeConfidence < WF_DAY.confidenceSure) {
+      body.appendChild(dayChip('info', SAY_D.lowConf(row.item.raw)));
+    }
+    // WHY A BUILDING IS OUT OF REACH BELONGS TO THE CLASS ROW, ONCE. It is a
+    // fact about the BUILDING, and a building appears on exactly one class row
+    // but on up to two walk rows either side of it — photographed on the
+    // constructed fixture, "BE1 is 11.8 km north of campus — off this map ·
+    // This map is main campus only." was on screen THREE times in a panel five
+    // rows long. The class row carries the sentence and its explanation; the
+    // walk rows carry only the short consequence (see dayRenderWalk).
+    if (row.place.kind === 'offmap') {
+      body.appendChild(dayChip('off', SAY_D.offMap(row.item.code,
+        fmtDist(row.place.distM), row.place.dir), SAY_D.offMapWhy));
+    } else if (row.place.kind === 'unknown') {
+      // The near miss, when the type-ahead had one. It is a SUGGESTION on the
+      // row and never a substitution in the router — see dayPlace().
+      body.appendChild(dayChip('off', SAY_D.unknown(row.item.code),
+        row.place.near ? SAY_D.unknownMaybe(row.place.near.code, row.place.near.name)
+          : SAY_D.unknownWhy));
+    } else if (row.place.kind === 'nodoor') {
+      body.appendChild(dayChip('off', SAY_D.noDoor(row.item.code), SAY_D.noDoorWhy));
+    } else if (row.place.kind === 'unplaced') {
+      // The importer's own sentence when it gave one, this surface's when it
+      // did not — the parser lane already writes a better one than a renderer
+      // can, because it knows WHICH way the location field failed.
+      body.appendChild(dayChip('off',
+        SAY_D.unplaced(row.place.label || row.item.code || ''),
+        row.place.note || SAY_D.unplacedWhy));
+    } else if (row.item.note) {
+      // A CLASS WE CAN ROUTE TO THAT THE IMPORTER STILL COULD NOT USE. Only
+      // here — every other branch above already says something more specific
+      // about this building, and saying both puts one fact on screen twice.
+      body.appendChild(dayChip('info', row.item.note));
+    }
+    r.appendChild(body);
+    return r;
+  }
+
+  function dayRenderWalk(row, nowMin, isNext, idx) {
+    const past = nowMin != null && nowMin >= row.to.startMin + WF_DAY.nextGraceMin;
+    const btn = document.createElement('button');
+    // The row's own ground carries "does not fit its gap" — a second channel
+    // from `next`, which owns the rail and the gutter badge. See DAY_CSS.
+    const wash = !WF_DAY.warnRail ? '' :
+      (row.verdict === 'late' ? ' warn warn-late' : (row.verdict === 'tight' ? ' warn' : ''));
+    btn.className = 'wf-d-row wf-d-walk' + (isNext ? ' next' : '') + (past ? ' past' : '') +
+      wash + (dayPicked === idx ? ' picked' : '');
+    btn.type = 'button';
+    const when = h('div', 'wf-d-when');
+    if (isNext) when.appendChild(h('div', 'wf-d-next', SAY_D.next));
+    // WHEN THE WALK STARTS, in the same gutter the classes put their times in,
+    // so the column is one clock all the way down instead of a clock with
+    // three holes in it. It is the previous class's END TIME — a fact read off
+    // the schedule, not a claim about when you should leave, which §15 would
+    // not let this surface make.
+    when.appendChild(h('div', 'wf-d-t3', dayFmtTime(row.from.endMin)));
+    btn.appendChild(when);
+    const rail = h('div', 'wf-d-rail wf-d-rail-w'); rail.setAttribute('aria-hidden', 'true');
+    btn.appendChild(rail);
+    const body = h('div', 'wf-d-body');
+
+    if (row.status === 'ok') {
+      const line = h('div', 'wf-d-fig');
+      line.appendChild(icon('wf-d-mode', IC.walk, 1.9));
+      // `0–1 min` is what the arithmetic produces on a 43 m walk and it is not
+      // what the answer bar says: SAY.minWalkUnder above prints `Under 1 min
+      // walk`, because a range whose fast end is zero is not a range. The two
+      // surfaces have to use one vocabulary or they read as two claims.
+      line.appendChild(h('span', 'wf-d-min', row.lo === 0 ? 'Under ' + row.hi : row.lo + '–' + row.hi));
+      line.appendChild(h('span', 'wf-d-unit', 'min'));
+      line.appendChild(h('span', 'wf-d-dist', fmtDist(row.distM)));
+      body.appendChild(line);
+      const bar = dayGapBar(row);
+      if (bar) body.appendChild(bar);
+      const ends = h('div', 'wf-d-ends');
+      ends.appendChild(h('span', 'wf-d-code', row.fromPlace.code));
+      ends.appendChild(icon('wf-d-arr', IC_D.arrowR, 2.1));
+      ends.appendChild(h('span', 'wf-d-code', row.toPlace.code));
+      ends.appendChild(h('span', 'wf-d-gap', row.gapMin == null
+        ? SAY_D.gapAssumed(row.gapAssumed) : SAY_D.gapWas(row.gapMin)));
+      body.appendChild(ends);
+    } else {
+      // A BLOCKED WALK IS STILL A WALK ROW. It keeps the figure line, the mode
+      // glyph and the two codes, so the sequence does not develop a hole where
+      // the row you cannot take should be — an absent row reads as "there is no
+      // walk here", which is the opposite of what has happened.
+      const line = h('div', 'wf-d-fig wf-d-figoff');
+      line.appendChild(icon('wf-d-mode', IC.walk, 1.9));
+      line.appendChild(h('span', 'wf-d-min', '—'));
+      body.appendChild(line);
+      const ends = h('div', 'wf-d-ends');
+      // An unplaced end has no code, so the ends line prints what the class is
+      // called instead. It must print SOMETHING: an ends line with one code and
+      // an arrow into nothing reads as a rendering bug.
+      // AND IT IS NOT SET AS A CODE. `PSY 301` in the code's amber weight looks
+      // exactly like `GSB` next to it, which would have this surface asserting
+      // a building code it does not have and never read. It is a course number
+      // standing in for a building we could not find, and it is set as one.
+      const endName = (p, it) => p.code || p.label || (it && (it.course || it.title)) || '?';
+      const endCell = (p, it) => h('span', p.code ? 'wf-d-code' : 'wf-d-noplace', endName(p, it));
+      ends.appendChild(endCell(row.fromPlace, row.from));
+      ends.appendChild(icon('wf-d-arr', IC_D.arrowR, 2.1));
+      ends.appendChild(endCell(row.toPlace, row.to));
+      if (row.gapMin != null) ends.appendChild(h('span', 'wf-d-gap', SAY_D.gapWas(row.gapMin)));
+      body.appendChild(ends);
+    }
+
+    for (const p of row.problems) {
+      if (p.kind === 'late') body.appendChild(dayChip('late', SAY_D.late));
+      else if (p.kind === 'tight') body.appendChild(dayChip('tight', SAY_D.tight));
+      else if (p.kind === 'stairsOnly') body.appendChild(dayChip('stairsOnly', SAY_D.stairsOnly(p.sets)));
+      else if (p.kind === 'stairs') body.appendChild(dayChip('stairs', SAY_D.stairs(p.sets),
+        p.extraM > 0 ? SAY_D.stairsFree(fmtDist(p.extraM))
+          : (p.extraM < 0 ? SAY_D.stairsFreeShorter(fmtDist(-p.extraM)) : SAY_D.stairsFreeSame)));
+      else if (p.kind === 'signals') body.appendChild(dayChip('signals', SAY_D.signals(p.n)));
+      else if (p.kind === 'noroute') body.appendChild(dayChip('off', SAY_D.noRoute));
+      // THE SHORT CONSEQUENCE, NOT THE EXPLANATION. Why BE1 is out of reach is
+      // printed once, on BE1's own class row directly above or below this one.
+      // Repeating it here put the same twelve-word sentence on screen three
+      // times in a five-row panel.
+      else if (p.kind === 'offmap' || p.kind === 'unknown' || p.kind === 'nodoor') {
+        body.appendChild(dayChip('off', p.place === row.toPlace
+          ? SAY_D.cannotTo(p.place.code) : SAY_D.cannotFrom(p.place.code)));
+      }
+      // An unplaced end is named by its CLASS, not by a code, because there is
+      // no code — "We can't take you to BIO 206L" is the only true sentence
+      // available and it is also the one the student can act on.
+      else if (p.kind === 'unplaced') {
+        const lab = p.place.label || (p.place === row.toPlace ? row.to : row.from).course || '';
+        body.appendChild(dayChip('off', p.place === row.toPlace
+          ? SAY_D.cannotToLabel(lab) : SAY_D.cannotFromLabel(lab)));
+      }
+    }
+    btn.appendChild(body);
+    if (row.status === 'ok') {
+      btn.setAttribute('aria-label', SAY_D.walkTo(row.toPlace.code) + ' — ' +
+        row.lo + '–' + row.hi + ' min, ' + fmtDist(row.distM));
+      btn.addEventListener('click', (ev) => { ev.stopPropagation(); dayPick(idx); });
+    } else {
+      btn.disabled = true;
+    }
+    return btn;
+  }
+
+  /**
+   * PICK ONE AND NAVIGATE IT. This is the whole reason the day plan is a
+   * chooser rather than a second answer surface: it hands the two ends to the
+   * SAME run() the search panel calls, so everything downstream — the ribbon,
+   * the answer bar, `Walk it`, the stairs card, the lighting card — is the
+   * shipped single-leg feature, unmodified and unduplicated.
+   */
+  function dayPick(idx) {
+    const row = dayRows && dayRows.rows[idx];
+    if (!row || row.type !== 'walk' || row.status !== 'ok') return;
+    dayPicked = idx;
+    buildUI();
+    state.from = row.fromPlace.entry;
+    state.to = row.toPlace.entry;
+    el.inFrom.value = row.fromPlace.entry.display;
+    el.inTo.value = row.toPlace.entry.display;
+    state.via = null; state.viaKind = null; state.viaList = []; state.viaAt = 0;
+    run();
+    dayRender();
+  }
+
+  function dayRender() {
+    if (!dayPlan || !dayEl) return;
+    const nowMin = dayNow();
+    dayRows = dayBuild(dayPlan);
+    dayEl.title.textContent = dayPlan.day || SAY_D.title;
+    if (WF_DAY.exampleBadge && dayPlan.example) {
+      dayEl.title.appendChild(h('span', 'wf-d-example', SAY_D.exampleBadge));
+    }
+    dayEl.sum.innerHTML = '';
+    const count = h('span', 'wf-d-count', SAY_D.heading(dayRows.classes, dayRows.walks));
+    // HOW FAR YOU WALK TODAY, on the end of the count line rather than on a
+    // line of its own — it is the same KIND of fact as "3 walks" (the size of
+    // the day) and giving it its own row would rank it with the warnings.
+    if (WF_DAY.totalOnFoot && dayRows.onFootM > 0) {
+      count.appendChild(h('span', 'wf-d-count-sub',
+        ' · ' + SAY_D.onFoot(fmtDist(dayRows.onFootM))));
+    }
+    dayEl.sum.appendChild(count);
+    // WHICH LEG, ABOVE THE COUNT. The count says how many walks have something
+    // wrong; this says WHICH, and which is the more useful of the two — the
+    // count was making you scroll to find out what this line just tells you.
+    // On a phone only two rows are on screen, so the header is the only part of
+    // this panel always in view and the order inside it is the ranking. §15
+    // holds: every form of this sentence is a warning about a named leg, and a
+    // day whose walks all fit gets no sentence here at all.
+    if (WF_DAY.headlineWorst && dayRows.worst) {
+      const w = dayRows.worst;
+      const a = w.fromPlace.code, b = w.toPlace.code;
+      const line = w.verdict === 'late' ? SAY_D.worstLate(a, b)
+        : (dayRows.tights > 1 ? SAY_D.worstTightN(dayRows.tights) : SAY_D.worstTight(a, b));
+      dayEl.sum.appendChild(h('span', 'wf-d-worst', line));
+    }
+    if (dayRows.checks) {
+      dayEl.sum.appendChild(h('span', 'wf-d-checks',
+        SAY_D.toCheck(dayRows.checks, dayRows.walks)));
+    }
+    if (dayRows.unreachable) {
+      dayEl.sum.appendChild(h('span', 'wf-d-unreach',
+        SAY_D.someUnreachable(dayRows.unreachable)));
+    }
+    if (dayRows.unplaced) {
+      dayEl.sum.appendChild(h('span', 'wf-d-unreach',
+        SAY_D.someUnplaced(dayRows.unplaced)));
+    }
+    // WHICH ONE IS NEXT, and exactly one row may be it. The first walk whose
+    // destination class has not started yet (plus a grace window, because
+    // somebody looking at this while a class starts is running late and the row
+    // they want is still the one they are on).
+    let nextIdx = -1;
+    if (nowMin != null) {
+      for (let i = 0; i < dayRows.rows.length; i++) {
+        const r = dayRows.rows[i];
+        if (r.type !== 'walk') continue;
+        if (nowMin < r.to.startMin + WF_DAY.nextGraceMin) { nextIdx = i; break; }
+      }
+      // AND WHEN NOTHING IS NEXT, SAY SO. A panel with no marked row and no
+      // sentence explaining why reads as a panel that failed to work out which
+      // one was next — the same "absence of a claim read as an all-clear"
+      // failure SAY.darkOutside exists to stop.
+      if (nextIdx < 0 && dayRows.walks) {
+        dayEl.sum.appendChild(h('span', 'wf-d-unreach', SAY_D.done));
+      }
+    }
+    const nowAt = dayNowIndex(dayRows.rows, nowMin);
+    dayEl.list.innerHTML = '';
+    for (let i = 0; i < dayRows.rows.length; i++) {
+      if (i === nowAt) dayEl.list.appendChild(dayNowLine(nowMin));
+      const r = dayRows.rows[i];
+      dayEl.list.appendChild(r.type === 'class'
+        ? dayRenderClass(r, nowMin)
+        : dayRenderWalk(r, nowMin, i === nextIdx, i));
+    }
+    if (nowAt === dayRows.rows.length) dayEl.list.appendChild(dayNowLine(nowMin));
+    const daySrcName = SAY_D.source[dayPlan.source] || dayPlan.source;
+    dayEl.foot.textContent = dayPlan.example ? SAY_D.fromExample(daySrcName)
+      : SAY_D.from(daySrcName);
+  }
+
+  /**
+   * PUBLIC. An importer calls this with a normalised plan and the day appears.
+   * It is the only entry point this surface has, and it takes the shape
+   * documented at the top of this section — nothing calendar-shaped reaches
+   * this file.
+   */
+  window.wayfindDay = async function (plan) {
+    const p = dayNormalise(plan);
+    if (!p) return { ok: false, why: 'empty' };
+    await loadGraph();
+    dayBuildPanel();
+    dayPlan = p; dayPicked = -1;
+    dayRender();
+    dayShow();
+    return { ok: true, classes: p.items.length,
+      walks: dayRows.walks, checks: dayRows.checks, unreachable: dayRows.unreachable,
+      unplaced: dayRows.unplaced, onFootM: Math.round(dayRows.onFootM),
+      tights: dayRows.tights,
+      worst: dayRows.worst ? { from: dayRows.worst.fromPlace.code,
+        to: dayRows.worst.toPlace.code, verdict: dayRows.worst.verdict } : null,
+      rows: dayRows.rows.map(r => r.type === 'class'
+        ? { type: 'class', code: r.item.code, kind: r.place.kind,
+            startMin: r.item.startMin, endMin: r.item.endMin }
+        : { type: 'walk', from: r.fromPlace.code, to: r.toPlace.code, status: r.status,
+            lo: r.lo, hi: r.hi, distM: r.distM == null ? null : Math.round(r.distM),
+            sets: r.sets, signals: r.signals, gapMin: r.gapMin,
+            verdict: r.verdict || null, problems: r.problems.map(x => x.kind) }) };
+  };
+  /** The built-in fixtures, by name, so a verify script can drive the same day
+   *  this file ships rather than carrying its own copy of it. */
+  window.wayfindDayFixture = function (name) {
+    const f = DAY_FIXTURES[name] || DAY_FIXTURES[WF_DAY.demoPlan];
+    const c = JSON.parse(JSON.stringify(f));
+    // MARKED AT THE SOURCE, not at each call site. A fixture that can reach the
+    // screen without the flag is a fixture that can be read as a real import,
+    // and there is no call site where that is acceptable.
+    c.example = true;
+    return c;
+  };
+  /** A whole WEEK in the parser lane's published shape, for driving the
+   *  schedule adapter below without the parser branch in the tree. */
+  window.wayfindDayScheduleFixture = function () {
+    const c = JSON.parse(JSON.stringify(DAY_SCHED_FIXTURE));
+    c.example = true;
+    return c;
+  };
+
+  // ── THE OTHER HALF OF THE SEAM ────────────────────────────────────────────
+  // A parsed schedule is a WEEK; this panel shows a DAY. Round 3 documented the
+  // shape the renderer wants and left the conversion to whoever called it,
+  // which meant nothing had ever actually made the trip end to end. This is the
+  // conversion, and it is here rather than in the parser for the same reason
+  // `dayNormalise` is here: the renderer is the side that knows what a day is.
+  //
+  // It reads a plain object. There is no call into the parser lane's code, no
+  // reference to any of its identifiers, and nothing here breaks if it is not
+  // loaded — which is what lets both halves be verified separately and then
+  // together, and what keeps two lanes out of one another's functions.
+  const DAY_ICS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday'];
+
+  /** 'TU' | 'Tuesday' | 'tue' | 2 -> 2, or -1. */
+  function dayIndexOf(v) {
+    if (v == null || v === '') return -1;
+    if (typeof v === 'number' && v >= 0 && v <= 6) return v;
+    const s = String(v).trim().toUpperCase();
+    const i = DAY_ICS.indexOf(s.slice(0, 2));
+    if (i >= 0 && (s.length === 2 || DAY_NAMES[i].toUpperCase().indexOf(s) === 0)) return i;
+    for (let k = 0; k < 7; k++) if (DAY_NAMES[k].toUpperCase().indexOf(s) === 0) return k;
+    return -1;
+  }
+
+  /** Which of the three importers produced this, from what the file says about
+   *  itself. PRODID is the honest signal; the front end's own label is second;
+   *  a paste is nobody's calendar and says so. */
+  function daySourceOf(src) {
+    // A BARE SOURCE ID, TOO. The import screen and the store each name the same
+    // three sources in their own vocabulary ('gcal' / 'google-ics'), and a
+    // schedule restored from disk carries the store's. Reading only the
+    // parser's descriptor object made every one of those read 'manual', so a
+    // real UT import's footer said "From typed in".
+    if (typeof src === 'string') {
+      const id = src.toLowerCase();
+      if (/^(gcal|google)/.test(id)) return 'google';
+      if (/^apple/.test(id)) return 'apple';
+      if (/^ut/.test(id)) return 'ut';
+      if (/^image/.test(id)) return 'image';
+      if (/^(api|registration-plus)/.test(id)) return 'api';
+      return 'manual';
+    }
+    const p = String((src && (src.producer || src.label)) || '').toLowerCase();
+    if (/google/.test(p)) return 'google';
+    if (/apple|mac os|ical\b|core ?data/.test(p)) return 'apple';
+    if (/utexas|registration|ut ?registration/.test(p)) return 'ut';
+    if (src && src.kind === 'rows') return 'manual';
+    return 'manual';
+  }
+
+  /**
+   * PUBLIC. Take a parsed schedule — the `ut-walk-schedule` shape the parser
+   * lane produces from a Google export, an Apple export or subscription, or a
+   * UT registration export — and show ONE of its days.
+   *
+   *   opts.day   'TU' | 'Tuesday' | 2 | omitted (today, then the first day the
+   *              schedule actually has classes on)
+   *   opts.show  false to build the plan and not open the panel
+   *
+   * TWO DECISIONS IN HERE ARE THE WHOLE POINT.
+   *
+   * 1. A CLASS THAT FAILED TO IMPORT IS STILL ON THE DAY. The parser marks an
+   *    event `failed` when it cannot read a building for it; dropping those
+   *    would leave a student looking at a panel that says "3 classes" on a
+   *    four-class Tuesday, with an invented two-hour gap where the fourth one
+   *    is. Every event that has a TIME comes through. What it lost is a place,
+   *    and the row says so, in the importer's own words where it gave any.
+   *
+   * 2. A CODE THAT RESOLVED IS PASSED THROUGH RAW, NOT PRE-JUDGED. The parser
+   *    already knows MER is at Pickle and SSW is unregistered — but this file
+   *    asks `dayPlace()` the same question again, against the graph it is
+   *    actually going to route on. Two surfaces that answer "can I get there"
+   *    from two different sources is exactly the failure the day plan's own
+   *    gate exists to catch, and it would be perverse to introduce it here.
+   */
+  window.wayfindDayFromSchedule = async function (schedule, opts) {
+    opts = opts || {};
+    const evs = (schedule && (schedule.events || schedule.routable)) || [];
+    if (!evs.length) return { ok: false, why: 'empty' };
+
+    // WHICH DAY. Asked for, else today, else the first day this schedule has a
+    // class on — because a Sunday visitor with a Mon/Wed timetable should see
+    // Monday, not an empty panel that looks broken.
+    const has = (d) => evs.some(e => Array.isArray(e.days) && e.days.indexOf(DAY_ICS[d]) >= 0);
+    let di = dayIndexOf(opts.day);
+    if (di < 0 && WF_DAY.weekFrom === 'today') di = new Date().getDay();
+    if (di < 0 || !has(di)) { for (let k = 0; k < 7; k++) if (has(k)) { di = k; break; } }
+    if (di < 0) di = 0;
+    const want = DAY_ICS[di];
+
+    let skipped = 0, noTime = 0;
+    const items = [];
+    for (const e of evs) {
+      const days = Array.isArray(e.days) ? e.days : [];
+      if (days.length && days.indexOf(want) < 0) { skipped++; continue; }
+      // A one-off event carries no RRULE day list. Its own date decides.
+      if (!days.length) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(e.firstDate || ''));
+        if (!m) { skipped++; continue; }
+        if (new Date(+m[1], +m[2] - 1, +m[3]).getDay() !== di) { skipped++; continue; }
+      }
+      if (e.startMin == null || e.endMin == null) { noTime++; continue; }
+      // The parser's own sentence about why this one has no building. The HINT,
+      // not the problem text: the text names a row number and repeats the class
+      // title, which is right for an import report and wrong under a row that
+      // already carries both.
+      // The parser's own sentence about why this event failed. Carried for
+      // EVERY failed event, not only the placeless ones, and here is why.
+      //
+      // `messy.ics` holds LAH 350: a real class, in PCL, at a real time, whose
+      // only problem is that the file was cut off. The parser's report says
+      // "8 could not be used"; this panel would have shown LAH 350 as an
+      // ordinary class with an ordinary walk to it, and the two surfaces would
+      // have been telling a student two different things about the same
+      // import. The note makes them agree.
+      //
+      // It is only PRINTED on a class this map can actually route to — see
+      // dayRenderClass. Where the building itself is the problem, dayPlace()
+      // says a better and more specific thing, and printing both put the same
+      // fact on screen twice, which is the defect round 3 had to fix once.
+      let note = null;
+      if (Array.isArray(e.problems) && (e.status !== 'ok' || !e.code)) {
+        for (const p of e.problems) if (p && p.level === 'error') { note = p.hint || p.text || null; break; }
+      }
+      items.push({
+        course: e.course || null, title: e.title || null,
+        code: e.code || null, room: e.room || '',
+        raw: e.locationText || (e.code ? (e.room ? e.code + ' ' + e.room : e.code) : null),
+        note: note,
+        startMin: e.startMin, endMin: e.endMin, unique: e.unique || null,
+        codeSource: 'schedule',
+        codeConfidence: e.confidence == null ? 1 : Number(e.confidence),
+      });
+    }
+    if (!items.length) return { ok: false, why: 'no-classes-that-day', day: DAY_NAMES[di] };
+
+    const plan = {
+      day: DAY_NAMES[di], date: null, tz: schedule.tz || null,
+      // `origin` is the parser's own descriptor when there is one; `source` is
+      // the bare id the import screen and the store use. Either answers.
+      source: daySourceOf(schedule.origin || schedule.source),
+      example: !!schedule.example, items,
+    };
+    if (opts.show === false) { return { ok: true, plan, day: DAY_NAMES[di], skipped, noTime }; }
+    const r = await window.wayfindDay(plan);
+    r.day = DAY_NAMES[di];
+    r.skipped = skipped;
+    r.noTime = noTime;
+    return r;
+  };
+
+  /**
+   * THE WAY IN. A row appended to the bottom of the search sheet at run time,
+   * not a line added to buildUI() — four lanes are inside this file this round
+   * and a DOM append cannot collide with any of them the way a source edit can.
+   */
+  function dayMount() {
+    buildUI();
+    dayEnsureCss();
+    if (dayBtn) return;
+    dayBtn = h('button', null); dayBtn.id = 'wf-day-btn';
+    dayBtn.appendChild(icon('wf-day-btn-ic', IC_D.cal, 1.9));
+    const lab = h('span', 'wf-day-btn-l');
+    lab.appendChild(h('span', 'wf-day-btn-l1', SAY_D.open));
+    lab.appendChild(h('span', 'wf-day-btn-l2', SAY_D.openHint));
+    dayBtn.appendChild(lab);
+    dayBtn.addEventListener('click', async (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (dayEl && !dayEl.panel.classList.contains('hidden')) { dayHide(); return; }
+      // SI2. THE STUDENT'S OWN SCHEDULE, ALWAYS FIRST. This button used to call
+      // the demo unconditionally — a hard-coded Tuesday — under a label reading
+      // "Import my class schedule". Somebody who had just imported four classes
+      // was shown four different ones and given no way to tell.
+      const mine = dayImportedSchedule();
+      if (mine) {
+        let r = null;
+        try { r = await window.wayfindDayFromSchedule(mine); } catch (e) { r = null; }
+        if (r && r.ok) return;
+        // Imported, but no day could be built out of it — every class lost its
+        // time. The demo is not the answer to that; the import screen is,
+        // because that is the surface where what happened is written down.
+        try { if (window.wayfindImportOpen) window.wayfindImportOpen(); } catch (e) {}
+        return;
+      }
+      if (dayPlan && !dayPlan.example) { dayShow(); return; }
+      if (WF_DAY.demoWhenEmpty) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
+      else if (dayPlan) dayShow();
+    });
+    // ONE dispatchEvent, AND UNTIL NOW ZERO addEventListener. The import
+    // announced itself on `wayfind:schedule` and nothing in the app was
+    // listening, so an open demo stayed on screen through an import and a
+    // stale plan outlived the schedule it was built from.
+    window.addEventListener('wayfind:schedule', (ev) => {
+      const s = (ev && ev.detail) || window.wayfindSchedule || null;
+      const open = !!(dayEl && !dayEl.panel.classList.contains('hidden'));
+      dayPlan = null; dayRows = null; dayPicked = -1;
+      if (!s) { dayHide(); return; }
+      if (open) { try { window.wayfindDayFromSchedule(s); } catch (e) {} }
+    });
+    const foot = el.sheet.querySelector('.wf-foot');
+    if (foot) el.sheet.insertBefore(dayBtn, foot); else el.sheet.appendChild(dayBtn);
+    // Opening the question closes the day plan, for the same one-panel reason
+    // dayShow() closes the question. An extra listener, not an edited one.
+    el.btn.addEventListener('click', () => dayHide());
+  }
+
+  /**
+   * THE SCHEDULE THE STUDENT ACTUALLY IMPORTED, or null.
+   *
+   * `window.wayfindSchedule` is the live one; after a reload the store section
+   * republishes the saved one onto the same name, so this single accessor
+   * covers both and the demo is left with exactly one condition it may appear
+   * under: nothing has ever been imported on this device.
+   */
+  function dayImportedSchedule() {
+    const s = window.wayfindSchedule;
+    if (!s) return null;
+    const evs = s.events || s.routable || [];
+    return evs.length ? s : null;
+  }
+
+  function dayBoot() {
+    const map = window.__map;
+    if (!map) return setTimeout(dayBoot, 80);
+    const go = async () => {
+      if (!map.getLayer('buildings-3d')) return setTimeout(go, 140);
+      dayMount();
+      const d = q.get('day');
+      if (d && d !== '0') {
+        try {
+          // `?day=week` goes in through the SCHEDULE door instead of the day
+          // door, so the adapter is on the same path a real import takes
+          // rather than only on the harness's.
+          if (d === 'week') {
+            await window.wayfindDayFromSchedule(window.wayfindDayScheduleFixture(),
+              { day: q.get('dayof') || 'TU' });
+          } else {
+            await window.wayfindDay(window.wayfindDayFixture(d === '1' ? WF_DAY.demoPlan : d));
+          }
+        } catch (e) {}
+      }
+    };
+    if (map.isStyleLoaded && map.isStyleLoaded()) go();
+    else map.once('load', () => setTimeout(go, 0));
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 14. SCHEDULE IMPORT — three front ends, one shape, one seam
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // THE WHOLE JOB OF THIS SECTION is turning `"MAI 220, TTh 2:00pm"` into the
+  // string `MAI`, because `MAI` is already this app's native vocabulary: it is
+  // what `search()` matches on rung 1, what `UT_CELEBRATED` is keyed by, and
+  // what `wayfindRoute` takes. Everything else here is bookkeeping around that
+  // one conversion.
+  //
+  // THREE FRONT ENDS, ONE BACK END. Google Calendar, Apple Calendar and UT
+  // Registration Plus all terminate in the same place — a standard ICS payload
+  // of VEVENT blocks with SUMMARY / LOCATION / DTSTART / RRULE (docs/
+  // import-bar-apple.md, docs/import-bar-ut.md). They differ only in HOW the
+  // bytes arrive: an uploaded file, a webcal:// subscription, or a block of
+  // text pasted off UT's own course-schedule page. So there is one parser and
+  // three ways to feed it, and `wayfindScheduleFrom()` below is a FOURTH way in
+  // that takes already-structured rows — that is the seam an image-OCR source
+  // or a Registration-Plus API can be bolted onto later without touching a line
+  // of this code. Neither is built here, on purpose.
+  //
+  // PARTIAL FAILURE IS THE POINT, and the bar is Google Calendar's own import:
+  // it never lets one bad row kill the file. It imports what it can, tells you
+  // "N of M", and lists what it skipped and why. So every function below is
+  // written to keep going: a malformed date fails ONE event, a location it
+  // cannot resolve fails ONE event, and a file that is not a calendar at all
+  // fails with a sentence a student can act on rather than a stack trace.
+  //
+  // WHAT IT REFUSES TO DO. `search()` above documents the one rule this file
+  // does not break: NEVER fuzzy-match a building code, because the 1-edit
+  // neighbourhood of `WEL` contains `WCP`, `WMB` and `MEL`, and confidently
+  // routing a student to a building one letter away from the one on their
+  // schedule is the exact failure this feature is not allowed to have. So a
+  // near miss is SUGGESTED in the error text and never applied. The student
+  // picks.
+  //
+  // THE ELEVEN GAPS, RE-MEASURED 2026-08-24 (docs/si-parser.md has the run).
+  // The brief this lane was given listed eleven codes that cannot be routed to
+  // and both of its explanations were partly wrong, so the answers are worth
+  // stating where the code that uses them lives:
+  //   - Ten of them (BE1 BEG EME FS1 FSL MER PX3 ROC SV1 TCB) are 10.8-11.8 km
+  //     from MAI's door, measured off UT_CELEBRATED above. Pickle Research
+  //     Campus, genuinely off this map. `offmap` says so by name.
+  //   - SSW is NOT off-map and NOT unregistered: it is 0.88 km from MAI with
+  //     two surveyed doors in UT_CELEBRATED right here in this file. What it is
+  //     missing from is data/ut_buildings.json, this app's own 198-code
+  //     register, so `search()` returns nothing for it. Different status,
+  //     different sentence: `unmapped`.
+  //   - HLB is a TWELFTH code the brief's list missed, and it fails in the
+  //     opposite direction: `wayfindSearch('HLB')[0].routable` is FALSE and
+  //     `wayfindRoute('PCL','HLB')` nevertheless succeeds at 1339 m, because
+  //     computeRoute() invents a virtual door off the UT survey. So this file
+  //     NEVER reports routability from `entry.routable`. The only honest test
+  //     is trying the route, which is what wayfindScheduleCheck() does.
+  //
+  // A BUG A REVIEW FOUND THAT THE GATE COULD NOT, AND WHY (2026-08-24). The
+  // sniff that decides which parser gets the text was a two-way question —
+  // "is it ICS? no? then rows" — so the fixture in this suite modelling the
+  // single likeliest real-world bad file, a saved UT EID sign-in page, went
+  // to the ROW parser and came back with NINE errors, one per line of markup,
+  // each reading "names a course but no building" about a line like
+  // `<!DOCTYPE html>`. The correct sentence for that file existed and was
+  // unreachable: only a caller that forced `kind:'ics'` ever saw it, and the
+  // only caller that did was the test. 209 green assertions, and the exact
+  // scenario they were written for still got through when called the way the
+  // docs say to call it. Three changes, all below: the sniff is three-way
+  // (schedSniff), a row that names no course gets the sentence written for
+  // that case instead of the one written for a different case, and a paste
+  // with no schedule signal on ANY line is refused once rather than per line.
+  // The gate now calls the public entry point with NO options, for every
+  // fixture, which is the assertion that was actually missing.
+
+  const SCHEDULE = {
+    // ── the shape ─────────────────────────────────────────────────────────
+    // Bump `shapeVersion` if a consumer could be broken by a change. A future
+    // OCR or Registration-Plus source stamps the same two fields.
+    shape: 'ut-walk-schedule',
+    shapeVersion: 1,
+    tz: 'America/Chicago',            // UT is one campus in one zone
+
+    // ── limits, so a pasted 40 MB file cannot wedge the tab ────────────────
+    maxBytes: 4194304,
+    maxEvents: 500,
+
+    // ── resolution ────────────────────────────────────────────────────────
+    codeMinLen: 2,                    // shortest UT building code (none are 1)
+    codeMaxLen: 4,                    // longest, e.g. `UA9`, `PX3`, `FS1`
+    suggestMax: 3,                    // did-you-mean candidates offered, never applied
+    // Farther than this from `campusCentre` and the building is not on this
+    // map at all. Pickle Research Campus is 10.8-11.8 km out; the farthest
+    // main-campus door in UT_CELEBRATED is under 1.5 km. 3 km is the gap.
+    offMapM: 3000,
+    campusCentre: [-97.739719, 30.286186],   // MAI's celebrated door
+
+    // ── manual / pasted entry ─────────────────────────────────────────────
+    // A bare hour below this reads as afternoon: "TTh 2:00" is 14:00, because
+    // no UT class meets at 02:00. Raise it if that ever stops being true.
+    pmCutoffHour: 8,
+    dayWords: [
+      // LONGEST FIRST — `TTH` must win over `T`. Uppercased before matching.
+      ['MTWTHF', ['MO', 'TU', 'WE', 'TH', 'FR']],
+      ['MTWTH', ['MO', 'TU', 'WE', 'TH']],
+      ['MTWRF', ['MO', 'TU', 'WE', 'TH', 'FR']],
+      ['TWTH', ['TU', 'WE', 'TH']],
+      ['MWF', ['MO', 'WE', 'FR']],
+      ['TTH', ['TU', 'TH']],
+      ['MW', ['MO', 'WE']],
+      ['MF', ['MO', 'FR']],
+      ['TW', ['TU', 'WE']],
+      ['WF', ['WE', 'FR']],
+      ['TH', ['TH']],
+      ['SU', ['SU']],
+      ['M', ['MO']], ['T', ['TU']], ['W', ['WE']], ['F', ['FR']], ['S', ['SA']],
+    ],
+
+    // ── telling a schedule from a file that is not one ────────────────────
+    //
+    // ADDED AFTER A REVIEW CAUGHT THE GATE GRADING ITS OWN HOMEWORK. The old
+    // sniff asked one question — "does this contain BEGIN:VCALENDAR" — and
+    // anything else fell through to the row parser. A saved UT EID sign-in
+    // page (the likeliest wrong file a student uploads, and already a fixture
+    // here) therefore produced NINE errors, one per line of markup, each
+    // reading "names a course but no building" about a line like
+    // `<!DOCTYPE html>`. Nine wrong sentences instead of the one right one
+    // that was already written. The crafted message was only reachable when
+    // the caller forced `kind:'ics'`, which the gate did, so the gate was
+    // green on a path no real caller takes.
+    //
+    // So the sniff is now THREE-way — ics / rows / markup — and the row
+    // parser has a floor under it for junk that is not markup either.
+    markupHeadChars: 512,       // how much of the head the opener test reads
+    markupTagsMin: 3,           // fewest tag-shaped tokens that can convict
+    markupLineFraction: 0.5,    // ...and they must be on this share of lines
+    // A paste with at least this many lines and NO schedule signal anywhere
+    // (no building candidate, no course number, no time, no day word) is not
+    // a schedule at all, and says so once instead of once per line. Below
+    // this, per-line errors read better than a verdict on the whole file.
+    notScheduleMinLines: 3,
+    // Quoted back to the student inside an error. A whole line of minified
+    // markup in an error message is not a message.
+    rowSnippetMax: 60,
+
+    // ── network ───────────────────────────────────────────────────────────
+    fetchTimeoutMs: 12000,
+    // `webcal://` is not a wire protocol — it is an OS handoff that means
+    // "subscribe to the feed at this host and path". The feed itself is served
+    // over HTTPS, which is what the scheme is swapped for. Set to 'http' only
+    // if you are testing against a plain-HTTP server.
+    webcalScheme: 'https',
+
+    // ── the sentences ─────────────────────────────────────────────────────
+    // Every string a student can read is here, so the interface lane can
+    // reword any of them without going near the parsing (CLAUDE.md rule 11).
+    // `{n}` is the 1-based row, `{title}` the class, `{loc}` what they wrote.
+    say: {
+      summaryAllOk: 'Imported all {ok} classes.',
+      summaryPartial: 'Imported {ok} of {total} classes. {failed} could not be used.',
+      summaryNone: 'None of the {total} entries in that file could be used.',
+      fileNotCalendar: 'That is not a calendar file — it has no BEGIN:VCALENDAR line. If you saved it from a page that asked you to sign in, you probably saved the sign-in page instead of the .ics.',
+      fileEmpty: 'That calendar has no events in it.',
+      fileTooBig: 'That file is {mb} MB. The importer stops at {maxmb} MB.',
+      fileTruncated: 'The file stops in the middle of an event, so the last entry was skipped. Re-export it and try again.',
+      fileTooMany: 'That calendar has more than {max} events, so only the first {max} were read.',
+      locationMissing: 'Row {n} ({title}) has no location, so there is nowhere to walk to. Add the building and room to that event, or type it in below.',
+      buildingUnknown: 'Row {n} ({title}): "{loc}" is not a UT building code.',
+      buildingSuggest: ' Did you mean {suggest}?',
+      buildingAddress: 'Row {n} ({title}): "{loc}" looks like a street address, not a UT building code. Class locations read like "WEL 2.224".',
+      buildingOffMap: 'Row {n} ({title}): {code} is at the Pickle Research Campus, about {km} km north of here. This map only covers the main campus.',
+      buildingUnmapped: 'Row {n} ({title}): {code} is a real UT building, but this build has no walkable doors for it yet.',
+      dateMalformed: 'Row {n} ({title}) has an unreadable {field} ("{raw}"), so we do not know when it meets.',
+      timeMissing: 'Row {n} ({title}) has no start time.',
+      eventTruncated: 'Row {n} ({title}) is cut off at the end of the file and was skipped.',
+      guessedByName: 'Row {n} ({title}) says "{loc}" — matched to {code} ({name}) by name rather than by building code. Worth a look.',
+      noRoute: '{fromCode} to {toCode}: no walking route found between those two buildings.',
+      // "Row", not "Line", and deliberately the same word the ICS problems
+      // use. A paste that produced one `Row 6` and one `Line 7` about the
+      // same seven lines reads like two different programs talking.
+      rowNoLocation: 'Row {n} ("{line}") names a course but no building.',
+      rowUnreadable: 'Row {n} ("{line}") does not read like a class. A row needs at least a building and room, e.g. "WEL 2.224".',
+      fileNotSchedule: 'None of the {total} lines in that text look like a class. A schedule line needs a building and room, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".',
+    },
+  };
+  WAYFIND.schedule = SCHEDULE;
+
+  const SCHED_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  // A date, or a date-time, with an optional trailing Z for UTC. Deliberately
+  // strict: `2026O826T140000` (letter O for zero) must FAIL rather than be
+  // silently coerced, because a wrong class time is worse than a missing one.
+  const SCHED_DT_RE = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/;
+  // UT's own format, from registrar.utexas.edu/schedules/269/using: a code,
+  // one space, a floor.room. The room may be `220`, `2.224`, `A121A`, `1.606D`.
+  //
+  // THE CODE HALF IS DELIBERATELY WIDER THAN A VALID CODE — up to six
+  // characters, not three — AND THAT IS THE WHOLE POINT. "Does this string
+  // CLAIM a building code" is a question about shape; "is that code real" is a
+  // question about vocabulary, and running them together is what broke the
+  // first cut of this parser. `MAII 220` (a real typo for `MAI 220`) did not
+  // fit a 2-3 character code, so it fell past this test to the free-text name
+  // ladder — and `search()`, which is a forgiving type-ahead, fuzzed `maii`
+  // onto `mail` and resolved a Government lecture to the **Comal Mail Service
+  // Building**. That is precisely the wrong-building-with-confidence failure
+  // the note above `search()` exists to prevent, arriving through the back
+  // door. A wide claim plus a strict vocabulary check gives the student
+  // "MAII is not a UT building code. Did you mean MAI?" instead.
+  const SCHED_CODE_ROOM_RE = /^([A-Z][A-Z0-9]{1,5})\s+([0-9A-Z][0-9A-Z.\-]*)$/;
+  // A ROOM CONTAINS A DIGIT, always — `220`, `2.224`, `A121A`, `1.606D`. Without
+  // that, `Welch Hall` parses as building `WELCH` room `HALL` and a perfectly
+  // good name match is turned into an error.
+  const SCHED_ROOM_DIGIT_RE = /[0-9]/;
+  const SCHED_PARENS_RE = /\(\s*([A-Z]{2,3}[0-9]?)\s*\)/;
+  // Anything that opens with a street number, or carries a US ZIP, is an
+  // ADDRESS and must never be handed to the name ladder — `search()` is a
+  // forgiving type-ahead and will happily fuzzy a street name onto a building.
+  const SCHED_ADDRESS_RE = /(^\s*\d{2,6}\s+\S)|(\b\d{5}(-\d{4})?\b)/;
+  // A time, only where a colon or an am/pm marker proves it is one. Without
+  // that guard `MWF 10` parses as building `MWF` room `10`.
+  const SCHED_TIME_RE = /\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?\b|\b(\d{1,2}):(\d{2})\b/gi;
+  const SCHED_COURSE_RE = /\b([A-Z]{1,3}(?:\s+[A-Z])?\s+\d{3}[A-Z]?)\b/;
+  // A saved WEB PAGE, which is what a student uploads when the export link
+  // bounced them through a sign-in wall. Two independent tests, because the
+  // two real shapes differ: a whole saved document opens with a doctype or an
+  // `<html>` root, while a page saved as a FRAGMENT (or copied out of a
+  // Canvas panel) has neither and is only recognisable by tag density.
+  const SCHED_MARKUP_HEAD_RE = /^\uFEFF?\s*(?:<\?xml\b|<!DOCTYPE\b|<!--|<html\b|<head\b|<body\b)/i;
+  const SCHED_TAG_RE = /<\/?[a-z][a-z0-9]*(?:\s[^<>]*)?\/?>/i;
+
+  /** Fill `{k}` placeholders in one of SCHEDULE.say's strings. */
+  function schedSay(key, vars) {
+    let s = String((SCHEDULE.say && SCHEDULE.say[key]) || key);
+    if (vars) for (const k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
+    return s;
+  }
+
+  /**
+   * A line, quoted back to the student, trimmed to something readable.
+   *
+   * The error that prompted this quoted a whole line of HTML into a sentence.
+   * An error message that is itself unreadable is not an error message.
+   */
+  function schedSnippet(line) {
+    const s = String(line == null ? '' : line).trim().replace(/\s+/g, ' ');
+    const max = SCHEDULE.rowSnippetMax;
+    return s.length > max ? s.slice(0, max - 1) + '…' : s;
+  }
+
+  function schedProblem(level, code, text, at, hint) {
+    return { level: level, code: code, text: text, at: at || null, hint: hint || '' };
+  }
+
+  // ── ICS lexing ────────────────────────────────────────────────────────────
+
+  /**
+   * RFC 5545 §3.1 line unfolding, and it has to happen before anything else.
+   *
+   * Google and Apple both fold at 75 octets: the value continues on the next
+   * physical line, marked by a leading space or tab. A LOCATION carrying a
+   * street address is routinely split across three lines that way — which is
+   * exactly the "multi-line address" case this lane is judged on. A parser
+   * that reads physical lines sees `LOCATION:2617 Wichita Street\, Building`
+   * and a mystery line starting with a space.
+   *
+   * The source line number of the FIRST physical line is kept, so an error can
+   * say where in the file to look.
+   */
+  function schedUnfold(text) {
+    let s = String(text == null ? '' : text);
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);       // BOM
+    const raw = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const out = [];
+    for (let i = 0; i < raw.length; i++) {
+      const l = raw[i];
+      const c = l.charCodeAt(0);
+      if (out.length && (c === 32 || c === 9)) out[out.length - 1].text += l.slice(1);
+      else out.push({ text: l, line: i + 1 });
+    }
+    return out;
+  }
+
+  /** RFC 5545 §3.3.11 TEXT unescaping. `\n` and `\N` are both a newline. */
+  function schedUnescape(v) {
+    return String(v == null ? '' : v).replace(/\\([\\;,nN])/g,
+      (m, c) => (c === 'n' || c === 'N') ? '\n' : c);
+  }
+
+  /**
+   * One content line -> { name, params, value }.
+   *
+   * Scanned, not `split(':')`, because a quoted parameter value may contain a
+   * colon and every Apple export has one: `X-APPLE-STRUCTURED-LOCATION;
+   * X-ADDRESS="...":geo:30.28,-97.73` breaks a naive split three ways.
+   */
+  function schedLine(text) {
+    let i = 0, q = false;
+    const n = text.length;
+    for (; i < n; i++) {
+      const c = text[i];
+      if (c === '"') { q = !q; continue; }
+      if (c === ':' && !q) break;
+    }
+    if (i >= n) return null;                       // no colon: not a content line
+    const head = text.slice(0, i), value = text.slice(i + 1);
+    const parts = [];
+    let cur = '', inq = false;
+    for (let k = 0; k < head.length; k++) {
+      const c = head[k];
+      if (c === '"') { inq = !inq; continue; }
+      if (c === ';' && !inq) { parts.push(cur); cur = ''; continue; }
+      cur += c;
+    }
+    parts.push(cur);
+    const params = {};
+    for (let k = 1; k < parts.length; k++) {
+      const eq = parts[k].indexOf('=');
+      if (eq < 0) params[parts[k].toUpperCase().trim()] = '';
+      else params[parts[k].slice(0, eq).toUpperCase().trim()] = parts[k].slice(eq + 1);
+    }
+    return { name: parts[0].toUpperCase().trim(), params: params, value: value };
+  }
+
+  /**
+   * A UTC instant -> wall-clock date and minute in `tz`, via the platform's own
+   * zone database. No offset table in this file, so DST is never wrong.
+   *
+   * It matters more than it looks: every real export ends its RRULE with
+   * `UNTIL=20261208T055959Z`, which is 23:59:59 on 7 December in Chicago. Read
+   * as a UTC date the semester appears to run a day longer than it does.
+   */
+  function schedZoned(ms, tz) {
+    try {
+      const f = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour12: false, year: 'numeric', month: '2-digit',
+        day: '2-digit', hour: '2-digit', minute: '2-digit',
+      });
+      const p = {};
+      for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
+      let h = +p.hour; if (h === 24) h = 0;
+      return { date: p.year + '-' + p.month + '-' + p.day, min: h * 60 + (+p.minute) };
+    } catch (e) {
+      const d = new Date(ms);
+      const p2 = (x) => (x < 10 ? '0' : '') + x;
+      return {
+        date: d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()),
+        min: d.getUTCHours() * 60 + d.getUTCMinutes(),
+      };
+    }
+  }
+
+  /**
+   * A DTSTART/DTEND/UNTIL value -> { ok, date, min, kind }.
+   *
+   * `min` is minutes past LOCAL midnight and nothing here ever builds a Date
+   * from a floating or TZID value, because the browser's own zone would leak
+   * into a class time that is defined in Austin's.
+   */
+  function schedDT(value, params) {
+    const v = String(value == null ? '' : value).trim();
+    const m = SCHED_DT_RE.exec(v);
+    if (!m) return { ok: false, why: 'malformed', raw: v };
+    const y = +m[1], mo = +m[2], d = +m[3];
+    const probe = new Date(Date.UTC(y, mo - 1, d));
+    if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1 || probe.getUTCDate() !== d) {
+      return { ok: false, why: 'range', raw: v };
+    }
+    const dateStr = m[1] + '-' + m[2] + '-' + m[3];
+    if (!m[4]) return { ok: true, kind: 'date', date: dateStr, min: null, raw: v };
+    const hh = +m[4], mi = +m[5], ss = +m[6];
+    if (hh > 23 || mi > 59 || ss > 60) return { ok: false, why: 'range', raw: v };
+    if (m[7]) {
+      const z = schedZoned(Date.UTC(y, mo - 1, d, hh, mi, ss),
+        (params && params.TZID) || SCHEDULE.tz);
+      return { ok: true, kind: 'utc', date: z.date, min: z.min, raw: v };
+    }
+    return {
+      ok: true, kind: (params && params.TZID) ? 'zoned' : 'floating',
+      date: dateStr, min: hh * 60 + mi, raw: v,
+    };
+  }
+
+  /** `YYYY-MM-DD` -> `MO` / `TU` / ... */
+  function schedDow(dateStr) {
+    const p = String(dateStr || '').split('-');
+    if (p.length !== 3) return '';
+    return SCHED_DAYS[new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay()] || '';
+  }
+
+  /** RRULE -> the only three fields a class schedule needs from it. */
+  function schedRRule(v) {
+    const out = { freq: '', interval: 1, byday: [], until: null, count: null, raw: String(v || '') };
+    for (const part of out.raw.split(';')) {
+      const eq = part.indexOf('=');
+      if (eq < 0) continue;
+      const k = part.slice(0, eq).toUpperCase(), val = part.slice(eq + 1);
+      if (k === 'FREQ') out.freq = val.toUpperCase();
+      else if (k === 'INTERVAL') out.interval = Math.max(1, parseInt(val, 10) || 1);
+      else if (k === 'COUNT') out.count = parseInt(val, 10) || null;
+      else if (k === 'UNTIL') { const d = schedDT(val, {}); out.until = d.ok ? d.date : null; }
+      else if (k === 'BYDAY') {
+        out.byday = val.toUpperCase().split(',')
+          // `2SU` (second Sunday) is an ordinal form VTIMEZONE uses; the
+          // ordinal is dropped, the weekday kept.
+          .map(s => s.replace(/^[-+]?\d+/, '').trim())
+          .filter(s => SCHED_DAYS.indexOf(s) >= 0);
+      }
+    }
+    return out;
+  }
+
+  // ── location -> building code ─────────────────────────────────────────────
+
+  let schedCodeCache = null;
+  /**
+   * Every building code this app has any knowledge of, and where from.
+   *
+   * Three sources, and they genuinely disagree — that disagreement is what
+   * lets an error say WHICH kind of gap a code fell into:
+   *   graph     walk_graph.json, has doors, routes today
+   *   register  data/ut_buildings.json, findable, may or may not route
+   *   ut        UT_CELEBRATED only — not findable by `search()` at all (SSW)
+   */
+  function schedCodes() {
+    if (schedCodeCache && schedCodeCache.g === G) return schedCodeCache.map;
+    const map = new Map();
+    if (G && G.byCode) {
+      for (const [c, e] of G.byCode) {
+        if (!c || !/^[A-Z0-9]{2,4}$/.test(c)) continue;
+        map.set(c, { name: (e && e.display) || c, where: (e && e.routable) ? 'graph' : 'register' });
+      }
+    }
+    for (const c of utIndex().keys()) if (!map.has(c)) map.set(c, { name: c, where: 'ut' });
+    schedCodeCache = { g: G, map: map };
+    return map;
+  }
+
+  /** Metres from `campusCentre` to a UT_CELEBRATED row. */
+  function schedMetresOut(rec) {
+    const dx = (rec.lon - SCHEDULE.campusCentre[0]) * MPD_LON;
+    const dy = (rec.lat - SCHEDULE.campusCentre[1]) * MPD_LAT;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /**
+   * Codes one edit away from `up`, for the error text ONLY.
+   *
+   * `search()` refuses to fuzzy-match codes and it is right to: `WEL`'s 1-edit
+   * neighbourhood holds `WCP`, `WMB` and `MEL`. So this never resolves
+   * anything — it hands the student a name and lets them decide.
+   */
+  function schedSuggest(up) {
+    const out = [];
+    for (const [c, rec] of schedCodes()) {
+      if (c !== up && withinOne(up, c)) out.push({ code: c, name: rec.name });
+    }
+    out.sort((a, b) => a.code.localeCompare(b.code));
+    return out.slice(0, SCHEDULE.suggestMax);
+  }
+
+  /**
+   * A LOCATION string -> { code, room, text, lines } with nothing resolved yet.
+   *
+   * The order is the evidence ladder, strongest first:
+   *   1. a code in parentheses anywhere — Apple writes `Welch Hall (WEL), ...`
+   *   2. UT's own `CODE ROOM` on the first line — the format registrar.utexas.
+   *      edu documents and the one UT Registration Plus emits
+   *   3. the first line IS a bare code
+   *   4. nothing structural; the text is handed on for a name match, unless it
+   *      is an address (see SCHED_ADDRESS_RE)
+   */
+  function schedLocation(value) {
+    const whole = schedUnescape(value);
+    const lines = whole.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return { empty: true, text: '', lines: [], raw: whole };
+    const head = lines[0];
+    const out = { empty: false, code: null, room: '', text: head, lines: lines, raw: whole };
+
+    const par = SCHED_PARENS_RE.exec(whole);
+    if (par) {
+      out.code = par[1].toUpperCase();
+      const rest = head.replace(SCHED_PARENS_RE, ' ').replace(/[,;]/g, ' ').trim();
+      const cr = SCHED_CODE_ROOM_RE.exec(rest.toUpperCase());
+      if (cr && cr[1] === out.code && SCHED_ROOM_DIGIT_RE.test(cr[2])) out.room = cr[2];
+      return out;
+    }
+    // A trailing `, Austin, TX 78712` is decoration on an otherwise fine
+    // `WEL 2.224` — drop it before testing the shape, but only the tail.
+    const trimmed = head.replace(/\s*,\s*Austin\b.*$/i, '').trim();
+    const cr = SCHED_CODE_ROOM_RE.exec(trimmed.toUpperCase());
+    if (cr && SCHED_ROOM_DIGIT_RE.test(cr[2])) { out.code = cr[1]; out.room = cr[2]; return out; }
+    const bare = trimmed.toUpperCase();
+    if (/^[A-Z]{2,4}[0-9]?$/.test(bare)) { out.code = bare; return out; }
+    out.address = SCHED_ADDRESS_RE.test(whole);
+    return out;
+  }
+
+  /**
+   * A free-text location -> a building, but only on REAL evidence.
+   *
+   * `search()` is the type-ahead ladder and it is forgiving on purpose: a
+   * student watching a list of suggestions can see it guessed wrong. An
+   * importer has no such feedback loop — it takes the top hit and routes. So
+   * the top hit is only accepted here when a whole alphabetic word of four
+   * characters or more from the location is a genuine PREFIX of one of the
+   * building's own words. A one-edit fuzz is not evidence; `maii` is not
+   * allowed to become `mail`.
+   */
+  function schedByName(text) {
+    const t = String(text || '');
+    if (!t.trim() || SCHED_ADDRESS_RE.test(t)) return null;
+    let hits = [];
+    try { hits = (G ? search(t) : []) || []; } catch (e) { return null; }
+    const top = hits[0];
+    if (!top || !top.code) return null;
+    const words = norm(t).split(' ').filter(w => w.length >= 4 && /^[a-z]+$/.test(w));
+    if (!words.length) return null;
+    const own = (top.tokens || []).concat(norm(top.display || '').split(' ')).filter(Boolean);
+    if (!words.some(w => own.some(o => o.startsWith(w)))) return null;
+    return {
+      status: 'byName', code: top.code, room: '',
+      name: top.display || top.code, routable: null,
+    };
+  }
+
+  /**
+   * A parsed location -> what this app can actually say about it.
+   *
+   * status is one of:
+   *   ok        a code `search()` finds. It may still not route — see the HLB
+   *             note at the top of this section — so `routable` stays null
+   *             until wayfindScheduleCheck() has actually tried.
+   *   byName    no code, but the free text matched a building name. A WARNING,
+   *             never silent: the student is told what we guessed.
+   *   offmap    a real UT code more than `offMapM` from campus (Pickle)
+   *   unmapped  a real UT code on campus that this build cannot find (SSW)
+   *   unknown   not a UT building code at all
+   *   missing   no location on the event
+   */
+  function schedResolve(loc) {
+    if (!loc || loc.empty) return { status: 'missing', code: null, room: '' };
+    if (loc.code) {
+      const up = loc.code.toUpperCase();
+      const hit = (G && G.byCode) ? G.byCode.get(up) : null;
+      if (hit) {
+        return {
+          status: 'ok', code: up, room: loc.room, name: hit.display || up,
+          indexed: true, routable: null,
+        };
+      }
+      const ut = utIndex().get(up);
+      if (ut && ut.length) {
+        const m = schedMetresOut(ut[0]);
+        return {
+          status: m > SCHEDULE.offMapM ? 'offmap' : 'unmapped',
+          code: up, room: loc.room, name: up, routable: false,
+          km: Math.round(m / 100) / 10,
+        };
+      }
+      // A code-shaped token this app has never heard of. Before failing it,
+      // ask whether the WHOLE string is a building name we do know — that is
+      // how `Jester Center` survives being read as a code-shaped `JESTER`.
+      const named = schedByName(loc.text);
+      if (named) return named;
+      return { status: 'unknown', code: up, room: loc.room, routable: false, suggest: schedSuggest(up) };
+    }
+    // No code. An address never goes to the name ladder — `search()` is a
+    // forgiving type-ahead and would fuzz a street name onto a building.
+    if (loc.address) {
+      return { status: 'unknown', code: null, room: '', address: true, routable: false, suggest: [] };
+    }
+    const named = schedByName(loc.text);
+    if (named) return named;
+    return { status: 'unknown', code: null, room: '', routable: false, suggest: [] };
+  }
+
+  /** Turn one resolution into the problem, if any, a student should read. */
+  function schedLocProblem(res, ev, at) {
+    const n = ev.index, title = ev.title || ev.course || 'untitled';
+    if (res.status === 'ok') return null;
+    if (res.status === 'missing') {
+      return schedProblem('error', 'LOCATION_MISSING',
+        schedSay('locationMissing', { n: n, title: title }), at,
+        'Every class needs a building before it can be walked to.');
+    }
+    if (res.status === 'byName') {
+      return schedProblem('warning', 'BUILDING_BY_NAME',
+        schedSay('guessedByName', { n: n, title: title, loc: ev.locationText, code: res.code, name: res.name }),
+        at, 'Building codes are exact; names are matched loosely.');
+    }
+    if (res.status === 'offmap') {
+      return schedProblem('error', 'BUILDING_OFF_MAP',
+        schedSay('buildingOffMap', { n: n, title: title, code: res.code, km: res.km }), at,
+        'Nothing at the Pickle Research Campus can be routed on this map.');
+    }
+    if (res.status === 'unmapped') {
+      return schedProblem('error', 'BUILDING_NOT_WALKABLE',
+        schedSay('buildingUnmapped', { n: n, title: title, code: res.code }), at,
+        'The building is real; this build is missing its doors.');
+    }
+    if (res.address) {
+      return schedProblem('error', 'BUILDING_IS_ADDRESS',
+        schedSay('buildingAddress', { n: n, title: title, loc: ev.locationText }), at,
+        'Replace the address with the building code and room.');
+    }
+    let text = schedSay('buildingUnknown', { n: n, title: title, loc: ev.locationText || res.code || '' });
+    if (res.suggest && res.suggest.length) {
+      text += schedSay('buildingSuggest', {
+        suggest: res.suggest.map(s => s.code + (s.name && s.name !== s.code ? ' (' + s.name + ')' : '')).join(' or '),
+      });
+    }
+    return schedProblem('error', 'BUILDING_UNKNOWN', text, at,
+      'We will not guess between codes one letter apart — pick one.');
+  }
+
+  // ── ICS -> raw events ─────────────────────────────────────────────────────
+
+  /**
+   * Walk the file once, tracking component nesting.
+   *
+   * NESTING IS NOT OPTIONAL AND THIS IS THE TRAP. Every Google and Apple export
+   * carries a VTIMEZONE whose BEGIN:STANDARD and BEGIN:DAYLIGHT blocks each
+   * hold their own `DTSTART:19701101T020000`. A parser that collects properties
+   * without knowing which component it is inside reads 2 a.m. on 1 November
+   * 1970 as a class time. Only properties whose immediately enclosing
+   * component is VEVENT are kept — which also drops VALARM's DESCRIPTION and
+   * TRIGGER for free.
+   */
+  function schedScanICS(text) {
+    const lines = schedUnfold(text);
+    const stack = [];
+    const events = [];
+    const cal = { name: '', prodId: '', tz: '', sawCalendar: false, truncated: false };
+    let cur = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const L = lines[i];
+      if (!L.text || !L.text.trim()) continue;
+      const p = schedLine(L.text);
+      if (!p) continue;
+      if (p.name === 'BEGIN') {
+        const comp = p.value.toUpperCase().trim();
+        stack.push(comp);
+        if (comp === 'VCALENDAR') cal.sawCalendar = true;
+        if (comp === 'VEVENT' && !cur) cur = { line: L.line, props: [], truncated: false };
+        continue;
+      }
+      if (p.name === 'END') {
+        const comp = p.value.toUpperCase().trim();
+        if (comp === 'VEVENT' && cur) { events.push(cur); cur = null; }
+        const at = stack.lastIndexOf(comp);
+        if (at >= 0) stack.length = at; else stack.pop();
+        continue;
+      }
+      if (stack.length === 1 && stack[0] === 'VCALENDAR') {
+        if (p.name === 'X-WR-CALNAME') cal.name = schedUnescape(p.value).trim();
+        else if (p.name === 'PRODID') cal.prodId = schedUnescape(p.value).trim();
+        else if (p.name === 'X-WR-TIMEZONE') cal.tz = p.value.trim();
+        continue;
+      }
+      if (cur && stack[stack.length - 1] === 'VEVENT') cur.props.push({ p: p, line: L.line });
+    }
+    if (cur) { cur.truncated = true; cal.truncated = true; events.push(cur); }
+    return { cal: cal, events: events };
+  }
+
+  /** One raw VEVENT -> one event in the shape, with its own problems attached. */
+  function schedEventFromICS(raw, idx, defTz) {
+    const first = (name) => {
+      for (const q of raw.props) if (q.p.name === name) return q;
+      return null;
+    };
+    const ev = {
+      index: idx, id: '', title: '', course: '', locationText: '',
+      code: null, room: '', days: [], startMin: null, endMin: null,
+      firstDate: null, lastDate: null, exDates: [], tz: defTz || SCHEDULE.tz,
+      status: 'ok', problems: [], resolved: null,
+      raw: { line: raw.line, uid: '', summary: '', location: '', rrule: '' },
+    };
+    const at = (field, line) => ({ event: idx, line: line || raw.line, field: field || '' });
+
+    const uid = first('UID');
+    ev.id = uid ? schedUnescape(uid.p.value).trim() : ('row-' + idx);
+    ev.raw.uid = ev.id;
+
+    const sum = first('SUMMARY');
+    ev.title = sum ? schedUnescape(sum.p.value).trim() : '';
+    ev.raw.summary = ev.title;
+    const cm = SCHED_COURSE_RE.exec(ev.title.toUpperCase());
+    ev.course = cm ? cm[1].replace(/\s+/g, ' ').trim() : '';
+
+    if (raw.truncated) {
+      ev.status = 'failed';
+      ev.problems.push(schedProblem('error', 'EVENT_TRUNCATED',
+        schedSay('eventTruncated', { n: idx, title: ev.title || 'untitled' }), at('', raw.line),
+        'The file ended before this event closed, so its fields cannot be trusted.'));
+    }
+
+    const ds = first('DTSTART');
+    if (!ds) {
+      ev.status = 'failed';
+      ev.problems.push(schedProblem('error', 'TIME_MISSING',
+        schedSay('timeMissing', { n: idx, title: ev.title || 'untitled' }), at('DTSTART')));
+    } else {
+      ev.tz = ds.p.params.TZID || defTz || SCHEDULE.tz;
+      const d = schedDT(ds.p.value, ds.p.params);
+      if (!d.ok) {
+        ev.status = 'failed';
+        ev.problems.push(schedProblem('error', 'DATE_MALFORMED',
+          schedSay('dateMalformed', { n: idx, title: ev.title || 'untitled', field: 'start date', raw: d.raw }),
+          at('DTSTART', ds.line), 'Dates look like 20260826T100000.'));
+      } else {
+        ev.firstDate = d.date;
+        ev.startMin = d.min;
+      }
+    }
+    const de = first('DTEND');
+    if (de) {
+      const d2 = schedDT(de.p.value, de.p.params);
+      if (!d2.ok) {
+        ev.problems.push(schedProblem('warning', 'DATE_MALFORMED',
+          schedSay('dateMalformed', { n: idx, title: ev.title || 'untitled', field: 'end date', raw: d2.raw }),
+          at('DTEND', de.line), 'The class still imports; only its length is unknown.'));
+      } else ev.endMin = d2.min;
+    }
+
+    const rr = first('RRULE');
+    if (rr) {
+      const r = schedRRule(rr.p.value);
+      ev.raw.rrule = r.raw;
+      ev.days = r.byday.slice();
+      ev.lastDate = r.until;
+    }
+    if (!ev.days.length && ev.firstDate) {
+      const d = schedDow(ev.firstDate);
+      if (d) ev.days = [d];
+    }
+    for (const q of raw.props) {
+      if (q.p.name !== 'EXDATE') continue;
+      for (const one of String(q.p.value).split(',')) {
+        const d = schedDT(one, q.p.params);
+        if (d.ok && ev.exDates.indexOf(d.date) < 0) ev.exDates.push(d.date);
+      }
+    }
+
+    const loc = first('LOCATION');
+    ev.raw.location = loc ? loc.p.value : '';
+    const parsed = schedLocation(loc ? loc.p.value : '');
+    ev.locationText = parsed.empty ? '' : parsed.text;
+    const res = schedResolve(parsed);
+    ev.resolved = res;
+    ev.code = res.code;
+    ev.room = res.room || parsed.room || '';
+    const lp = schedLocProblem(res, ev, at('LOCATION', loc ? loc.line : raw.line));
+    if (lp) {
+      ev.problems.push(lp);
+      if (lp.level === 'error') ev.status = 'failed';
+    }
+    return ev;
+  }
+
+  // ── manual / pasted text ─────────────────────────────────────────────────
+
+  /** Minutes past midnight for `h:mm` with UT's afternoon convention. */
+  function schedClock(h, m, ap) {
+    let hh = h % 24;
+    if (ap === 'p') { if (hh !== 12) hh += 12; }
+    else if (ap === 'a') { if (hh === 12) hh = 0; }
+    else if (hh < SCHEDULE.pmCutoffHour) hh += 12;      // "TTh 2:00" is 14:00
+    return hh * 60 + (m || 0);
+  }
+
+  /**
+   * Pull the times out of one pasted line and hand back the line with them
+   * blanked, so the building scan that follows cannot mistake `10:00` for a
+   * room number.
+   */
+  function schedTimesOf(line) {
+    const found = [];
+    SCHED_TIME_RE.lastIndex = 0;
+    const masked = line.replace(SCHED_TIME_RE, function (m, h1, m1, ap, h2, m2) {
+      if (h1 != null) found.push(schedClock(+h1, m1 == null ? 0 : +m1, String(ap).toLowerCase()));
+      else found.push({ h: +h2, m: +m2 });
+      return ' '.repeat(m.length);
+    });
+    // A bare `12:30-2:00` carries no marker. The first one sets the half of the
+    // day; anything after it that would run backwards is pushed to the
+    // afternoon, which is what "12:30-2:00" means on every schedule ever
+    // printed.
+    const out = [];
+    for (const f of found) {
+      if (typeof f === 'number') { out.push(f); continue; }
+      let v = schedClock(f.h, f.m, '');
+      if (out.length && v < out[out.length - 1] && v + 720 <= 1439) v += 720;
+      out.push(v);
+    }
+    return { times: out, masked: masked };
+  }
+
+  /**
+   * The day pattern in one pasted line, and the line with it blanked.
+   *
+   * LONGEST MATCH WINS, ACROSS THE WHOLE LINE — not the first match found.
+   * `C S 429  MWF 10:00 am  GDC 2.216` is a real UT row and its first
+   * day-word-shaped token is the `S` of the field-of-study `C S`, which reads
+   * as Saturday. `M 340L ... TTh ...` reads as Monday for the same reason. A
+   * three-letter `MWF` sitting later in the same line is far better evidence
+   * than a one-letter token, so length decides and position only breaks ties.
+   */
+  function schedDaysOf(line) {
+    const toks = line.split(/[\s,;|–—]+/);
+    let best = null;
+    for (let i = 0; i < toks.length; i++) {
+      const up = toks[i].toUpperCase().replace(/[^A-Z]/g, '');
+      if (!up) continue;
+      for (const [word, days] of SCHEDULE.dayWords) {
+        if (up !== word) continue;
+        if (!best || word.length > best.word.length) best = { word: word, days: days, tok: toks[i] };
+        break;
+      }
+    }
+    if (!best) return { days: [], masked: line };
+    const esc = best.tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return {
+      days: best.days.slice(),
+      masked: line.replace(new RegExp('\\b' + esc + '\\b'), ' '.repeat(best.tok.length)),
+    };
+  }
+
+  /**
+   * One pasted row -> one event.
+   *
+   * THE TRAP THE UT RECON DOC NAMED: a course number and a building+room are
+   * the same SHAPE. `GOV 312L` and `WEL 2.224` both read `three letters, a
+   * space, a number`. Nothing in the string tells them apart, so the shape is
+   * not what decides — the app's own vocabulary is. Every `CODE NUM` candidate
+   * on the line is collected and the one whose code is a KNOWN BUILDING wins.
+   * If none is known the LAST candidate is reported as the failure, because UT
+   * prints the room after the course on its own schedule rows.
+   */
+  function schedEventFromRow(line, idx) {
+    const ev = {
+      index: idx, id: 'row-' + idx, title: '', course: '', locationText: '',
+      code: null, room: '', days: [], startMin: null, endMin: null,
+      firstDate: null, lastDate: null, exDates: [], tz: SCHEDULE.tz,
+      status: 'ok', problems: [], resolved: null,
+      raw: { line: idx, uid: '', summary: line, location: '', rrule: '' },
+    };
+    const at = { event: idx, line: idx, field: '' };
+    const flat = line.replace(/[–—|]/g, ' ');
+    const t = schedTimesOf(flat);
+    ev.startMin = t.times.length ? t.times[0] : null;
+    ev.endMin = t.times.length > 1 ? t.times[1] : null;
+    const d = schedDaysOf(t.masked);
+    ev.days = d.days;
+
+    const known = schedCodes();
+    const cands = [];
+    // Same width as SCHED_CODE_ROOM_RE and for the same reason: a typo has to
+    // be CAUGHT here, not silently skipped. `MAII 220` must become a candidate
+    // so it can be reported, otherwise the row degrades to "no building" and
+    // the student never learns which letter is wrong.
+    const re = /\b([A-Za-z][A-Za-z0-9]{1,5})\s+([0-9A-Za-z][0-9A-Za-z.\-]*)\b/g;
+    let m;
+    while ((m = re.exec(d.masked))) {
+      if (!SCHED_ROOM_DIGIT_RE.test(m[2])) continue;
+      const code = m[1].toUpperCase();
+      cands.push({ code: code, room: m[2], text: m[1] + ' ' + m[2], known: known.has(code) });
+    }
+    const cm = SCHED_COURSE_RE.exec(line.toUpperCase());
+    ev.course = cm ? cm[1].replace(/\s+/g, ' ').trim() : '';
+    ev.title = ev.course || line.trim();
+
+    // WHICH TOKEN IS THE BUILDING. `GOV 312L` and `WEL 2.224` are the same
+    // SHAPE — three letters, a space, a number — so shape cannot decide, and
+    // docs/import-bar-ut.md flagged exactly this as the trap. The app's own
+    // vocabulary decides instead: the LAST candidate whose code is a real
+    // building wins, because UT prints the room after the course on its own
+    // schedule rows. `MAI 220, TTh 2:00pm` — the brief's own example — is a
+    // line where the only candidate is BOTH a course-shaped token and a known
+    // building, and there the building wins: a known code is hard evidence and
+    // course-shape is not. The residual ambiguity is real and documented in
+    // docs/si-parser.md (`ART 302` could be either), and it resolves the way a
+    // walking app should: toward a building it can actually take you to.
+    let pick = null;
+    for (let i = cands.length - 1; i >= 0; i--) {
+      if (cands[i].known) { pick = cands[i]; break; }
+    }
+    if (!pick && cands.length) {
+      const tail = cands[cands.length - 1];
+      if (!(cands.length === 1 && tail.text === ev.course)) pick = tail;
+    }
+    // DOES THIS LINE CARRY ANY SIGNAL AT ALL that it is about a class? A
+    // building candidate, a course number, a clock time, or a day word will
+    // do. `schedParseRows` uses this to tell "a schedule with a broken row"
+    // apart from "this is not a schedule", which are different sentences.
+    ev.hasSignal = !!(cands.length || ev.course || ev.startMin != null || ev.days.length);
+
+    if (!pick) {
+      ev.status = 'failed';
+      // TWO DIFFERENT FAILURES, AND SAYING THE WRONG ONE IS WORSE THAN SAYING
+      // NOTHING. "names a course but no building" is exactly right for
+      // `PSY 301, TTh 2:00pm-3:30pm` and a lie about `<!DOCTYPE html>` — and
+      // the lie is what shipped, because this branch did not look at whether
+      // a course had actually been found. `rowUnreadable` existed for the
+      // other case and was dead text nothing ever reached.
+      const named = !!ev.course;
+      ev.problems.push(schedProblem('error',
+        named ? 'LOCATION_MISSING' : 'ROW_UNREADABLE',
+        schedSay(named ? 'rowNoLocation' : 'rowUnreadable',
+          { n: idx, line: schedSnippet(line) }), at,
+        named
+          ? 'Add the building and room, e.g. "WEL 2.224".'
+          : 'Type one class per line, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".'));
+      return ev;
+    }
+    ev.locationText = pick.text;
+    const res = schedResolve({ empty: false, code: pick.code, room: pick.room, text: pick.text, lines: [pick.text] });
+    ev.resolved = res;
+    ev.code = res.code;
+    ev.room = res.room || pick.room;
+    const lp = schedLocProblem(res, ev, at);
+    if (lp) {
+      ev.problems.push(lp);
+      if (lp.level === 'error') ev.status = 'failed';
+    }
+    if (ev.startMin == null) {
+      ev.problems.push(schedProblem('warning', 'TIME_MISSING',
+        schedSay('timeMissing', { n: idx, title: ev.title }), at,
+        'The class imports; we just cannot order it in the day.'));
+    }
+    return ev;
+  }
+
+  // ── assembly ──────────────────────────────────────────────────────────────
+
+  /**
+   * The one internal shape, and the reason it looks like this.
+   *
+   * NOTHING AT THE TOP LEVEL IS ICS-SPECIFIC. `source.kind` names where the
+   * bytes came from and `raw` per event keeps whatever that source had, but a
+   * consumer reads `code`, `room`, `days`, `startMin`, `endMin` and never has
+   * to know whether an .ics, a paste, an OCR pass or a Registration-Plus API
+   * produced them. That is the whole "add a fourth source without a rewrite"
+   * requirement, and `wayfindScheduleFrom()` is the door it comes in through.
+   */
+  function schedAssemble(source, events, problems, note) {
+    const ok = events.filter(e => e.status === 'ok');
+    const failed = events.filter(e => e.status !== 'ok');
+    const all = problems.slice();
+    for (const e of events) for (const p of e.problems) all.push(p);
+    const total = events.length;
+    let summary;
+    if (!total) summary = note || schedSay('fileEmpty', {});
+    else if (!ok.length) summary = schedSay('summaryNone', { total: total });
+    else if (failed.length) summary = schedSay('summaryPartial', { ok: ok.length, total: total, failed: failed.length });
+    else summary = schedSay('summaryAllOk', { ok: ok.length });
+    return {
+      shape: SCHEDULE.shape,
+      version: SCHEDULE.shapeVersion,
+      source: source,
+      tz: SCHEDULE.tz,
+      events: events,
+      problems: all,
+      counts: {
+        total: total, ok: ok.length, failed: failed.length,
+        errors: all.filter(p => p.level === 'error').length,
+        warnings: all.filter(p => p.level === 'warning').length,
+      },
+      summary: summary,
+      // A convenience the interface lane asked for in docs/import-bar-*.md:
+      // the classes that CAN be walked to, in day order then clock order.
+      routable: ok.filter(e => e.code).slice().sort((a, b) =>
+        (SCHED_DAYS.indexOf(a.days[0] || '') - SCHED_DAYS.indexOf(b.days[0] || '')) ||
+        ((a.startMin == null ? 1e9 : a.startMin) - (b.startMin == null ? 1e9 : b.startMin))),
+    };
+  }
+
+  /** ICS text -> the shape. Synchronous; `G` must already be loaded to resolve. */
+  function schedParseICS(text, source) {
+    const problems = [];
+    const bytes = String(text || '').length;
+    if (bytes > SCHEDULE.maxBytes) {
+      problems.push(schedProblem('error', 'FILE_TOO_BIG', schedSay('fileTooBig', {
+        mb: Math.round(bytes / 104857.6) / 10, maxmb: Math.round(SCHEDULE.maxBytes / 1048576),
+      }), null, 'Export just this semester rather than the whole calendar.'));
+      return schedAssemble(source, [], problems, problems[0].text);
+    }
+    const scan = schedScanICS(text);
+    if (!scan.cal.sawCalendar && !scan.events.length) {
+      problems.push(schedProblem('error', 'FILE_NOT_CALENDAR', schedSay('fileNotCalendar', {}), null,
+        'Look for a file ending in .ics.'));
+      return schedAssemble(source, [], problems, problems[0].text);
+    }
+    if (scan.cal.truncated) {
+      problems.push(schedProblem('error', 'FILE_TRUNCATED', schedSay('fileTruncated', {}), null, ''));
+    }
+    let raws = scan.events;
+    if (raws.length > SCHEDULE.maxEvents) {
+      problems.push(schedProblem('warning', 'FILE_TOO_MANY',
+        schedSay('fileTooMany', { max: SCHEDULE.maxEvents }), null, ''));
+      raws = raws.slice(0, SCHEDULE.maxEvents);
+    }
+    if (source && scan.cal.name) source.label = source.label || scan.cal.name;
+    if (source) source.producer = scan.cal.prodId || '';
+    const events = raws.map((r, i) => schedEventFromICS(r, i + 1, scan.cal.tz || SCHEDULE.tz));
+    if (!events.length) {
+      problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
+        'Check you exported the calendar your classes are on.'));
+    }
+    return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+  }
+
+  /** Pasted text -> the shape. One class per non-blank line. */
+  function schedParseRows(text, source) {
+    const problems = [];
+    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n')
+      .map(s => s.trim()).filter(Boolean);
+    const events = lines.slice(0, SCHEDULE.maxEvents).map((l, i) => schedEventFromRow(l, i + 1));
+    if (!events.length) {
+      problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
+        'Type one class per line, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".'));
+      return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+    }
+
+    // THE FLOOR UNDER THE ROW PARSER, and it is deliberately hard to trip.
+    //
+    // The markup sniff catches a saved web page. This catches everything else
+    // that is not a schedule — a syllabus paragraph, a CSV of grades, a
+    // paste that missed. A verdict on the WHOLE file is only allowed when
+    // NOT ONE line anywhere carries any evidence of a class: no building
+    // candidate, no course number, no time, no day word.
+    //
+    // ONE SURVIVING ROW REVOKES IT, which is the whole point and is asserted
+    // (`mostly-junk.txt`: one real class among five junk lines still imports
+    // 1 of 6, per-line). That is the same "one bad row never kills the file"
+    // rule this feature is built on, applied to the failure mode this floor
+    // itself introduces — a summary verdict that swallows a good class would
+    // be a worse bug than the nine wrong sentences it replaced.
+    if (lines.length >= SCHEDULE.notScheduleMinLines && !events.some(e => e.hasSignal)) {
+      const text = schedSay('fileNotSchedule', { total: lines.length });
+      return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_SCHEDULE', text, null,
+        'If you meant to upload a calendar file, look for one ending in .ics.')], text);
+    }
+    return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+  }
+
+  /** Is this text an iCalendar payload? Cheap and decisive. */
+  function schedLooksLikeICS(text) {
+    const head = String(text || '').slice(0, 4096).toUpperCase();
+    return head.indexOf('BEGIN:VCALENDAR') >= 0 || head.indexOf('BEGIN:VEVENT') >= 0;
+  }
+
+  /**
+   * Is this a saved WEB PAGE rather than anything a student meant to hand us?
+   *
+   * Two tests because the two real shapes differ. A whole saved document opens
+   * with a doctype or an `<html>` root and the head test catches it on the
+   * first non-blank byte. A page saved or copied as a FRAGMENT has no such
+   * opener, so it is convicted on density instead: enough tag-shaped tokens,
+   * spread across enough of the lines, that no schedule paste could look like
+   * this by accident. Both bars are named constants in SCHEDULE.
+   */
+  function schedLooksLikeMarkup(text) {
+    const s = String(text || '');
+    if (SCHED_MARKUP_HEAD_RE.test(s.slice(0, SCHEDULE.markupHeadChars))) return true;
+    const lines = s.split(/\r\n?|\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < SCHEDULE.markupTagsMin) return false;
+    let tagged = 0;
+    for (const l of lines) if (SCHED_TAG_RE.test(l)) tagged++;
+    return tagged >= SCHEDULE.markupTagsMin &&
+      tagged >= lines.length * SCHEDULE.markupLineFraction;
+  }
+
+  /**
+   * WHICH PARSER GETS THIS TEXT — and it is a THREE-way question, not two.
+   *
+   * It used to be two ("is it ICS? no? then it is rows"), and that is the bug
+   * a review found: the fall-through swallowed a saved sign-in page and the
+   * row parser dutifully reported one error per line of markup. There was
+   * already a correct, crafted sentence for that exact file — it was simply
+   * unreachable unless the caller forced `kind:'ics'`, which only the test
+   * ever did.
+   *
+   * Returns 'ics' | 'markup' | 'rows'. ICS is asked first because a calendar
+   * file that happens to carry an HTML description is still a calendar file.
+   */
+  function schedSniff(text) {
+    if (schedLooksLikeICS(text)) return 'ics';
+    if (schedLooksLikeMarkup(text)) return 'markup';
+    return 'rows';
+  }
+
+  /** The one thing to say about a file that is not a calendar at all. */
+  function schedNotCalendar(source) {
+    const text = schedSay('fileNotCalendar', {});
+    return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_CALENDAR', text, null,
+      'Look for a file ending in .ics.')], text);
+  }
+
+  // ── the public entry points ───────────────────────────────────────────────
+
+  /**
+   * wayfindParseSchedule(text, opts) — the file/paste front end.
+   *
+   * `opts.kind` forces `'ics'` or `'rows'`; left off, the text decides — and
+   * the sniff is three-way, so a file that is NEITHER (a saved sign-in page)
+   * is named as such instead of being fed to the row parser. Async only
+   * because the building vocabulary lives in walk_graph.json and a resolution
+   * made before it loads would be wrong about every code.
+   *
+   * `source.sniffed` always records what the sniff decided, even when
+   * `opts.kind` overruled it, so the interface can say "we read this as a
+   * paste" without guessing. `source.kind` is 'ics' | 'rows' | 'unknown'.
+   */
+  window.wayfindParseSchedule = async function (text, opts) {
+    opts = opts || {};
+    try { await loadGraph(); } catch (e) { /* resolve against UT_CELEBRATED alone */ }
+    const sniffed = schedSniff(text);
+    const route = opts.kind || sniffed;
+    const source = {
+      kind: route === 'markup' ? 'unknown' : route,
+      sniffed: sniffed,
+      label: opts.label || '', url: opts.url || '', producer: '',
+      importedAt: new Date().toISOString(),
+    };
+    if (route === 'markup') return schedNotCalendar(source);
+    if (route === 'rows') return schedParseRows(text, source);
+    return schedParseICS(text, source);
+  };
+
+  /**
+   * wayfindFetchSchedule(url) — the subscribe-by-URL front end.
+   *
+   * `webcal://` is not a protocol a browser can fetch; it is an OS handoff to
+   * a calendar app (docs/import-bar-apple.md). The feed behind it is ordinary
+   * HTTPS at the same host and path, so the scheme is rewritten and fetched.
+   *
+   * A REAL GOOGLE OR UT FEED WILL USUALLY FAIL HERE, and saying so plainly is
+   * the whole value: those hosts send no `Access-Control-Allow-Origin`, so the
+   * browser blocks the read before this code sees a byte. That is a CORS fact
+   * about the other end, not a bug at this one, and the student's move is to
+   * download the .ics and drop it in — which the error says.
+   */
+  window.wayfindFetchSchedule = async function (url, opts) {
+    opts = opts || {};
+    const given = String(url || '').trim();
+    const source = {
+      kind: 'ics-url', label: opts.label || '', url: given, producer: '',
+      importedAt: new Date().toISOString(),
+    };
+    if (!given) {
+      return schedAssemble(source, [], [schedProblem('error', 'URL_MISSING',
+        'No calendar address was given.', null, '')], 'No calendar address was given.');
+    }
+    let target = given;
+    const scheme = SCHEDULE.webcalScheme + '://';
+    if (/^webcal:\/\//i.test(target)) target = scheme + target.slice(9);
+    else if (/^webcals:\/\//i.test(target)) target = scheme + target.slice(10);
+    if (!/^https?:\/\//i.test(target)) {
+      return schedAssemble(source, [], [schedProblem('error', 'URL_UNSUPPORTED',
+        'Calendar addresses start with webcal:// or https://.', null,
+        'Copy the "subscribe" link out of your calendar app.')], 'Unsupported address.');
+    }
+    source.fetched = target;
+    let text = '';
+    const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = setTimeout(() => { try { ctl && ctl.abort(); } catch (e) {} }, SCHEDULE.fetchTimeoutMs);
+    try {
+      const r = await fetch(target, ctl ? { signal: ctl.signal } : undefined);
+      if (!r.ok) {
+        clearTimeout(timer);
+        return schedAssemble(source, [], [schedProblem('error', 'URL_STATUS',
+          'That calendar address answered ' + r.status + '.', null,
+          r.status === 401 || r.status === 403
+            ? 'A private feed cannot be read from a web page. Download the .ics instead.'
+            : 'Check the address and try again.')], 'That address answered ' + r.status + '.');
+      }
+      text = await r.text();
+    } catch (e) {
+      clearTimeout(timer);
+      const aborted = e && (e.name === 'AbortError');
+      return schedAssemble(source, [], [schedProblem('error', aborted ? 'URL_TIMEOUT' : 'URL_BLOCKED',
+        aborted
+          ? 'That calendar address did not answer within ' + Math.round(SCHEDULE.fetchTimeoutMs / 1000) + ' seconds.'
+          : 'The browser would not let this page read that calendar address. Google and UT do not allow other sites to read a feed directly.',
+        null, 'Download the .ics from your calendar and drop the file in here instead.')],
+      'That calendar could not be read.');
+    }
+    clearTimeout(timer);
+    try { await loadGraph(); } catch (e) {}
+    // A feed URL that answers 200 with a LOGIN PAGE is the common way this
+    // fails in the wild — the same wrong bytes an upload brings, arriving
+    // over the wire. Same sniff, same sentence.
+    source.sniffed = schedSniff(text);
+    if (source.sniffed !== 'ics') return schedNotCalendar(source);
+    return schedParseICS(text, source);
+  };
+
+  /**
+   * wayfindScheduleFrom(rows, meta) — THE SEAM FOR A SOURCE THAT DOES NOT EXIST
+   * YET.
+   *
+   * An image-OCR pass, or a Registration-Plus API, will not hand this app an
+   * .ics; it will hand it rows. So it comes in here, and everything downstream
+   * — resolution, the gap statuses, the problem list, the summary line, the
+   * shape itself — is shared with the three sources that do exist. Adding one
+   * is writing an adapter to this signature, not touching the parser.
+   *
+   *   rows: [{ title?, course?, location, days?, startMin?, endMin?,
+   *            firstDate?, lastDate?, room?, confidence?, raw? }]
+   *
+   * `location` may be anything a LOCATION field may be: `WEL 2.224`, a name, a
+   * folded address. `days` accepts either the ICS vocabulary (`['MO','WE']`) or
+   * a UT day word (`'MWF'`). Nothing is trusted: a row from OCR gets exactly
+   * the same scrutiny and the same readable failures as a row from Google.
+   */
+  window.wayfindScheduleFrom = async function (rows, meta) {
+    meta = meta || {};
+    try { await loadGraph(); } catch (e) {}
+    const source = {
+      kind: meta.kind || 'rows', label: meta.label || '', url: meta.url || '',
+      // Nothing was sniffed — these rows arrived already structured. Recording
+      // that keeps `source` one shape across all four ways in.
+      sniffed: null,
+      producer: meta.producer || '', importedAt: new Date().toISOString(),
+    };
+    const list = Array.isArray(rows) ? rows.slice(0, SCHEDULE.maxEvents) : [];
+    const events = list.map((r, i) => {
+      const idx = i + 1;
+      const ev = {
+        index: idx, id: r.id || ('row-' + idx), title: String(r.title || r.course || '').trim(),
+        course: String(r.course || '').trim(), locationText: '',
+        code: null, room: String(r.room || ''), days: [], startMin: null, endMin: null,
+        firstDate: r.firstDate || null, lastDate: r.lastDate || null, exDates: r.exDates || [],
+        tz: r.tz || SCHEDULE.tz, status: 'ok', problems: [], resolved: null,
+        confidence: (r.confidence == null ? null : r.confidence),
+        raw: r.raw || { line: idx },
+      };
+      const at = { event: idx, line: idx, field: 'location' };
+      if (Array.isArray(r.days)) ev.days = r.days.map(d => String(d).toUpperCase().slice(0, 2))
+        .filter(d => SCHED_DAYS.indexOf(d) >= 0);
+      else if (r.days) {
+        const up = String(r.days).toUpperCase().replace(/[^A-Z]/g, '');
+        for (const [w, ds] of SCHEDULE.dayWords) if (up === w) { ev.days = ds.slice(); break; }
+      }
+      if (r.startMin != null) ev.startMin = +r.startMin;
+      if (r.endMin != null) ev.endMin = +r.endMin;
+      if (ev.startMin == null && r.start) {
+        const t = schedTimesOf(String(r.start));
+        ev.startMin = t.times.length ? t.times[0] : null;
+      }
+      if (ev.endMin == null && r.end) {
+        const t = schedTimesOf(String(r.end));
+        ev.endMin = t.times.length ? t.times[0] : null;
+      }
+      const parsed = schedLocation(String(r.location == null ? '' : r.location));
+      ev.locationText = parsed.empty ? '' : parsed.text;
+      if (!ev.title) ev.title = ev.course || ('row ' + idx);
+      const res = schedResolve(parsed);
+      ev.resolved = res;
+      ev.code = res.code;
+      ev.room = ev.room || res.room || parsed.room || '';
+      const lp = schedLocProblem(res, ev, at);
+      if (lp) { ev.problems.push(lp); if (lp.level === 'error') ev.status = 'failed'; }
+      return ev;
+    });
+    return schedAssemble(source, events, [], schedSay('fileEmpty', {}));
+  };
+
+  /**
+   * wayfindScheduleCheck(schedule) — the only honest routability test.
+   *
+   * `entry.routable` from buildIndex() reads the graph's own door list, and HLB
+   * proves that is not the same question: it reports false and routes anyway,
+   * off a virtual door computeRoute() invents from the UT survey. So this
+   * ROUTES — every consecutive same-day pair in the schedule, headless, through
+   * the same code path the card uses, and writes the answer back onto the
+   * events.
+   *
+   * It does not draw anything and does not touch the interface.
+   */
+  window.wayfindScheduleCheck = async function (schedule, opts) {
+    opts = opts || {};
+    if (!schedule || !Array.isArray(schedule.events)) return schedule;
+    await loadGraph();
+    const usable = schedule.events.filter(e => e.status === 'ok' && e.code);
+    const seen = new Map();
+    for (const e of usable) {
+      if (seen.has(e.code)) { e.resolved.routable = seen.get(e.code); continue; }
+      let ok = false;
+      try {
+        const r = await window.wayfindStairs(e.code, e.code === 'PCL' ? 'MAI' : 'PCL',
+          { avoidStairs: !!opts.avoidStairs });
+        ok = !!(r && r.ok);
+      } catch (err) { ok = false; }
+      seen.set(e.code, ok);
+      e.resolved.routable = ok;
+      if (!ok) {
+        e.status = 'failed';
+        e.problems.push(schedProblem('error', 'BUILDING_NOT_WALKABLE',
+          schedSay('buildingUnmapped', { n: e.index, title: e.title || 'untitled', code: e.code }),
+          { event: e.index, line: e.raw && e.raw.line, field: 'LOCATION' },
+          'The code is known but no walking route reaches it.'));
+        schedule.problems.push(e.problems[e.problems.length - 1]);
+      }
+    }
+    // The legs a student actually walks: consecutive classes on the same day.
+    const legs = [];
+    for (const day of SCHED_DAYS) {
+      const onDay = schedule.events
+        .filter(e => e.status === 'ok' && e.code && e.days.indexOf(day) >= 0)
+        .sort((a, b) => (a.startMin == null ? 1e9 : a.startMin) - (b.startMin == null ? 1e9 : b.startMin));
+      for (let i = 0; i + 1 < onDay.length; i++) {
+        const a = onDay[i], b = onDay[i + 1];
+        if (a.code === b.code) continue;
+        legs.push({
+          day: day, from: a.code, to: b.code, fromIndex: a.index, toIndex: b.index,
+          fromTitle: a.title, toTitle: b.title,
+          gapMin: (b.startMin != null && a.endMin != null) ? (b.startMin - a.endMin) : null,
+          ok: false, distM: null, lo: null, hi: null, why: null,
+        });
+      }
+    }
+    for (const leg of legs) {
+      try {
+        const r = await window.wayfindStairs(leg.from, leg.to, { avoidStairs: !!opts.avoidStairs });
+        if (r && r.ok) {
+          leg.ok = true;
+          leg.distM = r.distM != null ? r.distM : null;
+        } else {
+          leg.why = (r && r.why) || 'noroute';
+        }
+      } catch (err) { leg.why = 'threw'; }
+      if (!leg.ok) {
+        schedule.problems.push(schedProblem('error', 'LEG_NO_ROUTE',
+          schedSay('noRoute', { fromCode: leg.from, toCode: leg.to }),
+          { event: leg.toIndex, line: null, field: '' }, ''));
+      }
+    }
+    schedule.legs = legs;
+    schedule.counts.legs = legs.length;
+    schedule.counts.legsOk = legs.filter(l => l.ok).length;
+    return schedule;
+  };
+
+  /** The vocabulary, for a test or for the interface's own type-ahead. */
+  window.wayfindScheduleCodes = async function () {
+    try { await loadGraph(); } catch (e) {}
+    const out = [];
+    for (const [c, rec] of schedCodes()) out.push({ code: c, name: rec.name, where: rec.where });
+    out.sort((a, b) => a.code.localeCompare(b.code));
+    return out;
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 9. THE SCHEDULE IMPORT — THE SCREEN A STUDENT ADDS THEIR CLASSES ON
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // WHAT THIS IS. The router already speaks UT building codes: `MAI`, `WEL`,
+  // `JES` are the app's native vocabulary (UT_ENTRANCES, §6). A class schedule
+  // is a list of times and a list of those same codes. So the import's whole
+  // job is one function — turn "MAI 220, TTh 2:00pm" into `MAI` — and the three
+  // routes Simeon asked for (Google Calendar, Apple Calendar, UT registration)
+  // are three ways of getting the bytes to that function, not three features.
+  //
+  // ── THE SHAPE, AND WHY IMAGE-OCR AND REGISTRATION-PLUS ARE A ROW EACH ──────
+  // Everything below is a two-stage pipe with ONE joint:
+  //
+  //     bytes ──[ decoder ]──> RAW ROWS ──[ impPlace ]──> classes + rejects
+  //
+  // A DECODER is per-format and knows nothing about UT. `impDecodeICS` handles
+  // Google's export, Apple's `.ics` and any webcal feed, because all three end
+  // up as the identical VEVENT payload (docs/import-bar-apple.md proved that
+  // for Apple's two paths; docs/import-bar-ut.md proved UT Registration Plus
+  // emits the same). `impDecodeUTText` handles a block of rows pasted straight
+  // off UT Direct.
+  //
+  // A RAW ROW is `{ title, location, days, start, end, raw }` and nothing else.
+  // It is the only thing the two halves agree on.
+  //
+  // `impPlace` is per-CAMPUS and knows nothing about calendars. It splits the
+  // location on its first space, uppercases the head, and asks the router.
+  //
+  // So adding image-OCR later is adding `impDecodeImage(pixels) -> RAW ROWS`
+  // and one row to IMP_SOURCES. Adding a Registration-Plus API is adding
+  // `impDecodeRegPlus(json) -> RAW ROWS` and one row to IMP_SOURCES. Neither
+  // touches the placement, the failure taxonomy, or one line of this screen.
+  // That is the whole reason the joint is where it is. NOT BUILT NOW, on
+  // purpose — Simeon said "not in this pass".
+  //
+  // ── AND THE PARSER IS A SEAM, NOT A DEPENDENCY ────────────────────────────
+  // A sibling lane owns the parser proper. If it lands, it publishes
+  // `window.wayfindParseSchedule(text, opts) -> RAW ROWS` and this screen uses
+  // it (impRawRows checks for it first). Until then the reference decoders
+  // below run, so the screen is real and photographable today rather than a
+  // mockup waiting on someone else. Neither side has to change when the swap
+  // happens: RAW ROWS is the contract.
+  //
+  // ── WHAT FAILED AND WHY IS HALF THE FEATURE, AND IT WAS MEASURED ──────────
+  // A real schedule names a real building and some of those buildings this
+  // router cannot reach. RE-VERIFIED 2026-08-24 against the live page rather
+  // than taken from the brief (docs/si-ui.md): **12** codes in the app's own
+  // tables have no walkable door, not the 11 the brief carried — HLB, the Dell
+  // Med Health Learning Building, is a twelfth and it is NOT off-map. Ten are
+  // genuinely 11 km north at the Pickle Research Campus. SSW is a real,
+  // registered main-campus building that this app simply cannot walk to yet.
+  // Those are three different sentences and the screen says three different
+  // sentences, because "couldn't import" for a building that exists 400 m away
+  // is the "wrong building, beautifully drawn" failure with the lights off.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // TASTE BLOCK for the import screen — CLAUDE.md rule 11. Nothing below
+  // invents a number or a word; it is all here.
+  const IMP = {
+    // The button that opens it, in the walk sheet under the examples. It is a
+    // ROW, not a chip beside `Try WEL PCL GDC JES`: those four fill a field,
+    // this one opens a different screen, and a control that changes screens
+    // sitting in a row of controls that fill a field is how you get tapped by
+    // accident on a phone.
+    entryOn: true,
+    // Which acquisition front-end opens first. Google is the biggest calendar
+    // on a student phone; it is not a judgement about which is best.
+    defaultSource: 'gcal',
+    // The CEILING on how many placed classes the result list shows before
+    // `Show N more`. It is a ceiling and no longer the whole rule: how many
+    // actually show is measured against the panel this phone gave us (see
+    // `impFitList`), because a fixed number cannot be right on both a result
+    // with three failures above it and a result with none.
+    resultPeek: 6,
+    // ...and the floor under that measurement. ZERO, deliberately: when the
+    // failures have eaten the whole panel, `PLACED 6` over a `Show 6 more`
+    // button is a complete, honest screen, and one placed row over a button
+    // nobody can see is not. A visible control beats a visible sample.
+    minPeek: 0,
+    // A schedule is one term. Anything past this in one paste is somebody's
+    // whole calendar, not their classes, and importing 400 events silently is
+    // worse than saying no.
+    maxEvents: 200,
+    // The timezone a row carries when the FALLBACK decoder made it. The parser
+    // reads the real one off the file; a block pasted off UT Direct carries
+    // none, and UT is Central.
+    tz: 'America/Chicago',
+    // A pasted URL is fetched by the browser, which is subject to the calendar
+    // host's CORS policy — Google's and Apple's both refuse. That is not a bug
+    // to hide; it is the commonest way this screen fails and it has its own
+    // sentence and its own way out (choose the file instead).
+    fetchTimeoutMs: 12000,
+    // The two-letter ICS day codes, in the order a week is read. Sunday last,
+    // because a class schedule is a working week.
+    dayOrder: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+    // How each day is printed on a result row. UT prints TTh; ICS says TU,TH.
+    dayShort: { MO: 'M', TU: 'T', WE: 'W', TH: 'Th', FR: 'F', SA: 'Sa', SU: 'Su' },
+    // HOW FAR THE BODY HAS TO BE OFF AN END BEFORE THAT END IS CALLED CUT.
+    // Not zero: a scroller sitting on 0.5 px of subpixel rounding is not
+    // scrolled, and a shade that flickers on and off under a thumb is worse
+    // than no shade. 6 px is under one line of the smallest type on this
+    // screen (--wf-imp-row2, 10.5px), so nothing readable can hide inside it.
+    edgeSlopPx: 6,
+  };
+
+  // THE THREE ROUTES. A row here is one acquisition front-end. `accepts` is the
+  // controls the panel draws for it, in order — so adding OCR later is
+  // `{ id:'ocr', accepts:['image'] }` and a decoder, and this file's layout
+  // code does not change.
+  const IMP_SOURCES = [
+    {
+      id: 'gcal', tab: 'Google', label: 'Google Calendar',
+      // What the STORE calls this source. Two vocabularies existed for the
+      // same three sources — this screen's short tab ids and
+      // SCHEDULE_SOURCES's long ones — and the privacy panel reads the long
+      // one, so a saved schedule said "from an import" instead of naming it.
+      storeKind: 'google-ics',
+      accepts: ['file', 'url'],
+      // Read off Google Calendar's own export flow. The .zip is the part every
+      // guide forgets and the part that produces a real, confusing failure.
+      steps: [
+        'In Google Calendar on a computer: Settings → Import & export → Export.',
+        'Google hands you a .zip. Unzip it — the .ics files are inside.',
+      ],
+      fileLabel: 'Choose the .ics file',
+      urlLabel: 'or paste the secret address in iCal format',
+      urlHint: 'Settings → your calendar → Integrate calendar → Secret address in iCal format.',
+      urlPlaceholder: 'https://calendar.google.com/calendar/ical/…/basic.ics',
+    },
+    {
+      id: 'apple', tab: 'Apple', label: 'Apple Calendar',
+      storeKind: 'apple-ics',
+      // URL FIRST FOR APPLE, and that is not a coin toss. Apple's own flow is
+      // a SUBSCRIPTION: `webcal://` is a URI scheme the OS registers, so the
+      // address is the thing a student already has in their hand.
+      // docs/import-bar-apple.md, quoting Apple's own guide.
+      accepts: ['url', 'file'],
+      steps: [
+        'Mac: Calendar → File → New Calendar Subscription. iPhone: Calendars → Add Calendar → Add Subscription Calendar.',
+        'Copy the webcal:// address you subscribed with. (File → Export → Export… gives an .ics instead.)',
+      ],
+      fileLabel: 'or choose an exported .ics',
+      urlLabel: 'The subscription address',
+      urlHint: 'webcal:// and https:// are the same feed — either works here.',
+      urlPlaceholder: 'webcal://p00-calendars.icloud.com/published/…',
+    },
+    {
+      id: 'ut', tab: 'UT', label: 'UT registration',
+      storeKind: 'ut-registration',
+      // TEXT FIRST FOR UT, AND THE REASON IS RESEARCH, NOT PREFERENCE. There
+      // is no confirmed first-party UT .ics or webcal feed for a personal
+      // class schedule — docs/import-bar-ut.md looked and found none, and the
+      // existence of a 50,000-user third-party extension that exists solely to
+      // produce one is the evidence. So the honest control is a paste box.
+      accepts: ['text', 'file'],
+      steps: [
+        'Open your class schedule on UT Direct and select the rows.',
+        'Paste them below. One class per line, however they come out.',
+      ],
+      textLabel: 'Paste your schedule',
+      // A PLACEHOLDER IS AN EXAMPLE, SO IT HAS TO BE ONE THAT WORKS. The first
+      // one ended `RLM 5.104` — a code this app cannot route, because RLM was
+      // renamed PMA — so the one line on the screen teaching the format would
+      // have failed if a student had typed it back.
+      textPlaceholder: 'M 408C  DIFFERENTIAL CALCULUS   MWF 10:00 am-11:00 am   PMA 5.104',
+      fileLabel: 'or choose an .ics you exported',
+    },
+    // LATER, WITHOUT A REWRITE — see the header. A photo of a printed schedule
+    // is `{ id:'ocr', accepts:['image'] }` plus `impDecodeImage`. Registration
+    // Plus is `{ id:'regplus', accepts:['api'] }` plus `impDecodeRegPlus`.
+    // Both feed RAW ROWS into the same impPlace and render on the same screen.
+  ];
+
+  // THE CODES THIS ROUTER CANNOT REACH, AND WHICH KIND OF UNREACHABLE EACH IS.
+  //
+  // ── SI5: THIS USED TO BE A TABLE, AND A TABLE IS HOW ONE APP GETS TWO
+  //    ANSWERS ABOUT ONE BUILDING ─────────────────────────────────────────
+  //
+  // It was twelve rows, and every one of them was measured honestly against
+  // the live `wayfindSearch` on the day it was written (`docs/si-ui.md` records
+  // that run). The problem was never the measurement. It was that a measurement
+  // written down stops being a measurement: `si-gaps` then gave SSW its
+  // register entry and HLB its virtual door, both of them route now with 2 and
+  // 1 doors, and this screen went on refusing them — because the answer had
+  // been remembered instead of asked for. `wayfindSearch('SSW')` said routable
+  // and the import screen said "no door", two taps apart, in the same app.
+  //
+  // So it asks. The two kinds of unreachable still are not distinguishable from
+  // a single question — a code with no doors looks identical whether it is
+  // 11 km away or across the street, and the whole point of this screen is that
+  // the student is told which — so the screen asks two:
+  //
+  //   `window.wayfindOffMap(code)`  a real UT building at a campus this app
+  //                                 does not draw. Returns the record or null,
+  //                                 and the record carries the building's own
+  //                                 name, its campus, and how far and which way
+  //                                 it is — all derived from UT's own survey.
+  //   `window.wayfindSearch(code)`  everything on this map, routable or not.
+  //
+  // Neither can go stale, because neither is a copy: they ARE the router. The
+  // ten Pickle codes come back from the first, and nothing else does.
+  //
+  // THE NAME IS NOT DECORATION, and it now comes from the same place as the
+  // distance. A student reading `MER 1.906 — Pickle Research Campus` has to
+  // take our word for it; `MER 1.906 · Microelectronics & Engineering Research
+  // Center — J.J. Pickle Research Campus` they can check against their own
+  // registration page.
+  const IMP_PLACES = {
+    // Built from the record `wayfindOffMap()` hands back, so the distance this
+    // screen prints and the distance the day view prints are one fact from one
+    // source instead of two strings that agree until one of them is edited.
+    // WHOLE KILOMETRES: the record carries two decimals, and a reader eleven
+    // kilometres from a building they cannot see on the map does not need them.
+    offmap: (rec) => ({
+      name: rec.campus || null,
+      why: 'about ' + Math.round(Number(rec.km) || 0) + ' km ' +
+        (rec.direction || 'away') + ' of here, outside the city this app models',
+    }),
+    nodoor: {
+      name: null,
+      why: 'on campus, but the walking network has no door for it yet',
+    },
+  };
+
+  // EVERY SENTENCE THIS SCREEN CAN SAY. Same rule as SAY and SAY_UI: wording
+  // is data, so it can be read, argued with and changed without touching a
+  // render function.
+  const SAY_IMP = {
+    entry: 'Import your class schedule',
+    entryNote: 'Google, Apple or UT — read on this phone, never uploaded',
+    title: 'Add your schedule',
+    resultTitle: 'What imported',
+    failTitle: 'Nothing imported',
+    importBtn: 'Import',
+    working: 'Reading…',
+    back: 'Back',
+    chooseFile: 'Choose a file',
+    // THE PRIVACY LINE IS A FACT, NOT A REASSURANCE. There is no server in
+    // this app; a file picked here is read by FileReader in the tab and is
+    // gone when the tab is. Saying so is the difference between a student
+    // pasting their schedule and closing the panel.
+    privacy: 'Read on your device. This app has no server to send it to.',
+    placed: (n, total) => n + ' of ' + total + (total === 1 ? ' class placed' : ' classes placed'),
+    placedAll: (n) => 'All ' + n + (n === 1 ? ' class' : ' classes') + ' placed',
+    fromSource: (label) => 'from ' + label,
+    couldNot: (n) => "Couldn't place " + n,
+    placedSec: (n) => 'Placed ' + n,
+    // A COUNT THE STUDENT CANNOT CHECK IS NOT A COUNT. This used to be a plain
+    // line of text: `Use these 9` on the button, six rows on screen, `+ 3 more`
+    // under them, and no way — scroll, tap or otherwise — to find out which
+    // three. The screen was naming buildings it would then route them to and
+    // refusing to say which buildings. It is a button now, and it says what
+    // pressing it does rather than restating the arithmetic above it.
+    andMore: (n) => 'Show ' + n + ' more',
+    useThese: (n) => 'Use ' + (n === 1 ? 'this class' : 'these ' + n),
+    noneUsable: 'Nothing here can be routed to',
+    // The failure taxonomy, one sentence each. Every one of them names the
+    // thing that went wrong instead of the thing we wanted.
+    whyOffmap: (name, place) => (name ? name + ' — ' : '') +
+      place.name + ', ' + place.why + '.',
+    whyNodoor: (name) => (name ? name + ' — ' : '') +
+      'we know where it is; the walking network has no door for it yet.',
+    whyUnknown: (code) => code + " isn't a UT building code this app knows.",
+    // TWO SENTENCES FOR ONE STATUS, because the student did two different
+    // things. A calendar export that omitted LOCATION is not their doing and
+    // the sentence says so; a pasted line with no room in it is a line they
+    // can look at and fix, and telling them "the export" would send them
+    // hunting through Google for a setting that was never involved.
+    whyNoLocation: 'No room on this event — the export carried no location.',
+    whyNoLocationText: 'No room on this line — nothing in it named a building.',
+    // The ways the whole import can fail before a single row is read.
+    errNoEvents: 'That file had no calendar events in it.',
+    errNoClasses: 'That calendar had events, but none of them named a room.',
+    errNoClassesText: 'None of those lines named a building and a room, so there is nothing to place.',
+    errZip: 'That is a .zip. Google exports one — unzip it and choose the .ics inside.',
+    errNotICS: "That file isn't a calendar. An .ics starts with BEGIN:VCALENDAR.",
+    errEmptyText: 'Paste your schedule rows first.',
+    errEmptyUrl: 'Paste the calendar address first.',
+    errBadUrl: "That doesn't look like a web address.",
+    // ONE SENTENCE FOR TWO CAUSES, BECAUSE THE BROWSER GIVES US ONE ERROR.
+    // A cross-origin refusal and a dead network are the SAME `TypeError` here
+    // by design — the spec hides which, so a page cannot probe another site.
+    // Claiming "blocked" when it might be "offline" would be a guess, so the
+    // sentence names only what is certain (we could not read it, from there)
+    // and spends its length on the way round, which is a control already on
+    // this screen.
+    errBlocked: (host) => "Couldn't read a calendar from " + host + '. A browser ' +
+      "won't let this page fetch another site's calendar. Download the .ics and " +
+      'choose the file instead.',
+    errHttp: (code) => 'That address answered ' + code + ', not a calendar.',
+    errTimeout: 'That address took too long to answer.',
+    errTooMany: (n) => 'That is ' + n + ' events — a whole calendar, not one term. ' +
+      'Export just your class calendar.',
+    unnamed: 'Untitled class',
+    noRoom: '(no room)',
+    // The payoff. Two consecutive classes go into the two ends of the router
+    // that already exists, which is the whole reason a schedule is worth
+    // importing into THIS app rather than into a calendar.
+    handoffTwo: (a, b) => 'Routed ' + a + ' → ' + b,
+    handoffOne: 'Put in the To field',
+  };
+
+  // THIS SCREEN'S OWN GLYPHS. A separate table from `IC` on purpose: `IC` is
+  // the walk bar's and four other lanes are editing that region of this file
+  // this round. Same drawn-path rule as IC — no font glyphs, because `✓` and
+  // `⚠` render at a different size and weight on Android than on this laptop.
+  const IC_IMP = {
+    // A file going up into a tray.
+    upload: 'M12 15.5V4.3M12 4.3 7.8 8.6M12 4.3l4.2 4.3M4.5 15.2v3.3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3.3',
+    check: 'M4.8 12.4 9.6 17.2 19.2 6.8',
+    warn: 'M12 3.6 21.2 19.4H2.8zM12 9.6v4.6M12 17.1v.01',
+    // A month grid with its two hangers — a calendar, not a clock.
+    cal: 'M4.2 6.6h15.6v13.2H4.2zM4.2 10.6h15.6M8.6 4v3.4M15.4 4v3.4',
+    chevR: 'M9.5 5.5 15.5 12 9.5 18.5',
+  };
+
+  // ── decoders: bytes of one format -> RAW ROWS ─────────────────────────────
+
+  /** ICS line unfolding. A continuation line starts with a space or a tab. */
+  function impUnfold(text) {
+    return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      .replace(/\n[ \t]/g, '');
+  }
+  function impUnescape(v) {
+    return String(v).replace(/\\n/gi, ' ').replace(/\\,/g, ',')
+      .replace(/\\;/g, ';').replace(/\\\\/g, '\\').trim();
+  }
+  /** `DTSTART;TZID=America/Chicago:20250825T160000` -> { day:'MO', hm:'16:00' } */
+  function impStamp(val) {
+    const m = /(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/.exec(val || '');
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const dow = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][d.getDay()];
+    return { day: dow, hm: m[4] ? m[4] + ':' + m[5] : null };
+  }
+
+  /**
+   * Google's export, Apple's export, Apple's webcal feed and UT Registration
+   * Plus's output are all this. One decoder, four sources — which is exactly
+   * the claim docs/import-bar-apple.md's last section makes.
+   */
+  function impDecodeICS(text) {
+    const src = impUnfold(text);
+    const rows = [];
+    const blocks = src.split(/BEGIN:VEVENT/i).slice(1);
+    for (const b of blocks) {
+      const body = b.split(/END:VEVENT/i)[0];
+      const get = (name) => {
+        const re = new RegExp('^' + name + '(?:;[^:\\n]*)?:(.*)$', 'im');
+        const m = re.exec(body);
+        return m ? m[1] : '';
+      };
+      const start = impStamp(get('DTSTART'));
+      const end = impStamp(get('DTEND'));
+      const rrule = get('RRULE');
+      let days = [];
+      const by = /BYDAY=([A-Z,+\-0-9]+)/i.exec(rrule);
+      if (by) days = by[1].split(',').map(s => s.replace(/[^A-Z]/gi, '').toUpperCase()).filter(Boolean);
+      else if (start) days = [start.day];
+      rows.push({
+        title: impUnescape(get('SUMMARY')),
+        location: impUnescape(get('LOCATION')),
+        days: days,
+        start: start ? start.hm : null,
+        end: end ? end.hm : null,
+        raw: impUnescape(get('LOCATION')) || impUnescape(get('SUMMARY')),
+      });
+    }
+    return rows;
+  }
+
+  /** `MWF` / `TTh` / `TTH` -> ['MO','WE','FR'] / ['TU','TH']. TH is greedy. */
+  function impDays(tok) {
+    const s = String(tok || '').toUpperCase();
+    const out = [];
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === 'T' && s[i + 1] === 'H') { out.push('TH'); i++; continue; }
+      if (s[i] === 'S' && s[i + 1] === 'U') { out.push('SU'); i++; continue; }
+      if (s[i] === 'M') out.push('MO');
+      else if (s[i] === 'T') out.push('TU');
+      else if (s[i] === 'W') out.push('WE');
+      else if (s[i] === 'F') out.push('FR');
+      else if (s[i] === 'S') out.push('SA');
+    }
+    return out;
+  }
+  function impTo24(h, m, ap) {
+    let hh = Number(h);
+    if (/p/i.test(ap) && hh !== 12) hh += 12;
+    if (/a/i.test(ap) && hh === 12) hh = 0;
+    return String(hh).padStart(2, '0') + ':' + m;
+  }
+
+  /**
+   * A block of rows copied off UT Direct. Deliberately forgiving about
+   * everything except the ONE thing UT's own glossary guarantees: the room is
+   * a three-letter building code, a space, then a room number
+   * (registrar.utexas.edu/schedules/…/using — see docs/import-bar-ut.md).
+   * A line where that pattern is absent is not silently dropped; it comes back
+   * as a reject with the line printed, so the student can see what we could
+   * not read.
+   */
+  function impDecodeUTText(text) {
+    const rows = [];
+    for (const lineRaw of String(text).split('\n')) {
+      const line = lineRaw.trim();
+      if (!line) continue;
+      // A LINE IS READ BY SUBTRACTION, NOT BY POSITION. UT's own row is
+      // `course · title · unique · days · hours · room · instructor`, but a
+      // student's copy-paste reflows it, drops columns and re-orders them. So
+      // each field that IS unambiguous is found and then BLANKED OUT of a
+      // working copy, and the next field is looked for in what is left.
+      //
+      // THIS IS NOT TIDINESS, IT IS THE BUG THAT WAS ACTUALLY THERE. Reading
+      // the location off the raw line matched `MW 3` in
+      // `RHE 306 … 42655  MW 3:00 pm-4:00 pm` — two capitals, a space, a digit,
+      // which is a UT room's exact shape — so a class with NO room at all was
+      // reported as a class in a building called MW. A wrong building silently
+      // invented out of a day abbreviation is the one failure this feature is
+      // not allowed to have, and no amount of care in the regex fixes it while
+      // the day token is still on the line.
+      let rest = line;
+      const blank = (at, len) => {
+        rest = rest.slice(0, at) + ' '.repeat(len) + rest.slice(at + len);
+      };
+      // 1. TIMES. The least ambiguous token on the line: nothing else on a
+      //    class row carries a colon between two digits.
+      const t = /(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?\s*(?:[-–—]|to)\s*(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?/i.exec(rest)
+        || /(\d{1,2}):(\d{2})()\s*[-–—]\s*(\d{1,2}):(\d{2})()/.exec(rest);
+      const start = t ? impTo24(t[1], t[2], t[3] || t[6] || '') : null;
+      const end = t ? impTo24(t[4], t[5], t[6] || '') : null;
+      const cut = t ? t.index : rest.length;
+      if (t) blank(t.index, t[0].length);
+      // 2. DAYS. A standalone token of day letters, before where the time was.
+      //    Anchored to the time because `M 408C` is a FIELD OF STUDY that
+      //    happens to be spelled like a Monday.
+      let days = [];
+      const dm = /(?:^|\s)(TTH|TTh|MWF|MW|TT|WF|MF|TH|M|T|W|F|S|SU)(?=\s|$)/g;
+      let dHit = null, dPick = null;
+      while ((dHit = dm.exec(rest))) {
+        if (dHit.index + dHit[0].length > cut) break;
+        dPick = dHit;
+      }
+      if (dPick) {
+        days = impDays(dPick[1]);
+        blank(dPick.index + dPick[0].length - dPick[1].length, dPick[1].length);
+      }
+      // 3. THE ROOM, in what is left — AND ONLY AFTER THE DAYS AND THE HOUR.
+      //
+      //    A COURSE NUMBER AND A ROOM ARE THE SAME SHAPE. `RHE 306` is a
+      //    course; `PAR 201` is a room; nothing about the characters tells
+      //    them apart, which docs/import-bar-ut.md flagged as "a real parser
+      //    trap" before a line of this was written. Photographed: a class with
+      //    NO room, `RHE 306  RHETORIC AND WRITING  42655  MW 3:00 pm-4:00 pm`,
+      //    came back as a class in a building called RHE.
+      //
+      //    What separates them is not shape, it is COLUMN ORDER, which UT's
+      //    own listing fixes: course, title, unique, days, hour, ROOM. So the
+      //    room is only looked for after where the days and the hour were. On
+      //    a line with neither, the last match anywhere is taken — that is a
+      //    bare `MAI 220` typed by hand, which has no columns to be after.
+      //
+      //    The cost of the rule is a line whose paste reflowed the room in
+      //    front of the time: it comes back as "no room", which the student
+      //    SEES and can fix. The cost of not having it is a confident route to
+      //    a building nobody has a class in. Those are not the same mistake.
+      const minAt = dPick ? dPick.index + dPick[0].length
+        : (t ? t.index + t[0].length : 0);
+      const lm = /\b([A-Z]{2,4})\s+([0-9][A-Za-z0-9.\-]*)\b/g;
+      let hit = null, loc = null, locAt = rest.length;
+      while ((hit = lm.exec(rest))) {
+        if (hit.index < minAt) continue;
+        loc = hit[1] + ' ' + hit[2]; locAt = hit.index;
+      }
+      if (loc) blank(locAt, loc.length);
+      // 4. THE TITLE is whatever is in front of the first thing we recognised,
+      //    less the five-digit unique number, which is not a name.
+      const headEnd = Math.min(dPick ? dPick.index : Infinity, cut, locAt);
+      const title = rest.slice(0, headEnd === Infinity ? rest.length : headEnd)
+        .replace(/\b\d{5}\b/g, ' ').replace(/\s+/g, ' ').trim();
+      rows.push({ title: title, location: loc || '', days: days, start: start, end: end, raw: line });
+    }
+    return rows;
+  }
+
+  /**
+   * THE JOINT — AND THE ONE SHAPE THAT CROSSES IT.
+   *
+   * Everything above produces RAW ROWS; everything below consumes them. The
+   * producer is the PARSER; the decoders above are the FALLBACK for when it
+   * throws, which is the opposite of how this ran until now.
+   *
+   * IT IS ASYNC BECAUSE THE PARSER IS. `wayfindParseSchedule` is declared
+   * `async` — it awaits the building vocabulary before resolving a code — so a
+   * caller that does not `await` holds a Promise, and `Array.isArray(promise)`
+   * is false every time. That one missing keyword silently ran the fallback
+   * decoders on every import in the app: measured on the parser's own
+   * manual-paste fixture, 2 of 7 classes placed where the parser places 5.
+   *
+   * WHY THE PARSER'S OBJECT IS THE SHAPE THAT CROSSES THE SEAM. It is the only
+   * producer carrying `startMin`/`endMin` as NUMBERS and a per-row
+   * `problems[]`, and those are exactly what everything downstream needs: the
+   * day view orders a day by minutes, and the store's `normaliseSchedule`
+   * discards any `startMin` that is not finite. So the parser's `events[]` are
+   * adapted DOWN to the row shape `impPlace()` already reads — which leaves
+   * this screen's placement rules and its taxonomy of failures exactly where
+   * they were — and the events themselves travel on, untouched, inside the
+   * result object. docs/si-seams.md is the argument in full.
+   */
+  async function impRawRows(text, sourceId) {
+    if (typeof window.wayfindParseSchedule === 'function') {
+      try {
+        const s = impSource(sourceId);
+        // The label is a HINT, not an override: schedParseICS prefers the
+        // file's own PRODID and calendar name, and this is only what the day
+        // view's footer falls back to when the file said nothing about itself.
+        const parsed = await window.wayfindParseSchedule(text, { label: s ? s.label : '' });
+        if (parsed && Array.isArray(parsed.events) && parsed.events.length) {
+          return { rows: parsed.events.map(impRowFromEvent), events: parsed.events,
+            parsed: parsed, decoder: 'parser' };
+        }
+        // A future producer bound to this name may hand back plain rows. Kept,
+        // so the seam is a shape contract and not a function identity.
+        if (Array.isArray(parsed) && parsed.length) {
+          return { rows: parsed, events: null, parsed: null, decoder: 'parser' };
+        }
+      } catch (e) { /* fall through to the reference decoders */ }
+    }
+    const rows = (/BEGIN:VCALENDAR/i.test(text) || /BEGIN:VEVENT/i.test(text))
+      ? impDecodeICS(text) : impDecodeUTText(text);
+    return { rows: rows, events: null, parsed: null, decoder: 'fallback' };
+  }
+
+  /** `14:00` -> 840, and back. The row shape this screen reads speaks clock
+   *  strings; every surface downstream of it speaks minutes. */
+  function impMinOf(hm) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(hm == null ? '' : hm).trim());
+    if (!m) return null;
+    const v = (+m[1]) * 60 + (+m[2]);
+    return (v >= 0 && v < 1440) ? v : null;
+  }
+  function impHmOf(min) {
+    const v = Number(min);
+    if (!isFinite(v) || v < 0) return null;
+    return String(Math.floor(v / 60)).padStart(2, '0') + ':' +
+      String(Math.round(v % 60)).padStart(2, '0');
+  }
+
+  /**
+   * ONE PARSER EVENT -> ONE RAW ROW.
+   *
+   * The parser has already done the hard half — unfolded the file, found the
+   * LOCATION and resolved it against the same building vocabulary this app
+   * routes on — so its `code`/`room` are preferred over its raw
+   * `locationText`. That preference is the whole gain: `Jester Center` is a
+   * NAME, not a code, and the fallback decoder can only ever drop it, while
+   * the parser resolves it and hands this screen `JES`.
+   */
+  function impRowFromEvent(e) {
+    const ev = e || {};
+    const loc = ev.code ? (ev.room ? ev.code + ' ' + ev.room : ev.code)
+      : String(ev.locationText || '');
+    return {
+      title: ev.title || ev.course || '',
+      course: ev.course || '',
+      location: loc,
+      days: Array.isArray(ev.days) ? ev.days.slice() : [],
+      start: ev.startMin == null ? null : impHmOf(ev.startMin),
+      end: ev.endMin == null ? null : impHmOf(ev.endMin),
+      startMin: ev.startMin == null ? null : Number(ev.startMin),
+      endMin: ev.endMin == null ? null : Number(ev.endMin),
+      firstDate: ev.firstDate || null,
+      unique: ev.unique || null,
+      // What the file actually said, kept verbatim, because a reject row
+      // prints it and "we could not read THIS" is the only useful failure.
+      raw: String(ev.locationText || loc || ev.title || ''),
+    };
+  }
+
+  /**
+   * ...AND THE OTHER DIRECTION, for the fallback decoders ONLY. When the parser
+   * threw, the surfaces downstream still need events, and inventing them from
+   * the rows this screen actually placed is the only way the two views cannot
+   * end up telling a student different things.
+   */
+  function impEventFromPlaced(p, row, idx) {
+    const r = row || {};
+    return {
+      index: idx, id: 'row-' + idx,
+      title: r.title || '', course: r.course || '',
+      locationText: r.location || '',
+      code: p.code || null, room: p.room || '',
+      days: (p.days || []).slice(),
+      startMin: p.startMin, endMin: p.endMin,
+      firstDate: r.firstDate || null, lastDate: null, exDates: [],
+      tz: IMP.tz, status: p.status === 'ok' ? 'ok' : 'failed',
+      problems: [], confidence: 1, unique: r.unique || null,
+    };
+  }
+
+  // ── placement: a RAW ROW -> a placed class, or a reject with a reason ─────
+
+  /**
+   * `MAI 220` -> `MAI`. One split on the first space, per UT's own glossary,
+   * which is what makes this a line of code rather than a regex minefield.
+   */
+  function impCodeOf(location) {
+    const s = String(location || '').trim();
+    if (!s) return { code: null, room: '' };
+    const parts = s.split(/\s+/);
+    const head = parts[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^[A-Z][A-Z0-9]{1,3}$/.test(head)) return { code: null, room: s };
+    return { code: head, room: parts.slice(1).join(' ') };
+  }
+
+  function impPlace(row) {
+    const { code, room } = impCodeOf(row.location);
+    const base = {
+      title: row.title || SAY_IMP.unnamed, room: room, code: code,
+      days: row.days || [], start: row.start || null, end: row.end || null,
+      // MINUTES TRAVEL WITH THE ROW, rather than being re-derived downstream.
+      // `normaliseSchedule` discards any `startMin` that is not finite, so a
+      // class saved without these loses its time for good — which is what a
+      // reload did to every class before anything called `store.save()`.
+      startMin: row.startMin == null ? impMinOf(row.start) : Number(row.startMin),
+      endMin: row.endMin == null ? impMinOf(row.end) : Number(row.endMin),
+      raw: row.raw || row.location || row.title || '',
+    };
+    if (!code) return Object.assign(base, { status: 'nolocation', name: null });
+    // ── ASK THE ROUTER; DO NOT REPEAT WHAT IT SAID LAST WEEK (SI5) ─────────
+    // Off the map is asked FIRST because it is the narrower question and the
+    // only one with an unambiguous answer: `wayfindOffMap` returns a record or
+    // null, and a code it does not know is by definition somewhere on this map,
+    // which is exactly what the next question is for.
+    let off = null;
+    try { off = window.wayfindOffMap ? window.wayfindOffMap(code) : null; } catch (e) { off = null; }
+    if (off) {
+      return Object.assign(base, {
+        status: 'offmap', place: IMP_PLACES.offmap(off), name: off.name || null,
+      });
+    }
+    let hit = null;
+    try {
+      const r = window.wayfindSearch ? window.wayfindSearch(code) : [];
+      hit = r.find(x => x.code === code) || null;
+    } catch (e) { hit = null; }
+    if (!hit) return Object.assign(base, { status: 'unknown', name: null });
+    if (!hit.routable) {
+      return Object.assign(base, { status: 'nodoor', name: hit.name, place: IMP_PLACES.nodoor });
+    }
+    return Object.assign(base, { status: 'ok', name: hit.name });
+  }
+
+  /**
+   * THE IMPORT RESULT — the one object the rest of the feature (and anything
+   * added later) reads. Versioned, because a saved schedule outlives the
+   * session that made it.
+   */
+  async function impBuild(text, sourceId, via) {
+    const got = await impRawRows(text, sourceId);
+    const rows = got.rows || [];
+    if (!rows.length) return { err: SAY_IMP.errNoEvents };
+    if (rows.length > IMP.maxEvents) return { err: SAY_IMP.errTooMany(rows.length) };
+    const classes = [], rejects = [], events = [];
+    const seen = new Set();
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const p = impPlace(r);
+      // ONE CLASS, NOT ONE MEETING. A weekly class is one VEVENT with an
+      // RRULE, but a hand-pasted block can repeat a room on three lines; the
+      // key is what makes the count on screen the number of classes.
+      const key = p.code + '|' + p.room + '|' + p.start + '|' + (p.days || []).join('');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (p.status === 'ok') classes.push(p); else rejects.push(p);
+      // THE SAME ROW, KEPT IN THE PARSER'S SHAPE. Same set, same order, same
+      // de-duplication, so `events` and `classes` + `rejects` are two views of
+      // one list rather than two lists that can drift.
+      events.push(got.events ? got.events[i] : impEventFromPlaced(p, r, events.length + 1));
+    }
+    if (!classes.length && !rejects.length) return { err: SAY_IMP.errNoEvents };
+    if (!classes.length && rejects.every(r => r.status === 'nolocation')) {
+      return { err: via === 'text' ? SAY_IMP.errNoClassesText : SAY_IMP.errNoClasses };
+    }
+    return {
+      v: 1, source: sourceId, via: via, at: Date.now(),
+      classes: classes, rejects: rejects,
+      // ── AND THE PARSER'S OWN SHAPE, CARRIED ───────────────────────────────
+      // `events` is what `wayfindDayFromSchedule()` reads and what the store
+      // is handed; `origin` is the parser's account of where the file came
+      // from, which is what lets the day view's footer tell Google from Apple
+      // from UT. Publishing them on the SAME object is what makes one import
+      // satisfy every reader downstream, instead of each lane publishing a
+      // shape only it can read. `decoder` records which producer actually ran,
+      // because "which decoder read the student's file" turned out to be a
+      // question nobody could answer from outside.
+      decoder: got.decoder,
+      events: events,
+      origin: (got.parsed && got.parsed.source) || null,
+      tz: (got.parsed && got.parsed.tz) || IMP.tz,
+      problems: (got.parsed && got.parsed.problems) || [],
+      summary: (got.parsed && got.parsed.summary) || null,
+    };
+  }
+
+  // ── the screen ────────────────────────────────────────────────────────────
+
+  let impEl = null;
+  // `url` and `text` LIVE IN STATE, NOT IN THE DOM, and that is not tidiness
+  // either. `impRender` rebuilds the body, so the first cut threw away the
+  // address the student had just typed every time it drew the error about it
+  // — photographed at 390 x 844: an empty field, an invisible message and no
+  // way to see what had been tried. A field whose value the screen forgets is
+  // worse than no field.
+  const impState = { source: IMP.defaultSource, result: null, err: null, busy: false,
+    url: '', text: '', showAll: false,
+    // How many placed rows this panel turned out to have room for, measured
+    // once per result by `impFitList`. `null` means "not measured yet", which
+    // is the state every new result starts in, and `fitDone` latches once
+    // the panel is whole so a thumb on the scroller cannot restart the search.
+    fit: null, fitDone: false };
+
+  function impSource(id) {
+    return IMP_SOURCES.find(s => s.id === id) || IMP_SOURCES[0];
+  }
+
+  function impBuildDOM() {
+    if (impEl) return impEl;
+    const panel = h('div', 'hidden'); panel.id = 'wf-imp';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', SAY_IMP.title);
+
+    const head = h('div', null); head.id = 'wf-imp-head';
+    const title = h('div', 'wf-h', SAY_IMP.title); title.id = 'wf-imp-title';
+    head.appendChild(title);
+    const close = h('button', null); close.id = 'wf-imp-close';
+    close.setAttribute('aria-label', 'Close');
+    close.appendChild(icon(null, IC.close, 2.1));
+    close.addEventListener('click', () => impClose());
+    head.appendChild(close);
+    panel.appendChild(head);
+
+    // THE TABS. Three sources, one panel — three stacked panels do not fit on
+    // a 390 px phone and a source a student does not use is not worth the
+    // scroll. `role=tablist` because they are tabs and a screen reader should
+    // hear them as tabs.
+    const tabs = h('div', null); tabs.id = 'wf-imp-tabs';
+    tabs.setAttribute('role', 'tablist');
+    for (const s of IMP_SOURCES) {
+      const b = h('button', 'wf-imp-tab', s.tab);
+      b.setAttribute('role', 'tab');
+      b.dataset.src = s.id;
+      b.addEventListener('click', () => { impState.source = s.id; impState.err = null; impRender(); });
+      tabs.appendChild(b);
+    }
+    panel.appendChild(tabs);
+
+    const body = h('div', null); body.id = 'wf-imp-body';
+    // The shade is a function of where this scroller actually is, so it is
+    // recomputed from the scroller itself and never from what a render thought
+    // it had drawn. `passive` because it only reads geometry.
+    body.addEventListener('scroll', () => impShade(), { passive: true });
+    panel.appendChild(body);
+
+    // WHAT WENT WRONG IS NOT A RESULT, SO IT DOES NOT LIVE IN THE SCROLLER.
+    // Exactly the lesson `#wf-more` in the search sheet already learned and
+    // wrote down: a note ABOUT the contents, put inside the contents, gets cut
+    // in half by their max-height. The first cut put this at the end of
+    // `#wf-imp-body` and photographed at 390 x 844 the message was entirely
+    // below the fold — the student pressed Import, nothing appeared to happen,
+    // and the explanation was two scrolls away. Its own row, above the action,
+    // where the eye already is.
+    const errSlot = h('div', null); errSlot.id = 'wf-imp-errslot';
+    panel.appendChild(errSlot);
+
+    const foot = h('div', null); foot.id = 'wf-imp-foot';
+    panel.appendChild(foot);
+
+    const note = h('div', 'wf-imp-note', SAY_IMP.privacy);
+    panel.appendChild(note);
+
+    // ONE FILE INPUT FOR THE WHOLE SCREEN, kept out of the flow. A file input
+    // is styled differently by every browser and cannot be made to match this
+    // panel; the visible control is a real button that clicks this.
+    const file = document.createElement('input');
+    file.type = 'file'; file.id = 'wf-imp-file';
+    file.accept = '.ics,text/calendar';
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (f) impFromFile(f);
+      file.value = '';
+    });
+    panel.appendChild(file);
+
+    el.root.appendChild(panel);
+    impEl = { panel, head, title, tabs, body, errSlot, foot, file, note };
+    // A rotation, or the software keyboard opening under a focused field,
+    // changes how much of the body is visible without a scroll event ever
+    // firing — so the shade would go stale in exactly the moment a phone is
+    // most cramped. Bound once, and it costs nothing while the panel is shut.
+    window.addEventListener('resize', () => {
+      if (impEl && !impEl.panel.classList.contains('hidden')) impShade();
+    }, { passive: true });
+    return impEl;
+  }
+
+  function impOpen() {
+    buildUI();
+    impBuildDOM();
+    // The graph is what turns a code into a building name and a verdict, so
+    // the screen asks for it the moment it opens rather than at Import — a
+    // student who has just chosen a file should not then wait 300 ms for a
+    // fetch that could have run while they were choosing.
+    loadGraph().catch(() => {});
+    impState.result = null; impState.err = null; impState.busy = false;
+    impState.url = ''; impState.text = ''; impState.showAll = false;
+    impState.fit = null; impState.fitDone = false;
+    el.sheet.classList.add('hidden');
+    el.btn.classList.remove('active');
+    impEl.panel.classList.remove('hidden');
+    impRender();
+  }
+  function impClose() {
+    if (!impEl) return;
+    impEl.panel.classList.add('hidden');
+  }
+  function impBack() {
+    impState.result = null; impState.err = null; impState.busy = false;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false;
+    impRender();
+  }
+
+  /** A labelled block of small print above a control. */
+  function impSteps(src) {
+    const box = h('div', 'wf-imp-steps');
+    src.steps.forEach((s, i) => {
+      const row = h('div', 'wf-imp-step');
+      row.appendChild(h('span', 'wf-imp-n', String(i + 1)));
+      row.appendChild(h('span', 'wf-imp-t', s));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function impRenderAdd() {
+    const src = impSource(impState.source);
+    const { body, foot, tabs, title } = impEl;
+    title.textContent = SAY_IMP.title;
+    for (const b of tabs.children) b.classList.toggle('on', b.dataset.src === src.id);
+    for (const b of tabs.children) b.setAttribute('aria-selected', b.dataset.src === src.id ? 'true' : 'false');
+    tabs.classList.remove('hidden');
+    body.innerHTML = ''; foot.innerHTML = '';
+    body.appendChild(impSteps(src));
+    impRenderErr();
+
+    // The controls this source actually produces, in the order it produces
+    // them. `accepts` is the whole layout rule — see IMP_SOURCES.
+    //
+    // A label is written for the SECOND slot ("or choose an exported .ics")
+    // because that is where its source puts it; a source that puts the same
+    // control first drops the "or ", and then it has to be a capital again.
+    // Photographed: `choose an exported .ics` on a button, lowercase, sitting
+    // directly under a sentence-case error.
+    const lead = (s) => (s || '').replace(/^or /, '').replace(/^./, c => c.toUpperCase());
+    let first = true;
+    for (const kind of src.accepts) {
+      if (!first) body.appendChild(h('div', 'wf-imp-or', 'or'));
+      if (kind === 'file') {
+        const b = h('button', 'wf-imp-file-btn');
+        b.appendChild(icon('wf-imp-ic', IC_IMP.upload, 1.9));
+        b.appendChild(h('span', null, first ? src.fileLabel : lead(src.fileLabel)));
+        b.addEventListener('click', () => impEl.file.click());
+        body.appendChild(b);
+      } else if (kind === 'url') {
+        const lab = h('div', 'wf-imp-lab', first ? src.urlLabel : lead(src.urlLabel));
+        body.appendChild(lab);
+        const inp = document.createElement('input');
+        inp.type = 'url'; inp.id = 'wf-imp-url'; inp.className = 'wf-imp-in';
+        inp.placeholder = src.urlPlaceholder;
+        inp.autocomplete = 'off'; inp.spellcheck = false; inp.enterKeyHint = 'go';
+        inp.value = impState.url;
+        inp.addEventListener('input', () => { impState.url = inp.value; });
+        inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') impGo(); });
+        body.appendChild(inp);
+        if (src.urlHint) body.appendChild(h('div', 'wf-imp-hint', src.urlHint));
+      } else if (kind === 'text') {
+        const lab = h('div', 'wf-imp-lab', src.textLabel);
+        body.appendChild(lab);
+        const ta = document.createElement('textarea');
+        ta.id = 'wf-imp-text'; ta.className = 'wf-imp-in wf-imp-ta';
+        ta.placeholder = src.textPlaceholder;
+        ta.spellcheck = false; ta.rows = 4;
+        ta.value = impState.text;
+        ta.addEventListener('input', () => { impState.text = ta.value; });
+        body.appendChild(ta);
+      }
+      first = false;
+    }
+
+    // The primary action only exists for the sources that have something to
+    // press it with. A file picker imports on pick — a second button after it
+    // would be a control with nothing to do.
+    if (src.accepts.indexOf('url') >= 0 || src.accepts.indexOf('text') >= 0) {
+      const go = h('button', 'wf-imp-go', impState.busy ? SAY_IMP.working : SAY_IMP.importBtn);
+      go.disabled = !!impState.busy;
+      go.addEventListener('click', () => impGo());
+      foot.appendChild(go);
+    }
+  }
+
+  function impRenderErr() {
+    const slot = impEl.errSlot;
+    slot.innerHTML = '';
+    if (!impState.err) return;
+    const e = h('div', 'wf-imp-err');
+    e.setAttribute('role', 'alert');
+    e.appendChild(icon('wf-imp-err-ic', IC_IMP.warn, 2));
+    e.appendChild(h('span', null, impState.err));
+    slot.appendChild(e);
+    // AND THE WAY OUT OF THE FAILURE HAS TO BE VISIBLE UNDER IT. Photographed
+    // at 390 x 844 on the Apple tab: the message said "download the .ics and
+    // choose the file instead" while the file button it means was scrolled off
+    // the bottom of the body — an instruction pointing at a control the same
+    // frame is hiding. The message itself costs the body ~86 px, so an error
+    // is exactly the moment the controls stop fitting.
+    //
+    // Scrolling the body to its END is the fix and not an arbitrary one: every
+    // source puts its numbered instructions first and its CONTROLS last, so
+    // the bottom of that scroller is always the doing half. The steps are what
+    // the student has already followed.
+    const b = impEl.body;
+    if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; impShade(); });
+  }
+
+  function impDayStr(days) {
+    if (!days || !days.length) return '';
+    const order = IMP.dayOrder;
+    return days.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      .map(d => IMP.dayShort[d] || d).join('');
+  }
+  function impTimeStr(c) {
+    if (!c.start) return '';
+    return c.start + (c.end ? '–' + c.end : '');
+  }
+  function impWhy(r, via) {
+    if (r.status === 'offmap') return SAY_IMP.whyOffmap(r.name, r.place);
+    if (r.status === 'nodoor') return SAY_IMP.whyNodoor(r.name);
+    if (r.status === 'nolocation') {
+      return via === 'text' ? SAY_IMP.whyNoLocationText : SAY_IMP.whyNoLocation;
+    }
+    return SAY_IMP.whyUnknown(r.code);
+  }
+
+  function impRenderResult() {
+    const res = impState.result;
+    const { body, foot, tabs, title } = impEl;
+    const src = impSource(res.source);
+    title.textContent = res.classes.length ? SAY_IMP.resultTitle : SAY_IMP.failTitle;
+    tabs.classList.add('hidden');
+    body.innerHTML = ''; foot.innerHTML = '';
+    impRenderErr();
+
+    const total = res.classes.length + res.rejects.length;
+    const sum = h('div', 'wf-imp-sum');
+    sum.appendChild(h('div', 'wf-imp-count',
+      res.rejects.length ? SAY_IMP.placed(res.classes.length, total)
+        : SAY_IMP.placedAll(res.classes.length)));
+    sum.appendChild(h('div', 'wf-imp-src', SAY_IMP.fromSource(src.label)));
+    body.appendChild(sum);
+
+    // ── WHAT FAILED COMES FIRST, AND THIS IS THE ONE ORDERING DECISION ON
+    //    THE SCREEN THAT WAS MADE FROM A PHOTOGRAPH RATHER THAN FROM TASTE.
+    //    The first cut listed the six that worked and then the three that did
+    //    not. Photographed at 390 x 844 that put FOUR placed rows on screen
+    //    and every failure below the fold: a student who imports nine classes
+    //    sees six ticks, believes they are done, and finds out on the second
+    //    Tuesday of term that the app has never heard of their Friday lab.
+    //    The count line above already delivers the good news in five words.
+    //    The three rows that change what they have to do go where the eye is.
+    if (res.rejects.length) {
+      body.appendChild(h('div', 'wf-imp-sec bad', SAY_IMP.couldNot(res.rejects.length)));
+      const bad = h('div', 'wf-imp-list');
+      for (const r of res.rejects) {
+        const row = h('div', 'wf-imp-row bad');
+        row.appendChild(icon('wf-imp-row-ic', IC_IMP.warn, 2));
+        const mid = h('div', 'wf-imp-mid');
+        const l1 = h('div', 'wf-imp-l1');
+        // WHAT THE STUDENT ACTUALLY TYPED OR EXPORTED, verbatim. A failure
+        // row that shows our normalised guess instead of their own text is a
+        // failure row they cannot check.
+        l1.appendChild(h('span', 'wf-imp-rawtxt',
+          r.code ? (r.code + (r.room ? ' ' + r.room : '')) : SAY_IMP.noRoom));
+        if (r.title && r.title !== SAY_IMP.unnamed) l1.appendChild(h('span', 'wf-imp-rtitle', r.title));
+        mid.appendChild(l1);
+        mid.appendChild(h('div', 'wf-imp-l2 why', impWhy(r, res.via)));
+        row.appendChild(mid);
+        bad.appendChild(row);
+      }
+      body.appendChild(bad);
+    }
+
+    if (res.classes.length) {
+      body.appendChild(h('div', 'wf-imp-sec', SAY_IMP.placedSec(res.classes.length)));
+      const list = h('div', 'wf-imp-list');
+      const cap = impState.showAll ? res.classes.length
+        : Math.min(IMP.resultPeek, impState.fit == null ? IMP.resultPeek : impState.fit);
+      const shown = res.classes.slice(0, cap);
+      for (const c of shown) {
+        const row = h('div', 'wf-imp-row ok');
+        row.appendChild(icon('wf-imp-row-ic', IC_IMP.check, 2.4));
+        const mid = h('div', 'wf-imp-mid');
+        const l1 = h('div', 'wf-imp-l1');
+        l1.appendChild(h('span', 'wf-imp-code', c.code));
+        l1.appendChild(h('span', 'wf-imp-bname', c.name || ''));
+        if (c.room) l1.appendChild(h('span', 'wf-imp-room', c.room));
+        mid.appendChild(l1);
+        // WHEN FIRST, THEN THE COURSE. The second line is one line with an
+        // ellipsis on it, so whichever half is last is the half that gets
+        // eaten — and `TTh 12:30–14:00` is what makes the row a class rather
+        // than a building, while `C S 429 - COMPUTER ORGANIZATION AND…` is
+        // the student's own course title, which they can already recite.
+        const when = [[impDayStr(c.days), impTimeStr(c)].filter(Boolean).join(' '), c.title]
+          .filter(Boolean).join(' · ');
+        mid.appendChild(h('div', 'wf-imp-l2', when));
+        row.appendChild(mid);
+        list.appendChild(row);
+      }
+      body.appendChild(list);
+      if (res.classes.length > shown.length) {
+        const more = h('button', 'wf-imp-more',
+          SAY_IMP.andMore(res.classes.length - shown.length));
+        // The list is the last thing in the body, so opening it always adds
+        // height BELOW where the eye already is — the scroll shade picks that
+        // up on the next frame and the new rows are reachable by thumb.
+        more.addEventListener('click', () => { impState.showAll = true; impRender(); });
+        body.appendChild(more);
+      }
+    }
+
+    if (res.classes.length) {
+      const use = h('button', 'wf-imp-go', SAY_IMP.useThese(res.classes.length));
+      use.addEventListener('click', () => impUse(res));
+      foot.appendChild(use);
+    } else {
+      foot.appendChild(h('div', 'wf-imp-none', SAY_IMP.noneUsable));
+    }
+    const back = h('button', 'wf-imp-back', SAY_IMP.back);
+    back.addEventListener('click', () => impBack());
+    foot.appendChild(back);
+  }
+
+  /**
+   * THE SCROLLER HAS TO SAY THAT IT IS A SCROLLER, AND THIS WAS FOUND IN A
+   * FRAME, NOT IN THE CODE.
+   *
+   * `#wf-imp-body` is the one child that yields height, so on a 390 x 844 phone
+   * it is almost always shorter than its contents — and it clipped them with a
+   * hard edge and no mark of any kind. Two photographs, both from a working
+   * build:
+   *
+   *   - THE RESULT SCREEN. "6 of 9 classes placed", three failures, `PLACED 6`,
+   *     and then ONE placed row before the edge. The other five were below it
+   *     with nothing on screen to say so, and `+ N more` does not fire here
+   *     because six is exactly `IMP.resultPeek`. A student who is told six
+   *     classes were placed and shown one has been given a number they cannot
+   *     check.
+   *   - THE ERROR SCREEN. `impRenderErr` scrolls the body to its end on purpose
+   *     (so the control the message names is under the message), and the end
+   *     landed mid-line: the bottom halves of the letters of "…Subscription
+   *     Calendar" sat under the tab divider like a rendering fault.
+   *
+   * Both are the same missing thing — an edge that is CUT looks identical to an
+   * edge that is FINISHED. So each end that has content past it is faded, and
+   * an end that has nothing past it is left hard, which is what makes the fade
+   * mean something. A half-line under a fade reads as "there is more up there";
+   * a half-line under a crisp border reads as a bug.
+   *
+   * Driven off measured scroll geometry rather than a render-time guess,
+   * because the same body is scrolled by a thumb, by `impRenderErr`, and by the
+   * keyboard opening under a focused field.
+   */
+  function impShade() {
+    const b = impEl && impEl.body;
+    if (!b) return;
+    const slop = IMP.edgeSlopPx;
+    const over = b.scrollHeight - b.clientHeight;
+    b.classList.toggle('cut-top', over > slop && b.scrollTop > slop);
+    b.classList.toggle('cut-bot', over > slop && (over - b.scrollTop) > slop);
+  }
+
+  /**
+   * HOW MANY PLACED CLASSES FIT, ASKED OF THE PANEL RATHER THAN GUESSED.
+   *
+   * `IMP.resultPeek` was the whole rule and a fixed number cannot be right
+   * twice. Photographed on a 390 x 844 phone: nine imported, three failed,
+   * `PLACED 6` — and ONE placed row before the edge of the scroller. The other
+   * five were below the fold, `Show N more` did not appear because six is
+   * exactly the peek, and the button said `Use these 6`. A screen that names a
+   * number, shows one of it, and then routes you somewhere on the strength of
+   * the rest is asking to be trusted about a thing it is hiding.
+   *
+   * Whether they fit depends on what is ABOVE them — three failures whose
+   * reasons each wrap to two or three lines cost about 210 px of a 373 px
+   * body, and a clean import costs none of it. So it is measured: render once,
+   * count the rows that landed whole inside the scroller, and if any did not,
+   * re-render with the list cut to what fits and a real `Show N more` under
+   * it. The count on the screen becomes a count the student can check.
+   *
+   * THE BUTTON IS PART OF WHAT HAS TO FIT, and the first cut of this function
+   * forgot that: it counted the rows that fitted, dropped one, and shipped —
+   * and the `Show 5 more` it had just added landed below the fold, which is
+   * the identical defect to the one this feature already fixed once, when an
+   * error message named a file button the same frame was hiding. Photographed:
+   * `PLACED 6`, one WEL row, and no control anywhere on the panel. So the exit
+   * condition is not "the rows fit", it is "the rows fit AND the way to the
+   * rest is reachable".
+   *
+   * IT TERMINATES BY CONSTRUCTION. Each pass renders one fewer row than the
+   * last, so it runs at most `IMP.resultPeek + 1` times and cannot oscillate —
+   * `fit` never grows. `fitDone` latches the moment the panel is whole, so a
+   * thumb scrolling the body afterwards cannot restart it. A layout loop on a
+   * panel over a live map is not a bug anyone would enjoy finding on a phone.
+   */
+  /**
+   * How deep the bottom shade currently eats, in px — 0 when it is not on.
+   * READ OFF THE STYLESHEET, not restated here: `--wf-imp-fade` is a taste
+   * value and CLAUDE.md rule 11 puts taste values where Simeon can change
+   * them in one line. A copy of the number in this file would be a second
+   * place to change it and therefore a place to forget.
+   */
+  function impFadePx() {
+    const b = impEl && impEl.body;
+    if (!b) return 0;
+    if ((b.scrollHeight - b.clientHeight) <= IMP.edgeSlopPx) return 0;
+    const v = parseFloat(getComputedStyle(b).getPropertyValue('--wf-imp-fade'));
+    return isFinite(v) ? v : 0;
+  }
+
+  function impFitList() {
+    if (!impEl || !impState.result || impState.showAll || impState.fitDone) return;
+    const b = impEl.body;
+    for (let pass = 0; pass <= IMP.resultPeek; pass++) {
+      const bb = b.getBoundingClientRect();
+      // CLEAR OF THE SHADE, not merely inside the box. An earlier cut stopped
+      // the moment `Show 6 more` was technically within the scroller — and the
+      // scroller was still overflowing, so the shade was on, and the bottom
+      // 16 px of that button was ghosted out. A control half-dissolved by the
+      // affordance that says "there is more below" is a worse frame than the
+      // one this function was written to fix.
+      const guard = impFadePx();
+      const inside = (e) => !!e && e.getBoundingClientRect().bottom <= bb.bottom - guard + 1;
+      const rows = [].slice.call(b.querySelectorAll('.wf-imp-row.ok'));
+      const more = b.querySelector('.wf-imp-more');
+      if (rows.every(inside) && (!more || inside(more))) break;
+      // Nothing left to give. The failures alone have filled the panel, which
+      // is a real result and not a layout bug — five reasons a student has to
+      // read are worth more than a sample of the six that worked. The shade
+      // and the scroller take it from here, and the two numbers that matter
+      // are already above the fold and on the button.
+      if (rows.length <= IMP.minPeek) break;
+      impState.fit = rows.length - 1;
+      impRenderResult();
+    }
+    impState.fitDone = true;
+  }
+
+  function impRender() {
+    if (!impEl) return;
+    // ONE SYNCHRONOUS PASS, and the fit runs INSIDE it rather than a frame
+    // later. This used to post `impFitList` to `requestAnimationFrame` and let
+    // it chain a frame per shrink, which reasons fine and measures badly: on
+    // the headless Chrome this suite drives, a UT paste with five failures was
+    // still visibly mid-shrink FOUR SECONDS after the result rendered, with
+    // `Show 6 more` hanging below the fold the whole time. Whatever throttles
+    // rAF for an offscreen surface will throttle it on a phone whose browser
+    // has decided the tab is busy, and a panel that reflows six times in front
+    // of a student is worse than the defect it is fixing.
+    // `getBoundingClientRect` forces layout, so the measurement is available
+    // now, not next frame.
+    if (impState.result) { impRenderResult(); impFitList(); } else impRenderAdd();
+    impShade();
+    // One more, a frame later, only for the shade: a web font swapping in
+    // after this returns changes how much overflows, and the shade is the one
+    // thing here that is cheap enough to recompute for free.
+    requestAnimationFrame(impShade);
+  }
+
+  // ── the three ways bytes arrive ───────────────────────────────────────────
+
+  /**
+   * THE VERDICT CANNOT BE COMPUTED BEFORE THE GRAPH EXISTS, AND UNTIL THIS
+   * ROUND IT WAS COMPUTED ANYWAY.
+   *
+   * `impPlace` asks `wayfindSearch` whether a code has a walkable door.
+   * `impOpen` kicks off `loadGraph()` when the panel opens — deliberately, so
+   * that the fetch overlaps the student reading the instructions — but nothing
+   * WAITED for it. Reproduced on the real page: open the panel, paste twelve
+   * real UT rows, press Import inside two seconds, and the screen says
+   *
+   *     12 · Couldn't place 12 · Nothing here can be routed to
+   *
+   * for a schedule where seven of them are two minutes' walk away. Do the same
+   * thing five seconds later and it says `7 of 12 classes placed`. Same input,
+   * same build, two different answers — the worst shape a bug can have on a
+   * screen whose entire job is telling a student the truth about their own
+   * timetable, and it is silent: nothing on the panel suggests waiting.
+   *
+   * `loadGraph` memoises its own promise, so awaiting it here costs nothing
+   * after the first time and cannot start a second fetch. A rejection is
+   * swallowed on purpose: if the graph genuinely will not load, the honest
+   * thing is still to place what the static register can and say so per row,
+   * which is exactly what the failure taxonomy is for.
+   */
+  function impFinish(text, via) {
+    let p = null;
+    try { p = loadGraph(); } catch (e) { p = null; }
+    if (!p || typeof p.then !== 'function') { impFinishNow(text, via); return; }
+    // `Reading…` stays on the button for as long as this takes. It is the
+    // campus graph being fetched rather than the student's file being read,
+    // but from their side the import has not finished either way, and a second
+    // busy state saying "waiting for the campus map" is a state they cannot
+    // act on and did not ask about.
+    impState.busy = true; impRender();
+    p.then(() => impFinishNow(text, via), () => impFinishNow(text, via));
+  }
+
+  async function impFinishNow(text, via) {
+    let out;
+    // `busy` is cleared AFTER the await, not before it: the parser is async
+    // now, and clearing it first put `Import` back on the button while the
+    // file was still being read.
+    try { out = await impBuild(text, impState.source, via); }
+    catch (e) { out = { err: SAY_IMP.errNoEvents }; }
+    impState.busy = false;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false;
+    if (out.err) { impState.err = out.err; impState.result = null; }
+    else { impState.result = out; impState.err = null; }
+    impRender();
+    return out;
+  }
+
+  function impFromFile(f) {
+    impState.err = null;
+    if (/\.zip$/i.test(f.name)) { impState.err = SAY_IMP.errZip; impRender(); return; }
+    impState.busy = true; impRender();
+    const rd = new FileReader();
+    rd.onerror = () => { impState.busy = false; impState.err = SAY_IMP.errNotICS; impRender(); };
+    rd.onload = () => {
+      const text = String(rd.result || '');
+      // A .zip that has been renamed still starts PK\x03\x04, and the message
+      // for it is the useful one rather than "this is not a calendar".
+      if (text.slice(0, 2) === 'PK') { impState.busy = false; impState.err = SAY_IMP.errZip; impRender(); return; }
+      if (!/BEGIN:VCALENDAR|BEGIN:VEVENT/i.test(text) && /\.ics$/i.test(f.name)) {
+        impState.busy = false; impState.err = SAY_IMP.errNotICS; impRender(); return;
+      }
+      impFinish(text, 'file');
+    };
+    rd.readAsText(f);
+  }
+
+  async function impFromUrl(raw) {
+    const s = String(raw || '').trim();
+    if (!s) { impState.err = SAY_IMP.errEmptyUrl; impRender(); return; }
+    // webcal:// and https:// are the same feed and both ends accept the swap —
+    // docs/import-bar-apple.md. So an Apple subscription address pasted here
+    // works without the student having to know that.
+    const url = s.replace(/^webcal:\/\//i, 'https://');
+    let host = '';
+    try { host = new URL(url).host; } catch (e) { impState.err = SAY_IMP.errBadUrl; impRender(); return; }
+    impState.busy = true; impState.err = null; impRender();
+    const ctl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctl) ctl.abort(); }, IMP.fetchTimeoutMs);
+    try {
+      const res = await fetch(url, ctl ? { signal: ctl.signal } : undefined);
+      clearTimeout(timer);
+      if (!res.ok) { impState.busy = false; impState.err = SAY_IMP.errHttp(res.status); impRender(); return; }
+      impFinish(await res.text(), 'url');
+    } catch (e) {
+      clearTimeout(timer);
+      impState.busy = false;
+      // THE COMMONEST FAILURE THIS SCREEN HAS, AND IT IS NOT OUR BUG. A browser
+      // will not let this page read calendar.google.com's response; the fetch
+      // fails identically whether the address is wrong, the network is down or
+      // CORS refused. The honest sentence names the host and gives the way
+      // round it, because the way round is a control already on this screen.
+      impState.err = (e && e.name === 'AbortError') ? SAY_IMP.errTimeout : SAY_IMP.errBlocked(host);
+      impRender();
+    }
+  }
+
+  function impGo() {
+    if (impState.busy) return;
+    const ta = document.getElementById('wf-imp-text');
+    if (ta) {
+      impState.text = ta.value;
+      if (!impState.text.trim()) { impState.err = SAY_IMP.errEmptyText; impRender(); return; }
+      impState.err = null; impState.busy = true; impRender();
+      // A paste can be long; yield once so `Reading…` actually paints.
+      setTimeout(() => impFinish(impState.text, 'text'), 0);
+      return;
+    }
+    const u = document.getElementById('wf-imp-url');
+    if (u) { impState.url = u.value; impFromUrl(impState.url); }
+  }
+
+  /**
+   * THE HANDOFF. The schedule is published on `window.wayfindSchedule` — the
+   * one object anything else in this feature reads — and the two ends of the
+   * router that already exists are filled with the first two consecutive
+   * classes, which is the answer to "why import this into a MAP".
+   */
+  function impUse(res) {
+    window.wayfindSchedule = res;
+    // SI3. THE IMPORT IS WHAT SAVES, AND UNTIL NOW NOTHING DID.
+    // `WAYFIND.store.save` calls itself "the public seam the import lanes
+    // call" and no line in this file called it, so a reload lost the import,
+    // "Delete my schedule" had nothing to delete, and the egress guard — which
+    // arms its watchlist from the STORED schedule — was reading watched=0 at
+    // the exact moment a schedule was in memory and on screen.
+    //
+    // HERE AND NOT AT PREVIEW TIME. This is the tap that says "use these"; a
+    // schedule a student looked at and backed out of has no business being
+    // left on the device.
+    let saved = null;
+    try {
+      saved = (window.WAYFIND && WAYFIND.store && WAYFIND.store.save)
+        ? WAYFIND.store.save(impStoreDoc(res)) : null;
+    } catch (e) { saved = { ok: false, why: 'threw' }; }
+    res.saved = saved;
+    try {
+      window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: res }));
+    } catch (e) {}
+    const cs = res.classes.slice().sort(impByTime);
+    impClose();
+    el.sheet.classList.remove('hidden');
+    el.btn.classList.add('active');
+    if (cs.length >= 2) {
+      const a = resolve(cs[0].code), b = resolve(cs[1].code);
+      if (a && b) {
+        state.from = a; state.to = b;
+        el.inFrom.value = a.display; el.inTo.value = b.display;
+      }
+    } else if (cs.length === 1) {
+      const b = resolve(cs[0].code);
+      if (b) { state.to = b; el.inTo.value = b.display; }
+    }
+    try { syncClears(); renderList(el.inTo); } catch (e) {}
+  }
+  /**
+   * THE IMPORT RESULT -> THE STORED ENVELOPE. `normaliseSchedule` decides what
+   * a stored schedule IS; this only decides what to hand it.
+   *
+   * THE REJECTS ARE STORED TOO, each with the reason this screen gave for it.
+   * A student who imported seven classes and can walk to five still has seven
+   * classes on their Tuesday, and dropping the other two on the way to disk
+   * would put an invented two-hour gap into the day view the moment the page
+   * reloads — the same defect WF_DAY.showUnplaced exists to stop.
+   */
+  function impStoreDoc(res) {
+    const out = [];
+    const put = (c, why) => out.push({
+      code: c.code || null, room: c.room || null, title: c.title || null,
+      days: (c.days || []).slice(),
+      startMin: c.startMin == null ? null : c.startMin,
+      endMin: c.endMin == null ? null : c.endMin,
+      unroutableWhy: why, confidence: 1,
+    });
+    for (const c of (res.classes || [])) put(c, null);
+    for (const r of (res.rejects || [])) put(r, r.status || 'unknown');
+    return {
+      classes: out, tz: res.tz || IMP.tz, term: null,
+      source: (impSource(res.source) || {}).storeKind || 'manual',
+    };
+  }
+
+  function impByTime(a, b) {
+    const da = IMP.dayOrder.indexOf((a.days || [])[0] || 'MO');
+    const db = IMP.dayOrder.indexOf((b.days || [])[0] || 'MO');
+    if (da !== db) return da - db;
+    return String(a.start || '').localeCompare(String(b.start || ''));
+  }
+
+  /**
+   * THE DOOR IN. Appended to the walk sheet rather than written into
+   * `buildUI` — four other lanes are editing this file this round and a DOM
+   * append is a change no one of them can conflict with.
+   */
+  function impInstallEntry() {
+    if (!IMP.entryOn || !el || !el.sheet || document.getElementById('wf-imp-entry')) return;
+    const row = h('button', null, null); row.id = 'wf-imp-entry';
+    row.appendChild(icon('wf-imp-entry-ic', IC_IMP.cal, 1.9));
+    const t = h('span', 'wf-imp-entry-t');
+    t.appendChild(h('span', 'wf-imp-entry-lab', SAY_IMP.entry));
+    t.appendChild(h('span', 'wf-imp-entry-sub', SAY_IMP.entryNote));
+    row.appendChild(t);
+    row.appendChild(icon('wf-imp-entry-go', IC_IMP.chevR, 2.2));
+    row.addEventListener('click', (ev) => { ev.preventDefault(); impOpen(); });
+    // Above the footnotes, below the hint: it is an action, and the two lines
+    // under it are provenance, not controls.
+    const foot = el.sheet.querySelector('.wf-foot');
+    if (foot) el.sheet.insertBefore(row, foot); else el.sheet.appendChild(row);
+  }
+  (function impBoot() {
+    if (el && el.sheet) { impInstallEntry(); return; }
+    setTimeout(impBoot, 80);
+  })();
+
+  // The screen, for the verify harness and for anything added later. Opening
+  // it from a script is how it gets photographed.
+  window.wayfindImportOpen = impOpen;
+  window.wayfindImportClose = impClose;
+  window.wayfindImportSet = function (sourceId) {
+    impState.source = sourceId; impState.result = null; impState.err = null;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false; impRender();
+  };
+  // BOTH OF THESE RETURN A PROMISE NOW, and that is not tidying. They used to
+  // return the result object synchronously, which meant they answered before
+  // the walking graph had loaded and reported every code as unreachable — the
+  // same race `impFinish` documents, except a harness hitting it gets a
+  // confident wrong number instead of a visibly wrong screen. `loadGraph`
+  // memoises, so awaiting costs nothing on the second call.
+  window.wayfindImportText = async function (text, sourceId) {
+    if (sourceId) impState.source = sourceId;
+    try { await loadGraph(); } catch (e) {}
+    await impFinishNow(String(text), 'text');
+    return impState.result || { err: impState.err };
+  };
+  /** WHAT THE SCREEN IS ACTUALLY SHOWING, including `decoder` — which producer
+   *  made the rows it placed. Added because "which decoder read the student's
+   *  file" was a question nothing outside this section could answer, and the
+   *  only available proxy (the parser's return TYPE) is false by construction
+   *  now that the parser is correctly awaited. */
+  window.wayfindImportResult = function () { return impState.result || null; };
+  window.wayfindImportParse = async function (text, sourceId) {
+    try { await loadGraph(); } catch (e) {}
+    return impBuild(String(text), sourceId || impState.source, 'text');
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 12. THE SCHEDULE STAYS ON THE DEVICE, AND THAT HAS TO BE PROVABLE
+  // ══════════════════════════════════════════════════════════════════════════
+  /**
+   * A class schedule is not a preference. It is where one named person is,
+   * hour by hour, for four months. So this section holds exactly two promises
+   * and tries to make both of them *checkable by a machine* rather than
+   * believable by a reader:
+   *
+   *   1. NOTHING LEAVES. The schedule is written to this browser's own
+   *      localStorage and to nothing else. No fetch, no XHR, no beacon, no
+   *      socket, no worker message carries a byte of it.
+   *   2. DELETE MEANS GONE. One tap wipes every key this feature ever wrote
+   *      — including keys a *future* import source might write — plus the
+   *      IndexedDB database reserved below for the image-OCR pass, and the
+   *      in-memory copy. Reload and there is nothing to find.
+   *
+   * PROMISE 1 IS ENFORCED, NOT ASSERTED. `installEgressGuard()` wraps the six
+   * ways bytes actually leave a page (fetch, XMLHttpRequest, sendBeacon,
+   * WebSocket, EventSource, Worker.postMessage) plus form submission, and
+   * refuses any of them that carries a string out of the stored schedule. It
+   * is a seatbelt, not the safety case: the safety case is that no code here
+   * ever sends anything. The guard exists so that if some later lane wires an
+   * analytics call into this file, the call fails loudly instead of quietly
+   * working. Its log is what `docs/si-privacy.md` audits.
+   *
+   * THE DOOR INTO A WORKER IS THE WHOLE ARGUMENT, so round 6 stopped patching
+   * shapes and changed the default. The guard is main-thread only: it cannot
+   * reach inside MapLibre's four workers, and this file creates none of its
+   * own, so nothing can wrap their `fetch`. Everything therefore rests on one
+   * claim — *schedule bytes never get in* — and that claim is only as good as
+   * the walk that inspects a payload.
+   *
+   * Three rounds running, that walk had a hole in it, and each round shut the
+   * one shape that had been demonstrated:
+   *   - round 4: a `Blob` request BODY the guard could not read, waved through.
+   *   - round 5: a `Blob` LEAF inside a worker payload, strolled past, because
+   *     a `Blob` has no own enumerable properties and a `for...in` walk sees
+   *     nothing on one.
+   *   - round 6 (this one): an `ArrayBuffer`/`TypedArray` leaf, skipped
+   *     OUTRIGHT with no flag raised, on the reasoning that a buffer "cannot
+   *     hold a JS string". `TextEncoder` makes that reasoning false in one
+   *     line, and the critic put a class title through a worker and out onto a
+   *     raw socket with the guard armed and `blockedDelta: 0, opaqueDelta: 0`
+   *     — not merely unblocked, *uncounted*.
+   *
+   * Patching the third shape would have left a fourth. So the walk is now
+   * CLOSED BY DEFAULT instead of open by default: `scanStructured()` knows a
+   * short list of node kinds it can actually read, reads them, and flags
+   * ANYTHING ELSE as opaque. `Map`, `Set`, `RegExp`, `Error`, `ImageData`, a
+   * host object nobody has invented yet — none of them needs its own line to
+   * be caught, because the default branch is "I could not read this" rather
+   * than "nothing to see here". Binary is not skipped and not blocked either
+   * (MapLibre moves 22.5 MB of real tile bytes through this path on one cold
+   * load, measured): the BYTES ARE SCANNED, so a buffer that is really tile
+   * data passes and a buffer that is really a class title does not.
+   *
+   * The same round found a second silent bypass nobody had reported: the walk
+   * gave up at `maxNodes` and returned `complete: false`, and every caller
+   * ignored it. **21 of this app's own messages per cold load exceed the old
+   * 4,000-node cap** (largest measured: 172,512 nodes), so 21 payloads a load
+   * were already sailing past uninspected. The cap is now measured-with-
+   * headroom and running out of it FLAGS instead of shrugging.
+   *
+   * WHAT IT STILL CANNOT DO, said plainly so nobody reads it as more than it
+   * is — and §9 of docs/si-privacy.md is the same list with the reasoning:
+   *   - it does not watch `<img src>` or a plain link navigation. Those are
+   *     covered by the browser-level network capture in `docs/si-privacy.md`,
+   *     which sees every request the page makes regardless of who made it.
+   *   - a leak of a FRAGMENT of a field ("Data" out of "Data Structures")
+   *     would not match. Whole field values are the tokens, because whole
+   *     field values are what a serialiser emits and word fragments are what
+   *     tile URLs are full of.
+   *   - it matches CONTENT, so content that has been re-encoded past
+   *     recognition — base64, gzip, XOR — is not content it can see. UTF-8 and
+   *     UTF-16LE are both covered because those are what an honest bug
+   *     produces; base64 is what an attacker produces, and a content scanner
+   *     inside the page it is guarding cannot win that argument. This is a
+   *     seatbelt against a later lane's mistake, not a sandbox.
+   *   - a THROW inside the inspector fails OPEN on the NETWORK paths (the
+   *     request proceeds) and is counted, because a bug in this file must not
+   *     be able to stop a tile loading. On the WORKER path it now fails
+   *     CLOSED (`SCHEDULE_STORE.failClosedOnScanError`) — a throw there is
+   *     indistinguishable from an evasion, and 2,545 real messages a load
+   *     produce zero of them.
+   *   - the worker SCRIPT itself. MapLibre mints one `blob:` URL and spawns
+   *     four workers from it; a `Blob` cannot be read synchronously, so the
+   *     constructor wrapper below scans the URL and cannot scan blob-sourced
+   *     source. Named, not hidden.
+   *
+   * THE SHAPE IS BUILT FOR THE SOURCES THAT DO NOT EXIST YET. Simeon asked for
+   * Google Calendar, Apple Calendar and UT's registration export now, and said
+   * a photo of a schedule and a Registration-Plus API should be addable later
+   * "without a rewrite". Three reservations in the envelope below are what buy
+   * that, and each one is a thing that would otherwise force a schema change:
+   *   - `sources` is a LIST, and every class points at one of them. A photo
+   *     imported on top of an .ics has to ADD to a schedule, not replace it;
+   *     a single `source` string on the envelope cannot express that.
+   *   - every class carries `confidence` and `provenance`. An .ics is exact
+   *     (1.0, and the VEVENT UID); OCR is not, and needs somewhere to put the
+   *     box on the image it read a room number out of so the student can be
+   *     shown what to check. Adding that later means rewriting every stored
+   *     schedule.
+   *   - `v` plus `SCHEDULE_MIGRATIONS` means a v2 reader can still open a v1
+   *     blob, and a v1 reader hands back `tooNew` rather than deleting a
+   *     schedule it does not understand.
+   */
+
+  // ── the taste values, all of them, in one block (CLAUDE.md rule 11) ────────
+  const SCHEDULE_STORE = {
+    /** The one key the schedule itself lives under. */
+    key: 'austin3d.schedule.v1',
+    /** Delete sweeps EVERY key with this prefix, not just the one above, so a
+     *  future source that writes its own key is covered by a delete written
+     *  today. `austin3d.gfx.v1` (js/graphics.js) does not match it. */
+    prefix: 'austin3d.schedule.',
+    /** Reserved for the image-OCR pass: a photo will not fit in localStorage,
+     *  and delete has to reach it on the day it starts existing. Deleting a
+     *  database that was never created is a no-op, so this costs nothing now. */
+    idbName: 'austin3d-schedule',
+    /** A term of classes is a few KB. Anything near this is a bug or a paste
+     *  of the wrong file, and localStorage throws at ~5 MB with a quota error
+     *  that reads like a crash. */
+    maxBytes: 256 * 1024,
+    /** Strings shorter than this are not watched by the egress guard. Three
+     *  letters is a building CODE — `?from=WEL&to=MAI` is a documented URL
+     *  feature of this app and the codes are its public vocabulary, so a code
+     *  on its own is not the private part. `MAI 220`, a course title and an
+     *  instructor's name all clear the bar. */
+    minTokenLen: 4,
+    /** Ring buffer for the guard's log. */
+    logCap: 400,
+    /**
+     * AN OPAQUE BODY IS REFUSED, NOT WAVED THROUGH — and this is the round-5
+     * change, so it gets the whole reason written down.
+     *
+     * `bodyToText()` cannot read a `Blob` or a `ReadableStream` synchronously,
+     * and until now it returned `undefined` for those and the guard counted
+     * them and let them past. Round 4's critic did the obvious thing nobody
+     * else had done: fired `fetch(url, { body: new Blob([canary]) })` at a
+     * bare TCP listener with the guard armed, and watched the canary arrive on
+     * the wire verbatim while `blocked` stayed 0. A seatbelt with a buckle
+     * that does not close over one shape of passenger.
+     *
+     * So: while a schedule is stored, a body the guard cannot read is treated
+     * as a body it cannot clear, and refused. The cost of that is bounded and
+     * was checked rather than assumed — every request this app makes on the
+     * hot path (tiles, glyphs, sprites, style JSON, the baked city data) is a
+     * bodyless GET, so `bodyToText` returns `''` for all of them and none of
+     * them ever reaches this rule. See docs/si-privacy.md §6.
+     *
+     * Flip to false to go back to fail-open if a later lane ever needs a
+     * genuine binary upload while a schedule is on the device — and if you do,
+     * read the audit's blob probe first, because that is the thing you are
+     * turning off.
+     */
+    blockUnreadableBodies: true,
+    /**
+     * A REQUEST HEADER IS A STRING THAT GOES ON THE WIRE, and until round 8
+     * nothing in this section had ever looked at one.
+     *
+     * `inspect()` is handed a method, a URL and a body. Round 8's channel
+     * probe fired `fetch(sink, { headers: { 'X-Sched': classTitle } })`, the
+     * same through a `Headers` object, and `xhr.setRequestHeader('X-Sched',
+     * classTitle)` at a bare TCP listener with the guard armed. All three
+     * returned 204 at `blocked: 0` and the listener read the class title
+     * verbatim. This is not an exotic shape: attaching a context header is
+     * what every analytics and error-reporting library does, and "a later
+     * lane wires an analytics call into this file" is the exact scenario §12
+     * says this guard exists for.
+     *
+     * WHAT IT COSTS, AND THE PREDICTION THAT WAS WRONG. This was first written
+     * as "nil, because this app sets exactly one header on exactly one request
+     * in its whole codebase" (`Accept: application/json`, js/graphics.js's
+     * feedback POST). True of the SOURCE and false of the TRAFFIC: measured on
+     * a real drive, the guard reads headers on **248–411 requests**, because
+     * MapLibre passes a headers object on essentially every tile fetch. It is
+     * still not measurable against the cost of a `fetch` call — the A/B in
+     * docs/si-privacy.md §8 comes back with overlapping spreads — and
+     * `unreadableHeaders` is 0 and no real request has ever been refused. The
+     * number is here because the first claim was read off the code instead of
+     * run, and `guard.state().headersScanned` republishes it so the next
+     * person re-checks rather than trusts.
+     *
+     * Flip to false to stop scanning headers. `blockUnreadableHeaders` is the
+     * same fail-closed rule bodies got in round 5: a header collection the
+     * guard cannot enumerate is one it cannot clear.
+     */
+    scanRequestHeaders: true,
+    blockUnreadableHeaders: true,
+    /**
+     * ROUND 8: the byte scanner registers the percent-encoded and
+     * `+`-encoded forms of each watched token as extra NEEDLES, rather than
+     * decoding the haystack. See `buildBytePatterns`. Flip to false to go back
+     * to raw-only byte patterns; the string path keeps its decode retry either
+     * way, because that one is gated on the string containing a `%` or a `+`
+     * and this one cannot be.
+     */
+    scanEncodedForms: true,
+    /** The same rule one layer down, for a `Blob`/`ReadableStream` handed to a
+     *  worker rather than to the network. Separate constant because this one
+     *  is on MapLibre's per-tile path and the other is not: measured on a real
+     *  map load before it was turned on (docs/si-privacy.md §6), and the
+     *  measurement is republished by `guard.state().opaqueWorkerLeaves` so the
+     *  next person can re-check it in one line instead of trusting this
+     *  comment. */
+    blockOpaqueWorkerLeaves: true,
+    /**
+     * HOW MANY BYTES OF BINARY THE WALK WILL READ IN ONE PAYLOAD before it
+     * gives up and flags instead. This is the number that lets binary be
+     * SCANNED rather than blocked, which is the only option that keeps the map
+     * working — MapLibre's tile bytes travel this exact path.
+     *
+     * Set from a measurement, not a guess. One cold load of this city with a
+     * schedule stored pushes 4,742 `Uint8Array` leaves and 22.5 MB across
+     * `Worker.postMessage`; the median leaf is 4 KB, the 99th percentile is
+     * 16 KB, six leaves all load are over 64 KB, and the LARGEST SINGLE
+     * MESSAGE totals 999,424 bytes. 4 MB is four times that worst case and
+     * still a hard ceiling: past it the payload is refused, not waved on, so
+     * padding a leak past the budget buys nothing.
+     */
+    binaryScanBytes: 4 * 1024 * 1024,
+    /**
+     * How far into ONE payload the structured walk goes. The old value was
+     * 4,000 and running out SILENTLY gave up — measured, 21 of this app's own
+     * messages per cold load exceed it and the largest on a still camera is
+     * 172,512 nodes, so the guard was already blind to 21 payloads a load and
+     * nothing said so.
+     *
+     * THE NUMBER IS BIG ON PURPOSE, and the first attempt at it was wrong in a
+     * way worth writing down. 400,000 looked like 2.3× headroom over a census
+     * taken on a page that loaded and then sat still. Drive the camera —
+     * 1600×1000, zoom 11 to 19, seven pan-and-zoom steps — and one real
+     * MapLibre payload hits **634,093 nodes**, so that cap refused one of the
+     * map's own messages. A cap that blocks real traffic is worse than the
+     * hole it closes.
+     *
+     * Running out now REFUSES, and that is what lets this be generous: a leak
+     * gains nothing by padding past the cap, so the cap's only job is to bound
+     * our own worst-case work. 8,000,000 is 12.6× the worst case measured
+     * under deliberate punishment. Re-measure before lowering it.
+     */
+    workerScanNodes: 8000000,
+    /** A watched token longer than this is matched by its first N characters
+     *  in the byte scanner. The serialised schedule is one watched token and
+     *  can be tens of KB; a full memcmp of that at every candidate byte is not
+     *  something to run on the tile path, and any buffer holding the whole
+     *  blob holds its first 256 characters too. */
+    binaryPatternChars: 256,
+    /**
+     * REACH INTO A SAME-ORIGIN CHILD REALM AND GUARD IT TOO — round 7.
+     *
+     * The channel probe fired `iframe.contentWindow.postMessage(title, '*')`
+     * with the guard armed and got `checked: 0`. Patching `Window.prototype`
+     * on the main thread does not cover it, and the reason is worth knowing
+     * rather than rediscovering: **a same-origin child iframe is a separate
+     * JavaScript realm with its own intrinsics.** Its `Window.prototype` is a
+     * different object from ours. Every wrapper in `installEgressGuard()` is
+     * therefore invisible inside it, and a child frame's own `fetch` reaches
+     * the network exactly the way a worker's does.
+     *
+     * So the guard follows the reference: whenever this page reads a frame's
+     * `contentWindow` or takes the Window back from `window.open()`, that
+     * realm's `postMessage` and `fetch` get wrapped before the caller can use
+     * them. Cross-origin throws on the assignment and is caught — there is
+     * nothing to patch there, and nothing our objects can reach either.
+     *
+     * Measured cost: zero. This app has no iframes and calls `window.open`
+     * never, so the `contentWindow` getter below is never read on a real load
+     * (`guard.state().frameChecked` is 0 in the audit).
+     */
+    guardChildFrames: true,
+    /** A throw inside the WORKER payload walk blocks the message rather than
+     *  waving it through. Different from the network paths on purpose: a
+     *  broken inspector must never stop a tile downloading, but a payload that
+     *  makes the walk throw is indistinguishable from one built to make it
+     *  throw, and 2,545 real messages a load produce zero throws. Flip to
+     *  false to go back to fail-open. */
+    failClosedOnScanError: true,
+    /** One tap deletes, with no "are you sure". Flip to true if that ever
+     *  reads as too sharp — the brief asked for one tap and an undo would
+     *  mean keeping the data around after saying it was gone. */
+    deleteNeedsConfirm: false,
+    /** How long the "Deleted." line stays up before the panel goes back to
+     *  its empty state. */
+    deletedNoticeMs: 5000,
+  };
+
+  /** Where a schedule came from. An open registry: adding a source is one line
+   *  here and a parser somewhere else, never a change to what is stored. The
+   *  last two are deliberately listed before they are built — they are the
+   *  forward compatibility, written down. */
+  const SCHEDULE_SOURCES = {
+    'google-ics': 'a Google Calendar export',
+    'apple-ics': 'an Apple Calendar export',
+    'ut-registration': 'UT’s registration export',
+    'manual': 'classes typed in by hand',
+    // Not built this pass. Named so the storage format already has a home for
+    // them and the delete sweep already covers what they will write.
+    'image-ocr': 'a photo of a schedule',
+    'registration-plus': 'Registration Plus',
+  };
+
+  const SCHEDULE_SCHEMA_VERSION = 1;
+  /** v => function turning a v blob into a v+1 blob. Empty today; the loop
+   *  below is what makes it a one-line job later. */
+  const SCHEDULE_MIGRATIONS = {};
+
+  /**
+   * THE COPY. index.html carries the editable copy of this in
+   * `<template id="wf-privacy-copy">` and it WINS — these are the defaults, so
+   * `_harness.html` (which has no such template, and must not, or
+   * harness-drift.mjs is not the only thing that can drift) still says the
+   * same words. `scripts/verify` asserts the two agree; see docs/si-privacy.md.
+   */
+  const SCHEDULE_PRIVACY_COPY = {
+    line: 'Your schedule stays on this device — saved in this browser only, ' +
+          'never uploaded anywhere, and Delete wipes it for good.',
+    deleteBtn: 'Delete my schedule',
+    deleted: 'Deleted. Nothing of it is left in this browser.',
+    empty: 'No schedule saved on this device yet.',
+    confirm: 'Delete it? This cannot be undone.',
+  };
+  /** Rendered when a schedule IS stored. Counts and a source, never a class
+   *  name — the panel sits in the footer of a sheet that may be on screen
+   *  while someone else is looking. */
+  const scheduleSavedLine = (n, srcLabel) =>
+    n + (n === 1 ? ' class' : ' classes') + ' from ' + srcLabel + ', on this device only';
+
+  /** The panel's look. Reuses the feature's own custom properties so it is not
+   *  a second design system living in the footer. */
+  const SCHEDULE_PRIVACY_CSS = [
+    '#wf-priv{display:block;padding:8px 14px 9px;border-top:1px solid var(--wf-edge-soft);',
+    'font-size:var(--wf-small);line-height:1.5;color:var(--wf-dim)}',
+    '#wf-priv .wf-priv-line{color:var(--wf-dimmer)}',
+    '#wf-priv .wf-priv-state{margin-top:5px;color:var(--wf-ink);opacity:.82}',
+    '#wf-priv .wf-priv-state:empty{display:none}',
+    '#wf-priv-del{margin-top:6px;display:none;align-items:center;gap:6px;',
+    'min-height:32px;padding:0 var(--wf-ghost-pad);border-radius:9px;',
+    'border:1px solid var(--wf-edge);background:transparent;color:var(--wf-ink);',
+    'font:inherit;font-size:var(--wf-small);letter-spacing:.02em;cursor:pointer}',
+    '#wf-priv-del:hover{border-color:var(--wf-hot);background:rgba(245,166,35,.10)}',
+    '#wf-priv-del:focus-visible{outline:2px solid var(--wf-accent);outline-offset:2px}',
+    // An <svg> with a viewBox and no width collapses to 300x150 and blows the
+    // footer apart. Every other icon in this feature is sized by style.css,
+    // which this lane does not own, so this one sizes itself.
+    '#wf-priv-del svg{width:11px;height:11px;flex:none}',
+    '#wf-priv.has-schedule #wf-priv-del{display:inline-flex}',
+  ].join('');
+
+  // ── the envelope ──────────────────────────────────────────────────────────
+  /**
+   * normaliseSchedule — the one place that decides what a stored schedule is.
+   * Every import source hands its result through here, so a photo and an .ics
+   * cannot drift into two shapes.
+   */
+  function normaliseSchedule(doc) {
+    const d = doc || {};
+    const now = new Date().toISOString();
+    const srcIn = Array.isArray(d.sources) ? d.sources
+      : (d.source ? [{ kind: d.source, importedAt: d.importedAt || now }] : []);
+    const sources = srcIn.map((s, i) => ({
+      id: String((s && s.id) || ('s' + i)),
+      kind: String((s && s.kind) || 'manual'),
+      label: String((s && s.label) || SCHEDULE_SOURCES[(s && s.kind)] || 'an import'),
+      importedAt: String((s && s.importedAt) || now),
+    }));
+    const classes = (Array.isArray(d.classes) ? d.classes : []).map((c, i) => {
+      const o = c || {};
+      return {
+        id: String(o.id || ('c' + i)),
+        code: o.code == null ? null : String(o.code).toUpperCase(),
+        room: o.room == null ? null : String(o.room),
+        title: o.title == null ? null : String(o.title),
+        instructor: o.instructor == null ? null : String(o.instructor),
+        days: Array.isArray(o.days) ? o.days.map(String) : [],
+        startMin: Number.isFinite(o.startMin) ? o.startMin : null,
+        endMin: Number.isFinite(o.endMin) ? o.endMin : null,
+        // WHY THIS IS NOT `resolved: true/false`. Eleven codes a real UT
+        // schedule can name do not route in this build, and they are TWO
+        // different problems, not one: ten sit at the Pickle campus ~11 km
+        // north and are off this map for good, while SSW is a main-campus
+        // building whose UT-surveyed door lands 0.4 m from a footprint this
+        // app already draws — missing only a row in our register snapshot.
+        // "Unknown code" and "real building, just not on this map" want
+        // different sentences, and a boolean cannot tell them apart, so the
+        // reason is stored as a string. Re-measured on this branch from
+        // data/ut_buildings.json, the UT door table in §3 above and the drawn
+        // snapshot; the numbers are in docs/si-privacy.md §7, and
+        // docs/si-gaps.md (on origin/acer/si-gaps) reaches them independently.
+        unroutableWhy: o.unroutableWhy == null ? null : String(o.unroutableWhy),
+        // Reserved for OCR. An .ics sets 1; a photo will not.
+        confidence: Number.isFinite(o.confidence) ? o.confidence : 1,
+        // Reserved for OCR and for a future API: which source, and where in it.
+        src: o.src == null ? (sources[0] ? sources[0].id : null) : String(o.src),
+        provenance: o.provenance == null ? null : o.provenance,
+      };
+    });
+    return {
+      v: SCHEDULE_SCHEMA_VERSION,
+      savedAt: now,
+      term: d.term == null ? null : String(d.term),
+      tz: d.tz == null ? null : String(d.tz),
+      sources,
+      classes,
+    };
+  }
+
+  function migrateSchedule(raw) {
+    let d = raw, guard = 0;
+    while (d && Number(d.v) < SCHEDULE_SCHEMA_VERSION && guard++ < 16) {
+      const step = SCHEDULE_MIGRATIONS[Number(d.v)];
+      if (!step) return null;      // a gap in the chain is not a thing to guess at
+      d = step(d);
+    }
+    return d;
+  }
+
+  // ── the egress guard ──────────────────────────────────────────────────────
+  let schedWatch = [];             // lowercased strings that must never leave
+  const schedGuard = {
+    installed: false,
+    armed: true,
+    log: [],
+    blocked: 0,
+    checked: 0,
+    quietChecked: 0,          // worker messages: counted, not individually logged
+    inspectFailures: 0,
+    unreadableBodies: 0,
+    blockedOpaque: 0,          // of `blocked`, how many were refused unread
+    opaqueWorkerLeaves: 0,     // payload nodes the walk could not read
+    binaryLeaves: 0,           // ArrayBuffer/TypedArray leaves actually scanned
+    binaryBytes: 0,            // ...and how many bytes that was
+    truncatedScans: 0,         // payloads that ran out of the node budget
+    scanThrows: 0,             // throws inside the worker-payload walk
+    portChecked: 0,            // MessagePort/BroadcastChannel messages inspected
+    workerCtors: 0,            // Worker/SharedWorker constructions seen
+    bodyBytesScanned: 0,       // round 7: bytes of BINARY request body byte-scanned
+    frameChecked: 0,           // round 7: window/iframe postMessage calls inspected
+    swChecked: 0,              // round 7: ServiceWorker postMessage/register calls
+    rtcChecked: 0,             // round 7: RTCDataChannel.send calls
+    headersScanned: 0,         // round 8: requests whose headers were read
+    unreadableHeaders: 0,      // round 8: header collections that would not enumerate
+    encodedHits: 0,            // round 8: matches that needed the decode/encode retry
+  };
+
+  /** The stand-in "tokens" for the four ways the guard can refuse something it
+   *  never actually read. They are not real watched strings, so they are never
+   *  used as needles and never redacted as one — they exist so an unreadable
+   *  thing travels the same refusal path as a real match and shows up in the
+   *  log saying honestly what happened. The LEADING SPACE is what makes a
+   *  collision impossible rather than unlikely: `buildWatchlist` only ever
+   *  stores `s.trim().toLowerCase()`, so no watched token can begin with
+   *  whitespace, so no schedule string can ever equal one of these however a
+   *  student names their classes. */
+  const EGRESS_OPAQUE_BODY = ' opaque-body';
+  const EGRESS_OPAQUE_LEAF = ' opaque-leaf';
+  const EGRESS_SCAN_TRUNCATED = ' scan-truncated';
+  const EGRESS_SCAN_THREW = ' scan-threw';
+  const EGRESS_OPAQUE_HEADERS = ' opaque-headers';   // round 8
+  /** The one place that decides "is this a sentinel", so adding a fifth is one
+   *  line and cannot be forgotten in the redactor or in the URL rewrite. */
+  const EGRESS_SENTINELS = {
+    [EGRESS_OPAQUE_BODY]: 'a body the guard could not read',
+    [EGRESS_OPAQUE_LEAF]: 'a payload node the guard could not read',
+    [EGRESS_SCAN_TRUNCATED]: 'a payload bigger than the guard can scan',
+    [EGRESS_SCAN_THREW]: 'a payload that made the guard throw',
+    [EGRESS_OPAQUE_HEADERS]: 'request headers the guard could not read',
+  };
+
+  /** Every string leaf in the schedule, long enough to be distinctive, plus
+   *  the serialised blob itself and the `CODE ROOM` composites the router will
+   *  be handed. Lowercased once here so the hot path is a plain indexOf. */
+  function buildWatchlist(doc) {
+    const out = new Set();
+    const add = (s) => {
+      if (typeof s !== 'string') return;
+      const t = s.trim().toLowerCase();
+      if (t.length >= SCHEDULE_STORE.minTokenLen) out.add(t);
+    };
+    const walk = (v) => {
+      if (v == null) return;
+      if (typeof v === 'string') return add(v);
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (typeof v === 'object') return Object.keys(v).forEach(k => walk(v[k]));
+    };
+    walk(doc);
+    for (const c of (doc && doc.classes) || []) {
+      if (c.code && c.room) { add(c.code + ' ' + c.room); add(c.code + '-' + c.room); }
+    }
+    try { add(JSON.stringify(doc)); } catch (e) {}
+    return Array.from(out);
+  }
+
+  /** The redaction the log itself needs, so reading the audit log is not a
+   *  second copy of the leak. */
+  const redactToken = (t) =>
+    EGRESS_SENTINELS[t] || (t.slice(0, 2) + '…(' + t.length + ')');
+
+  /**
+   * WHAT SCANS ONE STRING, AND WHY IT IS A LOOP OF `indexOf` AND NOT A REGEX.
+   *
+   * A single compiled alternation `/tok1|tok2|.../i` looks like the obvious
+   * win — one pass, no allocation — and it is the wrong primitive here. An
+   * alternation has to try every branch at every start position, so on a
+   * 60-character tile URL with ~22 branches it does over a thousand attempted
+   * matches to conclude "no". `String.prototype.indexOf` is a single
+   * vectorised substring search per token, and it is the operation V8 has
+   * actually optimised. Two cheap gates come first and remove most of the work
+   * outright: a haystack shorter than the shortest token cannot contain one,
+   * and every token is stored pre-lowercased so the haystack is lowercased
+   * exactly once per scan instead of once per token.
+   *
+   * `schedRe` is kept only as the "is anything watched" flag the hot paths
+   * test, so there is one thing to check rather than two.
+   */
+  let schedRe = null;               // null == nothing stored == fast path
+  let schedMinLen = Infinity;
+  /** THE ONLY WRITER of `schedWatch`. The list, the flag and the shortest
+   *  length must never disagree — a stale one of those is either a guard that
+   *  blocks nothing or one that blocks the map. */
+  function setWatchlist(list) {
+    schedWatch = list || [];
+    schedRe = schedWatch.length ? true : null;
+    schedMinLen = Infinity;
+    for (const t of schedWatch) if (t.length < schedMinLen) schedMinLen = t.length;
+    buildBytePatterns(schedWatch);
+  }
+
+  // ── the byte scanner: a buffer is content, not a hole in the floor ─────────
+  /**
+   * WHY THIS EXISTS AT ALL, and why the obvious two answers are both wrong.
+   *
+   * `scanStructured()` used to have this line in it:
+   *
+   *     if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
+   *
+   * — skip, no flag, nothing counted, with a comment claiming a buffer "cannot
+   * hold a JS string". Round 5's critic wrote `encoder.encode(title).buffer`,
+   * `postMessage`d it into a worker with the guard armed, and read the class
+   * title back off a raw TCP socket. `blockedDelta: 0, opaqueDelta: 0`.
+   *
+   * OPTION A — BLOCK BINARY. Breaks the map on contact: measured, one cold
+   * load of this city puts 4,742 `Uint8Array` leaves and 22.5 MB of real tile
+   * bytes through this path.
+   *
+   * OPTION B — DECODE EACH BUFFER TO A STRING AND REUSE `scanForSchedule`.
+   * Correct, and it allocates 22.5 MB of transient string per load and then
+   * `toLowerCase()`s all of it into a second 22.5 MB. On the tile path.
+   *
+   * SO: match the token BYTES against the buffer bytes, allocating nothing.
+   * One pass, no decode, no lowercase copy.
+   *
+   * THE PREFILTER IS TWO BYTES WIDE, AND THE HONEST VERSION OF WHY IS THAT
+   * THREE SHAPES WERE MEASURED AND THIS ONE WON NARROWLY. A 256-entry table
+   * keyed on one byte was the first try; a bit-packed 8 KB table was the
+   * third. Cold-load minimums, three interleaved reps: 925 ms, **866 ms**,
+   * and worse-than-both. The win is smaller than the reasoning predicted,
+   * which is the usual result of reasoning about caches — §8 of
+   * docs/si-privacy.md has the whole ledger including the two theories that
+   * were wrong. Case folding is ASCII-only and happens only at verify time:
+   * the mask carries all four case combinations of the leading pair, so the
+   * hot loop never folds.
+   *
+   * TWO ENCODINGS, because there are two an honest bug produces: UTF-8 (what
+   * `TextEncoder` emits, which is exactly how the critic did it) and UTF-16LE
+   * (what a hand-rolled `charCodeAt` copy into a `Uint16Array` emits). Base64
+   * and gzip are NOT covered and cannot be — see §9 of docs/si-privacy.md.
+   */
+  let schedByteMask = null;      // 65,536 bits packed into 8 KB, keyed (b0<<8)|b1
+  let schedByteBuckets = null;   // Map: folded (b0<<8)|b1 -> [{ b, tok }]
+  let schedMinPatLen = Infinity;
+
+  function buildBytePatterns(tokens) {
+    schedByteMask = null; schedByteBuckets = null; schedMinPatLen = Infinity;
+    if (typeof TextEncoder === 'undefined' || !tokens || !tokens.length) return;
+    const enc = new TextEncoder();
+    // ONE BYTE PER ENTRY, 64 KB, and the two cheaper-looking alternatives were
+    // both measured and both lost. A 256-entry table keyed on the first byte
+    // alone fits in L1 but lights up ~10% of byte values with a real
+    // watchlist, so one tile byte in ten pays for a bucket lookup. Packing
+    // 65,536 entries into 8 KB of BITS fits L1 too, but the shift-and-mask per
+    // byte costs more than the cache miss it avoids. Cold-load minimums, three
+    // interleaved reps each: 256-entry 925 ms, 64 KB byte table 866 ms,
+    // 8 KB bit table worse than both on the isolated benchmark.
+    const mask = new Uint8Array(65536);
+    const buckets = new Map();
+    const upper = (c) => (c >= 97 && c <= 122) ? c - 32 : c;
+    let min = Infinity;
+    const addPat = (bytes, tok) => {
+      if (bytes.length < SCHEDULE_STORE.minTokenLen) return;
+      // The pattern comes from a lowercased token, so these are the lower-case
+      // bytes; the buffer may hold either case of either of them.
+      const f0 = bytes[0], f1 = bytes[1];
+      const a0 = upper(f0) === f0 ? [f0] : [f0, upper(f0)];
+      const a1 = upper(f1) === f1 ? [f1] : [f1, upper(f1)];
+      for (let i = 0; i < a0.length; i++) {
+        for (let j = 0; j < a1.length; j++) mask[(a0[i] << 8) | a1[j]] = 1;
+      }
+      const key = (f0 << 8) | f1;
+      let bs = buckets.get(key);
+      if (!bs) { bs = []; buckets.set(key, bs); }
+      bs.push({ b: bytes, tok });
+      if (bytes.length < min) min = bytes.length;
+    };
+    // BOTH ENCODINGS OF ONE FORM OF ONE TOKEN. Deduped per token, because the
+    // percent-encoded form of a token that needs no escaping IS the token.
+    const seenForms = new Set();
+    const addForm = (s, tok) => {
+      if (!s) return;
+      const k = tok + '\u0000' + s;
+      if (seenForms.has(k)) return;
+      seenForms.add(k);
+      addPat(enc.encode(s), tok);
+      const u16 = new Uint8Array(s.length * 2);
+      for (let i = 0; i < s.length; i++) {
+        const cp = s.charCodeAt(i);
+        u16[i * 2] = cp & 0xff;
+        u16[i * 2 + 1] = (cp >> 8) & 0xff;
+      }
+      addPat(u16, tok);
+    };
+    for (const t of tokens) {
+      const s = t.length > SCHEDULE_STORE.binaryPatternChars
+        ? t.slice(0, SCHEDULE_STORE.binaryPatternChars) : t;
+      addForm(s, t);
+      // ── ENCODE THE NEEDLE, NEVER DECODE THE HAYSTACK ────────────────────
+      // Round 8's probe put `new TextEncoder().encode(encodeURIComponent(
+      // title)).buffer` through a worker with the guard armed and it crossed
+      // at `blocked: 0` — the string path now retries decoded, but the byte
+      // path cannot: percent-decoding 120 MB of real tile bytes per load to
+      // look for a needle is not a thing to do on the tile path.
+      //
+      // So the needle carries the encodings instead. It costs nothing at scan
+      // time — the hot loop is byte-identical, there are just more entries in
+      // a bucket — and it costs almost nothing in the PREFILTER either,
+      // because `encodeURIComponent` leaves letters alone: the encoded form of
+      // a class title starts with the same two bytes as the title, so no new
+      // mask bit is lit. Only a token that starts with a character needing an
+      // escape adds one.
+      if (SCHEDULE_STORE.scanEncodedForms) {
+        let pct = null;
+        try { pct = encodeURIComponent(s); } catch (e) { pct = null; }   // lone surrogate
+        if (pct) { addForm(pct, t); addForm(pct.replace(/%20/g, '+'), t); }
+        addForm(s.replace(/ /g, '+'), t);
+      }
+    }
+    schedByteMask = mask; schedByteBuckets = buckets; schedMinPatLen = min;
+  }
+
+  /** The matched token, or null. Allocates nothing. */
+  function scanBytesForSchedule(u8) {
+    const mask = schedByteMask;
+    if (!mask) return null;
+    const n = u8.length;
+    if (n < schedMinPatLen) return null;
+    const buckets = schedByteBuckets;
+    const last = n - schedMinPatLen;
+    let b0 = u8[0];
+    for (let i = 0; i <= last; i++) {
+      const b1 = u8[i + 1];
+      if (mask[(b0 << 8) | b1] !== 0) {
+        const f0 = (b0 >= 65 && b0 <= 90) ? b0 + 32 : b0;
+        const f1 = (b1 >= 65 && b1 <= 90) ? b1 + 32 : b1;
+        const bs = buckets.get((f0 << 8) | f1);
+        if (bs !== undefined) {
+          for (let k = 0; k < bs.length; k++) {
+            const pb = bs[k].b, m = pb.length;
+            if (i + m > n) continue;
+            let j = 2;
+            for (; j < m; j++) {
+              const d = u8[i + j];
+              if (((d >= 65 && d <= 90) ? d + 32 : d) !== pb[j]) break;
+            }
+            if (j === m) return bs[k].tok;
+          }
+        }
+      }
+      b0 = b1;
+    }
+    return null;
+  }
+
+  /** THE RAW SUBSTRING TEST. Private on purpose — see `scanForSchedule` below
+   *  for why there is no second exported way to scan a string. Assumes a real
+   *  string and a non-empty watchlist; both are checked by its one caller. */
+  function scanRawForSchedule(s) {
+    if (s.length < schedMinLen) return null;
+    const h = s.toLowerCase();
+    for (let i = 0; i < schedWatch.length; i++) {
+      const t = schedWatch[i];
+      if (t.length <= h.length && h.indexOf(t) !== -1) return t;
+    }
+    return null;
+  }
+
+  /**
+   * THE ONLY WAY TO SCAN A STRING, and being the only way is the fix.
+   *
+   * Round 6 found that a percent-encoded canary does not contain the canary:
+   * `fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams`
+   * form body both sailed past an armed guard, because
+   * `Zygomorphic%20Percussion%20Seminar` does not contain `zygomorphic
+   * percussion seminar`. It fixed that — in a SECOND function,
+   * `scanTextForSchedule`, and wired that function to the URL and body paths.
+   *
+   * `scanStructured()`'s string leaf kept calling the raw one. So did
+   * `inspectPayload`'s top-level string branch, and the `RegExp`, `Error` and
+   * boxed-`String` branches of the walk. Round 8 fired ten shapes of encoded
+   * string into a worker with the guard armed and **all ten crossed at
+   * `blocked: 0, opaque: 0`** — uncounted and unlogged — with six of them
+   * landing the class title on a raw TCP socket verbatim after the worker
+   * decoded them. Same defect as round 7's byte scanner: a correct check wired
+   * to one of the two doors.
+   *
+   * THE STRUCTURAL FIX IS NOT "WIRE THE OTHER DOOR TOO", because that leaves a
+   * third door for round 9. It is that there is now exactly one function
+   * anybody can call to ask "does this string carry the schedule", and it does
+   * the whole job. The raw test still exists, is not exported, and is called
+   * from precisely one place: this function's own retry.
+   *
+   * COSTS NOTHING ON THE HOT PATH. Every URL this app fetches is a plain
+   * relative path (`data/tiles/roads.pmtiles`) and every string leaf MapLibre
+   * puts through a worker payload is a layer id or a source name, so the
+   * `%`/`+` gate is false for all of them and no decode is ever attempted.
+   * Only a string that actually looks encoded pays for a decoded copy.
+   *
+   * ONE LEVEL OF DECODE, said plainly: `%2520` (double-encoded) is not caught,
+   * for the same reason base64 is not — see §9 of docs/si-privacy.md. One level
+   * is what an honest bug produces, because one level is what
+   * `encodeURIComponent` does.
+   */
+  function scanForSchedule(hay) {
+    if (!schedRe || !hay) return null;
+    const s = typeof hay === 'string' ? hay : String(hay);
+    const hit = scanRawForSchedule(s);
+    if (hit) return hit;
+    const pct = s.indexOf('%') !== -1, plus = s.indexOf('+') !== -1;
+    if (!pct && !plus) return null;
+    if (pct) {
+      // A malformed escape is not a reason to stop guarding the rest.
+      try {
+        const h = scanRawForSchedule(decodeURIComponent(s));
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
+    }
+    if (plus) {
+      const spaced = s.replace(/\+/g, ' ');
+      try {
+        const h = scanRawForSchedule(pct ? decodeURIComponent(spaced) : spaced);
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  /**
+   * scanStructured — walk a structured-clone payload and decide, for EVERY
+   * node in it, one of exactly three things: it is clear, it carries the
+   * schedule, or the guard could not read it. There is no fourth answer and in
+   * particular there is no "skip".
+   *
+   * ROUND 6 INVERTED THE DEFAULT, and that is the whole change. The old walk
+   * was an open-by-default `for (const k in x)` with a growing list of special
+   * cases bolted onto the front — skip buffers, flag `Blob`, flag
+   * `ReadableStream` — so every round shut the one shape that had been
+   * demonstrated and left the next one open. A `Blob` has no own enumerable
+   * properties, so a `for...in` walk reports a clean `hit: null` on one; so
+   * does a `Map`, a `Set`, a `RegExp`, an `Error`, an `ImageData`, and every
+   * host object nobody has written yet. Enumerating them is a losing game.
+   *
+   * So the walk now recognises a CLOSED list of node kinds it can genuinely
+   * read, reads them, and every other object falls into a default branch that
+   * sets `opaque`. Adding a new cloneable type to the platform can make this
+   * guard over-refuse; it cannot make it under-refuse. That direction is the
+   * point.
+   *
+   * BINARY IS SCANNED, NOT SKIPPED AND NOT BLOCKED. The line that used to read
+   * `if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` is how a
+   * class title went through a worker and onto a socket. Blocking the shape
+   * instead is not available: MapLibre moves 22.5 MB of genuine tile bytes
+   * through this exact path on one cold load. `scanBytesForSchedule()` above
+   * tells the two apart by looking at the bytes.
+   *
+   * `truncated` IS NOT COSMETIC. The old walk returned `complete: false` when
+   * it ran out of nodes and every caller dropped it on the floor — and 21 of
+   * this app's own messages per cold load exceed the old 4,000-node cap. Those
+   * payloads were not inspected and nothing said so. Running out of budget is
+   * now a refusal, exactly like a node the walk cannot read.
+   */
+  /**
+   * ONE WALK FUNCTION, MODULE-LEVEL, WITH ITS STATE BESIDE IT.
+   *
+   * IT WAS HOISTED HERE ON A THEORY THAT TURNED OUT TO BE WRONG, and that is
+   * worth leaving written down so nobody re-derives it. The walk used to be a
+   * closure declared inside `scanStructured`, i.e. a fresh function object per
+   * message, and the guard was costing ~30 µs per message on top of the byte
+   * scan. The theory was that V8 could never keep a per-call closure hot.
+   * Measured before and after: **no difference at all** (215 ms → 216 ms on
+   * the same 5,000-message benchmark). The per-message cost is the walk and
+   * the scan doing real work, not allocation.
+   *
+   * It stays hoisted because it is the better shape — one function, one place
+   * to read, no allocation per message — not because it was faster. Not
+   * re-entrant, and it does not need to be: every caller is synchronous and
+   * single-threaded, and the walk contains no `await` and no callback into
+   * anything that could re-enter it.
+   */
+  let swHit = null, swOpaque = false, swTrunc = false;
+  let swNodes = 0, swMaxNodes = 0, swBudget = 0, swBinLeaves = 0, swBinBytes = 0;
+  const HAS_OWN = Object.prototype.hasOwnProperty;
+
+  /** A view onto a buffer's bytes, or null if there is no reading it (a
+   *  detached buffer, a length-tracking view whose backing store has gone).
+   *  null takes the opaque path — never the "nothing there, carry on" path. */
+  function scanBytesOf(x) {
+    try {
+      if (x instanceof ArrayBuffer) return new Uint8Array(x);
+      if (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer) {
+        return new Uint8Array(x);
+      }
+      return new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+    } catch (e) { return null; }
+  }
+
+  function scanWalk(x) {
+    if (swHit !== null || swTrunc) return;
+    if (swNodes++ >= swMaxNodes) { swTrunc = true; return; }
+    if (x == null) return;
+    const t = typeof x;
+    if (t === 'string') { swHit = scanForSchedule(x); return; }
+    if (t !== 'object') return;                // number, boolean, bigint, symbol
+
+    // -- the two shapes that are 99% of real traffic, tested first ----------
+    //
+    // ROUND 7'S FINDING, AND IT IS THE SAME BUG ROUND 6 THOUGHT IT HAD FIXED.
+    // This branch used to read `for (let i = 0; i < x.length; i++)`. An index
+    // loop is not what a structured clone does to an array: the clone walks
+    // `EnumerableOwnPropertyNames`, so `a.note = classTitle` on an ordinary
+    // array **crosses into the worker** and an index loop never looks at it.
+    // Measured, not argued — `structuredClone([1,2,3] with .note)` carries the
+    // canary, the worker read it back, and it landed on a raw TCP socket with
+    // the guard armed at `blocked: 0, opaque: 0`. Uncounted and unlogged: the
+    // exact failure round 6 set out to make impossible, sitting inside the one
+    // branch round 6 declared fully read.
+    //
+    // Round 6 fixed *which kinds the walk recognises* and left *what reading a
+    // kind means* alone. So the rule now is the one the platform itself uses:
+    // for every kind this walk claims to read, it reads exactly what the clone
+    // algorithm reads. For `Array` and for a plain object that is the same
+    // thing — own enumerable properties — so they are the same loop, and an
+    // array is no longer the odd one out that was optimised into being wrong.
+    // The cost of that is real and is written down in docs/si-privacy.md §8.
+    if (Array.isArray(x)) {
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // an array IS fully read
+    }
+    const proto = Object.getPrototypeOf(x);
+    if (proto === Object.prototype || proto === null) {
+      // No per-property try/catch here. A throwing accessor on a plain object
+      // is caught by `inspectPayload`, which FAILS CLOSED — same refusal, and
+      // a try/catch in this loop is 99% of the traffic paying for the 0.001%.
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // a plain object IS fully read
+    }
+
+    // -- binary: read the bytes --------------------------------------------
+    if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer ||
+        (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer)) {
+      const u8 = scanBytesOf(x);
+      if (u8 === null) { swOpaque = true; return; }
+      swBudget -= u8.length;
+      if (swBudget < 0) { swOpaque = true; return; }
+      swBinLeaves++; swBinBytes += u8.length;
+      const h = scanBytesForSchedule(u8);
+      if (h) swHit = h;
+      return;
+    }
+
+    // -- the built-ins a `for...in` walk is blind to ------------------------
+    if (typeof Map !== 'undefined' && x instanceof Map) {
+      for (const pair of x) {
+        if (swHit !== null || swTrunc) return;
+        scanWalk(pair[0]); scanWalk(pair[1]);
+      }
+      return;
+    }
+    if (typeof Set !== 'undefined' && x instanceof Set) {
+      for (const val of x) { if (swHit !== null || swTrunc) return; scanWalk(val); }
+      return;
+    }
+    if (x instanceof Date) return;              // a timestamp holds no text
+    if (x instanceof RegExp) { swHit = scanForSchedule(x.source); return; }
+    if (x instanceof Error) {
+      swHit = scanForSchedule(String(x.message || '')) ||
+              scanForSchedule(String(x.stack || ''));
+      return;
+    }
+    if (x instanceof String) { swHit = scanForSchedule(String(x)); return; }
+    if (x instanceof Number || x instanceof Boolean) return;
+
+    // -- a class instance: read what it actually exposes --------------------
+    let seen = 0;
+    for (const k in x) {
+      if (swHit !== null || swTrunc) return;
+      if (!HAS_OWN.call(x, k)) continue;
+      seen++;
+      scanWalk(x[k]);
+    }
+
+    // -- THE DEFAULT, AND THE POINT OF THE WHOLE REWRITE --------------------
+    // Nothing above recognised this, and it exposed no own enumerable
+    // property to read. That is exactly what a `Blob`, a `File`, an
+    // `ImageData`, an `ImageBitmap` and a type invented next year all look
+    // like from here. It is reported as unread rather than as clear, and the
+    // caller decides. Measured cost on this app: zero — a census of a full
+    // cold load found only `Object`, `Array` and `Uint8Array` crossing this
+    // boundary, and not one object with no own enumerable properties.
+    if (seen === 0) swOpaque = true;
+  }
+
+  function scanStructured(v, limits) {
+    swHit = null; swOpaque = false; swTrunc = false;
+    swNodes = 0; swBinLeaves = 0; swBinBytes = 0;
+    swMaxNodes = (limits && limits.nodes) || SCHEDULE_STORE.workerScanNodes;
+    swBudget = (limits && limits.bytes) || SCHEDULE_STORE.binaryScanBytes;
+    scanWalk(v);
+    return { hit: swHit, opaque: swOpaque, truncated: swTrunc,
+             binLeaves: swBinLeaves, binBytes: swBinBytes, nodes: swNodes };
+  }
+
+  /** Best-effort synchronous text of a request body. Returns `''` for a body
+   *  that is genuinely absent, and `undefined` for one that EXISTS but cannot
+   *  be read without going async (a Blob, a ReadableStream, a buffer past
+   *  `maxBytes`). The caller must keep those two apart: `''` clears the
+   *  request, `undefined` refuses it while a schedule is stored. */
+  /** "This call HAS a body and it is not here to be read" — a `Request`'s
+   *  `ReadableStream`, or a `FormData` that would not build. Distinct from
+   *  `null`/absent, which clears the request. `bodyToText` maps it to
+   *  `undefined`, which is the refusal path. */
+  const BODY_UNREADABLE = { __wfUnreadable: true };
+
+  function bodyToText(b) {
+    if (b === BODY_UNREADABLE) return undefined;
+    if (b == null) return '';
+    if (typeof b === 'string') return b;
+    if (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) return b.toString();
+    if (typeof FormData !== 'undefined' && b instanceof FormData) {
+      let s = '';
+      for (const pair of b.entries()) s += pair[0] + '=' + (typeof pair[1] === 'string' ? pair[1] : '[file]') + '&';
+      return s;
+    }
+    if (typeof ArrayBuffer !== 'undefined' && (b instanceof ArrayBuffer || ArrayBuffer.isView(b))) {
+      try {
+        const u8 = b instanceof ArrayBuffer ? new Uint8Array(b) : new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+        if (u8.length > SCHEDULE_STORE.maxBytes) return undefined;
+        return new TextDecoder('utf-8', { fatal: false }).decode(u8);
+      } catch (e) { return undefined; }
+    }
+    return undefined;   // Blob, ReadableStream, anything else
+  }
+
+  /**
+   * THE BYTES OF A BINARY BODY, so a request body gets the same two-encoding
+   * scan a worker payload already got. null for a body that is not binary.
+   *
+   * ROUND 7 FOUND THIS BY FIRING AT ITS OWN SOCKET, and it is the other half of
+   * the array bug: round 6 built `scanBytesForSchedule()` — UTF-8 *and*
+   * UTF-16LE, the two encodings an honest bug produces — and then wired it to
+   * exactly one of the two doors. `bodyToText()` decodes a binary body as UTF-8
+   * and nothing else, so
+   *
+   *     fetch(url, { body: utf16leBufferOfTheClassTitle })
+   *
+   * came back `204` off a bare TCP listener with the guard armed and
+   * `blocked: 0`, while the *same title* UTF-8-encoded was refused. A guard
+   * that is encoding-complete on the worker path and encoding-blind on the
+   * network path is not a guard, it is a coin flip about which door gets used.
+   *
+   * Costs nothing here: every request this app makes is a bodyless GET, so
+   * `bodyBytes()` returns null for all of them and the scan never runs. And a
+   * binary body over `maxBytes` is already refused unread by `bodyToText()`
+   * returning `undefined`, so the bytes this ever sees are at most 256 KB.
+   */
+  function bodyBytes(b) {
+    if (b == null || typeof b === 'string') return null;
+    if (typeof ArrayBuffer === 'undefined') return null;
+    try {
+      if (b instanceof ArrayBuffer) return new Uint8Array(b);
+      if (ArrayBuffer.isView(b)) return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    } catch (e) { return null; }
+    return null;
+  }
+
+  /**
+   * inspectPayload — the ONE inspection every structured-clone channel goes
+   * through, so `Worker.postMessage`, `MessagePort.postMessage` and
+   * `BroadcastChannel.postMessage` cannot end up with three different
+   * definitions of "clear". Returns the token to refuse on, or null.
+   *
+   * Its own inline shape rather than a trip through `inspect()`, because
+   * `inspect()` builds a log line and a MapLibre tile load is 2,545 of these.
+   * Counted always, logged only when it actually matters.
+   */
+  function inspectPayload(via, msg) {
+    schedGuard.checked++; schedGuard.quietChecked++;
+    let hit = null;
+    try {
+      if (typeof msg === 'string') {
+        hit = scanForSchedule(msg);
+      } else {
+        const r = scanStructured(msg);
+        hit = r.hit;
+        if (r.binLeaves) { schedGuard.binaryLeaves += r.binLeaves; schedGuard.binaryBytes += r.binBytes; }
+        if (r.truncated) schedGuard.truncatedScans++;
+        if (r.opaque) schedGuard.opaqueWorkerLeaves++;
+        // Counted ALWAYS, refused only if the policy says so, so the counts
+        // stay a real measurement of this app's own traffic rather than a
+        // number the policy shaped.
+        if (!hit && SCHEDULE_STORE.blockOpaqueWorkerLeaves) {
+          if (r.truncated) hit = EGRESS_SCAN_TRUNCATED;
+          else if (r.opaque) hit = EGRESS_OPAQUE_LEAF;
+        }
+      }
+    } catch (e) {
+      // FAILS CLOSED HERE, unlike the network paths. A throw on the way into a
+      // worker is indistinguishable from a payload built to cause one, and
+      // refusing a worker message cannot stop a tile downloading the way a
+      // broken `fetch` wrapper could. `SCHEDULE_STORE.failClosedOnScanError`
+      // is the one-line way back.
+      schedGuard.scanThrows++; schedGuard.inspectFailures++;
+      hit = SCHEDULE_STORE.failClosedOnScanError ? EGRESS_SCAN_THREW : null;
+    }
+    if (hit && schedGuard.armed) {
+      schedGuard.blocked++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
+      noteEgress(via, 'POST', '[' + via + ']', hit, true, -1);
+      return hit;
+    }
+    return null;
+  }
+
+  function noteEgress(via, method, url, hit, blocked, bytes) {
+    if (schedGuard.log.length >= SCHEDULE_STORE.logCap) schedGuard.log.shift();
+    let u = String(url == null ? '' : url);
+    // The sentinel is not a needle — it never appeared in the URL, so there is
+    // nothing in the URL to redact and building a regex for it is pure waste
+    // on a path that also runs for ordinary traffic.
+    if (hit && !EGRESS_SENTINELS[hit]) {
+      const re = new RegExp(hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      u = u.replace(re, '[REDACTED]');
+    }
+    schedGuard.log.push({
+      t: Math.round(performance.now()),
+      via, method: method || 'GET', url: u,
+      bytes: bytes == null ? 0 : bytes,
+      watched: schedWatch.length,
+      blocked: !!blocked,
+      matched: hit ? redactToken(hit) : null,
+    });
+  }
+
+  /**
+   * The one decision. Returns the matched token, or null to let it through.
+   *
+   * `quiet` MEANS "COUNT IT, DO NOT WRITE A LOG LINE FOR IT" — and it is a
+   * measured fix, not a style choice. The first version logged every call, and
+   * `Worker.postMessage` is MapLibre's per-tile path: 4,000 messages measured
+   * at 47 µs each over the unguarded baseline, and most of that was the log
+   * entry — a `performance.now()`, an object, and a `shift()` off a full ring
+   * buffer, per tile. The log exists to audit egress to the NETWORK, where the
+   * traffic is tens of requests and every line is worth having. A worker
+   * message still gets counted, and still gets a log line the moment it
+   * actually matches, which is the only worker message anyone would ever read.
+   */
+  /**
+   * `raw` IS THE BODY AS THE CALLER HAD IT, not a string the caller already
+   * flattened — round 7's change, and the reason is in `bodyBytes()` above.
+   * Flattening in the caller is what let a UTF-16LE buffer body reach the wire:
+   * by the time `inspect` saw it, it was already mojibake. It converts here now
+   * so there is one place that decides what a body is, and binary reaches the
+   * byte scanner instead of only the UTF-8 decoder.
+   */
+  /**
+   * ROUND 8 — HEADERS. `headerSources` is always a LIST of places a request's
+   * headers can come from, never one of them, because a `fetch(new Request(u,
+   * {headers}), {headers})` has two and picking either one is how this class of
+   * bug happens in the first place. Each entry may be a `Headers`, a plain
+   * object, an array of pairs, a pre-flattened string, or null.
+   *
+   * A collection that will not enumerate returns `undefined`, which is the
+   * refusal path — the same rule an unreadable body got in round 5.
+   */
+  function oneHeaderSourceToText(h) {
+    if (h == null) return '';
+    if (typeof h === 'string') return h;
+    if (typeof Headers !== 'undefined' && h instanceof Headers) {
+      let s = '';
+      for (const p of h) s += p[0] + ': ' + p[1] + '\n';
+      return s;
+    }
+    if (Array.isArray(h)) {
+      let s = '';
+      for (const p of h) s += String(p && p[0]) + ': ' + String(p && p[1]) + '\n';
+      return s;
+    }
+    if (typeof h === 'object') {
+      let s = '';
+      for (const k in h) if (HAS_OWN.call(h, k)) s += k + ': ' + String(h[k]) + '\n';
+      return s;
+    }
+    return String(h);
+  }
+  function headerSourcesToText(list) {
+    if (!list || !list.length) return '';
+    let s = '';
+    try { for (let i = 0; i < list.length; i++) s += oneHeaderSourceToText(list[i]); }
+    catch (e) { return undefined; }
+    return s;
+  }
+
+  function inspect(via, method, url, raw, quiet, headerSources) {
+    schedGuard.checked++;
+    if (quiet) schedGuard.quietChecked++;
+    if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
+    let hit = null;
+    let body;
+    try {
+      body = bodyToText(raw);
+      hit = scanForSchedule(url);
+      if (!hit && SCHEDULE_STORE.scanRequestHeaders && headerSources && headerSources.length) {
+        const ht = headerSourcesToText(headerSources);
+        if (ht === undefined) {
+          schedGuard.unreadableHeaders++;
+          if (SCHEDULE_STORE.blockUnreadableHeaders) hit = EGRESS_OPAQUE_HEADERS;
+        } else if (ht) {
+          schedGuard.headersScanned++;
+          hit = scanForSchedule(ht);
+        }
+      }
+      if (body === undefined) {
+        // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
+        // hole round 4's critic drove a Blob through. While a schedule is
+        // stored, a body the guard cannot read is a body it cannot clear.
+        schedGuard.unreadableBodies++;
+        if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
+      } else if (!hit) {
+        hit = scanForSchedule(body);
+        // ...and the same bytes again, in the encodings a decode cannot reach.
+        if (!hit) {
+          const u8 = bodyBytes(raw);
+          if (u8) { schedGuard.bodyBytesScanned += u8.length; hit = scanBytesForSchedule(u8); }
+        }
+      }
+    } catch (e) {
+      // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
+      // map loading; the audit asserts this counter is zero, which is where a
+      // broken inspector actually gets caught.
+      schedGuard.inspectFailures++;
+      if (!quiet) noteEgress(via, method, url, null, false, 0);
+      return null;
+    }
+    const block = !!(hit && schedGuard.armed);
+    if (!quiet || hit) {
+      noteEgress(via, method, url, hit, block, body === undefined ? -1 : String(body || '').length);
+    }
+    if (block) {
+      schedGuard.blocked++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
+    }
+    return block ? hit : null;
+  }
+
+  function egressError(via, hit) {
+    return new Error('[wayfind] blocked: ' + via + ' carried stored schedule content (' +
+      redactToken(hit) + '). The schedule never leaves this device.');
+  }
+
+  /**
+   * Wrap the two egress doors inside a Window this page has a handle on — a
+   * same-origin iframe, or whatever `window.open` handed back. See
+   * `SCHEDULE_STORE.guardChildFrames` for why patching our own realm is not
+   * enough. Idempotent via a mark ON THAT REALM'S OWN window, so re-reading
+   * `contentWindow` in a loop costs one property read.
+   *
+   * WHAT IT DOES NOT CLAIM: a child realm can mint its own child, and this
+   * only follows references that pass through THIS page. It is the same kind
+   * of seatbelt as the rest of §12 — it makes an honest mistake fail loudly,
+   * and it is not a sandbox. docs/si-privacy.md §9 says so in the same words.
+   */
+  const CHILD_REALM_MARK = '__wfEgressGuarded';
+  function guardChildRealm(w) {
+    if (!w) return false;
+    try {
+      if (w[CHILD_REALM_MARK]) return true;
+      const pm = w.postMessage;
+      if (typeof pm !== 'function') return false;
+      w.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('childframe.postMessage', msg);
+          if (hit) throw egressError('child frame postMessage', hit);
+        }
+        return pm.apply(w, arguments);
+      };
+      if (typeof w.fetch === 'function') {
+        const of = w.fetch;
+        w.fetch = function (input, init) {
+          if (schedWatch.length) {
+            const isReq = !!(w.Request && input instanceof w.Request);
+            const url = isReq ? input.url : String(input);
+            const method = (init && init.method) || (isReq && input.method) || 'GET';
+            let raw = init ? init.body : null;
+            if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;
+            const hit = inspect('childframe.fetch', method, url, raw, false,
+              [init ? init.headers : null, isReq ? input.headers : null]);
+            if (hit) return Promise.reject(egressError('child frame fetch', hit));
+          }
+          return of.apply(w, arguments);
+        };
+      }
+      w[CHILD_REALM_MARK] = true;
+      return true;
+    } catch (e) {
+      // Cross-origin. The assignment throws SecurityError, which is the
+      // browser telling us the thing we were worried about cannot happen
+      // through this handle either.
+      return false;
+    }
+  }
+
+  function installEgressGuard() {
+    if (schedGuard.installed) return;
+    schedGuard.installed = true;
+
+    // fetch ────────────────────────────────────────────────────────────────
+    if (typeof window.fetch === 'function') {
+      const orig = window.fetch;
+      window.fetch = function (input, init) {
+        // FAST PATH. With nothing stored there is nothing to scan, and this is
+        // the path every tile in the city takes.
+        if (!schedWatch.length) return orig.apply(this, arguments);
+        const isReq = (typeof Request !== 'undefined' && input instanceof Request);
+        const url = isReq ? input.url : String(input);
+        const method = (init && init.method) || (isReq && input.method) || 'GET';
+        let raw = init ? init.body : null;
+        if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;   // stream
+        // BOTH header sources, because a `Request` carries its own and `init`
+        // can add more, and the wire gets the union of them.
+        const hit = inspect('fetch', method, url, raw, false,
+          [init ? init.headers : null, isReq ? input.headers : null]);
+        if (hit) return Promise.reject(egressError('fetch', hit));
+        return orig.apply(this, arguments);
+      };
+    }
+
+    // XMLHttpRequest ───────────────────────────────────────────────────────
+    if (typeof XMLHttpRequest !== 'undefined') {
+      const op = XMLHttpRequest.prototype.open, sd = XMLHttpRequest.prototype.send;
+      const srh = XMLHttpRequest.prototype.setRequestHeader;
+      XMLHttpRequest.prototype.open = function (m, u) {
+        this.__wfM = m; this.__wfU = u; this.__wfH = '';   // a reused XHR starts clean
+        return op.apply(this, arguments);
+      };
+      // XHR has no header collection to read at `send` time — the only record
+      // of what was set is the calls that set it, so keep one. Gated on a
+      // schedule being stored, so an app with none pays nothing.
+      if (typeof srh === 'function') {
+        XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+          if (schedWatch.length && SCHEDULE_STORE.scanRequestHeaders) {
+            this.__wfH = (this.__wfH || '') + String(k) + ': ' + String(v) + '\n';
+          }
+          return srh.apply(this, arguments);
+        };
+      }
+      XMLHttpRequest.prototype.send = function (b) {
+        if (schedWatch.length) {
+          const hit = inspect('xhr', this.__wfM, this.__wfU, b, false, [this.__wfH]);
+          if (hit) throw egressError('XMLHttpRequest', hit);
+        }
+        return sd.apply(this, arguments);
+      };
+    }
+
+    // sendBeacon ───────────────────────────────────────────────────────────
+    if (navigator && typeof navigator.sendBeacon === 'function') {
+      const orig = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = function (u, d) {
+        if (schedWatch.length && inspect('sendBeacon', 'POST', u, d)) return false;
+        return orig(u, d);
+      };
+    }
+
+    // WebSocket ────────────────────────────────────────────────────────────
+    if (typeof window.WebSocket === 'function') {
+      const OrigWS = window.WebSocket;
+      class GuardedWebSocket extends OrigWS {
+        constructor(url, protocols) {
+          if (schedWatch.length) {
+            // Report the token that actually matched. The literal 'url' this
+            // used to pass rendered in the thrown message as `ur…(3)`, which
+            // tells the reader nothing about what was caught.
+            //
+            // ROUND 8: the SUBPROTOCOLS are on the wire too. They travel as
+            // `Sec-WebSocket-Protocol` in the opening handshake, and this
+            // passed `''` for the body and never looked at them. Same family
+            // as the request headers below — a string argument that reaches
+            // the network and nothing read it.
+            const h = inspect('websocket', 'OPEN', url,
+              protocols == null ? '' :
+              (Array.isArray(protocols) ? protocols.join(',') : String(protocols)));
+            if (h) throw egressError('WebSocket', h);
+          }
+          super(url, protocols);
+        }
+        send(data) {
+          if (schedWatch.length) {
+            const hit = inspect('websocket', 'SEND', this.url, data);
+            if (hit) throw egressError('WebSocket.send', hit);
+          }
+          return super.send(data);
+        }
+      }
+      window.WebSocket = GuardedWebSocket;
+    }
+
+    // EventSource ──────────────────────────────────────────────────────────
+    if (typeof window.EventSource === 'function') {
+      const OrigES = window.EventSource;
+      class GuardedEventSource extends OrigES {
+        constructor(url, cfg) {
+          if (schedWatch.length) {
+            const h = inspect('eventsource', 'OPEN', url, '');
+            if (h) throw egressError('EventSource', h);
+          }
+          super(url, cfg);
+        }
+      }
+      window.EventSource = GuardedEventSource;
+    }
+
+    // every structured-clone door into a worker ────────────────────────────
+    // THESE ARE THE ONES THAT CLOSE THE HOLE. The guard is main-thread, and
+    // MapLibre does its tile fetching inside workers where it cannot reach. So
+    // instead of trying to follow the bytes into the worker, it stops schedule
+    // bytes from ever getting in — and "the door" means every door, not the
+    // one door a critic happened to knock on.
+    //
+    // `MessagePort` and `BroadcastChannel` are here because a `MessagePort`
+    // transferred into a worker carries structured clones without ever
+    // touching `Worker.prototype.postMessage`, which would have been the
+    // round-7 finding. Measured cost of guarding them: exactly zero — a full
+    // cold load of this city makes 0 `MessagePort.postMessage` calls and 0
+    // `BroadcastChannel.postMessage` calls.
+    if (typeof Worker !== 'undefined' && Worker.prototype && Worker.prototype.postMessage) {
+      const pm = Worker.prototype.postMessage;
+      Worker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          const hit = inspectPayload('worker.postMessage', msg);
+          if (hit) throw egressError('Worker.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+    if (typeof MessagePort !== 'undefined' && MessagePort.prototype && MessagePort.prototype.postMessage) {
+      const pm = MessagePort.prototype.postMessage;
+      MessagePort.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('port.postMessage', msg);
+          if (hit) throw egressError('MessagePort.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+    if (typeof BroadcastChannel !== 'undefined' && BroadcastChannel.prototype && BroadcastChannel.prototype.postMessage) {
+      const pm = BroadcastChannel.prototype.postMessage;
+      BroadcastChannel.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('broadcast.postMessage', msg);
+          if (hit) throw egressError('BroadcastChannel.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+
+    // the doors round 7 found still open ───────────────────────────────────
+    // Round 6 closed every structured-clone door it could name and wrote that
+    // `MessagePort`/`BroadcastChannel` "would have been the round-7 finding".
+    // It was half right. These four were still unwrapped, and the channel
+    // matrix caught them the cheap way: fire at each one with the guard armed
+    // and read `checked` before and after. All four came back `checked: 0` —
+    // not "allowed", *never looked at*, which is the same reading the
+    // ArrayBuffer leak gave in round 5.
+    //
+    // None of them is exotic. `window.parent.postMessage(schedule, '*')` hands
+    // the term to whatever page has this app in an iframe, and this app is a
+    // public URL anyone can frame. A `ServiceWorker` has its own `fetch` and
+    // outlives the tab. An `RTCDataChannel` is a socket with a different name.
+    //
+    // MEASURED COST: zero. A cold load of this city makes 0 calls to any of
+    // the four (`frameChecked`/`swChecked`/`rtcChecked` all 0 in the audit),
+    // which is exactly why closing them now is cheap and finding out later
+    // would not have been.
+    if (typeof window.postMessage === 'function') {
+      const opm = window.postMessage.bind(window);
+      window.postMessage = function (msg, targetOrigin, transfer) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('window.postMessage', msg);
+          if (hit) throw egressError('window.postMessage', hit);
+        }
+        return opm(msg, targetOrigin, transfer);
+      };
+    }
+    // An iframe's `contentWindow` is a *different* Window object, so patching
+    // our own is not enough — the class has to be patched on the prototype.
+    if (typeof Window !== 'undefined' && Window.prototype && Window.prototype.postMessage) {
+      const wpm = Window.prototype.postMessage;
+      Window.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('frame.postMessage', msg);
+          if (hit) throw egressError('Window.postMessage', hit);
+        }
+        return wpm.apply(this, arguments);
+      };
+    }
+    if (typeof ServiceWorker !== 'undefined' && ServiceWorker.prototype && ServiceWorker.prototype.postMessage) {
+      const spm = ServiceWorker.prototype.postMessage;
+      ServiceWorker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const hit = inspectPayload('serviceworker.postMessage', msg);
+          if (hit) throw egressError('ServiceWorker.postMessage', hit);
+        }
+        return spm.apply(this, arguments);
+      };
+    }
+    // The same shape as `new Worker(url)`: the URL alone is the leak, and the
+    // registration outlives the page that made it.
+    if (navigator && navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      const reg = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = function (url, opts) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const h = inspect('serviceworker.register', 'REGISTER', url, '');
+          if (h) return Promise.reject(egressError('serviceWorker.register', h));
+        }
+        return reg(url, opts);
+      };
+    }
+    // a child realm this page can reach is a realm the guard reaches ───────
+    if (SCHEDULE_STORE.guardChildFrames && typeof HTMLIFrameElement !== 'undefined') {
+      const d = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+      if (d && typeof d.get === 'function') {
+        Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+          configurable: true,
+          enumerable: d.enumerable,
+          get: function () {
+            const w = d.get.call(this);
+            if (schedRe) guardChildRealm(w);
+            return w;
+          },
+        });
+      }
+      if (typeof window.open === 'function') {
+        const op = window.open.bind(window);
+        window.open = function (url) {
+          if (schedRe) {
+            schedGuard.frameChecked++;
+            const h = inspect('window.open', 'OPEN', url, '');
+            if (h) throw egressError('window.open', h);
+          }
+          const w = op.apply(null, arguments);
+          if (schedRe) guardChildRealm(w);
+          return w;
+        };
+      }
+    }
+    // ROUND 8, and the same shape as the WebSocket subprotocols: a channel's
+    // LABEL is carried in the SDP the peers exchange, so the label alone is a
+    // leak that never calls `send`. Round 7 guarded the send and not the name.
+    if (typeof RTCPeerConnection !== 'undefined' && RTCPeerConnection.prototype &&
+        RTCPeerConnection.prototype.createDataChannel) {
+      const cdc = RTCPeerConnection.prototype.createDataChannel;
+      RTCPeerConnection.prototype.createDataChannel = function (label) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const h = inspect('rtc.createDataChannel', 'OPEN',
+            String(label == null ? '' : label), '');
+          if (h) throw egressError('RTCPeerConnection.createDataChannel', h);
+        }
+        return cdc.apply(this, arguments);
+      };
+    }
+    if (typeof RTCDataChannel !== 'undefined' && RTCDataChannel.prototype && RTCDataChannel.prototype.send) {
+      const snd = RTCDataChannel.prototype.send;
+      RTCDataChannel.prototype.send = function (data) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const hit = inspect('rtc.send', 'SEND', this.label || '[datachannel]', data);
+          if (hit) throw egressError('RTCDataChannel.send', hit);
+        }
+        return snd.apply(this, arguments);
+      };
+    }
+
+    // the worker's own script URL ──────────────────────────────────────────
+    // `new Worker('/collect?t=' + classTitle)` is a leak that never sends a
+    // single message, and until this round nothing looked at it. The URL is a
+    // string, so this is the ordinary scan.
+    //
+    // WHAT IT CANNOT DO, and it is written here rather than only in the doc:
+    // MapLibre mints ONE `blob:` URL and spawns FOUR workers from it (measured
+    // on a real load), and a `Blob` cannot be read synchronously. So schedule
+    // text baked into a worker's SOURCE via a blob URL is not visible here.
+    // Refusing blob-sourced workers outright would break the map on contact.
+    // §9 of docs/si-privacy.md names this as a residual rather than pretending
+    // otherwise.
+    const guardWorkerCtor = (name) => {
+      const Orig = window[name];
+      if (typeof Orig !== 'function') return;
+      class GuardedWorkerCtor extends Orig {
+        constructor(url, opts) {
+          if (schedRe) {
+            schedGuard.workerCtors++;
+            const h = inspect(name.toLowerCase() + '.new', 'NEW', url, '');
+            if (h) throw egressError(name + ' constructor', h);
+          }
+          super(url, opts);
+        }
+      }
+      window[name] = GuardedWorkerCtor;
+    };
+    guardWorkerCtor('Worker');
+    guardWorkerCtor('SharedWorker');
+
+    // form submission ──────────────────────────────────────────────────────
+    if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype.submit) {
+      const sub = HTMLFormElement.prototype.submit;
+      HTMLFormElement.prototype.submit = function () {
+        if (schedWatch.length) {
+          const hit = inspect('form.submit', this.method || 'GET', this.action,
+            typeof FormData !== 'undefined' ? new FormData(this) : null);
+          if (hit) throw egressError('form.submit', hit);
+        }
+        return sub.apply(this, arguments);
+      };
+    }
+    document.addEventListener('submit', (ev) => {
+      if (!schedWatch.length) return;
+      const f = ev.target;
+      if (!f || f.tagName !== 'FORM') return;
+      let fd = '';
+      try { fd = new FormData(f); } catch (e) { fd = BODY_UNREADABLE; }
+      if (inspect('form.event', f.method || 'GET', f.action, fd)) ev.preventDefault();
+    }, true);
+  }
+
+  // ── read, write, and the delete that has to be total ───────────────────────
+  let schedCache = null;
+  const schedListeners = new Set();
+  function fireScheduleChange(why) {
+    for (const fn of schedListeners) { try { fn(schedCache, why); } catch (e) {} }
+    renderPrivacyPanel();
+  }
+
+  function scheduleLoad() {
+    if (schedCache) return schedCache;
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(SCHEDULE_STORE.key) || 'null'); } catch (e) { return null; }
+    if (!raw || typeof raw !== 'object') return null;
+    if (Number(raw.v) > SCHEDULE_SCHEMA_VERSION) return { tooNew: true, v: raw.v };
+    const d = migrateSchedule(raw);
+    if (!d) return null;
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    return d;
+  }
+
+  function scheduleSave(doc) {
+    const d = normaliseSchedule(doc);
+    let text;
+    try { text = JSON.stringify(d); } catch (e) { return { ok: false, why: 'unserialisable' }; }
+    if (text.length > SCHEDULE_STORE.maxBytes) return { ok: false, why: 'toobig', bytes: text.length };
+    try { localStorage.setItem(SCHEDULE_STORE.key, text); }
+    catch (e) { return { ok: false, why: 'storage', message: String(e && e.name) }; }
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    fireScheduleChange('save');
+    return { ok: true, bytes: text.length, classes: d.classes.length };
+  }
+
+  /** Every key this feature could ever have written, right now, on disk. */
+  function scheduleKeys() {
+    const out = [];
+    for (const store of [['local', localStorage], ['session', sessionStorage]]) {
+      try {
+        for (let i = 0; i < store[1].length; i++) {
+          const k = store[1].key(i);
+          if (k && k.indexOf(SCHEDULE_STORE.prefix) === 0) out.push({ where: store[0], key: k });
+        }
+      } catch (e) {}
+    }
+    return out;
+  }
+
+  function scheduleInventory() {
+    const keys = scheduleKeys().map(k => {
+      let v = '';
+      try { v = ((k.where === 'local' ? localStorage : sessionStorage).getItem(k.key)) || ''; } catch (e) {}
+      return { where: k.where, key: k.key, bytes: v.length };
+    });
+    return { keys, bytes: keys.reduce((n, k) => n + k.bytes, 0), inMemory: !!schedCache };
+  }
+
+  /**
+   * scheduleClear — the delete control's whole job. Sweeps the prefix in both
+   * web storages (not just the one key), drops the reserved IndexedDB database
+   * whether or not anything has created it yet, drops the in-memory copy, and
+   * empties the guard's watchlist so the guard is not holding the last copy of
+   * what it was guarding.
+   */
+  function scheduleClear() {
+    const removed = [];
+    for (const k of scheduleKeys()) {
+      try { (k.where === 'local' ? localStorage : sessionStorage).removeItem(k.key); removed.push(k.key); } catch (e) {}
+    }
+    schedCache = null;
+    setWatchlist([]);
+    const idb = new Promise((res) => {
+      if (typeof indexedDB === 'undefined' || !indexedDB.deleteDatabase) return res('no-idb');
+      let done = false;
+      const fin = (r) => { if (!done) { done = true; res(r); } };
+      try {
+        const req = indexedDB.deleteDatabase(SCHEDULE_STORE.idbName);
+        req.onsuccess = () => fin('deleted');
+        req.onerror = () => fin('error');
+        req.onblocked = () => fin('blocked');
+        setTimeout(() => fin('timeout'), 2000);
+      } catch (e) { fin('threw'); }
+    });
+    fireScheduleChange('clear');
+    return { removed, idb, remaining: scheduleInventory() };
+  }
+
+  async function scheduleClearAsync() {
+    const r = scheduleClear();
+    r.idbResult = await r.idb;
+    r.remaining = scheduleInventory();
+    return r;
+  }
+
+  /**
+   * THE STORED ENVELOPE -> THE OBJECT THE REST OF THE FEATURE READS.
+   *
+   * A reload used to lose the import outright. Nothing new is read here —
+   * `scheduleLoad()` already put this in memory at boot, which is where the
+   * guard's watchlist comes from — this only gives it the shape everything
+   * downstream expects, so the day view after a reload is the student's own
+   * day and not the demo.
+   */
+  function schedulePublished(d) {
+    if (!d || d.tooNew || !Array.isArray(d.classes) || !d.classes.length) return null;
+    const events = d.classes.map((c, i) => {
+      const t = String(c.title || '');
+      // `course` is not stored — it is derivable from the title by the same
+      // rule the parser used to derive it, and a stored field that can go out
+      // of step with the field it came from is a schema change looking for a
+      // bug.
+      const cm = SCHED_COURSE_RE.exec(t.toUpperCase());
+      return {
+        index: i + 1, id: c.id || ('row-' + (i + 1)),
+        title: t, course: cm ? cm[1].replace(/\s+/g, ' ').trim() : '',
+        locationText: c.code ? (c.room ? c.code + ' ' + c.room : c.code) : '',
+        code: c.code || null, room: c.room || '',
+        days: Array.isArray(c.days) ? c.days.slice() : [],
+        startMin: c.startMin, endMin: c.endMin,
+        firstDate: null, lastDate: null, exDates: [],
+        tz: d.tz || SCHEDULE.tz,
+        status: c.unroutableWhy ? 'failed' : 'ok',
+        problems: [], confidence: c.confidence == null ? 1 : c.confidence,
+      };
+    });
+    return {
+      v: SCHEDULE_SCHEMA_VERSION, restored: true, tz: d.tz || null,
+      origin: (d.sources && d.sources[0]) || null,
+      source: (d.sources && d.sources[0] && d.sources[0].kind) || 'manual',
+      events: events,
+    };
+  }
+
+  /**
+   * Keep `window.wayfindSchedule` and the device in step in BOTH directions: a
+   * stored schedule is published, a deleted one is unpublished, and a delete in
+   * another tab does both — which is the case that would otherwise leave a
+   * schedule on screen that the student believes they erased.
+   *
+   * A LIVE IMPORT WINS. The object `impUse()` publishes carries this round's
+   * placements and rejects as well as the events; the restored one is thinner,
+   * and overwriting the richer object with it on the save that just happened
+   * would be a regression dressed as tidiness.
+   */
+  function scheduleSyncPublished() {
+    const d = scheduleLoad();
+    const has = !!(d && !d.tooNew && d.classes && d.classes.length);
+    if (!has) {
+      if (window.wayfindSchedule) {
+        window.wayfindSchedule = null;
+        try { window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: null })); } catch (e) {}
+      }
+      return;
+    }
+    if (window.wayfindSchedule) return;
+    window.wayfindSchedule = schedulePublished(d);
+    try {
+      window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: window.wayfindSchedule }));
+    } catch (e) {}
+  }
+  schedListeners.add(() => { try { scheduleSyncPublished(); } catch (e) {} });
+
+  // A delete in one tab is a delete everywhere. Cheap, and the alternative is
+  // a second tab still holding a schedule the student believes they erased.
+  window.addEventListener('storage', (ev) => {
+    if (!ev || !ev.key || ev.key.indexOf(SCHEDULE_STORE.prefix) !== 0) return;
+    schedCache = null;
+    const d = scheduleLoad();
+    if (!d || d.tooNew) setWatchlist([]);
+    fireScheduleChange('othertab');
+  });
+
+  // ── the panel: the sentence, what is stored, and the one tap ──────────────
+  let privEl = null, privMountTries = 0, privNoticeTimer = 0;
+
+  /** index.html's `<template id="wf-privacy-copy">` overrides the defaults, so
+   *  the wording is a one-line edit in the HTML with no JS change. */
+  function privacyCopy() {
+    const out = Object.assign({}, SCHEDULE_PRIVACY_COPY);
+    const t = document.getElementById('wf-privacy-copy');
+    if (t && t.content) {
+      for (const n of t.content.querySelectorAll('[data-k]')) {
+        const k = n.getAttribute('data-k');
+        if (k in out) out[k] = n.textContent.trim();
+      }
+    }
+    return out;
+  }
+
+  function buildPrivacyPanel() {
+    if (privEl) return privEl;
+    if (!document.getElementById('wf-priv-css')) {
+      const s = document.createElement('style');
+      s.id = 'wf-priv-css'; s.textContent = SCHEDULE_PRIVACY_CSS;
+      document.head.appendChild(s);
+    }
+    const C = privacyCopy();
+    const root = h('div', null); root.id = 'wf-priv';
+    root.appendChild(h('div', 'wf-priv-line', C.line));
+    const st = h('div', 'wf-priv-state', ''); root.appendChild(st);
+    const del = h('button', null, ''); del.id = 'wf-priv-del';
+    del.type = 'button';
+    del.appendChild(icon(null, IC.close, 2.2));
+    del.appendChild(h('span', null, C.deleteBtn));
+    del.addEventListener('click', async () => {
+      if (SCHEDULE_STORE.deleteNeedsConfirm && !window.confirm(C.confirm)) return;
+      await scheduleClearAsync();
+      st.textContent = C.deleted;
+      clearTimeout(privNoticeTimer);
+      privNoticeTimer = setTimeout(renderPrivacyPanel, SCHEDULE_STORE.deletedNoticeMs);
+    });
+    root.appendChild(del);
+    privEl = { root, state: st, del };
+    return privEl;
+  }
+
+  function renderPrivacyPanel() {
+    if (!privEl) return;
+    const C = privacyCopy();
+    const d = scheduleLoad();
+    const has = !!(d && !d.tooNew && d.classes && d.classes.length);
+    privEl.root.classList.toggle('has-schedule', has);
+    if (has) {
+      const src = (d.sources && d.sources[0] && d.sources[0].label) || 'an import';
+      privEl.state.textContent = scheduleSavedLine(d.classes.length, src);
+    } else {
+      privEl.state.textContent = C.empty;
+    }
+  }
+
+  /**
+   * Where the panel goes. The import bar does not exist in this lane's files —
+   * four other lanes are building it — so this mounts itself into the sheet's
+   * own footer, which is where this feature already puts the things it has to
+   * say about itself, and `WAYFIND.store.mount(el)` lets whoever builds the
+   * import bar move it into the bar in one line instead.
+   */
+  function mountPrivacyPanel(host) {
+    const p = buildPrivacyPanel();
+    const target = host || document.querySelector('#wf-sheet .wf-foot');
+    if (!target) {
+      // The sheet is built on first open, so retry for a while and then stop
+      // rather than leaving a timer running forever on a page nobody opened.
+      if (privMountTries++ < 200) setTimeout(() => mountPrivacyPanel(), 250);
+      return null;
+    }
+    if (p.root.parentNode !== target) target.insertBefore(p.root, target.firstChild);
+    renderPrivacyPanel();
+    return p.root;
+  }
+
+  // ── install, and the public seam the import lanes call ────────────────────
+  installEgressGuard();
+  scheduleLoad();
+  if (schedCache) setWatchlist(buildWatchlist(schedCache));
+  // ...and hand whatever survived the reload back to the surfaces that read it.
+  scheduleSyncPublished();
+  setTimeout(() => mountPrivacyPanel(), 0);
+
+  WAYFIND.store = {
+    KEY: SCHEDULE_STORE.key,
+    PREFIX: SCHEDULE_STORE.prefix,
+    IDB: SCHEDULE_STORE.idbName,
+    VERSION: SCHEDULE_SCHEMA_VERSION,
+    SOURCES: SCHEDULE_SOURCES,
+    copy: privacyCopy,
+    defaultCopy: SCHEDULE_PRIVACY_COPY,
+    normalise: normaliseSchedule,
+    save: scheduleSave,
+    load: scheduleLoad,
+    has: () => { const d = scheduleLoad(); return !!(d && !d.tooNew && d.classes && d.classes.length); },
+    clear: scheduleClear,
+    clearAsync: scheduleClearAsync,
+    inventory: scheduleInventory,
+    mount: mountPrivacyPanel,
+    onChange: (fn) => { schedListeners.add(fn); return () => schedListeners.delete(fn); },
+    guard: {
+      state: () => ({
+        installed: schedGuard.installed,
+        armed: schedGuard.armed,
+        watched: schedWatch.length,
+        checked: schedGuard.checked,
+        quietChecked: schedGuard.quietChecked,
+        blocked: schedGuard.blocked,
+        inspectFailures: schedGuard.inspectFailures,
+        unreadableBodies: schedGuard.unreadableBodies,
+        blockedOpaque: schedGuard.blockedOpaque,
+        opaqueWorkerLeaves: schedGuard.opaqueWorkerLeaves,
+        // Round 6. `binaryLeaves`/`binaryBytes` are the measurement that says
+        // whether the byte scan is doing its job or quietly doing nothing: if
+        // a cold load reports 0 bytes scanned, the guard is not reading the
+        // map's own tile traffic and something above it has gone wrong.
+        binaryLeaves: schedGuard.binaryLeaves,
+        binaryBytes: schedGuard.binaryBytes,
+        truncatedScans: schedGuard.truncatedScans,
+        scanThrows: schedGuard.scanThrows,
+        portChecked: schedGuard.portChecked,
+        workerCtors: schedGuard.workerCtors,
+        // Round 7. All four are the "measured cost: zero" claim, republished so
+        // the next person re-checks it in one line instead of trusting a
+        // comment — the same reason `binaryLeaves` is here.
+        bodyBytesScanned: schedGuard.bodyBytesScanned,
+        frameChecked: schedGuard.frameChecked,
+        swChecked: schedGuard.swChecked,
+        rtcChecked: schedGuard.rtcChecked,
+        // Round 8. `headersScanned` is the "measured cost: nil" claim about
+        // reading request headers, republished so the next person re-checks it
+        // rather than trusting the comment; `encodedHits` says how often the
+        // one string scanner's decode retry is what caught something, which is
+        // the number that would have been non-zero for eight rounds if anyone
+        // had been counting.
+        headersScanned: schedGuard.headersScanned,
+        unreadableHeaders: schedGuard.unreadableHeaders,
+        encodedHits: schedGuard.encodedHits,
+        policy: {
+          blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
+          blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
+          failClosedOnScanError: SCHEDULE_STORE.failClosedOnScanError,
+          binaryScanBytes: SCHEDULE_STORE.binaryScanBytes,
+          workerScanNodes: SCHEDULE_STORE.workerScanNodes,
+          scanRequestHeaders: SCHEDULE_STORE.scanRequestHeaders,
+          blockUnreadableHeaders: SCHEDULE_STORE.blockUnreadableHeaders,
+          scanEncodedForms: SCHEDULE_STORE.scanEncodedForms,
+        },
+      }),
+      log: () => schedGuard.log.slice(),
+      /** ONLY so the audit can prove its own network capture is not blind. A
+       *  "zero requests carried the schedule" result means nothing unless the
+       *  instrument is shown catching one; this lets the audit fire a real
+       *  leak, watch the capture catch it, and re-arm. Nothing in the app
+       *  calls it. */
+      __disarmForAudit: () => { schedGuard.armed = false; return schedGuard.armed; },
+      arm: () => { schedGuard.armed = true; return schedGuard.armed; },
+    },
+  };
+  window.wayfindStore = WAYFIND.store;
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);
@@ -8235,4 +14893,5 @@
     else map.once('load', () => setTimeout(go, 0));
   }
   boot();
+  dayBoot();
 })();
