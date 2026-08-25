@@ -24683,3 +24683,88 @@ attempt any of SI1–SI6; fixing six cross-lane seams is new scope, and past
 2026-08-20 the semester outranks this project. Did not touch `WAYFIND.on`, which
 is Simeon's call. Did not verify production, because nothing was merged and so
 nothing deployed.
+
+
+## 183. Aug 25 2026 — the schedule-image benchmark: 15 images, 171 scored meetings, and a scorer that has to grade both sides (acer lane, PR #226 MERGED, branch `acer/img-corpus` kept)
+
+`scripts/verify/schedule-images/` and `scripts/verify/image-bench.mjs`. This is
+the foundation the photo-import round is scored on, so it is written to be hard
+to hand-wave at: a vague benchmark makes a critic invent a comparison and then
+approve everything.
+
+**Say what the images are, every time.** All fifteen are SYNTHESIZED. No camera
+was used anywhere. Each starts as a hand-written HTML mock rendered in headless
+Chrome; four are then put through a perspective warp, a graded defocus, glare,
+a monitor moire, sensor noise and JPEG in Pillow, and four are cropped. So
+"angled phone photo" here means a render put through a camera-shaped transform,
+NOT a photograph of a screen, and none of these is a screenshot of UT's
+registration system or of Google Calendar. That sentence is in the README, in
+`manifest.json`'s `_honesty` field, per image in the manifest, and in the header
+of both generator files, because a benchmark that overclaims its own realism is
+worse than a small honest one.
+
+**What is real is the data.** Two of the four source schedules are field-for-field
+transcriptions of `integration-tuesday.ics` and `ut-regplus.ics`; a third is the
+rows of `manual-paste.txt`, and the two rows there that cannot carry a true
+building (the deliberate `MAII 220` typo, and `PSY 301` with no location at all)
+are NAMED as changed rather than quietly fixed. The build refuses to run if any
+building code is not in `data/ut_buildings.json` or in wayfind's `CAMPUS_EXTRA` /
+`OFF_MAP` tables — and that guard was proven to fire by feeding it a fake code,
+not assumed. Twelve codes, all real, MER included on purpose so the corpus
+contains a class this app cannot walk you to.
+
+**The scoring unit is a MEETING, not a course.** A course on one day. A TTh
+course is two entries and an MWF course is three, because an importer has to put
+a class on a day at a time before it is any use. 171 scored meetings across the
+fifteen, plus 10 the crops cut through, which earn credit and never cost it.
+
+**Nothing about the crops is hand-typed.** Every element that shows a meeting
+carries `data-meet`; the build reads its box in the live page and intersects it
+with the crop rectangle. A hand-typed answer key for a crop is a guess about a
+pixel boundary.
+
+**Then all fifteen were opened and read, and four were changed because of what
+was on screen rather than what the geometry said.** This is the part worth
+carrying forward. Image 05 at yaw -23 put the left end of each table row more
+than half a row-pitch below its own right end, so `M 340L` lined up with the row
+ABOVE its own room — every field was on the image, so the derived truth cheerfully
+called all six rows scorable, and no careful human could have got them. Image
+08's glare erased two classes off the top row. Image 11's reflection erased both
+Tuesday-morning blocks. Image 14's cut left the whole room and the whole time
+range readable, so the crop condition was not being tested at all — walked down
+twice, to 16% of the block. The week grid also gained side-by-side lanes:
+overlapping classes were hiding each other's room while the geometry called both
+fully visible. **In every case the fix was to the image, not to the answer key.
+An image whose truth claims four correct fields nobody can read is not a hard
+image, it is a wrong answer key, and it would have scored every later stage on
+noise.**
+
+**The scorer grades both sides or it is not a comparison.** `image-bench.mjs`
+takes predictions in whatever shape a lane already emits (`building` or `code`,
+a combined `location: 'WEL 2.224'`, `days` as an array or as UT day letters,
+times as `'09:30'` / `'9:30 am'` / minutes past midnight), so neither side has to
+be rewritten to be measured. It reports all-four-fields-right by condition, and
+also precision, hallucinations (a real class of that schedule on an image that
+does not show it), three-of-four near misses, and end-time-only losses — because
+"wrong room" and "never saw it" are different bugs. The extractor is handed
+`{ file, path, bytes }` and deliberately NOT the condition and NOT the answers.
+
+**`--selftest` exists because a scorer that says 100% to everything passes
+silently forever.** Five built-in extractors, twelve assertions: an oracle
+returning the answers in a DIFFERENT shape must score 171/171 (proving the
+normalisation works rather than proving a string equals itself); a one-digit room
+error must score 0 and show up as 171 near misses; a greedy extractor must keep
+recall, lose precision, and have its extras counted as hallucinations. That last
+family caught a bug in this very file: checking whether a miss had the right
+start CONSUMED the prediction, so an extractor with the right start and the wrong
+end paid no precision cost for the field it got wrong.
+
+**Disk:** 1.14 MB for fifteen tracked images against a 4 MB budget. Intermediate
+PNGs are gitignored and `CORPUS_SCRATCH` puts them outside the repo. Verified on
+merged `main`: 12/12 selftest, `harness-drift.mjs` PASS, 15 images present.
+
+**What I did not do.** Did not touch `js/wayfind.js` — it is not in the diff, and
+`WAYFIND.on` is still `false`. Did not write an extractor for either side; that
+is the next stage's job and this file is deliberately agnostic about it. Did not
+delete `acer/img-corpus` after merging, against the usual rule, because the round
+that follows was told that branch name and a deleted branch would strand it.
