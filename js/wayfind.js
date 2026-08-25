@@ -8356,6 +8356,48 @@
      * turning off.
      */
     blockUnreadableBodies: true,
+    /**
+     * A REQUEST HEADER IS A STRING THAT GOES ON THE WIRE, and until round 8
+     * nothing in this section had ever looked at one.
+     *
+     * `inspect()` is handed a method, a URL and a body. Round 8's channel
+     * probe fired `fetch(sink, { headers: { 'X-Sched': classTitle } })`, the
+     * same through a `Headers` object, and `xhr.setRequestHeader('X-Sched',
+     * classTitle)` at a bare TCP listener with the guard armed. All three
+     * returned 204 at `blocked: 0` and the listener read the class title
+     * verbatim. This is not an exotic shape: attaching a context header is
+     * what every analytics and error-reporting library does, and "a later
+     * lane wires an analytics call into this file" is the exact scenario §12
+     * says this guard exists for.
+     *
+     * WHAT IT COSTS, AND THE PREDICTION THAT WAS WRONG. This was first written
+     * as "nil, because this app sets exactly one header on exactly one request
+     * in its whole codebase" (`Accept: application/json`, js/graphics.js's
+     * feedback POST). True of the SOURCE and false of the TRAFFIC: measured on
+     * a real drive, the guard reads headers on **248–411 requests**, because
+     * MapLibre passes a headers object on essentially every tile fetch. It is
+     * still not measurable against the cost of a `fetch` call — the A/B in
+     * docs/si-privacy.md §8 comes back with overlapping spreads — and
+     * `unreadableHeaders` is 0 and no real request has ever been refused. The
+     * number is here because the first claim was read off the code instead of
+     * run, and `guard.state().headersScanned` republishes it so the next
+     * person re-checks rather than trusts.
+     *
+     * Flip to false to stop scanning headers. `blockUnreadableHeaders` is the
+     * same fail-closed rule bodies got in round 5: a header collection the
+     * guard cannot enumerate is one it cannot clear.
+     */
+    scanRequestHeaders: true,
+    blockUnreadableHeaders: true,
+    /**
+     * ROUND 8: the byte scanner registers the percent-encoded and
+     * `+`-encoded forms of each watched token as extra NEEDLES, rather than
+     * decoding the haystack. See `buildBytePatterns`. Flip to false to go back
+     * to raw-only byte patterns; the string path keeps its decode retry either
+     * way, because that one is gated on the string containing a `%` or a `+`
+     * and this one cannot be.
+     */
+    scanEncodedForms: true,
     /** The same rule one layer down, for a `Blob`/`ReadableStream` handed to a
      *  worker rather than to the network. Separate constant because this one
      *  is on MapLibre's per-tile path and the other is not: measured on a real
@@ -8598,6 +8640,9 @@
     frameChecked: 0,           // round 7: window/iframe postMessage calls inspected
     swChecked: 0,              // round 7: ServiceWorker postMessage/register calls
     rtcChecked: 0,             // round 7: RTCDataChannel.send calls
+    headersScanned: 0,         // round 8: requests whose headers were read
+    unreadableHeaders: 0,      // round 8: header collections that would not enumerate
+    encodedHits: 0,            // round 8: matches that needed the decode/encode retry
   };
 
   /** The stand-in "tokens" for the four ways the guard can refuse something it
@@ -8613,6 +8658,7 @@
   const EGRESS_OPAQUE_LEAF = ' opaque-leaf';
   const EGRESS_SCAN_TRUNCATED = ' scan-truncated';
   const EGRESS_SCAN_THREW = ' scan-threw';
+  const EGRESS_OPAQUE_HEADERS = ' opaque-headers';   // round 8
   /** The one place that decides "is this a sentinel", so adding a fifth is one
    *  line and cannot be forgotten in the redactor or in the URL rewrite. */
   const EGRESS_SENTINELS = {
@@ -8620,6 +8666,7 @@
     [EGRESS_OPAQUE_LEAF]: 'a payload node the guard could not read',
     [EGRESS_SCAN_TRUNCATED]: 'a payload bigger than the guard can scan',
     [EGRESS_SCAN_THREW]: 'a payload that made the guard throw',
+    [EGRESS_OPAQUE_HEADERS]: 'request headers the guard could not read',
   };
 
   /** Every string leaf in the schedule, long enough to be distinctive, plus
@@ -8757,17 +8804,47 @@
       bs.push({ b: bytes, tok });
       if (bytes.length < min) min = bytes.length;
     };
-    for (const t of tokens) {
-      const s = t.length > SCHEDULE_STORE.binaryPatternChars
-        ? t.slice(0, SCHEDULE_STORE.binaryPatternChars) : t;
-      addPat(enc.encode(s), t);
+    // BOTH ENCODINGS OF ONE FORM OF ONE TOKEN. Deduped per token, because the
+    // percent-encoded form of a token that needs no escaping IS the token.
+    const seenForms = new Set();
+    const addForm = (s, tok) => {
+      if (!s) return;
+      const k = tok + ' ' + s;
+      if (seenForms.has(k)) return;
+      seenForms.add(k);
+      addPat(enc.encode(s), tok);
       const u16 = new Uint8Array(s.length * 2);
       for (let i = 0; i < s.length; i++) {
         const cp = s.charCodeAt(i);
         u16[i * 2] = cp & 0xff;
         u16[i * 2 + 1] = (cp >> 8) & 0xff;
       }
-      addPat(u16, t);
+      addPat(u16, tok);
+    };
+    for (const t of tokens) {
+      const s = t.length > SCHEDULE_STORE.binaryPatternChars
+        ? t.slice(0, SCHEDULE_STORE.binaryPatternChars) : t;
+      addForm(s, t);
+      // ── ENCODE THE NEEDLE, NEVER DECODE THE HAYSTACK ────────────────────
+      // Round 8's probe put `new TextEncoder().encode(encodeURIComponent(
+      // title)).buffer` through a worker with the guard armed and it crossed
+      // at `blocked: 0` — the string path now retries decoded, but the byte
+      // path cannot: percent-decoding 120 MB of real tile bytes per load to
+      // look for a needle is not a thing to do on the tile path.
+      //
+      // So the needle carries the encodings instead. It costs nothing at scan
+      // time — the hot loop is byte-identical, there are just more entries in
+      // a bucket — and it costs almost nothing in the PREFILTER either,
+      // because `encodeURIComponent` leaves letters alone: the encoded form of
+      // a class title starts with the same two bytes as the title, so no new
+      // mask bit is lit. Only a token that starts with a character needing an
+      // escape adds one.
+      if (SCHEDULE_STORE.scanEncodedForms) {
+        let pct = null;
+        try { pct = encodeURIComponent(s); } catch (e) { pct = null; }   // lone surrogate
+        if (pct) { addForm(pct, t); addForm(pct.replace(/%20/g, '+'), t); }
+        addForm(s.replace(/ /g, '+'), t);
+      }
     }
     schedByteMask = mask; schedByteBuckets = buckets; schedMinPatLen = min;
   }
@@ -8805,9 +8882,10 @@
     return null;
   }
 
-  function scanForSchedule(hay) {
-    if (!schedRe || !hay) return null;
-    const s = typeof hay === 'string' ? hay : String(hay);
+  /** THE RAW SUBSTRING TEST. Private on purpose — see `scanForSchedule` below
+   *  for why there is no second exported way to scan a string. Assumes a real
+   *  string and a non-empty watchlist; both are checked by its one caller. */
+  function scanRawForSchedule(s) {
     if (s.length < schedMinLen) return null;
     const h = s.toLowerCase();
     for (let i = 0; i < schedWatch.length; i++) {
@@ -8818,35 +8896,61 @@
   }
 
   /**
-   * The same scan, for a URL or a body — the two places where the schedule
-   * arrives ENCODED rather than raw.
+   * THE ONLY WAY TO SCAN A STRING, and being the only way is the fix.
    *
-   * FOUND BY THIS ROUND'S OWN PROBE, not by a critic, and it is the same
-   * family as the ArrayBuffer hole: content the guard could read if it looked
-   * at it in the right form. `new Worker('/collect?t=' + encodeURIComponent(
-   * title))` and `fetch('/collect?t=' + encodeURIComponent(title))` both went
-   * straight through an armed guard, because `Zygomorphic%20Percussion%20
-   * Seminar` does not contain `zygomorphic percussion seminar`. A form POST
-   * hits it too — `bodyToText()` renders `URLSearchParams` with `toString()`,
-   * which percent-encodes.
+   * Round 6 found that a percent-encoded canary does not contain the canary:
+   * `fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams`
+   * form body both sailed past an armed guard, because
+   * `Zygomorphic%20Percussion%20Seminar` does not contain `zygomorphic
+   * percussion seminar`. It fixed that — in a SECOND function,
+   * `scanTextForSchedule`, and wired that function to the URL and body paths.
+   *
+   * `scanStructured()`'s string leaf kept calling the raw one. So did
+   * `inspectPayload`'s top-level string branch, and the `RegExp`, `Error` and
+   * boxed-`String` branches of the walk. Round 8 fired ten shapes of encoded
+   * string into a worker with the guard armed and **all ten crossed at
+   * `blocked: 0, opaque: 0`** — uncounted and unlogged — with six of them
+   * landing the class title on a raw TCP socket verbatim after the worker
+   * decoded them. Same defect as round 7's byte scanner: a correct check wired
+   * to one of the two doors.
+   *
+   * THE STRUCTURAL FIX IS NOT "WIRE THE OTHER DOOR TOO", because that leaves a
+   * third door for round 9. It is that there is now exactly one function
+   * anybody can call to ask "does this string carry the schedule", and it does
+   * the whole job. The raw test still exists, is not exported, and is called
+   * from precisely one place: this function's own retry.
    *
    * COSTS NOTHING ON THE HOT PATH. Every URL this app fetches is a plain
-   * relative path (`data/tiles/roads.pmtiles`), so the `%`/`+` gate below is
-   * false for all of them and no decode is ever attempted. Only a string that
-   * actually looks encoded pays for a decoded copy.
+   * relative path (`data/tiles/roads.pmtiles`) and every string leaf MapLibre
+   * puts through a worker payload is a layer id or a source name, so the
+   * `%`/`+` gate is false for all of them and no decode is ever attempted.
+   * Only a string that actually looks encoded pays for a decoded copy.
+   *
+   * ONE LEVEL OF DECODE, said plainly: `%2520` (double-encoded) is not caught,
+   * for the same reason base64 is not — see §9 of docs/si-privacy.md. One level
+   * is what an honest bug produces, because one level is what
+   * `encodeURIComponent` does.
    */
-  function scanTextForSchedule(s) {
-    const hit = scanForSchedule(s);
-    if (hit || !s || typeof s !== 'string') return hit;
+  function scanForSchedule(hay) {
+    if (!schedRe || !hay) return null;
+    const s = typeof hay === 'string' ? hay : String(hay);
+    const hit = scanRawForSchedule(s);
+    if (hit) return hit;
     const pct = s.indexOf('%') !== -1, plus = s.indexOf('+') !== -1;
     if (!pct && !plus) return null;
     if (pct) {
       // A malformed escape is not a reason to stop guarding the rest.
-      try { const d = decodeURIComponent(s); const h = scanForSchedule(d); if (h) return h; } catch (e) {}
+      try {
+        const h = scanRawForSchedule(decodeURIComponent(s));
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
     }
     if (plus) {
       const spaced = s.replace(/\+/g, ' ');
-      try { const h = scanForSchedule(pct ? decodeURIComponent(spaced) : spaced); if (h) return h; } catch (e) {}
+      try {
+        const h = scanRawForSchedule(pct ? decodeURIComponent(spaced) : spaced);
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
     }
     return null;
   }
@@ -9184,7 +9288,45 @@
    * so there is one place that decides what a body is, and binary reaches the
    * byte scanner instead of only the UTF-8 decoder.
    */
-  function inspect(via, method, url, raw, quiet) {
+  /**
+   * ROUND 8 — HEADERS. `headerSources` is always a LIST of places a request's
+   * headers can come from, never one of them, because a `fetch(new Request(u,
+   * {headers}), {headers})` has two and picking either one is how this class of
+   * bug happens in the first place. Each entry may be a `Headers`, a plain
+   * object, an array of pairs, a pre-flattened string, or null.
+   *
+   * A collection that will not enumerate returns `undefined`, which is the
+   * refusal path — the same rule an unreadable body got in round 5.
+   */
+  function oneHeaderSourceToText(h) {
+    if (h == null) return '';
+    if (typeof h === 'string') return h;
+    if (typeof Headers !== 'undefined' && h instanceof Headers) {
+      let s = '';
+      for (const p of h) s += p[0] + ': ' + p[1] + '\n';
+      return s;
+    }
+    if (Array.isArray(h)) {
+      let s = '';
+      for (const p of h) s += String(p && p[0]) + ': ' + String(p && p[1]) + '\n';
+      return s;
+    }
+    if (typeof h === 'object') {
+      let s = '';
+      for (const k in h) if (HAS_OWN.call(h, k)) s += k + ': ' + String(h[k]) + '\n';
+      return s;
+    }
+    return String(h);
+  }
+  function headerSourcesToText(list) {
+    if (!list || !list.length) return '';
+    let s = '';
+    try { for (let i = 0; i < list.length; i++) s += oneHeaderSourceToText(list[i]); }
+    catch (e) { return undefined; }
+    return s;
+  }
+
+  function inspect(via, method, url, raw, quiet, headerSources) {
     schedGuard.checked++;
     if (quiet) schedGuard.quietChecked++;
     if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
@@ -9192,7 +9334,17 @@
     let body;
     try {
       body = bodyToText(raw);
-      hit = scanTextForSchedule(url);
+      hit = scanForSchedule(url);
+      if (!hit && SCHEDULE_STORE.scanRequestHeaders && headerSources && headerSources.length) {
+        const ht = headerSourcesToText(headerSources);
+        if (ht === undefined) {
+          schedGuard.unreadableHeaders++;
+          if (SCHEDULE_STORE.blockUnreadableHeaders) hit = EGRESS_OPAQUE_HEADERS;
+        } else if (ht) {
+          schedGuard.headersScanned++;
+          hit = scanForSchedule(ht);
+        }
+      }
       if (body === undefined) {
         // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
         // hole round 4's critic drove a Blob through. While a schedule is
@@ -9200,7 +9352,7 @@
         schedGuard.unreadableBodies++;
         if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
       } else if (!hit) {
-        hit = scanTextForSchedule(body);
+        hit = scanForSchedule(body);
         // ...and the same bytes again, in the encodings a decode cannot reach.
         if (!hit) {
           const u8 = bodyBytes(raw);
@@ -9267,7 +9419,8 @@
             const method = (init && init.method) || (isReq && input.method) || 'GET';
             let raw = init ? init.body : null;
             if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;
-            const hit = inspect('childframe.fetch', method, url, raw);
+            const hit = inspect('childframe.fetch', method, url, raw, false,
+              [init ? init.headers : null, isReq ? input.headers : null]);
             if (hit) return Promise.reject(egressError('child frame fetch', hit));
           }
           return of.apply(w, arguments);
@@ -9299,7 +9452,10 @@
         const method = (init && init.method) || (isReq && input.method) || 'GET';
         let raw = init ? init.body : null;
         if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;   // stream
-        const hit = inspect('fetch', method, url, raw);
+        // BOTH header sources, because a `Request` carries its own and `init`
+        // can add more, and the wire gets the union of them.
+        const hit = inspect('fetch', method, url, raw, false,
+          [init ? init.headers : null, isReq ? input.headers : null]);
         if (hit) return Promise.reject(egressError('fetch', hit));
         return orig.apply(this, arguments);
       };
@@ -9308,13 +9464,25 @@
     // XMLHttpRequest ───────────────────────────────────────────────────────
     if (typeof XMLHttpRequest !== 'undefined') {
       const op = XMLHttpRequest.prototype.open, sd = XMLHttpRequest.prototype.send;
+      const srh = XMLHttpRequest.prototype.setRequestHeader;
       XMLHttpRequest.prototype.open = function (m, u) {
-        this.__wfM = m; this.__wfU = u;
+        this.__wfM = m; this.__wfU = u; this.__wfH = '';   // a reused XHR starts clean
         return op.apply(this, arguments);
       };
+      // XHR has no header collection to read at `send` time — the only record
+      // of what was set is the calls that set it, so keep one. Gated on a
+      // schedule being stored, so an app with none pays nothing.
+      if (typeof srh === 'function') {
+        XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+          if (schedWatch.length && SCHEDULE_STORE.scanRequestHeaders) {
+            this.__wfH = (this.__wfH || '') + String(k) + ': ' + String(v) + '\n';
+          }
+          return srh.apply(this, arguments);
+        };
+      }
       XMLHttpRequest.prototype.send = function (b) {
         if (schedWatch.length) {
-          const hit = inspect('xhr', this.__wfM, this.__wfU, b);
+          const hit = inspect('xhr', this.__wfM, this.__wfU, b, false, [this.__wfH]);
           if (hit) throw egressError('XMLHttpRequest', hit);
         }
         return sd.apply(this, arguments);
@@ -9339,7 +9507,15 @@
             // Report the token that actually matched. The literal 'url' this
             // used to pass rendered in the thrown message as `ur…(3)`, which
             // tells the reader nothing about what was caught.
-            const h = inspect('websocket', 'OPEN', url, '');
+            //
+            // ROUND 8: the SUBPROTOCOLS are on the wire too. They travel as
+            // `Sec-WebSocket-Protocol` in the opening handshake, and this
+            // passed `''` for the body and never looked at them. Same family
+            // as the request headers below — a string argument that reaches
+            // the network and nothing read it.
+            const h = inspect('websocket', 'OPEN', url,
+              protocols == null ? '' :
+              (Array.isArray(protocols) ? protocols.join(',') : String(protocols)));
             if (h) throw egressError('WebSocket', h);
           }
           super(url, protocols);
@@ -9509,6 +9685,22 @@
           return w;
         };
       }
+    }
+    // ROUND 8, and the same shape as the WebSocket subprotocols: a channel's
+    // LABEL is carried in the SDP the peers exchange, so the label alone is a
+    // leak that never calls `send`. Round 7 guarded the send and not the name.
+    if (typeof RTCPeerConnection !== 'undefined' && RTCPeerConnection.prototype &&
+        RTCPeerConnection.prototype.createDataChannel) {
+      const cdc = RTCPeerConnection.prototype.createDataChannel;
+      RTCPeerConnection.prototype.createDataChannel = function (label) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const h = inspect('rtc.createDataChannel', 'OPEN',
+            String(label == null ? '' : label), '');
+          if (h) throw egressError('RTCPeerConnection.createDataChannel', h);
+        }
+        return cdc.apply(this, arguments);
+      };
     }
     if (typeof RTCDataChannel !== 'undefined' && RTCDataChannel.prototype && RTCDataChannel.prototype.send) {
       const snd = RTCDataChannel.prototype.send;
@@ -9809,12 +10001,24 @@
         frameChecked: schedGuard.frameChecked,
         swChecked: schedGuard.swChecked,
         rtcChecked: schedGuard.rtcChecked,
+        // Round 8. `headersScanned` is the "measured cost: nil" claim about
+        // reading request headers, republished so the next person re-checks it
+        // rather than trusting the comment; `encodedHits` says how often the
+        // one string scanner's decode retry is what caught something, which is
+        // the number that would have been non-zero for eight rounds if anyone
+        // had been counting.
+        headersScanned: schedGuard.headersScanned,
+        unreadableHeaders: schedGuard.unreadableHeaders,
+        encodedHits: schedGuard.encodedHits,
         policy: {
           blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
           blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
           failClosedOnScanError: SCHEDULE_STORE.failClosedOnScanError,
           binaryScanBytes: SCHEDULE_STORE.binaryScanBytes,
           workerScanNodes: SCHEDULE_STORE.workerScanNodes,
+          scanRequestHeaders: SCHEDULE_STORE.scanRequestHeaders,
+          blockUnreadableHeaders: SCHEDULE_STORE.blockUnreadableHeaders,
+          scanEncodedForms: SCHEDULE_STORE.scanEncodedForms,
         },
       }),
       log: () => schedGuard.log.slice(),

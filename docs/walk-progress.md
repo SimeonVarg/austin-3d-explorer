@@ -3545,3 +3545,106 @@ fresh document finds nothing → feature off is still off), 9/9. Nothing outside
 this lane's files touched except this log. Every scratch script and frame stayed
 in the scratchpad; one frame is committed because the doc cites it. Server on
 8951 killed and the port re-confirmed free.
+
+## 2026-08-24 — round 8 on the privacy piece (`acer/si-privacy`): the same bug for the fifth time, so this round fixed the shape of it
+
+Rounds 4, 5, 6 and 7 each found one hole, and read like four different
+oversights. They are one: **a check that exists, is correct, and is wired to one
+of the two doors.** So round 8 stopped asking what shape is unhandled and asked,
+for every capability the guard has, which doors it is wired to. Two answers came
+back wrong and both put a class title on a raw TCP socket with the guard armed.
+
+**One. The decode retry was wired to the network door only.** Round 6 found that
+a percent-encoded canary does not contain the canary — and fixed it in a
+*second* function, called from the URL and body paths. The worker walk kept
+calling the raw one, and so did the top-level string branch and the `RegExp`,
+`Error` and boxed-`String` branches. `worker.postMessage({ t:
+encodeURIComponent(title) })`: **ten shapes crossed at `blocked: 0, opaque: 0`**
+— uncounted and unlogged, the identical reading round 5 got from the
+ArrayBuffer hole and round 7 got from the array hole — and six of the ten landed
+`Thaumaturgical Marimba Rhetoric` on the listener verbatim after the worker
+decoded them.
+
+**Two. Request headers had never been inspected by anything, ever.** `inspect()`
+is handed a method, a URL and a body, and nobody had ever handed it the headers.
+`fetch(sink, { headers: { 'X-Sched': title } })`, the same through a `Headers`
+object, and `xhr.setRequestHeader` all came back 204 at `blocked: 0` with the
+title on the wire. Not exotic — attaching a context header is what every
+analytics library does, which is the exact scenario this guard exists for. Worth
+naming what nearly hid it: `fetch(new Request(url, { headers }))` **was**
+refused, by round 5's unreadable-body rule on the Request's stream body, having
+never looked at a header. A guard can pass a probe for the wrong reason.
+
+**The fix is the shape, not the cases.** There is now exactly ONE function
+anybody can call to ask whether a string carries the schedule, and it does the
+whole job. The raw test still exists, is not exported, and has precisely one
+caller: that function's own retry. Wiring the weak version to a new door is no
+longer possible, because the weak version has no name a caller can reach. The
+byte scanner cannot decode its haystack — percent-decoding 120 MB of tile bytes
+a load is not a thing to do on the tile path — so **the needle carries the
+encodings instead**, which costs nothing in the hot loop and almost nothing in
+the prefilter. And `inspect()` takes a LIST of header sources, never one,
+because `fetch(new Request(u, {headers}), {headers})` has two and picking either
+is how this class of bug starts.
+
+Two more doors of the same family closed while the file was open, both strings
+that reach the wire and neither ever scanned: a **WebSocket's subprotocols**
+(they travel as `Sec-WebSocket-Protocol` in the handshake) and an
+**`RTCDataChannel`'s label** (carried in the SDP, so the name alone is a leak
+that never calls `send`).
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, the guard's
+counters read before and after each probe. Armed: all fourteen shapes and all
+six channels refused, and the socket received nothing. Disarmed: every one of
+them carried and the socket read the canary back — which is what makes the armed
+column mean anything. Round 7's own probe re-run unchanged on round 8's code:
+**no shape leaks**, and the only channel still on the wire is `<img src>`, which
+is a named residual in §9 rather than a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom
+legs: `blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+`unreadableHeaders: 0`, **15,413 buffers and 120.1 MB of real tile bytes read and
+passed**, `styleLoaded`/`tilesLoaded` true. Frame at
+`shots/si/privacy/r8-map-guarded.jpg`.
+
+**What it costs, and the A/B is a true one this round.** `--baseline` serves the
+round-7 `js/wayfind.js` to the page and changes nothing on disk, so the only
+difference is the round-8 diff — and the R7 rows self-check, because they carry
+no `headersScanned` field at all. On the real city there is **no result**: three
+interleaved, counterbalanced reps each way, 0.261–0.332 ms/message against
+0.244–0.298, and overlapping spreads mean no result. Isolated it is real:
+20,000 string leaves cost **1.30×** when the new gate never fires and 2.63× when
+it fires on every one — and 1.30× is the row this app pays, because MapLibre's
+payloads are binary and a byte scan of 120 MB does not notice 0.3 µs a leaf.
+
+**One prediction in the doc was wrong and the correction is written next to
+it.** The header change was written up as costing nil, because this app sets one
+header on one request in its whole source. True of the source, false of the
+traffic: measured, the guard reads headers on **248–411 requests per drive**,
+because MapLibre passes a headers object on essentially every tile fetch.
+Nothing is broken by it, but the claim had been read off the code instead of
+run.
+
+**§7's citation is still correct** — round 6 replaced the fabricated
+`docs/schedule-gaps.md` reference and round 7 re-checked it; re-read both
+sources again this round. `docs/schedule-gaps.md` is real on `main` (`ed74cc3`)
+and does argue demolition; `docs/si-gaps.md` on `origin/acer/si-gaps` checks it
+and shows SSW is a current main-campus building our 198-code register is one row
+short of. The doc's own citation gate is ALL PASS at 22 paths.
+
+**A landmine for whoever integrates these five branches.** `js/wayfind.js` is
+committed with LF endings and `core.autocrlf` is true on this machine, so an
+editor that writes CRLF turns a 230-line change into a **19,932-line whole-file
+diff** that `git status` will not warn about until you touch the file. It read
+as a full rewrite here until the file was converted back to LF, at which point
+the same edits diffed as 230 insertions and 34 deletions. Check
+`git diff --stat` before committing this file, and if it is four figures, that
+is why — not your edit.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check`
+clean; `harness-drift.mjs` PASS 31/31; the storage path re-driven end to end
+after the `inspect()` rewiring (panel empty → save → real click on Delete → a
+genuinely fresh document finds nothing → feature off is still off), 9/9. Nothing
+outside this lane's files touched except this log. Every scratch script and
+frame stayed in the scratchpad; one frame is committed because the doc cites it.
+Server on 8951 killed and the port re-confirmed free.
