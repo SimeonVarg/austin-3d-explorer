@@ -3015,3 +3015,108 @@ Browser pane closed. `git worktree remove` + `git worktree prune` run after
 `rm -rf` cleared the scratch tree by hand (git's own delete hit Windows'
 path-length limit on the nested `node_modules`). No screenshots committed to
 the repo — all frames stayed in the scratchpad.
+
+## 2026-08-24 — critic round 5 on the privacy piece (`acer/si-privacy`), oursWins=false — round 5's fix closed one shape of the hole and left an adjacent one wide open
+
+Fresh context, port 8955, own script (not the builder's `r5-blob.mjs`) — own
+canary strings (a class title, an instructor, a room, none borrowed from the
+builder), own raw TCP sink on a different port, own delete-then-reload check.
+`harness-drift.mjs` PASS first (31/31); `npm install` fresh into an empty
+`scripts/verify/node_modules`.
+
+**THE STATED BAR passes, taken literally.** Drove the real import seam
+(`window.WAYFIND.store.save()` — the same call a real importer will make, since
+no importer lane exists yet), captured every request during the import window
+at the CDP `Target`/`Network` level so worker-originated fetches are seen too
+(not just `page.on('request')`, which `scripts/verify/README.md` documents as
+blind to MapLibre's worker traffic), and scanned all of them: zero carried any
+canary string. Then a real mouse click on the real `#wf-priv-del`, followed by
+a genuinely fresh document (a new page in the same browser context, not a
+reload of the seeding page, so the assertion cannot be testing its own seed) —
+no `austin3d.schedule.*` key in storage, `store.has()` false, no reserved
+IndexedDB database, panel back to "No schedule saved on this device yet." Took
+a real screenshot and looked at it: the panel is genuinely on screen, in the
+city, with the sentence, the count, and the Delete button all rendering exactly
+as the doc describes.
+
+**But the document's central technical claim is broken, and I have it landing
+on a socket to prove it.** Round 4's critic found that a `Blob`-bodied network
+request could carry the schedule past an armed guard; round 5 fixed exactly
+that shape (`SCHEDULE_STORE.blockUnreadableBodies`, `scanStructured()`'s new
+`opaque` flag) and the fix genuinely holds for `Blob` and `ReadableStream` — I
+did not need to re-check that, the reasoning in `js/wayfind.js` §12 and
+`docs/si-privacy.md` §6 is sound and I read the real code, not just the doc.
+
+The fix was narrow, though, and the adjacent shape it left alone is the one
+MapLibre's real workers actually use for binary tile data: a plain
+`ArrayBuffer` / `TypedArray`, transferred. `scanStructured()`'s walk explicitly
+returns immediately for `ArrayBuffer.isView(x) || x instanceof ArrayBuffer`
+with **no `opaque` flag raised** — unlike a `Blob`, which now sets
+`opaque = true` and gets refused. The code comment defends this ("cannot hold a
+JS string") and that reasoning is simply wrong: `TextEncoder`/`TextDecoder`
+round-trip a string through bytes without any loss, which is exactly what a
+real leak (or a later lane's honest bug) would do to get a string into a
+transferable payload cheaply.
+
+I proved this two ways, both against a bare TCP listener so nothing about HTTP
+framing could hide the answer, with the guard installed and **armed** the
+whole time:
+
+1. `postMessage({ tile:'x', payload: encoder.encode(canaryTitle).buffer },
+   [buffer])` into a worker — the same transfer shape MapLibre uses for tile
+   bytes. It went through. `guard.state()` before/after: `blockedDelta: 0`,
+   **`opaqueDelta: 0`** — not merely unblocked, *uncounted, unlogged, invisible
+   to the guard's own instrumentation.* The worker received the schedule title
+   intact (`byteLength: 30`, decodable).
+2. From inside that same worker, an ordinary `fetch()` — the worker's own
+   global `fetch`, which `installEgressGuard()` never touches because it only
+   patches `window.fetch` on the **main thread** — POSTed those bytes to my raw
+   socket. `worker-fetch-sent:204`, and the socket's buffer read back
+   `"Xylographic Waveform Practicum"` verbatim, character for character.
+
+That is the schedule leaving the device, with the round-5 fix in place and the
+guard armed, using a payload shape the app's own real dependency (MapLibre)
+uses routinely. The doc's safety-case sentence — *"a worker cannot send what it
+was never told"* — is false as written: a worker can be told, via a typed
+array, without the guard so much as noticing, and once told, nothing in this
+file stands between that worker and the network at all. §9's "what it does not
+cover" list names `<img src>`, link navigation, and field-fragment matching as
+known gaps; it does not name this one, and this one is not a corner case like
+those — it is the exact transport shape the app's own tile pipeline already
+uses, sitting one property-check away from a total, silent bypass.
+
+**oursWins = false.** The stated bar (zero leaked requests during a real
+import; delete really empties storage on reload) passes clean, and I am not
+discounting that. But this is the third round in a row this exact promise has
+had a real, socket-verified hole in it (round 4: Blob network body; this
+round: ArrayBuffer worker payload plus the worker's own unwrapped fetch), and
+each fix so far has closed the specific shape that was demonstrated rather
+than the general class ("any way to hand a worker bytes it can read back out
+of, and any way that worker can then reach the network"). A promise this
+document itself frames as "enforced, not asserted," about data this sensitive,
+does not get to tie on a technicality of the stated test — the mechanism it
+leans on is still concretely breakable, three rounds in.
+
+**Single biggest remaining gap, concretely:** in `scanStructured()`
+(`js/wayfind.js` §12, the walk used by the `Worker.prototype.postMessage`
+guard), treat `ArrayBuffer` and every `ArrayBuffer.isView` shape (`Uint8Array`,
+`DataView`, etc.) as `opaque = true`, the same way the round-5 fix already
+treats `Blob` and `ReadableStream` — do not just skip past it. Then, because
+that alone still leaves a worker able to read bytes it was handed and dial out
+with its own `fetch`, either (a) have `installEgressGuard()` also run inside
+every `Worker` this app itself creates (patch `self.fetch` /
+`self.XMLHttpRequest` from within the worker's own bootstrap script, not just
+`window.*`), or (b) if that is impractical for MapLibre's internal workers,
+say so explicitly in §9's "what it does not cover" list instead of asserting
+in prose that "a worker cannot send what it was never told" — because right
+now it can, and this round proved it on a raw socket.
+
+Server on 8955 killed by PID, `netstat` confirmed no listener remained
+afterward (only closing `TIME_WAIT` entries). Two scratch scripts written into
+`scripts/verify` during this pass (`critic-privacy-r5.mjs`,
+`critic-privacy-shot.mjs`) were deleted before finishing; no file the builder
+owns (`js/wayfind.js`, `docs/si-privacy.md`, `index.html`) was touched. One
+screenshot was taken and looked at with the Read tool to confirm the panel
+premise before trusting any DOM assertion about it, and it was left in the
+scratchpad, not committed — nothing here cites it as evidence, so per CLAUDE.md
+rule 12 it does not belong in the repo.
