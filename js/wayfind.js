@@ -8653,6 +8653,18 @@
     // `?dayat=HH:MM` freezes it. A screenshot of "which walk is next" cannot be
     // taken against a real clock and be the same picture tomorrow.
     clockFrom: 'real',
+    // ── the demo, and the one thing that makes it safe ────────────────────
+    // EVERY BUILT-IN FIXTURE DAY IS LABELLED ON SCREEN. Off, the demo is
+    // indistinguishable from an import, which is exactly the defect this round
+    // found: import M 340L / RTF 305 / C S 439 / EE 460R, tap the button that
+    // says "Import my class schedule", and be shown CMS 306M / C S 429 /
+    // BA 101S / J 310F — four classes that are not yours, presented as your
+    // day. Nothing may turn this off while demoWhenEmpty is on.
+    exampleBadge: true,
+    // Whether the button may fall back to the demo AT ALL when nothing has
+    // been imported. On, because an empty panel reads as a broken feature —
+    // and it is only ever honest because of exampleBadge above.
+    demoWhenEmpty: true,
     // A parsed schedule is a WEEK. Which of its days opens, when the caller did
     // not say: 'today', or 'first' to always open the first day the schedule
     // has a class on. Either way a day with no classes falls through to the
@@ -8737,6 +8749,19 @@
     source: { google: 'Google Calendar', apple: 'Apple Calendar', ut: 'UT registration',
       image: 'a photo of a schedule', api: 'Registration Plus', manual: 'typed in' },
     from: (s) => 'From ' + s,
+    // THE DEMO SAYS IT IS A DEMO, IN TWO PLACES. The badge rides in the header,
+    // which is the one strip of this panel always on screen on a 390 px phone;
+    // the footer replaces "From UT registration" — a sentence that, on a demo,
+    // was a claim about a file the student never gave us.
+    exampleBadge: 'EXAMPLE',
+    // PROVENANCE AND AUTHENTICITY ARE TWO DIFFERENT FACTS, and the footer says
+    // both. "From UT registration" is what the DATA claims about where it came
+    // from — true of a fixture built out of real UT LOCATION lines, and a trip
+    // dayview.mjs already asserts survives from the parser's shape to here.
+    // What the footer could not say before is that the data is not the
+    // student's, which is the half that matters and the half the badge repeats
+    // in the header.
+    fromExample: (s) => 'From ' + s + ' — sample data, not your schedule',
   };
 
   /**
@@ -8789,6 +8814,13 @@
   padding:10px 10px 6px 14px;flex:none}
 #wf-day-title{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
   color:var(--wf-dim)}
+/* THE EXAMPLE BADGE rides INSIDE the title line rather than taking a row of
+   its own, so labelling the demo costs the panel no height — dayview.mjs
+   asserts the whole panel fits a 390x844 phone, and a new row would have been
+   a real risk to a shipped assertion for a purely additive label. */
+.wf-d-example{margin-left:7px;padding:1px 5px;border-radius:4px;
+  background:rgba(255,190,90,.16);color:#ffc077;font-weight:800;font-size:9.5px;
+  letter-spacing:.14em}
 #wf-day-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
   width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
 #wf-day-close svg{width:15px;height:15px}
@@ -9210,7 +9242,8 @@
     items.sort((x, y) => x.startMin - y.startMin);
     if (!items.length) return null;
     return { day: plan.day || null, date: plan.date || null,
-      source: plan.source || 'manual', tz: plan.tz || null, items };
+      source: plan.source || 'manual', tz: plan.tz || null,
+      example: !!plan.example, items };
   }
 
   /** The routable city's own extent, so "off this map" is measured rather than
@@ -9754,6 +9787,9 @@
     const nowMin = dayNow();
     dayRows = dayBuild(dayPlan);
     dayEl.title.textContent = dayPlan.day || SAY_D.title;
+    if (WF_DAY.exampleBadge && dayPlan.example) {
+      dayEl.title.appendChild(h('span', 'wf-d-example', SAY_D.exampleBadge));
+    }
     dayEl.sum.innerHTML = '';
     const count = h('span', 'wf-d-count', SAY_D.heading(dayRows.classes, dayRows.walks));
     // HOW FAR YOU WALK TODAY, on the end of the count line rather than on a
@@ -9819,7 +9855,9 @@
         : dayRenderWalk(r, nowMin, i === nextIdx, i));
     }
     if (nowAt === dayRows.rows.length) dayEl.list.appendChild(dayNowLine(nowMin));
-    dayEl.foot.textContent = SAY_D.from(SAY_D.source[dayPlan.source] || dayPlan.source);
+    const daySrcName = SAY_D.source[dayPlan.source] || dayPlan.source;
+    dayEl.foot.textContent = dayPlan.example ? SAY_D.fromExample(daySrcName)
+      : SAY_D.from(daySrcName);
   }
 
   /**
@@ -9854,12 +9892,19 @@
    *  this file ships rather than carrying its own copy of it. */
   window.wayfindDayFixture = function (name) {
     const f = DAY_FIXTURES[name] || DAY_FIXTURES[WF_DAY.demoPlan];
-    return JSON.parse(JSON.stringify(f));
+    const c = JSON.parse(JSON.stringify(f));
+    // MARKED AT THE SOURCE, not at each call site. A fixture that can reach the
+    // screen without the flag is a fixture that can be read as a real import,
+    // and there is no call site where that is acceptable.
+    c.example = true;
+    return c;
   };
   /** A whole WEEK in the parser lane's published shape, for driving the
    *  schedule adapter below without the parser branch in the tree. */
   window.wayfindDayScheduleFixture = function () {
-    return JSON.parse(JSON.stringify(DAY_SCHED_FIXTURE));
+    const c = JSON.parse(JSON.stringify(DAY_SCHED_FIXTURE));
+    c.example = true;
+    return c;
   };
 
   // ── THE OTHER HALF OF THE SEAM ────────────────────────────────────────────
@@ -9892,6 +9937,20 @@
    *  itself. PRODID is the honest signal; the front end's own label is second;
    *  a paste is nobody's calendar and says so. */
   function daySourceOf(src) {
+    // A BARE SOURCE ID, TOO. The import screen and the store each name the same
+    // three sources in their own vocabulary ('gcal' / 'google-ics'), and a
+    // schedule restored from disk carries the store's. Reading only the
+    // parser's descriptor object made every one of those read 'manual', so a
+    // real UT import's footer said "From typed in".
+    if (typeof src === 'string') {
+      const id = src.toLowerCase();
+      if (/^(gcal|google)/.test(id)) return 'google';
+      if (/^apple/.test(id)) return 'apple';
+      if (/^ut/.test(id)) return 'ut';
+      if (/^image/.test(id)) return 'image';
+      if (/^(api|registration-plus)/.test(id)) return 'api';
+      return 'manual';
+    }
     const p = String((src && (src.producer || src.label)) || '').toLowerCase();
     if (/google/.test(p)) return 'google';
     if (/apple|mac os|ical\b|core ?data/.test(p)) return 'apple';
@@ -9988,7 +10047,10 @@
 
     const plan = {
       day: DAY_NAMES[di], date: null, tz: schedule.tz || null,
-      source: daySourceOf(schedule.source), items,
+      // `origin` is the parser's own descriptor when there is one; `source` is
+      // the bare id the import screen and the store use. Either answers.
+      source: daySourceOf(schedule.origin || schedule.source),
+      example: !!schedule.example, items,
     };
     if (opts.show === false) { return { ok: true, plan, day: DAY_NAMES[di], skipped, noTime }; }
     const r = await window.wayfindDay(plan);
@@ -10016,14 +10078,56 @@
     dayBtn.addEventListener('click', async (ev) => {
       ev.preventDefault(); ev.stopPropagation();
       if (dayEl && !dayEl.panel.classList.contains('hidden')) { dayHide(); return; }
-      if (!dayPlan) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
-      else dayShow();
+      // SI2. THE STUDENT'S OWN SCHEDULE, ALWAYS FIRST. This button used to call
+      // the demo unconditionally — a hard-coded Tuesday — under a label reading
+      // "Import my class schedule". Somebody who had just imported four classes
+      // was shown four different ones and given no way to tell.
+      const mine = dayImportedSchedule();
+      if (mine) {
+        let r = null;
+        try { r = await window.wayfindDayFromSchedule(mine); } catch (e) { r = null; }
+        if (r && r.ok) return;
+        // Imported, but no day could be built out of it — every class lost its
+        // time. The demo is not the answer to that; the import screen is,
+        // because that is the surface where what happened is written down.
+        try { if (window.wayfindImportOpen) window.wayfindImportOpen(); } catch (e) {}
+        return;
+      }
+      if (dayPlan && !dayPlan.example) { dayShow(); return; }
+      if (WF_DAY.demoWhenEmpty) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
+      else if (dayPlan) dayShow();
+    });
+    // ONE dispatchEvent, AND UNTIL NOW ZERO addEventListener. The import
+    // announced itself on `wayfind:schedule` and nothing in the app was
+    // listening, so an open demo stayed on screen through an import and a
+    // stale plan outlived the schedule it was built from.
+    window.addEventListener('wayfind:schedule', (ev) => {
+      const s = (ev && ev.detail) || window.wayfindSchedule || null;
+      const open = !!(dayEl && !dayEl.panel.classList.contains('hidden'));
+      dayPlan = null; dayRows = null; dayPicked = -1;
+      if (!s) { dayHide(); return; }
+      if (open) { try { window.wayfindDayFromSchedule(s); } catch (e) {} }
     });
     const foot = el.sheet.querySelector('.wf-foot');
     if (foot) el.sheet.insertBefore(dayBtn, foot); else el.sheet.appendChild(dayBtn);
     // Opening the question closes the day plan, for the same one-panel reason
     // dayShow() closes the question. An extra listener, not an edited one.
     el.btn.addEventListener('click', () => dayHide());
+  }
+
+  /**
+   * THE SCHEDULE THE STUDENT ACTUALLY IMPORTED, or null.
+   *
+   * `window.wayfindSchedule` is the live one; after a reload the store section
+   * republishes the saved one onto the same name, so this single accessor
+   * covers both and the demo is left with exactly one condition it may appear
+   * under: nothing has ever been imported on this device.
+   */
+  function dayImportedSchedule() {
+    const s = window.wayfindSchedule;
+    if (!s) return null;
+    const evs = s.events || s.routable || [];
+    return evs.length ? s : null;
   }
 
   function dayBoot() {
@@ -11486,6 +11590,10 @@
     // whole calendar, not their classes, and importing 400 events silently is
     // worse than saying no.
     maxEvents: 200,
+    // The timezone a row carries when the FALLBACK decoder made it. The parser
+    // reads the real one off the file; a block pasted off UT Direct carries
+    // none, and UT is Central.
+    tz: 'America/Chicago',
     // A pasted URL is fetched by the browser, which is subject to the calendar
     // host's CORS policy — Google's and Apple's both refuse. That is not a bug
     // to hide; it is the commonest way this screen fails and it has its own
@@ -11511,6 +11619,11 @@
   const IMP_SOURCES = [
     {
       id: 'gcal', tab: 'Google', label: 'Google Calendar',
+      // What the STORE calls this source. Two vocabularies existed for the
+      // same three sources — this screen's short tab ids and
+      // SCHEDULE_SOURCES's long ones — and the privacy panel reads the long
+      // one, so a saved schedule said "from an import" instead of naming it.
+      storeKind: 'google-ics',
       accepts: ['file', 'url'],
       // Read off Google Calendar's own export flow. The .zip is the part every
       // guide forgets and the part that produces a real, confusing failure.
@@ -11525,6 +11638,7 @@
     },
     {
       id: 'apple', tab: 'Apple', label: 'Apple Calendar',
+      storeKind: 'apple-ics',
       // URL FIRST FOR APPLE, and that is not a coin toss. Apple's own flow is
       // a SUBSCRIPTION: `webcal://` is a URI scheme the OS registers, so the
       // address is the thing a student already has in their hand.
@@ -11541,6 +11655,7 @@
     },
     {
       id: 'ut', tab: 'UT', label: 'UT registration',
+      storeKind: 'ut-registration',
       // TEXT FIRST FOR UT, AND THE REASON IS RESEARCH, NOT PREFERENCE. There
       // is no confirmed first-party UT .ics or webcal feed for a personal
       // class schedule — docs/import-bar-ut.md looked and found none, and the
@@ -11879,19 +11994,118 @@
   }
 
   /**
-   * THE JOINT. Everything above produces RAW ROWS; everything below consumes
-   * them. If the parser lane has landed, its function is the producer instead
-   * and nothing else here changes — that is what makes the seam a seam.
+   * THE JOINT — AND THE ONE SHAPE THAT CROSSES IT.
+   *
+   * Everything above produces RAW ROWS; everything below consumes them. The
+   * producer is the PARSER; the decoders above are the FALLBACK for when it
+   * throws, which is the opposite of how this ran until now.
+   *
+   * IT IS ASYNC BECAUSE THE PARSER IS. `wayfindParseSchedule` is declared
+   * `async` — it awaits the building vocabulary before resolving a code — so a
+   * caller that does not `await` holds a Promise, and `Array.isArray(promise)`
+   * is false every time. That one missing keyword silently ran the fallback
+   * decoders on every import in the app: measured on the parser's own
+   * manual-paste fixture, 2 of 7 classes placed where the parser places 5.
+   *
+   * WHY THE PARSER'S OBJECT IS THE SHAPE THAT CROSSES THE SEAM. It is the only
+   * producer carrying `startMin`/`endMin` as NUMBERS and a per-row
+   * `problems[]`, and those are exactly what everything downstream needs: the
+   * day view orders a day by minutes, and the store's `normaliseSchedule`
+   * discards any `startMin` that is not finite. So the parser's `events[]` are
+   * adapted DOWN to the row shape `impPlace()` already reads — which leaves
+   * this screen's placement rules and its taxonomy of failures exactly where
+   * they were — and the events themselves travel on, untouched, inside the
+   * result object. docs/si-seams.md is the argument in full.
    */
-  function impRawRows(text, sourceId) {
+  async function impRawRows(text, sourceId) {
     if (typeof window.wayfindParseSchedule === 'function') {
       try {
-        const r = window.wayfindParseSchedule(text, { source: sourceId });
-        if (Array.isArray(r) && r.length) return r;
+        const s = impSource(sourceId);
+        // The label is a HINT, not an override: schedParseICS prefers the
+        // file's own PRODID and calendar name, and this is only what the day
+        // view's footer falls back to when the file said nothing about itself.
+        const parsed = await window.wayfindParseSchedule(text, { label: s ? s.label : '' });
+        if (parsed && Array.isArray(parsed.events) && parsed.events.length) {
+          return { rows: parsed.events.map(impRowFromEvent), events: parsed.events,
+            parsed: parsed, decoder: 'parser' };
+        }
+        // A future producer bound to this name may hand back plain rows. Kept,
+        // so the seam is a shape contract and not a function identity.
+        if (Array.isArray(parsed) && parsed.length) {
+          return { rows: parsed, events: null, parsed: null, decoder: 'parser' };
+        }
       } catch (e) { /* fall through to the reference decoders */ }
     }
-    if (/BEGIN:VCALENDAR/i.test(text) || /BEGIN:VEVENT/i.test(text)) return impDecodeICS(text);
-    return impDecodeUTText(text);
+    const rows = (/BEGIN:VCALENDAR/i.test(text) || /BEGIN:VEVENT/i.test(text))
+      ? impDecodeICS(text) : impDecodeUTText(text);
+    return { rows: rows, events: null, parsed: null, decoder: 'fallback' };
+  }
+
+  /** `14:00` -> 840, and back. The row shape this screen reads speaks clock
+   *  strings; every surface downstream of it speaks minutes. */
+  function impMinOf(hm) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(hm == null ? '' : hm).trim());
+    if (!m) return null;
+    const v = (+m[1]) * 60 + (+m[2]);
+    return (v >= 0 && v < 1440) ? v : null;
+  }
+  function impHmOf(min) {
+    const v = Number(min);
+    if (!isFinite(v) || v < 0) return null;
+    return String(Math.floor(v / 60)).padStart(2, '0') + ':' +
+      String(Math.round(v % 60)).padStart(2, '0');
+  }
+
+  /**
+   * ONE PARSER EVENT -> ONE RAW ROW.
+   *
+   * The parser has already done the hard half — unfolded the file, found the
+   * LOCATION and resolved it against the same building vocabulary this app
+   * routes on — so its `code`/`room` are preferred over its raw
+   * `locationText`. That preference is the whole gain: `Jester Center` is a
+   * NAME, not a code, and the fallback decoder can only ever drop it, while
+   * the parser resolves it and hands this screen `JES`.
+   */
+  function impRowFromEvent(e) {
+    const ev = e || {};
+    const loc = ev.code ? (ev.room ? ev.code + ' ' + ev.room : ev.code)
+      : String(ev.locationText || '');
+    return {
+      title: ev.title || ev.course || '',
+      course: ev.course || '',
+      location: loc,
+      days: Array.isArray(ev.days) ? ev.days.slice() : [],
+      start: ev.startMin == null ? null : impHmOf(ev.startMin),
+      end: ev.endMin == null ? null : impHmOf(ev.endMin),
+      startMin: ev.startMin == null ? null : Number(ev.startMin),
+      endMin: ev.endMin == null ? null : Number(ev.endMin),
+      firstDate: ev.firstDate || null,
+      unique: ev.unique || null,
+      // What the file actually said, kept verbatim, because a reject row
+      // prints it and "we could not read THIS" is the only useful failure.
+      raw: String(ev.locationText || loc || ev.title || ''),
+    };
+  }
+
+  /**
+   * ...AND THE OTHER DIRECTION, for the fallback decoders ONLY. When the parser
+   * threw, the surfaces downstream still need events, and inventing them from
+   * the rows this screen actually placed is the only way the two views cannot
+   * end up telling a student different things.
+   */
+  function impEventFromPlaced(p, row, idx) {
+    const r = row || {};
+    return {
+      index: idx, id: 'row-' + idx,
+      title: r.title || '', course: r.course || '',
+      locationText: r.location || '',
+      code: p.code || null, room: p.room || '',
+      days: (p.days || []).slice(),
+      startMin: p.startMin, endMin: p.endMin,
+      firstDate: r.firstDate || null, lastDate: null, exDates: [],
+      tz: IMP.tz, status: p.status === 'ok' ? 'ok' : 'failed',
+      problems: [], confidence: 1, unique: r.unique || null,
+    };
   }
 
   // ── placement: a RAW ROW -> a placed class, or a reject with a reason ─────
@@ -11914,6 +12128,12 @@
     const base = {
       title: row.title || SAY_IMP.unnamed, room: room, code: code,
       days: row.days || [], start: row.start || null, end: row.end || null,
+      // MINUTES TRAVEL WITH THE ROW, rather than being re-derived downstream.
+      // `normaliseSchedule` discards any `startMin` that is not finite, so a
+      // class saved without these loses its time for good — which is what a
+      // reload did to every class before anything called `store.save()`.
+      startMin: row.startMin == null ? impMinOf(row.start) : Number(row.startMin),
+      endMin: row.endMin == null ? impMinOf(row.end) : Number(row.endMin),
       raw: row.raw || row.location || row.title || '',
     };
     if (!code) return Object.assign(base, { status: 'nolocation', name: null });
@@ -11941,13 +12161,15 @@
    * added later) reads. Versioned, because a saved schedule outlives the
    * session that made it.
    */
-  function impBuild(text, sourceId, via) {
-    const rows = impRawRows(text, sourceId);
+  async function impBuild(text, sourceId, via) {
+    const got = await impRawRows(text, sourceId);
+    const rows = got.rows || [];
     if (!rows.length) return { err: SAY_IMP.errNoEvents };
     if (rows.length > IMP.maxEvents) return { err: SAY_IMP.errTooMany(rows.length) };
-    const classes = [], rejects = [];
+    const classes = [], rejects = [], events = [];
     const seen = new Set();
-    for (const r of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
       const p = impPlace(r);
       // ONE CLASS, NOT ONE MEETING. A weekly class is one VEVENT with an
       // RRULE, but a hand-pasted block can repeat a room on three lines; the
@@ -11956,6 +12178,10 @@
       if (seen.has(key)) continue;
       seen.add(key);
       if (p.status === 'ok') classes.push(p); else rejects.push(p);
+      // THE SAME ROW, KEPT IN THE PARSER'S SHAPE. Same set, same order, same
+      // de-duplication, so `events` and `classes` + `rejects` are two views of
+      // one list rather than two lists that can drift.
+      events.push(got.events ? got.events[i] : impEventFromPlaced(p, r, events.length + 1));
     }
     if (!classes.length && !rejects.length) return { err: SAY_IMP.errNoEvents };
     if (!classes.length && rejects.every(r => r.status === 'nolocation')) {
@@ -11964,6 +12190,21 @@
     return {
       v: 1, source: sourceId, via: via, at: Date.now(),
       classes: classes, rejects: rejects,
+      // ── AND THE PARSER'S OWN SHAPE, CARRIED ───────────────────────────────
+      // `events` is what `wayfindDayFromSchedule()` reads and what the store
+      // is handed; `origin` is the parser's account of where the file came
+      // from, which is what lets the day view's footer tell Google from Apple
+      // from UT. Publishing them on the SAME object is what makes one import
+      // satisfy every reader downstream, instead of each lane publishing a
+      // shape only it can read. `decoder` records which producer actually ran,
+      // because "which decoder read the student's file" turned out to be a
+      // question nobody could answer from outside.
+      decoder: got.decoder,
+      events: events,
+      origin: (got.parsed && got.parsed.source) || null,
+      tz: (got.parsed && got.parsed.tz) || IMP.tz,
+      problems: (got.parsed && got.parsed.problems) || [],
+      summary: (got.parsed && got.parsed.summary) || null,
     };
   }
 
@@ -12488,13 +12729,19 @@
     p.then(() => impFinishNow(text, via), () => impFinishNow(text, via));
   }
 
-  function impFinishNow(text, via) {
+  async function impFinishNow(text, via) {
+    let out;
+    // `busy` is cleared AFTER the await, not before it: the parser is async
+    // now, and clearing it first put `Import` back on the button while the
+    // file was still being read.
+    try { out = await impBuild(text, impState.source, via); }
+    catch (e) { out = { err: SAY_IMP.errNoEvents }; }
     impState.busy = false;
-    const out = impBuild(text, impState.source, via);
     impState.showAll = false; impState.fit = null; impState.fitDone = false;
     if (out.err) { impState.err = out.err; impState.result = null; }
     else { impState.result = out; impState.err = null; }
     impRender();
+    return out;
   }
 
   function impFromFile(f) {
@@ -12569,6 +12816,22 @@
    */
   function impUse(res) {
     window.wayfindSchedule = res;
+    // SI3. THE IMPORT IS WHAT SAVES, AND UNTIL NOW NOTHING DID.
+    // `WAYFIND.store.save` calls itself "the public seam the import lanes
+    // call" and no line in this file called it, so a reload lost the import,
+    // "Delete my schedule" had nothing to delete, and the egress guard — which
+    // arms its watchlist from the STORED schedule — was reading watched=0 at
+    // the exact moment a schedule was in memory and on screen.
+    //
+    // HERE AND NOT AT PREVIEW TIME. This is the tap that says "use these"; a
+    // schedule a student looked at and backed out of has no business being
+    // left on the device.
+    let saved = null;
+    try {
+      saved = (window.WAYFIND && WAYFIND.store && WAYFIND.store.save)
+        ? WAYFIND.store.save(impStoreDoc(res)) : null;
+    } catch (e) { saved = { ok: false, why: 'threw' }; }
+    res.saved = saved;
     try {
       window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: res }));
     } catch (e) {}
@@ -12588,6 +12851,33 @@
     }
     try { syncClears(); renderList(el.inTo); } catch (e) {}
   }
+  /**
+   * THE IMPORT RESULT -> THE STORED ENVELOPE. `normaliseSchedule` decides what
+   * a stored schedule IS; this only decides what to hand it.
+   *
+   * THE REJECTS ARE STORED TOO, each with the reason this screen gave for it.
+   * A student who imported seven classes and can walk to five still has seven
+   * classes on their Tuesday, and dropping the other two on the way to disk
+   * would put an invented two-hour gap into the day view the moment the page
+   * reloads — the same defect WF_DAY.showUnplaced exists to stop.
+   */
+  function impStoreDoc(res) {
+    const out = [];
+    const put = (c, why) => out.push({
+      code: c.code || null, room: c.room || null, title: c.title || null,
+      days: (c.days || []).slice(),
+      startMin: c.startMin == null ? null : c.startMin,
+      endMin: c.endMin == null ? null : c.endMin,
+      unroutableWhy: why, confidence: 1,
+    });
+    for (const c of (res.classes || [])) put(c, null);
+    for (const r of (res.rejects || [])) put(r, r.status || 'unknown');
+    return {
+      classes: out, tz: res.tz || IMP.tz, term: null,
+      source: (impSource(res.source) || {}).storeKind || 'manual',
+    };
+  }
+
   function impByTime(a, b) {
     const da = IMP.dayOrder.indexOf((a.days || [])[0] || 'MO');
     const db = IMP.dayOrder.indexOf((b.days || [])[0] || 'MO');
@@ -12637,9 +12927,15 @@
   window.wayfindImportText = async function (text, sourceId) {
     if (sourceId) impState.source = sourceId;
     try { await loadGraph(); } catch (e) {}
-    impFinishNow(String(text), 'text');
+    await impFinishNow(String(text), 'text');
     return impState.result || { err: impState.err };
   };
+  /** WHAT THE SCREEN IS ACTUALLY SHOWING, including `decoder` — which producer
+   *  made the rows it placed. Added because "which decoder read the student's
+   *  file" was a question nothing outside this section could answer, and the
+   *  only available proxy (the parser's return TYPE) is false by construction
+   *  now that the parser is correctly awaited. */
+  window.wayfindImportResult = function () { return impState.result || null; };
   window.wayfindImportParse = async function (text, sourceId) {
     try { await loadGraph(); } catch (e) {}
     return impBuild(String(text), sourceId || impState.source, 'text');
@@ -14306,6 +14602,74 @@
     return r;
   }
 
+  /**
+   * THE STORED ENVELOPE -> THE OBJECT THE REST OF THE FEATURE READS.
+   *
+   * A reload used to lose the import outright. Nothing new is read here —
+   * `scheduleLoad()` already put this in memory at boot, which is where the
+   * guard's watchlist comes from — this only gives it the shape everything
+   * downstream expects, so the day view after a reload is the student's own
+   * day and not the demo.
+   */
+  function schedulePublished(d) {
+    if (!d || d.tooNew || !Array.isArray(d.classes) || !d.classes.length) return null;
+    const events = d.classes.map((c, i) => {
+      const t = String(c.title || '');
+      // `course` is not stored — it is derivable from the title by the same
+      // rule the parser used to derive it, and a stored field that can go out
+      // of step with the field it came from is a schema change looking for a
+      // bug.
+      const cm = SCHED_COURSE_RE.exec(t.toUpperCase());
+      return {
+        index: i + 1, id: c.id || ('row-' + (i + 1)),
+        title: t, course: cm ? cm[1].replace(/\s+/g, ' ').trim() : '',
+        locationText: c.code ? (c.room ? c.code + ' ' + c.room : c.code) : '',
+        code: c.code || null, room: c.room || '',
+        days: Array.isArray(c.days) ? c.days.slice() : [],
+        startMin: c.startMin, endMin: c.endMin,
+        firstDate: null, lastDate: null, exDates: [],
+        tz: d.tz || SCHEDULE.tz,
+        status: c.unroutableWhy ? 'failed' : 'ok',
+        problems: [], confidence: c.confidence == null ? 1 : c.confidence,
+      };
+    });
+    return {
+      v: SCHEDULE_SCHEMA_VERSION, restored: true, tz: d.tz || null,
+      origin: (d.sources && d.sources[0]) || null,
+      source: (d.sources && d.sources[0] && d.sources[0].kind) || 'manual',
+      events: events,
+    };
+  }
+
+  /**
+   * Keep `window.wayfindSchedule` and the device in step in BOTH directions: a
+   * stored schedule is published, a deleted one is unpublished, and a delete in
+   * another tab does both — which is the case that would otherwise leave a
+   * schedule on screen that the student believes they erased.
+   *
+   * A LIVE IMPORT WINS. The object `impUse()` publishes carries this round's
+   * placements and rejects as well as the events; the restored one is thinner,
+   * and overwriting the richer object with it on the save that just happened
+   * would be a regression dressed as tidiness.
+   */
+  function scheduleSyncPublished() {
+    const d = scheduleLoad();
+    const has = !!(d && !d.tooNew && d.classes && d.classes.length);
+    if (!has) {
+      if (window.wayfindSchedule) {
+        window.wayfindSchedule = null;
+        try { window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: null })); } catch (e) {}
+      }
+      return;
+    }
+    if (window.wayfindSchedule) return;
+    window.wayfindSchedule = schedulePublished(d);
+    try {
+      window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: window.wayfindSchedule }));
+    } catch (e) {}
+  }
+  schedListeners.add(() => { try { scheduleSyncPublished(); } catch (e) {} });
+
   // A delete in one tab is a delete everywhere. Cheap, and the alternative is
   // a second tab still holding a schedule the student believes they erased.
   window.addEventListener('storage', (ev) => {
@@ -14399,6 +14763,8 @@
   installEgressGuard();
   scheduleLoad();
   if (schedCache) setWatchlist(buildWatchlist(schedCache));
+  // ...and hand whatever survived the reload back to the surfaces that read it.
+  scheduleSyncPublished();
   setTimeout(() => mountPrivacyPanel(), 0);
 
   WAYFIND.store = {

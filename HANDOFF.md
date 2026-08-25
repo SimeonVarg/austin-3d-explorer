@@ -1,5 +1,47 @@
 # Austin 3D Explorer — Full Handoff
 
+## 182. Aug 25 2026 — the three schedule-import seams closed: the screen now calls the parser, the day view shows YOUR classes, and an import is actually saved (branch `acer/si-combined`, `docs/si-seams.md`)
+
+SI1, SI2 and SI3 were one job, not three — all three were the same question,
+which object shape crosses the seam between the parser and everything
+downstream. **The parser's `ut-walk-schedule` object is that shape**, because it
+is the only producer carrying `startMin`/`endMin` as numbers and per-row
+`problems[]`, and both consumers need exactly those. The argument in full,
+including what was NOT chosen and what the decision costs, is in
+`docs/si-seams.md` §0.
+
+- **SI1**: `impRawRows()` is async and awaits the parser; its `events[]` are
+  adapted down to the rows `impPlace()` reads. The stand-in decoders survive as
+  a genuine fallback for when the parser throws. **2 of 7 classes placed → 5.**
+- **SI2**: the published object carries `events`, `#wf-day-btn` asks for the
+  imported schedule first, and the `wayfind:schedule` listener that never
+  existed now exists. The demo can only appear when nothing has been imported,
+  and when it does it says `EXAMPLE` in the header and "sample data, not your
+  schedule" in the footer. Frames: `shots/si/seams/`.
+- **SI3**: `impUse()` calls `WAYFIND.store.save()`. A reload keeps the import
+  (the store republishes it), Delete has something to delete, and the SHIPPED
+  egress guard now arms off a real import — **watched 0 → 30, worker messages
+  inspected 0 → 107**.
+
+`si-integration.mjs`: **39/50 → 45/50**. The five that remain are SI4 (3), SI5
+and SI6, none of them this pass's scope. One instrument in that gate was
+corrected and it is flagged in the doc: gate 1 asserted `Array.isArray()` on the
+parser's return value, which is false by construction for an `async` function
+however the screen behaves — with the gate left exactly as it was the number is
+44/50, and both numbers are published.
+
+Untouched and re-verified: `WAYFIND.on` is still `false`; `walkmeter.mjs`
+reproduces 87.0 m / −393.7 m / 38 of 38 with zero drift; `dayview.mjs` is
+100 ok / 2 failed, byte-identical to its baseline on this tree with the changes
+reverted (both failures are the merge's, not ours).
+
+**Still open on this branch, and one of them is worse than it looks**: SI4's
+`overflow-y: hidden` clips 157 px off the bottom of the sheet on a 390 px
+phone, and the Delete control is inside that 157 px. **A student on a phone
+cannot currently tap Delete.** That makes SI4 a privacy defect, not only a
+layout one. The one-door-or-two half of SI4 is still Simeon's taste call.
+
+
 ## 180. Aug 23 2026 — the K7 round, judged and shipped: the sweep's three defects all closed, the floater family named object by object, and the judging itself found a fourth (ship lane, branch `acer/k7-ship`)
 
 Four lanes ran on the first finished sweep's findings (`acer/k7-floater`,

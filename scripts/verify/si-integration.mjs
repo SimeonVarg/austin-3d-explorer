@@ -152,7 +152,7 @@ await page.waitForTimeout(1500);
 head('1. which decoder actually reads the file the student hands over');
 // Instrument the seam BEFORE anything is imported.
 await page.evaluate(() => {
-  window.__seam = { calls: 0, kept: 0, returned: [] };
+  window.__seam = { calls: 0, kept: 0, resolvedEvents: 0, returned: [] };
   const orig = window.wayfindParseSchedule;
   window.__origParse = orig;
   window.wayfindParseSchedule = function (...a) {
@@ -160,6 +160,14 @@ await page.evaluate(() => {
     const r = orig.apply(this, a);
     window.__seam.returned.push(Object.prototype.toString.call(r));
     if (Array.isArray(r)) window.__seam.kept++;
+    // AND THE SAME QUESTION ASKED OF THE RESOLVED VALUE. `kept` above reads
+    // the parser's RETURN TYPE, and `wayfindParseSchedule` is declared
+    // `async`, so it is false however the screen behaves — including when the
+    // screen is doing exactly the right thing. Corrected 2026-08-25 with the
+    // SI1 fix: an instrument that can only ever report one answer is not
+    // measuring anything. What is asserted below is the screen's own record of
+    // which producer made the rows it placed.
+    try { Promise.resolve(r).then((v) => { if (v && Array.isArray(v.events)) window.__seam.resolvedEvents++; }, () => {}); } catch (e) {}
     return r;
   };
 });
@@ -176,8 +184,12 @@ const seam = await page.evaluate(() => JSON.parse(JSON.stringify(window.__seam))
 note('impRawRows called wayfindParseSchedule ' + seam.calls + ' time(s), returning '
   + JSON.stringify(seam.returned) + '; kept ' + seam.kept);
 ok(seam.calls > 0, 'the import screen does reach for the parser lane');
-ok(seam.kept > 0, "the parser lane's answer is the one the screen uses",
-  seam.kept === 0 ? '<- it is a Promise, Array.isArray() is false, the screen falls back to its own decoder' : '');
+const decoderUsed = await page.evaluate(() =>
+  (window.wayfindImportResult && window.wayfindImportResult() || {}).decoder || null);
+note('the parser resolved with an events[] ' + seam.resolvedEvents + ' time(s); the rows the screen '
+  + 'placed came from the "' + decoderUsed + '" decoder');
+ok(decoderUsed === 'parser', "the parser lane's answer is the one the screen uses",
+  decoderUsed === 'parser' ? '' : '<- the screen fell back to the stand-in decoders si-ui wrote');
 
 // The measurable cost of that fallback, on the parser lane's OWN fixture.
 const compare = await page.evaluate(async () => {
