@@ -3155,3 +3155,220 @@ the port re-confirmed free; one browser; scratch frames stayed in the
 scratchpad; the two scratch scripts written into `scripts/verify` were deleted
 before finishing, along with the output directories they created. Three new
 frames in `shots/si/privacy/` (135 KB together), all three cited by the doc.
+---
+
+## 2026-08-24 — critic verdict on the "dayview" piece, round 4: oursWins = true, and a real defect the harness cannot see
+
+Fresh context, own port (8954). Checked out `acer/si-dayview` at its round-4 tip
+(`16c13ab`) and, since the brief specifically wants "a realistic 3-4-class UT
+day built from the parser lane's fixtures," did not trust the branch's own
+hardcoded demo fixtures for that part — reproduced the round-4 builder's scratch
+merge myself, independently, in a throwaway worktree: merged `origin/acer/si-parser`
+into the dayview tip, resolved the two conflicts (`js/wayfind.js`,
+`docs/walk-progress.md`) the same mechanical way the builder's doc describes
+(concatenate both pure-append blocks), confirmed with `node --check` and by
+diffing hunk boundaries that the resolution really is a plain concatenation, and
+served the result. `harness-drift.mjs` passed (31/31). Ran the branch's own
+`dayview.mjs` fresh against this independently-built merge: exit 0, all gates
+green, including the round-4 gates (the `week` fixture through the real adapter,
+the `MAII`→`MAI` typo refusal, the done-state, off-stays-off).
+
+**Then, separately from the builder's own fixtures, fed the parser lane's real
+`ut-regplus.ics`** — a genuine UT Registration Plus export, not written by
+either lane's harness — through the real running pipeline
+(`window.wayfindParseSchedule` → `window.wayfindDayFromSchedule`), no shortcuts.
+It resolves to a completely ordinary Tuesday: 3 classes (RTF 305, J 310F, C S
+429), 2 walks, 1.5 km on foot — exactly the "realistic 3-4-class day" the brief
+asked for, and one nobody on this branch had written a fixture for. Screenshotted
+at `?dayat=12:15` (mid-gap, so `NOW`/`NEXT` are live) on both desktop and phone.
+
+**Blind visual judgement.** Bar = a real, current Google Calendar screenshot —
+not the same one round 3 used, deliberately, to avoid re-testing against a
+source already known to lose: the official Google Calendar Play Store listing's
+"Schedule" view, showing a real Monday's stacked, colour-coded, timed event
+blocks. Ours = a panel-only crop of the `ut-regplus.ics` Tuesday at 12:15, from
+the render above. Saved as `neutral-1.png` / `neutral-2.png` in the scratchpad,
+shuffled, judged on the stated question — does it read at a glance which walk is
+next, how long it takes, and whether it has a problem — before revealing the
+mapping. Preference written down first: neutral-1, clearly, because it carries
+an explicit `NEXT` badge on the walk row, the walk's minutes are the single
+biggest text on the card, and two named chips turn "problem" into specifics
+(`1 set of stairs · a step-free way is 180 m shorter`, `Crosses 3 signalised
+crossings`) rather than something to infer; neutral-2 is a well-designed list of
+appointments with zero visual language for travel between them — the gap
+between two of its events is blank white space carrying no information at all,
+because a calendar was never built to model a walk as a thing with a duration or
+a hazard. Revealed after writing that down: neutral-1 = ours. Same result round
+3 got, independently reproduced with a different real fixture and a different
+real bar image, so this isn't one lucky comparison — the day-view's core claim
+holds up twice against two different Google Calendar surfaces.
+
+**The gap, and it is real, not a nitpick.** The same phone screenshot that won
+the blind test also showed the day's third class (`C S 429`, 4:00–5:00pm,
+University Teaching Center) silently truncated mid-line, with no scrollbar, no
+fade, no "more below" cue of any kind — the row is just cut, mid-glyph, and the
+card's footer sits directly under the cut as if the list had ended. Confirmed
+this is a real scroll clip and not a viewport overflow: `#wf-day-list`'s
+`scrollHeight` (398px) exceeds its `clientHeight` (348px) at 390×844, the row is
+reachable by scrolling (a forced `scrollTop` reveals it completely, screenshot
+taken to confirm), and `#wf-day-list{overflow-y:auto;max-height:__LISTVH__vh}`
+(`listMaxVh: 66` in `js/wayfind.js`) carries no mask, gradient, or affordance of
+any kind — grepped the file for `mask-image`, `fade`, `gradient.*transparent`
+near the list rule and found nothing. **The reason this survived 103 green
+checks is that the harness's own phone gate (`dayview.mjs`, both instances of
+"on a 390 px phone the panel is on screen and not cut off") only bounds-checks
+the OUTER panel's bounding box against the viewport — which is true, the panel
+itself ends at y=658 of 844 — and never checks whether every row inside the
+internal scroll region is reachable or hinted at.** That is a real, ordinary UT
+schedule — three classes is not an edge case — silently losing its last class on
+the exact device size this feature is built for, and the existing test suite is
+structurally blind to it because it is checking the wrong box.
+
+**Single biggest remaining gap, stated so a builder can act on it without
+asking a question:** on a 390×844 phone, `#wf-day-list` needs a visible
+affordance that content continues past its `max-height:66vh` clip — a bottom
+fade/mask-image gradient over the last ~24px of the list is the standard fix and
+costs nothing measured (this feature's own gap-bar and chip rendering already
+happens inside the same rule), or, if the taste call is to never truncate
+silently, shrink `WF_DAY.listMaxVh` or the row height so a routine 3-class day
+always fits without scrolling. Either way, add a gate to `dayview.mjs` that
+checks `list.scrollHeight <= list.clientHeight` (or that a fade/affordance
+element exists when it doesn't) for a 3+ class day at phone width — the current
+"panel bounding box is on screen" gate will keep passing forever regardless,
+because it is not measuring the thing that broke.
+
+**What was checked, concretely:** `node --check` on the independently-merged
+`js/wayfind.js` (11,134 lines); `harness-drift.mjs` 31/31; the branch's own
+`dayview.mjs` re-run fresh on that merge, exit 0; a from-scratch render of
+`schedule-fixtures/ut-regplus.ics` through the real `wayfindParseSchedule` /
+`wayfindDayFromSchedule` pipeline at both 1280×800 and 390×844; the `#wf-day`
+element's own bounding box and `#wf-day-list`'s scroll geometry read directly
+off the DOM before and after a forced scroll; a blind pairwise comparison
+against a real, freshly-fetched Google Calendar product screenshot with the
+preference written down before the mapping was revealed; a diff-stat sanity
+check (`git diff --stat 3103eac 16c13ab -- js/wayfind.js`, 553+/27-) confirming
+every deletion in this round sits inside the day-plan's own identifiers
+(`dayPlace`, `dayRows`, `dayEl`, `wf-d-*`) and none of it touches routing,
+stairs, doors, or lighting code owned by sibling lanes.
+
+**oursWins = true.** The blind visual win is real and now independently
+reproduced twice on two different real fixtures and two different real Google
+Calendar surfaces. It is not a tie and not a squeak — Calendar structurally
+cannot answer the question being judged. The phone-scroll defect above does not
+change that verdict (it is a real UT day rendering correctly and legibly right
+up to the cut), but it is the thing to fix before this ships to a phone, which
+is the device this whole feature is for.
+
+Nothing the builder owns was edited. All work happened in a throwaway worktree
+under the scratchpad (merged tree, `node_modules` installed there and in this
+worktree, both removed afterward), never pushed anywhere. Server on 8954 killed
+by PID after `netstat` confirmed it was still listening; port re-confirmed free.
+Browser pane closed. `git worktree remove` + `git worktree prune` run after
+`rm -rf` cleared the scratch tree by hand (git's own delete hit Windows'
+path-length limit on the nested `node_modules`). No screenshots committed to
+the repo — all frames stayed in the scratchpad.
+
+## 2026-08-24 — critic round 5 on the privacy piece (`acer/si-privacy`), oursWins=false — round 5's fix closed one shape of the hole and left an adjacent one wide open
+
+Fresh context, port 8955, own script (not the builder's `r5-blob.mjs`) — own
+canary strings (a class title, an instructor, a room, none borrowed from the
+builder), own raw TCP sink on a different port, own delete-then-reload check.
+`harness-drift.mjs` PASS first (31/31); `npm install` fresh into an empty
+`scripts/verify/node_modules`.
+
+**THE STATED BAR passes, taken literally.** Drove the real import seam
+(`window.WAYFIND.store.save()` — the same call a real importer will make, since
+no importer lane exists yet), captured every request during the import window
+at the CDP `Target`/`Network` level so worker-originated fetches are seen too
+(not just `page.on('request')`, which `scripts/verify/README.md` documents as
+blind to MapLibre's worker traffic), and scanned all of them: zero carried any
+canary string. Then a real mouse click on the real `#wf-priv-del`, followed by
+a genuinely fresh document (a new page in the same browser context, not a
+reload of the seeding page, so the assertion cannot be testing its own seed) —
+no `austin3d.schedule.*` key in storage, `store.has()` false, no reserved
+IndexedDB database, panel back to "No schedule saved on this device yet." Took
+a real screenshot and looked at it: the panel is genuinely on screen, in the
+city, with the sentence, the count, and the Delete button all rendering exactly
+as the doc describes.
+
+**But the document's central technical claim is broken, and I have it landing
+on a socket to prove it.** Round 4's critic found that a `Blob`-bodied network
+request could carry the schedule past an armed guard; round 5 fixed exactly
+that shape (`SCHEDULE_STORE.blockUnreadableBodies`, `scanStructured()`'s new
+`opaque` flag) and the fix genuinely holds for `Blob` and `ReadableStream` — I
+did not need to re-check that, the reasoning in `js/wayfind.js` §12 and
+`docs/si-privacy.md` §6 is sound and I read the real code, not just the doc.
+
+The fix was narrow, though, and the adjacent shape it left alone is the one
+MapLibre's real workers actually use for binary tile data: a plain
+`ArrayBuffer` / `TypedArray`, transferred. `scanStructured()`'s walk explicitly
+returns immediately for `ArrayBuffer.isView(x) || x instanceof ArrayBuffer`
+with **no `opaque` flag raised** — unlike a `Blob`, which now sets
+`opaque = true` and gets refused. The code comment defends this ("cannot hold a
+JS string") and that reasoning is simply wrong: `TextEncoder`/`TextDecoder`
+round-trip a string through bytes without any loss, which is exactly what a
+real leak (or a later lane's honest bug) would do to get a string into a
+transferable payload cheaply.
+
+I proved this two ways, both against a bare TCP listener so nothing about HTTP
+framing could hide the answer, with the guard installed and **armed** the
+whole time:
+
+1. `postMessage({ tile:'x', payload: encoder.encode(canaryTitle).buffer },
+   [buffer])` into a worker — the same transfer shape MapLibre uses for tile
+   bytes. It went through. `guard.state()` before/after: `blockedDelta: 0`,
+   **`opaqueDelta: 0`** — not merely unblocked, *uncounted, unlogged, invisible
+   to the guard's own instrumentation.* The worker received the schedule title
+   intact (`byteLength: 30`, decodable).
+2. From inside that same worker, an ordinary `fetch()` — the worker's own
+   global `fetch`, which `installEgressGuard()` never touches because it only
+   patches `window.fetch` on the **main thread** — POSTed those bytes to my raw
+   socket. `worker-fetch-sent:204`, and the socket's buffer read back
+   `"Xylographic Waveform Practicum"` verbatim, character for character.
+
+That is the schedule leaving the device, with the round-5 fix in place and the
+guard armed, using a payload shape the app's own real dependency (MapLibre)
+uses routinely. The doc's safety-case sentence — *"a worker cannot send what it
+was never told"* — is false as written: a worker can be told, via a typed
+array, without the guard so much as noticing, and once told, nothing in this
+file stands between that worker and the network at all. §9's "what it does not
+cover" list names `<img src>`, link navigation, and field-fragment matching as
+known gaps; it does not name this one, and this one is not a corner case like
+those — it is the exact transport shape the app's own tile pipeline already
+uses, sitting one property-check away from a total, silent bypass.
+
+**oursWins = false.** The stated bar (zero leaked requests during a real
+import; delete really empties storage on reload) passes clean, and I am not
+discounting that. But this is the third round in a row this exact promise has
+had a real, socket-verified hole in it (round 4: Blob network body; this
+round: ArrayBuffer worker payload plus the worker's own unwrapped fetch), and
+each fix so far has closed the specific shape that was demonstrated rather
+than the general class ("any way to hand a worker bytes it can read back out
+of, and any way that worker can then reach the network"). A promise this
+document itself frames as "enforced, not asserted," about data this sensitive,
+does not get to tie on a technicality of the stated test — the mechanism it
+leans on is still concretely breakable, three rounds in.
+
+**Single biggest remaining gap, concretely:** in `scanStructured()`
+(`js/wayfind.js` §12, the walk used by the `Worker.prototype.postMessage`
+guard), treat `ArrayBuffer` and every `ArrayBuffer.isView` shape (`Uint8Array`,
+`DataView`, etc.) as `opaque = true`, the same way the round-5 fix already
+treats `Blob` and `ReadableStream` — do not just skip past it. Then, because
+that alone still leaves a worker able to read bytes it was handed and dial out
+with its own `fetch`, either (a) have `installEgressGuard()` also run inside
+every `Worker` this app itself creates (patch `self.fetch` /
+`self.XMLHttpRequest` from within the worker's own bootstrap script, not just
+`window.*`), or (b) if that is impractical for MapLibre's internal workers,
+say so explicitly in §9's "what it does not cover" list instead of asserting
+in prose that "a worker cannot send what it was never told" — because right
+now it can, and this round proved it on a raw socket.
+
+Server on 8955 killed by PID, `netstat` confirmed no listener remained
+afterward (only closing `TIME_WAIT` entries). Two scratch scripts written into
+`scripts/verify` during this pass (`critic-privacy-r5.mjs`,
+`critic-privacy-shot.mjs`) were deleted before finishing; no file the builder
+owns (`js/wayfind.js`, `docs/si-privacy.md`, `index.html`) was touched. One
+screenshot was taken and looked at with the Read tool to confirm the panel
+premise before trusting any DOM assertion about it, and it was left in the
+scratchpad, not committed — nothing here cites it as evidence, so per CLAUDE.md
+rule 12 it does not belong in the repo.

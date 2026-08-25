@@ -1,0 +1,62 @@
+[
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\signin-account-chooser-desktop.png",
+    "url": "https://accounts.google.com/v3/signin/identifier?continue=https://calendar.google.com/calendar/u/0/r&emr=1&followup=https://calendar.google.com/calendar/u/0/r&osid=1&passive=1209600&service=cl&flowName=WebLiteSignIn&flowEntry=ServiceLogin&dsh=S-333067518:1787600389035406",
+    "title": "Google Calendar - Sign in to Access & Edit Your Schedule"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\import-help-steps-desktop.png",
+    "url": "https://support.google.com/calendar/answer/37118",
+    "title": "Import events to Google Calendar - Computer - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\subscribe-url-help-steps-desktop.png",
+    "url": "https://support.google.com/calendar/answer/37100",
+    "title": "Subscribe to someone else’s calendar - Computer - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\create-event-help-steps-desktop.png",
+    "url": "https://support.google.com/calendar/answer/72143#zippy=%2Cclick-the-create-button%2Cclick-an-empty-time-in-your-calendar",
+    "title": "Create an event - Computer - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\import-errors-help-desktop.png",
+    "url": "https://support.google.com/calendar/answer/45654#zippy=%2Cprocessed-x-of-y-events%2Cprocessed-zero-events",
+    "title": "Fix problems importing - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\signin-account-chooser-phone.png",
+    "url": "https://workspace.google.com/intl/en-US/products/calendar/",
+    "title": "Shareable Online Calendar and Scheduling - Google Calendar"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\import-help-steps-phone.png",
+    "url": "https://support.google.com/calendar/answer/37118",
+    "title": "Import events to Google Calendar - Android - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\subscribe-url-help-steps-phone.png",
+    "url": "https://support.google.com/calendar/answer/37100",
+    "title": "Subscribe to someone else’s calendar - Android - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\create-event-help-steps-phone.png",
+    "url": "https://support.google.com/calendar/answer/72143",
+    "title": "Create an event - Android - Google Calendar Help"
+  },
+  {
+    "ok": true,
+    "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_cc65a4cc-2df-2\\shots\\import\\bar-google\\import-errors-help-phone.png",
+    "url": "https://support.google.com/calendar/answer/45654#zippy=%2Cprocessed-x-of-y-events%2Cprocessed-zero-events",
+    "title": "Fix problems importing - Google Calendar Help"
+  }
+]
