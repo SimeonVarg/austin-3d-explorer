@@ -1308,6 +1308,35 @@ export function repairCode(raw, codes, tune = TUNE) {
 }
 
 /**
+ * EVERY real code one confusable character from `raw`, not only the unique one.
+ *
+ * `repairCode` above answers "may I write this down myself?" and its answer has
+ * to be no whenever there are two candidates — silently picking one of GDC and
+ * GDF sends a student to the wrong side of the plaza. But "I cannot write this
+ * down" and "I have nothing to show you" are different sentences, and the
+ * second one is not true: the reader knows the two buildings it might be, and
+ * a student who took the photograph can tell them apart in one look.
+ *
+ * So this returns the whole candidate set, for the confirm screen to make into
+ * taps. It is deliberately a SEPARATE function rather than a mode of
+ * repairCode: nothing that writes an answer down may ever reach this list.
+ */
+export function codeCandidates(raw, codes, tune = TUNE) {
+  const s = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!s || !codes || !codes.size) return [];
+  if (codes.has(s)) return [s];
+  if (tune.judge.repairMaxEdits < 1) return [];
+  const hits = new Set();
+  for (let i = 0; i < s.length; i++) {
+    for (const a of (CONFUSE[s[i]] || '')) {
+      const cand = s.slice(0, i) + a + s.slice(i + 1);
+      if (codes.has(cand)) hits.add(cand);
+    }
+  }
+  return [...hits].sort();
+}
+
+/**
  * A day run repaired by ONE confusable letter — and ONLY where the table's own
  * heading says this column holds days.
  *
@@ -1660,18 +1689,21 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
     // as something seen but not read.
     const seenNotRead = (ctx && ctx.seenNotRead) || [];
     if (ctx) ctx.seenNotRead = seenNotRead;
-    const noteBlock = (col, start, end, why) => seenNotRead.push({
+    const noteBlock = (col, start, end, why, b) => seenNotRead.push({
       day: col ? col.day : null,
       start: start == null ? null : hhmm(start),
       end: end == null ? null : hhmm(end),
       why,
+      // The rectangle it was seen as, so the confirm screen can show the
+      // student the very block it could not read.
+      block: b ? { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 } : null,
     });
     for (const b of blocks) {
       const col = colOf((b.x0 + b.x1) / 2) || colOf(b.x0 + pitch * 0.25);
       let start = axis ? snap(axis.minutesAt(b.y0)) : null;
       let end = axis ? snap(axis.minutesAt(b.y1)) : null;
       if (axis && (!(end > start) || end - start > tune.judge.maxClassMin)) {
-        noteBlock(col, null, null, 'this looks like a class but its hours did not add up');
+        noteBlock(col, null, null, 'this looks like a class but its hours did not add up', b);
         continue;
       }
       const within = (ws) => ws.filter(w =>
@@ -1690,11 +1722,16 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
       if (!inside.length) {
         noteBlock(col, start, end, axis
           ? 'a class is drawn here but none of its writing could be read'
-          : 'a class is drawn here but neither its writing nor the hour scale could be read');
+          : 'a class is drawn here but neither its writing nor the hour scale could be read', b);
         continue;
       }
       const caption = parseRange(inOrder(inside).map(w => w.text).join(' '));
       const why = [];
+      // TWO WITNESSES AGREEING IS THE STRONGEST EVIDENCE ON THE PAGE, and the
+      // confirm screen prices it, so the verdict is recorded rather than only
+      // its failure: null = only one witness spoke, true = they agree, false =
+      // they do not. (js/schedconfirm.js CONF.time reads exactly this.)
+      let axisAgrees = null;
       // The caption is a second witness, not the witness. When both are
       // there and they agree, that is as sure as this file gets; when they
       // disagree the axis wins and the disagreement is shown, because four
@@ -1702,6 +1739,7 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
       // the page and the calendar's own ruler is the most.
       if (axis && caption && !caption.bad) {
         const off = Math.abs(caption.start - start) + Math.abs(caption.end - end);
+        axisAgrees = off <= tune.grid.agreeMin;
         if (off > tune.grid.agreeMin) {
           why.push('the caption reads ' + hhmm(caption.start) + '-' + hhmm(caption.end) +
             ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end));
@@ -1715,7 +1753,7 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
         if (!caption || caption.bad) {
           noteBlock(col, null, null,
             'a class is drawn here, but the hour scale down the side did not read ' +
-            'and neither did its own times');
+            'and neither did its own times', b);
           continue;
         }
         start = caption.start; end = caption.end;
@@ -1725,6 +1763,10 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
         days: [col.day], range: { start, end, unsure: false },
         loc, course: courseFromRow({ words: inside }), ws: inside, why,
         fromGeometry: true, block: b,
+        // PROVENANCE, NOT JUST THE ANSWER. Which witness supplied the clock is
+        // the single biggest thing separating a trustworthy time from a
+        // guessed one, and only this function knows it.
+        timeFrom: axis ? 'axis' : 'caption', dayFrom: 'column', axisAgrees,
       });
     }
     if (recs.length) return tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune) : recs;
@@ -1954,6 +1996,124 @@ function fromCards(rows, page, tune, codes) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   EVIDENCE — what the confirm screen needs and the answer alone cannot carry
+
+   THIS FILE READS. IT DOES NOT DECIDE HOW SURE TO BE. Everything below packages
+   what was actually observed about each field — which words produced it, what
+   the engine's own confidence in those words was, which witness supplied it,
+   and where on the page it is — and hands it over. `js/schedconfirm.js` turns
+   that into a number and a question. Keeping the judgement out of here is what
+   lets the threshold be re-argued and re-measured without touching a reader.
+
+   The boxes are in RECTIFIED page coordinates, which is the same space `words`
+   and `page` are already in, so a crop taken with them is upright even when the
+   student photographed their screen at an angle.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const LETTERS = (s) => String(s || '').toUpperCase().replace(/[^A-Z]/g, '');
+const CLOCKISH = /^(\d{1,2}[:.]\d{2}|\d{1,2}|[AP]\.?M\.?|[-–—]|to)$/i;
+
+/** Union bounding box of a word list, or null. */
+function unionBox(ws) {
+  const list = (ws || []).filter(Boolean);
+  if (!list.length) return null;
+  return {
+    x0: Math.min(...list.map(w => w.x0)), y0: Math.min(...list.map(w => w.y0)),
+    x1: Math.max(...list.map(w => w.x1)), y1: Math.max(...list.map(w => w.y1)),
+  };
+}
+
+/**
+ * THE WORST WORD, NOT THE AVERAGE ONE. A field is a phrase, and a phrase with
+ * one unreadable word in it is an unreadable phrase — averaging lets three
+ * confident words carry a fourth that the engine itself did not believe.
+ */
+function worstConf(ws) {
+  const list = (ws || []).filter(w => w && typeof w.conf === 'number');
+  if (!list.length) return null;
+  return Math.min(...list.map(w => w.conf));
+}
+
+/**
+ * Split a record's own words into the four fields, geometrically rather than by
+ * asking the readers to thread provenance through three different code paths.
+ * The readers already put exactly the words they used into `ws`, so this is a
+ * classification of a short list, not a re-parse of the page.
+ */
+function fieldWords(r) {
+  const all = (r.ws || []).filter(Boolean);
+  const locWs = (r.loc && r.loc.words) || [];
+  const isLoc = (w) => locWs.indexOf(w) >= 0;
+  const rest = all.filter(w => !isLoc(w));
+  const dayWs = rest.filter(w => {
+    const t = LETTERS(w.text);
+    return t.length >= 1 && t.length <= 7 && !!parseDayLetters(t);
+  });
+  const timeWs = rest.filter(w => CLOCKISH.test(String(w.text).trim()) && /\d|[ap]/i.test(w.text));
+  // A joined "WEL2.224" is one word and both fields come off it; two words are
+  // code then room, in that order, which is the only order locFromWords emits.
+  const codeWs = locWs.length ? [locWs[0]] : [];
+  const roomWs = locWs.length > 1 ? [locWs[1]] : locWs.slice();
+  return { codeWs, roomWs, dayWs, timeWs, all };
+}
+
+/**
+ * -> the evidence bundle attached to every class and every unsure item.
+ * `codes` is the building lexicon; `rep` is repairCode's verdict, already made.
+ */
+function evidenceFor(r, rep, codes, tune, page, source) {
+  const f = fieldWords(r);
+  const raw = r.loc ? String(r.loc.code).toUpperCase() : null;
+  const cands = raw ? codeCandidates(raw, codes, tune) : [];
+  // ONLY ON A SCREENSHOT. The edge of a photograph is the DOCUMENT'S own edge
+  // and cuts nothing; the edge of a screenshot is a crop, and a word touching
+  // it is half a word. Reporting "runs off the edge" on every angled photo
+  // whose margins happen to carry type would put a question on the whole
+  // photographed half of the corpus for no reason. Same rule extract() already
+  // applies to `truncated`, and it has to be the same rule.
+  const edge = (ws) => source === 'screenshot' && ws.length > 0 && touchesEdge(ws, page, tune);
+  return {
+    boxes: {
+      building: unionBox(f.codeWs), room: unionBox(f.roomWs),
+      day: unionBox(f.dayWs), time: unionBox(f.timeWs),
+      // The whole record, so a question can show the student the LINE their
+      // class is on and not only the four characters in doubt.
+      all: unionBox(f.all), block: r.block
+        ? { x0: r.block.x0, y0: r.block.y0, x1: r.block.x1, y1: r.block.y1 } : null,
+    },
+    conf: {
+      building: worstConf(f.codeWs), room: worstConf(f.roomWs),
+      day: worstConf(f.dayWs), time: worstConf(f.timeWs),
+    },
+    from: {
+      // 'column' = the day is the column it was drawn in, which does not depend
+      // on reading anything. 'letters' = somebody's "MWF" had to be read.
+      day: r.dayFrom || (r.fromGeometry ? 'column' : 'letters'),
+      // 'axis' = the calendar's own hour ruler. 'caption' = four small digits.
+      time: r.timeFrom || (r.fromGeometry ? 'caption' : 'text'),
+      room: (r.loc && r.loc.borrowed) ? 'agreed-across-days' : 'read',
+      building: !rep ? 'unrepaired' : (rep.repaired ? 'repaired' : 'lexicon'),
+    },
+    flags: {
+      rawCode: raw,
+      joined: !!(r.loc && r.loc.joined),
+      borrowed: !!(r.loc && r.loc.borrowed),
+      repaired: !!(rep && rep.repaired),
+      knownCode: !!(raw && codes && codes.has(raw)),
+      noMeridiem: !!(r.range && r.range.unsure),
+      badRange: !!(r.range && r.range.bad),
+      axisAgrees: (r.axisAgrees === undefined ? null : r.axisAgrees),
+      truncated: r.truncated === undefined ? null : !!r.truncated,
+      edge: { building: edge(f.codeWs), room: edge(f.roomWs), time: edge(f.timeWs) },
+      source: source || null,   // 'photo' | 'screenshot'
+    },
+    // THE WHOLE CANDIDATE SET, INCLUDING THE AMBIGUOUS CASE. repairCode refuses
+    // two candidates and it is right to; the screen shows them both and asks.
+    candidates: { building: cands },
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    THE PUBLIC CALL
    ════════════════════════════════════════════════════════════════════════════ */
 
@@ -2008,19 +2168,35 @@ export async function extract(src, opts = {}) {
   mark('geometry');
   const classes = [], unsure = [];
   const seen = new Set();
+  // Every item that leaves this loop — proposed or refused — carries the same
+  // evidence bundle, because a refusal the screen can turn into a tap is worth
+  // exactly as much as a proposal and needs exactly as much to do it with.
+  const evOf = (r, rep) => evidenceFor(r, rep || null, codes, tune, page, rect.source);
   for (const r of recs) {
     const why = [];
-    if (!r.loc) { unsure.push({ course: r.course, why: 'no room was readable for this class' }); continue; }
-    if (!r.days || !r.days.length) { unsure.push({ course: r.course, why: 'no day was readable for this class' }); continue; }
+    if (!r.loc) {
+      unsure.push({ course: r.course, why: 'no room was readable for this class',
+        ev: evOf(r, null), reason: 'no-room' });
+      continue;
+    }
+    if (!r.days || !r.days.length) {
+      unsure.push({ course: r.course, why: 'no day was readable for this class',
+        ev: evOf(r, null), reason: 'no-day' });
+      continue;
+    }
 
     // A word cut off by the edge of the frame is half a word. On a PHOTO the
     // edge is the document's own edge and cuts nothing; on a SCREENSHOT it is a
     // crop, and "WEL 2.22" is not a room, it is the left half of one.
     const truncated = rect.source === 'screenshot' && touchesEdge(r.ws || [], page, tune);
+    r.truncated = truncated;
     if (truncated) {
       unsure.push({
         course: r.course, building: r.loc.code, room: r.loc.room,
         why: 'this one runs off the edge of the picture, so part of it is missing',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, repairCode(r.loc.code, codes, tune)), reason: 'cut-off',
       });
       continue;
     }
@@ -2036,6 +2212,9 @@ export async function extract(src, opts = {}) {
         unsure.push({
           course: r.course, building: r.loc.code, room: r.loc.room,
           why: '"' + r.loc.code + '" does not read like a UT building code',
+          days: r.days.slice(), day: r.days[0],
+          start: hhmm(r.range.start), end: hhmm(r.range.end),
+          ev: evOf(r, null), reason: 'not-a-code',
         });
         continue;
       }
@@ -2049,6 +2228,7 @@ export async function extract(src, opts = {}) {
     if (r.loc.joined) why.push('the building and room were run together');
 
     const room = String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+    const ev = evOf(r, rep);
     for (const day of r.days) {
       const key = rep.code + '|' + room + '|' + day + '|' + r.range.start + '|' + r.range.end;
       if (seen.has(key)) continue;
@@ -2059,6 +2239,11 @@ export async function extract(src, opts = {}) {
         start: hhmm(r.range.start), end: hhmm(r.range.end),
         needsConfirm: why.length > 0,
         why: why.join('; ') || null,
+        // The same bundle on every copy of a multi-day class. It is shared by
+        // reference on purpose: the copies came off ONE reading of ONE line of
+        // the picture, and showing the student that crop three times would be
+        // three taps for one question.
+        ev,
       };
       (r.range.bad ? unsure : classes).push(rec);
     }
@@ -2075,6 +2260,20 @@ export async function extract(src, opts = {}) {
       why: n.day
         ? n.why + ' (it is in the ' + n.day + ' column)'
         : n.why,
+      reason: 'seen-not-read',
+      // The rectangle IS the evidence here — there is no word to point at. A
+      // student shown the block they drew on their own calendar can read the
+      // room off it themselves in less time than this reader spent failing to.
+      ev: n.block ? {
+        boxes: { building: null, room: null, day: null, time: null,
+          all: { x0: n.block.x0, y0: n.block.y0, x1: n.block.x1, y1: n.block.y1 },
+          block: { x0: n.block.x0, y0: n.block.y0, x1: n.block.x1, y1: n.block.y1 } },
+        conf: { building: null, room: null, day: null, time: null },
+        from: { day: n.day ? 'column' : 'none', time: n.start ? 'axis' : 'none',
+          room: 'unread', building: 'unread' },
+        flags: { source: rect.source, unread: true },
+        candidates: { building: [] },
+      } : null,
     });
   }
   // AND WHEN THERE IS STILL NOTHING TO SAY, COUNT WHAT IS ON THE PICTURE.
@@ -2095,11 +2294,35 @@ export async function extract(src, opts = {}) {
       });
     }
   }
+  // THE STUDENT'S OWN PICTURE, UPRIGHT, FOR THE CONFIRM SCREEN TO CUT FROM.
+  //
+  // It is the RECTIFIED COLOUR page and not the grey one the engine read,
+  // because the point of a crop is that the student recognises it — the
+  // normalised plane is what the machine saw and looks like nothing they took.
+  // Rectified rather than original because on an angled photograph the original
+  // crop comes out as a trapezoid of tilted type, which is harder to read than
+  // the answer it is meant to be checking.
+  //
+  // OPT-IN, because the benchmark calls extract() fifteen times in one page and
+  // has no use for it: `keepSheet` is what the import screen passes and nothing
+  // else does. A canvas is also the one representation of the image that CANNOT
+  // be posted anywhere by accident — it does not survive structuredClone, so it
+  // cannot cross into a worker, a message or a fetch body without somebody
+  // writing the conversion out by hand.
+  let sheet = null;
+  if (opts.keepSheet) {
+    const sc = makeCanvas(rect.w, rect.h);
+    const sctx = sc.getContext('2d', { willReadFrequently: false });
+    const sid = sctx.createImageData(rect.w, rect.h);
+    sid.data.set(rect.data);
+    sctx.putImageData(sid, 0, 0);
+    sheet = { canvas: sc, w: rect.w, h: rect.h };
+  }
   mark('judge');
   delete stages._acc;
 
   return {
-    classes, unsure, layout: usedLayout, words,
+    classes, unsure, layout: usedLayout, words, sheet,
     seen: {
       onlySeen: (ctx.seenNotRead || []).length,
       days: [...new Set((ctx.seenNotRead || []).map(n => n.day).filter(Boolean))],
@@ -2125,6 +2348,6 @@ if (typeof window !== 'undefined') {
     extract, decode, findDocQuad, estimateLineHeight, rectify, photometry,
     grayCanvas, pickEngine, ocrWords, ocrCrop, buildRows, classifyLayout,
     hourAxis, findBlocks, parseRange, parseDayLetters, repairCode,
-    buildingCodes, releaseEngine, engineInfo, TUNE,
+    codeCandidates, buildingCodes, releaseEngine, engineInfo, TUNE,
   };
 }

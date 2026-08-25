@@ -25005,3 +25005,16 @@ merged `main`: 12/12 selftest, `harness-drift.mjs` PASS, 15 images present.
 is the next stage's job and this file is deliberately agnostic about it. Did not
 delete `acer/img-corpus` after merging, against the usual rule, because the round
 that follows was told that branch name and a deleted branch would strand it.
+
+
+## 184. Aug 25 2026 — what counts as unsure, and the screen that asks (acer lane, branch `acer/img-confidence`)
+
+`js/schedconfirm.js` (new), `scripts/verify/schedconfirm.mjs` (new),
+`scripts/verify/confirm-line.mjs` (new), `docs/img-confidence.md` (new), and an
+additive change to `js/schedimg.js` that hands over the EVIDENCE behind each
+reading rather than only the reading.
+
+Built on `acer/img-extract`. **`js/wayfind.js` is not in the diff and
+`WAYFIND.on` is still `false`.**
+
+<!--BODY-->
