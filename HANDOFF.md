@@ -1,5 +1,143 @@
 # Austin 3D Explorer — Full Handoff
 
+## 185. Aug 25 2026 — image to text, on the device: 124 of 171 against a bar of 36, and the win is geometry not OCR (acer lane, branch `acer/img-extract`)
+
+`js/schedimg.js` turns a photograph or a screenshot of a class schedule into
+classes, entirely inside the browser. Scored by `scripts/verify/image-bench.mjs`
+on the fifteen-image corpus, against the bar in `docs/img-bar.md`:
+
+```
+                        the bar          this
+all four fields right   36/171 (21.1%)   124/171 (72.5%)
+precision               16.1%            98.4%      (187 wrong answers -> 2)
+hallucinations          0                0
+clean-export            14/52            51/52
+angled-photo             0/49            18/49
+dark-mode                8/38            23/38
+partial-crop            14/32            32/32
+images at 100%           0               9 of 15
+```
+
+Both sides scored by the same file, same corpus, same rules. Full write-up with
+every measurement in `docs/img-extract.md`; the gate is
+`scripts/verify/schedimg.mjs` (23 assertions, all green on the real page).
+
+**THE BAR'S OWN NUMBER ALREADY TOLD YOU WHERE THE PROBLEM WAS AND IT IS NOT THE
+ENGINE.** The bar scored 0/49 on every week grid and 0/34 on every phone card
+stack — and on the card stacks it noted that OCR read every field perfectly. The
+loss was never optical. It was that a flat bag of words has thrown away the
+layout, and the layout is what makes the rest of the problem solvable. So this
+file keeps word boxes and rebuilds the surface: rows -> layout (table / week
+grid / card stack / flow) -> records anchored on a time range with the day taken
+from the column the record sits in. Card stacks went 0 -> 100% on all three.
+
+**ON A WEEK GRID THE TIME IS THE POSITION, AND THAT IS WORTH MORE THAN ANY
+AMOUNT OF READING.** Measured on image 02: one caption time range in ten parses,
+because the captions are the smallest type on the page. But the grid draws its
+own coordinate system — hour labels down the left edge are an axis, an event
+block's top and bottom edges are its start and end, the column is the day. Fit
+the axis (Theil-Sen, so one misread label cannot drag the clock across the
+afternoon), find the blocks, and the grid images went 0/10, 3/14, 8/14, 7/12 to
+10/10, 13/14, 13/14, 12/12. Two details each cost a round and are worth
+carrying:
+
+- **A calendar draws a gap between touching events**, so a block's painted
+  bottom is minutes short of the hour it ends on: a 9:30-11:00 class comes off
+  the ruler at 10:55. Snapping to the quarter hour absorbs the seam. At 5-minute
+  snapping it reports a class ending at five to eleven — four fields that all
+  look right and one of them wrong.
+- **Block connectivity has to be COLOUR-limited, not just "not the page".** An
+  11:00 class starts on the pixel where the 9:30 class ends, and a mask that
+  only knows "coloured" welds them into one four-hour event.
+
+**ONCE YOU KNOW THE GEOMETRY YOU CAN SPEND IT ON THE ENGINE, NOT JUST ON THE
+ANSWER.** The single most useful trick here: crop the one thing that did not
+read and read it again on its own. A coloured event block is white type on a
+saturated ground inside a page of black-on-white, and the line the page pass
+drops is always the third one — the room; cropped out, flipped by its own
+median, magnified, it reads first time. The same on registrar table CELLS: image
+12's `10:00 am-11:00 am` came back as `am-11:00 am` and image 01 lost one row's
+day letters, and re-reading just the empty cell took both to 14/14 and 7/7. Only
+empty cells are re-read, so a clean table pays nothing.
+
+**A PHOTOGRAPH IS A DOCUMENT INSIDE A ROOM, AND THE TWO RULES THAT MATTER ARE
+BOTH COUNTERINTUITIVE.** Find the document by EDGE DENSITY, not brightness — a
+brightness rule finds a white page on a dark desk and then gets exactly backwards
+the case this corpus was built to include, a dark-mode calendar photographed in a
+dark room. And decide "is this a photograph" by whether the content stands clear
+of all four edges: a screenshot's content runs to the edge of the file, which is
+what a screenshot IS. The first version had no such test and "corrected" two
+thirds of the corpus into trapezoids. That test is load-bearing twice: a
+screenshot's border is a CROP, so a word touching it is half a word, which is
+what refuses `WEL 2.22` (the left half of `WEL 2.224`) on image 14 and lets that
+image score 12/12 with no false positives.
+
+**THREE IDEAS WERE MEASURED AND THROWN AWAY**, which is the part I would most
+want the next lane to copy. Local-deviation normalisation — distance from the
+local mean, so every polarity comes out dark-on-light at once — is a genuinely
+elegant answer to white-text-on-a-coloured-block and scores **20/171**. A 3x3
+median denoise on photos wins one meeting and loses four. Upscaling to a 44 px
+line instead of 30 scores 115/171 at 96.7% precision. All three are still
+reachable from `TUNE` via `SCHEDIMG_TUNE='{...}'` so the A/B is one line, not a
+rediscovery.
+
+**One artefact was worth more than any tuning: a floor under the local
+background.** Glare correction divides by a local maximum (the brightest thing
+near text is the paper). Inside a coloured block, the half with no caption in
+the window has a local maximum equal to the block's own colour, divides to 1,
+and comes out WHITE — a bright slab abutting the caption. That single artefact
+was costing the third line of every green and purple event on image 02. One
+line, `bgFloorFrac: 0.32`, and every one of those rooms reads.
+
+**Privacy, asserted rather than claimed.** `js/schedimg.js` is not referenced
+from `index.html`; it is reached by a dynamic `import()` when a student picks an
+image, and the ~5 MB engine is fetched only when `extract()` is first called —
+not when the module is imported. The gate asserts both at the network level on
+the real page. While the image is being read, no request the browser makes has a
+body of any kind, no request carries a course code or a room, the raw socket
+sink is never contacted — and the instruments are proved not blind by firing a
+canary through `fetch` and through a real `Worker` and requiring both to catch
+it. The engine is vendored at `vendor/tesseract/` (5.1 MB, same-origin): not
+because a CDN would see the picture, it would not, but because it would see
+*that a schedule is being imported*, from an IP, at a time.
+
+**Refusing is a feature and it has a list.** `extract()` returns `classes` and
+`unsure`, and everything held back says why in words a student can act on. A
+class is 20-240 minutes (an OCR slip eating the leading `1` of `11:00 am` was
+reporting an 11.5-hour class). A plain-digit room needs a building code the app
+knows behind it, or `C S 429` becomes room 429 of building CS. A code is
+repaired by one confusable character and only when exactly one real code fits —
+`GDD` could be `GDC` or `GDF`, and two candidates is not an answer. A well-formed
+code the app does NOT know is shown flagged, never deleted, because MER is a
+real UT building at the Pickle campus and is on this corpus on purpose.
+
+**WHAT IS STILL WEAK, and it is one clean line: angled photographs of week grids
+score 0 of 35** (images 06, 08, 11). The geometry is found perfectly on all
+three — document quad, event blocks, their positions — and the OCR of the
+captions inside them comes back as `HES 315K . CO pm eam METZ 1 3046`. Nothing
+there is a room. The day headers do not read either, so the grid path is never
+even entered; the fix is the same second-look crop applied to the header strip
+and the hour gutter, which is not built. They currently return NOTHING — no
+false positives, no hallucinations, which is the right failure — but a student
+photographing their calendar at an angle gets an empty result and no
+explanation. "I can see six classes here but I cannot read the rooms — point the
+camera straight at it" is the next piece of work, and this file already has the
+block count to back that sentence.
+
+**What I did not touch.** `js/wayfind.js` is not in the diff and `WAYFIND.on` is
+still `false`. Nothing in `index.html` either — the feature is reachable only by
+`await import('./js/schedimg.js')`, which is what makes the laziness assertion
+possible at all. The eleven codes from wayfind's `CAMPUS_EXTRA` / `OFF_MAP` are
+duplicated in `js/schedimg.js` with a comment saying so, because they live
+inside that file's closure with no public accessor; **if those tables change,
+that copy has to change with them.**
+
+**Timing note for whoever runs the bench.** On the real app page OCR takes ~15 s
+per image because MapLibre is competing for the CPU; on
+`SCHEDIMG_PAGE=scripts/verify/schedimg-blank.html` the same image takes ~2 s.
+Same module, same score — the app page is the honest place to assert laziness
+and privacy, the blank page is the sane place to iterate.
+
 ## 184. Aug 25 2026 evening — the schedule-import round SHIPPED: five of six defects closed, the sixth is one taste question, and every number was re-measured on the merged tree (ship lane, branch `acer/si-combined` → `main`, PR #224)
 
 **Merged.** `main` now carries all five schedule-import lanes plus the

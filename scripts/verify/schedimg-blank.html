@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>schedimg harness</title>
+<!--
+  A bare same-origin page for driving js/schedimg.js without paying for the
+  whole city. It loads NOTHING: no MapLibre, no tiles, no app JS. It exists so
+  an extraction run measures the extractor rather than the scene.
+
+  The number that ships is still taken on the REAL page (index.html?walk=1),
+  which is what scripts/verify/schedimg-extract.mjs opens by default; this one
+  is for iteration and for the stages that only need the module.
+-->
+<style>body { margin: 0; background: #111; color: #ddd; font: 13px system-ui; }</style>
+</head>
+<body>
+<p style="padding:10px">schedimg harness — nothing is loaded until a test imports it.</p>
+</body>
+</html>
