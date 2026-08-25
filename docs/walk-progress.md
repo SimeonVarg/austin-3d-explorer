@@ -3196,3 +3196,115 @@ and `data/entrances.geojson` deliberately untouched — the graph bake is eight
 days behind the city and re-running it would drag fifty unreviewed doors in
 behind a one-building fix; that, and three other things found and not fixed, are
 written up with exact patches in `docs/si-gaps.md`. `WAYFIND.on` untouched.
+---
+
+## 2026-08-24 — the walk feature can show a whole day now, not one leg at a time
+
+Branch `acer/si-dayview`. Until now the walking directions answered one question
+at a time: I am here, my next class is in WEL. A student with four classes asks
+that three times a day, retypes both ends every time, and the thing they actually
+want to know — **which of today's three walks is the one that will make me
+late** — is not any single one of those three answers. It is the sequence.
+
+So there is a day plan. Give it an imported schedule and it lays the whole day
+out in order: every class, and between each pair, the walk. How long it takes,
+how far, which one is next, and what is wrong with the ones that have something
+wrong with them. Tapping a walk draws it on the ground and fills in the answer
+bar that already existed — nothing was rebuilt, it just picks the two ends for
+you.
+
+The best picture of it is `shots/si/dayview/mwf-desktop.jpg`: a Monday with three
+walks, and you can see which one has the problem before reading a word, because
+each walk gets a little bar showing the gap the timetable leaves and the walk
+drawn inside it. Two of them sit comfortably inside their ten minutes. The third
+runs off the end of its bar.
+
+The one rule this stuck to hardest: **it warns and it never reassures.** That was
+already the law for the single-leg card and it is easier to break on a day view,
+because it would be so natural to print "12 minutes spare" on every row. It does
+not, anywhere, and there is a check that greps the whole screen for that kind of
+sentence on every run. What it does print is the gap the timetable itself holds —
+which is a real improvement on the old card, because that one had to *assume* a
+fifteen-minute passing period, and a schedule actually knows. On a Monday-
+Wednesday-Friday day with real ten-minute gaps, that is the difference between
+one warning and three.
+
+Three things were found only by opening the pictures and looking at them, none of
+which was red in any test: the same twelve-word explanation of why a building is
+out of reach was on screen three times in a five-row panel; a 43-metre walk
+printed "0–1 min" where the answer bar says "Under 1 min"; and on a laptop the
+last class of the day sat permanently one scroll below the fold, which rather
+defeats a thing whose whole argument is that you can see the day.
+
+The forcing function was re-checked rather than taken on trust. Eleven UT
+building codes still cannot be routed to. Ten of them really are ten to twelve
+kilometres north at the Pickle Research Campus, measured off UT's own surveyed
+door for each one. **The eleventh, SSW, is not — it is 900 metres from the Tower,
+on main campus, with two surveyed doors already sitting in this codebase.** And
+all eleven fail in a way nobody had noticed: the app has never heard of the codes
+at all, rather than failing to find a path. So SSW is a smaller and different fix
+than anyone had written down, and it is upstream of the walking graph. Written
+down, not made — that file belongs to another lane.
+
+Nothing about the routing moved: the ruler reads the same 87 metres of wasted
+walking it read before, all 38 ends still land at UT's own door, and the "avoid
+stairs" tickbox still works under a real mouse click. The change is 1,025 lines
+added to `js/wayfind.js` and **not one line removed**, which is deliberate with
+four other lanes inside that file. Everything is behind `?walk=1` as before and
+`WAYFIND.on` is untouched. Details, the fixtures, and every number:
+`docs/si-dayview.md`; the ruler is `scripts/verify/dayview.mjs` (59 checks, all
+green).
+
+---
+
+## 2026-08-24 — the day plan takes a real imported schedule, and doing that found two bugs
+
+Branch `acer/si-dayview`, round 4. Round 3 built the panel that lays a whole day
+out. This round plugged it into an actual import, and plugging it in is what
+turned up the things nobody's own harness could see.
+
+**It reads a parsed schedule now.** `wayfindDayFromSchedule(schedule, {day})`
+takes the shape the parser lane publishes — a whole week — and shows one of its
+days. Round 3 had written down what a day looks like and left the conversion to
+whoever called it, which meant nothing had ever made the trip end to end.
+`?walk=1&day=week` is that trip.
+
+**A class the importer could not place used to disappear.** If your calendar had
+a 2:00pm class with the room field left blank, the panel quietly deleted it —
+and then showed a two-hour gap your day does not have, while the header still
+said "3 classes". It looked complete and it was wrong. Every class with a time
+is on the day now; the ones with no building say so, in the importer's own
+words, and the walks either side say they can't be taken.
+
+**A typo in a building code used to send you to the wrong building.** `MAII 220`
+is a real mis-typing of `MAI 220` and it is sitting in the parser lane's own
+test file. The panel was handing that code to the search box's forgiving
+type-ahead — the thing that lets you type "wel" and get Welch — and drawing a
+confident 10-14 minute walk to the UT Tower for a class that is not in it. Every
+number on that row was measured correctly. The building was wrong and nothing
+was red. A code off a schedule is exact now: a near miss is offered as a
+question on the row ("Did you mean MAI (UT Tower)?") and never as a route. That
+bug could only be found by running the two lanes together, because every fixture
+written on this branch spells its codes correctly.
+
+**Three things it now says at a glance.** A line across the list at the current
+time, which is the one thing Google Calendar's day view has that this did not —
+everything above the line has happened. The header names the walk that is tight
+("WEL to ART is the tight one") instead of only counting them, which matters
+most on a phone where the header is all you can see. And the tight row itself
+gets a faint warm wash, so scanning the list finds the problem before you read a
+word. Plus the day's total on foot on the top line.
+
+**What was checked.** `scripts/verify/dayview.mjs` — 59 checks in round 3, 103
+now, all green, and the new ones are the ones that would have caught this
+round's bugs. The eleven unroutable codes were re-probed live again and the
+figures are unchanged (ten at 10.8-11.8 km north at Pickle; SSW 0.90 km from the
+Tower with two UT-surveyed doors, so the brief's second claim is still false).
+Separately, the two lanes were merged in a scratch tree and the parser's own
+four `.ics` files were driven all the way to this panel — 17 checks, none
+failed. That merge is not pushed; what is now known rather than assumed is that
+the resolution is a plain concatenation, that it compiles, and that the halves
+work together. Full account and every number: `docs/si-dayview.md`.
+
+Still behind `?walk=1`, `WAYFIND.on` untouched, and the whole branch is two pure
+inserts into `js/wayfind.js` with zero lines changed or removed anywhere else.
