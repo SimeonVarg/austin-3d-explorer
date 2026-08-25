@@ -1,5 +1,52 @@
 # Austin 3D Explorer — Full Handoff
 
+## 183. Aug 25 2026 — the import screen stopped keeping its own list of buildings, the day view stopped calling Pickle a missing door, and Delete came back onto the phone (branch `acer/si-combined`, `docs/si-fold.md` + `docs/si-doors.md`)
+
+`si-integration.mjs`: **45/50 → 49/50**. The one still red is the taste half of
+SI4 and it is Simeon's — one picture, `shots/si/doors/two-doors-vs-one.jpg`, and
+the choice written out in plain words in `docs/si-doors.md`. Nothing was applied
+for it.
+
+- **SI5.** The import screen carried its own twelve-row table of unreachable
+  building codes. Every row was measured honestly the day it was written — and
+  then `si-gaps` made SSW and HLB routable and the screen went on refusing them,
+  because the answer had been remembered instead of asked for. Table deleted;
+  `impPlace()` asks `wayfindOffMap()` and `wayfindSearch()` instead, which cannot
+  go stale because they ARE the router. **The unroutable count reads 10 and all
+  ten are Pickle** (`gaps-recheck.mjs` and `walkmeter.mjs` agree, independently);
+  the screen now answers SSW, HLB and GDC `ok`, the ten Pickle codes `offmap`
+  with a per-building distance, and nothing `nodoor`. The distance and the
+  building's name now come off the same record the day view measures from, so the
+  two surfaces cannot drift.
+- **SI6, and it really was one line.** `dayPlace()`'s `nodoor` clause is now
+  `if (entry && !entry.offMap)`, so an off-map entry falls through to the branch
+  that was already there and already right. MER's row went from "It is in the
+  building list, but nothing is mapped to walk to" — the sentence for a building
+  on this campus — to "MER is 11.1 km north of campus — off this map". One thing
+  went with it, said out loud rather than buried: the day view prints no
+  building-name line for an off-map class (its own design), so that row lost the
+  words "Microelectronics & Engineering Research Center". The name is sitting in
+  `entry.display` now if the day-view lane wants it.
+- **SI4, measurable half.** The panel was 337 px tall around 494 px of content
+  with `overflow-y: hidden` — 157 px unreachable, and in them the privacy
+  promise, the Delete button and the OpenStreetMap credit. Ceiling raised to the
+  `84vh` the import screen already uses (named `--wf-sheet-vh`, one line to
+  move; the bottom edge does not move, so the joystick rule is untouched) **and**
+  the panel scrolls, with the close button made sticky so the way out cannot
+  scroll off. Honest about what that buys: with nothing imported everything is on
+  screen and nothing scrolls; after a real import and a reload the content is
+  548 px against 523 px of phone — the privacy line and Delete are on screen at
+  rest, the map credit takes a 27 px swipe. **548 does not fit and no ceiling
+  makes it fit**; 100vh minus the clearances above and below is 538. One door
+  instead of two is worth 66 px and would close it, which is why the taste
+  question is worth answering. Frame: `shots/si/fold/sheet-phone-fixed.jpg`,
+  instrument: `scripts/verify/si-fold-shots.mjs`.
+
+Untouched and re-verified on this tree: `WAYFIND.on` still `false`; the
+parser/day-view/store seam not touched; `walkmeter.mjs` 87.0 m / −393.7 m /
+38 of 38 / drift 0.00 m / 0 route errors / live UI gate PASS; `harness-drift`
+PASS; `dayview.mjs` 100 ok / 2 failed, the same two the merge itself causes.
+
 ## 182. Aug 25 2026 — the three schedule-import seams closed: the screen now calls the parser, the day view shows YOUR classes, and an import is actually saved (branch `acer/si-combined`, `docs/si-seams.md`)
 
 SI1, SI2 and SI3 were one job, not three — all three were the same question,

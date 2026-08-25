@@ -2013,9 +2013,49 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
      + the panel + 8 px of air; the panel is --touch-min wide plus its own 7 px
      of padding either side, so it grew with the play button and this grew with
      it. */
+  /* ── SI4: 62vh WAS RIGHT FOR A SHEET WITH 279 px IN IT ───────────────────
+     The 62 was measured when this sheet held a head, two fields, the examples
+     and a two-line footer — 279 px of content under a 337 px cap, with room
+     to spare. Then the schedule round appended three more rows to it
+     (`#wf-day-btn`, `#wf-imp-entry` and the privacy panel inside `.wf-foot`)
+     and the content went to 494 px. Under `overflow:hidden` that put 157 px
+     below the fold on a 390x844 phone, and what was in those 157 px was the
+     privacy line, the Delete button and the OpenStreetMap credit. A student on
+     a phone could not reach the control that deletes their class schedule.
+     That is the promise the feature makes, so this is a defect and not a
+     matter of taste.
+
+     --wf-sheet-vh IS THE ONE LINE TO MOVE. 84vh is not a new number: it is the
+     ceiling `#wf-imp` below already uses, and the reasoning under it (the top
+     edge must not rise above ~y120, where #wf-button and the right-hand
+     column stack) applies unchanged, because the two panels swap places on a
+     tap and land in the same slot. Measured on the phone Simeon judges from:
+     84vh - --drive-clear = 523 px against 494 px of content, so the sheet
+     sizes to its content at y164-658 and nothing is cut. The bottom edge does
+     not move at all, so QUEUE Z8's rule — the sheet stops above the joystick —
+     is untouched.
+
+     AND overflow-y:auto UNDER IT, which is the part that cannot go stale. A
+     taller sheet fixes today's 390x844; a shorter phone (a 667 px SE puts the
+     cap at 374 px) or the next row somebody appends would put the same
+     controls back under the fold with no way to reach them. #wf-list is still
+     the flex child that yields first, so this scroller only ever engages once
+     even the fixed chrome will not fit — and when it does, the Delete button
+     is a swipe away instead of gone. overflow-x stays hidden, so the rounded
+     corners still clip. */
   #wf-sheet{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
+    --wf-sheet-vh:84vh;
     top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);width:auto;
-    max-height:calc(62vh - var(--drive-clear));border-radius:16px}
+    max-height:calc(var(--wf-sheet-vh) - var(--drive-clear));border-radius:16px;
+    overflow-y:auto;overscroll-behavior:contain}
+  /* AND THE WAY OUT DOES NOT SCROLL AWAY WITH IT. The moment a panel scrolls,
+     its close button is a thing that can leave the screen, and a dialog whose
+     ✕ has scrolled off is worse than one that clips a credit line. The head is
+     49 px and it is the whole of what stays. It needs its own background
+     because the sheet's is a backdrop-filter on the sheet, not on its children,
+     so a transparent sticky head would have the rows sliding visibly under the
+     title. */
+  #wf-sheet>#wf-head{position:sticky;top:0;z-index:2;background:var(--wf-glass-solid)}
   /* THE IMPORT SCREEN LANDS WHERE THE SHEET DOES, and it has to be the same
      rule and not a similar one: the two swap places on a tap, so any
      difference between them is a jump on the frame. Same inset off the drive

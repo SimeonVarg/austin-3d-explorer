@@ -9303,7 +9303,15 @@
     const entry = hit && String(hit.code || '').toUpperCase() === up ? hit : null;
     const near = (hit && !entry) ? { code: hit.code, name: hit.display } : null;
     if (entry && entry.routable) return { kind: 'ok', code: up, entry, name: entry.display };
-    if (entry) return { kind: 'nodoor', code: up, entry, name: entry.display };
+    // ── SI6: `nodoor` IS THE SENTENCE FOR A BUILDING ON THIS CAMPUS ────────
+    // `si-gaps` put the ten Pickle codes into `search()` as entries carrying an
+    // `offMap` record. They have no doors, so `entry.routable` is false, so
+    // before this clause tested for it every one of them was answered "It is in
+    // the building list, but nothing is mapped to walk to" — which is true of a
+    // building 400 m away whose door we have not surveyed, and a lie about one
+    // eleven kilometres north. Falling through instead reaches this function's
+    // own off-map branch below, which measures the distance and says it.
+    if (entry && !entry.offMap) return { kind: 'nodoor', code: up, entry, name: entry.display };
     const code2 = up;
     const ut = utIndex().get(up);
     const bb = dayBounds();
@@ -11681,51 +11689,50 @@
   ];
 
   // THE CODES THIS ROUTER CANNOT REACH, AND WHICH KIND OF UNREACHABLE EACH IS.
-  // Measured, not assumed: `docs/si-ui.md` records the run. Every code in the
-  // app's own UT_CELEBRATED / UT_ENTRANCES tables was put to the live
-  // `wayfindSearch`; twelve came back with no walkable door.
   //
-  // Kept as a table rather than derived at runtime because the two kinds are
-  // not distinguishable from inside the router — a code with no doors looks
-  // identical whether it is 11 km away or across the street, and the whole
-  // point of this screen is that the student is told which.
-  // `CODE: [kind, the building's own name]`. THE NAME IS NOT DECORATION: a
-  // student reading `BEG 1.116 — Pickle Research Campus` has to take our word
-  // for it, and `BEG 1.116 · Bureau of Economic Geology — Pickle Research
-  // Campus` they can check against their own registration page. Every name
-  // below is sourced — the PRC ones from UT Direct's own PRC building index
-  // (quoted in docs/import-bar-ut.md), SSW from UT's building register via the
-  // same doc, HLB from this app's own register, which returned it by name
-  // during the re-verification run.
-  const IMP_UNREACHABLE = {
-    // Pickle Research Campus, ~11 km north of the modelled city. Confirmed
-    // twice: against UT Direct's own PRC building index (docs/import-bar-ut.md)
-    // and against these buildings' own latitudes in UT_CELEBRATED, all of
-    // which sit at 30.38–30.39 against main campus's 30.28–30.29.
-    BE1: ['prc', 'Bureau of Economic Geology Lab'],
-    BEG: ['prc', 'Bureau of Economic Geology'],
-    EME: ['prc', 'Electrical & Mechanical Engineering Research'],
-    FS1: ['prc', 'Ferguson Engineering Lab Annex'],
-    FSL: ['prc', 'Ferguson Laboratory'],
-    MER: ['prc', 'Microelectronics & Engineering Research'],
-    PX3: ['prc', 'PETEX'],
-    ROC: ['prc', 'Research Office Complex'],
-    SV1: ['prc', 'PRC Service Center'],
-    TCB: ['prc', 'J. Neils Thompson Commons'],
-    // ON MAIN CAMPUS AND STILL UNREACHABLE, which is a different sentence and
-    // a different fix. SSW (School of Social Work, 1925 San Jacinto) is in
-    // UT's own register — the brief's claim that it is not was checked and is
-    // false — and has two door rows in this codebase already; the walking
-    // graph just has no way in. HLB is Dell Med's Health Learning Building,
-    // found by this lane's own re-verification and absent from the brief's list.
-    SSW: ['nodoor', 'School of Social Work'],
-    HLB: ['nodoor', 'Health Learning Building'],
-  };
+  // ── SI5: THIS USED TO BE A TABLE, AND A TABLE IS HOW ONE APP GETS TWO
+  //    ANSWERS ABOUT ONE BUILDING ─────────────────────────────────────────
+  //
+  // It was twelve rows, and every one of them was measured honestly against
+  // the live `wayfindSearch` on the day it was written (`docs/si-ui.md` records
+  // that run). The problem was never the measurement. It was that a measurement
+  // written down stops being a measurement: `si-gaps` then gave SSW its
+  // register entry and HLB its virtual door, both of them route now with 2 and
+  // 1 doors, and this screen went on refusing them — because the answer had
+  // been remembered instead of asked for. `wayfindSearch('SSW')` said routable
+  // and the import screen said "no door", two taps apart, in the same app.
+  //
+  // So it asks. The two kinds of unreachable still are not distinguishable from
+  // a single question — a code with no doors looks identical whether it is
+  // 11 km away or across the street, and the whole point of this screen is that
+  // the student is told which — so the screen asks two:
+  //
+  //   `window.wayfindOffMap(code)`  a real UT building at a campus this app
+  //                                 does not draw. Returns the record or null,
+  //                                 and the record carries the building's own
+  //                                 name, its campus, and how far and which way
+  //                                 it is — all derived from UT's own survey.
+  //   `window.wayfindSearch(code)`  everything on this map, routable or not.
+  //
+  // Neither can go stale, because neither is a copy: they ARE the router. The
+  // ten Pickle codes come back from the first, and nothing else does.
+  //
+  // THE NAME IS NOT DECORATION, and it now comes from the same place as the
+  // distance. A student reading `MER 1.906 — Pickle Research Campus` has to
+  // take our word for it; `MER 1.906 · Microelectronics & Engineering Research
+  // Center — J.J. Pickle Research Campus` they can check against their own
+  // registration page.
   const IMP_PLACES = {
-    prc: {
-      name: 'Pickle Research Campus',
-      why: 'about 11 km north of here, outside the city this app models',
-    },
+    // Built from the record `wayfindOffMap()` hands back, so the distance this
+    // screen prints and the distance the day view prints are one fact from one
+    // source instead of two strings that agree until one of them is edited.
+    // WHOLE KILOMETRES: the record carries two decimals, and a reader eleven
+    // kilometres from a building they cannot see on the map does not need them.
+    offmap: (rec) => ({
+      name: rec.campus || null,
+      why: 'about ' + Math.round(Number(rec.km) || 0) + ' km ' +
+        (rec.direction || 'away') + ' of here, outside the city this app models',
+    }),
     nodoor: {
       name: null,
       why: 'on campus, but the walking network has no door for it yet',
@@ -12137,11 +12144,16 @@
       raw: row.raw || row.location || row.title || '',
     };
     if (!code) return Object.assign(base, { status: 'nolocation', name: null });
-    const off = IMP_UNREACHABLE[code];
+    // ── ASK THE ROUTER; DO NOT REPEAT WHAT IT SAID LAST WEEK (SI5) ─────────
+    // Off the map is asked FIRST because it is the narrower question and the
+    // only one with an unambiguous answer: `wayfindOffMap` returns a record or
+    // null, and a code it does not know is by definition somewhere on this map,
+    // which is exactly what the next question is for.
+    let off = null;
+    try { off = window.wayfindOffMap ? window.wayfindOffMap(code) : null; } catch (e) { off = null; }
     if (off) {
       return Object.assign(base, {
-        status: off[0] === 'prc' ? 'offmap' : 'nodoor',
-        place: IMP_PLACES[off[0]], name: off[1] || null,
+        status: 'offmap', place: IMP_PLACES.offmap(off), name: off.name || null,
       });
     }
     let hit = null;
