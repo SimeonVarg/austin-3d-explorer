@@ -3462,3 +3462,86 @@ Branch `acer/si-privacy`, pushed, not merged and no PR. `js/wayfind.js` passes
 touched except this log. Every scratch script and every scratch frame stayed in
 the scratchpad; one frame is committed because §6 cites it. Server on 8951
 killed and the port re-confirmed free.
+
+## 2026-08-24 — round 7 on the privacy piece (`acer/si-privacy`): round 6 fixed half the default, and an array walked the rest of the way out
+
+Round 6 said it had stopped patching shapes and inverted the default. It had
+inverted half of it. The walk asked *which node kinds do I recognise* and got
+that right; it never asked *what does recognising one mean*. So the array branch
+still read `for (let i = 0; i < x.length; i++)` — an index loop, which is not
+what a structured clone does to an array — and this went out:
+
+```js
+const a = [1, 2, 3];
+a.note = classTitle;
+worker.postMessage({ a });     // guard armed → blocked: 0, opaque: 0
+```
+
+`structuredClone` carries a tacked-on property, the worker decoded it, and its
+own `fetch` put the title on a raw TCP socket verbatim. `blocked: 0,
+opaqueWorkerLeaves: 0` — **uncounted and unlogged**, the exact reading round 5
+got from the ArrayBuffer hole that round 6 existed to close, sitting inside the
+one branch round 6's own comment called fully read. Five variants leaked: an
+array in an object, a bare top-level array, an `Array` subclass, a sparse array,
+and a whole object tree hanging off an array property.
+
+**Fixed by the rule rather than the case.** For every kind the walk claims to
+read, it now reads exactly what the clone algorithm reads. For `Array` and for a
+plain object that is the same thing — own enumerable properties — so they are
+one loop now and an array is no longer the special case that got optimised into
+being wrong.
+
+**A second hole, in the half of the guard nobody was looking at.** Round 6 built
+a byte scanner that reads UTF-8 *and* UTF-16LE and wired it to one of the two
+doors. `fetch(sink, { body: utf16leBufferOfTheTitle })` came back **204** on the
+socket with the guard armed, while the same title UTF-8-encoded was refused.
+Network bodies now go through the same byte scan, and `inspect()` takes the body
+as the caller had it rather than a string the caller already flattened.
+
+**Four doors that were never inspected at all**, each returning `checked: 0`
+against an armed round-6 guard: `window.postMessage`,
+`iframe.contentWindow.postMessage`, `navigator.serviceWorker.register(url)`,
+`RTCDataChannel.send`. The iframe one carries a fact worth keeping — **a
+same-origin child iframe is a separate JavaScript realm with its own
+intrinsics**, so patching our `Window.prototype` never reaches it and its own
+`fetch` reaches the network the way a worker's does. The guard now follows the
+reference into any child realm this page holds a handle on.
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, counters read
+before and after each probe. Armed: all seventeen shapes refused and the socket
+received nothing. Disarmed: every one of them put `Palaeobotanical Ensemble
+Studio` on that socket verbatim, which is what makes the armed column mean
+anything. `<img src>` still reaches the wire and is still a named residual in §9,
+not a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom legs:
+`blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+**15,351 buffers and 122.5 MB of real tile bytes read and passed**,
+`styleLoaded`/`tilesLoaded` true. Frame at `shots/si/privacy/r7-map-guarded.jpg`.
+
+**What it costs — and the two measurements disagree, so both are written down.**
+On the real city there is **no result**: three interleaved reps each way, guard
+time across an identical drive, 0.250–0.271 ms/message against 0.213–0.273, and
+overlapping spreads mean no result. Isolated on a fixed payload it is real: a
+600,000-element numeric array is **103.4 ms/message against 13.6**, 7.6×. Both
+are true because MapLibre's real payloads are binary and the byte scan of ~120 MB
+dwarfs the walk. The obvious speed-up — `Object.keys(x).length !== x.length` as a
+"has extras" test — was rejected for being **unsound**, not slow: an array with
+both a hole and an extra has the two cancel (`length` 3, keys `['0','1','note']`),
+and that shape is now a probe so nobody reintroduces it.
+
+**§7's citation was already right.** Round 6 had fixed the fabricated
+`docs/schedule-gaps.md` reference; re-read both sources this round to confirm it.
+`docs/schedule-gaps.md` is real on `main` (`ed74cc3`) and does argue demolition;
+`docs/si-gaps.md` on `origin/acer/si-gaps` checks that and shows SSW is a current
+main-campus building our 198-code register is one row short of, with UT's two
+published doors 0.37 m and 2.45 m from a footprint this app already draws. §7
+says that, and the doc's own citation gate is ALL PASS at 21 paths.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check` clean;
+`harness-drift.mjs` PASS 31/31; the storage path re-driven end to end after the
+`inspect()` rewiring (panel empty → save → real click on Delete → a genuinely
+fresh document finds nothing → feature off is still off), 9/9. Nothing outside
+this lane's files touched except this log. Every scratch script and frame stayed
+in the scratchpad; one frame is committed because the doc cites it. Server on
+8951 killed and the port re-confirmed free.

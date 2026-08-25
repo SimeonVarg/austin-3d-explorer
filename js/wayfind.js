@@ -8406,6 +8406,29 @@
      *  something to run on the tile path, and any buffer holding the whole
      *  blob holds its first 256 characters too. */
     binaryPatternChars: 256,
+    /**
+     * REACH INTO A SAME-ORIGIN CHILD REALM AND GUARD IT TOO — round 7.
+     *
+     * The channel probe fired `iframe.contentWindow.postMessage(title, '*')`
+     * with the guard armed and got `checked: 0`. Patching `Window.prototype`
+     * on the main thread does not cover it, and the reason is worth knowing
+     * rather than rediscovering: **a same-origin child iframe is a separate
+     * JavaScript realm with its own intrinsics.** Its `Window.prototype` is a
+     * different object from ours. Every wrapper in `installEgressGuard()` is
+     * therefore invisible inside it, and a child frame's own `fetch` reaches
+     * the network exactly the way a worker's does.
+     *
+     * So the guard follows the reference: whenever this page reads a frame's
+     * `contentWindow` or takes the Window back from `window.open()`, that
+     * realm's `postMessage` and `fetch` get wrapped before the caller can use
+     * them. Cross-origin throws on the assignment and is caught — there is
+     * nothing to patch there, and nothing our objects can reach either.
+     *
+     * Measured cost: zero. This app has no iframes and calls `window.open`
+     * never, so the `contentWindow` getter below is never read on a real load
+     * (`guard.state().frameChecked` is 0 in the audit).
+     */
+    guardChildFrames: true,
     /** A throw inside the WORKER payload walk blocks the message rather than
      *  waving it through. Different from the network paths on purpose: a
      *  broken inspector must never stop a tile downloading, but a payload that
@@ -8571,6 +8594,10 @@
     scanThrows: 0,             // throws inside the worker-payload walk
     portChecked: 0,            // MessagePort/BroadcastChannel messages inspected
     workerCtors: 0,            // Worker/SharedWorker constructions seen
+    bodyBytesScanned: 0,       // round 7: bytes of BINARY request body byte-scanned
+    frameChecked: 0,           // round 7: window/iframe postMessage calls inspected
+    swChecked: 0,              // round 7: ServiceWorker postMessage/register calls
+    rtcChecked: 0,             // round 7: RTCDataChannel.send calls
   };
 
   /** The stand-in "tokens" for the four ways the guard can refuse something it
@@ -8902,9 +8929,31 @@
     if (t !== 'object') return;                // number, boolean, bigint, symbol
 
     // -- the two shapes that are 99% of real traffic, tested first ----------
+    //
+    // ROUND 7'S FINDING, AND IT IS THE SAME BUG ROUND 6 THOUGHT IT HAD FIXED.
+    // This branch used to read `for (let i = 0; i < x.length; i++)`. An index
+    // loop is not what a structured clone does to an array: the clone walks
+    // `EnumerableOwnPropertyNames`, so `a.note = classTitle` on an ordinary
+    // array **crosses into the worker** and an index loop never looks at it.
+    // Measured, not argued — `structuredClone([1,2,3] with .note)` carries the
+    // canary, the worker read it back, and it landed on a raw TCP socket with
+    // the guard armed at `blocked: 0, opaque: 0`. Uncounted and unlogged: the
+    // exact failure round 6 set out to make impossible, sitting inside the one
+    // branch round 6 declared fully read.
+    //
+    // Round 6 fixed *which kinds the walk recognises* and left *what reading a
+    // kind means* alone. So the rule now is the one the platform itself uses:
+    // for every kind this walk claims to read, it reads exactly what the clone
+    // algorithm reads. For `Array` and for a plain object that is the same
+    // thing — own enumerable properties — so they are the same loop, and an
+    // array is no longer the odd one out that was optimised into being wrong.
+    // The cost of that is real and is written down in docs/si-privacy.md §8.
     if (Array.isArray(x)) {
-      for (let i = 0; i < x.length && swHit === null && !swTrunc; i++) scanWalk(x[i]);
-      return;
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // an array IS fully read
     }
     const proto = Object.getPrototypeOf(x);
     if (proto === Object.prototype || proto === null) {
@@ -8988,7 +9037,14 @@
    *  be read without going async (a Blob, a ReadableStream, a buffer past
    *  `maxBytes`). The caller must keep those two apart: `''` clears the
    *  request, `undefined` refuses it while a schedule is stored. */
+  /** "This call HAS a body and it is not here to be read" — a `Request`'s
+   *  `ReadableStream`, or a `FormData` that would not build. Distinct from
+   *  `null`/absent, which clears the request. `bodyToText` maps it to
+   *  `undefined`, which is the refusal path. */
+  const BODY_UNREADABLE = { __wfUnreadable: true };
+
   function bodyToText(b) {
+    if (b === BODY_UNREADABLE) return undefined;
     if (b == null) return '';
     if (typeof b === 'string') return b;
     if (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) return b.toString();
@@ -9005,6 +9061,38 @@
       } catch (e) { return undefined; }
     }
     return undefined;   // Blob, ReadableStream, anything else
+  }
+
+  /**
+   * THE BYTES OF A BINARY BODY, so a request body gets the same two-encoding
+   * scan a worker payload already got. null for a body that is not binary.
+   *
+   * ROUND 7 FOUND THIS BY FIRING AT ITS OWN SOCKET, and it is the other half of
+   * the array bug: round 6 built `scanBytesForSchedule()` — UTF-8 *and*
+   * UTF-16LE, the two encodings an honest bug produces — and then wired it to
+   * exactly one of the two doors. `bodyToText()` decodes a binary body as UTF-8
+   * and nothing else, so
+   *
+   *     fetch(url, { body: utf16leBufferOfTheClassTitle })
+   *
+   * came back `204` off a bare TCP listener with the guard armed and
+   * `blocked: 0`, while the *same title* UTF-8-encoded was refused. A guard
+   * that is encoding-complete on the worker path and encoding-blind on the
+   * network path is not a guard, it is a coin flip about which door gets used.
+   *
+   * Costs nothing here: every request this app makes is a bodyless GET, so
+   * `bodyBytes()` returns null for all of them and the scan never runs. And a
+   * binary body over `maxBytes` is already refused unread by `bodyToText()`
+   * returning `undefined`, so the bytes this ever sees are at most 256 KB.
+   */
+  function bodyBytes(b) {
+    if (b == null || typeof b === 'string') return null;
+    if (typeof ArrayBuffer === 'undefined') return null;
+    try {
+      if (b instanceof ArrayBuffer) return new Uint8Array(b);
+      if (ArrayBuffer.isView(b)) return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    } catch (e) { return null; }
+    return null;
   }
 
   /**
@@ -9088,12 +9176,22 @@
    * message still gets counted, and still gets a log line the moment it
    * actually matches, which is the only worker message anyone would ever read.
    */
-  function inspect(via, method, url, body, quiet) {
+  /**
+   * `raw` IS THE BODY AS THE CALLER HAD IT, not a string the caller already
+   * flattened — round 7's change, and the reason is in `bodyBytes()` above.
+   * Flattening in the caller is what let a UTF-16LE buffer body reach the wire:
+   * by the time `inspect` saw it, it was already mojibake. It converts here now
+   * so there is one place that decides what a body is, and binary reaches the
+   * byte scanner instead of only the UTF-8 decoder.
+   */
+  function inspect(via, method, url, raw, quiet) {
     schedGuard.checked++;
     if (quiet) schedGuard.quietChecked++;
     if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
     let hit = null;
+    let body;
     try {
+      body = bodyToText(raw);
       hit = scanTextForSchedule(url);
       if (body === undefined) {
         // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
@@ -9103,6 +9201,11 @@
         if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
       } else if (!hit) {
         hit = scanTextForSchedule(body);
+        // ...and the same bytes again, in the encodings a decode cannot reach.
+        if (!hit) {
+          const u8 = bodyBytes(raw);
+          if (u8) { schedGuard.bodyBytesScanned += u8.length; hit = scanBytesForSchedule(u8); }
+        }
       }
     } catch (e) {
       // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
@@ -9128,6 +9231,58 @@
       redactToken(hit) + '). The schedule never leaves this device.');
   }
 
+  /**
+   * Wrap the two egress doors inside a Window this page has a handle on — a
+   * same-origin iframe, or whatever `window.open` handed back. See
+   * `SCHEDULE_STORE.guardChildFrames` for why patching our own realm is not
+   * enough. Idempotent via a mark ON THAT REALM'S OWN window, so re-reading
+   * `contentWindow` in a loop costs one property read.
+   *
+   * WHAT IT DOES NOT CLAIM: a child realm can mint its own child, and this
+   * only follows references that pass through THIS page. It is the same kind
+   * of seatbelt as the rest of §12 — it makes an honest mistake fail loudly,
+   * and it is not a sandbox. docs/si-privacy.md §9 says so in the same words.
+   */
+  const CHILD_REALM_MARK = '__wfEgressGuarded';
+  function guardChildRealm(w) {
+    if (!w) return false;
+    try {
+      if (w[CHILD_REALM_MARK]) return true;
+      const pm = w.postMessage;
+      if (typeof pm !== 'function') return false;
+      w.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('childframe.postMessage', msg);
+          if (hit) throw egressError('child frame postMessage', hit);
+        }
+        return pm.apply(w, arguments);
+      };
+      if (typeof w.fetch === 'function') {
+        const of = w.fetch;
+        w.fetch = function (input, init) {
+          if (schedWatch.length) {
+            const isReq = !!(w.Request && input instanceof w.Request);
+            const url = isReq ? input.url : String(input);
+            const method = (init && init.method) || (isReq && input.method) || 'GET';
+            let raw = init ? init.body : null;
+            if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;
+            const hit = inspect('childframe.fetch', method, url, raw);
+            if (hit) return Promise.reject(egressError('child frame fetch', hit));
+          }
+          return of.apply(w, arguments);
+        };
+      }
+      w[CHILD_REALM_MARK] = true;
+      return true;
+    } catch (e) {
+      // Cross-origin. The assignment throws SecurityError, which is the
+      // browser telling us the thing we were worried about cannot happen
+      // through this handle either.
+      return false;
+    }
+  }
+
   function installEgressGuard() {
     if (schedGuard.installed) return;
     schedGuard.installed = true;
@@ -9142,9 +9297,9 @@
         const isReq = (typeof Request !== 'undefined' && input instanceof Request);
         const url = isReq ? input.url : String(input);
         const method = (init && init.method) || (isReq && input.method) || 'GET';
-        let body = init ? bodyToText(init.body) : '';
-        if (isReq && body === '' && input.body) body = undefined;   // stream: unreadable here
-        const hit = inspect('fetch', method, url, body);
+        let raw = init ? init.body : null;
+        if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;   // stream
+        const hit = inspect('fetch', method, url, raw);
         if (hit) return Promise.reject(egressError('fetch', hit));
         return orig.apply(this, arguments);
       };
@@ -9159,7 +9314,7 @@
       };
       XMLHttpRequest.prototype.send = function (b) {
         if (schedWatch.length) {
-          const hit = inspect('xhr', this.__wfM, this.__wfU, bodyToText(b));
+          const hit = inspect('xhr', this.__wfM, this.__wfU, b);
           if (hit) throw egressError('XMLHttpRequest', hit);
         }
         return sd.apply(this, arguments);
@@ -9170,7 +9325,7 @@
     if (navigator && typeof navigator.sendBeacon === 'function') {
       const orig = navigator.sendBeacon.bind(navigator);
       navigator.sendBeacon = function (u, d) {
-        if (schedWatch.length && inspect('sendBeacon', 'POST', u, bodyToText(d))) return false;
+        if (schedWatch.length && inspect('sendBeacon', 'POST', u, d)) return false;
         return orig(u, d);
       };
     }
@@ -9191,7 +9346,7 @@
         }
         send(data) {
           if (schedWatch.length) {
-            const hit = inspect('websocket', 'SEND', this.url, bodyToText(data));
+            const hit = inspect('websocket', 'SEND', this.url, data);
             if (hit) throw egressError('WebSocket.send', hit);
           }
           return super.send(data);
@@ -9261,6 +9416,112 @@
       };
     }
 
+    // the doors round 7 found still open ───────────────────────────────────
+    // Round 6 closed every structured-clone door it could name and wrote that
+    // `MessagePort`/`BroadcastChannel` "would have been the round-7 finding".
+    // It was half right. These four were still unwrapped, and the channel
+    // matrix caught them the cheap way: fire at each one with the guard armed
+    // and read `checked` before and after. All four came back `checked: 0` —
+    // not "allowed", *never looked at*, which is the same reading the
+    // ArrayBuffer leak gave in round 5.
+    //
+    // None of them is exotic. `window.parent.postMessage(schedule, '*')` hands
+    // the term to whatever page has this app in an iframe, and this app is a
+    // public URL anyone can frame. A `ServiceWorker` has its own `fetch` and
+    // outlives the tab. An `RTCDataChannel` is a socket with a different name.
+    //
+    // MEASURED COST: zero. A cold load of this city makes 0 calls to any of
+    // the four (`frameChecked`/`swChecked`/`rtcChecked` all 0 in the audit),
+    // which is exactly why closing them now is cheap and finding out later
+    // would not have been.
+    if (typeof window.postMessage === 'function') {
+      const opm = window.postMessage.bind(window);
+      window.postMessage = function (msg, targetOrigin, transfer) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('window.postMessage', msg);
+          if (hit) throw egressError('window.postMessage', hit);
+        }
+        return opm(msg, targetOrigin, transfer);
+      };
+    }
+    // An iframe's `contentWindow` is a *different* Window object, so patching
+    // our own is not enough — the class has to be patched on the prototype.
+    if (typeof Window !== 'undefined' && Window.prototype && Window.prototype.postMessage) {
+      const wpm = Window.prototype.postMessage;
+      Window.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('frame.postMessage', msg);
+          if (hit) throw egressError('Window.postMessage', hit);
+        }
+        return wpm.apply(this, arguments);
+      };
+    }
+    if (typeof ServiceWorker !== 'undefined' && ServiceWorker.prototype && ServiceWorker.prototype.postMessage) {
+      const spm = ServiceWorker.prototype.postMessage;
+      ServiceWorker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const hit = inspectPayload('serviceworker.postMessage', msg);
+          if (hit) throw egressError('ServiceWorker.postMessage', hit);
+        }
+        return spm.apply(this, arguments);
+      };
+    }
+    // The same shape as `new Worker(url)`: the URL alone is the leak, and the
+    // registration outlives the page that made it.
+    if (navigator && navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      const reg = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = function (url, opts) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const h = inspect('serviceworker.register', 'REGISTER', url, '');
+          if (h) return Promise.reject(egressError('serviceWorker.register', h));
+        }
+        return reg(url, opts);
+      };
+    }
+    // a child realm this page can reach is a realm the guard reaches ───────
+    if (SCHEDULE_STORE.guardChildFrames && typeof HTMLIFrameElement !== 'undefined') {
+      const d = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+      if (d && typeof d.get === 'function') {
+        Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+          configurable: true,
+          enumerable: d.enumerable,
+          get: function () {
+            const w = d.get.call(this);
+            if (schedRe) guardChildRealm(w);
+            return w;
+          },
+        });
+      }
+      if (typeof window.open === 'function') {
+        const op = window.open.bind(window);
+        window.open = function (url) {
+          if (schedRe) {
+            schedGuard.frameChecked++;
+            const h = inspect('window.open', 'OPEN', url, '');
+            if (h) throw egressError('window.open', h);
+          }
+          const w = op.apply(null, arguments);
+          if (schedRe) guardChildRealm(w);
+          return w;
+        };
+      }
+    }
+    if (typeof RTCDataChannel !== 'undefined' && RTCDataChannel.prototype && RTCDataChannel.prototype.send) {
+      const snd = RTCDataChannel.prototype.send;
+      RTCDataChannel.prototype.send = function (data) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const hit = inspect('rtc.send', 'SEND', this.label || '[datachannel]', data);
+          if (hit) throw egressError('RTCDataChannel.send', hit);
+        }
+        return snd.apply(this, arguments);
+      };
+    }
+
     // the worker's own script URL ──────────────────────────────────────────
     // `new Worker('/collect?t=' + classTitle)` is a leak that never sends a
     // single message, and until this round nothing looked at it. The URL is a
@@ -9297,7 +9558,7 @@
       HTMLFormElement.prototype.submit = function () {
         if (schedWatch.length) {
           const hit = inspect('form.submit', this.method || 'GET', this.action,
-            bodyToText(typeof FormData !== 'undefined' ? new FormData(this) : null));
+            typeof FormData !== 'undefined' ? new FormData(this) : null);
           if (hit) throw egressError('form.submit', hit);
         }
         return sub.apply(this, arguments);
@@ -9307,9 +9568,9 @@
       if (!schedWatch.length) return;
       const f = ev.target;
       if (!f || f.tagName !== 'FORM') return;
-      let text = '';
-      try { text = bodyToText(new FormData(f)); } catch (e) { text = undefined; }
-      if (inspect('form.event', f.method || 'GET', f.action, text)) ev.preventDefault();
+      let fd = '';
+      try { fd = new FormData(f); } catch (e) { fd = BODY_UNREADABLE; }
+      if (inspect('form.event', f.method || 'GET', f.action, fd)) ev.preventDefault();
     }, true);
   }
 
@@ -9541,6 +9802,13 @@
         scanThrows: schedGuard.scanThrows,
         portChecked: schedGuard.portChecked,
         workerCtors: schedGuard.workerCtors,
+        // Round 7. All four are the "measured cost: zero" claim, republished so
+        // the next person re-checks it in one line instead of trusting a
+        // comment — the same reason `binaryLeaves` is here.
+        bodyBytesScanned: schedGuard.bodyBytesScanned,
+        frameChecked: schedGuard.frameChecked,
+        swChecked: schedGuard.swChecked,
+        rtcChecked: schedGuard.rtcChecked,
         policy: {
           blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
           blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
