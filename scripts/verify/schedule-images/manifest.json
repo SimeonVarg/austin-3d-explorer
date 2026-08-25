@@ -1,0 +1,737 @@
+{
+  "_honesty": "EVERY IMAGE IN THIS DIRECTORY IS SYNTHESIZED. No camera was used anywhere. Each one starts as a hand-written HTML mock rendered in headless Chrome; the angled ones are then put through a perspective warp, a graded defocus blur, a glare gradient, sensor noise and JPEG compression in Pillow. They are NOT screenshots of UT's registration system or of Google Calendar, and the \"angled phone photos\" are NOT photographs of a screen. What is real is the DATA: every building code, room, course number and time comes from this repo's own fixtures or from UT's building register.",
+  "_generator": "scripts/verify/schedule-images/tools/corpus.mjs",
+  "_built": "2026-08-25",
+  "_buildingCodes": [
+    "BUR",
+    "CMA",
+    "DMC",
+    "GDC",
+    "GSB",
+    "JES",
+    "MER",
+    "MEZ",
+    "PAI",
+    "RLP",
+    "UTC",
+    "WEL"
+  ],
+  "_buildingCodesChecked": "The build refuses to run if any of these is not in data/ut_buildings.json or in the CAMPUS_EXTRA / OFF_MAP tables of js/wayfind.js. MER is the Pickle-campus code, on purpose: a schedule can name a building this app cannot walk you to, and the corpus has to contain that case.",
+  "_totalBytes": 1140214,
+  "images": [
+    {
+      "image": "01-ut-table-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "what": "A straight full-quality screenshot of the registrar-style course table.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "UT-registrar-style course table",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1280,
+          520
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2560,
+          1040
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 80
+      },
+      "bytes": 76652
+    },
+    {
+      "image": "02-gcal-week-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "what": "A straight full-quality screenshot of a Google-Calendar-style week grid.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/ut-regplus.ics",
+      "sourceNote": "Transcribed field for field from the .ics. C S 429 keeps its four-day MTWTh pattern, which is the densest week in the corpus.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 80
+      },
+      "bytes": 58688
+    },
+    {
+      "image": "03-ut-cards-phone-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "what": "A phone-width scrolling screenshot of the same schedule as stacked cards, full quality.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "UT course schedule as phone-width cards",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/manual-paste.txt",
+      "sourceNote": "The seven pasted rows, with two changes made ON PURPOSE and stated here rather than hidden: the fixture gives HIS 315K the deliberately-misspelt code \"MAII 220\" and gives PSY 301 no location at all. An IMAGE benchmark scores four fields per meeting, so a row that cannot have a true building cannot be scored; both rows carry a real code here (MEZ 1.306, BUR 106). The MAI 220 row of the fixture is dropped rather than renamed. Everything else — C S 429/GDC, M 340L/RLP, GOV 312L/WEL, PHY 303L/PAI — is the fixture unchanged.",
+      "render": {
+        "viewport": [
+          390,
+          844
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": true,
+        "basePixels": [
+          780,
+          1758
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 800,
+        "jpegQuality": 82
+      },
+      "bytes": 116689
+    },
+    {
+      "image": "04-gcal-week-clean-dense.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "what": "The densest week in the corpus — 14 meetings — as a clean week-grid screenshot.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 80
+      },
+      "bytes": 67502
+    },
+    {
+      "image": "05-ut-table-angled-left.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "what": "Same table as image 01, re-photographed: the screen is turned away to the left, the far edge is out of focus, a soft window reflection sits over the top-left, indoor warm white balance, sensor noise, JPEG at 74.",
+      "madeBy": "HTML mock rendered in headless Chrome, then warped/blurred/glared in Pillow (tools/photo.py). Synthesized, not photographed.",
+      "surface": "UT-registrar-style course table",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1280,
+          520
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2560,
+          1040
+        ]
+      },
+      "transform": {
+        "kind": "perspective+defocus+glare+noise+jpeg",
+        "params": {
+          "canvas": [
+            1500,
+            1080
+          ],
+          "yaw": -17,
+          "pitch": 5,
+          "roll": -1.4,
+          "dist": 3.1,
+          "blur": 0.9,
+          "blurGrad": [
+            1,
+            0.15
+          ],
+          "blurGradMax": 2.2,
+          "glare": [
+            {
+              "cx": 0.24,
+              "cy": 0.2,
+              "rx": 0.5,
+              "ry": 0.42,
+              "s": 0.4
+            }
+          ],
+          "wb": [
+            1.05,
+            1,
+            0.93
+          ],
+          "noise": 3.4,
+          "vignette": 0.3,
+          "moire": 0.02,
+          "gamma": 1.06,
+          "bg": [
+            26,
+            24,
+            22
+          ]
+        }
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 78
+      },
+      "bytes": 82299
+    },
+    {
+      "image": "06-gcal-angled-right.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "what": "Same week grid as image 02, shot from the right of the monitor with a visible pixel-grid moire, cool office white balance and camera shake.",
+      "madeBy": "HTML mock rendered in headless Chrome, then warped/blurred/glared in Pillow (tools/photo.py). Synthesized, not photographed.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/ut-regplus.ics",
+      "sourceNote": "Transcribed field for field from the .ics. C S 429 keeps its four-day MTWTh pattern, which is the densest week in the corpus.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "perspective+defocus+glare+noise+jpeg",
+        "params": {
+          "canvas": [
+            1500,
+            1020
+          ],
+          "yaw": 20,
+          "pitch": -7,
+          "roll": 1.9,
+          "dist": 2.5,
+          "blur": 0.8,
+          "blurGrad": [
+            -1,
+            0.2
+          ],
+          "blurGradMax": 1.9,
+          "glare": [
+            {
+              "cx": 0.72,
+              "cy": 0.62,
+              "rx": 0.42,
+              "ry": 0.5,
+              "s": 0.3
+            }
+          ],
+          "wb": [
+            0.96,
+            0.99,
+            1.07
+          ],
+          "noise": 4,
+          "vignette": 0.34,
+          "moire": 0.035,
+          "gamma": 1.02,
+          "bg": [
+            22,
+            24,
+            29
+          ]
+        }
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 78
+      },
+      "bytes": 85700
+    },
+    {
+      "image": "07-ut-cards-angled-blur.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "what": "A phone held at an angle and photographed slightly out of focus — the worst-focus image in the corpus, and still readable by eye.",
+      "madeBy": "HTML mock rendered in headless Chrome, then warped/blurred/glared in Pillow (tools/photo.py). Synthesized, not photographed.",
+      "surface": "UT course schedule as phone-width cards",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/manual-paste.txt",
+      "sourceNote": "The seven pasted rows, with two changes made ON PURPOSE and stated here rather than hidden: the fixture gives HIS 315K the deliberately-misspelt code \"MAII 220\" and gives PSY 301 no location at all. An IMAGE benchmark scores four fields per meeting, so a row that cannot have a true building cannot be scored; both rows carry a real code here (MEZ 1.306, BUR 106). The MAI 220 row of the fixture is dropped rather than renamed. Everything else — C S 429/GDC, M 340L/RLP, GOV 312L/WEL, PHY 303L/PAI — is the fixture unchanged.",
+      "render": {
+        "viewport": [
+          390,
+          844
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": true,
+        "basePixels": [
+          780,
+          1758
+        ]
+      },
+      "transform": {
+        "kind": "perspective+defocus+glare+noise+jpeg",
+        "params": {
+          "canvas": [
+            1000,
+            1400
+          ],
+          "yaw": -11,
+          "pitch": 6,
+          "roll": 2.6,
+          "dist": 3,
+          "blur": 1.15,
+          "blurGrad": [
+            0.6,
+            0.25
+          ],
+          "blurGradMax": 2.1,
+          "glare": [
+            {
+              "cx": 0.4,
+              "cy": 0.12,
+              "rx": 0.55,
+              "ry": 0.3,
+              "s": 0.32
+            }
+          ],
+          "wb": [
+            1.06,
+            1,
+            0.9
+          ],
+          "noise": 5,
+          "vignette": 0.36,
+          "moire": 0,
+          "gamma": 1.1,
+          "bg": [
+            30,
+            27,
+            24
+          ]
+        }
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 78
+      },
+      "bytes": 111663
+    },
+    {
+      "image": "08-gcal-angled-glare.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "what": "A strip light blown out across the top third of the screen — the glare, not the angle, is what this image tests.",
+      "madeBy": "HTML mock rendered in headless Chrome, then warped/blurred/glared in Pillow (tools/photo.py). Synthesized, not photographed.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "light",
+      "sourceFixture": "composed for this corpus",
+      "sourceNote": "Not a transcription. A first-year load built to reach codes the two .ics fixtures never touch — JES and MEZ — and to carry a room shaped like JES A121A, which is letter-then-digits and breaks a room pattern that only ever saw \"2.224\". Codes and courses are real UT; unique numbers and STAFF are filler and are not scored.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "perspective+defocus+glare+noise+jpeg",
+        "params": {
+          "canvas": [
+            1500,
+            1020
+          ],
+          "yaw": 12,
+          "pitch": 6,
+          "roll": -1.3,
+          "dist": 2.7,
+          "blur": 0.7,
+          "blurGrad": [
+            1,
+            0.3
+          ],
+          "blurGradMax": 1.6,
+          "glare": [
+            {
+              "cx": 0.5,
+              "cy": 0.11,
+              "rx": 0.72,
+              "ry": 0.28,
+              "s": 0.55
+            },
+            {
+              "cx": 0.86,
+              "cy": 0.55,
+              "rx": 0.2,
+              "ry": 0.26,
+              "s": 0.32
+            }
+          ],
+          "wb": [
+            1.03,
+            1,
+            0.97
+          ],
+          "noise": 3,
+          "vignette": 0.3,
+          "moire": 0.03,
+          "gamma": 1,
+          "bg": [
+            24,
+            23,
+            25
+          ]
+        }
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 78
+      },
+      "bytes": 84719
+    },
+    {
+      "image": "09-ut-table-dark-clean.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [],
+      "what": "Dark theme, clean screenshot, and the ONE layout in the corpus that puts the building code and the room number in two separate columns.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "UT-registrar-style course table",
+      "theme": "dark",
+      "sourceFixture": "scripts/verify/schedule-fixtures/ut-regplus.ics",
+      "sourceNote": "Transcribed field for field from the .ics. C S 429 keeps its four-day MTWTh pattern, which is the densest week in the corpus.",
+      "render": {
+        "viewport": [
+          1280,
+          428
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2560,
+          856
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 80
+      },
+      "bytes": 58218
+    },
+    {
+      "image": "10-gcal-week-dark-clean.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [],
+      "what": "Dark-theme week grid, clean screenshot: light text on dark everywhere except inside the event blocks, which stay light-on-colour.",
+      "madeBy": "HTML mock rendered in headless Chrome and JPEG-encoded. Synthesized, not a screenshot of any real product.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "dark",
+      "sourceFixture": "scripts/verify/schedule-fixtures/manual-paste.txt",
+      "sourceNote": "The seven pasted rows, with two changes made ON PURPOSE and stated here rather than hidden: the fixture gives HIS 315K the deliberately-misspelt code \"MAII 220\" and gives PSY 301 no location at all. An IMAGE benchmark scores four fields per meeting, so a row that cannot have a true building cannot be scored; both rows carry a real code here (MEZ 1.306, BUR 106). The MAI 220 row of the fixture is dropped rather than renamed. Everything else — C S 429/GDC, M 340L/RLP, GOV 312L/WEL, PHY 303L/PAI — is the fixture unchanged.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "none"
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 80
+      },
+      "bytes": 66589
+    },
+    {
+      "image": "11-gcal-dark-angled.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [
+        "angled-photo"
+      ],
+      "what": "A dark screen photographed at an angle. A dark panel is a mirror, so the window reflection is the brightest thing in the frame and it lands over the middle of the week.",
+      "madeBy": "HTML mock rendered in headless Chrome, then warped/blurred/glared in Pillow (tools/photo.py). Synthesized, not photographed.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "dark",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "perspective+defocus+glare+noise+jpeg",
+        "params": {
+          "canvas": [
+            1500,
+            1020
+          ],
+          "yaw": -17,
+          "pitch": -9,
+          "roll": 2.1,
+          "dist": 2.4,
+          "blur": 1,
+          "blurGrad": [
+            1,
+            0.2
+          ],
+          "blurGradMax": 2.1,
+          "glare": [
+            {
+              "cx": 0.3,
+              "cy": 0.2,
+              "rx": 0.26,
+              "ry": 0.28,
+              "s": 0.7
+            }
+          ],
+          "wb": [
+            1,
+            1,
+            1.04
+          ],
+          "noise": 4.6,
+          "vignette": 0.3,
+          "moire": 0.06,
+          "gamma": 0.95,
+          "bg": [
+            17,
+            17,
+            20
+          ]
+        }
+      },
+      "encode": {
+        "maxWidth": 1400,
+        "jpegQuality": 78
+      },
+      "bytes": 115653
+    },
+    {
+      "image": "12-ut-table-crop-top.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "what": "The top of image 01 only. The cut runs through the middle of one table row, so that row is half a line of type and is scored as optional.",
+      "madeBy": "HTML mock rendered in headless Chrome, then cropped in Pillow (tools/photo.py). Synthesized.",
+      "surface": "UT-registrar-style course table",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1280,
+          520
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2560,
+          1040
+        ]
+      },
+      "transform": {
+        "kind": "crop",
+        "spec": {
+          "kind": "top-through-row",
+          "row": 3,
+          "frac": 0.55
+        },
+        "rectPixels": [
+          0,
+          0,
+          2560,
+          706
+        ]
+      },
+      "encode": {
+        "maxWidth": 1300,
+        "jpegQuality": 80
+      },
+      "bytes": 44968
+    },
+    {
+      "image": "13-ut-table-crop-bottom.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "what": "The bottom of image 01 only — no column headings at all, which is the case that makes a reader guess which column is the room.",
+      "madeBy": "HTML mock rendered in headless Chrome, then cropped in Pillow (tools/photo.py). Synthesized.",
+      "surface": "UT-registrar-style course table",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1280,
+          520
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2560,
+          1040
+        ]
+      },
+      "transform": {
+        "kind": "crop",
+        "spec": {
+          "kind": "bottom-through-row",
+          "row": 2,
+          "frac": 0.45
+        },
+        "rectPixels": [
+          0,
+          604,
+          2560,
+          436
+        ]
+      },
+      "encode": {
+        "maxWidth": 1300,
+        "jpegQuality": 80
+      },
+      "bytes": 33751
+    },
+    {
+      "image": "14-gcal-crop-column.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "what": "Image 04 with the Friday column cut through mid-word. The fraction was walked down twice by looking at the result: at 42% of the block the sliver still showed the whole time range and the whole room, so the condition was not being tested at all; at 22% the room survived and only the time was cut. At 16% Friday reads \"GOV 312L / 10:00 am / WEL 2.22\" and \"PHY 303L / 1:00 pm - / PAI 3.02\" — one room cut mid-string, one short enough to survive, and neither end time readable. Both Friday meetings are therefore optional in truth.json: credit for getting them, no penalty for refusing, and a hallucination if invented.",
+      "madeBy": "HTML mock rendered in headless Chrome, then cropped in Pillow (tools/photo.py). Synthesized.",
+      "surface": "Google-Calendar-style week grid",
+      "theme": "light",
+      "sourceFixture": "scripts/verify/schedule-fixtures/integration-tuesday.ics",
+      "sourceNote": "Transcribed field for field from the .ics: same six courses, same rooms, same times, same unique numbers, same instructors.",
+      "render": {
+        "viewport": [
+          1440,
+          748
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": false,
+        "basePixels": [
+          2880,
+          1496
+        ]
+      },
+      "transform": {
+        "kind": "crop",
+        "spec": {
+          "kind": "right-through-block",
+          "frac": 0.16
+        },
+        "rectPixels": [
+          0,
+          0,
+          2449,
+          1496
+        ]
+      },
+      "encode": {
+        "maxWidth": 1300,
+        "jpegQuality": 80
+      },
+      "bytes": 72954
+    },
+    {
+      "image": "15-ut-cards-dark-crop-bottom.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [
+        "dark-mode"
+      ],
+      "what": "A dark phone screenshot with the top scrolled off — the crop condition and the dark condition at the same time.",
+      "madeBy": "HTML mock rendered in headless Chrome, then cropped in Pillow (tools/photo.py). Synthesized.",
+      "surface": "UT course schedule as phone-width cards",
+      "theme": "dark",
+      "sourceFixture": "composed for this corpus",
+      "sourceNote": "Not a transcription. A first-year load built to reach codes the two .ics fixtures never touch — JES and MEZ — and to carry a room shaped like JES A121A, which is letter-then-digits and breaks a room pattern that only ever saw \"2.224\". Codes and courses are real UT; unique numbers and STAFF are filler and are not scored.",
+      "render": {
+        "viewport": [
+          390,
+          700
+        ],
+        "deviceScaleFactor": 2,
+        "fullPage": true,
+        "basePixels": [
+          780,
+          1506
+        ]
+      },
+      "transform": {
+        "kind": "crop",
+        "spec": {
+          "kind": "bottom-through-row",
+          "row": 1,
+          "frac": 0.5
+        },
+        "rectPixels": [
+          0,
+          526,
+          780,
+          980
+        ]
+      },
+      "encode": {
+        "maxWidth": 1300,
+        "jpegQuality": 80
+      },
+      "bytes": 64169
+    }
+  ]
+}

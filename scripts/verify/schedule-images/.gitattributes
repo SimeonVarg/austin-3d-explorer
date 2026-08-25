@@ -1,0 +1,4 @@
+# The corpus is JPEGs. Git already treats them as binary, but say so explicitly
+# so no future autocrlf setting can be tempted to touch them, and so a diff
+# never tries to render 100 KB of entropy as text.
+*.jpg binary
