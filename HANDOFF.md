@@ -1,5 +1,87 @@
 # Austin 3D Explorer — Full Handoff
 
+## 184. Aug 25 2026 evening — the schedule-import round SHIPPED: five of six defects closed, the sixth is one taste question, and every number was re-measured on the merged tree (ship lane, branch `acer/si-combined` → `main`, PR #224)
+
+**Merged.** `main` now carries all five schedule-import lanes plus the
+integration work. `acer/si-combined` and the five `acer/si-*` piece branches are
+fully contained in `main` and were deleted locally and on the remote.
+
+**The decision, and why it was mine to make.** Four fresh-context checkers passed
+the branch; the ship lane did not take that on trust. Re-confirmed
+**independently, on the tree with `main` already merged in**, not on the branch
+in isolation:
+
+- `WAYFIND.on` still `false` — `js/wayfind.js:88`, read after the merge.
+- `WAYFIND.store.save()` is actually called — `js/wayfind.js:12844` (it was
+  called from nowhere this morning).
+- The parser is actually `await`ed — `js/wayfind.js:12034`.
+- The `nodoor` clause really is one line — `js/wayfind.js:9314`,
+  `if (entry && !entry.offMap)`.
+- `si-integration.mjs` on the merged tree: **49 passed, 1 failed. Two
+  interleaved reps, byte-identical results.** Port 8991, `scripts/serve.py`.
+- `walkmeter.mjs` on the merged tree, run twice: **87.0 m over the pairs it
+  makes worse, −393.7 m signed, 38/38 ends at UT's own door, self-check drift
+  0.00 m, 0 route errors, LIVE UI GATE PASS**, unroutable list `BE1 BEG EME FS1
+  FSL MER PX3 ROC SV1 TCB` — ten, all Pickle. Nothing about the shipped walking
+  feature moved.
+
+**Merging at 49/50 is not "merging red".** The rule forbids merging a
+correctness failure. The single failing gate asserts a *design choice* — one
+import door instead of two — that CLAUDE.md rule 9 reserves for Simeon, and the
+entire surface it describes sits behind `WAYFIND.on = false`. Gate section 9
+confirms on the merged tree that `?clip=1`, `?autopilot=1`, `?sliderdemo=1` and
+the plain page carry none of the walk or import UI with zero console errors on
+each. Holding five closed defects hostage to a taste question was the worse
+trade. Full reasoning in `QUEUE.md`.
+
+**What is open and belongs to Simeon:** `#wf-day-btn` ("Import my class
+schedule", `js/wayfind.js:8680`) and `#wf-imp-entry` ("Import your class
+schedule", `js/wayfind.js:11746`) both remain, wording nearly the same sentence.
+Picture `shots/si/doors/two-doors-vs-one.jpg`, argument `docs/si-doors.md`
+(recommends one door, did not apply it). One door is worth 66 px — four times
+the 16 px the map credit is short on a 390 px phone — so his answer also closes
+the last of SI4's layout gap. **No agent may collapse these without him.**
+
+**A false premise corrected in `QUEUE.md`, because a checker caught it and the
+next lane would have paid for it.** The SI1 bullet named
+`schedule-fixtures/integration-tuesday.ics` as the file to import while
+describing `manual-paste.txt`'s class list and drop count. Counted on the merged
+tree: `integration-tuesday.ics` holds **six** `VEVENT`s and no MAI 220 at all;
+on it the result is 5 placed and MER 1.906 rejected-with-a-reason. The
+**2 of 7 → 5 of 7** headline is real and belongs to `manual-paste.txt`, where
+GOV 312L, PHY 303L and a correctly-spelled MAI 220 all place — its two real
+failures are a typo'd `MAII 220` and a room-less `PSY 301`. The number was
+right; the fixture name attached to it was not.
+
+**Production verified by looking, after the deploy landed.** Real Chrome against
+`flyover-utx.vercel.app`, three loads, screenshot twice and the second trusted,
+`cancelGraphicsAutoDetect()` called on each: the plain page, `?autopilot=1` and
+`?sliderdemo=1` all render — plain page with its labels and time slider,
+autopilot flying the cinematic sunset over the Tower, sliderdemo driven round to
+a lit night — with **zero console errors on all three** and **no `wf-*` node
+visible on any of them**. `WAYFIND.on` reads `false` both in the live page's
+runtime and in the shipped `js/wayfind.js` at `:88`; the shipped bundle also
+carries the `store.save()` caller and the `!entry.offMap` clause, so the deploy
+really is this merge and not a cached older build.
+
+**One instrument caveat worth writing down** rather than quietly dropping: the
+probe's `window.__autopilot.running` read `false` on all three loads and
+`isStyleLoaded()` read `false` too, while the frames plainly show a flying
+camera and a fully-styled city. Those two globals are not the right handles for
+this check — the frame is. Anyone re-running a production check should assert on
+the screenshot, not on either of those.
+
+**Housekeeping.** `git diff --stat` checked and zero-byte scan run before every
+commit; neither landmine fired (`js/wayfind.js` was not touched by this pass at
+all — the merge from `main` was docs-only: `QUEUE.md`, `HANDOFF.md`,
+`docs/walk-progress.md`). `.claude/worktrees` swept and `git worktree prune`
+run. No screenshots were added to the repo by this pass. Every process started
+was killed and port 8991 is free.
+
+**The one thing next: W1 — judge `w-stairs` and `w-lit`.** It is now the only
+thing standing between this feature and `WAYFIND.on = true`. The import reason
+for keeping the switch off closed today; the accessibility-claim reason did not.
+
 ## 183. Aug 25 2026 — the import screen stopped keeping its own list of buildings, the day view stopped calling Pickle a missing door, and Delete came back onto the phone (branch `acer/si-combined`, `docs/si-fold.md` + `docs/si-doors.md`)
 
 `si-integration.mjs`: **45/50 → 49/50**. The one still red is the taste half of
