@@ -24511,3 +24511,93 @@ claims, and that is the one class of claim not to ship on a screenshot.
 matching or the lit lane's 43-site audit; took their evidence as read and
 verified only the merged behaviour, the gate, and the meter. W2–W6 in QUEUE.md
 are open and none were attempted.
+
+## 182. Aug 25 2026 — the schedule-import gauntlet: five blind winners, one honest refusal. NOTHING MERGED, all six branches left open (ship lane, docs only, `docs/si-integration.md`)
+
+The ship lane for the class-schedule import round. **The outcome is a refusal,
+and it is the right one.** `acer/si-combined` — the sibling lane that merged all
+five pieces and drove them end to end for the first time — returned **"No. Do
+not ship this tree yet"**, 39 of 50 gates passing and 11 failing. I acted on
+that verdict rather than re-running its work, after independently confirming its
+four load-bearing claims on the merged tree. Nothing went to `main` but docs.
+
+**Why a refusal was the honest answer.** All five pieces (`si-gaps`,
+`si-dayview`, `si-parser`, `si-ui`, `si-privacy`) each beat a real product blind,
+each confirmed by a fresh-context critic with its own scripts and canary data.
+`si-privacy` won rounds 6, 7 AND 8 in succession, closing a further leak shape
+unprompted each time, and now allowlists what it can prove safe rather than
+denylisting known-bad shapes. **The code merged; the feature did not.** Four of
+the five wrote a seam against an API that did not exist yet, and no lane's own
+gate could ever see that because each gate only ever ran one lane.
+
+**The four I re-confirmed myself, statically, on `origin/acer/si-combined`:**
+
+- `js/wayfind.js:11889` calls `window.wayfindParseSchedule(...)` **without
+  `await`** and gates on `Array.isArray(r)`; the parser is `async` at `:11165`,
+  so the check is permanently false and every import falls through to `si-ui`'s
+  stand-in decoders. Measured: **2 of 7 classes placed instead of 5.**
+- `impUse()` publishes `.classes` (`:12571`); `wayfindDayFromSchedule` reads
+  `.events || .routable` (`:9930`); `grep` finds exactly one `dispatchEvent` for
+  `wayfind:schedule` and **zero** `addEventListener`. So `#wf-day-btn` still runs
+  its hard-coded demo — **you are shown four classes that are not yours.**
+- `WAYFIND.store.save` is defined at `:14413` and its own comment calls it "the
+  public seam the import lanes call". **No call to it exists anywhere in the
+  file.** Nothing persists, Delete has no subject, and the egress guard — which
+  arms its watchlist from the *stored* schedule — reads `watched=0` during the
+  one operation it was built for.
+- Two import rows, `#wf-day-btn` ("Import my class schedule", `:8668`/`:10010`)
+  and `#wf-imp-entry` ("Import your class schedule", `:11624`/`:12605`).
+
+**And I looked at the picture rather than trusting the DOM.**
+`shots/si/integration/sheet-phone.jpg` shows both buttons on one sheet with the
+second one's subtitle cut mid-word — 157 px of a 494 px panel unreachable under
+`overflow-y: hidden` on a 390×844 phone, taking the privacy sentence, the Delete
+button and the OSM credit with it. Per local memory ("visible in DOM is not
+visible on camera"), the frame is the evidence, not the computed style.
+
+**`harness-drift.mjs` PASS on `main` (31 scripts in both files). `WAYFIND.on` is
+`false` on `main` and on all six branches and was not touched by anyone this
+round.** No browser was launched by this lane and no server was started — the
+verdict was already measured and the confirmations were all static or a frame
+already on disk. Ports 8971 and 8972 were never bound.
+
+**What went to `main`, docs only, no PR** (CLAUDE.md rule 4): `QUEUE.md` gains
+**SCHEDULE IMPORT GAUNTLET** with SI1–SI6 and the order to fix them in;
+`docs/si-integration.md` and its eleven cited frames (~504 KB total) were lifted
+off `acer/si-combined` **so the only end-to-end record of this feature is not
+orphaned on an unmerged branch** — rule 12 already counts 149 citations pointing
+at files that existed only in deleted worktrees. The gate itself
+(`scripts/verify/si-integration.mjs`) and its fixture are code, so they stay on
+the branch. `docs/walk-progress.md` gets a new plain-words summary at the top.
+
+**All six branches stay open and must not be deleted:** `acer/si-gaps`,
+`acer/si-dayview`, `acer/si-parser`, `acer/si-ui`, `acer/si-privacy`,
+`acer/si-combined`. The last one carries a day of conflict resolution proven
+lossless line-for-line; re-cutting it would throw that away.
+
+**The unroutable-building number is still 11 on `main`,** not 10. The 11→10 is
+real and reproduces on the merged tree, but it is not shipped, and the walk
+lane's own 87.0 m / −393.7 m / 38-of-38 record reproduces unchanged on the
+combined branch — the feature that already shipped was not disturbed.
+
+**The NUL landmine, and I walked straight into it myself.** The brief warned
+`js/wayfind.js` can present a ~19,932-line diff and blamed `core.autocrlf`. The
+integration lane root-caused it properly: the privacy section carried a **raw
+0x00 byte** as a dedup separator, git classifies any file containing a NUL as
+**binary**, and binary files are **exempt from `core.autocrlf` normalisation** —
+so the CRLF copy was stored verbatim and every line read as changed. Fixed on
+the branch by writing `'\u0000'` instead; identical string value, diff went to a
+clean 1,834/0. **Then, writing this very QUEUE entry describing it, my own edit
+put a literal NUL into `QUEUE.md` and `grep` immediately answered
+`Binary file QUEUE.md matches`.** Caught and stripped before committing. Two
+lessons worth the ink: the symptom is instant and unmistakable if you `grep`,
+and quoting a raw control byte in prose is enough to reintroduce it. **`grep`
+refusing a text file is the cheapest NUL detector there is — run it.**
+
+**What I did not do.** Did not re-run `si-integration.mjs`, `walkmeter.mjs` or
+any browser gate — the brief said act on the sibling lane's verdict, not redo it,
+and I confirmed its claims by a cheaper independent route instead. Did not
+attempt any of SI1–SI6; fixing six cross-lane seams is new scope, and past
+2026-08-20 the semester outranks this project. Did not touch `WAYFIND.on`, which
+is Simeon's call. Did not verify production, because nothing was merged and so
+nothing deployed.
