@@ -8672,6 +8672,35 @@
     weekFrom: 'today',
   };
 
+  /**
+   * ONE DOOR OR TWO. Simeon's call, made 2026-08-25 from
+   * `shots/si/doors/two-doors-vs-one.jpg`: ONE.
+   *
+   * Two lanes each appended their own way in to the search sheet without being
+   * able to see the other's, so the sheet carried "Import my class schedule"
+   * and "Import your class schedule" one above the other — differing by a word,
+   * going to different screens. Both lanes were right that a DOM append cannot
+   * collide; the collision was in the words, not in the code.
+   *
+   * `mode: 'one'` keeps a single row whose destination depends on whether the
+   * student has a schedule yet: the importer while they have none, their own
+   * day once they do, with `backLabel` in the day header to get back to the
+   * importer when the semester changes. It also hands back the ~66 px that put
+   * the privacy line and the Delete control below the fold on a 390x844 phone.
+   *
+   * `mode: 'two'` restores the pair exactly as they were. One line, either way.
+   */
+  const WF_DOOR = {
+    mode: 'one',
+    label: 'My class schedule',
+    // The row says what it does NEXT, which is a different sentence depending
+    // on whether anything has been imported. A row that promises an importer
+    // and opens a day plan is the defect this replaced.
+    hintEmpty: 'Import from Google, Apple or UT — read on this phone, never uploaded',
+    hintHave: 'Your classes, in order, with the walks between them',
+    backLabel: 'Change',
+  };
+
   // COPY. Same rule as SAY above: docs/walk/what-we-can-honestly-say.md
   // outranks this file on every question of wording, and §15 is why there is
   // no sentence anywhere below for the case where the walk fits the gap.
@@ -8814,6 +8843,17 @@
   padding:10px 10px 6px 14px;flex:none}
 #wf-day-title{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
   color:var(--wf-dim)}
+/* THE WAY BACK TO THE IMPORTER, and the whole reason one door is safe. With
+   two rows the importer was always one tap from the sheet; with one row it is
+   one tap from HERE instead, so a student changing schedules mid-semester is
+   never stuck looking at last term's classes. The auto left margin keeps the
+   title left and this pinned beside the close control, so the header stays two
+   visual groups rather than three spread across the width.
+   NOTE: this block lives inside a template literal. No backticks below. */
+#wf-day-change{margin-left:auto;background:none;border:none;color:var(--wf-dim);
+  font:inherit;font-size:10px;font-weight:700;letter-spacing:.13em;
+  text-transform:uppercase;cursor:pointer;padding:5px 8px;border-radius:7px}
+#wf-day-change:hover{color:var(--wf-ink);background:rgba(255,255,255,.06)}
 /* THE EXAMPLE BADGE rides INSIDE the title line rather than taking a row of
    its own, so labelling the demo costs the panel no height — dayview.mjs
    asserts the whole panel fits a 390x844 phone, and a new row would have been
@@ -9473,6 +9513,14 @@
     close.setAttribute('aria-label', SAY_D.close);
     close.appendChild(icon(null, IC.close, 2.1));
     close.addEventListener('click', (ev) => { ev.stopPropagation(); dayHide(); });
+    if (WF_DOOR.mode === 'one') {
+      const chg = h('button', null, WF_DOOR.backLabel); chg.id = 'wf-day-change';
+      chg.addEventListener('click', (ev) => {
+        ev.stopPropagation(); dayHide();
+        try { if (window.wayfindImportOpen) window.wayfindImportOpen(); } catch (e) {}
+      });
+      head.appendChild(chg);
+    }
     head.appendChild(close);
     panel.appendChild(head);
     const sum = h('div', null); sum.id = 'wf-day-sum';
@@ -10073,6 +10121,35 @@
    * not a line added to buildUI() — four lanes are inside this file this round
    * and a DOM append cannot collide with any of them the way a source edit can.
    */
+  /**
+   * WHAT "MY CLASS SCHEDULE" DOES, wherever it is tapped from. Lifted out of
+   * the row's own click handler so the one surviving door (WF_DOOR.mode ===
+   * 'one', which lives in the import section far below this one) runs exactly
+   * this and not a second copy of it that can drift.
+   */
+  async function dayOpenForStudent() {
+    if (dayEl && !dayEl.panel.classList.contains('hidden')) { dayHide(); return; }
+    // SI2. THE STUDENT'S OWN SCHEDULE, ALWAYS FIRST. This used to call the demo
+    // unconditionally — a hard-coded Tuesday — under a label reading "Import my
+    // class schedule". Somebody who had just imported four classes was shown
+    // four different ones and given no way to tell.
+    const mine = dayImportedSchedule();
+    if (mine) {
+      let r = null;
+      try { r = await window.wayfindDayFromSchedule(mine); } catch (e) { r = null; }
+      if (r && r.ok) return;
+      // Imported, but no day could be built out of it — every class lost its
+      // time. The demo is not the answer to that; the import screen is,
+      // because that is the surface where what happened is written down.
+      try { if (window.wayfindImportOpen) window.wayfindImportOpen(); } catch (e) {}
+      return;
+    }
+    if (dayPlan && !dayPlan.example) { dayShow(); return; }
+    if (WF_DAY.demoWhenEmpty) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
+    else if (dayPlan) dayShow();
+  }
+  window.wayfindDayOpen = dayOpenForStudent;
+
   function dayMount() {
     buildUI();
     dayEnsureCss();
@@ -10085,25 +10162,7 @@
     dayBtn.appendChild(lab);
     dayBtn.addEventListener('click', async (ev) => {
       ev.preventDefault(); ev.stopPropagation();
-      if (dayEl && !dayEl.panel.classList.contains('hidden')) { dayHide(); return; }
-      // SI2. THE STUDENT'S OWN SCHEDULE, ALWAYS FIRST. This button used to call
-      // the demo unconditionally — a hard-coded Tuesday — under a label reading
-      // "Import my class schedule". Somebody who had just imported four classes
-      // was shown four different ones and given no way to tell.
-      const mine = dayImportedSchedule();
-      if (mine) {
-        let r = null;
-        try { r = await window.wayfindDayFromSchedule(mine); } catch (e) { r = null; }
-        if (r && r.ok) return;
-        // Imported, but no day could be built out of it — every class lost its
-        // time. The demo is not the answer to that; the import screen is,
-        // because that is the surface where what happened is written down.
-        try { if (window.wayfindImportOpen) window.wayfindImportOpen(); } catch (e) {}
-        return;
-      }
-      if (dayPlan && !dayPlan.example) { dayShow(); return; }
-      if (WF_DAY.demoWhenEmpty) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
-      else if (dayPlan) dayShow();
+      await dayOpenForStudent();
     });
     // ONE dispatchEvent, AND UNTIL NOW ZERO addEventListener. The import
     // announced itself on `wayfind:schedule` and nothing in the app was
@@ -10116,8 +10175,16 @@
       if (!s) { dayHide(); return; }
       if (open) { try { window.wayfindDayFromSchedule(s); } catch (e) {} }
     });
-    const foot = el.sheet.querySelector('.wf-foot');
-    if (foot) el.sheet.insertBefore(dayBtn, foot); else el.sheet.appendChild(dayBtn);
+    // ONE DOOR. The row is still built and still carries its listeners — the
+    // surviving row calls `dayOpenForStudent()` directly — it simply does not
+    // take a second line in the sheet restating what that row already says.
+    // Everything below this point is behaviour, not a row, and must run either
+    // way: the `wayfind:schedule` listener is what stops a stale plan
+    // outliving the schedule it was built from.
+    if (WF_DOOR.mode !== 'one') {
+      const foot = el.sheet.querySelector('.wf-foot');
+      if (foot) el.sheet.insertBefore(dayBtn, foot); else el.sheet.appendChild(dayBtn);
+    }
     // Opening the question closes the day plan, for the same one-panel reason
     // dayShow() closes the question. An extra listener, not an edited one.
     el.btn.addEventListener('click', () => dayHide());
@@ -12902,16 +12969,50 @@
    * `buildUI` — four other lanes are editing this file this round and a DOM
    * append is a change no one of them can conflict with.
    */
+  /**
+   * IS THERE A SCHEDULE ON THIS DEVICE? Deliberately reads the same published
+   * name the day section reads (`window.wayfindSchedule`, which the store
+   * republishes after a reload) rather than reaching into either lane's own
+   * state, so the one door and the day panel can never disagree about whether
+   * the student has imported anything.
+   */
+  function impHaveSchedule() {
+    const s = window.wayfindSchedule;
+    if (!s) return false;
+    return ((s.events || s.routable || []).length > 0);
+  }
+
   function impInstallEntry() {
     if (!IMP.entryOn || !el || !el.sheet || document.getElementById('wf-imp-entry')) return;
+    const one = WF_DOOR.mode === 'one';
     const row = h('button', null, null); row.id = 'wf-imp-entry';
     row.appendChild(icon('wf-imp-entry-ic', IC_IMP.cal, 1.9));
     const t = h('span', 'wf-imp-entry-t');
-    t.appendChild(h('span', 'wf-imp-entry-lab', SAY_IMP.entry));
-    t.appendChild(h('span', 'wf-imp-entry-sub', SAY_IMP.entryNote));
+    t.appendChild(h('span', 'wf-imp-entry-lab', one ? WF_DOOR.label : SAY_IMP.entry));
+    const sub = h('span', 'wf-imp-entry-sub', one ? WF_DOOR.hintEmpty : SAY_IMP.entryNote);
+    t.appendChild(sub);
     row.appendChild(t);
     row.appendChild(icon('wf-imp-entry-go', IC_IMP.chevR, 2.2));
-    row.addEventListener('click', (ev) => { ev.preventDefault(); impOpen(); });
+    row.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      // The importer while there is nothing to show, their own day once there
+      // is. The surprise this could cause — tapping it months later expecting
+      // the importer — is answered by `WF_DOOR.backLabel` in the day header,
+      // not by leaving the destination ambiguous here.
+      if (one && impHaveSchedule() && window.wayfindDayOpen) {
+        try { window.wayfindDayOpen(); return; } catch (e) {}
+      }
+      impOpen();
+    });
+    if (one) {
+      // The second line says what the tap does NEXT, so it has to change when
+      // that changes. `wayfind:schedule` fires on import AND on delete.
+      const refresh = () => {
+        sub.textContent = impHaveSchedule() ? WF_DOOR.hintHave : WF_DOOR.hintEmpty;
+      };
+      refresh();
+      window.addEventListener('wayfind:schedule', refresh);
+    }
     // Above the footnotes, below the hint: it is an action, and the two lines
     // under it are provenance, not controls.
     const foot = el.sheet.querySelector('.wf-foot');
