@@ -1,0 +1,2248 @@
+{
+  "_what": "The answer key. One entry per CLASS MEETING — a course on one day — because a schedule importer has to place a class on a day at a time to be useful. A TTh course is two entries. Four fields all correct (building, room, day, time) is one hit; three of four is a miss.",
+  "_fields": {
+    "required": "true when the whole element is inside the image. These are what the score is out of.",
+    "visible": "full or partial. A partial meeting is one the crop cut through: finding it earns credit, missing it costs nothing.",
+    "onImage": "fraction of the element box inside the image, measured in the live page, not estimated.",
+    "notOnImage": "meetings of the same schedule that this image does not show. Emitting one of these is a hallucination and the scorer counts it as such."
+  },
+  "_totals": {
+    "images": 15,
+    "scoredMeetings": 171,
+    "meetingsOnImages": 181
+  },
+  "images": [
+    {
+      "image": "01-ut-table-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "02-gcal-week-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "schedule": "s2",
+      "classes": [
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Mon",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Wed",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Mon",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Wed",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "03-ut-cards-phone-clean.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "schedule": "s3",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Mon",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Wed",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Tue",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Thu",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "04-gcal-week-clean-dense.jpg",
+      "condition": "clean-export",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "05-ut-table-angled-left.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "06-gcal-angled-right.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "schedule": "s2",
+      "classes": [
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Mon",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Wed",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Mon",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Wed",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "07-ut-cards-angled-blur.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "schedule": "s3",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Mon",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Wed",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Tue",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Thu",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "08-gcal-angled-glare.jpg",
+      "condition": "angled-photo",
+      "alsoConditions": [],
+      "schedule": "s4",
+      "classes": [
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Mon",
+          "start": "09:00",
+          "end": "10:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Wed",
+          "start": "09:00",
+          "end": "10:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Fri",
+          "start": "09:00",
+          "end": "10:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "UGS 303",
+          "building": "JES",
+          "room": "A121A",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "UGS 303",
+          "building": "JES",
+          "room": "A121A",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Mon",
+          "start": "14:00",
+          "end": "15:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Wed",
+          "start": "14:00",
+          "end": "15:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "15:30",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "15:30",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "09-ut-table-dark-clean.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [],
+      "schedule": "s2",
+      "classes": [
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Mon",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "ACC 311",
+          "building": "GSB",
+          "room": "2.122",
+          "day": "Wed",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "J 310F",
+          "building": "DMC",
+          "room": "3.208",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Mon",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Wed",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "UTC",
+          "room": "3.102",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "10-gcal-week-dark-clean.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [],
+      "schedule": "s3",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 429",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Mon",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Wed",
+          "start": "10:30",
+          "end": "11:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Tue",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Thu",
+          "start": "12:30",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PSY 301",
+          "building": "BUR",
+          "room": "106",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "11-gcal-dark-angled.jpg",
+      "condition": "dark-mode",
+      "alsoConditions": [
+        "angled-photo"
+      ],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "12-ut-table-crop-top.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        }
+      ],
+      "notOnImage": [
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "onImage": 0
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "onImage": 0
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "onImage": 0
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "onImage": 0
+        }
+      ]
+    },
+    {
+      "image": "13-ut-table-crop-bottom.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.554
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "onImage": 0
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "onImage": 0
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "onImage": 0
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "onImage": 0
+        }
+      ]
+    },
+    {
+      "image": "14-gcal-crop-column.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [],
+      "schedule": "s1",
+      "classes": [
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "RTF 305",
+          "building": "CMA",
+          "room": "6.146",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Mon",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Wed",
+          "start": "10:00",
+          "end": "11:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "GOV 312L",
+          "building": "WEL",
+          "room": "2.224",
+          "day": "Fri",
+          "start": "10:00",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.212
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Mon",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Wed",
+          "start": "13:00",
+          "end": "14:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "PHY 303L",
+          "building": "PAI",
+          "room": "3.02",
+          "day": "Fri",
+          "start": "13:00",
+          "end": "14:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.212
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "14:00",
+          "end": "15:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Tue",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "EE 460R",
+          "building": "MER",
+          "room": "1.906",
+          "day": "Thu",
+          "start": "16:00",
+          "end": "17:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": []
+    },
+    {
+      "image": "15-ut-cards-dark-crop-bottom.jpg",
+      "condition": "partial-crop",
+      "alsoConditions": [
+        "dark-mode"
+      ],
+      "schedule": "s4",
+      "classes": [
+        {
+          "course": "UGS 303",
+          "building": "JES",
+          "room": "A121A",
+          "day": "Tue",
+          "start": "09:30",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.499
+        },
+        {
+          "course": "UGS 303",
+          "building": "JES",
+          "room": "A121A",
+          "day": "Thu",
+          "start": "09:30",
+          "end": "11:00",
+          "required": false,
+          "visible": "partial",
+          "onImage": 0.499
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Tue",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "M 340L",
+          "building": "RLP",
+          "room": "0.106",
+          "day": "Thu",
+          "start": "11:00",
+          "end": "12:30",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Mon",
+          "start": "14:00",
+          "end": "15:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "HIS 315K",
+          "building": "MEZ",
+          "room": "1.306",
+          "day": "Wed",
+          "start": "14:00",
+          "end": "15:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Tue",
+          "start": "15:30",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        },
+        {
+          "course": "C S 439",
+          "building": "GDC",
+          "room": "2.216",
+          "day": "Thu",
+          "start": "15:30",
+          "end": "17:00",
+          "required": true,
+          "visible": "full",
+          "onImage": 1
+        }
+      ],
+      "notOnImage": [
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Mon",
+          "start": "09:00",
+          "end": "10:00",
+          "onImage": 0
+        },
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Wed",
+          "start": "09:00",
+          "end": "10:00",
+          "onImage": 0
+        },
+        {
+          "course": "BIO 311C",
+          "building": "WEL",
+          "room": "1.316",
+          "day": "Fri",
+          "start": "09:00",
+          "end": "10:00",
+          "onImage": 0
+        }
+      ]
+    }
+  ]
+}

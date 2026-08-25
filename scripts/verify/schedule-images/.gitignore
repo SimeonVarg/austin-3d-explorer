@@ -1,0 +1,4 @@
+# Intermediate full-resolution PNGs from tools/corpus.mjs. About 60 MB, and a
+# tracked file is copied into every parallel worktree — see CLAUDE.md "Disk".
+# Pass CORPUS_SCRATCH to put them outside the repo entirely.
+.build/
