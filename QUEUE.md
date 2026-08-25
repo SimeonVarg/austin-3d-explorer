@@ -1,5 +1,136 @@
 # QUEUE — Acer lane
 
+## SCHEDULE IMPORT GAUNTLET — **NOT MERGED 2026-08-25.** Six branches left open on purpose (`docs/si-integration.md`)
+
+**Nothing from this round is on `main`, and that is the correct outcome, not a
+stall.** The five pieces are individually good — every one of them beat a real
+product blind, each confirmed by a fresh-context critic with its own scripts.
+The *feature* they add up to does not work yet. `acer/si-combined` merged all
+five cleanly and drove them end to end for the first time; **39 of its 50 gates
+pass and 11 fail**, and every failure is a seam between two lanes, never a lane's
+own work.
+
+**All six branches stay open:** `acer/si-gaps`, `acer/si-dayview`,
+`acer/si-parser`, `acer/si-ui`, `acer/si-privacy`, `acer/si-combined`.
+**Do not delete them.** `acer/si-combined` carries the merge resolution, the
+gate (`scripts/verify/si-integration.mjs`, code, therefore still on the branch
+and not on `main`) and its fixture
+(`scripts/verify/schedule-fixtures/integration-tuesday.ics`). Re-cutting the
+merge from scratch would throw away a day of conflict resolution that is already
+proven line-for-line lossless.
+
+**`WAYFIND.on` is still `false` on `main` and on every one of the six branches.
+It was not touched by this round and must not be flipped.**
+
+### Why not merged — the four that actually hurt a student
+
+Each was re-confirmed statically on the merged tree during the ship pass, not
+taken on the integration lane's word:
+
+- **SI1. The import screen never calls the parser.** `js/wayfind.js:11889`
+  does `const r = window.wayfindParseSchedule(...)` with **no `await`**, then
+  gates on `Array.isArray(r)`. The parser is declared `async` at `:11165`, so
+  `r` is always a Promise and the check is always false. Every import silently
+  falls through to `si-ui`'s own stand-in decoders — the ones it wrote for the
+  case where the parser lane had *not* landed. Measured cost on the parser's own
+  fixture: **2 of 7 classes placed instead of 5.** GOV 312L, PHY 303L and
+  MAI 220 are dropped as "no location" by a decoder that is only running because
+  of a type check. *Fix: make `impRawRows` async, `await`, and adapt the
+  parser's `events[]` to the rows `impPlace()` wants.*
+- **SI2. The day view is shown someone else's classes.** `impUse()` publishes
+  `window.wayfindSchedule` with a `.classes` array (`:12571`);
+  `wayfindDayFromSchedule` reads `.events || .routable` (`:9930`). Nothing
+  anywhere listens for the `wayfind:schedule` event — `grep` finds the one
+  `dispatchEvent` and zero `addEventListener`. So `#wf-day-btn` still calls its
+  **hard-coded demo**: import `M 340L / RTF 305 / C S 439 / EE 460R`, tap the
+  button that says "Import my class schedule", and you are shown
+  `CMS 306M / C S 429 / BA 101S / J 310F`. **Four classes that are not yours,
+  presented as your day.** This is the worst thing on the tree.
+- **SI3. Nothing is ever saved, so the privacy work is disarmed.**
+  `WAYFIND.store.save` is defined at `:14413` and its own comment calls it "the
+  public seam the import lanes call". **`grep` finds no call to it anywhere in
+  the file.** Consequences: a reload loses the import; **Delete my schedule**
+  has nothing to delete; and the egress guard arms its watchlist from the
+  *stored* schedule, so during a real import it reads `watched=0, checked=0` —
+  the instrument eight rounds were spent building is switched off at exactly the
+  moment it matters. (Nothing leaked; the app makes no such request, and that
+  was verified at context level against a raw TCP sink. But it was verified by
+  the integration lane's instrument, not by the shipped one.)
+- **SI4. Two doors, and a phone fold that eats the privacy promise.** Both
+  `si-dayview` (`#wf-day-btn`, "Import my class schedule") and `si-ui`
+  (`#wf-imp-entry`, "Import your class schedule") append their own row to the
+  sheet. Both were right that a DOM append cannot conflict; the result is two
+  buttons saying the same sentence and doing different things. On a 390×844
+  phone the sheet is **337 px tall with 494 px of content and
+  `overflow-y: hidden` — 157 px unreachable**, taking the privacy line, the
+  Delete button and the OpenStreetMap credit with it. Confirmed by looking:
+  `shots/si/integration/sheet-phone.jpg`. **The one-door-or-two question is a
+  taste call and belongs to Simeon;** the `overflow-y` is not and can be fixed
+  either way.
+
+### The other two, smaller but same shape
+
+- **SI5. One app, two answers about SSW.** `si-ui` carries a hard-coded
+  unreachable-buildings list (`:11606`) containing `SSW` and `HLB` — the exact
+  two `si-gaps` spent round 3 making routable. On the merged tree
+  `wayfindSearch('SSW')` returns routable with 2 doors and the import screen
+  still refuses it. *Fix: delete the hard-coded rows, ask
+  `window.wayfindOffMap()` / `window.wayfindSearch()`, which cannot go stale.*
+- **SI6. The day view gives a Pickle building the wrong reason.** `dayPlace()`
+  (`:9273`) tests `entry.routable` then falls to `nodoor` before it ever reaches
+  its off-map branch. `si-gaps` added the ten Pickle codes as `offmap` entries,
+  so MER now takes the `nodoor` path and the day view says *"It is in the
+  building list, but nothing is mapped to walk to"* — the sentence for a
+  building on **this** campus — while the import screen two taps away correctly
+  says *"about 11 km north of here"*. *Fix is one line: test `entry.offMap`
+  first.*
+
+### What is already right and needs no further work
+
+- **The off-map failure is the best thing in the round.** A class at `MER 1.906`
+  is named on screen with the building's full name, its campus, the distance and
+  the reason. `si-gaps` supplied the fact and `si-ui` the sentence across a
+  branch boundary with no coordination — the one seam built against a guess that
+  turned out right.
+- **The day view is correct when fed correctly**, and **a leg routes end to end**
+  through the answer bar that already shipped, with numbers matching the row it
+  was clicked from.
+- **The shipped feature is untouched.** `walkmeter.mjs` on the combined branch
+  reproduces the record exactly: **87.0 m** extra over the pairs it makes worse,
+  signed total **−393.7 m**, **38/38** ends at UT's own door, self-check drift
+  **0.00 m**. `harness-drift` PASS. A page nobody imports on is unchanged
+  (`wayfindRoute('WEL','PAI')` = 291 m, zero console errors).
+- **The unroutable-building count went 11 → 10** on the merged tree (SSW closed;
+  the ten that remain are all 11 km north at Pickle and are now *answered as
+  such* rather than in silence). **This number is NOT on `main` — `main` is still
+  at 11** because nothing merged. It closes the moment `si-gaps` lands.
+- **Delete really does delete** — when a schedule is written through
+  `store.save()`, which is how it has to be tested, because nothing in the UI
+  calls it. See SI3.
+
+### The order to do it in
+
+SI1 first — SI2 and SI3 are both cheap once the parser's object is the one shape
+crossing the seam, and choosing that shape (the parser's, since it is the only
+one carrying `startMin`/`endMin` and per-row problems) is the single decision the
+rest hangs off. Then SI5 and SI6, which are a deletion and a line. SI4's
+`overflow-y` last, with the one-door question put to Simeon as a picture.
+Then re-run `si-integration.mjs` and put the result through the same blind bar
+the five pieces passed — this round earned that bar and should not skip it.
+
+### One landmine, root-caused, so nobody pays for it twice
+
+`js/wayfind.js` presented a **14,519-insert / 12,685-delete** diff on a
+1,834-line change. The cause was **not** `core.autocrlf` on its own: the privacy
+section contained a **raw 0x00 byte** used as a dedup separator, git classifies
+any file containing a NUL as *binary*, and binary files are **exempt from
+`core.autocrlf` normalisation** — so the CRLF working copy was stored verbatim
+and every line read as changed. It also made `grep` refuse the file. Fixed on
+`acer/si-combined` by writing the escape instead (`'\u0000'`,
+`js/wayfind.js:13258`); identical string value, file is text again, diff went to
+a clean 1,834/0. **That is the only line of any branch's code the merge
+altered.**
+
 ## ~~WALK GAUNTLET~~ — INTEGRATED AND MERGED 2026-08-24 (PR #223, `docs/walk-progress.md`)
 
 All five walk lanes (`w-door`, `w-sidewalks`, `w-stairs`, `w-lit`, `w-ui`) plus

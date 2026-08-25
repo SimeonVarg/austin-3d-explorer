@@ -1,6 +1,97 @@
 # Walk feature — progress log
 
-## Where this stands — 2026-08-24, thirty seconds
+## Where this stands — 2026-08-25, one minute
+
+**Short version: the walking directions shipped and are good. The
+class-schedule import did not ship, and should not have. Nothing is switched on
+for the public either way.**
+
+### What shipped (2026-08-24, and it is live on `main`)
+
+**The walking directions used to send students the long way round. Across twenty
+real back-to-back class trips they wasted 795 metres. They now waste 87.** About
+nine tenths of the wasted walking is gone. All 38 ends of those twenty trips
+arrive at the door UT itself publishes; before, our door was right about a
+quarter of the time. Details are in the 2026-08-24 section below, which is still
+accurate.
+
+### What did NOT ship (2026-08-25 — this pass)
+
+Five more pieces were built to let you **import your class schedule** and have
+the app walk you between your classes. They are: closing gaps in unreachable
+buildings, a whole-day itinerary view, a reader for Google/Apple/UT schedule
+files, the import screen itself, and a guarantee that your schedule never leaves
+your phone. Each of the five was put beside a real product, judged blind by
+someone who had not built it, and **each of the five won.**
+
+Then all five were merged into one copy for the first time and someone actually
+imported a schedule, opened the day view, tapped a class and watched it route.
+**It does not work yet, and I did not merge it.**
+
+The five pieces are fine. The joins between them are not. Four of the five had
+to guess what the others' controls would look like before those controls
+existed, and four of the guesses were wrong. On the combined copy:
+
+- **You get shown somebody else's timetable.** Import your four classes, tap the
+  button that says "Import my class schedule", and the app displays four
+  different classes — leftover demo data. That is the worst of it.
+- **Most of your classes get thrown away.** The good schedule reader is loaded
+  and working but never actually gets called, because of a one-word mistake in
+  how it is asked. A weaker stand-in reads your file instead and places **two of
+  seven** classes where the real one places five.
+- **Nothing is saved.** Reload the page and your import is gone, and the
+  "Delete my schedule" button has nothing to delete. Worse, the alarm that
+  proves your schedule never leaves the phone arms itself off the *saved* copy —
+  so during the import, the alarm is asleep. (To be clear: nothing leaked.
+  That was tested properly, right down to a raw network socket, and every single
+  request came back clean. But it was proved by the test rig, not by the
+  shipped alarm.)
+- **On a phone the bottom of the panel falls off the screen** — and what falls
+  off is the sentence promising your schedule stays private, the Delete button,
+  and the map credit. There are also now two buttons that say almost the same
+  thing.
+
+None of that is one team doing bad work. It is exactly what a first
+end-to-end test exists to find, and all of it is small and local. Every fix is
+written down, in order, in `QUEUE.md` under **SCHEDULE IMPORT GAUNTLET**. All six
+branches are left open with the reason on them; nothing was thrown away.
+
+The picture that says it fastest: `shots/si/integration/sheet-phone.jpg`. The
+full write-up is `docs/si-integration.md`.
+
+### Buildings the app still cannot walk you to
+
+**Eleven** — the same as before this round, because nothing merged. It goes to
+**ten** the moment the gaps piece lands: the School of Social Work becomes
+routable. The ten that would remain are all at the Pickle campus about 11 km
+north, off the edge of the city this app models, and the new work answers them
+by *saying so* instead of failing in silence — which is the right answer for a
+building we are never going to be able to walk you to.
+
+### Is the whole feature ready to switch on for everyone? No. Two reasons, and only one of them is new.
+
+**My judgement: keep `WAYFIND.on = false`.** I did not touch it and nobody in
+this round should.
+
+1. **The old reason, still open.** Two of the five *walking* pieces — the stairs
+   and the lighting — were never properly judged, and they are precisely the two
+   that make accessibility promises: "step-free", "no mapped streetlight along
+   this route". A wrong distance costs someone a detour. A wrong "step-free"
+   claim strands someone at the bottom of a staircase. That is not a promise to
+   ship on a screenshot. (`QUEUE.md` W1.)
+2. **The new reason.** The schedule import currently shows people classes that
+   are not theirs and silently drops most of the ones that are. Switching the
+   feature on for everyone with that in it would be worse than leaving it off.
+
+The good news is that both are ordinary work, not redesigns, and the routing
+underneath — the part that is hardest to get right — is measured, checked and
+holding. Until then the feature stays where it is: invisible unless you add
+`?walk=1` to the address. **Nothing on the live site has changed for anyone
+else**, and that was verified rather than assumed.
+
+---
+
+## Where this stood — 2026-08-24, thirty seconds
 
 **The walking directions used to send students the long way round. Across twenty
 real back-to-back class trips they wasted 795 metres. They now waste 87.** That
