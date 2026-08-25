@@ -132,6 +132,12 @@ async function runPass(s, corpus, pass, only) {
     window.__schedimg = m;
     if (!window.__schedconfirm) {
       window.__schedconfirm = await import(b + '/js/schedconfirm.js');
+      // THE MEASUREMENT HAS TO BE OF WHAT SHIPS. prepare() is what loads the
+      // campus walking graph and the register, so review() without it measures
+      // a configuration nobody runs — and would have scored the round that
+      // introduced the confusable-neighbour check as costing nothing, because
+      // the check would not have been switched on.
+      window.__cfmctx = await window.__schedconfirm.prepare();
     }
     // Put the shipping tune back before applying a new one, so the passes are
     // independent of the order they run in.
@@ -159,7 +165,7 @@ async function runPass(s, corpus, pass, only) {
       // page and this harness has no eyes anyway. The screen asks for it; the
       // measurement does not.
       const o = await window.__schedimg.extract(u, { keepSheet: false });
-      const rev = window.__schedconfirm.review(o);
+      const rev = window.__schedconfirm.review(o, window.__cfmctx);
       const lite = (c) => ({
         course: c.course, building: c.building, room: c.room, day: c.day,
         start: c.start, end: c.end,
@@ -182,6 +188,9 @@ async function runPass(s, corpus, pass, only) {
           reason: r.reason,
         })),
         counts: rev.counts,
+        // Proof, per image, that the cross-checks were LIVE for this number
+        // rather than quietly absent.
+        walkCheck: rev.walkCheck,
       };
     }, url);
     out.push({ image: img.image, condition: img.condition, ...res });
@@ -270,6 +279,12 @@ function report(id, what, perImage, corpus) {
   console.log('\n══ ' + id.toUpperCase() + ' — ' + what);
   console.log('   ' + joined.length + ' predictions over ' + perImage.length +
     ' images: ' + right + ' right, ' + (joined.length - right) + ' wrong');
+  // WHICH CROSS-CHECKS WERE ACTUALLY LIVE FOR THIS NUMBER. A confidence model
+  // measured with its strongest check switched off is a different model.
+  const wc = (perImage[0] || {}).walkCheck || {};
+  console.log('   cross-checks live: walking graph=' + !!wc.active +
+    '  confusable neighbours=' + !!wc.neighbours + '  register names=' + !!wc.venue +
+    (wc.source ? '  [' + wc.source + ']' : ''));
   console.log('');
   console.log('   line   asked  of which right  of which WRONG   quiet-and-WRONG   taps');
   for (const r of rows) {

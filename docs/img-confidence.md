@@ -2,16 +2,175 @@
 
 `js/schedimg.js` reads a photograph of a schedule. `js/schedconfirm.js` decides
 how much to believe it and puts everything it does not believe in front of the
-student as a tap. Two files on purpose: the threshold is an argument that has to
-be re-run against a corpus every time somebody changes it, and a reader that
-also grades itself can never be re-graded.
+student as a tap. Separate files on purpose: the threshold is an argument that
+has to be re-run against a corpus every time somebody changes it, and a reader
+that also grades itself can never be re-graded. `js/walkgraph.js` is the third,
+added in round two — it answers "how many minutes is it from here to there" and
+nothing else, so that the strongest cross-check in this feature has something
+pure to call.
 
 | | |
 |---|---|
 | the model and the screen | `js/schedconfirm.js` |
+| the walking probe it cross-checks against | `js/walkgraph.js` |
 | the gate | `scripts/verify/schedconfirm.mjs` |
 | where the line goes | `scripts/verify/confirm-line.mjs` |
 | the evidence the reader now hands over | `js/schedimg.js`, `evidenceFor()` |
+
+---
+
+## Round two: the hole that was named last round is partly closed, and the measurement that closed it found a defect on the way
+
+The previous version of this document ended by naming its own worst failure, and
+it was the right one to name:
+
+> `MEZ` is Mezes Hall, on the South Mall. `NEZ` is the North End Zone Building,
+> inside the football stadium. They are one stroke apart, they are **both real
+> codes in the register**, and the corpus's own schedule s3 puts a class in
+> `MEZ 1.306`. If the engine reads one as the other, every check in this file
+> scores it 1.00 and it is saved in silence.
+
+It also named the one check that could see into that hole — the campus walking
+graph — and why it was **inert**: `window.wayfindRoute` is async and
+side-effecting, so there was no quiet probe to call and the whole safety net
+protected nobody.
+
+Three things changed, in this order, and the second one is the interesting one.
+
+**1. The probe was built, so the check is live.** `js/walkgraph.js` is a second
+reader of `data/walk_graph.json` — 300 lines, no DOM, no globals, no side
+effects, and the cost model taken out of the graph file's own `tune` block
+rather than typed in. `minutes('MEZ','WEL')` is synchronous, memoised, and
+returns `null` rather than a number it cannot stand behind. `prepare()` loads it
+by default, so a caller who passes no options at all now gets every cross-check
+this file has.
+
+**2. Switching it on immediately made the screen worse, and the measurement is
+what said so.** A new gate section runs the benchmark's **own answer key** —
+forty-nine meetings that are correct by definition — straight through the model
+with no OCR anywhere. The first run asked about **twelve of the forty-nine**,
+all one shape:
+
+```
+   Tue 09:30-11:00 RLP 0.106   only 0 minutes between this and CMA, which is a 13-minute walk
+   Tue 11:00-12:30 CMA 6.146   only 0 minutes between this and CMA, which is a 13-minute walk
+   ...
+```
+
+A printed university timetable is written in **blocks**, so back-to-back is what
+a real one looks like — the passing period is inside the block, and a student
+with that pair knows perfectly well they leave early. The walking check was
+telling four real schedules that they were impossible.
+
+And the question it produced **could not be answered**. This file's own rule is
+that a question whose options do not contain the truth costs a tap and fixes
+nothing; *"there is not enough time to walk this"* has no candidate correction
+at all, so the only button is the reading and the only possible answer is "yes,
+that is what my schedule says."
+
+So `CONF.time.tooTight` moved from **0.55 to 0.85** — out of the band that asks
+on its own and into the band that corroborates. The campus graph did not stop
+being the strongest thing this app knows. It stopped being asked the wrong
+question.
+
+**3. Where it does have a candidate answer, it asks about the BUILDING.**
+`neighbourDoubt()` is the new check and it is the one that closes the hole:
+
+> **Is this building NEZ?**
+> *MEZ is one stroke from NEZ and is 8 minutes closer to the classes either
+> side of it*
+> `NEZ` what the picture reads · `MEZ` Mezes Hall
+
+![the question the confusable-pair check asks](../shots/img-confidence/confirm-neighbour-phone.jpg)
+
+The reading still leads, because there is nothing wrong with these four
+characters — `NEZ` is a real building and this is a **relational** doubt in
+exactly the sense the rest of this document uses the word. A student who
+genuinely has a class in the North End Zone Building pays one tap for that.
+
+### What it costs: nothing
+
+```
+                       before this round      after
+   answer key           12 of 49 asked        0 of 49 asked
+   STRICT               28 of 136, 16 taps    28 of 136, 16 taps
+   LOOSE                39 of 39 caught       39 of 39 caught
+   option coverage      37 of 37              37 of 37
+   image-bench          134/171, 100% prec.   134/171, 100% prec.
+   cross-checks live    graph OFF             graph, neighbours, register names ON
+```
+
+The line did not move and the plateau did not move: `confirm-line.mjs` still
+reports 28 classes and 16 taps at every threshold from 0.60 to 0.78, because all
+three new penalties were placed **at or below 0.70** by construction and the
+0.70/0.85 gap that puts the line at 0.72 is untouched.
+
+### And how far it actually reaches — measured pair by pair, not claimed
+
+This is the part to read sceptically, because it is where the honest limit is.
+The gate walks all thirteen confusable pairs against the real graph:
+
+```
+   MEZ/NEZ    9 min / 803 m apart    <- the graph can separate these
+   TSC/TSG   20 min / 1762 m apart   <- the graph can separate these
+   PAI/PAT    2 min / 250 m apart      (too close to separate)
+   PHD/RHD    0 min / 55 m apart       (too close to separate)
+   BE1/BEL, ETC/FTC, FS1/FSL, FTC/FTG, GHE/GHF, GRE/GRF, ICB/TCB,
+   MMS/NMS, PRH/RRH                    not both in the graph at all
+```
+
+**Four of thirteen pairs have both members in the walk graph, and the graph can
+separate two of them.** `CONF.walk.gainMin` is 5 for exactly that reason and it
+is derived rather than fitted: a class has at most two adjacent walks, so by the
+triangle inequality no `PAI`/`PAT` swap — the closest pair the graph can see —
+can ever gain more than 2 × 2 = 4 minutes on any schedule. 5 is the first value
+the pair the graph *cannot* resolve can never reach.
+
+So a **second** witness was needed for the pairs the graph cannot separate, and
+it is UT's own printed name for the building out of `data/ut_buildings.json`.
+The gate runs the shipping regex over all thirteen pairs and prints what it
+finds:
+
+```
+   FTC/FTG  FOOTBALL TRAINING COMPLEX GARAGE    vs  FOOTBALL TRAINING COMPLEX
+   GRE/GRF  GREGORY AQUATIC FOOD SERVICE BLDG.  vs  GREGORY GYMNASIUM
+   PRH/RRH  DOBIE PAISANO RANCH HOUSE           vs  ROBERT B. ROWLING HALL
+   TSC/TSG  27TH STREET GARAGE                  vs  LEE & JOE JAMAIL TEXAS SWIMMING CTR
+```
+
+Nobody is taught in a car park. `CONF.venue.unlikely` is a deliberately short
+list, and stadiums, gyms and residence halls are **not on it** — UT really does
+teach in all three, and `NEZ`, the case this whole check exists for, is itself
+inside the stadium.
+
+**Between the two witnesses: five of thirteen pairs now raise a question, and
+eight do not.** The gate prints both sets and names `PAI/PAT` — the one pair of
+real teaching buildings in the residue — on its own line rather than letting it
+disappear into a count.
+
+### The probe agrees with the app's own router, checked rather than asserted
+
+A second reader that disagrees with the first is worse than no reader: the
+confirm screen would call a walk impossible while the app's own route card, on
+the same two buildings, printed a time that fits. So §2d drives the real
+`window.wayfindRoute` and compares:
+
+```
+   MEZ -> WEL    probe  2 min /  221 m     router  5 min /  502 m     diff -3
+   NEZ -> WEL    probe  7 min /  657 m     router  8 min /  691 m     diff -1
+   GDC -> RLP    probe  4 min /  412 m     router  4 min /  395 m     diff +0
+   PAI -> BUR    probe  3 min /  284 m     router  3 min /  327 m     diff +0
+   JES -> CMA    probe 13 min / 1082 m     router 13 min / 1091 m     diff +0
+   MEZ -> NEZ    probe  9 min /  803 m     router  9 min /  809 m     diff +0
+   WEL -> GDC    probe  0 min /   58 m     router  1 min /  145 m     diff -1
+   TSC -> TSG    probe 20 min / 1762 m     router 21 min / 1767 m     diff -1
+```
+
+**Never over, worst gap 3 minutes**, and always in the safe direction: the probe
+drops the router's door-role handicap (it is not drawing a route, so any door is
+a legal end), which can only make a walk shorter. A check that fires when even
+the optimistic number does not fit is making the strong claim, which is the only
+one worth a tap.
 
 ---
 
@@ -104,13 +263,24 @@ with a wrong room is a wrong class no matter how certain the other three are.
 | a length nothing is taught in | the clock | 0.85 |
 | **two classes at the same hour on one day** | the student's own other classes | 0.30 |
 | two classes that partly overlap | the student's own other classes | 0.85 |
-| **not enough minutes to walk it** | the app's own campus graph | 0.55 |
+| not enough minutes to walk it | the app's own campus graph | 0.85 |
+| **a one-stroke neighbour makes an impossible walk possible** | the campus graph × the register | 0.55 |
+| **a one-stroke neighbour fits the rest of the day 5+ minutes better** | the campus graph × the register | 0.62 |
+| **UT's own name for this building is a car park** | `data/ut_buildings.json` | 0.62 |
 
-The last one is the one this app can do that nothing else on the phone can. Two
-classes twelve minutes apart in buildings nineteen minutes apart on foot is not
-a tight passing period, it is a contradiction — and one of the two readings is
-wrong. It is fed a `routeMinutes(a, b)` and is **silent when the graph is not
-loaded**, rather than guessing; the gate asserts both halves of that.
+The last four are the ones this app can do that nothing else on the phone can,
+and the difference between the first of them and the other three is the whole
+lesson of round two. *"There is not enough time to walk this"* is true, useful
+and **unanswerable** — there is no button that fixes it — so it corroborates at
+0.85 and never asks alone. *"MEZ is one stroke from NEZ and eight minutes closer
+to the classes either side of it"* is the same evidence pointed at the field
+that is actually likely wrong, and it comes with a button.
+
+All four are **silent when the graph is not loaded** rather than guessing, and
+`review()` returns a `walkCheck` block saying which of them were live — a check
+that quietly does nothing when its data is missing is worse than one that says
+so, and this is the line the gate reads to prove the strongest check in the file
+is not inert.
 
 ### What is NOT here, and why
 
@@ -191,9 +361,12 @@ without hunting through the original.
 Everything that ends a step is **at least 44 px tall** and sits in the **lower
 two-thirds** of the panel, which on a 390×844 phone is where a thumb is; the
 crop and the question sit above it, which is where eyes are. Measured on the
-frame, not asserted: the gate reports the panel at **344×565 at (16, 68)** in a
-390×844 viewport, no sideways scroll, topmost answer button at **y = 352**, and
-the crop's luma spread at **61.5** — a blank canvas is 0.
+frame, not asserted — these are the numbers the gate printed on the run that
+produced the frames above, and they move when the screen does: panel
+**344×540 at (16, 68)** in a 390×844 viewport, bottom edge at 608, no sideways
+scroll, five controls with a minimum height of **44 px**, topmost answer button
+at **y = 369**, and the crop's luma spread at **49.7** on this question and
+**61.5** on the `MEZ`/`NEZ` one — a blank canvas is 0.
 
 Then the summary, and the promise the whole round is built on:
 
@@ -210,8 +383,18 @@ backing store cannot be recovered by anything that kept a reference.
 
 ## Nothing leaves the browser
 
-- No fetch, no worker, no analytics, no image anywhere but a `<canvas>` cut from
-  the one `js/schedimg.js` already made on this device.
+- No analytics, no upload, no image anywhere but a `<canvas>` cut from the one
+  `js/schedimg.js` already made on this device.
+- **Two fetches, both same-origin, both of the app's own data files, and
+  neither carries anything.** `data/ut_buildings.json` is the register the
+  reader was already using; `data/walk_graph.json` is the file the app's own
+  walking feature reads. They are `GET`s of static files this repo ships —
+  nothing about the student's schedule is in the URL, and there is no body.
+  Round two added the second one and §4 of the gate is what proves it did not
+  add a destination: the allowlist is **measured**, and the run above reports
+  the only off-box host contacted after the image was handed over as
+  `tiles.openfreemap.org`, which is the basemap and was there before this
+  feature existed.
 - The rectified page is kept as a **canvas** rather than pixels. That is a
   safety property, not an implementation detail: a canvas does not survive
   `structuredClone`, so it cannot cross into a worker, a message or a fetch body
@@ -245,7 +428,15 @@ cd scripts/verify && node image-bench.mjs ./schedimg-extract.mjs --name ours
 ```
 
 `confirm-line.mjs` runs the corpus **twice** and the second pass is the point of
-it — see below.
+it — see below. It now calls `prepare()` rather than a bare `review()`, so what
+it measures is the shipping configuration; it prints which cross-checks were
+live above every table, because a confidence model measured with its strongest
+check switched off is a different model.
+
+The gate section to run while moving a weight is **§2** (synthetic readings, no
+OCR, a second or two) followed by **§2e** (the answer key, no OCR either). §2e
+is the cheap one that catches an expensive mistake: forty-nine readings that are
+correct by definition, and any question at all is a false question.
 
 ---
 
@@ -313,9 +504,15 @@ morning.
 
 ### Where it landed
 
-Run against the committed tree, `askBelow = 0.72`:
+Run against the committed tree, `askBelow = 0.72`, with the walking graph, the
+confusable-neighbour check and the register names **all live** — which
+`confirm-line.mjs` now prints above every table, because a confidence model
+measured with its strongest check switched off is a different model:
 
 ```
+  cross-checks live: walking graph=true  confusable neighbours=true
+                     register names=true  [walk_graph.json @ 2026-07-30T16:47:30Z]
+
              classes asked about      wrong answers          taps across
              (of 136, all correct)    caught / in silence    15 images
   STRICT     28   (20.6%)             —                      16
@@ -350,6 +547,16 @@ shape of the penalty table:
 corroborating hint does. No penalty value lies between 0.70 and 0.85, which is
 exactly why nothing changes as the line moves across that range.
 
+**Round two added three penalties and moved one, and this is the rule that said
+where each of them goes.** The two confusable-neighbour checks and the venue
+check are all **at or below 0.70** — each of them is a specific, nameable claim
+about one reading with a button that answers it, so each has to be able to ask
+on its own. `tooTight` went the other way, to **0.85**, because it is the one
+kind of doubt in this file with no button behind it. The plateau is unchanged:
+STRICT still reports 28 classes and 16 taps at 0.60, 0.66, 0.72 and 0.78. That
+is the check that the architecture survived the round, and it is worth more than
+the fact that the totals happened to match.
+
 **It is also why 0.50 is not the answer**, even though on this corpus 0.50 is
 strictly better — 7 classes asked instead of 28, and still 39 of 39 caught. The
 39 errors cluster at 0.43–0.47 and a 0.50 line clears them by 0.03. But those 39
@@ -382,31 +589,31 @@ and **39 of 39**.
 
 ## What is still weak
 
-**The one this file cannot do anything about, and it is the biggest.** `MEZ` is
-Mezes Hall, on the South Mall. `NEZ` is the North End Zone Building, inside the
-football stadium. They are one stroke apart, they are **both real codes in the
-register**, and the corpus's own schedule s3 puts a class in `MEZ 1.306`. If the
-engine reads one as the other, every check in this file scores it 1.00 and it is
-saved in silence — the lexicon says it is a building, the room grammar says it is
-a room, the clock says nothing is wrong.
+**Eight of the thirteen confusable pairs are still invisible, and that is now
+the biggest thing here.** Round one could not see any of them. Round two raises
+a question on **five of thirteen** — `MEZ/NEZ` and `TSC/TSG` from the walking
+graph, and `GRE/GRF`, `FTC/FTG`, `PRH/RRH`, `TSC/TSG` from UT's own printed
+names. That count is computed from the register and the graph inside
+`scripts/verify/schedconfirm.mjs` §2c and printed pair by pair, so it is a
+measurement rather than a list somebody typed. What is left:
 
-There are **thirteen** such pairs in the app's 209 codes, and the gate enumerates
-them from the data rather than taking my word for it: `BE1/BEL`, `ETC/FTC`,
-`FS1/FSL`, `FTC/FTG`, `GHE/GHF`, `GRE/GRF`, `ICB/TCB`, `MEZ/NEZ`, `MMS/NMS`,
-`PAI/PAT`, `PHD/RHD`, `PRH/RRH`, `TSC/TSG`. The corpus contains no instance of
-one, so the measurement cannot even see the hole.
+| pair | why it is still invisible |
+|---|---|
+| `PAI/PAT` | **the dangerous one.** Painter Hall and Patterson Labs are both real teaching buildings, 250 m and two minutes apart, and the corpus's own schedule s3 has a class in `PAI 3.02`. Two minutes cannot clear `gainMin`, and neither name is a car park. Nothing in this repo can separate them, and the gate says so out loud rather than counting it as covered. |
+| `PHD/RHD` | two residence halls 55 m apart. Real, and low-stakes: they are next door to each other. |
+| `BE1/BEL`, `ETC/FTC`, `FS1/FSL`, `GHE/GHF`, `ICB/TCB`, `MMS/NMS` | at least one member has no door in `data/walk_graph.json` (135 of the register's 198 codes are routable), so the graph cannot compare them at all. |
 
-There is exactly one check in this file that would catch it, and it is the one
-that is switched off: **the campus graph.** A wrong building changes every
-distance around it, and a class that is now a nineteen-minute walk from the one
-before it in a twelve-minute gap is a contradiction the app can measure and
-nothing else on the student's phone can. It is built, it is tested against an
-injected `routeMinutes`, and it is inert in the real app because
-`window.wayfindRoute` is **async and side-effecting** — it calls `buildUI()`,
-fills both router inputs and draws the ribbon on the city — so it cannot be used
-as a quiet probe. **`HANDOFF.md` carries the request: a pure
-`window.wayfindMinutes(fromCode, toCode)` with no UI in it.** One function, and
-the strongest cross-check in this file turns on.
+The measurement still cannot see this hole either — the corpus contains no
+instance of a confusable misread, so the 16 taps and the 39-of-39 above are both
+silent about it. What changed is that the two synthetic cases in §2c are run
+against the **real** register and the **real** graph rather than a fixture, and
+the third one is a real reading off a real picture with one stroke changed.
+
+**A better fix for `PAI/PAT` exists and this repo does not have the data for
+it**: a room register. `PAI 3.02` and `PAT 3.02` are not both real rooms, and a
+building→room table would settle the pair in one lookup. Same shape as the floor
+table below, same reason it is not here: guessing one from
+`data/entrances.geojson` would be a guess wearing a number.
 
 **The line was calibrated against errors made by switching guards off, and 37 of
 those 39 errors are one shape.** That is a real error population from a real
@@ -415,10 +622,39 @@ but it is a mono-culture, and a model tuned on a mono-culture can be blind to a
 shape the corpus does not contain. Every constant above is in `CONF` for exactly
 that reason.
 
-**The screen is not reachable from the app yet.** `js/wayfind.js` is another
-lane's file this round and this branch does not touch it. The seam is three
-lines inside `impFromFile`, and it is written into `HANDOFF.md` rather than made
-here.
+**Moving `tooTight` into the corroborating band means a student is no longer
+told when their day genuinely does not fit.** That is the honest cost of the
+change, and it is the right trade — the question could not be answered — but it
+is a loss, not a free win. The evidence is still computed and still written into
+the class's `why`; what does not exist yet is a place on the **summary** screen
+to print it as a warning that costs no tap. `review()` would need to return the
+contradictions it found and the summary would need a line for them. Deliberately
+not built here rather than half-built.
+
+**`CONF.walk.gainMin` is derived from the register but validated on one case.**
+The triangle-inequality argument that puts it at 5 is sound and it is the reason
+the number is not fitted — but the corpus contains no confusable misread, so
+nothing measured how often a gain of exactly 5 shows up on a **correct** reading.
+The answer-key run (§2e, 0 of 49) and the corpus run (28 asked, unchanged) are
+the two pieces of evidence that it costs nothing, and both are on schedules with
+no confusable code in them except `MEZ` and `PAI`, whose true readings are
+silent. A campus with more `MEZ`-scale pairs in a student's day would cost taps
+this corpus cannot price.
+
+**The screen is still not reachable from the app**, and this branch still does
+not touch `js/wayfind.js` — it is another lane's file and `git diff --stat`
+between this branch and `acer/img-extract` shows zero lines of it. What changed
+is the size of the seam. Round one needed a caller who knew about `schedimg`,
+`review`, `mount`, `apply` **and** a `routeMinutes` it had no way to obtain.
+There is now one call that does all of it and loads its own cross-checks:
+
+```js
+const { classes } = await confirmFromFile(file, host);
+```
+
+That is the whole integration, and everything under it — the reader, the
+confidence model, the walking graph — is a dynamic `import()`, so an app that
+never calls it still pays nothing.
 
 **The day question is what still costs the most on this corpus** — day letters
 photographed at 9 pt come back at word-confidence in the forties and there is

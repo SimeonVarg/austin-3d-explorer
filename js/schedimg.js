@@ -1256,19 +1256,41 @@ let codesPromise = null;
 const EXTRA_CODES = ['SSW', 'BE1', 'BEG', 'EME', 'FS1', 'FSL', 'MER', 'PX3',
   'ROC', 'SV1', 'TCB'];
 
-/** The 198 real UT codes, from the app's own data file. Same-origin, cached. */
-export async function buildingCodes() {
-  if (codesPromise) return codesPromise;
-  codesPromise = (async () => {
-    const set = new Set(EXTRA_CODES);
+let registerPromise = null;
+
+/**
+ * The register itself: code -> UT's own printed name, from the app's own data
+ * file, same-origin and cached. One fetch, shared with buildingCodes() below.
+ *
+ * The NAME is data and not decoration. `TSG` is "27TH STREET GARAGE" and `TSC`
+ * is the swimming centre; `GRF` is "GREGORY AQUATIC FOOD SERVICE BLDG." and
+ * `GRE` is Gregory Gym. Those pairs are one confusable character apart and both
+ * are real codes, so every lexicon check scores a misread between them 1.00 —
+ * the name is the only thing in this repo that can tell them apart. It is used
+ * ONLY to raise a question, never to rewrite a code: see js/schedconfirm.js.
+ */
+export async function buildingRegister() {
+  if (registerPromise) return registerPromise;
+  registerPromise = (async () => {
+    const names = new Map();
+    for (const c of EXTRA_CODES) names.set(c, null);
     try {
       const url = new URL('../data/ut_buildings.json', import.meta.url).href;
       const r = await fetch(url);
       const j = await r.json();
-      for (const b of (j.buildings || [])) if (b && b.ref) set.add(String(b.ref).toUpperCase());
+      for (const b of (j.buildings || [])) {
+        if (b && b.ref) names.set(String(b.ref).toUpperCase(), b.name ? String(b.name) : null);
+      }
     } catch (e) { /* no list -> nothing is repaired, nothing is invented */ }
-    return set;
+    return names;
   })();
+  return registerPromise;
+}
+
+/** The 198 real UT codes, from the app's own data file. Same-origin, cached. */
+export async function buildingCodes() {
+  if (codesPromise) return codesPromise;
+  codesPromise = (async () => new Set((await buildingRegister()).keys()))();
   return codesPromise;
 }
 
@@ -1331,6 +1353,41 @@ export function codeCandidates(raw, codes, tune = TUNE) {
     for (const a of (CONFUSE[s[i]] || '')) {
       const cand = s.slice(0, i) + a + s.slice(i + 1);
       if (codes.has(cand)) hits.add(cand);
+    }
+  }
+  return [...hits].sort();
+}
+
+/**
+ * THE OTHER REAL CODES A REAL CODE SITS ONE STROKE AWAY FROM.
+ *
+ * `codeCandidates` above is about a code that is NOT on the register: it hands
+ * back the real ones it might have been. This is about the far more dangerous
+ * case, and it is the one the previous round of this feature could not see at
+ * all: a code that IS on the register and is still the wrong one.
+ *
+ * `MEZ` is Mezes Hall, on the South Mall. `NEZ` is the North End Zone Building,
+ * inside the football stadium, eight hundred metres away. They differ by one
+ * stroke, they are BOTH real, and so every check that asks "is this a building?"
+ * answers yes and the reading is saved in silence. There are thirteen such pairs
+ * in this app's 209-code lexicon.
+ *
+ * This returns the neighbours and NOTHING ELSE — no ranking, no preference, no
+ * repair. Deciding whether one of them is likelier than what the picture says
+ * needs the student's other classes and the campus walking graph, and that
+ * judgement belongs in js/schedconfirm.js, which is the file that can be
+ * re-graded against a corpus. Nothing that writes an answer down may reach this
+ * list: like `codeCandidates`, it only ever becomes buttons.
+ */
+export function codeNeighbours(code, codes, tune = TUNE) {
+  const s = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!s || !codes || !codes.size || !codes.has(s)) return [];
+  if (tune.judge.repairMaxEdits < 1) return [];
+  const hits = new Set();
+  for (let i = 0; i < s.length; i++) {
+    for (const a of (CONFUSE[s[i]] || '')) {
+      const cand = s.slice(0, i) + a + s.slice(i + 1);
+      if (cand !== s && codes.has(cand)) hits.add(cand);
     }
   }
   return [...hits].sort();
@@ -2348,6 +2405,7 @@ if (typeof window !== 'undefined') {
     extract, decode, findDocQuad, estimateLineHeight, rectify, photometry,
     grayCanvas, pickEngine, ocrWords, ocrCrop, buildRows, classifyLayout,
     hourAxis, findBlocks, parseRange, parseDayLetters, repairCode,
-    codeCandidates, buildingCodes, releaseEngine, engineInfo, TUNE,
+    codeCandidates, codeNeighbours, buildingCodes, buildingRegister,
+    releaseEngine, engineInfo, TUNE,
   };
 }

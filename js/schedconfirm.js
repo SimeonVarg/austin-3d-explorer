@@ -51,10 +51,21 @@
  *   - the OTHER rooms read in the same building on the same picture, which is
  *     where the dotted/undotted convention comes from
  *   - the other classes on the same day, because nobody is in two rooms at once
- *   - the campus walking graph, when it is loaded: five minutes between two
- *     classes fifteen minutes apart on foot means one of the two readings is
- *     wrong (opts.routeMinutes; inactive when the graph is not there)
+ *   - the campus walking graph, through js/walkgraph.js: five minutes between
+ *     two classes fifteen minutes apart on foot means one of the two readings
+ *     is wrong. ON BY DEFAULT via prepare(); silent when the graph is missing.
  *   - the clock: a class is 20-240 minutes long and starts on a real UT hour
+ *
+ * AND THE ONE THAT MATTERS MOST, BECAUSE IT IS THE HOLE THE ROUND BEFORE THIS
+ * ONE COULD NOT SEE. Every check in the list above asks "IS this a building?".
+ * Thirteen pairs of REAL codes in the app's own 209-code lexicon are one
+ * confusable stroke apart — MEZ (Mezes Hall, the South Mall) and NEZ (the North
+ * End Zone Building, inside the stadium, 803 m away) among them — so a misread
+ * from one onto the other scores 1.00 on every one of them and is saved in
+ * silence. `neighbourDoubt()` asks the other question, "is this the RIGHT
+ * building?", with the only two witnesses this repo has: the walking graph read
+ * through the rest of the student's own day, and UT's own printed name for the
+ * building (nobody is taught in the 27th Street Garage).
  *
  * WHAT IS NOT HERE, AND WHY. The brief asked for a floor check — a room starting
  * with 9 in a four-storey building is suspect — and it is a good check. This
@@ -69,13 +80,24 @@
  * and `roomFloorSuspect()` below are the two places it plugs into.
  *
  * ─────────────────────────────────────────────────────────────────────────────
- * IT NEVER TOUCHES THE NETWORK AND IT NEVER RENDERS OCR TEXT AS HTML
+ * NOTHING ABOUT THE STUDENT LEAVES THE DEVICE, AND OCR TEXT IS NEVER HTML
  *
- * No fetch, no worker, no analytics, no image anywhere but a <canvas> cut from
- * the one js/schedimg.js already made on this device. Every string that came off
- * the student's picture reaches the DOM through textContent and never through
- * innerHTML — that is a safety property, not a style preference: the text is
- * arbitrary bytes from an image, and this screen is the one place it is drawn.
+ * No upload, no worker, no analytics, no image anywhere but a <canvas> cut from
+ * the one js/schedimg.js already made on this device.
+ *
+ * prepare() below does fetch, and the distinction matters enough to write out:
+ * it GETs two static files this repo ships — data/ut_buildings.json, which the
+ * reader was already using, and data/walk_graph.json, which the app's own
+ * walking feature reads. Same origin, no query, no body, and nothing about the
+ * schedule is in either request. The promise is not "this file never fetches";
+ * it is that IMPORTING A SCHEDULE ADDS NO DESTINATION, and the gate's §4 proves
+ * that by measuring the hosts the page used before the image was handed over
+ * and failing on one new one.
+ *
+ * Every string that came off the student's picture reaches the DOM through
+ * textContent and never through innerHTML — that is a safety property, not a
+ * style preference: the text is arbitrary bytes from an image, and this screen
+ * is the one place it is drawn.
  *
  * Lazy by construction, exactly like js/schedimg.js: not referenced from
  * index.html, reached by a dynamic import() at the moment a student picks an
@@ -134,6 +156,21 @@ export const CONF = {
     unknownShape: 0.30,   // code-shaped, not a code this build knows (MER-like)
     ambiguous: 0.12,      // two or more real codes fit -> always a question
     cutOff: 0.10,         // a word cut by the edge of a crop is half a word
+
+    // ── A REAL CODE THAT IS STILL THE WRONG ONE ────────────────────────────
+    // All five values above answer "is this a building?". These two answer the
+    // question that hole is shaped like: "is this the RIGHT building?". Both
+    // are RELATIONAL — there is nothing wrong with the four characters, they
+    // are a real code, so the reading stays in the first button and the reason
+    // is printed under it. See `neighbourDoubt()`.
+    //
+    // Both sit at or below 0.70 by construction, so each asks on its own and
+    // the 0.70/0.85 plateau that puts the line at 0.72 is unchanged.
+    walkNeighbour: 0.55,  // a one-stroke neighbour makes the day walkable and
+                          // this reading does not
+    nearerNeighbour: 0.62, // ..or merely fits the rest of the day far better
+    venueNeighbour: 0.62,  // UT's own name for this one is a car park, and a
+                           // one-stroke neighbour is an ordinary building
   },
 
   /* ── room ───────────────────────────────────────────────────────────────── */
@@ -187,7 +224,33 @@ export const CONF = {
     // six false questions on correct data.
     collidesExactly: 0.30,
     overlapsPartly: 0.85,
-    tooTight: 0.55,       // not enough minutes to walk it, per the campus graph
+    // NOT ENOUGH MINUTES TO WALK IT, per the campus graph — and this number
+    // moved from 0.55 to 0.85 the moment the graph was actually switched on,
+    // which is the most useful thing the measurement did this round.
+    //
+    // WHAT HAPPENED. With a real graph behind it this fired on TWELVE of the
+    // forty-nine meetings in the benchmark's own ANSWER KEY — every one of them
+    // a correct reading. They are all the same shape: `RLP 0.106` 9:30-11:00
+    // followed by `CMA 6.146` at 11:00. A printed university schedule is
+    // written in BLOCKS, so back-to-back is what a real timetable looks like;
+    // the passing period is inside the block, and a student who has that pair
+    // knows perfectly well they leave early. Calling it a contradiction told
+    // four schedules in a row that their own timetable was impossible.
+    //
+    // AND THE QUESTION IT PRODUCED COULD NOT BE ANSWERED. This file's own rule
+    // is that a question whose options do not contain the truth costs a tap and
+    // fixes nothing. "There is not enough time to walk this" has no candidate
+    // correction at all: the buttons are the reading and nothing else, so the
+    // only possible answer is "yes, that is what my schedule says".
+    //
+    // So it moved into the CORROBORATING band — at or above 0.85, it can never
+    // put a class under the 0.72 line on its own, and it still adds its weight
+    // to a reading something else already doubts. The campus graph did not stop
+    // being the strongest thing this app knows; it stopped being asked the
+    // wrong question. Where it DOES have a candidate answer — a one-stroke
+    // neighbour that makes the walk fit — it asks about the BUILDING, at
+    // `building.walkNeighbour`, and there the buttons contain the fix.
+    tooTight: 0.85,
     cutOff: 0.10,
   },
 
@@ -213,11 +276,62 @@ export const CONF = {
     dayLastHour: 22,
   },
 
-  /* ── the walking cross-check, when the campus graph is loaded ───────────── */
+  /* ── the walking cross-check, against the app's own campus graph ────────── */
   walk: {
     on: true,
     // A gap this much shorter than the walk is a contradiction, not a hurry.
     slackMin: 2,
+
+    // ── THE CONFUSABLE-NEIGHBOUR CHECK, and why it needed building at all ──
+    //
+    // Every other check in this file asks "is this a building?". Thirteen pairs
+    // of REAL codes in the app's own 209-code lexicon are one confusable
+    // character apart, so when the engine reads one of a pair AS the other,
+    // every one of those checks answers yes and the wrong room is saved in
+    // silence. MEZ is Mezes Hall on the South Mall; NEZ is the North End Zone
+    // Building inside the football stadium, 803 m away. The benchmark corpus's
+    // own schedule s3 puts a real class in MEZ 1.306.
+    //
+    // The graph is the only witness this app has that can tell those two apart,
+    // and it does it by looking at the REST OF THE DAY: swap MEZ for NEZ and
+    // every walk around it gets longer.
+    neighbour: true,
+
+    // How many minutes of walking a swap has to save before it is worth a tap.
+    //
+    // DERIVED FROM THE REGISTER, NOT FITTED TO THE CORPUS. Of the thirteen
+    // confusable pairs, four have both members in the walk graph, and the
+    // closest of those — PAI (Painter Hall) and PAT (Patterson Labs) — are
+    // 2 minutes and 250 m apart. A class has at most two adjacent walks (the
+    // one in and the one out), so by the triangle inequality no PAI/PAT swap
+    // can ever gain more than 2 x 2 = 4 minutes on any schedule. 5 is therefore
+    // the first value the pair the graph CANNOT resolve can never reach, which
+    // makes this the line between "the graph can tell these two apart" and
+    // "it cannot" rather than a number that made a corpus go green.
+    gainMin: 5,
+  },
+
+  /* ── what UT's own register calls a building ────────────────────────────── */
+  //
+  // The graph can only separate a confusable pair that is far apart. Two of the
+  // thirteen pairs are close together on the map and still trivially separable
+  // by a human, because one of them is a CAR PARK: TSC is the swimming centre
+  // and TSG is the 27th Street Garage; GRE is Gregory Gym and GRF is the
+  // Gregory Aquatic Food Service Building. Nobody is taught in either.
+  //
+  // This is UT's own printed name out of `data/ut_buildings.json`, matched
+  // against a deliberately SHORT list of things that are not rooms with desks
+  // in them. It is used ONLY to raise a question with the reading still in the
+  // first button — never to rewrite a code — because a student really could
+  // have a lab in a strange place and this app does not get to overrule their
+  // own picture.
+  venue: {
+    on: true,
+    // NOT in this list, on purpose: stadiums, gyms and residence halls. UT
+    // really does teach in all three — NEZ, the case this whole check exists
+    // for, is itself inside the stadium — and a check that fires on a real
+    // classroom is worse than no check.
+    unlikely: /\b(GARAGE|PARKING|FOOD SERVICE|RANCH|WAREHOUSE|CHILLING|POWER PLANT|SERVICE CENTER|UTILITY|STORAGE|GREENHOUSE)\b/,
   },
 
   /* ── how many taps a question is allowed to be ──────────────────────────── */
@@ -363,7 +477,7 @@ function collidesWith(classes, cls) {
  * because a check that silently does nothing when its data is missing is worse
  * than one that says so: `active` is reported out of review().
  */
-function tooTightToWalk(classes, cls, routeMinutes) {
+function tooTightToWalk(classes, cls, routeMinutes, ctx) {
   if (!routeMinutes || !CONF.walk.on) return null;
   const e = minutesOf(cls.end), s = minutesOf(cls.start);
   if (s == null || e == null) return null;
@@ -382,10 +496,182 @@ function tooTightToWalk(classes, cls, routeMinutes) {
     if (need == null || !isFinite(need)) continue;
     if (gap + CONF.walk.slackMin < need &&
         (!worst || need - gap > worst.need - worst.gap)) {
-      worst = { other: o, gap, need: Math.round(need), from, to };
+      worst = { other: o, gap, need: Math.round(need), from, to, blame: o };
     }
   }
+  // WHEN THE APP CAN NAME WHICH OF THE TWO IS WRONG, IT MUST NOT ASK BOTH.
+  // A contradiction is a fact about a PAIR, so without more evidence both
+  // classes are suspect and both get asked. But if a one-stroke neighbour of
+  // either building turns the walk back into one that fits, the app has a
+  // specific culprit, and the innocent half of the pair gets its clock
+  // questioned for nothing — a tap that can only be answered "yes". See
+  // `neighbourDoubt()`; the guilty half carries the doubt on its BUILDING.
+  if (worst && ctx && ctx.neighbours && resolvableByNeighbour(classes, cls, worst, ctx)) {
+    return null;
+  }
   return worst;
+}
+
+/** Does swapping either end of a too-tight walk for a one-stroke neighbour of
+ *  that building make the walk fit? */
+function resolvableByNeighbour(classes, cls, tight, ctx) {
+  const rm = ctx.routeMinutes;
+  if (!rm) return false;
+  const ends = [[cls.building, tight.other.building], [tight.other.building, cls.building]];
+  for (const pair of ends) {
+    for (const alt of (ctx.neighbours(String(pair[0] || '').toUpperCase()) || [])) {
+      let m = null;
+      try { m = rm(alt, pair[1]); } catch (e) { m = null; }
+      if (m != null && isFinite(m) && tight.gap + CONF.walk.slackMin >= m) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * The two walks a student actually makes around one class: the one in, from
+ * whichever class ended last before it, and the one out, to whichever starts
+ * first after it. Never every class on the day — a walk to a class four hours
+ * later is not a walk anybody takes, and counting it would let a distant
+ * afternoon lab decide what a morning building is called.
+ */
+function adjacentLegs(classes, cls) {
+  const s = minutesOf(cls.start), e = minutesOf(cls.end);
+  if (s == null || e == null) return [];
+  let before = null, after = null;
+  for (const o of classes) {
+    if (o === cls || o.day !== cls.day || !o.building) continue;
+    const os = minutesOf(o.start), oe = minutesOf(o.end);
+    if (os == null || oe == null) continue;
+    if (oe <= s && (!before || oe > minutesOf(before.end))) before = o;
+    if (os >= e && (!after || os < minutesOf(after.start))) after = o;
+  }
+  const out = [];
+  if (before) out.push({ other: before, gap: s - minutesOf(before.end), dir: 'in' });
+  if (after) out.push({ other: after, gap: minutesOf(after.start) - e, dir: 'out' });
+  return out;
+}
+
+/**
+ * THE HOLE THE PREVIOUS ROUND OF THIS FILE COULD NOT SEE, AND THE TWO WITNESSES
+ * THAT CAN SEE INTO IT.
+ *
+ * Everything above asks "is this a building?" — the lexicon, the room grammar,
+ * the clock. Thirteen pairs of REAL codes in this app's own 209-code lexicon
+ * are one confusable character apart, and when the engine reads one of a pair
+ * AS the other, every one of those checks answers YES. `building.lexicon` gives
+ * it 1.00 and it is written into a student's schedule in silence. MEZ is Mezes
+ * Hall on the South Mall. NEZ is the North End Zone Building, inside the
+ * football stadium, 803 m and nine minutes away. The benchmark corpus's own
+ * schedule s3 puts a real class in MEZ 1.306, so this is not hypothetical.
+ *
+ * Two things in this repo can tell a real code from the wrong real code:
+ *
+ *   1. THE CAMPUS WALKING GRAPH, read through the rest of the student's own
+ *      day. A wrong building changes every distance around it. If swapping the
+ *      reading for its one-stroke neighbour turns a walk that does not fit into
+ *      one that does — or merely saves `CONF.walk.gainMin` minutes across both
+ *      adjacent walks — that neighbour is worth one tap.
+ *   2. UT'S OWN PRINTED NAME for the building. `TSG` is "27TH STREET GARAGE"
+ *      and `TSC` is the swimming centre. Nobody is taught in a car park.
+ *
+ * IT ASKS. IT NEVER REWRITES. The four characters are a real code and there is
+ * nothing wrong with the reading, so this is a RELATIONAL doubt in the sense
+ * §2 of this file uses the word: the reading stays in the first button, the
+ * neighbour goes second, and the reason is printed underneath. A student who
+ * genuinely has a class in the North End Zone Building pays exactly one tap for
+ * that, which is the trade this whole file is built on.
+ *
+ * Returns null — SILENTLY — when the graph is not loaded, when either code has
+ * no door in it, or when the class has no neighbour on its day. A check with no
+ * data guesses at nothing; `review()` reports whether it was live.
+ */
+function neighbourDoubt(cls, classes, ctx) {
+  if (!CONF.walk.neighbour) return null;
+  const code = String(cls.building || '').toUpperCase();
+  if (!code || !ctx.neighbours) return null;
+  const alts = ctx.neighbours(code) || [];
+  if (!alts.length) return null;
+
+  // ── 1. THE VENUE. Cheapest, needs no graph, and catches the pairs the graph
+  //       cannot separate because they are next door to each other.
+  if (CONF.venue.on && ctx.registerName) {
+    const mine = ctx.registerName(code);
+    if (mine && CONF.venue.unlikely.test(String(mine).toUpperCase())) {
+      const ordinary = alts.filter(a => {
+        const n = ctx.registerName(a);
+        return n && !CONF.venue.unlikely.test(String(n).toUpperCase());
+      });
+      if (ordinary.length) {
+        return {
+          kind: 'venue',
+          factor: CONF.building.venueNeighbour,
+          options: ordinary,
+          resolves: false,
+          why: code + ' is ' + titleish(mine) + ', and ' + ordinary.join(' or ') +
+            ' is one stroke away',
+        };
+      }
+    }
+  }
+
+  // ── 2. THE WALK, read through the rest of the day.
+  const rm = ctx.routeMinutes;
+  if (!rm || !CONF.walk.on) return null;
+  const legs = adjacentLegs(classes, cls);
+  if (!legs.length) return null;
+  // Every leg has to be measurable under EVERY candidate or the comparison is
+  // between two different questions. A partial answer here is not a smaller
+  // answer, it is a wrong one.
+  const cost = (c) => {
+    let sum = 0, impossible = 0;
+    for (const l of legs) {
+      let m = null;
+      try { m = rm(l.other.building, c); } catch (err) { m = null; }
+      if (m == null || !isFinite(m)) return null;
+      sum += m;
+      if (l.gap + CONF.walk.slackMin < m) impossible++;
+    }
+    return { sum, impossible };
+  };
+  const mine = cost(code);
+  if (!mine) return null;
+  let best = null;
+  for (const a of alts) {
+    const c = cost(a);
+    if (!c) continue;
+    // A swap earns a question two ways: it makes an impossible day possible,
+    // or it saves real walking. The first is much the stronger claim, so it
+    // wins outright over any amount of saved minutes.
+    const fixes = c.impossible < mine.impossible;
+    const nearer = c.impossible === mine.impossible &&
+      mine.sum - c.sum >= CONF.walk.gainMin;
+    if (!fixes && !nearer) continue;
+    const rank = (fixes ? 1000 : 0) + (mine.sum - c.sum);
+    if (!best || rank > best.rank) best = { code: a, c, fixes, rank };
+  }
+  if (!best) return null;
+  const saved = Math.round(mine.sum - best.c.sum);
+  return {
+    kind: best.fixes ? 'walk-fixes' : 'walk-nearer',
+    factor: best.fixes ? CONF.building.walkNeighbour : CONF.building.nearerNeighbour,
+    options: [best.code],
+    // When the neighbour makes an impossible day possible, the BUILDING is the
+    // likely misread and the clock is probably fine. score() uses this to move
+    // the question off the time and onto the building rather than asking twice
+    // about one line of a picture.
+    resolves: best.fixes,
+    why: best.fixes
+      ? 'there is not enough time to walk to ' + code + ' here, but ' +
+        best.code + ' — one stroke away — fits'
+      : best.code + ' is one stroke from ' + code + ' and is ' + saved +
+        ' minutes closer to the classes either side of it',
+  };
+}
+
+/** "27TH STREET GARAGE" -> "27th Street Garage". The register shouts. */
+function titleish(name) {
+  return String(name).toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -445,6 +731,15 @@ export function score(cls, ctx = {}) {
   } else {
     b *= mul('building', CONF.building.unknownShape,
       '"' + (cls.building || '?') + '" is not a building code this app knows');
+  }
+  // A REAL CODE THAT MAY STILL BE THE WRONG REAL CODE. Soft, always: the four
+  // characters are a real building and nothing is wrong with them, so the
+  // reading keeps the first button and this is printed as the reason for
+  // asking. `extraCodes` rides out on the score so buildQuestion() can put the
+  // neighbour in the second button without recomputing any of this.
+  const nb = neighbourDoubt(cls, classes, ctx);
+  if (nb) {
+    b *= mul('building', nb.factor, nb.why, true);
   }
 
   /* ── room ─────────────────────────────────────────────────────────────── */
@@ -542,7 +837,13 @@ export function score(cls, ctx = {}) {
         : 'this overlaps ' + (hit.course || (hit.building + ' ' + hit.room)) +
           ' on the same ' + cls.day, true);
   }
-  const tight = tooTightToWalk(classes, cls, ctx.routeMinutes);
+  // ONE QUESTION, ABOUT THE THING THAT IS ACTUALLY LIKELY WRONG. When a
+  // one-stroke neighbour turns the impossible walk into a possible one, the
+  // BUILDING is the misread and the clock is fine — asking about both would
+  // spend a second tap teaching the student that this screen does not know
+  // what it is asking. The doubt has already been charged to the building
+  // above; charging it again here would double-count one piece of evidence.
+  const tight = (nb && nb.resolves) ? null : tooTightToWalk(classes, cls, ctx.routeMinutes, ctx);
   if (tight) {
     t *= mul('time', CONF.time.tooTight,
       'only ' + tight.gap + ' minutes between this and ' + tight.to + ', which is a ' +
@@ -559,6 +860,10 @@ export function score(cls, ctx = {}) {
   };
   return {
     fields, notes, defect, legible,
+    // The one-stroke neighbours worth offering, and why — carried out of the
+    // score so the question can be built without re-running the graph.
+    extraCodes: nb ? nb.options : [],
+    neighbour: nb ? { kind: nb.kind, resolves: nb.resolves } : null,
     overall: Math.min(fields.building, fields.room, fields.day, fields.time),
   };
 }
@@ -729,6 +1034,15 @@ function buildQuestion(group, field, ctx, idx) {
     for (const c of cands) {
       fix.push({ value: c, label: c, note: ctx.buildingName ? ctx.buildingName(c) : null });
     }
+    // THE ONE-STROKE NEIGHBOUR OF A CODE THAT IS ITSELF REAL. `cands` above is
+    // empty in this case by construction — codeCandidates() returns just the
+    // code when the code is on the register — which is exactly why the previous
+    // round of this file had nothing to offer here and the misread went through
+    // in silence. This is the button that closes it.
+    for (const c of (group.score.extraCodes || [])) {
+      if (c === current || cands.indexOf(c) >= 0) continue;
+      fix.push({ value: c, label: c, note: ctx.buildingName ? ctx.buildingName(c) : null });
+    }
   } else if (field === 'room') {
     current = cls.room;
     ask = trusted ? 'Is the room ' + current + '?' : 'Which room is this?';
@@ -805,6 +1119,11 @@ export function review(out, opts = {}) {
     routeMinutes: opts.routeMinutes || null,
     floors: opts.floors || null,
     buildingName: opts.buildingName || null,
+    // code -> the OTHER real codes it is one confusable stroke from, and UT's
+    // own printed name for a code. Both come from prepare() below, so the
+    // caller gets them without knowing they exist.
+    neighbours: opts.neighbours || null,
+    registerName: opts.registerName || null,
   };
   // ── ONE READING, NOT ONE MEETING, IS THE UNIT EVERYWHERE BELOW ──────────
   // A Tuesday/Thursday course is two rows in `classes` and ONE line of the
@@ -887,9 +1206,99 @@ export function review(out, opts = {}) {
       recoverable: recover.length,
       seenNotRead: (out && out.seen && out.seen.onlySeen) || 0,
     },
-    walkCheck: { active: !!(opts.routeMinutes && CONF.walk.on) },
+    // WHETHER THE CROSS-CHECKS WERE LIVE, reported rather than assumed. A check
+    // that silently does nothing when its data is missing is worse than one
+    // that says so, and this is the line a gate reads to prove the strongest
+    // check in the file is not inert.
+    walkCheck: {
+      active: !!(opts.routeMinutes && CONF.walk.on),
+      neighbours: !!(opts.neighbours && CONF.walk.neighbour),
+      venue: !!(opts.registerName && CONF.venue.on),
+      source: opts.walkSource || null,
+    },
     line: { askBelow: CONF.askBelow, trustBelow: CONF.trustBelow },
   };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   prepare() — the cross-checks, loaded, so that nobody has to know they exist
+
+   THIS IS THE FIX FOR THE WORST THING ABOUT THE PREVIOUS ROUND OF THIS FILE.
+   The campus-graph check was built, tested and INERT, because it needed a
+   `routeMinutes` the caller had to supply and the only router in the repo is
+   `window.wayfindRoute` — which is async, drives the UI and draws a ribbon
+   across the city, so it cannot be used as a quiet probe behind a confirm
+   screen. The check protected nobody.
+
+   `js/walkgraph.js` is that probe: the same `data/walk_graph.json`, the same
+   cost model out of the same file, no DOM and no side effects. So the default
+   is now ON, and a caller who passes no options at all still gets every
+   cross-check this file has.
+
+   Everything it loads is same-origin, lazy and optional: a failure returns a
+   ctx with that check switched off rather than throwing, and `review()`'s
+   `walkCheck` says which ones were live.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+export async function prepare(opts = {}) {
+  const out = { walkSource: null };
+  // The lexicon and the register. js/schedimg.js has already fetched this file
+  // by the time anybody is looking at a result, so this is a cache hit.
+  if (opts.neighbours === undefined || opts.registerName === undefined ||
+      opts.buildingName === undefined) {
+    try {
+      const si = await import('./schedimg.js');
+      const reg = await si.buildingRegister();
+      const codes = new Set(reg.keys());
+      if (opts.neighbours === undefined) {
+        out.neighbours = (c) => si.codeNeighbours(c, codes);
+      }
+      if (opts.registerName === undefined) out.registerName = (c) => reg.get(c) || null;
+      if (opts.buildingName === undefined) {
+        out.buildingName = (c) => (reg.get(c) ? titleish(reg.get(c)) : null);
+      }
+    } catch (e) { /* no register -> the neighbour and venue checks stay off */ }
+  }
+  // The walking graph.
+  if (opts.routeMinutes === undefined && CONF.walk.on) {
+    try {
+      const wg = await import('./walkgraph.js');
+      const probe = await wg.walkProbe();
+      if (probe) {
+        out.routeMinutes = (a, b) => probe.minutes(a, b);
+        out.walkSource = 'walk_graph.json' + (probe.asOf ? ' @ ' + probe.asOf : '');
+        out.walkProbe = probe;
+      }
+    } catch (e) { /* no graph -> the walk check stays silent, never guesses */ }
+  }
+  return Object.assign(out, opts);
+}
+
+/**
+ * The whole seam, in one call: a file a student picked -> the confirm screen on
+ * screen -> the classes they confirmed.
+ *
+ *     const { classes } = await confirmFromFile(file, host);
+ *
+ * `js/schedimg.js` and `js/schedconfirm.js` and `js/walkgraph.js` are all
+ * dynamic imports underneath this, so an app that never calls it pays nothing
+ * for it. Resolves when the student presses "Use these" or closes the screen;
+ * closing gives back an empty list, never a half-confirmed one.
+ */
+export async function confirmFromFile(file, host, opts = {}) {
+  const si = await import('./schedimg.js');
+  const out = await si.extract(file, Object.assign({ keepSheet: true }, opts.extract || {}));
+  const ctx = await prepare(opts);
+  const rev = review(out, ctx);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; resolve(v); } };
+    const ui = mount(host, rev, Object.assign({}, opts, {
+      onDone: (res) => { finish(res || apply(rev)); if (opts.onDone) opts.onDone(res); },
+      onCancel: () => { finish({ classes: [], dropped: [] }); if (opts.onCancel) opts.onCancel(); },
+    }));
+    ui.review = rev;
+  });
 }
 
 /**
@@ -1530,9 +1939,9 @@ export function mount(host, rev, opts = {}) {
   return { root, state, destroy, render };
 }
 
-export default { CONF, review, score, apply, mount, cropInto };
+export default { CONF, review, score, apply, mount, cropInto, prepare, confirmFromFile };
 
 if (typeof window !== 'undefined') {
-  window.SCHEDCONFIRM = { CONF, review, score, apply, mount, cropInto,
-    minutesOf, hhmmOf, clockOf, fromOcr, roomFloorSuspect };
+  window.SCHEDCONFIRM = { CONF, review, score, apply, applyGroup, mount, cropInto,
+    prepare, confirmFromFile, minutesOf, hhmmOf, clockOf, fromOcr, roomFloorSuspect };
 }

@@ -205,7 +205,11 @@ const model = await page.evaluate(() => {
         conf: { building: 92, room: 92, day: 92, time: 92 },
         from: { day: 'column', time: 'axis', room: 'read', building: 'lexicon' },
         flags: { knownCode: true, axisAgrees: true, edge: {}, source: 'screenshot' },
-        candidates: { building: ['RLP'] },
+        // codeCandidates() on a code that IS on the register returns just that
+        // code, so the fixture has to track the building it is overridden with
+        // or the option lists below carry a stale RLP that no real evidence
+        // bundle would ever contain.
+        candidates: { building: [(over && over.building) || 'RLP'] },
       },
     };
     return Object.assign(c, over || {});
@@ -272,16 +276,55 @@ const model = await page.evaluate(() => {
   out.cutOff = one(dive({}, { flags: { edge: { room: true } } }));
 
   // The walking cross-check, with a stub graph: two classes 5 minutes apart in
-  // buildings 19 minutes apart on foot.
+  // buildings 19 minutes apart on foot. It REPORTS and does not ask on its own
+  // — see the assertions below and CONF.time.tooTight for why that changed.
   out.walk = one(mk({ start: '09:30', end: '11:00' }),
     [mk({ building: 'WEL', room: '2.224', start: '11:05', end: '12:00', course: 'PHY 303' })],
     { routeMinutes: (a, b) => 19 });
   out.walkOff = one(mk({ start: '09:30', end: '11:00' }),
     [mk({ building: 'WEL', room: '2.224', start: '11:05', end: '12:00', course: 'PHY 303' })]);
+  // BACK-TO-BACK IS WHAT A REAL TIMETABLE LOOKS LIKE. With the graph live this
+  // shape fired on twelve of the forty-nine meetings in the benchmark's own
+  // ANSWER KEY before tooTight moved into the corroborating band. Section 2e
+  // measures that against the whole key; this is the unit case.
+  out.backToBack = one(mk({ start: '09:30', end: '11:00' }),
+    [mk({ building: 'WEL', room: '2.224', start: '11:00', end: '12:30', course: 'PHY 303' })],
+    { routeMinutes: (a, b) => 13 });
+
+  // ── THE CONFUSABLE-NEIGHBOUR CHECK, on stubs, so the weights can be moved
+  //    without waiting for a graph. Section 2c does the same on the REAL one.
+  const stubN = (c) => ({ NEZ: ['MEZ'], MEZ: ['NEZ'], TSG: ['TSC'], TSC: ['TSG'] }[c] || []);
+  const stubName = (c) => ({ NEZ: 'NORTH END ZONE BUILDING', MEZ: 'MEZES HALL',
+    TSG: '27TH STREET GARAGE', TSC: 'LEE & JOE JAMAIL TEXAS SWIMMING CTR' }[c] || null);
+  // A day whose other classes are 2 minutes from MEZ and 7 from NEZ: swapping
+  // saves 10 minutes across the two adjacent walks, so NEZ is worth one tap.
+  const near = (a, b) => (a === 'NEZ' || b === 'NEZ' ? 7 : 2);
+  out.neighbourNearer = one(mk({ building: 'NEZ', room: '1.306', start: '10:30', end: '11:30' }),
+    [mk({ building: 'WEL', room: '2.224', start: '09:00', end: '10:00' }),
+      mk({ building: 'GDC', room: '2.216', start: '12:00', end: '13:00' })],
+    { routeMinutes: near, neighbours: stubN, registerName: stubName });
+  // ..and the SAME day with the truth in it must be silent.
+  out.neighbourTruth = one(mk({ building: 'MEZ', room: '1.306', start: '10:30', end: '11:30' }),
+    [mk({ building: 'WEL', room: '2.224', start: '09:00', end: '10:00' }),
+      mk({ building: 'GDC', room: '2.216', start: '12:00', end: '13:00' })],
+    { routeMinutes: near, neighbours: stubN, registerName: stubName });
+  // The strong form: the neighbour turns a walk that does not fit into one that
+  // does. The question moves off the CLOCK and onto the BUILDING.
+  out.neighbourFixes = one(mk({ building: 'NEZ', room: '1.306', start: '10:00', end: '11:00' }),
+    [mk({ building: 'WEL', room: '2.224', start: '09:00', end: '10:00' })],
+    { routeMinutes: near, neighbours: stubN, registerName: stubName });
+  // UT's own printed name, for the pairs that are too close together for the
+  // graph to separate. Nobody is taught in a car park.
+  out.venue = one(mk({ building: 'TSG', room: '1.102' }),
+    [], { neighbours: stubN, registerName: stubName });
+  // ..and the swimming centre next door to it raises nothing.
+  out.venueOk = one(mk({ building: 'TSC', room: '1.102' }),
+    [], { neighbours: stubN, registerName: stubName });
 
   const lite = (x) => ({
     overall: x.s.overall, fields: x.s.fields, ask: x.ask,
-    notes: x.s.notes,
+    notes: x.s.notes, extraCodes: x.s.extraCodes || [],
+    walkCheck: x.r.walkCheck,
     qs: x.q.map(q => ({ field: q.field, trusted: q.trusted, ask: q.ask,
       options: q.options.map(o => o.value), first: q.options[0] ? q.options[0].value : null })),
     defect: x.s.defect, legible: x.s.legible,
@@ -334,11 +377,51 @@ ok(model.disagree.ask, 'the ruler and the caption disagreeing is asked about',
 ok(model.cutOff.ask && model.cutOff.fields.room < 0.2,
   'a field cut by the edge of a crop is all but refused',
   model.cutOff.fields.room.toFixed(2));
-ok(model.walk.ask && /walk/.test((model.walk.notes.time || []).join(' ')),
-  'the campus graph catches five minutes between a nineteen-minute walk',
+ok(/walk/.test((model.walk.notes.time || []).join(' ')),
+  'the campus graph SEES five minutes between a nineteen-minute walk',
   (model.walk.notes.time || []).join(' ') || '(no note)');
+// AND DOES NOT ASK ON IT ALONE, which is the correction this round made and the
+// most useful thing the measurement did. "There is not enough time to walk
+// this" has no candidate answer — the only button is the reading — and with a
+// real graph behind it, it fired on twelve of the forty-nine meetings of the
+// benchmark's own answer key, every one of them correct. It corroborates now.
+ok(!model.walk.ask && Math.abs(model.walk.fields.time - 0.85) < 1e-9,
+  'but it does NOT ask on that alone: a doubt with no candidate answer corroborates',
+  'time = ' + model.walk.fields.time.toFixed(2) + ', line ' + L);
+ok(!model.backToBack.ask,
+  'so two classes printed back to back — what a real timetable looks like — are quiet',
+  'overall ' + model.backToBack.overall.toFixed(2));
 ok(!/walk/.test((model.walkOff.notes.time || []).join(' ')),
   'and that check is silent when the graph is not loaded, rather than guessing');
+
+/* ── the hole this round was for: a REAL code that is the WRONG real code ──── */
+const nq = model.neighbourNearer.qs.find(q => q.field === 'building');
+ok(model.neighbourNearer.ask && nq,
+  'a real code whose one-stroke neighbour fits the rest of the day far better is asked about',
+  'building ' + model.neighbourNearer.fields.building.toFixed(2));
+ok(nq && nq.options.indexOf('MEZ') >= 0 && nq.options.indexOf('NEZ') >= 0,
+  'and BOTH real codes are on the screen as taps — the button that closes the hole',
+  nq ? JSON.stringify(nq.options) : '(no question)');
+ok(nq && nq.trusted && nq.first === 'NEZ',
+  'the READING still leads: nothing is wrong with these four characters',
+  nq ? 'first = ' + nq.first : '');
+ok(!model.neighbourTruth.ask,
+  'and the same day with the TRUE building in it asks nothing at all',
+  'overall ' + model.neighbourTruth.overall.toFixed(2));
+const fq = model.neighbourFixes.qs.find(q => q.field === 'building');
+ok(model.neighbourFixes.ask && fq && !model.neighbourFixes.qs.some(q => q.field === 'time'),
+  'when the neighbour makes an impossible walk possible, the question moves off the CLOCK',
+  'questions: ' + model.neighbourFixes.qs.map(q => q.field).join(',') || '(none)');
+const vq = model.venue.qs.find(q => q.field === 'building');
+ok(model.venue.ask && vq && vq.options.indexOf('TSC') >= 0,
+  'UT calling it a GARAGE is asked about, with the building next door offered',
+  vq ? JSON.stringify(vq.options) : '(no question)');
+ok(!model.venueOk.ask,
+  'and the swimming centre one stroke away from it raises nothing',
+  'overall ' + model.venueOk.overall.toFixed(2));
+ok(model.neighbourNearer.walkCheck.neighbours && model.venue.walkCheck.venue,
+  'review() REPORTS which cross-checks were live rather than leaving it to be assumed',
+  JSON.stringify(model.neighbourNearer.walkCheck));
 
 /* ════════════════════════════════════════════════════════════════════════════
    2b. THE AMBIGUITY IS IN THE APP'S OWN TABLE, and so is the hole
@@ -371,6 +454,12 @@ const lex = await page.evaluate(async (b) => {
     mez: si.codeCandidates('MEZ', codes),
     pal: si.codeCandidates('PAL', codes),
     repairCRE: si.repairCode('CRE', codes),
+    // THE NEW EXPORT, AND WHAT IT IS FOR. codeCandidates('MEZ') is ['MEZ'] —
+    // the code is on the register, so there is nothing to offer and the misread
+    // went through in silence. codeNeighbours() answers the other question.
+    mezNbr: si.codeNeighbours('MEZ', codes),
+    nezNbr: si.codeNeighbours('NEZ', codes),
+    gdcNbr: si.codeNeighbours('GDC', codes),
     silentPairs: CONFUSE_PAIRS.sort(),
   };
 }, BASE);
@@ -383,12 +472,270 @@ ok(lex.repairCRE === null,
 ok(lex.pal.length === 1 && lex.pal[0] === 'PAI',
   '"PAL" has exactly one real neighbour, so that one IS written down, flagged',
   lex.pal.join(''));
-// THE HOLE, ASSERTED RATHER THAN CLAIMED. See docs/img-confidence.md.
+// THE HOLE AS IT STOOD LAST ROUND, still asserted from the data, because the
+// premise has not changed — only what this file does about it.
 ok(lex.mez.length === 1 && lex.mez[0] === 'MEZ',
-  'MEZ is itself a real code, so a NEZ misread as MEZ raises no doubt at all',
-  'this is the failure this file cannot see');
+  'MEZ is itself a real code, so no LEXICON check can doubt a NEZ read as MEZ',
+  'codeCandidates has nothing to offer here — that is the hole');
+ok(lex.mezNbr.length === 1 && lex.mezNbr[0] === 'NEZ' &&
+   lex.nezNbr.length === 1 && lex.nezNbr[0] === 'MEZ',
+  '..and codeNeighbours() is what has something to offer: MEZ <-> NEZ, from the register',
+  'MEZ -> ' + lex.mezNbr.join(',') + ' / NEZ -> ' + lex.nezNbr.join(','));
+ok(lex.gdcNbr.length === 0,
+  'a code with no confusable real neighbour gets no question from it',
+  'GDC -> ' + JSON.stringify(lex.gdcNbr));
 note(lex.silentPairs.length + ' pairs of real codes are one confusable character ' +
-  'apart: ' + lex.silentPairs.slice(0, 6).join(', ') + ' ...');
+  'apart: ' + lex.silentPairs.join(', '));
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2c. THE SAME THING ON THE REAL GRAPH — and exactly how far it reaches
+
+   Section 2b proves the hole exists in the app's own register. This proves the
+   fix reaches into it, on `data/walk_graph.json` itself rather than a stub, AND
+   measures the part of it the fix does NOT reach, pair by pair.
+   ════════════════════════════════════════════════════════════════════════════ */
+head('2c. the confusable-pair check, on the real walk graph');
+const realGraph = await page.evaluate(async ([b, pairs]) => {
+  const M = window.__cfm;
+  const wg = await import(b + '/js/walkgraph.js');
+  const probe = await wg.walkProbe();
+  if (!probe) return { loaded: false };
+  const ctx = await M.prepare();
+  const mk = (over) => Object.assign({
+    course: 'HIS 315K', building: 'MEZ', room: '1.306', day: 'Mon', days: ['Mon'],
+    start: '10:30', end: '11:30',
+    ev: {
+      boxes: {}, conf: { building: 92, room: 92, day: 92, time: 92 },
+      from: { day: 'column', time: 'axis', room: 'read', building: 'lexicon' },
+      flags: { knownCode: true, axisAgrees: true, edge: {}, source: 'screenshot' },
+      candidates: { building: [(over && over.building) || 'MEZ'] },
+    },
+  }, over || {});
+  // The corpus's own schedule s3 puts a real class at MEZ 1.306. This is that
+  // class with ONE STROKE changed, in a day of otherwise South Mall classes.
+  const day = (code) => [
+    mk({ building: 'WEL', room: '2.224', start: '09:00', end: '10:00', course: 'PHY 303' }),
+    mk({ building: code, room: '1.306', start: '10:30', end: '11:30' }),
+    mk({ building: 'GDC', room: '2.216', start: '12:00', end: '13:00', course: 'C S 429' }),
+  ];
+  const run = (code) => {
+    const r = M.review({ classes: day(code), unsure: [] }, ctx);
+    const c = r.classes[1];
+    const q = r.questions.filter(x => x.classKey === c.__key);
+    return {
+      ask: c.ask, building: c.score.fields.building, overall: c.score.overall,
+      why: (c.score.notes.building || []).join('; '),
+      options: q.map(x => ({ field: x.field, first: x.options[0] && x.options[0].value,
+        values: x.options.map(o => o.value) })),
+      walkCheck: r.walkCheck,
+    };
+  };
+  // How far apart is every confusable pair, and can the graph even see both?
+  const sep = [];
+  for (const p of pairs) {
+    const [x, y] = p.split('/');
+    const r = (probe.has(x) && probe.has(y)) ? probe.route(x, y) : null;
+    sep.push({ pair: p, both: probe.has(x) && probe.has(y),
+      lo: r ? r.lo : null, metres: r ? r.metres : null });
+  }
+  // And the OTHER witness, over the same thirteen pairs: UT's own printed name.
+  // Computed from data/ut_buildings.json through the shipping regex, so the
+  // coverage claim in docs/img-confidence.md is a measurement and not a list
+  // somebody typed.
+  const si2 = await import(b + '/js/schedimg.js');
+  const reg = await si2.buildingRegister();
+  const venue = [];
+  for (const p of pairs) {
+    const [x, y] = p.split('/');
+    const bad = (c) => {
+      const n = reg.get(c);
+      return n ? M.CONF.venue.unlikely.test(String(n).toUpperCase()) : null;
+    };
+    venue.push({ pair: p, x: bad(x), y: bad(y), xn: reg.get(x), yn: reg.get(y) });
+  }
+  return {
+    loaded: true, asOf: probe.asOf, codes: probe.codes.length,
+    misread: run('NEZ'), truth: run('MEZ'), sep, venue,
+    // The probe against a few known pairs, for the record.
+    mezWel: probe.route('MEZ', 'WEL'), nezWel: probe.route('NEZ', 'WEL'),
+  };
+}, [BASE, lex.silentPairs]);
+
+ok(realGraph.loaded, 'js/walkgraph.js loads data/walk_graph.json in the real page',
+  realGraph.loaded ? realGraph.codes + ' routable codes, baked ' + realGraph.asOf : 'DID NOT LOAD');
+if (realGraph.loaded) {
+  ok(realGraph.misread.walkCheck.active && realGraph.misread.walkCheck.neighbours,
+    'and review() has the walking cross-check LIVE with no options passed to it',
+    JSON.stringify(realGraph.misread.walkCheck));
+  note('MEZ->WEL is ' + realGraph.mezWel.lo + ' min / ' + realGraph.mezWel.metres + ' m;  ' +
+    'NEZ->WEL is ' + realGraph.nezWel.lo + ' min / ' + realGraph.nezWel.metres + ' m');
+  // THE FAILURE THE PREVIOUS ROUND OF THIS FILE COULD NOT SEE.
+  ok(realGraph.misread.ask,
+    'MEZ 1.306 misread as NEZ is now ASKED ABOUT — the hole 2b names is closed here',
+    'building ' + realGraph.misread.building.toFixed(2) + ' < ' + model.CONF.askBelow +
+    '  "' + realGraph.misread.why + '"');
+  const rbq = realGraph.misread.options.find(o => o.field === 'building');
+  ok(rbq && rbq.values.indexOf('MEZ') >= 0 && rbq.first === 'NEZ',
+    'with MEZ as a tap and the reading still leading — it asks, it does not rewrite',
+    rbq ? JSON.stringify(rbq.values) : '(no building question)');
+  ok(!realGraph.truth.ask,
+    'and the same day with the TRUE MEZ in it is not asked about at all',
+    'overall ' + realGraph.truth.overall.toFixed(2));
+  // AND THE HONEST LIMIT, MEASURED PAIR BY PAIR RATHER THAN CLAIMED.
+  const both = realGraph.sep.filter(s => s.both);
+  const far = both.filter(s => s.lo != null && s.lo * 2 >= 5);
+  note('of the ' + realGraph.sep.length + ' confusable pairs, ' + both.length +
+    ' have BOTH members in the walk graph:');
+  for (const s of realGraph.sep) {
+    note('   ' + s.pair.padEnd(9) + (s.both
+      ? (String(s.lo) + ' min / ' + s.metres + ' m apart' +
+        (s.lo * 2 >= 5 ? '   <- the graph can separate these' : '   (too close to separate)'))
+      : 'not both in the graph — the graph cannot see this pair'));
+  }
+  ok(far.length >= 2,
+    'the graph can separate the pairs it is far enough apart to separate, and says which',
+    far.map(s => s.pair).join(', ') + ' — the other ' + (realGraph.sep.length - far.length) +
+    ' are the residual hole');
+
+  // THE SECOND WITNESS, over the same thirteen pairs, computed from the
+  // register rather than listed by hand.
+  const byName = realGraph.venue.filter(v => (v.x && !v.y) || (v.y && !v.x));
+  note('and UT\'s own printed names separate these:');
+  for (const v of byName) {
+    note('   ' + v.pair.padEnd(9) + (v.x ? v.xn : v.yn) + '  vs  ' + (v.x ? v.yn : v.xn));
+  }
+  const covered = new Set(far.map(s => s.pair).concat(byName.map(v => v.pair)));
+  ok(covered.size >= 4,
+    'between the graph and the register, this many of the 13 pairs raise a question',
+    covered.size + ' of ' + realGraph.sep.length + ': ' + [...covered].sort().join(', '));
+  note('THE RESIDUAL HOLE IS THE OTHER ' + (realGraph.sep.length - covered.size) + ': ' +
+    realGraph.sep.map(s => s.pair).filter(p => !covered.has(p)).join(', '));
+  // PAI/PAT NAMED ON ITS OWN, because it is the one that matters. Two real
+  // teaching buildings 250 m apart, and the corpus's own s3 has a class in
+  // PAI 3.02. Neither witness can see it.
+  ok(!covered.has('PAI/PAT'),
+    'PAI/PAT is honestly reported as STILL INVISIBLE rather than quietly counted as covered',
+    'two real teaching buildings, 250 m apart — a room register would settle it and this repo has none');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2d. THE PROBE AGREES WITH THE APP'S OWN ROUTER
+
+   `js/walkgraph.js` is a SECOND reader of `data/walk_graph.json`. A second
+   reader that disagrees with the first is worse than no reader: the confirm
+   screen would be telling a student a walk is impossible while the app's own
+   route card, on the same two buildings, prints a time that fits.
+
+   So this drives the real `window.wayfindRoute` — the async, UI-driving one
+   this probe exists to avoid — on real pairs and compares. It is checked, not
+   claimed. The probe is expected to come in at or BELOW the router (it drops
+   the router's door-role handicap, which can only make a route shorter), and
+   the gap is printed rather than hidden inside a tolerance.
+   ════════════════════════════════════════════════════════════════════════════ */
+head('2d. the probe vs the app\'s own router, on the same graph');
+const cross = await page.evaluate(async ([b, pairs]) => {
+  if (typeof window.wayfindRoute !== 'function') return { ran: false };
+  const wg = await import(b + '/js/walkgraph.js');
+  const probe = await wg.walkProbe();
+  const rows = [];
+  for (const p of pairs) {
+    const mine = probe.route(p[0], p[1]);
+    let theirs = null;
+    try { theirs = await window.wayfindRoute(p[0], p[1], { fit: false }); } catch (e) {}
+    rows.push({
+      pair: p.join(' -> '),
+      mineLo: mine ? mine.lo : null, mineM: mine ? mine.metres : null,
+      theirLo: theirs && theirs.ok ? theirs.lo : null,
+      theirM: theirs && theirs.ok ? Math.round(theirs.distM) : null,
+    });
+  }
+  return { ran: true, rows };
+}, [BASE, [['MEZ', 'WEL'], ['NEZ', 'WEL'], ['GDC', 'RLP'], ['PAI', 'BUR'],
+  ['JES', 'CMA'], ['MEZ', 'NEZ'], ['WEL', 'GDC'], ['TSC', 'TSG']]]);
+if (!cross.ran) {
+  note('window.wayfindRoute is not on this page — cross-check skipped, not failed');
+} else {
+  let compared = 0, over = 0, worst = 0;
+  for (const r of cross.rows) {
+    if (r.mineLo == null || r.theirLo == null) { note('   ' + r.pair + '  (one end not routable both ways)'); continue; }
+    compared++;
+    const d = r.mineLo - r.theirLo;
+    if (d > 0) over++;
+    worst = Math.max(worst, Math.abs(d));
+    note('   ' + r.pair.padEnd(14) + 'probe ' + String(r.mineLo).padStart(2) + ' min / ' +
+      String(r.mineM).padStart(4) + ' m     router ' + String(r.theirLo).padStart(2) +
+      ' min / ' + String(r.theirM).padStart(4) + ' m     diff ' + (d >= 0 ? '+' : '') + d);
+  }
+  ok(compared >= 5, 'the two were compared on real pairs, not asserted equal',
+    compared + ' pairs');
+  ok(over === 0,
+    'the probe never says a walk is LONGER than the app\'s own route card does',
+    over + ' pairs over, worst gap ' + worst + ' min');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2e. THE ANSWER KEY IS A POPULATION OF PERFECT READINGS. ASK IT NOTHING.
+
+   THIS IS THE SECTION THAT CAUGHT A REAL DEFECT, so it is worth saying what it
+   is for. `confirm-line.mjs` measures the cost of the line by running OCR over
+   fifteen images and takes twenty minutes. This runs the benchmark's own
+   `truth.json` — 49 meetings that are correct BY DEFINITION — straight through
+   the model with every cross-check live, in about a second. Every question it
+   asks is a FALSE question, with no OCR anywhere to argue about.
+
+   The first time it ran, with the campus graph switched on for the first time,
+   it asked about TWELVE of the forty-nine, all the same shape: a class printed
+   back-to-back with the next one in another building. A printed timetable is
+   written in blocks and that is what a real one looks like — the walking check
+   was calling four real schedules impossible. `CONF.time.tooTight` moved from
+   0.55 to 0.85 because of this number and nothing else.
+   ════════════════════════════════════════════════════════════════════════════ */
+head('2e. the benchmark answer key, straight through the model: expect no questions');
+const key = JSON.parse(fs.readFileSync(path.join(CORPUS, 'truth.json'), 'utf8'));
+const bySched = new Map();
+for (const img of key.images) {
+  const k = img.schedule || img.image;
+  if (!bySched.has(k)) bySched.set(k, img.classes);
+}
+const truthRun = await page.evaluate(async (sets) => {
+  const M = window.__cfm;
+  const ctx = await M.prepare();
+  const out = [];
+  for (const [sid, cls] of sets) {
+    const classes = cls.map(c => ({
+      course: c.course, building: c.building, room: c.room, day: c.day, days: [c.day],
+      start: c.start, end: c.end,
+      ev: {
+        boxes: {}, conf: { building: 92, room: 92, day: 92, time: 92 },
+        from: { day: 'column', time: 'axis', room: 'read', building: 'lexicon' },
+        flags: { knownCode: true, axisAgrees: true, edge: {}, source: 'screenshot' },
+        candidates: { building: [c.building] },
+      },
+    }));
+    const rev = M.review({ classes, unsure: [] }, ctx);
+    out.push({
+      sid, n: classes.length,
+      asked: rev.classes.filter(c => c.ask).map(c => ({
+        at: c.day + ' ' + c.start + ' ' + c.building + ' ' + c.room,
+        why: ['building', 'room', 'day', 'time']
+          .map(f => (c.score.notes[f] || []).join('; ')).filter(Boolean).join(' / '),
+      })),
+      live: rev.walkCheck,
+    });
+  }
+  return out;
+}, [...bySched.entries()].map(([k, v]) => [k, v]));
+const keyTotal = truthRun.reduce((a, r) => a + r.n, 0);
+const keyAsked = truthRun.reduce((a, r) => a + r.asked.length, 0);
+note('cross-checks live for this run: ' + JSON.stringify(truthRun[0] && truthRun[0].live));
+for (const r of truthRun) {
+  note('   ' + r.sid + '  ' + r.n + ' meetings, ' + r.asked.length + ' asked');
+  for (const a of r.asked) note('        ' + a.at + '   ' + a.why);
+}
+ok(keyAsked === 0,
+  'not one of the answer key\'s own meetings raises a question',
+  keyAsked + ' of ' + keyTotal + ' asked' +
+  (keyAsked ? '  <- every one is a tap a student pays for nothing' : ''));
 
 /* ════════════════════════════════════════════════════════════════════════════
    3. THE LINE HOLDS BOTH WAYS
@@ -502,7 +849,7 @@ head('5. one thumb, 390x844, and the crop is really the student picture');
 // pixels — and the seeded reading is that row with its dot dropped, which is
 // exactly the defect (a lost period) the bar's one near-miss was. Everything on
 // the screen therefore refers to one real line of one real picture.
-await page.evaluate(() => {
+await page.evaluate(async () => {
   const out = window.__out;
   const donor = out.classes.find(c => c.building === 'GDC' && c.ev && c.ev.boxes.room)
     || out.classes.find(c => c.ev && c.ev.boxes.room);
@@ -526,8 +873,14 @@ await page.evaluate(() => {
   const seed2 = JSON.parse(JSON.stringify(seed));
   seed2.day = 'Thu'; seed2.days = ['Thu']; seed2.ev = seed.ev;
   out.classes.push(seed, seed2);
-  window.__rev = window.__cf.review(out, { buildingName: (c) => ({
-    GDC: 'Gates Dell Complex' }[c] || null) });
+  // prepare(), NOT a bare review(): the screen a student sees has the walking
+  // graph and the confusable-neighbour check behind it, so the frames this
+  // section commits have to be of that screen and not of a reduced one.
+  const ctx = await window.__cf.prepare({
+    buildingName: (c) => ({ GDC: 'Gates Dell Complex' }[c] || null),
+  });
+  window.__ctx = ctx;
+  window.__rev = window.__cf.review(out, ctx);
   window.__host = document.createElement('div');
   document.body.appendChild(window.__host);
   window.__ui = window.__cf.mount(window.__host, window.__rev, {
@@ -616,6 +969,106 @@ if (cropBox) {
 }
 ok(spread > 12, 'and the crop is really pixels of the picture, not an empty canvas',
   'luma spread ' + spread.toFixed(1) + ' (a blank canvas is 0)');
+
+/* ── 5b. THE PICTURE OF THE THING THIS ROUND WAS FOR ────────────────────────
+
+   CLAUDE.md rule 3: lead with the picture when the change is visual. But the
+   FIRST version of this section was a lie you could see, and it is worth
+   writing down because nothing but looking at the frame would have caught it.
+   It seeded a synthetic NEZ class onto image 01's evidence — and image 01 has
+   no MEZ on it, so the panel asked "Is this building NEZ?" over a crop of the
+   student's picture with `RLP 0.106` ringed in the accent colour. The app was
+   pointing at the wrong line while asking about a different one, which is the
+   exact failure the crop exists to prevent.
+
+   So this uses a picture that genuinely contains the class. Corpus image 03 is
+   schedule s3 on a phone card stack and it really carries `MEZ 1.306`
+   (HIS 315K) — the same real class docs/img-confidence.md has been citing
+   since round one. It is read for real, and then ONE STROKE of the answer is
+   changed to make the misread this round exists to catch. The crop beside the
+   question is that row's own pixels, so a reader can see the picture say MEZ
+   while the reading says NEZ. */
+head('5b. the question the confusable-pair check asks, over the row it is about');
+const img03 = path.join(CORPUS, '03-ut-cards-phone-clean.jpg');
+const url03 = 'data:image/jpeg;base64,' + fs.readFileSync(img03).toString('base64');
+const nezShown = await page.evaluate(async ([u]) => {
+  const si = window.__si || await import(new URL('./js/schedimg.js', location.href).href);
+  const out = await si.extract(u, { keepSheet: true });
+  // The REAL MEZ reading off the REAL picture, with its real box.
+  const mezRows = out.classes.filter(c => c.building === 'MEZ');
+  const mez = mezRows[0];
+  if (!mez) return { found: false, saw: out.classes.map(c => c.building) };
+  const before = mez.building + ' ' + mez.room;
+  // ONE STROKE, on EVERY meeting of that reading. A Mon/Wed course is two rows
+  // off one line of the picture and js/schedimg.js hands both the same evidence
+  // object; changing one of them would be a misread no engine could make.
+  // Everything else — the box, the confidences, the days, the hours, the
+  // picture behind it — is untouched.
+  for (const c of mezRows) {
+    c.building = 'NEZ';
+    if (c.ev && c.ev.candidates) c.ev.candidates.building = ['NEZ'];
+    if (c.ev && c.ev.flags) c.ev.flags.rawCode = 'NEZ';
+  }
+  const rev = window.__cf.review(out, window.__ctx);
+  // TAKE THE FIRST PANEL OUT OF THE DOM WITHOUT CALLING destroy(). destroy()
+  // empties the schedule photograph's canvas — that is its job, and section 7
+  // is the assertion that it does.
+  const old = document.getElementById('wf-cfm');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+  window.__host2 = document.createElement('div');
+  document.body.appendChild(window.__host2);
+  window.__ui2 = window.__cf.mount(window.__host2, rev, {});
+  const i = rev.questions.findIndex(q => q.field === 'building' && q.current === 'NEZ');
+  if (i >= 0) { window.__ui2.state.step = i; window.__ui2.render(); }
+  const r = document.getElementById('wf-cfm');
+  const cv = r.querySelector('.cfm-crop canvas');
+  const b = cv ? cv.getBoundingClientRect() : null;
+  return {
+    found: true, before, day: mezRows.map(c => c.day).join('+'),
+    hours: mez.start + '-' + mez.end,
+    classes: out.classes.length, asked: rev.counts.asked,
+    // One reading, both meetings: the question is asked once and the answer
+    // lands on both, which section 6 asserts in general.
+    meetings: mezRows.length,
+    ask: (r.querySelector('.cfm-ask') || {}).textContent || '',
+    why: (r.querySelector('.cfm-why') || {}).textContent || '',
+    opts: [...r.querySelectorAll('.cfm-opt-v')].map(x => x.textContent),
+    crop: b ? { x: b.x, y: b.y, width: b.width, height: b.height } : null,
+  };
+}, [url03]);
+ok(nezShown.found,
+  'image 03 really carries the MEZ class the doc has been citing since round one',
+  nezShown.found ? nezShown.before + ', ' + nezShown.day + ' ' + nezShown.hours +
+    ' (' + nezShown.meetings + ' meetings), among ' + nezShown.classes +
+    ' classes read off that picture'
+    : 'buildings read: ' + JSON.stringify(nezShown.saw));
+if (nezShown.found) {
+  note('on screen: "' + nezShown.ask + '"  ->  ' + nezShown.opts.join(' / '));
+  note('and under it: "' + nezShown.why + '"');
+  ok(/NEZ/.test(nezShown.ask) && nezShown.opts.indexOf('MEZ') >= 0,
+    'one stroke changed on a real reading, and the phone asks about it with MEZ as a tap',
+    JSON.stringify(nezShown.opts));
+  await page.screenshot({ path: path.join(SHOTS, '_throwaway.png') });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(SHOTS, 'confirm-neighbour-phone.jpg'),
+    type: 'jpeg', quality: 80 });
+  // AND THE CROP IS THAT ROW'S OWN PIXELS. Asserted on the frame, because
+  // "a canvas is present" is exactly what was true of the frame that was wrong.
+  let nezSpread = 0;
+  if (nezShown.crop) {
+    const buf = await page.screenshot({ clip: nezShown.crop });
+    nezSpread = lumaSpread(decodePNG(buf));
+  }
+  ok(nezSpread > 12,
+    'and the crop beside it is real pixels of the row the question is about',
+    'luma spread ' + nezSpread.toFixed(1));
+}
+// Same reason as above: unmount, never destroy. Section 7 owns destroy().
+await page.evaluate(() => {
+  const r = document.getElementById('wf-cfm');
+  if (r && r.parentNode) r.parentNode.removeChild(r);
+  if (window.__host) document.body.appendChild(window.__ui.root);
+});
 
 /* ════════════════════════════════════════════════════════════════════════════
    6. THE ANSWERS GO WHERE THEY WERE PROMISED
@@ -787,6 +1240,70 @@ ok(gone.before > 1 && gone.after === null,
   'closing the screen empties the canvas holding the schedule photograph',
   gone.before + ' px wide -> ' + gone.after);
 ok(!gone.inDom, 'and takes the panel out of the document');
+
+/* ════════════════════════════════════════════════════════════════════════════
+   8. THE SEAM IS ONE CALL, AND IT RUNS
+
+   The honest weakness of round one was that none of this was reachable from the
+   app: `impFromFile` in js/wayfind.js knows nothing about any of it, and that
+   file belongs to another lane. That is STILL true — this branch has zero lines
+   of diff against it. What changed is the size of what the other lane has to
+   write, and an integration point nobody has ever executed is a promise rather
+   than a seam. So this executes it: one call, a real corpus image, the real
+   page, and the screen on screen at the end of it.
+   ════════════════════════════════════════════════════════════════════════════ */
+head('8. confirmFromFile(file, host) — the whole integration, run once');
+const img13 = path.join(CORPUS, '13-ut-table-crop-bottom.jpg');
+const url13 = 'data:image/jpeg;base64,' + fs.readFileSync(img13).toString('base64');
+const seam = await page.evaluate(async ([u]) => {
+  // A File, exactly as an <input type=file> hands one over — not a data URL,
+  // because "it works on a string" is not the thing being claimed.
+  const blob = await (await fetch(u)).blob();
+  const file = new File([blob], 'schedule.jpg', { type: 'image/jpeg' });
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const t0 = performance.now();
+  let resolved = null;
+  const p = window.__cf.confirmFromFile(file, host).then(r => { resolved = r; return r; });
+  // Give it the OCR, then look at what is actually on the screen.
+  await new Promise(r => setTimeout(r, 200));
+  const waitFor = async () => {
+    for (let i = 0; i < 600; i++) {
+      if (document.getElementById('wf-cfm')) return true;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return false;
+  };
+  const up = await waitFor();
+  const r = document.getElementById('wf-cfm');
+  const shot = {
+    mounted: up, ms: Math.round(performance.now() - t0),
+    title: r ? (r.querySelector('.cfm-title') || {}).textContent : null,
+    settledEarly: resolved !== null,
+  };
+  // Close it the way a student would, and see what the promise gives back.
+  const x = r && r.querySelector('.cfm-x, .cfm-go');
+  if (x) x.click();
+  const out = await p;
+  return Object.assign(shot, {
+    resolvedTo: out && Array.isArray(out.classes) ? out.classes.length : null,
+    stillInDom: !!document.getElementById('wf-cfm'),
+  });
+}, [url13]);
+ok(seam.mounted, 'one call took a File and put the confirm screen on the real page',
+  seam.mounted ? 'mounted in ' + seam.ms + ' ms, header reads "' + seam.title + '"'
+    : 'never mounted');
+ok(!seam.settledEarly,
+  'and did not resolve before the student had touched it',
+  'the promise waits for the screen, which is the whole point of it');
+ok(seam.resolvedTo !== null && !seam.stillInDom,
+  'closing it resolves the same call and takes the panel away',
+  'resolved to ' + seam.resolvedTo + ' classes, panel gone');
+// ZERO IS THE RIGHT ANSWER HERE AND NOT A FAILURE. The close cross is the
+// student walking away, and walking away gives back nothing rather than a
+// half-confirmed schedule. "Use these" is the other exit and section 6 is where
+// what it returns is asserted.
+note('closed with the cross, so 0 classes is the contract: walking away saves nothing');
 
 /* ════════════════════════════════════════════════════════════════════════════ */
 head('console');
