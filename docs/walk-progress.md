@@ -3082,6 +3082,258 @@ under `scripts/verify/_critic_ssw.mjs` and deleted before finishing,
 `npm install`, `scripts/verify/node_modules` is gitignored and not committed,
 server on 8952 killed by PID and the port re-confirmed free by `netstat`.
 
+## 2026-08-24 — the class schedule stays on the phone: storage, one-tap delete, and the proof (`acer/si-privacy`)
+
+Built the storage half of the class-schedule import Simeon asked for: where a
+student's schedule lives, how it gets deleted, and the one sentence that tells
+them the truth about both. The three importers themselves are other lanes'; this
+lane owns what happens to the data once they hand it over.
+
+The sentence, in the footer of the walk panel: **"Your schedule stays on this
+device — saved in this browser only, never uploaded anywhere, and Delete wipes
+it for good."** Under it, a line saying what is actually stored ("4 classes from
+a Google Calendar export, on this device only") and a Delete button that only
+exists when there is something to delete. One tap, no "are you sure" — the brief
+asked for one tap, and an undo would mean keeping the data around after telling
+someone it was gone. The wording lives in `index.html` as a `<template>` so it is
+a one-line edit, and the audit fails on purpose if that copy and the JS defaults
+ever say different things.
+
+The interesting part is that all three clauses of that sentence are now things a
+machine checks rather than things a doc claims. A real Google Calendar `.ics` is
+parsed and imported, every request the page and its workers make is recorded
+across the import window, and every one of them is scanned for the schedule's own
+strings: zero carried any. That zero would be worth nothing from a blind
+instrument, so the same run disarms the in-page guard, fires one real POST with
+the schedule as its body, and proves the capture sees it and the scanner flags
+it — then re-arms and proves the identical request is refused before it reaches
+the wire. Delete is a real mouse click on the real button, followed by a reload,
+followed by reading storage out of the fresh document: nothing left but the
+graphics preference the app already had. 34 assertions, five runs, all green, and
+`walkmeter.mjs` still passes on this branch including its live click-the-checkbox
+gate, so the shipped walk feature and another lane's stairs work are intact.
+
+Two things worth carrying forward. The stored format already reserves the three
+fields a photo-of-a-schedule import or a Registration-Plus API would otherwise
+force a rewrite for — a list of sources rather than one, per-class confidence and
+provenance, and a version chain — and Delete already sweeps a whole key prefix
+plus the IndexedDB database an OCR pass will need, so a source added next month
+is covered by a delete written today. And the guard that enforces "nothing
+leaves" sits on MapLibre's per-tile worker path, so it was measured rather than
+assumed: the first version cost 42.6 µs a message, the fixed one costs 3.8 µs,
+which is about 19 ms across an entire heavy session and only when a schedule is
+stored at all. Two earlier attempts at that measurement were wrong in instructive
+ways and both are written down in `docs/si-privacy.md` §8.
+
+Write-up and the audit script verbatim: `docs/si-privacy.md`. Frames:
+`shots/si/privacy/`. `WAYFIND.on` untouched; the whole section is inside the
+feature's existing off-switch and the audit proves the page is unchanged without
+`?walk=1`.
+
+## 2026-08-24 — the storage lane, round 4 (`acer/si-privacy`): a retraction, and nine doors instead of one
+
+A reviewer read round 3 of `docs/si-privacy.md` and found the worst kind of
+mistake in it: the doc's central factual claim about the SSW building was
+sourced, four times, to a file that has never existed on any branch — and the
+claim itself, that SSW was demolished in 2024 and the school moved to Walter
+Webb Hall, was wrong as well as unsourced. That is retracted. All eleven
+unroutable codes were re-measured on this branch from the repo's own files:
+SSW's UT-surveyed door sits 0.4 m from the edge of a building footprint this app
+already draws, and 37 m from mapped pavement, while the ten Pickle codes are
+nine to ten kilometres from the nearest walk-graph node with nothing within
+200 m of them. A demolished building does not have that. The numbers land
+exactly on the ones `acer/si-gaps` measured independently, and its one-row fix
+is what takes the count from eleven to ten.
+
+The fix that matters is not "be more careful" — nothing was checking. So the
+doc now has a gate in front of it that resolves every path it cites, either
+here, or in a sibling branch's tree if the doc names the branch, or declared
+proposed if it is a file this lane may not write. It also asserts the privacy
+sentence the doc quotes is byte-identical to the one `index.html` serves and
+the one `js/wayfind.js` falls back to. It failed on its first run and named the
+phantom, which is the only evidence worth having that a gate works.
+
+The other half of the round: the negative control went from one channel to
+nine. The guard advertises that it closes seven doors and rounds 1–3 had only
+ever shown it closing `fetch`. Every channel is now fired twice — once disarmed
+to prove the channel really carries and the capture really sees it, once armed
+to prove the guard is what stopped it — and each asserts the two outcomes
+*differ*, because a case that fails identically in both states proves nothing.
+Building it found a real blind spot in the instrument rather than in the guard:
+the form test was submitting into `target="_blank"`, so the request belonged to
+a popup the page-scoped capture could never see, and the disarmed control was
+reporting a clean zero that meant the test was blind. It submits into a hidden
+same-page iframe now. `form.submit()` and `form.requestSubmit()` are also two
+genuinely different doors — only the second fires the `submit` event the guard's
+capture listener watches — so both are tested. 88 assertions, exit 0.
+
+And because a lane's own pass has already been wrong about this once in this
+project, the branch was merged with `si-gaps`, `si-ui` and `si-parser` and
+everything was run again on the merged tree: audit ALL PASS, `walkmeter` green
+with the stairs UI gate still working and the unroutable count down to ten, and
+a screenshot showing this lane's sentence sitting correctly under `si-ui`'s
+import row with no overlap. Two notes for whoever integrates: all four lanes
+append their new section at the same seam above `function boot()`, and git
+aligns coincidentally identical trailing braces between the unrelated bodies, so
+a naive "keep both sides" silently drops a closing brace and leaves a file that
+still reads plausibly — `node --check js/wayfind.js` catches it in a second and
+reading the diff does not. `si-dayview` collides the same way and was
+deliberately left unresolved rather than guessed at. There is also one piece of
+copy for Simeon to choose on, written up in §9: the promise is currently made
+twice on that screen, once by `si-ui`'s row subtitle and once by this lane's
+sentence, and it would read better made once.
+
+Branch `acer/si-privacy`, not merged, no PR. Server on 8915 killed and the port
+re-confirmed free; one browser; scratch frames stayed in the scratchpad, and the
+six frames in `shots/si/privacy/` are all cited by the doc.
+
+## 2026-08-24 — critic round 4 on the privacy piece (`acer/si-privacy`), oursWins=true, one real hole found in the safety net itself
+
+Fresh context, port 8955, own scripts (not `docs/si-privacy.md`'s own
+`schedule-privacy.mjs`) — own canary strings, own route, own delete-then-reload
+check. `harness-drift.mjs` PASS first; `npm install` fresh (empty
+`node_modules`).
+
+**Round 3's finding is really fixed.** It flagged a citation to
+`docs/schedule-gaps.md`, a file that never existed, backing a claim that SSW was
+demolished. This round retracted the claim, added a gate (`§5.0`) that resolves
+every path the doc cites before anything else runs, and independently re-derived
+the correction: SSW's UT-surveyed door really is 0.4 m off a footprint this app
+draws and 37 m from the walk graph — a real main-campus building missing a row
+in our own register, not a demolition. Confirmed `docs/si-gaps.md` really exists
+on `origin/acer/si-gaps` (fetched it myself) and really does fix SSW the way
+this doc says it does.
+
+**THE BAR, both halves, re-driven for real and independently measured.**
+Imported a schedule carrying my own canary strings (a class title, an
+instructor, a room — none of them borrowed from the builder's fixtures), routed
+GDC→PAR to generate real traffic, and scanned all captured requests — page-level
+via `page.on('request')` and worker-level via an injected `self.fetch`/`XHR`
+recorder, because `scripts/verify/README.md` documents a page-scoped capture
+missing MapLibre's own worker fetches. Zero of 25 import-window requests (153
+total) carried any canary string. Proved the capture instrument itself isn't
+blind by disarming the guard, firing one real probe fetch with the canary, and
+confirming the capture DID catch it — then re-arming and confirming the guard
+refused it and nothing reached the wire. Delete: a real click on `#wf-priv-del`
+on a sheet the click reopened itself, then a hard reload to a fresh document —
+no `austin3d.schedule.*` key anywhere, `store.has()` false, no reserved
+IndexedDB database, panel back to "No schedule saved on this device yet."
+Screenshots looked at with the Read tool at every stage, not trusted from the
+exit code: the panel names no class, ever, only a count and a source
+(`shots/si/privacy/r4-critic-panel-saved.png`, `-panel-deleted.png`). With
+`?walk=1` absent, `window.fetch` and `XMLHttpRequest.prototype.open` are still
+the native functions and nothing of the panel exists — confirmed separately.
+Also reran `walkmeter.mjs --baseline` against this branch: self-check drift
+0.00 m on every pair, the live "Avoid stairs" UI gate still passes with a real
+click, 56/56 buildings step-free-reachable, stranded-before/after both none —
+this branch has not broken the door or stairs lanes' work.
+
+**The one real hole, found by going past the builder's own negative control
+rather than repeating it.** The guard's `bodyToText()` returns `undefined` for
+a `Blob` or `ReadableStream` request body — documented in the code as "fails
+open, counted, not blocked." Neither this round's negative control nor mine
+originally tested that path; both only fired string bodies. So I built a
+separate probe: `fetch(url, { body: new Blob([canary]) })` while the guard was
+installed and armed, aimed at a bare TCP listener on another port so nothing
+about HTTP semantics or CORS could hide the answer. The guard did not block it
+— `blocked` stayed 0, only `unreadableBodies` ticked up — and the raw bytes the
+listener received contained the canary string verbatim. This is a real,
+reproducible channel past the guard, not a hypothetical: any future code in
+this app (or a library it pulls in) that ever posts a `Blob`- or
+stream-bodied request while a schedule is stored gets through unblocked. It
+also means the audit's own capture has the identical blind spot as its subject:
+Playwright's `request.postData()` returns nothing for a Blob body either, so if
+this ever leaks for real, `docs/si-privacy.md`'s own script would report a
+clean "zero requests carried schedule content" while being wrong — the same
+shape of bug this whole round's citation gate exists to catch, just in the
+capture instrument instead of the doc. Nothing in this branch's OWN code
+constructs a Blob-bodied request, so nothing ships broken today — normal use of
+the feature, including everything the brief asks to be driven, is clean. But
+"the seatbelt is not the safety case" undersells it: the seatbelt has a
+buckle that doesn't close over one input shape, and the crash-test only ever
+used the other shape.
+
+**oursWins = true.** Both halves of THE BAR hold under a harder, independent
+test than the one the doc itself ran, the round-3 citation defect is genuinely
+fixed rather than hidden, and this branch does not regress the stairs or door
+lanes.
+
+**The single biggest remaining gap, concretely:** in `js/wayfind.js`'s egress
+guard (§12), make an **unreadable body fail CLOSED, not open, whenever
+`schedWatch.length` is non-zero** — a `Blob`/`ReadableStream` body on `fetch`,
+`XMLHttpRequest.send`, or `sendBeacon` while a schedule is stored should be
+refused the same way a string match is refused (nothing in this app has a
+legitimate reason to POST an opaque binary body while a schedule is on the
+device; the tile/basemap traffic the guard has to stay fast for is all GET).
+Separately, `docs/si-privacy.md`'s own capture needs a body-reading path that
+doesn't rely on Playwright's `postData()` — a `page.route()` interceptor that
+reads `request.postDataBuffer()` or the raw request body would actually see a
+Blob payload — or its "zero requests carried schedule content" claim is only
+proven for string-shaped leaks, which is exactly the gap this round's fix to
+the guard should also close.
+
+Server on 8955 killed by PID, port re-confirmed free by `netstat`. No file the
+builder owns (`js/wayfind.js`, `docs/si-privacy.md`, `index.html`) was edited —
+only `docs/walk-progress.md` and two cited frames in `shots/si/privacy/`
+(`r4-critic-panel-saved.png`, `r4-critic-panel-deleted.png`) were added. Four
+scratch scripts written into `scripts/verify` during this pass were deleted
+before finishing; nothing else was left in the repo.
+
+## 2026-08-24 — round 5 on the privacy piece (`acer/si-privacy`): the Blob hole is shut, and a socket says so
+
+Round 4's critic found something real: the thing that stops a stored schedule
+leaving the browser could read a normal request body, but not a `Blob` or a
+stream. It counted those and let them through — so it fired a `Blob` carrying a
+schedule at a bare socket, with the guard switched on, and watched the schedule
+land. A seatbelt with a buckle that doesn't close over one shape of passenger.
+
+That is fixed. While a schedule is on the device, anything the guard can't read
+is now refused instead of waved past, and the same rule covers a `Blob` handed
+to a background worker. Both are named switches at the top of the section, so
+either can be turned back off in one line if some later feature genuinely needs
+to upload a file.
+
+I didn't take my own word for it. The test stands up a **bare TCP listener** and
+reads the literal bytes that arrive, because the round-4 finding was partly a
+claim about what the browser-automation tool can see, and a socket has no
+opinion about its own input. With the guard off, a schedule sent as a `Blob`
+turns up in the socket's buffer at `fetch`, at `XMLHttpRequest` and at
+`sendBeacon` — so the channel really carries and the listener really sees. With
+the guard on, all four doors refuse and **nothing arrives at all**. A
+`ReadableStream` body is refused the same way. A plain page request still gets
+its 200, which is the whole app.
+
+**One correction back to the critic.** It also said this audit's own capture was
+blind to `Blob` bodies — that the tool reports nothing for one, so a clean
+result could be a wrong result. Measured on this machine, that isn't true:
+playwright-core 1.62.0 builds the string capture out of the byte capture, so the
+two can't disagree about whether a body is there, and the run shows both reading
+the canary. The critic reasoned where it could have measured. The socket stays
+anyway, since "what the tool can see" is a version-dependent variable.
+
+Cost: nothing. With a schedule seeded *before* the app boots — so the guard is
+armed for the whole cold load rather than switched on afterwards, which is where
+round 4 measured — a cold load of the city runs 2,086 to 2,679 worker messages
+through the guard across four runs and blocks zero of them every time. Every
+request this app makes on that path asks for a file and sends no body.
+
+Also ran the other lanes' scoreboard rather than assuming: `walkmeter.mjs`
+passes on this branch — the door lane's nine doors clean, 56/56 buildings
+reachable without stairs, nobody stranded, the live "Avoid stairs" click still
+turning routing on and back off, drift 0, no route errors. And the round-4
+nine-door test passes unchanged, so the fix didn't cost the old coverage.
+
+The write-up got shorter on purpose — it had grown to 1,452 lines over four
+rounds, the verdict was buried, and round 5's reviewer came back with nothing at
+all. It now opens with the result and the three commands that reproduce it, and
+the unchanged nine-door script is pointed at in this branch's own history
+(`git show 83382d4:docs/si-privacy.md`) rather than carried twice.
+
+Branch `acer/si-privacy`, pushed, not merged, no PR. Server on 8915 killed and
+the port re-confirmed free; one browser; scratch frames stayed in the
+scratchpad; the two scratch scripts written into `scripts/verify` were deleted
+before finishing, along with the output directories they created. Three new
+frames in `shots/si/privacy/` (135 KB together), all three cited by the doc.
 ---
 
 ## 2026-08-24 — critic verdict on the "dayview" piece, round 4: oursWins = true, and a real defect the harness cannot see
@@ -3686,3 +3938,279 @@ owns (`js/wayfind.js`, `style.css`, `index.html`, `_harness.html`) was edited;
 every scratch script (`scripts/verify/_critic-si-ui-*.mjs`, thirteen of them)
 was deleted before finishing. This entry is the only change on top of
 `305ca80`.
+
+## 2026-08-24 — round 6 on the privacy piece (`acer/si-privacy`): the walk is closed by default now, and the socket stayed silent
+
+Round 5's critic put a class title through a worker and onto a raw TCP socket
+with the guard armed, and the guard did not even count it. The line was
+`if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` — skip, no
+flag — defended by a comment saying a buffer "cannot hold a JS string".
+`TextEncoder` makes that false in one line.
+
+**Did not patch the third shape.** Rounds 4 and 5 each shut exactly the shape
+that had been demonstrated (a `Blob` body, then a `Blob` leaf) and left the next
+one open, so this round inverted the default instead. `scanStructured()` now
+recognises a closed list of node kinds it can genuinely read — string, array,
+plain object, binary, `Map`, `Set`, `RegExp`, `Error`, `Date`, wrappers — and
+**flags everything else as unread**. A `Blob`, a `File`, an `ImageData`, an
+`ImageBitmap` and every cloneable type the platform grows next all land in that
+default without needing a line of their own, because what they have in common is
+that a `for...in` walk sees nothing on them. Adding a type to the platform can
+make this guard over-refuse; it cannot make it under-refuse.
+
+**Binary is scanned, not skipped and not blocked, because blocking it was never
+available.** Measured first: one cold load pushes 4,742 `Uint8Array` leaves and
+22.5 MB of real MapLibre tile bytes through `Worker.postMessage`, median leaf
+4 KB. So `scanBytesForSchedule()` matches the watched tokens' bytes against the
+buffer's bytes, allocating nothing — no decode, no lowercase copy — in UTF-8 and
+UTF-16LE, behind a 65,536-entry two-byte prefilter.
+
+**A second silent bypass nobody had reported, found while fixing the first.**
+The walk gave up at `maxNodes`, returned `complete: false`, and every caller
+dropped it on the floor. 21 of this app's own messages per cold load exceed the
+old 4,000-node cap. Twenty-one payloads a load were sailing past uninspected
+with nothing recorded. Running out now refuses.
+
+**Two more holes this round found in its own probes rather than a critic's.**
+`fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams` form
+body both sailed past an armed guard, because a percent-encoded canary does not
+contain the canary — now retried decoded, gated on the string containing a `%`
+or `+` so tile URLs pay nothing. And `MessagePort` / `BroadcastChannel` were
+never inspected at all, which would have been the round-7 finding; a cold load
+makes zero calls to either, so closing them cost nothing measured.
+
+**Proved the way it was broken.** Bare TCP listener, guard's counters read
+before and after each probe, own canaries. Armed: the ArrayBuffer transfer
+refused, `blocked +1`, 30 bytes scanned, socket received **0 bytes**. Disarmed:
+the same probe went through, the worker's own `fetch` returned 204, and the
+socket read `Zygomorphic Percussion Seminar` verbatim — which is what makes the
+armed result mean anything. Sixteen more shapes in the table, all refused,
+including a real 16 KB MapLibre tile buffer that **still crosses untouched**.
+
+**And the map still draws.** Cold load with a schedule already on the device,
+guard armed, driven across five pan-and-zoom steps: `blocked: 0`,
+`truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`, 19,165 buffers and
+**141 MB** of tile bytes read by the guard and passed, `styleLoaded: true`,
+`tilesLoaded: true`. Frame committed at `shots/si/privacy/r6-map-guarded.jpg`.
+
+**One correction the first cap needed.** `workerScanNodes` was set to 400,000
+from a census taken on a page that loaded and then sat still, and it **blocked
+one of MapLibre's own payloads** the moment the camera moved. Re-measured under
+a punishing drive: 634,093 nodes in the largest real payload. Cap is 8,000,000
+now. The map came back red and that is why the number changed, not because the
+reasoning improved.
+
+**What it costs, and this round cannot say "nothing".** Minimum of three
+interleaved reps, time inside `Worker.prototype.postMessage` across a cold load:
+827 ms with a schedule stored against 261 ms with none — about 570 ms of extra
+main-thread work spread over a whole load, ~0.22 ms per message, to read ~20 MB.
+Only on a device that has a schedule. Two optimisation theories were measured
+and were wrong: widening the prefilter from 256 to 65,536 entries bought 6%, not
+the predicted order of magnitude (64 KB does not fit in L1, and bit-packing it
+to 8 KB was worse than both); and hoisting the walk out of a per-call closure
+made no difference at all (215 ms → 216 ms). Both are written into §8 rather
+than quietly dropped.
+
+**Also fixed the fabricated citation §7 has been carrying.** Round 3 sourced
+"SSW was demolished" to `docs/schedule-gaps.md`, which was on no branch at the
+time. That file is real now — rescued onto `main` on 2026-08-24 (`ed74cc3`) —
+and read directly it does argue demolition. But `docs/si-gaps.md` on
+`origin/acer/si-gaps` checked that conclusion and it is wrong: our
+`data/ut_buildings.json` is a 198-code snapshot, UT files SSW under its own
+main-campus path, and UT's two published SSW doors land 0.37 m and 2.45 m from a
+footprint this app already draws. SSW is a real current building our register
+copy is one row short of; the sibling lane fixed it and took the count 11 → 10.
+§7 now says that, with the sources it can actually open.
+
+Branch `acer/si-privacy`, pushed, not merged and no PR. `js/wayfind.js` passes
+`node --check`; `harness-drift.mjs` PASS 31/31; the doc's own citation gate
+(§11a) ALL PASS, 20 paths resolved. Nothing outside this lane's files was
+touched except this log. Every scratch script and every scratch frame stayed in
+the scratchpad; one frame is committed because §6 cites it. Server on 8951
+killed and the port re-confirmed free.
+
+## 2026-08-24 — round 7 on the privacy piece (`acer/si-privacy`): round 6 fixed half the default, and an array walked the rest of the way out
+
+Round 6 said it had stopped patching shapes and inverted the default. It had
+inverted half of it. The walk asked *which node kinds do I recognise* and got
+that right; it never asked *what does recognising one mean*. So the array branch
+still read `for (let i = 0; i < x.length; i++)` — an index loop, which is not
+what a structured clone does to an array — and this went out:
+
+```js
+const a = [1, 2, 3];
+a.note = classTitle;
+worker.postMessage({ a });     // guard armed → blocked: 0, opaque: 0
+```
+
+`structuredClone` carries a tacked-on property, the worker decoded it, and its
+own `fetch` put the title on a raw TCP socket verbatim. `blocked: 0,
+opaqueWorkerLeaves: 0` — **uncounted and unlogged**, the exact reading round 5
+got from the ArrayBuffer hole that round 6 existed to close, sitting inside the
+one branch round 6's own comment called fully read. Five variants leaked: an
+array in an object, a bare top-level array, an `Array` subclass, a sparse array,
+and a whole object tree hanging off an array property.
+
+**Fixed by the rule rather than the case.** For every kind the walk claims to
+read, it now reads exactly what the clone algorithm reads. For `Array` and for a
+plain object that is the same thing — own enumerable properties — so they are
+one loop now and an array is no longer the special case that got optimised into
+being wrong.
+
+**A second hole, in the half of the guard nobody was looking at.** Round 6 built
+a byte scanner that reads UTF-8 *and* UTF-16LE and wired it to one of the two
+doors. `fetch(sink, { body: utf16leBufferOfTheTitle })` came back **204** on the
+socket with the guard armed, while the same title UTF-8-encoded was refused.
+Network bodies now go through the same byte scan, and `inspect()` takes the body
+as the caller had it rather than a string the caller already flattened.
+
+**Four doors that were never inspected at all**, each returning `checked: 0`
+against an armed round-6 guard: `window.postMessage`,
+`iframe.contentWindow.postMessage`, `navigator.serviceWorker.register(url)`,
+`RTCDataChannel.send`. The iframe one carries a fact worth keeping — **a
+same-origin child iframe is a separate JavaScript realm with its own
+intrinsics**, so patching our `Window.prototype` never reaches it and its own
+`fetch` reaches the network the way a worker's does. The guard now follows the
+reference into any child realm this page holds a handle on.
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, counters read
+before and after each probe. Armed: all seventeen shapes refused and the socket
+received nothing. Disarmed: every one of them put `Palaeobotanical Ensemble
+Studio` on that socket verbatim, which is what makes the armed column mean
+anything. `<img src>` still reaches the wire and is still a named residual in §9,
+not a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom legs:
+`blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+**15,351 buffers and 122.5 MB of real tile bytes read and passed**,
+`styleLoaded`/`tilesLoaded` true. Frame at `shots/si/privacy/r7-map-guarded.jpg`.
+
+**What it costs — and the two measurements disagree, so both are written down.**
+On the real city there is **no result**: three interleaved reps each way, guard
+time across an identical drive, 0.250–0.271 ms/message against 0.213–0.273, and
+overlapping spreads mean no result. Isolated on a fixed payload it is real: a
+600,000-element numeric array is **103.4 ms/message against 13.6**, 7.6×. Both
+are true because MapLibre's real payloads are binary and the byte scan of ~120 MB
+dwarfs the walk. The obvious speed-up — `Object.keys(x).length !== x.length` as a
+"has extras" test — was rejected for being **unsound**, not slow: an array with
+both a hole and an extra has the two cancel (`length` 3, keys `['0','1','note']`),
+and that shape is now a probe so nobody reintroduces it.
+
+**§7's citation was already right.** Round 6 had fixed the fabricated
+`docs/schedule-gaps.md` reference; re-read both sources this round to confirm it.
+`docs/schedule-gaps.md` is real on `main` (`ed74cc3`) and does argue demolition;
+`docs/si-gaps.md` on `origin/acer/si-gaps` checks that and shows SSW is a current
+main-campus building our 198-code register is one row short of, with UT's two
+published doors 0.37 m and 2.45 m from a footprint this app already draws. §7
+says that, and the doc's own citation gate is ALL PASS at 21 paths.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check` clean;
+`harness-drift.mjs` PASS 31/31; the storage path re-driven end to end after the
+`inspect()` rewiring (panel empty → save → real click on Delete → a genuinely
+fresh document finds nothing → feature off is still off), 9/9. Nothing outside
+this lane's files touched except this log. Every scratch script and frame stayed
+in the scratchpad; one frame is committed because the doc cites it. Server on
+8951 killed and the port re-confirmed free.
+
+## 2026-08-24 — round 8 on the privacy piece (`acer/si-privacy`): the same bug for the fifth time, so this round fixed the shape of it
+
+Rounds 4, 5, 6 and 7 each found one hole, and read like four different
+oversights. They are one: **a check that exists, is correct, and is wired to one
+of the two doors.** So round 8 stopped asking what shape is unhandled and asked,
+for every capability the guard has, which doors it is wired to. Two answers came
+back wrong and both put a class title on a raw TCP socket with the guard armed.
+
+**One. The decode retry was wired to the network door only.** Round 6 found that
+a percent-encoded canary does not contain the canary — and fixed it in a
+*second* function, called from the URL and body paths. The worker walk kept
+calling the raw one, and so did the top-level string branch and the `RegExp`,
+`Error` and boxed-`String` branches. `worker.postMessage({ t:
+encodeURIComponent(title) })`: **ten shapes crossed at `blocked: 0, opaque: 0`**
+— uncounted and unlogged, the identical reading round 5 got from the
+ArrayBuffer hole and round 7 got from the array hole — and six of the ten landed
+`Thaumaturgical Marimba Rhetoric` on the listener verbatim after the worker
+decoded them.
+
+**Two. Request headers had never been inspected by anything, ever.** `inspect()`
+is handed a method, a URL and a body, and nobody had ever handed it the headers.
+`fetch(sink, { headers: { 'X-Sched': title } })`, the same through a `Headers`
+object, and `xhr.setRequestHeader` all came back 204 at `blocked: 0` with the
+title on the wire. Not exotic — attaching a context header is what every
+analytics library does, which is the exact scenario this guard exists for. Worth
+naming what nearly hid it: `fetch(new Request(url, { headers }))` **was**
+refused, by round 5's unreadable-body rule on the Request's stream body, having
+never looked at a header. A guard can pass a probe for the wrong reason.
+
+**The fix is the shape, not the cases.** There is now exactly ONE function
+anybody can call to ask whether a string carries the schedule, and it does the
+whole job. The raw test still exists, is not exported, and has precisely one
+caller: that function's own retry. Wiring the weak version to a new door is no
+longer possible, because the weak version has no name a caller can reach. The
+byte scanner cannot decode its haystack — percent-decoding 120 MB of tile bytes
+a load is not a thing to do on the tile path — so **the needle carries the
+encodings instead**, which costs nothing in the hot loop and almost nothing in
+the prefilter. And `inspect()` takes a LIST of header sources, never one,
+because `fetch(new Request(u, {headers}), {headers})` has two and picking either
+is how this class of bug starts.
+
+Two more doors of the same family closed while the file was open, both strings
+that reach the wire and neither ever scanned: a **WebSocket's subprotocols**
+(they travel as `Sec-WebSocket-Protocol` in the handshake) and an
+**`RTCDataChannel`'s label** (carried in the SDP, so the name alone is a leak
+that never calls `send`).
+
+**Proved the way it was broken.** Bare TCP listener, own canaries, the guard's
+counters read before and after each probe. Armed: all fourteen shapes and all
+six channels refused, and the socket received nothing. Disarmed: every one of
+them carried and the socket read the canary back — which is what makes the armed
+column mean anything. Round 7's own probe re-run unchanged on round 8's code:
+**no shape leaks**, and the only channel still on the wire is `<img src>`, which
+is a named residual in §9 rather than a surprise.
+
+**And the map still draws.** Guard armed, schedule stored, six pan-and-zoom
+legs: `blocked: 0`, `truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`,
+`unreadableHeaders: 0`, **15,413 buffers and 120.1 MB of real tile bytes read and
+passed**, `styleLoaded`/`tilesLoaded` true. Frame at
+`shots/si/privacy/r8-map-guarded.jpg`.
+
+**What it costs, and the A/B is a true one this round.** `--baseline` serves the
+round-7 `js/wayfind.js` to the page and changes nothing on disk, so the only
+difference is the round-8 diff — and the R7 rows self-check, because they carry
+no `headersScanned` field at all. On the real city there is **no result**: three
+interleaved, counterbalanced reps each way, 0.261–0.332 ms/message against
+0.244–0.298, and overlapping spreads mean no result. Isolated it is real:
+20,000 string leaves cost **1.30×** when the new gate never fires and 2.63× when
+it fires on every one — and 1.30× is the row this app pays, because MapLibre's
+payloads are binary and a byte scan of 120 MB does not notice 0.3 µs a leaf.
+
+**One prediction in the doc was wrong and the correction is written next to
+it.** The header change was written up as costing nil, because this app sets one
+header on one request in its whole source. True of the source, false of the
+traffic: measured, the guard reads headers on **248–411 requests per drive**,
+because MapLibre passes a headers object on essentially every tile fetch.
+Nothing is broken by it, but the claim had been read off the code instead of
+run.
+
+**§7's citation is still correct** — round 6 replaced the fabricated
+`docs/schedule-gaps.md` reference and round 7 re-checked it; re-read both
+sources again this round. `docs/schedule-gaps.md` is real on `main` (`ed74cc3`)
+and does argue demolition; `docs/si-gaps.md` on `origin/acer/si-gaps` checks it
+and shows SSW is a current main-campus building our 198-code register is one row
+short of. The doc's own citation gate is ALL PASS at 22 paths.
+
+**A landmine for whoever integrates these five branches.** `js/wayfind.js` is
+committed with LF endings and `core.autocrlf` is true on this machine, so an
+editor that writes CRLF turns a 230-line change into a **19,932-line whole-file
+diff** that `git status` will not warn about until you touch the file. It read
+as a full rewrite here until the file was converted back to LF, at which point
+the same edits diffed as 230 insertions and 34 deletions. Check
+`git diff --stat` before committing this file, and if it is four figures, that
+is why — not your edit.
+
+Branch `acer/si-privacy`, pushed, **not merged and no PR**. `node --check`
+clean; `harness-drift.mjs` PASS 31/31; the storage path re-driven end to end
+after the `inspect()` rewiring (panel empty → save → real click on Delete → a
+genuinely fresh document finds nothing → feature off is still off), 9/9. Nothing
+outside this lane's files touched except this log. Every scratch script and
+frame stayed in the scratchpad; one frame is committed because the doc cites it.
+Server on 8951 killed and the port re-confirmed free.

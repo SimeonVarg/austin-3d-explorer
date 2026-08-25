@@ -134,6 +134,31 @@
   <!-- Render distance (docs: js/lod.js header). Self-booting; needs the tag in
        BOTH files or the harness measures a scene the site does not serve. -->
   <script src="js/lod.js"></script>
+  <!-- ────────────────────────────────────────────────────────────────────────
+       WHAT WE TELL A STUDENT ABOUT THEIR OWN SCHEDULE, AND WHERE TO EDIT IT.
+
+       A class schedule is where one named person is, hour by hour, for four
+       months. The import feature keeps it in this browser's localStorage and
+       sends it nowhere — js/wayfind.js §12 enforces that at runtime and
+       docs/si-privacy.md is the audit that proves it against real network
+       traffic. These are the words that say so.
+
+       They live here, not in the JS, so the wording is a one-line edit in HTML
+       (CLAUDE.md rule 11). js/wayfind.js carries the SAME strings as its
+       defaults, because _harness.html has no <template> and must still say the
+       same thing; the audit asserts the two have not drifted apart. Change a
+       line here and change the matching line in SCHEDULE_PRIVACY_COPY, or the
+       audit goes red on purpose.
+
+       NOT a <script src>, so harness-drift.mjs is unaffected.
+       ──────────────────────────────────────────────────────────────────────── -->
+  <template id="wf-privacy-copy">
+    <span data-k="line">Your schedule stays on this device — saved in this browser only, never uploaded anywhere, and Delete wipes it for good.</span>
+    <span data-k="deleteBtn">Delete my schedule</span>
+    <span data-k="deleted">Deleted. Nothing of it is left in this browser.</span>
+    <span data-k="empty">No schedule saved on this device yet.</span>
+    <span data-k="confirm">Delete it? This cannot be undone.</span>
+  </template>
   <!-- Walk to class (docs/walk/*.md). Self-booting off window.__map like
        places.js; app.js never calls it. It RETURNS ON LINE ONE unless the
        feature was asked for by URL (?walk=1, ?from=, ?to=) or WAYFIND.on is

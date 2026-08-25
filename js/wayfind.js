@@ -12645,6 +12645,1840 @@
     return impBuild(String(text), sourceId || impState.source, 'text');
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 12. THE SCHEDULE STAYS ON THE DEVICE, AND THAT HAS TO BE PROVABLE
+  // ══════════════════════════════════════════════════════════════════════════
+  /**
+   * A class schedule is not a preference. It is where one named person is,
+   * hour by hour, for four months. So this section holds exactly two promises
+   * and tries to make both of them *checkable by a machine* rather than
+   * believable by a reader:
+   *
+   *   1. NOTHING LEAVES. The schedule is written to this browser's own
+   *      localStorage and to nothing else. No fetch, no XHR, no beacon, no
+   *      socket, no worker message carries a byte of it.
+   *   2. DELETE MEANS GONE. One tap wipes every key this feature ever wrote
+   *      — including keys a *future* import source might write — plus the
+   *      IndexedDB database reserved below for the image-OCR pass, and the
+   *      in-memory copy. Reload and there is nothing to find.
+   *
+   * PROMISE 1 IS ENFORCED, NOT ASSERTED. `installEgressGuard()` wraps the six
+   * ways bytes actually leave a page (fetch, XMLHttpRequest, sendBeacon,
+   * WebSocket, EventSource, Worker.postMessage) plus form submission, and
+   * refuses any of them that carries a string out of the stored schedule. It
+   * is a seatbelt, not the safety case: the safety case is that no code here
+   * ever sends anything. The guard exists so that if some later lane wires an
+   * analytics call into this file, the call fails loudly instead of quietly
+   * working. Its log is what `docs/si-privacy.md` audits.
+   *
+   * THE DOOR INTO A WORKER IS THE WHOLE ARGUMENT, so round 6 stopped patching
+   * shapes and changed the default. The guard is main-thread only: it cannot
+   * reach inside MapLibre's four workers, and this file creates none of its
+   * own, so nothing can wrap their `fetch`. Everything therefore rests on one
+   * claim — *schedule bytes never get in* — and that claim is only as good as
+   * the walk that inspects a payload.
+   *
+   * Three rounds running, that walk had a hole in it, and each round shut the
+   * one shape that had been demonstrated:
+   *   - round 4: a `Blob` request BODY the guard could not read, waved through.
+   *   - round 5: a `Blob` LEAF inside a worker payload, strolled past, because
+   *     a `Blob` has no own enumerable properties and a `for...in` walk sees
+   *     nothing on one.
+   *   - round 6 (this one): an `ArrayBuffer`/`TypedArray` leaf, skipped
+   *     OUTRIGHT with no flag raised, on the reasoning that a buffer "cannot
+   *     hold a JS string". `TextEncoder` makes that reasoning false in one
+   *     line, and the critic put a class title through a worker and out onto a
+   *     raw socket with the guard armed and `blockedDelta: 0, opaqueDelta: 0`
+   *     — not merely unblocked, *uncounted*.
+   *
+   * Patching the third shape would have left a fourth. So the walk is now
+   * CLOSED BY DEFAULT instead of open by default: `scanStructured()` knows a
+   * short list of node kinds it can actually read, reads them, and flags
+   * ANYTHING ELSE as opaque. `Map`, `Set`, `RegExp`, `Error`, `ImageData`, a
+   * host object nobody has invented yet — none of them needs its own line to
+   * be caught, because the default branch is "I could not read this" rather
+   * than "nothing to see here". Binary is not skipped and not blocked either
+   * (MapLibre moves 22.5 MB of real tile bytes through this path on one cold
+   * load, measured): the BYTES ARE SCANNED, so a buffer that is really tile
+   * data passes and a buffer that is really a class title does not.
+   *
+   * The same round found a second silent bypass nobody had reported: the walk
+   * gave up at `maxNodes` and returned `complete: false`, and every caller
+   * ignored it. **21 of this app's own messages per cold load exceed the old
+   * 4,000-node cap** (largest measured: 172,512 nodes), so 21 payloads a load
+   * were already sailing past uninspected. The cap is now measured-with-
+   * headroom and running out of it FLAGS instead of shrugging.
+   *
+   * WHAT IT STILL CANNOT DO, said plainly so nobody reads it as more than it
+   * is — and §9 of docs/si-privacy.md is the same list with the reasoning:
+   *   - it does not watch `<img src>` or a plain link navigation. Those are
+   *     covered by the browser-level network capture in `docs/si-privacy.md`,
+   *     which sees every request the page makes regardless of who made it.
+   *   - a leak of a FRAGMENT of a field ("Data" out of "Data Structures")
+   *     would not match. Whole field values are the tokens, because whole
+   *     field values are what a serialiser emits and word fragments are what
+   *     tile URLs are full of.
+   *   - it matches CONTENT, so content that has been re-encoded past
+   *     recognition — base64, gzip, XOR — is not content it can see. UTF-8 and
+   *     UTF-16LE are both covered because those are what an honest bug
+   *     produces; base64 is what an attacker produces, and a content scanner
+   *     inside the page it is guarding cannot win that argument. This is a
+   *     seatbelt against a later lane's mistake, not a sandbox.
+   *   - a THROW inside the inspector fails OPEN on the NETWORK paths (the
+   *     request proceeds) and is counted, because a bug in this file must not
+   *     be able to stop a tile loading. On the WORKER path it now fails
+   *     CLOSED (`SCHEDULE_STORE.failClosedOnScanError`) — a throw there is
+   *     indistinguishable from an evasion, and 2,545 real messages a load
+   *     produce zero of them.
+   *   - the worker SCRIPT itself. MapLibre mints one `blob:` URL and spawns
+   *     four workers from it; a `Blob` cannot be read synchronously, so the
+   *     constructor wrapper below scans the URL and cannot scan blob-sourced
+   *     source. Named, not hidden.
+   *
+   * THE SHAPE IS BUILT FOR THE SOURCES THAT DO NOT EXIST YET. Simeon asked for
+   * Google Calendar, Apple Calendar and UT's registration export now, and said
+   * a photo of a schedule and a Registration-Plus API should be addable later
+   * "without a rewrite". Three reservations in the envelope below are what buy
+   * that, and each one is a thing that would otherwise force a schema change:
+   *   - `sources` is a LIST, and every class points at one of them. A photo
+   *     imported on top of an .ics has to ADD to a schedule, not replace it;
+   *     a single `source` string on the envelope cannot express that.
+   *   - every class carries `confidence` and `provenance`. An .ics is exact
+   *     (1.0, and the VEVENT UID); OCR is not, and needs somewhere to put the
+   *     box on the image it read a room number out of so the student can be
+   *     shown what to check. Adding that later means rewriting every stored
+   *     schedule.
+   *   - `v` plus `SCHEDULE_MIGRATIONS` means a v2 reader can still open a v1
+   *     blob, and a v1 reader hands back `tooNew` rather than deleting a
+   *     schedule it does not understand.
+   */
+
+  // ── the taste values, all of them, in one block (CLAUDE.md rule 11) ────────
+  const SCHEDULE_STORE = {
+    /** The one key the schedule itself lives under. */
+    key: 'austin3d.schedule.v1',
+    /** Delete sweeps EVERY key with this prefix, not just the one above, so a
+     *  future source that writes its own key is covered by a delete written
+     *  today. `austin3d.gfx.v1` (js/graphics.js) does not match it. */
+    prefix: 'austin3d.schedule.',
+    /** Reserved for the image-OCR pass: a photo will not fit in localStorage,
+     *  and delete has to reach it on the day it starts existing. Deleting a
+     *  database that was never created is a no-op, so this costs nothing now. */
+    idbName: 'austin3d-schedule',
+    /** A term of classes is a few KB. Anything near this is a bug or a paste
+     *  of the wrong file, and localStorage throws at ~5 MB with a quota error
+     *  that reads like a crash. */
+    maxBytes: 256 * 1024,
+    /** Strings shorter than this are not watched by the egress guard. Three
+     *  letters is a building CODE — `?from=WEL&to=MAI` is a documented URL
+     *  feature of this app and the codes are its public vocabulary, so a code
+     *  on its own is not the private part. `MAI 220`, a course title and an
+     *  instructor's name all clear the bar. */
+    minTokenLen: 4,
+    /** Ring buffer for the guard's log. */
+    logCap: 400,
+    /**
+     * AN OPAQUE BODY IS REFUSED, NOT WAVED THROUGH — and this is the round-5
+     * change, so it gets the whole reason written down.
+     *
+     * `bodyToText()` cannot read a `Blob` or a `ReadableStream` synchronously,
+     * and until now it returned `undefined` for those and the guard counted
+     * them and let them past. Round 4's critic did the obvious thing nobody
+     * else had done: fired `fetch(url, { body: new Blob([canary]) })` at a
+     * bare TCP listener with the guard armed, and watched the canary arrive on
+     * the wire verbatim while `blocked` stayed 0. A seatbelt with a buckle
+     * that does not close over one shape of passenger.
+     *
+     * So: while a schedule is stored, a body the guard cannot read is treated
+     * as a body it cannot clear, and refused. The cost of that is bounded and
+     * was checked rather than assumed — every request this app makes on the
+     * hot path (tiles, glyphs, sprites, style JSON, the baked city data) is a
+     * bodyless GET, so `bodyToText` returns `''` for all of them and none of
+     * them ever reaches this rule. See docs/si-privacy.md §6.
+     *
+     * Flip to false to go back to fail-open if a later lane ever needs a
+     * genuine binary upload while a schedule is on the device — and if you do,
+     * read the audit's blob probe first, because that is the thing you are
+     * turning off.
+     */
+    blockUnreadableBodies: true,
+    /**
+     * A REQUEST HEADER IS A STRING THAT GOES ON THE WIRE, and until round 8
+     * nothing in this section had ever looked at one.
+     *
+     * `inspect()` is handed a method, a URL and a body. Round 8's channel
+     * probe fired `fetch(sink, { headers: { 'X-Sched': classTitle } })`, the
+     * same through a `Headers` object, and `xhr.setRequestHeader('X-Sched',
+     * classTitle)` at a bare TCP listener with the guard armed. All three
+     * returned 204 at `blocked: 0` and the listener read the class title
+     * verbatim. This is not an exotic shape: attaching a context header is
+     * what every analytics and error-reporting library does, and "a later
+     * lane wires an analytics call into this file" is the exact scenario §12
+     * says this guard exists for.
+     *
+     * WHAT IT COSTS, AND THE PREDICTION THAT WAS WRONG. This was first written
+     * as "nil, because this app sets exactly one header on exactly one request
+     * in its whole codebase" (`Accept: application/json`, js/graphics.js's
+     * feedback POST). True of the SOURCE and false of the TRAFFIC: measured on
+     * a real drive, the guard reads headers on **248–411 requests**, because
+     * MapLibre passes a headers object on essentially every tile fetch. It is
+     * still not measurable against the cost of a `fetch` call — the A/B in
+     * docs/si-privacy.md §8 comes back with overlapping spreads — and
+     * `unreadableHeaders` is 0 and no real request has ever been refused. The
+     * number is here because the first claim was read off the code instead of
+     * run, and `guard.state().headersScanned` republishes it so the next
+     * person re-checks rather than trusts.
+     *
+     * Flip to false to stop scanning headers. `blockUnreadableHeaders` is the
+     * same fail-closed rule bodies got in round 5: a header collection the
+     * guard cannot enumerate is one it cannot clear.
+     */
+    scanRequestHeaders: true,
+    blockUnreadableHeaders: true,
+    /**
+     * ROUND 8: the byte scanner registers the percent-encoded and
+     * `+`-encoded forms of each watched token as extra NEEDLES, rather than
+     * decoding the haystack. See `buildBytePatterns`. Flip to false to go back
+     * to raw-only byte patterns; the string path keeps its decode retry either
+     * way, because that one is gated on the string containing a `%` or a `+`
+     * and this one cannot be.
+     */
+    scanEncodedForms: true,
+    /** The same rule one layer down, for a `Blob`/`ReadableStream` handed to a
+     *  worker rather than to the network. Separate constant because this one
+     *  is on MapLibre's per-tile path and the other is not: measured on a real
+     *  map load before it was turned on (docs/si-privacy.md §6), and the
+     *  measurement is republished by `guard.state().opaqueWorkerLeaves` so the
+     *  next person can re-check it in one line instead of trusting this
+     *  comment. */
+    blockOpaqueWorkerLeaves: true,
+    /**
+     * HOW MANY BYTES OF BINARY THE WALK WILL READ IN ONE PAYLOAD before it
+     * gives up and flags instead. This is the number that lets binary be
+     * SCANNED rather than blocked, which is the only option that keeps the map
+     * working — MapLibre's tile bytes travel this exact path.
+     *
+     * Set from a measurement, not a guess. One cold load of this city with a
+     * schedule stored pushes 4,742 `Uint8Array` leaves and 22.5 MB across
+     * `Worker.postMessage`; the median leaf is 4 KB, the 99th percentile is
+     * 16 KB, six leaves all load are over 64 KB, and the LARGEST SINGLE
+     * MESSAGE totals 999,424 bytes. 4 MB is four times that worst case and
+     * still a hard ceiling: past it the payload is refused, not waved on, so
+     * padding a leak past the budget buys nothing.
+     */
+    binaryScanBytes: 4 * 1024 * 1024,
+    /**
+     * How far into ONE payload the structured walk goes. The old value was
+     * 4,000 and running out SILENTLY gave up — measured, 21 of this app's own
+     * messages per cold load exceed it and the largest on a still camera is
+     * 172,512 nodes, so the guard was already blind to 21 payloads a load and
+     * nothing said so.
+     *
+     * THE NUMBER IS BIG ON PURPOSE, and the first attempt at it was wrong in a
+     * way worth writing down. 400,000 looked like 2.3× headroom over a census
+     * taken on a page that loaded and then sat still. Drive the camera —
+     * 1600×1000, zoom 11 to 19, seven pan-and-zoom steps — and one real
+     * MapLibre payload hits **634,093 nodes**, so that cap refused one of the
+     * map's own messages. A cap that blocks real traffic is worse than the
+     * hole it closes.
+     *
+     * Running out now REFUSES, and that is what lets this be generous: a leak
+     * gains nothing by padding past the cap, so the cap's only job is to bound
+     * our own worst-case work. 8,000,000 is 12.6× the worst case measured
+     * under deliberate punishment. Re-measure before lowering it.
+     */
+    workerScanNodes: 8000000,
+    /** A watched token longer than this is matched by its first N characters
+     *  in the byte scanner. The serialised schedule is one watched token and
+     *  can be tens of KB; a full memcmp of that at every candidate byte is not
+     *  something to run on the tile path, and any buffer holding the whole
+     *  blob holds its first 256 characters too. */
+    binaryPatternChars: 256,
+    /**
+     * REACH INTO A SAME-ORIGIN CHILD REALM AND GUARD IT TOO — round 7.
+     *
+     * The channel probe fired `iframe.contentWindow.postMessage(title, '*')`
+     * with the guard armed and got `checked: 0`. Patching `Window.prototype`
+     * on the main thread does not cover it, and the reason is worth knowing
+     * rather than rediscovering: **a same-origin child iframe is a separate
+     * JavaScript realm with its own intrinsics.** Its `Window.prototype` is a
+     * different object from ours. Every wrapper in `installEgressGuard()` is
+     * therefore invisible inside it, and a child frame's own `fetch` reaches
+     * the network exactly the way a worker's does.
+     *
+     * So the guard follows the reference: whenever this page reads a frame's
+     * `contentWindow` or takes the Window back from `window.open()`, that
+     * realm's `postMessage` and `fetch` get wrapped before the caller can use
+     * them. Cross-origin throws on the assignment and is caught — there is
+     * nothing to patch there, and nothing our objects can reach either.
+     *
+     * Measured cost: zero. This app has no iframes and calls `window.open`
+     * never, so the `contentWindow` getter below is never read on a real load
+     * (`guard.state().frameChecked` is 0 in the audit).
+     */
+    guardChildFrames: true,
+    /** A throw inside the WORKER payload walk blocks the message rather than
+     *  waving it through. Different from the network paths on purpose: a
+     *  broken inspector must never stop a tile downloading, but a payload that
+     *  makes the walk throw is indistinguishable from one built to make it
+     *  throw, and 2,545 real messages a load produce zero throws. Flip to
+     *  false to go back to fail-open. */
+    failClosedOnScanError: true,
+    /** One tap deletes, with no "are you sure". Flip to true if that ever
+     *  reads as too sharp — the brief asked for one tap and an undo would
+     *  mean keeping the data around after saying it was gone. */
+    deleteNeedsConfirm: false,
+    /** How long the "Deleted." line stays up before the panel goes back to
+     *  its empty state. */
+    deletedNoticeMs: 5000,
+  };
+
+  /** Where a schedule came from. An open registry: adding a source is one line
+   *  here and a parser somewhere else, never a change to what is stored. The
+   *  last two are deliberately listed before they are built — they are the
+   *  forward compatibility, written down. */
+  const SCHEDULE_SOURCES = {
+    'google-ics': 'a Google Calendar export',
+    'apple-ics': 'an Apple Calendar export',
+    'ut-registration': 'UT’s registration export',
+    'manual': 'classes typed in by hand',
+    // Not built this pass. Named so the storage format already has a home for
+    // them and the delete sweep already covers what they will write.
+    'image-ocr': 'a photo of a schedule',
+    'registration-plus': 'Registration Plus',
+  };
+
+  const SCHEDULE_SCHEMA_VERSION = 1;
+  /** v => function turning a v blob into a v+1 blob. Empty today; the loop
+   *  below is what makes it a one-line job later. */
+  const SCHEDULE_MIGRATIONS = {};
+
+  /**
+   * THE COPY. index.html carries the editable copy of this in
+   * `<template id="wf-privacy-copy">` and it WINS — these are the defaults, so
+   * `_harness.html` (which has no such template, and must not, or
+   * harness-drift.mjs is not the only thing that can drift) still says the
+   * same words. `scripts/verify` asserts the two agree; see docs/si-privacy.md.
+   */
+  const SCHEDULE_PRIVACY_COPY = {
+    line: 'Your schedule stays on this device — saved in this browser only, ' +
+          'never uploaded anywhere, and Delete wipes it for good.',
+    deleteBtn: 'Delete my schedule',
+    deleted: 'Deleted. Nothing of it is left in this browser.',
+    empty: 'No schedule saved on this device yet.',
+    confirm: 'Delete it? This cannot be undone.',
+  };
+  /** Rendered when a schedule IS stored. Counts and a source, never a class
+   *  name — the panel sits in the footer of a sheet that may be on screen
+   *  while someone else is looking. */
+  const scheduleSavedLine = (n, srcLabel) =>
+    n + (n === 1 ? ' class' : ' classes') + ' from ' + srcLabel + ', on this device only';
+
+  /** The panel's look. Reuses the feature's own custom properties so it is not
+   *  a second design system living in the footer. */
+  const SCHEDULE_PRIVACY_CSS = [
+    '#wf-priv{display:block;padding:8px 14px 9px;border-top:1px solid var(--wf-edge-soft);',
+    'font-size:var(--wf-small);line-height:1.5;color:var(--wf-dim)}',
+    '#wf-priv .wf-priv-line{color:var(--wf-dimmer)}',
+    '#wf-priv .wf-priv-state{margin-top:5px;color:var(--wf-ink);opacity:.82}',
+    '#wf-priv .wf-priv-state:empty{display:none}',
+    '#wf-priv-del{margin-top:6px;display:none;align-items:center;gap:6px;',
+    'min-height:32px;padding:0 var(--wf-ghost-pad);border-radius:9px;',
+    'border:1px solid var(--wf-edge);background:transparent;color:var(--wf-ink);',
+    'font:inherit;font-size:var(--wf-small);letter-spacing:.02em;cursor:pointer}',
+    '#wf-priv-del:hover{border-color:var(--wf-hot);background:rgba(245,166,35,.10)}',
+    '#wf-priv-del:focus-visible{outline:2px solid var(--wf-accent);outline-offset:2px}',
+    // An <svg> with a viewBox and no width collapses to 300x150 and blows the
+    // footer apart. Every other icon in this feature is sized by style.css,
+    // which this lane does not own, so this one sizes itself.
+    '#wf-priv-del svg{width:11px;height:11px;flex:none}',
+    '#wf-priv.has-schedule #wf-priv-del{display:inline-flex}',
+  ].join('');
+
+  // ── the envelope ──────────────────────────────────────────────────────────
+  /**
+   * normaliseSchedule — the one place that decides what a stored schedule is.
+   * Every import source hands its result through here, so a photo and an .ics
+   * cannot drift into two shapes.
+   */
+  function normaliseSchedule(doc) {
+    const d = doc || {};
+    const now = new Date().toISOString();
+    const srcIn = Array.isArray(d.sources) ? d.sources
+      : (d.source ? [{ kind: d.source, importedAt: d.importedAt || now }] : []);
+    const sources = srcIn.map((s, i) => ({
+      id: String((s && s.id) || ('s' + i)),
+      kind: String((s && s.kind) || 'manual'),
+      label: String((s && s.label) || SCHEDULE_SOURCES[(s && s.kind)] || 'an import'),
+      importedAt: String((s && s.importedAt) || now),
+    }));
+    const classes = (Array.isArray(d.classes) ? d.classes : []).map((c, i) => {
+      const o = c || {};
+      return {
+        id: String(o.id || ('c' + i)),
+        code: o.code == null ? null : String(o.code).toUpperCase(),
+        room: o.room == null ? null : String(o.room),
+        title: o.title == null ? null : String(o.title),
+        instructor: o.instructor == null ? null : String(o.instructor),
+        days: Array.isArray(o.days) ? o.days.map(String) : [],
+        startMin: Number.isFinite(o.startMin) ? o.startMin : null,
+        endMin: Number.isFinite(o.endMin) ? o.endMin : null,
+        // WHY THIS IS NOT `resolved: true/false`. Eleven codes a real UT
+        // schedule can name do not route in this build, and they are TWO
+        // different problems, not one: ten sit at the Pickle campus ~11 km
+        // north and are off this map for good, while SSW is a main-campus
+        // building whose UT-surveyed door lands 0.4 m from a footprint this
+        // app already draws — missing only a row in our register snapshot.
+        // "Unknown code" and "real building, just not on this map" want
+        // different sentences, and a boolean cannot tell them apart, so the
+        // reason is stored as a string. Re-measured on this branch from
+        // data/ut_buildings.json, the UT door table in §3 above and the drawn
+        // snapshot; the numbers are in docs/si-privacy.md §7, and
+        // docs/si-gaps.md (on origin/acer/si-gaps) reaches them independently.
+        unroutableWhy: o.unroutableWhy == null ? null : String(o.unroutableWhy),
+        // Reserved for OCR. An .ics sets 1; a photo will not.
+        confidence: Number.isFinite(o.confidence) ? o.confidence : 1,
+        // Reserved for OCR and for a future API: which source, and where in it.
+        src: o.src == null ? (sources[0] ? sources[0].id : null) : String(o.src),
+        provenance: o.provenance == null ? null : o.provenance,
+      };
+    });
+    return {
+      v: SCHEDULE_SCHEMA_VERSION,
+      savedAt: now,
+      term: d.term == null ? null : String(d.term),
+      tz: d.tz == null ? null : String(d.tz),
+      sources,
+      classes,
+    };
+  }
+
+  function migrateSchedule(raw) {
+    let d = raw, guard = 0;
+    while (d && Number(d.v) < SCHEDULE_SCHEMA_VERSION && guard++ < 16) {
+      const step = SCHEDULE_MIGRATIONS[Number(d.v)];
+      if (!step) return null;      // a gap in the chain is not a thing to guess at
+      d = step(d);
+    }
+    return d;
+  }
+
+  // ── the egress guard ──────────────────────────────────────────────────────
+  let schedWatch = [];             // lowercased strings that must never leave
+  const schedGuard = {
+    installed: false,
+    armed: true,
+    log: [],
+    blocked: 0,
+    checked: 0,
+    quietChecked: 0,          // worker messages: counted, not individually logged
+    inspectFailures: 0,
+    unreadableBodies: 0,
+    blockedOpaque: 0,          // of `blocked`, how many were refused unread
+    opaqueWorkerLeaves: 0,     // payload nodes the walk could not read
+    binaryLeaves: 0,           // ArrayBuffer/TypedArray leaves actually scanned
+    binaryBytes: 0,            // ...and how many bytes that was
+    truncatedScans: 0,         // payloads that ran out of the node budget
+    scanThrows: 0,             // throws inside the worker-payload walk
+    portChecked: 0,            // MessagePort/BroadcastChannel messages inspected
+    workerCtors: 0,            // Worker/SharedWorker constructions seen
+    bodyBytesScanned: 0,       // round 7: bytes of BINARY request body byte-scanned
+    frameChecked: 0,           // round 7: window/iframe postMessage calls inspected
+    swChecked: 0,              // round 7: ServiceWorker postMessage/register calls
+    rtcChecked: 0,             // round 7: RTCDataChannel.send calls
+    headersScanned: 0,         // round 8: requests whose headers were read
+    unreadableHeaders: 0,      // round 8: header collections that would not enumerate
+    encodedHits: 0,            // round 8: matches that needed the decode/encode retry
+  };
+
+  /** The stand-in "tokens" for the four ways the guard can refuse something it
+   *  never actually read. They are not real watched strings, so they are never
+   *  used as needles and never redacted as one — they exist so an unreadable
+   *  thing travels the same refusal path as a real match and shows up in the
+   *  log saying honestly what happened. The LEADING SPACE is what makes a
+   *  collision impossible rather than unlikely: `buildWatchlist` only ever
+   *  stores `s.trim().toLowerCase()`, so no watched token can begin with
+   *  whitespace, so no schedule string can ever equal one of these however a
+   *  student names their classes. */
+  const EGRESS_OPAQUE_BODY = ' opaque-body';
+  const EGRESS_OPAQUE_LEAF = ' opaque-leaf';
+  const EGRESS_SCAN_TRUNCATED = ' scan-truncated';
+  const EGRESS_SCAN_THREW = ' scan-threw';
+  const EGRESS_OPAQUE_HEADERS = ' opaque-headers';   // round 8
+  /** The one place that decides "is this a sentinel", so adding a fifth is one
+   *  line and cannot be forgotten in the redactor or in the URL rewrite. */
+  const EGRESS_SENTINELS = {
+    [EGRESS_OPAQUE_BODY]: 'a body the guard could not read',
+    [EGRESS_OPAQUE_LEAF]: 'a payload node the guard could not read',
+    [EGRESS_SCAN_TRUNCATED]: 'a payload bigger than the guard can scan',
+    [EGRESS_SCAN_THREW]: 'a payload that made the guard throw',
+    [EGRESS_OPAQUE_HEADERS]: 'request headers the guard could not read',
+  };
+
+  /** Every string leaf in the schedule, long enough to be distinctive, plus
+   *  the serialised blob itself and the `CODE ROOM` composites the router will
+   *  be handed. Lowercased once here so the hot path is a plain indexOf. */
+  function buildWatchlist(doc) {
+    const out = new Set();
+    const add = (s) => {
+      if (typeof s !== 'string') return;
+      const t = s.trim().toLowerCase();
+      if (t.length >= SCHEDULE_STORE.minTokenLen) out.add(t);
+    };
+    const walk = (v) => {
+      if (v == null) return;
+      if (typeof v === 'string') return add(v);
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (typeof v === 'object') return Object.keys(v).forEach(k => walk(v[k]));
+    };
+    walk(doc);
+    for (const c of (doc && doc.classes) || []) {
+      if (c.code && c.room) { add(c.code + ' ' + c.room); add(c.code + '-' + c.room); }
+    }
+    try { add(JSON.stringify(doc)); } catch (e) {}
+    return Array.from(out);
+  }
+
+  /** The redaction the log itself needs, so reading the audit log is not a
+   *  second copy of the leak. */
+  const redactToken = (t) =>
+    EGRESS_SENTINELS[t] || (t.slice(0, 2) + '…(' + t.length + ')');
+
+  /**
+   * WHAT SCANS ONE STRING, AND WHY IT IS A LOOP OF `indexOf` AND NOT A REGEX.
+   *
+   * A single compiled alternation `/tok1|tok2|.../i` looks like the obvious
+   * win — one pass, no allocation — and it is the wrong primitive here. An
+   * alternation has to try every branch at every start position, so on a
+   * 60-character tile URL with ~22 branches it does over a thousand attempted
+   * matches to conclude "no". `String.prototype.indexOf` is a single
+   * vectorised substring search per token, and it is the operation V8 has
+   * actually optimised. Two cheap gates come first and remove most of the work
+   * outright: a haystack shorter than the shortest token cannot contain one,
+   * and every token is stored pre-lowercased so the haystack is lowercased
+   * exactly once per scan instead of once per token.
+   *
+   * `schedRe` is kept only as the "is anything watched" flag the hot paths
+   * test, so there is one thing to check rather than two.
+   */
+  let schedRe = null;               // null == nothing stored == fast path
+  let schedMinLen = Infinity;
+  /** THE ONLY WRITER of `schedWatch`. The list, the flag and the shortest
+   *  length must never disagree — a stale one of those is either a guard that
+   *  blocks nothing or one that blocks the map. */
+  function setWatchlist(list) {
+    schedWatch = list || [];
+    schedRe = schedWatch.length ? true : null;
+    schedMinLen = Infinity;
+    for (const t of schedWatch) if (t.length < schedMinLen) schedMinLen = t.length;
+    buildBytePatterns(schedWatch);
+  }
+
+  // ── the byte scanner: a buffer is content, not a hole in the floor ─────────
+  /**
+   * WHY THIS EXISTS AT ALL, and why the obvious two answers are both wrong.
+   *
+   * `scanStructured()` used to have this line in it:
+   *
+   *     if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
+   *
+   * — skip, no flag, nothing counted, with a comment claiming a buffer "cannot
+   * hold a JS string". Round 5's critic wrote `encoder.encode(title).buffer`,
+   * `postMessage`d it into a worker with the guard armed, and read the class
+   * title back off a raw TCP socket. `blockedDelta: 0, opaqueDelta: 0`.
+   *
+   * OPTION A — BLOCK BINARY. Breaks the map on contact: measured, one cold
+   * load of this city puts 4,742 `Uint8Array` leaves and 22.5 MB of real tile
+   * bytes through this path.
+   *
+   * OPTION B — DECODE EACH BUFFER TO A STRING AND REUSE `scanForSchedule`.
+   * Correct, and it allocates 22.5 MB of transient string per load and then
+   * `toLowerCase()`s all of it into a second 22.5 MB. On the tile path.
+   *
+   * SO: match the token BYTES against the buffer bytes, allocating nothing.
+   * One pass, no decode, no lowercase copy.
+   *
+   * THE PREFILTER IS TWO BYTES WIDE, AND THE HONEST VERSION OF WHY IS THAT
+   * THREE SHAPES WERE MEASURED AND THIS ONE WON NARROWLY. A 256-entry table
+   * keyed on one byte was the first try; a bit-packed 8 KB table was the
+   * third. Cold-load minimums, three interleaved reps: 925 ms, **866 ms**,
+   * and worse-than-both. The win is smaller than the reasoning predicted,
+   * which is the usual result of reasoning about caches — §8 of
+   * docs/si-privacy.md has the whole ledger including the two theories that
+   * were wrong. Case folding is ASCII-only and happens only at verify time:
+   * the mask carries all four case combinations of the leading pair, so the
+   * hot loop never folds.
+   *
+   * TWO ENCODINGS, because there are two an honest bug produces: UTF-8 (what
+   * `TextEncoder` emits, which is exactly how the critic did it) and UTF-16LE
+   * (what a hand-rolled `charCodeAt` copy into a `Uint16Array` emits). Base64
+   * and gzip are NOT covered and cannot be — see §9 of docs/si-privacy.md.
+   */
+  let schedByteMask = null;      // 65,536 bits packed into 8 KB, keyed (b0<<8)|b1
+  let schedByteBuckets = null;   // Map: folded (b0<<8)|b1 -> [{ b, tok }]
+  let schedMinPatLen = Infinity;
+
+  function buildBytePatterns(tokens) {
+    schedByteMask = null; schedByteBuckets = null; schedMinPatLen = Infinity;
+    if (typeof TextEncoder === 'undefined' || !tokens || !tokens.length) return;
+    const enc = new TextEncoder();
+    // ONE BYTE PER ENTRY, 64 KB, and the two cheaper-looking alternatives were
+    // both measured and both lost. A 256-entry table keyed on the first byte
+    // alone fits in L1 but lights up ~10% of byte values with a real
+    // watchlist, so one tile byte in ten pays for a bucket lookup. Packing
+    // 65,536 entries into 8 KB of BITS fits L1 too, but the shift-and-mask per
+    // byte costs more than the cache miss it avoids. Cold-load minimums, three
+    // interleaved reps each: 256-entry 925 ms, 64 KB byte table 866 ms,
+    // 8 KB bit table worse than both on the isolated benchmark.
+    const mask = new Uint8Array(65536);
+    const buckets = new Map();
+    const upper = (c) => (c >= 97 && c <= 122) ? c - 32 : c;
+    let min = Infinity;
+    const addPat = (bytes, tok) => {
+      if (bytes.length < SCHEDULE_STORE.minTokenLen) return;
+      // The pattern comes from a lowercased token, so these are the lower-case
+      // bytes; the buffer may hold either case of either of them.
+      const f0 = bytes[0], f1 = bytes[1];
+      const a0 = upper(f0) === f0 ? [f0] : [f0, upper(f0)];
+      const a1 = upper(f1) === f1 ? [f1] : [f1, upper(f1)];
+      for (let i = 0; i < a0.length; i++) {
+        for (let j = 0; j < a1.length; j++) mask[(a0[i] << 8) | a1[j]] = 1;
+      }
+      const key = (f0 << 8) | f1;
+      let bs = buckets.get(key);
+      if (!bs) { bs = []; buckets.set(key, bs); }
+      bs.push({ b: bytes, tok });
+      if (bytes.length < min) min = bytes.length;
+    };
+    // BOTH ENCODINGS OF ONE FORM OF ONE TOKEN. Deduped per token, because the
+    // percent-encoded form of a token that needs no escaping IS the token.
+    const seenForms = new Set();
+    const addForm = (s, tok) => {
+      if (!s) return;
+      const k = tok + '\u0000' + s;
+      if (seenForms.has(k)) return;
+      seenForms.add(k);
+      addPat(enc.encode(s), tok);
+      const u16 = new Uint8Array(s.length * 2);
+      for (let i = 0; i < s.length; i++) {
+        const cp = s.charCodeAt(i);
+        u16[i * 2] = cp & 0xff;
+        u16[i * 2 + 1] = (cp >> 8) & 0xff;
+      }
+      addPat(u16, tok);
+    };
+    for (const t of tokens) {
+      const s = t.length > SCHEDULE_STORE.binaryPatternChars
+        ? t.slice(0, SCHEDULE_STORE.binaryPatternChars) : t;
+      addForm(s, t);
+      // ── ENCODE THE NEEDLE, NEVER DECODE THE HAYSTACK ────────────────────
+      // Round 8's probe put `new TextEncoder().encode(encodeURIComponent(
+      // title)).buffer` through a worker with the guard armed and it crossed
+      // at `blocked: 0` — the string path now retries decoded, but the byte
+      // path cannot: percent-decoding 120 MB of real tile bytes per load to
+      // look for a needle is not a thing to do on the tile path.
+      //
+      // So the needle carries the encodings instead. It costs nothing at scan
+      // time — the hot loop is byte-identical, there are just more entries in
+      // a bucket — and it costs almost nothing in the PREFILTER either,
+      // because `encodeURIComponent` leaves letters alone: the encoded form of
+      // a class title starts with the same two bytes as the title, so no new
+      // mask bit is lit. Only a token that starts with a character needing an
+      // escape adds one.
+      if (SCHEDULE_STORE.scanEncodedForms) {
+        let pct = null;
+        try { pct = encodeURIComponent(s); } catch (e) { pct = null; }   // lone surrogate
+        if (pct) { addForm(pct, t); addForm(pct.replace(/%20/g, '+'), t); }
+        addForm(s.replace(/ /g, '+'), t);
+      }
+    }
+    schedByteMask = mask; schedByteBuckets = buckets; schedMinPatLen = min;
+  }
+
+  /** The matched token, or null. Allocates nothing. */
+  function scanBytesForSchedule(u8) {
+    const mask = schedByteMask;
+    if (!mask) return null;
+    const n = u8.length;
+    if (n < schedMinPatLen) return null;
+    const buckets = schedByteBuckets;
+    const last = n - schedMinPatLen;
+    let b0 = u8[0];
+    for (let i = 0; i <= last; i++) {
+      const b1 = u8[i + 1];
+      if (mask[(b0 << 8) | b1] !== 0) {
+        const f0 = (b0 >= 65 && b0 <= 90) ? b0 + 32 : b0;
+        const f1 = (b1 >= 65 && b1 <= 90) ? b1 + 32 : b1;
+        const bs = buckets.get((f0 << 8) | f1);
+        if (bs !== undefined) {
+          for (let k = 0; k < bs.length; k++) {
+            const pb = bs[k].b, m = pb.length;
+            if (i + m > n) continue;
+            let j = 2;
+            for (; j < m; j++) {
+              const d = u8[i + j];
+              if (((d >= 65 && d <= 90) ? d + 32 : d) !== pb[j]) break;
+            }
+            if (j === m) return bs[k].tok;
+          }
+        }
+      }
+      b0 = b1;
+    }
+    return null;
+  }
+
+  /** THE RAW SUBSTRING TEST. Private on purpose — see `scanForSchedule` below
+   *  for why there is no second exported way to scan a string. Assumes a real
+   *  string and a non-empty watchlist; both are checked by its one caller. */
+  function scanRawForSchedule(s) {
+    if (s.length < schedMinLen) return null;
+    const h = s.toLowerCase();
+    for (let i = 0; i < schedWatch.length; i++) {
+      const t = schedWatch[i];
+      if (t.length <= h.length && h.indexOf(t) !== -1) return t;
+    }
+    return null;
+  }
+
+  /**
+   * THE ONLY WAY TO SCAN A STRING, and being the only way is the fix.
+   *
+   * Round 6 found that a percent-encoded canary does not contain the canary:
+   * `fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams`
+   * form body both sailed past an armed guard, because
+   * `Zygomorphic%20Percussion%20Seminar` does not contain `zygomorphic
+   * percussion seminar`. It fixed that — in a SECOND function,
+   * `scanTextForSchedule`, and wired that function to the URL and body paths.
+   *
+   * `scanStructured()`'s string leaf kept calling the raw one. So did
+   * `inspectPayload`'s top-level string branch, and the `RegExp`, `Error` and
+   * boxed-`String` branches of the walk. Round 8 fired ten shapes of encoded
+   * string into a worker with the guard armed and **all ten crossed at
+   * `blocked: 0, opaque: 0`** — uncounted and unlogged — with six of them
+   * landing the class title on a raw TCP socket verbatim after the worker
+   * decoded them. Same defect as round 7's byte scanner: a correct check wired
+   * to one of the two doors.
+   *
+   * THE STRUCTURAL FIX IS NOT "WIRE THE OTHER DOOR TOO", because that leaves a
+   * third door for round 9. It is that there is now exactly one function
+   * anybody can call to ask "does this string carry the schedule", and it does
+   * the whole job. The raw test still exists, is not exported, and is called
+   * from precisely one place: this function's own retry.
+   *
+   * COSTS NOTHING ON THE HOT PATH. Every URL this app fetches is a plain
+   * relative path (`data/tiles/roads.pmtiles`) and every string leaf MapLibre
+   * puts through a worker payload is a layer id or a source name, so the
+   * `%`/`+` gate is false for all of them and no decode is ever attempted.
+   * Only a string that actually looks encoded pays for a decoded copy.
+   *
+   * ONE LEVEL OF DECODE, said plainly: `%2520` (double-encoded) is not caught,
+   * for the same reason base64 is not — see §9 of docs/si-privacy.md. One level
+   * is what an honest bug produces, because one level is what
+   * `encodeURIComponent` does.
+   */
+  function scanForSchedule(hay) {
+    if (!schedRe || !hay) return null;
+    const s = typeof hay === 'string' ? hay : String(hay);
+    const hit = scanRawForSchedule(s);
+    if (hit) return hit;
+    const pct = s.indexOf('%') !== -1, plus = s.indexOf('+') !== -1;
+    if (!pct && !plus) return null;
+    if (pct) {
+      // A malformed escape is not a reason to stop guarding the rest.
+      try {
+        const h = scanRawForSchedule(decodeURIComponent(s));
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
+    }
+    if (plus) {
+      const spaced = s.replace(/\+/g, ' ');
+      try {
+        const h = scanRawForSchedule(pct ? decodeURIComponent(spaced) : spaced);
+        if (h) { schedGuard.encodedHits++; return h; }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  /**
+   * scanStructured — walk a structured-clone payload and decide, for EVERY
+   * node in it, one of exactly three things: it is clear, it carries the
+   * schedule, or the guard could not read it. There is no fourth answer and in
+   * particular there is no "skip".
+   *
+   * ROUND 6 INVERTED THE DEFAULT, and that is the whole change. The old walk
+   * was an open-by-default `for (const k in x)` with a growing list of special
+   * cases bolted onto the front — skip buffers, flag `Blob`, flag
+   * `ReadableStream` — so every round shut the one shape that had been
+   * demonstrated and left the next one open. A `Blob` has no own enumerable
+   * properties, so a `for...in` walk reports a clean `hit: null` on one; so
+   * does a `Map`, a `Set`, a `RegExp`, an `Error`, an `ImageData`, and every
+   * host object nobody has written yet. Enumerating them is a losing game.
+   *
+   * So the walk now recognises a CLOSED list of node kinds it can genuinely
+   * read, reads them, and every other object falls into a default branch that
+   * sets `opaque`. Adding a new cloneable type to the platform can make this
+   * guard over-refuse; it cannot make it under-refuse. That direction is the
+   * point.
+   *
+   * BINARY IS SCANNED, NOT SKIPPED AND NOT BLOCKED. The line that used to read
+   * `if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` is how a
+   * class title went through a worker and onto a socket. Blocking the shape
+   * instead is not available: MapLibre moves 22.5 MB of genuine tile bytes
+   * through this exact path on one cold load. `scanBytesForSchedule()` above
+   * tells the two apart by looking at the bytes.
+   *
+   * `truncated` IS NOT COSMETIC. The old walk returned `complete: false` when
+   * it ran out of nodes and every caller dropped it on the floor — and 21 of
+   * this app's own messages per cold load exceed the old 4,000-node cap. Those
+   * payloads were not inspected and nothing said so. Running out of budget is
+   * now a refusal, exactly like a node the walk cannot read.
+   */
+  /**
+   * ONE WALK FUNCTION, MODULE-LEVEL, WITH ITS STATE BESIDE IT.
+   *
+   * IT WAS HOISTED HERE ON A THEORY THAT TURNED OUT TO BE WRONG, and that is
+   * worth leaving written down so nobody re-derives it. The walk used to be a
+   * closure declared inside `scanStructured`, i.e. a fresh function object per
+   * message, and the guard was costing ~30 µs per message on top of the byte
+   * scan. The theory was that V8 could never keep a per-call closure hot.
+   * Measured before and after: **no difference at all** (215 ms → 216 ms on
+   * the same 5,000-message benchmark). The per-message cost is the walk and
+   * the scan doing real work, not allocation.
+   *
+   * It stays hoisted because it is the better shape — one function, one place
+   * to read, no allocation per message — not because it was faster. Not
+   * re-entrant, and it does not need to be: every caller is synchronous and
+   * single-threaded, and the walk contains no `await` and no callback into
+   * anything that could re-enter it.
+   */
+  let swHit = null, swOpaque = false, swTrunc = false;
+  let swNodes = 0, swMaxNodes = 0, swBudget = 0, swBinLeaves = 0, swBinBytes = 0;
+  const HAS_OWN = Object.prototype.hasOwnProperty;
+
+  /** A view onto a buffer's bytes, or null if there is no reading it (a
+   *  detached buffer, a length-tracking view whose backing store has gone).
+   *  null takes the opaque path — never the "nothing there, carry on" path. */
+  function scanBytesOf(x) {
+    try {
+      if (x instanceof ArrayBuffer) return new Uint8Array(x);
+      if (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer) {
+        return new Uint8Array(x);
+      }
+      return new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+    } catch (e) { return null; }
+  }
+
+  function scanWalk(x) {
+    if (swHit !== null || swTrunc) return;
+    if (swNodes++ >= swMaxNodes) { swTrunc = true; return; }
+    if (x == null) return;
+    const t = typeof x;
+    if (t === 'string') { swHit = scanForSchedule(x); return; }
+    if (t !== 'object') return;                // number, boolean, bigint, symbol
+
+    // -- the two shapes that are 99% of real traffic, tested first ----------
+    //
+    // ROUND 7'S FINDING, AND IT IS THE SAME BUG ROUND 6 THOUGHT IT HAD FIXED.
+    // This branch used to read `for (let i = 0; i < x.length; i++)`. An index
+    // loop is not what a structured clone does to an array: the clone walks
+    // `EnumerableOwnPropertyNames`, so `a.note = classTitle` on an ordinary
+    // array **crosses into the worker** and an index loop never looks at it.
+    // Measured, not argued — `structuredClone([1,2,3] with .note)` carries the
+    // canary, the worker read it back, and it landed on a raw TCP socket with
+    // the guard armed at `blocked: 0, opaque: 0`. Uncounted and unlogged: the
+    // exact failure round 6 set out to make impossible, sitting inside the one
+    // branch round 6 declared fully read.
+    //
+    // Round 6 fixed *which kinds the walk recognises* and left *what reading a
+    // kind means* alone. So the rule now is the one the platform itself uses:
+    // for every kind this walk claims to read, it reads exactly what the clone
+    // algorithm reads. For `Array` and for a plain object that is the same
+    // thing — own enumerable properties — so they are the same loop, and an
+    // array is no longer the odd one out that was optimised into being wrong.
+    // The cost of that is real and is written down in docs/si-privacy.md §8.
+    if (Array.isArray(x)) {
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // an array IS fully read
+    }
+    const proto = Object.getPrototypeOf(x);
+    if (proto === Object.prototype || proto === null) {
+      // No per-property try/catch here. A throwing accessor on a plain object
+      // is caught by `inspectPayload`, which FAILS CLOSED — same refusal, and
+      // a try/catch in this loop is 99% of the traffic paying for the 0.001%.
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // a plain object IS fully read
+    }
+
+    // -- binary: read the bytes --------------------------------------------
+    if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer ||
+        (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer)) {
+      const u8 = scanBytesOf(x);
+      if (u8 === null) { swOpaque = true; return; }
+      swBudget -= u8.length;
+      if (swBudget < 0) { swOpaque = true; return; }
+      swBinLeaves++; swBinBytes += u8.length;
+      const h = scanBytesForSchedule(u8);
+      if (h) swHit = h;
+      return;
+    }
+
+    // -- the built-ins a `for...in` walk is blind to ------------------------
+    if (typeof Map !== 'undefined' && x instanceof Map) {
+      for (const pair of x) {
+        if (swHit !== null || swTrunc) return;
+        scanWalk(pair[0]); scanWalk(pair[1]);
+      }
+      return;
+    }
+    if (typeof Set !== 'undefined' && x instanceof Set) {
+      for (const val of x) { if (swHit !== null || swTrunc) return; scanWalk(val); }
+      return;
+    }
+    if (x instanceof Date) return;              // a timestamp holds no text
+    if (x instanceof RegExp) { swHit = scanForSchedule(x.source); return; }
+    if (x instanceof Error) {
+      swHit = scanForSchedule(String(x.message || '')) ||
+              scanForSchedule(String(x.stack || ''));
+      return;
+    }
+    if (x instanceof String) { swHit = scanForSchedule(String(x)); return; }
+    if (x instanceof Number || x instanceof Boolean) return;
+
+    // -- a class instance: read what it actually exposes --------------------
+    let seen = 0;
+    for (const k in x) {
+      if (swHit !== null || swTrunc) return;
+      if (!HAS_OWN.call(x, k)) continue;
+      seen++;
+      scanWalk(x[k]);
+    }
+
+    // -- THE DEFAULT, AND THE POINT OF THE WHOLE REWRITE --------------------
+    // Nothing above recognised this, and it exposed no own enumerable
+    // property to read. That is exactly what a `Blob`, a `File`, an
+    // `ImageData`, an `ImageBitmap` and a type invented next year all look
+    // like from here. It is reported as unread rather than as clear, and the
+    // caller decides. Measured cost on this app: zero — a census of a full
+    // cold load found only `Object`, `Array` and `Uint8Array` crossing this
+    // boundary, and not one object with no own enumerable properties.
+    if (seen === 0) swOpaque = true;
+  }
+
+  function scanStructured(v, limits) {
+    swHit = null; swOpaque = false; swTrunc = false;
+    swNodes = 0; swBinLeaves = 0; swBinBytes = 0;
+    swMaxNodes = (limits && limits.nodes) || SCHEDULE_STORE.workerScanNodes;
+    swBudget = (limits && limits.bytes) || SCHEDULE_STORE.binaryScanBytes;
+    scanWalk(v);
+    return { hit: swHit, opaque: swOpaque, truncated: swTrunc,
+             binLeaves: swBinLeaves, binBytes: swBinBytes, nodes: swNodes };
+  }
+
+  /** Best-effort synchronous text of a request body. Returns `''` for a body
+   *  that is genuinely absent, and `undefined` for one that EXISTS but cannot
+   *  be read without going async (a Blob, a ReadableStream, a buffer past
+   *  `maxBytes`). The caller must keep those two apart: `''` clears the
+   *  request, `undefined` refuses it while a schedule is stored. */
+  /** "This call HAS a body and it is not here to be read" — a `Request`'s
+   *  `ReadableStream`, or a `FormData` that would not build. Distinct from
+   *  `null`/absent, which clears the request. `bodyToText` maps it to
+   *  `undefined`, which is the refusal path. */
+  const BODY_UNREADABLE = { __wfUnreadable: true };
+
+  function bodyToText(b) {
+    if (b === BODY_UNREADABLE) return undefined;
+    if (b == null) return '';
+    if (typeof b === 'string') return b;
+    if (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) return b.toString();
+    if (typeof FormData !== 'undefined' && b instanceof FormData) {
+      let s = '';
+      for (const pair of b.entries()) s += pair[0] + '=' + (typeof pair[1] === 'string' ? pair[1] : '[file]') + '&';
+      return s;
+    }
+    if (typeof ArrayBuffer !== 'undefined' && (b instanceof ArrayBuffer || ArrayBuffer.isView(b))) {
+      try {
+        const u8 = b instanceof ArrayBuffer ? new Uint8Array(b) : new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+        if (u8.length > SCHEDULE_STORE.maxBytes) return undefined;
+        return new TextDecoder('utf-8', { fatal: false }).decode(u8);
+      } catch (e) { return undefined; }
+    }
+    return undefined;   // Blob, ReadableStream, anything else
+  }
+
+  /**
+   * THE BYTES OF A BINARY BODY, so a request body gets the same two-encoding
+   * scan a worker payload already got. null for a body that is not binary.
+   *
+   * ROUND 7 FOUND THIS BY FIRING AT ITS OWN SOCKET, and it is the other half of
+   * the array bug: round 6 built `scanBytesForSchedule()` — UTF-8 *and*
+   * UTF-16LE, the two encodings an honest bug produces — and then wired it to
+   * exactly one of the two doors. `bodyToText()` decodes a binary body as UTF-8
+   * and nothing else, so
+   *
+   *     fetch(url, { body: utf16leBufferOfTheClassTitle })
+   *
+   * came back `204` off a bare TCP listener with the guard armed and
+   * `blocked: 0`, while the *same title* UTF-8-encoded was refused. A guard
+   * that is encoding-complete on the worker path and encoding-blind on the
+   * network path is not a guard, it is a coin flip about which door gets used.
+   *
+   * Costs nothing here: every request this app makes is a bodyless GET, so
+   * `bodyBytes()` returns null for all of them and the scan never runs. And a
+   * binary body over `maxBytes` is already refused unread by `bodyToText()`
+   * returning `undefined`, so the bytes this ever sees are at most 256 KB.
+   */
+  function bodyBytes(b) {
+    if (b == null || typeof b === 'string') return null;
+    if (typeof ArrayBuffer === 'undefined') return null;
+    try {
+      if (b instanceof ArrayBuffer) return new Uint8Array(b);
+      if (ArrayBuffer.isView(b)) return new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+    } catch (e) { return null; }
+    return null;
+  }
+
+  /**
+   * inspectPayload — the ONE inspection every structured-clone channel goes
+   * through, so `Worker.postMessage`, `MessagePort.postMessage` and
+   * `BroadcastChannel.postMessage` cannot end up with three different
+   * definitions of "clear". Returns the token to refuse on, or null.
+   *
+   * Its own inline shape rather than a trip through `inspect()`, because
+   * `inspect()` builds a log line and a MapLibre tile load is 2,545 of these.
+   * Counted always, logged only when it actually matters.
+   */
+  function inspectPayload(via, msg) {
+    schedGuard.checked++; schedGuard.quietChecked++;
+    let hit = null;
+    try {
+      if (typeof msg === 'string') {
+        hit = scanForSchedule(msg);
+      } else {
+        const r = scanStructured(msg);
+        hit = r.hit;
+        if (r.binLeaves) { schedGuard.binaryLeaves += r.binLeaves; schedGuard.binaryBytes += r.binBytes; }
+        if (r.truncated) schedGuard.truncatedScans++;
+        if (r.opaque) schedGuard.opaqueWorkerLeaves++;
+        // Counted ALWAYS, refused only if the policy says so, so the counts
+        // stay a real measurement of this app's own traffic rather than a
+        // number the policy shaped.
+        if (!hit && SCHEDULE_STORE.blockOpaqueWorkerLeaves) {
+          if (r.truncated) hit = EGRESS_SCAN_TRUNCATED;
+          else if (r.opaque) hit = EGRESS_OPAQUE_LEAF;
+        }
+      }
+    } catch (e) {
+      // FAILS CLOSED HERE, unlike the network paths. A throw on the way into a
+      // worker is indistinguishable from a payload built to cause one, and
+      // refusing a worker message cannot stop a tile downloading the way a
+      // broken `fetch` wrapper could. `SCHEDULE_STORE.failClosedOnScanError`
+      // is the one-line way back.
+      schedGuard.scanThrows++; schedGuard.inspectFailures++;
+      hit = SCHEDULE_STORE.failClosedOnScanError ? EGRESS_SCAN_THREW : null;
+    }
+    if (hit && schedGuard.armed) {
+      schedGuard.blocked++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
+      noteEgress(via, 'POST', '[' + via + ']', hit, true, -1);
+      return hit;
+    }
+    return null;
+  }
+
+  function noteEgress(via, method, url, hit, blocked, bytes) {
+    if (schedGuard.log.length >= SCHEDULE_STORE.logCap) schedGuard.log.shift();
+    let u = String(url == null ? '' : url);
+    // The sentinel is not a needle — it never appeared in the URL, so there is
+    // nothing in the URL to redact and building a regex for it is pure waste
+    // on a path that also runs for ordinary traffic.
+    if (hit && !EGRESS_SENTINELS[hit]) {
+      const re = new RegExp(hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      u = u.replace(re, '[REDACTED]');
+    }
+    schedGuard.log.push({
+      t: Math.round(performance.now()),
+      via, method: method || 'GET', url: u,
+      bytes: bytes == null ? 0 : bytes,
+      watched: schedWatch.length,
+      blocked: !!blocked,
+      matched: hit ? redactToken(hit) : null,
+    });
+  }
+
+  /**
+   * The one decision. Returns the matched token, or null to let it through.
+   *
+   * `quiet` MEANS "COUNT IT, DO NOT WRITE A LOG LINE FOR IT" — and it is a
+   * measured fix, not a style choice. The first version logged every call, and
+   * `Worker.postMessage` is MapLibre's per-tile path: 4,000 messages measured
+   * at 47 µs each over the unguarded baseline, and most of that was the log
+   * entry — a `performance.now()`, an object, and a `shift()` off a full ring
+   * buffer, per tile. The log exists to audit egress to the NETWORK, where the
+   * traffic is tens of requests and every line is worth having. A worker
+   * message still gets counted, and still gets a log line the moment it
+   * actually matches, which is the only worker message anyone would ever read.
+   */
+  /**
+   * `raw` IS THE BODY AS THE CALLER HAD IT, not a string the caller already
+   * flattened — round 7's change, and the reason is in `bodyBytes()` above.
+   * Flattening in the caller is what let a UTF-16LE buffer body reach the wire:
+   * by the time `inspect` saw it, it was already mojibake. It converts here now
+   * so there is one place that decides what a body is, and binary reaches the
+   * byte scanner instead of only the UTF-8 decoder.
+   */
+  /**
+   * ROUND 8 — HEADERS. `headerSources` is always a LIST of places a request's
+   * headers can come from, never one of them, because a `fetch(new Request(u,
+   * {headers}), {headers})` has two and picking either one is how this class of
+   * bug happens in the first place. Each entry may be a `Headers`, a plain
+   * object, an array of pairs, a pre-flattened string, or null.
+   *
+   * A collection that will not enumerate returns `undefined`, which is the
+   * refusal path — the same rule an unreadable body got in round 5.
+   */
+  function oneHeaderSourceToText(h) {
+    if (h == null) return '';
+    if (typeof h === 'string') return h;
+    if (typeof Headers !== 'undefined' && h instanceof Headers) {
+      let s = '';
+      for (const p of h) s += p[0] + ': ' + p[1] + '\n';
+      return s;
+    }
+    if (Array.isArray(h)) {
+      let s = '';
+      for (const p of h) s += String(p && p[0]) + ': ' + String(p && p[1]) + '\n';
+      return s;
+    }
+    if (typeof h === 'object') {
+      let s = '';
+      for (const k in h) if (HAS_OWN.call(h, k)) s += k + ': ' + String(h[k]) + '\n';
+      return s;
+    }
+    return String(h);
+  }
+  function headerSourcesToText(list) {
+    if (!list || !list.length) return '';
+    let s = '';
+    try { for (let i = 0; i < list.length; i++) s += oneHeaderSourceToText(list[i]); }
+    catch (e) { return undefined; }
+    return s;
+  }
+
+  function inspect(via, method, url, raw, quiet, headerSources) {
+    schedGuard.checked++;
+    if (quiet) schedGuard.quietChecked++;
+    if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
+    let hit = null;
+    let body;
+    try {
+      body = bodyToText(raw);
+      hit = scanForSchedule(url);
+      if (!hit && SCHEDULE_STORE.scanRequestHeaders && headerSources && headerSources.length) {
+        const ht = headerSourcesToText(headerSources);
+        if (ht === undefined) {
+          schedGuard.unreadableHeaders++;
+          if (SCHEDULE_STORE.blockUnreadableHeaders) hit = EGRESS_OPAQUE_HEADERS;
+        } else if (ht) {
+          schedGuard.headersScanned++;
+          hit = scanForSchedule(ht);
+        }
+      }
+      if (body === undefined) {
+        // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
+        // hole round 4's critic drove a Blob through. While a schedule is
+        // stored, a body the guard cannot read is a body it cannot clear.
+        schedGuard.unreadableBodies++;
+        if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
+      } else if (!hit) {
+        hit = scanForSchedule(body);
+        // ...and the same bytes again, in the encodings a decode cannot reach.
+        if (!hit) {
+          const u8 = bodyBytes(raw);
+          if (u8) { schedGuard.bodyBytesScanned += u8.length; hit = scanBytesForSchedule(u8); }
+        }
+      }
+    } catch (e) {
+      // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
+      // map loading; the audit asserts this counter is zero, which is where a
+      // broken inspector actually gets caught.
+      schedGuard.inspectFailures++;
+      if (!quiet) noteEgress(via, method, url, null, false, 0);
+      return null;
+    }
+    const block = !!(hit && schedGuard.armed);
+    if (!quiet || hit) {
+      noteEgress(via, method, url, hit, block, body === undefined ? -1 : String(body || '').length);
+    }
+    if (block) {
+      schedGuard.blocked++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
+    }
+    return block ? hit : null;
+  }
+
+  function egressError(via, hit) {
+    return new Error('[wayfind] blocked: ' + via + ' carried stored schedule content (' +
+      redactToken(hit) + '). The schedule never leaves this device.');
+  }
+
+  /**
+   * Wrap the two egress doors inside a Window this page has a handle on — a
+   * same-origin iframe, or whatever `window.open` handed back. See
+   * `SCHEDULE_STORE.guardChildFrames` for why patching our own realm is not
+   * enough. Idempotent via a mark ON THAT REALM'S OWN window, so re-reading
+   * `contentWindow` in a loop costs one property read.
+   *
+   * WHAT IT DOES NOT CLAIM: a child realm can mint its own child, and this
+   * only follows references that pass through THIS page. It is the same kind
+   * of seatbelt as the rest of §12 — it makes an honest mistake fail loudly,
+   * and it is not a sandbox. docs/si-privacy.md §9 says so in the same words.
+   */
+  const CHILD_REALM_MARK = '__wfEgressGuarded';
+  function guardChildRealm(w) {
+    if (!w) return false;
+    try {
+      if (w[CHILD_REALM_MARK]) return true;
+      const pm = w.postMessage;
+      if (typeof pm !== 'function') return false;
+      w.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('childframe.postMessage', msg);
+          if (hit) throw egressError('child frame postMessage', hit);
+        }
+        return pm.apply(w, arguments);
+      };
+      if (typeof w.fetch === 'function') {
+        const of = w.fetch;
+        w.fetch = function (input, init) {
+          if (schedWatch.length) {
+            const isReq = !!(w.Request && input instanceof w.Request);
+            const url = isReq ? input.url : String(input);
+            const method = (init && init.method) || (isReq && input.method) || 'GET';
+            let raw = init ? init.body : null;
+            if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;
+            const hit = inspect('childframe.fetch', method, url, raw, false,
+              [init ? init.headers : null, isReq ? input.headers : null]);
+            if (hit) return Promise.reject(egressError('child frame fetch', hit));
+          }
+          return of.apply(w, arguments);
+        };
+      }
+      w[CHILD_REALM_MARK] = true;
+      return true;
+    } catch (e) {
+      // Cross-origin. The assignment throws SecurityError, which is the
+      // browser telling us the thing we were worried about cannot happen
+      // through this handle either.
+      return false;
+    }
+  }
+
+  function installEgressGuard() {
+    if (schedGuard.installed) return;
+    schedGuard.installed = true;
+
+    // fetch ────────────────────────────────────────────────────────────────
+    if (typeof window.fetch === 'function') {
+      const orig = window.fetch;
+      window.fetch = function (input, init) {
+        // FAST PATH. With nothing stored there is nothing to scan, and this is
+        // the path every tile in the city takes.
+        if (!schedWatch.length) return orig.apply(this, arguments);
+        const isReq = (typeof Request !== 'undefined' && input instanceof Request);
+        const url = isReq ? input.url : String(input);
+        const method = (init && init.method) || (isReq && input.method) || 'GET';
+        let raw = init ? init.body : null;
+        if (isReq && raw == null && input.body) raw = BODY_UNREADABLE;   // stream
+        // BOTH header sources, because a `Request` carries its own and `init`
+        // can add more, and the wire gets the union of them.
+        const hit = inspect('fetch', method, url, raw, false,
+          [init ? init.headers : null, isReq ? input.headers : null]);
+        if (hit) return Promise.reject(egressError('fetch', hit));
+        return orig.apply(this, arguments);
+      };
+    }
+
+    // XMLHttpRequest ───────────────────────────────────────────────────────
+    if (typeof XMLHttpRequest !== 'undefined') {
+      const op = XMLHttpRequest.prototype.open, sd = XMLHttpRequest.prototype.send;
+      const srh = XMLHttpRequest.prototype.setRequestHeader;
+      XMLHttpRequest.prototype.open = function (m, u) {
+        this.__wfM = m; this.__wfU = u; this.__wfH = '';   // a reused XHR starts clean
+        return op.apply(this, arguments);
+      };
+      // XHR has no header collection to read at `send` time — the only record
+      // of what was set is the calls that set it, so keep one. Gated on a
+      // schedule being stored, so an app with none pays nothing.
+      if (typeof srh === 'function') {
+        XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+          if (schedWatch.length && SCHEDULE_STORE.scanRequestHeaders) {
+            this.__wfH = (this.__wfH || '') + String(k) + ': ' + String(v) + '\n';
+          }
+          return srh.apply(this, arguments);
+        };
+      }
+      XMLHttpRequest.prototype.send = function (b) {
+        if (schedWatch.length) {
+          const hit = inspect('xhr', this.__wfM, this.__wfU, b, false, [this.__wfH]);
+          if (hit) throw egressError('XMLHttpRequest', hit);
+        }
+        return sd.apply(this, arguments);
+      };
+    }
+
+    // sendBeacon ───────────────────────────────────────────────────────────
+    if (navigator && typeof navigator.sendBeacon === 'function') {
+      const orig = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = function (u, d) {
+        if (schedWatch.length && inspect('sendBeacon', 'POST', u, d)) return false;
+        return orig(u, d);
+      };
+    }
+
+    // WebSocket ────────────────────────────────────────────────────────────
+    if (typeof window.WebSocket === 'function') {
+      const OrigWS = window.WebSocket;
+      class GuardedWebSocket extends OrigWS {
+        constructor(url, protocols) {
+          if (schedWatch.length) {
+            // Report the token that actually matched. The literal 'url' this
+            // used to pass rendered in the thrown message as `ur…(3)`, which
+            // tells the reader nothing about what was caught.
+            //
+            // ROUND 8: the SUBPROTOCOLS are on the wire too. They travel as
+            // `Sec-WebSocket-Protocol` in the opening handshake, and this
+            // passed `''` for the body and never looked at them. Same family
+            // as the request headers below — a string argument that reaches
+            // the network and nothing read it.
+            const h = inspect('websocket', 'OPEN', url,
+              protocols == null ? '' :
+              (Array.isArray(protocols) ? protocols.join(',') : String(protocols)));
+            if (h) throw egressError('WebSocket', h);
+          }
+          super(url, protocols);
+        }
+        send(data) {
+          if (schedWatch.length) {
+            const hit = inspect('websocket', 'SEND', this.url, data);
+            if (hit) throw egressError('WebSocket.send', hit);
+          }
+          return super.send(data);
+        }
+      }
+      window.WebSocket = GuardedWebSocket;
+    }
+
+    // EventSource ──────────────────────────────────────────────────────────
+    if (typeof window.EventSource === 'function') {
+      const OrigES = window.EventSource;
+      class GuardedEventSource extends OrigES {
+        constructor(url, cfg) {
+          if (schedWatch.length) {
+            const h = inspect('eventsource', 'OPEN', url, '');
+            if (h) throw egressError('EventSource', h);
+          }
+          super(url, cfg);
+        }
+      }
+      window.EventSource = GuardedEventSource;
+    }
+
+    // every structured-clone door into a worker ────────────────────────────
+    // THESE ARE THE ONES THAT CLOSE THE HOLE. The guard is main-thread, and
+    // MapLibre does its tile fetching inside workers where it cannot reach. So
+    // instead of trying to follow the bytes into the worker, it stops schedule
+    // bytes from ever getting in — and "the door" means every door, not the
+    // one door a critic happened to knock on.
+    //
+    // `MessagePort` and `BroadcastChannel` are here because a `MessagePort`
+    // transferred into a worker carries structured clones without ever
+    // touching `Worker.prototype.postMessage`, which would have been the
+    // round-7 finding. Measured cost of guarding them: exactly zero — a full
+    // cold load of this city makes 0 `MessagePort.postMessage` calls and 0
+    // `BroadcastChannel.postMessage` calls.
+    if (typeof Worker !== 'undefined' && Worker.prototype && Worker.prototype.postMessage) {
+      const pm = Worker.prototype.postMessage;
+      Worker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          const hit = inspectPayload('worker.postMessage', msg);
+          if (hit) throw egressError('Worker.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+    if (typeof MessagePort !== 'undefined' && MessagePort.prototype && MessagePort.prototype.postMessage) {
+      const pm = MessagePort.prototype.postMessage;
+      MessagePort.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('port.postMessage', msg);
+          if (hit) throw egressError('MessagePort.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+    if (typeof BroadcastChannel !== 'undefined' && BroadcastChannel.prototype && BroadcastChannel.prototype.postMessage) {
+      const pm = BroadcastChannel.prototype.postMessage;
+      BroadcastChannel.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('broadcast.postMessage', msg);
+          if (hit) throw egressError('BroadcastChannel.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+
+    // the doors round 7 found still open ───────────────────────────────────
+    // Round 6 closed every structured-clone door it could name and wrote that
+    // `MessagePort`/`BroadcastChannel` "would have been the round-7 finding".
+    // It was half right. These four were still unwrapped, and the channel
+    // matrix caught them the cheap way: fire at each one with the guard armed
+    // and read `checked` before and after. All four came back `checked: 0` —
+    // not "allowed", *never looked at*, which is the same reading the
+    // ArrayBuffer leak gave in round 5.
+    //
+    // None of them is exotic. `window.parent.postMessage(schedule, '*')` hands
+    // the term to whatever page has this app in an iframe, and this app is a
+    // public URL anyone can frame. A `ServiceWorker` has its own `fetch` and
+    // outlives the tab. An `RTCDataChannel` is a socket with a different name.
+    //
+    // MEASURED COST: zero. A cold load of this city makes 0 calls to any of
+    // the four (`frameChecked`/`swChecked`/`rtcChecked` all 0 in the audit),
+    // which is exactly why closing them now is cheap and finding out later
+    // would not have been.
+    if (typeof window.postMessage === 'function') {
+      const opm = window.postMessage.bind(window);
+      window.postMessage = function (msg, targetOrigin, transfer) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('window.postMessage', msg);
+          if (hit) throw egressError('window.postMessage', hit);
+        }
+        return opm(msg, targetOrigin, transfer);
+      };
+    }
+    // An iframe's `contentWindow` is a *different* Window object, so patching
+    // our own is not enough — the class has to be patched on the prototype.
+    if (typeof Window !== 'undefined' && Window.prototype && Window.prototype.postMessage) {
+      const wpm = Window.prototype.postMessage;
+      Window.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.frameChecked++;
+          const hit = inspectPayload('frame.postMessage', msg);
+          if (hit) throw egressError('Window.postMessage', hit);
+        }
+        return wpm.apply(this, arguments);
+      };
+    }
+    if (typeof ServiceWorker !== 'undefined' && ServiceWorker.prototype && ServiceWorker.prototype.postMessage) {
+      const spm = ServiceWorker.prototype.postMessage;
+      ServiceWorker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const hit = inspectPayload('serviceworker.postMessage', msg);
+          if (hit) throw egressError('ServiceWorker.postMessage', hit);
+        }
+        return spm.apply(this, arguments);
+      };
+    }
+    // The same shape as `new Worker(url)`: the URL alone is the leak, and the
+    // registration outlives the page that made it.
+    if (navigator && navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+      const reg = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = function (url, opts) {
+        if (schedRe) {
+          schedGuard.swChecked++;
+          const h = inspect('serviceworker.register', 'REGISTER', url, '');
+          if (h) return Promise.reject(egressError('serviceWorker.register', h));
+        }
+        return reg(url, opts);
+      };
+    }
+    // a child realm this page can reach is a realm the guard reaches ───────
+    if (SCHEDULE_STORE.guardChildFrames && typeof HTMLIFrameElement !== 'undefined') {
+      const d = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+      if (d && typeof d.get === 'function') {
+        Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+          configurable: true,
+          enumerable: d.enumerable,
+          get: function () {
+            const w = d.get.call(this);
+            if (schedRe) guardChildRealm(w);
+            return w;
+          },
+        });
+      }
+      if (typeof window.open === 'function') {
+        const op = window.open.bind(window);
+        window.open = function (url) {
+          if (schedRe) {
+            schedGuard.frameChecked++;
+            const h = inspect('window.open', 'OPEN', url, '');
+            if (h) throw egressError('window.open', h);
+          }
+          const w = op.apply(null, arguments);
+          if (schedRe) guardChildRealm(w);
+          return w;
+        };
+      }
+    }
+    // ROUND 8, and the same shape as the WebSocket subprotocols: a channel's
+    // LABEL is carried in the SDP the peers exchange, so the label alone is a
+    // leak that never calls `send`. Round 7 guarded the send and not the name.
+    if (typeof RTCPeerConnection !== 'undefined' && RTCPeerConnection.prototype &&
+        RTCPeerConnection.prototype.createDataChannel) {
+      const cdc = RTCPeerConnection.prototype.createDataChannel;
+      RTCPeerConnection.prototype.createDataChannel = function (label) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const h = inspect('rtc.createDataChannel', 'OPEN',
+            String(label == null ? '' : label), '');
+          if (h) throw egressError('RTCPeerConnection.createDataChannel', h);
+        }
+        return cdc.apply(this, arguments);
+      };
+    }
+    if (typeof RTCDataChannel !== 'undefined' && RTCDataChannel.prototype && RTCDataChannel.prototype.send) {
+      const snd = RTCDataChannel.prototype.send;
+      RTCDataChannel.prototype.send = function (data) {
+        if (schedWatch.length) {
+          schedGuard.rtcChecked++;
+          const hit = inspect('rtc.send', 'SEND', this.label || '[datachannel]', data);
+          if (hit) throw egressError('RTCDataChannel.send', hit);
+        }
+        return snd.apply(this, arguments);
+      };
+    }
+
+    // the worker's own script URL ──────────────────────────────────────────
+    // `new Worker('/collect?t=' + classTitle)` is a leak that never sends a
+    // single message, and until this round nothing looked at it. The URL is a
+    // string, so this is the ordinary scan.
+    //
+    // WHAT IT CANNOT DO, and it is written here rather than only in the doc:
+    // MapLibre mints ONE `blob:` URL and spawns FOUR workers from it (measured
+    // on a real load), and a `Blob` cannot be read synchronously. So schedule
+    // text baked into a worker's SOURCE via a blob URL is not visible here.
+    // Refusing blob-sourced workers outright would break the map on contact.
+    // §9 of docs/si-privacy.md names this as a residual rather than pretending
+    // otherwise.
+    const guardWorkerCtor = (name) => {
+      const Orig = window[name];
+      if (typeof Orig !== 'function') return;
+      class GuardedWorkerCtor extends Orig {
+        constructor(url, opts) {
+          if (schedRe) {
+            schedGuard.workerCtors++;
+            const h = inspect(name.toLowerCase() + '.new', 'NEW', url, '');
+            if (h) throw egressError(name + ' constructor', h);
+          }
+          super(url, opts);
+        }
+      }
+      window[name] = GuardedWorkerCtor;
+    };
+    guardWorkerCtor('Worker');
+    guardWorkerCtor('SharedWorker');
+
+    // form submission ──────────────────────────────────────────────────────
+    if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype.submit) {
+      const sub = HTMLFormElement.prototype.submit;
+      HTMLFormElement.prototype.submit = function () {
+        if (schedWatch.length) {
+          const hit = inspect('form.submit', this.method || 'GET', this.action,
+            typeof FormData !== 'undefined' ? new FormData(this) : null);
+          if (hit) throw egressError('form.submit', hit);
+        }
+        return sub.apply(this, arguments);
+      };
+    }
+    document.addEventListener('submit', (ev) => {
+      if (!schedWatch.length) return;
+      const f = ev.target;
+      if (!f || f.tagName !== 'FORM') return;
+      let fd = '';
+      try { fd = new FormData(f); } catch (e) { fd = BODY_UNREADABLE; }
+      if (inspect('form.event', f.method || 'GET', f.action, fd)) ev.preventDefault();
+    }, true);
+  }
+
+  // ── read, write, and the delete that has to be total ───────────────────────
+  let schedCache = null;
+  const schedListeners = new Set();
+  function fireScheduleChange(why) {
+    for (const fn of schedListeners) { try { fn(schedCache, why); } catch (e) {} }
+    renderPrivacyPanel();
+  }
+
+  function scheduleLoad() {
+    if (schedCache) return schedCache;
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(SCHEDULE_STORE.key) || 'null'); } catch (e) { return null; }
+    if (!raw || typeof raw !== 'object') return null;
+    if (Number(raw.v) > SCHEDULE_SCHEMA_VERSION) return { tooNew: true, v: raw.v };
+    const d = migrateSchedule(raw);
+    if (!d) return null;
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    return d;
+  }
+
+  function scheduleSave(doc) {
+    const d = normaliseSchedule(doc);
+    let text;
+    try { text = JSON.stringify(d); } catch (e) { return { ok: false, why: 'unserialisable' }; }
+    if (text.length > SCHEDULE_STORE.maxBytes) return { ok: false, why: 'toobig', bytes: text.length };
+    try { localStorage.setItem(SCHEDULE_STORE.key, text); }
+    catch (e) { return { ok: false, why: 'storage', message: String(e && e.name) }; }
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    fireScheduleChange('save');
+    return { ok: true, bytes: text.length, classes: d.classes.length };
+  }
+
+  /** Every key this feature could ever have written, right now, on disk. */
+  function scheduleKeys() {
+    const out = [];
+    for (const store of [['local', localStorage], ['session', sessionStorage]]) {
+      try {
+        for (let i = 0; i < store[1].length; i++) {
+          const k = store[1].key(i);
+          if (k && k.indexOf(SCHEDULE_STORE.prefix) === 0) out.push({ where: store[0], key: k });
+        }
+      } catch (e) {}
+    }
+    return out;
+  }
+
+  function scheduleInventory() {
+    const keys = scheduleKeys().map(k => {
+      let v = '';
+      try { v = ((k.where === 'local' ? localStorage : sessionStorage).getItem(k.key)) || ''; } catch (e) {}
+      return { where: k.where, key: k.key, bytes: v.length };
+    });
+    return { keys, bytes: keys.reduce((n, k) => n + k.bytes, 0), inMemory: !!schedCache };
+  }
+
+  /**
+   * scheduleClear — the delete control's whole job. Sweeps the prefix in both
+   * web storages (not just the one key), drops the reserved IndexedDB database
+   * whether or not anything has created it yet, drops the in-memory copy, and
+   * empties the guard's watchlist so the guard is not holding the last copy of
+   * what it was guarding.
+   */
+  function scheduleClear() {
+    const removed = [];
+    for (const k of scheduleKeys()) {
+      try { (k.where === 'local' ? localStorage : sessionStorage).removeItem(k.key); removed.push(k.key); } catch (e) {}
+    }
+    schedCache = null;
+    setWatchlist([]);
+    const idb = new Promise((res) => {
+      if (typeof indexedDB === 'undefined' || !indexedDB.deleteDatabase) return res('no-idb');
+      let done = false;
+      const fin = (r) => { if (!done) { done = true; res(r); } };
+      try {
+        const req = indexedDB.deleteDatabase(SCHEDULE_STORE.idbName);
+        req.onsuccess = () => fin('deleted');
+        req.onerror = () => fin('error');
+        req.onblocked = () => fin('blocked');
+        setTimeout(() => fin('timeout'), 2000);
+      } catch (e) { fin('threw'); }
+    });
+    fireScheduleChange('clear');
+    return { removed, idb, remaining: scheduleInventory() };
+  }
+
+  async function scheduleClearAsync() {
+    const r = scheduleClear();
+    r.idbResult = await r.idb;
+    r.remaining = scheduleInventory();
+    return r;
+  }
+
+  // A delete in one tab is a delete everywhere. Cheap, and the alternative is
+  // a second tab still holding a schedule the student believes they erased.
+  window.addEventListener('storage', (ev) => {
+    if (!ev || !ev.key || ev.key.indexOf(SCHEDULE_STORE.prefix) !== 0) return;
+    schedCache = null;
+    const d = scheduleLoad();
+    if (!d || d.tooNew) setWatchlist([]);
+    fireScheduleChange('othertab');
+  });
+
+  // ── the panel: the sentence, what is stored, and the one tap ──────────────
+  let privEl = null, privMountTries = 0, privNoticeTimer = 0;
+
+  /** index.html's `<template id="wf-privacy-copy">` overrides the defaults, so
+   *  the wording is a one-line edit in the HTML with no JS change. */
+  function privacyCopy() {
+    const out = Object.assign({}, SCHEDULE_PRIVACY_COPY);
+    const t = document.getElementById('wf-privacy-copy');
+    if (t && t.content) {
+      for (const n of t.content.querySelectorAll('[data-k]')) {
+        const k = n.getAttribute('data-k');
+        if (k in out) out[k] = n.textContent.trim();
+      }
+    }
+    return out;
+  }
+
+  function buildPrivacyPanel() {
+    if (privEl) return privEl;
+    if (!document.getElementById('wf-priv-css')) {
+      const s = document.createElement('style');
+      s.id = 'wf-priv-css'; s.textContent = SCHEDULE_PRIVACY_CSS;
+      document.head.appendChild(s);
+    }
+    const C = privacyCopy();
+    const root = h('div', null); root.id = 'wf-priv';
+    root.appendChild(h('div', 'wf-priv-line', C.line));
+    const st = h('div', 'wf-priv-state', ''); root.appendChild(st);
+    const del = h('button', null, ''); del.id = 'wf-priv-del';
+    del.type = 'button';
+    del.appendChild(icon(null, IC.close, 2.2));
+    del.appendChild(h('span', null, C.deleteBtn));
+    del.addEventListener('click', async () => {
+      if (SCHEDULE_STORE.deleteNeedsConfirm && !window.confirm(C.confirm)) return;
+      await scheduleClearAsync();
+      st.textContent = C.deleted;
+      clearTimeout(privNoticeTimer);
+      privNoticeTimer = setTimeout(renderPrivacyPanel, SCHEDULE_STORE.deletedNoticeMs);
+    });
+    root.appendChild(del);
+    privEl = { root, state: st, del };
+    return privEl;
+  }
+
+  function renderPrivacyPanel() {
+    if (!privEl) return;
+    const C = privacyCopy();
+    const d = scheduleLoad();
+    const has = !!(d && !d.tooNew && d.classes && d.classes.length);
+    privEl.root.classList.toggle('has-schedule', has);
+    if (has) {
+      const src = (d.sources && d.sources[0] && d.sources[0].label) || 'an import';
+      privEl.state.textContent = scheduleSavedLine(d.classes.length, src);
+    } else {
+      privEl.state.textContent = C.empty;
+    }
+  }
+
+  /**
+   * Where the panel goes. The import bar does not exist in this lane's files —
+   * four other lanes are building it — so this mounts itself into the sheet's
+   * own footer, which is where this feature already puts the things it has to
+   * say about itself, and `WAYFIND.store.mount(el)` lets whoever builds the
+   * import bar move it into the bar in one line instead.
+   */
+  function mountPrivacyPanel(host) {
+    const p = buildPrivacyPanel();
+    const target = host || document.querySelector('#wf-sheet .wf-foot');
+    if (!target) {
+      // The sheet is built on first open, so retry for a while and then stop
+      // rather than leaving a timer running forever on a page nobody opened.
+      if (privMountTries++ < 200) setTimeout(() => mountPrivacyPanel(), 250);
+      return null;
+    }
+    if (p.root.parentNode !== target) target.insertBefore(p.root, target.firstChild);
+    renderPrivacyPanel();
+    return p.root;
+  }
+
+  // ── install, and the public seam the import lanes call ────────────────────
+  installEgressGuard();
+  scheduleLoad();
+  if (schedCache) setWatchlist(buildWatchlist(schedCache));
+  setTimeout(() => mountPrivacyPanel(), 0);
+
+  WAYFIND.store = {
+    KEY: SCHEDULE_STORE.key,
+    PREFIX: SCHEDULE_STORE.prefix,
+    IDB: SCHEDULE_STORE.idbName,
+    VERSION: SCHEDULE_SCHEMA_VERSION,
+    SOURCES: SCHEDULE_SOURCES,
+    copy: privacyCopy,
+    defaultCopy: SCHEDULE_PRIVACY_COPY,
+    normalise: normaliseSchedule,
+    save: scheduleSave,
+    load: scheduleLoad,
+    has: () => { const d = scheduleLoad(); return !!(d && !d.tooNew && d.classes && d.classes.length); },
+    clear: scheduleClear,
+    clearAsync: scheduleClearAsync,
+    inventory: scheduleInventory,
+    mount: mountPrivacyPanel,
+    onChange: (fn) => { schedListeners.add(fn); return () => schedListeners.delete(fn); },
+    guard: {
+      state: () => ({
+        installed: schedGuard.installed,
+        armed: schedGuard.armed,
+        watched: schedWatch.length,
+        checked: schedGuard.checked,
+        quietChecked: schedGuard.quietChecked,
+        blocked: schedGuard.blocked,
+        inspectFailures: schedGuard.inspectFailures,
+        unreadableBodies: schedGuard.unreadableBodies,
+        blockedOpaque: schedGuard.blockedOpaque,
+        opaqueWorkerLeaves: schedGuard.opaqueWorkerLeaves,
+        // Round 6. `binaryLeaves`/`binaryBytes` are the measurement that says
+        // whether the byte scan is doing its job or quietly doing nothing: if
+        // a cold load reports 0 bytes scanned, the guard is not reading the
+        // map's own tile traffic and something above it has gone wrong.
+        binaryLeaves: schedGuard.binaryLeaves,
+        binaryBytes: schedGuard.binaryBytes,
+        truncatedScans: schedGuard.truncatedScans,
+        scanThrows: schedGuard.scanThrows,
+        portChecked: schedGuard.portChecked,
+        workerCtors: schedGuard.workerCtors,
+        // Round 7. All four are the "measured cost: zero" claim, republished so
+        // the next person re-checks it in one line instead of trusting a
+        // comment — the same reason `binaryLeaves` is here.
+        bodyBytesScanned: schedGuard.bodyBytesScanned,
+        frameChecked: schedGuard.frameChecked,
+        swChecked: schedGuard.swChecked,
+        rtcChecked: schedGuard.rtcChecked,
+        // Round 8. `headersScanned` is the "measured cost: nil" claim about
+        // reading request headers, republished so the next person re-checks it
+        // rather than trusting the comment; `encodedHits` says how often the
+        // one string scanner's decode retry is what caught something, which is
+        // the number that would have been non-zero for eight rounds if anyone
+        // had been counting.
+        headersScanned: schedGuard.headersScanned,
+        unreadableHeaders: schedGuard.unreadableHeaders,
+        encodedHits: schedGuard.encodedHits,
+        policy: {
+          blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
+          blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
+          failClosedOnScanError: SCHEDULE_STORE.failClosedOnScanError,
+          binaryScanBytes: SCHEDULE_STORE.binaryScanBytes,
+          workerScanNodes: SCHEDULE_STORE.workerScanNodes,
+          scanRequestHeaders: SCHEDULE_STORE.scanRequestHeaders,
+          blockUnreadableHeaders: SCHEDULE_STORE.blockUnreadableHeaders,
+          scanEncodedForms: SCHEDULE_STORE.scanEncodedForms,
+        },
+      }),
+      log: () => schedGuard.log.slice(),
+      /** ONLY so the audit can prove its own network capture is not blind. A
+       *  "zero requests carried the schedule" result means nothing unless the
+       *  instrument is shown catching one; this lets the audit fire a real
+       *  leak, watch the capture catch it, and re-arm. Nothing in the app
+       *  calls it. */
+      __disarmForAudit: () => { schedGuard.armed = false; return schedGuard.armed; },
+      arm: () => { schedGuard.armed = true; return schedGuard.armed; },
+    },
+  };
+  window.wayfindStore = WAYFIND.store;
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);
