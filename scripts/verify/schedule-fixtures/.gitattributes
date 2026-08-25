@@ -1,0 +1,6 @@
+# These fixtures are byte-for-byte imitations of what Google Calendar, Apple
+# Calendar and UT Registration Plus actually emit, and real exports use CRLF
+# (RFC 5545 §3.1). Git's autocrlf must not normalise them away — half of what
+# they test is line handling: folding, unfolding, and a file that stops mid
+# event. Marked binary-ish so the bytes on disk are the bytes committed.
+*.ics -text

@@ -2438,6 +2438,69 @@ One frame kept because this entry cites it:
 `shots/import/main-walk1-mobile.png` (the panel `main` actually renders,
 proving the "nothing to import with" finding rather than asserting it).
 
+---
+
+## 2026-08-24 — the schedule importer's parser (`acer/si-parser`)
+
+There is now a class-schedule importer, or at least the half of it that does
+the reading. Give it a calendar file from Google, from Apple, or from UT
+Registration Plus, or a `webcal://` subscribe link, or just a block of text
+typed by hand, and it comes back with the same answer every time: a list of
+classes, each pinned to a UT building code the walking router already knows how
+to route to. Three ways in, one thing out. The parsing lives at the end of
+`js/wayfind.js` and added 1,185 lines without deleting a single one, which
+matters because four other lanes were editing that file at the same time.
+
+The part worth caring about is what happens when a file is wrong, because a
+real schedule usually is. The bar was Google Calendar's own import — one bad
+row must never kill the file. So the test file has one good class surrounded by
+eight broken ones: a typo'd building code, a class with no room at all, a date
+with a letter O typed for a zero, a street address instead of a building, a
+class at the Pickle Research Campus eleven kilometres north, a building UT knows
+about and this app does not, and a file that just stops in the middle of an
+event. The good class still comes through, the answer reads *"Imported 1 of 9
+classes. 8 could not be used,"* and each of the eight gets a plain sentence
+naming the class and saying what to do — *"MAII 220 is not a UT building code.
+Did you mean MAI (UT Tower)?"* rather than a shrug.
+
+One near-miss is worth recording because it was the exact accident this
+codebase already had a warning against. The first version let that typo `MAII`
+slip past the building-code check and into the loose name search, which
+helpfully decided `maii` was close enough to `mail` and routed a history
+lecture to the Comal Mail Service Building — confidently, with correct
+distances. It only surfaced because the test asserts the *sentence a student
+reads*, not just that something failed. The fix was to make the parser suggest
+a near miss and never apply one.
+
+Two things the brief said turned out to be wrong, and running it rather than
+believing it is what caught both. It was right that ten codes are off the map
+at Pickle (measured 10.8–11.8 km from the Tower's own door). It was wrong that
+SSW is missing from UT's records — SSW is 0.9 km away on the main campus with
+two surveyed doors sitting in this repo already; what it is missing from is
+*our* building list, which is a much smaller fix, and the exact patch is written
+into `docs/si-parser.md` for whoever owns that file. And the brief missed a
+twelfth building, HLB, which the app *labels* unroutable and then routes to
+perfectly well at 1,339 m. So "is it routable" cannot be read off a flag; the
+importer routes for real before it promises anything.
+
+Verified by driving the real app: 209 assertions, all green, and thirteen
+class-to-class walks routed out of the three clean schedules. The Monday walk
+from the Gates Computer Science Complex to Welch Hall — a real leg out of a real
+parsed calendar — is photographed twice, fitted and down on the ribbon, in
+`shots/si/parser/`. The proof that the route is actually painted and not merely
+present in a data structure got rebuilt three times before it was honest: the
+first two versions needed a threshold picked after seeing the answer. The one
+that shipped measures the renderer's own noise first (it moves 0 pixels when
+nothing changes) and then removes the route from an unmoved camera (1,437
+pixels move). Nothing left running: server on 8911 stopped, port confirmed free.
+
+The drop zone, the error list and the import bar itself are still to build —
+that is the interface lane's half. Everything it needs is five functions and a
+paragraph in `docs/si-parser.md`. Nothing here is wired into the shipped app;
+`WAYFIND.on` is untouched and still false.
+
+---
+
 ## 2026-08-24 — critic round 4 verdict on `acer/si-parser`: oursWins = true, one real gap found in the auto-sniff path
 
 Fresh context. `acer/si-parser` finally exists (e855af3, "Schedule import, the
@@ -2546,6 +2609,8 @@ scripts I wrote into `scripts/verify` before finishing, and reverted the two
 I re-ran it (same camera, same fixture — not a real change, just noise from
 running their own script). Server on 8951 killed, port re-confirmed free by
 `netstat`. No files the builder owns were edited.
+
+---
 
 ## 2026-08-24 — critic round 3 on the privacy piece (`acer/si-privacy`), oursWins=true
 
@@ -3308,3 +3373,74 @@ work together. Full account and every number: `docs/si-dayview.md`.
 
 Still behind `?walk=1`, `WAYFIND.on` untouched, and the whole branch is two pure
 inserts into `js/wayfind.js` with zero lines changed or removed anywhere else.
+---
+
+## 2026-08-24 — the schedule parser, round 5: fixing the bug the test could not see (`acer/si-parser`)
+
+Short version: a student who uploads the wrong file used to get nine wrong
+sentences. Now they get one right one.
+
+The importer's job is to read a schedule and tell you plainly what it could not
+use. Last round it did that well for a *calendar* with broken rows. But the
+likeliest wrong file a student uploads is not a broken calendar — it is a saved
+web page, because the export link bounced them through a UT EID sign-in wall and
+they saved that instead. There was already a good sentence written for exactly
+that case: *"That is not a calendar file. If you saved it from a page that asked
+you to sign in, you probably saved the sign-in page instead of the .ics."* The
+problem was that nothing could reach it. Handed a saved sign-in page, the
+importer decided it must be typed-out text, read it a line at a time, and
+reported nine errors — one per line of HTML — each saying *"Line 3 (...) names a
+course but no building."* There is no course on that line. It was nine lies
+about a file it had already been taught how to describe.
+
+The uncomfortable part is that the test suite was green over it, and green for a
+specific reason: the test told the importer what kind of file it was looking at.
+The one fixture that most needed the importer to work that out for itself was
+the one fixture it never had to. So the test has been changed to stop helping:
+every fixture now goes in with no hint at all, which is how the app will really
+use it, and each bad-file case carries a hard ceiling of **one** error message
+so "one error per line" cannot come back.
+
+Three things were fixed underneath. The importer now tells three kinds of text
+apart instead of two — a calendar, a paste, and a web page — and it catches a
+web page both when it starts with the usual markup and when it is only a
+fragment copied out of a course site. A pasted line that names no course now
+gets the sentence written for that case instead of one written for a different
+case. And a paste where *nothing* looks like a class — someone's syllabus, a
+page of registration boilerplate — is turned down once with a single sentence
+rather than line by line.
+
+That last one introduced a risk worth naming, because it is the same risk the
+whole feature is built to avoid: a verdict on a whole file can swallow a good
+class. So there is now a fixture that is five lines of junk with one real class
+buried in the middle, and it must still import that one class and name the five
+junk lines individually. One good row cancels the verdict.
+
+Also re-measured the list of buildings that cannot be routed to, rather than
+carrying last round's numbers forward: still exactly eleven, ten of them at the
+Pickle Research Campus 10.8–11.8 km north, plus SSW. And corrected something
+this lane's own write-up had overstated. It had flatly called the brief's claim
+about SSW "false"; checking each source properly, it is half true — SSW really
+is missing from our copy of UT's building register (198 rows, no social-work
+entry under any name), but UT's own entrances survey does know it, with two
+surveyed doors already sitting in this repo. Which matters, because it changes
+the fix from "handle a building nobody has a record of" to "copy one row across
+from the table next door."
+
+The whole lane is still strictly additive to the shared file: 1,351 lines added
+to `js/wayfind.js`, none deleted, which is worth knowing with five lanes writing
+into it. 286 assertions pass, up from 209. The Monday walk out of a real parsed
+Google calendar — Gates Computer Science to Welch Hall, 140 m, no stairs — was
+re-photographed against this code and looked at. Nothing here is switched on:
+`WAYFIND.on` is still false and the import bar itself is the interface lane's
+half. Server on 8911 stopped and the port confirmed free; the scratch script
+written to reproduce the bug was deleted.
+
+One thing worth passing on to the other lanes, because it cost a run here and
+will cost someone else one: `scripts/verify/node_modules` in the main checkout
+went empty mid-session, and every worktree that borrows it lost its browser
+driver at the same moment — the failure reads as `Cannot find package
+'playwright-core'`, which looks like your own setup being wrong rather than
+someone else's `npm install` in progress. It is shared, mutable, and not
+covered by the file-ownership split. If your harness dies that way, it is
+probably not you.
