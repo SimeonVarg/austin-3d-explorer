@@ -3372,3 +3372,93 @@ screenshot was taken and looked at with the Read tool to confirm the panel
 premise before trusting any DOM assertion about it, and it was left in the
 scratchpad, not committed — nothing here cites it as evidence, so per CLAUDE.md
 rule 12 it does not belong in the repo.
+
+## 2026-08-24 — round 6 on the privacy piece (`acer/si-privacy`): the walk is closed by default now, and the socket stayed silent
+
+Round 5's critic put a class title through a worker and onto a raw TCP socket
+with the guard armed, and the guard did not even count it. The line was
+`if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` — skip, no
+flag — defended by a comment saying a buffer "cannot hold a JS string".
+`TextEncoder` makes that false in one line.
+
+**Did not patch the third shape.** Rounds 4 and 5 each shut exactly the shape
+that had been demonstrated (a `Blob` body, then a `Blob` leaf) and left the next
+one open, so this round inverted the default instead. `scanStructured()` now
+recognises a closed list of node kinds it can genuinely read — string, array,
+plain object, binary, `Map`, `Set`, `RegExp`, `Error`, `Date`, wrappers — and
+**flags everything else as unread**. A `Blob`, a `File`, an `ImageData`, an
+`ImageBitmap` and every cloneable type the platform grows next all land in that
+default without needing a line of their own, because what they have in common is
+that a `for...in` walk sees nothing on them. Adding a type to the platform can
+make this guard over-refuse; it cannot make it under-refuse.
+
+**Binary is scanned, not skipped and not blocked, because blocking it was never
+available.** Measured first: one cold load pushes 4,742 `Uint8Array` leaves and
+22.5 MB of real MapLibre tile bytes through `Worker.postMessage`, median leaf
+4 KB. So `scanBytesForSchedule()` matches the watched tokens' bytes against the
+buffer's bytes, allocating nothing — no decode, no lowercase copy — in UTF-8 and
+UTF-16LE, behind a 65,536-entry two-byte prefilter.
+
+**A second silent bypass nobody had reported, found while fixing the first.**
+The walk gave up at `maxNodes`, returned `complete: false`, and every caller
+dropped it on the floor. 21 of this app's own messages per cold load exceed the
+old 4,000-node cap. Twenty-one payloads a load were sailing past uninspected
+with nothing recorded. Running out now refuses.
+
+**Two more holes this round found in its own probes rather than a critic's.**
+`fetch('/collect?t=' + encodeURIComponent(title))` and a `URLSearchParams` form
+body both sailed past an armed guard, because a percent-encoded canary does not
+contain the canary — now retried decoded, gated on the string containing a `%`
+or `+` so tile URLs pay nothing. And `MessagePort` / `BroadcastChannel` were
+never inspected at all, which would have been the round-7 finding; a cold load
+makes zero calls to either, so closing them cost nothing measured.
+
+**Proved the way it was broken.** Bare TCP listener, guard's counters read
+before and after each probe, own canaries. Armed: the ArrayBuffer transfer
+refused, `blocked +1`, 30 bytes scanned, socket received **0 bytes**. Disarmed:
+the same probe went through, the worker's own `fetch` returned 204, and the
+socket read `Zygomorphic Percussion Seminar` verbatim — which is what makes the
+armed result mean anything. Sixteen more shapes in the table, all refused,
+including a real 16 KB MapLibre tile buffer that **still crosses untouched**.
+
+**And the map still draws.** Cold load with a schedule already on the device,
+guard armed, driven across five pan-and-zoom steps: `blocked: 0`,
+`truncatedScans: 0`, `scanThrows: 0`, `inspectFailures: 0`, 19,165 buffers and
+**141 MB** of tile bytes read by the guard and passed, `styleLoaded: true`,
+`tilesLoaded: true`. Frame committed at `shots/si/privacy/r6-map-guarded.jpg`.
+
+**One correction the first cap needed.** `workerScanNodes` was set to 400,000
+from a census taken on a page that loaded and then sat still, and it **blocked
+one of MapLibre's own payloads** the moment the camera moved. Re-measured under
+a punishing drive: 634,093 nodes in the largest real payload. Cap is 8,000,000
+now. The map came back red and that is why the number changed, not because the
+reasoning improved.
+
+**What it costs, and this round cannot say "nothing".** Minimum of three
+interleaved reps, time inside `Worker.prototype.postMessage` across a cold load:
+827 ms with a schedule stored against 261 ms with none — about 570 ms of extra
+main-thread work spread over a whole load, ~0.22 ms per message, to read ~20 MB.
+Only on a device that has a schedule. Two optimisation theories were measured
+and were wrong: widening the prefilter from 256 to 65,536 entries bought 6%, not
+the predicted order of magnitude (64 KB does not fit in L1, and bit-packing it
+to 8 KB was worse than both); and hoisting the walk out of a per-call closure
+made no difference at all (215 ms → 216 ms). Both are written into §8 rather
+than quietly dropped.
+
+**Also fixed the fabricated citation §7 has been carrying.** Round 3 sourced
+"SSW was demolished" to `docs/schedule-gaps.md`, which was on no branch at the
+time. That file is real now — rescued onto `main` on 2026-08-24 (`ed74cc3`) —
+and read directly it does argue demolition. But `docs/si-gaps.md` on
+`origin/acer/si-gaps` checked that conclusion and it is wrong: our
+`data/ut_buildings.json` is a 198-code snapshot, UT files SSW under its own
+main-campus path, and UT's two published SSW doors land 0.37 m and 2.45 m from a
+footprint this app already draws. SSW is a real current building our register
+copy is one row short of; the sibling lane fixed it and took the count 11 → 10.
+§7 now says that, with the sources it can actually open.
+
+Branch `acer/si-privacy`, pushed, not merged and no PR. `js/wayfind.js` passes
+`node --check`; `harness-drift.mjs` PASS 31/31; the doc's own citation gate
+(§11a) ALL PASS, 20 paths resolved. Nothing outside this lane's files was
+touched except this log. Every scratch script and every scratch frame stayed in
+the scratchpad; one frame is committed because §6 cites it. Server on 8951
+killed and the port re-confirmed free.

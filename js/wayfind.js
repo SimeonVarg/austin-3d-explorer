@@ -8225,11 +8225,46 @@
    * analytics call into this file, the call fails loudly instead of quietly
    * working. Its log is what `docs/si-privacy.md` audits.
    *
-   * WHY THE GUARD CANNOT BE THE WHOLE ANSWER, said plainly so nobody reads it
-   * as more than it is:
-   *   - it is main-thread only. That is why `Worker.prototype.postMessage` is
-   *     wrapped too — schedule bytes cannot reach a worker, so a worker cannot
-   *     send them. That converts the blind spot into a closed door.
+   * THE DOOR INTO A WORKER IS THE WHOLE ARGUMENT, so round 6 stopped patching
+   * shapes and changed the default. The guard is main-thread only: it cannot
+   * reach inside MapLibre's four workers, and this file creates none of its
+   * own, so nothing can wrap their `fetch`. Everything therefore rests on one
+   * claim — *schedule bytes never get in* — and that claim is only as good as
+   * the walk that inspects a payload.
+   *
+   * Three rounds running, that walk had a hole in it, and each round shut the
+   * one shape that had been demonstrated:
+   *   - round 4: a `Blob` request BODY the guard could not read, waved through.
+   *   - round 5: a `Blob` LEAF inside a worker payload, strolled past, because
+   *     a `Blob` has no own enumerable properties and a `for...in` walk sees
+   *     nothing on one.
+   *   - round 6 (this one): an `ArrayBuffer`/`TypedArray` leaf, skipped
+   *     OUTRIGHT with no flag raised, on the reasoning that a buffer "cannot
+   *     hold a JS string". `TextEncoder` makes that reasoning false in one
+   *     line, and the critic put a class title through a worker and out onto a
+   *     raw socket with the guard armed and `blockedDelta: 0, opaqueDelta: 0`
+   *     — not merely unblocked, *uncounted*.
+   *
+   * Patching the third shape would have left a fourth. So the walk is now
+   * CLOSED BY DEFAULT instead of open by default: `scanStructured()` knows a
+   * short list of node kinds it can actually read, reads them, and flags
+   * ANYTHING ELSE as opaque. `Map`, `Set`, `RegExp`, `Error`, `ImageData`, a
+   * host object nobody has invented yet — none of them needs its own line to
+   * be caught, because the default branch is "I could not read this" rather
+   * than "nothing to see here". Binary is not skipped and not blocked either
+   * (MapLibre moves 22.5 MB of real tile bytes through this path on one cold
+   * load, measured): the BYTES ARE SCANNED, so a buffer that is really tile
+   * data passes and a buffer that is really a class title does not.
+   *
+   * The same round found a second silent bypass nobody had reported: the walk
+   * gave up at `maxNodes` and returned `complete: false`, and every caller
+   * ignored it. **21 of this app's own messages per cold load exceed the old
+   * 4,000-node cap** (largest measured: 172,512 nodes), so 21 payloads a load
+   * were already sailing past uninspected. The cap is now measured-with-
+   * headroom and running out of it FLAGS instead of shrugging.
+   *
+   * WHAT IT STILL CANNOT DO, said plainly so nobody reads it as more than it
+   * is — and §9 of docs/si-privacy.md is the same list with the reasoning:
    *   - it does not watch `<img src>` or a plain link navigation. Those are
    *     covered by the browser-level network capture in `docs/si-privacy.md`,
    *     which sees every request the page makes regardless of who made it.
@@ -8237,16 +8272,22 @@
    *     would not match. Whole field values are the tokens, because whole
    *     field values are what a serialiser emits and word fragments are what
    *     tile URLs are full of.
-   *   - a THROW inside the inspector fails OPEN (the request proceeds) and is
-   *     counted. Failing closed there would let a bug in this file break the
-   *     map. The count is asserted to be zero by the audit, which is the right
-   *     place to catch it.
-   *   - an UNREADABLE BODY used to fail open too, and no longer does. Round
-   *     4's critic sent a `Blob` carrying the schedule past an armed guard and
-   *     watched it land on a raw socket; since round 5, while a schedule is
-   *     stored, a body the guard cannot read is refused rather than counted.
-   *     `SCHEDULE_STORE.blockUnreadableBodies` is the switch, and §6 of
-   *     docs/si-privacy.md is the run that shows the probe now being refused.
+   *   - it matches CONTENT, so content that has been re-encoded past
+   *     recognition — base64, gzip, XOR — is not content it can see. UTF-8 and
+   *     UTF-16LE are both covered because those are what an honest bug
+   *     produces; base64 is what an attacker produces, and a content scanner
+   *     inside the page it is guarding cannot win that argument. This is a
+   *     seatbelt against a later lane's mistake, not a sandbox.
+   *   - a THROW inside the inspector fails OPEN on the NETWORK paths (the
+   *     request proceeds) and is counted, because a bug in this file must not
+   *     be able to stop a tile loading. On the WORKER path it now fails
+   *     CLOSED (`SCHEDULE_STORE.failClosedOnScanError`) — a throw there is
+   *     indistinguishable from an evasion, and 2,545 real messages a load
+   *     produce zero of them.
+   *   - the worker SCRIPT itself. MapLibre mints one `blob:` URL and spawns
+   *     four workers from it; a `Blob` cannot be read synchronously, so the
+   *     constructor wrapper below scans the URL and cannot scan blob-sourced
+   *     source. Named, not hidden.
    *
    * THE SHAPE IS BUILT FOR THE SOURCES THAT DO NOT EXIST YET. Simeon asked for
    * Google Calendar, Apple Calendar and UT's registration export now, and said
@@ -8323,6 +8364,55 @@
      *  next person can re-check it in one line instead of trusting this
      *  comment. */
     blockOpaqueWorkerLeaves: true,
+    /**
+     * HOW MANY BYTES OF BINARY THE WALK WILL READ IN ONE PAYLOAD before it
+     * gives up and flags instead. This is the number that lets binary be
+     * SCANNED rather than blocked, which is the only option that keeps the map
+     * working — MapLibre's tile bytes travel this exact path.
+     *
+     * Set from a measurement, not a guess. One cold load of this city with a
+     * schedule stored pushes 4,742 `Uint8Array` leaves and 22.5 MB across
+     * `Worker.postMessage`; the median leaf is 4 KB, the 99th percentile is
+     * 16 KB, six leaves all load are over 64 KB, and the LARGEST SINGLE
+     * MESSAGE totals 999,424 bytes. 4 MB is four times that worst case and
+     * still a hard ceiling: past it the payload is refused, not waved on, so
+     * padding a leak past the budget buys nothing.
+     */
+    binaryScanBytes: 4 * 1024 * 1024,
+    /**
+     * How far into ONE payload the structured walk goes. The old value was
+     * 4,000 and running out SILENTLY gave up — measured, 21 of this app's own
+     * messages per cold load exceed it and the largest on a still camera is
+     * 172,512 nodes, so the guard was already blind to 21 payloads a load and
+     * nothing said so.
+     *
+     * THE NUMBER IS BIG ON PURPOSE, and the first attempt at it was wrong in a
+     * way worth writing down. 400,000 looked like 2.3× headroom over a census
+     * taken on a page that loaded and then sat still. Drive the camera —
+     * 1600×1000, zoom 11 to 19, seven pan-and-zoom steps — and one real
+     * MapLibre payload hits **634,093 nodes**, so that cap refused one of the
+     * map's own messages. A cap that blocks real traffic is worse than the
+     * hole it closes.
+     *
+     * Running out now REFUSES, and that is what lets this be generous: a leak
+     * gains nothing by padding past the cap, so the cap's only job is to bound
+     * our own worst-case work. 8,000,000 is 12.6× the worst case measured
+     * under deliberate punishment. Re-measure before lowering it.
+     */
+    workerScanNodes: 8000000,
+    /** A watched token longer than this is matched by its first N characters
+     *  in the byte scanner. The serialised schedule is one watched token and
+     *  can be tens of KB; a full memcmp of that at every candidate byte is not
+     *  something to run on the tile path, and any buffer holding the whole
+     *  blob holds its first 256 characters too. */
+    binaryPatternChars: 256,
+    /** A throw inside the WORKER payload walk blocks the message rather than
+     *  waving it through. Different from the network paths on purpose: a
+     *  broken inspector must never stop a tile downloading, but a payload that
+     *  makes the walk throw is indistinguishable from one built to make it
+     *  throw, and 2,545 real messages a load produce zero throws. Flip to
+     *  false to go back to fail-open. */
+    failClosedOnScanError: true,
     /** One tap deletes, with no "are you sure". Flip to true if that ever
      *  reads as too sharp — the brief asked for one tap and an undo would
      *  mean keeping the data around after saying it was gone. */
@@ -8474,18 +8564,36 @@
     inspectFailures: 0,
     unreadableBodies: 0,
     blockedOpaque: 0,          // of `blocked`, how many were refused unread
-    opaqueWorkerLeaves: 0,     // Blob/stream leaves seen in worker payloads
+    opaqueWorkerLeaves: 0,     // payload nodes the walk could not read
+    binaryLeaves: 0,           // ArrayBuffer/TypedArray leaves actually scanned
+    binaryBytes: 0,            // ...and how many bytes that was
+    truncatedScans: 0,         // payloads that ran out of the node budget
+    scanThrows: 0,             // throws inside the worker-payload walk
+    portChecked: 0,            // MessagePort/BroadcastChannel messages inspected
+    workerCtors: 0,            // Worker/SharedWorker constructions seen
   };
 
-  /** The stand-in "token" for a body the guard could not read. It is not a real
-   *  watched string, so it is never used as a needle and never redacted as one
-   *  — it exists so an unreadable body can travel the same refusal path as a
-   *  real match and show up in the log saying honestly what happened. The
-   *  LEADING SPACE is what makes a collision impossible rather than unlikely:
-   *  `buildWatchlist` only ever stores `s.trim().toLowerCase()`, so no watched
-   *  token can begin with whitespace, so no schedule string can ever equal
-   *  this one however a student names their classes. */
+  /** The stand-in "tokens" for the four ways the guard can refuse something it
+   *  never actually read. They are not real watched strings, so they are never
+   *  used as needles and never redacted as one — they exist so an unreadable
+   *  thing travels the same refusal path as a real match and shows up in the
+   *  log saying honestly what happened. The LEADING SPACE is what makes a
+   *  collision impossible rather than unlikely: `buildWatchlist` only ever
+   *  stores `s.trim().toLowerCase()`, so no watched token can begin with
+   *  whitespace, so no schedule string can ever equal one of these however a
+   *  student names their classes. */
   const EGRESS_OPAQUE_BODY = ' opaque-body';
+  const EGRESS_OPAQUE_LEAF = ' opaque-leaf';
+  const EGRESS_SCAN_TRUNCATED = ' scan-truncated';
+  const EGRESS_SCAN_THREW = ' scan-threw';
+  /** The one place that decides "is this a sentinel", so adding a fifth is one
+   *  line and cannot be forgotten in the redactor or in the URL rewrite. */
+  const EGRESS_SENTINELS = {
+    [EGRESS_OPAQUE_BODY]: 'a body the guard could not read',
+    [EGRESS_OPAQUE_LEAF]: 'a payload node the guard could not read',
+    [EGRESS_SCAN_TRUNCATED]: 'a payload bigger than the guard can scan',
+    [EGRESS_SCAN_THREW]: 'a payload that made the guard throw',
+  };
 
   /** Every string leaf in the schedule, long enough to be distinctive, plus
    *  the serialised blob itself and the `CODE ROOM` composites the router will
@@ -8514,9 +8622,7 @@
   /** The redaction the log itself needs, so reading the audit log is not a
    *  second copy of the leak. */
   const redactToken = (t) =>
-    t === EGRESS_OPAQUE_BODY
-      ? 'a body the guard could not read'
-      : t.slice(0, 2) + '…(' + t.length + ')';
+    EGRESS_SENTINELS[t] || (t.slice(0, 2) + '…(' + t.length + ')');
 
   /**
    * WHAT SCANS ONE STRING, AND WHY IT IS A LOOP OF `indexOf` AND NOT A REGEX.
@@ -8545,6 +8651,131 @@
     schedRe = schedWatch.length ? true : null;
     schedMinLen = Infinity;
     for (const t of schedWatch) if (t.length < schedMinLen) schedMinLen = t.length;
+    buildBytePatterns(schedWatch);
+  }
+
+  // ── the byte scanner: a buffer is content, not a hole in the floor ─────────
+  /**
+   * WHY THIS EXISTS AT ALL, and why the obvious two answers are both wrong.
+   *
+   * `scanStructured()` used to have this line in it:
+   *
+   *     if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
+   *
+   * — skip, no flag, nothing counted, with a comment claiming a buffer "cannot
+   * hold a JS string". Round 5's critic wrote `encoder.encode(title).buffer`,
+   * `postMessage`d it into a worker with the guard armed, and read the class
+   * title back off a raw TCP socket. `blockedDelta: 0, opaqueDelta: 0`.
+   *
+   * OPTION A — BLOCK BINARY. Breaks the map on contact: measured, one cold
+   * load of this city puts 4,742 `Uint8Array` leaves and 22.5 MB of real tile
+   * bytes through this path.
+   *
+   * OPTION B — DECODE EACH BUFFER TO A STRING AND REUSE `scanForSchedule`.
+   * Correct, and it allocates 22.5 MB of transient string per load and then
+   * `toLowerCase()`s all of it into a second 22.5 MB. On the tile path.
+   *
+   * SO: match the token BYTES against the buffer bytes, allocating nothing.
+   * One pass, no decode, no lowercase copy.
+   *
+   * THE PREFILTER IS TWO BYTES WIDE, AND THE HONEST VERSION OF WHY IS THAT
+   * THREE SHAPES WERE MEASURED AND THIS ONE WON NARROWLY. A 256-entry table
+   * keyed on one byte was the first try; a bit-packed 8 KB table was the
+   * third. Cold-load minimums, three interleaved reps: 925 ms, **866 ms**,
+   * and worse-than-both. The win is smaller than the reasoning predicted,
+   * which is the usual result of reasoning about caches — §8 of
+   * docs/si-privacy.md has the whole ledger including the two theories that
+   * were wrong. Case folding is ASCII-only and happens only at verify time:
+   * the mask carries all four case combinations of the leading pair, so the
+   * hot loop never folds.
+   *
+   * TWO ENCODINGS, because there are two an honest bug produces: UTF-8 (what
+   * `TextEncoder` emits, which is exactly how the critic did it) and UTF-16LE
+   * (what a hand-rolled `charCodeAt` copy into a `Uint16Array` emits). Base64
+   * and gzip are NOT covered and cannot be — see §9 of docs/si-privacy.md.
+   */
+  let schedByteMask = null;      // 65,536 bits packed into 8 KB, keyed (b0<<8)|b1
+  let schedByteBuckets = null;   // Map: folded (b0<<8)|b1 -> [{ b, tok }]
+  let schedMinPatLen = Infinity;
+
+  function buildBytePatterns(tokens) {
+    schedByteMask = null; schedByteBuckets = null; schedMinPatLen = Infinity;
+    if (typeof TextEncoder === 'undefined' || !tokens || !tokens.length) return;
+    const enc = new TextEncoder();
+    // ONE BYTE PER ENTRY, 64 KB, and the two cheaper-looking alternatives were
+    // both measured and both lost. A 256-entry table keyed on the first byte
+    // alone fits in L1 but lights up ~10% of byte values with a real
+    // watchlist, so one tile byte in ten pays for a bucket lookup. Packing
+    // 65,536 entries into 8 KB of BITS fits L1 too, but the shift-and-mask per
+    // byte costs more than the cache miss it avoids. Cold-load minimums, three
+    // interleaved reps each: 256-entry 925 ms, 64 KB byte table 866 ms,
+    // 8 KB bit table worse than both on the isolated benchmark.
+    const mask = new Uint8Array(65536);
+    const buckets = new Map();
+    const upper = (c) => (c >= 97 && c <= 122) ? c - 32 : c;
+    let min = Infinity;
+    const addPat = (bytes, tok) => {
+      if (bytes.length < SCHEDULE_STORE.minTokenLen) return;
+      // The pattern comes from a lowercased token, so these are the lower-case
+      // bytes; the buffer may hold either case of either of them.
+      const f0 = bytes[0], f1 = bytes[1];
+      const a0 = upper(f0) === f0 ? [f0] : [f0, upper(f0)];
+      const a1 = upper(f1) === f1 ? [f1] : [f1, upper(f1)];
+      for (let i = 0; i < a0.length; i++) {
+        for (let j = 0; j < a1.length; j++) mask[(a0[i] << 8) | a1[j]] = 1;
+      }
+      const key = (f0 << 8) | f1;
+      let bs = buckets.get(key);
+      if (!bs) { bs = []; buckets.set(key, bs); }
+      bs.push({ b: bytes, tok });
+      if (bytes.length < min) min = bytes.length;
+    };
+    for (const t of tokens) {
+      const s = t.length > SCHEDULE_STORE.binaryPatternChars
+        ? t.slice(0, SCHEDULE_STORE.binaryPatternChars) : t;
+      addPat(enc.encode(s), t);
+      const u16 = new Uint8Array(s.length * 2);
+      for (let i = 0; i < s.length; i++) {
+        const cp = s.charCodeAt(i);
+        u16[i * 2] = cp & 0xff;
+        u16[i * 2 + 1] = (cp >> 8) & 0xff;
+      }
+      addPat(u16, t);
+    }
+    schedByteMask = mask; schedByteBuckets = buckets; schedMinPatLen = min;
+  }
+
+  /** The matched token, or null. Allocates nothing. */
+  function scanBytesForSchedule(u8) {
+    const mask = schedByteMask;
+    if (!mask) return null;
+    const n = u8.length;
+    if (n < schedMinPatLen) return null;
+    const buckets = schedByteBuckets;
+    const last = n - schedMinPatLen;
+    let b0 = u8[0];
+    for (let i = 0; i <= last; i++) {
+      const b1 = u8[i + 1];
+      if (mask[(b0 << 8) | b1] !== 0) {
+        const f0 = (b0 >= 65 && b0 <= 90) ? b0 + 32 : b0;
+        const f1 = (b1 >= 65 && b1 <= 90) ? b1 + 32 : b1;
+        const bs = buckets.get((f0 << 8) | f1);
+        if (bs !== undefined) {
+          for (let k = 0; k < bs.length; k++) {
+            const pb = bs[k].b, m = pb.length;
+            if (i + m > n) continue;
+            let j = 2;
+            for (; j < m; j++) {
+              const d = u8[i + j];
+              if (((d >= 65 && d <= 90) ? d + 32 : d) !== pb[j]) break;
+            }
+            if (j === m) return bs[k].tok;
+          }
+        }
+      }
+      b0 = b1;
+    }
+    return null;
   }
 
   function scanForSchedule(hay) {
@@ -8560,48 +8791,196 @@
   }
 
   /**
-   * scanStructured — walk a structured-clone payload testing each string leaf
-   * against the watchlist, and stop at the first hit.
+   * The same scan, for a URL or a body — the two places where the schedule
+   * arrives ENCODED rather than raw.
    *
-   * This replaced a `stringsOf()` that CONCATENATED every string in the
-   * message into one haystack and then scanned it. Concatenation is the wrong
-   * shape here twice over: it allocates a fresh string per message on the map's
-   * hot path, and it is not needed, because every watched token is a whole
-   * field value and therefore lives inside ONE leaf if it is there at all.
-   * Testing leaf by leaf finds exactly the same leaks and builds nothing.
-   * Typed arrays and buffers are skipped — they cannot hold a JS string — and
-   * the walk stops at `maxNodes` so a hostile payload cannot make it unbounded.
+   * FOUND BY THIS ROUND'S OWN PROBE, not by a critic, and it is the same
+   * family as the ArrayBuffer hole: content the guard could read if it looked
+   * at it in the right form. `new Worker('/collect?t=' + encodeURIComponent(
+   * title))` and `fetch('/collect?t=' + encodeURIComponent(title))` both went
+   * straight through an armed guard, because `Zygomorphic%20Percussion%20
+   * Seminar` does not contain `zygomorphic percussion seminar`. A form POST
+   * hits it too — `bodyToText()` renders `URLSearchParams` with `toString()`,
+   * which percent-encodes.
    *
-   * `opaque` IS THE ROUND-5 ADDITION, and it is the same defect as the Blob
-   * body on `fetch`, one layer in. A `Blob` or a `ReadableStream` is an object
-   * with no own enumerable properties, so the `for (const k in x)` walk below
-   * used to stroll straight past one and report a clean `hit: null` — a worker
-   * handed `postMessage(new Blob([scheduleText]))` was waved through by a
-   * guard whose whole job is to stop schedule bytes reaching a worker. It
-   * cannot be read synchronously here any more than a request body can, so it
-   * is reported as unread rather than as clear, and the caller decides.
+   * COSTS NOTHING ON THE HOT PATH. Every URL this app fetches is a plain
+   * relative path (`data/tiles/roads.pmtiles`), so the `%`/`+` gate below is
+   * false for all of them and no decode is ever attempted. Only a string that
+   * actually looks encoded pays for a decoded copy.
    */
-  function scanStructured(v, maxNodes) {
-    let nodes = 0, hit = null, opaque = false;
-    const isOpaqueLeaf = (x) =>
-      (typeof Blob !== 'undefined' && x instanceof Blob) ||
-      (typeof ReadableStream !== 'undefined' && x instanceof ReadableStream);
-    const walk = (x) => {
-      if (hit !== null || nodes++ > maxNodes) return;
-      if (x == null) return;
-      const t = typeof x;
-      if (t === 'string') { hit = scanForSchedule(x); return; }
-      if (t !== 'object') return;
-      if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
-      if (isOpaqueLeaf(x)) { opaque = true; return; }
-      if (Array.isArray(x)) { for (let i = 0; i < x.length && hit === null; i++) walk(x[i]); return; }
-      for (const k in x) {
-        if (hit !== null) return;
-        if (Object.prototype.hasOwnProperty.call(x, k)) walk(x[k]);
+  function scanTextForSchedule(s) {
+    const hit = scanForSchedule(s);
+    if (hit || !s || typeof s !== 'string') return hit;
+    const pct = s.indexOf('%') !== -1, plus = s.indexOf('+') !== -1;
+    if (!pct && !plus) return null;
+    if (pct) {
+      // A malformed escape is not a reason to stop guarding the rest.
+      try { const d = decodeURIComponent(s); const h = scanForSchedule(d); if (h) return h; } catch (e) {}
+    }
+    if (plus) {
+      const spaced = s.replace(/\+/g, ' ');
+      try { const h = scanForSchedule(pct ? decodeURIComponent(spaced) : spaced); if (h) return h; } catch (e) {}
+    }
+    return null;
+  }
+
+  /**
+   * scanStructured — walk a structured-clone payload and decide, for EVERY
+   * node in it, one of exactly three things: it is clear, it carries the
+   * schedule, or the guard could not read it. There is no fourth answer and in
+   * particular there is no "skip".
+   *
+   * ROUND 6 INVERTED THE DEFAULT, and that is the whole change. The old walk
+   * was an open-by-default `for (const k in x)` with a growing list of special
+   * cases bolted onto the front — skip buffers, flag `Blob`, flag
+   * `ReadableStream` — so every round shut the one shape that had been
+   * demonstrated and left the next one open. A `Blob` has no own enumerable
+   * properties, so a `for...in` walk reports a clean `hit: null` on one; so
+   * does a `Map`, a `Set`, a `RegExp`, an `Error`, an `ImageData`, and every
+   * host object nobody has written yet. Enumerating them is a losing game.
+   *
+   * So the walk now recognises a CLOSED list of node kinds it can genuinely
+   * read, reads them, and every other object falls into a default branch that
+   * sets `opaque`. Adding a new cloneable type to the platform can make this
+   * guard over-refuse; it cannot make it under-refuse. That direction is the
+   * point.
+   *
+   * BINARY IS SCANNED, NOT SKIPPED AND NOT BLOCKED. The line that used to read
+   * `if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;` is how a
+   * class title went through a worker and onto a socket. Blocking the shape
+   * instead is not available: MapLibre moves 22.5 MB of genuine tile bytes
+   * through this exact path on one cold load. `scanBytesForSchedule()` above
+   * tells the two apart by looking at the bytes.
+   *
+   * `truncated` IS NOT COSMETIC. The old walk returned `complete: false` when
+   * it ran out of nodes and every caller dropped it on the floor — and 21 of
+   * this app's own messages per cold load exceed the old 4,000-node cap. Those
+   * payloads were not inspected and nothing said so. Running out of budget is
+   * now a refusal, exactly like a node the walk cannot read.
+   */
+  /**
+   * ONE WALK FUNCTION, MODULE-LEVEL, WITH ITS STATE BESIDE IT.
+   *
+   * IT WAS HOISTED HERE ON A THEORY THAT TURNED OUT TO BE WRONG, and that is
+   * worth leaving written down so nobody re-derives it. The walk used to be a
+   * closure declared inside `scanStructured`, i.e. a fresh function object per
+   * message, and the guard was costing ~30 µs per message on top of the byte
+   * scan. The theory was that V8 could never keep a per-call closure hot.
+   * Measured before and after: **no difference at all** (215 ms → 216 ms on
+   * the same 5,000-message benchmark). The per-message cost is the walk and
+   * the scan doing real work, not allocation.
+   *
+   * It stays hoisted because it is the better shape — one function, one place
+   * to read, no allocation per message — not because it was faster. Not
+   * re-entrant, and it does not need to be: every caller is synchronous and
+   * single-threaded, and the walk contains no `await` and no callback into
+   * anything that could re-enter it.
+   */
+  let swHit = null, swOpaque = false, swTrunc = false;
+  let swNodes = 0, swMaxNodes = 0, swBudget = 0, swBinLeaves = 0, swBinBytes = 0;
+  const HAS_OWN = Object.prototype.hasOwnProperty;
+
+  /** A view onto a buffer's bytes, or null if there is no reading it (a
+   *  detached buffer, a length-tracking view whose backing store has gone).
+   *  null takes the opaque path — never the "nothing there, carry on" path. */
+  function scanBytesOf(x) {
+    try {
+      if (x instanceof ArrayBuffer) return new Uint8Array(x);
+      if (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer) {
+        return new Uint8Array(x);
       }
-    };
-    walk(v);
-    return { hit, opaque, complete: nodes <= maxNodes };
+      return new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+    } catch (e) { return null; }
+  }
+
+  function scanWalk(x) {
+    if (swHit !== null || swTrunc) return;
+    if (swNodes++ >= swMaxNodes) { swTrunc = true; return; }
+    if (x == null) return;
+    const t = typeof x;
+    if (t === 'string') { swHit = scanForSchedule(x); return; }
+    if (t !== 'object') return;                // number, boolean, bigint, symbol
+
+    // -- the two shapes that are 99% of real traffic, tested first ----------
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length && swHit === null && !swTrunc; i++) scanWalk(x[i]);
+      return;
+    }
+    const proto = Object.getPrototypeOf(x);
+    if (proto === Object.prototype || proto === null) {
+      // No per-property try/catch here. A throwing accessor on a plain object
+      // is caught by `inspectPayload`, which FAILS CLOSED — same refusal, and
+      // a try/catch in this loop is 99% of the traffic paying for the 0.001%.
+      for (const k in x) {
+        if (swHit !== null || swTrunc) return;
+        if (HAS_OWN.call(x, k)) scanWalk(x[k]);
+      }
+      return;                                   // a plain object IS fully read
+    }
+
+    // -- binary: read the bytes --------------------------------------------
+    if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer ||
+        (typeof SharedArrayBuffer !== 'undefined' && x instanceof SharedArrayBuffer)) {
+      const u8 = scanBytesOf(x);
+      if (u8 === null) { swOpaque = true; return; }
+      swBudget -= u8.length;
+      if (swBudget < 0) { swOpaque = true; return; }
+      swBinLeaves++; swBinBytes += u8.length;
+      const h = scanBytesForSchedule(u8);
+      if (h) swHit = h;
+      return;
+    }
+
+    // -- the built-ins a `for...in` walk is blind to ------------------------
+    if (typeof Map !== 'undefined' && x instanceof Map) {
+      for (const pair of x) {
+        if (swHit !== null || swTrunc) return;
+        scanWalk(pair[0]); scanWalk(pair[1]);
+      }
+      return;
+    }
+    if (typeof Set !== 'undefined' && x instanceof Set) {
+      for (const val of x) { if (swHit !== null || swTrunc) return; scanWalk(val); }
+      return;
+    }
+    if (x instanceof Date) return;              // a timestamp holds no text
+    if (x instanceof RegExp) { swHit = scanForSchedule(x.source); return; }
+    if (x instanceof Error) {
+      swHit = scanForSchedule(String(x.message || '')) ||
+              scanForSchedule(String(x.stack || ''));
+      return;
+    }
+    if (x instanceof String) { swHit = scanForSchedule(String(x)); return; }
+    if (x instanceof Number || x instanceof Boolean) return;
+
+    // -- a class instance: read what it actually exposes --------------------
+    let seen = 0;
+    for (const k in x) {
+      if (swHit !== null || swTrunc) return;
+      if (!HAS_OWN.call(x, k)) continue;
+      seen++;
+      scanWalk(x[k]);
+    }
+
+    // -- THE DEFAULT, AND THE POINT OF THE WHOLE REWRITE --------------------
+    // Nothing above recognised this, and it exposed no own enumerable
+    // property to read. That is exactly what a `Blob`, a `File`, an
+    // `ImageData`, an `ImageBitmap` and a type invented next year all look
+    // like from here. It is reported as unread rather than as clear, and the
+    // caller decides. Measured cost on this app: zero — a census of a full
+    // cold load found only `Object`, `Array` and `Uint8Array` crossing this
+    // boundary, and not one object with no own enumerable properties.
+    if (seen === 0) swOpaque = true;
+  }
+
+  function scanStructured(v, limits) {
+    swHit = null; swOpaque = false; swTrunc = false;
+    swNodes = 0; swBinLeaves = 0; swBinBytes = 0;
+    swMaxNodes = (limits && limits.nodes) || SCHEDULE_STORE.workerScanNodes;
+    swBudget = (limits && limits.bytes) || SCHEDULE_STORE.binaryScanBytes;
+    scanWalk(v);
+    return { hit: swHit, opaque: swOpaque, truncated: swTrunc,
+             binLeaves: swBinLeaves, binBytes: swBinBytes, nodes: swNodes };
   }
 
   /** Best-effort synchronous text of a request body. Returns `''` for a body
@@ -8628,10 +9007,53 @@
     return undefined;   // Blob, ReadableStream, anything else
   }
 
-  /** How deep into one worker message the walk is willing to go. A MapLibre
-   *  `loadTile` request is about 25 nodes; this is two orders of magnitude of
-   *  headroom and still a hard stop. */
-  const WORKER_SCAN_NODES = 4000;
+  /**
+   * inspectPayload — the ONE inspection every structured-clone channel goes
+   * through, so `Worker.postMessage`, `MessagePort.postMessage` and
+   * `BroadcastChannel.postMessage` cannot end up with three different
+   * definitions of "clear". Returns the token to refuse on, or null.
+   *
+   * Its own inline shape rather than a trip through `inspect()`, because
+   * `inspect()` builds a log line and a MapLibre tile load is 2,545 of these.
+   * Counted always, logged only when it actually matters.
+   */
+  function inspectPayload(via, msg) {
+    schedGuard.checked++; schedGuard.quietChecked++;
+    let hit = null;
+    try {
+      if (typeof msg === 'string') {
+        hit = scanForSchedule(msg);
+      } else {
+        const r = scanStructured(msg);
+        hit = r.hit;
+        if (r.binLeaves) { schedGuard.binaryLeaves += r.binLeaves; schedGuard.binaryBytes += r.binBytes; }
+        if (r.truncated) schedGuard.truncatedScans++;
+        if (r.opaque) schedGuard.opaqueWorkerLeaves++;
+        // Counted ALWAYS, refused only if the policy says so, so the counts
+        // stay a real measurement of this app's own traffic rather than a
+        // number the policy shaped.
+        if (!hit && SCHEDULE_STORE.blockOpaqueWorkerLeaves) {
+          if (r.truncated) hit = EGRESS_SCAN_TRUNCATED;
+          else if (r.opaque) hit = EGRESS_OPAQUE_LEAF;
+        }
+      }
+    } catch (e) {
+      // FAILS CLOSED HERE, unlike the network paths. A throw on the way into a
+      // worker is indistinguishable from a payload built to cause one, and
+      // refusing a worker message cannot stop a tile downloading the way a
+      // broken `fetch` wrapper could. `SCHEDULE_STORE.failClosedOnScanError`
+      // is the one-line way back.
+      schedGuard.scanThrows++; schedGuard.inspectFailures++;
+      hit = SCHEDULE_STORE.failClosedOnScanError ? EGRESS_SCAN_THREW : null;
+    }
+    if (hit && schedGuard.armed) {
+      schedGuard.blocked++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
+      noteEgress(via, 'POST', '[' + via + ']', hit, true, -1);
+      return hit;
+    }
+    return null;
+  }
 
   function noteEgress(via, method, url, hit, blocked, bytes) {
     if (schedGuard.log.length >= SCHEDULE_STORE.logCap) schedGuard.log.shift();
@@ -8639,7 +9061,7 @@
     // The sentinel is not a needle — it never appeared in the URL, so there is
     // nothing in the URL to redact and building a regex for it is pure waste
     // on a path that also runs for ordinary traffic.
-    if (hit && hit !== EGRESS_OPAQUE_BODY) {
+    if (hit && !EGRESS_SENTINELS[hit]) {
       const re = new RegExp(hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       u = u.replace(re, '[REDACTED]');
     }
@@ -8672,7 +9094,7 @@
     if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
     let hit = null;
     try {
-      hit = scanForSchedule(url);
+      hit = scanTextForSchedule(url);
       if (body === undefined) {
         // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
         // hole round 4's critic drove a Blob through. While a schedule is
@@ -8680,7 +9102,7 @@
         schedGuard.unreadableBodies++;
         if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
       } else if (!hit) {
-        hit = scanForSchedule(body);
+        hit = scanTextForSchedule(body);
       }
     } catch (e) {
       // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
@@ -8696,7 +9118,7 @@
     }
     if (block) {
       schedGuard.blocked++;
-      if (hit === EGRESS_OPAQUE_BODY) schedGuard.blockedOpaque++;
+      if (EGRESS_SENTINELS[hit]) schedGuard.blockedOpaque++;
     }
     return block ? hit : null;
   }
@@ -8758,7 +9180,13 @@
       const OrigWS = window.WebSocket;
       class GuardedWebSocket extends OrigWS {
         constructor(url, protocols) {
-          if (schedWatch.length && inspect('websocket', 'OPEN', url, '')) throw egressError('WebSocket', 'url');
+          if (schedWatch.length) {
+            // Report the token that actually matched. The literal 'url' this
+            // used to pass rendered in the thrown message as `ur…(3)`, which
+            // tells the reader nothing about what was caught.
+            const h = inspect('websocket', 'OPEN', url, '');
+            if (h) throw egressError('WebSocket', h);
+          }
           super(url, protocols);
         }
         send(data) {
@@ -8777,53 +9205,91 @@
       const OrigES = window.EventSource;
       class GuardedEventSource extends OrigES {
         constructor(url, cfg) {
-          if (schedWatch.length && inspect('eventsource', 'OPEN', url, '')) throw egressError('EventSource', 'url');
+          if (schedWatch.length) {
+            const h = inspect('eventsource', 'OPEN', url, '');
+            if (h) throw egressError('EventSource', h);
+          }
           super(url, cfg);
         }
       }
       window.EventSource = GuardedEventSource;
     }
 
-    // Worker.postMessage ───────────────────────────────────────────────────
-    // THIS IS THE ONE THAT CLOSES THE HOLE. The guard is main-thread, and
+    // every structured-clone door into a worker ────────────────────────────
+    // THESE ARE THE ONES THAT CLOSE THE HOLE. The guard is main-thread, and
     // MapLibre does its tile fetching inside workers where it cannot reach. So
     // instead of trying to follow the bytes into the worker, it stops schedule
-    // bytes from ever getting in. A worker cannot send what it was never told.
+    // bytes from ever getting in — and "the door" means every door, not the
+    // one door a critic happened to knock on.
+    //
+    // `MessagePort` and `BroadcastChannel` are here because a `MessagePort`
+    // transferred into a worker carries structured clones without ever
+    // touching `Worker.prototype.postMessage`, which would have been the
+    // round-7 finding. Measured cost of guarding them: exactly zero — a full
+    // cold load of this city makes 0 `MessagePort.postMessage` calls and 0
+    // `BroadcastChannel.postMessage` calls.
     if (typeof Worker !== 'undefined' && Worker.prototype && Worker.prototype.postMessage) {
       const pm = Worker.prototype.postMessage;
-      // THE HOT PATH. Its own inline check rather than a trip through
-      // `inspect()`, because `inspect()` builds a log line and a MapLibre tile
-      // load is a thousand of these. Counted, never logged unless it matches.
       Worker.prototype.postMessage = function (msg) {
         if (schedRe) {
-          schedGuard.checked++; schedGuard.quietChecked++;
-          let hit = null;
-          try {
-            if (typeof msg === 'string') {
-              hit = scanForSchedule(msg);
-            } else {
-              const r = scanStructured(msg, WORKER_SCAN_NODES);
-              hit = r.hit;
-              if (r.opaque) {
-                // Counted ALWAYS, blocked only if the policy says so, so the
-                // count is a real measurement of this app's own worker traffic
-                // rather than a number the policy shaped. Measured zero across
-                // a full map load — see docs/si-privacy.md §6.
-                schedGuard.opaqueWorkerLeaves++;
-                if (!hit && SCHEDULE_STORE.blockOpaqueWorkerLeaves) hit = EGRESS_OPAQUE_BODY;
-              }
-            }
-          } catch (e) { schedGuard.inspectFailures++; hit = null; }
-          if (hit && schedGuard.armed) {
-            schedGuard.blocked++;
-            if (hit === EGRESS_OPAQUE_BODY) schedGuard.blockedOpaque++;
-            noteEgress('worker.postMessage', 'POST', '[worker]', hit, true, -1);
-            throw egressError('Worker.postMessage', hit);
-          }
+          const hit = inspectPayload('worker.postMessage', msg);
+          if (hit) throw egressError('Worker.postMessage', hit);
         }
         return pm.apply(this, arguments);
       };
     }
+    if (typeof MessagePort !== 'undefined' && MessagePort.prototype && MessagePort.prototype.postMessage) {
+      const pm = MessagePort.prototype.postMessage;
+      MessagePort.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('port.postMessage', msg);
+          if (hit) throw egressError('MessagePort.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+    if (typeof BroadcastChannel !== 'undefined' && BroadcastChannel.prototype && BroadcastChannel.prototype.postMessage) {
+      const pm = BroadcastChannel.prototype.postMessage;
+      BroadcastChannel.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.portChecked++;
+          const hit = inspectPayload('broadcast.postMessage', msg);
+          if (hit) throw egressError('BroadcastChannel.postMessage', hit);
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+
+    // the worker's own script URL ──────────────────────────────────────────
+    // `new Worker('/collect?t=' + classTitle)` is a leak that never sends a
+    // single message, and until this round nothing looked at it. The URL is a
+    // string, so this is the ordinary scan.
+    //
+    // WHAT IT CANNOT DO, and it is written here rather than only in the doc:
+    // MapLibre mints ONE `blob:` URL and spawns FOUR workers from it (measured
+    // on a real load), and a `Blob` cannot be read synchronously. So schedule
+    // text baked into a worker's SOURCE via a blob URL is not visible here.
+    // Refusing blob-sourced workers outright would break the map on contact.
+    // §9 of docs/si-privacy.md names this as a residual rather than pretending
+    // otherwise.
+    const guardWorkerCtor = (name) => {
+      const Orig = window[name];
+      if (typeof Orig !== 'function') return;
+      class GuardedWorkerCtor extends Orig {
+        constructor(url, opts) {
+          if (schedRe) {
+            schedGuard.workerCtors++;
+            const h = inspect(name.toLowerCase() + '.new', 'NEW', url, '');
+            if (h) throw egressError(name + ' constructor', h);
+          }
+          super(url, opts);
+        }
+      }
+      window[name] = GuardedWorkerCtor;
+    };
+    guardWorkerCtor('Worker');
+    guardWorkerCtor('SharedWorker');
 
     // form submission ──────────────────────────────────────────────────────
     if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype.submit) {
@@ -9065,9 +9531,22 @@
         unreadableBodies: schedGuard.unreadableBodies,
         blockedOpaque: schedGuard.blockedOpaque,
         opaqueWorkerLeaves: schedGuard.opaqueWorkerLeaves,
+        // Round 6. `binaryLeaves`/`binaryBytes` are the measurement that says
+        // whether the byte scan is doing its job or quietly doing nothing: if
+        // a cold load reports 0 bytes scanned, the guard is not reading the
+        // map's own tile traffic and something above it has gone wrong.
+        binaryLeaves: schedGuard.binaryLeaves,
+        binaryBytes: schedGuard.binaryBytes,
+        truncatedScans: schedGuard.truncatedScans,
+        scanThrows: schedGuard.scanThrows,
+        portChecked: schedGuard.portChecked,
+        workerCtors: schedGuard.workerCtors,
         policy: {
           blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
           blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
+          failClosedOnScanError: SCHEDULE_STORE.failClosedOnScanError,
+          binaryScanBytes: SCHEDULE_STORE.binaryScanBytes,
+          workerScanNodes: SCHEDULE_STORE.workerScanNodes,
         },
       }),
       log: () => schedGuard.log.slice(),
