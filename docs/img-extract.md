@@ -446,17 +446,27 @@ What is actually missing, image by image, measured rather than assumed:
 
 | | day headings | event blocks | the caption inside a block |
 |---|---|---|---|
-| 06 | two of five read, repaired to five columns | all 10 found, right columns | `MA 6 146`, `ute 2.909`, `i208` — nothing is a room |
-| 08 | none read at all | all 11 found | `0106 } P0106 os`, `MET 20 315)` |
-| 11 | none read at all | 9 found (two pairs welded) | `PHY 3031 1:00 pm - 200 om PA) 3.02` — one of them nearly readable |
+| 06 | two of five read, **repaired to five columns** | all 10 found, right columns | `MA 6 106`, `ute 2.909`, `i208` — nothing is a room |
+| 08 | none | all 11 found | `0106 } P0106 os`, `MET 20 315)` |
+| 11 | one, and one is not two | 9 found (two pairs welded) | `PHY 3031 1:00 pm - 200 om PA) 3.02` — nearly readable |
 
-The header strip was re-read on its own at 2×, 3× and 4× and under four
-different page-segmentation modes, and on 06 and 08 the weekday names do not
-come back under any of them; what does come back is the row of **date numbers**
-(`24 26 27 28`). Naming a column from a date would mean reading the month and
-the year off the same picture and doing a calendar computation, and one wrong
-digit in the month moves every class to the wrong day — that is a much worse
-failure than the one it replaces, so it is not in here.
+The header strip was re-read on its own at 2×, 3× and 4× under four different
+page-segmentation modes on each of these three images. Measured:
+
+- on **06 and 08** the weekday names do not come back under any of them. What
+  does come back is the row of **date numbers** — `24 26 2/7 28` on 06,
+  `24 25) 26 27 28` on 08. Naming a column from a date means reading the month
+  and the year off the same picture and doing a calendar computation, and one
+  wrong digit in the month moves every class to the wrong day. That is a worse
+  failure than the one it replaces, so it is not in here;
+- on **11**, sparse-text mode (`SPARSE_TEXT`, mode 11 — not the block mode the
+  page pass uses, and not the line mode the cells use) does read `MON` off the
+  top strip, along with `27` and `24`. One heading is not two, so the column fit
+  has nothing to fit; the pitch would have to come from the event blocks
+  instead. That is the one door left open on this image and it is written down
+  here rather than built, because the corpus cannot validate it: even with its
+  columns named, image 11 has no readable hour axis and only one block whose
+  caption yields a time, so it would still score zero.
 
 **The honest summary is that these three images are at the edge of what a
 1400-pixel JPEG of a perspective-warped screen contains.** A reader that guessed
@@ -466,10 +476,12 @@ at them would be inventing rooms. What is genuinely next, in order:
    `GDC 2.216`. `GNC` is not one confusable character from `GDC`, so the repair
    refuses it, correctly. This is a two-meeting loss and it needs a better
    picture, not a looser rule;
-2. **image 11 is the one grid worth another attempt** — its blocks give
-   `PHY 3031 1:00 pm - 200 om PA) 3.02` and `MER 1.906`, which is a real room
-   and a real time from a photograph. It cannot be used because the day headings
-   never read and the columns cannot be named. Everything downstream of naming
-   them — §7's colour vote, which would carry one legible room across all three
-   days that course meets — is already built and already tested on images 04 and
-   10.
+2. **image 11 is the one grid worth another attempt**, and it needs two things,
+   not one. Its blocks give `PHY 3031 1:00 pm - 200 om PA) 3.02` and
+   `MER 1.906` — a real room and most of a real time off a photograph. To use
+   them it needs (a) its columns named, which means one heading plus a pitch
+   taken from the blocks, since sparse-text mode reads `MON` and nothing else,
+   and (b) a clock, since it has no readable hour axis and `200 om` is not a
+   time this file will guess at. Everything downstream of those two — §7's
+   colour vote, which would carry one legible room across all three days that
+   course meets — is already built and already tested on images 04 and 10.

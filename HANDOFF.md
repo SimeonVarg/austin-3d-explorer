@@ -79,16 +79,22 @@ the worker's parameters silences it at the source. Do not fix that one by
 teaching a gate to ignore errors.
 
 **STILL WEAK, MEASURED RATHER THAN ASSUMED.** 0 of 35 on angled photographs of
-week grids, and image 05's `C S 439` room. On 08 and 11 the weekday headings do
-not come back from the page pass, nor from the header strip re-read on its own
-at 2×, 3× and 4× under four different segmentation modes — what does come back
-is the row of date numbers. Naming a column from a date would mean reading the
-month and year off the same picture and doing a calendar computation, and one
-wrong digit in the month moves every class to the wrong day. That is a worse
-failure than the one it replaces, so it is not in there. Image 11 is the one
-grid worth another attempt: its blocks give `PHY 3031 1:00 pm - 200 om PA) 3.02`
-and `MER 1.906`, and everything downstream of naming its columns is already
-built and already tested.
+week grids, and image 05's `C S 439` room. The header strip was re-read on its
+own at 2×, 3× and 4× under four segmentation modes on each of 06, 08 and 11:
+
+- on **06 and 08** no weekday name comes back under any of them. What does come
+  back is the row of date numbers. Naming a column from a date means reading the
+  month and year off the same picture and doing a calendar computation, and one
+  wrong digit in the month moves every class to the wrong day — a worse failure
+  than the one it replaces, so it is not in there;
+- on **11**, sparse-text mode (11, not the block mode the page pass uses) reads
+  `MON` and nothing else. One heading is not two, so the column fit has nothing
+  to fit and the pitch would have to come from the event blocks. That is the one
+  door left open, and it is written down rather than built, because even with
+  its columns named image 11 has no readable hour axis and only one block whose
+  caption yields a time — it would still score zero. Its blocks do give
+  `PHY 3031 1:00 pm - 200 om PA) 3.02` and `MER 1.906`, and everything
+  downstream of naming its columns is already built and tested on 04 and 10.
 
 `js/wayfind.js` is not touched and `WAYFIND.on` is still `false`.
 `index.html` is not touched. The corpus and the scorer are not touched.
