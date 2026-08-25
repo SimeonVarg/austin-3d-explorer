@@ -131,6 +131,13 @@ export const TUNE = {
   ocr: {
     psm: '6',              // SINGLE_BLOCK. 3 (AUTO) re-orders a table into
                            // column-major garbage; 6 keeps rows as rows.
+    // A SECOND LOOK IS A DIFFERENT SHAPE OF PICTURE, SO IT GETS A DIFFERENT
+    // MODE. A whole page is a block; one table cell, one hour label and one
+    // row of day headings are each a LINE. Measured on corpus image 05: the
+    // cell holding "MWF" returns nothing at all under mode 6 at every
+    // magnification from 2x to 5x — the layout analyser will not commit to a
+    // block from one short word — and reads first time under mode 7.
+    linePsm: '7',          // SINGLE_LINE, for a strip that is one line of type
     dpi: '300',
     minWordConf: 26,       // below this a word is noise, not a reading
   },
@@ -184,6 +191,12 @@ export const TUNE = {
     reOcrBlocks: true,     // read a block on its own when the page pass could
                            // not get a room out of it — see ocrCrop()
     agreeMin: 16,          // axis and caption agreeing within this is confident
+    // Blocks of one colour at one time of day are one class drawn on several
+    // days, so their rooms are made to agree — see agreeOnRooms().
+    agreeAcrossDays: true,
+    // How many event rectangles have to be on a picture before an otherwise
+    // empty result says "I can see classes here and could not read them".
+    minBlocksToMention: 2,
   },
 };
 
@@ -803,6 +816,14 @@ async function tesseractWorker() {
       tessedit_pageseg_mode: TUNE.ocr.psm,
       user_defined_dpi: TUNE.ocr.dpi,
       preserve_interword_spaces: '1',
+      // KEEP THE ENGINE'S DEBUG CHATTER OFF THE PAGE'S CONSOLE. In single-line
+      // mode Tesseract prints its row-fitting statistics ("Bottom=0, top=195,
+      // base=0, x=0", "Total count=0") through emscripten's stderr, which
+      // lands as console.error in the host page — indistinguishable, to
+      // anything watching, from the app having thrown. Pointing its debug file
+      // at the null device in the WebAssembly filesystem silences it at the
+      // source rather than teaching the gate to ignore errors.
+      debug_file: '/dev/null',
     });
     engineInfo.name = 'tesseract.js 7 (LSTM, SIMD core, vendored)';
     engineInfo.why = 'TextDetector absent; everything runs in a Worker on this device';
@@ -813,8 +834,14 @@ async function tesseractWorker() {
   return enginePromise;
 }
 
-/** -> [{ text, x0, y0, x1, y1, conf }] in the coordinates of the given canvas. */
-export async function ocrWords(canvas, tune = TUNE) {
+/**
+ * -> [{ text, x0, y0, x1, y1, conf }] in the coordinates of the given canvas.
+ *
+ * `psm` overrides the page-segmentation mode for this one call and is put back
+ * afterwards, so a crop that is one line can say so without changing how the
+ * page is read. TextDetector has no such setting and ignores it.
+ */
+export async function ocrWords(canvas, tune = TUNE, psm = null) {
   const eng = await pickEngine();
   if (eng.kind === 'textdetector') {
     const found = await eng.detector.detect(canvas);
@@ -838,7 +865,14 @@ export async function ocrWords(canvas, tune = TUNE) {
     return out;
   }
   const worker = await tesseractWorker();
-  const res = await worker.recognize(canvas, {}, { blocks: true, text: false });
+  const swap = psm && psm !== tune.ocr.psm;
+  if (swap) await worker.setParameters({ tessedit_pageseg_mode: psm });
+  let res;
+  try {
+    res = await worker.recognize(canvas, {}, { blocks: true, text: false });
+  } finally {
+    if (swap) await worker.setParameters({ tessedit_pageseg_mode: tune.ocr.psm });
+  }
   const words = [];
   const blocks = (res && res.data && res.data.blocks) || [];
   for (const blk of blocks) {
@@ -872,8 +906,11 @@ export async function ocrWords(canvas, tune = TUNE) {
  * Polarity is decided from the crop's own median, so the same call works for a
  * light block on a dark calendar as for the reverse.
  */
-export async function ocrCrop(pm, box, tune = TUNE, scale = 2) {
-  const pad = 3;
+export async function ocrCrop(pm, box, tune = TUNE, scale = 2, opts = {}) {
+  // A MARGIN IS PART OF THE PICTURE. Tesseract's layout analyser wants some
+  // quiet space around the type; a cell cut exactly to its own ink reads worse
+  // than the same cell with a few pixels of page around it.
+  const pad = opts.pad == null ? 3 : opts.pad;
   const x0 = Math.max(0, Math.floor(box.x0) - pad), y0 = Math.max(0, Math.floor(box.y0) - pad);
   const x1 = Math.min(pm.w, Math.ceil(box.x1) + pad), y1 = Math.min(pm.h, Math.ceil(box.y1) + pad);
   const cw = x1 - x0, ch = y1 - y0;
@@ -899,7 +936,7 @@ export async function ocrCrop(pm, box, tune = TUNE, scale = 2) {
     }
   }
   ctx.putImageData(id, 0, 0);
-  const words = await ocrWords(c, tune);
+  const words = await ocrWords(c, tune, opts.psm || null);
   return words.map(w => ({
     ...w,
     x0: x0 + w.x0 / scale, x1: x0 + w.x1 / scale,
@@ -949,9 +986,86 @@ export function buildRows(words, tune = TUNE) {
   return rows;
 }
 
+const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_HEADER = /^(MON|TUE|TUES|WED|THU|THUR|THURS|FRI|SAT|SUN)(DAY)?$/i;
 const HEADER_WORDS = /^(UNIQUE|COURSE|TITLE|INSTRUCTOR|DAYS|DAY|HOUR|HOURS|TIME|TIMES|ROOM|BLDG|BUILDING|LOCATION|STATUS|SECTION)$/i;
 const HEADER_DAY = { MON: 'Mon', TUE: 'Tue', TUES: 'Tue', WED: 'Wed', THU: 'Thu', THUR: 'Thu', THURS: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' };
+
+/**
+ * A weekday heading, allowing ONE wrong letter.
+ *
+ * WHY THIS EXISTS. On a photograph of a calendar the headings are the smallest
+ * type on the page and one of them comes back wrong: corpus image 06 reads
+ * "rut WED THY FRI" where the calendar says TUE WED THU FRI. Two exact
+ * weekdays is not three, so the grid reader was never entered on that image at
+ * all — not the block finder, not the hour axis, none of it. Every angled week
+ * grid in the corpus failed at this one line.
+ *
+ * The repair is deliberately narrow. Exactly three letters, and exactly one
+ * weekday within one substitution: "THY" is Thursday and nothing else, and
+ * "RUT" — two letters away from Tuesday and two from Saturday — is refused
+ * rather than guessed. The length rule is what keeps an instructor's surname
+ * out of it ("SITZ" is four letters, so it is never a Saturday).
+ */
+export function headerDay(text) {
+  const s = String(text).replace(/[^A-Za-z]/g, '').toUpperCase();
+  if (s.length < 3) return null;
+  if (DAY_HEADER.test(s)) {
+    const day = HEADER_DAY[s] || HEADER_DAY[s.slice(0, 3)];
+    return day ? { day, repaired: false } : null;
+  }
+  if (s.length !== 3) return null;
+  const hits = [];
+  for (const day of DAY_ORDER) {
+    const abbr = day.toUpperCase();
+    let d = 0;
+    for (let i = 0; i < 3; i++) if (s[i] !== abbr[i]) d++;
+    if (d <= 1) hits.push(day);
+  }
+  return hits.length === 1 ? { day: hits[0], repaired: true } : null;
+}
+
+/**
+ * Day headings -> the whole week of columns, by fitting x to the day index.
+ *
+ * A CALENDAR'S COLUMNS ARE EVENLY SPACED — that is what makes it a calendar —
+ * so the headings that DID read give the pitch and the phase of the ones that
+ * did not. Corpus image 06 reads Wednesday, Thursday and Friday and has event
+ * blocks in the Monday and Tuesday columns; without this they would be dropped
+ * for having no column to belong to.
+ *
+ * The fit is checked before it is used: the days must run left to right in
+ * calendar order, the pitch must be a plausible column width, and every
+ * heading that read must sit within a third of a column of where the fit puts
+ * it. A fit that does not explain the headings is no fit, and the caller falls
+ * back to reading the page in flow.
+ */
+function fitDayColumns(hits, pageW) {
+  const uniq = [];
+  for (const h of hits.slice().sort((a, b) => a.cx - b.cx)) {
+    if (!uniq.some(u => u.idx === h.idx)) uniq.push(h);
+  }
+  if (uniq.length < 2) return null;
+  for (let i = 1; i < uniq.length; i++) if (uniq[i].idx <= uniq[i - 1].idx) return null;
+  const n = uniq.length;
+  const si = uniq.reduce((a, h) => a + h.idx, 0);
+  const sx = uniq.reduce((a, h) => a + h.cx, 0);
+  const sii = uniq.reduce((a, h) => a + h.idx * h.idx, 0);
+  const six = uniq.reduce((a, h) => a + h.idx * h.cx, 0);
+  const den = n * sii - si * si;
+  if (!den) return null;
+  const pitch = (n * six - si * sx) / den;
+  const at0 = (sx - pitch * si) / n;
+  if (!(pitch > pageW * 0.06) || pitch > pageW) return null;
+  for (const h of uniq) if (Math.abs(at0 + pitch * h.idx - h.cx) > pitch * 0.34) return null;
+  const cols = [];
+  for (let i = 0; i < DAY_ORDER.length; i++) {
+    const cx = at0 + pitch * i;
+    if (cx < pitch * 0.15 || cx > pageW - pitch * 0.15) continue;
+    cols.push({ day: DAY_ORDER[i], cx, y1: Math.max(...uniq.map(h => h.y1)) });
+  }
+  return cols.length >= uniq.length ? cols : null;
+}
 
 /**
  * -> { kind: 'grid'|'table'|'cards', dayCols?, headers? }
@@ -959,7 +1073,8 @@ const HEADER_DAY = { MON: 'Mon', TUE: 'Tue', TUES: 'Tue', WED: 'Wed', THU: 'Thu'
  * Decided from geometry, never from the file name and never from a condition
  * label — the extractor is not told what it is looking at, by contract.
  */
-export function classifyLayout(rows) {
+export function classifyLayout(rows, page = null) {
+  const pageW = (page && page.w) || Math.max(1, ...rows.map(r => r.x1 || 0));
   // A week grid announces itself: three or more weekday names on one row.
   for (const r of rows) {
     const days = r.words.filter(w => DAY_HEADER.test(w.text.replace(/[^A-Za-z]/g, '')));
@@ -973,6 +1088,24 @@ export function classifyLayout(rows) {
       const out = [];
       for (const c of cols) if (!out.length || c.day !== out[out.length - 1].day) out.push(c);
       return { kind: 'grid', dayCols: out, headerY: Math.max(...days.map(w => w.y1)) };
+    }
+  }
+  // THE SAME QUESTION ASKED OF A PHOTOGRAPH. Three headings that all read
+  // perfectly is a screenshot's standard; a photograph gets two that read and
+  // one that is a letter out, and the columns in between come from the fit.
+  for (const r of rows) {
+    const hits = [];
+    for (const w of r.words) {
+      const d = headerDay(w.text);
+      if (d) hits.push({ ...d, idx: DAY_ORDER.indexOf(d.day), cx: (w.x0 + w.x1) / 2, y1: w.y1 });
+    }
+    if (hits.length < 2) continue;
+    const cols = fitDayColumns(hits, pageW);
+    if (cols) {
+      return {
+        kind: 'grid', dayCols: cols, fitted: true,
+        headerY: Math.max(...hits.map(h => h.y1)),
+      };
     }
   }
   // A registrar table announces itself with a header row.
@@ -1023,9 +1156,27 @@ function toMinutes(h, m, ap, unsure) {
 const hhmm = v => v == null ? null
   : String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
 
+/**
+ * A LOST COLON IS A LOST CLASS, AND OCR LOSES COLONS.
+ *
+ * Measured on corpus image 05, where two whole rows scored zero on this alone:
+ * the hour cell "4:00 pm-5:30 pm" comes back as "400 pm-5.30 pm" and
+ * "10:00 am-11:00 am" as "10:00 am-11 00 am". Three or four digits run
+ * together, or split by a space, are a clock — but ONLY where a meridiem
+ * follows them, which is what makes this safe to do everywhere. A unique
+ * number ("54010"), a room ("1.906") and a course number ("340L") are never
+ * followed by "am" or "pm", so none of them is ever touched.
+ */
+export function normalizeClockText(text) {
+  const AP = '(\\s*[ap]\\s*\\.?\\s*[mn])';
+  return String(text)
+    .replace(new RegExp('\\b(\\d{1,2})\\s+(\\d{2})' + AP, 'gi'), '$1:$2$3')
+    .replace(new RegExp('\\b(\\d{1,2})(\\d{2})' + AP, 'gi'), '$1:$2$3');
+}
+
 /** "9:30 am-11:00 am" / "11:00 am - 12:30 pm" -> { start, end, unsure }. */
 export function parseRange(text) {
-  const s = String(text).replace(/–|—|−/g, '-');
+  const s = normalizeClockText(String(text).replace(/–|—|−/g, '-'));
   let m = RANGE_RE.exec(s);
   let loose = false;
   if (!m) { m = RANGE_LOOSE_RE.exec(s); loose = true; }
@@ -1154,6 +1305,36 @@ export function repairCode(raw, codes, tune = TUNE) {
   }
   if (hits.size === 1) return { code: [...hits][0], repaired: true };
   return null;
+}
+
+/**
+ * A day run repaired by ONE confusable letter — and ONLY where the table's own
+ * heading says this column holds days.
+ *
+ * "MWF" printed in 9 pt and photographed at an angle comes back as "MWE" on
+ * corpus image 05, because E and F differ by one stroke. Substituting one
+ * confusable letter gives exactly one run that is a run of real days, so the
+ * answer is not a guess between alternatives.
+ *
+ * THIS IS NOT USED ON A ROW SCANNED IN FLOW, only on a cell under a DAYS
+ * heading. Loosened everywhere it would start turning instructors' initials
+ * into weekdays, which is the mistake that once put a Wednesday class on this
+ * corpus that does not exist.
+ */
+export function repairDayRun(tok) {
+  const s = String(tok).toUpperCase().replace(/[^A-Z]/g, '');
+  if (s.length < 2 || s.length > 7) return null;
+  const direct = parseDayLetters(s);
+  if (direct) return direct;
+  const hits = new Map();
+  for (let i = 0; i < s.length; i++) {
+    for (const a of (CONFUSE[s[i]] || '')) {
+      if (!/[A-Z]/.test(a)) continue;
+      const d = parseDayLetters(s.slice(0, i) + a + s.slice(i + 1));
+      if (d) hits.set(d.join('|'), d);
+    }
+  }
+  return hits.size === 1 ? [...hits.values()][0] : null;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1357,10 +1538,12 @@ export function findBlocks(rect, tune = TUNE) {
     if (!on[start] || seen[start]) continue;
     let sp = 0, n = 0;
     let x0 = w, x1 = -1, y0 = h, y1 = -1;
+    let sr = 0, sg = 0, sb = 0;
     stack[sp++] = start; seen[start] = 1;
     while (sp) {
       const i = stack[--sp];
       n++;
+      sr += px[i * 3]; sg += px[i * 3 + 1]; sb += px[i * 3 + 2];
       const x = i % w, y = (i / w) | 0;
       if (x < x0) x0 = x; if (x > x1) x1 = x;
       if (y < y0) y0 = y; if (y > y1) y1 = y;
@@ -1376,9 +1559,71 @@ export function findBlocks(rect, tune = TUNE) {
     if (n < minArea) continue;
     const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
     if (n / (bw * bh) < G.minFill) continue;
-    out.push({ x0: x0 * s, y0: y0 * s, x1: (x1 + 1) * s, y1: (y1 + 1) * s, area: n * s * s });
+    // THE COLOUR IS PART OF THE ANSWER. A calendar draws one course in one
+    // colour on every day it meets, so the colour is how two rectangles are
+    // recognised as the same class — see `agreeOnRooms()`.
+    out.push({
+      x0: x0 * s, y0: y0 * s, x1: (x1 + 1) * s, y1: (y1 + 1) * s, area: n * s * s,
+      colour: [sr / n, sg / n, sb / n],
+    });
   }
   return out;
+}
+
+/**
+ * A WEEK GRID SAYS THE SAME THING SEVERAL TIMES, SO READ IT WHERE IT IS LEGIBLE.
+ *
+ * A calendar draws one course in one colour, at the same hours, on every day it
+ * meets. Two rectangles with the same colour and the same start and end are the
+ * same class, and the room printed inside them is the same room — whatever the
+ * engine made of each copy. So the copies vote:
+ *
+ *   - a reading supported by more of the copies wins ("WEL 2.224" twice beats
+ *     "WEL 2224" once, which is corpus image 10's only loss);
+ *   - a tie goes to the copy the engine was more confident about (image 04
+ *     reads one block "GDC 2.216" and its twin "GDC 2.236", once each);
+ *   - a copy whose caption gave NO room at all takes the group's room and is
+ *     flagged, because "the same class, drawn on Wednesday" is a thing this
+ *     file can see on the picture rather than a thing it is assuming.
+ *
+ * What it will not do is invent: a group where nothing read stays empty.
+ */
+function agreeOnRooms(recs, tune) {
+  const near = (a, b) => a && b &&
+    Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) <= tune.grid.colourJoin;
+  const groups = [];
+  for (const r of recs) {
+    if (!r.block || !r.block.colour) continue;
+    const g = groups.find(q =>
+      near(q.colour, r.block.colour) && q.start === r.range.start && q.end === r.range.end);
+    if (g) g.recs.push(r);
+    else groups.push({ colour: r.block.colour, start: r.range.start, end: r.range.end, recs: [r] });
+  }
+  for (const g of groups) {
+    if (g.recs.length < 2) continue;
+    const votes = new Map();
+    for (const r of g.recs) {
+      if (!r.loc) continue;
+      const key = String(r.loc.code).toUpperCase() + ' ' + String(r.loc.room).toUpperCase();
+      const conf = (r.loc.words || []).reduce((a, w) => a + (w.conf || 0), 0);
+      const v = votes.get(key) || { n: 0, conf: 0, loc: r.loc };
+      v.n++; v.conf += conf;
+      votes.set(key, v);
+    }
+    if (!votes.size) continue;
+    const best = [...votes.values()].sort((a, b) => (b.n - a.n) || (b.conf - a.conf))[0];
+    const bestKey = String(best.loc.code).toUpperCase() + ' ' + String(best.loc.room).toUpperCase();
+    for (const r of g.recs) {
+      const key = r.loc && String(r.loc.code).toUpperCase() + ' ' + String(r.loc.room).toUpperCase();
+      if (key === bestKey) continue;
+      const was = key;
+      r.loc = { ...best.loc, borrowed: true };
+      r.why = (r.why || []).concat(was
+        ? 'this class is drawn ' + g.recs.length + ' times and the others read "' + was + '"'
+        : 'the room here was unreadable; it is taken from the same class on another day');
+    }
+  }
+  return recs;
 }
 
 /** A grid: the day is the column, and nothing else is. */
@@ -1406,11 +1651,29 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
       .filter(b => colOf((b.x0 + b.x1) / 2) || colOf(b.x0 + pitch * 0.25));
     const snap = (v) => Math.round(v / tune.grid.snapMin) * tune.grid.snapMin;
     const recs = [];
+    // WHAT WAS SEEN AND NOT READ IS AN ANSWER TOO. A block that is plainly a
+    // class and whose caption will not come apart used to fall out of this
+    // loop and out of the result, so a student photographing their calendar at
+    // an angle got an empty screen and no reason. Every such block is recorded
+    // here with whatever IS known about it — which day it is on, and its time
+    // when the ruler gave one — and the caller puts it in front of the student
+    // as something seen but not read.
+    const seenNotRead = (ctx && ctx.seenNotRead) || [];
+    if (ctx) ctx.seenNotRead = seenNotRead;
+    const noteBlock = (col, start, end, why) => seenNotRead.push({
+      day: col ? col.day : null,
+      start: start == null ? null : hhmm(start),
+      end: end == null ? null : hhmm(end),
+      why,
+    });
     for (const b of blocks) {
       const col = colOf((b.x0 + b.x1) / 2) || colOf(b.x0 + pitch * 0.25);
       let start = axis ? snap(axis.minutesAt(b.y0)) : null;
       let end = axis ? snap(axis.minutesAt(b.y1)) : null;
-      if (axis && (!(end > start) || end - start > tune.judge.maxClassMin)) continue;
+      if (axis && (!(end > start) || end - start > tune.judge.maxClassMin)) {
+        noteBlock(col, null, null, 'this looks like a class but its hours did not add up');
+        continue;
+      }
       const within = (ws) => ws.filter(w =>
         (w.x0 + w.x1) / 2 > b.x0 && (w.x0 + w.x1) / 2 < b.x1 &&
         (w.y0 + w.y1) / 2 > b.y0 && (w.y0 + w.y1) / 2 < b.y1);
@@ -1424,7 +1687,12 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           if (l2 || !inside.length) { inside = again; loc = l2; }
         }
       }
-      if (!inside.length) continue;
+      if (!inside.length) {
+        noteBlock(col, start, end, axis
+          ? 'a class is drawn here but none of its writing could be read'
+          : 'a class is drawn here but neither its writing nor the hour scale could be read');
+        continue;
+      }
       const caption = parseRange(inOrder(inside).map(w => w.text).join(' '));
       const why = [];
       // The caption is a second witness, not the witness. When both are
@@ -1444,17 +1712,22 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
       // it — which is most of what the layout was hiding — so the caption
       // supplies the clock and the geometry supplies everything else.
       if (!axis) {
-        if (!caption || caption.bad) continue;
+        if (!caption || caption.bad) {
+          noteBlock(col, null, null,
+            'a class is drawn here, but the hour scale down the side did not read ' +
+            'and neither did its own times');
+          continue;
+        }
         start = caption.start; end = caption.end;
         if (caption.unsure) why.push('no am/pm was printed, so the time is a guess');
       }
       recs.push({
         days: [col.day], range: { start, end, unsure: false },
         loc, course: courseFromRow({ words: inside }), ws: inside, why,
-        fromGeometry: true,
+        fromGeometry: true, block: b,
       });
     }
-    if (recs.length) return recs;
+    if (recs.length) return tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune) : recs;
   }
 
   const body = rows.filter(r => r.y0 > layout.headerY);
@@ -1539,15 +1812,40 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
    * magnified it is an easy read. Only cells that actually came back empty are
    * re-read, so a clean table costs nothing.
    */
-  const reread = async (row, keys) => {
+  const reread = async (row, keys, want) => {
     if (!ctx || !ctx.pm || !tune.grid.reOcrBlocks) return null;
     const s = span(keys);
     if (!s || !(s.x1 > s.x0)) return null;
     const pad = Math.max(4, (row.y1 - row.y0) * 0.3);
-    const got = await ocrCrop(ctx.pm,
-      { x0: s.x0, y0: row.y0 - pad, x1: s.x1, y1: row.y1 + pad }, tune, 3);
-    const ws = inSpan(got, s);
-    return ws.length ? ws : null;
+    const box = { x0: s.x0, y0: row.y0 - pad, x1: s.x1, y1: row.y1 + pad };
+    // A CELL IS A LINE, NOT A BLOCK — and it is worth asking twice.
+    // Mode 7 reads one short word that mode 6 refuses to commit to at all
+    // (image 05's "MWF"); mode 6 still wins on a cell holding two runs of type
+    // that the line finder splits. Neither dominates, so this tries the line
+    // mode first and keeps the block mode as the fallback, stopping the moment
+    // the caller says it has what it wanted.
+    // A THIRD ATTEMPT WITH A GENEROUS MARGIN. Measured on image 05's "MWF":
+    // nothing comes back at a 6 px margin under either mode, and the same cell
+    // reads at a 40 px one — the layout analyser wants white space around the
+    // type more than it wants magnification. The margin reaches into the rows
+    // above and below, so what comes back is filtered by THIS row's own y band
+    // as well as by the column, or the row below's day letters would be read
+    // as this row's.
+    const h = Math.max(1, row.y1 - row.y0);
+    const keep = (got) => got.filter(w => {
+      const cx = (w.x0 + w.x1) / 2, cy = (w.y0 + w.y1) / 2;
+      return cx >= s.x0 && cx < s.x1 && cy > row.y0 - h * 0.3 && cy < row.y1 + h * 0.3;
+    });
+    for (const t of [
+      { psm: tune.ocr.linePsm, pad: 6 },
+      { psm: tune.ocr.psm, pad: 6 },
+      { psm: tune.ocr.psm, pad: Math.round(h * 1.2) },
+    ]) {
+      const ws = keep(await ocrCrop(ctx.pm, box, tune, 3, t));
+      if (!ws.length) continue;
+      if (!want || want(ws)) return ws;
+    }
+    return null;
   };
 
   const recs = [];
@@ -1556,7 +1854,11 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
     let hourWs = cell(row, ['HOUR', 'HOURS', 'TIME', 'TIMES']);
     let rg = hourWs && parseRange(hourWs.map(w => w.text).join(' '));
     if ((!rg || rg.bad) && row.words.length >= 3) {
-      const again = await reread(row, ['HOUR', 'HOURS', 'TIME', 'TIMES']);
+      const isRange = (ws) => {
+        const r = parseRange(ws.map(w => w.text).join(' '));
+        return !!(r && !r.bad);
+      };
+      const again = await reread(row, ['HOUR', 'HOURS', 'TIME', 'TIMES'], isRange);
       const rg2 = again && parseRange(again.map(w => w.text).join(' '));
       if (rg2 && !rg2.bad) { rg = rg2; hourWs = again; }
     }
@@ -1571,8 +1873,11 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
     }
     if (!days) days = daysInRow(row).days;
     if (!days) {
-      const again = await reread(row, ['DAYS', 'DAY']);
-      if (again) for (const w of again) { const d = parseDayLetters(w.text); if (d) { days = d; break; } }
+      // Under a DAYS heading — and only there — a run may be repaired by one
+      // confusable letter, which is what turns image 05's "MWE" back into MWF.
+      const hasDay = (ws) => ws.some(w => repairDayRun(w.text));
+      const again = await reread(row, ['DAYS', 'DAY'], hasDay);
+      if (again) for (const w of again) { const d = repairDayRun(w.text); if (d) { days = d; break; } }
     }
     // A COLUMN'S CONTENT IS WIDER THAN ITS HEADING. "12:30 pm" reaches past the
     // midpoint into BLDG, and a cell read as raw text hands back a building
@@ -1600,7 +1905,8 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
       if (l) { loc = l; locWs = l.words; }
     }
     if (!loc) {
-      const again = await reread(row, ['ROOM', 'LOCATION', 'BLDG', 'BUILDING']);
+      const hasLoc = (ws) => !!locFromWords(ws, codes);
+      const again = await reread(row, ['ROOM', 'LOCATION', 'BLDG', 'BUILDING'], hasLoc);
       const l = again && locFromWords(again, codes);
       if (l) { loc = l; locWs = l.words; }
     }
@@ -1684,8 +1990,8 @@ export async function extract(src, opts = {}) {
 
   const codes = await buildingCodes();
   const rows = buildRows(words, tune);
-  const layout = classifyLayout(rows);
   const page = { w: pm.w, h: pm.h };
+  const layout = classifyLayout(rows, page);
   let recs;
   const ctx = { rect, words, pm };
   if (layout.kind === 'grid') recs = await fromGrid(rows, layout, page, tune, codes, ctx);
@@ -1757,11 +2063,47 @@ export async function extract(src, opts = {}) {
       (r.range.bad ? unsure : classes).push(rec);
     }
   }
+  // A BLOCK THAT WAS SEEN AND NOT READ GOES IN FRONT OF THE STUDENT TOO.
+  // Returning an empty screen for a photograph that plainly contains six
+  // classes is the failure this feature was built to avoid: the student has no
+  // way to tell "there is nothing here" from "I could not read it". Each one
+  // carries the day it is on — which comes from the column it sits in, not
+  // from its writing — and its time when the calendar's ruler supplied one.
+  for (const n of (ctx.seenNotRead || [])) {
+    unsure.push({
+      course: null, day: n.day, start: n.start, end: n.end,
+      why: n.day
+        ? n.why + ' (it is in the ' + n.day + ' column)'
+        : n.why,
+    });
+  }
+  // AND WHEN THERE IS STILL NOTHING TO SAY, COUNT WHAT IS ON THE PICTURE.
+  // A calendar whose day headings never read never reaches the block finder
+  // above, so this asks it directly — but only in the case where the answer
+  // would otherwise be a blank screen, so a page that read normally pays
+  // nothing for it.
+  if (!classes.length && !unsure.length && tune.grid.useBlockGeometry) {
+    const blocks = findBlocks(rect, tune);
+    if (blocks.length >= tune.grid.minBlocksToMention) {
+      unsure.push({
+        course: null, day: null, start: null, end: null,
+        // "at least", because two events of one colour that touch are found as
+        // one rectangle — the count is a floor, not a claim.
+        why: 'there are at least ' + blocks.length + ' classes drawn on this calendar, but the ' +
+          'writing inside them is too small or too blurred to read — try again with the ' +
+          'camera square on to the screen, or send the calendar as a screenshot',
+      });
+    }
+  }
   mark('judge');
   delete stages._acc;
 
   return {
     classes, unsure, layout: usedLayout, words,
+    seen: {
+      onlySeen: (ctx.seenNotRead || []).length,
+      days: [...new Set((ctx.seenNotRead || []).map(n => n.day).filter(Boolean))],
+    },
     rows: rows.length,
     page,
     source: rect.source,

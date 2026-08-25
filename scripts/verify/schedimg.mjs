@@ -288,6 +288,33 @@ ok(soft.unsure.length > 0 && soft.unsure.every(w => typeof w === 'string' && w.l
   'a row it can see but cannot finish comes back with a reason, not silence',
   soft.unsure.length + ' held back');
 
+// AND THE HARDEST CASE OF ALL: A PICTURE IT CANNOT READ AT ALL. Image 06 is an
+// angled photograph of a week grid whose captions do not come apart; it
+// proposes nothing, and until this round it returned a completely empty result
+// with no explanation, which a student cannot tell from "there is nothing on
+// this picture". It has to name what it can see.
+const unreadable = 'data:image/jpeg;base64,' +
+  fs.readFileSync(path.join(CORPUS, '06-gcal-angled-right.jpg')).toString('base64');
+const blind = await page.evaluate(async (u) => {
+  const out = await window.wayfindImageExtract(u);
+  return {
+    layout: out.layout, n: out.classes.length, seen: out.seen,
+    unsure: out.unsure.map(x => x.why), days: out.unsure.map(x => x.day).filter(Boolean),
+  };
+}, unreadable);
+note('the angled week grid: layout ' + blind.layout + ', proposed ' + blind.n +
+  ', seen-not-read ' + (blind.seen || {}).onlySeen);
+for (const w of blind.unsure.slice(0, 1)) note('unsure: ' + w);
+ok(blind.layout === 'grid',
+  'the day headings are repaired far enough to enter the grid reader at all',
+  'layout: ' + blind.layout);
+ok(blind.n === 0 && blind.unsure.length > 0,
+  'a calendar it cannot read reports what it saw instead of nothing at all',
+  blind.unsure.length + ' seen and not read, 0 proposed');
+ok(new Set(blind.days).size >= 3,
+  'and it still knows which day each of them is on, from the column',
+  [...new Set(blind.days)].join(' '));
+
 // ════════════════════════════════════════════════════════════════════════════
 head('6. no page errors along the way');
 const real = errs.filter(e => !/favicon|__schedimg_canary/.test(e));

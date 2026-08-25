@@ -1,5 +1,98 @@
 # Austin 3D Explorer — Full Handoff
 
+## 186. Aug 25 2026 — image to text, second round: 134 of 171 and not one wrong answer left on the corpus (acer lane, branch `acer/img-extract`)
+
+Same file, same corpus, same scorer. `js/schedimg.js` went 124 → 134 and, more
+importantly, its last two wrong answers went away:
+
+```
+                        round 1          round 2
+all four fields right   124/171 (72.5%)  134/171 (78.4%)
+precision                98.4%           100.0%   (2 wrong answers -> 0)
+three-of-four near miss  2               0
+images at 100%           9 of 15         12 of 15
+angled-photo            18/49            26/49
+```
+
+Every image that is not an angled photograph of a week grid is now perfect. The
+gate is `scripts/verify/schedimg.mjs`, 26 assertions, all green on the real
+page. Write-up: `docs/img-extract.md`.
+
+**A LOST COLON IS A LOST CLASS.** The single biggest gain (+5) was four lines of
+text repair. A photographed hour cell comes back as `400 pm-5.30 pm` and
+`10:00 am-11 00 am`; neither parses, because the time pattern wants a separator
+between hour and minutes and OCR keeps eating it. Digits run together or split
+by a space are a clock — **but only where a meridiem follows**, which is what
+makes it safe on every surface: a unique number, a room and a course number are
+never followed by "am".
+
+**A SECOND LOOK IS A DIFFERENT SHAPE OF PICTURE, SO GIVE IT A DIFFERENT MODE.**
+Image 05's `MWF` cell comes back EMPTY under `SINGLE_BLOCK` at every
+magnification from 2× to 5× — the layout analyser will not commit to a block
+from one short word — and reads under `SINGLE_LINE`. Three things together got
+it (+3): a per-call page-segmentation mode, a re-read that asks more than once
+and stops when the caller has what it wanted, and a generous margin (nothing at
+6 px, a reading at 40). The margin reaches into the neighbouring rows, so what
+comes back has to be filtered by **this row's own y band** as well as its column
+— otherwise the row below's day letters get read as this row's, which is exactly
+the kind of confidently-wrong answer this feature exists to refuse.
+
+**A WEEK GRID SAYS THE SAME THING SEVERAL TIMES, SO LET THE COPIES VOTE.** A
+calendar draws one course in one colour at the same hours on every day it meets,
+so two rectangles of the same colour and the same start and end are the same
+class and their room is the same room. `findBlocks()` now returns each block's
+mean colour; more copies win, a tie goes to the more confident reading, and a
+copy that read no room takes the group's and is flagged. That was +2 hits and
+−2 false positives — it fixed both of the corpus's near misses (`WEL 2224` for
+`WEL 2.224`, `GDC 2.236` for `GDC 2.216`) and took images 04 and 10 to 14/14.
+
+**THE CORRECTION THE LAST ROUND'S DOC NEEDED.** It said the event blocks were
+being found on the angled week grids. They were not. `findBlocks()` and
+`hourAxis()` are called from one place, inside `fromGrid()`, which runs only
+when `classifyLayout()` returns `grid` — and that needed **three exactly-spelled
+weekday names on one row**. Image 06 reads `rut WED THY FRI`. Two exact
+weekdays is not three, so all three angled grids were classified as card stacks
+and the block finder never ran on them at all. `headerDay()` now allows one
+wrong letter, narrowly (exactly three letters, exactly one weekday within one
+substitution — `THY` is Thursday, `RUT` is refused, `SITZ` is four letters so it
+is never a Saturday), and `fitDayColumns()` fits x against the day index because
+a calendar's columns are evenly spaced. Image 06 now recovers all five columns
+from three headings and reaches the block finder for the first time. **It is
+worth nothing on the score and it is still right** — the captions inside those
+blocks still do not read.
+
+**AN EMPTY SCREEN IS NOT AN ANSWER.** What that repair actually bought is the
+thing the last round listed as the next piece of work. Image 06 proposes nothing
+and now reports ten classes on Mon, Tue, Wed and Thu — the day of each coming
+from the column it sits in, not from its writing. Images 08 and 11, whose day
+headings never read at all, get the block count asked for directly (once, and
+only when the answer would otherwise be blank) and come back with *"there are at
+least 11 classes drawn on this calendar, but the writing inside them is too
+small or too blurred to read — try again with the camera square on to the
+screen."* A student can act on that; an empty screen they cannot.
+
+**A SIDE FIX WORTH KNOWING ABOUT.** In single-line mode Tesseract prints its
+row-fitting statistics (`Bottom=0, top=195, base=0, x=0`) through emscripten's
+stderr, which lands as `console.error` in the host page — indistinguishable from
+the app having thrown, and it turned the gate red. `debug_file: '/dev/null'` in
+the worker's parameters silences it at the source. Do not fix that one by
+teaching a gate to ignore errors.
+
+**STILL WEAK, MEASURED RATHER THAN ASSUMED.** 0 of 35 on angled photographs of
+week grids, and image 05's `C S 439` room. On 08 and 11 the weekday headings do
+not come back from the page pass, nor from the header strip re-read on its own
+at 2×, 3× and 4× under four different segmentation modes — what does come back
+is the row of date numbers. Naming a column from a date would mean reading the
+month and year off the same picture and doing a calendar computation, and one
+wrong digit in the month moves every class to the wrong day. That is a worse
+failure than the one it replaces, so it is not in there. Image 11 is the one
+grid worth another attempt: its blocks give `PHY 3031 1:00 pm - 200 om PA) 3.02`
+and `MER 1.906`, and everything downstream of naming its columns is already
+built and already tested.
+
+`js/wayfind.js` is not touched and `WAYFIND.on` is still `false`.
+`index.html` is not touched. The corpus and the scorer are not touched.
+
 ## 185. Aug 25 2026 — image to text, on the device: 124 of 171 against a bar of 36, and the win is geometry not OCR (acer lane, branch `acer/img-extract`)
 
 `js/schedimg.js` turns a photograph or a screenshot of a class schedule into

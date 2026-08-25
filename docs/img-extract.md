@@ -9,15 +9,15 @@ is its gate; `scripts/verify/schedimg-extract.mjs` is what the benchmark scores.
 ```
 image-bench  ours (real app page)   (15 images, 171 scored meetings)
 
-  ALL FOUR FIELDS RIGHT   124 / 171    72.5%
-  precision                98.4%   (128 predictions, 2 matched nothing)
+  ALL FOUR FIELDS RIGHT   134 / 171    78.4%
+  precision               100.0%   (136 predictions, 0 matched nothing)
   hallucinations          0
-  three-of-four near miss 2
+  three-of-four near miss 0
   end-time-only losses    0
   optional (cut) meetings 2 / 10
 
-  clean-export   51/52  98.1%     angled-photo   18/49  36.7%
-  dark-mode      23/38  60.5%     partial-crop   32/32 100.0%
+  clean-export   52/52 100.0%     angled-photo   26/49  53.1%
+  dark-mode      24/38  63.2%     partial-crop   32/32 100.0%
 ```
 
 against the bar in `docs/img-bar.md` — Tesseract.js's plain text fed into the
@@ -25,13 +25,17 @@ app's own row parser:
 
 | | the bar | this | |
 |---|---|---|---|
-| all four fields right | 36 / 171 (21.1%) | **124 / 171 (72.5%)** | 3.4× |
-| precision | 16.1% | **98.4%** | 187 wrong answers → 2 |
-| clean-export | 14 / 52 | **51 / 52** | |
-| angled-photo | 0 / 49 | **18 / 49** | |
-| dark-mode | 8 / 38 | **23 / 38** | |
+| all four fields right | 36 / 171 (21.1%) | **134 / 171 (78.4%)** | 3.7× |
+| precision | 16.1% | **100.0%** | 187 wrong answers → 0 |
+| clean-export | 14 / 52 | **52 / 52** | |
+| angled-photo | 0 / 49 | **26 / 49** | |
+| dark-mode | 8 / 38 | **24 / 38** | |
 | partial-crop | 14 / 32 | **32 / 32** | |
-| images at 100% | 0 | **9 of 15** | |
+| images at 100% | 0 | **12 of 15** | |
+
+Every image that is not an angled photograph of a week grid is now at 100%,
+and there is no wrong answer anywhere on the corpus: not one of the 136
+proposals matches nothing, and none is three-fields-right.
 
 Both sides are scored by the same file, on the same corpus, under the same
 rules, which is the only kind of comparison that is one.
@@ -205,6 +209,97 @@ SCHEDIMG_TUNE='{"photo":{"denoise":3}}' node ...
 
 ---
 
+## The second round: 124 → 134, and two wrong answers → none
+
+Four changes, each measured on the whole corpus.
+
+### 5. A lost colon is a lost class  (+5 meetings, image 05)
+
+The hour cell of a photographed table comes back as `400 pm-5.30 pm` and as
+`10:00 am-11 00 am`. Neither parses: the time pattern wants a separator between
+the hour and the minutes, and OCR keeps eating it. `normalizeClockText()` puts
+it back — three or four digits run together, or split by a space, are a clock —
+**but only where a meridiem follows them**, which is the whole reason it is safe
+to run on every surface. A unique number (`54010`), a room (`1.906`) and a
+course number (`340L`) are never followed by "am" or "pm", so none of them is
+ever touched. Two whole rows of image 05 were scoring zero on this alone.
+
+### 6. A second look is a different shape of picture  (+3 meetings, image 05)
+
+The re-read of a cell used the page's own segmentation mode, which is
+`SINGLE_BLOCK`. A page is a block; **one table cell is a line**, and the
+difference is not cosmetic: image 05's `MWF` cell comes back **empty at every
+magnification from 2× to 5×** under block mode, because the layout analyser
+will not commit to a block from one short word. Three things fixed it together
+and all three were needed:
+
+- `ocrWords()` now takes a page-segmentation mode for one call and puts the old
+  one back afterwards, so a crop can say it is a line;
+- the re-read asks **more than once** — line mode, then block mode, then block
+  mode with a generous margin — and stops the moment the caller says it has
+  what it wanted (a range, a day run, a room). A clean table still pays nothing,
+  because none of it runs unless the page pass came back empty;
+- the generous margin (measured: nothing at 6 px, a reading at 40) reaches into
+  the rows above and below, so what comes back is filtered by **this row's own y
+  band** as well as by its column — otherwise the row below's day letters would
+  be read as this row's, which is a confidently wrong answer.
+
+`repairDayRun()` then allows `MWE` back to `MWF` by one confusable letter, on
+the same "exactly one candidate" rule as the building codes, **and only inside a
+cell under a DAYS heading**. Loosened to any row it would start turning
+instructors' initials into weekdays.
+
+### 7. A week grid says the same thing several times  (+2 meetings, −2 wrong)
+
+A calendar draws one course in one colour, at the same hours, on every day it
+meets. So two rectangles with the same colour and the same start and end are the
+same class, and the room inside them is the same room whatever the engine made
+of each copy. `findBlocks()` now returns each block's mean colour and
+`agreeOnRooms()` lets the copies vote:
+
+| | what it fixes |
+|---|---|
+| more copies win | image 10 read `WEL 2.224` twice and `WEL 2224` once |
+| a tie goes to the more confident reading | image 04 read `GDC 2.216` and its twin `GDC 2.236`, once each |
+| a copy with no room takes the group's, flagged | the room is on the picture, on another day, not assumed |
+
+Those two were the corpus's only two three-of-four near misses and its only two
+false positives. Both images went to 14/14 and the precision went to 100%.
+A group where **nothing** read stays empty — this votes, it does not invent.
+
+### 8. The grid reader was never entered on an angled photograph at all
+
+This is the correction to what the previous round of this document said, and it
+mattered because it pointed at the wrong repair.
+
+`findBlocks()` and `hourAxis()` are called from exactly one place —
+inside `fromGrid()` — and `fromGrid` runs only when `classifyLayout()` returns
+`grid`, which needed **three exactly-spelled weekday names on one row**. Corpus
+image 06 reads `rut WED THY FRI` where the calendar says TUE WED THU FRI. Two
+exact weekdays is not three, so images 06, 08 and 11 were classified as card
+stacks and the block finder never ran on them. The previous version of this
+file said the event blocks were being found on those images. They were not.
+
+`headerDay()` now allows **one wrong letter**, narrowly: exactly three letters,
+and exactly one weekday within one substitution. `THY` is Thursday and nothing
+else; `RUT` — two letters from Tuesday and two from Saturday — is refused rather
+than guessed, and `SITZ` is four letters so it is never a Saturday.
+`fitDayColumns()` then fits x against the day index, because **a calendar's
+columns are evenly spaced — that is what makes it a calendar** — so the headings
+that read give the pitch and the phase of the ones that did not. On image 06
+that recovers all five columns from three headings, two of them exactly where
+the Monday and Tuesday event blocks sit.
+
+The exact-spelling path is untouched and still runs first, so the four grids
+that already worked cannot be affected by any of this.
+
+**It is worth nothing on the score, and it is still right.** Image 06 now
+reaches the block finder, which finds all ten of its classes and puts each in
+the correct day column — and then the captions inside them still do not read, so
+it proposes nothing. What changed is what a student sees, below.
+
+---
+
 ## Keeping the geometry
 
 `extract()` returns the word boxes as well as the classes, and every stage
@@ -219,8 +314,9 @@ words -> rows (y-bands) -> layout (table | week grid | card stack | flow)
 
 The layout is decided from geometry alone — the extractor is never told the
 condition and never sees the file name, by the benchmark's own contract. A week
-grid announces itself with three weekday names on one row; a registrar table
-with a header row; anything else is read in flow. **A layout guess that produces
+grid announces itself with three weekday names on one row, or with two that read
+plus one that is a letter out and a fit through their column centres; a
+registrar table with a header row; anything else is read in flow. **A layout guess that produces
 nothing is a wrong guess**, so the flow reader is the floor under the other two
 rather than a third alternative to them — that alone is what makes image 13, a
 table whose header was cropped off, score 7/7.
@@ -236,9 +332,12 @@ produces records. Images 03, 07 and 15 all score 100%.
 
 `extract()` returns two lists. `classes` is what the import screen puts in front
 of the student; `unsure` is what was seen and deliberately **not** proposed,
-each with a plain-words `why`. Anything in `classes` that is not certain carries
+each with a plain-words `why` and, where the geometry knew it, a `day`, a
+`start` and an `end`. Anything in `classes` that is not certain carries
 `needsConfirm` and its own `why`, and the screen is expected to make the student
-look at those before saving.
+look at those before saving. `seen.onlySeen` counts the event rectangles that
+were found on the picture and not read, which is what the screen's headline
+sentence is built from.
 
 What gets refused, and the specific wrong answer each rule prevents:
 
@@ -312,25 +411,65 @@ block, which is how both rejections above were measured.
 
 ---
 
+## It says what it saw, even when it read none of it
+
+An empty screen is not an answer. A student who photographs their calendar at an
+angle and gets back nothing cannot tell "there is nothing on this picture" from
+"I could not read it", and the second one has an obvious fix that only they can
+apply. So:
+
+- **every event rectangle that was seen and not read comes back** in `unsure`,
+  carrying the day it is on — which comes from the column it sits in, not from
+  its writing — and its time whenever the calendar's ruler supplied one. Image
+  06 proposes nothing and reports **ten classes, on Mon, Tue, Wed and Thu**,
+  which is exactly what is on it;
+- **and when even that is unavailable**, because the day headings never read and
+  the grid reader was never entered, the block finder is asked directly, once,
+  only in the case where the answer would otherwise be blank: images 08 and 11
+  come back with *"there are at least 11 classes drawn on this calendar, but the
+  writing inside them is too small or too blurred to read — try again with the
+  camera square on to the screen, or send the calendar as a screenshot."* The
+  count says "at least" because two touching events of one colour are found as
+  one rectangle.
+
+`scripts/verify/schedimg.mjs` §5 asserts all of it on the real page: that image
+06 reaches the grid reader, that it proposes nothing, that it reports what it
+saw anyway, and that it still knows which day each one is on.
+
 ## What is still weak
 
-**Angled photographs of week grids: 0 of 35, on images 06, 08 and 11.** Every
-other layout and every other condition works. On these three the geometry is
-found perfectly — the document quad, the event blocks, their positions — and the
-OCR of the captions inside them comes back as `HES 315K . CO pm eam METZ 1 3046`.
-Nothing there is a room. Two things are missing and both are known:
+**Angled photographs of week grids: 0 of 35, on images 06, 08 and 11**, and
+**image 05's `C S 439` room, 2 of 14.** Every other layout and every other
+condition is now perfect.
 
-1. the day headers do not read, so the grid path is never entered at all — the
-   fix is the same second-look crop, applied to the header strip and the hour
-   gutter, which is not built yet;
-2. even with the days, the captions would have to be repaired far past one
-   character, and this file will not do that.
+What is actually missing, image by image, measured rather than assumed:
 
-The honest summary is that these three images are at the edge of what 1400-pixel
-JPEGs of a perspective-warped screen contain, and a reader that guessed at them
-would be inventing rooms. They currently return **nothing at all** — no false
-positives, no hallucinations — which is the right failure, but it is still a
-failure: a student photographing their calendar at an angle gets an empty
-result and no explanation. Telling them "I can see six classes here but I cannot
-read the rooms — point the camera straight at it" is the next piece of work, and
-it is a UI sentence backed by the block count this file already has.
+| | day headings | event blocks | the caption inside a block |
+|---|---|---|---|
+| 06 | two of five read, repaired to five columns | all 10 found, right columns | `MA 6 146`, `ute 2.909`, `i208` — nothing is a room |
+| 08 | none read at all | all 11 found | `0106 } P0106 os`, `MET 20 315)` |
+| 11 | none read at all | 9 found (two pairs welded) | `PHY 3031 1:00 pm - 200 om PA) 3.02` — one of them nearly readable |
+
+The header strip was re-read on its own at 2×, 3× and 4× and under four
+different page-segmentation modes, and on 06 and 08 the weekday names do not
+come back under any of them; what does come back is the row of **date numbers**
+(`24 26 27 28`). Naming a column from a date would mean reading the month and
+the year off the same picture and doing a calendar computation, and one wrong
+digit in the month moves every class to the wrong day — that is a much worse
+failure than the one it replaces, so it is not in here.
+
+**The honest summary is that these three images are at the edge of what a
+1400-pixel JPEG of a perspective-warped screen contains.** A reader that guessed
+at them would be inventing rooms. What is genuinely next, in order:
+
+1. **image 05's `C S 439`** reads `GNC 2.26` / `GX 2.2%` where the table says
+   `GDC 2.216`. `GNC` is not one confusable character from `GDC`, so the repair
+   refuses it, correctly. This is a two-meeting loss and it needs a better
+   picture, not a looser rule;
+2. **image 11 is the one grid worth another attempt** — its blocks give
+   `PHY 3031 1:00 pm - 200 om PA) 3.02` and `MER 1.906`, which is a real room
+   and a real time from a photograph. It cannot be used because the day headings
+   never read and the columns cannot be named. Everything downstream of naming
+   them — §7's colour vote, which would carry one legible room across all three
+   days that course meets — is already built and already tested on images 04 and
+   10.
