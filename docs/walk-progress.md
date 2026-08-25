@@ -4214,3 +4214,103 @@ genuinely fresh document finds nothing → feature off is still off), 9/9. Nothi
 outside this lane's files touched except this log. Every scratch script and
 frame stayed in the scratchpad; one frame is committed because the doc cites it.
 Server on 8951 killed and the port re-confirmed free.
+
+
+## 2026-08-25 — all five schedule-import lanes merged and driven end to end (`acer/si-combined`, pushed, NO PR)
+
+The five pieces merge cleanly and the feature does not work. That sentence is
+the whole result, and both halves of it are measured.
+
+**The merge is clean.** `si-gaps` → `si-dayview` → `si-parser` → `si-ui` →
+`si-privacy` onto a fresh branch off `origin/main`. Four of the five append a
+whole new section to `js/wayfind.js` at the same anchor, so every conflict was
+"two complete sections, one insertion point" and every one was resolved by
+keeping both in merge order. Checked rather than claimed: of the 307 / 1546 /
+1351 / 1243 / 1834 lines the five branches add to that file, exactly **one** is
+not in the merged result, and it is one this pass deliberately changed. No two
+lanes declare the same name in the shared scope — no top-level collisions, no
+`window.*` collisions, none with `main` either.
+
+**The CRLF landmine is real and now root-caused.** It fired on the privacy
+merge: a 1,834-line change presenting as 14,519 insertions / 12,685 deletions.
+The cause is not `core.autocrlf` by itself — it is a **raw 0x00 byte** sitting
+in a string literal in the privacy section's dedup key. Git calls any file
+containing a NUL binary, and binary files are exempt from autocrlf
+normalisation, so for that one file the round trip silently stopped happening.
+It is also why `grep` answers "Binary file js/wayfind.js matches". Replacing the
+raw byte with its six-character escape (identical string value, checked in node)
+made the file text again and the diff went to a clean 1,834 insertions, 0
+deletions. That is the only line of anyone's code this pass altered.
+
+**What the merged tree actually does, driven through the real UI on a phone.**
+A real UT Registration Plus .ics, six classes, four on Tuesday, one of them at
+`MER 1.906` on the Pickle campus. The import screen reads it, places 5 of 6, and
+names the sixth: *"Microelectronics & Engineering Research — Pickle Research
+Campus, about 11 km north of here, outside the city this app models."* That is
+`si-gaps`'s fact in `si-ui`'s sentence across a branch boundary with no
+coordination, and it is the best thing in the round. The day view, given a
+schedule in the shape it accepts, lays out the whole Tuesday in order with the
+next leg marked, and clicking a leg draws the ribbon and prints the answer bar
+the single-leg feature already shipped — same numbers as the row it came from.
+Nothing leaves the device: every request made while the schedule was on screen,
+captured at context level and on a raw socket, and scanned for seventeen strings
+out of the fixture, came back clean — after the instrument was shown catching
+the same strings fired through `fetch`, `sendBeacon` and a real `Worker` with the
+guard disarmed.
+
+**And then the seams.** Four lanes each wrote a hook for a lane that did not
+exist yet, and when the real one arrived it had a different shape:
+
+* the import screen calls `wayfindParseSchedule` and keeps the answer only if
+  `Array.isArray(r)` — the parser ships it `async` returning an object, so the
+  test never passes and **every import in this tree is read by the fallback
+  decoder si-ui wrote for the case where the parser had not landed**. On the
+  parser's own `manual-paste.txt` that is 2 classes placed instead of 5;
+* the day view reads `schedule.events`, the import publishes `schedule.classes`
+  — so `wayfindDayFromSchedule(window.wayfindSchedule)` returns `why: 'empty'`,
+  and the day-plan button, whose label says *"Import my class schedule"*, shows a
+  **hard-coded demo of four classes that are not yours**;
+* **nothing calls `WAYFIND.store.save()`.** After a successful import
+  `localStorage` holds only the graphics key. A reload loses the schedule,
+  *Delete my schedule* has nothing to delete, and the egress guard — which arms
+  its watchlist off the *stored* schedule — is on its fast path with
+  `watched=0` during the one event it was built for;
+* si-ui carries its own hard-coded unreachable list that still says SSW has no
+  door, which is the exact building `si-gaps` spent round 3 fixing. The search
+  box takes you there; the import screen says it cannot;
+* `dayPlace()` tests `entry.routable` before `entry.offMap`, and `si-gaps` put
+  the Pickle codes into `search()`, so the day view now gives a Pickle building
+  the *wrong* excuse — "nothing is mapped to walk to" instead of "11 km north";
+* and both lanes appended their own way in to the same sheet, so it now offers
+  two buttons that say almost the same sentence, with 157 px past the fold on a
+  390x844 phone taking the privacy line, the Delete button and the OSM credit
+  with them. Measured in the page: 494 px of content in a 337 px sheet with
+  `overflow-y: hidden`; without this round's three additions the same content is
+  279 px and fits.
+
+None of that is a lane doing bad work, and no attempt was made to fix it here —
+wiring five separately-judged pieces together with unreviewed integration code
+would be the one thing this process exists to avoid. `docs/si-integration.md`
+has each defect with its line number, its measurement and the change it needs,
+so the wiring can be built as its own piece and put through the same bar.
+
+**The gate, on the merged tree.** `harness-drift.mjs` PASS 31/31.
+`walkmeter.mjs` PASS with every number reproducing the record — 87.0 m route
+extra, 90.6 m door extra, 38/38 ends at the right door, 0.00 m self-check drift
+on all twenty pairs, live UI gate pass. "UT buildings this build cannot route to
+at all" goes **11 to 10** against `origin/main`'s recorded eleven; the ten that
+remain are all at Pickle. `wayfindRoute('WEL','PAI')` still returns 291 m on a
+page nobody imported on. `?clip=1`, `?autopilot=1&preset=cinematic` and
+`?sliderdemo=1&preset=cinematic` at 390x844 with touch show no walk UI, no
+day-plan button, no import row and no privacy footer, with zero console errors,
+and all three are photographed. The plain page carries none of the feature in the
+DOM at all and the OSM attribution is visible. `WAYFIND.on` untouched.
+
+39 gates pass, 11 fail, and every failure is a seam between two lanes rather
+than anything inside one. Branch `acer/si-combined` pushed. **No PR and not
+merged to main** — that is the next stage's call, and on this evidence the
+answer to "is it safe to ship" is no, not yet. New in this branch:
+`scripts/verify/si-integration.mjs`,
+`scripts/verify/schedule-fixtures/integration-tuesday.ics`,
+`docs/si-integration.md`, and eleven frames the doc cites. One browser, killed on
+exit; server on 8971 stopped and the port re-confirmed free.
