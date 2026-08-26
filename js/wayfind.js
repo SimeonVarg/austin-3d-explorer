@@ -11614,8 +11614,26 @@
   // and one row to IMP_SOURCES. Adding a Registration-Plus API is adding
   // `impDecodeRegPlus(json) -> RAW ROWS` and one row to IMP_SOURCES. Neither
   // touches the placement, the failure taxonomy, or one line of this screen.
-  // That is the whole reason the joint is where it is. NOT BUILT NOW, on
-  // purpose — Simeon said "not in this pass".
+  // That is the whole reason the joint is where it is.
+  //
+  // ── AND THAT IS EXACTLY WHAT THE PHOTO SOURCE TURNED OUT TO COST ──────────
+  // Built 2026-08-25. A photograph is the FOURTH row of IMP_SOURCES and one
+  // producer, `impRowsFromImage`, and nothing above changed: same `impPlace`,
+  // same failure taxonomy, same result screen, same `impUse`, same
+  // `store.save`. The reading itself is two modules that this file does not
+  // own and does not link to — `js/schedimg.js` reads the picture and
+  // `js/schedconfirm.js` decides how much of it to believe — reached by a
+  // dynamic `import()` at the moment a student picks a file, so the app's
+  // cold load pays nothing for a feature most sessions never touch.
+  //
+  // ONE THING IS GENUINELY DIFFERENT AND IT IS NOT A SHAPE. A calendar file
+  // is bytes a machine wrote and this screen may believe all of it. A
+  // photograph is a guess, and a guess that is written down silently sends a
+  // student to the wrong side of campus. So the photo producer is the only one
+  // with a PERSON in the middle of it: `confirmFromFile()` puts every field it
+  // is not sure of in front of the student before a single row reaches
+  // `impPlace`. The rows that arrive here have therefore already been looked
+  // at, which is why nothing downstream of the joint had to learn a new rule.
   //
   // ── AND THE PARSER IS A SEAM, NOT A DEPENDENCY ────────────────────────────
   // A sibling lane owns the parser proper. If it lands, it publishes
@@ -11685,6 +11703,47 @@
     // than no shade. 6 px is under one line of the smallest type on this
     // screen (--wf-imp-row2, 10.5px), so nothing readable can hide inside it.
     edgeSlopPx: 6,
+    // ── THE PHOTO SOURCE ────────────────────────────────────────────────────
+    // Every number the fourth tab needs, here rather than in a function body.
+    image: {
+      // The tab exists at all. Off, and the panel is the three it shipped with
+      // and nothing else in this file runs — the reader is a dynamic import
+      // from one call site.
+      on: true,
+      // The module that reads the picture. It imports `js/schedimg.js` and
+      // `js/walkgraph.js` itself, so this is the only path this file needs.
+      //
+      // RELATIVE TO THIS SCRIPT, NOT TO THE DOCUMENT — and that is measured,
+      // not assumed. Every `fetch` in this file (`data/walk_graph.json`) is
+      // document-relative, so `./js/schedconfirm.js` is the obvious guess and
+      // it is wrong: a dynamic `import()` resolves against the *active
+      // script's* base URL, which for an external classic script is the
+      // script's own URL. The obvious guess asked for `/js/js/schedconfirm.js`
+      // and got a 404, which surfaced as "That picture could not be read on
+      // this device" — a sentence about the student's photograph for a fault
+      // that had nothing to do with it.
+      confirmModule: './schedconfirm.js',
+      // What the picker will offer. `image/*` and not a list of extensions,
+      // because a phone camera roll is not a filesystem and HEIC exists.
+      accept: 'image/*',
+      // A CEILING ON THE FILE, because the whole thing is decoded into a
+      // canvas on the student's own phone and a 60 MP panorama is not a
+      // schedule. 24 MB is comfortably over a modern phone screenshot (~1 MB)
+      // and over a 12 MP camera JPEG (~5 MB).
+      maxBytes: 24 * 1024 * 1024,
+      // Where the confirm screen mounts. It positions itself absolutely inside
+      // whatever it is given, at the same top-left as this panel, so it reads
+      // as this screen's next step rather than as a second window.
+      hostSel: null,        // null -> the walk feature's own root
+      // WHAT A CLASS NOBODY CHECKED IS WORTH, as a number, because §11's day
+      // view has had a branch for this since before an OCR importer existed and
+      // that branch is a comparison against `WF_DAY.confidenceSure` (1). So the
+      // only thing that matters about this value is that it is UNDER 1: it is a
+      // flag wearing a number, not a measurement, and it is here rather than in
+      // a function body so that is visible. The measured detail — which fields
+      // were left unchecked, in the app's own words — travels in `provenance`.
+      uncheckedConfidence: 0.5,
+    },
   };
 
   // THE THREE ROUTES. A row here is one acquisition front-end. `accepts` is the
@@ -11749,10 +11808,40 @@
       textPlaceholder: 'M 408C  DIFFERENTIAL CALCULUS   MWF 10:00 am-11:00 am   PMA 5.104',
       fileLabel: 'or choose an .ics you exported',
     },
-    // LATER, WITHOUT A REWRITE — see the header. A photo of a printed schedule
-    // is `{ id:'ocr', accepts:['image'] }` plus `impDecodeImage`. Registration
-    // Plus is `{ id:'regplus', accepts:['api'] }` plus `impDecodeRegPlus`.
-    // Both feed RAW ROWS into the same impPlace and render on the same screen.
+    // THE FOURTH ROUTE, AND IT IS A ROW LIKE THE OTHER THREE. The header
+    // predicted `{ id:'ocr', accepts:['image'] }` plus a producer; that is
+    // exactly what it is. It feeds RAW ROWS into the same `impPlace` and
+    // renders on the same result screen as a Google export.
+    //
+    // LAST, AND THAT IS THE HONEST ORDER. A .ics is bytes a machine wrote and
+    // it is right every time; a photograph is a reading, and a reading is
+    // second best whenever the student has the file. The tab is here for the
+    // student who does not — who has a printed timetable, or a phone with a
+    // screenshot on it and no laptop to run Google's export flow on.
+    {
+      // THE ID IS `image` AND NOT `photo`, AND THAT IS NOT A PREFERENCE. Two
+      // vocabularies for one source is a defect this screen has already paid
+      // for once: `daySourceOf()` maps a bare id, and it matches `/^image/`
+      // — which is what the STORE calls this route. Publishing `photo` on the
+      // live import would have made the day view's footer read "From typed in"
+      // until the page was reloaded, and "From a photo of a schedule" after,
+      // for one and the same import.
+      id: 'image', tab: 'Photo', label: 'a photo',
+      // The store already had a home for this before this lane existed:
+      // SCHEDULE_SOURCES has carried `'image-ocr': 'a photo of a schedule'`
+      // since §12 was written, listed there deliberately as forward
+      // compatibility. So the privacy panel reads "6 classes from a photo of a
+      // schedule, on this device only" with no change to what is stored.
+      storeKind: 'image-ocr',
+      accepts: ['image'],
+      steps: [
+        'A screenshot of your calendar, or a photo of a printed schedule.',
+        'Straight on and in focus reads best. It is read on this phone and never uploaded.',
+      ],
+      imageLabel: 'Choose a photo or screenshot',
+    },
+    // STILL LATER, WITHOUT A REWRITE: Registration Plus is
+    // `{ id:'regplus', accepts:['api'] }` plus `impDecodeRegPlus`.
   ];
 
   // THE CODES THIS ROUTER CANNOT REACH, AND WHICH KIND OF UNREACHABLE EACH IS.
@@ -11875,6 +11964,29 @@
     errTimeout: 'That address took too long to answer.',
     errTooMany: (n) => 'That is ' + n + ' events — a whole calendar, not one term. ' +
       'Export just your class calendar.',
+    // ── THE PHOTO ROUTE'S OWN SENTENCES ────────────────────────────────────
+    // Reading a picture takes seconds, not milliseconds, and the engine that
+    // does it is ~5 MB that is fetched the first time a student picks a file.
+    // A button that says `Reading…` for eight seconds with nothing else on the
+    // screen is a button a student presses again, so this route gets its own
+    // busy line saying which of the two is happening.
+    imgLoading: 'Getting the reader ready…',
+    imgReading: 'Reading your picture on this phone…',
+    // WHAT COMES BACK WHEN THE STUDENT CLOSED THE CHECK SCREEN. Not an error —
+    // they did a thing on purpose — so it is stated flatly and the panel is
+    // left exactly where they can try again.
+    imgCancelled: 'Nothing was saved. Pick a picture again when you want to.',
+    // The ways a picture can fail before a single row exists.
+    errNotImage: "That file isn't a picture. Choose a photo or a screenshot.",
+    errImgBig: (mb) => 'That picture is ' + mb + ' MB. Take a screenshot instead, ' +
+      'or choose a smaller one.',
+    errImgRead: 'That picture could not be read on this device.',
+    // THE FAILURE THAT IS NOT A FAILURE OF THE FILE. Every reading was refused
+    // or left out, which is what SHOULD happen to a blurred photograph — and
+    // saying "nothing imported" without saying why would send a student back
+    // to pick the same picture again.
+    errImgNothing: 'Nothing on that picture could be read well enough to save. ' +
+      'Try again with the camera square on, or send it as a screenshot.',
     unnamed: 'Untitled class',
     noRoom: '(no room)',
     // The payoff. Two consecutive classes go into the two ends of the router
@@ -11896,6 +12008,10 @@
     // A month grid with its two hangers — a calendar, not a clock.
     cal: 'M4.2 6.6h15.6v13.2H4.2zM4.2 10.6h15.6M8.6 4v3.4M15.4 4v3.4',
     chevR: 'M9.5 5.5 15.5 12 9.5 18.5',
+    // A frame with a horizon and a sun in it — a picture, not a camera. The
+    // student may be choosing a screenshot they already have, and a camera
+    // glyph promises a shutter this control does not open.
+    photo: 'M3.6 5.4h16.8v13.2H3.6zM3.6 15.1l4.6-4.4 4 3.8 3.2-3 5 4.7M15.4 9.3v.01',
   };
 
   // ── decoders: bytes of one format -> RAW ROWS ─────────────────────────────
@@ -12162,10 +12278,15 @@
   }
 
   /**
-   * ...AND THE OTHER DIRECTION, for the fallback decoders ONLY. When the parser
-   * threw, the surfaces downstream still need events, and inventing them from
-   * the rows this screen actually placed is the only way the two views cannot
-   * end up telling a student different things.
+   * ...AND THE OTHER DIRECTION, for the fallback decoders and for the PHOTO
+   * producer. When the parser threw, the surfaces downstream still need events,
+   * and inventing them from the rows this screen actually placed is the only
+   * way the two views cannot end up telling a student different things.
+   *
+   * `confidence` and `problems` ride off the ROW when the row brought them.
+   * An .ics row brings neither and gets the 1 and the empty list it always got;
+   * a photograph brings both, and that is the whole mechanism by which the day
+   * view marks a class nobody checked — see `impRowFromRead`.
    */
   function impEventFromPlaced(p, row, idx) {
     const r = row || {};
@@ -12178,7 +12299,176 @@
       startMin: p.startMin, endMin: p.endMin,
       firstDate: r.firstDate || null, lastDate: null, exDates: [],
       tz: IMP.tz, status: p.status === 'ok' ? 'ok' : 'failed',
-      problems: [], confidence: 1, unique: r.unique || null,
+      problems: Array.isArray(r.problems) ? r.problems.slice() : [],
+      confidence: r.confidence == null ? 1 : Number(r.confidence),
+      unique: r.unique || null,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  THE FOURTH PRODUCER: A PHOTOGRAPH
+  // ══════════════════════════════════════════════════════════════════════════
+  /**
+   * A picture is not a file format, so it does not get a decoder — it gets a
+   * SCREEN, and the screen is the whole reason this is safe to put beside a
+   * calendar import.
+   *
+   * `js/schedconfirm.js` exports one call that does all of it:
+   *
+   *     const { classes } = await confirmFromFile(file, host);
+   *
+   * Underneath, it dynamically imports `js/schedimg.js` (which reads the
+   * picture on this device), scores every field against the app's own building
+   * register and its own walking graph, puts everything it is not sure of in
+   * front of the student as a tap, and resolves when they press "Use these" or
+   * close it. Closing it gives back an empty list, never a half-confirmed one.
+   *
+   * NOTHING OF THAT IS LINKED FROM index.html AND THAT IS DELIBERATE. The
+   * reader plus its OCR engine is about 5 MB and most sessions never import
+   * anything; a dynamic `import()` at the moment a file is picked is what keeps
+   * the app's cold load — a measured, defended number — exactly where it was.
+   *
+   * AND THE PICTURE NEVER LEAVES. It is decoded into a canvas in this tab and
+   * read by a WebAssembly module in a worker on this machine. There is no
+   * upload, no cloud OCR, no analytics event carrying a pixel or a course code.
+   * `scripts/verify/si-integration.mjs` §6 and `scripts/verify/img-import.mjs`
+   * are the two gates on that at the socket.
+   */
+  const IMP_READ_DAY = { Mon: 'MO', Tue: 'TU', Wed: 'WE', Thu: 'TH',
+    Fri: 'FR', Sat: 'SA', Sun: 'SU' };
+
+  /**
+   * ONE CONFIRMED READING -> ONE RAW ROW. The same shape `impPlace()` has read
+   * since the first version of this screen, so a photograph is placed, rejected
+   * and explained by exactly the code a Google export is.
+   *
+   * THE ONE FIELD THAT IS NEW IS `confidence`, AND IT IS A FLAG, NOT A
+   * MEASUREMENT. §11 of this file has carried a branch for it since before an
+   * OCR importer existed: an item whose `codeConfidence` is under
+   * `WF_DAY.confidenceSure` (1) renders in the day view with the raw string it
+   * came from and a "check this one" chip instead of routing silently. Nothing
+   * anywhere reads the VALUE — only whether it is under 1 — so the number below
+   * is named in the taste block rather than computed, and the fields that were
+   * actually left unchecked travel in `provenance`, where they can be read.
+   *
+   * `js/schedconfirm.js`'s own per-field scores do not survive its `apply()`
+   * (they are attached to the reading, and `apply()` returns meetings), so the
+   * real number is NOT available across the shipped seam. That is written down
+   * in docs/img-integrate.md as a request to that lane rather than guessed at
+   * here.
+   */
+  function impRowFromRead(c, idx) {
+    const r = c || {};
+    const days = (Array.isArray(r.days) && r.days.length ? r.days : [r.day])
+      .map(d => IMP_READ_DAY[d] || null).filter(Boolean);
+    const loc = r.building ? (r.room ? r.building + ' ' + r.room : r.building) : '';
+    // `needsConfirm` AND NOT `!confirmed`, and the difference is a real one this
+    // cost a run to find. `js/schedconfirm.js` sets `confirmed` only when a
+    // question was actually asked AND answered — so a reading it had no doubt
+    // about at all comes back `{ confirmed: false, needsConfirm: false }`, and
+    // reading `!confirmed` marked every clean class on a clean table as
+    // unchecked. `needsConfirm` is the field that means what it says: something
+    // about this class was left open.
+    const unchecked = !!r.needsConfirm;
+    const problems = [];
+    // The screen's own sentence about what was not settled, carried in the
+    // shape the day view already prints for a class it could not place.
+    if (unchecked && r.why) {
+      problems.push({ level: 'warn', code: 'unconfirmed', text: String(r.why),
+        hint: String(r.why) });
+    }
+    return {
+      title: r.course || '', course: r.course || '',
+      location: loc,
+      days: days,
+      start: r.start || null, end: r.end || null,
+      startMin: impMinOf(r.start), endMin: impMinOf(r.end),
+      firstDate: null, unique: null,
+      // WHAT THE PICTURE SAID, VERBATIM — this is what the day view quotes back
+      // in `Read as "WEL 2.224" — check this one`, so it has to be the reading
+      // and not our tidy-up of it.
+      raw: loc,
+      confidence: unchecked ? IMP.image.uncheckedConfidence : 1,
+      problems: problems,
+      // Kept whole for the store. `normaliseSchedule` passes `provenance`
+      // through untouched — it was reserved for exactly this — so a class the
+      // student was never asked about can say which fields those were, after a
+      // reload, without a schema version bump.
+      provenance: unchecked ? {
+        read: 'photo',
+        // A CLEAN ROW CARRIES NO SUCH KEY, deliberately. `confirmed: false` on
+        // a class nobody was ever asked about reads like "the student said no",
+        // and this object is read back after a reload by somebody who will not
+        // have the screen in front of them.
+        confirmed: !!r.confirmed,
+        unconfirmedFields: Array.isArray(r.unconfirmedFields)
+          ? r.unconfirmedFields.slice() : [],
+        why: r.why || null,
+      } : { read: 'photo' },
+      index: idx,
+    };
+  }
+
+  /** Is the confirm screen currently up? Used to keep the import panel out of
+   *  its way and to put it back afterwards. */
+  let impImgBusy = false;
+
+  /**
+   * THE PRODUCER. Same return shape as `impRawRows` — `{ rows, events, parsed,
+   * decoder }` — so `impResultFrom()` cannot tell where the rows came from.
+   */
+  async function impRowsFromImage(file) {
+    const cfg = IMP.image;
+    // PHASE ONE: the module. ~5 MB of engine is NOT fetched here — that happens
+    // inside `extract()` — so this is the fast half and the busy line says so.
+    const mod = await import(cfg.confirmModule);
+    const host = (cfg.hostSel && document.querySelector(cfg.hostSel)) ||
+      (el && el.root) || document.body;
+    impState.busyNote = SAY_IMP.imgReading;
+    impRender();
+
+    // THE IMPORT PANEL GOES AWAY WHEN THE CHECK SCREEN IS UP — AND NOT BEFORE.
+    // Both position themselves at the same top-left corner of the same root,
+    // and two glass panels stacked on a 390 px phone is the "which one am I
+    // looking at" failure. But hiding it at the START of this call would leave
+    // the phone completely blank for the whole read, which is the longer of the
+    // two waits and the one a student is most likely to give up on. So the
+    // panel stays up, saying what is happening, until the screen that replaces
+    // it actually exists in the DOM.
+    let obs = null;
+    const swap = () => {
+      if (!document.getElementById('wf-cfm')) return false;
+      if (impEl) impEl.panel.classList.add('hidden');
+      return true;
+    };
+    impImgBusy = true;
+    let out = null, cancelled = false;
+    try {
+      if (typeof MutationObserver === 'function') {
+        obs = new MutationObserver(() => {
+          if (swap()) { obs.disconnect(); obs = null; }
+        });
+        obs.observe(host, { childList: true });
+      }
+      out = await mod.confirmFromFile(file, host, {
+        // The one thing the resolved value cannot tell us: an empty list from a
+        // closed screen and an empty list from a picture nothing survived are
+        // different sentences on the far side.
+        onCancel: () => { cancelled = true; },
+      });
+    } finally {
+      if (obs) { obs.disconnect(); obs = null; }
+      impImgBusy = false;
+      if (impEl) impEl.panel.classList.remove('hidden');
+    }
+    const classes = (out && Array.isArray(out.classes)) ? out.classes : [];
+    return {
+      rows: classes.map(impRowFromRead),
+      events: null, parsed: null, decoder: 'image',
+      cancelled: cancelled,
+      // What the check screen left out, kept so the result screen can say so
+      // rather than quietly reporting a smaller schedule than the picture had.
+      read: { dropped: (out && out.dropped) || [], kept: classes.length },
     };
   }
 
@@ -12209,6 +12499,14 @@
       startMin: row.startMin == null ? impMinOf(row.start) : Number(row.startMin),
       endMin: row.endMin == null ? impMinOf(row.end) : Number(row.endMin),
       raw: row.raw || row.location || row.title || '',
+      // HOW MUCH THE PRODUCER BELIEVES ITS OWN ROW, CARRIED THROUGH PLACEMENT.
+      // A calendar row brings neither of these and is unchanged: `confidence`
+      // stays 1 and there is no provenance. A photographed row brings both, and
+      // they have to survive placement or the store and the day view lose the
+      // one fact that separates a reading from a file.
+      confidence: row.confidence == null ? 1 : Number(row.confidence),
+      provenance: row.provenance || null,
+      problems: Array.isArray(row.problems) ? row.problems.slice() : [],
     };
     if (!code) return Object.assign(base, { status: 'nolocation', name: null });
     // ── ASK THE ROUTER; DO NOT REPEAT WHAT IT SAID LAST WEEK (SI5) ─────────
@@ -12241,9 +12539,27 @@
    * session that made it.
    */
   async function impBuild(text, sourceId, via) {
-    const got = await impRawRows(text, sourceId);
+    return impResultFrom(await impRawRows(text, sourceId), sourceId, via);
+  }
+
+  /**
+   * RAW ROWS -> THE RESULT OBJECT. Split out of `impBuild` when the photo
+   * producer landed, and split at the JOINT the header describes rather than
+   * anywhere convenient: everything above it is per-format, everything below it
+   * is per-campus. A photograph and a Google export reach this function in the
+   * same shape and leave it as the same object, which is the reason the result
+   * screen, `impUse`, `store.save` and the day view all work for a photo
+   * without a line of new code in any of them.
+   */
+  function impResultFrom(got, sourceId, via) {
     const rows = got.rows || [];
-    if (!rows.length) return { err: SAY_IMP.errNoEvents };
+    // THE "NOTHING CAME BACK" SENTENCE IS NOT THE SAME SENTENCE FOR A PICTURE.
+    // "That file had no calendar events in it" is true of an empty .ics and
+    // meaningless about a blurred photograph, where the useful thing to say is
+    // what to do differently — and a student who read the wrong sentence picks
+    // the same picture again.
+    const nothing = via === 'image' ? SAY_IMP.errImgNothing : SAY_IMP.errNoEvents;
+    if (!rows.length) return { err: nothing };
     if (rows.length > IMP.maxEvents) return { err: SAY_IMP.errTooMany(rows.length) };
     const classes = [], rejects = [], events = [];
     const seen = new Set();
@@ -12262,8 +12578,9 @@
       // one list rather than two lists that can drift.
       events.push(got.events ? got.events[i] : impEventFromPlaced(p, r, events.length + 1));
     }
-    if (!classes.length && !rejects.length) return { err: SAY_IMP.errNoEvents };
+    if (!classes.length && !rejects.length) return { err: nothing };
     if (!classes.length && rejects.every(r => r.status === 'nolocation')) {
+      if (via === 'image') return { err: nothing };
       return { err: via === 'text' ? SAY_IMP.errNoClassesText : SAY_IMP.errNoClasses };
     }
     return {
@@ -12284,6 +12601,9 @@
       tz: (got.parsed && got.parsed.tz) || IMP.tz,
       problems: (got.parsed && got.parsed.problems) || [],
       summary: (got.parsed && got.parsed.summary) || null,
+      // What the check screen left out, when there was one. Null for every
+      // calendar route, because nothing there ever leaves a row out.
+      read: got.read || null,
     };
   }
 
@@ -12297,6 +12617,11 @@
   // way to see what had been tried. A field whose value the screen forgets is
   // worse than no field.
   const impState = { source: IMP.defaultSource, result: null, err: null, busy: false,
+    // WHAT THE BUSY STATE IS BUSY DOING, for the one route where the wait is
+    // long enough that a student can wonder. `Reading…` on a button is enough
+    // for a paste; a photograph takes seconds and fetches a reader first, and a
+    // screen that says nothing for eight seconds gets tapped again.
+    busyNote: null,
     url: '', text: '', showAll: false,
     // How many placed rows this panel turned out to have room for, measured
     // once per result by `impFitList`. `null` means "not measured yet", which
@@ -12376,8 +12701,31 @@
     });
     panel.appendChild(file);
 
+    // A SECOND INPUT FOR PICTURES, RATHER THAN RE-WRITING `accept` ON THE FIRST.
+    // `accept` decides what a phone's own picker offers, and a picker that has
+    // just been told to show calendar files and is then told to show photos has
+    // shown both on at least one Android build. Two inputs, each with one
+    // permanent answer, cost one hidden node.
+    const img = document.createElement('input');
+    img.type = 'file'; img.id = 'wf-imp-image';
+    img.accept = IMP.image.accept;
+    // HIDDEN HERE AND NOT IN style.css, WHICH THIS LANE DOES NOT OWN — the same
+    // reason `SCHEDULE_PRIVACY_CSS` is built in this file. `#wf-imp-file` gets
+    // the 1x1 transparent treatment from style.css; without the same treatment
+    // this one renders as a raw grey `Choose File | No file chosen` control
+    // hanging off the bottom edge of the panel. Photographed at 390x844 before
+    // it was fixed, which is the only way it was going to be found: it is in
+    // the DOM either way.
+    img.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
+    img.addEventListener('change', () => {
+      const f = img.files && img.files[0];
+      if (f) impFromImage(f);
+      img.value = '';
+    });
+    panel.appendChild(img);
+
     el.root.appendChild(panel);
-    impEl = { panel, head, title, tabs, body, errSlot, foot, file, note };
+    impEl = { panel, head, title, tabs, body, errSlot, foot, file, img, note };
     // A rotation, or the software keyboard opening under a focused field,
     // changes how much of the body is visible without a scroll event ever
     // firing — so the shade would go stale in exactly the moment a phone is
@@ -12397,6 +12745,7 @@
     // fetch that could have run while they were choosing.
     loadGraph().catch(() => {});
     impState.result = null; impState.err = null; impState.busy = false;
+    impState.busyNote = null;
     impState.url = ''; impState.text = ''; impState.showAll = false;
     impState.fit = null; impState.fitDone = false;
     el.sheet.classList.add('hidden');
@@ -12410,6 +12759,7 @@
   }
   function impBack() {
     impState.result = null; impState.err = null; impState.busy = false;
+    impState.busyNote = null;
     impState.showAll = false; impState.fit = null; impState.fitDone = false;
     impRender();
   }
@@ -12467,6 +12817,20 @@
         inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') impGo(); });
         body.appendChild(inp);
         if (src.urlHint) body.appendChild(h('div', 'wf-imp-hint', src.urlHint));
+      } else if (kind === 'image') {
+        // THE SAME CONTROL AS `file`, AND THAT IS THE POINT OF THE FOURTH TAB.
+        // A photograph is a fourth SOURCE, not a fourth mode: one button, in
+        // the same place, with the same shape, so the only thing a student has
+        // to notice is which tab they are on.
+        const b = h('button', 'wf-imp-file-btn');
+        b.appendChild(icon('wf-imp-ic', IC_IMP.photo, 1.9));
+        b.appendChild(h('span', null, first ? src.imageLabel : lead(src.imageLabel)));
+        b.disabled = !!impState.busy;
+        b.addEventListener('click', () => impEl.img.click());
+        body.appendChild(b);
+        if (impState.busy && impState.busyNote) {
+          body.appendChild(h('div', 'wf-imp-hint', impState.busyNote));
+        }
       } else if (kind === 'text') {
         const lab = h('div', 'wf-imp-lab', src.textLabel);
         body.appendChild(lab);
@@ -12842,6 +13206,64 @@
     rd.readAsText(f);
   }
 
+  /**
+   * A PICTURE, FROM THE PICKER TO THE SAME RESULT SCREEN.
+   *
+   * The two guards in front are the only ones this route needs, and neither is
+   * about privacy — the file is not read at all until they pass:
+   *
+   *  - a file that is not an image gets the sentence for that, rather than
+   *    being handed to a decoder that will fail eight seconds later;
+   *  - a file over `IMP.image.maxBytes` is refused BEFORE decode, because the
+   *    whole bitmap goes into a canvas on the student's own phone and a 60 MP
+   *    panorama is a tab crash, not a schedule.
+   */
+  function impFromImage(f) {
+    if (impState.busy) return;
+    impState.err = null;
+    if (f.type && !/^image\//i.test(f.type)) {
+      impState.err = SAY_IMP.errNotImage; impRender(); return;
+    }
+    if (f.size && f.size > IMP.image.maxBytes) {
+      impState.err = SAY_IMP.errImgBig(Math.round(f.size / 1048576));
+      impRender(); return;
+    }
+    impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
+    return impFinishImage(f);
+  }
+
+  async function impFinishImage(f) {
+    let got = null;
+    try {
+      got = await impRowsFromImage(f);
+    } catch (e) {
+      impState.busy = false; impState.busyNote = null;
+      impState.result = null;
+      impState.err = SAY_IMP.errImgRead;
+      impRender();
+      return null;
+    }
+    impState.busy = false; impState.busyNote = null;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false;
+    // CLOSING THE CHECK SCREEN IS NOT A FAILURE, so it does not get an error.
+    // It is a thing the student did on purpose, and the panel is left exactly
+    // where they can pick another picture.
+    if (got.cancelled) {
+      impState.result = null; impState.err = SAY_IMP.imgCancelled;
+      impRender();
+      return null;
+    }
+    // The verdict cannot be computed before the graph exists — the same race
+    // `impFinish` documents, and the same one-line answer. `loadGraph`
+    // memoises, so by now this is free.
+    try { await loadGraph(); } catch (e) {}
+    const out = impResultFrom(got, 'image', 'image');
+    if (out.err) { impState.err = out.err; impState.result = null; }
+    else { impState.result = out; impState.err = null; }
+    impRender();
+    return out;
+  }
+
   async function impFromUrl(raw) {
     const s = String(raw || '').trim();
     if (!s) { impState.err = SAY_IMP.errEmptyUrl; impRender(); return; }
@@ -12947,7 +13369,18 @@
       days: (c.days || []).slice(),
       startMin: c.startMin == null ? null : c.startMin,
       endMin: c.endMin == null ? null : c.endMin,
-      unroutableWhy: why, confidence: 1,
+      unroutableWhy: why,
+      // WAS A HARD 1, AND A HARD 1 IS A LIE ABOUT A PHOTOGRAPH. The two fields
+      // `normaliseSchedule` reserved for OCR before an OCR importer existed are
+      // filled here and nowhere else: `confidence` is under 1 exactly when the
+      // student was never asked about some field of this class, and
+      // `provenance` says which fields those were, in the app's own words. Both
+      // survive a reload — `schedulePublished()` copies `confidence` onto the
+      // republished event — which is what makes the "check this one" mark on
+      // the day view outlive the session that imported it.
+      // An .ics still stores 1 and no provenance, exactly as before.
+      confidence: c.confidence == null ? 1 : Number(c.confidence),
+      provenance: c.provenance || null,
     });
     for (const c of (res.classes || [])) put(c, null);
     for (const r of (res.rejects || [])) put(r, r.status || 'unknown');
@@ -13049,6 +13482,28 @@
    *  only available proxy (the parser's return TYPE) is false by construction
    *  now that the parser is correctly awaited. */
   window.wayfindImportResult = function () { return impState.result || null; };
+  /**
+   * THE PHOTO ROUTE, DRIVEN FROM A SCRIPT. This is how it gets photographed and
+   * how `scripts/verify/img-import.mjs` scores it, and it is the SAME function
+   * the picker calls — not a parallel path with the checks left out. It takes a
+   * `File` or a `Blob`; the check screen still mounts and still has to be
+   * answered or skipped, because a harness that could bypass the student is a
+   * harness measuring a feature that does not ship.
+   */
+  window.wayfindImportImage = function (file) {
+    buildUI(); impBuildDOM();
+    impState.source = 'image';
+    impState.result = null; impState.err = null;
+    el.sheet.classList.add('hidden');
+    impEl.panel.classList.remove('hidden');
+    // Stashed as well as returned. A driver has to press the check screen's own
+    // buttons WHILE this is in flight, so awaiting the return value from the
+    // same call that starts it would deadlock; `window.wayfindImportImageDone`
+    // is what it awaits afterwards.
+    const p = Promise.resolve(impFromImage(file));
+    window.wayfindImportImageDone = p;
+    return p;
+  };
   window.wayfindImportParse = async function (text, sourceId) {
     try { await loadGraph(); } catch (e) {}
     return impBuild(String(text), sourceId || impState.source, 'text');

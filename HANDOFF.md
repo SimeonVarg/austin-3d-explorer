@@ -1,5 +1,83 @@
 # Austin 3D Explorer — Full Handoff
 
+## 189. Aug 25 2026 — a photograph is the fourth tab (acer lane, branch `acer/img-integrate`)
+
+`js/wayfind.js` (+471 lines, one file), `scripts/verify/img-import.mjs`,
+`scripts/verify/img-import-extract.mjs`, `docs/img-integrate.md`, five frames in
+`shots/img-integrate/`. **`WAYFIND.on` is still literally `false` and is not in
+the diff.**
+
+`acer/img-extract` built the reader and `acer/img-confidence` built the screen
+that asks. Neither was reachable from the app. This merges both and makes a
+photograph a **SOURCE of the import sheet that already ships**, beside Google
+Calendar, Apple Calendar and the UT paste — not a mode beside it.
+
+**The score, measured on the shipped screen and not on a function.**
+`img-import-extract.mjs` hands the real page a `File`, presses the real
+controls, and reads back `window.wayfindSchedule.events` after "Use these".
+
+```
+                                    all four right    precision
+  the bar (docs/img-bar.md)          36 / 171           16.1%
+  the reader alone                  134 / 171          100.0%
+  SHIPPED, student answers nothing  131 / 171          100.0%
+  SHIPPED, student answers          134 / 171          100.0%
+```
+
+**131 of 171 for a student who answers no question at all**, 3.6x the bar, with
+zero wrong answers on both passes. The 131-vs-134 gap is three meetings, all on
+image 05, and it is the feature working: `applyGroup()` refuses to keep a
+reading nothing believed that nobody confirmed. Skipping costs three meetings
+out of 171 and buys zero wrong answers.
+
+**It is one row of `IMP_SOURCES` and one producer, which is what the file's own
+header predicted years of rounds ago.** `impBuild` split into `impRawRows` (per
+format) and `impResultFrom` (per campus) so both producers share the far half.
+Everything below the joint is untouched: `impPlace`, the de-duplication, the
+failure taxonomy, the result screen, `impUse`, `store.save()`,
+`window.wayfindSchedule`, `wayfind:schedule`, the day view, the privacy panel,
+Delete. No second path anywhere, and the gate asserts
+`events === classes + rejects`.
+
+**`docs/img-confidence.md` ended with a request to the day-view lane — a
+"not-checked" mark — and the mark already existed with no producer.** §11 of
+`js/wayfind.js` has carried `codeConfidence < WF_DAY.confidenceSure` since
+before an OCR importer was built, with a comment saying it was there so this
+exact landing would not be a rewrite. Two fields joined them, and both were
+already reserved: `confidence` (*"Reserved for OCR. An .ics sets 1; a photo will
+not"*) and `provenance`. **No schema change and no version bump.** The day view
+now prints `Read as "PAI 3.02" — check this one`, and it survives a reload
+because it is stored, not a session flag.
+
+**`scripts/verify/img-import.mjs`: 43 passed, 0 failed** — and it is the first
+gate that could fire at the SHIPPED egress guard. `si-integration.mjs` §6 notes
+that the guard arms itself off the STORED schedule and nothing called
+`store.save()`, so it was watching nothing during a real import. A photo import
+saves; the guard is armed off the student's own rooms; a canary carrying one of
+them is BLOCKED at the socket, and only then is the guard disarmed to prove the
+instruments are not blind through `fetch` and through a real `Worker`.
+
+**Two things were found by looking at the frame, not by reasoning.** The second
+file input rendered as a raw grey `Choose File | No file chosen` hanging off the
+bottom of the panel — `style.css` hides `#wf-imp-file` and this lane does not
+own that file, so it is hidden inline. And a dynamic `import()` in a CLASSIC
+script resolves against the SCRIPT's URL, not the document's: every `fetch` in
+`js/wayfind.js` is document-relative, so `./js/schedconfirm.js` looked right and
+asked for `/js/js/schedconfirm.js`. The 404 surfaced as *"That picture could not
+be read on this device"* — a sentence about the student's photograph for a fault
+that had nothing to do with it.
+
+**Nothing else moved:** `si-integration.mjs` 50/50, `schedimg.mjs` 26/26,
+`schedconfirm.mjs` 101/101, `dayview.mjs` 100 ok / 2 failed (identical to the
+baseline in `docs/si-seams.md` §6, and both are that merge's). Zero console
+errors on the phone page anywhere in the run. `IMP.image.on = false` puts the
+panel back to three tabs.
+
+**Still weak:** the "check this one" chip is a label, not a control — reopening
+one question from the day view needs a review object that no longer exists after
+the import ends. The gate runs ONE picture end to end (`--image` takes any of
+the fifteen). A HEIC from an iPhone has never been tried.
+
 ## 188. Aug 25 2026 — nothing is confirmed while a doubt is still open (acer lane, branch `acer/img-confidence`)
 
 `js/schedconfirm.js`, `scripts/verify/schedconfirm.mjs`,
