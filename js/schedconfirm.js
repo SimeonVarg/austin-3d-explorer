@@ -339,7 +339,35 @@ export const CONF = {
     maxOptions: 4,        // beyond this it is a list, not a choice
     maxQuestionsPerClass: 2,  // ask about the two worst fields and no more; a
                               // class needing three answers is a class to
-                              // re-photograph, and the screen says so
+                              // re-photograph, and `overCap` is what does it
+
+    // ── WHAT HAPPENS TO THE DOUBTS THE CAP DOES NOT REACH ──────────────────
+    //
+    // THIS EXISTS BECAUSE THE CAP ALONE WAS A SILENT-WRONG-ANSWER MACHINE, and
+    // it is the exact failure the top of this file promises never happens.
+    // Before this value existed, a reading with THREE fields under `askBelow`
+    // got TWO questions, and answering those two returned a class tagged
+    // `confirmed: true` carrying the third field's raw reading — measured, not
+    // reasoned: building 0.30 / room 0.45 / time 0.19 produced two questions
+    // (time, building) and, once both were answered, `room: "2.2%"` inside a
+    // confirmed class. "2.2%" is a value this file's OWN grammar check had
+    // already flagged as containing characters a UT room number cannot contain.
+    // The comment above said the screen re-photographed such a row; it did not.
+    // `tooManyDoubts` was computed and never read again.
+    //
+    //   'retake' — over the cap, ask NOTHING and send the reading to the
+    //              re-take list on the summary, where it is left OUT by
+    //              default and the student can still keep it as unchecked.
+    //              Two questions that cannot finish the job are two taps that
+    //              fix nothing, which is the same mistake `time.tooTight` was
+    //              moved out of the asking band for.
+    //   'ask'    — ignore the cap and ask about every doubtful field. Costs up
+    //              to four taps on one row; nothing is ever left out.
+    //
+    // Either way the invariant below holds, and it is the one that matters:
+    // NO CLASS IS EVER MARKED `confirmed` WHILE ANY FIELD THE MODEL DOUBTED IS
+    // STILL UNANSWERED. See `openDoubts()`.
+    overCap: 'retake',
   },
 
   /* ── the screen ─────────────────────────────────────────────────────────── */
@@ -1098,6 +1126,67 @@ function buildQuestion(group, field, ctx, idx) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   THE ONE INVARIANT, IN ONE PLACE, BECAUSE IT WAS BROKEN IN TWO
+
+   NOTHING IS MARKED `confirmed` WHILE A FIELD THIS FILE DOUBTED IS STILL
+   UNANSWERED. That sentence is the whole feature, it is written at the top of
+   this file, and until this round it was enforced NOWHERE — it was an emergent
+   property of "every doubt happens to get a question", and there were two ways
+   for a doubt not to get a question:
+
+   1. THE CAP. `maxQuestionsPerClass` is 2 and a reading can have four doubtful
+      fields. The old safety net in applyGroup() counted only the questions it
+      had BUILT, so answering both of two questions on a three-doubt reading
+      returned `confirmed: true` with the third field's raw reading in it.
+
+   2. THE RECOVER LANE, which is worse, because there the app puts a sentence
+      in the record that is not true. A row js/schedimg.js refused — say a
+      cut-off `WEL 2.22`, where the reader's own words are "part of it is
+      missing" — was shown to the student as ONE question about the BUILDING,
+      and apply() then stamped the whole row `confirmed: true` with
+      `why: "confirmed by you from the picture"`. The student never saw the
+      room. `13:07-14:55`, a time that fails this file's clock grammar on both
+      ends, came through the same way.
+
+   Both are now the same line of code. A field is SETTLED when the student
+   answered it, or when the model believed it in the first place. Anything else
+   is an open doubt, and an open doubt is never silent: the class carries
+   `unconfirmedFields`, `needsConfirm: true`, and a plain-words `why`, and the
+   summary shows it in its own list rather than in the ready count.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const FIELDS = ['building', 'room', 'time', 'day'];
+
+/** The fields of a score that fall under the line, worst first. */
+export function doubtFields(fieldScores) {
+  return FIELDS.filter(f => fieldScores[f] < CONF.askBelow)
+    .sort((a, b) => fieldScores[a] - fieldScores[b]);
+}
+
+/**
+ * openDoubts(doubted, answeredFields) -> the doubts nobody settled.
+ *
+ * Deliberately takes the FULL doubt list rather than a list of questions: the
+ * bug this exists for is precisely that the questions are not the doubts.
+ */
+export function openDoubts(doubted, answered) {
+  const done = new Set(answered || []);
+  return (doubted || []).filter(f => !done.has(f));
+}
+
+/** Plain words for the summary and for the class's own `why`. */
+function doubtWhy(open, notes) {
+  const names = { building: 'the building', room: 'the room', time: 'the time',
+    day: 'the day' };
+  const said = [];
+  for (const f of open) {
+    const n = (notes && notes[f] && notes[f].length) ? notes[f][0] : null;
+    said.push(n || (names[f] + ' did not read clearly'));
+  }
+  return said.join('; ');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    review() — the whole judgement, in one call
    ════════════════════════════════════════════════════════════════════════════ */
 
@@ -1106,6 +1195,7 @@ function buildQuestion(group, field, ctx, idx) {
  *   classes:   every proposal, each with .score and .ask
  *   questions: what the screen asks, in the order it asks it
  *   recover:   items js/schedimg.js REFUSED that a tap could still rescue
+ *   retake:    readings no number of taps can settle — shown, never silent
  *   counts, walkCheck, line
  * }
  *
@@ -1151,15 +1241,25 @@ export function review(out, opts = {}) {
     g.days.sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
     g.ask = g.score.overall < CONF.askBelow;
     for (const c of g.members) c.ask = g.ask;
-    if (!g.ask) continue;
-    // The two worst fields, worst first. A reading needing three answers is a
-    // line to re-photograph, and the summary says so rather than asking six
-    // questions about one row of a picture.
-    const fields = ['building', 'room', 'time', 'day']
-      .filter(f => g.score.fields[f] < CONF.askBelow)
-      .sort((a, b) => g.score.fields[a] - g.score.fields[b]);
-    g.tooManyDoubts = fields.length > CONF.ask.maxQuestionsPerClass;
-    for (const f of fields.slice(0, CONF.ask.maxQuestionsPerClass)) {
+    if (!g.ask) { g.doubt = []; continue; }
+    // EVERY FIELD UNDER THE LINE, worst first — the doubts, not the questions.
+    // Kept on the group whether or not it gets asked about, because applyGroup()
+    // now has to know about the ones it did NOT ask about. That is the whole
+    // fix: the old code derived the doubt list from the questions and so could
+    // not see a doubt the cap had thrown away.
+    g.doubt = doubtFields(g.score.fields);
+    g.tooManyDoubts = g.doubt.length > CONF.ask.maxQuestionsPerClass;
+    // OVER THE CAP: ASK NOTHING, AND SAY SO. Two questions that cannot settle
+    // three doubts are two taps that fix nothing — the same reason
+    // `time.tooTight` was moved out of the asking band. The reading goes to the
+    // re-take list, left out by default, keepable in one tap. CONF.ask.overCap
+    // = 'ask' turns this off and asks about all four instead.
+    if (g.tooManyDoubts && CONF.ask.overCap === 'retake') {
+      g.retake = doubtWhy(g.doubt, g.score.notes);
+      continue;
+    }
+    const limit = g.tooManyDoubts ? g.doubt.length : CONF.ask.maxQuestionsPerClass;
+    for (const f of g.doubt.slice(0, limit)) {
       questions.push(buildQuestion(g, f, ctx, questions.length));
     }
   }
@@ -1172,27 +1272,71 @@ export function review(out, opts = {}) {
   // knows which two, and the student can tell them apart in one look. These are
   // offered after the confirmations, never mixed in with them, and none of them
   // is ever added to a schedule without a tap.
-  const recover = [];
+  //
+  // AND THE TAP ONLY EVER SETTLES THE BUILDING, which is the thing this lane
+  // used to lie about. Until this round a recovered row was stamped
+  // `confirmed: true, why: "confirmed by you from the picture"` on every field,
+  // including a room the reader had already said was cut in half. So the rest
+  // of the row is now SCORED, exactly like a proposed class, and whatever is
+  // still under the line is carried out on the row as `doubt` — settled by
+  // nobody, and never described as confirmed.
+  const recover = [], retake = [];
   for (const u of (out && out.unsure ? out.unsure : [])) {
     const ev = u.ev;
     if (!ev) continue;
     const cands = (ev.candidates && ev.candidates.building) || [];
     if (!u.room || !u.day || !u.start || !u.end) continue;
     if (!cands.length && u.reason !== 'cut-off') continue;
-    recover.push({
+    // Scored against the classes already accepted, so the day/collision and
+    // walking checks have the same neighbours the proposals had.
+    const sc = score(Object.assign({}, u, { days: u.days || [u.day] }),
+      Object.assign({}, ctx, { classes }));
+    // The building is what the tap decides, so it is not a leftover doubt.
+    const doubt = doubtFields(sc.fields).filter(f => f !== 'building');
+    const row = {
       course: u.course || null, building: u.building || null, room: u.room,
       day: u.day, days: u.days || [u.day], start: u.start, end: u.end,
       why: u.why, reason: u.reason || null,
       options: (cands.length ? cands : [u.building]).filter(Boolean)
         .slice(0, CONF.ask.maxOptions).map(c => ({ value: c, label: c })),
       box: (ev.boxes && (ev.boxes.all || ev.boxes.block)) || null,
-      answer: null,
+      answer: null, score: sc, doubt,
+    };
+    // A "recovery" whose only option is the reading itself decides NOTHING —
+    // one option is not a choice, and this file's own rule is that a question
+    // whose buttons cannot contain the fix costs a tap and fixes nothing. That
+    // is exactly the cut-off case (`WEL 2.22`, options `[WEL]`), which is also
+    // the case where the reader has already said in plain words that half the
+    // row is missing. Those go to the re-take list.
+    //
+    // A row with a REAL choice keeps its question — the tap is worth having —
+    // and any doubt the tap does not reach rides out on `doubt` and comes back
+    // as `unconfirmedFields` in apply(). Asked and honest beats not asked.
+    if (row.options.length < 2) {
+      row.retakeWhy = (doubt.length ? doubtWhy(doubt, sc.notes) : '') || u.why;
+      retake.push(row);
+    } else {
+      recover.push(row);
+    }
+  }
+  // THE READINGS NO NUMBER OF TAPS CAN SETTLE, in one list the screen can show.
+  // Not dropped — dropped is silent too. Left out of the ready count, printed
+  // with the reason, and keepable in one tap as explicitly unchecked.
+  for (const g of groups) {
+    if (!g.retake) continue;
+    retake.push({
+      group: g, course: g.lead.course || null, building: g.lead.building,
+      room: g.lead.room, day: g.days[0], days: g.days.slice(),
+      start: g.lead.start, end: g.lead.end,
+      doubt: g.doubt.slice(), retakeWhy: g.retake,
+      box: (g.ev && g.ev.boxes && (g.ev.boxes.all || g.ev.boxes.block)) || null,
+      options: [], answer: null, reason: 'too-many-doubts',
     });
   }
 
   const asked = classes.filter(c => c.ask).length;
   return {
-    classes, groups, questions: merged, recover,
+    classes, groups, questions: merged, recover, retake,
     sheet: (out && out.sheet) || null,
     counts: {
       total: classes.length,
@@ -1204,6 +1348,10 @@ export function review(out, opts = {}) {
       // touch the screen, not how many rows were doubted.
       questions: merged.length,
       recoverable: recover.length,
+      // READINGS A TAP CANNOT SETTLE. Counted separately from `asked` on
+      // purpose: a gate that only watches the question count cannot tell
+      // "settled in two taps" from "quietly given up on".
+      retake: retake.length,
       seenNotRead: (out && out.seen && out.seen.onlySeen) || 0,
     },
     // WHETHER THE CROSS-CHECKS WERE LIVE, reported rather than assumed. A check
@@ -1321,11 +1469,25 @@ export function applyGroup(rev, g) {
   const qs = rev.questions.filter(q => q.groupId === g.id);
   const answered = qs.filter(q => q.answer != null);
   const unanswered = qs.length - answered.length;
+  // ── THE INVARIANT ────────────────────────────────────────────────────────
+  // The doubts this file had, minus the ones the student actually answered.
+  // NOT "the questions that were built, minus the ones answered" — that was the
+  // bug, and it let a reading with three doubtful fields be marked confirmed
+  // after two taps. `g.doubt` is every field under the line whether it was
+  // asked about or not.
+  const open = openDoubts(g.doubt, answered.map(q => q.field));
   // A reading nothing believed, that nobody confirmed, does not get into the
   // schedule because a screen was closed. That is the silent wrong answer by
   // another route, and it is the one thing this file exists to prevent.
   if (unanswered > 0 && g.score.overall < CONF.keepUnansweredAbove) {
     return { classes: [], why: 'not confirmed, and too unclear to keep' };
+  }
+  // OVER THE CAP: LEFT OUT UNLESS THE STUDENT SAID KEEP IT. The summary shows
+  // it with its reason and a one-tap "Use it anyway"; what it must never be is
+  // a silently-saved class the app privately knows it could not read.
+  if (g.retake && !g.keepAnyway) {
+    return { classes: [], why: 'too much of this one was unclear to save it — ' +
+      g.retake, retake: true };
   }
   const patch = {};
   let days = g.days.slice();
@@ -1339,13 +1501,25 @@ export function applyGroup(rev, g) {
   }
   if (!days.length) return { classes: [], why: 'no day left after your answer' };
   const classes = [];
+  const clear = unanswered === 0 && open.length === 0;
   for (const day of days) {
     const from = g.members.find(m => m.day === day) || g.lead;
     const copy = Object.assign({}, from, patch, {
       day, days: [day],
-      confirmed: qs.length > 0 && unanswered === 0,
-      needsConfirm: unanswered > 0,
+      // `confirmed` means a person looked at every doubt. Both halves are
+      // required: every question answered AND no doubt left unasked.
+      confirmed: qs.length > 0 && clear,
+      needsConfirm: !clear,
     });
+    // AND IT SAYS WHICH PARTS, because "not checked" with no noun is a warning
+    // a student cannot act on. Only set when there is something to name, so a
+    // clean class carries no new keys.
+    if (open.length) {
+      copy.unconfirmedFields = open.slice();
+      copy.why = 'you were not asked about ' +
+        open.map(f => f === 'time' ? 'the time' : 'the ' + f).join(' or ') +
+        ' — ' + doubtWhy(open, g.score.notes);
+    }
     delete copy.ev; delete copy.__key; delete copy.__group; delete copy.score;
     classes.push(copy);
   }
@@ -1356,17 +1530,42 @@ export function apply(rev) {
   const out = [], dropped = [];
   for (const g of rev.groups) {
     const res = applyGroup(rev, g);
-    if (!res.classes.length) { dropped.push({ cls: g.lead, why: res.why }); continue; }
+    if (!res.classes.length) {
+      // `retake` is flagged rather than folded into the count, because "left
+      // out" and "we could not read this, look at it" are different sentences
+      // and the summary prints them in different places.
+      dropped.push({ cls: g.lead, why: res.why, retake: !!res.retake });
+      continue;
+    }
     for (const c of res.classes) out.push(c);
   }
-  for (const r of (rev.recover || [])) {
-    if (!r.answer) continue;
+  // The recovered rows, and the re-take rows the student chose to keep anyway.
+  // ONE LOOP, because they differ only in whether a tap settled the building —
+  // and in neither case may a field the student never saw be called confirmed.
+  const rows = (rev.recover || []).concat(
+    (rev.retake || []).filter(r => !r.group && r.keepAnyway));
+  for (const r of rows) {
+    if (!r.answer && !r.keepAnyway) continue;
+    const open = openDoubts(r.doubt, r.answer ? ['building'] : []);
     for (const day of (r.days || [r.day])) {
-      out.push({
-        course: r.course, building: r.answer, room: r.room, day, days: [day],
-        start: r.start, end: r.end, confirmed: true, needsConfirm: false,
-        why: 'confirmed by you from the picture',
-      });
+      const rec = {
+        course: r.course, building: r.answer || r.building, room: r.room,
+        day, days: [day], start: r.start, end: r.end,
+        confirmed: !!r.answer && open.length === 0,
+        needsConfirm: open.length > 0 || !r.answer,
+      };
+      if (open.length || !r.answer) {
+        rec.unconfirmedFields = open.slice();
+        rec.why = (r.answer ? 'you picked the building; ' : 'kept as you saw it; ') +
+          'nobody checked ' +
+          (open.length
+            ? open.map(f => f === 'time' ? 'the time' : 'the ' + f).join(' or ')
+            : 'this one') +
+          (r.retakeWhy ? ' — ' + r.retakeWhy : '');
+      } else {
+        rec.why = 'you picked the building from your own picture';
+      }
+      out.push(rec);
     }
   }
   return { classes: out, dropped };
@@ -1549,6 +1748,25 @@ const CSS = `
 .cfm-row-x:hover{color:var(--cfm-ink);background:rgba(255,255,255,.07)}
 .cfm-note{font-size:10.5px;line-height:1.55;color:var(--cfm-dimmer);
   margin:2px 0 12px}
+
+/* THE RE-TAKE LIST. Its own heading and its own colour, because these rows are
+   NOT in the schedule and a student skimming must not read them as if they
+   were. Every control here is >=44px: this is the last screen before Use, and
+   it is the one a thumb hits. */
+.cfm-retake-h{font-size:10.5px;font-weight:700;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--cfm-warn);margin:4px 0 6px}
+.cfm-retake{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.cfm-rt{padding:9px 11px;border-radius:10px;background:var(--cfm-warn-bg);
+  border:1px solid rgba(255,140,100,.26)}
+.cfm-rt-a{font-size:12.5px;font-weight:600;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.cfm-rt-b{font-size:10.5px;color:var(--cfm-dimmer);margin-top:2px;line-height:1.4}
+.cfm-rt-why{font-size:10.5px;color:var(--cfm-warn);margin-top:5px;line-height:1.5}
+.cfm-rt-keep{margin-top:8px;background:none;border:1px solid rgba(255,140,100,.34);
+  border-radius:9px;color:var(--cfm-ink);font:inherit;font-size:11.5px;
+  min-height:44px;width:100%;cursor:pointer}
+.cfm-rt-keep:hover{background:rgba(255,140,100,.12)}
+.cfm-rt.kept .cfm-rt-keep{color:var(--cfm-dimmer)}
 .cfm-priv{font-size:9.5px;line-height:1.5;color:var(--cfm-dimmer);
   padding:0 14px 10px;flex:none}
 `;
@@ -1831,9 +2049,13 @@ export function mount(host, rev, opts = {}) {
     root.appendChild(head('Your schedule', null));
     const body = el('div', 'cfm-body');
     const kept = res.classes.length;
+    // The re-take rows are counted by the block below, not here, so a student
+    // is never told "3 left out" about rows the next paragraph is about to
+    // list by name.
+    const leftOut = res.dropped.filter(d => !d.retake).length;
     body.appendChild(el('div', 'cfm-note', kept
       ? kept + (kept === 1 ? ' class' : ' classes') + ' ready' +
-        (res.dropped.length ? ', ' + res.dropped.length + ' left out' : '') + '.'
+        (leftOut ? ', ' + leftOut + ' left out' : '') + '.'
       : 'Nothing is ready to save yet.'));
     const list = el('div', 'cfm-sum');
     // Built from the READINGS, not from the flat list, so every row still knows
@@ -1862,6 +2084,48 @@ export function mount(host, rev, opts = {}) {
       list.appendChild(row);
     }
     body.appendChild(list);
+
+    // ── THE ROWS NO TAP COULD SETTLE ────────────────────────────────────────
+    // THIS IS THE HALF THE CODE PROMISED AND NEVER BUILT. A reading with more
+    // doubtful fields than the screen can ask about used to be answered twice
+    // and saved as confirmed; now it lands here, out of the ready count, with
+    // the app's own reason printed under it and a full-width button to keep it
+    // anyway as explicitly unchecked. Left out is the DEFAULT, because the
+    // asymmetry this whole file turns on is that "unsure" costs one tap and
+    // "confidently wrong" costs a missed class.
+    const rt = (rev.retake || []).filter(r => !r.group || !r.group.dropped);
+    if (rt.length) {
+      body.appendChild(el('div', 'cfm-retake-h',
+        rt.length === 1 ? 'One to check yourself' : rt.length + ' to check yourself'));
+      const rtl = el('div', 'cfm-retake');
+      for (const r of rt) {
+        const kf = r.group ? !!r.group.keepAnyway : !!r.keepAnyway;
+        const card = el('div', 'cfm-rt' + (kf ? ' kept' : ''));
+        card.appendChild(el('div', 'cfm-rt-a',
+          (r.course ? r.course + ' · ' : '') +
+          (r.building || '?') + ' ' + (r.room || '?')));
+        card.appendChild(el('div', 'cfm-rt-b',
+          (r.days || [r.day]).join(', ') + ' · ' +
+          clockOf(minutesOf(r.start)) + ' – ' + clockOf(minutesOf(r.end))));
+        card.appendChild(el('div', 'cfm-rt-why',
+          'Not saved: ' + (r.retakeWhy || 'too much of this one was unclear') +
+          '. Take the picture again, straight on, and this one will read.'));
+        const keep = el('button', 'cfm-rt-keep',
+          kf ? 'Kept — tap to leave it out' : 'Use it anyway, unchecked');
+        keep.setAttribute('aria-label',
+          (kf ? 'Leave out ' : 'Use unchecked: ') +
+          ((r.building || '') + ' ' + (r.room || '')).trim());
+        keep.onclick = () => {
+          if (r.group) r.group.keepAnyway = !r.group.keepAnyway;
+          else r.keepAnyway = !r.keepAnyway;
+          render();
+        };
+        card.appendChild(keep);
+        rtl.appendChild(card);
+      }
+      body.appendChild(rtl);
+    }
+
     if (rev.counts.seenNotRead) {
       body.appendChild(el('div', 'cfm-note',
         rev.counts.seenNotRead + ' more ' +
@@ -1943,5 +2207,6 @@ export default { CONF, review, score, apply, mount, cropInto, prepare, confirmFr
 
 if (typeof window !== 'undefined') {
   window.SCHEDCONFIRM = { CONF, review, score, apply, applyGroup, mount, cropInto,
-    prepare, confirmFromFile, minutesOf, hhmmOf, clockOf, fromOcr, roomFloorSuspect };
+    prepare, confirmFromFile, minutesOf, hhmmOf, clockOf, fromOcr, roomFloorSuspect,
+    doubtFields, openDoubts };
 }

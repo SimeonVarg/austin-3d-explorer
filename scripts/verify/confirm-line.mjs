@@ -187,6 +187,15 @@ async function runPass(s, corpus, pass, only) {
           start: r.start, end: r.end, options: r.options.map(x => x.value),
           reason: r.reason,
         })),
+        // THE ROWS NO TAP CAN SETTLE — the third outcome, added the round the
+        // "confirmed with a doubt still open" hole was closed. It has to be on
+        // the record next to the tap count, because a line that stops asking
+        // and starts silently DROPPING readings would look free here otherwise.
+        retake: rev.retake.map(r => ({
+          building: r.building, room: r.room, day: r.day,
+          days: r.days, start: r.start, end: r.end,
+          doubt: r.doubt || [], reason: r.reason || 'too-many-doubts',
+        })),
         counts: rev.counts,
         // Proof, per image, that the cross-checks were LIVE for this number
         // rather than quietly absent.
@@ -334,6 +343,24 @@ async function main() {
     lRow.quietWrong + ' saved in silence');
   console.log('     the buttons contained the right answer on ' + cov.covered + ' of ' +
     cov.asked + ' wrong-and-asked classes (' + pct(cov.covered, cov.asked) + ')');
+
+  // THE THIRD OUTCOME, COUNTED. A reading can now be asked about, accepted —
+  // or sent to the re-take list, out of the schedule unless the student keeps
+  // it. That last one is a COST, so it is printed beside the taps rather than
+  // left to be discovered.
+  for (const [id, per] of [['STRICT', all.strict], ['LOOSE', all.loose]]) {
+    const rt = per.reduce((a, im) => a.concat((im.retake || [])
+      .map(r => ({ ...r, image: im.image }))), []);
+    console.log('     ' + id.padEnd(7) + rt.length +
+      ' reading(s) sent to the re-take list (left out unless the student keeps them)' +
+      (rt.length ? ':' : ''));
+    for (const r of rt.slice(0, 8)) {
+      console.log('       ' + r.image.padEnd(34) + (r.building || '?') + ' ' +
+        (r.room || '?') + ' ' + (r.days || [r.day]).join('/') + ' ' +
+        r.start + '-' + r.end + '   [' + r.reason + ': ' +
+        (r.doubt.join(',') || 'no choice to offer') + ']');
+    }
+  }
   if (cov.misses.length) {
     console.log('\n   asked about, and the right answer was NOT among the buttons:');
     for (const m of cov.misses.slice(0, 10)) {

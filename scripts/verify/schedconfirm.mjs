@@ -1159,12 +1159,22 @@ const rec = await page.evaluate(() => {
   const M = window.__cf;
   const rev = M.review({
     classes: [],
+    // THE EVIDENCE BUNDLE IS THE ONE js/schedimg.js ACTUALLY EMITS. It used to
+    // be `conf: {}, from: {}` here, which is a shape evidenceFor() cannot
+    // produce — and an empty bundle scores every field at CONF.noWords (0.5),
+    // so the fixture was quietly asserting that a perfectly legible row is
+    // half-doubted. That only became visible once recover rows started being
+    // scored at all; before this round nothing scored them, which was the bug.
     unsure: [{
       course: 'C S 429', building: 'CRE', room: '2.216', day: 'Tue', days: ['Tue', 'Thu'],
       start: '14:00', end: '15:30', reason: 'not-a-code',
       why: '"CRE" does not read like a UT building code',
-      ev: { boxes: { all: { x0: 60, y0: 296, x1: 700, y1: 334 } }, conf: {}, from: {},
-        flags: {}, candidates: { building: ['CPE', 'GRE'] } },
+      ev: { boxes: { all: { x0: 60, y0: 296, x1: 700, y1: 334 } },
+        conf: { building: 88, room: 91, day: 90, time: 92 },
+        from: { day: 'column', time: 'axis', room: 'read', building: 'unrepaired' },
+        flags: { knownCode: false, rawCode: 'CRE', axisAgrees: true, edge: {},
+          source: 'screenshot' },
+        candidates: { building: ['CPE', 'GRE'] } },
     }],
     seen: { onlySeen: 0 },
   });
@@ -1172,6 +1182,7 @@ const rec = await page.evaluate(() => {
   rev.recover[0].answer = 'CPE';
   const after = M.apply(rev).classes;
   return { n: rev.recover.length, options: rev.recover[0] ? rev.recover[0].options.map(o => o.value) : [],
+    doubt: rev.recover[0] ? rev.recover[0].doubt : null,
     before, after: after.length, days: after.map(c => c.day),
     confirmed: after.every(c => c.confirmed) };
 });
@@ -1181,6 +1192,9 @@ ok(rec.n === 1 && rec.options.join(',') === 'CPE,GRE',
 ok(rec.before === 0 && rec.after === 2 && rec.confirmed,
   'and nothing enters the schedule from it without a tap',
   rec.before + ' before the tap -> ' + rec.after + ' after, on ' + rec.days.join('+'));
+ok(Array.isArray(rec.doubt) && rec.doubt.length === 0,
+  'a recover row whose only problem WAS the code has nothing left in doubt, so the tap really does settle it',
+  'leftover doubts: ' + JSON.stringify(rec.doubt));
 
 const empty = await page.evaluate(() => {
   const M = window.__cf;
@@ -1227,6 +1241,7 @@ ok(sumGeom.bottom <= sumGeom.vh, 'the summary fits on the phone too',
 ok(sumGeom.priv, 'and the line saying the picture never left the phone is on it');
 note('final button reads: ' + sumGeom.go);
 
+
 /* ── destroy() really destroys the picture ────────────────────────────────── */
 head('7. the picture goes with the screen');
 const gone = await page.evaluate(() => {
@@ -1242,7 +1257,233 @@ ok(gone.before > 1 && gone.after === null,
 ok(!gone.inDom, 'and takes the panel out of the document');
 
 /* ════════════════════════════════════════════════════════════════════════════
-   8. THE SEAM IS ONE CALL, AND IT RUNS
+   8. THE INVARIANT: NOTHING IS `confirmed` WHILE A DOUBT IS STILL OPEN
+
+   THIS SECTION EXISTS BECAUSE THE PROMISE AT THE TOP OF js/schedconfirm.js WAS
+   FALSE IN TWO PLACES, and both were found by executing the module rather than
+   by reading it.
+
+     1. THE CAP. `maxQuestionsPerClass` is 2; a reading can have four doubtful
+        fields. applyGroup()'s old safety net counted only the questions that
+        had been BUILT, so a reading with building 0.30 / room 0.45 / time 0.19
+        produced two questions and, once both were answered, a class tagged
+        `confirmed: true` carrying `room: "2.2%"` — a value the file's own
+        grammar check had flagged as containing characters a UT room number
+        cannot contain. `g.tooManyDoubts` was computed and never read again.
+
+     2. THE RECOVER LANE, which put a false sentence in the record: a cut-off
+        `WEL 2.22` — the reader's own words are "part of it is missing" — was
+        shown as a ONE-OPTION question about the building and then written as
+        `confirmed: true, why: "confirmed by you from the picture"`.
+
+   So the assertions below are about the OUTPUT OF apply(), field by field,
+   across a matrix of 1..4 doubtful fields. A future edit that reintroduces
+   either hole fails here.
+   ════════════════════════════════════════════════════════════════════════════ */
+head('8. nothing is confirmed while a doubt is still open');
+
+const inv = await page.evaluate(() => {
+  const M = window.__cf;
+  const A = M.CONF.askBelow;
+  const base = () => ({
+    course: 'M 340L', building: 'RLP', room: '0.106', day: 'Tue', days: ['Tue'],
+    start: '09:30', end: '11:00',
+    ev: {
+      boxes: { all: { x0: 0, y0: 8, x1: 300, y1: 28 } },
+      conf: { building: 92, room: 92, day: 92, time: 92 },
+      from: { day: 'column', time: 'axis', room: 'read', building: 'lexicon' },
+      flags: { knownCode: true, axisAgrees: true, edge: {}, source: 'screenshot' },
+      candidates: { building: ['RLP'] },
+    },
+  });
+  // Each spoil makes exactly ONE field fall under the line, using the same
+  // defects the corpus actually produces.
+  const spoil = {
+    building: (c) => { c.building = 'MZQ'; c.ev.flags.knownCode = false;
+      c.ev.flags.rawCode = 'MZQ'; c.ev.from.building = 'unrepaired';
+      c.ev.candidates.building = []; },
+    room: (c) => { c.room = '2.2%'; },
+    time: (c) => { c.start = '09:07'; c.end = '10:55'; },
+    day: (c) => { c.day = 'Tue'; c.ev.from.day = 'letters'; c.ev.conf.day = 27; },
+  };
+  const run = (which, opts) => {
+    const c = base();
+    for (const f of which) spoil[f](c);
+    const rev = M.review({ classes: [c], unsure: [] }, opts || {});
+    const g = rev.groups[0];
+    for (const q of rev.questions) q.answer = q.options[0].value;
+    const res = M.apply(rev);
+    // The scores AFTER the answers: a field the student answered is settled by
+    // definition, so only the unanswered ones are checked against the line.
+    const answered = new Set(rev.questions.map(q => q.field));
+    const stillLow = ['building', 'room', 'time', 'day']
+      .filter(f => !answered.has(f) && g.score.fields[f] < A);
+    return {
+      which, doubt: g.doubt, nq: rev.questions.length,
+      retake: !!g.retake, kept: res.classes.length,
+      confirmed: res.classes.map(x => !!x.confirmed),
+      needsConfirm: res.classes.map(x => !!x.needsConfirm),
+      unconfirmedFields: res.classes.map(x => x.unconfirmedFields || []),
+      why: (res.classes[0] || res.dropped[0] || {}).why || null,
+      stillLow, rev, g,
+    };
+  };
+  const cases = [['building'], ['room'], ['time'], ['building', 'room'],
+    ['building', 'room', 'time'], ['building', 'room', 'time', 'day']];
+  const rows = cases.map(w => { const r = run(w); delete r.rev; delete r.g; return r; });
+
+  // The same three-doubt reading, KEPT ANYWAY by the student.
+  const c3 = base(); for (const f of ['building', 'room', 'time']) spoil[f](c3);
+  const rev3 = M.review({ classes: [c3], unsure: [] }, {});
+  rev3.groups[0].keepAnyway = true;
+  const kept3 = M.apply(rev3).classes.map(x => ({ confirmed: !!x.confirmed,
+    needsConfirm: !!x.needsConfirm, unconfirmedFields: x.unconfirmedFields || [],
+    room: x.room, why: x.why }));
+
+  // And with CONF.ask.overCap flipped to 'ask': all three get asked, and
+  // answering all three legitimately DOES confirm.
+  const was = M.CONF.ask.overCap;
+  M.CONF.ask.overCap = 'ask';
+  const askAll = run(['building', 'room', 'time']);
+  M.CONF.ask.overCap = was;
+  delete askAll.rev; delete askAll.g;
+
+  // The cut-off recover row: one option is not a choice.
+  const cut = {
+    course: 'C S 429', building: 'WEL', room: '2.22', day: 'Tue', days: ['Tue'],
+    start: '09:30', end: '11:00', reason: 'cut-off',
+    why: 'this one runs off the edge of the picture, so part of it is missing',
+    ev: { boxes: { all: { x0: 0, y0: 8, x1: 300, y1: 28 } },
+      conf: { building: 92, room: 92, day: 92, time: 92 },
+      from: { day: 'column', time: 'axis', room: 'read', building: 'unrepaired' },
+      flags: { knownCode: false, edge: { room: true }, source: 'screenshot' },
+      candidates: { building: ['WEL'] } },
+  };
+  const revC = M.review({ classes: [], unsure: [cut] }, {});
+  const cutOut = M.apply(revC).classes;
+
+  return { rows, kept3, askAll, overCapDefault: M.CONF.ask.overCap,
+    cut: { recover: revC.recover.length, retake: revC.retake.length,
+      wrote: cutOut.length,
+      why: (revC.retake[0] || {}).retakeWhy || null } };
+});
+
+for (const r of inv.rows) {
+  note(r.which.join('+') + ' doubted -> ' + r.nq + ' question(s), ' +
+    (r.retake ? 're-take' : 'kept ' + r.kept) +
+    ', confirmed ' + JSON.stringify(r.confirmed));
+}
+ok(inv.rows.every(r => r.confirmed.every((c, i) =>
+  !c || r.unconfirmedFields[i].length === 0)),
+'across 1, 2, 3 and 4 doubtful fields, nothing comes out confirmed with a field still in doubt');
+ok(inv.rows.every(r => r.stillLow.length === 0 || r.confirmed.every(c => !c)),
+  'and no class the model still scores under the line is called confirmed',
+  'cases with an unanswered field under the line: ' +
+    inv.rows.filter(r => r.stillLow.length).map(r => r.which.join('+')).join(', ') || 'none');
+
+const three = inv.rows.find(r => r.which.length === 3);
+ok(three && three.nq === 0 && three.retake && three.kept === 0,
+  'the critic\'s case: three doubts asks NOTHING and saves NOTHING by default',
+  three ? three.nq + ' questions, kept ' + three.kept : 'missing');
+ok(three && /MZQ/.test(three.why) && /2\.2%/.test(three.why) && /9:07/.test(three.why),
+  'and the reason names all three defects rather than just the two it would have asked about',
+  three ? '"' + String(three.why).slice(0, 120) + '"' : 'missing');
+
+ok(inv.kept3.length === 1 && inv.kept3[0].confirmed === false &&
+   inv.kept3[0].needsConfirm === true &&
+   inv.kept3[0].unconfirmedFields.length === 3,
+'kept anyway, it is saved as UNCHECKED with all three fields named — never as confirmed',
+  JSON.stringify(inv.kept3[0] && inv.kept3[0].unconfirmedFields));
+ok(inv.kept3.length === 1 && inv.kept3[0].room === '2.2%' &&
+   /not asked|nobody checked/.test(String(inv.kept3[0].why)),
+'and the value the student never saw is still shown to be unchecked, not laundered',
+  '"' + String(inv.kept3[0] && inv.kept3[0].why).slice(0, 90) + '"');
+
+ok(inv.askAll.nq === 3 && inv.askAll.confirmed.every(c => c),
+  'CONF.ask.overCap = "ask" is the one-line overrule: all three asked, and answering all three DOES confirm',
+  inv.askAll.nq + ' questions -> confirmed ' + JSON.stringify(inv.askAll.confirmed));
+ok(inv.overCapDefault === 'retake', 'and the shipping default is back to "retake" after the test');
+
+ok(inv.cut.recover === 0 && inv.cut.retake === 1 && inv.cut.wrote === 0,
+  'a cut-off row is not a one-button "recovery": it is a re-take, and it writes nothing',
+  'recover ' + inv.cut.recover + ', retake ' + inv.cut.retake +
+    ', classes written ' + inv.cut.wrote);
+
+/* ── and the SCREEN says so, on the phone, in pixels ───────────────────────── */
+const rtUi = await page.evaluate(() => {
+  const M = window.__cf;
+  const c = {
+    course: 'M 340L', building: 'MZQ', room: '2.2%', day: 'Tue', days: ['Tue'],
+    start: '09:07', end: '10:55',
+    ev: { boxes: { all: { x0: 0, y0: 8, x1: 300, y1: 28 } },
+      conf: { building: 92, room: 92, day: 92, time: 92 },
+      from: { day: 'column', time: 'axis', room: 'read', building: 'unrepaired' },
+      flags: { knownCode: false, rawCode: 'MZQ', axisAgrees: true, edge: {},
+        source: 'screenshot' },
+      candidates: { building: [] } },
+  };
+  const good = {
+    course: 'C S 429', building: 'GDC', room: '2.216', day: 'Wed', days: ['Wed'],
+    start: '11:00', end: '12:00',
+    ev: { boxes: { all: { x0: 0, y0: 40, x1: 300, y1: 60 } },
+      conf: { building: 94, room: 94, day: 94, time: 94 },
+      from: { day: 'column', time: 'axis', room: 'read', building: 'lexicon' },
+      flags: { knownCode: true, axisAgrees: true, edge: {}, source: 'screenshot' },
+      candidates: { building: ['GDC'] } },
+  };
+  const rev = M.review({ classes: [good, c], unsure: [] }, {});
+  const host = document.createElement('div');
+  host.id = 'rt-host';
+  document.body.appendChild(host);
+  const ui = M.mount(host, rev, {});
+  ui.state.step = 999; ui.render();
+  window.__rtUi = ui;
+  const root = document.getElementById('wf-cfm');
+  const btn = root.querySelector('.cfm-rt-keep');
+  const b = btn ? btn.getBoundingClientRect() : null;
+  const rb = root.getBoundingClientRect();
+  return {
+    text: root.textContent,
+    heading: (root.querySelector('.cfm-retake-h') || {}).textContent || '',
+    why: (root.querySelector('.cfm-rt-why') || {}).textContent || '',
+    ready: (root.querySelector('.cfm-note') || {}).textContent || '',
+    btnH: b ? Math.round(b.height) : 0,
+    btnIn: !!b && b.top >= 0 && b.bottom <= innerHeight && b.left >= 0 &&
+      b.right <= innerWidth,
+    panelBottom: Math.round(rb.y + rb.height), vh: innerHeight,
+    sideways: document.documentElement.scrollWidth > innerWidth,
+  };
+});
+note('the summary heading reads: "' + rtUi.heading + '"');
+note('and under the row: "' + rtUi.why.slice(0, 120) + '"');
+ok(/to check yourself/i.test(rtUi.heading),
+  'the summary really does say so — the re-take list has its own heading',
+  '"' + rtUi.heading + '"');
+ok(/^1 class ready\.$/.test(rtUi.ready.trim()),
+  'and the unreadable row is NOT in the ready count',
+  '"' + rtUi.ready.trim() + '"');
+ok(/MZQ/.test(rtUi.why) || /2\.2%/.test(rtUi.why) || /9:07/.test(rtUi.why),
+  'the reason printed is the app\'s own, in plain words, not a bare warning');
+ok(rtUi.btnH >= 44 && rtUi.btnIn,
+  'the "use it anyway" button is a real thumb target inside a 390x844 screen',
+  rtUi.btnH + ' px tall, on screen: ' + rtUi.btnIn);
+ok(!rtUi.sideways && rtUi.panelBottom <= rtUi.vh,
+  'and the panel with it on still fits the phone',
+  'bottom ' + rtUi.panelBottom + ' of ' + rtUi.vh);
+
+await page.waitForTimeout(200);
+await page.screenshot({ path: path.join(SHOTS, '_throwaway.png') });
+await page.waitForTimeout(200);
+await page.screenshot({ path: path.join(SHOTS, 'confirm-retake-phone.jpg'),
+  type: 'jpeg', quality: 80 });
+await page.evaluate(() => {
+  try { window.__rtUi.destroy(); } catch (e) {}
+  const h = document.getElementById('rt-host');
+  if (h && h.parentNode) h.parentNode.removeChild(h);
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   9. THE SEAM IS ONE CALL, AND IT RUNS
 
    The honest weakness of round one was that none of this was reachable from the
    app: `impFromFile` in js/wayfind.js knows nothing about any of it, and that
@@ -1252,7 +1493,7 @@ ok(!gone.inDom, 'and takes the panel out of the document');
    than a seam. So this executes it: one call, a real corpus image, the real
    page, and the screen on screen at the end of it.
    ════════════════════════════════════════════════════════════════════════════ */
-head('8. confirmFromFile(file, host) — the whole integration, run once');
+head('9. confirmFromFile(file, host) — the whole integration, run once');
 const img13 = path.join(CORPUS, '13-ut-table-crop-bottom.jpg');
 const url13 = 'data:image/jpeg;base64,' + fs.readFileSync(img13).toString('base64');
 const seam = await page.evaluate(async ([u]) => {

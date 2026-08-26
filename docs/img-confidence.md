@@ -19,6 +19,133 @@ pure to call.
 
 ---
 
+## Round three: the promise at the top of the file was false in two places
+
+The header of `js/schedconfirm.js` has said the same sentence since round one:
+
+> NOTHING THIS APP IS NOT SURE OF IS EVER WRITTEN DOWN SILENTLY.
+
+It was not true. It was never *enforced* anywhere — it was an emergent property
+of "every doubt happens to get a question", and there turned out to be two ways
+for a doubt not to get a question. Both were found by **running the module**, not
+by reading it, and both are now closed by the same function.
+
+### 1. The cap, which is the one the last round's critic found
+
+`CONF.ask.maxQuestionsPerClass` is 2. A reading has four fields. The old safety
+net in `applyGroup()` — *"if anything is unanswered and the reading is weak,
+drop it"* — counted only the questions it had **built**, so it could not see a
+doubt the cap had thrown away.
+
+Executed against the real module in the real page, a reading scored
+`building 0.30 / room 0.45 / time 0.19` — three fields under the 0.72 line —
+produced **two** questions. Answer both, and:
+
+```
+   { building: "MZQ", room: "2.2%", start: "09:00", end: "11:00",
+     confirmed: true, needsConfirm: false }
+```
+
+`"2.2%"` is a value this file's own grammar check had already flagged as
+containing characters a UT room number cannot contain. It is sitting inside a
+class tagged `confirmed: true`. Nobody was ever shown it.
+
+The code even said what should have happened — *"a class needing three answers
+is a class to re-photograph, and the screen says so"* — and computed
+`g.tooManyDoubts` to do it with. `grep` finds exactly one occurrence in 1,947
+lines. It was written and never read.
+
+### 2. The recover lane, which is worse, because it wrote a false sentence
+
+Nothing found this one; it was looked for after the first, on the theory that a
+bug with this shape rarely has one instance. `review()`'s `recover` list takes
+rows `js/schedimg.js` **refused** to write down and offers the student a tap.
+Those rows were never scored at all — not once, anywhere — and `apply()` stamped
+the whole row confirmed on the strength of that one tap:
+
+```
+   in:   { building: "WEL", room: "2.22", reason: "cut-off",
+           why: "this one runs off the edge of the picture, so part of it is missing" }
+   out:  { building: "WEL", room: "2.22", confirmed: true, needsConfirm: false,
+           why: "confirmed by you from the picture" }
+```
+
+The student was shown one button reading `WEL`. They were never shown the room.
+The app then put a sentence in its own record saying they had confirmed it — and
+the room in question is one the reader had already said out loud was cut in half.
+A second row, `13:07–14:55`, failed the clock grammar on **both** ends and came
+through the same way.
+
+### The fix is one function, because it was one bug
+
+`openDoubts(doubted, answered)`. A field is settled when the student answered it,
+or when the model believed it in the first place. Everything else is open, and an
+open doubt now decides three things, in both lanes:
+
+* **`confirmed` requires an empty open list.** Not "every question answered" —
+  every *doubt* answered. This is the invariant, and it is asserted across a
+  matrix of one, two, three and four doubtful fields in
+  `scripts/verify/schedconfirm.mjs` §8.
+* **A class kept with open doubts says which ones.** `unconfirmedFields`, plus a
+  `why` in plain words: *"you were not asked about the building or the time —
+  'MZQ' is not a building code this app knows"*. Never "confirmed by you".
+* **Over the cap, the screen asks nothing and saves nothing.** Two questions that
+  cannot settle three doubts are two taps that fix nothing — the same reason
+  `time.tooTight` was moved out of the asking band last round. The reading goes
+  to a **re-take list** on the summary, out of the ready count, with the app's own
+  reason printed under it and one full-width button to keep it anyway as
+  explicitly unchecked. Left out is the default, because the asymmetry this whole
+  file turns on is that "unsure" costs one tap and "confidently wrong" costs a
+  missed class.
+
+![the re-take list on a 390x844 phone](../shots/img-confidence/confirm-retake-phone.jpg)
+
+A one-option "recovery" is not a choice, so those rows — the cut-off case — go to
+the same list rather than being asked about and then declared confirmed. A
+recover row with a **real** choice keeps its question, because the tap is worth
+having; whatever the tap does not reach rides out as `unconfirmedFields`. Asked
+and honest beats not asked.
+
+### What it costs on the real corpus: nothing, and that is also the honest limit
+
+```
+                          round two            round three
+   STRICT                 28 of 136, 16 taps   28 of 136, 16 taps
+   LOOSE                  39 of 39 caught      39 of 39 caught
+   option coverage        37 of 37             37 of 37
+   answer key             0 of 49 asked        0 of 49 asked
+   re-take list           (did not exist)      0 rows, STRICT and LOOSE
+   image-bench            134/171, 100% prec.  134/171, 100% prec.
+   the gate               86 checks            101 checks
+```
+
+**Zero.** Not one reading in the fifteen-image corpus has more doubtful fields
+than the cap can ask about, on either pass — measured, both ways, before the fix
+was designed. So the new path costs nothing measurable, and **the corpus cannot
+validate it either.** Every proof that it works is synthetic: the matrix in §8,
+the critic's own reading replayed, the cut-off row, and the screen measured in
+pixels on a 390x844 frame. That is a real limit and it is stated here rather than
+in a footnote.
+
+It also means the fix was never about a number. It was about a sentence at the
+top of a file being true.
+
+**`CONF.ask.overCap` is the one-line overrule.** `'retake'` ships; `'ask'`
+ignores the cap and asks about all four fields instead, costing up to four taps
+on one row and never leaving anything out. The gate runs both.
+
+### The benchmark number did not move, and this time it could not have
+
+`134 / 171`, precision `100.0%`, 0 hallucinations, 0 near misses — run after the
+change, on this tree. `image-bench.mjs` scores `js/schedimg.js` through
+`schedimg-extract.mjs`; there is no confirm screen and no student anywhere in
+that path, so a change confined to `js/schedconfirm.js` cannot move it in either
+direction. It is reported because the brief asks for it, not because it measures
+this piece. The numbers that belong to this piece are **16 taps**, **39 of 39**,
+and now **0 re-takes**.
+
+---
+
 ## Round two: the hole that was named last round is partly closed, and the measurement that closed it found a defect on the way
 
 The previous version of this document ended by naming its own worst failure, and
@@ -588,6 +715,33 @@ and **39 of 39**.
 ---
 
 ## What is still weak
+
+**A class kept from the re-take list is marked unchecked and NOTHING
+DOWNSTREAM SHOWS IT.** This is now the weakest thing here, and it is the direct
+cost of the round-three fix. `unconfirmedFields` and `needsConfirm: true` are
+written onto the class and the confirm screen paints it warm-red — but the moment
+the student presses "Use", the class leaves this file, and `grep` finds **zero**
+occurrences of `needsConfirm` or `unconfirmedFields` in `js/wayfind.js`. In the
+day view an unchecked class looks exactly like a checked one. The disclosure is
+real at the point of saving and evaporates afterwards. Fixing it means a schema
+change in another lane's file, so per `CLAUDE.md` it is written down here as a
+request rather than made: **the day view needs a not-checked mark, driven off
+`needsConfirm`, and a tap that reopens the question.**
+
+**The re-take path has never run on a real image.** Zero rows on the fifteen-image
+corpus, both passes, measured before the fix was designed. Every proof that it
+behaves is synthetic — the matrix in §8, the critic's reading replayed, the
+cut-off row, and the screen measured in pixels. A corpus with a genuinely
+half-legible schedule in it would price the one thing this path trades away:
+**readings that are now left out by default and used to be silently kept.** On
+this corpus that trade is free because the population is empty; it will not stay
+free, and nothing here knows how expensive it gets.
+
+**And the second hole was found by looking for it, not by a test.** The recover
+lane had never been scored by anything, in any round, and no gate noticed for two
+rounds. The invariant in §8 covers both lanes now, but the lesson is about
+coverage, not about the fix: a promise in a file header is not enforced by being
+written down.
 
 **Eight of the thirteen confusable pairs are still invisible, and that is now
 the biggest thing here.** Round one could not see any of them. Round two raises
