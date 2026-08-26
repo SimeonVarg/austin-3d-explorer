@@ -235,6 +235,28 @@ const unit = await page.evaluate(() => {
   // ..and one that could be two different real buildings is refused.
   out.ambiguous = M.repairCode('GDD', new Set(['GDC', 'GDF']));
   out.exact = M.repairCode('RLP', new Set(['RLP']));
+
+  // ── THE COURSE CODE IS NOT A LOCATION ────────────────────────────────────
+  // A UT Registration Plus block opens with its course code, and at least seven
+  // UT department prefixes are also real building codes (ART, ASE, BIO, BME,
+  // CAL, GRS, KIN, checked against data/ut_buildings.json). Read left to right
+  // with no rule about it, the title line wins before the location line is ever
+  // looked at — and the answer passes every downstream check, because the
+  // building really exists. It just is not this class's building.
+  const W = (text, x0, y0) => ({ text, x0, y0, x1: x0 + text.length * 10, y1: y0 + 20, conf: 92 });
+  const KNOWN = new Set(['ART', 'WEL', 'UTC']);
+  out.titleLine = M.locFromWords([
+    W('ART', 0, 0), W('302,', 40, 0), W('45672', 90, 0), W('-', 150, 0), W('Reyes', 160, 0),
+    W('9:30am', 0, 30), W('-', 70, 30), W('11:00am', 90, 30),
+    W('WEL', 0, 60), W('2.224', 40, 60),
+  ], KNOWN);
+  // ...and when the block prints no location at all, the course code does not
+  // become one. Declining costs a tap; this used to cost a walk across campus.
+  out.titleOnly = M.locFromWords([W('ART', 0, 0), W('302', 40, 0)], KNOWN);
+  // A room number whose full stop the scan dropped is a DIFFERENT room, on a
+  // different floor. There is no way to know where the stop went, so it is
+  // refused rather than guessed at.
+  out.lostDot = M.locFromWords([W('UTC', 0, 0), W('1102', 40, 0)], KNOWN);
   return out;
 });
 ok(unit.longRange && unit.longRange.bad === true,
@@ -248,6 +270,14 @@ ok(unit.ambiguous === null, 'a slip that could be two real buildings is refused'
   String(unit.ambiguous));
 ok(unit.exact && unit.exact.repaired === false, 'a real code is taken as it stands',
   JSON.stringify(unit.exact));
+ok(unit.titleLine && unit.titleLine.code === 'WEL' && unit.titleLine.room === '2.224',
+  'a course code that is also a real building is not read as the location',
+  JSON.stringify(unit.titleLine));
+ok(unit.titleOnly === null,
+  '...and with no location printed, the course code does not become one',
+  JSON.stringify(unit.titleOnly));
+ok(unit.lostDot === null, 'a room number with its full stop dropped is refused',
+  JSON.stringify(unit.lostDot));
 
 // The crop that cuts a room in half: it must be reported, not proposed.
 const cropped = 'data:image/jpeg;base64,' +
@@ -271,6 +301,12 @@ ok(cut.everyClassHasFourFields,
 // 2.224. It must not appear as a class, whatever else happens on this image.
 ok(!cut.rooms.includes('2.22'),
   'the half-room the crop cut through is not proposed as a room',
+  'rooms proposed: ' + [...new Set(cut.rooms)].join(' '));
+// UT does not print four digits in a row. One that reaches the student is a
+// room number whose full stop was lost in the scan — a different floor,
+// proposed at full confidence, which is what happened on a real screenshot.
+ok(cut.rooms.every(r => !/\d{4}/.test(String(r))),
+  'and no proposed room has four digits in a row, which is a lost full stop',
   'rooms proposed: ' + [...new Set(cut.rooms)].join(' '));
 
 // A POSITIVE TEST FOR `unsure`, because an empty list passes every rule about

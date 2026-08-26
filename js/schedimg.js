@@ -191,6 +191,29 @@ export const TUNE = {
     reOcrBlocks: true,     // read a block on its own when the page pass could
                            // not get a room out of it — see ocrCrop()
     agreeMin: 16,          // axis and caption agreeing within this is confident
+    // WHO WINS WHEN THE PRINTED TIME AND THE DRAWN POSITION DISAGREE.
+    // 'screenshot' = the printed caption, but only on a screenshot, where the
+    // text is pixel-exact and the ruler is the inference; 'always' | 'never'
+    // are here so the next lane can A/B it from SCHEDIMG_TUNE without an edit.
+    captionBeatsAxis: 'screenshot',
+    // ..and how far apart the two witnesses may be and still be two readings of
+    // one time. A ruler half an hour out is a ruler with its labels drawn below
+    // their own rules; a caption three hours from the block it is printed
+    // inside is a misread, and then neither one overrules the other.
+    captionMaxDriftMin: 90,
+    // A PRINTED TIME ONLY OVERRULES THE RULER IF IT LOOKS LIKE A CLASS TIME.
+    // Nothing on a schedule starts at one minute past, so a caption whose
+    // minutes are off this grid is an OCR slip and not a correction. Measured:
+    // without this, corpus image 10 read a 2:00 class as "15:01" and the
+    // caption rule believed it — two wrong answers where the ruler had been
+    // right, which is the whole trade this round refuses to make.
+    captionGridMin: 5,
+    // And the block's HEIGHT is the one thing a mis-set ruler does not corrupt:
+    // labels drawn below their own rules move the offset, never the scale. So a
+    // caption claiming a length the rectangle does not have is not this class's
+    // time. (Measured: the real screenshot's blocks are drawn one snap step
+    // short of the length they print. The corpus misread was four times that.)
+    captionMaxLenDiffMin: 30,
     // Blocks of one colour at one time of day are one class drawn on several
     // days, so their rooms are made to agree — see agreeOnRooms().
     agreeAcrossDays: true,
@@ -1431,6 +1454,22 @@ export function repairDayRun(tok) {
    ════════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * A ROOM THAT LOST ITS DECIMAL POINT IS A DIFFERENT ROOM, NOT A BLURRY ONE.
+ *
+ * UT writes a room as a floor and a number ("2.108"), a bare number where the
+ * building has one floor of teaching space ("106"), or a wing letter in front
+ * of either ("A121A", "B0.306"). It does not print four digits in a row. So
+ * "1102" is "1.102" with the dot dropped by the scan — a room on a different
+ * floor, emitted at full confidence, and one real screenshot does exactly that
+ * twice. Five digits in a row is not a room at all: it is the registration
+ * unique printed beside the course code on a dense schedule.
+ *
+ * Guessing where the dot goes is not available — "1102" could be 1.102 or
+ * 11.02 — so this is a refusal, not a repair.
+ */
+const ROOM_LOST_DOT = /^[A-Z]{0,2}[0-9]{4,}[A-Z]?$/;
+
+/**
  * A COURSE NUMBER AND A ROOM NUMBER LOOK IDENTICAL. "BUR 106" is a room and
  * "C S 429" is a course, and no amount of pattern-matching separates them,
  * because there is no pattern — there is only the list of real UT buildings.
@@ -1439,18 +1478,61 @@ export function repairDayRun(tok) {
  */
 function plausibleLoc(code, room, codes) {
   if (NOT_A_CODE.test(code)) return false;
+  if (ROOM_LOST_DOT.test(room)) return false;
   if (codes && codes.has(code)) return true;
   return /\./.test(room);
 }
 
-function locFromWords(ws, codes) {
+/**
+ * THE COURSE CODE IS PRINTED ON THE BLOCK AND IT IS NOT A LOCATION.
+ *
+ * Intersect UT's department prefixes with this repo's own register and at least
+ * seven prefixes come back as real building codes (ART, ASE, BIO, BME, CAL,
+ * GRS, KIN — a one-line check against `data/ut_buildings.json`, worth re-running
+ * rather than trusting). So a block whose first line is a course code satisfies
+ * every test a location has to pass, and it satisfies them FIRST, because the
+ * title line is above the location line. Nothing downstream can catch it: the
+ * code is real, so the lexicon scores it 1.00 and no question is ever raised.
+ * On one real screenshot this fired four times, three of them in silence, each
+ * pointing a student at a building that is not theirs.
+ *
+ * So the course code is found before any location is, and the very words it was
+ * printed on are refused outright — not ranked lower, not preferred against.
+ * There is no reading of a schedule in which the printed course code is also
+ * the room, so there is nothing to weigh.
+ *
+ * WHAT IT COSTS, AND WHY THE CALLER GETS A SAY. "BUR 106" and "ART 302" are
+ * the same eight characters of grammar, so a word list that holds ONLY a room
+ * reads as a course and would be declined. That is why `opts.course` exists:
+ * by default this derives the course code from the words it was handed, which
+ * is right whenever they are a whole block or a whole table row — the course
+ * code is printed there and the first match in reading order is it. A caller
+ * that KNOWS its words are a room cell, or the line below a time, passes
+ * `{ course: null }` and turns the rule off, because in those words a
+ * course-shaped token is the room and nothing else.
+ *
+ * The residual cost is a grid block whose title line did not read at all and
+ * whose room is plain digits: the room reads as the course and is declined.
+ * Both apps a student actually screenshots print the course code first, and
+ * declining costs one tap where guessing costs the walk.
+ */
+function courseKeyIn(ws) {
+  const c = courseFromRow({ words: ws });
+  return c ? c.replace(/[^A-Z0-9]/g, '') : null;
+}
+
+export function locFromWords(ws, codes, opts = {}) {
+  const course = opts.course === undefined
+    ? courseKeyIn(ws)
+    : (opts.course ? String(opts.course).toUpperCase().replace(/[^A-Z0-9]/g, '') : null);
+  const isCourse = (code, room) => !!course && (code + room) === course;
   // "RLP 0.106" is two words; "BUR 106" is two; a stray "#54780" is not part of
   // either. Try adjacent pairs left to right.
   for (let i = 0; i + 1 < ws.length; i++) {
     const a = ws[i].text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
     const b = ws[i + 1].text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
     const m = LOC_RE.exec(a + ' ' + b);
-    if (m && plausibleLoc(m[1], m[2], codes)) {
+    if (m && !isCourse(m[1], m[2]) && plausibleLoc(m[1], m[2], codes)) {
       return { code: m[1], room: m[2], words: [ws[i], ws[i + 1]] };
     }
   }
@@ -1458,7 +1540,7 @@ function locFromWords(ws, codes) {
   for (const w of ws) {
     const t = w.text.toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
     const m = /^([A-Z]{2,4})([0-9][0-9A-Z.\-]{1,7})$/.exec(t);
-    if (m && plausibleLoc(m[1], m[2], codes)) {
+    if (m && !isCourse(m[1], m[2]) && plausibleLoc(m[1], m[2], codes)) {
       return { code: m[1], room: m[2], words: [w], joined: true };
     }
   }
@@ -1673,23 +1755,63 @@ export function findBlocks(rect, tune = TUNE) {
  *     file can see on the picture rather than a thing it is assuming.
  *
  * What it will not do is invent: a group where nothing read stays empty.
+ *
+ * AND IT WILL NOT SPREAD A READING THAT FAILED VALIDATION. A vote is only
+ * allowed to win if its building code is one the register knows or one that
+ * repairs onto a code the register knows. Without that rule a slip that turned
+ * a real code into a three-letter string UT has never had won its group 1-0 and
+ * was then COPIED onto the same class's other day — one bad read becoming two
+ * wrong answers, which is exactly what happened on the one real screenshot that
+ * broke this feature's precision. A copy that reads nothing still borrows; a
+ * copy that read something unknown keeps its own reading and is declined
+ * downstream on its own merits.
  */
-function agreeOnRooms(recs, tune) {
+function agreeOnRooms(recs, tune, codes) {
   const near = (a, b) => a && b &&
     Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) <= tune.grid.colourJoin;
   const groups = [];
   for (const r of recs) {
     if (!r.block || !r.block.colour) continue;
+    // GROUPED BY WHERE THEY ARE DRAWN, not by the answer. `r.drawn` is the
+    // ruler's reading before any caption corrected it, so a copy whose printed
+    // caption moved its clock is still recognised as the same class as the copy
+    // whose caption was unreadable — which is the whole point of the group.
+    const k = r.drawn || r.range;
     const g = groups.find(q =>
-      near(q.colour, r.block.colour) && q.start === r.range.start && q.end === r.range.end);
+      near(q.colour, r.block.colour) && q.start === k.start && q.end === k.end);
     if (g) g.recs.push(r);
-    else groups.push({ colour: r.block.colour, start: r.range.start, end: r.range.end, recs: [r] });
+    else groups.push({ colour: r.block.colour, start: k.start, end: k.end, recs: [r] });
   }
   for (const g of groups) {
     if (g.recs.length < 2) continue;
+    // ── THE CLOCK AGREES ACROSS DAYS TOO, and for the same reason the room
+    // does. These rectangles are one course, one colour, drawn at one position
+    // against the hour ruler. If ONE of them printed its own hours legibly and
+    // they were believed over the ruler, then the ruler is out by that much for
+    // every copy — the copies are at the same y, so there is nothing else it
+    // could be. Without this, a real screenshot returned one meeting corrected
+    // to the printed time and its twin left 45 minutes late, which is the same
+    // class arriving in the student's week twice at two different hours.
+    //
+    // ONE printed time only. Two copies whose captions disagree with each other
+    // are two readings, not one witness, and neither is spread.
+    const spoken = g.recs.filter(r => r.timeFrom === 'caption' && r.range);
+    const spokenKeys = new Set(spoken.map(r => r.range.start + '|' + r.range.end));
+    if (spoken.length && spokenKeys.size === 1) {
+      const t = spoken[0].range;
+      for (const r of g.recs) {
+        if (r.range.start === t.start && r.range.end === t.end) continue;
+        r.range = { ...r.range, start: t.start, end: t.end };
+        r.timeFrom = 'caption-agreed';
+        r.why = (r.why || []).concat('the hour scale put this at ' +
+          hhmm(g.start) + '-' + hhmm(g.end) + '; the same class on another day ' +
+          'prints ' + hhmm(t.start) + '-' + hhmm(t.end) + ' inside the block, so that was used');
+      }
+    }
     const votes = new Map();
     for (const r of g.recs) {
       if (!r.loc) continue;
+      if (!repairCode(r.loc.code, codes, tune)) continue;   // an unknown code does not get a vote
       const key = String(r.loc.code).toUpperCase() + ' ' + String(r.loc.room).toUpperCase();
       const conf = (r.loc.words || []).reduce((a, w) => a + (w.conf || 0), 0);
       const v = votes.get(key) || { n: 0, conf: 0, loc: r.loc };
@@ -1768,6 +1890,14 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
         (w.y0 + w.y1) / 2 > b.y0 && (w.y0 + w.y1) / 2 < b.y1);
       const inOrder = (ws) => ws.slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
       let inside = within(ctx.words);
+      // THE PAGE PASS IS NOT DISCARDED WHEN THE BLOCK IS READ AGAIN. The second
+      // look magnifies one rectangle and often gets the room the whole-page pass
+      // could not — and just as often loses the time line the whole-page pass
+      // had. Keeping both means the two readings can be asked separate
+      // questions: the room comes from whichever produced one, and the caption
+      // below from whichever printed a time. Overwriting `inside` outright cost
+      // a real screenshot its printed hours and left the class 45 minutes late.
+      const firstPass = inside;
       let loc = inside.length ? locFromWords(inOrder(inside), codes) : null;
       if (!loc && tune.grid.reOcrBlocks && ctx.pm) {
         const again = within(await ocrCrop(ctx.pm, b, tune));
@@ -1782,24 +1912,76 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           : 'a class is drawn here but neither its writing nor the hour scale could be read', b);
         continue;
       }
-      const caption = parseRange(inOrder(inside).map(w => w.text).join(' '));
+      const capOf = (ws) => (ws && ws.length)
+        ? parseRange(inOrder(ws).map(w => w.text).join(' ')) : null;
+      const capNow = capOf(inside);
+      const caption = (capNow && !capNow.bad) ? capNow
+        : (inside === firstPass ? capNow : (capOf(firstPass) || capNow));
       const why = [];
+      // WHERE THE RULER PUT IT, kept whatever happens to the answer below. Two
+      // copies of one class are recognised by the rectangle they are drawn as,
+      // and correcting one copy's clock must not stop it being recognised as
+      // the twin of the copy that was not corrected — see agreeOnRooms().
+      const drawn = axis ? { start, end } : null;
       // TWO WITNESSES AGREEING IS THE STRONGEST EVIDENCE ON THE PAGE, and the
       // confirm screen prices it, so the verdict is recorded rather than only
       // its failure: null = only one witness spoke, true = they agree, false =
       // they do not. (js/schedconfirm.js CONF.time reads exactly this.)
       let axisAgrees = null;
-      // The caption is a second witness, not the witness. When both are
-      // there and they agree, that is as sure as this file gets; when they
-      // disagree the axis wins and the disagreement is shown, because four
-      // tiny digits inside a coloured block are the least reliable thing on
-      // the page and the calendar's own ruler is the most.
+      let timeSource = 'axis';
+      // The caption is a second witness, not the witness. When both are there
+      // and they agree, that is as sure as this file gets.
+      //
+      // WHEN THEY DISAGREE, THE PRINTED TIME IS THE EVIDENCE AND THE DRAWN
+      // POSITION IS AN INFERENCE. This file used to prefer the ruler and say so
+      // in the reason text — and on a real screenshot it printed, in so many
+      // words, that the caption read one time and the block was drawn at
+      // another, and then used the other. Every emitted time on that image came
+      // out 15 to 45 minutes late while the caption had it right, because an
+      // hour label does not sit exactly on its own rule and a block is drawn
+      // with padding inside its hour. Both of those shift a whole image at once
+      // and neither looks like a bug.
+      //
+      // ONLY ON A SCREENSHOT, and only from a caption that printed its own
+      // am/pm. On a photograph the caption really is four tiny digits seen
+      // through a camera and the ruler really is the steadier witness; on a
+      // screenshot the text is pixel-exact and the geometry is the guess.
       if (axis && caption && !caption.bad) {
-        const off = Math.abs(caption.start - start) + Math.abs(caption.end - end);
+        // A CAPTION WITH NO am/pm PRINTED IS A CLOCK FACE, NOT A TIME — and the
+        // two witnesses answer different halves of the question. The ruler says
+        // which half of the day this is in; the printed digits say where in the
+        // hour. So the caption is shifted onto the ruler's half before the two
+        // are compared at all, and a dense block whose printed am has worn off
+        // stops reading as a twelve-hour disagreement.
+        let cs = caption.start, ce = caption.end;
+        if (caption.unsure) {
+          let bd = Infinity, shift = 0;
+          for (const d of [-720, 0, 720]) {
+            const gap = Math.abs(cs + d - start);
+            if (gap < bd) { bd = gap; shift = d; }
+          }
+          cs += shift; ce += shift;
+        }
+        const off = Math.abs(cs - start) + Math.abs(ce - end);
         axisAgrees = off <= tune.grid.agreeMin;
-        if (off > tune.grid.agreeMin) {
-          why.push('the caption reads ' + hhmm(caption.start) + '-' + hhmm(caption.end) +
-            ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end));
+        if (!axisAgrees) {
+          // ..and beyond captionMaxDriftMin they are not two readings of one
+          // time at all. A ruler that is half an hour out is a ruler; a caption
+          // three hours from the block it sits inside is a misread, and neither
+          // witness gets to overrule the other on that evidence.
+          const near = Math.abs(cs - start) <= tune.grid.captionMaxDriftMin &&
+            Math.abs(ce - end) <= tune.grid.captionMaxDriftMin;
+          const G = tune.grid.captionGridMin;
+          const onGrid = cs % G === 0 && ce % G === 0;
+          const sameLength =
+            Math.abs((ce - cs) - (end - start)) <= tune.grid.captionMaxLenDiffMin;
+          const believe = near && onGrid && sameLength &&
+            (tune.grid.captionBeatsAxis === 'always' ||
+            (tune.grid.captionBeatsAxis === 'screenshot' && ctx.rect.source === 'screenshot'));
+          why.push('the caption reads ' + hhmm(cs) + '-' + hhmm(ce) +
+            ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end) +
+            (believe ? ', so the printed time was used' : ''));
+          if (believe) { start = cs; end = ce; timeSource = 'caption'; }
         }
       }
       // NO AXIS IS NOT NO GRID. When the hour labels are unreadable the
@@ -1814,19 +1996,20 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           continue;
         }
         start = caption.start; end = caption.end;
+        timeSource = 'caption';
         if (caption.unsure) why.push('no am/pm was printed, so the time is a guess');
       }
       recs.push({
         days: [col.day], range: { start, end, unsure: false },
         loc, course: courseFromRow({ words: inside }), ws: inside, why,
-        fromGeometry: true, block: b,
+        fromGeometry: true, block: b, drawn,
         // PROVENANCE, NOT JUST THE ANSWER. Which witness supplied the clock is
         // the single biggest thing separating a trustworthy time from a
         // guessed one, and only this function knows it.
-        timeFrom: axis ? 'axis' : 'caption', dayFrom: 'column', axisAgrees,
+        timeFrom: timeSource, dayFrom: 'column', axisAgrees,
       });
     }
-    if (recs.length) return tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune) : recs;
+    if (recs.length) return tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune, codes) : recs;
   }
 
   const body = rows.filter(r => r.y0 > layout.headerY);
@@ -1853,7 +2036,9 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           return c && c.day === day;
         });
         if (!cand.length) continue;
-        const l = locFromWords(cand, codes);
+        // A LINE BELOW THE TIME, so a course-shaped token in it is the room:
+        // this event's course code was printed ABOVE, not here. See locFromWords.
+        const l = locFromWords(cand, codes, { course: null });
         if (l) { loc = l; locWs = l.words; break; }
         if (parseRange(cand.map(w => w.text).join(' '))) break;  // next event
       }
@@ -1993,7 +2178,9 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
       const room = roomWs.map(w => w.text).join('').toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
       if (code && room) { loc = { code, room }; locWs = bldgWs.concat(roomWs); }
     } else if (roomWs.length) {
-      const l = locFromWords(roomWs, codes);
+      // THE ROOM CELL, named by the table's own heading. "BUR 106" in here is a
+      // room by construction, so the course-code rule is off — see locFromWords.
+      const l = locFromWords(roomWs, codes, { course: null });
       if (l) { loc = l; locWs = l.words; }
     }
     // NOT EVERY TABLE'S HEADER SURVIVES THE PHOTOGRAPH. On corpus image 05 the
@@ -2004,9 +2191,10 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
       if (l) { loc = l; locWs = l.words; }
     }
     if (!loc) {
-      const hasLoc = (ws) => !!locFromWords(ws, codes);
+      // Also named cells, and also therefore rooms rather than course codes.
+      const hasLoc = (ws) => !!locFromWords(ws, codes, { course: null });
       const again = await reread(row, ['ROOM', 'LOCATION', 'BLDG', 'BUILDING'], hasLoc);
-      const l = again && locFromWords(again, codes);
+      const l = again && locFromWords(again, codes, { course: null });
       if (l) { loc = l; locWs = l.words; }
     }
     const courseWs = cell(row, ['COURSE']);
@@ -2036,7 +2224,10 @@ function fromCards(rows, page, tune, codes) {
       const cand = k === 0
         ? row.words.filter(w => !dayW || w.x0 > dayW.x1)
         : rows[i + k].words;
-      const l = locFromWords(cand, codes);
+      // k === 0 is the line the time is on, which on a registrar row also
+      // carries the course code — so the course-code rule is on. k > 0 is a
+      // line below it, where a course-shaped token is the room.
+      const l = locFromWords(cand, codes, k === 0 ? {} : { course: null });
       if (l) { loc = l; locWs = l.words; break; }
       if (k > 0 && parseRange(rows[i + k].text)) break;
     }
@@ -2258,25 +2449,34 @@ export async function extract(src, opts = {}) {
       continue;
     }
 
-    let rep = repairCode(r.loc.code, codes, tune);
+    const rep = repairCode(r.loc.code, codes, tune);
     if (!rep) {
-      // A well-formed code this build does not know is REPORTED, not deleted —
-      // UT files buildings this snapshot of the register never listed, and the
-      // corpus contains one on purpose. It goes in front of the student with
-      // the doubt attached rather than being dropped on the floor.
+      // A CODE THE REGISTER DOES NOT KNOW IS A WRONG READ, NOT A SHAKY ONE, AND
+      // IT IS NEVER PROPOSED. This used to emit it with a sentence attached, on
+      // the grounds that UT files buildings this snapshot never listed. Two
+      // things killed that: the register this file checks against already
+      // carries the eleven codes the map knows and the snapshot does not
+      // (EXTRA_CODES above, MER among them), so the "real building we have not
+      // heard of" case is already covered — and on a real screenshot the codes
+      // that actually landed here were an OCR slip on a real building, emitted
+      // as a three-letter string UT has never had, then agreed across days onto
+      // a second meeting. Two wrong answers from one bad read.
+      //
+      // It still goes in front of the student, with everything else that WAS
+      // read, in `unsure` — a refusal the confirm screen can turn into a tap is
+      // worth exactly as much as a proposal. What it may not do is be saved
+      // without one.
       const shape = /^[A-Z]{2,4}$|^[A-Z]{2,3}[0-9]$/.test(r.loc.code);
-      if (!shape) {
-        unsure.push({
-          course: r.course, building: r.loc.code, room: r.loc.room,
-          why: '"' + r.loc.code + '" does not read like a UT building code',
-          days: r.days.slice(), day: r.days[0],
-          start: hhmm(r.range.start), end: hhmm(r.range.end),
-          ev: evOf(r, null), reason: 'not-a-code',
-        });
-        continue;
-      }
-      rep = { code: r.loc.code, repaired: false };
-      why.push('"' + r.loc.code + '" is not a building code this app knows — check it');
+      unsure.push({
+        course: r.course, building: r.loc.code, room: r.loc.room,
+        why: shape
+          ? '"' + r.loc.code + '" is not a UT building this app has heard of'
+          : '"' + r.loc.code + '" does not read like a UT building code',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, null), reason: shape ? 'unknown-code' : 'not-a-code',
+      });
+      continue;
     }
     if (rep.repaired) why.push('read the building as "' + r.loc.code + '"; the only real code it can be is ' + rep.code);
     if (r.why && r.why.length) for (const s of r.why) why.push(s);
@@ -2285,6 +2485,22 @@ export async function extract(src, opts = {}) {
     if (r.loc.joined) why.push('the building and room were run together');
 
     const room = String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+    // THE SAME REFUSAL AGAIN, AT THE ONE PLACE EVERY READING PASSES THROUGH.
+    // `plausibleLoc` already turns a lost decimal point down while there is
+    // still a chance of finding a better candidate further along the line — but
+    // a registrar table reads its BLDG and ROOM cells straight out of their own
+    // columns and never asks it. Both routes end here.
+    if (ROOM_LOST_DOT.test(room)) {
+      unsure.push({
+        course: r.course, building: rep.code, room,
+        why: 'the room reads "' + room + '", which is a room number with its ' +
+          'full stop missing — where it goes changes the floor, so this one needs a look',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, rep), reason: 'room-shape',
+      });
+      continue;
+    }
     const ev = evOf(r, rep);
     for (const day of r.days) {
       const key = rep.code + '|' + room + '|' + day + '|' + r.range.start + '|' + r.range.end;
@@ -2404,7 +2620,7 @@ if (typeof window !== 'undefined') {
   window.SCHEDIMG = {
     extract, decode, findDocQuad, estimateLineHeight, rectify, photometry,
     grayCanvas, pickEngine, ocrWords, ocrCrop, buildRows, classifyLayout,
-    hourAxis, findBlocks, parseRange, parseDayLetters, repairCode,
+    hourAxis, findBlocks, parseRange, parseDayLetters, repairCode, locFromWords,
     codeCandidates, codeNeighbours, buildingCodes, buildingRegister,
     releaseEngine, engineInfo, TUNE,
   };
