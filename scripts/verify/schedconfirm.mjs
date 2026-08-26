@@ -511,22 +511,55 @@ const realGraph = await page.evaluate(async ([b, pairs]) => {
       candidates: { building: [(over && over.building) || 'MEZ'] },
     },
   }, over || {});
-  // The corpus's own schedule s3 puts a real class at MEZ 1.306. This is that
-  // class with ONE STROKE changed, in a day of otherwise South Mall classes.
+  // The corpus's own schedule s3 puts a real class at MEZ 1.306. Every shape
+  // below is that class with ONE STROKE changed.
+  // ── THE THREE SHAPES, AND WHY THERE ARE THREE ────────────────────────────
+  //
+  // For one whole round this section had only `day` — the misread inside a
+  // THREE-CLASS DAY — and it passed green while a real-but-wrong code was
+  // committed at 1.00 on every schedule shape that has no same-day neighbour.
+  // The gate was green over the hole. So the same misread now runs in three
+  // shapes, and `day` STAYS as the control: without it a silent result here is
+  // indistinguishable from a rig that stopped working.
+  //
+  //   day   the misread with a class either side of it, same day  (the control)
+  //   week  alone on Friday, with an ordinary MWF load on other days
+  //   lone  alone on Friday, and the ONLY class in the schedule
+  //
+  // Each of the three is run twice, once with the misread and once with the
+  // TRUE code, because "it asks" is only half the property. The half that
+  // costs a student something is "it stays quiet when the reading is right".
   const day = (code) => [
     mk({ building: 'WEL', room: '2.224', start: '09:00', end: '10:00', course: 'PHY 303' }),
     mk({ building: code, room: '1.306', start: '10:30', end: '11:30' }),
     mk({ building: 'GDC', room: '2.216', start: '12:00', end: '13:00', course: 'C S 429' }),
   ];
-  const run = (code) => {
-    const r = M.review({ classes: day(code), unsure: [] }, ctx);
-    const c = r.classes[1];
+  const week = (code) => [
+    mk({ building: 'WEL', room: '2.224', day: 'Mon', days: ['Mon'],
+      start: '09:00', end: '10:00', course: 'PHY 303' }),
+    mk({ building: 'GDC', room: '2.216', day: 'Wed', days: ['Wed'],
+      start: '12:00', end: '13:00', course: 'C S 429' }),
+    mk({ building: code, room: '1.306', day: 'Fri', days: ['Fri'],
+      start: '10:30', end: '11:30' }),
+  ];
+  const lone = (code) => [
+    mk({ building: code, room: '1.306', day: 'Fri', days: ['Fri'],
+      start: '10:30', end: '11:30' }),
+  ];
+  const run = (code, shape) => {
+    const classes = (shape || day)(code);
+    const r = M.review({ classes, unsure: [] }, ctx);
+    const c = r.classes.find(x => x.building === code);
     const q = r.questions.filter(x => x.classKey === c.__key);
     return {
       ask: c.ask, building: c.score.fields.building, overall: c.score.overall,
       why: (c.score.notes.building || []).join('; '),
+      kind: c.score.neighbour ? c.score.neighbour.kind : null,
       options: q.map(x => ({ field: x.field, first: x.options[0] && x.options[0].value,
         values: x.options.map(o => o.value) })),
+      // Every question the WHOLE schedule raises, not just this class's: the
+      // failure a widened check introduces is a tax on the rows beside it.
+      questions: r.counts.questions,
       walkCheck: r.walkCheck,
     };
   };
@@ -555,9 +588,19 @@ const realGraph = await page.evaluate(async ([b, pairs]) => {
   }
   return {
     loaded: true, asOf: probe.asOf, codes: probe.codes.length,
-    misread: run('NEZ'), truth: run('MEZ'), sep, venue,
+    misread: run('NEZ'), truth: run('MEZ'),
+    weekMisread: run('NEZ', week), weekTruth: run('MEZ', week),
+    loneMisread: run('NEZ', lone), loneTruth: run('MEZ', lone),
+    // THE OVER-ASK CONTROL FOR THE WIDENED CHECK. PAI/PAT are 250 m apart and
+    // this file's own §2c below reports the pair as unresolvable; widening the
+    // walk read from the day to the WEEK must not quietly start resolving it.
+    // s1 and s3 both put a real class in PAI 3.02, so if this fires it fires on
+    // the corpus.
+    weekPai: run('PAI', week),
+    sep, venue,
     // The probe against a few known pairs, for the record.
     mezWel: probe.route('MEZ', 'WEL'), nezWel: probe.route('NEZ', 'WEL'),
+    paiWel: probe.route('PAI', 'WEL'), patWel: probe.route('PAT', 'WEL'),
   };
 }, [BASE, lex.silentPairs]);
 
@@ -581,6 +624,58 @@ if (realGraph.loaded) {
   ok(!realGraph.truth.ask,
     'and the same day with the TRUE MEZ in it is not asked about at all',
     'overall ' + realGraph.truth.overall.toFixed(2));
+
+  /* ── THE ONE-CLASS DAY, which is where the check above used to go silent ──
+     Every line down to the PAI control is the shape `misread` above could not
+     see: `adjacentLegs()` skips every class not on the same day, and
+     neighbourDoubt() then returned null on an empty list. A once-a-week
+     discussion section, lab or seminar is one of the commonest schedule shapes
+     there is, and it was committed at overall 1.00 with no question and no
+     "why". `misread` and `truth` above are kept exactly as they were, as the
+     CONTROL — a silent result here has to be distinguishable from a rig that
+     has stopped doing anything. */
+  ok(realGraph.weekMisread.ask && realGraph.weekMisread.kind === 'week-nearer',
+    'ALONE ON FRIDAY with an ordinary week around it: the graph now reads the WEEK and asks',
+    'building ' + realGraph.weekMisread.building.toFixed(2) + '  "' +
+      realGraph.weekMisread.why + '"');
+  const wbq = realGraph.weekMisread.options.find(o => o.field === 'building');
+  ok(wbq && wbq.values.indexOf('MEZ') >= 0 && wbq.first === 'NEZ',
+    '..with MEZ as a tap and the reading still leading, exactly as the same-day case does',
+    wbq ? JSON.stringify(wbq.values) : '(no building question)');
+  // THE HALF THAT COSTS A STUDENT SOMETHING. A check that asks about the
+  // misread and also about the truth has not found anything; it has just
+  // learned to ask.
+  ok(!realGraph.weekTruth.ask && realGraph.weekTruth.questions === 0,
+    '..and the SAME week with the TRUE MEZ in it asks nothing, about any row',
+    'overall ' + realGraph.weekTruth.overall.toFixed(2) + ', ' +
+      realGraph.weekTruth.questions + ' questions in the whole schedule');
+  ok(realGraph.loneMisread.ask && realGraph.loneMisread.kind === 'lone',
+    'THE ONLY CLASS IN THE SCHEDULE: nothing to compare it with, so the PAIR is the doubt',
+    'building ' + realGraph.loneMisread.building.toFixed(2) + '  "' +
+      realGraph.loneMisread.why + '"');
+  const lbq = realGraph.loneMisread.options.find(o => o.field === 'building');
+  ok(lbq && lbq.values.indexOf('MEZ') >= 0 && lbq.first === 'NEZ',
+    '..and the buttons contain the fix, which is the whole test of whether a question is worth a tap',
+    lbq ? JSON.stringify(lbq.values) : '(no building question)');
+  // THE PRICE OF THE LAST ONE, ASSERTED RATHER THAN GLOSSED. With one class and
+  // no second building anywhere, this app has no evidence in EITHER direction,
+  // so the true reading is asked about too. That is one tap on a one-class
+  // import, and it is the cost of the case above. Written down so that nobody
+  // reads the passing line above as "it only ever asks when it is wrong".
+  ok(realGraph.loneTruth.ask && realGraph.loneTruth.questions === 1,
+    '..and it is SYMMETRIC: a lone TRUE MEZ costs exactly one tap, because nothing can tell them apart',
+    'overall ' + realGraph.loneTruth.overall.toFixed(2) + ', ' +
+      realGraph.loneTruth.questions + ' question');
+  // THE OVER-ASK CONTROL. Widening the walk read from the day to the week must
+  // not start resolving a pair the graph cannot separate — 250 m and 2 minutes
+  // apart is inside the noise, and s1 and s3 both have a real PAI 3.02 class.
+  note('PAI->WEL is ' + realGraph.paiWel.lo + ' min / ' + realGraph.paiWel.metres + ' m;  ' +
+    'PAT->WEL is ' + realGraph.patWel.lo + ' min / ' + realGraph.patWel.metres + ' m');
+  ok(!realGraph.weekPai.ask && realGraph.weekPai.questions === 0,
+    'and PAI alone on Friday raises NOTHING: the week read cannot separate a 250 m pair either',
+    'overall ' + realGraph.weekPai.overall.toFixed(2) + ' — the mean can move by at most ' +
+      'the distance between the pair, which is why CONF.walk.weekGainMin is 3');
+
   // AND THE HONEST LIMIT, MEASURED PAIR BY PAIR RATHER THAN CLAIMED.
   const both = realGraph.sep.filter(s => s.both);
   const far = both.filter(s => s.lo != null && s.lo * 2 >= 5);
