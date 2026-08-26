@@ -1,5 +1,71 @@
 # Austin 3D Explorer — Full Handoff
 
+## 192. Aug 26 2026 — the class with nobody beside it: a wrong building saved at 1.00 now asks, and the corpus asks not one extra question (acer lane, branch `acer/img-lonely-class`, QUEUE IMG0a + IMG0b, `docs/img-lonely-class.md`)
+
+**The defect.** MEZ (Mezes Hall, South Mall) and NEZ (inside the football
+stadium, 803 m away) are one stroke apart and both real. When the reader
+misread one as the other, every "is this a building?" check answered yes and
+`neighbourDoubt()` — the only thing that asks "is this the RIGHT building?" —
+had **both** legs go blind on the same shape: the venue leg excludes stadiums
+on purpose, and the walk leg needed a class either side of this one on the
+**same day**. A once-a-week discussion section was therefore committed at
+`overall: 1.00` with no question, no chip and no "why". `schedconfirm.mjs` §2c
+tested this exact misread but only inside a three-class day, so the gate was
+green over the hole for a whole round.
+
+**The fix, and the call that had to be made.** Widen the walk read from the day
+to the **rest of the week** (MEAN minutes to each other building the schedule
+goes to), and put a standing confusable-pair doubt underneath it that fires
+**only** where the geometry was asked and had nothing at all to look at — a
+schedule with one located class in it. The alternative on the table, treating
+"member of a confusable pair" as an unconditional standing doubt, was rejected
+on measurement rather than taste: schedules s3 and s4 of the answer key have
+real classes in `MEZ 1.306` and `PAI 3.02`, so unconditional it would have
+turned §2e from **0 of 49** into several on data that is correct by definition.
+`CONF.walk.weekGainMin` is **3** because by the triangle inequality a pair `d`
+minutes apart can never move a mean by more than `d`, and the two closest pairs
+the graph can see both members of are PHD/RHD at 0 min and PAI/PAT at 2 min —
+the same derivation `gainMin: 5` already used, applied to the mean.
+
+**Both sides measured.**
+
+```
+                            before     after
+  case A (control)          ask 0.62   ask 0.62   same reason text
+  case B (alone, only class) 1.00      ask 0.68
+  case C (alone on Fri)      1.00      ask 0.65
+  questions / 15 imports      16         16       1.07 each, image for image
+  answer key (§2e)          0 of 49    0 of 49
+  image-bench              131/171    131/171    100% precision, 0 false+
+  schedconfirm.mjs          101/0      108/0
+```
+
+The bench "before" was re-run **here**, on the stashed tree, rather than quoted
+from `docs/img-verdict.md` — same instrument, same box, and it came back
+131/171 by condition on the nose.
+
+**§2c now runs the misread in three shapes** — three-class day (**kept as the
+control**), alone-with-a-week, and alone-and-only — each twice, once with the
+misread and once with the true code, plus a `PAI`-alone control proving the
+widened read still cannot separate a 250 m pair. Without the control a silent
+result is indistinguishable from a rig that stopped working, which is exactly
+what happened last round.
+
+**One cost, stated rather than glossed:** the lone doubt is symmetric. A student
+whose only imported class is genuinely in MEZ pays one tap, because with one
+class and no second building this app has no evidence in either direction. The
+gate asserts that too.
+
+**IMG0b:** `docs/img-bar.md` no longer says the bar and the feature got "the
+same parser" — `wayfindParseSchedule` is the **paste/text** producer and the
+photo path is `js/schedimg.js`'s own bounding-box geometry. The 36 and the 131
+both stand. `docs/img-verdict.md`'s import request count now carries a "do not
+quote this" note.
+
+**`WAYFIND.on` is still `false`** (`js/wayfind.js:88`); that file is not in the
+diff. Files touched: `js/schedconfirm.js`, `scripts/verify/schedconfirm.mjs`,
+`docs/img-bar.md`, `docs/img-verdict.md`, `docs/img-lonely-class.md`, `QUEUE.md`.
+
 ## 191. Aug 25 2026 — the photo-import round SHIPPED: 131 of 171 with a student who answers nothing, against a bar of 36, and zero wrong answers (ship lane, branch `acer/img-ship` → `main`, PR #228)
 
 **Merged.** `main` now carries the reader (`js/schedimg.js`), the confirm screen

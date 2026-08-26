@@ -54,6 +54,8 @@
  *   - the campus walking graph, through js/walkgraph.js: five minutes between
  *     two classes fifteen minutes apart on foot means one of the two readings
  *     is wrong. ON BY DEFAULT via prepare(); silent when the graph is missing.
+ *   - ..and the same graph read through the rest of the WEEK when the day is
+ *     empty, because a once-a-week seminar has no same-day neighbour at all
  *   - the clock: a class is 20-240 minutes long and starts on a real UT hour
  *
  * AND THE ONE THAT MATTERS MOST, BECAUSE IT IS THE HOLE THE ROUND BEFORE THIS
@@ -66,6 +68,19 @@
  * building?", with the only two witnesses this repo has: the walking graph read
  * through the rest of the student's own day, and UT's own printed name for the
  * building (nobody is taught in the 27th Street Garage).
+ *
+ * AND BOTH OF THOSE WITNESSES WENT BLIND ON ONE SHAPE TOGETHER — a class that
+ * is the ONLY class on its day. The venue name cannot fire on a stadium by
+ * design (`CONF.venue.unlikely` names NEZ as the case it exists for), and the
+ * walking read needed a class either side of this one, so a Friday-only
+ * discussion section carrying a real-but-wrong code was written down at 1.00
+ * with no question at all. The graph is now read through the rest of the WEEK
+ * when the day is empty, and where even that has nothing to look at — a
+ * schedule with one located class in it — membership of a confusable pair is
+ * charged one tap on its own. Nothing else changed: the pair is never a
+ * standing doubt in a schedule the geometry CAN measure, because a question
+ * asked twenty times for nothing is what teaches a student to tap through the
+ * one that mattered.
  *
  * WHAT IS NOT HERE, AND WHY. The brief asked for a floor check — a room starting
  * with 9 in a four-storey building is suspect — and it is a good check. This
@@ -171,6 +186,16 @@ export const CONF = {
     nearerNeighbour: 0.62, // ..or merely fits the rest of the day far better
     venueNeighbour: 0.62,  // UT's own name for this one is a car park, and a
                            // one-stroke neighbour is an ordinary building
+
+    // ── AND THE SAME TWO CLAIMS WHEN THE CLASS IS ALONE ON ITS DAY ─────────
+    // The three values above all need a class either side of this one to
+    // compare walks with, and a once-a-week discussion section, lab or seminar
+    // has none. These are what speaks then, and they are deliberately the two
+    // WEAKEST claims in this list because they rest on the least evidence.
+    weekNeighbour: 0.65,   // no class on this day, but the neighbour is nearer
+                           // to everywhere else this schedule goes all week
+    loneNeighbour: 0.68,   // ..and nothing anywhere in the schedule to compare
+                           // it against, so the pair itself is the whole doubt
   },
 
   /* ── room ───────────────────────────────────────────────────────────────── */
@@ -309,6 +334,46 @@ export const CONF = {
     // makes this the line between "the graph can tell these two apart" and
     // "it cannot" rather than a number that made a corpus go green.
     gainMin: 5,
+
+    // ── WHEN THE CLASS IS ALONE ON ITS DAY, WHICH IS THE HOLE THIS ROUND IS
+    //    FOR. `gainMin` above is spent across ADJACENT walks, and a Friday
+    //    discussion section with nothing either side of it has none — so the
+    //    check went silent and a real-but-wrong code was saved at 1.00. The
+    //    rest of the student's WEEK is the evidence that is still there: a
+    //    class 803 m from every other building they walk to, on any day, is
+    //    suspicious even with nobody beside it on Friday.
+    week: true,
+    // MEAN minutes to each OTHER building in the schedule, not the sum, and
+    // the difference is the whole derivation. The sum grows with how many
+    // buildings a student has, so a fixed line on it would start firing on
+    // PAI/PAT — 2 minutes and 250 m apart — as soon as a schedule had three
+    // other buildings in it, and this file's own gate reports that pair as
+    // honestly UNRESOLVABLE. The mean does not grow: by the triangle
+    // inequality |d(P,X) - d(Q,X)| <= d(P,Q) for every X, so a pair d minutes
+    // apart can never move the mean by more than d, whatever the schedule
+    // looks like. Measured on the real graph, the two closest pairs both
+    // members of which it can even see are PHD/RHD at 0 min and PAI/PAT at
+    // 2 min, so 3 is the first value neither can ever reach — exactly the
+    // construction `gainMin` uses, applied to the mean instead of the sum.
+    weekGainMin: 3,
+
+    // ── AND WHEN THERE IS NOTHING IN THE SCHEDULE AT ALL TO COMPARE WITH ───
+    //
+    // A student importing a picture with one located class on it gets no
+    // same-day neighbour AND no rest-of-week neighbour, so both measurements
+    // above have nothing to look at. Being a member of one of the thirteen
+    // confusable pairs is then the ONLY thing this app knows, and it is worth
+    // exactly one tap — `building.loneNeighbour`, the weakest doubt in the
+    // file, with the reading still in the first button.
+    //
+    // IT IS DELIBERATELY NOT A STANDING DOUBT ON THE PAIR ITSELF. Charging
+    // every MEZ, PAI, GRE and TSC in every schedule a question would ask about
+    // roughly one class in eight of a normal timetable for a misread that may
+    // never happen — and a question a student answers "yes, obviously" to
+    // twenty times is what teaches them to tap through the one that mattered.
+    // So this fires only where the geometry was ASKED and had nothing to look
+    // at, never merely because the geometry disagreed or was unavailable.
+    lone: true,
   },
 
   /* ── what UT's own register calls a building ────────────────────────────── */
@@ -581,6 +646,34 @@ function adjacentLegs(classes, cls) {
 }
 
 /**
+ * EVERY OTHER BUILDING THIS STUDENT WALKS TO IN THE WEEK, once each.
+ *
+ * `adjacentLegs()` above is empty for a class that is alone on its day, and a
+ * once-a-week discussion section, lab or seminar is one of the commonest
+ * shapes a schedule has. This is the evidence that is still there when that
+ * happens: not a walk anybody takes — a Friday class and a Monday class have
+ * no passing period between them — but a fair question about whether this
+ * building is anywhere near the rest of the student's week.
+ *
+ * DISTINCT CODES, and the class's OWN code is not excluded. Distinct because
+ * three Monday classes in WEL are one place a student goes, not three, and a
+ * count would let one building's repeats decide the answer. Not excluded
+ * because a second reading of the SAME code on another day is the strongest
+ * corroboration there is — it enters the comparison at zero minutes from
+ * itself and no swap can beat that, which is the same reasoning behind
+ * `CONF.room.agreed`.
+ */
+function weekBuildings(classes, cls) {
+  const out = [];
+  for (const o of classes) {
+    if (o === cls || !o.building || o.day === cls.day) continue;
+    const c = String(o.building).toUpperCase();
+    if (out.indexOf(c) < 0) out.push(c);
+  }
+  return out;
+}
+
+/**
  * THE HOLE THE PREVIOUS ROUND OF THIS FILE COULD NOT SEE, AND THE TWO WITNESSES
  * THAT CAN SEE INTO IT.
  *
@@ -603,6 +696,42 @@ function adjacentLegs(classes, cls) {
  *   2. UT'S OWN PRINTED NAME for the building. `TSG` is "27TH STREET GARAGE"
  *      and `TSC` is the swimming centre. Nobody is taught in a car park.
  *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AND THE HOLE THAT WAS LEFT IN *THAT*, WHICH IS WHAT THIS ROUND CLOSED.
+ *
+ * Both witnesses above went blind on the same shape and nobody noticed, because
+ * they went blind TOGETHER. Witness 2 excludes stadiums, gyms and dorms on
+ * purpose (`CONF.venue.unlikely`) — the comment there names NEZ as the case the
+ * check exists for, so it cannot fire on NEZ. Witness 1 needs a class either
+ * side of this one on the SAME DAY, and returned early when there was none. So
+ * a Friday-only discussion section misread onto a real code was committed at
+ * `overall: 1.00` with no question, no chip and no "why": the exact
+ * confidently-wrong-room failure the top of this file promises never happens.
+ * `scripts/verify/schedconfirm.mjs` §2c tested this misread inside a
+ * three-class day and passed green over the gap for a whole round.
+ *
+ * Two more readings of the same two witnesses close it, in this order, and each
+ * only speaks when the one above it had nothing to say:
+ *
+ *   3. THE GRAPH READ THROUGH THE REST OF THE WEEK instead of the rest of the
+ *      day. No same-day neighbour is not the same as no evidence — a class
+ *      803 m from every other building the student attends, on any day, is
+ *      suspicious on its own. MEAN minutes to each other building, and the
+ *      neighbour has to be `CONF.walk.weekGainMin` closer. Weaker than the
+ *      day reading, because there is no walk here that anybody actually takes,
+ *      so it is charged at `CONF.building.weekNeighbour` and not lower.
+ *   4. THE PAIR ITSELF, and only when 1 and 3 both had nothing to compare
+ *      against — a schedule with one located class in it. Charged at
+ *      `CONF.building.loneNeighbour`, the weakest doubt in this file.
+ *
+ * WHAT DELIBERATELY DID NOT HAPPEN HERE is turning "member of a confusable
+ * pair" into a standing doubt. Thirteen pairs is twenty-six codes; asking about
+ * every one of them unconditionally would interrogate an ordinary timetable,
+ * and a question the student always answers "yes, obviously" is what trains
+ * them to tap through the one that mattered. Doubt stays evidence-based: the
+ * geometry is asked first, every time, and the pair alone speaks only where the
+ * geometry had nothing to look at.
+ *
  * IT ASKS. IT NEVER REWRITES. The four characters are a real code and there is
  * nothing wrong with the reading, so this is a RELATIONAL doubt in the sense
  * §2 of this file uses the word: the reading stays in the first button, the
@@ -610,9 +739,10 @@ function adjacentLegs(classes, cls) {
  * genuinely has a class in the North End Zone Building pays exactly one tap for
  * that, which is the trade this whole file is built on.
  *
- * Returns null — SILENTLY — when the graph is not loaded, when either code has
- * no door in it, or when the class has no neighbour on its day. A check with no
- * data guesses at nothing; `review()` reports whether it was live.
+ * Returns null — SILENTLY — when the graph is not loaded, when the code has no
+ * confusable neighbour on the register, and whenever a measurement that COULD
+ * be made came back saying the reading fits. A check with no data guesses at
+ * nothing; `review()` reports whether it was live.
  */
 function neighbourDoubt(cls, classes, ctx) {
   if (!CONF.walk.neighbour) return null;
@@ -647,39 +777,86 @@ function neighbourDoubt(cls, classes, ctx) {
   const rm = ctx.routeMinutes;
   if (!rm || !CONF.walk.on) return null;
   const legs = adjacentLegs(classes, cls);
-  if (!legs.length) return null;
-  // Every leg has to be measurable under EVERY candidate or the comparison is
+
+  // ── 4 (tested first, because it is the cheapest thing to rule out). NOTHING
+  //      ANYWHERE IN THE SCHEDULE TO COMPARE THIS AGAINST. Not "the graph
+  //      disagreed" and not "the graph could not measure it" — those are both
+  //      readings, and both stay silent. This is the state where the strongest
+  //      witness this app has was asked and had no second place to look at, so
+  //      the pair itself is all there is. See CONF.walk.lone.
+  const week = legs.length ? [] : weekBuildings(classes, cls);
+  if (!legs.length && !week.length) {
+    if (!CONF.walk.lone) return null;
+    return {
+      kind: 'lone',
+      factor: CONF.building.loneNeighbour,
+      options: alts.slice(),
+      resolves: false,
+      why: code + ' is one stroke from ' + alts.join(' or ') +
+        ', and this schedule has nothing else in it to check that against',
+    };
+  }
+
+  // ── 2 and 3. THE GRAPH: the rest of the DAY when there is one, the rest of
+  //    the WEEK when there is not.
+  if (!legs.length && !CONF.walk.week) return null;
+  // Every point has to be measurable under EVERY candidate or the comparison is
   // between two different questions. A partial answer here is not a smaller
   // answer, it is a wrong one.
+  //
+  // ONE FUNCTION FOR BOTH READINGS, because they have to be the same
+  // measurement or the two thresholds do not mean the same thing. The only
+  // difference is what a point IS: a same-day leg carries a `gap` and can
+  // therefore be impossible, and a rest-of-week building has no gap between it
+  // and this class and never can be. What the two thresholds are then applied
+  // to differs as well — `sum` for the day, `mean` for the week — and
+  // CONF.walk.weekGainMin is where that is argued.
+  const pts = legs.length
+    ? legs.map(l => ({ code: l.other.building, gap: l.gap }))
+    : week.map(c => ({ code: c, gap: null }));
   const cost = (c) => {
     let sum = 0, impossible = 0;
-    for (const l of legs) {
+    for (const p of pts) {
       let m = null;
-      try { m = rm(l.other.building, c); } catch (err) { m = null; }
+      try { m = rm(p.code, c); } catch (err) { m = null; }
       if (m == null || !isFinite(m)) return null;
       sum += m;
-      if (l.gap + CONF.walk.slackMin < m) impossible++;
+      if (p.gap != null && p.gap + CONF.walk.slackMin < m) impossible++;
     }
-    return { sum, impossible };
+    return { sum, impossible, mean: sum / pts.length };
   };
   const mine = cost(code);
   if (!mine) return null;
+  const need = legs.length ? CONF.walk.gainMin : CONF.walk.weekGainMin;
+  const gainOf = (c) => (legs.length ? mine.sum - c.sum : mine.mean - c.mean);
   let best = null;
   for (const a of alts) {
     const c = cost(a);
     if (!c) continue;
     // A swap earns a question two ways: it makes an impossible day possible,
     // or it saves real walking. The first is much the stronger claim, so it
-    // wins outright over any amount of saved minutes.
+    // wins outright over any amount of saved minutes. Only the day reading can
+    // make the first claim — nothing is impossible between a Monday and a
+    // Friday — so on the week reading `fixes` is false by construction.
     const fixes = c.impossible < mine.impossible;
-    const nearer = c.impossible === mine.impossible &&
-      mine.sum - c.sum >= CONF.walk.gainMin;
+    const nearer = c.impossible === mine.impossible && gainOf(c) >= need;
     if (!fixes && !nearer) continue;
-    const rank = (fixes ? 1000 : 0) + (mine.sum - c.sum);
+    const rank = (fixes ? 1000 : 0) + gainOf(c);
     if (!best || rank > best.rank) best = { code: a, c, fixes, rank };
   }
   if (!best) return null;
-  const saved = Math.round(mine.sum - best.c.sum);
+  const saved = Math.round(gainOf(best.c));
+  if (!legs.length) {
+    return {
+      kind: 'week-nearer',
+      factor: CONF.building.weekNeighbour,
+      options: [best.code],
+      resolves: false,
+      why: best.code + ' is one stroke from ' + code + ' and is ' + saved +
+        ' minutes closer, on average, to every other building this schedule ' +
+        'goes to — and there is no other class on ' + cls.day + ' to check it against',
+    };
+  }
   return {
     kind: best.fixes ? 'walk-fixes' : 'walk-nearer',
     factor: best.fixes ? CONF.building.walkNeighbour : CONF.building.nearerNeighbour,

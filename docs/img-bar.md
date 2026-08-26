@@ -72,21 +72,50 @@ regress the card layout. One setting, applied uniformly to all fifteen
 images — the extractor is never told the condition, so it was never tuned
 per image.
 
-## The downstream parsing — the same parser the feature gets
+## The downstream parsing — the app's TEXT parser, which is not the one the photo path ships
 
-Per the brief: score the OCR text through the same parser the feature has to
-use, so the number measures *reading the image*, not *who bolted on a
-smarter parser*. The OCR text goes, completely unmodified — no
-row-reconstruction, no column-sorting, no cleanup — into
-`window.wayfindParseSchedule(text, {})`, which is the exact call
-`js/wayfind.js`'s own import screen makes (`js/wayfind.js:12101`), running in
-a real headless Chrome with the real app loaded (`python scripts/serve.py`,
-`playwright-core`, this repo's own `scripts/verify/chrome.mjs` launcher — the
-one with the watchdog that kills the browser no matter what, so nothing was
-left running). The page is loaded with `?walk=1`, which is the same query
-gate every verify script in this repo already passes to reach the
-`wayfind.js` public API in a headless test (`docs/walk-progress.md` §182);
-**`WAYFIND.on` was not touched and is still `false`.**
+**CORRECTED 2026-08-26 (QUEUE IMG0b).** This section used to be headed *"the
+same parser the feature gets"* and said the number therefore measured *reading
+the image* rather than *who bolted on a smarter parser*. **That framing is
+wrong and should not be repeated.** What was actually run is written out below;
+the 36 and the 131 are both unaffected and both stand.
+
+The OCR text goes, completely unmodified — no row-reconstruction, no
+column-sorting, no cleanup — into `window.wayfindParseSchedule(text, {})`,
+running in a real headless Chrome with the real app loaded (`python
+scripts/serve.py`, `playwright-core`, this repo's own
+`scripts/verify/chrome.mjs` launcher — the one with the watchdog that kills the
+browser no matter what, so nothing was left running). The page is loaded with
+`?walk=1`, which is the same query gate every verify script in this repo
+already passes to reach the `wayfind.js` public API in a headless test
+(`docs/walk-progress.md` §182); **`WAYFIND.on` was not touched and is still
+`false`.**
+
+`window.wayfindParseSchedule` is real and it is the app's own production
+parser — but it is the producer behind the **paste-and-text** import screen
+(`impRawRows(text, sourceId)` in `js/wayfind.js`), and the shipped **photo**
+path never calls it. Checked at source:
+
+```
+  grep -c "wayfindParseSchedule\|schedParseRows" js/schedimg.js   ->  0
+```
+
+A picture goes down a different entry point — `confirmFromFile()`, which
+dynamically imports `js/schedimg.js` — and that file does its own word-level
+bounding-box geometry: document-quad detection, rectification, photometry,
+row and column reconstruction. It exists precisely because (its own docstring)
+a serialized-text parser "cannot put a word back in its column".
+
+**So the two sides did not get the same downstream parsing, and that geometry
+is the single biggest engineering lever between 36 and 131.** What this file
+measures is a floor for *OCR text through a line-based parser*, which is a
+useful and honest floor — it is what you get if you take the obvious route.
+It is **not** a like-for-like control that isolates "how well did each side
+read the image", and it should not be quoted as one.
+
+The 36 stands as measured; so does the 131, which was measured end to end
+through the real UI and reproduced twice by an independent lane
+(`docs/img-independent-check.md` §1).
 
 ---
 
