@@ -82,7 +82,73 @@ not the column fit. See `docs/img-verdict.md` §3.
 
 ---
 
-## NEXT ON THIS FEATURE — one item, and it is small
+## NEXT ON THIS FEATURE — three items (IMG0 added 2026-08-26, `docs/img-independent-check.md`)
+
+**IMG0 — THE ONE REAL DEFECT THE INDEPENDENT PASS FOUND. A real-but-wrong
+building code is committed SILENTLY, at 1.00 confidence, whenever the misread
+class is the only class on its day.** Found by the adversary lane, reproduced
+from scratch by the verdict lane with a positive control. Not a mood — the A/B
+is below and it re-runs in about two minutes.
+
+*The mechanism, with line numbers.* `neighbourDoubt()`
+(`js/schedconfirm.js:617`) is the **only** check that can tell a real code from
+the *wrong* real code — the lexicon, the room grammar and the clock all answer
+YES to `NEZ`, and `building.lexicon` scores it 1.00 on its own. It has two legs
+and both go blind together:
+
+- Leg 1, the venue check (`:626`), tests the register name against
+  `CONF.venue.unlikely` (`:334` — GARAGE|PARKING|FOOD SERVICE|…). Stadiums,
+  gyms and dorms are excluded **on purpose** (`:329-333`), and the comment there
+  names NEZ as *"the case this whole check exists for"*. So it cannot fire here
+  by design.
+- Leg 2, the walk check, calls `adjacentLegs()` (`:566`), which `continue`s on
+  `o.day !== cls.day`, then `:650` reads `if (!legs.length) return null;`.
+  **No same-day neighbour → no legs → no doubt, no question, no crop.**
+
+*Measured cost.* Against the real register and the real
+`data/walk_graph.json` (`@2026-07-30T16:47:30Z`, 158 codes), driving the real
+module in a real browser:
+
+| case | shape | `ask` | `overall` |
+|---|---|---|---|
+| A (control) | `NEZ 1.306` with WEL before and GDC after, same day | **true**, *"MEZ is one stroke from NEZ and is 8 minutes closer to the classes either side of it"* | 0.62 |
+| B | the identical `NEZ` reading, alone on Friday | **false** | **1.00** |
+| C | B plus WEL on Mon and GDC on Wed | **false** | **1.00** |
+
+`M.apply()` in B and C commits `{building:"NEZ", room:"1.306", day:"Fri",
+needsConfirm:false}` — **803 m** from Mezes Hall (real graph: `metres 803.36`,
+9–13 min), full confidence, no chip, no "why". A once-a-week discussion, lab or
+seminar is one of the commonest schedule shapes there is. `MMS`/`NMS` is a
+second real pair with identical exposure; 13 confusable pairs exist in the
+209-code lexicon.
+
+*Why every green gate missed it.* `scripts/verify/schedconfirm.mjs` §2c tests
+this exact NEZ misread — but only ever inside a **three-class day**, i.e. only
+case A. The benchmark cannot catch it either: every scored class in the corpus
+has same-day company. **The gate is green over the hole.**
+
+*Repro.* Fixture shape is `mk()` from `scripts/verify/schedconfirm.mjs:503`
+(`conf.building=92`, `from.building='lexicon'`, `flags.knownCode=true`,
+`candidates.building=['NEZ']`). Serve on any port, load `?walk=1`, then
+`await import('/js/schedconfirm.js')`, `await M.prepare()`, and call
+`M.review()` on a one-class day. **Keep case A in whatever you write — without
+the control, a silent result is indistinguishable from a broken rig.**
+
+*Fix direction (not decided, the owning lane calls it).* Something has to speak
+when there are no legs — the cheapest candidate is a distance-from-the-rest-of-
+the-week test, or treating "member of a confusable pair" as a small standing
+doubt rather than one conditional on geometry. Whatever lands, `schedconfirm.mjs`
+§2c needs a **one-class-day** case added or the gate stays green over it.
+
+**IMG0b (docs, five minutes) — stop publishing two sentences.** (1)
+`docs/img-bar.md:75-81` claims the bar and the feature got *"the same parser"*
+(`window.wayfindParseSchedule`). They did not: `grep -n
+"wayfindParseSchedule\|schedParseRows" js/schedimg.js` is **zero hits** — the
+photo path runs its own bounding-box geometry pipeline, which is the main lever
+between 36 and 131. Correct or drop the fairness framing; the 131 itself is
+sound and was reproduced twice. (2) Nobody should quote the import
+**request count** again — it reads 165 / 136 / 99 / 30 across four measurements
+of the same image. Zero-bodies / zero-needles / zero-new-hosts is the claim.
 
 **IMG1 — a class the import DROPPED needs a way back that is not
 "re-photograph everything."** `applyGroup()` (`js/schedconfirm.js:1467`) refuses
@@ -103,6 +169,22 @@ names `WEL` back as "Robert A. Welch Hall" and refuses `ZZQ`, and `impPlace`.
 five committed JPEGs in `shots/img-confidence/` every time it runs.** A lane
 that runs the gate and commits will commit five byte-different screenshots for
 no reason. Wants a `--shots` flag like the other gates have.
+
+**IMG3 (small, and NOT reproduced by the verdict lane — from the adversary
+lane's evidence) — a refusal can explain itself with a fact that is not true.**
+Fed a hand-built mockup of the app's own screen (sky, ground, six grey
+rectangles labelled with real UT codes, an HUD reading "Time of day 14:32"),
+`wayfindImageExtract()` correctly saved **zero** classes — but the `unsure`
+entry's `why` text read *"there are at least 8 classes drawn on this calendar,
+but the writing inside them is too small or too blurred to read."* It is not a
+calendar and nothing is drawn on it. Traced to `findBlocks()`'s generic
+rectangle counter, which fires on any image the main pipeline read nothing from,
+with no test that the image is calendar-shaped. Reproduced twice by that lane,
+deterministic. **Bounded** — nothing reaches `classes[]` and the item shows in
+the "couldn't read" section, so no wrong class is presented as read. But the
+whole product promise is that it says true things about what it saw, and this
+sentence invents both a category and a count. A cheap fix is to make the count
+conditional on the layout classifier already having said `grid`.
 
 **What is NOT queued, on purpose:** more OCR recall on the angled week grids.
 `docs/img-extract.md` measured at 2x/3x/4x under four page-segmentation modes
