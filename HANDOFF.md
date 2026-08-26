@@ -1,5 +1,59 @@
 # Austin 3D Explorer — Full Handoff
 
+## 196. Aug 26 2026 — a live window onto what the agents are doing, and where the thinking actually went (`acer/si-watch`, merged, PR #230)
+
+*(Numbered 196, not 195: `acer/img-rooms` has an unmerged HANDOFF 195 in flight.)*
+
+Simeon asked to watch agents work in real time. The `/workflows` panel gives him
+name, model, tokens, elapsed — a scoreboard, not the work. **Double-click
+`scripts/watch.cmd`.** A window opens and prints every command, file, search,
+edit and result from every live agent, on his clock, colour-coded per agent,
+with repeats collapsed and a one-line summary when an agent finishes. It waits
+politely when nothing is running instead of throwing a stack trace.
+`docs/watching-agents.md` is written for him, not for a developer.
+
+**Three claims were checked instead of assumed, and two of them changed the
+answer.**
+
+*Transcript writes are per-turn, not batched.* Clocked on a live agent's own
+file: it grew at 12:15:34.63 as the tool calls went out and again at 12:15:41.81
+as the results came back. A long silence is one agent sitting inside one slow
+command, not lag. That killed the case for a `PreToolUse` hook — it would have
+run a process on every tool call in every session to buy roughly nothing, and
+would still have needed a viewer to read its log.
+
+*The GUI does not run the CLI on `PATH`.* It downloads and runs its own
+`claude.exe` under `AppData\Roaming\Claude\claude-code\<version>\` — 2.1.237
+here, against 2.1.199 on `PATH`. Anything read out of the binary on `PATH` is
+about a different program. Check `version` in any transcript record before
+trusting a code reading.
+
+*The empty `thinking` blocks are not a scrub on write.* `thinking_display` is a
+**request-side** parameter. When it is `omitted` the API sends no
+`thinking_delta` text at all, so the stream accumulator's initial empty string is
+what gets stored — signature and no text, exactly what is on disk.
+`showThinkingSummaries: true` flips it to `summarized`, the deltas arrive, and
+the text lands in the file. `watch.cmd thinking on|off|status` sets it and keeps
+a backup of the old settings file.
+
+**Not proven end to end, and the doc says so.** A second `claude.exe` cannot
+authenticate outside the app (`OAuth session expired and could not be
+refreshed`), so the setting could not be flipped and re-tested from a subagent.
+The evidence is the code path plus older transcripts on this disk from 2.1.219
+that do carry real thinking text. Until someone flips it in the app and looks,
+it is well-evidenced, not confirmed. Until then the viewer states once, on
+screen, that the thinking is not being saved — rather than letting tool calls
+pass for reasoning.
+
+**Not chosen, with reasons:** `claude agents` / agent-view is terminal-only and
+its docs never mention the desktop app; OpenTelemetry needs an external
+collector and renders nothing inside Claude Code; `subagentStatusLine` only
+reformats the scoreboard row he already has. The Views-menu tasks pane may be a
+real native answer and takes him a minute to try, so the doc points at it — but
+it could not be verified from here without taking over his screen mid-round, and
+he has already said the panel he has shows no tool calls.
+
+
 ## 194. Aug 26 2026 — the photo reader measured on REAL screenshots for the first time: 16/95 against 134/171, and precision fell from 100% to 64% (docs only, straight to `main`, `docs/img-real-baseline.md`)
 
 **Nothing was changed. This round measured.** Simeon sent seven screenshots of
