@@ -279,6 +279,89 @@ ok(unit.titleOnly === null,
 ok(unit.lostDot === null, 'a room number with its full stop dropped is refused',
   JSON.stringify(unit.lostDot));
 
+// ── THE OTHER KIND OF WEEK GRID: A RULED TABLE ──────────────────────────────
+// myUT draws an HTML table with a rule between every cell and tints the
+// occupied ones a few shades off white. The block finder cannot see it at all
+// — the rules weld the whole table into one page-sized shape 6% full, which is
+// discarded — so on three real screenshots it kept at most one rectangle and
+// two of the three returned NOTHING: no classes, no "could not read this".
+//
+// The picture below is drawn here rather than read off disk on purpose. The
+// real screenshots are a record of where a named student is at a given hour,
+// they are gitignored, and they stay that way; what this gate has to hold is
+// the GEOMETRY, and geometry can be drawn. Every measurement in it is one that
+// cost a round: the label below its own rule, the today-tint, the seam.
+const ruled = await page.evaluate(() => {
+  const M = window.__schedimg, T = M.TUNE;
+  const W = 740, H = 620, GUT = 100, PITCH = 100, TOP = 20, HOUR = 100;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  // THE TODAY-TINT, and it is on a WEEKDAY WITH A CLASS IN IT. The corpus brief
+  // calls the tinted column Saturday; on one real image it is the fourth of
+  // six. A reader that anchors on the tint puts a whole image on the wrong day,
+  // and one that measures each column against its own background reads every
+  // cell in this column as a gap.
+  g.fillStyle = '#fce8e0';
+  g.fillRect(GUT + 3 * PITCH, TOP, PITCH, HOUR * 6);
+  // the rules, UNDER the cells: a cell is drawn over its own hour rule, which
+  // is why a 90-minute class is one unbroken stretch of paint
+  g.strokeStyle = '#dcdcdc'; g.lineWidth = 2;
+  for (let i = 0; i <= 6; i++) {
+    g.beginPath(); g.moveTo(GUT + i * PITCH, TOP);
+    g.lineTo(GUT + i * PITCH, TOP + HOUR * 6); g.stroke();
+    g.beginPath(); g.moveTo(GUT, TOP + i * HOUR);
+    g.lineTo(GUT + 6 * PITCH, TOP + i * HOUR); g.stroke();
+  }
+  const cell = (col, h0, h1) => {
+    g.fillStyle = '#f0f0f0';
+    g.fillRect(GUT + col * PITCH + 6, TOP + h0 * HOUR + 3, PITCH - 12, (h1 - h0) * HOUR - 6);
+  };
+  cell(0, 0, 1); cell(0, 1, 2);   // back to back: one seam, on the hour
+  cell(1, 2, 3.5);                // ninety minutes: no seam, straight through
+  cell(3, 4, 5);                  // inside the tinted column
+  cell(4, 0, 1);
+  const id = g.getImageData(0, 0, W, H);
+  const rect = { w: W, h: H, data: id.data, source: 'screenshot' };
+
+  // The hour labels sit 18 px BELOW their own rules, which is where myUT puts
+  // them and is the whole reason ruledHourAxis() exists.
+  const NAMES = ['8AM', '9AM', '10AM', '11AM', '12PM', '1PM'];
+  const rows = NAMES.map((t, i) => {
+    const y0 = TOP + i * HOUR + 18, y1 = y0 + 20;
+    return { y0, y1, x0: 30, x1: 80,
+      words: [{ text: t, x0: 30, y0, x1: 80, y1, conf: 95 }] };
+  });
+
+  const grid = M.ruledGrid(rect, rows, T);
+  if (!grid) return { grid: null };
+  const axis = M.ruledHourAxis(rows, grid, T);
+  const naive = M.hourAxis(rows, grid.gutterRight);
+  const cells = M.ruledCells(rect, grid, [], axis, T);
+  const snap = v => Math.round(v / T.grid.snapMin) * T.grid.snapMin;
+  return {
+    cols: grid.cols.length,
+    hrules: grid.hrules.length,
+    atTopRule: axis ? Math.round(axis.minutesAt(TOP)) : null,
+    naiveAtTopRule: naive ? Math.round(naive.minutesAt(TOP)) : null,
+    cells: cells.map(x => x.col + ':' + snap(axis.minutesAt(x.y0)) + '-' + snap(axis.minutesAt(x.y1))).sort(),
+  };
+});
+ok(ruled.grid !== null && ruled.cols === 6,
+  'a ruled table gives up its six day columns', 'columns: ' + ruled.cols);
+ok(ruled.atTopRule === 480,
+  'the hour label is read as sitting BELOW its own rule, not on it',
+  'the 8am rule reads ' + ruled.atTopRule + ' min');
+note('fitting the label boxes instead, as the block reader does, puts that rule at ' +
+  ruled.naiveAtTopRule + ' min — clean, plausible, and a quarter of an hour early');
+ok(ruled.cells.join(' ') === '0:480-540 0:540-600 1:600-690 3:720-780 4:480-540',
+  'the cells come back on the hour, cut where two meet and not where one runs on',
+  ruled.cells.join(' '));
+ok(ruled.cells.filter(x => x.startsWith('3:')).length === 1,
+  'and the tinted column yields its one class, not nine hours of one',
+  ruled.cells.filter(x => x.startsWith('3:')).join(' ') || 'nothing');
+
 // The crop that cuts a room in half: it must be reported, not proposed.
 const cropped = 'data:image/jpeg;base64,' +
   fs.readFileSync(path.join(CORPUS, '14-gcal-crop-column.jpg')).toString('base64');

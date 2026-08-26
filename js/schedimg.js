@@ -221,6 +221,83 @@ export const TUNE = {
     // empty result says "I can see classes here and could not read them".
     minBlocksToMention: 2,
   },
+
+  /* ── a RULED table's own coordinate system ──────────────────────────────── */
+  // myUT's "My Class Schedule" does not draw separated colour blocks; it draws
+  // an HTML TABLE with a thin rule between every cell, and tints the occupied
+  // cells a few shades off white. `findBlocks()` cannot see it: the rules are
+  // "on" at any threshold, every cell touches a rule, and the flood fill welds
+  // the whole table into one page-sized component whose fill is 0.06 against a
+  // required 0.72 — so it is thrown away and the cells were never separable to
+  // begin with. Measured on all three real myUT screenshots: at most one
+  // rectangle kept, and it is not a class.
+  //
+  // The rules that defeat that fill are the same rules that make this page
+  // easy. A ruled table hands you its own cell boundaries, so this reads them
+  // instead of hunting rectangles the app does not draw.
+  ruled: {
+    on: true,
+    edge: 7,               // a rule is this much DARKER than the picture a few
+                           // pixels either side of it. Rules are pale — at
+                           // grid.bgDistance (58) most of them vanish — but they
+                           // are always darker than their own surround, and a
+                           // tinted cell never is.
+    cover: 0.5,            // a day separator crosses this share of the picture
+    hcover: 0.62,          // ..and an hour rule this share of one empty column
+    reach: 300,            // a rule is compared with the picture this many
+                           // hundredths of the width away on each side: far
+                           // enough to clear the line's own width after the
+                           // rectifier has resampled it, near enough to stay
+                           // inside the cell either side of it
+    bandGap: 0.03,         // breaks shorter than this share of the height do not
+                           // end the grid
+    minGridCols: 5,        // fewer day columns than this is not a week
+    maxGridCols: 7,
+    pitchTol: 0.16,        // column pitch may vary this much and still be a grid
+    minSpanFrac: 0.45,     // ..and the columns must cover this much of the page
+    gutterMaxFrac: 0.2,    // the hour gutter starts within this of the left edge,
+                           // which is what proves the first column is MONDAY on a
+                           // page with no weekday heading anywhere in frame
+    fill: 24,              // a cell's paint is at least this far from the page
+                           // colour (city-block RGB), and it MUST be further than
+                           // paintTol below or the candidate's own tolerance
+                           // reaches the page and every antialiased edge in the
+                           // picture votes for it — measured, a colour five off
+                           // white and eighteen rows deep then beat the real cell
+                           // paint in every column. On the three real myUT
+                           // screenshots the paint is 33 (grey) and 46 (beige)
+                           // from white, and the today-tint 46 to 53.
+    paint: 0.7,            // the percentile of a row used to LOOK FOR the paint
+                           // colour. Only for the search: deciding a row by a
+                           // percentile does not work at all, see ruledCells.
+    paintTol: 14,          // how near the paint a pixel has to be to be cell
+    paintColCap: 0.5,      // ..and the share of one column that may vote for it
+    seamFrac: 0.2,         // a break shorter than this share of an hour, and not
+                           // on the clock, does not end a cell
+    clockTol: 0.1,         // ..and "on the clock" means this near an hour line
+    sampleY: 260,          // rows sampled when testing whether an x is a rule
+    sampleX: 21,           // x samples per column when testing whether a y is
+                           // inside a tinted cell
+    cellInset: 0.12,       // share of a column's width ignored at each rule, so
+                           // the rules themselves never read as cell fill
+    minCellMin: 20,        // a tinted run shorter than this many minutes is a
+                           // rule or a seam, not a class
+    paintFrac: 0.03,       // a row is inside a cell if this share of it is still
+                           // the cell's own paint. Low on purpose: on the widest
+                           // line of type in a phone-width cell only a twentieth
+                           // of the row is left, and an empty cell has none of it
+                           // at all, so there is nothing in between to protect.
+    sampleXCell: 40,       // x samples per column when reading its paint
+    anchorFrac: 0.4,       // AND THE HOUR LABEL SITS BELOW ITS OWN RULE, by 18px
+                           // on both real myUT screenshots. Fitting the axis to
+                           // the label boxes puts every class a quarter of an
+                           // hour early and still prints clean times — a silent
+                           // whole-image loss. So each label is anchored to the
+                           // nearest rule ABOVE it, within this share of one
+                           // hour's pitch.
+    roomless: true,        // a cell that prints a building and no room is a real
+                           // and common myUT shape, not a failed read
+  },
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1662,6 +1739,437 @@ export function hourAxis(rows, leftEdge) {
   return null;
 }
 
+/* ── a ruled table ──────────────────────────────────────────────────────────
+   Everything from here to findBlocks() reads the OTHER kind of week grid: the
+   one drawn as an HTML table with a rule between every cell. See TUNE.ruled.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Maximal runs of indices where `f(i)` holds, as [start, end] inclusive. */
+function runsOf(n, f) {
+  const out = [];
+  let s = -1;
+  for (let i = 0; i < n; i++) {
+    if (f(i)) { if (s < 0) s = i; }
+    else if (s >= 0) { out.push([s, i - 1]); s = -1; }
+  }
+  if (s >= 0) out.push([s, n - 1]);
+  return out;
+}
+
+/** Runs separated by less than `gap` are one run. */
+function mergeRuns(runs, gap) {
+  const out = [];
+  for (const r of runs) {
+    const last = out[out.length - 1];
+    if (last && r[0] - last[1] <= gap) last[1] = r[1];
+    else out.push([r[0], r[1]]);
+  }
+  return out;
+}
+
+/** The median of each channel over a sparse sample of the picture. */
+function pageGround(rect, step) {
+  const r = [], g = [], b = [];
+  for (let y = 0; y < rect.h; y += step) {
+    for (let x = 0; x < rect.w; x += step) {
+      const i = (y * rect.w + x) * 4;
+      r.push(rect.data[i]); g.push(rect.data[i + 1]); b.push(rect.data[i + 2]);
+    }
+  }
+  const mid = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  return [mid(r), mid(g), mid(b)];
+}
+
+const cityBlock = (a, b) =>
+  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+
+/**
+ * THE LONGEST RUN OF EVENLY SPACED LINES IS THE GRID; THE ODD ONE OUT IS THE
+ * HOUR GUTTER OR A PIECE OF PAGE FURNITURE.
+ *
+ * A calendar's day columns are the same width — that is what makes it a
+ * calendar — so the pitch is the median gap and any line whose gap to its
+ * neighbour is not that pitch is not part of the run. Returned as the indices
+ * kept, longest run wins.
+ */
+function evenRun(xs, tol) {
+  if (xs.length < 3) return xs.slice();
+  const gaps = [];
+  for (let i = 1; i < xs.length; i++) gaps.push(xs[i] - xs[i - 1]);
+  const sorted = gaps.slice().sort((a, b) => a - b);
+  const pitch = sorted[sorted.length >> 1];
+  if (!(pitch > 0)) return [];
+  let best = [], cur = [xs[0]];
+  for (let i = 1; i < xs.length; i++) {
+    if (Math.abs(gaps[i - 1] - pitch) <= pitch * tol) cur.push(xs[i]);
+    else { if (cur.length > best.length) best = cur; cur = [xs[i]]; }
+  }
+  if (cur.length > best.length) best = cur;
+  return best;
+}
+
+/**
+ * A RULED TABLE HANDS YOU ITS OWN CELL BOUNDARIES — SO TAKE THEM.
+ *
+ * -> { cols, hrules, yTop, yBot, gutterRight, pitch, ground } | null
+ *
+ * Read in this order, because each step narrows the next:
+ *
+ *   1. VERTICAL rules over the whole picture height. A day separator runs the
+ *      full height of the grid and nothing else on either app's page does, so
+ *      "a column of ink crossing half the picture" finds them and finds almost
+ *      nothing else. UT Registration Plus, the control, has FIVE such columns
+ *      and they are not evenly spaced — it draws no day separators at all —
+ *      which is what keeps this whole path off that app.
+ *   2. The even run among them is the grid. Six or seven lines, one pitch.
+ *   3. The HOUR GUTTER is the band to the left of the run holding the hour
+ *      labels, and it is the reason a page with no weekday heading anywhere in
+ *      frame can still be read: the gutter proves the first column after it is
+ *      the first day of the week. If the gutter is not hard against the left
+ *      edge of the picture then the frame is cropped into the middle of the
+ *      week and the first visible column is NOT Monday — so this refuses.
+ *   4. HORIZONTAL rules, measured only across the columns and only inside the
+ *      band the vertical rules span, because everything above the grid (a
+ *      title, a term dropdown, a four-column header table with no rows under
+ *      it) draws horizontal lines of its own.
+ */
+export function ruledGrid(rect, rows, tune = TUNE) {
+  const R = tune.ruled;
+  if (!R.on) return null;
+  const W = rect.w, H = rect.h;
+  if (!(W > 40 && H > 40)) return null;
+  const ground = pageGround(rect, Math.max(1, Math.round(Math.max(W, H) / 200)));
+  const lum = (x, y) => {
+    const i = (y * W + x) * 4;
+    return (rect.data[i] * 2 + rect.data[i + 1] * 5 + rect.data[i + 2]) / 8;
+  };
+  // A RULE IS A RIDGE, NOT MERELY "NOT THE PAGE COLOUR". The first version of
+  // this asked whether a pixel was far from the page's median colour, and every
+  // tinted cell answered yes: myUT tints one column its full height as a
+  // today-highlight, and that column came back as one enormous rule swallowing
+  // the two real rules on either side of it. A busy column did the same. A line
+  // is DARKER THAN WHAT IS ON BOTH SIDES OF IT, which a broad fill never is,
+  // and that one change is the difference between finding six day separators
+  // and finding four.
+  const d = Math.min(14, Math.max(3, Math.round(W / R.reach)));
+  const dv = Math.min(14, Math.max(3, Math.round(H / R.reach)));
+  const ridgeV = (x, y) => x >= d && x < W - d &&
+    lum(x, y) + R.edge <= Math.min(lum(x - d, y), lum(x + d, y));
+  const ridgeH = (x, y) => y >= dv && y < H - dv &&
+    lum(x, y) + R.edge <= Math.min(lum(x, y - dv), lum(x, y + dv));
+
+  // 1 — vertical rules
+  const ys = [];
+  const ystep = Math.max(1, Math.floor(H / R.sampleY));
+  for (let y = 0; y < H; y += ystep) ys.push(y);
+  const vFrac = new Float32Array(W);
+  for (let x = 0; x < W; x++) {
+    let n = 0;
+    for (const y of ys) if (ridgeV(x, y)) n++;
+    vFrac[x] = n / ys.length;
+  }
+  let vLines = runsOf(W, i => vFrac[i] >= R.cover).map(([a, b]) => (a + b) / 2);
+
+  // 2 — the hour gutter is left of the first day column, and it is the whole
+  //     reason a picture with no weekday heading in frame can be read at all:
+  //     it proves the column after it is the FIRST day of the week. A frame
+  //     cropped into the middle of the week loses the gutter with the headings.
+  const label = /^\s*\d{1,2}\s*[APap]\s*\.?\s*[Mm]\s*\.?\s*$/;
+  const labels = [];
+  for (const r of rows || []) {
+    for (const w of r.words) if (label.test(w.text)) labels.push(w);
+  }
+  if (labels.length < tune.grid.axisMinLabels) return null;
+  const gutterLeft = Math.min(...labels.map(w => w.x0));
+  const gutterRight = Math.max(...labels.map(w => w.x1));
+  if (gutterLeft > W * R.gutterMaxFrac) return null;
+  vLines = vLines.filter(x => x >= gutterRight);
+
+  // 3 — the even run among what is left is the week
+  if (vLines.length < R.minGridCols + 1) return null;
+  const run = evenRun(vLines, R.pitchTol);
+  const nCols = run.length - 1;
+  if (nCols < R.minGridCols || nCols > R.maxGridCols) return null;
+  if (run[run.length - 1] - run[0] < W * R.minSpanFrac) return null;
+  const pitch = (run[run.length - 1] - run[0]) / nCols;
+  const cols = [];
+  for (let i = 0; i < nCols; i++) {
+    cols.push({ x0: run[i], x1: run[i + 1], cx: (run[i] + run[i + 1]) / 2 });
+  }
+
+  // the band the day separators span. A separator is not ink on every single
+  // row of it — type crosses it, an inset cell corner rounds past it — so short
+  // breaks are closed before the longest span is taken, or the band comes back
+  // as whichever twentieth of the grid happened to be uninterrupted.
+  const spans = mergeRuns(runsOf(H, y => {
+    let n = 0;
+    for (const x of run) if (ridgeV(Math.min(W - 1 - d, Math.max(d, Math.round(x))), y)) n++;
+    return n >= Math.ceil(run.length / 2);
+  }), Math.max(4, Math.round(H * R.bandGap)))
+    .sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
+  if (!spans.length) return null;
+  const yTop = spans[0][0], yBot = spans[0][1];
+  if (yBot - yTop < H * 0.2) return null;
+
+  // 4 — HORIZONTAL RULES, MEASURED IN WHICHEVER COLUMN IS EMPTY THERE.
+  //     A cell is drawn over its own hour rule, so a rule measured across the
+  //     whole width disappears on exactly the rows where classes are — which
+  //     is every row that matters. Asking each column separately and taking the
+  //     best answer gets the rule from whichever column happens to be free at
+  //     that hour, which on a six-day grid is nearly always at least one.
+  const colXs = cols.map(c => {
+    const inset = (c.x1 - c.x0) * R.cellInset;
+    const a = Math.max(d, Math.round(c.x0 + inset));
+    const b = Math.min(W - 1 - d, Math.round(c.x1 - inset));
+    const xs = [];
+    const st = Math.max(1, Math.floor((b - a) / R.sampleX));
+    for (let x = a; x <= b; x += st) xs.push(x);
+    return xs;
+  });
+  const hBest = new Float32Array(H);
+  for (let y = yTop; y <= yBot; y++) {
+    let best = 0;
+    for (const xs of colXs) {
+      if (!xs.length) continue;
+      let n = 0;
+      for (const x of xs) if (ridgeH(x, y)) n++;
+      const f = n / xs.length;
+      if (f > best) best = f;
+    }
+    hBest[y] = best;
+  }
+  const hrules = runsOf(H, i => i >= yTop && i <= yBot && hBest[i] >= R.hcover)
+    .map(([a, b]) => (a + b) / 2);
+
+  return { cols, hrules, yTop, yBot, gutterLeft, gutterRight, pitch, ground, vLines };
+}
+
+/**
+ * THE HOUR LABEL SITS BELOW ITS OWN RULE, AND THAT IS A WHOLE-IMAGE DEFECT.
+ *
+ * Measured on both real myUT screenshots: every hour label's text box begins
+ * about 18 px BELOW the solid line it names, inside the first half hour of that
+ * hour. `hourAxis()` fits the label BOXES, which is right for an app that
+ * centres its labels on the rule and wrong here by most of a quarter hour — and
+ * a quarter hour is invisible in the output. Every class would come back
+ * fifteen minutes early, in clean round numbers, on every myUT page, and
+ * nothing about it would look like a bug.
+ *
+ * So on a ruled page the label supplies the HOUR and the rule supplies the
+ * POSITION: each label is anchored to the nearest rule above it, and the fit
+ * runs through the rules. A label with no rule above it inside a fraction of
+ * one hour's pitch is dropped rather than guessed at.
+ */
+export function ruledHourAxis(rows, grid, tune = TUNE) {
+  const R = tune.ruled;
+  const pts = [];
+  for (const r of rows) {
+    const ws = r.words.filter(w => w.x1 <= grid.gutterRight);
+    if (!ws.length) continue;
+    const t = ws.map(w => w.text).join(' ').toUpperCase().replace(/[^0-9APM]/g, '');
+    const m = /^(\d{1,2})([AP])?M$/.exec(t);
+    if (!m) continue;
+    let h = Number(m[1]);
+    if (!(h >= 1 && h <= 12)) continue;
+    h = h % 12;
+    if (m[2] === 'P') h += 12;
+    pts.push({ y0: r.y0, min: h * 60 });
+  }
+  if (pts.length < tune.grid.axisMinLabels) return null;
+  pts.sort((a, b) => a.y0 - b.y0);
+  // A bare "12" between an AM run and a PM run is noon — same walk hourAxis
+  // does, for the same reason.
+  const keep = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i], prev = keep[keep.length - 1];
+    while (p.min <= prev.min) p.min += 720;
+    if (p.min > 24 * 60) continue;
+    keep.push(p);
+  }
+  if (keep.length < tune.grid.axisMinLabels) return null;
+  // One hour in pixels, from the labels themselves — they are one per hour.
+  const gaps = [];
+  for (let i = 1; i < keep.length; i++) {
+    gaps.push((keep[i].y0 - keep[i - 1].y0) / ((keep[i].min - keep[i - 1].min) / 60));
+  }
+  gaps.sort((a, b) => a - b);
+  const hourPx = gaps[gaps.length >> 1];
+  if (!(hourPx > 4)) return null;
+
+  const anchored = [];
+  for (const p of keep) {
+    let best = null;
+    for (const y of grid.hrules) {
+      if (y > p.y0 + hourPx * 0.06) continue;
+      if (p.y0 - y > hourPx * R.anchorFrac) continue;
+      if (best == null || y > best) best = y;
+    }
+    if (best != null) anchored.push({ y: best, min: p.min });
+  }
+  if (anchored.length < tune.grid.axisMinLabels) return null;
+  const slopes = [];
+  for (let i = 0; i < anchored.length; i++) {
+    for (let j = i + 1; j < anchored.length; j++) {
+      const dy = anchored[j].y - anchored[i].y;
+      if (Math.abs(dy) < 1) continue;
+      slopes.push((anchored[j].min - anchored[i].min) / dy);
+    }
+  }
+  if (!slopes.length) return null;
+  slopes.sort((a, b) => a - b);
+  const k = slopes[slopes.length >> 1];
+  if (!(k > 0)) return null;
+  const offs = anchored.map(p => p.min - k * p.y).sort((a, b) => a - b);
+  const b = offs[offs.length >> 1];
+  const resid = Math.max(...anchored.map(p => Math.abs((k * p.y + b) - p.min) / k));
+  if (resid > tune.grid.axisMaxResidPx) return null;
+  return {
+    minutesAt: (y) => k * y + b, yAt: (min) => (min - b) / k, pxPerMin: 1 / k,
+    labels: anchored.length, residPx: resid, hourPx,
+  };
+}
+
+/**
+ * THE CELLS OF EACH COLUMN, FOUND BY THE COLOUR THE APP PAINTS THEM.
+ *
+ * Three measurements decide the shape of this, and each of them killed a
+ * simpler version:
+ *
+ *   1. A ROW CANNOT BE REDUCED TO ONE COLOUR. myUT's course link is orange,
+ *      underlined, and as wide as its cell, so on the widest lines of type
+ *      the MEDIAN of the row is the link and even the 95th percentile is an
+ *      antialiasing fringe brighter than the page. Measured on the phone-width
+ *      screenshot, that broke every occupied cell into three. What survives is
+ *      counting: a row is inside a cell if ANY reasonable share of it is still
+ *      the cell's own paint.
+ *   2. THE PAINT IS NOT FOUND PER COLUMN. Every myUT page tints one column its
+ *      full height as a today-highlight, and it is a weekday with classes in it
+ *      as often as it is Saturday. Against the page's white that column reads
+ *      as one nine-hour class; against its OWN majority colour the answer is
+ *      worse, because in the real image where the tinted column is a busy
+ *      Thursday the cells cover more of it than the tint does, so the test
+ *      inverts and every class becomes a gap. One app paints one cell colour in
+ *      every column, so the colour is read off the page as a whole — and
+ *      ranked by how many columns show it, not how many rows, or a quiet week
+ *      lets the one tinted column outvote the four that hold the classes.
+ *   3. A CELL BOUNDARY IS A GAP ON AN HOUR LINE, and nothing else is. Classes
+ *      back to back are one unbroken stretch of paint apart from a one-pixel
+ *      seam where the two cells meet — and the same one-pixel seam appears in
+ *      the middle of a single 90-minute class, under the link's underline. The
+ *      two are told apart by WHERE they fall: the real boundary is on an hour
+ *      or half-hour line of the axis, the underline is a quarter past. So short
+ *      breaks are closed unless a line of the clock runs through them. This is
+ *      measured on all three real myUT pages, in both directions: a 90-minute
+ *      class whose paint is continuous through its own hour line stays one
+ *      cell, and a 1pm class stacked on a 2pm class is cut at 2pm.
+ */
+export function ruledCells(rect, grid, words, axis, tune = TUNE) {
+  const R = tune.ruled;
+  if (!axis) return [];
+  const W = rect.w;
+  const pct = (a, p) => { a.sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(p * a.length))]; };
+  const hourPx = axis.hourPx || (60 * axis.pxPerMin);
+  const minRows = Math.max(3, R.minCellMin * axis.pxPerMin);
+
+  // 1 — the x samples of each column, and its rows summarised for the search
+  const colXs = [], rowMid = [];
+  for (const c of grid.cols) {
+    const inset = (c.x1 - c.x0) * R.cellInset;
+    const xa = Math.max(0, Math.round(c.x0 + inset));
+    const xb = Math.min(W - 1, Math.round(c.x1 - inset));
+    if (xb - xa < 4) { colXs.push(null); rowMid.push(null); continue; }
+    const xs = [];
+    const step = Math.max(1, Math.floor((xb - xa) / R.sampleXCell));
+    for (let x = xa; x <= xb; x += step) xs.push(x);
+    colXs.push(xs);
+    const mids = [];
+    for (let y = grid.yTop; y <= grid.yBot; y++) {
+      const r = [], g = [], b = [];
+      for (const x of xs) {
+        const i = (y * W + x) * 4;
+        r.push(rect.data[i]); g.push(rect.data[i + 1]); b.push(rect.data[i + 2]);
+      }
+      mids.push([pct(r, R.paint), pct(g, R.paint), pct(b, R.paint)]);
+    }
+    rowMid.push(mids);
+  }
+
+  // 2 — which colour the app paints a cell
+  const hist = new Map();
+  for (let ci = 0; ci < rowMid.length; ci++) {
+    if (!rowMid[ci]) continue;
+    for (const v of rowMid[ci]) {
+      if (cityBlock(v, grid.ground) <= R.fill) continue;
+      const k = v.map(q => Math.round(q / 4) * 4).join(',');
+      const e = hist.get(k) || { n: 0, v, cols: new Set() };
+      e.n++; e.cols.add(ci); hist.set(k, e);
+    }
+  }
+  if (!hist.size) return [];
+  // ..AND NO COLUMN MAY VOTE MORE THAN HALF ITS OWN HEIGHT. That is the whole
+  // defence against the today-tint: a tint covers its column top to bottom and
+  // a stack of classes covers at most half of one, so capping each column's
+  // contribution puts the colour that is in FIVE columns above the colour that
+  // fills one. Without it a light week is enough for the tint to win, and then
+  // every real cell reads as a gap.
+  const band = Math.max(1, grid.yBot - grid.yTop + 1);
+  for (const e of hist.values()) {
+    e.score = 0;
+    for (let ci = 0; ci < rowMid.length; ci++) {
+      if (!rowMid[ci]) continue;
+      let n = 0;
+      for (const v of rowMid[ci]) if (cityBlock(v, e.v) <= R.paintTol) n++;
+      e.score += Math.min(n / band, R.paintColCap);
+    }
+  }
+  const paint = [...hist.values()]
+    .sort((a, b) => (b.score - a.score) || (b.n - a.n))[0].v;
+
+  // 3 — runs of painted rows, broken only on the clock
+  const seam = Math.max(2, Math.round(hourPx * R.seamFrac));
+  // Where two classes meet there is one pixel of white ON AN HOUR LINE. Where a
+  // 90-minute class runs past its own hour there is one pixel of white too —
+  // under the underline of its course link, a quarter past. Same gap, same
+  // width; only the clock tells them apart. Measured both ways on all three
+  // real myUT pages.
+  const tol = Math.max(2, hourPx * R.clockTol);
+  const onClock = (a, b) => {
+    const m0 = axis.minutesAt(a - tol), m1 = axis.minutesAt(b + tol);
+    return Math.floor(m1 / 60) > Math.floor(m0 / 60) || m0 % 60 === 0;
+  };
+  const out = [];
+  for (let ci = 0; ci < grid.cols.length; ci++) {
+    const xs = colXs[ci];
+    if (!xs) continue;
+    const c = grid.cols[ci];
+    const on = new Uint8Array(rowMid[ci].length);
+    for (let i = 0; i < on.length; i++) {
+      const y = grid.yTop + i;
+      let n = 0;
+      for (const x of xs) {
+        const k = (y * W + x) * 4;
+        if (cityBlock([rect.data[k], rect.data[k + 1], rect.data[k + 2]], paint) <= R.paintTol) n++;
+      }
+      on[i] = n / xs.length >= R.paintFrac ? 1 : 0;
+    }
+    const raw = runsOf(on.length, i => on[i]);
+    const runs = [];
+    for (const r of raw) {
+      const last = runs[runs.length - 1];
+      const gap0 = last ? grid.yTop + last[1] + 1 : 0;
+      const gap1 = grid.yTop + r[0] - 1;
+      if (last && (gap1 - gap0) < seam && !onClock(gap0, gap1)) last[1] = r[1];
+      else runs.push([r[0], r[1]]);
+    }
+    for (const [a, b] of runs) {
+      const y0 = grid.yTop + a, y1 = grid.yTop + b;
+      if (y1 - y0 < minRows) continue;
+      out.push({ col: ci, x0: c.x0, x1: c.x1, y0, y1, paint });
+    }
+  }
+  return out;
+}
+
 /**
  * Event blocks in the rectified picture, found as flat rectangles of one colour
  * that is not the page colour.
@@ -1834,7 +2342,206 @@ function agreeOnRooms(recs, tune, codes) {
   return recs;
 }
 
+/**
+ * A CELL THAT PRINTS A BUILDING AND NO ROOM IS A REAL SCHEDULE, NOT A BAD READ.
+ *
+ * myUT does it four times on one real screenshot: some rooms are simply not
+ * published, and the app prints the building alone on the cell's last line.
+ * Treated as a failure that is four classes refused for no reason; treated
+ * carelessly it is four wrong answers, because a cell whose room line merely
+ * failed to scan looks exactly the same from here.
+ *
+ * So the conditions are narrow and every one of them is about the PICTURE
+ * rather than about what would be convenient: the last line of the cell is one
+ * word, that word is a code the register knows, and it is not the code printed
+ * in this cell's own course number. It is behind a flag so the next lane can
+ * score it both ways.
+ */
+function roomlessLoc(lines, codes, course) {
+  if (!lines.length) return null;
+  const last = lines[lines.length - 1];
+  if (last.length !== 1) return null;
+  const t = last[0].text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[A-Z]{2,4}[0-9]?$/.test(t)) return null;
+  if (NOT_A_CODE.test(t)) return null;
+  if (!codes || !codes.has(t)) return null;
+  if (course && String(course).toUpperCase().replace(/[^A-Z0-9]/g, '').startsWith(t)) return null;
+  return { code: t, room: null, roomless: true, words: [last[0]] };
+}
+
+/** Words grouped into the lines they were printed on, top to bottom. */
+function textLines(ws) {
+  const out = [];
+  for (const w of ws.slice().sort((a, b) => (a.y0 - b.y0) || (a.x0 - b.x0))) {
+    const last = out[out.length - 1];
+    const h = Math.max(1, w.y1 - w.y0);
+    if (last && w.y0 < last.yb - h * 0.4) { last.push(w); last.yb = Math.max(last.yb, w.y1); }
+    else { const l = [w]; l.yb = w.y1; out.push(l); }
+  }
+  for (const l of out) l.sort((a, b) => a.x0 - b.x0);
+  return out;
+}
+
+/**
+ * WHICH DAY EACH COLUMN OF A RULED GRID IS.
+ *
+ * Two answers, and the second is the one this round exists for.
+ *
+ * If the weekday headings read, they name the columns and that is the end of
+ * it. If they are not on the picture at all — one real screenshot is scrolled
+ * so that the heading row and every hour before about a quarter to eleven are
+ * off the top, and it carries no chrome whatsoever, just grid — then the
+ * columns are named by COUNTING, which is exactly how the answer key's own
+ * human readers did it. Six equal columns with the hour gutter hard against the
+ * left edge of the picture are Monday to Saturday: the gutter is the proof that
+ * nothing was cropped off the left and that column one is therefore the first
+ * day of the week. `ruledGrid()` refuses to return a grid without that gutter,
+ * so the proof is already in hand by the time this is called.
+ *
+ * WHAT IT REFUSES. Seven columns: a seven-day week may start on Sunday or on
+ * Monday and this file will not pick. And the today-tint is not consulted at
+ * all — `docs/img-real-corpus.md` calls the tinted column Saturday and it is
+ * not: on one real image it is the fourth of six, a Thursday with four classes
+ * in it. Anchoring on the tint puts a whole image on the wrong day.
+ */
+function ruledDayNames(grid, layout) {
+  const n = grid.cols.length;
+  if (layout && layout.kind === 'grid' && layout.dayCols && layout.dayCols.length) {
+    const hit = grid.cols.map(c => {
+      const h = layout.dayCols.find(d => d.cx > c.x0 && d.cx < c.x1);
+      return h ? DAY_ORDER.indexOf(h.day) : -1;
+    });
+    const seen = hit.map((v, i) => [i, v]).filter(([, v]) => v >= 0);
+    if (seen.length >= 3) {
+      const ok = seen.every(([i, v]) => v - seen[0][1] === i - seen[0][0]);
+      const base = seen[0][1] - seen[0][0];
+      if (ok && base >= 0 && base + n <= DAY_ORDER.length) {
+        return grid.cols.map((_, i) => DAY_ORDER[base + i]);
+      }
+    }
+  }
+  if (n < 5 || n > 6) return null;
+  return DAY_ORDER.slice(0, n);
+}
+
+/**
+ * A RULED TABLE: the day is the column, the hour is the rule, and the class is
+ * the painted cell between them.
+ *
+ * This is the whole myUT path, and it runs ONLY where the block finder found
+ * nothing — so the app it was not written for, the one that draws separated
+ * colour rectangles with gaps between them, never reaches it and cannot be
+ * changed by it. That is deliberate: 134 of 171 on the corpus we made
+ * ourselves is the regression this round is not allowed to move.
+ */
+async function fromRuled(rows, grid, layout, page, tune, codes, ctx) {
+  const axis = ruledHourAxis(rows, grid, tune);
+  if (!axis) return [];
+  const days = ruledDayNames(grid, layout);
+  if (!days) return [];
+  const cells = ruledCells(ctx.rect, grid, ctx.words, axis, tune);
+  ctx.ruledCells = cells.length;
+  const snap = (v) => Math.round(v / tune.grid.snapMin) * tune.grid.snapMin;
+  const seenNotRead = (ctx && ctx.seenNotRead) || [];
+  ctx.seenNotRead = seenNotRead;
+  const inOrder = (ws) => ws.slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
+  const recs = [];
+  for (const cell of cells) {
+    const day = days[cell.col];
+    if (!day) continue;
+    const within = (ws) => ws.filter(w =>
+      (w.x0 + w.x1) / 2 > cell.x0 && (w.x0 + w.x1) / 2 < cell.x1 &&
+      (w.y0 + w.y1) / 2 > cell.y0 && (w.y0 + w.y1) / 2 < cell.y1);
+    const inside = within(ctx.words);
+    // A painted patch with no writing in it is a seam or the edge of the
+    // today-tint, not a class, and there is nothing to put in front of the
+    // student about it.
+    if (!inside.length) continue;
+    let start = snap(axis.minutesAt(cell.y0));
+    let end = snap(axis.minutesAt(cell.y1));
+    const block = { x0: cell.x0, y0: cell.y0, x1: cell.x1, y1: cell.y1 };
+    const note = (whyText) => seenNotRead.push({
+      day, start: hhmm(start), end: hhmm(end), why: whyText, block,
+    });
+    if (!(end > start) || end - start > tune.judge.maxClassMin) {
+      note('this looks like a class but its hours did not add up');
+      continue;
+    }
+    let ws = inOrder(inside);
+    let loc = locFromWords(ws, codes);
+    if (!loc && tune.grid.reOcrBlocks && ctx.pm) {
+      const again = within(await ocrCrop(ctx.pm, block, tune));
+      if (again.length) {
+        const l2 = locFromWords(inOrder(again), codes);
+        if (l2) { ws = inOrder(again); loc = l2; }
+      }
+    }
+    const course = courseFromRow({ words: ws });
+    const why = [];
+    if (!loc && tune.ruled.roomless) {
+      loc = roomlessLoc(textLines(ws), codes, course);
+      if (loc) why.push('only a building is printed for this class, with no room');
+    }
+    // TWO COURSE CODES IN ONE CELL MEANS THE CELL IS TWO CLASSES. It should not
+    // happen — classes back to back are cut apart on the hour — but if the seam
+    // between two of them were ever invisible, emitting the pair as one class
+    // with one of their rooms and the span of both their hours is the exact
+    // wrong answer this feature promises not to give. So it is refused, in
+    // words, rather than averaged.
+    const heads = textLines(ws).filter(l => {
+      const t = l.map(w => w.text).join(' ').toUpperCase();
+      if (!/\b[A-Z]{1,3}(?: [A-Z])? \d{3}[A-Z]?\b/.test(t)) return false;
+      return !locFromWords(l, codes, { course: null });
+    });
+    if (heads.length > 1) {
+      note('two classes look like they are drawn in the one box here');
+      continue;
+    }
+    // The printed time, where this app prints one — it does on one of the three
+    // real screenshots and not on the other two.
+    const caption = parseRange(ws.map(w => w.text).join(' '));
+    let axisAgrees = null, timeSource = 'axis';
+    const drawn = { start, end };
+    if (caption && !caption.bad) {
+      let cs = caption.start, ce = caption.end;
+      if (caption.unsure) {
+        let bd = Infinity, shift = 0;
+        for (const dd of [-720, 0, 720]) {
+          const gap = Math.abs(cs + dd - start);
+          if (gap < bd) { bd = gap; shift = dd; }
+        }
+        cs += shift; ce += shift;
+      }
+      axisAgrees = Math.abs(cs - start) + Math.abs(ce - end) <= tune.grid.agreeMin;
+      if (!axisAgrees) {
+        const near = Math.abs(cs - start) <= tune.grid.captionMaxDriftMin &&
+          Math.abs(ce - end) <= tune.grid.captionMaxDriftMin;
+        const G = tune.grid.captionGridMin;
+        const believe = near && cs % G === 0 && ce % G === 0 &&
+          Math.abs((ce - cs) - (end - start)) <= tune.grid.captionMaxLenDiffMin &&
+          (tune.grid.captionBeatsAxis === 'always' ||
+          (tune.grid.captionBeatsAxis === 'screenshot' && ctx.rect.source === 'screenshot'));
+        why.push('the caption reads ' + hhmm(cs) + '-' + hhmm(ce) +
+          ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end) +
+          (believe ? ', so the printed time was used' : ''));
+        if (believe) { start = cs; end = ce; timeSource = 'caption'; }
+      }
+    }
+    if (!loc) {
+      note('a class is drawn here but no room could be read out of it');
+      continue;
+    }
+    recs.push({
+      days: [day], range: { start, end, unsure: false },
+      loc, course, ws, why, fromGeometry: true, ruled: true,
+      block, drawn, timeFrom: timeSource, dayFrom: 'column', axisAgrees,
+    });
+  }
+  return recs;
+}
+
 /** A grid: the day is the column, and nothing else is. */
+
 async function fromGrid(rows, layout, page, tune, codes, ctx) {
   const cols = layout.dayCols;
   const pitch = cols.length > 1
@@ -2409,6 +3116,39 @@ export async function extract(src, opts = {}) {
   // makes no structural assumption at all, so it is the floor under the other
   // two rather than a third alternative to them.
   let usedLayout = layout.kind;
+  // THE OTHER KIND OF WEEK GRID, AND ONLY WHERE THE FIRST KIND FOUND NOTHING.
+  //
+  // myUT draws an HTML table with a rule between every cell. The block finder
+  // cannot see it — the rules weld the whole table into one page-sized shape
+  // that is 6% of its own bounding box, so it is discarded and the cells were
+  // never separable — and on all three real myUT screenshots it returns at most
+  // one rectangle, which is not a class. Two of the three then returned
+  // literally nothing: no classes, and no "could not read this" either, from a
+  // page a person reads at a glance.
+  //
+  // It is placed HERE, after the layout's own reader has had its turn and
+  // before the flow fallback, on purpose. A page that produced even one record
+  // by any other route never runs it, so the corpus this feature was built on
+  // cannot move.
+  //
+  // "CARDS" ALSO COUNTS AS FOUND NOTHING, and that distinction is worth a
+  // sentence because it cost a whole image. `cards` is not a layout, it is the
+  // absence of one — the reader of last resort, run when no weekday heading and
+  // no registrar header row could be found. On the scrolled myUT screenshot it
+  // produced six records, every one of which died at "no day was readable", and
+  // those six were enough to stop this path ever running. A ruled grid is a
+  // strictly stronger claim than cards: six evenly spaced day separators, an
+  // hour gutter hard against the left edge with hour labels in it, and an axis
+  // that fits its own rules. Where it says at least as much, it wins.
+  let ruled = null;
+  const nothingFound = layout.kind === 'cards';
+  if (!recs.length || nothingFound) {
+    ruled = ruledGrid(rect, rows, tune);
+    if (ruled) {
+      const rr = await fromRuled(rows, ruled, layout, page, tune, codes, ctx);
+      if (rr.length && rr.length >= recs.length) { recs = rr; usedLayout = 'ruled'; }
+    }
+  }
   if (!recs.length && layout.kind !== 'cards') {
     recs = fromCards(rows, page, tune, codes);
     if (recs.length) usedLayout = layout.kind + '->flow';
@@ -2484,13 +3224,18 @@ export async function extract(src, opts = {}) {
     if (r.range.bad) why.push('the end time read as before the start');
     if (r.loc.joined) why.push('the building and room were run together');
 
-    const room = String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+    // A ROOM THAT IS NOT PRINTED IS NULL, NOT THE STRING "NULL". Some UT rooms
+    // are simply not published and myUT prints the building alone; the walk to
+    // the building's door is still the right answer and the student is told the
+    // room is missing rather than shown a room that does not exist.
+    const room = r.loc.room == null ? null
+      : String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
     // THE SAME REFUSAL AGAIN, AT THE ONE PLACE EVERY READING PASSES THROUGH.
     // `plausibleLoc` already turns a lost decimal point down while there is
     // still a chance of finding a better candidate further along the line — but
     // a registrar table reads its BLDG and ROOM cells straight out of their own
     // columns and never asks it. Both routes end here.
-    if (ROOM_LOST_DOT.test(room)) {
+    if (room != null && ROOM_LOST_DOT.test(room)) {
       unsure.push({
         course: r.course, building: rep.code, room,
         why: 'the room reads "' + room + '", which is a room number with its ' +
@@ -2565,6 +3310,19 @@ export async function extract(src, opts = {}) {
           'writing inside them is too small or too blurred to read — try again with the ' +
           'camera square on to the screen, or send the calendar as a screenshot',
       });
+    } else if (ruled || (ruled = ruledGrid(rect, rows, tune))) {
+      // SILENCE IS THE WORST ANSWER THERE IS. Two of the three real myUT
+      // screenshots came back with no classes and no message at all — a blank
+      // screen from a page whose type is large, black and trivially legible to
+      // a person, and the student has no way to tell "there is nothing here"
+      // from "I could not read it". If the rules of a timetable were found,
+      // that much is said out loud whatever else failed.
+      unsure.push({
+        course: null, day: null, start: null, end: null,
+        why: 'this is a week timetable with ' + ruled.cols.length + ' day columns, but ' +
+          'nothing inside it could be read — try a screenshot of the schedule ' +
+          'itself, with the hours down the side and the day names along the top',
+      });
     }
   }
   // THE STUDENT'S OWN PICTURE, UPRIGHT, FOR THE CONFIRM SCREEN TO CUT FROM.
@@ -2620,7 +3378,8 @@ if (typeof window !== 'undefined') {
   window.SCHEDIMG = {
     extract, decode, findDocQuad, estimateLineHeight, rectify, photometry,
     grayCanvas, pickEngine, ocrWords, ocrCrop, buildRows, classifyLayout,
-    hourAxis, findBlocks, parseRange, parseDayLetters, repairCode, locFromWords,
+    hourAxis, findBlocks, ruledGrid, ruledHourAxis, ruledCells,
+    parseRange, parseDayLetters, repairCode, locFromWords,
     codeCandidates, codeNeighbours, buildingCodes, buildingRegister,
     releaseEngine, engineInfo, TUNE,
   };
