@@ -8793,6 +8793,108 @@
     fromExample: (s) => 'From ' + s + ' — sample data, not your schedule',
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  //  THE CHECK-THIS-ONE SHEET — the other half of the mark
+  // ══════════════════════════════════════════════════════════════════════════
+  /**
+   * WHY THIS EXISTS AT ALL. Until now `SAY_D.lowConf` was a LABEL: the day view
+   * correctly said "Read as 'PAI 3.02' — check this one" and then offered no way
+   * on earth to check it. The only route back was Delete-everything-and-
+   * re-photograph, which means a student who saw that chip on day one saw the
+   * identical unresolved chip every day for the rest of the semester. That is a
+   * worse failure than not flagging at all: the app successfully identified its
+   * own uncertainty and then trapped the student inside it.
+   *
+   * WHAT IT CANNOT BE, AND THIS IS THE DESIGN. It cannot re-mount
+   * `js/schedconfirm.js`'s screen. That screen's question is "is this what the
+   * PICTURE says?", and it answers it by cropping the picture and putting the
+   * pixels beside the reading — and the picture is gone, deliberately, because
+   * keeping a photograph of a student's timetable on the device for the rest of
+   * term is exactly the thing the privacy rule forbids. `review()` needs a
+   * `cls.ev` with a page and a box; none of that survives, and none of it should.
+   *
+   * So the question CHANGES, and changes for the better. It stops being "did we
+   * read your picture right" — which only the picture can settle — and becomes
+   * "where is this class, actually", which the student can answer off the top of
+   * their head, from memory, on a bus. The app brings what it knows to that
+   * question: every UT building code, its own type-ahead, and its own router.
+   *
+   * IT WRITES BACK THROUGH THE ONE PATH. `scheduleCorrectClass()` re-places the
+   * corrected row through `impPlace` — the same placement a Google export runs
+   * through — then `store.save()`, `window.wayfindSchedule`, `wayfind:schedule`.
+   * There is no second pipeline here either.
+   */
+  const WF_FIX = {
+    // The chip is a control. Off, and it is the label it was before this pass
+    // and nothing else in this block runs.
+    on: true,
+    // The fields `js/schedconfirm.js` reports as unsettled, and which of them
+    // this sheet knows how to ask about. Anything not listed still shows in the
+    // reason line — it is simply not editable here.
+    knows: { building: true, room: true, time: true, day: true },
+    // THE PLACE FIELD IS ALWAYS DRAWN, even when the doubt was about the day.
+    // The chip the student tapped quotes the PLACE back at them ("Read as PAI
+    // 3.02"), so a sheet that opened without a place field would read as the
+    // wrong sheet. It is one input either way.
+    alwaysPlace: true,
+    // How many candidate buildings the type-ahead offers under the field. Four
+    // is two rows on a 390 px phone; more is a list, and a list is the search
+    // sheet's job, not this one's.
+    suggestMax: 4,
+    // The days, in the order a UT timetable prints them. Saturday and Sunday
+    // are here because UT does schedule the odd Saturday lab, and a student
+    // whose only Saturday class cannot be corrected is worse off than one who
+    // has two extra buttons to ignore.
+    days: [
+      { id: 'MO', s: 'M' }, { id: 'TU', s: 'T' }, { id: 'WE', s: 'W' },
+      { id: 'TH', s: 'T' }, { id: 'FR', s: 'F' },
+      { id: 'SA', s: 'S' }, { id: 'SU', s: 'S' },
+    ],
+    // The sheet's own width on a desktop; on a phone it takes the day panel's
+    // slot and this is ignored (see the @media block in DAY_CSS).
+    panelW: 308,
+    // A correction is a confirmation. Both buttons put the class back at 1 —
+    // which is what `WF_DAY.confidenceSure` compares against, so this is the
+    // value that makes the mark go away.
+    confirmedConfidence: 1,
+  };
+
+  const SAY_FIX = {
+    title: 'CHECK THIS CLASS',
+    close: 'Close',
+    // WHY IT IS BEING ASKED, in the app's own already-stored words. This is
+    // `provenance.why` verbatim — the sentence js/schedconfirm.js wrote at
+    // import time and the store kept — rather than a fresh one invented here,
+    // because two sentences about one doubt is two doubts.
+    whyFallback: 'Something about this class was never checked.',
+    // The picture is gone and the sheet says so, once, plainly. A student who
+    // expects to see their photograph again should find out here and not by
+    // hunting for it.
+    noPicture: 'Your photo was never kept, so this asks you instead.',
+    placeLabel: 'Which building and room?',
+    placeHint: 'Like WEL 2.224',
+    daysLabel: 'Which days?',
+    timeLabel: 'What time?',
+    // What the type-ahead found for what is currently typed. Three answers, and
+    // they are three different facts, so they are three sentences.
+    resolved: (name) => name,
+    resolvedOff: (name) => name + ' — off this map',
+    unknown: 'Not a building code this map knows',
+    empty: 'Type a building code',
+    suggestLead: 'Did you mean',
+    save: 'Save this',
+    // THE SECOND BUTTON IS NOT A CANCEL. Closing the sheet is the cancel. This
+    // is the answer "the reading was right all along", which is a real answer
+    // and the commonest one — the app was unsure, the student is not — and it
+    // has to be one tap or nobody will give it.
+    keep: 'It was right',
+    savedOne: 'Saved',
+    // A correction that cannot be routed to is still saved, and the sheet says
+    // what happened rather than silently accepting it. The day view's own
+    // chips then explain it properly on the row.
+    savedUnroutable: 'Saved — but this map cannot walk there',
+  };
+
   /**
    * THE DAY PLAN'S STYLESHEET, injected rather than added to style.css.
    *
@@ -8815,7 +8917,7 @@
    * in from JS. Nothing here is a number typed twice.
    */
   const DAY_CSS = `
-.clip #wf-day,.clip #wf-day-btn{display:none!important}
+.clip #wf-day,.clip #wf-day-btn,.clip #wf-fix{display:none!important}
 #wf-day.hidden{display:none}
 
 /* THE WAY IN. A row at the foot of the search sheet, above the small print. It
@@ -9022,6 +9124,100 @@
 .wf-d-off{color:#ffab8c}
 .wf-d-class .wf-d-off{color:rgba(255,171,140,.85)}
 
+/* A CHIP THAT IS A CONTROL. The one chip on this surface that DOES something
+   has to look like it does, and the cheapest honest way to say so on a phone
+   is the underline every tappable line in this app already carries plus a
+   chevron. It stays a .wf-d-chip so the row's layout and the day plan's own
+   gate see exactly what they saw before. */
+button.wf-d-chip{width:100%;background:none;border:none;padding:0;font:inherit;
+  font-size:11px;text-align:left;cursor:pointer;color:#ffc077}
+button.wf-d-chip .wf-d-chip-t{text-decoration:underline;
+  text-decoration-color:rgba(255,192,119,.45);text-underline-offset:2px}
+button.wf-d-chip:hover .wf-d-chip-t{text-decoration-color:#ffc077}
+.wf-d-chip-go{width:11px;height:11px;flex:none;margin-top:2px;opacity:.75}
+
+/* ── THE CHECK-THIS-ONE SHEET ─────────────────────────────────────────────
+   It takes the day panel's own corner and the day panel's own glass, because
+   it is the day panel's own follow-up question. Stacked ABOVE it (z 31) and
+   the day panel is dimmed behind rather than hidden, so the row you tapped is
+   still visible and the sheet reads as attached to it. */
+#wf-fix{position:absolute;top:68px;left:16px;z-index:31;
+  width:__FIXW__px;max-width:calc(100vw - 32px);
+  background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.3);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;
+  display:flex;flex-direction:column;text-align:left;overflow:hidden}
+#wf-fix.hidden{display:none}
+body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
+#wf-fix-head{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 8px 5px 14px;flex:none}
+#wf-fix-title{font-size:11px;font-weight:700;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--wf-dim)}
+#wf-fix-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
+  width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
+#wf-fix-close svg{width:15px;height:15px}
+#wf-fix-close:hover{opacity:1;background:rgba(255,255,255,.07)}
+#wf-fix-body{padding:0 14px 10px;overflow-y:auto;min-height:0;flex:1 1 auto}
+/* THE TWO ANSWERS NEVER SCROLL. Photographed on a 390x844 phone with a route
+   drawn, the first cut put "Save this" 40 px BELOW the bottom edge of the
+   sheet: every control was in the DOM, the harness's own height assertion
+   passed, and the student could not see the button. The actions are a pinned
+   footer now — the body scrolls, the answers do not. */
+#wf-fix-foot{flex:none;padding:9px 14px 12px;
+  border-top:1px solid rgba(255,190,90,.12);background:rgba(0,0,0,.16)}
+.wf-f-course{font-size:14px;font-weight:600;line-height:1.25}
+.wf-f-when{font-size:11px;color:var(--wf-dim);margin-top:2px}
+/* THE REASON, in the words the store already holds. Amber because it is the
+   thing that brought the student here, and boxed because it is a quote from
+   the import and not this sheet talking. */
+.wf-f-why{margin-top:8px;padding:7px 9px;border-radius:8px;
+  background:rgba(255,190,90,.09);border:1px solid rgba(255,190,90,.16);
+  font-size:11px;line-height:1.45;color:#ffc077}
+.wf-f-nopic{margin-top:5px;font-size:10px;line-height:1.4;color:var(--wf-dimmer)}
+.wf-f-lab{margin-top:11px;margin-bottom:4px;font-size:10px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--wf-dimmer)}
+.wf-f-in{width:100%;box-sizing:border-box;min-height:var(--touch-min);
+  padding:8px 10px;border-radius:9px;border:1px solid var(--wf-edge-soft);
+  background:rgba(255,255,255,.06);color:var(--wf-ink);font:inherit;font-size:13px}
+.wf-f-in:focus{outline:none;border-color:rgba(255,190,90,.55);
+  background:rgba(255,255,255,.09)}
+/* WHAT THE APP THINKS THE TYPED CODE IS, live, under the field. This is the
+   whole reason the sheet is worth more than a text box: the student types PAI
+   and the app answers "Painter Hall" before they commit to it. */
+.wf-f-say{margin-top:5px;font-size:11px;line-height:1.35;min-height:15px}
+.wf-f-say.ok{color:#9fd9a5}
+.wf-f-say.bad{color:#ffab8c}
+.wf-f-say.dim{color:var(--wf-dimmer)}
+.wf-f-sugg{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.wf-f-sugg-b{background:rgba(255,255,255,.07);border:1px solid var(--wf-edge-soft);
+  color:var(--wf-ink);font:inherit;font-size:11px;padding:5px 8px;border-radius:7px;
+  cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-f-sugg-b:hover{background:var(--wf-hot);border-color:rgba(255,190,90,.4)}
+.wf-f-sugg-c{font-weight:700;letter-spacing:.02em}
+.wf-f-sugg-n{color:var(--wf-dim);margin-left:5px}
+/* THE DAY TOGGLES. Seven squares on one line at 390 px: 7 x 34 + 6 x 4 gaps
+   is 262 px inside a 280 px content box, so they fit without wrapping and
+   without any of them dropping under the 34 px this app calls a thumb. */
+.wf-f-days{display:flex;gap:4px}
+.wf-f-day{flex:1 1 0;min-width:0;min-height:34px;border-radius:8px;
+  border:1px solid var(--wf-edge-soft);background:rgba(255,255,255,.05);
+  color:var(--wf-dim);font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  padding:0}
+.wf-f-day.on{background:rgba(255,190,90,.2);border-color:rgba(255,190,90,.5);
+  color:#ffd9a0}
+.wf-f-times{display:flex;align-items:center;gap:7px}
+.wf-f-times .wf-f-in{flex:1 1 0;min-width:0}
+.wf-f-dash{color:var(--wf-dimmer);flex:none}
+.wf-f-acts{display:flex;gap:7px}
+.wf-f-go{flex:1 1 auto;min-height:var(--touch-min);border-radius:9px;border:none;
+  background:var(--wf-accent);color:#20160a;font:inherit;font-size:13px;
+  font-weight:700;cursor:pointer}
+.wf-f-go[disabled]{opacity:.4;cursor:default}
+.wf-f-keep{flex:0 0 auto;min-height:var(--touch-min);padding:0 12px;border-radius:9px;
+  border:1px solid var(--wf-edge-soft);background:rgba(255,255,255,.05);
+  color:var(--wf-ink);font:inherit;font-size:12px;cursor:pointer}
+.wf-f-keep:hover{background:var(--wf-hot)}
+
 @media(max-width:640px){
   /* Same slot the search sheet takes on a phone, and for the same reasons:
      above the drive controls, clear of the time-of-day panel on the right.
@@ -9046,8 +9242,25 @@
      and giving them the same height would push the walks off the screen. */
   .wf-d-walk{min-height:var(--touch-min)}
   .wf-d-walk .wf-d-body{padding:8px 0 10px}
+  /* THE SHEET TAKES THE DAY PANEL'S EXACT SLOT ON A PHONE. Two glass panels
+     at two different corners of a 390 px screen is the "which one am I looking
+     at" failure the photo route already had to fix once (see IMP.image's
+     hostSel note) — so this one lands where the panel it came from is, and the
+     panel behind it dims rather than moving. Its own max-height is the SHORTER
+     62vh even when no route is drawn: it is a form, it is about 300 px tall,
+     and giving it 78vh would just be empty glass. */
+  #wf-fix{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
+    top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);
+    width:auto;max-width:none;max-height:calc(78vh - var(--drive-clear));
+    border-radius:16px}
+  /* Same ceiling the day panel takes when a route is on the ground, for the
+     same reason: the answer bar owns the top of the screen and a taller sheet
+     slides underneath it. The pinned footer is what makes the shorter one
+     safe — the two answers stay on screen at either height. */
+  body.wf-routed #wf-fix{max-height:calc(62vh - var(--drive-clear))}
 }
 `.replace(/__PANELW__/g, String(WF_DAY.panelW))
+  .replace(/__FIXW__/g, String(WF_FIX.panelW))
   .replace(/__LISTVH__/g, String(WF_DAY.listMaxVh))
   .replace(/__RAILNEXTW__/g, String(WF_DAY.railW + 1))
   .replace(/__RAILNEXTH__/g, String((WF_DAY.railW + 1) / 2))
@@ -9232,6 +9445,33 @@
    * when the importer did not already separate them. An importer that knows
    * better (an API, say) sets `code` and `room` itself and this never runs.
    */
+  /**
+   * WHICH STORED CLASS A ROW ON SCREEN IS, and it is deliberately not an id.
+   *
+   * The two objects that have to agree are built by two different functions in
+   * two different sections: `impStoreDoc` writes the device's copy and
+   * `impEventFromPlaced` / `schedulePublished` build the one on screen. Their
+   * ids DO NOT MATCH — a live import publishes `row-3` while the store,
+   * numbering from `normaliseSchedule`, holds `c2` — so an id would have worked
+   * after a reload and silently failed in the session that did the import,
+   * which is the worse of the two ways round.
+   *
+   * The five fields below are what both copies genuinely share, and together
+   * they are what a MEETING is: this building, this room, these days, this
+   * hour. Two stored rows that agree on all five are the same meeting twice and
+   * a correction should land on both.
+   */
+  function schedKeyOf(c) {
+    if (!c) return null;
+    const code = c.code == null ? '' : String(c.code).toUpperCase();
+    const room = c.room == null ? '' : String(c.room).trim();
+    const days = (Array.isArray(c.days) ? c.days : []).slice().sort().join(',');
+    const a = c.startMin == null ? '' : String(c.startMin);
+    const b = c.endMin == null ? '' : String(c.endMin);
+    if (!code && !room) return null;
+    return [code, room, days, a, b].join('|');
+  }
+
   function dayNormalise(plan) {
     if (!plan || !plan.items) return null;
     const items = [];
@@ -9277,6 +9517,14 @@
         codeSource: src || 'given',
         codeConfidence: it.codeConfidence == null ? 1 : Number(it.codeConfidence),
         unplaced: false,
+        // WHAT THE CHECK-THIS-ONE SHEET NEEDS, and nothing else reads. `key`
+        // says which stored class this row is; `days` and `provenance` are what
+        // the sheet asks its question out of. All three ride through this
+        // function untouched — a caller that does not set them (every fixture)
+        // simply leaves the chip a label. See schedKeyOf and fixOpen.
+        key: it.key || null,
+        days: Array.isArray(it.days) ? it.days.slice() : [],
+        provenance: it.provenance || null,
       });
     }
     items.sort((x, y) => x.startMin - y.startMin);
@@ -9537,6 +9785,10 @@
   function dayHide() {
     if (dayEl) dayEl.panel.classList.add('hidden');
     if (dayBtn) dayBtn.classList.remove('on');
+    // The check-this-one sheet is a question ABOUT a row of this panel. A
+    // question outliving the thing it is about is the stacked-glass failure the
+    // photo route already had to fix once.
+    fixClose();
   }
   function dayShow() {
     dayBuildPanel();
@@ -9548,14 +9800,25 @@
     if (el && el.sheet) { el.sheet.classList.add('hidden'); el.btn.classList.remove('active'); }
   }
 
-  /** A chip: one problem, one line, its own severity. */
-  function dayChip(kind, text, sub) {
-    const c = h('div', 'wf-d-chip wf-d-' + kind);
+  /** A chip: one problem, one line, its own severity.
+   *
+   *  `onTap` makes it a BUTTON instead of a div, and nothing else changes —
+   *  same class, same children, same text, so the day plan's own gate (which
+   *  reads `.wf-d-chip` and its classList) sees exactly what it saw before.
+   *  Only one chip on this surface has ever had anything to do; see
+   *  `dayRenderClass` and WF_FIX. */
+  function dayChip(kind, text, sub, onTap) {
+    const c = onTap ? h('button', 'wf-d-chip wf-d-' + kind)
+      : h('div', 'wf-d-chip wf-d-' + kind);
     c.appendChild(icon('wf-d-chip-ic', kind === 'late' || kind === 'tight' ? IC_D.warn
       : (kind === 'stairs' || kind === 'stairsOnly' ? IC_D.stairs : IC_D.info), 2));
     const t = h('span', 'wf-d-chip-t', text);
     if (sub) { t.appendChild(h('span', 'wf-d-chip-s', ' · ' + sub)); }
     c.appendChild(t);
+    if (onTap) {
+      c.appendChild(icon('wf-d-chip-go', IC_D.arrowR, 2.4));
+      c.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); onTap(); });
+    }
     return c;
   }
 
@@ -9672,9 +9935,19 @@
     // this for it produced a literal `Read as "null" — check this one` on screen
     // next to a sentence that already said the true thing. Caught by looking at
     // the harness's own output, not by any gate.
+    //
+    // AND IT IS A CONTROL NOW, NOT A LABEL. It was a label for exactly as long
+    // as it took someone to ask what a student is supposed to DO about it: the
+    // answer was "delete the whole schedule and photograph it again", every day
+    // for the rest of the semester. `fixOpen` is the other half. It needs a
+    // `key` to write back through — the fixture path has none, and a fixture
+    // has nothing unchecked in it either, so the chip falls back to the label
+    // it was rather than opening a sheet that could not save.
     if (row.place.kind !== 'unplaced' && row.item.raw &&
         row.item.codeConfidence < WF_DAY.confidenceSure) {
-      body.appendChild(dayChip('info', SAY_D.lowConf(row.item.raw)));
+      const canFix = WF_FIX.on && !!row.item.key && !(dayPlan && dayPlan.example);
+      body.appendChild(dayChip('info', SAY_D.lowConf(row.item.raw), null,
+        canFix ? () => fixOpen(row.item) : null));
     }
     // WHY A BUILDING IS OUT OF REACH BELONGS TO THE CLASS ROW, ONCE. It is a
     // fact about the BUILDING, and a building appears on exactly one class row
@@ -10007,10 +10280,25 @@
       if (/^(api|registration-plus)/.test(id)) return 'api';
       return 'manual';
     }
+    // ...AND THE OBJECT FORM ASKS `kind` FIRST, because `kind` is a fixed
+    // vocabulary and `label` is a sentence. Caught on camera, not by any gate:
+    // after a reload the day view's footer read "From typed in" under a
+    // schedule that came from a PHOTOGRAPH. `schedulePublished` hands this
+    // function the store's own source record, and the three older sources
+    // survived that only by accident of their labels — "Google Calendar"
+    // happens to contain "google", "UT registration" happens to contain
+    // "registration". The photo route's label is "a photo of a schedule" and
+    // matched nothing, so it fell through to manual. Its `kind` is 'image-ocr',
+    // which the string branch above has always known how to read.
+    if (src && typeof src.kind === 'string') {
+      const k = daySourceOf(src.kind);
+      if (k !== 'manual') return k;
+    }
     const p = String((src && (src.producer || src.label)) || '').toLowerCase();
     if (/google/.test(p)) return 'google';
     if (/apple|mac os|ical\b|core ?data/.test(p)) return 'apple';
     if (/utexas|registration|ut ?registration/.test(p)) return 'ut';
+    if (/photo|picture|image/.test(p)) return 'image';
     if (src && src.kind === 'rows') return 'manual';
     return 'manual';
   }
@@ -10097,6 +10385,12 @@
         startMin: e.startMin, endMin: e.endMin, unique: e.unique || null,
         codeSource: 'schedule',
         codeConfidence: e.confidence == null ? 1 : Number(e.confidence),
+        // The three fields the check-this-one sheet reads. `days` is the WHOLE
+        // day list, not the one day being rendered — a correction is a
+        // correction to the meeting, not to today.
+        key: schedKeyOf(e),
+        days: days.slice(),
+        provenance: e.provenance || null,
       });
     }
     if (!items.length) return { ok: false, why: 'no-classes-that-day', day: DAY_NAMES[di] };
@@ -10204,6 +10498,296 @@
     const evs = s.events || s.routable || [];
     return evs.length ? s : null;
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  THE CHECK-THIS-ONE SHEET — see WF_FIX for why it asks what it asks
+  // ══════════════════════════════════════════════════════════════════════════
+  let fixEl = null;               // the sheet, built once
+  let fixState = null;            // { item, place, days, start, end }
+
+  const FIX_DAY_LONG = { MO: 'Mon', TU: 'Tue', WE: 'Wed', TH: 'Thu',
+    FR: 'Fri', SA: 'Sat', SU: 'Sun' };
+
+  /** "Mon Wed · 12:00pm–12:50pm" — the class's own identity, so the sheet
+   *  cannot be mistaken for a different class than the row that opened it. */
+  function fixWhenLine(item) {
+    const ds = (item.days || []).map(d => FIX_DAY_LONG[d] || d).join(' ');
+    const t = (item.startMin == null || item.endMin == null) ? ''
+      : dayFmtTime(item.startMin) + '–' + dayFmtTime(item.endMin);
+    return [ds, t].filter(Boolean).join(' · ');
+  }
+
+  /** Which of `js/schedconfirm.js`'s four field names this class left open.
+   *  An older record with no list at all is treated as "the building", which is
+   *  what the chip quotes and what the sheet always draws anyway. */
+  function fixOpenFields(item) {
+    const p = item && item.provenance;
+    const f = (p && Array.isArray(p.unconfirmedFields)) ? p.unconfirmedFields : [];
+    const set = {};
+    for (const k of f) if (WF_FIX.knows[k]) set[k] = true;
+    return set;
+  }
+
+  function fixBuild() {
+    if (fixEl) return fixEl;
+    dayEnsureCss();
+    buildUI();
+    const panel = h('div', 'hidden'); panel.id = 'wf-fix';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', SAY_FIX.title);
+    const head = h('div', null); head.id = 'wf-fix-head';
+    const hl = h('div', null, SAY_FIX.title); hl.id = 'wf-fix-title';
+    head.appendChild(hl);
+    const close = h('button', null); close.id = 'wf-fix-close';
+    close.setAttribute('aria-label', SAY_FIX.close);
+    close.appendChild(icon(null, IC.close, 2.1));
+    close.addEventListener('click', (ev) => { ev.stopPropagation(); fixClose(); });
+    head.appendChild(close);
+    panel.appendChild(head);
+    const body = h('div', null); body.id = 'wf-fix-body';
+    panel.appendChild(body);
+    // THE ANSWERS ARE A PINNED FOOTER, not the last thing in the scroller. See
+    // #wf-fix-foot in DAY_CSS: with them inside the body, a phone with a route
+    // drawn put "Save this" below the sheet's own bottom edge.
+    const foot = h('div', null); foot.id = 'wf-fix-foot';
+    panel.appendChild(foot);
+    el.root.appendChild(panel);
+    fixEl = { panel, body, foot };
+    return fixEl;
+  }
+
+  function fixClose() {
+    if (!fixEl) return;
+    fixEl.panel.classList.add('hidden');
+    document.body.classList.remove('wf-fixing');
+    fixState = null;
+  }
+
+  /**
+   * THE SHEET. Built fresh each open rather than diffed: it is at most eight
+   * controls, it is open for one question, and a form that rebuilds cannot
+   * carry a previous class's answer into this one — which on a surface whose
+   * entire job is "do not put the wrong room in front of a student" is the
+   * failure mode worth spending a DOM rebuild to make impossible.
+   */
+  function fixOpen(item) {
+    if (!WF_FIX.on || !item || !item.key) return;
+    const f = fixBuild();
+    const open = fixOpenFields(item);
+    fixState = {
+      item: item,
+      // The reading, verbatim, as the thing to edit rather than as a caption.
+      // `raw` is what the day view just quoted in the chip, so the field the
+      // student lands on already holds the words they tapped.
+      place: String(item.raw || (item.code ? (item.room ? item.code + ' ' + item.room : item.code) : '')),
+      days: (item.days || []).slice(),
+      start: item.startMin, end: item.endMin,
+      askDays: !!open.day, askTime: !!open.time,
+    };
+    const b = f.body;
+    b.textContent = '';
+    f.foot.textContent = '';
+
+    b.appendChild(h('div', 'wf-f-course', item.course || item.label || item.code || ''));
+    const when = fixWhenLine(item);
+    if (when) b.appendChild(h('div', 'wf-f-when', when));
+
+    const why = (item.provenance && item.provenance.why) || SAY_FIX.whyFallback;
+    b.appendChild(h('div', 'wf-f-why', String(why)));
+    b.appendChild(h('div', 'wf-f-nopic', SAY_FIX.noPicture));
+
+    // ── where ────────────────────────────────────────────────────────────
+    b.appendChild(h('div', 'wf-f-lab', SAY_FIX.placeLabel));
+    const inp = h('input', 'wf-f-in'); inp.id = 'wf-fix-place';
+    inp.type = 'text';
+    inp.value = fixState.place;
+    inp.placeholder = SAY_FIX.placeHint;
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('autocapitalize', 'characters');
+    inp.setAttribute('spellcheck', 'false');
+    b.appendChild(inp);
+    const say = h('div', 'wf-f-say dim'); say.id = 'wf-fix-say';
+    b.appendChild(say);
+    const sugg = h('div', 'wf-f-sugg'); sugg.id = 'wf-fix-sugg';
+    b.appendChild(sugg);
+
+    // ── which days ───────────────────────────────────────────────────────
+    if (fixState.askDays) {
+      b.appendChild(h('div', 'wf-f-lab', SAY_FIX.daysLabel));
+      const wrap = h('div', 'wf-f-days'); wrap.id = 'wf-fix-days';
+      for (const d of WF_FIX.days) {
+        const btn = h('button', 'wf-f-day', d.s);
+        btn.setAttribute('aria-label', FIX_DAY_LONG[d.id] || d.id);
+        btn.setAttribute('data-day', d.id);
+        if (fixState.days.indexOf(d.id) >= 0) btn.classList.add('on');
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const i = fixState.days.indexOf(d.id);
+          if (i >= 0) fixState.days.splice(i, 1); else fixState.days.push(d.id);
+          btn.classList.toggle('on');
+          fixSayNow();
+        });
+        wrap.appendChild(btn);
+      }
+      b.appendChild(wrap);
+    }
+
+    // ── what time ────────────────────────────────────────────────────────
+    if (fixState.askTime) {
+      b.appendChild(h('div', 'wf-f-lab', SAY_FIX.timeLabel));
+      const row = h('div', 'wf-f-times');
+      const t1 = h('input', 'wf-f-in'); t1.id = 'wf-fix-start'; t1.type = 'time';
+      t1.value = impHmOf(fixState.start) || '';
+      const t2 = h('input', 'wf-f-in'); t2.id = 'wf-fix-end'; t2.type = 'time';
+      t2.value = impHmOf(fixState.end) || '';
+      t1.addEventListener('input', () => { fixState.start = impMinOf(t1.value); fixSayNow(); });
+      t2.addEventListener('input', () => { fixState.end = impMinOf(t2.value); fixSayNow(); });
+      row.appendChild(t1);
+      row.appendChild(h('span', 'wf-f-dash', '–'));
+      row.appendChild(t2);
+      b.appendChild(row);
+    }
+
+    // ── the two answers ──────────────────────────────────────────────────
+    const acts = h('div', 'wf-f-acts');
+    const go = h('button', 'wf-f-go', SAY_FIX.save); go.id = 'wf-fix-save';
+    go.addEventListener('click', (ev) => { ev.preventDefault(); fixSubmit(false); });
+    const keep = h('button', 'wf-f-keep', SAY_FIX.keep); keep.id = 'wf-fix-keep';
+    keep.addEventListener('click', (ev) => { ev.preventDefault(); fixSubmit(true); });
+    acts.appendChild(go);
+    acts.appendChild(keep);
+    f.foot.appendChild(acts);
+
+    inp.addEventListener('input', () => { fixState.place = inp.value; fixSayNow(); });
+    inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') fixSubmit(false); });
+
+    f.panel.classList.remove('hidden');
+    document.body.classList.add('wf-fixing');
+    fixSayNow();
+    return f;
+  }
+
+  /**
+   * WHAT THE APP THINKS THE TYPED CODE IS, live, under the field — and this is
+   * the whole reason this sheet is worth more than a text box. The student
+   * types `PAI` and reads `Painter Hall` back before they commit; they type
+   * `PA1` and read that nothing by that name is on this map. The app already
+   * owns every UT building code and its own type-ahead, and this is the one
+   * question where bringing them to the student is the difference between a
+   * guess and an answer.
+   */
+  function fixSayNow() {
+    if (!fixState || !fixEl) return;
+    const say = document.getElementById('wf-fix-say');
+    const sugg = document.getElementById('wf-fix-sugg');
+    const go = document.getElementById('wf-fix-save');
+    if (!say || !sugg) return;
+    sugg.textContent = '';
+    const { code } = impCodeOf(fixState.place);
+    say.className = 'wf-f-say dim';
+    if (!String(fixState.place || '').trim()) {
+      say.textContent = SAY_FIX.empty;
+      if (go) go.disabled = true;
+      return;
+    }
+    if (go) go.disabled = false;
+    let off = null;
+    try { off = (code && window.wayfindOffMap) ? window.wayfindOffMap(code) : null; } catch (e) { off = null; }
+    let hit = null;
+    try {
+      const r = code && window.wayfindSearch ? window.wayfindSearch(code) : [];
+      hit = r.find(x => x.code === code) || null;
+    } catch (e) { hit = null; }
+    if (off) {
+      say.className = 'wf-f-say bad';
+      say.textContent = SAY_FIX.resolvedOff(off.name || code);
+    } else if (hit) {
+      say.className = 'wf-f-say ok';
+      say.textContent = SAY_FIX.resolved(hit.name || hit.display || code);
+    } else {
+      say.className = 'wf-f-say bad';
+      say.textContent = SAY_FIX.unknown;
+    }
+    // THE NEAR MISSES, offered and never substituted — the same rule
+    // `dayPlace()` follows for a code it could not resolve. A tap fills the
+    // field; nothing here ever changes the field on its own.
+    if (!hit && !off) {
+      let near = [];
+      try { near = (window.wayfindSearch ? window.wayfindSearch(fixState.place) : []).slice(0, WF_FIX.suggestMax); }
+      catch (e) { near = []; }
+      for (const n of near) {
+        if (!n || !n.code) continue;
+        const btn = h('button', 'wf-f-sugg-b');
+        btn.appendChild(h('span', 'wf-f-sugg-c', n.code));
+        if (n.name) btn.appendChild(h('span', 'wf-f-sugg-n', n.name));
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const room = impCodeOf(fixState.place).room;
+          const inp = document.getElementById('wf-fix-place');
+          fixState.place = room ? n.code + ' ' + room : n.code;
+          if (inp) inp.value = fixState.place;
+          fixSayNow();
+        });
+        sugg.appendChild(btn);
+      }
+    }
+  }
+
+  /**
+   * THE ANSWER GOES TO THE DEVICE, AND THE DEVICE TELLS EVERY SURFACE.
+   *
+   * `keepAsRead` is the second button: it settles the doubt without changing a
+   * field. It is not a cancel — closing the sheet is the cancel — and it is the
+   * commonest true answer, because most of what this reader is unsure about it
+   * read correctly anyway.
+   */
+  async function fixSubmit(keepAsRead) {
+    if (!fixState) return null;
+    const it = fixState.item;
+    const patch = {};
+    if (!keepAsRead) {
+      const { code, room } = impCodeOf(fixState.place);
+      // A field the student emptied is not an instruction to erase the
+      // building; it is a slip. Nothing is written from an empty box.
+      if (code) { patch.code = code; patch.room = room; }
+      if (fixState.askDays && fixState.days.length) patch.days = fixState.days.slice();
+      if (fixState.askTime && Number.isFinite(fixState.start) &&
+          Number.isFinite(fixState.end) && fixState.end > fixState.start) {
+        patch.startMin = fixState.start; patch.endMin = fixState.end;
+      }
+    }
+    // The router has to be able to answer before the correction is placed
+    // against it — the same race `impFinish` documents, and `loadGraph`
+    // memoises, so on an open day panel this is already free.
+    try { await loadGraph(); } catch (e) {}
+    // WHICH DAY THE STUDENT IS LOOKING AT, captured before the publish nulls
+    // the plan. The `wayfind:schedule` listener re-renders TODAY, which is
+    // right for an import and wrong here: somebody correcting Thursday's class
+    // on a Monday should still be looking at Thursday afterwards.
+    const wasDay = (dayPlan && dayPlan.day) || null;
+    let out = null;
+    try {
+      out = (window.WAYFIND && WAYFIND.store && WAYFIND.store.correct)
+        ? WAYFIND.store.correct(it.key, patch) : null;
+    } catch (e) { out = { ok: false, why: 'threw' }; }
+    fixClose();
+    if (out && out.ok) {
+      const s = window.wayfindSchedule;
+      if (s) { try { await window.wayfindDayFromSchedule(s, wasDay ? { day: wasDay } : {}); } catch (e) {} }
+    }
+    return out;
+  }
+
+  // The sheet, for the gate and for anything added later — the same seam the
+  // import screen publishes for the same reason.
+  window.wayfindFixOpen = fixOpen;
+  window.wayfindFixClose = fixClose;
+  window.wayfindFixSubmit = fixSubmit;
+  window.wayfindFixState = () => fixState ? {
+    key: fixState.item.key, place: fixState.place, days: fixState.days.slice(),
+    start: fixState.start, end: fixState.end,
+    askDays: fixState.askDays, askTime: fixState.askTime,
+  } : null;
 
   function dayBoot() {
     const map = window.__map;
@@ -11726,6 +12310,28 @@
       // What the picker will offer. `image/*` and not a list of extensions,
       // because a phone camera roll is not a filesystem and HEIC exists.
       accept: 'image/*',
+      // ── HEIC, AND WHY IT GETS ITS OWN THREE LINES ──────────────────────
+      // HEIC has been the DEFAULT camera format on every iPhone since 2017, so
+      // "pick a photo of your timetable" on an iPhone means "hand this app a
+      // HEIC" for a very large share of the people this feature is for. Safari
+      // decodes it (the system has a decoder); Chrome and Firefox do not, and
+      // `createImageBitmap` simply rejects. Until this block existed that
+      // rejection surfaced eight seconds and five megabytes later as the
+      // generic "That picture could not be read on this device" — a sentence
+      // that blames the student's photograph for a format the browser never
+      // supported, and gives them nothing to do about it.
+      //
+      // So it is SNIFFED FIRST, and only for a file that really is HEIC is a
+      // decode attempted up front. A JPEG pays one 32-byte read; a HEIC on
+      // Safari decodes and carries on exactly as before; a HEIC anywhere else
+      // is refused BEFORE the ~5 MB engine is fetched, with a sentence that
+      // names the format and gives the one-tap way round it.
+      sniffBytes: 32,
+      // ISO-BMFF brands that mean "this is HEIF/HEIC". Bytes 4..8 are 'ftyp'
+      // and 8..12 are the major brand. `mif1`/`msf1` are the generic HEIF
+      // brands an iPhone also writes.
+      heicBrands: ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm',
+        'hevs', 'mif1', 'msf1'],
       // A CEILING ON THE FILE, because the whole thing is decoded into a
       // canvas on the student's own phone and a 60 MP panorama is not a
       // schedule. 24 MB is comfortably over a modern phone screenshot (~1 MB)
@@ -11981,6 +12587,13 @@
     errImgBig: (mb) => 'That picture is ' + mb + ' MB. Take a screenshot instead, ' +
       'or choose a smaller one.',
     errImgRead: 'That picture could not be read on this device.',
+    // THE ONE FAILURE THAT IS NOT ABOUT THE PICTURE AT ALL. It names the
+    // format, says whose fault it is, and gives the way round it — and the way
+    // round it is one gesture the student already knows, on the device they are
+    // already holding, which is why it beats "convert it to JPEG first".
+    errImgHeic: 'That is an iPhone HEIC photo, and this browser has no reader ' +
+      'for that format. Take a screenshot of your schedule and choose that ' +
+      'instead — a screenshot is always a format this can read.',
     // THE FAILURE THAT IS NOT A FAILURE OF THE FILE. Every reading was refused
     // or left out, which is what SHOULD happen to a blurred photograph — and
     // saying "nothing imported" without saying why would send a student back
@@ -12301,6 +12914,13 @@
       tz: IMP.tz, status: p.status === 'ok' ? 'ok' : 'failed',
       problems: Array.isArray(r.problems) ? r.problems.slice() : [],
       confidence: r.confidence == null ? 1 : Number(r.confidence),
+      // ...AND `provenance` RIDES WITH IT, for the same reason `confidence`
+      // does. `confidence` is what makes the day view MARK a class nobody
+      // checked; `provenance` is the only thing that makes the mark answerable,
+      // because it holds which fields were left open and the app's own sentence
+      // about why. Published here as well as stored, so the sheet works in the
+      // session that did the import and not only after a reload.
+      provenance: r.provenance || null,
       unique: r.unique || null,
     };
   }
@@ -13218,15 +13838,55 @@
    *    whole bitmap goes into a canvas on the student's own phone and a 60 MP
    *    panorama is a tab crash, not a schedule.
    */
-  function impFromImage(f) {
-    if (impState.busy) return;
+  /**
+   * IS THIS AN ISO-BMFF HEIF/HEIC? Read from the BYTES, not from `f.type` and
+   * not from the name: a phone picker hands over files with an empty type
+   * routinely, and `.HEIC` is only the extension if the student never renamed
+   * it. 32 bytes off the front of a Blob costs nothing measurable.
+   *
+   * Returns false rather than throwing on any browser that will not give us the
+   * bytes — an unsniffable file goes down the ordinary path, which is exactly
+   * how it behaved before this existed.
+   */
+  async function impLooksHeic(f) {
+    try {
+      const buf = await f.slice(0, IMP.image.sniffBytes).arrayBuffer();
+      const b = new Uint8Array(buf);
+      if (b.length < 12) return false;
+      const at = (i, n) => String.fromCharCode.apply(null, b.subarray(i, i + n));
+      if (at(4, 4) !== 'ftyp') return false;
+      return IMP.image.heicBrands.indexOf(at(8, 4).toLowerCase()) >= 0;
+    } catch (e) { return false; }
+  }
+
+  /** Can THIS browser turn THIS file into pixels? The same call
+   *  `js/schedimg.js` makes on the far side of a 5 MB download, asked here
+   *  where the answer is still cheap and still actionable. */
+  async function impCanDecode(f) {
+    try {
+      if (typeof createImageBitmap !== 'function') return true;
+      const bm = await createImageBitmap(f);
+      if (bm && bm.close) bm.close();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  async function impFromImage(f) {
+    if (impState.busy) return null;
     impState.err = null;
     if (f.type && !/^image\//i.test(f.type)) {
-      impState.err = SAY_IMP.errNotImage; impRender(); return;
+      impState.err = SAY_IMP.errNotImage; impRender(); return null;
     }
     if (f.size && f.size > IMP.image.maxBytes) {
       impState.err = SAY_IMP.errImgBig(Math.round(f.size / 1048576));
-      impRender(); return;
+      impRender(); return null;
+    }
+    // THE FORMAT GATE, AND IT ONLY RUNS FOR THE FORMAT IT IS ABOUT. See
+    // IMP.image.heicBrands: a HEIC that this browser cannot decode is the
+    // single likeliest total failure of this feature on a real iPhone, and
+    // before this it arrived as the generic read error five megabytes later.
+    if (await impLooksHeic(f) && !(await impCanDecode(f))) {
+      impState.err = SAY_IMP.errImgHeic; impRender(); return null;
     }
     impState.busy = true; impState.busyNote = SAY_IMP.imgLoading; impRender();
     return impFinishImage(f);
@@ -15199,6 +15859,12 @@
         tz: d.tz || SCHEDULE.tz,
         status: c.unroutableWhy ? 'failed' : 'ok',
         problems: [], confidence: c.confidence == null ? 1 : c.confidence,
+        // REPUBLISHED, not just stored. `confidence` already came back after a
+        // reload, which is what kept the "check this one" mark alive across
+        // sessions — but the mark alone is a dead end. `provenance` is what the
+        // check-this-one sheet reconstructs its question from, so it has to
+        // make the same trip.
+        provenance: c.provenance || null,
       };
     });
     return {
@@ -15207,6 +15873,103 @@
       source: (d.sources && d.sources[0] && d.sources[0].kind) || 'manual',
       events: events,
     };
+  }
+
+  /**
+   * ONE CLASS, ANSWERED BY THE STUDENT -> the device, and then every surface.
+   *
+   * THIS IS THE END OF THE "CHECK THIS ONE" ROAD, and until this existed there
+   * was no end to it. The day view could mark a class the reader was unsure of
+   * and the only way to resolve the mark was Delete-everything-and-re-photo, so
+   * the mark was permanent for anyone who did not want to redo their whole
+   * import. The mark now has an answer, and the answer lands here.
+   *
+   * IT IS NOT A SECOND PIPELINE, AND THE THREE LINES THAT MATTER SAY SO:
+   * the corrected row is re-placed by `impPlace` — the same function a Google
+   * export's rows go through — then `scheduleSave`, then the same
+   * `window.wayfindSchedule` + `wayfind:schedule` publish `impUse` does. Nothing
+   * downstream can tell whether a class was placed by an import or by this.
+   *
+   * WHY IT REPUBLISHES BY HAND. `scheduleSave` fires the store's own listeners,
+   * and `scheduleSyncPublished` deliberately refuses to overwrite a live
+   * import ("A LIVE IMPORT WINS", below) — which is right for a save and wrong
+   * for an edit, because after an edit the DEVICE is the newer copy. So this
+   * publishes explicitly rather than loosening that rule for everybody.
+   *
+   * `patch` may carry `code`, `room`, `days`, `startMin`, `endMin`. An empty
+   * patch is the "it was right" answer: nothing changes except that the doubt
+   * is closed, which is a real answer and the commonest one.
+   */
+  function scheduleCorrectClass(key, patch) {
+    const d = scheduleLoad();
+    if (!d || d.tooNew || !Array.isArray(d.classes) || !d.classes.length) {
+      return { ok: false, why: 'nothing-stored' };
+    }
+    if (!key) return { ok: false, why: 'no-key' };
+    const p = patch || {};
+    let hit = 0, status = null;
+    const classes = d.classes.map((c) => {
+      // EVERY row that IS this meeting, not the first one. Two stored rows
+      // agreeing on building, room, days and both times are the same meeting
+      // written twice, and correcting one of them would leave the day view
+      // showing the answer and the question side by side.
+      if (schedKeyOf(c) !== key) return c;
+      hit++;
+      const was = c.code ? (c.room ? c.code + ' ' + c.room : c.code) : null;
+      const n = Object.assign({}, c);
+      if (p.code !== undefined) n.code = p.code ? String(p.code).toUpperCase() : null;
+      if (p.room !== undefined) n.room = p.room == null ? null : String(p.room);
+      if (Array.isArray(p.days) && p.days.length) n.days = p.days.slice();
+      if (Number.isFinite(p.startMin)) n.startMin = p.startMin;
+      if (Number.isFinite(p.endMin)) n.endMin = p.endMin;
+      // RE-ASKED OF THE ROUTER, NOT ASSUMED. A student who corrects MER to GDC
+      // has just made an unroutable class routable, and a student who corrects
+      // GDC to MER has done the opposite; leaving `unroutableWhy` alone would
+      // have the day view explaining last week's building.
+      const now = c.code ? (n.code ? (n.room ? n.code + ' ' + n.room : n.code) : '') : '';
+      let placed = null;
+      try {
+        placed = impPlace({
+          title: n.title || '', location: now, days: n.days || [],
+          startMin: n.startMin, endMin: n.endMin, raw: now,
+        });
+      } catch (e) { placed = null; }
+      if (placed) {
+        status = placed.status;
+        n.unroutableWhy = placed.status === 'ok' ? null : placed.status;
+      }
+      // BOTH ANSWERS CLOSE THE DOUBT. `WF_DAY.confidenceSure` is what the day
+      // view compares against, so this number is what makes the mark go away —
+      // and it goes away because a person looked at it, which is the only
+      // thing that was ever going to settle a reading of a photograph.
+      n.confidence = WF_FIX.confirmedConfidence;
+      n.provenance = Object.assign({}, c.provenance || { read: 'photo' }, {
+        confirmed: true,
+        confirmedBy: 'student',
+        unconfirmedFields: [],
+        why: null,
+        // WHAT THE PICTURE HAD SAID, kept only when the student actually
+        // changed it. It is the one fact this record could not reconstruct
+        // afterwards, it is the same class of data as everything else in this
+        // store (on this device, never sent), and `null` on an unchanged row
+        // keeps "I confirmed it" and "I corrected it" from reading alike.
+        correctedFrom: (was && now && was !== now) ? was : null,
+      });
+      return n;
+    });
+    if (!hit) return { ok: false, why: 'no-such-class' };
+    const saved = scheduleSave({
+      classes, tz: d.tz, term: d.term, sources: d.sources,
+    });
+    if (!saved.ok) return Object.assign({ hit: hit }, saved);
+    // ...and the same three names an import publishes on, in the same order.
+    const fresh = scheduleLoad();
+    window.wayfindSchedule = schedulePublished(fresh);
+    try {
+      window.dispatchEvent(new CustomEvent('wayfind:schedule',
+        { detail: window.wayfindSchedule }));
+    } catch (e) {}
+    return { ok: true, hit: hit, status: status, classes: saved.classes };
   }
 
   /**
@@ -15346,6 +16109,12 @@
     normalise: normaliseSchedule,
     save: scheduleSave,
     load: scheduleLoad,
+    // THE ONE-CLASS ANSWER. The check-this-one sheet calls it; it is on the
+    // public seam for the same reason `save` is — so a gate can drive it
+    // without reaching into this section, and so the next surface that needs to
+    // correct a class does not write a second one.
+    correct: scheduleCorrectClass,
+    keyOf: schedKeyOf,
     has: () => { const d = scheduleLoad(); return !!(d && !d.tooNew && d.classes && d.classes.length); },
     clear: scheduleClear,
     clearAsync: scheduleClearAsync,

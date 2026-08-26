@@ -1,5 +1,79 @@
 # Austin 3D Explorer — Full Handoff
 
+## 190. Aug 25 2026 — the mark has an answer (acer lane, branch `acer/img-integrate`)
+
+`js/wayfind.js` (+~300 lines), `scripts/verify/img-import.mjs` (+~250),
+`docs/img-integrate.md`, two new frames in `shots/img-integrate/`.
+**`WAYFIND.on` is still literally `false` and is not in the diff.**
+
+Round 189 shipped the "check this one" mark on the day view and left the tap
+open, calling it "the next thing here". That understated it. **A chip that names
+a doubt and cannot settle it is a trap, not an unfinished feature.** The only way
+to resolve *Read as "PAI 3.02" - check this one* was to delete the whole schedule
+and photograph it again, so a student who saw that chip in August saw the
+identical unresolved chip every day until December.
+
+**The chip is a button now, and it opens a sheet that can answer.**
+
+**It could not re-mount `js/schedconfirm.js`, and that turned out to be the
+point.** That screen asks *is this what the PICTURE says* and answers it by
+cropping the picture; `review()` needs a `cls.ev` with a page and a box, and none
+of that survives - deliberately, because storing a photograph of a student's
+timetable until December is the thing the privacy rule forbids. So the question
+changes, for the better: not *did we read your picture right*, which only the
+picture can settle, but *where is this class, actually*, which a student can
+answer from memory on a bus. The app brings every UT building code, its own
+type-ahead and its own router to that question - type `PAI` and it says
+`T. S. Painter Hall` under the field before anything is saved.
+
+**No second path.** `scheduleCorrectClass()` re-places the corrected row through
+`impPlace` - the same placement a Google export runs through, so a class
+corrected off Pickle stops being off-map - then does the same three things
+`impUse()` does, in the same order: `store.save()`, `window.wayfindSchedule`,
+`wayfind:schedule`. It republishes explicitly because `scheduleSyncPublished()`
+refuses to overwrite a live import ("A LIVE IMPORT WINS"), which is right for a
+save and wrong for an edit.
+
+**Two answers, and they read differently on disk.** "Save this" stores the
+correction plus `provenance.correctedFrom: "PAI 3.02"` - what the picture had
+said, the one fact nothing could reconstruct later. "It was right" stores
+`confidence: 1` with `correctedFrom: null`. Closing the sheet is the cancel.
+
+**Two defects the FRAME caught that no assertion did.**
+
+1. The first cut put `Save this` 40 px below the sheet's own bottom edge on a
+   390x844 phone with a route drawn. Every control was in the DOM and the panel
+   height assertion passed. The actions are a pinned footer now, and the gate
+   asserts the button's rect is inside the window - not that it exists.
+2. The day view's footer under a **restored** photo schedule read
+   **"From typed in"**. `daySourceOf()` has a string branch and an object branch,
+   and only the string branch knew about photographs; the three older sources
+   survived the object branch by accident of their labels ("Google Calendar"
+   contains "google"). Every student who reloaded the page saw it. `kind` is
+   asked first now.
+
+**HEIC.** The default iPhone camera format since 2017 had never been tried, and
+on Chrome/Firefox it arrived as the generic "That picture could not be read on
+this device" seconds and ~5 MB late. `IMP.image.heicBrands` sniffs the ISO-BMFF
+brand out of the first 32 bytes - the bytes, not `f.type`, not the filename - and
+only a real HEIC pays for a decode attempt. Refused in 271 ms with a sentence
+that names the format and says to take a screenshot instead, before the engine is
+fetched. A JPEG pays one 32-byte read.
+
+**Numbers, all re-run on this tree.** `img-import.mjs` **67 passed, 0 failed**
+(was 43; sections 8 and 10 are new). `si-integration.mjs` **50 passed, 0 failed**.
+`dayview.mjs` **100 ok, 2 failed** - the documented baseline. `image-bench.mjs`
+through the shipped screen: **131/171 skipping every question, 134/171 answering,
+100.0% precision, 0 hallucinations on both** - every by-image line identical to
+189, against a bar of 36.
+
+**Still weak.** The sheet corrects a class the import KEPT; it cannot rescue one
+`applyGroup()` dropped, because a dropped reading has no stored row and no chip.
+The three meetings between 131 and 134 are exactly that population.
+`provenance.correctedFrom` is stored and no surface prints it. The HEIC gate runs
+on a synthetic ISO-BMFF header in a browser that genuinely has no decoder, but a
+real iPhone file has still never been through it.
+
 ## 189. Aug 25 2026 — a photograph is the fourth tab (acer lane, branch `acer/img-integrate`)
 
 `js/wayfind.js` (+471 lines, one file), `scripts/verify/img-import.mjs`,

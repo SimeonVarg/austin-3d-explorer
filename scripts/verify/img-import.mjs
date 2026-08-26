@@ -9,7 +9,7 @@
  * answer the only question this piece is about: **does a photograph end up in
  * the same place a calendar file ends up?**
  *
- * SEVEN THINGS, and each is a seam rather than a feature.
+ * TEN THINGS, and each is a seam rather than a feature.
  *
  *  1. THE SHEET STILL HAS ONE DOOR. `WF_DOOR.mode === 'one'` was a decision
  *     Simeon made on 2026-08-25 and the sheet fits a 390x844 phone with 2 px to
@@ -30,7 +30,15 @@
  *     is captured — context-level, so the OCR worker's own fetches are in scope
  *     — and cross-checked against a raw TCP sink. Then both instruments are
  *     proved not blind with a canary through `fetch` and through a real Worker.
- *  7. DELETE STILL MEANS GONE, for a schedule that came from a photograph.
+ *  7. A RELOAD KEEPS IT, including which fields were never checked.
+ *  8. THE MARK IS A CONTROL. A class the reader was unsure of can be answered —
+ *     corrected, or confirmed as read — from the day view, on a schedule that
+ *     came off disk, without re-photographing anything. Before this the chip
+ *     was a dead end: delete the whole schedule or live with it forever.
+ *  9. DELETE STILL MEANS GONE, for a schedule that came from a photograph.
+ * 10. A HEIC FAILS AS A FORMAT. The default iPhone camera format gets a
+ *     sentence about the format, before the ~5 MB reader is fetched — not the
+ *     generic "that picture could not be read" it used to get.
  *
  * Exit: 0 all gates passed, 1 a gate failed.
  */
@@ -495,6 +503,225 @@ ok(day.unchecked === 0 || (back.prov && back.prov.unconfirmedFields.length > 0),
   back.prov ? JSON.stringify(back.prov.unconfirmedFields) + ' — "' +
     String(back.prov.why).slice(0, 60) + '"' : 'nothing to remember');
 
+// ════════════════════════════════════════════════════════════════════════════
+head('8. the mark is a CONTROL — one class corrected, without redoing the import');
+// THE GAP THIS CLOSES. Until this section existed, `check this one` was a
+// label: the app correctly identified its own uncertainty and then offered no
+// way at all to settle it. The only route back was Delete-everything-and-
+// re-photograph, so a student who saw the chip on day one saw the identical
+// unresolved chip every day for the rest of the semester.
+//
+// IT IS TESTED HERE, AFTER THE RELOAD, ON PURPOSE. Correcting a class in the
+// session that imported it is the easy half; the case that matters is the one
+// the student actually lives in — the schedule came off disk, the import screen
+// is long gone, and the picture was never kept.
+await page.waitForFunction(() => {
+  const v = document.getElementById('veil');
+  return !v || v.classList.contains('gone') || getComputedStyle(v).opacity === '0';
+}, null, { timeout: 180000 }).catch(() => {});
+const fixDay = await page.evaluate(async () => {
+  const s = window.wayfindSchedule;
+  const un = s.events.filter(e => e.confidence < 1);
+  const d = (un[0] && un[0].days[0]) || (s.events[0] && s.events[0].days[0]);
+  await window.wayfindDayFromSchedule(s, { day: d });
+  const p = document.getElementById('wf-day');
+  const chips = [...p.querySelectorAll('.wf-d-chip')]
+    .map(c => ({ tag: c.tagName, text: c.innerText.trim() }));
+  const f = document.getElementById('wf-day-foot');
+  return { day: d, unchecked: un.length, foot: f ? f.innerText.trim() : '',
+    tappable: chips.filter(c => c.tag === 'BUTTON').length, chips };
+});
+await page.waitForTimeout(300);
+note('day ' + fixDay.day + ': ' + fixDay.unchecked + ' unchecked, ' +
+  fixDay.tappable + ' tappable chip(s)');
+// CAUGHT ON CAMERA, NOT BY A GATE, AND NOT ON THIS SESSION'S PATH. §5 reads
+// this footer off the LIVE import object and it said "From a photo of a
+// schedule"; the RESTORED object goes through daySourceOf's other branch and
+// said "From typed in" — under a schedule that came from a photograph, for
+// every student who ever reloaded the page. See daySourceOf.
+ok(/photo/i.test(fixDay.foot),
+  'a RESTORED photo schedule still says where it came from',
+  fixDay.foot || '(no footer)');
+ok(back.unchecked === 0 || fixDay.tappable > 0,
+  'the "check this one" chip is a BUTTON, not a label',
+  (fixDay.chips.find(c => c.tag === 'BUTTON') || {}).text || '(none on this day)');
+
+const fixSheet = back.unchecked === 0 ? null : await page.evaluate(() => {
+  const b = [...document.querySelectorAll('#wf-day button.wf-d-chip')][0];
+  if (!b) return null;
+  // WHAT THE CHIP SAID, before it opens anything. The whole promise of this
+  // sheet is that it is about the row the student tapped, so the quoted
+  // reading and the field's contents have to be the same string.
+  const q = /[“"]([^”"]+)[”"]/.exec(b.innerText || '');
+  b.click();
+  const f = document.getElementById('wf-fix');
+  const r = f ? f.getBoundingClientRect() : null;
+  const st = window.wayfindFixState();
+  const stored = (WAYFIND.store.load().classes || [])
+    .find(c => WAYFIND.store.keyOf(c) === (st && st.key)) || null;
+  return {
+    up: !!f && !f.classList.contains('hidden'),
+    text: f ? f.innerText : '',
+    quoted: q ? q[1] : null,
+    prefill: (document.getElementById('wf-fix-place') || {}).value || '',
+    say: (document.getElementById('wf-fix-say') || {}).textContent || '',
+    state: st,
+    open: stored && stored.provenance ? (stored.provenance.unconfirmedFields || []) : [],
+    dayBtns: document.querySelectorAll('#wf-fix-days .wf-f-day').length,
+    top: r ? Math.round(r.top) : null, bottom: r ? Math.round(r.bottom) : null,
+    win: innerHeight,
+    // WHERE THE PRIMARY ANSWER ACTUALLY IS, in the frame — not whether it is in
+    // the DOM. The first cut of this sheet put "Save this" 40 px below the
+    // sheet's own bottom edge on a phone with a route drawn: every assertion
+    // about the panel passed and the button was not on screen.
+    save: (() => {
+      const s = document.getElementById('wf-fix-save');
+      if (!s) return null;
+      const b = s.getBoundingClientRect();
+      return { top: Math.round(b.top), bottom: Math.round(b.bottom),
+        h: Math.round(b.height) };
+    })(),
+  };
+});
+if (fixSheet) {
+  note('sheet: ' + fixSheet.text.split('\n').filter(Boolean).slice(0, 5).join(' | '));
+  ok(fixSheet.up, 'tapping it opens a sheet that can answer the question');
+  ok(!!fixSheet.state && !!fixSheet.state.key,
+    'and the sheet knows WHICH stored class it is about', String(fixSheet.state && fixSheet.state.key));
+  // THE QUESTION IS RECONSTRUCTED FROM WHAT THE DEVICE KEPT, which is the only
+  // thing that could survive: the picture was deliberately never stored.
+  ok(fixSheet.prefill.length > 0 && fixSheet.prefill === fixSheet.quoted,
+    'the reading the chip quoted is what the field holds, ready to be edited',
+    JSON.stringify(fixSheet.quoted) + ' -> ' + JSON.stringify(fixSheet.prefill));
+  // ...AND THE SHEET ASKS ABOUT WHAT WAS ACTUALLY LEFT OPEN, which is the one
+  // thing `provenance.unconfirmedFields` was stored for. A doubt about the DAY
+  // that opened a sheet with no day control would be the same dead end in a
+  // nicer wrapper.
+  ok(fixSheet.open.indexOf('day') < 0 || fixSheet.dayBtns > 0,
+    'the field the reader was actually unsure of is the field it asks about',
+    JSON.stringify(fixSheet.open) + ' -> ' + fixSheet.dayBtns + ' day controls');
+  ok(/never kept|photo/i.test(fixSheet.text),
+    'it says the photo was not kept rather than pretending it could show it');
+  ok(fixSheet.bottom == null || fixSheet.bottom <= fixSheet.win,
+    'and the sheet fits the phone', fixSheet.bottom + ' <= ' + fixSheet.win);
+  ok(!!fixSheet.save && fixSheet.save.top >= 0 &&
+     fixSheet.save.bottom <= fixSheet.win && fixSheet.save.bottom <= fixSheet.bottom &&
+     fixSheet.save.h >= 34,
+    'the answer button is ON SCREEN and a thumb target, not merely in the DOM',
+    fixSheet.save ? ('y ' + fixSheet.save.top + '..' + fixSheet.save.bottom +
+      ' in a ' + fixSheet.win + ' window, ' + fixSheet.save.h + ' px tall') : 'no button');
+  await shot(page, 'fix-sheet-phone');
+
+  // ── the live answer under the field, which is the whole point of a sheet ──
+  const live = await page.evaluate(() => {
+    const i = document.getElementById('wf-fix-place');
+    const set = (v) => { i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); };
+    const read = () => ({ say: document.getElementById('wf-fix-say').textContent,
+      cls: document.getElementById('wf-fix-say').className,
+      sugg: [...document.querySelectorAll('.wf-f-sugg-b')].map(b => b.innerText.trim()) });
+    set('WEL 2.224'); const good = read();
+    set('ZZQ 9'); const bad = read();
+    return { good, bad };
+  });
+  note('live: WEL -> "' + live.good.say + '"   ZZQ -> "' + live.bad.say + '"');
+  ok(/welch/i.test(live.good.say),
+    'typing a real code names the building back, before anything is saved',
+    live.good.say);
+  ok(/ok/.test(live.good.cls) && /bad/.test(live.bad.cls),
+    'and a code this map has never heard of says so rather than accepting it',
+    live.bad.say);
+
+  // ── the answer goes through store.save() and out the same three names ─────
+  const fixed = await page.evaluate(async () => {
+    const i = document.getElementById('wf-fix-place');
+    i.value = 'WEL 2.224';
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+    const st0 = WAYFIND.store.load();
+    const before = st0.classes.filter(c => c.confidence < 1).length;
+    const out = await window.wayfindFixSubmit(false);
+    await new Promise(r => setTimeout(r, 500));
+    const st = WAYFIND.store.load();
+    const hit = st.classes.find(c => c.provenance && c.provenance.confirmedBy === 'student');
+    const p = document.getElementById('wf-day');
+    return {
+      out, before, after: st.classes.filter(c => c.confidence < 1).length,
+      n: st.classes.length,
+      hit: hit ? { code: hit.code, room: hit.room, conf: hit.confidence,
+        prov: hit.provenance, why: hit.unroutableWhy } : null,
+      pubUnchecked: window.wayfindSchedule.events.filter(e => e.confidence < 1).length,
+      sheetOpen: !document.getElementById('wf-fix').classList.contains('hidden'),
+      dayOpen: !!p && !p.classList.contains('hidden'),
+      dayText: p ? p.innerText : '',
+    };
+  });
+  note('after the answer: ' + JSON.stringify(fixed.hit));
+  ok(fixed.out && fixed.out.ok, 'the answer was written to the device',
+    JSON.stringify(fixed.out));
+  ok(fixed.n === back.n,
+    'and it corrected a class rather than adding one', fixed.n + ' of ' + back.n);
+  ok(!!fixed.hit && fixed.hit.conf === 1 &&
+    fixed.hit.prov.unconfirmedFields.length === 0 && fixed.hit.prov.confirmed === true,
+    'the doubt is closed on the stored class, not just on screen',
+    'confidence=' + (fixed.hit && fixed.hit.conf));
+  ok(!!fixed.hit && fixed.hit.prov.correctedFrom !== undefined,
+    'and what the picture had said is kept, so a correction is distinguishable ' +
+    'from a confirmation',
+    JSON.stringify(fixed.hit && fixed.hit.prov.correctedFrom));
+  ok(fixed.after === fixed.before - 1 && fixed.pubUnchecked === fixed.after,
+    'exactly one mark cleared, on disk AND on window.wayfindSchedule',
+    fixed.before + ' -> ' + fixed.after + ' stored, ' + fixed.pubUnchecked + ' published');
+  ok(!fixed.sheetOpen && fixed.dayOpen,
+    'the sheet closes and puts the student back on the day they were reading');
+  await shot(page, 'fix-done-phone');
+
+  // ── and it is a SAVE, not a session flag ─────────────────────────────────
+  await page.goto(BASE + '/index.html?walk=1&drift=0', { waitUntil: 'domcontentloaded', timeout: 180000 });
+  await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
+  await page.waitForSelector('#wf-imp-entry', { timeout: 180000 });
+  await page.waitForTimeout(1200);
+  const kept = await page.evaluate(() => {
+    const s = window.wayfindSchedule;
+    const st = WAYFIND.store.load();
+    const hit = (st.classes || []).find(c => c.provenance && c.provenance.confirmedBy === 'student');
+    return { n: s ? s.events.length : 0,
+      unchecked: s ? s.events.filter(e => e.confidence < 1).length : -1,
+      hit: hit ? hit.code + ' ' + hit.room + ' conf=' + hit.confidence : null };
+  });
+  note('after the second reload: ' + JSON.stringify(kept));
+  ok(kept.n === back.n && kept.unchecked === fixed.after,
+    'the answer survives a reload — the chip does not come back',
+    kept.unchecked + ' unchecked, was ' + fixed.after);
+  ok(!!kept.hit && / conf=1$/.test(kept.hit),
+    'and the corrected class is still the corrected class', String(kept.hit));
+
+  // ── the OTHER answer: "it was right" ─────────────────────────────────────
+  const asRead = await page.evaluate(async () => {
+    const s = window.wayfindSchedule;
+    const un = s.events.filter(e => e.confidence < 1);
+    if (!un.length) return { skipped: true };
+    await window.wayfindDayFromSchedule(s, { day: un[0].days[0] });
+    const b = [...document.querySelectorAll('#wf-day button.wf-d-chip')][0];
+    if (!b) return { skipped: true, why: 'no chip' };
+    b.click();
+    const out = await window.wayfindFixSubmit(true);
+    await new Promise(r => setTimeout(r, 400));
+    const st = WAYFIND.store.load();
+    const hit = (st.classes || []).find(c => c.provenance &&
+      c.provenance.confirmedBy === 'student' && c.provenance.correctedFrom === null);
+    return { out, hit: hit ? { code: hit.code, room: hit.room, conf: hit.confidence,
+      from: hit.provenance.correctedFrom } : null,
+      unchecked: window.wayfindSchedule.events.filter(e => e.confidence < 1).length };
+  });
+  note('"it was right": ' + JSON.stringify(asRead));
+  ok(asRead.skipped || (asRead.out && asRead.out.ok && asRead.hit &&
+    asRead.hit.conf === 1 && asRead.hit.from === null),
+    'one tap can also answer "the reading was right", and it reads differently ' +
+    'on disk from a correction',
+    asRead.skipped ? 'nothing left unchecked' : JSON.stringify(asRead.hit));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+head('9. Delete still means gone');
 const wiped = await page.evaluate(async () => {
   const inv0 = WAYFIND.store.inventory ? WAYFIND.store.inventory() : null;
   await WAYFIND.store.clearAsync();
@@ -511,6 +738,46 @@ ok(!wiped.has && !wiped.published,
 ok(!wiped.keys.some(k => /schedule/i.test(k)),
   'and no key with a schedule in it is left in this browser',
   wiped.keys.join(', '));
+
+// ════════════════════════════════════════════════════════════════════════════
+head('10. an iPhone HEIC fails as a FORMAT, not as "your picture is bad"');
+// HEIC has been the default camera format on every iPhone since 2017, so on a
+// large share of the phones this feature is for, "choose a photo of your
+// timetable" hands this app a HEIC. Chrome and Firefox have no decoder for it
+// and `createImageBitmap` simply rejects — and until IMP.image.heicBrands
+// existed that rejection arrived seconds and ~5 MB later as the generic "That
+// picture could not be read on this device", which blames the student's
+// photograph for a format their browser never supported and gives them nothing
+// to do. Playwright's Chromium is exactly such a browser, so this is a real
+// negative and not a simulated one.
+const heicMark = seen.length;
+const heicT0 = Date.now();
+const heic = await page.evaluate(async () => {
+  // A minimal but genuine ISO-BMFF header: box length, 'ftyp', major brand
+  // 'heic'. The sniff reads the bytes, not the name or the MIME type, because
+  // a phone picker routinely hands over a file with neither.
+  const b = new Uint8Array(64);
+  const put = (i, s) => { for (let k = 0; k < s.length; k++) b[i + k] = s.charCodeAt(k); };
+  b[3] = 24; put(4, 'ftyp'); put(8, 'heic'); put(16, 'mif1heic');
+  const f = new File([b], 'IMG_0042.HEIC', { type: 'image/heic' });
+  await window.wayfindImportImage(f);
+  await new Promise(r => setTimeout(r, 250));
+  const p = document.getElementById('wf-imp');
+  return { text: p ? p.innerText : '', result: !!window.wayfindImportResult() };
+});
+const heicMs = Date.now() - heicT0;
+const heicLine = heic.text.split('\n').map(s => s.trim())
+  .find(l => /HEIC/i.test(l)) || '';
+note('refused in ' + heicMs + ' ms: ' + heicLine.slice(0, 96));
+ok(/HEIC/i.test(heic.text),
+  'the sentence names the FORMAT and the browser, not the photograph', heicLine.slice(0, 70));
+ok(/screenshot/i.test(heicLine),
+  'and gives a way round it the student can do on the phone in their hand');
+ok(!heic.result, 'nothing was imported from it');
+const heicReqs = seen.slice(heicMark).filter(r => /tesseract|traineddata|\.wasm/i.test(r.url));
+ok(heicReqs.length === 0,
+  'and it was refused BEFORE the ~5 MB reader was fetched',
+  heicReqs.length ? heicReqs.map(r => r.url.slice(0, 60)).join(' | ') : 'no engine request');
 
 // ════════════════════════════════════════════════════════════════════════════
 head('console');
