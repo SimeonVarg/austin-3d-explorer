@@ -45,34 +45,48 @@ Do not re-derive this. It is the reason the next round exists.
 
 ## 2. The two layouts, in detail
 
+> **Every example in this section is INVENTED.** The seven images are a record
+> of where a named student is at a given hour, they are gitignored for that
+> reason, and this file is public — so nothing below is copied out of them. Each
+> sample reproduces the *shape* of what the app prints (how many lines, what
+> separates them, what a field looks like) with made-up codes, rooms, surnames,
+> uniques and hours. The structure is the finding; the letters never were.
+>
+> This paragraph is here because the first draft of this file did not do that,
+> and the real strings sat in public git history until they were scrubbed. If
+> you extend this section, invent your examples and check them: grep each new
+> literal against `scripts/verify/schedule-images/real/truth.json` first. A hit
+> is a leak, and history keeps it.
+
 ### A. UT Registration Plus (four of the seven)
 
 Coloured blocks on a Mon–Fri grid, hour rows down the left. A block is:
 
 ```
-C S 311 – Parikh          <- course code, en-dash, instructor surname
-9:30am – 11:00am          <- time range, en-dash, lowercase am/pm
-PHR 2.108                 <- building code, space, room
+D R 347 – Ashford         <- course code, en-dash, instructor surname
+8:15am – 9:45am           <- time range, en-dash, lowercase am/pm
+VNH 4.117                 <- building code, space, room
 ```
 
 Three lines, and the third line is what we want. Variations seen across the four:
 
 - **Time and room share a line** when the block is short:
-  `11:00am – 12:00pm, GDC 2.216` — comma-separated, *one* line, not two.
-- **Header carries a total**: `11 HOURS  4 COURSES`, `15 HOURS  4 COURSES`,
-  `39 HOURS  14 COURSES`. A free integrity check — if we place a number of
-  distinct courses that disagrees with that count, we are wrong and can say so.
-- **A dense schedule truncates with an ellipsis**: `S W 310, 37220 – Wh…`,
-  `LEB 320, 64530 – Quin…`. The course code survives; the instructor does not.
+  `11:00am – 12:00pm, KTM 5.309` — comma-separated, *one* line, not two.
+- **Header carries a total**, in the form `N HOURS  M COURSES`. Three different
+  totals appear across the four images, the largest of them fourteen courses. A
+  free integrity check — if we place a number of distinct courses that disagrees
+  with that count, we are wrong and can say so.
+- **A dense schedule truncates with an ellipsis**: `Q V 310, 37220 – Wh…`,
+  `TAQ 320, 64530 – Quin…`. The course code survives; the instructor does not.
   Never try to recover a truncated name.
-- **Unique numbers appear** in the dense variant: `PED 106C, 45672 – R…`,
-  `BIO 311C, 23054 – Fritz`. A five-digit number after the course code is a
+- **Unique numbers appear** in the dense variant: `HCF 208B, 51840 – R…`,
+  `DRV 355, 23054 – Halloran`. A five-digit number after the course code is a
   registration unique, not a room.
-- **Non-class blocks exist and must be ignored**: `Dell Med Work`,
-  `Lunch`, `Longhorn Developers Me…`. They have times and grid positions and
-  look exactly like classes. They have **no building code**, which is the tell.
+- **Non-class blocks exist and must be ignored** — a job shift, a meal, a
+  student-organisation meeting. They have times and grid positions and look
+  exactly like classes. They have **no building code**, which is the tell.
 - **An ASYNC / OTHER row sits below the grid** with classes that have *no time
-  and no day at all*: `GOV 312L, 78430 – Barrymore`, `PSY 317L, 45320 – Etz`.
+  and no day at all*: `PYX 312L, 78430 – Halloran`, `VNH 317L, 45320 – Vance`.
   These cannot be walked to and must be reported as such, not dropped.
 - **Legend chips** (`WAITLISTED`, `CANCELLED`, `CLOSED`) sit on the same row and
   are not classes.
@@ -85,37 +99,39 @@ Beige/grey cells, thin dotted hour rules, a **SAT column**, orange underlined
 course links. A cell is:
 
 ```
-GOV 370S      <- course code, underlined link, orange
-MEZ           <- BUILDING CODE ON ITS OWN LINE
+PYX 370S      <- course code, underlined link, orange
+KTM           <- BUILDING CODE ON ITS OWN LINE
 B0.306        <- ROOM ON THE NEXT LINE
 ```
 
 **This is the single most important structural difference and the shipped
-reader has never seen it.** The synthetic corpus always wrote `PAI 3.02` as one
+reader has never seen it.** The synthetic corpus always wrote a location as one
 token. myUT splits building and room across two lines, and in the phone-width
 variant it splits the *course code* too:
 
 ```
-UGS
+DRV
 303
-UTC
+VNH
 3.134
 ```
 
 Four lines, one class. A reader that pairs "the token after the course code" as
 the building will get `303` as a building. Also seen:
 
-- **A cell with a building and no room at all**: `UGS 018 / EER`,
-  `G E 107C / EER`, `UGS 303 / JES`. Real, common, and correct — some rooms are
-  simply not published. Must not be treated as a failed read.
-- **A room with a letter-digit floor**: `MEZ B0.306` — a basement. `B0` is not
-  a typo and not an OCR error.
+- **A cell with a building and no room at all** — a bare three-letter code on
+  its own, three times across these images. Real, common, and correct: some
+  rooms are simply not published. Must not be treated as a failed read.
+- **A room with a letter-digit floor**, of the form `B0.306` — a basement. The
+  leading `B0` is not a typo and not an OCR error.
 - **Times in the compact form** `10:00-11:00AM` — a hyphen, no spaces, one
   am/pm marker for the pair, uppercase.
 - **A time-free variant**: one of the three shows a course table
   (`Course | Course Title | Instructor Name | College Unit Code`) *above* the
   grid. Header text that is not a class.
-- **Saturday exists** as a column and is usually empty, tinted pink.
+- **Saturday exists** as a column. (See `docs/img-real-baseline.md` §8 — the
+  tinted column is a today-highlight, not Saturday, and this file said otherwise
+  before the images were on disk.)
 
 ---
 
