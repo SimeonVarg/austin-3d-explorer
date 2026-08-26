@@ -55,13 +55,24 @@ AGENT_COLOURS = ("96", "92", "93", "95", "94", "91")  # cyan green yellow magent
 # --- colour ------------------------------------------------------------------
 
 def _enable_windows_colour():
+    """
+    Best effort, and deliberately not a veto. Windows 11 consoles already accept
+    colour; this only matters for an old conhost that needs the flag turned on.
+    It returns False whenever stdout is a pipe - which is not a reason to drop
+    colour, because a pipe is not where the user is looking. Whether to colour
+    at all is decided by isatty(), not by this.
+    """
     if os.name != "nt":
         return True
     try:
         import ctypes
         k = ctypes.windll.kernel32
-        # 7 = PROCESSED_OUTPUT | WRAP_AT_EOL | VIRTUAL_TERMINAL_PROCESSING
-        return bool(k.SetConsoleMode(k.GetStdHandle(-11), 7))
+        h = k.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not k.GetConsoleMode(h, ctypes.byref(mode)):
+            return False
+        # add VIRTUAL_TERMINAL_PROCESSING; keep whatever else was already set
+        return bool(k.SetConsoleMode(h, mode.value | 0x0004))
     except Exception:
         return False
 
@@ -745,8 +756,8 @@ def main():
     ap.add_argument("-h", "--help", action="help")
     args = ap.parse_args()
 
-    INK.on = bool(args.colour) and sys.stdout.isatty() and not os.environ.get("NO_COLOR") \
-        and _enable_windows_colour()
+    _enable_windows_colour()          # best effort, never a veto - see the note there
+    INK.on = bool(args.colour) and sys.stdout.isatty() and not os.environ.get("NO_COLOR")
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
