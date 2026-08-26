@@ -158,9 +158,32 @@ opening the existing `WF_FIX` sheet in a new-class mode. Every part it needs —
 the sheet, the building type-ahead that names `WEL` back as "Robert A. Welch
 Hall" and refuses `ZZQ`, `impPlace` — already exists.
 
-### Housekeeping
+### Production, after the deploy landed
 
-Production verified after the deploy landed, not assumed. `.claude/worktrees`
+`flyover-utx.vercel.app`, **17 of 17**: `/`, `?autopilot=1&preset=cinematic`,
+`?sliderdemo=1&preset=cinematic` and `?walk=1` all render, all **zero console
+errors**, `WAYFIND.on === false` in the shipped bundle on every one, and **zero
+OCR-engine requests** on any cold load (133/164/143/135 requests respectively).
+`?walk=1` still reaches the walk UI with exactly one import door.
+
+Then **a real photograph was imported on the live site** and put **14 of 14
+classes on the device, field-for-field correct** — 165 requests during it, **0
+with a body**, no host that was not already in use, 0 of 18 answer-key needles
+found anywhere, 0 raw-socket hits, 0 console errors. Frames:
+`shots/img-verdict/prod-check-phone.jpg` and
+`shots/img-verdict/prod-day-phone.jpg`.
+
+**One flaw in this lane's own instrument, found mid-check and worth carrying
+forward.** The first production script declared `const URL = 'https://...'`,
+which **shadows the global `URL` constructor**; every `new URL(r.url).host` threw
+into its catch and every host collapsed to one placeholder, so the "no new host
+contacted" assertion was **vacuously true on both sides**. It printed PASS and
+meant nothing. Renamed to `SITE`, re-run, and only then believed. *A green
+assertion is not evidence until you can say what would have made it red* — the
+same failure shape as the basemap incident in `CLAUDE.md`, in a different
+instrument.
+
+### Housekeeping `.claude/worktrees`
 swept, `git worktree prune` run, orphan `worktree-wf_*` branches deleted. Every
 server, browser and node process this lane started was killed and port 8933
 freed. No file has a NUL byte; `git diff --stat` on `js/wayfind.js` is a sane

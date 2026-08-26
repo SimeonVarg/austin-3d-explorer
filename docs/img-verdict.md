@@ -76,6 +76,49 @@ honest cost: **about 22 KB**, not the 4.9 MB engine, which stays in
 
 ---
 
+## 1b. PRODUCTION, after the deploy landed — not assumed, driven
+
+`flyover-utx.vercel.app`, checked after `main` deployed, **17 of 17**:
+
+| page | result |
+|---|---|
+| `/` | 133 requests, city renders, **zero console errors**, `WAYFIND.on === false`, **zero** engine requests |
+| `?autopilot=1&preset=cinematic` | 164 requests, same, still works |
+| `?sliderdemo=1&preset=cinematic` | 143 requests, same, still works |
+| `?walk=1` | walk UI present with exactly one import door (`wf-imp-entry`), same, zero engine requests |
+
+Then a **real photograph was imported on the live site**, driven through the
+real controls on a 390x844 phone viewport. It put **14 of 14 classes on the
+device, field-for-field correct**, and while it did:
+
+```
+  165 requests since the picture was handed over
+  hosts contacted:  flyover-utx.vercel.app, tiles.openfreemap.org
+                    (both already in use before the picture was picked)
+  requests with a body:  0
+  needles from the answer key found in any request:  0 of 18
+  raw socket sink hits:  0
+  console errors:  0
+```
+
+`shots/img-verdict/prod-check-phone.jpg` is the confirm screen on the live site —
+the student's own picture cropped to the row in question, the class named, the
+doubt in plain words. `shots/img-verdict/prod-day-phone.jpg` is the resulting
+day: *Tuesday · 4 classes · 3 walks · 1.8 km on foot*, M 340L in Patton Hall,
+`RLP → CMA` flagged **"Tight for this gap"**, and the footer **"From a photo of a
+schedule."**
+
+**One flaw in the ship lane's own instrument, found and fixed mid-check, because
+it is exactly the kind of thing this repo has been burned by.** The first
+version of the production script declared `const URL = 'https://...'`, which
+**shadows the global `URL` constructor**, so every `new URL(r.url).host` threw
+and every host collapsed to the same placeholder — making the "no new host"
+assertion vacuously true on both sides. It passed, and it meant nothing. Renamed
+to `SITE` and re-run; the numbers above are from the fixed run. A green
+assertion is not evidence until you can say what would have made it red.
+
+---
+
 ## 2. The number, ours against the bar
 
 All three of ours were re-run by the ship lane on the merged tree, on the
