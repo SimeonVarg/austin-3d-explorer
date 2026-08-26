@@ -1,5 +1,88 @@
 # Austin 3D Explorer — Full Handoff
 
+## 195. Aug 26 2026 — the nine wrong answers are gone: real precision 64% → 100%, and recall went UP (`acer/img-honesty`, commit `2de2013`, not merged)
+
+**The promise this feature was sold on is back.** Entry 194 measured the reader
+on seven real screenshots and found **9 of its 25 predictions wrong, 4 of them
+saved silently at full confidence** — the first inventions this feature has ever
+produced. All nine are now gone, and the regression corpus did not move.
+
+```
+                       all four right      predictions   wrong answers
+  real, 7 images       16 / 95  ->  18 / 95      25 -> 18      9 -> 0
+  synthetic, 15 images  134 / 171 (unchanged)   136 -> 136      0 -> 0
+```
+
+Every row measured by `scripts/verify/image-bench.mjs`, before and after, one
+browser harness at a time, and **both corpora re-run on the committed tree
+afterwards** — the synthetic per-image table is identical to entry 194's, row
+for row. `scripts/verify/schedimg.mjs`: 30 passed, 0 failed.
+
+**Recall did not fall, which was not the plan.** Declining was budgeted for and
+would have been the right trade. It turned out two of the nine were a class
+whose room *and* hours were both recoverable once the reader stopped believing
+the wrong witness for each of them, so the same change that removed nine wrong
+answers added two right ones.
+
+**Five causes, not one.** Entry 194 named three; there were five, and they were
+separable only by dumping the failing image's own output.
+
+1. **The course code was being read as the building** (4 of the 9, 3 silent).
+   `locFromWords()` walked a block left to right and took the first pair that
+   looked like a location — and a block's first line is its course code. **Seven
+   UT department prefixes are also real building codes** (ART ASE BIO BME CAL
+   GRS KIN, intersected against `data/ut_buildings.json` — the count in entry
+   194 was right). Nothing downstream could catch it because the building was
+   real. Now: the course code is found *before* any location is, and the words
+   it was printed on are refused outright. A caller that knows its words are a
+   ROOM cell passes `{ course: null }` and turns the rule off — in a room cell
+   "CODE 106" is a room, and without that opt-out this breaks every registrar
+   table in the corpus. That is the whole risk in this change; it is why the
+   flag exists rather than a blanket rule.
+2. **A code the register has never had was emitted anyway** (3 of the 9), with a
+   sentence attached, and then **agreed across days onto the same course's other
+   meeting** — one bad read becoming two wrong answers. Now declined, and a
+   reading that fails validation gets no vote when copies of a class vote on
+   their room.
+3. **A room lost its decimal point** and became a room on another floor (2 of
+   the 9). Four digits in a row is not a UT room number and five is a
+   registration unique. Refused in the scan and again at the emit point, because
+   a registrar table reads its ROOM cell straight out of its own column and
+   never passes through the scan.
+4. **Times ran a quarter to three quarters of an hour late while the block's own
+   caption had them right** — and the reader printed that it had seen the
+   disagreement and used the geometry anyway. On a screenshot the printed text
+   is the evidence and the drawn position is the inference. **This is the one
+   that bit back**: the first version cost the synthetic corpus two right
+   answers and gave back two wrong ones (a caption misread as one minute past
+   the hour beat a correct ruler), so it is now guarded three ways — drift
+   bound, minutes on a 5-minute grid, and length agreeing with the rectangle.
+   **A mis-set ruler moves the offset, never the scale**, so the drawn LENGTH is
+   the honest half of the geometry and is what checks the caption. All three are
+   named constants in `TUNE.grid`.
+5. **Reading a block a second time threw the first reading away**, which is how
+   a block came back with a room and no printed hours at all. Both readings are
+   kept now — the room from whichever produced one, the caption from whichever
+   printed a time. Without this, fix 4 could not fire on the image it was for.
+
+Where one copy of a class prints its hours legibly and its twin does not, the
+twin takes the printed time — the same doctrine `agreeOnRooms()` already used
+for rooms, and the reason the two rescued meetings are two and not one.
+
+**One cross-file touch, and it is deliberate.** `js/schedconfirm.js` kept only
+no-candidate refusals that were cut off by the frame, so the two new refusals
+would have vanished from the screen instead of appearing on it — trading one
+honesty failure for another. The list of reasons shown without candidates is now
+one named constant (`CONF.showWithoutCandidates`).
+
+**Still weak, in one sentence each.** The axis on that image is late for *every*
+block, not only the two that were rescued — the other rows on it are declined
+for unrelated reasons, so a systematically mis-set ruler is still unfixed and
+will produce clean, plausible, wrong times on any image where the rooms read.
+And the shipped-import number (what lands on the phone when the student answers
+nothing) was **not** re-measured: `img-import-extract.mjs:166` still ignores
+`--dir`, and that file belongs to whoever opens it next.
+
 ## 194. Aug 26 2026 — the photo reader measured on REAL screenshots for the first time: 16/95 against 134/171, and precision fell from 100% to 64% (docs only, straight to `main`, `docs/img-real-baseline.md`)
 
 **Nothing was changed. This round measured.** Simeon sent seven screenshots of
