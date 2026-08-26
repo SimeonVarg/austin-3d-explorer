@@ -101,6 +101,15 @@ device, field-for-field correct**, and while it did:
   console errors:  0
 ```
 
+**Do not quote the request count.** (Added 2026-08-26, QUEUE IMG0b.) The first
+line of that block reads 165 here, 136 in the committed `img-import.mjs` run,
+99 in `docs/img-independent-check.md` §5 and 30 in the privacy checker's
+from-scratch capture — four measurements of the same import. It moves with the
+measurement window and with background map traffic and is evidence of nothing.
+**The claim is the other five lines**: zero bodies, zero needles, zero hosts
+that were not already in use, zero sink hits — each of them proved non-blind by
+a canary first. The same applies to every other request count in this file.
+
 `shots/img-verdict/prod-check-phone.jpg` is the confirm screen on the live site —
 the student's own picture cropped to the row in question, the class named, the
 doubt in plain words. `shots/img-verdict/prod-day-phone.jpg` is the resulting

@@ -84,6 +84,33 @@ not the column fit. See `docs/img-verdict.md` §3.
 
 ## NEXT ON THIS FEATURE — three items (IMG0 added 2026-08-26, `docs/img-independent-check.md`)
 
+### ~~IMG0a~~ and ~~IMG0b~~ — **CLOSED 2026-08-26**, branch `acer/img-lonely-class`, `docs/img-lonely-class.md`
+
+**IMG0a is fixed and measured on both sides.** `neighbourDoubt()` now reads the
+walking graph through the rest of the **week** when the class is alone on its
+day, and falls back to a standing confusable-pair doubt **only** where the
+schedule has nothing at all to compare against. Cases B and C ask now (0.68 and
+0.65); **case A is unchanged at 0.62 with its original reason text**, kept as
+the control. The over-ask side did not move: **16 questions over the 15-image
+corpus before and after — 1.07 per import, image for image identical** — the
+answer key still asks **0 of 49** (§2e), and `image-bench.mjs` is **131 / 171,
+100% precision, 0 false positives before and after**, by condition included,
+both runs on the same machine this round. `schedconfirm.mjs` went 101/0 → 108/0
+with a **one-class-day case added to §2c and the three-class day kept as the
+control**, plus a `PAI`-alone over-ask control. The residual hole is unchanged
+and still reported pair by pair: 5 of 13 pairs raise a question, `PAI/PAT` is
+still honestly invisible.
+
+**IMG0b done.** `docs/img-bar.md` §"downstream parsing" no longer claims both
+sides got the same parser — it states that `wayfindParseSchedule` is the
+**paste/text** producer and that the photo path is `js/schedimg.js`'s own
+bounding-box geometry (`grep -c` is 0, re-checked). The 36 and the 131 both
+stand. `docs/img-verdict.md`'s import request count now carries a "do not quote
+this" note naming all four readings of it.
+
+**Still open on this feature: IMG1, IMG2, IMG3 below.** The original IMG0 text
+is kept verbatim underneath because it is the record of how it was found.
+
 **IMG0 — THE ONE REAL DEFECT THE INDEPENDENT PASS FOUND. A real-but-wrong
 building code is committed SILENTLY, at 1.00 confidence, whenever the misread
 class is the only class on its day.** Found by the adversary lane, reproduced
