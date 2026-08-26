@@ -10,6 +10,19 @@ confidence **1.00** whenever the misread class was the only class on its day —
 one of the commonest schedule shapes there is — and it now raises one question
 with the right answer as a button.
 
+**Shipped 2026-08-26** by the ship lane after three independent judges and its
+own from-scratch re-measurement. See §11 at the bottom for what that lane ran,
+including the one thing it had to recover from mid-pass.
+
+![The question a class with nobody beside it now raises, on a 390x844 phone.
+The crop at the top is the student's own picture — it reads MEZ 1.306 while the
+reading underneath says NEZ.](../shots/img-confidence/lonely-class-question-phone.jpg)
+
+*`shots/img-confidence/lonely-class-question-phone.jpg` — corpus image 03 read
+for real, one stroke of the answer changed to `NEZ`, then kept as the only class
+in the schedule. Before this round that screen did not exist: the class was
+written down as NEZ at 1.00 and nothing was said.*
+
 ---
 
 ## 1. The mechanism
@@ -336,5 +349,87 @@ invisible and the gate still says so out loud.
 
 Every server and browser this lane started was killed and port 8973 freed;
 `Get-Process node,python,chrome` is empty at the end. Scratch frames went to the
-scratchpad, not `shots/` — no screenshot in this round is cited, so none is
-committed. `js/wayfind.js` is not in the diff.
+scratchpad, not `shots/`. `js/wayfind.js` is not in the diff.
+
+---
+
+## 11. The ship lane's own reading — 2026-08-26, port 8951
+
+Written by the lane that merged it, from what **it ran itself**. Nothing below
+is quoted from the builder or from the three judges; every number was produced
+on this machine with this lane's own fixtures against its own server, and where
+a number was NOT re-measured here it says so.
+
+**Case B, with `main` as the control.** The same instrument, the same server,
+the same run — the only thing changed is which module the page imports. `main`'s
+`js/schedconfirm.js` was served alongside as a sibling file so the two could be
+read back to back rather than across a checkout:
+
+| shape | on `origin/main` | on this branch |
+|---|---|---|
+| **A — control**, `NEZ` with WEL before and GDC after, same day | ask **true**, 0.62 | ask **true**, 0.62, *reason text identical* |
+| **B**, the same `NEZ`, the only class in the schedule | ask **false**, **1.00** | ask **true**, **0.68**, `kind: lone` |
+| **C**, alone on Friday, WEL Mon and GDC Wed | ask **false**, **1.00** | ask **true**, **0.65**, `kind: week-nearer` |
+| **A′ / C′**, the true `MEZ` | false, 1.00 | false, 1.00 |
+| **B′**, the true `MEZ` alone | false, 1.00 | **true, 0.68** — the disclosed symmetric tap |
+
+`M.apply()` on B and C commits `{building:'NEZ', needsConfirm:true}` on this
+branch against `{needsConfirm:false}` on `main`, and the reading is **kept**, not
+rewritten. Case A is byte-identical across the two, which is what makes the rest
+of the table readable at all: a silent result with no control is indistinguishable
+from a broken rig.
+
+**It generalises past MEZ/NEZ.** Five more codes from the thirteen confusable
+pairs — `PAI`, `TSC`, `MMS`, `GHE`, `ICB` — each alone as the only class in a
+schedule: every one asks, `kind: lone`, 0.68.
+
+**It is not "one class means a question".** A lone `WEL` — a real code with no
+confusable neighbour — stays silent at 1.00, and an ordinary four-class week
+raises **zero** questions.
+
+**Over-asking, measured on the real corpus rather than argued.** This lane built
+its own probe that drives the shipped entry point (`window.wayfindImportImage` →
+`#wf-cfm`) for all fifteen corpus images and steps **every** question screen,
+reading the text off the DOM — it never presses "Skip the rest". Result:
+**16 questions over 15 imports = 1.067 each**, per image `01=1 02=0 03=1 04=0
+05=4 06=0 07=1 08=0 09=8 10=1 11=0 12=0 13=0 14=0 15=0`. The same probe run
+against a tree without this fix returns the identical count and the identical
+per-image split. And reading the captured question text back: **none of the 16
+is the new pair question** — they are day chips, single-option confirmations and
+one genuine 2:00-vs-7:00 pm ambiguity. The new branches cannot fire anywhere in
+this corpus, because its only class alone on its day is `BIO 311C` in `WEL`,
+which has no confusable neighbour.
+
+**Gates, re-run here on the tree that was merged:** `schedconfirm.mjs` **108/0**,
+`image-bench.mjs` (`img-import-extract.mjs`) **131/171, 76.6%, precision 100.0%,
+0 hallucinations, 0 near misses, 0 false positives**, by condition
+`clean 52/52 · angled 23/49 · dark 24/38 · crop 32/32`, `si-integration.mjs`
+**50/0**, `img-import.mjs` **67/0**. `js/wayfind.js` has a zero-line diff against
+`main` and `WAYFIND.on` is `false` at line 88. The diff adds no `fetch`, `XHR`,
+`sendBeacon`, `WebSocket` or `postMessage` — a schedule still cannot leave the
+device.
+
+### The thing that went wrong, because it will happen again
+
+**Mid-pass, another session moved `HEAD` in this same working directory.** The
+local branch was reset from the fix commit back to `origin/main` and two
+unrelated docs commits were made on top of it, which silently removed
+`js/schedconfirm.js`'s fix from the working tree **while this lane was running
+gates against it**. It surfaced as a real-looking defect — the lone doubt
+suddenly not firing on a real extracted reading — and cost a full bisect before
+`CONF.walk` was printed and turned out to have no `lone` key at all, i.e. the
+page was serving `main`'s module.
+
+Two things follow, and both are cheap:
+
+1. **Print the thing under test, not just the result.** One line dumping
+   `CONF.walk` would have identified this in seconds. A harness that never
+   states which build it is measuring cannot tell "the fix is wrong" from "the
+   fix is not there".
+2. **Bracket every long run with `git rev-parse HEAD` and a `grep -c` for a
+   token only the change contains.** Every run in §11 is bracketed that way; the
+   ones taken before the bracket was added were all re-run afterwards and are
+   the numbers quoted above. Nothing was lost — the fix commit was safe on
+   `origin` and both sessions' work was merged rather than either being
+   discarded — but a green gate measured against the wrong tree is exactly the
+   failure `scripts/verify/README.md` exists to prevent.
