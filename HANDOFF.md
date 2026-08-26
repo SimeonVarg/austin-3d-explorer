@@ -1,5 +1,848 @@
 # Austin 3D Explorer — Full Handoff
 
+## 191. Aug 25 2026 — the photo-import round SHIPPED: 131 of 171 with a student who answers nothing, against a bar of 36, and zero wrong answers (ship lane, branch `acer/img-ship` → `main`, PR #228)
+
+**Merged.** `main` now carries the reader (`js/schedimg.js`), the confirm screen
+(`js/schedconfirm.js`), the walking-graph probe (`js/walkgraph.js`), the fourth
+import tab and the correction sheet in `js/wayfind.js`, the vendored OCR engine
+in `vendor/tesseract/`, and four docs. `acer/img-bar`, `acer/img-extract`,
+`acer/img-confidence` and `acer/img-integrate` are fully contained in `main` and
+were deleted locally and on the remote. `acer/img-corpus` was already in `main`.
+
+**`WAYFIND.on` is still literally `false` at `js/wayfind.js:88`** and is not in
+the diff. Read after the merge and read again in the production bundle.
+
+### Two of the four pieces came in as refusals. That did not decide it.
+
+`confidence` and `integrate` both arrived `exhausted: true` — they never won a
+blind comparison. The brief said to treat that as a refusal. The ship lane read
+what each refusal actually *said* before honouring it, and both had been
+overtaken:
+
+- **The confidence refusal was "`needsConfirm` has zero consumers."** True when
+  it was written — a confirm invariant that protected nobody, because nothing
+  downstream read the flag and the photo pipeline had no entry point in the
+  shipping app at all. The `integrate` round wired it: `js/wayfind.js:10525`
+  reads `unconfirmedFields`, `:12992` reads `needsConfirm`, the day view draws a
+  tappable *Read as "PAI 3.02" — check this one* chip, and `img-import.mjs` §8
+  proves the tap corrects one stored class, distinguishes a correction from a
+  confirmation on disk, and survives a reload. Verified here, not read.
+- **The integrate refusal was "the sheet can correct a class the import KEPT,
+  not one it DROPPED."** Still true. It is now the headline of "what is next"
+  in `docs/img-verdict.md` §5 rather than a reason to hold the merge, because it
+  is a *missing* recovery path on top of correct refusal behaviour, not a defect
+  in what ships. A dropped class is dropped safely; it is just tedious to get
+  back.
+
+**The rule this round is the case for: a refusal is evidence, not a verdict.**
+Both refusals were right when written and both were about work that landed
+afterwards. Reading only the boolean would have held a good branch for a bug
+that no longer existed.
+
+### The three disqualifiers, checked with our own instrument as well as the gates
+
+The brief said any of these failing means do not ship whatever the score is. The
+ship lane wrote `_ship-netwatch.mjs` from scratch rather than reuse the gates'
+own assertions, so a blind spot in the gate could not be inherited. It was
+deleted after the run; it is reproduced in `docs/img-verdict.md` §1.
+
+- **Nothing leaves the browser.** Two full imports of image 01 through the real
+  UI: **174 and 168 requests, zero with a body of any kind**; no host contacted
+  that was not already in use before the picture was picked (`127.0.0.1`,
+  `tiles.openfreemap.org`); **35 needles taken from `truth.json`** — the answer
+  key, not the app's output, so a misread cannot launder a pass — none found; a
+  raw TCP sink outside every browser API never contacted; the engine's 8
+  requests all from `127.0.0.1`. `si-integration.mjs` §6 twice and
+  `img-import.mjs` §6 agree, and both fire a positive control: the shipped guard
+  **blocks** a deliberate leak of a real imported room, and with the guard
+  disarmed both instruments see it. The instruments are not blind.
+- **No building and no time that is not on the image.** Precision **100.0%**
+  across both full bench passes — 269 predictions over the two, none matching
+  nothing, 0 hallucinations, 0 three-of-four near misses. Read by hand too: on
+  image 01, driven through the real controls, the device ended up holding 14 of
+  14 field-for-field identical to the answer key.
+- **Cold load not slower.** `index.html` is **byte-identical to `main`**, so the
+  engine cannot be on the load path by construction; confirmed anyway with 87
+  and 88 requests at page load, zero matching
+  `tesseract|traineddata|.wasm|schedimg|schedconfirm|walkgraph`.
+
+**The cold-load cost that IS real, stated rather than buried:** `js/wayfind.js`
+grew 813,749 → 896,536 bytes raw, **+22,598 bytes gzipped** (level 6, the
+comparison `docs/perf/payload.md` requires because `serve.py` does not gzip and
+the real site does). About 22 KB, not the 4.9 MB engine.
+
+### The numbers, re-run on the merged tree
+
+```
+                                       all four right    precision
+  the bar (docs/img-bar.md)              36 / 171  21.1%    16.1%
+  SHIPPED, student answers nothing      131 / 171  76.6%   100.0%
+  SHIPPED, student answers              134 / 171  78.4%   100.0%
+```
+
+Per condition, ours at the floor vs the bar: clean **52/52** vs 14/52; angled
+**23/49** vs 0/49; dark **24/38** vs 8/38; crop **32/32** vs 14/32. **Zero false
+positives against the bar's 187.**
+
+- `image-bench.mjs --selftest`: 171/171 first, before anything was scored.
+- `image-bench.mjs` and `scripts/verify/schedule-images/` have **zero diff
+  against `main`.** The goalposts did not move; checked explicitly.
+- **The bar row is not this lane's own measurement.** No bar extractor was ever
+  committed — `acer/img-bar` is one doc — so reproducing it means rebuilding it
+  from prose. The extract critic did that and got 36/171 exactly. The ship lane
+  started a third reconstruction and **abandoned it**: `createWorker('eng')`
+  pulled the full 5.2 MB LSTM model rather than the compact one the bar lane's
+  own timing implies (39.8 s for fifteen images, against 55 minutes and still
+  running here), so it was not the same instrument. **One measured run,
+  reproduced once, not three times** — said plainly rather than left to look
+  like a third confirmation. Nothing turns on it at a 3.6x gap. **If a later
+  round wants the bar to be reproducible, commit the extractor.**
+- `si-integration.mjs` on the merged tree, **two interleaved reps: 50 passed, 0
+  failed** both times — including §6. It is 50 and not 49 because Simeon
+  answered the two-doors question and `acer/si-onedoor` landed; the gate that
+  was red on purpose all round is green. Nothing red was merged.
+- `walkmeter.mjs` on the merged tree: **87.0 m over the pairs it makes worse,
+  −393.7 m signed, 38/38 at the right door.** Unchanged, which is the point —
+  this round added a schedule reader and moved nothing about the walking.
+- `img-import.mjs` 67/0, `schedimg.mjs` 26/0, `schedconfirm.mjs` 101/0.
+
+### Two corrections to the piece docs, and one gate wart
+
+1. **"12 of 15 images at 100%" is 11.** `docs/img-extract.md:34` and
+   `HANDOFF.md:454` (entry 186) both print it. The ship lane's own 15-image run
+   has eleven at 100% — 01, 02, 03, 04, 07, 09, 10, 12, 13, 14, 15 — with 05 at
+   9/14 and 06/08/11 at zero. The extract critic caught the same off-by-one on
+   the reader bench and it survived into a second document. Corrected here
+   rather than in the piece docs, which are that round's own record.
+2. **The extract critic's "biggest gap" recommendation is refuted by the
+   builder's own measurement.** It proposed clustering event blocks' x-centres
+   into day columns instead of relying on header OCR, to rescue images 06/08/11.
+   On 06 the columns **already work** — `schedimg.mjs` prints `layout: grid`,
+   ten blocks in the right columns, *"it still knows which day each of them is
+   on, from the column — Mon Wed Tue Thu"*. The blocker there is that the
+   captions read `MA 6 106`, `ute 2.909`, `i208`; nothing that is a room. That
+   work would move nothing. Written into `docs/img-verdict.md` §3 so the next
+   lane does not build it.
+3. **`schedconfirm.mjs` rewrites five committed JPEGs in `shots/img-confidence/`
+   every time it runs.** Not a defect, but a lane that runs the gate and commits
+   will commit five byte-different screenshots for no reason. Reverted here.
+   Worth a `--shots` flag next time that file is touched.
+
+### What is still weak, and it is 20% of the corpus
+
+**Angled photographs of a week-grid calendar score 0 of 35** — images 06, 08 and
+11. They fail *honestly*: the reader reports what it saw ("10 classes are drawn
+here, the hour scale did not read") rather than guessing a room. But
+`docs/img-extract.md` measured, at 2x/3x/4x under four page-segmentation modes,
+that the weekday names are simply not in those JPEGs. **These three are at the
+legibility floor of the image, not at a gap in the code** — and photographing
+your own phone at an angle is plausibly the most common capture a student
+actually takes.
+
+**Two caveats no headline number should be quoted without.** All fifteen corpus
+images are **synthesized** — no camera, no photograph of a real screen (round
+183 says this at length and it stays true). And the bar is **not Google Lens**;
+`docs/img-bar.md` records `reachedTheRealThing: false`. It is Tesseract.js 7.0.0
++ the app's own production parser: a real bar, honestly the strongest thing
+reachable from this machine, and a substitute.
+
+### The one thing next
+
+**Give a class the import DROPPED a way back that is not "re-photograph
+everything."** `applyGroup()` (`js/schedconfirm.js:1467`) refuses a reading
+nothing believed and nobody confirmed — correct — but a refused class then has
+no day-view row and no chip to tap. Keep a lightweight record (course, day, time
+only) instead of discarding it, and put one line on the result screen: *"3
+classes from your photo couldn't be confirmed and weren't saved — add them?"*
+opening the existing `WF_FIX` sheet in a new-class mode. Every part it needs —
+the sheet, the building type-ahead that names `WEL` back as "Robert A. Welch
+Hall" and refuses `ZZQ`, `impPlace` — already exists.
+
+### Housekeeping
+
+Production verified after the deploy landed, not assumed. `.claude/worktrees`
+swept, `git worktree prune` run, orphan `worktree-wf_*` branches deleted. Every
+server, browser and node process this lane started was killed and port 8933
+freed. No file has a NUL byte; `git diff --stat` on `js/wayfind.js` is a sane
++1266/−21, not a CRLF blow-up.
+## 190. Aug 25 2026 — the mark has an answer (acer lane, branch `acer/img-integrate`)
+
+`js/wayfind.js` (+~300 lines), `scripts/verify/img-import.mjs` (+~250),
+`docs/img-integrate.md`, two new frames in `shots/img-integrate/`.
+**`WAYFIND.on` is still literally `false` and is not in the diff.**
+
+Round 189 shipped the "check this one" mark on the day view and left the tap
+open, calling it "the next thing here". That understated it. **A chip that names
+a doubt and cannot settle it is a trap, not an unfinished feature.** The only way
+to resolve *Read as "PAI 3.02" - check this one* was to delete the whole schedule
+and photograph it again, so a student who saw that chip in August saw the
+identical unresolved chip every day until December.
+
+**The chip is a button now, and it opens a sheet that can answer.**
+
+**It could not re-mount `js/schedconfirm.js`, and that turned out to be the
+point.** That screen asks *is this what the PICTURE says* and answers it by
+cropping the picture; `review()` needs a `cls.ev` with a page and a box, and none
+of that survives - deliberately, because storing a photograph of a student's
+timetable until December is the thing the privacy rule forbids. So the question
+changes, for the better: not *did we read your picture right*, which only the
+picture can settle, but *where is this class, actually*, which a student can
+answer from memory on a bus. The app brings every UT building code, its own
+type-ahead and its own router to that question - type `PAI` and it says
+`T. S. Painter Hall` under the field before anything is saved.
+
+**No second path.** `scheduleCorrectClass()` re-places the corrected row through
+`impPlace` - the same placement a Google export runs through, so a class
+corrected off Pickle stops being off-map - then does the same three things
+`impUse()` does, in the same order: `store.save()`, `window.wayfindSchedule`,
+`wayfind:schedule`. It republishes explicitly because `scheduleSyncPublished()`
+refuses to overwrite a live import ("A LIVE IMPORT WINS"), which is right for a
+save and wrong for an edit.
+
+**Two answers, and they read differently on disk.** "Save this" stores the
+correction plus `provenance.correctedFrom: "PAI 3.02"` - what the picture had
+said, the one fact nothing could reconstruct later. "It was right" stores
+`confidence: 1` with `correctedFrom: null`. Closing the sheet is the cancel.
+
+**Two defects the FRAME caught that no assertion did.**
+
+1. The first cut put `Save this` 40 px below the sheet's own bottom edge on a
+   390x844 phone with a route drawn. Every control was in the DOM and the panel
+   height assertion passed. The actions are a pinned footer now, and the gate
+   asserts the button's rect is inside the window - not that it exists.
+2. The day view's footer under a **restored** photo schedule read
+   **"From typed in"**. `daySourceOf()` has a string branch and an object branch,
+   and only the string branch knew about photographs; the three older sources
+   survived the object branch by accident of their labels ("Google Calendar"
+   contains "google"). Every student who reloaded the page saw it. `kind` is
+   asked first now.
+
+**HEIC.** The default iPhone camera format since 2017 had never been tried, and
+on Chrome/Firefox it arrived as the generic "That picture could not be read on
+this device" seconds and ~5 MB late. `IMP.image.heicBrands` sniffs the ISO-BMFF
+brand out of the first 32 bytes - the bytes, not `f.type`, not the filename - and
+only a real HEIC pays for a decode attempt. Refused in 271 ms with a sentence
+that names the format and says to take a screenshot instead, before the engine is
+fetched. A JPEG pays one 32-byte read.
+
+**Numbers, all re-run on this tree.** `img-import.mjs` **67 passed, 0 failed**
+(was 43; sections 8 and 10 are new). `si-integration.mjs` **50 passed, 0 failed**.
+`dayview.mjs` **100 ok, 2 failed** - the documented baseline. `image-bench.mjs`
+through the shipped screen: **131/171 skipping every question, 134/171 answering,
+100.0% precision, 0 hallucinations on both** - every by-image line identical to
+189, against a bar of 36.
+
+**Still weak.** The sheet corrects a class the import KEPT; it cannot rescue one
+`applyGroup()` dropped, because a dropped reading has no stored row and no chip.
+The three meetings between 131 and 134 are exactly that population.
+`provenance.correctedFrom` is stored and no surface prints it. The HEIC gate runs
+on a synthetic ISO-BMFF header in a browser that genuinely has no decoder, but a
+real iPhone file has still never been through it.
+
+## 189. Aug 25 2026 — a photograph is the fourth tab (acer lane, branch `acer/img-integrate`)
+
+`js/wayfind.js` (+471 lines, one file), `scripts/verify/img-import.mjs`,
+`scripts/verify/img-import-extract.mjs`, `docs/img-integrate.md`, five frames in
+`shots/img-integrate/`. **`WAYFIND.on` is still literally `false` and is not in
+the diff.**
+
+`acer/img-extract` built the reader and `acer/img-confidence` built the screen
+that asks. Neither was reachable from the app. This merges both and makes a
+photograph a **SOURCE of the import sheet that already ships**, beside Google
+Calendar, Apple Calendar and the UT paste — not a mode beside it.
+
+**The score, measured on the shipped screen and not on a function.**
+`img-import-extract.mjs` hands the real page a `File`, presses the real
+controls, and reads back `window.wayfindSchedule.events` after "Use these".
+
+```
+                                    all four right    precision
+  the bar (docs/img-bar.md)          36 / 171           16.1%
+  the reader alone                  134 / 171          100.0%
+  SHIPPED, student answers nothing  131 / 171          100.0%
+  SHIPPED, student answers          134 / 171          100.0%
+```
+
+**131 of 171 for a student who answers no question at all**, 3.6x the bar, with
+zero wrong answers on both passes. The 131-vs-134 gap is three meetings, all on
+image 05, and it is the feature working: `applyGroup()` refuses to keep a
+reading nothing believed that nobody confirmed. Skipping costs three meetings
+out of 171 and buys zero wrong answers.
+
+**It is one row of `IMP_SOURCES` and one producer, which is what the file's own
+header predicted years of rounds ago.** `impBuild` split into `impRawRows` (per
+format) and `impResultFrom` (per campus) so both producers share the far half.
+Everything below the joint is untouched: `impPlace`, the de-duplication, the
+failure taxonomy, the result screen, `impUse`, `store.save()`,
+`window.wayfindSchedule`, `wayfind:schedule`, the day view, the privacy panel,
+Delete. No second path anywhere, and the gate asserts
+`events === classes + rejects`.
+
+**`docs/img-confidence.md` ended with a request to the day-view lane — a
+"not-checked" mark — and the mark already existed with no producer.** §11 of
+`js/wayfind.js` has carried `codeConfidence < WF_DAY.confidenceSure` since
+before an OCR importer was built, with a comment saying it was there so this
+exact landing would not be a rewrite. Two fields joined them, and both were
+already reserved: `confidence` (*"Reserved for OCR. An .ics sets 1; a photo will
+not"*) and `provenance`. **No schema change and no version bump.** The day view
+now prints `Read as "PAI 3.02" — check this one`, and it survives a reload
+because it is stored, not a session flag.
+
+**`scripts/verify/img-import.mjs`: 43 passed, 0 failed** — and it is the first
+gate that could fire at the SHIPPED egress guard. `si-integration.mjs` §6 notes
+that the guard arms itself off the STORED schedule and nothing called
+`store.save()`, so it was watching nothing during a real import. A photo import
+saves; the guard is armed off the student's own rooms; a canary carrying one of
+them is BLOCKED at the socket, and only then is the guard disarmed to prove the
+instruments are not blind through `fetch` and through a real `Worker`.
+
+**Two things were found by looking at the frame, not by reasoning.** The second
+file input rendered as a raw grey `Choose File | No file chosen` hanging off the
+bottom of the panel — `style.css` hides `#wf-imp-file` and this lane does not
+own that file, so it is hidden inline. And a dynamic `import()` in a CLASSIC
+script resolves against the SCRIPT's URL, not the document's: every `fetch` in
+`js/wayfind.js` is document-relative, so `./js/schedconfirm.js` looked right and
+asked for `/js/js/schedconfirm.js`. The 404 surfaced as *"That picture could not
+be read on this device"* — a sentence about the student's photograph for a fault
+that had nothing to do with it.
+
+**Nothing else moved:** `si-integration.mjs` 50/50, `schedimg.mjs` 26/26,
+`schedconfirm.mjs` 101/101, `dayview.mjs` 100 ok / 2 failed (identical to the
+baseline in `docs/si-seams.md` §6, and both are that merge's). Zero console
+errors on the phone page anywhere in the run. `IMP.image.on = false` puts the
+panel back to three tabs.
+
+**Still weak:** the "check this one" chip is a label, not a control — reopening
+one question from the day view needs a review object that no longer exists after
+the import ends. The gate runs ONE picture end to end (`--image` takes any of
+the fifteen). A HEIC from an iPhone has never been tried.
+
+## 188. Aug 25 2026 — nothing is confirmed while a doubt is still open (acer lane, branch `acer/img-confidence`)
+
+`js/schedconfirm.js`, `scripts/verify/schedconfirm.mjs`,
+`scripts/verify/confirm-line.mjs`, `docs/img-confidence.md`, and one new frame
+`shots/img-confidence/confirm-retake-phone.jpg`. **`js/wayfind.js` has zero
+lines of diff and `WAYFIND.on` is still literally `false`.**
+
+**The header of `js/schedconfirm.js` promised something the file did not do.**
+*"Nothing this app is not sure of is ever written down silently"* was never
+enforced anywhere — it was an emergent property of "every doubt happens to get a
+question", and there were two ways for a doubt not to get a question. Both were
+found by RUNNING the module against the real page, not by reading it.
+
+1. **The cap.** `maxQuestionsPerClass` is 2 and a reading has four fields;
+   `applyGroup()`'s safety net counted only the questions it had BUILT. A reading
+   at `building 0.30 / room 0.45 / time 0.19` produced two questions, and
+   answering both returned `confirmed: true` carrying `room: "2.2%"` — a value
+   the file's own grammar check had already flagged. `g.tooManyDoubts` was
+   computed and never read again anywhere in 1,947 lines.
+
+2. **The recover lane, which is worse, because it wrote a false sentence.**
+   Recover rows had never been scored by anything, in any round. A cut-off
+   `WEL 2.22` — the reader's own words are *"part of it is missing"* — was shown
+   as a ONE-OPTION building question and then written `confirmed: true` with
+   `why: "confirmed by you from the picture"`. The student never saw the room.
+
+**The fix is one function in both lanes.** `openDoubts()`: a field is settled
+when the student answered it or the model believed it; anything else is open, and
+an open doubt blocks `confirmed`, names itself in `unconfirmedFields`, and gets a
+plain-words `why`. Over the cap the screen asks NOTHING and saves NOTHING — two
+questions that cannot settle three doubts are two taps that fix nothing, the same
+reason `time.tooTight` moved out of the asking band last round. The reading goes
+to a **re-take list** on the summary, out of the ready count, with the app's own
+reason under it and one full-width 44px button to keep it anyway as explicitly
+unchecked. Left out is the default. `CONF.ask.overCap = 'ask'` is the one-line
+overrule and the gate runs both modes.
+
+**Measured, both before and after, on this machine:**
+
+```
+   schedconfirm gate   101 passed, 0 failed   (was 86)
+   confirm-line        STRICT 28 of 136, 16 taps; LOOSE 39 of 39 caught;
+                       option coverage 37 of 37 — identical to round two
+   re-take list        0 rows on the real corpus, STRICT and LOOSE
+   image-bench         134/171, 100% precision, 0 hallucinations (unchanged)
+   si-integration      50 passed, 0 failed, section 6 privacy capture clean
+```
+
+**Zero re-take rows on the corpus means the corpus cannot validate the new
+path.** That was measured BEFORE the fix was designed, on both passes, and every
+proof that the path behaves is synthetic: the 1/2/3/4-doubt matrix in gate §8,
+the critic's own reading replayed, the cut-off row, and the screen measured in
+pixels at 390x844. Stated plainly rather than buried.
+
+**A REQUEST FOR WHOEVER OWNS `js/wayfind.js`.** A class kept from the re-take
+list carries `needsConfirm: true` and `unconfirmedFields: ['building','room']`.
+`grep` finds **zero** occurrences of either name in `js/wayfind.js`, so once the
+student presses "Use", an unchecked class looks exactly like a checked one in the
+day view. The disclosure is real at the point of saving and evaporates
+afterwards. **The day view needs a not-checked mark driven off `needsConfirm`,
+and ideally a tap that reopens the question.** Not made here: that file belongs
+to another lane and `CLAUDE.md` says to write the request down rather than reach
+across.
+
+## 187. Aug 25 2026 — what counts as unsure, and the screen that asks (acer lane, branch `acer/img-confidence`)
+
+`js/schedconfirm.js` (new), `scripts/verify/schedconfirm.mjs` (new),
+`scripts/verify/confirm-line.mjs` (new), `docs/img-confidence.md` (new), and an
+additive change to `js/schedimg.js` that hands over the EVIDENCE behind each
+reading rather than only the reading.
+
+Built on `acer/img-extract`. **`js/wayfind.js` is not in the diff and
+`WAYFIND.on` is still `false`.**
+
+**The line is two lines, and that is the one real design decision.** A single
+threshold makes two different questions share one answer: *am I sure enough to
+save this without asking* (`CONF.askBelow`) and *am I sure enough to put this in
+the first button* (a separate rule). With nothing specific wrong, the reading
+leads and one press ends it. When the app can NAME what is wrong with what it
+read, the reading must not be under the student's thumb as the first button —
+that is how a wrong answer gets confirmed by somebody skimming. There turned out
+to be three cases, not two: a **defect** in the reading (the correction leads), a
+**relational** doubt about its neighbours (the reading leads, the clash is the
+printed reason), and a defect this file has **already corrected** — `PAL`
+repaired to `PAI` — where the button says `PAI` because there is nothing wrong
+with `PAI`. Merging them produced a screen that offered *"7:00 pm"* as the
+leading answer to a class the picture plainly said was at two.
+
+**A THRESHOLD CANNOT BE CALIBRATED AGAINST ERRORS THAT ARE NOT THERE, and that
+is the honest difficulty of the whole piece.** The shipping pipeline scores 136
+predictions on the corpus with ZERO wrong answers. So `confirm-line.mjs` runs the
+corpus TWICE: once on the shipping tune, which measures the COST; and once with
+the four hard refusals `acer/img-extract` installed switched off through `TUNE` —
+the edge-of-crop guard, the class-length guard, the across-days room vote and the
+quarter-hour snap. Those four guards are the *reason* the strict pass has no
+errors, so switching them off reproduces exactly the wrong answers they were
+built for: real OCR mistakes, from the real engine, on the real images, rather
+than errors invented to be caught.
+
+**The first model was expensive AND blind, and only the measurement said so.**
+It used Tesseract's word confidence as the base of every field, mapped 15 to 0
+and 95 to 1. Scored: it asked about **48 of 136 correct classes** (34 taps) and
+caught **4 of 39** wrong answers, letting 35 through in silence. Reading the two
+passes class by class gave four reasons, not four knob-turns:
+
+- word confidence has **no discriminating power on this corpus** — every correct
+  reading spans 41 to 96 and every wrong one in the loose pass is a GEOMETRIC
+  error carried at 90+. So it is no longer the base. The base is 1.0 and
+  confidence only bites below 62, barely above `js/schedimg.js`'s own noise
+  floor of 26;
+- **37 of the 39** wrong answers are one shape — `10:55` for `11:00`, `12:25`
+  for `12:30` — because a calendar paints a gap between touching events. The
+  model checked only the START time. Nothing at UT ends at five to;
+- six false questions came from an "overlap" penalty firing on **the answer
+  key's own data**: schedule s3 has C S 429 at 10:00-11:00 MWF and HIS 315K at
+  10:30-11:30 MW, both marked `required`, on three images. Exact and partial
+  clashes are now different checks — the same hour in two buildings is a misread
+  every time, a 30-minute clash is a thing real students carry;
+- `JES A121A` was called *"not a shape UT room numbers take"*. It is one.
+
+**Where it landed.** Run against the committed tree, `askBelow = 0.72`:
+
+```
+             classes asked about      wrong answers          taps across
+             (of 136, all correct)    caught / in silence    15 images
+  STRICT     28   (20.6%)             —                      16
+  LOOSE      67                       39 of 39  /  0         56
+```
+
+and **the buttons contained the right answer on 37 of 37** of the wrong classes
+the line asked about — a question whose options do not contain the truth costs a
+tap and fixes nothing.
+
+Per image, on the shipping tune: **nine of the fifteen ask nothing at all.**
+Image 09, a dark-mode registrar table whose type comes off the page at
+word-confidence 55, costs eight taps; image 05, an angled table, costs four;
+images 01, 03, 07 and 10 cost one each. **Sixteen taps for a hundred and
+thirty-six classes across fifteen schedules** — about one per picture.
+
+And the separation is not marginal: every one of the 39 wrong answers scores
+between **0.19 and 0.47**, and the line clears the highest of them by 0.25.
+
+
+**The benchmark number did not move, and that is the correct outcome.**
+`image-bench.mjs` on the committed tree: **134 / 171, precision 100.0%**, 136
+predictions, 0 false positives, 0 hallucinations, 0 three-of-four near misses —
+identical to `acer/img-extract` image for image, against a bar of 36/171. That
+is what this piece had to do to the bench: nothing. The bench calls a function
+fifteen times and there is no student in it, so what it scores is the PROPOSAL
+set, and a confirm flow that changed the proposal set would be doing the
+reader's job rather than its own. What it must not do is regress it, and it does
+not. The numbers that belong to this piece are the sixteen taps and the 39 of 39.
+
+**`askBelow = 0.72` is derived rather than fitted, and that matters more than
+the number.** Every penalty meant to trigger a question on its own is at most
+0.70 (`offGrid`); every penalty meant only to corroborate is at least 0.85
+(`oddLength`, a partial overlap). 0.72 sits in the gap between those two sets,
+which is why the strict cost is FLAT from 0.60 to 0.78 — no penalty value lies
+in that range. It is also why 0.50 is not the answer even though it scores
+better on this corpus: a single-signal version of the same seam error scores
+0.55 and would slip under it.
+
+**"Here are the two it might be" is a new export, deliberately separate.**
+`repairCode()` answers *may I write this down myself* and has to say no whenever
+two real codes fit. But *"I cannot write this down"* and *"I have nothing to
+show you"* are different sentences. `codeCandidates()` returns the whole set and
+nothing that writes an answer down may reach it. `CRE` is one confusable
+character from `CPE` (Chemical and Petroleum Engineering) and `GRE` (Gregory
+Gymnasium) in the app's own register — the gate asserts that against
+`data/ut_buildings.json` itself, and prints the **thirteen** pairs of real UT
+codes that are one such character apart.
+
+**One question per READING, not per meeting.** A Tue/Thu course is two rows and
+one line of the picture; `js/schedimg.js` now hands both rows the SAME evidence
+object by reference, which is what makes them identifiable as one reading. Days
+get five chips rather than a list of single days, because picking Wednesday off
+a list silently deletes Monday and Friday.
+
+**The screen shows the student the piece of their own picture.** Rectified, so
+it is upright even off an angled photo; padded out to the row around the field,
+because four characters alone are unrecognisable; with the field ringed in the
+app's own accent. Measured on the FRAME rather than the DOM — the panel at
+344x523 in a 390x844 viewport, no sideways scroll, every step-ending control at
+least 44 px, the topmost answer button at y=352, and the crop's luma spread at
+56.5 where a blank canvas is 0.
+
+**Nothing leaves the browser.** The rectified page is kept as a CANVAS rather
+than as pixels, which is a safety property: a canvas does not survive
+`structuredClone`, so it cannot cross into a worker, a message or a fetch body
+without somebody writing the conversion by hand. Every string off the picture
+reaches the DOM through `textContent`, never `innerHTML`. `destroy()` sets the
+canvas to 1x1 so an emptied backing store cannot be recovered. The gate asserts
+it at the network level with a context-level capture and a raw TCP sink, then
+PROVES the instruments are not blind with a canary through `fetch` and through a
+real `Worker`. The allowlist is MEASURED, not written down: the hosts the app
+already used before the image was handed over are the allowlist, and one new one
+fails.
+
+**Two requests for whoever owns `js/wayfind.js` next**, written here rather than
+made, per rule 1:
+
+1. ~~A pure `window.wayfindMinutes(fromCode, toCode)`~~ — **WITHDRAWN, round two
+   built it instead.** See below: `js/walkgraph.js` is that probe and it needed
+   nothing from `js/wayfind.js`.
+2. ~~Three lines in `impFromFile`~~ — **still needed, but now ONE line.** Round
+   two collapsed the seam to a single call that loads its own cross-checks:
+   `const { classes } = await confirmFromFile(file, host)`, exported from
+   `js/schedconfirm.js`. Everything under it is a dynamic `import()` and
+   neither module is referenced from `index.html`, so the cold load still pays
+   nothing. `js/wayfind.js` has **zero lines of diff** on this branch.
+
+---
+
+### ROUND TWO — the hole named below is partly closed, and the measurement that closed it found a defect
+
+**`js/walkgraph.js` (new).** A second reader of `data/walk_graph.json`: 300
+lines, no DOM, no globals, no side effects, cost model taken out of the graph
+file's own `tune` block rather than typed in. `minutes('MEZ','WEL')` is
+synchronous, memoised, and returns `null` rather than a number it cannot stand
+behind. It exists because the request above could not be made of another lane's
+file, and it turns out it did not have to be. `schedconfirm.prepare()` loads it
+by default, so a caller who passes no options gets every cross-check there is.
+
+**Switching the graph on immediately made the screen worse, and the measurement
+is what said so.** A new gate section (§2e) runs the benchmark's **own answer
+key** — 49 meetings correct by definition — straight through the model with no
+OCR at all, in about a second. The first run asked about **12 of the 49**, every
+one the same shape: a class printed back-to-back with the next one in another
+building. A printed timetable is written in blocks and that is what a real one
+looks like — the check was calling four real schedules impossible. And the
+question it produced could not be answered: *"there is not enough time to walk
+this"* has no candidate correction, so the only button is the reading.
+
+So `CONF.time.tooTight` moved **0.55 → 0.85**, out of the band that asks on its
+own and into the band that corroborates. The campus graph did not stop being the
+strongest thing this app knows; it stopped being asked the wrong question.
+
+**Where it does have a candidate answer, it asks about the BUILDING.** The new
+`neighbourDoubt()` uses two witnesses the app already has — the walking graph
+read through the rest of the student's own day, and UT's own printed name for
+the building — to ask *"Is this building NEZ?"* with `MEZ` as the second tap.
+The reading still leads, because there is nothing wrong with those four
+characters.
+
+**It cost nothing.** `confirm-line.mjs` (now calling `prepare()`, so it measures
+what ships): **28 of 136 asked, 16 taps, 39 of 39 caught, option coverage
+37/37** — identical to round one, with all three cross-checks live. `§2e`: **0
+of 49**. `image-bench`: **134/171, precision 100.0%, 0 hallucinations** —
+unchanged, which is the correct outcome for a piece that must not touch the
+proposal set. The 0.70/0.85 plateau is intact: all three new penalties are at or
+below 0.70 by construction and STRICT still reports 28/16 at every threshold
+from 0.60 to 0.78.
+
+**Gate: 83 of 83 PASS**, up from 57. New: §2c runs the confusable check on the
+real graph and real register and prints all thirteen pairs with their walking
+separation; §2d drives the real `window.wayfindRoute` and compares it to the
+probe on eight pairs (**never over, worst gap 3 min, always in the safe
+direction**); §2e is the answer-key run; §5b is a real MEZ reading off corpus
+image 03 with one stroke changed, screenshotted on a 390×844 phone.
+
+**Two things worth knowing for anyone touching this next.** First, the §5b frame
+was *wrong the first time and looking at it is what caught it*: it seeded a
+synthetic NEZ onto image 01's evidence, and image 01 has no MEZ, so the panel
+asked about NEZ over a crop with `RLP 0.106` ringed — the app pointing at one
+line while asking about another. It now uses image 03, which really carries
+`MEZ 1.306`. Second, `js/schedimg.js` gained `codeNeighbours()` and
+`buildingRegister()`; both are additive and the bench is unchanged.
+
+---
+
+**What is still weak.** **Eight of the thirteen confusable pairs are still
+invisible** — five now raise a question (`MEZ/NEZ`, `TSC/TSG` from the graph;
+`GRE/GRF`, `FTC/FTG`, `PRH/RRH` from the register's names), and the gate
+computes that split from the data rather than listing it. The one that matters
+in the residue is **`PAI/PAT`**: Painter Hall and Patterson Labs, both real
+teaching buildings, 250 m and two minutes apart, and the corpus's own s3 has a
+class in `PAI 3.02`. The graph cannot separate two minutes and neither name is a
+car park. **A room register would settle it in one lookup and this repo has
+none** — same shape as the floor table, same reason. Beyond that: the line is
+still calibrated against a mono-culture of errors (37 of 39 are the same seam);
+`CONF.walk.gainMin` is derived from the register but the corpus contains no
+confusable misread, so nothing priced how often a gain of exactly 5 turns up on
+a *correct* reading; and there is still no floor table — measured, not assumed:
+joining `data/entrances.geojson` to `data/places.geojson` yields 8 buildings and
+gives JES, a 27-storey dormitory, a height of 5.35 m.
+
+`docs/img-confidence.md` has all of it, with the screenshots.
+
+
+## 186. Aug 25 2026 — image to text, second round: 134 of 171 and not one wrong answer left on the corpus (acer lane, branch `acer/img-extract`)
+
+Same file, same corpus, same scorer. `js/schedimg.js` went 124 → 134 and, more
+importantly, its last two wrong answers went away:
+
+```
+                        round 1          round 2
+all four fields right   124/171 (72.5%)  134/171 (78.4%)
+precision                98.4%           100.0%   (2 wrong answers -> 0)
+three-of-four near miss  2               0
+images at 100%           9 of 15         12 of 15
+angled-photo            18/49            26/49
+```
+
+Every image that is not an angled photograph of a week grid is now perfect. The
+gate is `scripts/verify/schedimg.mjs`, 26 assertions, all green on the real
+page. Write-up: `docs/img-extract.md`.
+
+**A LOST COLON IS A LOST CLASS.** The single biggest gain (+5) was four lines of
+text repair. A photographed hour cell comes back as `400 pm-5.30 pm` and
+`10:00 am-11 00 am`; neither parses, because the time pattern wants a separator
+between hour and minutes and OCR keeps eating it. Digits run together or split
+by a space are a clock — **but only where a meridiem follows**, which is what
+makes it safe on every surface: a unique number, a room and a course number are
+never followed by "am".
+
+**A SECOND LOOK IS A DIFFERENT SHAPE OF PICTURE, SO GIVE IT A DIFFERENT MODE.**
+Image 05's `MWF` cell comes back EMPTY under `SINGLE_BLOCK` at every
+magnification from 2× to 5× — the layout analyser will not commit to a block
+from one short word — and reads under `SINGLE_LINE`. Three things together got
+it (+3): a per-call page-segmentation mode, a re-read that asks more than once
+and stops when the caller has what it wanted, and a generous margin (nothing at
+6 px, a reading at 40). The margin reaches into the neighbouring rows, so what
+comes back has to be filtered by **this row's own y band** as well as its column
+— otherwise the row below's day letters get read as this row's, which is exactly
+the kind of confidently-wrong answer this feature exists to refuse.
+
+**A WEEK GRID SAYS THE SAME THING SEVERAL TIMES, SO LET THE COPIES VOTE.** A
+calendar draws one course in one colour at the same hours on every day it meets,
+so two rectangles of the same colour and the same start and end are the same
+class and their room is the same room. `findBlocks()` now returns each block's
+mean colour; more copies win, a tie goes to the more confident reading, and a
+copy that read no room takes the group's and is flagged. That was +2 hits and
+−2 false positives — it fixed both of the corpus's near misses (`WEL 2224` for
+`WEL 2.224`, `GDC 2.236` for `GDC 2.216`) and took images 04 and 10 to 14/14.
+
+**THE CORRECTION THE LAST ROUND'S DOC NEEDED.** It said the event blocks were
+being found on the angled week grids. They were not. `findBlocks()` and
+`hourAxis()` are called from one place, inside `fromGrid()`, which runs only
+when `classifyLayout()` returns `grid` — and that needed **three exactly-spelled
+weekday names on one row**. Image 06 reads `rut WED THY FRI`. Two exact
+weekdays is not three, so all three angled grids were classified as card stacks
+and the block finder never ran on them at all. `headerDay()` now allows one
+wrong letter, narrowly (exactly three letters, exactly one weekday within one
+substitution — `THY` is Thursday, `RUT` is refused, `SITZ` is four letters so it
+is never a Saturday), and `fitDayColumns()` fits x against the day index because
+a calendar's columns are evenly spaced. Image 06 now recovers all five columns
+from three headings and reaches the block finder for the first time. **It is
+worth nothing on the score and it is still right** — the captions inside those
+blocks still do not read.
+
+**AN EMPTY SCREEN IS NOT AN ANSWER.** What that repair actually bought is the
+thing the last round listed as the next piece of work. Image 06 proposes nothing
+and now reports ten classes on Mon, Tue, Wed and Thu — the day of each coming
+from the column it sits in, not from its writing. Images 08 and 11, whose day
+headings never read at all, get the block count asked for directly (once, and
+only when the answer would otherwise be blank) and come back with *"there are at
+least 11 classes drawn on this calendar, but the writing inside them is too
+small or too blurred to read — try again with the camera square on to the
+screen."* A student can act on that; an empty screen they cannot.
+
+**A SIDE FIX WORTH KNOWING ABOUT.** In single-line mode Tesseract prints its
+row-fitting statistics (`Bottom=0, top=195, base=0, x=0`) through emscripten's
+stderr, which lands as `console.error` in the host page — indistinguishable from
+the app having thrown, and it turned the gate red. `debug_file: '/dev/null'` in
+the worker's parameters silences it at the source. Do not fix that one by
+teaching a gate to ignore errors.
+
+**STILL WEAK, MEASURED RATHER THAN ASSUMED.** 0 of 35 on angled photographs of
+week grids, and image 05's `C S 439` room. The header strip was re-read on its
+own at 2×, 3× and 4× under four segmentation modes on each of 06, 08 and 11:
+
+- on **06 and 08** no weekday name comes back under any of them. What does come
+  back is the row of date numbers. Naming a column from a date means reading the
+  month and year off the same picture and doing a calendar computation, and one
+  wrong digit in the month moves every class to the wrong day — a worse failure
+  than the one it replaces, so it is not in there;
+- on **11**, sparse-text mode (11, not the block mode the page pass uses) reads
+  `MON` and nothing else. One heading is not two, so the column fit has nothing
+  to fit and the pitch would have to come from the event blocks. That is the one
+  door left open, and it is written down rather than built, because even with
+  its columns named image 11 has no readable hour axis and only one block whose
+  caption yields a time — it would still score zero. Its blocks do give
+  `PHY 3031 1:00 pm - 200 om PA) 3.02` and `MER 1.906`, and everything
+  downstream of naming its columns is already built and tested on 04 and 10.
+
+`js/wayfind.js` is not touched and `WAYFIND.on` is still `false`.
+`index.html` is not touched. The corpus and the scorer are not touched.
+
+## 185. Aug 25 2026 — image to text, on the device: 124 of 171 against a bar of 36, and the win is geometry not OCR (acer lane, branch `acer/img-extract`)
+
+`js/schedimg.js` turns a photograph or a screenshot of a class schedule into
+classes, entirely inside the browser. Scored by `scripts/verify/image-bench.mjs`
+on the fifteen-image corpus, against the bar in `docs/img-bar.md`:
+
+```
+                        the bar          this
+all four fields right   36/171 (21.1%)   124/171 (72.5%)
+precision               16.1%            98.4%      (187 wrong answers -> 2)
+hallucinations          0                0
+clean-export            14/52            51/52
+angled-photo             0/49            18/49
+dark-mode                8/38            23/38
+partial-crop            14/32            32/32
+images at 100%           0               9 of 15
+```
+
+Both sides scored by the same file, same corpus, same rules. Full write-up with
+every measurement in `docs/img-extract.md`; the gate is
+`scripts/verify/schedimg.mjs` (23 assertions, all green on the real page).
+
+**THE BAR'S OWN NUMBER ALREADY TOLD YOU WHERE THE PROBLEM WAS AND IT IS NOT THE
+ENGINE.** The bar scored 0/49 on every week grid and 0/34 on every phone card
+stack — and on the card stacks it noted that OCR read every field perfectly. The
+loss was never optical. It was that a flat bag of words has thrown away the
+layout, and the layout is what makes the rest of the problem solvable. So this
+file keeps word boxes and rebuilds the surface: rows -> layout (table / week
+grid / card stack / flow) -> records anchored on a time range with the day taken
+from the column the record sits in. Card stacks went 0 -> 100% on all three.
+
+**ON A WEEK GRID THE TIME IS THE POSITION, AND THAT IS WORTH MORE THAN ANY
+AMOUNT OF READING.** Measured on image 02: one caption time range in ten parses,
+because the captions are the smallest type on the page. But the grid draws its
+own coordinate system — hour labels down the left edge are an axis, an event
+block's top and bottom edges are its start and end, the column is the day. Fit
+the axis (Theil-Sen, so one misread label cannot drag the clock across the
+afternoon), find the blocks, and the grid images went 0/10, 3/14, 8/14, 7/12 to
+10/10, 13/14, 13/14, 12/12. Two details each cost a round and are worth
+carrying:
+
+- **A calendar draws a gap between touching events**, so a block's painted
+  bottom is minutes short of the hour it ends on: a 9:30-11:00 class comes off
+  the ruler at 10:55. Snapping to the quarter hour absorbs the seam. At 5-minute
+  snapping it reports a class ending at five to eleven — four fields that all
+  look right and one of them wrong.
+- **Block connectivity has to be COLOUR-limited, not just "not the page".** An
+  11:00 class starts on the pixel where the 9:30 class ends, and a mask that
+  only knows "coloured" welds them into one four-hour event.
+
+**ONCE YOU KNOW THE GEOMETRY YOU CAN SPEND IT ON THE ENGINE, NOT JUST ON THE
+ANSWER.** The single most useful trick here: crop the one thing that did not
+read and read it again on its own. A coloured event block is white type on a
+saturated ground inside a page of black-on-white, and the line the page pass
+drops is always the third one — the room; cropped out, flipped by its own
+median, magnified, it reads first time. The same on registrar table CELLS: image
+12's `10:00 am-11:00 am` came back as `am-11:00 am` and image 01 lost one row's
+day letters, and re-reading just the empty cell took both to 14/14 and 7/7. Only
+empty cells are re-read, so a clean table pays nothing.
+
+**A PHOTOGRAPH IS A DOCUMENT INSIDE A ROOM, AND THE TWO RULES THAT MATTER ARE
+BOTH COUNTERINTUITIVE.** Find the document by EDGE DENSITY, not brightness — a
+brightness rule finds a white page on a dark desk and then gets exactly backwards
+the case this corpus was built to include, a dark-mode calendar photographed in a
+dark room. And decide "is this a photograph" by whether the content stands clear
+of all four edges: a screenshot's content runs to the edge of the file, which is
+what a screenshot IS. The first version had no such test and "corrected" two
+thirds of the corpus into trapezoids. That test is load-bearing twice: a
+screenshot's border is a CROP, so a word touching it is half a word, which is
+what refuses `WEL 2.22` (the left half of `WEL 2.224`) on image 14 and lets that
+image score 12/12 with no false positives.
+
+**THREE IDEAS WERE MEASURED AND THROWN AWAY**, which is the part I would most
+want the next lane to copy. Local-deviation normalisation — distance from the
+local mean, so every polarity comes out dark-on-light at once — is a genuinely
+elegant answer to white-text-on-a-coloured-block and scores **20/171**. A 3x3
+median denoise on photos wins one meeting and loses four. Upscaling to a 44 px
+line instead of 30 scores 115/171 at 96.7% precision. All three are still
+reachable from `TUNE` via `SCHEDIMG_TUNE='{...}'` so the A/B is one line, not a
+rediscovery.
+
+**One artefact was worth more than any tuning: a floor under the local
+background.** Glare correction divides by a local maximum (the brightest thing
+near text is the paper). Inside a coloured block, the half with no caption in
+the window has a local maximum equal to the block's own colour, divides to 1,
+and comes out WHITE — a bright slab abutting the caption. That single artefact
+was costing the third line of every green and purple event on image 02. One
+line, `bgFloorFrac: 0.32`, and every one of those rooms reads.
+
+**Privacy, asserted rather than claimed.** `js/schedimg.js` is not referenced
+from `index.html`; it is reached by a dynamic `import()` when a student picks an
+image, and the ~5 MB engine is fetched only when `extract()` is first called —
+not when the module is imported. The gate asserts both at the network level on
+the real page. While the image is being read, no request the browser makes has a
+body of any kind, no request carries a course code or a room, the raw socket
+sink is never contacted — and the instruments are proved not blind by firing a
+canary through `fetch` and through a real `Worker` and requiring both to catch
+it. The engine is vendored at `vendor/tesseract/` (5.1 MB, same-origin): not
+because a CDN would see the picture, it would not, but because it would see
+*that a schedule is being imported*, from an IP, at a time.
+
+**Refusing is a feature and it has a list.** `extract()` returns `classes` and
+`unsure`, and everything held back says why in words a student can act on. A
+class is 20-240 minutes (an OCR slip eating the leading `1` of `11:00 am` was
+reporting an 11.5-hour class). A plain-digit room needs a building code the app
+knows behind it, or `C S 429` becomes room 429 of building CS. A code is
+repaired by one confusable character and only when exactly one real code fits —
+`GDD` could be `GDC` or `GDF`, and two candidates is not an answer. A well-formed
+code the app does NOT know is shown flagged, never deleted, because MER is a
+real UT building at the Pickle campus and is on this corpus on purpose.
+
+**WHAT IS STILL WEAK, and it is one clean line: angled photographs of week grids
+score 0 of 35** (images 06, 08, 11). The geometry is found perfectly on all
+three — document quad, event blocks, their positions — and the OCR of the
+captions inside them comes back as `HES 315K . CO pm eam METZ 1 3046`. Nothing
+there is a room. The day headers do not read either, so the grid path is never
+even entered; the fix is the same second-look crop applied to the header strip
+and the hour gutter, which is not built. They currently return NOTHING — no
+false positives, no hallucinations, which is the right failure — but a student
+photographing their calendar at an angle gets an empty result and no
+explanation. "I can see six classes here but I cannot read the rooms — point the
+camera straight at it" is the next piece of work, and this file already has the
+block count to back that sentence.
+
+**What I did not touch.** `js/wayfind.js` is not in the diff and `WAYFIND.on` is
+still `false`. Nothing in `index.html` either — the feature is reachable only by
+`await import('./js/schedimg.js')`, which is what makes the laziness assertion
+possible at all. The eleven codes from wayfind's `CAMPUS_EXTRA` / `OFF_MAP` are
+duplicated in `js/schedimg.js` with a comment saying so, because they live
+inside that file's closure with no public accessor; **if those tables change,
+that copy has to change with them.**
+
+**Timing note for whoever runs the bench.** On the real app page OCR takes ~15 s
+per image because MapLibre is competing for the CPU; on
+`SCHEDIMG_PAGE=scripts/verify/schedimg-blank.html` the same image takes ~2 s.
+Same module, same score — the app page is the honest place to assert laziness
+and privacy, the blank page is the sane place to iterate.
+
 ## 184. Aug 25 2026 evening — the schedule-import round SHIPPED: five of six defects closed, the sixth is one taste question, and every number was re-measured on the merged tree (ship lane, branch `acer/si-combined` → `main`, PR #224)
 
 **Merged.** `main` now carries all five schedule-import lanes plus the
@@ -24768,3 +25611,4 @@ merged `main`: 12/12 selftest, `harness-drift.mjs` PASS, 15 images present.
 is the next stage's job and this file is deliberately agnostic about it. Did not
 delete `acer/img-corpus` after merging, against the usual rule, because the round
 that follows was told that branch name and a deleted branch would strand it.
+

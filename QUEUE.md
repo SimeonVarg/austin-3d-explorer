@@ -1,5 +1,117 @@
 # QUEUE — Acer lane
 
+## ~~PHOTO-IMPORT GAUNTLET~~ — **MERGED 2026-08-25 night** (PR #228, `docs/img-verdict.md`)
+
+**A student can photograph their class schedule and the app reads it on the
+phone.** Four branches — `acer/img-bar`, `acer/img-extract`,
+`acer/img-confidence`, `acer/img-integrate` — plus `acer/img-corpus`, which was
+already on `main`. All merged, all deleted, locally and on the remote.
+
+**`WAYFIND.on` is still `false`** (`js/wayfind.js:88`), confirmed after the merge
+and in the production bundle. Nothing about this is visible to anyone who has
+not typed `?walk=1`.
+
+### The number, re-run by the ship lane on the merged tree
+
+```
+                                       all four fields right    precision
+  the bar (docs/img-bar.md)              36 / 171   21.1%         16.1%
+  SHIPPED, student answers nothing      131 / 171   76.6%        100.0%
+  SHIPPED, student answers              134 / 171   78.4%        100.0%
+```
+
+clean **52/52** vs the bar's 14/52 · angled **23/49** vs 0/49 · dark **24/38**
+vs 8/38 · crop **32/32** vs 14/32. **Zero false positives against the bar's
+187.** `image-bench.mjs --selftest` ran first (171/171), and `image-bench.mjs`
+and `scripts/verify/schedule-images/` have **zero diff against `main`** — the
+scorer and the answer key were checked for tampering before either number was
+believed.
+
+### The three disqualifiers, which outranked the score
+
+Checked with the repo's gates **and** with an instrument the ship lane wrote from
+scratch, so a blind spot in a gate could not be inherited. Detail in
+`docs/img-verdict.md` §1.
+
+- **Nothing leaves the browser.** Two full imports through the real UI: 174 and
+  168 requests, **zero with a body**; no host that was not already in use; 35
+  needles taken from `truth.json` (the answer key, not the app's output), none
+  found; a raw TCP sink outside every browser API never contacted. Both gates
+  fire a positive control — the shipped guard **blocks** a deliberate leak of a
+  real imported room, and with the guard disarmed both instruments see it.
+- **No invented building, no invented time.** Precision **100.0%** on both full
+  passes; 0 hallucinations, 0 three-of-four near misses. Refusal, not guessing,
+  is the mechanism (`js/schedconfirm.js:1467`).
+- **Cold load not slower.** `index.html` is **byte-identical to `main`**, so the
+  4.9 MB engine cannot be on the load path by construction; 87 and 88 requests
+  at page load, zero matching the engine. The real cost is `js/wayfind.js`
+  growing **+22,598 bytes gzipped**, which is stated in `docs/img-verdict.md` §1
+  rather than buried.
+
+### The gates on the merged tree
+
+`si-integration.mjs` **50/0**, two interleaved reps, identical both times ·
+`walkmeter.mjs` **87.0 m / −393.7 m / 38 of 38**, unchanged · `img-import.mjs`
+**67/0** · `schedimg.mjs` **26/0** · `schedconfirm.mjs` **101/0**.
+
+**`si-integration.mjs` is 50/50 now, not 49/50.** The section above about the
+one red gate is that round's record and stays as written, but it is out of date:
+Simeon answered the two-doors question, `acer/si-onedoor` landed, and the gate
+that was red on purpose is green. Nothing red was merged.
+
+### Two refusals were honoured by reading them, not by counting them
+
+`confidence` and `integrate` both arrived `exhausted: true` — neither won a
+blind comparison. Both refusals were **right when written and both had been
+overtaken by work that landed afterwards**: the confidence refusal was
+"`needsConfirm` has zero consumers", which the integrate round wired
+(`js/wayfind.js:10525` and `:12992`, plus a tappable chip proven by
+`img-import.mjs` §8); the integrate refusal is the dropped-class recovery path,
+which is now the top of "what is next" rather than a defect in what ships. **A
+refusal is evidence, not a verdict** — reading only the boolean would have held
+a good branch for a bug that no longer existed.
+
+### Do not build this — it is already refuted by measurement
+
+The extract critic recommended clustering event blocks' x-centres into day
+columns, to rescue the angled week grids. **On image 06 the columns already
+work**: `schedimg.mjs` prints `layout: grid`, ten blocks in the right columns,
+and *"it still knows which day each of them is on, from the column — Mon Wed Tue
+Thu"*. The blocker is caption legibility — `MA 6 106`, `ute 2.909`, `i208` —
+not the column fit. See `docs/img-verdict.md` §3.
+
+---
+
+## NEXT ON THIS FEATURE — one item, and it is small
+
+**IMG1 — a class the import DROPPED needs a way back that is not
+"re-photograph everything."** `applyGroup()` (`js/schedconfirm.js:1467`) refuses
+a reading nothing believed and nobody confirmed, which is correct and is the
+whole reason precision is 100%. But a refused class then has no day-view row and
+no chip to tap, so the only recovery is deleting the schedule and starting over.
+This is the population behind the 131-vs-134 gap and the whole of what a student
+gets from images 06, 08 and 11.
+
+**The fix:** keep a lightweight record of the refusal (course, day and time
+only) instead of discarding it, and add one line to the result screen — *"3
+classes from your photo couldn't be confirmed and weren't saved — add them?"* —
+opening the existing `WF_FIX` sheet in a new-class mode. Every part it needs
+already exists from the integrate round: the sheet, the building type-ahead that
+names `WEL` back as "Robert A. Welch Hall" and refuses `ZZQ`, and `impPlace`.
+
+**IMG2 (small, whoever next touches that file) — `schedconfirm.mjs` rewrites
+five committed JPEGs in `shots/img-confidence/` every time it runs.** A lane
+that runs the gate and commits will commit five byte-different screenshots for
+no reason. Wants a `--shots` flag like the other gates have.
+
+**What is NOT queued, on purpose:** more OCR recall on the angled week grids.
+`docs/img-extract.md` measured at 2x/3x/4x under four page-segmentation modes
+that the weekday names are not in those JPEGs. Those three images are at the
+legibility floor of the picture, and the honest failure they already produce
+("10 classes are drawn here, the hour scale did not read") is the right product
+behaviour. **The corpus is also entirely synthesized** — the highest-value next
+measurement on this feature is not a better reader, it is one real photograph.
+
 ## ~~SCHEDULE IMPORT GAUNTLET~~ — **MERGED 2026-08-25 evening.** SI1, SI2, SI3, SI5, SI6 closed; SI4 half-closed and half is Simeon's (`docs/si-seams.md`, `docs/si-fold.md`, `docs/si-doors.md`)
 
 **All five pieces plus the integration branch are on `main`.** The morning's

@@ -1,6 +1,111 @@
 # Walk feature — progress log
 
-## Where this stands — 2026-08-25 evening, one minute
+## Where this stands — 2026-08-25 night, one minute
+
+**Short version: you can now take a picture of your class schedule and the app
+reads it, on your phone, without the picture ever leaving it. It works on 131 of
+the 171 classes in the test set. It gets zero of them wrong. It is on `main`,
+and it is still invisible to the public — the switch that turns the walking
+feature on is deliberately still off, and only you flip it.**
+
+### What a student actually gets
+
+They open the app, tap "My class schedule", tap the **Photo** tab, and hand over
+a screenshot of their calendar or a photo of their printed schedule. It says
+*"Reading your picture on this phone…"* and, twenty seconds later, their own day
+is on screen: M 340L in Patton Hall at 9:30, a twelve-to-seventeen-minute walk
+to the Communication building marked **"Tight for this gap"**, RTF 305 at 11:00.
+The footer says **"From a photo of a schedule."**
+
+The picture is read on the device. There is no upload, no cloud service, nothing
+sent anywhere — and that is not a promise, it is measured. Two separate
+instruments watched a real import: one inside the browser, one a raw network
+socket outside the browser entirely. **Across 174 requests during an import, not
+one carried any data at all**, and no new destination was contacted. I also
+fired a deliberate fake leak of a real room number at it — the app caught it and
+refused to send it.
+
+### The part I care about most: it does not guess
+
+An import that confidently invents a room sends you to the wrong side of campus.
+**It made 269 predictions across two full runs and not one of them was wrong.**
+When it cannot read something, it says so and asks — showing you the crop of
+your own picture with the row circled, and the reason in plain words: *"the day
+letters came off the picture faintly — the engine itself was only 50% sure of
+them."* And when a reading is too far gone it refuses it outright: *"'MZQ' is
+not a building code this app knows; classes do not start at 9:07 am. Take the
+picture again, straight on, and this one will read."*
+
+If you skip every question it asks, you lose three classes out of 171 and gain
+nothing wrong. That trade is the whole design.
+
+### Our number against the bar
+
+The bar was a normal OCR pipeline pointed at the same fifteen pictures: **36 of
+171**, and worse than the number suggests — most of what it produced was wrong,
+and it could read buildings and rooms but almost never a day or a time, which is
+useless for walking anywhere. **We get 131 of 171 with a student who answers
+nothing, 134 if they answer.**
+
+Perfect on every clean screenshot and every cropped one. Two-thirds of the
+dark-mode ones. Just under half of the angled ones.
+
+### What is still weak, and I want to be straight about two things
+
+**Photographing your own phone at an angle, when your schedule is a week-grid
+calendar, gets you nothing.** Three of the fifteen pictures are exactly that,
+and all three score zero. They fail honestly — the app says *"10 classes are
+drawn here but I could not read the times"* rather than making something up —
+but the only way out is to take the picture again, straight on. That is probably
+the single most common photo a student would actually take, so it is the real
+weak spot, not a rounding error.
+
+**And the fifteen test pictures are all fakes.** Nobody pointed a camera at
+anything. They are web pages rendered and then put through a real perspective
+warp with glare and blur and camera noise added — good enough that the geometry
+and the blurring are genuine, but there were no photons. **The single most
+valuable thing anyone could do for this feature is send me one real photograph
+of one real schedule.** Everything else is a guess about how close the fakes
+are.
+
+The bar was also not Google Lens — it could not be reached from this machine and
+the attempt is written down honestly. It was the strongest OCR that was
+reachable. Beating it is a real result; it is not "we beat Google."
+
+### Does the walking record still hold? Yes, exactly.
+
+Re-measured on the merged copy, not on the branch: **87 metres wasted across the
+twenty back-to-back class trips**, **394 metres saved on balance**, **all 38
+ends arriving at the door UT itself publishes**. Nothing about the walking
+directions moved, which is the point — this round added a reader and touched
+none of it.
+
+The full automatic check went from 49 of 50 to **50 of 50**, because you
+answered the two-doors question and there is one door now.
+
+### Is the whole feature ready to switch on for everyone? Still no — same one reason as before.
+
+**`WAYFIND.on` is still `false`, I did not touch it, and no agent may.** I
+checked the live site after this deployed: a stranger gets exactly what they got
+yesterday, with no walk or import controls anywhere unless you add `?walk=1`.
+
+The reason to keep it off has not changed and it is not the import. **Two of the
+five walking pieces — the stairs and the lighting — were never properly
+judged**, and those two are the ones making accessibility promises like
+"step-free" and "no mapped streetlight along this route". A wrong distance costs
+a detour. A wrong "step-free" claim strands someone at the bottom of a
+staircase. (`QUEUE.md` W1.)
+
+**The one thing I would do next, on the import specifically:** when the app
+refuses a class it could not read, it currently just drops it — there is no row
+to tap and no way back except deleting the whole schedule and re-photographing
+it. Keeping the refused class as a stub and offering *"3 classes couldn't be
+confirmed — add them?"* would turn the honest failures into four taps. Every
+piece it needs is already built.
+
+---
+
+## Where this stood — 2026-08-25 evening, one minute
 
 **Short version: the class-schedule import works now, and it shipped. It is
 still invisible to the public — the switch that turns the whole walking feature
