@@ -57,3 +57,9 @@ scripts/verify/out/
 # mention anywhere is the HANDOFF note that found it). The server writes it only
 # when its output is redirected there by hand, so it can come back the same way.
 _serve.log
+
+# Simeon's real schedule screenshots. A class schedule is a record of where a
+# named student is at a given hour; this repo is public, so the images stay on
+# the machine and only the derived SCORES are committed. The name/EID panel was
+# already cropped off real-03 before it ever landed here.
+scripts/verify/schedule-images/real/
