@@ -1,6 +1,6 @@
 # QUEUE — Acer lane
 
-## ~~PHOTO-IMPORT GAUNTLET~~ — **MERGED 2026-08-25 night** (PR #227, `docs/img-verdict.md`)
+## ~~PHOTO-IMPORT GAUNTLET~~ — **MERGED 2026-08-25 night** (PR #228, `docs/img-verdict.md`)
 
 **A student can photograph their class schedule and the app reads it on the
 phone.** Four branches — `acer/img-bar`, `acer/img-extract`,

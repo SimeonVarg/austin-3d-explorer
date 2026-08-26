@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## 191. Aug 25 2026 — the photo-import round SHIPPED: 131 of 171 with a student who answers nothing, against a bar of 36, and zero wrong answers (ship lane, branch `acer/img-ship` → `main`, PR #227)
+## 191. Aug 25 2026 — the photo-import round SHIPPED: 131 of 171 with a student who answers nothing, against a bar of 36, and zero wrong answers (ship lane, branch `acer/img-ship` → `main`, PR #228)
 
 **Merged.** `main` now carries the reader (`js/schedimg.js`), the confirm screen
 (`js/schedconfirm.js`), the walking-graph probe (`js/walkgraph.js`), the fourth
