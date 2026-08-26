@@ -1,6 +1,57 @@
 # Walk feature — progress log
 
-## Where this stands — 2026-08-26 morning, one minute
+## Where this stands — 2026-08-26, after the real screenshots, one minute
+
+**Short version: the seven screenshots Simeon sent are the most useful thing
+anyone has given this feature, and they are bad news. On our own test pictures
+the reader gets 134 classes out of 171 and has never once been wrong. On his
+real ones it gets 16 out of 95, and 9 of the 25 things it said were wrong — 4
+of them without asking.**
+
+Nothing was changed this round. It was measured.
+
+**Why the old number was so much better.** Every one of the fifteen test
+pictures was made by us. They are clean, they are the layouts we imagined, and
+on that kind of picture we score a perfect 52 out of 52. All seven of Simeon's
+are clean screenshots too — no camera, no angle, no dark mode — so this is not
+"real photos are harder". It is that we invented the pages we were tested on.
+
+**The two apps come apart completely.** UT Registration Plus, the coloured-block
+one, works about a third of the time, and where it fails it fails politely: it
+finds every class, puts it on the right day at the right hour, and then says it
+could not read the room. myUT, the beige-and-grey one, gets **nothing at all** —
+on two of the three it produces no classes and no error message either, a blank
+screen from a page anyone could read at a glance. The reason: the app finds
+classes by looking for solid coloured rectangles, and myUT doesn't draw any — it
+draws a ruled table, and the thin lines between its cells glue the whole table
+together into one shape the app then throws away as "not a rectangle". On the
+coloured-block app the same code finds exactly the right number of classes, so
+it isn't broken, it's just looking for the wrong thing on that page.
+
+(The first explanation I wrote for this was a different one — a colour threshold
+being set too high — and it was wrong. I tested it: changing that number gives a
+byte-for-byte identical score. Worth saying out loud because it was the obvious
+answer and it would have cost the next session a day.)
+
+**The part that matters most.** Three classes on one picture were saved
+pointing at a real UT building that is not theirs, at full confidence, with no
+question asked — because the reader took the *course code* off the top line of
+the block and used it as the building. Some UT department codes really are
+building codes — at least seven of them — so nothing downstream could catch it.
+That is exactly the failure this feature was built to not have, and it is now
+the top of the queue.
+
+**What this does not tell us.** Still nobody has pointed a camera at a screen.
+The known blind spot — a photograph of a week calendar taken at an angle — is
+exactly as unknown as it was. One phone photo and one dark-mode screenshot would
+close it.
+
+Numbers, per image and per app, and the three causes with file and line:
+`docs/img-real-baseline.md`. Work queue: top of `QUEUE.md`.
+
+---
+
+## Where this stood — 2026-08-26 morning, one minute
 
 **Short version: one way the schedule reader could quietly send you to the wrong
 building is now closed, and it did not make the app any chattier.**

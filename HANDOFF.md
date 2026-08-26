@@ -1,5 +1,130 @@
 # Austin 3D Explorer — Full Handoff
 
+## 194. Aug 26 2026 — the photo reader measured on REAL screenshots for the first time: 16/95 against 134/171, and precision fell from 100% to 64% (docs only, straight to `main`, `docs/img-real-baseline.md`)
+
+**Nothing was changed. This round measured.** Simeon sent seven screenshots of
+his own class schedule after the independent check found that all fifteen images
+the feature was built and scored against were computer-generated. Two
+transcribers built the answer key from the pixels, a third audited it
+independently, and this lane re-ran the headline itself before writing a word.
+
+**The number.** Same extractor, same scorer, same tree (`af93a32`, working tree
+clean, `git diff origin/main` empty for `js/schedimg.js`,
+`scripts/verify/image-bench.mjs` and the corpus):
+
+```
+                                       all four right   precision   wrong answers
+  synthetic, 15 images                  134 / 171 78.4%   100.0%      0 of 136
+  real, 7 images                         16 /  95 16.8%    64.0%      9 of  25
+```
+
+`131/171` remains the *shipped import* number (the student who answers nothing);
+`134/171` is the reader's own ceiling, which is what both rows above measure.
+Both extractors exist and are named in `docs/img-real-baseline.md` §1 so nobody
+has to guess which produced which. **If you quote one number from this round,
+quote a pair** — the reader's ceiling and what lands on the phone — because on
+real images those two differ in precision and not in recall.
+
+**The comparison that matters is not 78 vs 17.** All seven real images are clean
+screenshots — no camera, no angle, no dark mode. The synthetic corpus's
+clean-screenshot condition is **52/52, 100%**. Same condition, 100% against
+16.8%. It is not that photographs are hard; it is that we authored the pages we
+were tested on.
+
+**Precision is the finding.** 9 of 25 predictions were wrong and **4 were
+committed silently** at `needsConfirm: false`. On the synthetic corpus that
+number has been 0 across every pass ever run. Do not quote "0 hallucinations" on
+the real corpus — four of the seven images are frame-cropped, every `notOnImage`
+list in the key is empty *because the content is unknown*, so the hallucination
+counter returns 0 by construction and is not evidence.
+
+**Three mechanisms, each located to a line.**
+
+1. **`locFromWords()` (`js/schedimg.js:1446`) takes the course code as the
+   location.** It walks a block's words left to right and returns the first pair
+   `plausibleLoc()` (`:1440`) accepts. A UT Registration Plus block's first line
+   is the course code, and **at least seven UT department prefixes are also real
+   building codes** in `data/ut_buildings.json` (one-line intersection; re-run it
+   rather than trusting the count).
+   Three classes were saved pointing at a real building that is not theirs, at
+   1.00, with no question. Same class of defect as IMG0, different route, and the
+   IMG0 fix cannot see it.
+2. **`findBlocks()` (`js/schedimg.js:1592`) cannot see myUT at all — and the
+   obvious reason is the wrong one.** The first draft of this entry blamed
+   `TUNE.grid.bgDistance` (58) because myUT's cells measure only 30–44 from a
+   white page. **That was tested and cleared:** at 24 the cells go "on"
+   (on-pixels 12% → 39%) and the kept-rectangle count does not move, and the
+   whole real corpus rescored at 24 is **identical — 16/95, 25 predictions, 9
+   wrong, same seven rows.** The actual failure is `minFill` (0.72): myUT rules
+   borders between its cells, the rules are "on" at any threshold, `colourJoin`
+   (42) welds the entire table into **one page-sized component** with fill 0.06,
+   and it is thrown away. An instrumented copy of the loop reports **14 kept on a
+   UT Registration Plus page that has exactly 14 blocks**, and 1 / 1 / 0 on the
+   three myUT pages. The fix is a second segmentation path for ruled tables, not
+   a constant. It is also why two myUT images emit no error message: the "I can
+   see classes here" fallback (`:2341`) calls the same function and needs two
+   rectangles to speak.
+3. **`classifyLayout()` (`js/schedimg.js:1076`) reads day only from weekday
+   words.** Two real images are scrolled or cropped past their header row
+   entirely — one has no chrome at all, just grid — so both fall to `cards` and
+   report "no day was readable". 29 of the 95 meetings. **This is not the
+   x-centre-clustering item QUEUE.md already refuted**; that one is about angled
+   photos whose headers *do* read, and it still stands.
+
+**What did not break, and is worth keeping.** No crash on any of the seven,
+including a `.webp` the corpus had never contained. The six personal, non-class
+blocks on the dense image — which look exactly like classes — were **all
+correctly ignored**, the failure `docs/img-real-corpus.md` predicted and that did
+not happen. And on the three ordinary UT Registration Plus images every block was
+put in the right day column with the right start and end off the hour ruler, with
+zero wrong answers: those images lose the *room* and nothing else.
+
+**The answer key was round-tripped before anything was believed** — an oracle
+returning the key's own rows scores 95/95 at 100.0% precision through the
+unmodified scorer. Note `image-bench.mjs --selftest` FAILs against this corpus:
+its own `asUt()` helper mangles a meeting with a building and **no room**, a
+shape the synthetic corpus never held and the real one does. Scorer and key are
+fine; the self-test's reshaping trick is not.
+
+**Four claims in `docs/img-real-corpus.md` are wrong at pixel level** and two
+would misdirect the next lane: the tinted myUT column is a **today-highlight,
+not Saturday** (in one image it is the fourth of six, a weekday, with classes in
+it); the building/room line split is a **wrapping artefact**, not a myUT layout
+rule — desktop myUT writes it on one line and one image prints both forms at the
+same width; **two of the three myUT images print no time inside the cell at
+all**; and the header's **"N HOURS" is semester credit hours**, not meeting time.
+Corrections are in `docs/img-real-baseline.md` §8, not by editing the brief —
+the brief is the record of what was believed.
+
+**Two operational notes that cost real time here.**
+
+- **Run one browser harness at a time.** Two `image-bench` runs driving headless
+  Chrome concurrently pushed both past `chrome.mjs`'s 30-minute watchdog and
+  killed them mid-corpus. The first synthetic run died that way and had to be
+  redone alone. Nothing in the suite parallelises.
+- **The images and the answer key are gitignored on purpose**
+  (`.gitignore:65`, the whole `scripts/verify/schedule-images/real/`
+  directory) and stay that way. This repo is public. Derived numbers and
+  structural shapes may be published; a course, a room or an hour may not — not
+  in `docs/`, not in a commit message, not in a PR body.
+
+**Scored through the shipped UI too**, with a simulated student who answers no
+question at all: **16 of 95, 22 predictions, 6 wrong.** Both halves matter — the
+confirm screen **threw nothing good away** (16 correct in, 16 out, so it is not
+over-refusing on real images) and it **caught only three of the nine wrong
+readings**. Four of the six that landed were never flagged, so no question could
+have saved them: the reading is wrong before refusal is ever consulted. Note
+`img-import-extract.mjs:166` hardcodes the corpus directory and ignores `--dir`,
+so that number needed a `_`-prefixed scratch copy with one path changed, since
+deleted; fixing line 166 is queued as R7.
+
+**Queue:** top of `QUEUE.md`, items R1–R8, ordered by measurement. R1 is the
+silent wrong location, because a decline costs a tap and a wrong building costs
+a walk across campus. **R8 is the ask:** nobody has yet pointed a camera at a
+screen, so the 0-of-35 angled weakness is exactly as unknown as it was.
+
+Branch: none — docs only, straight to `main` per `CLAUDE.md` rule 4.
+
 ## 193. Aug 26 2026 — IMG0a shipped: the ship lane re-measured it against `main` in the same page, and lost an hour to a second session moving HEAD under it (merged to `main`, PR #229, `e58acc1`, branch `acer/img-lonely-class` deleted)
 
 **Merged.** Three judges passed section 192's branch; this lane re-ran the two

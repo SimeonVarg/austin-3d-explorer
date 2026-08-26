@@ -1,5 +1,237 @@
 # QUEUE — Acer lane
 
+## PHOTO IMPORT — THE REAL-CORPUS QUEUE (2026-08-26, `docs/img-real-baseline.md`)
+
+**Everything below is ordered by what was measured on seven real screenshots
+Simeon took himself, not by what anyone expected.** The reader scores **16 of 95
+on real images against 134 of 171 on the fifteen we invented** — and, worse,
+**precision fell from 100.0% to 64.0%: 9 of its 25 predictions were wrong, and 4
+of those were committed silently at full confidence.** Same extractor, same
+scorer, same tree (`af93a32`, clean). Full write-up, including what the number
+does *not* cover: `docs/img-real-baseline.md`.
+
+**All seven real images are clean screenshots** — no camera, no angle, no dark
+mode. The synthetic corpus scores **52/52, 100%** on that same condition. So this
+is not "photographs are hard". It is that the fifteen images encode assumptions
+the two real apps do not honour.
+
+Two rules for whoever picks any of this up:
+
+- **The images and their answer key are gitignored and stay that way.** Never
+  `git add -f`, never copy into a tracked path, never paste a course, room or
+  hour into a doc, a commit message or a PR body. Publishable output is derived
+  numbers and structural shapes only.
+- **Run one browser harness at a time.** Two of these driving headless Chrome at
+  once pushes both past `chrome.mjs`'s 30-minute watchdog and kills them
+  mid-corpus. That cost a full run while this was being measured.
+
+---
+
+### R1 — A COURSE CODE IS BEING COMMITTED AS A LOCATION, SILENTLY. Do this first.
+
+**The only silent-wrong-answer defect on real images, and it is the exact
+failure this feature promises not to have.** Three classes on one real image
+were saved with a **real UT building** that is not theirs, at `needsConfirm:
+false`, with no question and no chip — because the "building" was lifted out of
+the course code printed on the block's own title line.
+
+*Mechanism, with lines.* `locFromWords()` (`js/schedimg.js:1446`) walks a
+block's words **left to right** and returns the **first** adjacent pair that
+satisfies `plausibleLoc()` (`:1440`) — which accepts anything whose code is in
+the register. A UT Registration Plus block's first line is the course code. When
+a course's department prefix is also a building code, the title line wins before
+the real location line is ever examined, and every downstream guard says yes:
+the code is real, so `building.lexicon` scores it 1.00, so `neighbourDoubt()` is
+never even reached. It fires four times on one real image; three of the four are
+committed with no question at all.
+
+*Why it is not a freak.* Checked against `data/ut_buildings.json` (198 codes),
+**at least seven UT department prefixes are also real building codes** — a
+one-line intersection, and re-run it rather than trusting this count, because
+the exact set is what your fix has to survive. This is the same class of defect as
+IMG0 — a real-but-wrong code committed in silence — reached by a different
+route, and the IMG0 fix cannot see it.
+
+*Measured cost:* 4 of the 9 wrong answers; **3 of the 4 silent ones**. **And they
+reach the device.** Scored through the shipped UI with a student who answers no
+question at all: **16 correct in, 16 correct out — the confirm screen threw
+nothing good away — but 9 wrong in and 6 still landed.** Four of those six were
+never flagged, so no question could have saved them. Refusal is not the missing
+piece here; the reading is wrong before refusal is ever consulted.
+
+*Fix direction (the owning lane calls it).* Cheapest candidates, in order of how
+little they can break: reject a candidate whose room matches the course-number
+grammar (`\d{3}[A-Z]?` with no dot) when a later line offers any alternative;
+or skip the block's first text line when the block has more than one; or prefer
+the **last** plausible pair rather than the first. Whatever lands,
+`scripts/verify/schedimg.mjs` needs a case with a title line whose prefix is a
+real building code, or the gate stays green over it.
+
+### R2 — myUT's RULED BORDERS WELD EVERY CELL INTO ONE BLOB. 0 of 44 today.
+
+**Read the "already ruled out" paragraph before you start, because the obvious
+theory here is wrong and it was tested.**
+
+`findBlocks()` (`js/schedimg.js:1592`) marks a pixel "on" if it is further than
+`TUNE.grid.bgDistance` (58) from the page median, flood-fills neighbouring
+on-pixels into components joining anything within `TUNE.grid.colourJoin` (42),
+then keeps a component only if it is `minAreaFrac` of the page **and at least
+`minFill` (0.72) of its own bounding box** — "a block is a rectangle".
+
+A probe reimplementing that loop with counters, on the rectified pages:
+
+```
+                        on-pixels  components  too small  not a rectangle  KEPT
+  UT Reg Plus image        19.7 %      6 294      6 279          1          14
+  myUT, phone width        12.0 %     13 172     13 170          1           1
+  myUT, desktop             6.1 %     10 353     10 350          2           1
+  myUT, desktop (other)    12.0 %     14 180     14 178          2           0
+```
+
+14 kept on the UT Registration Plus page and **that image has exactly 14 class
+blocks** — on that app the finder is exactly right, which is the control that
+makes the rest of this trustworthy. On myUT it keeps at most one thing and that
+thing is not a class.
+
+**The failing step is `minFill`, not `bgDistance`.** myUT draws ruled borders
+between its cells; the rules are further from white than the cells are, so they
+are "on" at any threshold, every cell touches a rule, and `colourJoin` welds the
+whole table into **one page-sized component** — bounding box 679×900 inside an
+831×900 analysis image — with fill **0.06** against a required 0.72. It is
+discarded and the individual cells were never separable to begin with.
+
+*Already ruled out, do not redo it:* dropping `bgDistance` 58 → 24 makes the
+cells "on" (on-pixels 12% → 39%) and the kept count does not move — still 1, 1,
+0. Scored across the whole real corpus at 24 the result is **identical: 16/95,
+25 predictions, 9 wrong, same seven per-image rows.** That constant is not the
+lever.
+
+*Measured cost:* 0 of 44 myUT meetings, and 2 of the 3 myUT images return
+literally nothing — not one class, not one "couldn't read this" — because the
+fallback that says "I can see classes here" (`js/schedimg.js:2341`) calls the
+same `findBlocks()` and needs `minBlocksToMention` (2) rectangles to speak. A
+student gets a blank screen and no reason from a page a person reads at a glance.
+
+*Fix direction.* Not a constant — a **second segmentation path for ruled
+tables**. The rules that defeat the flood fill are also what make this page easy:
+a ruled table hands you its cell boundaries. Detect the horizontal and vertical
+rules (solid = hour, dotted = half hour, and they must be measured in a column
+with no blocks in it — blocks overprint them) and cut on them, instead of hunting
+solid colour rectangles this app does not draw. Whatever lands, the synthetic
+**134/171 at 100% precision** is the regression that must not move, and the UT
+Registration Plus page must still come back with exactly 14.
+
+*And it does not stand alone:* even with segmentation fixed, two of the three
+myUT images still need R3. **M1 without R3 rescues one image; R3 without this
+rescues none.**
+
+### R3 — WITH NO WEEKDAY HEADER IN FRAME, THE DAY IS UNRECOVERABLE. 29 of 44.
+
+`classifyLayout()` (`js/schedimg.js:1076`) decides a page is a week grid **only
+by reading weekday words** — three that read cleanly, or two plus a column fit
+(`fitDayColumns()`, `:1043`). There is no fallback to column position. Two of
+the seven real images are scrolled or cropped so that **the day header row is
+not on the picture at all**; one of them has no chrome whatsoever, just grid.
+Both are classified `cards`, routed to a reader that looks for a day *word*
+inside each cell, and both report "no day was readable" for every class whose
+location the pipeline had already recognised internally.
+
+**Neither R2 nor R3 rescues this app alone** — R2 gives back rectangles, R3
+gives them a day, and one myUT image needs only R2 while two need both.
+
+**This is NOT the item further down that is marked "do not build this — already
+refuted by measurement".** That refutation is about clustering block x-centres
+to rescue an *angled photo whose day headers already read*, and it stands. This
+is the different case where the header row is not in the frame. The answer key's
+human readers solved it the way the code cannot: count the equal columns between
+the time gutter and the table's right border, prove there is no seventh, map
+Mon–Sat.
+
+*Measured cost:* 29 of the 95 scored meetings.
+
+*Trap to design around, and it is a live one:* **the tinted column is a
+today-highlight, not Saturday.** `docs/img-real-corpus.md` says myUT's Saturday
+column is "usually empty, tinted pink". In one real image the tint is the sixth
+column; in another it is the **fourth of six**, a weekday, with classes in it.
+Anchoring on the tint assigns the wrong day to a whole image.
+
+*Also true and useful here:* on both myUT images the **hour label sits about 18
+px BELOW its own solid rule**, not on it, and solid rules are hours while dotted
+rules are half hours. Read that backwards and every class shifts by exactly 30
+minutes and still looks clean — a silent whole-image loss that will not present
+as a bug. Measure the rules in a column with no blocks in it; blocks overprint
+them.
+
+### R4 — ON UT REGISTRATION PLUS THE ROOM LINE IS WHAT IS LOST, AND ONLY THE ROOM.
+
+Good news framed as a queue item. On the three ordinary UT Registration Plus
+images the reader **finds every block, puts it in the right day column, and
+reads the right start and end off the hour ruler** — and then declines with "no
+room was readable" or "a class is drawn here but none of its writing could be
+read". Zero wrong answers across all three. It is one field short, not lost.
+
+*Measured cost:* 23 of the 39 scored meetings on those three images, all as
+honest declines.
+
+*Untested hypothesis, and it must be measured before it is believed:* the blocks
+it reads are the dark saturated fills and the ones it declines are the light
+ones (amber, lime, yellow, cyan). Candidate levers, all A/B-able through
+`SCHEDIMG_TUNE` with no code edit: `photo.grayMode` `min` vs `luma` (a light
+fill with **dark** text is the case `min` collapses), `photo.stretchLo` /
+`stretchHi`, `ocr.minWordConf` (26). Do not touch any of them without both
+corpora in front of you.
+
+Lower priority than R1–R3 because a decline costs a tap and a wrong room costs a
+walk across campus.
+
+### R5 — THE DENSE VARIANT DRIFTS EVERY TIME 15–45 MINUTES LATE.
+
+On the one dense real image the times come out consistently late. In one case
+the app **printed its own contradiction into the reason text** — that the
+caption said one thing and the rectangle was drawn at another — and used the
+rectangle anyway. That preference is backwards when the caption parses cleanly.
+Also in that image: a block that prints its location line **twice**, identically
+— a reader that pairs location lines will emit two meetings for one class.
+
+*Measured cost:* 5 of the 9 wrong answers.
+
+### R6 — THE ASYNC/OTHER STRIP GETS A DAY, A TIME AND A ROOM INVENTED.
+
+UT Registration Plus puts unscheduled and asynchronous courses in a strip below
+the grid with **no day, no time and no room anywhere on the page**. The reader
+gave one of them all four. It flagged the building as unknown so the student
+would be asked, but it was still returned. IMG5 in the old list ("the
+ASYNC/OTHER row needs its own answer") is now evidenced rather than predicted.
+
+*Measured cost:* 1 of the 9 wrong answers.
+
+*Also measured, and it changes the free integrity check:* the header's **"N
+HOURS" is semester credit hours, not meeting time** and will never reconcile
+against a grid — only the "N COURSES" half is usable, and only in one direction.
+Reading *more* distinct courses than the header claims proves a misread; reading
+*fewer* may just mean that strip is scrolled horizontally, which it can be.
+
+### R7 — TOOL BUG, TWO LINES: the shipped-import harness ignores `--dir`.
+
+`img-import-extract.mjs:166` builds the image URL from a **hardcoded**
+`/scripts/verify/schedule-images/` and never consults the `--dir` the bench was
+given, so pointing it at the real corpus 404s all seven images and reports
+`EXTRACTOR THREW` on every row. The shipped-import number in
+`docs/img-real-baseline.md` §1 was obtained with a `_`-prefixed scratch copy
+carrying that one path change, since deleted. Derive the URL from the corpus
+directory and this becomes re-measurable by anyone. Whoever next opens that file
+owns it.
+
+### R8 — THE CORPUS GAP THAT IS NOW THE MOST VALUABLE ASK.
+
+The seven real images contain **no camera photograph and no dark mode**. The
+0-of-35 angled weakness is exactly as unmeasured as it was before this round, so
+nothing from it may be quoted as "it works on real images". **The next thing to
+ask Simeon for is one photograph, taken with a phone, of either app on a screen,
+and one dark-mode screenshot.** Same privacy handling as these seven.
+
+---
+
 ## ~~PHOTO-IMPORT GAUNTLET~~ — **MERGED 2026-08-25 night** (PR #228, `docs/img-verdict.md`)
 
 **A student can photograph their class schedule and the app reads it on the
