@@ -1,5 +1,69 @@
 # Austin 3D Explorer — Full Handoff
 
+## 188. Aug 25 2026 — nothing is confirmed while a doubt is still open (acer lane, branch `acer/img-confidence`)
+
+`js/schedconfirm.js`, `scripts/verify/schedconfirm.mjs`,
+`scripts/verify/confirm-line.mjs`, `docs/img-confidence.md`, and one new frame
+`shots/img-confidence/confirm-retake-phone.jpg`. **`js/wayfind.js` has zero
+lines of diff and `WAYFIND.on` is still literally `false`.**
+
+**The header of `js/schedconfirm.js` promised something the file did not do.**
+*"Nothing this app is not sure of is ever written down silently"* was never
+enforced anywhere — it was an emergent property of "every doubt happens to get a
+question", and there were two ways for a doubt not to get a question. Both were
+found by RUNNING the module against the real page, not by reading it.
+
+1. **The cap.** `maxQuestionsPerClass` is 2 and a reading has four fields;
+   `applyGroup()`'s safety net counted only the questions it had BUILT. A reading
+   at `building 0.30 / room 0.45 / time 0.19` produced two questions, and
+   answering both returned `confirmed: true` carrying `room: "2.2%"` — a value
+   the file's own grammar check had already flagged. `g.tooManyDoubts` was
+   computed and never read again anywhere in 1,947 lines.
+
+2. **The recover lane, which is worse, because it wrote a false sentence.**
+   Recover rows had never been scored by anything, in any round. A cut-off
+   `WEL 2.22` — the reader's own words are *"part of it is missing"* — was shown
+   as a ONE-OPTION building question and then written `confirmed: true` with
+   `why: "confirmed by you from the picture"`. The student never saw the room.
+
+**The fix is one function in both lanes.** `openDoubts()`: a field is settled
+when the student answered it or the model believed it; anything else is open, and
+an open doubt blocks `confirmed`, names itself in `unconfirmedFields`, and gets a
+plain-words `why`. Over the cap the screen asks NOTHING and saves NOTHING — two
+questions that cannot settle three doubts are two taps that fix nothing, the same
+reason `time.tooTight` moved out of the asking band last round. The reading goes
+to a **re-take list** on the summary, out of the ready count, with the app's own
+reason under it and one full-width 44px button to keep it anyway as explicitly
+unchecked. Left out is the default. `CONF.ask.overCap = 'ask'` is the one-line
+overrule and the gate runs both modes.
+
+**Measured, both before and after, on this machine:**
+
+```
+   schedconfirm gate   101 passed, 0 failed   (was 86)
+   confirm-line        STRICT 28 of 136, 16 taps; LOOSE 39 of 39 caught;
+                       option coverage 37 of 37 — identical to round two
+   re-take list        0 rows on the real corpus, STRICT and LOOSE
+   image-bench         134/171, 100% precision, 0 hallucinations (unchanged)
+   si-integration      50 passed, 0 failed, section 6 privacy capture clean
+```
+
+**Zero re-take rows on the corpus means the corpus cannot validate the new
+path.** That was measured BEFORE the fix was designed, on both passes, and every
+proof that the path behaves is synthetic: the 1/2/3/4-doubt matrix in gate §8,
+the critic's own reading replayed, the cut-off row, and the screen measured in
+pixels at 390x844. Stated plainly rather than buried.
+
+**A REQUEST FOR WHOEVER OWNS `js/wayfind.js`.** A class kept from the re-take
+list carries `needsConfirm: true` and `unconfirmedFields: ['building','room']`.
+`grep` finds **zero** occurrences of either name in `js/wayfind.js`, so once the
+student presses "Use", an unchecked class looks exactly like a checked one in the
+day view. The disclosure is real at the point of saving and evaporates
+afterwards. **The day view needs a not-checked mark driven off `needsConfirm`,
+and ideally a tap that reopens the question.** Not made here: that file belongs
+to another lane and `CLAUDE.md` says to write the request down rather than reach
+across.
+
 ## 187. Aug 25 2026 — what counts as unsure, and the screen that asks (acer lane, branch `acer/img-confidence`)
 
 `js/schedconfirm.js` (new), `scripts/verify/schedconfirm.mjs` (new),
