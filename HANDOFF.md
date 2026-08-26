@@ -1,5 +1,144 @@
 # Austin 3D Explorer — Full Handoff
 
+## 196. Aug 26 2026 — the missing rooms on UT Registration Plus: 59 of 95 real meetings to 86, still nothing invented (`acer/img-rooms`, not merged)
+
+**The reader was finding those classes all along.** It put each one in the right
+day column at the right hour off the ruler, and then declined because it could
+not read the room. One field short, not lost — and on four real screenshots of
+that app it was short on more than half of them.
+
+```
+                    all four right     predictions    wrong answers
+  real, 7 images     59 / 95 -> 86 / 95   59 -> 87        0 -> 0
+  synthetic, 15     134 / 171 unchanged  136 -> 136       0 -> 0
+```
+
+The real corpus's one crop-cut optional meeting also went **0/1 -> 1/1**. The
+synthetic per-image table is **identical to the baseline, row for row** — all
+fifteen. Both corpora measured by `scripts/verify/image-bench.mjs` before and
+after, one browser harness at a time, on the assigned port.
+
+By source app: **UT Registration Plus 18/51 -> 43/51**, myUT **41/44 -> 43/44**
+(the myUT gain is a side effect — one of the fixes below lives in a function
+both readers call).
+
+### The cause was one constant, and it is not a threshold anyone had suspected
+
+`photo.grayMode` has to pick ONE polarity for a whole page. It picks
+`min(R,G,B)`, which is what keeps white type legible on a dark saturated block.
+UT Registration Plus draws **both polarities on one page** — a dark fill with
+white type, and a light fill with near-black type, side by side. Measured off
+the app's own pixels, `min(R,G,B)` separates:
+
+```
+  a blue fill  (59,130,246) from its WHITE caption   by 196 levels
+  a green fill (34,197,94)  from its BLACK caption   by EIGHT
+  a cyan fill  (6,182,212)  from its BLACK caption   by SIX
+```
+
+Every light block on those pages came back with **no words in it at all** — not
+a bad read, no read — and the shipped second look (`grid.reOcrBlocks`) magnifies
+the same eight levels of mud, because it reads the page's grey plane, where the
+contrast is already gone. The correlation is total: on one image nine of nine
+misses were light-filled blocks and all five hits were dark-filled ones.
+
+**The fix is not a different global gray.** `blockInk()` renders ONE block
+against **its own paint**: the block's modal colour is paper, distance from it is
+ink. That has no polarity to get wrong and no channel to collapse, and it runs
+only on a block the two earlier looks got no room out of — so a page that
+already reads pays nothing for it. Probe, before building: 17 blocks yielded a
+location under the shipped second look, 38 under per-block luma, **44 under
+distance-from-own-paint.**
+
+### Four smaller things, each measured
+
+* **A code the register knows outranks one that merely sits beside a dotted
+  room.** `plausibleLoc()` accepts any letters in front of a dotted room, so a
+  block that prints its room line twice — once right, once with a letter wrong —
+  gave the misread, first-come-first-served, and it was then declined.
+* **A room is not a clock.** `130PM` satisfies every rule a room has to satisfy
+  and was committed with the right building, the right day and the right hours,
+  to a room that does not exist. Refused, and the scan carries on down the block.
+* **A block the frame cut through has no honest length.** The caption-vs-ruler
+  guard rests on the rectangle's height being trustworthy; a rectangle whose
+  bottom is the edge of the screenshot is where the student stopped scrolling.
+  The tolerance for "cut" has to be in ANALYSIS CELLS — `findBlocks()` quantises
+  to `analysisMax`, so a block plainly cut by the frame reports its bottom NINE
+  rectified pixels short of the page edge and `geom.edgeTouchPx` (3) never saw it.
+* **One snap step apart is one snap step wrong.** `grid.agreeMin` (16) is the
+  confidence signal the confirm screen reads; it was also being used as the
+  threshold for which witness to believe, so a block printing 2:00-3:00 that came
+  off the ruler at 2:15-3:00 never had its printed time consulted. New named
+  constant `grid.captionCorrectsMin` (15).
+
+### And a new refusal: the page's own printed times audit the page's own ruler
+
+On the dense real screenshot the hour axis fits with the right offset and a
+slightly wrong **scale** — early classes read late, late classes read early,
+every one of them a clean number on the quarter hour. Nothing in the output says
+it is wrong. But the page says: where a block PRINTS its hours and they were
+believed over the ruler, the ruler has been caught out by the picture itself.
+After that, `auditAxis()` refuses any block with no printed time of its own —
+with its building, room and day, none of which came from the ruler. That is 3
+wrong answers turned into 3 questions on that image. A block the frame cut
+through does not count as catching the ruler out, or one real screenshot with an
+otherwise perfect ruler would refuse its whole page for nothing.
+
+### MEASURED AND REFUSED: reading a block's words in line order. Do not re-derive it.
+
+The obvious companion fix is to stop sorting a block's words by `(y0, x0)` —
+which swaps two words of one printed line whose tops are two pixels apart, so
+the matcher is offered "2.108 PHR" and finds no location at all — and read them
+in lines instead. **It is worse, and it was measured both ways with two
+different line-groupers** (`textLines()` and `buildRows()`).
+
+On a dense block the OCR word boxes of two printed lines OVERLAP vertically. Any
+grouper merges the title line with the room line and sorts the merger by x,
+which interleaves them: a room `PAI 3.02` comes back as `PAI` beside the `1:00`
+off the time line, and **`PAI 100` is a real room in a real building that is not
+this class's.** Synthetic image 04 went 14/14 to 11/14 with 3 wrong answers and
+image 14 went 12/12 to 0/12; with the reorder off and everything else on, both
+are back to 14/14 and 12/12 with nothing wrong. Bisected per image.
+
+What shipped instead is two-word-wide and cannot scramble anything: **two words
+that overlap vertically and are printed right to left are also tried the other
+way round**, which is the only case the sort can have got wrong. That is what
+took myUT's third screenshot from 13/15 to 15/15.
+
+### The cost, and it is real
+
+The extra look is one more OCR call per block that failed the first two. Real
+corpus, whole-run average: **47 s/image before, 79-107 s/image after across
+three readings** (minimum 79). That is a single-reading baseline against
+non-interleaved post readings on a machine that was not always quiet, so treat
+the ratio as indicative and the mechanism as the thing to reason from. If this
+needs to come down, the ordering is the lever: the paint pass found a location on
+44 blocks where the shipped second look found 17, so trying it FIRST and falling
+back to `ocrCrop` would probably be both cheaper and better. Not attempted here —
+it changes answers and needs its own pair of corpus runs.
+
+### Gates
+
+`scripts/verify/schedimg.mjs` **46 passed, 0 failed** (34 before; twelve new
+cases, all drawn in a canvas so the gate never touches the private corpus —
+including the two app colours measured off its own pixels, the swapped pair, the
+clock-shaped room, and the register-beats-dotted-room rule).
+
+### What is still weak
+
+**The hour axis on the dense screenshot is wrong and nothing here fixes it.**
+`auditAxis()` only refuses the classes it cannot cross-check; it does not repair
+the scale. That image is 4/12 with 8 honest declines (from 2/12 with 9 wrong),
+and five of the eight are blocked on it. Two more are a building code that reads
+as a real-looking string one letter off a real code, which `repairCode()` cannot
+recover because that pair of letters is not on its confusable list.
+
+**`topLineWords()` is carried on its unit case, not on a corpus delta.** Taking
+the block's course code off its top line by geometry rather than as "the first
+course-shaped token in a sorted list" is right, and the gate proves the
+mechanism — but on these seven images I could not isolate a meeting whose answer
+it changes. Treat it as hardening, not as one of the measured wins.
+
 ## 195. Aug 26 2026 — the nine wrong answers are gone: real precision 64% → 100%, and recall went UP (`acer/img-honesty`, commit `2de2013`, not merged)
 
 **The promise this feature was sold on is back.** Entry 194 measured the reader

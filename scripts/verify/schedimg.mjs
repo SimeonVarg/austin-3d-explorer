@@ -24,6 +24,27 @@
  *
  * It does NOT reprint the benchmark score — that is image-bench.mjs's job and
  * quoting a number in two places is how the two drift apart.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * EVERY COURSE CODE, ROOM, BUILDING, SURNAME AND HOUR IN THIS FILE IS INVENTED.
+ *
+ * This file is TRACKED and this repo is PUBLIC. The real corpus it was written
+ * against — `scripts/verify/schedule-images/real/` and its `truth.json` — is
+ * gitignored because a class schedule says where a named student is at a given
+ * hour. Not reading that corpus at runtime is not the point: a value typed into
+ * this source as a string literal is published just the same, and permanently,
+ * because git history keeps it. That happened here once (commit f9d8125) and it
+ * is the reason this paragraph exists.
+ *
+ * So a case that reproduces a defect seen on a real screenshot reproduces its
+ * SHAPE — a code that is also a department prefix, a room that parses as a
+ * clock, two words of one line swapped — with words that match nothing in
+ * either corpus. What is under test is a grammar, and a grammar does not care
+ * which letters it is fed.
+ *
+ * If you add a case, check it: extract its string literals and grep each one
+ * against `real/truth.json` before you commit. A hit is a leak.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 import { chromium } from 'playwright-core';
 import { launch } from './chrome.mjs';
@@ -243,20 +264,95 @@ const unit = await page.evaluate(() => {
   // with no rule about it, the title line wins before the location line is ever
   // looked at — and the answer passes every downstream check, because the
   // building really exists. It just is not this class's building.
+  //
+  // EVERY WORD IN THESE CASES IS INVENTED. See the header note: the codes,
+  // rooms, surnames, uniques and hours below are made up to the SHAPE of the
+  // defect and match nothing in either corpus. What is under test is the
+  // grammar, and the grammar does not care which letters it is fed.
   const W = (text, x0, y0) => ({ text, x0, y0, x1: x0 + text.length * 10, y1: y0 + 20, conf: 92 });
-  const KNOWN = new Set(['ART', 'WEL', 'UTC']);
+  const KNOWN = new Set(['DRV', 'VNH', 'PYX']);
   out.titleLine = M.locFromWords([
-    W('ART', 0, 0), W('302,', 40, 0), W('45672', 90, 0), W('-', 150, 0), W('Reyes', 160, 0),
-    W('9:30am', 0, 30), W('-', 70, 30), W('11:00am', 90, 30),
-    W('WEL', 0, 60), W('2.224', 40, 60),
+    W('DRV', 0, 0), W('355,', 40, 0), W('51840', 90, 0), W('-', 150, 0), W('Ashford', 160, 0),
+    W('8:15am', 0, 30), W('-', 70, 30), W('9:45am', 90, 30),
+    W('VNH', 0, 60), W('4.117', 40, 60),
   ], KNOWN);
   // ...and when the block prints no location at all, the course code does not
   // become one. Declining costs a tap; this used to cost a walk across campus.
-  out.titleOnly = M.locFromWords([W('ART', 0, 0), W('302', 40, 0)], KNOWN);
+  out.titleOnly = M.locFromWords([W('DRV', 0, 0), W('355', 40, 0)], KNOWN);
   // A room number whose full stop the scan dropped is a DIFFERENT room, on a
   // different floor. There is no way to know where the stop went, so it is
   // refused rather than guessed at.
-  out.lostDot = M.locFromWords([W('UTC', 0, 0), W('1102', 40, 0)], KNOWN);
+  out.lostDot = M.locFromWords([W('PYX', 0, 0), W('4117', 40, 0)], KNOWN);
+
+  // ── A ROOM IS NOT A CLOCK ───────────────────────────────────────────────
+  // The line above the room on a calendar block is the hours. Lose the space
+  // and the colon out of "1:30pm - 3:30pm" and the scan offers "130PM" as the
+  // room — behind a building code the register knows, so every downstream
+  // check says yes. On a real screenshot that was committed with the right
+  // building, the right day and the right hours, to a room that does not
+  // exist. Refused, and the scan carries on to the line that is the room.
+  out.clockRoom = M.locFromWords([
+    W('HCF', 0, 0), W('208B', 30, 0),
+    W('VNH', 0, 30), W('130PM', 50, 30),
+    W('VNH', 0, 60), W('6.208', 50, 60),
+  ], new Set(['VNH']));
+
+  // ── A CODE ON THE REGISTER OUTRANKS ONE THAT IS MERELY NEXT TO A DOT ─────
+  // A dotted room lets ANY letters through, because "n.nnn" is UT's own room
+  // syntax and nothing else writes it. On a real screenshot one block's room
+  // line was read twice, the misread first. Left to right the misread wins and
+  // a legible class is declined; the register's own answer is right there.
+  // PYW is the invented misread of the invented PYX, one letter apart, which
+  // is the whole of what the case needs.
+  out.preferKnown = M.locFromWords([
+    W('TAQ', 0, 0), W('214D,', 40, 0),
+    W('PYW', 0, 30), W('3.221', 50, 30), W('PYX', 120, 30), W('3.221', 170, 30),
+  ], KNOWN);
+
+  // ── TWO WORDS OF ONE LINE, SWAPPED BY TWO PIXELS ────────────────────────
+  // A capital and a digit on ONE printed line do not have the same y-top, so
+  // sorting a block's words by (y0, x0) can swap them — and then the matcher,
+  // which pairs ADJACENT words, is offered "5.309 KTM" and finds no location on
+  // the block at all. The fix is NOT to reorder the block: grouping a dense
+  // block into lines merges its title line with its room line and interleaves
+  // them, which is measurably worse (see sameLine() for the numbers). Two words
+  // that overlap vertically and read right to left are simply also tried the
+  // other way round.
+  const ySort = (ws) => ws.slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
+  const Wy = (text, x0, y0) =>
+    ({ text, x0, y0, x1: x0 + text.length * 10, y1: y0 + 20, conf: 92 });
+  out.swapped = M.locFromWords(ySort([
+    Wy('D', 0, 0), Wy('R', 20, 0), Wy('347', 30, 0), Wy('Ashford', 100, 2),
+    Wy('8:15am', 0, 30), Wy('-', 70, 30), Wy('9:45am', 90, 30),
+    Wy('5.309', 40, 60), Wy('KTM', 0, 62),
+  ]), new Set(['KTM']));
+  // ..and NOT the other way round: two words on DIFFERENT lines are never
+  // paired backwards, or the time line above the room becomes part of it.
+  out.acrossLines = M.locFromWords(ySort([
+    Wy('5.309', 40, 0), Wy('KTM', 0, 60),
+  ]), new Set(['KTM']));
+
+  // ── THE COURSE CODE IS ON THE TOP LINE, AND THAT IS GEOMETRY ────────────
+  // The refusal above finds the block's course code as the first course-shaped
+  // token in the words. On a real screenshot a block came back with its
+  // instructor first, then the course NUMBER, then the one-letter department —
+  // no course-shaped token until the ROOM, which was then refused for being the
+  // course. Three days of one class declined. Which words are the title line
+  // does not depend on word order. The three title words are one printed line,
+  // with y-tops 0/1/2 apart, so the sort reads them number-surname-letter and
+  // the first course-shaped token on the whole block is not the course at all.
+  // Shape reproduced with invented words, as above.
+  const spread = [
+    Wy('370R', 20, 0), Wy('Delacroix', 60, 1), Wy('H', 0, 2),
+    Wy('4:20pm', 0, 30), Wy('5:50pm', 80, 30),
+    Wy('TAQ', 0, 60), Wy('118', 50, 60),
+  ];
+  out.topLine = M.topLineWords(spread).map(w => w.text).sort().join(' ');
+  // what the block gets today, deriving the course from ALL of its words
+  out.spreadAll = M.locFromWords(ySort(spread), new Set(['TAQ']));
+  // ..and what it gets when the course comes off the top line, where there is
+  // no course-shaped token to find, so nothing is refused
+  out.spreadTop = M.locFromWords(ySort(spread), new Set(['TAQ']), { course: null });
   return out;
 });
 ok(unit.longRange && unit.longRange.bad === true,
@@ -270,7 +366,7 @@ ok(unit.ambiguous === null, 'a slip that could be two real buildings is refused'
   String(unit.ambiguous));
 ok(unit.exact && unit.exact.repaired === false, 'a real code is taken as it stands',
   JSON.stringify(unit.exact));
-ok(unit.titleLine && unit.titleLine.code === 'WEL' && unit.titleLine.room === '2.224',
+ok(unit.titleLine && unit.titleLine.code === 'VNH' && unit.titleLine.room === '4.117',
   'a course code that is also a real building is not read as the location',
   JSON.stringify(unit.titleLine));
 ok(unit.titleOnly === null,
@@ -278,6 +374,209 @@ ok(unit.titleOnly === null,
   JSON.stringify(unit.titleOnly));
 ok(unit.lostDot === null, 'a room number with its full stop dropped is refused',
   JSON.stringify(unit.lostDot));
+ok(unit.clockRoom && unit.clockRoom.room === '6.208',
+  'a "room" that is really the time off the line above is refused, and the scan goes on',
+  JSON.stringify(unit.clockRoom));
+ok(unit.preferKnown && unit.preferKnown.code === 'PYX',
+  'a code the register knows beats one that only sits beside a dotted room',
+  JSON.stringify(unit.preferKnown));
+ok(unit.swapped && unit.swapped.code === 'KTM' && unit.swapped.room === '5.309',
+  'two words of one line the sort put back to front still give up their room',
+  JSON.stringify(unit.swapped));
+ok(unit.acrossLines === null,
+  '...but two words on DIFFERENT lines are never paired backwards',
+  JSON.stringify(unit.acrossLines));
+ok(unit.topLine === '370R Delacroix H',
+  'the top line of a block is found by geometry, not by word order',
+  unit.topLine);
+ok(unit.spreadAll === null,
+  'a block whose only course-shaped token IS its room loses the room',
+  JSON.stringify(unit.spreadAll));
+ok(unit.spreadTop && unit.spreadTop.code === 'TAQ' && unit.spreadTop.room === '118',
+  '...and gets it back when the course is taken off the top line, where there is none',
+  JSON.stringify(unit.spreadTop));
+
+// ── TWO ROOMS ARE NOT ONE ROOM MISREAD ──────────────────────────────────────
+// agreeOnRooms() groups blocks by (paint colour, time of day) and has NO idea
+// what day any of them is on — which is the point, because that is what lets
+// one day's legible copy fix another day's mangled one. But the real corpus is
+// explicit that the same course commonly meets in a DIFFERENT BUILDING on a
+// different day. Two correct readings then land in one group, and a straight
+// majority-or-confidence vote overwrites one right answer with another right
+// answer belonging to a different day: an invented room, arrived at without
+// ever misreading a pixel.
+//
+// Every code and room below is invented (see the file header). What is under
+// test is the distance rule, not the letters.
+const agree = await page.evaluate(() => {
+  const M = window.__schedimg, T = M.TUNE;
+  const codes = new Set(['VNH', 'PYX', 'KTM']);
+  const COLOUR = [60, 130, 240];
+  const rec = (room, code, conf) => ({
+    block: { colour: COLOUR.slice() },
+    drawn: { start: 540, end: 630 },
+    range: { start: 540, end: 630 },
+    loc: code ? { code, room, words: [{ conf }] } : null,
+    why: [],
+  });
+  const keyOf = r => (r.loc ? r.loc.code + ' ' + r.loc.room : null);
+  const out = {};
+
+  // 1. THE WIN THIS VOTE EXISTS FOR, which must survive the new rule: the same
+  //    room, once with its full stop lost. One character apart, so it is one
+  //    room and the mangled copy is corrected.
+  const lostDot = M.agreeOnRooms(
+    [rec('4.117', 'VNH', 92), rec('4.117', 'VNH', 92), rec('4117', 'VNH', 40)], T, codes);
+  out.lostDot = lostDot.map(keyOf);
+
+  // 2. TWO REAL BUILDINGS. Neither may overwrite the other, whatever the vote
+  //    says — the confident one would have won and walked the other class
+  //    across campus.
+  const twoBldg = M.agreeOnRooms(
+    [rec('4.117', 'VNH', 95), rec('4.117', 'VNH', 95), rec('3.221', 'PYX', 60)], T, codes);
+  out.twoBldg = twoBldg.map(keyOf);
+
+  // 3. TWO REAL ROOMS IN ONE BUILDING, far enough apart not to be one misread.
+  const twoRooms = M.agreeOnRooms(
+    [rec('4.117', 'VNH', 95), rec('4.117', 'VNH', 95), rec('6.208', 'VNH', 60)], T, codes);
+  out.twoRooms = twoRooms.map(keyOf);
+
+  // 4. AND A COPY THAT READ NOTHING DOES NOT BORROW OUT OF A SPLIT GROUP —
+  //    there is no single room in it to borrow. It keeps its honest blank and
+  //    says why, so the class still arrives with its day and its hour.
+  const blankSplit = M.agreeOnRooms(
+    [rec('4.117', 'VNH', 95), rec('3.221', 'PYX', 90), rec(null, null, 0)], T, codes);
+  out.blankSplit = blankSplit.map(keyOf);
+  out.blankWhy = (blankSplit[2].why || []).join(' | ');
+
+  // 5. ...but in an UNSPLIT group it still does, which is the recall this
+  //    whole mechanism was added for.
+  const blankAgreed = M.agreeOnRooms(
+    [rec('4.117', 'VNH', 95), rec('4.117', 'VNH', 90), rec(null, null, 0)], T, codes);
+  out.blankAgreed = blankAgreed.map(keyOf);
+
+  out.maxEdits = T.grid.roomAgreeMaxEdits;
+  return out;
+});
+note('grid.roomAgreeMaxEdits = ' + agree.maxEdits);
+ok(String(agree.lostDot) === 'VNH 4.117,VNH 4.117,VNH 4.117',
+  'a room with its full stop lost is still corrected by its own twin',
+  String(agree.lostDot));
+ok(String(agree.twoBldg) === 'VNH 4.117,VNH 4.117,PYX 3.221',
+  'the same course in a DIFFERENT BUILDING on another day keeps its own room',
+  String(agree.twoBldg));
+ok(String(agree.twoRooms) === 'VNH 4.117,VNH 4.117,VNH 6.208',
+  '...and a different room in the same building keeps its own too',
+  String(agree.twoRooms));
+ok(String(agree.blankSplit) === 'VNH 4.117,PYX 3.221,',
+  'a copy that read no room borrows nothing out of a group holding two rooms',
+  String(agree.blankSplit));
+ok(agree.blankWhy.length > 20 && /different room|no single room/.test(agree.blankWhy),
+  '...and says so in a sentence, rather than arriving blank with no reason',
+  agree.blankWhy.slice(0, 90));
+ok(String(agree.blankAgreed) === 'VNH 4.117,VNH 4.117,VNH 4.117',
+  'while a group that agrees still lends its room to the copy that read none',
+  String(agree.blankAgreed));
+
+// ── ONE PAGE, TWO POLARITIES ────────────────────────────────────────────────
+// UT Registration Plus draws a class in one of about ten fills and it uses both
+// polarities at once: a dark saturated fill with WHITE type and a light
+// saturated fill with near-BLACK type, side by side. `photo.grayMode` has to
+// pick one for the whole page. It picks min(R,G,B), which is what keeps the
+// white type legible — and which collapses the other half of the page to
+// nothing at all. On four real screenshots of that app the light blocks came
+// back with no words in them whatsoever, and the reader had already put every
+// one of those classes in the right day column at the right hour.
+//
+// Drawn here rather than read off disk, same reason as the ruled table below:
+// the real screenshots are gitignored and stay that way, and the two colours
+// are the whole of what this has to hold. They are the app's own, sampled off
+// its pixels: rgb(34,197,94) with rgb(26,32,36) type, and rgb(59,130,246) with
+// white.
+const ink = await page.evaluate(async () => {
+  const M = window.__schedimg, T = M.TUNE;
+  const W = 760, H = 220;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  const LIGHT = { x0: 30, y0: 30, x1: 360, y1: 190 };
+  const DARK = { x0: 400, y0: 30, x1: 730, y1: 190 };
+  g.fillStyle = 'rgb(34,197,94)';
+  g.fillRect(LIGHT.x0, LIGHT.y0, LIGHT.x1 - LIGHT.x0, LIGHT.y1 - LIGHT.y0);
+  g.fillStyle = 'rgb(26,32,36)';
+  g.font = 'bold 34px monospace';
+  g.fillText('VNH 4.117', LIGHT.x0 + 16, LIGHT.y0 + 100);
+  g.fillStyle = 'rgb(59,130,246)';
+  g.fillRect(DARK.x0, DARK.y0, DARK.x1 - DARK.x0, DARK.y1 - DARK.y0);
+  g.fillStyle = '#ffffff';
+  g.fillText('KTM 5.309', DARK.x0 + 16, DARK.y0 + 100);
+  const id = g.getImageData(0, 0, W, H);
+  const rect = { w: W, h: H, data: id.data, source: 'screenshot' };
+  const pm = M.photometry(rect, T);
+
+  // p50 is the paint, p1 is the core of the type. Reported off the picture
+  // rather than off the two colour literals, so the number is the one the
+  // pipeline actually sees.
+  const spread = (box, at) => {
+    const v = [];
+    for (let y = box.y0; y < box.y1; y++) {
+      for (let x = box.x0; x < box.x1; x++) v.push(at(x, y));
+    }
+    v.sort((a, b) => a - b);
+    return { p1: v[Math.floor(v.length * 0.01)], p50: v[Math.floor(v.length * 0.5)] };
+  };
+  const minGray = (x, y) => {
+    const p = (y * W + x) * 4;
+    return Math.min(rect.data[p], Math.min(rect.data[p + 1], rect.data[p + 2]));
+  };
+  const out = {};
+  out.lightMin = spread(LIGHT, minGray);
+  out.darkMin = spread(DARK, minGray);
+
+  const plane = M.blockInk(rect, LIGHT, T);
+  const pw = plane.w;
+  out.lightInk = spread(
+    { x0: 1, y0: 1, x1: plane.w - 1, y1: plane.h - 1 },
+    (x, y) => plane.gray[y * pw + x]);
+  out.paint = plane.paint.map(v => Math.round(v));
+
+  const say = (ws) => ws.map(w => w.text).join(' ');
+  out.lightCrop = say(await M.ocrCrop(pm, LIGHT, T));
+  out.lightRead = say(await M.ocrBlockInk(rect, LIGHT, T));
+  out.darkRead = say(await M.ocrBlockInk(rect, DARK, T));
+  const codes = new Set(['VNH', 'KTM']);
+  const locOf = async (fn) => {
+    const ws = (await fn).slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
+    const l = M.locFromWords(ws, codes, { course: null });
+    return l ? l.code + ' ' + l.room : null;
+  };
+  out.lightCropLoc = await locOf(M.ocrCrop(pm, LIGHT, T));
+  out.lightInkLoc = await locOf(M.ocrBlockInk(rect, LIGHT, T));
+  out.darkInkLoc = await locOf(M.ocrBlockInk(rect, DARK, T));
+  return out;
+});
+note('paint measured off the block: rgb(' + ink.paint.join(',') + ')');
+ok(ink.lightMin.p50 - ink.lightMin.p1 < 20,
+  'min(R,G,B) puts a black caption within 20 levels of a light green fill',
+  'paint ' + ink.lightMin.p50 + ', type ' + ink.lightMin.p1);
+note('the same measurement on the dark blue block, which is the case min() was ' +
+  'chosen for: paint ' + ink.darkMin.p50 + ', type ' + ink.darkMin.p1 +
+  ' — ' + Math.abs(ink.darkMin.p50 - ink.darkMin.p1) + ' levels apart');
+ok(ink.lightInk.p50 - ink.lightInk.p1 > 150,
+  'against its own paint the same block separates by more than 150',
+  'paper ' + ink.lightInk.p50 + ', ink ' + ink.lightInk.p1);
+note('the shipped second look reads the light block as: "' + ink.lightCrop + '"');
+note('against its own paint it reads: "' + ink.lightRead + '"');
+ok(ink.lightCropLoc === null,
+  'so the shipped second look finds no room on the light block at all',
+  String(ink.lightCropLoc));
+ok(ink.lightInkLoc === 'VNH 4.117',
+  '...and the third look, against the paint of the block itself, reads it',
+  String(ink.lightInkLoc));
+ok(ink.darkInkLoc === 'KTM 5.309',
+  '...without losing the white-on-dark block the page gray was chosen for',
+  String(ink.darkInkLoc));
 
 // ── THE OTHER KIND OF WEEK GRID: A RULED TABLE ──────────────────────────────
 // myUT draws an HTML table with a rule between every cell and tints the
