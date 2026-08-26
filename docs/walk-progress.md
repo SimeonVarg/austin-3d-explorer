@@ -1,6 +1,36 @@
 # Walk feature — progress log
 
-## Where this stands — 2026-08-25 night, one minute
+## Where this stands — 2026-08-26 morning, one minute
+
+**Short version: one way the schedule reader could quietly send you to the wrong
+building is now closed, and it did not make the app any chattier.**
+
+Some UT building codes are one letter apart and both real — `MEZ` is Mezes Hall
+on the South Mall, `NEZ` is inside the football stadium, half a mile away. If
+the reader misread one as the other, everything in the app said "yes, that's a
+real building" and it was saved at full confidence with nothing said. It only
+happened when the class was the **only class on that day** — which is exactly
+what a once-a-week discussion section, lab or seminar looks like.
+
+Now it asks, once, with your own picture beside it and the right answer as the
+second button: *"Is this building NEZ?"* — `NEZ` (what the picture reads) and
+`MEZ` (Mezes Hall). It never rewrites your reading; it only asks.
+
+**It did not start nagging.** Over the fifteen test pictures the app asks
+**16 questions in total — exactly the same 16 as before**, picture for picture.
+Not one of them is the new question. It only speaks when a class is alone and
+its code has a look-alike, and it stays quiet for an ordinary week.
+
+**What is still open on this:** thirteen pairs of look-alike codes exist and the
+app can separate five of them. `PAI`/`PAT` are two real teaching buildings 250 m
+apart and nothing in this repo can tell them apart — that is written down rather
+than papered over.
+
+Picture: `shots/img-confidence/lonely-class-question-phone.jpg`.
+
+---
+
+## Where this stood — 2026-08-25 night, one minute
 
 **Short version: you can now take a picture of your class schedule and the app
 reads it, on your phone, without the picture ever leaving it. It works on 131 of

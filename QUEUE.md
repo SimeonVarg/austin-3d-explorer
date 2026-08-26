@@ -84,7 +84,33 @@ not the column fit. See `docs/img-verdict.md` §3.
 
 ## NEXT ON THIS FEATURE — three items (IMG0 added 2026-08-26, `docs/img-independent-check.md`)
 
-### ~~IMG0a~~ and ~~IMG0b~~ — **CLOSED 2026-08-26**, branch `acer/img-lonely-class`, `docs/img-lonely-class.md`
+### ~~IMG0a~~ and ~~IMG0b~~ — **MERGED TO `main` 2026-08-26** (PR #229, `e58acc1`), `docs/img-lonely-class.md`
+
+**Shipped, and verified by the ship lane from scratch before it merged** — not
+on the three judges' say-so. Case B was re-measured with `main`'s own module
+served side by side in the same page (`main` commits `NEZ` silently at 1.00,
+`main`+fix asks at 0.68, case A byte-identical across the two), it generalises
+to `PAI` `TSC` `MMS` `GHE` `ICB` alone, and a lone `WEL` — a real code with no
+confusable neighbour — stays silent, so this is not "one class means a
+question". Over-asking was re-measured by driving the shipped confirm screen for
+all fifteen corpus images and stepping every question screen: **16 over 15
+imports, identical with and without the fix, and none of the 16 is the new pair
+question.** Gates on the merged tree: `schedconfirm.mjs` 108/0,
+`image-bench.mjs` 131/171 at 100% precision, `si-integration.mjs` 50/0,
+`img-import.mjs` 67/0. Picture:
+`shots/img-confidence/lonely-class-question-phone.jpg`. Full write-up including
+the run-bracketing discipline it forced: `docs/img-lonely-class.md` §11.
+
+**One process finding worth more than the fix.** Two sessions were writing to
+this one working directory at once. `HEAD` was reset out from under the ship
+lane mid-pass, which removed the fix from the tree **while gates were running
+against it** and produced a convincing false defect. Nothing was lost, but two
+of the three judges independently reported the same phenomenon, so it is not a
+one-off. **Bracket every long verification run with `git rev-parse HEAD` and a
+`grep -c` for a token only the change under test contains, and have the harness
+print the thing under test (`CONF.walk`) and not just the result.** A green gate
+measured against the wrong tree is the exact failure `scripts/verify/README.md`
+exists to prevent.
 
 **IMG0a is fixed and measured on both sides.** `neighbourDoubt()` now reads the
 walking graph through the rest of the **week** when the class is alone on its

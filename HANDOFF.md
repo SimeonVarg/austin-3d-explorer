@@ -1,5 +1,83 @@
 # Austin 3D Explorer — Full Handoff
 
+## 193. Aug 26 2026 — IMG0a shipped: the ship lane re-measured it against `main` in the same page, and lost an hour to a second session moving HEAD under it (merged to `main`, PR #229, `e58acc1`, branch `acer/img-lonely-class` deleted)
+
+**Merged.** Three judges passed section 192's branch; this lane re-ran the two
+things the decision hangs on with its own instruments on port 8951 rather than
+taking them, and merged.
+
+**Case B against a real control.** Instead of comparing across two checkouts,
+`main`'s own `js/schedconfirm.js` was written out as a sibling file and served
+alongside, so both modules could be driven in the same page in the same run.
+`main` commits `{building:'NEZ', needsConfirm:false}` at **1.00** for a class
+alone in the schedule; the merged tree asks at **0.68** with the reading still
+in the first button and `needsConfirm:true`. **Case A is byte-identical across
+the two** — without that control a silent result is indistinguishable from a
+broken rig. It generalises past MEZ/NEZ (`PAI`, `TSC`, `MMS`, `GHE`, `ICB` alone
+all ask), and a lone `WEL` — a real code with no confusable neighbour — stays
+silent at 1.00, so it is not "one class means a question".
+
+**Over-asking measured on real pictures, not argued.** A probe written for this
+pass drives the shipped entry point (`window.wayfindImportImage` -> `#wf-cfm`)
+for all fifteen corpus images and steps **every** question screen, reading the
+text off the DOM, never pressing "Skip the rest": **16 questions over 15
+imports**, `01=1 02=0 03=1 04=0 05=4 06=0 07=1 08=0 09=8 10=1 11=0 12=0 13=0
+14=0 15=0`, identical with and without the fix in the tree. Reading the captured
+text back, **none of the 16 is the new pair question** — the corpus's only class
+alone on its day is `BIO 311C` in `WEL`, which has no look-alike.
+
+**Gates on the merged tree** (its tree hash `675f0ef` is byte-identical to
+`origin/main`'s, so "re-run on the merged result" is satisfied by construction
+rather than by assertion): `schedconfirm.mjs` 108/0, `image-bench.mjs` 131/171
+at 76.6% and 100% precision with 0 hallucinations, `si-integration.mjs` 50/0,
+`img-import.mjs` 67/0. `js/wayfind.js` zero-line diff, `WAYFIND.on` still
+`false`. No `fetch`/`XHR`/`sendBeacon`/`WebSocket`/`postMessage` added.
+
+**Picture:** `shots/img-confidence/lonely-class-question-phone.jpg` — corpus
+image 03 read for real with one stroke changed, the crop showing the student's
+own picture saying `MEZ 1.306` while the reading underneath says `NEZ`.
+
+### THE PART THE NEXT LANE SHOULD ACTUALLY READ
+
+**Two sessions were writing to this one working directory at the same time, and
+it cost an hour.** Mid-pass, `HEAD` here was reset from the fix commit back to
+`origin/main` and two unrelated docs commits were made on top — which removed
+`js/schedconfirm.js`'s fix from the working tree **while this lane was running
+gates against it**. It did not look like a git problem. It looked like a real
+defect: the lone doubt firing on a synthetic fixture but not on a real extracted
+reading. A full bisect of the evidence object found nothing, because there was
+nothing to find; printing `CONF.walk` and seeing no `lone` key at all is what
+identified it.
+
+Nothing was lost — the fix commit was safe on `origin`, and both sessions' work
+was merged rather than either discarded (`003aedf` and `b204a1d`, the real-photo
+corpus doc and the `.gitignore` keeping Simeon's own schedule screenshots out of
+the repo, are on `main` and were carried, not clobbered). But **the second judge
+and the regression judge had already reported the same phenomenon in their own
+passes**, so this is a standing hazard, not an accident.
+
+Three rules that make it cheap:
+
+1. **Bracket every long run** with `git rev-parse HEAD` and a `grep -c` for a
+   token only the change under test contains. Every number in section 193 is
+   bracketed that way; the runs taken before the bracket existed were all
+   re-run.
+2. **Print the thing under test, not just the result.** One line dumping
+   `CONF.walk` would have caught this in seconds. A harness that never states
+   which build it measured cannot tell "the fix is wrong" from "the fix is not
+   there".
+3. **Tell the other session.** A message went to the peer session naming the
+   directory, the port and the window; it is cheaper than either lane
+   rediscovering this.
+
+**The trade this ships with, stated plainly.** A student whose picture yields
+exactly one located class, in one of the 26 codes belonging to the 13 confusable
+pairs, pays one tap **whether or not the reading is wrong** — with one class and
+no second building there is genuinely no evidence either way. That population is
+unmeasured. `CONF.walk.lone = false` is the one-line reversal if it turns out
+students commonly photograph one card at a time, and case C does not depend on
+it.
+
 ## 192. Aug 26 2026 — the class with nobody beside it: a wrong building saved at 1.00 now asks, and the corpus asks not one extra question (acer lane, branch `acer/img-lonely-class`, QUEUE IMG0a + IMG0b, `docs/img-lonely-class.md`)
 
 **The defect.** MEZ (Mezes Hall, South Mall) and NEZ (inside the football
