@@ -1,5 +1,170 @@
 # Austin 3D Explorer — Full Handoff
 
+## 191. Aug 25 2026 — the photo-import round SHIPPED: 131 of 171 with a student who answers nothing, against a bar of 36, and zero wrong answers (ship lane, branch `acer/img-ship` → `main`, PR #227)
+
+**Merged.** `main` now carries the reader (`js/schedimg.js`), the confirm screen
+(`js/schedconfirm.js`), the walking-graph probe (`js/walkgraph.js`), the fourth
+import tab and the correction sheet in `js/wayfind.js`, the vendored OCR engine
+in `vendor/tesseract/`, and four docs. `acer/img-bar`, `acer/img-extract`,
+`acer/img-confidence` and `acer/img-integrate` are fully contained in `main` and
+were deleted locally and on the remote. `acer/img-corpus` was already in `main`.
+
+**`WAYFIND.on` is still literally `false` at `js/wayfind.js:88`** and is not in
+the diff. Read after the merge and read again in the production bundle.
+
+### Two of the four pieces came in as refusals. That did not decide it.
+
+`confidence` and `integrate` both arrived `exhausted: true` — they never won a
+blind comparison. The brief said to treat that as a refusal. The ship lane read
+what each refusal actually *said* before honouring it, and both had been
+overtaken:
+
+- **The confidence refusal was "`needsConfirm` has zero consumers."** True when
+  it was written — a confirm invariant that protected nobody, because nothing
+  downstream read the flag and the photo pipeline had no entry point in the
+  shipping app at all. The `integrate` round wired it: `js/wayfind.js:10525`
+  reads `unconfirmedFields`, `:12992` reads `needsConfirm`, the day view draws a
+  tappable *Read as "PAI 3.02" — check this one* chip, and `img-import.mjs` §8
+  proves the tap corrects one stored class, distinguishes a correction from a
+  confirmation on disk, and survives a reload. Verified here, not read.
+- **The integrate refusal was "the sheet can correct a class the import KEPT,
+  not one it DROPPED."** Still true. It is now the headline of "what is next"
+  in `docs/img-verdict.md` §5 rather than a reason to hold the merge, because it
+  is a *missing* recovery path on top of correct refusal behaviour, not a defect
+  in what ships. A dropped class is dropped safely; it is just tedious to get
+  back.
+
+**The rule this round is the case for: a refusal is evidence, not a verdict.**
+Both refusals were right when written and both were about work that landed
+afterwards. Reading only the boolean would have held a good branch for a bug
+that no longer existed.
+
+### The three disqualifiers, checked with our own instrument as well as the gates
+
+The brief said any of these failing means do not ship whatever the score is. The
+ship lane wrote `_ship-netwatch.mjs` from scratch rather than reuse the gates'
+own assertions, so a blind spot in the gate could not be inherited. It was
+deleted after the run; it is reproduced in `docs/img-verdict.md` §1.
+
+- **Nothing leaves the browser.** Two full imports of image 01 through the real
+  UI: **174 and 168 requests, zero with a body of any kind**; no host contacted
+  that was not already in use before the picture was picked (`127.0.0.1`,
+  `tiles.openfreemap.org`); **35 needles taken from `truth.json`** — the answer
+  key, not the app's output, so a misread cannot launder a pass — none found; a
+  raw TCP sink outside every browser API never contacted; the engine's 8
+  requests all from `127.0.0.1`. `si-integration.mjs` §6 twice and
+  `img-import.mjs` §6 agree, and both fire a positive control: the shipped guard
+  **blocks** a deliberate leak of a real imported room, and with the guard
+  disarmed both instruments see it. The instruments are not blind.
+- **No building and no time that is not on the image.** Precision **100.0%**
+  across both full bench passes — 269 predictions over the two, none matching
+  nothing, 0 hallucinations, 0 three-of-four near misses. Read by hand too: on
+  image 01, driven through the real controls, the device ended up holding 14 of
+  14 field-for-field identical to the answer key.
+- **Cold load not slower.** `index.html` is **byte-identical to `main`**, so the
+  engine cannot be on the load path by construction; confirmed anyway with 87
+  and 88 requests at page load, zero matching
+  `tesseract|traineddata|.wasm|schedimg|schedconfirm|walkgraph`.
+
+**The cold-load cost that IS real, stated rather than buried:** `js/wayfind.js`
+grew 813,749 → 896,536 bytes raw, **+22,598 bytes gzipped** (level 6, the
+comparison `docs/perf/payload.md` requires because `serve.py` does not gzip and
+the real site does). About 22 KB, not the 4.9 MB engine.
+
+### The numbers, re-run on the merged tree
+
+```
+                                       all four right    precision
+  the bar (docs/img-bar.md)              36 / 171  21.1%    16.1%
+  SHIPPED, student answers nothing      131 / 171  76.6%   100.0%
+  SHIPPED, student answers              134 / 171  78.4%   100.0%
+```
+
+Per condition, ours at the floor vs the bar: clean **52/52** vs 14/52; angled
+**23/49** vs 0/49; dark **24/38** vs 8/38; crop **32/32** vs 14/32. **Zero false
+positives against the bar's 187.**
+
+- `image-bench.mjs --selftest`: 171/171 first, before anything was scored.
+- `image-bench.mjs` and `scripts/verify/schedule-images/` have **zero diff
+  against `main`.** The goalposts did not move; checked explicitly.
+- **The bar row is not this lane's own measurement.** No bar extractor was ever
+  committed — `acer/img-bar` is one doc — so reproducing it means rebuilding it
+  from prose. The extract critic did that and got 36/171 exactly. The ship lane
+  started a third reconstruction and **abandoned it**: `createWorker('eng')`
+  pulled the full 5.2 MB LSTM model rather than the compact one the bar lane's
+  own timing implies (39.8 s for fifteen images, against 55 minutes and still
+  running here), so it was not the same instrument. **One measured run,
+  reproduced once, not three times** — said plainly rather than left to look
+  like a third confirmation. Nothing turns on it at a 3.6x gap. **If a later
+  round wants the bar to be reproducible, commit the extractor.**
+- `si-integration.mjs` on the merged tree, **two interleaved reps: 50 passed, 0
+  failed** both times — including §6. It is 50 and not 49 because Simeon
+  answered the two-doors question and `acer/si-onedoor` landed; the gate that
+  was red on purpose all round is green. Nothing red was merged.
+- `walkmeter.mjs` on the merged tree: **87.0 m over the pairs it makes worse,
+  −393.7 m signed, 38/38 at the right door.** Unchanged, which is the point —
+  this round added a schedule reader and moved nothing about the walking.
+- `img-import.mjs` 67/0, `schedimg.mjs` 26/0, `schedconfirm.mjs` 101/0.
+
+### Two corrections to the piece docs, and one gate wart
+
+1. **"12 of 15 images at 100%" is 11.** `docs/img-extract.md:34` and
+   `HANDOFF.md:454` (entry 186) both print it. The ship lane's own 15-image run
+   has eleven at 100% — 01, 02, 03, 04, 07, 09, 10, 12, 13, 14, 15 — with 05 at
+   9/14 and 06/08/11 at zero. The extract critic caught the same off-by-one on
+   the reader bench and it survived into a second document. Corrected here
+   rather than in the piece docs, which are that round's own record.
+2. **The extract critic's "biggest gap" recommendation is refuted by the
+   builder's own measurement.** It proposed clustering event blocks' x-centres
+   into day columns instead of relying on header OCR, to rescue images 06/08/11.
+   On 06 the columns **already work** — `schedimg.mjs` prints `layout: grid`,
+   ten blocks in the right columns, *"it still knows which day each of them is
+   on, from the column — Mon Wed Tue Thu"*. The blocker there is that the
+   captions read `MA 6 106`, `ute 2.909`, `i208`; nothing that is a room. That
+   work would move nothing. Written into `docs/img-verdict.md` §3 so the next
+   lane does not build it.
+3. **`schedconfirm.mjs` rewrites five committed JPEGs in `shots/img-confidence/`
+   every time it runs.** Not a defect, but a lane that runs the gate and commits
+   will commit five byte-different screenshots for no reason. Reverted here.
+   Worth a `--shots` flag next time that file is touched.
+
+### What is still weak, and it is 20% of the corpus
+
+**Angled photographs of a week-grid calendar score 0 of 35** — images 06, 08 and
+11. They fail *honestly*: the reader reports what it saw ("10 classes are drawn
+here, the hour scale did not read") rather than guessing a room. But
+`docs/img-extract.md` measured, at 2x/3x/4x under four page-segmentation modes,
+that the weekday names are simply not in those JPEGs. **These three are at the
+legibility floor of the image, not at a gap in the code** — and photographing
+your own phone at an angle is plausibly the most common capture a student
+actually takes.
+
+**Two caveats no headline number should be quoted without.** All fifteen corpus
+images are **synthesized** — no camera, no photograph of a real screen (round
+183 says this at length and it stays true). And the bar is **not Google Lens**;
+`docs/img-bar.md` records `reachedTheRealThing: false`. It is Tesseract.js 7.0.0
++ the app's own production parser: a real bar, honestly the strongest thing
+reachable from this machine, and a substitute.
+
+### The one thing next
+
+**Give a class the import DROPPED a way back that is not "re-photograph
+everything."** `applyGroup()` (`js/schedconfirm.js:1467`) refuses a reading
+nothing believed and nobody confirmed — correct — but a refused class then has
+no day-view row and no chip to tap. Keep a lightweight record (course, day, time
+only) instead of discarding it, and put one line on the result screen: *"3
+classes from your photo couldn't be confirmed and weren't saved — add them?"*
+opening the existing `WF_FIX` sheet in a new-class mode. Every part it needs —
+the sheet, the building type-ahead that names `WEL` back as "Robert A. Welch
+Hall" and refuses `ZZQ`, `impPlace` — already exists.
+
+### Housekeeping
+
+Production verified after the deploy landed, not assumed. `.claude/worktrees`
+swept, `git worktree prune` run, orphan `worktree-wf_*` branches deleted. Every
+server, browser and node process this lane started was killed and port 8933
+freed. No file has a NUL byte; `git diff --stat` on `js/wayfind.js` is a sane
++1266/−21, not a CRLF blow-up.
 ## 190. Aug 25 2026 — the mark has an answer (acer lane, branch `acer/img-integrate`)
 
 `js/wayfind.js` (+~300 lines), `scripts/verify/img-import.mjs` (+~250),
