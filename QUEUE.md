@@ -150,6 +150,16 @@ tracked image, crop or thumbnail of a schedule exists, and
 `scripts/verify/schedule-images/real/` is still gitignored** — `git ls-files`
 returns nothing under it.
 
+**One thing nobody writing these docs seems to have known, and it raises the
+stakes on all of it: `docs/` IS PUBLICLY SERVED BY THE DEPLOYED APP.** Vercel
+publishes the repo statically, so
+`https://flyover-utx.vercel.app/docs/img-real-corpus.md`, `/QUEUE.md` and
+`/HANDOFF.md` all return **HTTP 200** to anyone. A doc in this repo is not merely
+"in a public repo someone would have to browse to" — it is a URL on the app's own
+domain. Re-checked after this commit: the served copy is the scrubbed one and
+returns **zero** real registration numbers. Treat every file in `docs/` as
+published output, because it is.
+
 **The rule that would have caught all of this, stated so it is mechanical:** the
 grep is over *every* literal a doc or fixture introduces — five-digit numbers,
 one- and two-character truncations, room numbers and the name of a club or an

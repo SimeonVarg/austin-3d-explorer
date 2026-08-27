@@ -17,8 +17,13 @@ Independently re-run on the branch tip `eb80751`, `python scripts/serve.py 8937`
 `SCHEDIMG_BASE` set, one browser harness at a time:
 
 ```
-  real, 7 images     86 / 95   90.5%   87 predictions   0 wrong   0 hallucinations
+  real, 7 images     86 / 95   90.5%    87 predictions   0 wrong   0 hallucinations
+  synthetic, 15     134 / 171  78.4%   136 predictions   0 wrong   0 hallucinations
 ```
+
+The real corpus was run **twice, byte-identical including the per-image table**;
+the synthetic guard once, and it lands exactly on the branch's recorded 134/171.
+Both are this lane's own numbers, not inherited.
 
 `false+ 0` on **every one of the seven images**, not just in aggregate. Six of
 the seven score above 92%; `real-04` alone sits at 4/12 and contributes zero false
@@ -68,6 +73,13 @@ was left exactly as photographed.
 Scrubbed in this commit; every replacement invented and grepped against the key
 first, 0 surviving matches. Still in history via `003aedf`, an ancestor of
 `main`, which no tree-level fix reaches.
+
+**And `docs/` is publicly served by the deployed app**, which nobody writing
+these files appears to have known. Vercel publishes the repo statically, so
+`/docs/img-real-corpus.md`, `/QUEUE.md` and `/HANDOFF.md` all return HTTP 200 on
+`flyover-utx.vercel.app`. The leak was not only in a public repo; it was a URL on
+the app's own domain. Verified after this commit: the served copy is the scrubbed
+one and returns zero real registration numbers.
 
 **Both misses have the same shape, and it is the lesson of the day.** The check
 was run over the literals that *look* personal — names — and not over the ones

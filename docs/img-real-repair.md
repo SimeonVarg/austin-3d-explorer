@@ -54,16 +54,11 @@ per-image table included.** The `false+ 0` column holds on *every individual
 image*, not merely in aggregate — which is the form of the claim that matters,
 since an aggregate zero can hide one image inventing and another declining.
 
-**Which figures this lane measured and which it did not, stated plainly.** The
-real-corpus "after" row is this lane's own, twice. The **synthetic row is not**:
-it is the branch's record, corroborated by two independent re-runs in the
-verification round that each ran it twice with identical results. This lane
-started its own synthetic re-run and it had not finished when this was written —
-the machine was sharing a CPU with an unrelated heavy Chrome, and the room fix
-below made every OCR pass slower. Since the branch is not being merged, the
-regression guard is not load-bearing for any decision here; it is context. If you
-are the lane that rebuilds this branch, **re-run the synthetic corpus yourself
-before merging** rather than inheriting this row.
+**Both rows are this lane's own measurement.** The real corpus was run twice
+(byte-identical) and the synthetic corpus once, on the same tree, same port, one
+harness at a time: **134 of 171, 136 predictions, 0 wrong, 0 hallucinations** —
+matching the branch's record and the verification round exactly. The regression
+guard is intact and was not taken on anyone's word.
 
 ### What "86 of 95" is and is not
 
