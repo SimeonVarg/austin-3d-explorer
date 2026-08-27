@@ -144,9 +144,11 @@ building has two. No redrawing of a tile fixes that. The two ways out are:
 
 Two more, named rather than fixed:
 
-* **`js/heroes.js` has seven pattern layers this work has never reached** (EER,
-  Dell CS, the PCL block). They carry their own grids and none of this applies
-  to them.
+* **`js/heroes.js`'s seven pattern layers are anchored now** (see the section
+  below) — but only two of their five pitches are MEASURED. The other three are
+  derived from the counts this repo authored, and are placeholders for a
+  measurement rather than measurements. The EER lattice cage is not anchored at
+  all, on purpose.
 * **The tile has no vertical anchor, so it cannot say that a building's storeys
   differ from each other.** Battle Hall's real elevation is a rusticated ground
   floor under one storey of tall round-arched Palladian bays; the tile can only
