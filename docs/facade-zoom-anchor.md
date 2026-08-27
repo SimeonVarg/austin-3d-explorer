@@ -154,3 +154,42 @@ Two more, named rather than fixed:
   the rusticated base too — on the sixteen measured buildings, almost none has
   the *same* head on every storey — so it was deliberately not done. That is a
   geometry job, not a tile one.
+
+## The seven hero tiles, added the same day
+
+`js/heroes.js` carries seven `fill-extrusion-pattern` layers of its own — EER's
+limestone and its lattice cage, GDC's brick, NHB's brick, and three curtain
+walls — and the atlas work had never reached them. They have the identical
+defect, and this file's own EER comment already named it: *"fill-extrusion-pattern
+has no vertical anchor and its world scale halves at every integer zoom."*
+
+They are registered with no `pixelRatio`, so their `displaySize` is 64 and one
+repeat is 32.98 m of wall at **z17** — the same 33 m the facade atlas gets at
+z16, one zoom apart because the atlas is pixelRatio 2. That is why
+`HERO_REF_ZOOM` is 17.
+
+EER's floor line, in metres, against a measured 4.65 m floor
+(`bake_heroes.py`'s own number: a 40.5 m parapet over nine floors less a 3.0 m
+ground-floor overrun):
+
+| camera zoom | 17 | 18 | 19 | 20 | 21 |
+|---|---|---|---|---|---|
+| before | 3.66 m | 1.83 | 0.92 | 0.46 | **0.23 m** |
+| after | 4.71 m | 4.12 | 4.13 | 4.12 | 2.06 |
+
+GDC, against a measured 4.10 m Pelli module: 4.12 m at every zoom from 17 to 20,
+and its authored eight rows already landed on that at z17 — so GDC does not move
+at cruise at all, it just stops collapsing as you come in.
+
+EER **does** move at cruise, from nine rows to seven, and that is deliberate:
+nine rows put a floor line every 3.66 m on a building whose floors are 4.65 m
+apart, and this file's comment had accepted it as "the closest a pattern can
+get". It was only the closest while the count was fixed.
+
+![EER and the Cockrell School at cruise](shots/facade-anchor-heroes-cruise.jpg)
+
+The EER **lattice cage** was deliberately left alone. It is one object, not a
+rhythm — "the cage is 21.4 m wide and 21.1 m tall and its panels are square" —
+so a metre pitch would ask for eight panels where the photograph shows five.
+Anchoring it means drawing the cage as geometry at its own size, not changing a
+count in a tile.
