@@ -399,6 +399,13 @@ export const CONF = {
     unlikely: /\b(GARAGE|PARKING|FOOD SERVICE|RANCH|WAREHOUSE|CHILLING|POWER PLANT|SERVICE CENTER|UTILITY|STORAGE|GREENHOUSE)\b/,
   },
 
+  /* ── refusals that are shown even though no tap can settle them ─────────── */
+  // js/schedimg.js hands back readings it will not propose. Most of them have
+  // an alternative code to offer and become a question. These three do not, and
+  // are shown anyway — a refusal the student can see beats a refusal that looks
+  // like the reader never noticed. One edit to add or remove one.
+  showWithoutCandidates: ['cut-off', 'unknown-code', 'room-shape'],
+
   /* ── how many taps a question is allowed to be ──────────────────────────── */
   ask: {
     maxOptions: 4,        // beyond this it is a list, not a choice
@@ -1463,7 +1470,16 @@ export function review(out, opts = {}) {
     if (!ev) continue;
     const cands = (ev.candidates && ev.candidates.building) || [];
     if (!u.room || !u.day || !u.start || !u.end) continue;
-    if (!cands.length && u.reason !== 'cut-off') continue;
+    // A ROW WITH NO CANDIDATES IS STILL A ROW THE STUDENT CAN SEE. Most
+    // no-candidate refusals are noise, but three of them are a whole reading
+    // with one field the reader will not sign: a half-word at the crop edge,
+    // a building code the register has never had, and a room number whose full
+    // stop the scan dropped. js/schedimg.js stopped proposing the last two this
+    // round — before that they went out as classes with a warning attached —
+    // and if they were dropped here as well, refusing them would have made them
+    // invisible instead of honest. They go to the re-take list, printed with
+    // the reader's own sentence and keepable in one tap.
+    if (!cands.length && !CONF.showWithoutCandidates.includes(u.reason)) continue;
     // Scored against the classes already accepted, so the day/collision and
     // walking checks have the same neighbours the proposals had.
     const sc = score(Object.assign({}, u, { days: u.days || [u.day] }),

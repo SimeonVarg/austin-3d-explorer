@@ -127,6 +127,46 @@ export const TUNE = {
     sharpen: 0.55,         // unsharp amount; 0 disables
   },
 
+  /* ── stage 4b: ONE BLOCK, AGAINST ITS OWN PAINT ─────────────────────────── */
+  // `photo.grayMode` above has to pick one polarity for a whole page, and UT
+  // Registration Plus puts BOTH on one page: a dark saturated fill with white
+  // type, and a light saturated fill with near-black type, drawn side by side.
+  // Measured on Simeon's four real screenshots of that app, min(R,G,B) — which
+  // is what keeps the white type legible — separates:
+  //
+  //     a blue fill  (59,130,246) from its WHITE caption   by 196 levels
+  //     a green fill (34,197,94)  from its BLACK caption   by EIGHT
+  //     a cyan fill  (6,182,212)  from its BLACK caption   by SIX
+  //
+  // So every light block on those pages came back with no words in it at all —
+  // not a bad read, no read — and magnifying it (`grid.reOcrBlocks`) magnifies
+  // the same eight levels of mud. Nine of real-01's fourteen classes, seven of
+  // real-05's fifteen, and eight of real-02's eleven were lost to that one
+  // number, and the reader had already put every one of them in the right day
+  // column at the right hour.
+  //
+  // A block's OWN PAINT is the way out of the choice. Ink is whatever is
+  // unlike the paint — whichever way round the contrast runs, however
+  // saturated the paint is — so this pass has no polarity to get wrong and no
+  // channel to collapse. It runs ONLY on a block the passes above could get no
+  // room out of, so a page that already reads pays nothing for it.
+  ink: {
+    on: true,
+    scale: 2,              // magnification, as ocrCrop()
+    pad: 3,                // quiet margin round the crop — rendered as PAPER
+                           // ..whatever is really there, because the white page
+                           // ..outside a saturated block is as far from its
+                           // ..paint as the type is and would frame every
+                           // ..block in a black border for the layout analyser
+                           // ..to trip over.
+    bits: 4,               // colour lattice: bits dropped per channel when
+                           // ..voting for the modal paint colour
+    hiPct: 0.995,          // this percentile of distance-from-paint is full ink
+    minSpan: 90,           // ..but never less than this, or a block holding no
+                           // ..type at all turns its own antialiasing into
+                           // ..letters
+  },
+
   /* ── stage 5: the engine ────────────────────────────────────────────────── */
   ocr: {
     psm: '6',              // SINGLE_BLOCK. 3 (AUTO) re-orders a table into
@@ -148,11 +188,19 @@ export const TUNE = {
     colSnapFrac: 0.5,      // a word joins a day column if within this * pitch
     edgeTouchPx: 3,        // a box this close to the crop edge is truncated
     maxLinesToLocation: 3, // how far below a time range a room may sit
+    // A COURSE CODE IS ON THE BLOCK'S TOP LINE, and this is how many line
+    // heights below the topmost word still counts as that line. See
+    // topLineWords(). Tight, because the line under it is often the room.
+    courseBandLines: 0.9,
   },
 
   /* ── stage 7: judgement ─────────────────────────────────────────────────── */
   judge: {
     repairMaxEdits: 1,     // a building code may be repaired by one character
+    // Where a block offers two readings that both look like a location, the one
+    // whose code is on the register wins over one that merely sits beside a
+    // dotted room. See locFromWords().
+    preferKnownCode: true,
     dayFirstHour: 7,       // a bare "3:30" on a schedule is not 3:30 in the
     dayLastHour: 22,       // ..morning. Used ONLY when no am/pm is printed, and
                            // the result is always marked unsure.
@@ -180,6 +228,10 @@ export const TUNE = {
     minAreaFrac: 0.0022,   // of the page
     minFill: 0.72,         // of its own bounding box — a block is a rectangle
     minWidthOfPitch: 0.34, // and it is about as wide as its day column
+    blockEdgeCells: 3,     // a block whose edge is within this many ANALYSIS
+                           // ..cells of the frame edge was cut by the frame —
+                           // ..see fromGrid(), where a cut block's height stops
+                           // ..counting as evidence about how long it is
     axisMinLabels: 3,
     axisMaxResidPx: 9,     // a worse fit than this is not an axis
     // A CALENDAR DRAWS A GAP BETWEEN TOUCHING EVENTS, so a block's painted
@@ -191,12 +243,129 @@ export const TUNE = {
     reOcrBlocks: true,     // read a block on its own when the page pass could
                            // not get a room out of it — see ocrCrop()
     agreeMin: 16,          // axis and caption agreeing within this is confident
+    // ..which is NOT the same number as "close enough that the ruler wins".
+    // One snap step apart is one snap step wrong, and it is the commonest
+    // error on the page: a dense real screenshot put three copies of one class
+    // a quarter of an hour late while each of them printed the right time
+    // inside its own rectangle, because 15 is inside 16. See fromGrid().
+    captionCorrectsMin: 15,
+    // WHO WINS WHEN THE PRINTED TIME AND THE DRAWN POSITION DISAGREE.
+    // 'screenshot' = the printed caption, but only on a screenshot, where the
+    // text is pixel-exact and the ruler is the inference; 'always' | 'never'
+    // are here so the next lane can A/B it from SCHEDIMG_TUNE without an edit.
+    captionBeatsAxis: 'screenshot',
+    // ..and how far apart the two witnesses may be and still be two readings of
+    // one time. A ruler half an hour out is a ruler with its labels drawn below
+    // their own rules; a caption three hours from the block it is printed
+    // inside is a misread, and then neither one overrules the other.
+    captionMaxDriftMin: 90,
+    // A PRINTED TIME ONLY OVERRULES THE RULER IF IT LOOKS LIKE A CLASS TIME.
+    // Nothing on a schedule starts at one minute past, so a caption whose
+    // minutes are off this grid is an OCR slip and not a correction. Measured:
+    // without this, corpus image 10 read a 2:00 class as "15:01" and the
+    // caption rule believed it — two wrong answers where the ruler had been
+    // right, which is the whole trade this round refuses to make.
+    captionGridMin: 5,
+    // And the block's HEIGHT is the one thing a mis-set ruler does not corrupt:
+    // labels drawn below their own rules move the offset, never the scale. So a
+    // caption claiming a length the rectangle does not have is not this class's
+    // time. (Measured: the real screenshot's blocks are drawn one snap step
+    // short of the length they print. The corpus misread was four times that.)
+    captionMaxLenDiffMin: 30,
     // Blocks of one colour at one time of day are one class drawn on several
     // days, so their rooms are made to agree — see agreeOnRooms().
     agreeAcrossDays: true,
+    // ...but only where the two readings could be ONE room read two ways. The
+    // same course commonly meets in a DIFFERENT BUILDING on a different day,
+    // and the group cannot see days at all, so a far-apart pair is two real
+    // rooms and neither may overwrite the other. How many single-character
+    // slips still count as "the same room, misread": 2 covers a lost full stop
+    // plus a slipped digit, which is the worst real miss measured.
+    roomAgreeMaxEdits: 2,
+    // Where a printed time has caught the hour ruler out on this page, a block
+    // with no printed time of its own is asked about rather than timed by that
+    // ruler — see auditAxis(). Worth 3 wrong answers on the dense screenshot.
+    axisAudit: true,
     // How many event rectangles have to be on a picture before an otherwise
     // empty result says "I can see classes here and could not read them".
     minBlocksToMention: 2,
+  },
+
+  /* ── a RULED table's own coordinate system ──────────────────────────────── */
+  // myUT's "My Class Schedule" does not draw separated colour blocks; it draws
+  // an HTML TABLE with a thin rule between every cell, and tints the occupied
+  // cells a few shades off white. `findBlocks()` cannot see it: the rules are
+  // "on" at any threshold, every cell touches a rule, and the flood fill welds
+  // the whole table into one page-sized component whose fill is 0.06 against a
+  // required 0.72 — so it is thrown away and the cells were never separable to
+  // begin with. Measured on all three real myUT screenshots: at most one
+  // rectangle kept, and it is not a class.
+  //
+  // The rules that defeat that fill are the same rules that make this page
+  // easy. A ruled table hands you its own cell boundaries, so this reads them
+  // instead of hunting rectangles the app does not draw.
+  ruled: {
+    on: true,
+    edge: 7,               // a rule is this much DARKER than the picture a few
+                           // pixels either side of it. Rules are pale — at
+                           // grid.bgDistance (58) most of them vanish — but they
+                           // are always darker than their own surround, and a
+                           // tinted cell never is.
+    cover: 0.5,            // a day separator crosses this share of the picture
+    hcover: 0.62,          // ..and an hour rule this share of one empty column
+    reach: 300,            // a rule is compared with the picture this many
+                           // hundredths of the width away on each side: far
+                           // enough to clear the line's own width after the
+                           // rectifier has resampled it, near enough to stay
+                           // inside the cell either side of it
+    bandGap: 0.03,         // breaks shorter than this share of the height do not
+                           // end the grid
+    minGridCols: 5,        // fewer day columns than this is not a week
+    maxGridCols: 7,
+    pitchTol: 0.16,        // column pitch may vary this much and still be a grid
+    minSpanFrac: 0.45,     // ..and the columns must cover this much of the page
+    gutterMaxFrac: 0.2,    // the hour gutter starts within this of the left edge,
+                           // which is what proves the first column is MONDAY on a
+                           // page with no weekday heading anywhere in frame
+    fill: 24,              // a cell's paint is at least this far from the page
+                           // colour (city-block RGB), and it MUST be further than
+                           // paintTol below or the candidate's own tolerance
+                           // reaches the page and every antialiased edge in the
+                           // picture votes for it — measured, a colour five off
+                           // white and eighteen rows deep then beat the real cell
+                           // paint in every column. On the three real myUT
+                           // screenshots the paint is 33 (grey) and 46 (beige)
+                           // from white, and the today-tint 46 to 53.
+    paint: 0.7,            // the percentile of a row used to LOOK FOR the paint
+                           // colour. Only for the search: deciding a row by a
+                           // percentile does not work at all, see ruledCells.
+    paintTol: 14,          // how near the paint a pixel has to be to be cell
+    paintColCap: 0.5,      // ..and the share of one column that may vote for it
+    seamFrac: 0.2,         // a break shorter than this share of an hour, and not
+                           // on the clock, does not end a cell
+    clockTol: 0.1,         // ..and "on the clock" means this near an hour line
+    sampleY: 260,          // rows sampled when testing whether an x is a rule
+    sampleX: 21,           // x samples per column when testing whether a y is
+                           // inside a tinted cell
+    cellInset: 0.12,       // share of a column's width ignored at each rule, so
+                           // the rules themselves never read as cell fill
+    minCellMin: 20,        // a tinted run shorter than this many minutes is a
+                           // rule or a seam, not a class
+    paintFrac: 0.03,       // a row is inside a cell if this share of it is still
+                           // the cell's own paint. Low on purpose: on the widest
+                           // line of type in a phone-width cell only a twentieth
+                           // of the row is left, and an empty cell has none of it
+                           // at all, so there is nothing in between to protect.
+    sampleXCell: 40,       // x samples per column when reading its paint
+    anchorFrac: 0.4,       // AND THE HOUR LABEL SITS BELOW ITS OWN RULE, by 18px
+                           // on both real myUT screenshots. Fitting the axis to
+                           // the label boxes puts every class a quarter of an
+                           // hour early and still prints clean times — a silent
+                           // whole-image loss. So each label is anchored to the
+                           // nearest rule ABOVE it, within this share of one
+                           // hour's pitch.
+    roomless: true,        // a cell that prints a building and no room is a real
+                           // and common myUT shape, not a failed read
   },
 };
 
@@ -944,6 +1113,111 @@ export async function ocrCrop(pm, box, tune = TUNE, scale = 2, opts = {}) {
   }));
 }
 
+/**
+ * ONE BLOCK OF A CALENDAR, RENDERED AGAINST ITS OWN PAINT. -> a grey plane.
+ *
+ * `photometry()` above must choose one gray for the whole page, and that choice
+ * is wrong for half of UT Registration Plus by construction — see `TUNE.ink`
+ * for the three measured numbers. This does not choose. It takes the block's
+ * commonest colour as PAPER and every pixel's distance from it as INK, so a
+ * black caption on lime and a white caption on navy come out of it as the same
+ * picture: dark type, quiet ground, right way up, nothing to flip.
+ *
+ * THE PAINT IS THE MODE, NOT THE MEAN. `findBlocks()` already carries a mean
+ * colour per block and it is the wrong statistic for this: the mean is dragged
+ * toward the caption by however much of the rectangle the caption covers, and
+ * pulling the ink toward the paper is exactly the failure being fixed. The mode
+ * on a coarse lattice is the paint the app actually chose, and the mean WITHIN
+ * that lattice bin puts the sub-step precision back.
+ *
+ * IT WORKS FROM `rect`, NOT FROM `pm`. That is the whole point — by the time
+ * the page is a grey plane the eight levels are already gone and no amount of
+ * magnification brings them back.
+ */
+export function blockInk(rect, box, tune = TUNE) {
+  const K = tune.ink;
+  const bx0 = Math.max(0, Math.floor(box.x0)), by0 = Math.max(0, Math.floor(box.y0));
+  const bx1 = Math.min(rect.w, Math.ceil(box.x1)), by1 = Math.min(rect.h, Math.ceil(box.y1));
+  const bw = bx1 - bx0, bh = by1 - by0;
+  if (bw < 12 || bh < 12) return null;
+  const sh = K.bits;
+  const bins = new Map();
+  for (let y = 0; y < bh; y++) {
+    let p = ((y + by0) * rect.w + bx0) * 4;
+    for (let x = 0; x < bw; x++, p += 4) {
+      const k = ((rect.data[p] >> sh) << 16) | ((rect.data[p + 1] >> sh) << 8) |
+        (rect.data[p + 2] >> sh);
+      bins.set(k, (bins.get(k) || 0) + 1);
+    }
+  }
+  let bk = 0, bn = -1;
+  for (const [k, n] of bins) if (n > bn) { bn = n; bk = k; }
+  let sr = 0, sg = 0, sb = 0, sn = 0;
+  for (let y = 0; y < bh; y++) {
+    let p = ((y + by0) * rect.w + bx0) * 4;
+    for (let x = 0; x < bw; x++, p += 4) {
+      const k = ((rect.data[p] >> sh) << 16) | ((rect.data[p + 1] >> sh) << 8) |
+        (rect.data[p + 2] >> sh);
+      if (k !== bk) continue;
+      sr += rect.data[p]; sg += rect.data[p + 1]; sb += rect.data[p + 2]; sn++;
+    }
+  }
+  const paint = [sr / sn, sg / sn, sb / sn];
+  const d = new Float32Array(bw * bh);
+  for (let y = 0; y < bh; y++) {
+    let p = ((y + by0) * rect.w + bx0) * 4;
+    for (let x = 0; x < bw; x++, p += 4) {
+      const dr = rect.data[p] - paint[0];
+      const dg = rect.data[p + 1] - paint[1];
+      const db = rect.data[p + 2] - paint[2];
+      d[y * bw + x] = Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+  }
+  // A FIXED SCALE WOULD BE A GUESS AT HOW FAR THE TYPE IS FROM THE PAINT, and
+  // that distance really does vary — 175 for near-black on green, 299 for
+  // near-black on yellow, on the same page. So the block says: the far tail of
+  // its own distances is full ink. The floor under it is what stops a block
+  // with no type in it stretching its own antialiasing into letters.
+  const hi = Math.max(K.minSpan, percentile(d, K.hiPct));
+  const pad = K.pad;
+  const w = bw + pad * 2, h = bh + pad * 2;
+  const gray = new Uint8ClampedArray(w * h).fill(255);
+  const k = 255 / hi;
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      gray[(y + pad) * w + (x + pad)] = 255 - Math.min(255, d[y * bw + x] * k);
+    }
+  }
+  return { gray, w, h, x0: bx0 - pad, y0: by0 - pad, paint };
+}
+
+/** `blockInk()` magnified, read, and handed back in PAGE coordinates. */
+export async function ocrBlockInk(rect, box, tune = TUNE, opts = {}) {
+  const pl = blockInk(rect, box, tune);
+  if (!pl) return [];
+  const scale = opts.scale || tune.ink.scale;
+  const W = Math.max(1, Math.round(pl.w * scale)), H = Math.max(1, Math.round(pl.h * scale));
+  const c = makeCanvas(W, H);
+  const cx = c.getContext('2d', { willReadFrequently: true });
+  const id = cx.createImageData(W, H);
+  for (let y = 0; y < H; y++) {
+    const sy = Math.min(pl.h - 1, (y / scale) | 0);
+    for (let x = 0; x < W; x++) {
+      const sx = Math.min(pl.w - 1, (x / scale) | 0);
+      const v = pl.gray[sy * pl.w + sx];
+      const p = (y * W + x) * 4;
+      id.data[p] = v; id.data[p + 1] = v; id.data[p + 2] = v; id.data[p + 3] = 255;
+    }
+  }
+  cx.putImageData(id, 0, 0);
+  const words = await ocrWords(c, tune, opts.psm || null);
+  return words.map(w => ({
+    ...w,
+    x0: pl.x0 + w.x0 / scale, x1: pl.x0 + w.x1 / scale,
+    y0: pl.y0 + w.y0 / scale, y1: pl.y0 + w.y1 / scale,
+  }));
+}
+
 /** Release the Worker. The UI calls this when the import screen closes. */
 export async function releaseEngine() {
   if (!enginePromise) return;
@@ -1431,6 +1705,40 @@ export function repairDayRun(tok) {
    ════════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * A ROOM THAT LOST ITS DECIMAL POINT IS A DIFFERENT ROOM, NOT A BLURRY ONE.
+ *
+ * UT writes a room as a floor and a number ("2.108"), a bare number where the
+ * building has one floor of teaching space ("106"), or a wing letter in front
+ * of either ("A121A", "B0.306"). It does not print four digits in a row. So
+ * "1102" is "1.102" with the dot dropped by the scan — a room on a different
+ * floor, emitted at full confidence, and one real screenshot does exactly that
+ * twice. Five digits in a row is not a room at all: it is the registration
+ * unique printed beside the course code on a dense schedule.
+ *
+ * Guessing where the dot goes is not available — "1102" could be 1.102 or
+ * 11.02 — so this is a refusal, not a repair.
+ */
+const ROOM_LOST_DOT = /^[A-Z]{0,2}[0-9]{4,}[A-Z]?$/;
+
+/**
+ * A ROOM IS NOT A CLOCK.
+ *
+ * The location matcher takes any digits behind two to four letters, and on a
+ * calendar block the line above the room is the TIME. Where the space in
+ * "1:30pm - 3:30pm" is lost and the colon with it, the scan hands back
+ * "130PM" — eight characters that satisfy every rule a room has to satisfy,
+ * printed one line under a building code the register knows. On one real
+ * screenshot that is exactly what happened, and it was committed with the
+ * right building, the right day and the right hours: a real class, sent to a
+ * room in that building which does not exist.
+ *
+ * UT never writes a meridiem into a room number, so there is nothing to weigh
+ * here either. Refused, and the scan carries on down the block to the line
+ * that really is the room.
+ */
+const ROOM_IS_A_CLOCK = /^[0-9]{1,2}[.:]?[0-9]{0,2}\s*[AP]M$/;
+
+/**
  * A COURSE NUMBER AND A ROOM NUMBER LOOK IDENTICAL. "BUR 106" is a room and
  * "C S 429" is a course, and no amount of pattern-matching separates them,
  * because there is no pattern — there is only the list of real UT buildings.
@@ -1439,30 +1747,165 @@ export function repairDayRun(tok) {
  */
 function plausibleLoc(code, room, codes) {
   if (NOT_A_CODE.test(code)) return false;
+  if (ROOM_LOST_DOT.test(room)) return false;
+  if (ROOM_IS_A_CLOCK.test(room)) return false;
   if (codes && codes.has(code)) return true;
   return /\./.test(room);
 }
 
-function locFromWords(ws, codes) {
+/**
+ * THE COURSE CODE IS PRINTED ON THE BLOCK AND IT IS NOT A LOCATION.
+ *
+ * Intersect UT's department prefixes with this repo's own register and at least
+ * seven prefixes come back as real building codes (ART, ASE, BIO, BME, CAL,
+ * GRS, KIN — a one-line check against `data/ut_buildings.json`, worth re-running
+ * rather than trusting). So a block whose first line is a course code satisfies
+ * every test a location has to pass, and it satisfies them FIRST, because the
+ * title line is above the location line. Nothing downstream can catch it: the
+ * code is real, so the lexicon scores it 1.00 and no question is ever raised.
+ * On one real screenshot this fired four times, three of them in silence, each
+ * pointing a student at a building that is not theirs.
+ *
+ * So the course code is found before any location is, and the very words it was
+ * printed on are refused outright — not ranked lower, not preferred against.
+ * There is no reading of a schedule in which the printed course code is also
+ * the room, so there is nothing to weigh.
+ *
+ * WHAT IT COSTS, AND WHY THE CALLER GETS A SAY. "BUR 106" and "ART 302" are
+ * the same eight characters of grammar, so a word list that holds ONLY a room
+ * reads as a course and would be declined. That is why `opts.course` exists:
+ * by default this derives the course code from the words it was handed, which
+ * is right whenever they are a whole block or a whole table row — the course
+ * code is printed there and the first match in reading order is it. A caller
+ * that KNOWS its words are a room cell, or the line below a time, passes
+ * `{ course: null }` and turns the rule off, because in those words a
+ * course-shaped token is the room and nothing else.
+ *
+ * The residual cost is a grid block whose title line did not read at all and
+ * whose room is plain digits: the room reads as the course and is declined.
+ * Both apps a student actually screenshots print the course code first, and
+ * declining costs one tap where guessing costs the walk.
+ */
+function courseKeyIn(ws) {
+  const c = courseFromRow({ words: ws });
+  return c ? c.replace(/[^A-Z0-9]/g, '') : null;
+}
+
+/**
+ * A CODE THE REGISTER KNOWS OUTRANKS ONE THAT MERELY HAS A DOT IN ITS ROOM.
+ *
+ * `plausibleLoc()` accepts two quite different things: a code that is on UT's
+ * own list, and ANY three or four letters in front of a dotted room, because
+ * "2.108" is UT's room syntax and nothing else writes it. The second rule is
+ * what lets a real building through when the register is a snapshot — and it is
+ * also what lets a misread through. Taking whichever of the two comes first in
+ * reading order therefore loses on a block that prints BOTH: one real screenshot
+ * has a block whose room line was read twice, once as a real code and once with
+ * its last letter wrong, and the wrong one is printed first. Left to right, the
+ * misread wins, `repairCode()` cannot get it back onto the list (that pair of
+ * letters is not confusable), and a class that was legible is declined.
+ *
+ * So both tiers are collected in reading order and the known-code tier is
+ * preferred. This can only turn a decline or a repair into a clean read: it
+ * never promotes a code the register has never heard of over one it has.
+ */
+export function locFromWords(ws, codes, opts = {}) {
+  const course = opts.course === undefined
+    ? courseKeyIn(ws)
+    : (opts.course ? String(opts.course).toUpperCase().replace(/[^A-Z0-9]/g, '') : null);
+  const isCourse = (code, room) => !!course && (code + room) === course;
+  const tier = opts.tune ? opts.tune.judge.preferKnownCode : TUNE.judge.preferKnownCode;
+  const known = [], dotted = [];
+  const take = (hit) => {
+    ((tier && codes && codes.has(hit.code)) ? known : dotted).push(hit);
+  };
   // "RLP 0.106" is two words; "BUR 106" is two; a stray "#54780" is not part of
   // either. Try adjacent pairs left to right.
-  for (let i = 0; i + 1 < ws.length; i++) {
-    const a = ws[i].text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
-    const b = ws[i + 1].text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
+  const tryPair = (p, q) => {
+    const a = p.text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
+    const b = q.text.replace(/[^A-Za-z0-9.\-]/g, '').toUpperCase();
     const m = LOC_RE.exec(a + ' ' + b);
-    if (m && plausibleLoc(m[1], m[2], codes)) {
-      return { code: m[1], room: m[2], words: [ws[i], ws[i + 1]] };
+    if (m && !isCourse(m[1], m[2]) && plausibleLoc(m[1], m[2], codes)) {
+      take({ code: m[1], room: m[2], words: [p, q] });
     }
+  };
+  for (let i = 0; i + 1 < ws.length; i++) {
+    const p = ws[i], q = ws[i + 1];
+    tryPair(p, q);
+    // ..and the same two words the other way round, but ONLY when they are on
+    // one printed line and printed right to left — which is exactly and only
+    // the case a (y0, x0) sort can have got wrong. See sameLine().
+    if (q.x1 <= p.x0 && sameLine(p, q)) tryPair(q, p);
   }
   // Or one word that already carries both, which is how OCR sometimes joins it.
   for (const w of ws) {
     const t = w.text.toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
     const m = /^([A-Z]{2,4})([0-9][0-9A-Z.\-]{1,7})$/.exec(t);
-    if (m && plausibleLoc(m[1], m[2], codes)) {
-      return { code: m[1], room: m[2], words: [w], joined: true };
+    if (m && !isCourse(m[1], m[2]) && plausibleLoc(m[1], m[2], codes)) {
+      take({ code: m[1], room: m[2], words: [w], joined: true });
     }
   }
-  return null;
+  return known[0] || dotted[0] || null;
+}
+
+/**
+ * TWO WORDS OF ONE PRINTED LINE, PUT BACK THE WAY ROUND THEY WERE PRINTED.
+ *
+ * A block's words are sorted by `(y0, x0)`, and on one printed line that is not
+ * reading order: a capital and a digit do not start at the same height, so a
+ * printed "XYZ 1.234" comes out of the sort as "1.234 XYZ" and `locFromWords()`,
+ * which matches ADJACENT PAIRS, finds no location on the block at all. Measured
+ * on a real screenshot: two classes of a fourteen-class week, lost to two
+ * pixels. (The codes here are invented — the real ones live only in the
+ * gitignored corpus and this file is public.)
+ *
+ * REORDERING THE WHOLE BLOCK WAS TRIED FIRST AND IT IS WORSE, which is why this
+ * is a two-word test and not a sort. Grouping a block's words into lines and
+ * reading each left to right — with `textLines()` and again with `buildRows()`,
+ * both — costs the synthetic dense week grid three right answers and gives back
+ * three WRONG ones, because on a dense block the OCR word boxes of two printed
+ * lines overlap vertically. Any grouper then merges the title line with the
+ * room line and sorts the merger by x, which interleaves them: the room "PAI
+ * 3.02" comes out as "PAI" beside the "1:00" off the time line, and "PAI 100"
+ * is a real room in a real building that is not this class's. Measured, both
+ * ways, on images 04 and 14. Do not re-derive it.
+ *
+ * So nothing is reordered. Two words that OVERLAP VERTICALLY and are printed
+ * right to left are simply also tried the other way round, which is the only
+ * case the sort can have got wrong.
+ */
+function sameLine(p, q) {
+  const ov = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0);
+  return ov > 0.5 * Math.min(p.y1 - p.y0, q.y1 - q.y0);
+}
+
+/**
+ * THE WORDS ON A BLOCK'S TOP LINE, BY GEOMETRY.
+ *
+ * `locFromWords()` refuses the block's own course code as a location, and it
+ * finds that course code as the FIRST course-shaped token in the words it was
+ * handed — which is right whenever their order is. On a real screenshot it is
+ * not: a block whose department is a SINGLE letter sorts as
+ * surname / course-number / letter / hours / building / room, so there is no
+ * course-shaped token until the ROOM — which is then taken for the course and
+ * refused, and a legible class is declined. Three times on one image, on three
+ * days of one class. (Shape only: the words are in the gitignored corpus and
+ * this file is public.)
+ *
+ * Which words are the title line is geometry, and geometry is the one thing on
+ * a dense block that word order is not. Both apps a student screenshots print
+ * the course code on the block's first line.
+ */
+export function topLineWords(ws, tune = TUNE) {
+  if (!ws.length) return ws;
+  let top = Infinity;
+  const hs = [];
+  for (const w of ws) { if (w.y0 < top) top = w.y0; hs.push(w.y1 - w.y0); }
+  hs.sort((a, b) => a - b);
+  const h = hs[hs.length >> 1] || 1;
+  const cut = top + h * tune.geom.courseBandLines;
+  const band = ws.filter(w => w.y0 < cut);
+  return band.length ? band : ws;
 }
 
 function courseFromRow(row) {
@@ -1580,6 +2023,437 @@ export function hourAxis(rows, leftEdge) {
   return null;
 }
 
+/* ── a ruled table ──────────────────────────────────────────────────────────
+   Everything from here to findBlocks() reads the OTHER kind of week grid: the
+   one drawn as an HTML table with a rule between every cell. See TUNE.ruled.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Maximal runs of indices where `f(i)` holds, as [start, end] inclusive. */
+function runsOf(n, f) {
+  const out = [];
+  let s = -1;
+  for (let i = 0; i < n; i++) {
+    if (f(i)) { if (s < 0) s = i; }
+    else if (s >= 0) { out.push([s, i - 1]); s = -1; }
+  }
+  if (s >= 0) out.push([s, n - 1]);
+  return out;
+}
+
+/** Runs separated by less than `gap` are one run. */
+function mergeRuns(runs, gap) {
+  const out = [];
+  for (const r of runs) {
+    const last = out[out.length - 1];
+    if (last && r[0] - last[1] <= gap) last[1] = r[1];
+    else out.push([r[0], r[1]]);
+  }
+  return out;
+}
+
+/** The median of each channel over a sparse sample of the picture. */
+function pageGround(rect, step) {
+  const r = [], g = [], b = [];
+  for (let y = 0; y < rect.h; y += step) {
+    for (let x = 0; x < rect.w; x += step) {
+      const i = (y * rect.w + x) * 4;
+      r.push(rect.data[i]); g.push(rect.data[i + 1]); b.push(rect.data[i + 2]);
+    }
+  }
+  const mid = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  return [mid(r), mid(g), mid(b)];
+}
+
+const cityBlock = (a, b) =>
+  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+
+/**
+ * THE LONGEST RUN OF EVENLY SPACED LINES IS THE GRID; THE ODD ONE OUT IS THE
+ * HOUR GUTTER OR A PIECE OF PAGE FURNITURE.
+ *
+ * A calendar's day columns are the same width — that is what makes it a
+ * calendar — so the pitch is the median gap and any line whose gap to its
+ * neighbour is not that pitch is not part of the run. Returned as the indices
+ * kept, longest run wins.
+ */
+function evenRun(xs, tol) {
+  if (xs.length < 3) return xs.slice();
+  const gaps = [];
+  for (let i = 1; i < xs.length; i++) gaps.push(xs[i] - xs[i - 1]);
+  const sorted = gaps.slice().sort((a, b) => a - b);
+  const pitch = sorted[sorted.length >> 1];
+  if (!(pitch > 0)) return [];
+  let best = [], cur = [xs[0]];
+  for (let i = 1; i < xs.length; i++) {
+    if (Math.abs(gaps[i - 1] - pitch) <= pitch * tol) cur.push(xs[i]);
+    else { if (cur.length > best.length) best = cur; cur = [xs[i]]; }
+  }
+  if (cur.length > best.length) best = cur;
+  return best;
+}
+
+/**
+ * A RULED TABLE HANDS YOU ITS OWN CELL BOUNDARIES — SO TAKE THEM.
+ *
+ * -> { cols, hrules, yTop, yBot, gutterRight, pitch, ground } | null
+ *
+ * Read in this order, because each step narrows the next:
+ *
+ *   1. VERTICAL rules over the whole picture height. A day separator runs the
+ *      full height of the grid and nothing else on either app's page does, so
+ *      "a column of ink crossing half the picture" finds them and finds almost
+ *      nothing else. UT Registration Plus, the control, has FIVE such columns
+ *      and they are not evenly spaced — it draws no day separators at all —
+ *      which is what keeps this whole path off that app.
+ *   2. The even run among them is the grid. Six or seven lines, one pitch.
+ *   3. The HOUR GUTTER is the band to the left of the run holding the hour
+ *      labels, and it is the reason a page with no weekday heading anywhere in
+ *      frame can still be read: the gutter proves the first column after it is
+ *      the first day of the week. If the gutter is not hard against the left
+ *      edge of the picture then the frame is cropped into the middle of the
+ *      week and the first visible column is NOT Monday — so this refuses.
+ *   4. HORIZONTAL rules, measured only across the columns and only inside the
+ *      band the vertical rules span, because everything above the grid (a
+ *      title, a term dropdown, a four-column header table with no rows under
+ *      it) draws horizontal lines of its own.
+ */
+export function ruledGrid(rect, rows, tune = TUNE) {
+  const R = tune.ruled;
+  if (!R.on) return null;
+  const W = rect.w, H = rect.h;
+  if (!(W > 40 && H > 40)) return null;
+  const ground = pageGround(rect, Math.max(1, Math.round(Math.max(W, H) / 200)));
+  const lum = (x, y) => {
+    const i = (y * W + x) * 4;
+    return (rect.data[i] * 2 + rect.data[i + 1] * 5 + rect.data[i + 2]) / 8;
+  };
+  // A RULE IS A RIDGE, NOT MERELY "NOT THE PAGE COLOUR". The first version of
+  // this asked whether a pixel was far from the page's median colour, and every
+  // tinted cell answered yes: myUT tints one column its full height as a
+  // today-highlight, and that column came back as one enormous rule swallowing
+  // the two real rules on either side of it. A busy column did the same. A line
+  // is DARKER THAN WHAT IS ON BOTH SIDES OF IT, which a broad fill never is,
+  // and that one change is the difference between finding six day separators
+  // and finding four.
+  const d = Math.min(14, Math.max(3, Math.round(W / R.reach)));
+  const dv = Math.min(14, Math.max(3, Math.round(H / R.reach)));
+  const ridgeV = (x, y) => x >= d && x < W - d &&
+    lum(x, y) + R.edge <= Math.min(lum(x - d, y), lum(x + d, y));
+  const ridgeH = (x, y) => y >= dv && y < H - dv &&
+    lum(x, y) + R.edge <= Math.min(lum(x, y - dv), lum(x, y + dv));
+
+  // 1 — vertical rules
+  const ys = [];
+  const ystep = Math.max(1, Math.floor(H / R.sampleY));
+  for (let y = 0; y < H; y += ystep) ys.push(y);
+  const vFrac = new Float32Array(W);
+  for (let x = 0; x < W; x++) {
+    let n = 0;
+    for (const y of ys) if (ridgeV(x, y)) n++;
+    vFrac[x] = n / ys.length;
+  }
+  let vLines = runsOf(W, i => vFrac[i] >= R.cover).map(([a, b]) => (a + b) / 2);
+
+  // 2 — the hour gutter is left of the first day column, and it is the whole
+  //     reason a picture with no weekday heading in frame can be read at all:
+  //     it proves the column after it is the FIRST day of the week. A frame
+  //     cropped into the middle of the week loses the gutter with the headings.
+  const label = /^\s*\d{1,2}\s*[APap]\s*\.?\s*[Mm]\s*\.?\s*$/;
+  const labels = [];
+  for (const r of rows || []) {
+    for (const w of r.words) if (label.test(w.text)) labels.push(w);
+  }
+  if (labels.length < tune.grid.axisMinLabels) return null;
+  const gutterLeft = Math.min(...labels.map(w => w.x0));
+  const gutterRight = Math.max(...labels.map(w => w.x1));
+  if (gutterLeft > W * R.gutterMaxFrac) return null;
+  vLines = vLines.filter(x => x >= gutterRight);
+
+  // 3 — the even run among what is left is the week
+  if (vLines.length < R.minGridCols + 1) return null;
+  const run = evenRun(vLines, R.pitchTol);
+  const nCols = run.length - 1;
+  if (nCols < R.minGridCols || nCols > R.maxGridCols) return null;
+  if (run[run.length - 1] - run[0] < W * R.minSpanFrac) return null;
+  const pitch = (run[run.length - 1] - run[0]) / nCols;
+  const cols = [];
+  for (let i = 0; i < nCols; i++) {
+    cols.push({ x0: run[i], x1: run[i + 1], cx: (run[i] + run[i + 1]) / 2 });
+  }
+
+  // the band the day separators span. A separator is not ink on every single
+  // row of it — type crosses it, an inset cell corner rounds past it — so short
+  // breaks are closed before the longest span is taken, or the band comes back
+  // as whichever twentieth of the grid happened to be uninterrupted.
+  const spans = mergeRuns(runsOf(H, y => {
+    let n = 0;
+    for (const x of run) if (ridgeV(Math.min(W - 1 - d, Math.max(d, Math.round(x))), y)) n++;
+    return n >= Math.ceil(run.length / 2);
+  }), Math.max(4, Math.round(H * R.bandGap)))
+    .sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
+  if (!spans.length) return null;
+  const yTop = spans[0][0], yBot = spans[0][1];
+  if (yBot - yTop < H * 0.2) return null;
+
+  // 4 — HORIZONTAL RULES, MEASURED IN WHICHEVER COLUMN IS EMPTY THERE.
+  //     A cell is drawn over its own hour rule, so a rule measured across the
+  //     whole width disappears on exactly the rows where classes are — which
+  //     is every row that matters. Asking each column separately and taking the
+  //     best answer gets the rule from whichever column happens to be free at
+  //     that hour, which on a six-day grid is nearly always at least one.
+  const colXs = cols.map(c => {
+    const inset = (c.x1 - c.x0) * R.cellInset;
+    const a = Math.max(d, Math.round(c.x0 + inset));
+    const b = Math.min(W - 1 - d, Math.round(c.x1 - inset));
+    const xs = [];
+    const st = Math.max(1, Math.floor((b - a) / R.sampleX));
+    for (let x = a; x <= b; x += st) xs.push(x);
+    return xs;
+  });
+  const hBest = new Float32Array(H);
+  for (let y = yTop; y <= yBot; y++) {
+    let best = 0;
+    for (const xs of colXs) {
+      if (!xs.length) continue;
+      let n = 0;
+      for (const x of xs) if (ridgeH(x, y)) n++;
+      const f = n / xs.length;
+      if (f > best) best = f;
+    }
+    hBest[y] = best;
+  }
+  const hrules = runsOf(H, i => i >= yTop && i <= yBot && hBest[i] >= R.hcover)
+    .map(([a, b]) => (a + b) / 2);
+
+  return { cols, hrules, yTop, yBot, gutterLeft, gutterRight, pitch, ground, vLines };
+}
+
+/**
+ * THE HOUR LABEL SITS BELOW ITS OWN RULE, AND THAT IS A WHOLE-IMAGE DEFECT.
+ *
+ * Measured on both real myUT screenshots: every hour label's text box begins
+ * about 18 px BELOW the solid line it names, inside the first half hour of that
+ * hour. `hourAxis()` fits the label BOXES, which is right for an app that
+ * centres its labels on the rule and wrong here by most of a quarter hour — and
+ * a quarter hour is invisible in the output. Every class would come back
+ * fifteen minutes early, in clean round numbers, on every myUT page, and
+ * nothing about it would look like a bug.
+ *
+ * So on a ruled page the label supplies the HOUR and the rule supplies the
+ * POSITION: each label is anchored to the nearest rule above it, and the fit
+ * runs through the rules. A label with no rule above it inside a fraction of
+ * one hour's pitch is dropped rather than guessed at.
+ */
+export function ruledHourAxis(rows, grid, tune = TUNE) {
+  const R = tune.ruled;
+  const pts = [];
+  for (const r of rows) {
+    const ws = r.words.filter(w => w.x1 <= grid.gutterRight);
+    if (!ws.length) continue;
+    const t = ws.map(w => w.text).join(' ').toUpperCase().replace(/[^0-9APM]/g, '');
+    const m = /^(\d{1,2})([AP])?M$/.exec(t);
+    if (!m) continue;
+    let h = Number(m[1]);
+    if (!(h >= 1 && h <= 12)) continue;
+    h = h % 12;
+    if (m[2] === 'P') h += 12;
+    pts.push({ y0: r.y0, min: h * 60 });
+  }
+  if (pts.length < tune.grid.axisMinLabels) return null;
+  pts.sort((a, b) => a.y0 - b.y0);
+  // A bare "12" between an AM run and a PM run is noon — same walk hourAxis
+  // does, for the same reason.
+  const keep = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i], prev = keep[keep.length - 1];
+    while (p.min <= prev.min) p.min += 720;
+    if (p.min > 24 * 60) continue;
+    keep.push(p);
+  }
+  if (keep.length < tune.grid.axisMinLabels) return null;
+  // One hour in pixels, from the labels themselves — they are one per hour.
+  const gaps = [];
+  for (let i = 1; i < keep.length; i++) {
+    gaps.push((keep[i].y0 - keep[i - 1].y0) / ((keep[i].min - keep[i - 1].min) / 60));
+  }
+  gaps.sort((a, b) => a - b);
+  const hourPx = gaps[gaps.length >> 1];
+  if (!(hourPx > 4)) return null;
+
+  const anchored = [];
+  for (const p of keep) {
+    let best = null;
+    for (const y of grid.hrules) {
+      if (y > p.y0 + hourPx * 0.06) continue;
+      if (p.y0 - y > hourPx * R.anchorFrac) continue;
+      if (best == null || y > best) best = y;
+    }
+    if (best != null) anchored.push({ y: best, min: p.min });
+  }
+  if (anchored.length < tune.grid.axisMinLabels) return null;
+  const slopes = [];
+  for (let i = 0; i < anchored.length; i++) {
+    for (let j = i + 1; j < anchored.length; j++) {
+      const dy = anchored[j].y - anchored[i].y;
+      if (Math.abs(dy) < 1) continue;
+      slopes.push((anchored[j].min - anchored[i].min) / dy);
+    }
+  }
+  if (!slopes.length) return null;
+  slopes.sort((a, b) => a - b);
+  const k = slopes[slopes.length >> 1];
+  if (!(k > 0)) return null;
+  const offs = anchored.map(p => p.min - k * p.y).sort((a, b) => a - b);
+  const b = offs[offs.length >> 1];
+  const resid = Math.max(...anchored.map(p => Math.abs((k * p.y + b) - p.min) / k));
+  if (resid > tune.grid.axisMaxResidPx) return null;
+  return {
+    minutesAt: (y) => k * y + b, yAt: (min) => (min - b) / k, pxPerMin: 1 / k,
+    labels: anchored.length, residPx: resid, hourPx,
+  };
+}
+
+/**
+ * THE CELLS OF EACH COLUMN, FOUND BY THE COLOUR THE APP PAINTS THEM.
+ *
+ * Three measurements decide the shape of this, and each of them killed a
+ * simpler version:
+ *
+ *   1. A ROW CANNOT BE REDUCED TO ONE COLOUR. myUT's course link is orange,
+ *      underlined, and as wide as its cell, so on the widest lines of type
+ *      the MEDIAN of the row is the link and even the 95th percentile is an
+ *      antialiasing fringe brighter than the page. Measured on the phone-width
+ *      screenshot, that broke every occupied cell into three. What survives is
+ *      counting: a row is inside a cell if ANY reasonable share of it is still
+ *      the cell's own paint.
+ *   2. THE PAINT IS NOT FOUND PER COLUMN. Every myUT page tints one column its
+ *      full height as a today-highlight, and it is a weekday with classes in it
+ *      as often as it is Saturday. Against the page's white that column reads
+ *      as one nine-hour class; against its OWN majority colour the answer is
+ *      worse, because in the real image where the tinted column is a busy
+ *      Thursday the cells cover more of it than the tint does, so the test
+ *      inverts and every class becomes a gap. One app paints one cell colour in
+ *      every column, so the colour is read off the page as a whole — and
+ *      ranked by how many columns show it, not how many rows, or a quiet week
+ *      lets the one tinted column outvote the four that hold the classes.
+ *   3. A CELL BOUNDARY IS A GAP ON AN HOUR LINE, and nothing else is. Classes
+ *      back to back are one unbroken stretch of paint apart from a one-pixel
+ *      seam where the two cells meet — and the same one-pixel seam appears in
+ *      the middle of a single 90-minute class, under the link's underline. The
+ *      two are told apart by WHERE they fall: the real boundary is on an hour
+ *      or half-hour line of the axis, the underline is a quarter past. So short
+ *      breaks are closed unless a line of the clock runs through them. This is
+ *      measured on all three real myUT pages, in both directions: a 90-minute
+ *      class whose paint is continuous through its own hour line stays one
+ *      cell, and a 1pm class stacked on a 2pm class is cut at 2pm.
+ */
+export function ruledCells(rect, grid, words, axis, tune = TUNE) {
+  const R = tune.ruled;
+  if (!axis) return [];
+  const W = rect.w;
+  const pct = (a, p) => { a.sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(p * a.length))]; };
+  const hourPx = axis.hourPx || (60 * axis.pxPerMin);
+  const minRows = Math.max(3, R.minCellMin * axis.pxPerMin);
+
+  // 1 — the x samples of each column, and its rows summarised for the search
+  const colXs = [], rowMid = [];
+  for (const c of grid.cols) {
+    const inset = (c.x1 - c.x0) * R.cellInset;
+    const xa = Math.max(0, Math.round(c.x0 + inset));
+    const xb = Math.min(W - 1, Math.round(c.x1 - inset));
+    if (xb - xa < 4) { colXs.push(null); rowMid.push(null); continue; }
+    const xs = [];
+    const step = Math.max(1, Math.floor((xb - xa) / R.sampleXCell));
+    for (let x = xa; x <= xb; x += step) xs.push(x);
+    colXs.push(xs);
+    const mids = [];
+    for (let y = grid.yTop; y <= grid.yBot; y++) {
+      const r = [], g = [], b = [];
+      for (const x of xs) {
+        const i = (y * W + x) * 4;
+        r.push(rect.data[i]); g.push(rect.data[i + 1]); b.push(rect.data[i + 2]);
+      }
+      mids.push([pct(r, R.paint), pct(g, R.paint), pct(b, R.paint)]);
+    }
+    rowMid.push(mids);
+  }
+
+  // 2 — which colour the app paints a cell
+  const hist = new Map();
+  for (let ci = 0; ci < rowMid.length; ci++) {
+    if (!rowMid[ci]) continue;
+    for (const v of rowMid[ci]) {
+      if (cityBlock(v, grid.ground) <= R.fill) continue;
+      const k = v.map(q => Math.round(q / 4) * 4).join(',');
+      const e = hist.get(k) || { n: 0, v, cols: new Set() };
+      e.n++; e.cols.add(ci); hist.set(k, e);
+    }
+  }
+  if (!hist.size) return [];
+  // ..AND NO COLUMN MAY VOTE MORE THAN HALF ITS OWN HEIGHT. That is the whole
+  // defence against the today-tint: a tint covers its column top to bottom and
+  // a stack of classes covers at most half of one, so capping each column's
+  // contribution puts the colour that is in FIVE columns above the colour that
+  // fills one. Without it a light week is enough for the tint to win, and then
+  // every real cell reads as a gap.
+  const band = Math.max(1, grid.yBot - grid.yTop + 1);
+  for (const e of hist.values()) {
+    e.score = 0;
+    for (let ci = 0; ci < rowMid.length; ci++) {
+      if (!rowMid[ci]) continue;
+      let n = 0;
+      for (const v of rowMid[ci]) if (cityBlock(v, e.v) <= R.paintTol) n++;
+      e.score += Math.min(n / band, R.paintColCap);
+    }
+  }
+  const paint = [...hist.values()]
+    .sort((a, b) => (b.score - a.score) || (b.n - a.n))[0].v;
+
+  // 3 — runs of painted rows, broken only on the clock
+  const seam = Math.max(2, Math.round(hourPx * R.seamFrac));
+  // Where two classes meet there is one pixel of white ON AN HOUR LINE. Where a
+  // 90-minute class runs past its own hour there is one pixel of white too —
+  // under the underline of its course link, a quarter past. Same gap, same
+  // width; only the clock tells them apart. Measured both ways on all three
+  // real myUT pages.
+  const tol = Math.max(2, hourPx * R.clockTol);
+  const onClock = (a, b) => {
+    const m0 = axis.minutesAt(a - tol), m1 = axis.minutesAt(b + tol);
+    return Math.floor(m1 / 60) > Math.floor(m0 / 60) || m0 % 60 === 0;
+  };
+  const out = [];
+  for (let ci = 0; ci < grid.cols.length; ci++) {
+    const xs = colXs[ci];
+    if (!xs) continue;
+    const c = grid.cols[ci];
+    const on = new Uint8Array(rowMid[ci].length);
+    for (let i = 0; i < on.length; i++) {
+      const y = grid.yTop + i;
+      let n = 0;
+      for (const x of xs) {
+        const k = (y * W + x) * 4;
+        if (cityBlock([rect.data[k], rect.data[k + 1], rect.data[k + 2]], paint) <= R.paintTol) n++;
+      }
+      on[i] = n / xs.length >= R.paintFrac ? 1 : 0;
+    }
+    const raw = runsOf(on.length, i => on[i]);
+    const runs = [];
+    for (const r of raw) {
+      const last = runs[runs.length - 1];
+      const gap0 = last ? grid.yTop + last[1] + 1 : 0;
+      const gap1 = grid.yTop + r[0] - 1;
+      if (last && (gap1 - gap0) < seam && !onClock(gap0, gap1)) last[1] = r[1];
+      else runs.push([r[0], r[1]]);
+    }
+    for (const [a, b] of runs) {
+      const y0 = grid.yTop + a, y1 = grid.yTop + b;
+      if (y1 - y0 < minRows) continue;
+      out.push({ col: ci, x0: c.x0, x1: c.x1, y0, y1, paint });
+    }
+  }
+  return out;
+}
+
 /**
  * Event blocks in the rectified picture, found as flat rectangles of one colour
  * that is not the page colour.
@@ -1673,23 +2547,117 @@ export function findBlocks(rect, tune = TUNE) {
  *     file can see on the picture rather than a thing it is assuming.
  *
  * What it will not do is invent: a group where nothing read stays empty.
+ *
+ * AND IT WILL NOT SPREAD A READING THAT FAILED VALIDATION. A vote is only
+ * allowed to win if its building code is one the register knows or one that
+ * repairs onto a code the register knows. Without that rule a slip that turned
+ * a real code into a three-letter string UT has never had won its group 1-0 and
+ * was then COPIED onto the same class's other day — one bad read becoming two
+ * wrong answers, which is exactly what happened on the one real screenshot that
+ * broke this feature's precision. A copy that reads nothing still borrows; a
+ * copy that read something unknown keeps its own reading and is declined
+ * downstream on its own merits.
+ *
+ * AND IT WILL NOT OVERWRITE A ROOM THAT IS SIMPLY A DIFFERENT ROOM.
+ *
+ * This group has no idea what day anything is on. It is keyed on (paint colour,
+ * time of day), and that is deliberate — it is what lets a Monday copy correct
+ * a Wednesday one. But the same course, at the same hour, in the same colour
+ * genuinely meets in a DIFFERENT BUILDING on a different day; the real corpus
+ * says so in as many words, and a course can also meet twice in one day in two
+ * rooms. When that happens BOTH copies read correctly, they disagree, and a
+ * straight majority-or-confidence vote silently replaces one right answer with
+ * another right answer belonging to another day. That is an invented room by
+ * any other name, and it is the thing this feature promises not to produce.
+ *
+ * The two cases are told apart by how far apart the readings are, because a
+ * misread is a NEAR neighbour of the truth and another room is not. The wins
+ * this vote was built for are a room against the same room with its full stop
+ * lost, and a room against the same room with one digit slipped — one character
+ * each. So a reading is only ever overwritten by a winner it could be a
+ * misreading OF: same building code, and the two rooms within
+ * `grid.roomAgreeMaxEdits` single-character slips. Anything further apart is
+ * two rooms and both copies keep what they read.
+ *
+ * When a group does hold two rooms that far apart, the copies that read NOTHING
+ * do not borrow either — there is no single answer there to borrow, and a
+ * coin-flip between two real buildings is exactly the walk this refuses to send
+ * anybody on. They keep their honest "no room was readable" instead.
  */
-function agreeOnRooms(recs, tune) {
+function editsWithin(a, b, max) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > max) return false;
+  // Ordinary Levenshtein. These are room numbers; the strings are tiny.
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+
+/** Could these two "CODE ROOM" keys be ONE room, read two ways? */
+export function couldBeOneRoom(a, b, tune = TUNE) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const i = a.indexOf(' '), j = b.indexOf(' ');
+  if (i < 0 || j < 0) return false;
+  // A different BUILDING is never a misreading at this point: both codes have
+  // already been through repairCode(), so both are on the register and real.
+  if (a.slice(0, i) !== b.slice(0, j)) return false;
+  return editsWithin(a.slice(i + 1), b.slice(j + 1), tune.grid.roomAgreeMaxEdits);
+}
+
+export function agreeOnRooms(recs, tune = TUNE, codes = null) {
   const near = (a, b) => a && b &&
     Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) <= tune.grid.colourJoin;
   const groups = [];
   for (const r of recs) {
     if (!r.block || !r.block.colour) continue;
+    // GROUPED BY WHERE THEY ARE DRAWN, not by the answer. `r.drawn` is the
+    // ruler's reading before any caption corrected it, so a copy whose printed
+    // caption moved its clock is still recognised as the same class as the copy
+    // whose caption was unreadable — which is the whole point of the group.
+    const k = r.drawn || r.range;
     const g = groups.find(q =>
-      near(q.colour, r.block.colour) && q.start === r.range.start && q.end === r.range.end);
+      near(q.colour, r.block.colour) && q.start === k.start && q.end === k.end);
     if (g) g.recs.push(r);
-    else groups.push({ colour: r.block.colour, start: r.range.start, end: r.range.end, recs: [r] });
+    else groups.push({ colour: r.block.colour, start: k.start, end: k.end, recs: [r] });
   }
   for (const g of groups) {
     if (g.recs.length < 2) continue;
+    // ── THE CLOCK AGREES ACROSS DAYS TOO, and for the same reason the room
+    // does. These rectangles are one course, one colour, drawn at one position
+    // against the hour ruler. If ONE of them printed its own hours legibly and
+    // they were believed over the ruler, then the ruler is out by that much for
+    // every copy — the copies are at the same y, so there is nothing else it
+    // could be. Without this, a real screenshot returned one meeting corrected
+    // to the printed time and its twin left 45 minutes late, which is the same
+    // class arriving in the student's week twice at two different hours.
+    //
+    // ONE printed time only. Two copies whose captions disagree with each other
+    // are two readings, not one witness, and neither is spread.
+    const spoken = g.recs.filter(r => r.timeFrom === 'caption' && r.range);
+    const spokenKeys = new Set(spoken.map(r => r.range.start + '|' + r.range.end));
+    if (spoken.length && spokenKeys.size === 1) {
+      const t = spoken[0].range;
+      for (const r of g.recs) {
+        if (r.range.start === t.start && r.range.end === t.end) continue;
+        r.range = { ...r.range, start: t.start, end: t.end };
+        r.timeFrom = 'caption-agreed';
+        r.why = (r.why || []).concat('the hour scale put this at ' +
+          hhmm(g.start) + '-' + hhmm(g.end) + '; the same class on another day ' +
+          'prints ' + hhmm(t.start) + '-' + hhmm(t.end) + ' inside the block, so that was used');
+      }
+    }
     const votes = new Map();
     for (const r of g.recs) {
       if (!r.loc) continue;
+      if (!repairCode(r.loc.code, codes, tune)) continue;   // an unknown code does not get a vote
       const key = String(r.loc.code).toUpperCase() + ' ' + String(r.loc.room).toUpperCase();
       const conf = (r.loc.words || []).reduce((a, w) => a + (w.conf || 0), 0);
       const v = votes.get(key) || { n: 0, conf: 0, loc: r.loc };
@@ -1699,6 +2667,25 @@ function agreeOnRooms(recs, tune) {
     if (!votes.size) continue;
     const best = [...votes.values()].sort((a, b) => (b.n - a.n) || (b.conf - a.conf))[0];
     const bestKey = String(best.loc.code).toUpperCase() + ' ' + String(best.loc.room).toUpperCase();
+    // IS THIS GROUP ONE ROOM AT ALL? Every reading in it that could not be the
+    // winner misread is a second, real room — this course meets in two places
+    // and the group cannot see days to tell which is which. Nothing is spread
+    // in that group, in either direction.
+    const rival = [...votes.keys()].find(k => !couldBeOneRoom(k, bestKey, tune));
+    if (rival) {
+      // A block that read its OWN room is untouched and unflagged: it read its
+      // own pixels and the disagreement says nothing against it. Only a block
+      // that read NO room is told why it is not being given one — it would have
+      // borrowed a moment ago, and it has to arrive with its day and its hour
+      // and an honest blank instead.
+      for (const r of g.recs) {
+        if (r.loc) continue;
+        r.why = (r.why || []).concat('the room here was unreadable, and the same ' +
+          'class at this hour on another day is in a different room, so there was ' +
+          'no single room to take');
+      }
+      continue;
+    }
     for (const r of g.recs) {
       const key = r.loc && String(r.loc.code).toUpperCase() + ' ' + String(r.loc.room).toUpperCase();
       if (key === bestKey) continue;
@@ -1712,7 +2699,243 @@ function agreeOnRooms(recs, tune) {
   return recs;
 }
 
+/**
+ * THE PAGE'S OWN PRINTED TIMES ARE A CHECK ON THE PAGE'S OWN RULER.
+ *
+ * The hour scale down the left edge is fitted once and used for every block, so
+ * when it is wrong it is wrong for the whole picture at once — and it does not
+ * look wrong. On the dense real screenshot it comes out with the right offset
+ * and a slightly wrong SCALE: an eight o'clock class reads three quarters of an
+ * hour late, a half past three class reads on the minute, and a five o'clock
+ * finish reads a quarter early. Every one of those times is a clean number on
+ * the quarter hour. Nothing about the output says it is wrong.
+ *
+ * But the page says. Where a block PRINTS its hours and the printed hours were
+ * believed over the ruler (which needs `captionCorrectsMin`, `captionGridMin`,
+ * `captionMaxDriftMin`, `captionMaxLenDiffMin` and a screenshot to pass), the
+ * ruler has been caught out by the picture itself. After that, a block whose
+ * own hours could not be read has no witness left: the only thing timing it is
+ * the instrument this page has just shown to be broken.
+ *
+ * So those are refused — with their room, their building and their day, which
+ * are not in doubt and did not come from the ruler. A class in the right
+ * building on the right day with a question against its hour is useful; the
+ * same class committed silently at the wrong hour is the thing this feature
+ * promises not to do.
+ *
+ * A BLOCK THE FRAME CUT THROUGH DOES NOT COUNT AS CATCHING THE RULER OUT. Its
+ * printed time and its drawn height disagree because the picture ends, not
+ * because the scale is wrong, and one real screenshot has exactly one such
+ * block and an otherwise perfect ruler. Counting it would refuse that whole
+ * image for nothing.
+ */
+function auditAxis(recs) {
+  const caught = recs.some(r => r.timeFrom === 'caption' && !r.clipped);
+  if (!caught) return recs;
+  for (const r of recs) if (r.timeFrom === 'axis') r.timeDoubt = true;
+  return recs;
+}
+
+/**
+ * A CELL THAT PRINTS A BUILDING AND NO ROOM IS A REAL SCHEDULE, NOT A BAD READ.
+ *
+ * myUT does it four times on one real screenshot: some rooms are simply not
+ * published, and the app prints the building alone on the cell's last line.
+ * Treated as a failure that is four classes refused for no reason; treated
+ * carelessly it is four wrong answers, because a cell whose room line merely
+ * failed to scan looks exactly the same from here.
+ *
+ * So the conditions are narrow and every one of them is about the PICTURE
+ * rather than about what would be convenient: the last line of the cell is one
+ * word, that word is a code the register knows, and it is not the code printed
+ * in this cell's own course number. It is behind a flag so the next lane can
+ * score it both ways.
+ */
+function roomlessLoc(lines, codes, course) {
+  if (!lines.length) return null;
+  const last = lines[lines.length - 1];
+  if (last.length !== 1) return null;
+  const t = last[0].text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[A-Z]{2,4}[0-9]?$/.test(t)) return null;
+  if (NOT_A_CODE.test(t)) return null;
+  if (!codes || !codes.has(t)) return null;
+  if (course && String(course).toUpperCase().replace(/[^A-Z0-9]/g, '').startsWith(t)) return null;
+  return { code: t, room: null, roomless: true, words: [last[0]] };
+}
+
+/** Words grouped into the lines they were printed on, top to bottom. */
+function textLines(ws) {
+  const out = [];
+  for (const w of ws.slice().sort((a, b) => (a.y0 - b.y0) || (a.x0 - b.x0))) {
+    const last = out[out.length - 1];
+    const h = Math.max(1, w.y1 - w.y0);
+    if (last && w.y0 < last.yb - h * 0.4) { last.push(w); last.yb = Math.max(last.yb, w.y1); }
+    else { const l = [w]; l.yb = w.y1; out.push(l); }
+  }
+  for (const l of out) l.sort((a, b) => a.x0 - b.x0);
+  return out;
+}
+
+/**
+ * WHICH DAY EACH COLUMN OF A RULED GRID IS.
+ *
+ * Two answers, and the second is the one this round exists for.
+ *
+ * If the weekday headings read, they name the columns and that is the end of
+ * it. If they are not on the picture at all — one real screenshot is scrolled
+ * so that the heading row and every hour before about a quarter to eleven are
+ * off the top, and it carries no chrome whatsoever, just grid — then the
+ * columns are named by COUNTING, which is exactly how the answer key's own
+ * human readers did it. Six equal columns with the hour gutter hard against the
+ * left edge of the picture are Monday to Saturday: the gutter is the proof that
+ * nothing was cropped off the left and that column one is therefore the first
+ * day of the week. `ruledGrid()` refuses to return a grid without that gutter,
+ * so the proof is already in hand by the time this is called.
+ *
+ * WHAT IT REFUSES. Seven columns: a seven-day week may start on Sunday or on
+ * Monday and this file will not pick. And the today-tint is not consulted at
+ * all — `docs/img-real-corpus.md` calls the tinted column Saturday and it is
+ * not: on one real image it is the fourth of six, a Thursday with four classes
+ * in it. Anchoring on the tint puts a whole image on the wrong day.
+ */
+function ruledDayNames(grid, layout) {
+  const n = grid.cols.length;
+  if (layout && layout.kind === 'grid' && layout.dayCols && layout.dayCols.length) {
+    const hit = grid.cols.map(c => {
+      const h = layout.dayCols.find(d => d.cx > c.x0 && d.cx < c.x1);
+      return h ? DAY_ORDER.indexOf(h.day) : -1;
+    });
+    const seen = hit.map((v, i) => [i, v]).filter(([, v]) => v >= 0);
+    if (seen.length >= 3) {
+      const ok = seen.every(([i, v]) => v - seen[0][1] === i - seen[0][0]);
+      const base = seen[0][1] - seen[0][0];
+      if (ok && base >= 0 && base + n <= DAY_ORDER.length) {
+        return grid.cols.map((_, i) => DAY_ORDER[base + i]);
+      }
+    }
+  }
+  if (n < 5 || n > 6) return null;
+  return DAY_ORDER.slice(0, n);
+}
+
+/**
+ * A RULED TABLE: the day is the column, the hour is the rule, and the class is
+ * the painted cell between them.
+ *
+ * This is the whole myUT path, and it runs ONLY where the block finder found
+ * nothing — so the app it was not written for, the one that draws separated
+ * colour rectangles with gaps between them, never reaches it and cannot be
+ * changed by it. That is deliberate: 134 of 171 on the corpus we made
+ * ourselves is the regression this round is not allowed to move.
+ */
+async function fromRuled(rows, grid, layout, page, tune, codes, ctx) {
+  const axis = ruledHourAxis(rows, grid, tune);
+  if (!axis) return [];
+  const days = ruledDayNames(grid, layout);
+  if (!days) return [];
+  const cells = ruledCells(ctx.rect, grid, ctx.words, axis, tune);
+  ctx.ruledCells = cells.length;
+  const snap = (v) => Math.round(v / tune.grid.snapMin) * tune.grid.snapMin;
+  const seenNotRead = (ctx && ctx.seenNotRead) || [];
+  ctx.seenNotRead = seenNotRead;
+  const inOrder = (ws) => ws.slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
+  const recs = [];
+  for (const cell of cells) {
+    const day = days[cell.col];
+    if (!day) continue;
+    const within = (ws) => ws.filter(w =>
+      (w.x0 + w.x1) / 2 > cell.x0 && (w.x0 + w.x1) / 2 < cell.x1 &&
+      (w.y0 + w.y1) / 2 > cell.y0 && (w.y0 + w.y1) / 2 < cell.y1);
+    const inside = within(ctx.words);
+    // A painted patch with no writing in it is a seam or the edge of the
+    // today-tint, not a class, and there is nothing to put in front of the
+    // student about it.
+    if (!inside.length) continue;
+    let start = snap(axis.minutesAt(cell.y0));
+    let end = snap(axis.minutesAt(cell.y1));
+    const block = { x0: cell.x0, y0: cell.y0, x1: cell.x1, y1: cell.y1 };
+    const note = (whyText) => seenNotRead.push({
+      day, start: hhmm(start), end: hhmm(end), why: whyText, block,
+    });
+    if (!(end > start) || end - start > tune.judge.maxClassMin) {
+      note('this looks like a class but its hours did not add up');
+      continue;
+    }
+    let ws = inOrder(inside);
+    let loc = locFromWords(ws, codes);
+    if (!loc && tune.grid.reOcrBlocks && ctx.pm) {
+      const again = within(await ocrCrop(ctx.pm, block, tune));
+      if (again.length) {
+        const l2 = locFromWords(inOrder(again), codes);
+        if (l2) { ws = inOrder(again); loc = l2; }
+      }
+    }
+    const course = courseFromRow({ words: ws });
+    const why = [];
+    if (!loc && tune.ruled.roomless) {
+      loc = roomlessLoc(textLines(ws), codes, course);
+      if (loc) why.push('only a building is printed for this class, with no room');
+    }
+    // TWO COURSE CODES IN ONE CELL MEANS THE CELL IS TWO CLASSES. It should not
+    // happen — classes back to back are cut apart on the hour — but if the seam
+    // between two of them were ever invisible, emitting the pair as one class
+    // with one of their rooms and the span of both their hours is the exact
+    // wrong answer this feature promises not to give. So it is refused, in
+    // words, rather than averaged.
+    const heads = textLines(ws).filter(l => {
+      const t = l.map(w => w.text).join(' ').toUpperCase();
+      if (!/\b[A-Z]{1,3}(?: [A-Z])? \d{3}[A-Z]?\b/.test(t)) return false;
+      return !locFromWords(l, codes, { course: null });
+    });
+    if (heads.length > 1) {
+      note('two classes look like they are drawn in the one box here');
+      continue;
+    }
+    // The printed time, where this app prints one — it does on one of the three
+    // real screenshots and not on the other two.
+    const caption = parseRange(ws.map(w => w.text).join(' '));
+    let axisAgrees = null, timeSource = 'axis';
+    const drawn = { start, end };
+    if (caption && !caption.bad) {
+      let cs = caption.start, ce = caption.end;
+      if (caption.unsure) {
+        let bd = Infinity, shift = 0;
+        for (const dd of [-720, 0, 720]) {
+          const gap = Math.abs(cs + dd - start);
+          if (gap < bd) { bd = gap; shift = dd; }
+        }
+        cs += shift; ce += shift;
+      }
+      axisAgrees = Math.abs(cs - start) + Math.abs(ce - end) <= tune.grid.agreeMin;
+      if (!axisAgrees) {
+        const near = Math.abs(cs - start) <= tune.grid.captionMaxDriftMin &&
+          Math.abs(ce - end) <= tune.grid.captionMaxDriftMin;
+        const G = tune.grid.captionGridMin;
+        const believe = near && cs % G === 0 && ce % G === 0 &&
+          Math.abs((ce - cs) - (end - start)) <= tune.grid.captionMaxLenDiffMin &&
+          (tune.grid.captionBeatsAxis === 'always' ||
+          (tune.grid.captionBeatsAxis === 'screenshot' && ctx.rect.source === 'screenshot'));
+        why.push('the caption reads ' + hhmm(cs) + '-' + hhmm(ce) +
+          ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end) +
+          (believe ? ', so the printed time was used' : ''));
+        if (believe) { start = cs; end = ce; timeSource = 'caption'; }
+      }
+    }
+    if (!loc) {
+      note('a class is drawn here but no room could be read out of it');
+      continue;
+    }
+    recs.push({
+      days: [day], range: { start, end, unsure: false },
+      loc, course, ws, why, fromGeometry: true, ruled: true,
+      block, drawn, timeFrom: timeSource, dayFrom: 'column', axisAgrees,
+    });
+  }
+  return recs;
+}
+
 /** A grid: the day is the column, and nothing else is. */
+
 async function fromGrid(rows, layout, page, tune, codes, ctx) {
   const cols = layout.dayCols;
   const pitch = cols.length > 1
@@ -1757,6 +2980,25 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
     });
     for (const b of blocks) {
       const col = colOf((b.x0 + b.x1) / 2) || colOf(b.x0 + pitch * 0.25);
+      // THE FRAME CUT THIS RECTANGLE, so its height is where the student
+      // stopped scrolling and not how long the class is. Only on a screenshot:
+      // on a photograph the edge of the frame is the edge of the document and
+      // cuts nothing. Used below, where the rectangle's height is otherwise
+      // allowed to overrule a printed time.
+      //
+      // THE TOLERANCE IS IN ANALYSIS CELLS, NOT PIXELS, and `geom.edgeTouchPx`
+      // (3) is the wrong number for it. That one is for a WORD box, which is
+      // measured at full resolution; a BLOCK comes off `findBlocks()`, which
+      // reasons at `analysisMax`, so its edges are quantised to whole analysis
+      // cells — three and a half rectified pixels on a wide screenshot — and a
+      // screenshot usually carries a few pixels of window chrome under the
+      // calendar besides. Measured: on a real screenshot a block the frame
+      // plainly cut through reports its bottom NINE rectified pixels short of
+      // the page edge, and at a tolerance of 3 it was not recognised as cut.
+      const E = Math.max(tune.geom.edgeTouchPx,
+        tune.grid.blockEdgeCells * Math.max(ctx.rect.w, ctx.rect.h) / tune.grid.analysisMax);
+      const clipped = ctx.rect.source === 'screenshot' &&
+        (b.y0 <= E || b.y1 >= page.h - E);
       let start = axis ? snap(axis.minutesAt(b.y0)) : null;
       let end = axis ? snap(axis.minutesAt(b.y1)) : null;
       if (axis && (!(end > start) || end - start > tune.judge.maxClassMin)) {
@@ -1768,12 +3010,43 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
         (w.y0 + w.y1) / 2 > b.y0 && (w.y0 + w.y1) / 2 < b.y1);
       const inOrder = (ws) => ws.slice().sort((p, q) => (p.y0 - q.y0) || (p.x0 - q.x0));
       let inside = within(ctx.words);
-      let loc = inside.length ? locFromWords(inOrder(inside), codes) : null;
+      // THE PAGE PASS IS NOT DISCARDED WHEN THE BLOCK IS READ AGAIN. The second
+      // look magnifies one rectangle and often gets the room the whole-page pass
+      // could not — and just as often loses the time line the whole-page pass
+      // had. Keeping both means the two readings can be asked separate
+      // questions: the room comes from whichever produced one, and the caption
+      // below from whichever printed a time. Overwriting `inside` outright cost
+      // a real screenshot its printed hours and left the class 45 minutes late.
+      const firstPass = inside;
+      // ..and every look that was taken is kept, in the order it was taken, for
+      // the caption below to pick over.
+      const passes = [firstPass];
+      // The course code comes off the TOP LINE and is handed to every reading
+      // of this block, so a block whose words came back out of order cannot
+      // mistake its own room for its own course. See topLineWords().
+      const courseOf = (ws) => courseFromRow({ words: topLineWords(ws, tune) });
+      let loc = inside.length
+        ? locFromWords(inOrder(inside), codes, { course: courseOf(inside) }) : null;
       if (!loc && tune.grid.reOcrBlocks && ctx.pm) {
         const again = within(await ocrCrop(ctx.pm, b, tune));
         if (again.length) {
-          const l2 = locFromWords(inOrder(again), codes);
+          passes.push(again);
+          const l2 = locFromWords(inOrder(again), codes, { course: courseOf(again) });
           if (l2 || !inside.length) { inside = again; loc = l2; }
+        }
+      }
+      // A THIRD LOOK, AGAINST THE BLOCK'S OWN PAINT. The two looks above both
+      // read the page's single grey plane, and on half of UT Registration Plus
+      // that plane has already thrown the caption away — a black caption on a
+      // green fill is eight levels apart under min(R,G,B) and magnifying eight
+      // levels gives eight levels. This one goes back to the colour pixels and
+      // asks a question that has no polarity in it. See `blockInk()`.
+      if (!loc && tune.ink.on && ctx.rect) {
+        const third = within(await ocrBlockInk(ctx.rect, b, tune));
+        if (third.length) {
+          passes.push(third);
+          const l3 = locFromWords(inOrder(third), codes, { course: courseOf(third) });
+          if (l3 || !inside.length) { inside = third; loc = l3; }
         }
       }
       if (!inside.length) {
@@ -1782,24 +3055,105 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           : 'a class is drawn here but neither its writing nor the hour scale could be read', b);
         continue;
       }
-      const caption = parseRange(inOrder(inside).map(w => w.text).join(' '));
+      const capOf = (ws) => (ws && ws.length)
+        ? parseRange(inOrder(ws).map(w => w.text).join(' ')) : null;
+      // THE CLOCK COMES FROM WHICHEVER LOOK PRINTED A CLEAN ONE, not from the
+      // one that happened to find the room. A malformed range is only accepted
+      // if no look printed a good one, and then the reading that supplied the
+      // room speaks first.
+      let caption = null;
+      for (const p of [inside, ...passes]) {
+        const c = capOf(p);
+        if (c && !c.bad) { caption = c; break; }
+        if (!caption) caption = c;
+      }
       const why = [];
+      // WHERE THE RULER PUT IT, kept whatever happens to the answer below. Two
+      // copies of one class are recognised by the rectangle they are drawn as,
+      // and correcting one copy's clock must not stop it being recognised as
+      // the twin of the copy that was not corrected — see agreeOnRooms().
+      const drawn = axis ? { start, end } : null;
       // TWO WITNESSES AGREEING IS THE STRONGEST EVIDENCE ON THE PAGE, and the
       // confirm screen prices it, so the verdict is recorded rather than only
       // its failure: null = only one witness spoke, true = they agree, false =
       // they do not. (js/schedconfirm.js CONF.time reads exactly this.)
       let axisAgrees = null;
-      // The caption is a second witness, not the witness. When both are
-      // there and they agree, that is as sure as this file gets; when they
-      // disagree the axis wins and the disagreement is shown, because four
-      // tiny digits inside a coloured block are the least reliable thing on
-      // the page and the calendar's own ruler is the most.
+      let timeSource = 'axis';
+      // The caption is a second witness, not the witness. When both are there
+      // and they agree, that is as sure as this file gets.
+      //
+      // WHEN THEY DISAGREE, THE PRINTED TIME IS THE EVIDENCE AND THE DRAWN
+      // POSITION IS AN INFERENCE. This file used to prefer the ruler and say so
+      // in the reason text — and on a real screenshot it printed, in so many
+      // words, that the caption read one time and the block was drawn at
+      // another, and then used the other. Every emitted time on that image came
+      // out 15 to 45 minutes late while the caption had it right, because an
+      // hour label does not sit exactly on its own rule and a block is drawn
+      // with padding inside its hour. Both of those shift a whole image at once
+      // and neither looks like a bug.
+      //
+      // ONLY ON A SCREENSHOT, and only from a caption that printed its own
+      // am/pm. On a photograph the caption really is four tiny digits seen
+      // through a camera and the ruler really is the steadier witness; on a
+      // screenshot the text is pixel-exact and the geometry is the guess.
       if (axis && caption && !caption.bad) {
-        const off = Math.abs(caption.start - start) + Math.abs(caption.end - end);
+        // A CAPTION WITH NO am/pm PRINTED IS A CLOCK FACE, NOT A TIME — and the
+        // two witnesses answer different halves of the question. The ruler says
+        // which half of the day this is in; the printed digits say where in the
+        // hour. So the caption is shifted onto the ruler's half before the two
+        // are compared at all, and a dense block whose printed am has worn off
+        // stops reading as a twelve-hour disagreement.
+        let cs = caption.start, ce = caption.end;
+        if (caption.unsure) {
+          let bd = Infinity, shift = 0;
+          for (const d of [-720, 0, 720]) {
+            const gap = Math.abs(cs + d - start);
+            if (gap < bd) { bd = gap; shift = d; }
+          }
+          cs += shift; ce += shift;
+        }
+        const off = Math.abs(cs - start) + Math.abs(ce - end);
         axisAgrees = off <= tune.grid.agreeMin;
-        if (off > tune.grid.agreeMin) {
-          why.push('the caption reads ' + hhmm(caption.start) + '-' + hhmm(caption.end) +
-            ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end));
+        // A DISAGREEMENT OF ONE SNAP STEP IS STILL A DISAGREEMENT.
+        //
+        // `agreeMin` is the CONFIDENCE signal the confirm screen reads, and it
+        // is generous on purpose. It is not the threshold for which witness to
+        // believe, and using it as one hid the commonest error this reader
+        // makes. Measured on the dense real screenshot: three copies of one
+        // class print 2:00-3:00 inside their own blocks and come off the hour
+        // ruler at 2:15-3:00. Fifteen minutes — inside `agreeMin` — so the
+        // printed time was never consulted and all three landed a quarter of an
+        // hour late, at full confidence, with nothing on screen to tap. The
+        // ruler carries error of exactly that size by construction: an hour
+        // label does not sit on its own rule and a block is drawn with padding
+        // inside its hour. Pixel-exact printed text does not.
+        if (off >= tune.grid.captionCorrectsMin) {
+          // ..and beyond captionMaxDriftMin they are not two readings of one
+          // time at all. A ruler that is half an hour out is a ruler; a caption
+          // three hours from the block it sits inside is a misread, and neither
+          // witness gets to overrule the other on that evidence.
+          const near = Math.abs(cs - start) <= tune.grid.captionMaxDriftMin &&
+            Math.abs(ce - end) <= tune.grid.captionMaxDriftMin;
+          const G = tune.grid.captionGridMin;
+          const onGrid = cs % G === 0 && ce % G === 0;
+          // AND A BLOCK THE FRAME CUT THROUGH HAS NO HONEST LENGTH. The rule
+          // this guard rests on is that a mis-set ruler moves the offset and
+          // never the scale, so the rectangle's HEIGHT is the half of the
+          // geometry that can check a caption. A rectangle whose bottom is the
+          // edge of the screenshot is not that class's height at all — it is
+          // where the student stopped scrolling. On one real screenshot the
+          // last class of the evening prints three hours, is drawn as two and a
+          // quarter because the picture ends, and the length guard sided with
+          // the picture's edge.
+          const sameLength = clipped ||
+            Math.abs((ce - cs) - (end - start)) <= tune.grid.captionMaxLenDiffMin;
+          const believe = near && onGrid && sameLength &&
+            (tune.grid.captionBeatsAxis === 'always' ||
+            (tune.grid.captionBeatsAxis === 'screenshot' && ctx.rect.source === 'screenshot'));
+          why.push('the caption reads ' + hhmm(cs) + '-' + hhmm(ce) +
+            ' but it is drawn at ' + hhmm(start) + '-' + hhmm(end) +
+            (believe ? ', so the printed time was used' : ''));
+          if (believe) { start = cs; end = ce; timeSource = 'caption'; axisAgrees = false; }
         }
       }
       // NO AXIS IS NOT NO GRID. When the hour labels are unreadable the
@@ -1814,19 +3168,24 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           continue;
         }
         start = caption.start; end = caption.end;
+        timeSource = 'caption';
         if (caption.unsure) why.push('no am/pm was printed, so the time is a guess');
       }
       recs.push({
         days: [col.day], range: { start, end, unsure: false },
-        loc, course: courseFromRow({ words: inside }), ws: inside, why,
-        fromGeometry: true, block: b,
+        // OFF THE TOP LINE, for the same reason the refusal above uses it.
+        loc, course: courseOf(inside), ws: inside, why,
+        fromGeometry: true, block: b, drawn, clipped,
         // PROVENANCE, NOT JUST THE ANSWER. Which witness supplied the clock is
         // the single biggest thing separating a trustworthy time from a
         // guessed one, and only this function knows it.
-        timeFrom: axis ? 'axis' : 'caption', dayFrom: 'column', axisAgrees,
+        timeFrom: timeSource, dayFrom: 'column', axisAgrees,
       });
     }
-    if (recs.length) return tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune) : recs;
+    if (recs.length) {
+      const out = tune.grid.agreeAcrossDays ? agreeOnRooms(recs, tune, codes) : recs;
+      return tune.grid.axisAudit ? auditAxis(out) : out;
+    }
   }
 
   const body = rows.filter(r => r.y0 > layout.headerY);
@@ -1853,7 +3212,9 @@ async function fromGrid(rows, layout, page, tune, codes, ctx) {
           return c && c.day === day;
         });
         if (!cand.length) continue;
-        const l = locFromWords(cand, codes);
+        // A LINE BELOW THE TIME, so a course-shaped token in it is the room:
+        // this event's course code was printed ABOVE, not here. See locFromWords.
+        const l = locFromWords(cand, codes, { course: null });
         if (l) { loc = l; locWs = l.words; break; }
         if (parseRange(cand.map(w => w.text).join(' '))) break;  // next event
       }
@@ -1993,7 +3354,9 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
       const room = roomWs.map(w => w.text).join('').toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
       if (code && room) { loc = { code, room }; locWs = bldgWs.concat(roomWs); }
     } else if (roomWs.length) {
-      const l = locFromWords(roomWs, codes);
+      // THE ROOM CELL, named by the table's own heading. "BUR 106" in here is a
+      // room by construction, so the course-code rule is off — see locFromWords.
+      const l = locFromWords(roomWs, codes, { course: null });
       if (l) { loc = l; locWs = l.words; }
     }
     // NOT EVERY TABLE'S HEADER SURVIVES THE PHOTOGRAPH. On corpus image 05 the
@@ -2004,9 +3367,10 @@ async function fromTable(rows, layout, page, tune, codes, ctx) {
       if (l) { loc = l; locWs = l.words; }
     }
     if (!loc) {
-      const hasLoc = (ws) => !!locFromWords(ws, codes);
+      // Also named cells, and also therefore rooms rather than course codes.
+      const hasLoc = (ws) => !!locFromWords(ws, codes, { course: null });
       const again = await reread(row, ['ROOM', 'LOCATION', 'BLDG', 'BUILDING'], hasLoc);
-      const l = again && locFromWords(again, codes);
+      const l = again && locFromWords(again, codes, { course: null });
       if (l) { loc = l; locWs = l.words; }
     }
     const courseWs = cell(row, ['COURSE']);
@@ -2036,7 +3400,10 @@ function fromCards(rows, page, tune, codes) {
       const cand = k === 0
         ? row.words.filter(w => !dayW || w.x0 > dayW.x1)
         : rows[i + k].words;
-      const l = locFromWords(cand, codes);
+      // k === 0 is the line the time is on, which on a registrar row also
+      // carries the course code — so the course-code rule is on. k > 0 is a
+      // line below it, where a course-shaped token is the room.
+      const l = locFromWords(cand, codes, k === 0 ? {} : { course: null });
       if (l) { loc = l; locWs = l.words; break; }
       if (k > 0 && parseRange(rows[i + k].text)) break;
     }
@@ -2218,6 +3585,39 @@ export async function extract(src, opts = {}) {
   // makes no structural assumption at all, so it is the floor under the other
   // two rather than a third alternative to them.
   let usedLayout = layout.kind;
+  // THE OTHER KIND OF WEEK GRID, AND ONLY WHERE THE FIRST KIND FOUND NOTHING.
+  //
+  // myUT draws an HTML table with a rule between every cell. The block finder
+  // cannot see it — the rules weld the whole table into one page-sized shape
+  // that is 6% of its own bounding box, so it is discarded and the cells were
+  // never separable — and on all three real myUT screenshots it returns at most
+  // one rectangle, which is not a class. Two of the three then returned
+  // literally nothing: no classes, and no "could not read this" either, from a
+  // page a person reads at a glance.
+  //
+  // It is placed HERE, after the layout's own reader has had its turn and
+  // before the flow fallback, on purpose. A page that produced even one record
+  // by any other route never runs it, so the corpus this feature was built on
+  // cannot move.
+  //
+  // "CARDS" ALSO COUNTS AS FOUND NOTHING, and that distinction is worth a
+  // sentence because it cost a whole image. `cards` is not a layout, it is the
+  // absence of one — the reader of last resort, run when no weekday heading and
+  // no registrar header row could be found. On the scrolled myUT screenshot it
+  // produced six records, every one of which died at "no day was readable", and
+  // those six were enough to stop this path ever running. A ruled grid is a
+  // strictly stronger claim than cards: six evenly spaced day separators, an
+  // hour gutter hard against the left edge with hour labels in it, and an axis
+  // that fits its own rules. Where it says at least as much, it wins.
+  let ruled = null;
+  const nothingFound = layout.kind === 'cards';
+  if (!recs.length || nothingFound) {
+    ruled = ruledGrid(rect, rows, tune);
+    if (ruled) {
+      const rr = await fromRuled(rows, ruled, layout, page, tune, codes, ctx);
+      if (rr.length && rr.length >= recs.length) { recs = rr; usedLayout = 'ruled'; }
+    }
+  }
   if (!recs.length && layout.kind !== 'cards') {
     recs = fromCards(rows, page, tune, codes);
     if (recs.length) usedLayout = layout.kind + '->flow';
@@ -2241,6 +3641,23 @@ export async function extract(src, opts = {}) {
         ev: evOf(r, null), reason: 'no-day' });
       continue;
     }
+    // THE RULER WAS CAUGHT OUT ELSEWHERE ON THIS PAGE AND THIS BLOCK PRINTED NO
+    // TIME OF ITS OWN, so there is no witness left to its hour — see
+    // auditAxis(). Everything else about it is known and none of it came from
+    // the ruler, so it goes in front of the student rather than into the store.
+    if (r.timeDoubt) {
+      const repT = repairCode(r.loc.code, codes, tune);
+      unsure.push({
+        course: r.course, building: repT ? repT.code : r.loc.code, room: r.loc.room,
+        why: 'the hours on this page do not line up with the times printed inside ' +
+          'the blocks, and this class prints none of its own — it looks like ' +
+          hhmm(r.range.start) + '-' + hhmm(r.range.end) + ', but check it',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, repT), reason: 'time-doubt',
+      });
+      continue;
+    }
 
     // A word cut off by the edge of the frame is half a word. On a PHOTO the
     // edge is the document's own edge and cuts nothing; on a SCREENSHOT it is a
@@ -2258,25 +3675,34 @@ export async function extract(src, opts = {}) {
       continue;
     }
 
-    let rep = repairCode(r.loc.code, codes, tune);
+    const rep = repairCode(r.loc.code, codes, tune);
     if (!rep) {
-      // A well-formed code this build does not know is REPORTED, not deleted —
-      // UT files buildings this snapshot of the register never listed, and the
-      // corpus contains one on purpose. It goes in front of the student with
-      // the doubt attached rather than being dropped on the floor.
+      // A CODE THE REGISTER DOES NOT KNOW IS A WRONG READ, NOT A SHAKY ONE, AND
+      // IT IS NEVER PROPOSED. This used to emit it with a sentence attached, on
+      // the grounds that UT files buildings this snapshot never listed. Two
+      // things killed that: the register this file checks against already
+      // carries the eleven codes the map knows and the snapshot does not
+      // (EXTRA_CODES above, MER among them), so the "real building we have not
+      // heard of" case is already covered — and on a real screenshot the codes
+      // that actually landed here were an OCR slip on a real building, emitted
+      // as a three-letter string UT has never had, then agreed across days onto
+      // a second meeting. Two wrong answers from one bad read.
+      //
+      // It still goes in front of the student, with everything else that WAS
+      // read, in `unsure` — a refusal the confirm screen can turn into a tap is
+      // worth exactly as much as a proposal. What it may not do is be saved
+      // without one.
       const shape = /^[A-Z]{2,4}$|^[A-Z]{2,3}[0-9]$/.test(r.loc.code);
-      if (!shape) {
-        unsure.push({
-          course: r.course, building: r.loc.code, room: r.loc.room,
-          why: '"' + r.loc.code + '" does not read like a UT building code',
-          days: r.days.slice(), day: r.days[0],
-          start: hhmm(r.range.start), end: hhmm(r.range.end),
-          ev: evOf(r, null), reason: 'not-a-code',
-        });
-        continue;
-      }
-      rep = { code: r.loc.code, repaired: false };
-      why.push('"' + r.loc.code + '" is not a building code this app knows — check it');
+      unsure.push({
+        course: r.course, building: r.loc.code, room: r.loc.room,
+        why: shape
+          ? '"' + r.loc.code + '" is not a UT building this app has heard of'
+          : '"' + r.loc.code + '" does not read like a UT building code',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, null), reason: shape ? 'unknown-code' : 'not-a-code',
+      });
+      continue;
     }
     if (rep.repaired) why.push('read the building as "' + r.loc.code + '"; the only real code it can be is ' + rep.code);
     if (r.why && r.why.length) for (const s of r.why) why.push(s);
@@ -2284,7 +3710,34 @@ export async function extract(src, opts = {}) {
     if (r.range.bad) why.push('the end time read as before the start');
     if (r.loc.joined) why.push('the building and room were run together');
 
-    const room = String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+    // A ROOM THAT IS NOT PRINTED IS NULL, NOT THE STRING "NULL". Some UT rooms
+    // are simply not published and myUT prints the building alone; the walk to
+    // the building's door is still the right answer and the student is told the
+    // room is missing rather than shown a room that does not exist.
+    const room = r.loc.room == null ? null
+      : String(r.loc.room).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+    // THE SAME REFUSAL AGAIN, AT THE ONE PLACE EVERY READING PASSES THROUGH.
+    // `plausibleLoc` already turns a lost decimal point down while there is
+    // still a chance of finding a better candidate further along the line — but
+    // a registrar table reads its BLDG and ROOM cells straight out of their own
+    // columns and never asks it. Both routes end here.
+    // ..and the same again for a room that is really the time off the line
+    // above it. Both are the one shape of wrong answer this feature cannot
+    // afford: a real building, and a room inside it that does not exist.
+    if (room != null && (ROOM_LOST_DOT.test(room) || ROOM_IS_A_CLOCK.test(room))) {
+      unsure.push({
+        course: r.course, building: rep.code, room,
+        why: ROOM_IS_A_CLOCK.test(room)
+          ? 'the room reads "' + room + '", which is a time and not a room — the ' +
+            'line above the room on this block is the hours, so this one needs a look'
+          : 'the room reads "' + room + '", which is a room number with its ' +
+            'full stop missing — where it goes changes the floor, so this one needs a look',
+        days: r.days.slice(), day: r.days[0],
+        start: hhmm(r.range.start), end: hhmm(r.range.end),
+        ev: evOf(r, rep), reason: 'room-shape',
+      });
+      continue;
+    }
     const ev = evOf(r, rep);
     for (const day of r.days) {
       const key = rep.code + '|' + room + '|' + day + '|' + r.range.start + '|' + r.range.end;
@@ -2349,6 +3802,19 @@ export async function extract(src, opts = {}) {
           'writing inside them is too small or too blurred to read — try again with the ' +
           'camera square on to the screen, or send the calendar as a screenshot',
       });
+    } else if (ruled || (ruled = ruledGrid(rect, rows, tune))) {
+      // SILENCE IS THE WORST ANSWER THERE IS. Two of the three real myUT
+      // screenshots came back with no classes and no message at all — a blank
+      // screen from a page whose type is large, black and trivially legible to
+      // a person, and the student has no way to tell "there is nothing here"
+      // from "I could not read it". If the rules of a timetable were found,
+      // that much is said out loud whatever else failed.
+      unsure.push({
+        course: null, day: null, start: null, end: null,
+        why: 'this is a week timetable with ' + ruled.cols.length + ' day columns, but ' +
+          'nothing inside it could be read — try a screenshot of the schedule ' +
+          'itself, with the hours down the side and the day names along the top',
+      });
     }
   }
   // THE STUDENT'S OWN PICTURE, UPRIGHT, FOR THE CONFIRM SCREEN TO CUT FROM.
@@ -2403,8 +3869,11 @@ if (typeof window !== 'undefined') {
   // verify script that can only call extract() has to guess.
   window.SCHEDIMG = {
     extract, decode, findDocQuad, estimateLineHeight, rectify, photometry,
-    grayCanvas, pickEngine, ocrWords, ocrCrop, buildRows, classifyLayout,
-    hourAxis, findBlocks, parseRange, parseDayLetters, repairCode,
+    grayCanvas, pickEngine, ocrWords, ocrCrop, blockInk, ocrBlockInk,
+    buildRows, classifyLayout,
+    hourAxis, findBlocks, ruledGrid, ruledHourAxis, ruledCells,
+    parseRange, parseDayLetters, repairCode, locFromWords, topLineWords,
+    agreeOnRooms, couldBeOneRoom,
     codeCandidates, codeNeighbours, buildingCodes, buildingRegister,
     releaseEngine, engineInfo, TUNE,
   };
