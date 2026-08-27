@@ -122,11 +122,18 @@ z16–z21 against the sixteen photographed storey counts:
 |---|---|---|---|---|---|
 | worst residual | 10.43× | 5.21× | **2.61×** | 1.30× | 1.30× |
 | worst bay residual | 6.40× | 3.20× | **1.60×** | 1.25× | 1.25× |
-| atlas cost | +0 % | +17 % | **+91 %** | +285 % | +1140 % |
+| atlas | 5250 | 6210 | **10050** | 25410 | 86850 KB |
+| atlas cost | +0 % | +18 % | **+91 %** | +384 % | +1554 % |
+
+The 5250 and 10050 are measured; the other three are extrapolated off the same
+split, because 4930 KB of the atlas belongs to families this knob does not touch
+and the sixteen's own 320 KB scales as `mul²`. **On a devicePixelRatio-2 screen
+every absolute number here is 4×** — `SCALE` doubles for every family alike, so
+the *share* this knob costs is unchanged and the bill is not.
 
 4 puts the WALK band where the LOOK band already was. **8 is the next honest
 step and it is an atlas-budget decision, not a correctness one** — it would take
-Battle Hall to 1.30× and quadruple the sixteen buildings' share again.
+Battle Hall to 1.30× and take the sixteen buildings from 5.1 MB to 20 MB.
 
 ## Two things in the instrument that had to be fixed first, and one that was lying
 

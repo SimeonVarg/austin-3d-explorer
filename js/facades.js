@@ -290,7 +290,16 @@
   //     mul                    1      2      4      8     16
   //     worst residual     10.43x  5.21x  2.61x  1.30x  1.30x
   //     worst bay residual  6.40x  3.20x  1.60x  1.25x  1.25x
-  //     atlas cost           +0%   +17%   +68%  +285%  +1140%
+  //     atlas                5250   6210  10050  25410  86850 KB
+  //     atlas cost           +0%   +18%   +91%  +384%  +1554%
+  //
+  // The KB row is the MEASURED 5250 / 10050 at mul 1 and 4 (see
+  // scripts/verify/facadeatlas.mjs, which reads the bytes off the images
+  // MapLibre is holding), with the other three extrapolated off the same split:
+  // 4930 KB of it belongs to families this knob does not touch, and the
+  // sixteen's own 320 KB scales as mul squared. On a devicePixelRatio-2 screen
+  // every number here is 4x, because `SCALE` doubles for every family alike —
+  // the SHARE this knob costs is the same, the absolute bill is not.
   //
   // TASTE / BUDGET KNOB, and it is the whole knob. 4 is chosen because it puts
   // the WALK band where the LOOK band already is (2.6x) for a cost the atlas
