@@ -17,7 +17,12 @@ const EXE = chromePath();
 // list returned West Campus) while shots 2..n were correct, which reads exactly
 // like a bad pose rather than a harness bug. ?drift=0 stops the idle cinematic
 // from stealing the camera back on a long list.
-const BASE = SERVER + '/_harness.html?intro=0&drift=0';
+// `SHOT_Q` appends extra query to every load, so an A/B that this app already
+// expresses as a URL flag (`?facadeanchor=0`, `?facademul=1`, `?bakedfacades=0`)
+// can be shot from ONE script in ONE browser. Same precedent as shimmer.mjs's
+// SHIM_Q, and for the same reason: two checkouts photograph two machines.
+const BASE = SERVER + '/_harness.html?intro=0&drift=0'
+  + (process.env.SHOT_Q ? '&' + process.env.SHOT_Q.replace(/^[?&]/, '') : '');
 const OUT = process.argv[2] || 'shot';
 const SHOTS = process.argv[3]
   ? JSON.parse(fs.readFileSync(process.argv[3], 'utf8'))

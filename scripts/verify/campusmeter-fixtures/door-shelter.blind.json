@@ -1,0 +1,148 @@
+{
+ "_what": "The HELD-OUT third of the door-shelter survey. Every row was read off UT's own building photograph the same way the training rows in scripts/bake_entrances.py SHELTER_OBS were, on the same day, by the same eye - and then withheld from the bake so that 'no canopy unless a photograph shows one' is tested on buildings the bake has never seen.",
+ "_why_this_file_exists": "A table the bake reads and the meter scores is a tautology: the bake would agree with it by construction. This third is the part that cannot be agreed with by construction. campusmeter.mjs asserts that scripts/bake_entrances.py's SHELTER_OBS and this file are DISJOINT and exits 1 if a code appears in both - which is what stops a later lane from 'improving' the score by copying these rows across.",
+ "_split_rule": "blind iff sha1(code).hexdigest()[0] in '0123'. Deterministic, computed before any row was written, and re-checkable in one line - so the split cannot have been picked to flatter the result.",
+ "_source": "UT Direct building information pages, no login. Page URL per row below; the photographs themselves are NOT committed because UT Direct states no licence on them.",
+ "_viewed": "2026-08-27",
+ "_kinds": {
+  "canopy": "a roof/blade/marquee/porte-cochere STANDS OVER the doors, cantilevered or on its own posts, separate from the mass",
+  "arcade": "a colonnade or covered walk runs in front and the doors open off it",
+  "recess": "the doors sit back under the building's own upper floors",
+  "flush": "a plain opening in the wall plane; nothing over it"
+ },
+ "_count": 22,
+ "rows": [
+  {
+   "code": "BAT",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BAT/",
+   "note": "Batts Hall: a flush entrance in the limestone base."
+  },
+  {
+   "code": "BRB",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BRB/",
+   "note": "BRB: a flush door bank in the base, nothing over it."
+  },
+  {
+   "code": "CBA",
+   "shelter": "canopy",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CBA/",
+   "note": "McCombs / CBA: a large white projecting roof plane with a red fascia band standing out over the whole glazed entrance front, above the door bank at the head of the steps."
+  },
+  {
+   "code": "CMB",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CMB/",
+   "note": "CMB: a flush entrance under the metal-clad mass."
+  },
+  {
+   "code": "CPE",
+   "shelter": "arcade",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CPE/",
+   "note": "Chemical & Petroleum Engineering: a columned covered walk runs in front of the whole entrance wall."
+  },
+  {
+   "code": "CRH",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CRH/",
+   "note": "CRH: flush doors in a plain brick wall."
+  },
+  {
+   "code": "HRC",
+   "shelter": "arcade",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/HRC/",
+   "note": "Harry Ransom Center: the whole ground floor stands behind a colonnade of full-height piers; the entrance opens off it."
+  },
+  {
+   "code": "JCD",
+   "shelter": "arcade",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/JCD/",
+   "note": "Jester Center: a run of arches along the base of the tower block; the doors open off the covered walk."
+  },
+  {
+   "code": "LFH",
+   "shelter": "canopy",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/LFH/",
+   "note": "Littlefield House: a wraparound one-storey gallery on turned columns runs across the entrance front. The 1894 porch."
+  },
+  {
+   "code": "MAI",
+   "shelter": "arcade",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/MAI/",
+   "note": "Main Building: the south entrance is under the seven-arch limestone arcade of the South Mall front."
+  },
+  {
+   "code": "NEZ",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/NEZ/",
+   "note": "Tom & Cinda Hicks North Gate: two full-height brick piers, a continuous bronze-tinted glass curtain wall on a mullion grid recessed between them, a gold-lettered signage band across the head, a UT roundel above the doors, a limestone plinth in front. NOTHING PROJECTS from the elevation. This is the building the previous round called family D's win while family D was stamping a 3.20 m steel blade on it."
+  },
+  {
+   "code": "PAC",
+   "shelter": "recess",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/PAC/",
+   "note": "Bass Concert Hall / PAC: the door bank sits back behind a row of white piers under the overhanging glass box; nothing cantilevers over the doors themselves. The white projecting plane in the photograph is the roof, five storeys up."
+  },
+  {
+   "code": "SJG",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SJG/",
+   "note": "San Jacinto Garage: a plain vehicle opening."
+  },
+  {
+   "code": "SSB",
+   "shelter": "recess",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SSB/",
+   "note": "Student Services Building: a recessed ground floor under the limestone mass."
+  },
+  {
+   "code": "SW7",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SW7/",
+   "note": "SW7: a flush door in a white masonry wall with an external stair beside it."
+  },
+  {
+   "code": "SWG",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SWG/",
+   "note": "SWG: a plain vehicle opening in the concrete frame."
+  },
+  {
+   "code": "SZB",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SZB/",
+   "note": "Sanchez Building: a flat brick-and-glass elevation with a long ramp; nothing projects over the entrance."
+  },
+  {
+   "code": "TCC",
+   "shelter": "arcade",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/TCC/",
+   "note": "TCC: a colonnade across the entrance front, doors behind it."
+  },
+  {
+   "code": "TMM",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/TMM/",
+   "note": "Texas Memorial Museum: bronze doors flush in the limestone at the head of the terrace steps."
+  },
+  {
+   "code": "UA9",
+   "shelter": "canopy",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UA9/",
+   "note": "A small flat canopy on two posts over a recessed entrance in a brick wall."
+  },
+  {
+   "code": "UTA",
+   "shelter": "canopy",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UTA/",
+   "note": "A full porte-cochere: a deep flat canopy with a ribbed metal fascia spanning the whole entrance drive, recessed downlights in the soffit, doors set back under it."
+  },
+  {
+   "code": "WAG",
+   "shelter": "flush",
+   "page": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/WAG/",
+   "note": "Waggener Hall: a portal at the head of a double stair, carved surround, flush in the wall."
+  }
+ ]
+}

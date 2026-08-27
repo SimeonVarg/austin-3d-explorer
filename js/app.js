@@ -236,7 +236,7 @@
   window.ROOF_CAP = ROOF_CAP;
 
   async function loadScene(date) {
-    const [buildings, parts, signs, extraNames, roofs] = await Promise.all([
+    const [buildings, parts, signs, extraNames, roofs, facadeGrids] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
@@ -252,6 +252,15 @@
       // runs inside the existing Promise.all, so it is not serialised in front
       // of anything; the snapshot beside it is larger and lands later.
       getJSON('data/roofs.geojson', { type:'FeatureCollection', features: [] }),
+      // Per-building measured window grids (scripts/bake_facade_grids.py).
+      // Fetched HERE, inside the existing Promise.all, for the same reason
+      // roofs.geojson is: it has to be on hand BEFORE quantiseFacades stamps
+      // `wp`/`wf`, and the snapshot beside it is far larger and lands later, so
+      // this costs nothing in wall time. An empty default is a real fallback,
+      // not a placeholder — with no measurements every building keeps the seven
+      // height-class templates, which is exactly the behaviour before this file
+      // existed.
+      getJSON('data/facade_grids.json', { buildings: [] }),
     ]);
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
@@ -267,6 +276,21 @@
     // Footprint is not overridable via hero_overrides.json, so it is corrected in
     // place here, before quantisation, for the same reason the Capitol is.
     if (typeof applyUnion24 === 'function') applyUnion24(buildings.features);
+
+    // Measured per-building window grids, BEFORE quantisation: familyFor()
+    // reads the registry and quantiseFacades is what stamps `wf` from it, so
+    // registering afterwards would assign every measured building its template
+    // and then hand out a family nothing is stamped with.
+    //
+    // `?facadegrids=0` turns the whole registry off for one load, which is how
+    // the before/after is measured on ONE build rather than by checking out an
+    // older one — three sessions share this working tree and HANDOFF §32
+    // records what a mid-pass `git checkout` costs. It is also the taste knob:
+    // one query parameter puts every campus building back on the seven
+    // height-class templates.
+    if (typeof registerMeasuredGrids === 'function') {
+      registerMeasuredGrids(/[?&]facadegrids=0\b/.test(location.search) ? { buildings: [] } : facadeGrids);
+    }
 
     // Facade quantisation — assigns wp (pattern id) + wf (family) per feature.
     let stats = null;

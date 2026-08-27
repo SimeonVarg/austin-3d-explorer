@@ -102,6 +102,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
 
+# ══════════════════════════════════════════════════════════════════════
+#  ERA_BASELINE=1 — the before-number, produced by the after-instrument
+#
+#  The ERA PROVENANCE block at the bottom of this file is new, so a
+#  before/after on it is only honest if BOTH numbers come out of the SAME
+#  counter. `ERA_BASELINE=1 python scripts/bake_entrances.py` reverts exactly
+#  the five 2026-08-27 sourcing changes and nothing else:
+#
+#    1. YEAR_UTDIRECT      the 22 years UT Direct has and ut_buildings.json
+#                          does not
+#    2. REG_ABBREV         the register's own abbreviations in reg_name_key()
+#    3. OSM_CLASS          OSM's building=* filling an empty Overture class
+#    4. split_ref()        multi-value `ref=A;B`
+#    5. "thermal storage"  in NULL_NAME_PARTS
+#
+#  CEL_FAM_NEEDS_SRC is deliberately NOT reverted by it: all four
+#  disagreements are cited, so it changes no family either way, and leaving
+#  it on keeps the comparison to the five that actually moved doors. Write
+#  the output somewhere else when using this — it changes data/entrances.geojson.
+ERA_BASELINE = os.environ.get("ERA_BASELINE") == "1"
+
 SNAP_SOURCE = "buildings.detailed.geojson"
 # `SNAP_DATE=2026-08-16 python scripts/bake_entrances.py` pins the bake to a
 # named snapshot instead of `manifest.latest`. It exists because a rebake for
@@ -332,6 +353,135 @@ UT_MATCH_R = 12.0       # m; one of our doors IS this UT door within this far.
                         # mislabelled" and "different doorway, different wall".
                         # js/wayfind.js WAYFIND.utDoorMatchM is the same number
                         # for the same reason; keep them together.
+
+# ── `derived` WAS TWO DIFFERENT CLAIMS WEARING ONE WORD ───────────────
+# This file's header promises that "`src` on every emitted piece says where its
+# POSITION came from", and then two stages that know very different amounts
+# both wrote `derived`:
+#
+#   stage2_paths  a real OSM footway physically CROSSES this wall here, or a
+#                 real path dead-ends against it. Something in the world put a
+#                 line on the ground leading to this exact spot. That is
+#                 evidence about a door.
+#   stage3_public a ranking. No path touches this wall at all; it merely scores
+#                 well on the publicness field — it faces a walkable line
+#                 within APPROACH_R and the building has budget left over. That
+#                 is a GUESS, and a defensible one (the alternative is 168 of
+#                 274 named campus buildings with no door at all), but it is not
+#                 evidence and it should never have been able to hide behind the
+#                 same word as a measured path crossing.
+#
+# Measured on the 2026-08-16 snapshot: 706 doors, of which 573 said `derived`.
+# Splitting them is the whole reason a reader can now see, on any single door,
+# whether the app is reporting something it found or something it inferred.
+# Nothing in the repo branched on the string `derived` (only `westcampus`, in
+# bake_walk.py), so this is a vocabulary change, not a behaviour change.
+SRC_PATH = "path"     # a real footway crosses / dies at this wall  [M]
+SRC_FIELD = "field"   # nothing touches this wall; the publicness field
+                      # ranked it and the building had budget left      [A]
+
+# ── A GUESS MAY SAY "THERE IS A DOOR". IT MAY NOT SAY "THERE ARE FIVE" ─
+# Once the split above made the field doors countable, the shape of the problem
+# was legible for the first time. On the 2026-08-16 snapshot: 707 doors on 295
+# buildings, 333 of them from the field. 136 of those 295 buildings have NO
+# evidenced door of any kind — no UT survey point, no OSM node, no footway
+# reaching a wall — so removing the field outright would leave 46% of campus
+# doorless, which is its own lie. The field has to stay.
+#
+# But look at how the 333 were spread: 141 buildings got exactly one, and then
+# 55 got two, 15 got three, 5 got four, 2 got five, one unnamed footprint got
+# SEVEN — seven doors, on a building about which nothing whatever is known. The
+# second, third and seventh field door are not a second opinion; they are the
+# same single guess ("this wall faces a walkway and the building is big") run
+# again on the next-best-scoring sample, because `budget_for` sized the budget
+# off PERIMETER LENGTH (P_PER_DOOR) and stage 3 spends whatever is left.
+#
+# That is the mechanism behind the worst numbers in the entrance scoreboard:
+# the Seay Building's five field doors are what put drawn doors 80-98 m from
+# UT's own surveyed Seay entrance.
+#
+# So: the field may assert EXISTENCE, once. Every door past the first on a
+# building must be evidenced by something in the world. A building with four
+# real doors still gets four — this cap never touches an `osm`, `path`, `ut`,
+# `authored` or `westcampus` door.
+FIELD_MAX = 1         # field-sourced doors per building.  TASTE-ADJACENT: if
+                      # campus reads as under-doored on screen, raise this to 2
+                      # here and nowhere else. It is deliberately one number.
+
+# ── UT'S SURVEY SETS THE POSITION, NOT ONLY THE ROLE ──────────────────
+# The stage below used to do one thing on a match and one thing only: relabel
+# our door `main`. It kept OUR coordinate. So a building could carry UT's own
+# survey flags on a door drawn 11.8 m from where UT says the door is, and the
+# file would report it as a success — the header above says UT's answer "beats
+# every heuristic in this file", and then the heuristic kept the geometry.
+#
+# Measured on the 2026-08-16 snapshot before this pass: of the 81 UT doors with
+# a host in scope, 31 were RELABEL cases, and 7 of those sat 10.5-11.8 m from
+# UT's point — inside UT_MATCH_R, so "the same doorway", and still drawn on the
+# wrong part of the wall. The other 47 were PLACE cases, which already used
+# UT's coordinate, and those score 44 of 47 within 10 m. The two halves of one
+# stage disagreed about whether the survey was authoritative.
+#
+# So a matched door is now MOVED onto UT's surveyed point (projected onto the
+# host wall by the same snap_to_edge the PLACE branch uses), and its `src`
+# becomes `ut`, because `src` in this file means where the POSITION came from.
+UT_SNAP = True          # move a matched door onto UT's own point   [A]
+UT_SNAP_OVER = (SRC_PATH, SRC_FIELD)  # ...but only over these. An `osm`
+                        # door is not a heuristic — it is a second independent
+                        # survey that already sits 0.4 m (median) from its own
+                        # node, and overwriting one survey with another is not
+                        # an accuracy gain, it is a coin toss with extra steps.
+                        # Add "osm" to this tuple in one line if
+                        # a later round decides UT outranks OSM outright; the
+                        # bake prints how many doors the choice affects.
+UT_EDGE_SCAN = 24       # candidate footprint edges the UT stage ranks before
+                        # choosing a wall. The old code snapped to the SINGLE
+                        # nearest edge and threw the surveyed door away if that
+                        # edge's outward normal pointed back into the mass —
+                        # which is exactly what happens when UT's point lands in
+                        # a re-entrant corner or a light well. UT says there is
+                        # a door here; the right answer is to look at the next
+                        # wall, not to discard a door a human physically stood
+                        # in front of. 3 doors were being dropped this way
+                        # (`normal test 3` on the bake's UT line); with the scan
+                        # it is 0. 24 rather than 4 because Overture tessellates
+                        # one real wall into many short edges.
+
+# ── WHAT UT'S `Directional` COLUMN ACTUALLY MEANS. READ BEFORE REUSING ─
+# Column 4 of every UT_CELEBRATED row is UT's own `Directional` field — W, SW,
+# NE. It looked like the answer to the question a coordinate cannot settle
+# (WHICH WALL), so this pass tried using it to pick the wall: rank the edges,
+# keep the nearest one whose outward normal agrees with UT's compass point.
+#
+# IT MADE THE DATA WORSE AND THE A/B IS WHY IT IS NOT IN THE CODE. Baked both
+# ways on the 2026-08-16 snapshot and compared per door, the rule moved ten
+# doors and eight of them moved AWAY from UT's own surveyed coordinate:
+#
+#     ECJ W  17.8 -> 33.8 m      MBB SW  1.2 -> 13.1 m
+#     PHR N   1.1 -> 11.1 m      WWH W  10.5 -> 20.4 m
+#     JON S  12.3 -> 18.7 m      ECJ W   0.3 ->  4.3 m
+#     JES NW  1.2 ->  3.9 m      FAC NW  2.2 ->  3.7 m
+#   (only WEL NE 14.7 -> 13.4 and JHH W 11.6 -> 10.7 improved)
+#
+# UT doors with a drawn door within 10 m went 72 -> 70 of 81.
+#
+# The reason is that `Directional` is not a wall bearing. It says WHICH PART OF
+# THE BUILDING YOU WALK TO — the south-west corner, the north end — and a door
+# in a corner or a recessed entry court very often has a leaf facing a
+# direction the corner is not named after. Moffett's SW entrance sits in a
+# re-entrant corner whose leaf does not face south-west at all; obeying the
+# column marched the door 13 m to a wall that does. So the column answers
+# "where do I go", which is what UT wrote it for, and not "which way does the
+# leaf face", which is what a renderer needs.
+#
+# It is kept as an AUDIT (see the side audit after clear_buried) because a door
+# that ends up on the OPPOSITE wall is still definitely wrong, and that check
+# costs nothing. It is not kept as a placement rule.
+UT_SIDE_MIN = 0.35      # cos, audit only: below this the drawn door is not on
+                        # any wall UT's compass point could reasonably name.
+                        # ~70 deg — excludes the opposite wall (cos -1) and both
+                        # perpendicular ones (cos 0), admits a wall up to 22.5
+                        # deg off the named eight-point compass reading.
 
 TERM_R = 8.0            # m; how far a dead-end path may sit off a wall
 CLUSTER_R = 5.0         # m; two candidates this close are one entrance
@@ -650,7 +800,10 @@ RAIL_MIN_RISERS = 2     # [A] IBC wants rails at 4+; 2 so the rail reads
 CHEEK_W = 0.42          # m; solid limestone cheek instead of a tube rail [A]
 CHEEK_H = 0.60          # m over the nosing                              [A]
 CANOPY_SIDE = 0.60      # m the canopy runs past the bank either side    [A]
-CANOPY_SIDE_D = 1.20    # ... on family D, whose canopy is the identity  [A]
+CANOPY_SIDE_D = 0.60    # was 1.20, "family D, whose canopy is the identity".
+                        # That identity was never in a photograph and is gone
+                        # (see WHAT STANDS OVER THE DOOR below); the wider
+                        # overhang went with the claim that justified it.  [A]
 RAMP_SLOPE = 1.0 / 12.0 # [C] ADA
 RAMP_W = 1.50           # m                                             [A]
 RAMP_SEGS = 4           # slabs a ramp is approximated with
@@ -1237,6 +1390,303 @@ FAMILIES = {
 }
 
 
+# ════════════════════════════════════════════════════════════════════
+#  WHAT STANDS OVER THE DOOR - docs/entrances/shelter.md
+#
+#  THE DEFECT THIS FIXES, in one sentence: family D's own comment above used
+#  to read "the canopy is the identifying feature", and NOBODY HAD EVER
+#  CHECKED THAT AGAINST A PHOTOGRAPH. It was an era rule - built after 1990,
+#  therefore a 3.20 m steel blade over the door - and it painted one on 335
+#  of 591 doors. The round that named family D's win, the Tom & Cinda Hicks
+#  North Gate (NEZ), cites a photograph of that exact door with NO CANOPY IN
+#  IT. The identity was invented.
+#
+#  THE MEASUREMENT. 343 of UT's own building photographs (utdirect.utexas.edu
+#  /apps/campus/buildings/information/nlogon/..., no login, fetched and
+#  VIEWED 2026-08-27) across all 148 codes that carry a drawn door. 98 of
+#  them show the entrance well enough to say what is over it. Counted by eye,
+#  one call per building, each cited below:
+#
+#      canopy  15    a roof/blade/marquee/porte-cochere STANDS OVER the doors,
+#                    cantilevered or on its own posts, separate from the mass
+#      arcade  15    a colonnade or covered walk runs in front and the doors
+#                    open off it - the shelter is the building's own piers
+#      recess  19    the doors sit back under the building's own upper floors
+#      flush   49    a plain opening in the wall plane; nothing over it
+#
+#  THE RULE THAT FALLS OUT, and it is not the one the file had. A projecting
+#  canopy is on 15 of 98 entrances - 15% - and IT DOES NOT TRACK THE ERA at
+#  all: family C (1950-89) 6 of 40, family D (1990-2026) 4 of 24. Those are
+#  the same rate. Cret (family B) is 0 of 20 and Gilbert (family A) 0 of 3,
+#  which the file already had right. So the canopy is a PER-BUILDING FACT,
+#  not an era fact, and the honest default is the one this file already
+#  applies to families themselves: OPT IN BY EVIDENCE, NULL OTHERWISE.
+#
+#      old rule (canopy iff era in C/D/E2):     41% right on the 98 photos
+#      new rule (canopy iff a photo shows one): 100% where a photo exists,
+#                                               and its DEFAULT alone - "no
+#                                               canopy" - is 85% right
+#
+#  THE SHAPE WAS RIGHT; THE ASSIGNMENT WAS THE LIE. Scaled off the doors in
+#  the photographs (a leaf is 2.13 m), the canopies on the Forty Acres proper
+#  have a MEDIAN projection of 2.40 m, top 3.60 m, thickness 0.25 m - which
+#  is family C's canopy exactly. Family D's 3.20 / 4.20 / 0.18 matches
+#  nothing measured. So the fallback below is the measured median, and every
+#  building that has one carries its own numbers.
+#
+#  WHAT THIS DOES NOT DO, said plainly: `recess` and `arcade` are RECORDED
+#  and they darken the reveal, but neither is drawn as geometry - the
+#  entrance wall is an extruded footprint and this bake cannot cut into it.
+#  34 of 98 entrances are sheltered by something real that the city still
+#  does not show. That is the next round's job, not a claim of this one.
+# ════════════════════════════════════════════════════════════════════
+
+# -- the doctrine, in one line each so it can be overruled in one line ------
+SHELTER_CANOPY_BY_DEFAULT = False   # a canopy nobody photographed is invented
+SHELTER_APPLIES_TO = ("main",)      # a photo of the front door evidences the
+                                    # FRONT DOOR. It says nothing about the
+                                    # service door round the back, so the back
+                                    # door keeps the default.          [rule]
+SHELTER_FALLBACK_NO_MAIN = True     # ... unless the bake never called ANY
+                                    # door on this building `main`. Every
+                                    # parking garage is in that state: its
+                                    # entrance is a vehicle lane and role
+                                    # assignment gives it `service`. Then the
+                                    # row applies to the door the bake itself
+                                    # ranks first, which is the one it would
+                                    # have called main if it named one. [rule]
+
+# The measured median of the canopies on the Forty Acres. Any building that
+# gives its own proj/t/top below overrides this; this is what a photographed
+# canopy with no legible dimensions falls back to.
+CANOPY_MEDIAN = dict(proj=2.40, t=0.25, top=3.60, mat="steel")   # [M]
+
+# Reveal depth by what the photograph says shelters the door. `reveal_d` in
+# this file drives the DARKENING of the reveal panel, not real depth (the
+# wall is an extruded footprint), so these are shading values: a door under
+# an arcade is in deeper shade than one flush on a sunlit wall.
+SHELTER_REVEAL_D = dict(canopy=None,    # keep the family's own
+                        arcade=1.90,    # [A] deepest - a covered walk
+                        recess=1.60,    # [A] under the mass above
+                        flush=0.15)     # [A] nothing over it at all
+
+# -- THE OBSERVATIONS. `k` is the call; `src` is the photograph. Photographs
+#    are NOT committed - UT Direct states no licence on them, so this repo
+#    keeps the measurement and cites the page, the way it already treats
+#    other UT-sourced material. Every row was opened and looked at on
+#    2026-08-27 at SHELTER_PHOTO_PAGE % ref.
+#    A row here is TRAINING DATA. The held-out third lives in
+#    scripts/verify/campusmeter-fixtures/door-shelter.blind.json and this
+#    table may never contain a code that file names - campusmeter self-checks
+#    the two are disjoint and exits 1 if they are not.
+SHELTER_PHOTO_PAGE = ("https://utdirect.utexas.edu/apps/campus/buildings/"
+                      "information/nlogon/maps/UTM/%s/")
+
+SHELTER_OBS = {
+    # -- CANOPY. Eight on the Forty Acres proper, one on a plant building,
+    #    two toll canopies over garage lanes, and one 19th-century porch that
+    #    family V already draws. (Four more canopies were observed and are
+    #    NOT here: they fell in the held-out third and this table may not see
+    #    them.)
+    "ATT": dict(k="canopy", proj=2.60, t=0.20, top=5.20, mat="steel",
+                src="[M] AT&T Conference Center: a glass-and-steel canopy on "
+                    "outrigger struts runs the whole arcade elevation over "
+                    "the walk, well above the arched openings."),
+    "ETC": dict(k="canopy", proj=3.00, t=0.20, top=4.00, mat="steel",
+                src="[M] Engineering Teaching Center: a flat metal canopy on "
+                    "two round columns over the doors, signage on the "
+                    "fascia. This is the one building family C's canopy fits."),
+    "LTH": dict(k="canopy", proj=3.20, t=0.30, top=3.50, mat="steel",
+                src="[M] LTH: a ribbed metal canopy on posts over the ticket "
+                    "windows and the door bank."),
+    "NMS": dict(k="canopy", proj=1.60, t=0.25, top=3.40, mat="steel",
+                src="[M] NMS: a flat dark marquee over the doors, between "
+                    "the limestone piers at the head of the entrance steps."),
+    "CS6": dict(k="canopy", proj=1.40, t=0.18, top=3.10, mat="steel",
+                src="[M] CS6: a small dark sloping metal canopy over a single "
+                    "service door - the one canopy found on an E5 building, "
+                    "and the reason the default is a default and not a law."),
+    "FNT": dict(k="canopy", proj=2.00, t=0.25, top=3.60, mat="steel",
+                src="[M] FNT: a CURVED brushed-metal canopy over one door at "
+                    "the head of a stair. Drawn as a rectangle - the "
+                    "primitive has no curve and inventing one is the failure "
+                    "this table exists to stop."),
+    "GSB": dict(k="canopy", proj=2.20, t=0.25, top=4.50, mat="steel",
+                src="[M] Graduate School of Business: a glazed marquee over "
+                    "the entrance where the mirrored wall meets the plaza."),
+    "UTX": dict(k="canopy", proj=2.40, t=0.35, top=3.30, mat="stone",
+                src="[M] UTX: a tiled porch roof carried on posts over the "
+                    "entrance of a low pavilion."),
+    "MAG": dict(k="canopy", proj=6.00, t=0.30, top=4.60, mat="steel",
+                src="[M] Manor Garage: a wide flat canopy over the toll lanes "
+                    "at the vehicle entrance. A garage entrance is a vehicle "
+                    "opening and this is what shelters it."),
+    "SAG": dict(k="canopy", proj=6.00, t=0.30, top=4.60, mat="steel",
+                src="[M] San Antonio Garage: the same toll canopy over the "
+                    "entrance lane, signed 'San Antonio Garage'."),
+    "ANB": dict(k="canopy",
+                src="[M] Neill-Cochran House: a two-storey columned portico "
+                    "over the entrance. Family V already draws this as its "
+                    "PORCH - no dimensions here, the family owns them."),
+
+    # -- ARCADE. The shelter is the building's own colonnade.
+    "BMA": dict(k="arcade", src="[M] Blanton: the doors open off a vaulted "
+                "arcade on the plaza, under the petal roofs."),
+    "SEA": dict(k="arcade", src="[M] Seay: a two-storey column arcade runs "
+                "the elevation; the entrance is behind it."),
+    "JES": dict(k="arcade", src="[M] Jester: the low block's entrance sits "
+                "behind a run of arched openings."),
+    "HSM": dict(k="arcade", src="[M] HSM: a two-storey colonnade across the "
+                "whole entrance front on the plaza."),
+    "CDL": dict(k="arcade", src="[M] CDL: a hipped-roof pavilion carried on "
+                "columns - the roof over the walk IS the shelter."),
+    "CCJ": dict(k="arcade", src="[M] Connally Center: a classical columned "
+                "portico across the entrance bay."),
+    "GEA": dict(k="arcade", src="[M] GEA: the doors open off a covered loggia "
+                "round the courtyard."),
+    "HMA": dict(k="arcade", src="[M] Hogg Memorial Auditorium: a pilastered "
+                "portico over the door bank."),
+    "LTD": dict(k="arcade", src="[M] Littlefield Dormitory: the entrance is "
+                "behind a run of round arches at the head of the terrace."),
+    "SRH": dict(k="arcade", src="[M] Sid Richardson Hall: the whole building "
+                "stands on a colonnade and every door opens off it."),
+
+    # -- RECESS. The doors sit back under the building's own mass.
+    "SJH": dict(k="recess", src="[M] San Jacinto Hall: the entrance is set "
+                "into the base under the wings, at the head of a fan stair."),
+    "RLP": dict(k="recess", src="[M] Patton Hall: a glazed ground floor set "
+                "back under the deeply overhanging upper floors."),
+    "SEZ": dict(k="recess", src="[M] South End Zone: a glazed storefront "
+                "under the overhanging deck above."),
+    "NHB": dict(k="recess", src="[M] Hackerman: the ground entrance is behind "
+                "the piers; the big projecting element is a sunshade five "
+                "storeys up, not a door canopy."),
+    "WIN": dict(k="recess", src="[M] Winship: the doors are under the "
+                "cantilevered upper mass, lit by a soffit of downlights."),
+    "UTC": dict(k="recess", src="[M] University Teaching Center: the entrance "
+                "is deep under the overhanging concrete mass."),
+    "PAT": dict(k="recess", src="[M] Patterson: the ground floor is recessed "
+                "the full length under the brick block above."),
+    "CMA": dict(k="recess", src="[M] Jesse Jones Communication A: the whole "
+                "ground floor steps back under the upper floors."),
+    "MRH": dict(k="recess", src="[M] Music Building: the entrance is under a "
+                "wide bridge of building with the stair rising through it."),
+    "JGB": dict(k="recess", src="[M] Jackson Geosciences: the doors are set "
+                "back under the overhanging floor above."),
+    "JON": dict(k="recess", src="[M] Jones: the entrance is under the "
+                "cantilevered upper block."),
+    "WWH": dict(k="recess", src="[M] WWH: a recessed dark ground floor under "
+                "the brick mass."),
+    "COM": dict(k="recess", src="[M] COM: a recessed portal cut into the "
+                "limestone block."),
+    "NUR": dict(k="recess", src="[M] Nursing: the entrance is behind the "
+                "brise-soleil, set back from the wall line."),
+    "DFA": dict(k="recess", src="[M] DFA: the entrance is under the "
+                "overhanging building above the lawn."),
+    "MBB": dict(k="recess", src="[M] MBB: the entrance is a deep arched "
+                "masonry passage through the building."),
+    "TSC": dict(k="recess", src="[M] TSC: the doors are set back in a "
+                "columned portal in the flat mass."),
+
+    # -- FLUSH. Nothing over the door. The biggest class, and the one the old
+    #    rule got wrong most often.
+    "RSC": dict(k="flush", src="[M] Recreational Sports Center: banks of red "
+                "aluminium doors flush in a flat masonry wall."),
+    "ECJ": dict(k="flush", src="[M] Civil Engineering: doors at the head of a "
+                "stair in a flat wall under the incised building name."),
+    "BWY": dict(k="flush", src="[M] BWY: one door flush in a rusticated stone "
+                "wall."),
+    "WMB": dict(k="flush", src="[M] WMB: a flush door in a limestone wall."),
+    "WEL": dict(k="flush", src="[M] Welch: a monumental limestone portal at "
+                "the head of the steps - carved surround, no projection."),
+    "BEN": dict(k="flush", src="[M] Benedict: an arched portal at the head of "
+                "a straight flight, flush in the wall."),
+    "MEZ": dict(k="flush", src="[M] Mezes: a limestone door surround flush in "
+                "the wall."),
+    "TNH": dict(k="flush", src="[M] Townes: a carved limestone door surround "
+                "at the head of the steps."),
+    "PHR": dict(k="flush", src="[M] Pharmacy: a balustraded limestone stair "
+                "to a carved door surround with an oculus over it - the "
+                "photograph the last round cited AGAINST family C's awning."),
+    "CS3": dict(k="flush", src="[M] CS3: a plain opening in a brick utility "
+                "wall."),
+    "PPL": dict(k="flush", src="[M] Power Plant: a big arched opening flush "
+                "in the brick."),
+    "PPE": dict(k="flush", src="[M] PPE: a full-height overhead door flush in "
+                "the wall."),
+    "PPA": dict(k="flush", src="[M] PPA: a flat brick utility elevation."),
+    "LCH": dict(k="flush", src="[M] Littlefield Carriage House: an arched "
+                "opening in red brick, nothing over it."),
+    "MFH": dict(k="flush", src="[M] Mithoff Field House: a flat limestone "
+                "base under the brick, signed, no projection."),
+    "BME": dict(k="flush", src="[M] Biomedical Engineering: a dark recessed "
+                "opening in a flat limestone base, no canopy."),
+    "POB": dict(k="flush", src="[M] O'Donnell: punched openings in a flat "
+                "limestone base."),
+    "GWB": dict(k="flush", src="[M] GWB: an open TRELLIS runs the terrace - "
+                "open timber, not a solid canopy, and the doors are flush in "
+                "the wall behind it."),
+    "AHG": dict(k="flush", src="[M] AHG: arched openings flush in the brick."),
+    "AND": dict(k="flush", src="[M] AND: a flush entrance in the limestone "
+                "base."),
+    "BHD": dict(k="flush", src="[M] BHD: a flush arched entrance."),
+    "CRD": dict(k="flush", src="[M] Carothers: a round-arched portal flush in "
+                "the wall."),
+    "EPS": dict(k="flush", src="[M] EPS: a small square portal flush in the "
+                "brick-and-limestone wall."),
+    "GAR": dict(k="flush", src="[M] Garrison: a carved round-arched portal, "
+                "lanterns either side, no projection."),
+    "GOL": dict(k="flush", src="[M] Goldsmith: a portal flush in the wall on "
+                "the court side."),
+    "GRE": dict(k="flush", src="[M] Gregory Gym: three great arched doors at "
+                "the head of the steps, flush in the brick."),
+    "HRH": dict(k="flush", src="[M] Homer Rainey: a carved door surround at "
+                "the head of the steps."),
+    "PAI": dict(k="flush", src="[M] Painter: a carved portal flush in the "
+                "limestone."),
+    "PHD": dict(k="flush", src="[M] PHD: a flush entrance off the court."),
+    "RHD": dict(k="flush", src="[M] Roberts: a flush arched entrance."),
+    "UNB": dict(k="flush", src="[M] Texas Union: a round-arched portal flush "
+                "in the wall on the West Mall front."),
+    "BIO": dict(k="flush", src="[M] Biological Labs: a flush opening under "
+                "the Gilbert arcade band."),
+    "BTL": dict(k="flush", src="[M] Battle Hall: a flush entrance under the "
+                "arcaded wall."),
+    "SUT": dict(k="flush", src="[M] Sutton Hall: THE reference door - a round "
+                "arch with a leaded fanlight and a pair of green bronze "
+                "leaves, flush in the limestone. Nothing over it."),
+    "GEB": dict(k="flush", src="[M] GEB: a flush opening in the limestone "
+                "base."),
+    "BRG": dict(k="flush", src="[M] Brazos Garage: a plain vehicle opening."),
+    "GUG": dict(k="flush", src="[M] Guadalupe Garage: a plain vehicle "
+                "opening."),
+    "TRG": dict(k="flush", src="[M] Trinity Garage: a signed vehicle opening, "
+                "flush in the concrete frame."),
+}
+
+
+SHELTER_USED = set()   # (ref, role) pairs an observation actually reached
+
+
+def shelter_for(ref, role, b=None, c=None):
+    """What the photograph says stands over THIS door, or None if nobody
+    looked. Returns (kind, row) so a caller can cite the row it obeyed.
+
+    A photograph of a front door evidences the front door only
+    (SHELTER_APPLIES_TO). Every other door on the same building falls back to
+    the default, which is the whole point: the file may not generalise one
+    picture across a building it never saw the back of."""
+    row = SHELTER_OBS.get(ref or "")
+    if not row:
+        return None, None
+    if role not in SHELTER_APPLIES_TO:
+        if not (SHELTER_FALLBACK_NO_MAIN and b is not None and c is not None
+                and not any(e.role == "main" for e in b.ents)
+                and c is max(b.ents, key=lambda e: (e.score, -e.x, -e.y))):
+            return None, None
+    return row["k"], row
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  THE CELEBRATED OVERRIDE TABLE — docs/entrances/celebrated.md
 #
@@ -1352,6 +1802,13 @@ CELEBRATED = {
     ),
     "LBJ": dict(
         fam="D", tier=1,
+        fam_src="[M] UT Direct's own building photograph (LBJ, fetched "
+                "2026-08-27): a windowless ten-storey travertine block on a "
+                "raised plaza. The register dates it 1971, which the date test "
+                "reads as family C — a 3.05 m aluminium storefront under a "
+                "concrete awning. That is the ONE thing this building's own "
+                "note says never to draw on it. D is the monumental-modern "
+                "family and is kept deliberately, not by inertia.",
         open_w=5.00, n=4, dt="hinged-quad", mat="glass",   # [U]
         risers=0, rail=False, cheek=False, canopy=False,
         note="The opposite problem to everyone else: it barely has a door. An "
@@ -1374,6 +1831,12 @@ CELEBRATED = {
     ),
     "HRC": dict(
         fam="D", tier=1, facade="S",
+        fam_src="[M] UT Direct's own building photograph (HRC, fetched "
+                "2026-08-27): a travertine box carried on a colonnade with a "
+                "FULL-HEIGHT GLAZED ground floor running the length of the "
+                "elevation behind the columns. The register's 1972 reads as "
+                "family C, whose storefront head is 3.05 m; the photographed "
+                "glazing is a whole storey and keeps going. D.",
         at=[(-97.740931, 30.284281, "main")],   # [M] OSM entrance=main, SE
         open_w=6.00, n=4, dt="sliding", mat="glass",       # [U] 2003 accessible
         risers=0, rail=False, cheek=False,
@@ -1427,6 +1890,12 @@ CELEBRATED = {
     ),
     "PAC": dict(
         fam="D", tier=2,
+        fam_src="[M] UT Direct's own building photograph (PAC, fetched "
+                "2026-08-27): a multi-storey glass curtain-wall lobby with a "
+                "visible structural mullion grid, hung with the venue's "
+                "banners. The register's 1980 reads as family C. The "
+                "photograph is family D and settles the note below, which had "
+                "called the glazed band 'genre knowledge'.",
         open_w=8.00, n=6, dt="hinged-quad", mat="glass",   # [U] genre, not fact
         risers=2, rail=True, cheek=False,
         note="Bass Concert Hall, named 'College of Fine Arts Performing Arts "
@@ -1455,6 +1924,31 @@ CELEBRATED = {
                      "not design. Plain recessed glass under concrete."),
     "WEL": dict(fam="C", tier=3, open_w=6.00, n=4, dt="hinged-quad",
                 mat="aluminium", risers=2, rail=True, cheek=False,
+                fam_src="[M]/[C] MEASURED THIS ROUND, because C on a 1930 "
+                        "building looks exactly like the defect this branch "
+                        "exists to remove and it is not one. Welch is THREE "
+                        "buildings under one Overture footprint: the 1929 "
+                        "Herbert M. Greene / Laroche & Dahl Chemistry "
+                        "Building, a 1959 wing by Preston M. Geren and a 1974 "
+                        "wing by Wyatt C. Hedrick [C], en.wikipedia.org/wiki/"
+                        "Welch_Hall_(University_of_Texas_at_Austin). UT's own "
+                        "register dates the building 1930, which the date test "
+                        "reads as family B. But plotting UT Facilities' three "
+                        "surveyed WEL doors (E, NE, NW) on USGS NAIP "
+                        "orthoimagery [M] puts ALL THREE on the flat "
+                        "pale-roofed later wings, not on either of the "
+                        "red-tile-roofed 1929 blocks — so every door this file "
+                        "actually draws on WEL is on post-war fabric, and C is "
+                        "the correct family FOR THOSE DOORS. The 1929 portal "
+                        "is real and is documented "
+                        "(commons.wikimedia.org/wiki/File:Welch_Hall_UT_Austin_"
+                        "Texas_2024.jpg, CC BY 4.0, Larry D. Moore, 2024-08-06: "
+                        "semicircular arch, wrought-iron fanlight grille, "
+                        "CHEMISTRY carved in limestone, two lanterns, a "
+                        "monumental stair with stone cheeks and pipe rails) — "
+                        "it is simply not at any coordinate this pass has, so "
+                        "it is NOT drawn. Placing it on a guessed wall would "
+                        "be inventing structure.",
                 note="Demoted out of tier 1: the public face is dominated by "
                      "the later addition and no celebrated portal was found."),
 }
@@ -1507,9 +2001,39 @@ def reg_name_key(s):
     Centre on top of the Blanton — that failure mode needs partial matching
     and this function cannot produce one."""
     s = (s or "").lower().replace("&", " and ")
-    s = re.sub(r"\bbldg\b", "building", s)
     s = re.sub(r"[^a-z0-9]+", " ", s)
-    return " ".join(s.split())
+    return " ".join(REG_ABBREV.get(t, t) for t in s.split())
+
+
+# The register's OWN abbreviations, read off the register's own name column and
+# nothing else — every key below is a token that literally appears in
+# data/ut_buildings.json, and every value is the long form the same register
+# spells out in another row. This is a NORMALISATION, not a similarity score:
+# after it runs the two names either are the same words in the same order or
+# they are not, and reg_name_key() still cannot produce a partial match. The
+# failure graph.md §5 rejected (a 0.5-Jaccard hit on "austin" putting the Lake
+# Austin Centre on top of the Blanton) needs partial matching and is still
+# impossible here. `bldg` was already in this function; the rest are its
+# siblings, found by tokenising all 198 register names and reading out every
+# token that is short or ends in a period (the audit that produced them is in
+# docs/entrances/doors-in-the-right-clothes.md §3).
+#
+# WHAT IT ACTUALLY BUYS, MEASURED, and it is small: 3 doors, on one building —
+# "AT&T Executive Education and Conference Center" (the footprint) against
+# "AT&T EXECUTIVE EDUC & CONF CENTER" (the register), which is ATT, occupied
+# 2008. Every join it makes is printed by name every run, so a wrong one is a
+# line in the log rather than a silent relabel.  [S] data/ut_buildings.json
+REG_ABBREV = {
+    "bldg": "building", "ctr": "center", "engr": "engineering",
+    "disc": "discovery", "educ": "education", "conf": "conference",
+    "comm": "communication", "equip": "equipment", "maint": "maintenance",
+    "univ": "university", "tx": "texas", "sci": "science",
+    "rec": "recreational", "tech": "technology", "math": "mathematics",
+    "rehab": "rehabilitation", "trk": "track", "labs": "laboratories",
+    "ofc": "office", "jr": "junior",
+}
+if ERA_BASELINE:                      # keep only the one that was always here
+    REG_ABBREV = {"bldg": "building"}
 
 
 UT_REGISTER = os.path.join(ROOT, "data", "ut_buildings.json")
@@ -1539,6 +2063,104 @@ if os.path.exists(UT_REGISTER):
         _seen[_k] = _e["ref"]
         REG_NAME_TO_REF[_k] = _e["ref"]
 
+# ══════════════════════════════════════════════════════════════════════
+#  THE REGISTER IS NOT THE WHOLE REGISTER — 23 codes carry a drawn door and
+#  no year
+#
+#  data/ut_buildings.json has 198 rows and every one of them has a year, which
+#  reads like full coverage and is not: sweeping every building code that
+#  actually carries a door in data/entrances.geojson found 23 with no row in
+#  it at all, and those doors were falling all the way through the cascade to
+#  the E5 null door.
+#
+#  UT publishes the missing years itself, per code, with NO LOGIN, at
+#      https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/
+#          maps/UTM/<CODE>/
+#  which serves "UT Building Since: <year>" alongside the address, the floor
+#  count and the gross square footage. Fetched 2026-08-27, one request per
+#  code, for EVERY code with a door and no register row — not a hand-picked
+#  few, so the table cannot be accused of cherry-picking the flattering ones.
+#  Nine of the 23 have no page at all (LLA/LLB/LLC/LLD/LLE/LLF, MBE, EAS,
+#  and the non-UT hotel AUSUAHX / BMC / MNAC) and are recorded here as None so
+#  the next sweep does not re-fetch them hoping for a different answer.
+#
+#  FROZEN rather than fetched at bake time for the same reason _ENTRANCE_ROWS
+#  and _BUILDING_ROWS are: a live query the bake depends on is a live query
+#  the bake can silently lose. It is also NOT written into
+#  data/ut_buildings.json — that file is another bake's output and this lane
+#  writes exactly one file (CLAUDE.md lane rule).
+#
+#  Most of these are plant, and NULL_NAME_PARTS still beats a year, so most of
+#  them change nothing — that is deliberate. A cooling tower with a measured
+#  2014 on it must still get the null door, and the year is recorded so the
+#  NEXT reader does not have to re-derive that it was checked. The four that
+#  actually move a door are marked.                        [S] utdirect.utexas.edu
+YEAR_UTDIRECT_URL = ("https://utdirect.utexas.edu/apps/campus/buildings/"
+                     "information/nlogon/maps/UTM/%s/")
+YEAR_UTDIRECT_DATE = "2026-08-27"
+YEAR_UTDIRECT = {
+    "COM": 1961,    # COMPUTATION CENTER          — MOVES 5 doors E5 -> C
+    "UPB": 1960,    # UNIVERSITY POLICE BUILDING  — MOVES 3 doors E5 -> C
+    "ARC": 1977,    # ANIMAL RESOURCES CENTER     — MOVES 2 doors E5 -> C
+    "NEZ": 2008,    # NORTH END ZONE BUILDING     — MOVES 6 doors, with REF_SPLIT
+    "WCH": 1932,    # WILL C. HOGG BLDG.
+    "STD": 1988,    # DARRELL K ROYAL TX MEMORIAL STADIUM
+    "TCP": 2004,    # TEXAS COWBOYS PAVILION
+    "ATT": 2008,    # AT&T EXECUTIVE EDUC & CONF CENTER — reached by REG_ABBREV
+    "ACS": 2026,    # AUTRY C. STEPHENS ENGR DISC BLDG
+    "JES": 1969,    # BEAUFORD H. JESTER CENTER
+    "JCD": 1969,    # JESTER RESIDENCE HALL
+    "KIN": 1958,    # KINSOLVING RESIDENCE HALL
+    # ── plant. Dated, and still E5 by NULL_NAME_PARTS. Recorded, not used.
+    "PPL": 1927,    # HAL C. WEAVER POWER PLANT
+    "PPA": 1968,    # HAL C. WEAVER POWER PLANT ANNEX
+    "PPE": 1988,    # HAL C WEAVER POWER PLANT EXPANSION
+    "CS3": 1970,    # CENTRAL CHILLING STATION NO. 3
+    "CS5": 1986,    # CENTRAL CHILLING STATION NO. 5
+    "CS6": 2009,    # CENTRAL CHILLING STATION NO. 6
+    "CT2": 2017,    # UTM COOLING TOWER 2
+    "CT7": 2014,    # UTM COOLING TOWER 7
+    "TS1": 2011,    # UTM THERMAL STORAGE 1 — see NULL_NAME_PARTS below
+    "TS2": 2014,    # UTM THERMAL STORAGE 2
+}
+# ── PLANT BY CODE, because the name test cannot reach a nameless footprint.
+#
+#  CAUGHT BY THE ERA PROVENANCE AUDIT ON ITS FIRST RUN, and written down
+#  because the near-miss is the whole argument for building the audit first.
+#  Adding "thermal storage" to NULL_NAME_PARTS was supposed to stop UTM Thermal
+#  Storage 1 and 2 taking family D's seven-metre glazed lobby once YEAR_UTDIRECT
+#  gave them a 2011/2014 date. It did not, and the diff said so: TS1, TS2 and
+#  CT7 went E5 -> D. Their footprints carry NO NAME AT ALL — only the code — so
+#  a name test can never fire on them, and the year sailed straight through into
+#  a curtain-wall entrance on a chilled-water tank.
+#
+#  The rule is fixed at the level the rule was wrong: plant is identified by the
+#  thing these footprints actually carry, which is the code. Every code here is
+#  one whose UT Direct page names it plant in its own title (CENTRAL CHILLING
+#  STATION, UTM COOLING TOWER, UTM THERMAL STORAGE, HAL C. WEAVER POWER PLANT).
+#  This is not a second guess about their age — the dates above stay, and stay
+#  correct. It is a statement that a cooling tower does not have a front door,
+#  which was always NULL_NAME_PARTS's intent.                     [M] utdirect
+PLANT_REFS = frozenset((
+    "TS1", "TS2",                     # UTM THERMAL STORAGE 1 / 2
+    "CT2", "CT7",                     # UTM COOLING TOWER 2 / 7
+    "CS3", "CS5", "CS6",              # CENTRAL CHILLING STATION 3 / 5 / 6
+    "PPL", "PPA", "PPE",              # HAL C. WEAVER POWER PLANT (+ annex, exp)
+))
+
+# Codes swept on 2026-08-27 that UT Direct itself has no page for. Kept so the
+# sweep is reproducible and the next reader can see it was actually asked.
+YEAR_UTDIRECT_NOPAGE = ("LLA", "LLB", "LLC", "LLD", "LLE", "LLF", "MBE",
+                        "EAS", "BMC", "MNAC", "AUSUAHX", "RMRZ", "SRD", "DKR")
+# YEAR ONLY. Deliberately NOT added to REG_CODES: that set is the
+# REGISTER_SCOPE admission list, and putting the stadium (STD) or a conference
+# hotel (ATT) into it would pull whole new footprints into the pass through a
+# side door. This table answers "how old is it", never "is it in scope".
+if ERA_BASELINE:
+    YEAR_UTDIRECT = {}
+for _c, _y in YEAR_UTDIRECT.items():
+    YEAR_BY_REF.setdefault(_c, _y)      # the register still wins where it has one
+
 # eras.md §5.2 rule 6, boundaries verbatim. Parameterised per CLAUDE.md
 # rule 11: each pair is (last year of the family, family).
 #
@@ -1551,6 +2173,14 @@ if os.path.exists(UT_REGISTER):
 # just the last year inside it.
 ERA_BOUNDS = ((1909, "V"), (1925, "A"), (1949, "B"), (1989, "C"))
 ERA_AFTER = "D"
+
+# A CELEBRATED row whose hand-typed `fam` disagrees with the measured year must
+# carry `fam_src`. With this False the old behaviour comes back in one line
+# (CLAUDE.md rule 11) — the flag exists so the change is reversible and
+# testable, not because the old behaviour is defensible.
+CEL_FAM_NEEDS_SRC = True
+
+
 
 
 def era_family_from_year(year):
@@ -1594,9 +2224,17 @@ for _r in ("GDC", "EER", "NHB", "BMA", "RRH", "WCP", "BMC", "HDB", "HTB",
 # porch on a coach house would be a confident lie. A dull correct door on a
 # building nobody has looked at is the honest answer (eras.md §4E5).
 NULL_REFS = frozenset(("LCH",))
+# `thermal storage` joined this list the day YEAR_UTDIRECT landed and for
+# exactly that reason: UT Direct dates UTM THERMAL STORAGE 1 and 2 to 2011 and
+# 2014, and with a year in hand the cascade would have handed two chilled-water
+# tanks family D's 7 m glazed lobby. A measured date is evidence about AGE, not
+# about whether the thing has a front door. Plant was always meant to be null;
+# the list just never had to say this word before.
 NULL_NAME_PARTS = ("chilling station", "cooling tower", "power plant",
                    "facilities complex", "sign shop", "field support",
-                   "carriage house")
+                   "carriage house", "thermal storage")
+if ERA_BASELINE:
+    NULL_NAME_PARTS = NULL_NAME_PARTS[:-1]
 # The two lists AS THEY STOOD before family V, frozen, so that
 # classify_pre_register() keeps telling the truth about what moved. It is a
 # historical record and it must not drift when the live list is edited.
@@ -1707,6 +2345,46 @@ CLASS_FAMILY = {
     "detached": "E2",
     "dormitory": "E2",
 }
+
+# ══════════════════════════════════════════════════════════════════════
+#  OSM'S OWN `building=*`, WHICH THIS FILE WAS ALREADY FETCHING AND THROWING
+#  AWAY
+#
+#  join_refs() has always read the OSM tag block — that is where `ref` and the
+#  OSM `name` come from — and it has always used exactly ONE field out of it:
+#  `building=garage|parking` (plus `amenity=parking`) to set cls="parking".
+#  The other 69 class-bearing tags in the same 384 rows went in the bin, so an
+#  Overture footprint that carries no building_class of its own fell to E5 even
+#  when OSM was sitting right there saying `building=church`.
+#
+#  Measured on this data, that cost TEN CHURCH DOORS — All Saints' Episcopal,
+#  University Christian, University Avenue Church of Christ, University United
+#  Methodist, the University Catholic Center — every one of them drawn with
+#  E5's flush 2.20 m aluminium door when family E4 (arched head, wood leaves,
+#  leaded glass, limestone surround) exists in this very file and was never
+#  reaching them. Plus 15 apartment doors, 5 dormitory and 2 detached.
+#
+#  The trust argument is that there is no new trust: this is the same table,
+#  the same spatial join, and the same `not tgt.cls` guard the parking branch
+#  has used since the pass was written. It only ever FILLS a class Overture
+#  left empty; it can never overwrite one. Every value below is a value
+#  CLASS_FAMILY already understands — this map exists so the two lists cannot
+#  drift apart silently, and so the whole behaviour is one editable table
+#  (CLAUDE.md rule 11) rather than a condition buried in the join.
+#
+#  `university`, `office`, `commercial`, `public`, `hospital`, `college`,
+#  `school`, `retail`, `stadium`, `yes` are deliberately ABSENT. E5 is the
+#  honest answer for a building whose only claim is that it is a building, and
+#  a four-family scheme with no null case gives Chipotle a Paul Cret portal.
+OSM_CLASS = {
+    "garage": "parking", "parking": "parking",
+    "church": "church", "chapel": "church", "cathedral": "church",
+    "mosque": "mosque", "synagogue": "church",
+    "apartments": "apartments", "residential": "residential",
+    "house": "house", "detached": "detached", "dormitory": "dormitory",
+}
+if ERA_BASELINE:                      # the two the parking branch always had
+    OSM_CLASS = {"garage": "parking", "parking": "parking"}
 # E1 — draw nothing. bake_places.py and js/drag.js already own these frontages
 # with their own SHOP_DATUM / SIGN_H / BULKHEAD / PROUD; a second entrance on top
 # is a double-draw. Only the RETAIL hosts are excluded: a POI inside a dining
@@ -2335,7 +3013,7 @@ def refresh():
 class Bldg(object):
     __slots__ = ("bid", "name", "cls", "h", "wd", "rings", "poly", "area",
                  "perim", "ref", "osm_name", "fam", "budget", "ents",
-                 "cx", "cy", "wc", "reg")
+                 "cx", "cy", "wc", "reg", "famwhy")
 
 
 def load_buildings():
@@ -2376,9 +3054,40 @@ def load_buildings():
         b.reg = False          # carries a UT register code inside SURVEY
         b.ents = []
         b.fam = "E5"
+        b.famwhy = "default"
         b.budget = 0
         out.append(b)
     return out
+
+
+OSM_CLASS_FILLED = []    # (class, who) rows the OSM class fill actually made
+REF_SPLIT_ROWS = []      # (raw, chosen) rows the multi-value ref split made
+
+
+def split_ref(raw):
+    """An OSM `ref` may be MULTI-VALUED, and one on this campus is.
+
+    OSM's convention for a tag that legitimately holds several values is to
+    join them with a semicolon, and the Red McCombs Red Zone footprint carries
+    `ref=RMRZ;NEZ` — two real UT codes on one structure. Compared whole, that
+    string equals no code at all, so the footprint matched nothing, took no
+    year, and its SIX doors came out as E5 null doors even though NEZ (North
+    End Zone Building) is dated 2008 by UT's own register page.
+
+    The rule is the narrowest one that fixes it and it is not a fuzzy match:
+    split on `;`, and prefer the first token the register actually knows. If
+    the register knows none of them, take the first token, which is exactly
+    what a single-valued ref would have given. A ref with no semicolon in it
+    goes through this function unchanged, so it cannot disturb the other 176.
+    Every split is printed by run so a wrong pick is a line in the log."""
+    if ERA_BASELINE or not raw or ";" not in raw:
+        return raw
+    parts = [p.strip() for p in raw.split(";") if p.strip()]
+    if not parts:
+        return raw
+    pick = next((p for p in parts if p in YEAR_BY_REF), parts[0])
+    REF_SPLIT_ROWS.append((raw, pick))
+    return pick
 
 
 def join_refs(blds, tree):
@@ -2419,13 +3128,17 @@ def join_refs(blds, tree):
                 if pool else None
         if tgt is None:
             continue
+        ref = split_ref(ref)
         if ref and not tgt.ref:          # a ref beats a bare name
             tgt.ref = ref
             hit += 1
         if name and not tgt.osm_name:
             tgt.osm_name = name
-        if (bt in ("garage", "parking") or am == "parking") and not tgt.cls:
-            tgt.cls = "parking"
+        # OSM's own class, but only ever INTO an empty one. See OSM_CLASS.
+        cls = OSM_CLASS.get(bt) or ("parking" if am == "parking" else None)
+        if cls and not tgt.cls:
+            tgt.cls = cls
+            OSM_CLASS_FILLED.append((cls, ref or name or "(unnamed)"))
     for b in blds:                       # authored codes OSM does not carry
         if not b.ref:
             nm = b.name or b.osm_name
@@ -2460,39 +3173,107 @@ def is_parking(b):
     return b.cls == "parking" or "garage" in nm or "parking" in nm
 
 
-def classify(b):
-    """The cascade, docs/entrances/eras.md §5.2, now WITH its rule-6 date
-    test, running on the measured year in data/ut_buildings.json. First match
-    wins, and the ORDER is §5.2's: authored evidence (WC table, NULL list,
-    CELEBRATED) first, then the classes that no date can overrule (a 2003
-    garage is a garage, not a family-D glazed bay), then the measured year,
-    then the hand-maintained named list for undated refs, then the
-    residential class, and the LAST rule is NULL, not "C". Families are
+# ══════════════════════════════════════════════════════════════════════
+#  ERA PROVENANCE — the instrument, and it is the reason this round exists
+#
+#  classify() used to return a bare family letter, which meant the file could
+#  not answer the only question that matters about it: WHERE DID THIS DOOR'S
+#  ERA COME FROM, and was that a measurement or a guess. Nothing printed it,
+#  nothing asserted it, and so nobody could see that 225 of 591 drawn doors —
+#  38% of the campus — were wearing a family that came from no source at all.
+#
+#  Every rule in the cascade is now labelled with one of four grades:
+#
+#    MEASURED  a dated, first-party, checkable record said so — UT's own
+#              register (data/ut_buildings.json), UT Direct's own building
+#              page (YEAR_UTDIRECT), or OSM's own building=* tag.
+#    AUTHORED  a human typed it into a table in this file WITH its evidence.
+#              CELEBRATED rows and the West Campus lobby table. Trustworthy
+#              in proportion to the citation, which is why `fam_src` is now
+#              mandatory on every CELEBRATED row (see the assertion below).
+#    GUESSED   a human typed it with no evidence recorded. The
+#              hand-maintained FAMILY_BY_REF list is the whole of this grade
+#              and it is meant to shrink.
+#    NONE      nothing is known. E5 — a dull correct door on a building
+#              nobody has looked at. This is an HONEST answer, not a failure,
+#              and it must never be inflated into a confident wrong one.
+#
+#  The grade is written onto the building and printed every run. It is also
+#  written onto every emitted piece as `fam`, so a verification script can ask
+#  the served file the same question without re-deriving this cascade.
+ERA_GRADE = {
+    "wc-table":      ("AUTHORED", "West Campus lobby table, westcampus.md"),
+    "null-ref":      ("NONE",     "explicit NULL_REFS"),
+    "null-name":     ("NONE",     "plant/outbuilding by name"),
+    "celebrated":    ("AUTHORED", "CELEBRATED row, fam_src cited"),
+    "parking":       ("MEASURED", "OSM building=garage / amenity=parking"),
+    "worship":       ("MEASURED", "OSM building=church|mosque"),
+    "register-year": ("MEASURED", "UT register / UT Direct occupied year"),
+    "named-list":    ("GUESSED",  "hand-maintained FAMILY_BY_REF"),
+    "osm-class":     ("MEASURED", "OSM building=* class"),
+    "wc-secondary":  ("AUTHORED", "W tower's side/service door -> E2, "
+                                  "westcampus.md"),
+    "default":       ("NONE",     "nothing known — E5"),
+}
+
+
+def classify_why(b):
+    """The cascade, docs/entrances/eras.md §5.2, WITH its rule-6 date test,
+    running on the measured year in data/ut_buildings.json and (since
+    2026-08-27) on UT Direct's own page for the 23 codes that file does not
+    carry. First match wins, and the ORDER is §5.2's: authored evidence (WC
+    table, NULL list, CELEBRATED) first, then the classes that no date can
+    overrule (a 2003 garage is a garage, not a family-D glazed bay), then the
+    measured year, then the hand-maintained named list for undated refs, then
+    the residential class, and the LAST rule is NULL, not "C". Families are
     OPT-IN — but a measured year IS evidence, so a dated dormitory now gets
-    its era's doorway rather than the E2 shrug, exactly as §5.2 rule 6
-    always specified for a present start_date."""
+    its era's doorway rather than the E2 shrug, exactly as §5.2 rule 6 always
+    specified for a present start_date.
+
+    Returns (family, rule) — see ERA_GRADE for what each rule is worth."""
     if b.wc:
-        return "W"          # the named list beats everything, here too
+        return "W", "wc-table"          # the named list beats everything, here too
     nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
-    if b.ref in NULL_REFS:
-        return "E5"
+    if b.ref in NULL_REFS or (not ERA_BASELINE and b.ref in PLANT_REFS):
+        return "E5", "null-ref"
     for w in NULL_NAME_PARTS:
         if w in nm:
-            return "E5"
+            return "E5", "null-name"
     if b.ref and b.ref in CELEBRATED:
-        return CELEBRATED[b.ref]["fam"]
+        cel = CELEBRATED[b.ref]
+        yr = YEAR_BY_REF.get(b.ref)
+        # A HAND-TYPED FAMILY MAY OUTRANK A MEASURED YEAR ONLY IF IT SAYS WHY.
+        # This is the rule the round was built around. Before it, CELEBRATED
+        # sat above the date test unconditionally, and four of the twenty rows
+        # disagreed with UT's own register with nothing written down either
+        # way — so a 1930 limestone-and-brick building could wear a 1970s
+        # aluminium storefront and the bake had no opinion about it. All four
+        # are now cited (LBJ/HRC/PAC off UT Direct's own photographs, WEL off
+        # NAIP + Wikipedia), and any FUTURE uncited disagreement loses to the
+        # measurement instead of quietly winning.
+        if (CEL_FAM_NEEDS_SRC and yr is not None
+                and era_family_from_year(yr) != cel["fam"]
+                and not cel.get("fam_src")):
+            return era_family_from_year(yr), "register-year"
+        return cel["fam"], "celebrated"
     if is_parking(b):
-        return "E3"
+        return "E3", "parking"
     if b.cls in ("church", "mosque"):
-        return "E4"
+        return "E4", "worship"
     year = YEAR_BY_REF.get(b.ref or "")
     if year is not None:
-        return era_family_from_year(year)
+        return era_family_from_year(year), "register-year"
     if b.ref and b.ref in FAMILY_BY_REF:
-        return FAMILY_BY_REF[b.ref]
+        return FAMILY_BY_REF[b.ref], "named-list"
     if b.cls in CLASS_FAMILY:
-        return CLASS_FAMILY[b.cls]
-    return "E5"
+        return CLASS_FAMILY[b.cls], "osm-class"
+    return "E5", "default"
+
+
+def classify(b):
+    fam, why = classify_why(b)
+    b.famwhy = why
+    return fam
 
 
 def classify_pre_register(b):
@@ -2568,6 +3349,30 @@ def snap_to_edge(bldg, px, py):
                 best = (d, qx, qy) + _norm(bb[0] - a[0], bb[1] - a[1]) + \
                     edge_normal(a, bb, ri) + (elen, t * elen, ri, i)
     return best
+
+
+def snap_to_edge_ranked(bldg, px, py, limit):
+    """snap_to_edge, but the `limit` nearest edges in order instead of one.
+
+    Only the UT stage uses this, and only because a surveyed door is worth a
+    second look: UT's point is a coordinate inside the doorway, so on a
+    building with a re-entrant corner, a light well or a recessed entry court
+    the nearest EDGE can be a wall whose outward normal points back into the
+    mass. The single-edge snap then failed normal_test and the door — which a
+    human at UT physically stood in front of — was dropped. Returning a short
+    ranked list lets the caller keep walking outward until a wall actually
+    faces the street."""
+    out = []
+    for ri, ring in enumerate(bldg.rings):
+        for i in range(len(ring) - 1):
+            a, bb = ring[i], ring[i + 1]
+            qx, qy, t = _seg_closest(px, py, a[0], a[1], bb[0], bb[1])
+            d = math.hypot(qx - px, qy - py)
+            elen = math.hypot(bb[0] - a[0], bb[1] - a[1])
+            out.append((d, qx, qy) + _norm(bb[0] - a[0], bb[1] - a[1]) +
+                       edge_normal(a, bb, ri) + (elen, t * elen, ri, i))
+    out.sort(key=lambda r: r[0])
+    return out[:max(1, int(limit))]
 
 
 def wall_run(b, ri, ei, s):
@@ -2864,6 +3669,22 @@ def stage_ut(blds, stats):
             if best is not None:
                 best.role = "main"
                 best.ut = (side, bf, ao)
+                # UT_SNAP: the survey owns the POSITION too, not just the role.
+                # Only over a provenance in UT_SNAP_OVER — see the constant.
+                if UT_SNAP and best.src in UT_SNAP_OVER:
+                    sn = ut_pick_edge(bb, x, y, stats)
+                    if sn is not None:
+                        moved = math.hypot(sn[1] - best.x, sn[2] - best.y)
+                        (_d, best.x, best.y, best.tx, best.ty, best.nx,
+                         best.ny, best.elen, best.s, best.ri, best.ei) = sn
+                        best.src = "ut"
+                        best.run = None   # the wall it sits on has changed
+                        stats["ut_moved"] += 1
+                        stats["ut_moved_m"] += moved
+                    else:
+                        stats["ut_move_no_wall"] += 1
+                elif UT_SNAP:
+                    stats["ut_kept_own_survey"] += 1
                 claimed.append((bb, best))
                 stats["ut_relabelled"] += 1
                 continue
@@ -2876,14 +3697,11 @@ def stage_ut(blds, stats):
             if host is None or hd > OSM_MAX_SNAP:
                 stats["ut_unplaceable"] += 1
                 continue
-            sn = snap_to_edge(host, x, y)
+            sn = ut_pick_edge(host, x, y, stats)
             if sn is None:
-                stats["ut_unplaceable"] += 1
-                continue
-            d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
-            if not normal_test(host, qx, qy, nx, ny):
                 stats["normal_fail_ut"] += 1
                 continue
+            d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
             c = Cand(qx, qy, tx, ty, nx, ny, elen, sa, "main", "ut",
                      11.0, 0, None, None, ri, ei)
             c.ut = (side, bf, ao)
@@ -2998,7 +3816,7 @@ def stage2_paths(blds, tree, paths, stats):
             stats["approach_gate_reject"] += 1
             continue
         kept[b.bid].append(Cand(sx, sy, tx, ty, nx, ny, elen, sa, None,
-                                "derived", 2.0 if hw == "steps" else 1.0, gen,
+                                SRC_PATH, 2.0 if hw == "steps" else 1.0, gen,
                                 None, None, ri, ei))
         nkept += 1
         DERIVED_ALL.append((sx, sy))
@@ -3077,8 +3895,15 @@ def stage3_public(blds, grid, stats):
                     best += FACADE_BONUS
                 samples.append((best, px, py, tx, ty, nx, ny, elen, d, i))
         samples.sort(key=lambda s: -s[0])
+        # FIELD_MAX: the field may assert that this building HAS a door. It may
+        # not assert how many. Anything past the first is the same guess spent
+        # again on the next-best sample of the same wall-facing-a-walkway rule.
+        placed_here = 0
         for sc, px, py, tx, ty, nx, ny, elen, d, ei in samples:
             if len(b.ents) >= b.budget:
+                break
+            if placed_here >= FIELD_MAX:
+                stats["field_capped_bldgs"] += 1
                 break
             if sc <= MIN_SCORE:
                 break
@@ -3088,14 +3913,54 @@ def stage3_public(blds, grid, stats):
                 stats["normal_fail_stage3"] += 1
                 continue
             b.ents.append(Cand(px, py, tx, ty, nx, ny, elen, d, None,
-                               "derived", sc, 3, None, None, 0, ei))
+                               SRC_FIELD, sc, 3, None, None, 0, ei))
             DERIVED_ALL.append((px, py))
+            placed_here += 1
             stats["stage3_placed"] += 1
 
 
 def _side_ok(side, nx, ny):
     return {"E": nx > 0.5, "W": nx < -0.5,
             "N": ny > 0.5, "S": ny < -0.5}.get(side, False)
+
+
+# UT's `Directional` column, as a unit vector in the bake's own (east, north)
+# metric frame. Eight points, because that is what the survey actually uses —
+# the 97 frozen rows contain exactly N/S/E/W/NE/NW/SE/SW and nothing else.
+_UT_SIDE_VEC = {
+    "N": (0.0, 1.0), "S": (0.0, -1.0), "E": (1.0, 0.0), "W": (-1.0, 0.0),
+    "NE": (0.70710678, 0.70710678), "NW": (-0.70710678, 0.70710678),
+    "SE": (0.70710678, -0.70710678), "SW": (-0.70710678, -0.70710678),
+}
+
+
+def ut_side_cos(side, nx, ny):
+    """How well a wall's outward normal agrees with UT's published side.
+
+    Returns None when the side is not one this file knows, so a caller can tell
+    "UT disagrees" apart from "UT did not say" — the two must not collapse into
+    the same falsy value, which is how a missing field silently becomes a
+    finding."""
+    v = _UT_SIDE_VEC.get((side or "").strip().upper())
+    if v is None:
+        return None
+    return v[0] * nx + v[1] * ny
+
+
+def ut_pick_edge(host, x, y, stats):
+    """The wall a UT-surveyed door belongs on: the NEAREST wall to UT's own
+    point that actually faces outward.
+
+    Not the nearest wall full stop — that is what used to drop three surveyed
+    doors a bake, because UT's coordinate sits inside the doorway and the
+    nearest edge to a point in a re-entrant corner can be a wall whose outward
+    normal points back into the mass. Not the wall UT's `Directional` column
+    names either; the block above records the A/B that ruled that out."""
+    for c in snap_to_edge_ranked(host, x, y, UT_EDGE_SCAN):
+        if normal_test(host, c[1], c[2], c[5], c[6]):
+            return c
+    stats["ut_no_outward_wall"] += 1
+    return None
 
 
 def budget_for(b):
@@ -3616,11 +4481,31 @@ WC_AUDIT = {}
 class Ent(object):
     """One entrance. Emits its own pieces, all of them proud of the wall."""
 
-    def __init__(self, feats, eid, b, c, fam, cel, role, n, dt, mat, src):
+    def __init__(self, feats, eid, b, c, fam, cel, role, n, dt, mat, src,
+                 famkey=None, famwhy=None):
         self.feats, self.eid = feats, eid
         self.bid, self.ref = b.bid, b.ref
         self.nm = b.name or b.osm_name
         self.role, self.era, self.n, self.dt, self.mat = role, fam["era"], n, dt, mat
+        # `fam` and `famsrc` are the ERA PROVENANCE fields (see ERA_GRADE).
+        # `era` alone cannot answer "what kind of door is this" — E2, E3, E4
+        # and E5 all report era="utility", so a church's arched wood leaf and a
+        # loading dock's roll shutter come out of the served file wearing the
+        # same word, and neither a verification script nor a human can tell
+        # them apart. The family letter and the rule that chose it are cheap
+        # (two short strings on a piece that already carries eleven) and they
+        # make the question answerable from the file the app actually fetches.
+        # THE LETTER THE DOOR WAS ACTUALLY ASSEMBLED WITH, not the building's.
+        # These are not always the same and the difference is deliberate: a
+        # West Campus tower is family W, but only its ONE leasing lobby is
+        # assembled as W — its side and service doors drop to E2, because a
+        # second two-storey glazed storefront on the back of the same tower is
+        # the double-draw this pass exists to avoid. Writing b.fam here would
+        # have told the served file those back doors were W, which is the
+        # instrument lying about the thing it was built to measure.
+        self.fam = famkey or b.fam
+        self.famsrc = famwhy or b.famwhy
+        self._srcdone = False
         self.src = src
         self.cx, self.cy = c.x, c.y
         self.tx, self.ty, self.nx, self.ny = c.tx, c.ty, c.nx, c.ny
@@ -3652,9 +4537,23 @@ class Ent(object):
             "k": k, "eid": self.eid, "bid": self.bid, "ref": self.ref,
             "nm": self.nm, "role": self.role, "era": self.era,
             "n": self.n, "dt": self.dt, "mat": mat,
+            "fam": self.fam,
             "base": round(z0, 3), "h": round(z1 - z0, 3),
             "wd": wd, "wg": wg, "wn": wn or wn_auto, "src": self.src,
         }
+        # `famsrc` RIDES THE FIRST PIECE OF EACH ENTRANCE ONLY, and that is a
+        # payload decision with a measured reason. It is one value per DOOR, but
+        # a GeoJSON FeatureCollection has no per-door container, so writing it on
+        # all 14,720 pieces cost 0.65 MB on a file the app already defers because
+        # it is 6.7 MB (see the js/entrances.js header on ENT.defer). `fam` is
+        # one or two characters and rides everything; `famsrc` is a word and
+        # rides the reveal. The contract for a reader is therefore: GROUP BY
+        # `eid` AND TAKE THE PIECE THAT CARRIES IT — which is what
+        # scripts/verify/campusmeter.mjs does, and what any per-door question has
+        # to do anyway.
+        if not self._srcdone:
+            props["famsrc"] = self.famsrc
+            self._srcdone = True
         if extra:
             # `nmv` / `gtv`: "how much of West Campus is guessed" has to be a
             # query, not an archaeology project (westcampus.md §8 rule 3).
@@ -3743,7 +4642,7 @@ def assemble_w(feats, b, c, eid, stats):
     if c.wcrole == "gate":
         gtv = (c.wcmeth == "sourced")
         e = Ent(feats, eid, b, c, fam, None, "service", 1, "roll", "steel",
-                c.src)
+                c.src, famkey="W", famwhy="wc-table")
         gh = min(WC_GATE_H_MAX, band_h - WC_GATE_HEAD)
         half = WC_GATE_W / 2.0
         ex = {"gtv": gtv}
@@ -3822,7 +4721,8 @@ def assemble_w(feats, b, c, eid, stats):
         z_top = head + WC_CAN_CLEAR + WC_RAIL_T
         stats["wc_head_clamped"] += 1
 
-    e = Ent(feats, eid, b, c, fam, None, "main", n_leaf, dt, "glass", c.src)
+    e = Ent(feats, eid, b, c, fam, None, "main", n_leaf, dt, "glass", c.src,
+            famkey="W", famwhy="wc-table")
     gcol = glass_for(b.ref, fam, b.bid)
     gnight = night_glass(eid)
     lease_night = GLASS_NIGHT_LIT[1 % len(GLASS_NIGHT_LIT)]
@@ -3932,8 +4832,12 @@ def assemble_w(feats, b, c, eid, stats):
         ctop = GROUND_Z + min(WC_CAN_TOP_MAX, lobby_h - WC_CAN_HEAD_CLEAR)
     ctop = max(ctop, head + WC_CAN_CLEAR + ct_)
     ctop = min(ctop, z_top - WC_RAIL_T)
+    # `csrc` on every canopy in the file, so "how many canopies are sourced"
+    # is one query rather than an archaeology project. This one is
+    # westcampus.md §1's signboard canopy, cited there.
     e.box("canopy", "steel", STEEL, -(half + WC_CAN_SIDE), half + WC_CAN_SIDE,
-          0.0, cp, ctop - ct_, ctop, None, ex)
+          0.0, cp, ctop - ct_, ctop, None,
+          dict(ex or {}, csrc="westcampus"))
     e.box("canopy", "steel", SOFFIT_DK, -(half + WC_CAN_SIDE),
           half + WC_CAN_SIDE, 0.0, cp, ctop - ct_ - 0.06, ctop - ct_, None, ex)
 
@@ -3990,6 +4894,61 @@ def assemble(feats, b, c, eid, stats):
             fam["canopy"] = None
 
     role = c.role or "secondary"
+
+    # ── WHAT STANDS OVER THIS DOOR. Families A, B, E3, E4 and E5 already
+    #    say `canopy=None` and the photographs agree with all of them (0 of
+    #    23 observed). Families C, D and E2 asserted one on every door they
+    #    touched and no photograph was ever consulted; V's porch and W's
+    #    signboard are cited in eras.md/westcampus.md and stay. So the gate
+    #    runs on exactly the three unevidenced families, and it runs the same
+    #    way every time: obey the photograph, and where there is no
+    #    photograph, draw nothing.
+    #
+    #    `fam_src`-style provenance rides out on the piece as `csrc`, so a
+    #    later pass can find every canopy in the file and read why it is
+    #    there without re-deriving this table.
+    shelter, sh_row = shelter_for(b.ref, role, b, c)
+    fam["shelter"] = shelter or "unknown"
+    fam["canopy_src"] = None
+    if fam_key not in ("V", "W"):
+        # OBEY THE PHOTOGRAPH BOTH WAYS. A canopy the picture shows gets drawn
+        # whatever family the building is in — the one canopy found on a plant
+        # building (CS6) and the two toll canopies over garage lanes are the
+        # reason this is not restricted to the three families that used to
+        # assert one. And a canopy no picture shows is dropped, which only
+        # ever bites C / D / E2, because they are the only families that had
+        # one to drop.
+        if shelter == "canopy":
+            base = dict(CANOPY_MEDIAN)
+            for k in ("proj", "t", "top", "mat"):
+                if sh_row.get(k) is not None:
+                    base[k] = sh_row[k]
+            base["col"] = {"steel": STEEL, "concrete": CONCRETE,
+                           "stone": LIMESTONE}.get(base["mat"], STEEL)
+            fam["canopy"] = base
+            fam["canopy_src"] = "photo"
+            stats["canopy_photographed"] += 1
+        else:
+            if fam["canopy"]:
+                stats["canopy_unevidenced_dropped"] += 1
+                if not SHELTER_CANOPY_BY_DEFAULT:
+                    fam["canopy"] = None
+    elif fam["canopy"]:
+        # V's porch, W's signboard: both cited in their own docs.
+        fam["canopy_src"] = "family"
+
+    # The shelter also sets how deep the reveal reads. This is a SHADE, not a
+    # depth — see SHELTER_REVEAL_D — and it is the only part of `recess` and
+    # `arcade` that reaches the screen at all.
+    if shelter and SHELTER_REVEAL_D.get(shelter) is not None:
+        fam["reveal_d"] = SHELTER_REVEAL_D[shelter]
+        stats["shelter_reveal_" + shelter] += 1
+    if shelter:
+        # "reached a door" means the row actually applied, not merely that the
+        # building has a door somewhere. MAG and SAG are the reason: both have
+        # a photographed toll canopy and neither has a door the bake calls
+        # `main`, so both rows sit idle and this line is what says so.
+        SHELTER_USED.add((b.ref, role))
     src = c.src
 
     # ── the opening, clamped to the wall it sits on and slid clear of the
@@ -4104,7 +5063,10 @@ def assemble(feats, b, c, eid, stats):
     #       standing REVEAL_PROUD off the wall whose COLOUR is the shadow, plus
     #       two jamb returns that are the only real 3D depth in the assembly.
     #       Depth is read from value, not from geometry.
-    e = Ent(feats, eid, b, c, fam, cel, role, n_leaf, dt, mat, src)
+    e = Ent(feats, eid, b, c, fam, cel, role, n_leaf, dt, mat, src,
+            famkey=fam_key,
+            famwhy=("wc-secondary" if (b.wc and fam_key == "E2")
+                    else b.famwhy))
     # DEPTH IS A COLOUR HERE. The deeper the family's notional reveal, the
     # further the slab goes toward the arcade shadow the repo already sampled.
     # This is the whole of the depth read now; the jamb below is a return, not
@@ -4347,6 +5309,11 @@ def assemble(feats, b, c, eid, stats):
     can = fam["canopy"]
     if can:
         side = can.get("side", CANOPY_SIDE_D if fam_key == "D" else CANOPY_SIDE)
+        # A canopy read off a photograph gets that photograph's projection, so
+        # it also gets the plain side overhang — the wide one only ever
+        # existed to make family D's invented blade legible.
+        if fam.get("canopy_src") == "photo":
+            side = CANOPY_SIDE
         # A PORCH is measured from the door it shelters, a blade from the
         # ground. Family V is the only one that gives `over_head`, and it does
         # so because its flight height can come out of OSM steps evidence — an
@@ -4366,7 +5333,8 @@ def assemble(feats, b, c, eid, stats):
         ccol = (scale(b.wd, PORCH_HOST_DARKEN) if can.get("host")
                 else can["col"])
         e.box("canopy", can["mat"], ccol, -(half + side), half + side,
-              0.0, can["proj"], ct - can["t"], ct)
+              0.0, can["proj"], ct - can["t"], ct,
+              extra={"csrc": fam.get("canopy_src") or "family"})
         e.box("canopy", can["mat"], can.get("soffit", SOFFIT_DK),
               -(half + side), half + side,
               0.0, can["proj"], ct - can["t"] - 0.06, ct - can["t"])
@@ -5245,14 +6213,26 @@ def main():
         if old != b.fam:
             changed.append((b.ref or (b.name or b.osm_name or "?")[:14],
                             old, b.fam, YEAR_BY_REF.get(b.ref or "")))
+    _ut_new = sum(1 for c in YEAR_UTDIRECT if c not in REG_CODES)
     print("eras from register : %d of %d in-scope buildings carry a measured"
-          " year (%d refs in data/ut_buildings.json);"
-          % (dated, len(scope), len(YEAR_BY_REF)))
+          " year (%d refs = %d in data/ut_buildings.json + %d that file does"
+          " NOT carry, fetched from UT Direct %s);"
+          % (dated, len(scope), len(YEAR_BY_REF),
+             len(YEAR_BY_REF) - _ut_new, _ut_new, YEAR_UTDIRECT_DATE))
     print("                     %d changed family vs the hand-maintained list:"
           % len(changed))
     for ref, old, new, yr in sorted(changed, key=lambda t: (t[1], t[2], t[0])):
         print("                     %-14s %-2s -> %-2s  (%s)"
               % (ref, old, new, yr if yr is not None else "no year"))
+    if REF_SPLIT_ROWS:
+        print("multi-value osm ref: %d split on ';'" % len(REF_SPLIT_ROWS))
+        for raw, pick in REF_SPLIT_ROWS:
+            print("                     %-14s -> %s" % (raw, pick))
+    if OSM_CLASS_FILLED:
+        print("osm class fill     : %d footprints took a class from OSM's own"
+              " building=* where Overture had none  %s"
+              % (len(OSM_CLASS_FILLED),
+                 dict(Counter(c for c, _ in OSM_CLASS_FILLED))))
 
     n1 = stage1_osm(blds, tree, stats)
     print("stage 1 osm        : %d placed  (unplaceable %d, off-campus %d,"
@@ -5303,8 +6283,11 @@ def main():
 
     grid = Grid(segs, 25.0)
     stage3_public(scope, grid, stats)
-    print("stage 3 publicness : %d placed  (normal test %d)"
-          % (stats["stage3_placed"], stats["normal_fail_stage3"]))
+    print("stage 3 publicness : %d placed  (normal test %d);"
+          " FIELD_MAX=%d stopped %d buildings from spending the rest of a"
+          " perimeter budget on further guesses"
+          % (stats["stage3_placed"], stats["normal_fail_stage3"],
+             FIELD_MAX, stats["field_capped_bldgs"]))
 
     # ── E1, PER CANDIDATE INSTEAD OF PER BUILDING. Only the register-coded
     #    shopfront hosts admitted above are tested; every other place host is
@@ -5373,6 +6356,14 @@ def main():
           % (stats["ut_relabelled"], stats["ut_placed"], stats["ut_demoted"],
              stats["ut_no_host"], stats["ut_unplaceable"],
              stats["normal_fail_ut"]))
+    print("  UT_SNAP          : %d of those %d relabelled doors MOVED onto UT's"
+          " own coordinate (mean %.1f m, over src in %s); %d left where a second"
+          " survey had already put them; %d found no outward-facing wall within"
+          " %d ranked edges"
+          % (stats["ut_moved"], stats["ut_relabelled"],
+             stats["ut_moved_m"] / max(1, stats["ut_moved"]),
+             "/".join(UT_SNAP_OVER), stats["ut_kept_own_survey"],
+             stats["ut_move_no_wall"], UT_EDGE_SCAN))
 
     # ── THE TWO AUDITS. After every placement stage, before roles: a door
     #    that is about to be deleted must not first have been promoted to main.
@@ -5385,6 +6376,31 @@ def main():
           " footprint re-drawn (IoU >= %.2f) and are excluded from that"
           " host's burial test and march"
           % (stats["self_masses"], stats["self_mass_hosts"], SELF_IOU))
+    # THE SIDE AUDIT. Not the same claim as "how many did the side filter
+    # choose" — that counts what the RULE did. This counts what the DATA ends
+    # up saying, over every door carrying UT's survey flags, after every later
+    # stage (clear_buried can and does move a door to another wall). A door
+    # whose outward normal disagrees with UT's own compass column is on the
+    # wrong elevation no matter how close its coordinate is.
+    _side_hit = _side_miss = _side_unknown = 0
+    _side_bad = []
+    for b in scope:
+        for c in b.ents:
+            if not c.ut:
+                continue
+            k = ut_side_cos(c.ut[0], c.nx, c.ny)
+            if k is None:
+                _side_unknown += 1
+            elif k >= UT_SIDE_MIN:
+                _side_hit += 1
+            else:
+                _side_miss += 1
+                _side_bad.append("%s/%s" % (b.ref or "-", c.ut[0]))
+    print("  side audit       : %d of %d drawn UT doors face the side UT itself"
+          " publishes (cos >= %.2f); %d face another wall%s%s"
+          % (_side_hit, _side_hit + _side_miss, UT_SIDE_MIN, _side_miss,
+             "; %d rows name no side" % _side_unknown if _side_unknown else "",
+             "  " + " ".join(sorted(_side_bad)) if _side_bad else ""))
     for k in sorted(stats):
         if k.startswith("buriedmove|"):
             print("                     moved   %dx %s"
@@ -5638,11 +6654,88 @@ def main():
             if not p.get(key) or len(p[key]) != 7:
                 bad.append((p["k"], key, p.get(key), p["ref"]))
     print("")
+    # ══════════════════════════════════════════════════════════════════
+    #  ERA PROVENANCE — the headline of this pass, printed every run
+    #
+    #  Not "how many doors", not "how far from UT's door" — WHERE DID EACH
+    #  DOOR'S FAMILY COME FROM, and is that source a measurement or a shrug.
+    #  Before this block existed the answer was unknowable from the outside
+    #  and nobody had asked; the first run of it said 265 of 591 doors, 45%,
+    #  and 225 of them had no era at all.
+    #
+    #  It cannot be gamed by deleting doors: deleting a MEASURED one lowers
+    #  the numerator, deleting an unsourced one lowers the denominator, and
+    #  the percentage of the CITY that is honestly known does not move up by
+    #  drawing less of it. The complement is printed next to it for the same
+    #  reason.
+    # ══════════════════════════════════════════════════════════════════
+    doors = {}
+    for f in feats:
+        pr = f["properties"]
+        if "famsrc" in pr:
+            doors[pr["eid"]] = pr
+    by_rule = Counter(p.get("famsrc") for p in doors.values())
+    by_grade = Counter(ERA_GRADE.get(p.get("famsrc"), ("?", ""))[0]
+                       for p in doors.values())
+    by_fam = Counter(p.get("fam") for p in doors.values())
+    nd = max(1, len(doors))
+    print("ERA PROVENANCE     : %d doors; %d MEASURED (%.0f%%), %d AUTHORED,"
+          " %d GUESSED, %d with no era known at all"
+          % (nd, by_grade["MEASURED"], 100.0 * by_grade["MEASURED"] / nd,
+             by_grade["AUTHORED"], by_grade["GUESSED"], by_grade["NONE"]))
+    for rule, n in sorted(by_rule.items(), key=lambda kv: -kv[1]):
+        grade, what = ERA_GRADE.get(rule, ("?", "unknown rule"))
+        print("      %-8s %4d doors  %-8s %s" % (grade, n, rule, what))
+    print("  by family        : %s"
+          % dict(sorted(by_fam.items(), key=lambda kv: -kv[1])))
+
+    # THE DISAGREEMENT LIST. A hand-typed CELEBRATED family against UT's own
+    # measured year, every run, cited or not — this is the audit that found
+    # the round's defect and it stays so the class of error cannot hide again.
+    dis = []
+    for ref, cel in sorted(CELEBRATED.items()):
+        yr = YEAR_BY_REF.get(ref)
+        if yr is None or era_family_from_year(yr) == cel["fam"]:
+            continue
+        dis.append((ref, cel["fam"], era_family_from_year(yr), yr,
+                    bool(cel.get("fam_src"))))
+    print("  hand-typed family vs measured year: %d of %d CELEBRATED rows"
+          " disagree" % (len(dis), len(CELEBRATED)))
+    for ref, fam, yfam, yr, cited in dis:
+        print("      %-4s authored %-2s   year %d says %-2s   %s"
+              % (ref, fam, yr, yfam,
+                 "CITED, authored wins" if cited
+                 else "UNCITED -> the year wins (CEL_FAM_NEEDS_SRC)"))
+    uncited = [r for r, _, _, _, c in dis if not c]
+    if uncited:
+        print("      ^^ %d uncited disagreement(s): %s"
+              % (len(uncited), ", ".join(uncited)))
+
     print("pieces             : %d   kinds %s"
           % (len(feats), dict(Counter(f["properties"]["k"] for f in feats))))
     print("  bad base/h/colour: %d %s" % (len(bad), bad[:5]))
     print("  ramps %d   sign bands %d   arch spandrel sets %d"
           % (stats["ramps"], stats["sign_bands"], stats["arch_spandrels"]))
+
+    # ── WHAT STANDS OVER THE DOOR. Printed loudly because the whole point of
+    #    the change is that a canopy is now a claim with a source, and a
+    #    table row that reaches no door is a row quietly doing nothing.
+    reached = {r for r, _ in SHELTER_USED}
+    idle = sorted(set(SHELTER_OBS) - reached)
+    print("SHELTER            : %d canopies drawn from a photograph, "
+          "%d unevidenced canopies dropped"
+          % (stats["canopy_photographed"], stats["canopy_unevidenced_dropped"]))
+    print("                     reveal deepened: arcade %d, recess %d, "
+          "flush %d"
+          % (stats["shelter_reveal_arcade"], stats["shelter_reveal_recess"],
+             stats["shelter_reveal_flush"]))
+    print("  observations idle: %d of %d rows reached no door on their "
+          "building %s"
+          % (len(idle), len(SHELTER_OBS), idle[:8]))
+    idle_canopy = [r for r in idle if SHELTER_OBS[r]["k"] == "canopy"]
+    if idle_canopy:
+        print("      ^^ %d of those is a photographed CANOPY that is still "
+              "not drawn: %s" % (len(idle_canopy), ", ".join(idle_canopy)))
 
     # ── NOTHING FLOATS. Two audits over the LOCAL frame, because the whole
     #    PCL defect is a support question and a support test in lon/lat is a
