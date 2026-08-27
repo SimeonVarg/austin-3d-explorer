@@ -468,8 +468,12 @@ unaffected.)
 * **No perf measurement.** Sibling lanes were running; a frame time taken on
   this machine tonight would be a lie. The +1,593 edges and +5.3 KB gzip are
   reported as sizes, not as costs.
-* **The other six stale bakes named in HANDOFF §198's housekeeping note were not
-  touched.** Only `bake_walk.py`, which was the seventh and was not on the list.
+* **The other stale bakes were not touched.** `python scripts/snapshot_parity.py`
+  still reports `drag.geojson`, `facade_palette.json` and `westcampus.geojson`
+  on snapshot 2026-08-16 against a manifest on 2026-08-27. Zero of 2,453
+  footprint geometries differ between those two, so nothing is misplaced by it,
+  but each of those bakes owns a different output file and is a different lane's
+  to re-run.
 
 ## 8. Files
 
