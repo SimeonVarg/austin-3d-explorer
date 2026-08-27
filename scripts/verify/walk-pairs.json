@@ -4,27 +4,27 @@
   "_asOf": "2026-08-24",
   "pairs": [
     { "id": "gdc-jes", "from": "GDC", "to": "JES",
-      "fromDoorCorrect": 382, "toDoorCorrect": 435,
+      "fromDoorCorrect": 340, "toDoorCorrect": 389,
       "tags": [],
       "note": "GDC: UT South row 3.5m from door 382 (secondary); app main is door 379. JES: UT Northwest row 3.8m from door 435 (secondary); app main is door 433. Both clean matches (<5m)." },
     { "id": "wel-pai", "from": "WEL", "to": "PAI",
-      "fromDoorCorrect": null, "toDoorCorrect": 509,
+      "fromDoorCorrect": null, "toDoorCorrect": 462,
       "tags": [],
       "note": "WEL: all 3 UT rows have null Longitude/Latitude in the live feed -- no correction possible, app's own main (door 649) used. PAI: UT East row 7.2m from door 509 (secondary); app main is door 511." },
     { "id": "gdc-wel", "from": "GDC", "to": "WEL",
-      "fromDoorCorrect": 382, "toDoorCorrect": null,
+      "fromDoorCorrect": 340, "toDoorCorrect": null,
       "tags": ["speedway"],
       "note": "Crosses Speedway: GDC's doors average lon -97.7366 (east of the measured Speedway way-band -97.7376..-97.7369 in data/osm_cache/footways.json), WEL averages -97.7378 (west). WEL has no UT coordinate (see wel-pai)." },
     { "id": "eer-nhb", "from": "EER", "to": "NHB",
-      "fromDoorCorrect": 363, "toDoorCorrect": 499,
+      "fromDoorCorrect": 316, "toDoorCorrect": 456,
       "tags": ["speedway"],
       "note": "Crosses Speedway (EER -97.7352 east, NHB -97.7382 west). EER: UT West row 18.6m from door 363 (secondary); app main is door 367. NHB: UT Northeast row 44.4m from door 499 (secondary) -- the loosest match used in this set, still clearly nearer than the app's main (door 498) and consistent with docs/walk-evidence.md's independent 85.6m figure for this building." },
     { "id": "rlp-gar", "from": "RLP", "to": "GAR",
-      "fromDoorCorrect": null, "toDoorCorrect": 377,
+      "fromDoorCorrect": null, "toDoorCorrect": 333,
       "tags": ["speedway"],
       "note": "Crosses Speedway (RLP -97.7353 east, GAR -97.7383 west). RLP: two UT rows are ambiguous -- North row is 23.8m from door 544 (secondary), Northeast row is 19.7m from door 545 (the app's OWN main) -- the closer match is the app's current door, so no correction is applied and RLP is treated as presumed-correct here, not silently guessed. GAR: both UT rows (West, South) agree on door 377 (secondary); app main is door 378." },
     { "id": "pma-mez", "from": "PMA", "to": "MEZ",
-      "fromDoorCorrect": 526, "toDoorCorrect": 481,
+      "fromDoorCorrect": 479, "toDoorCorrect": 432,
       "tags": ["speedway"],
       "note": "Crosses Speedway (PMA -97.7362 east, MEZ -97.7387 west). PMA: UT Northeast row is 2.1m from door 526 -- which IS the app's current main door, so PMA is a CORRECT case (included for contrast, not every pair here is a defect). MEZ: both UT rows agree on door 481 (secondary), 2.8m at the closer one; app main is door 482." },
     { "id": "uta-cal", "from": "UTA", "to": "CAL",
@@ -32,56 +32,277 @@
       "tags": ["drag"],
       "note": "Crosses the Drag: UTA sits at -97.7430, west of the measured campus bbox edge (-97.7420 in docs/walk-evidence.md §0), i.e. across Guadalupe from the rest of this set. UTA: both UT rows are loose (33.9m/44.6m) and the closer one matches the app's own main door 624, so no correction applied. CAL: UT's only row has null coordinates -- no correction possible." },
     { "id": "pcl-gdc", "from": "PCL", "to": "GDC",
-      "fromDoorCorrect": 518, "toDoorCorrect": 382,
+      "fromDoorCorrect": 471, "toDoorCorrect": 340,
       "tags": [],
       "note": "PCL: UT North row 12.4m from door 518 (secondary); app main is door 517. GDC: see gdc-jes." },
     { "id": "wag-gar", "from": "WAG", "to": "GAR",
-      "fromDoorCorrect": 636, "toDoorCorrect": 377,
+      "fromDoorCorrect": 570, "toDoorCorrect": 333,
       "tags": [],
       "note": "WAG: UT Northeast row 2.6m from door 636 (secondary); app main is door 635. GAR: see rlp-gar." },
     { "id": "mez-cal", "from": "MEZ", "to": "CAL",
-      "fromDoorCorrect": 481, "toDoorCorrect": null,
+      "fromDoorCorrect": 432, "toDoorCorrect": null,
       "tags": [],
       "note": "MEZ: see pma-mez. CAL: no UT coordinate (see uta-cal)." },
     { "id": "bur-szb", "from": "BUR", "to": "SZB",
-      "fromDoorCorrect": 306, "toDoorCorrect": 594,
+      "fromDoorCorrect": 260, "toDoorCorrect": 532,
       "tags": [],
       "note": "BUR: UT South row 22.0m from door 306, which IS the app's current main -- a loose match but the nearest available and the same physical door, so BUR is treated as CORRECT here. SZB: UT East row 5.4m from door 594, also the app's current main -- CORRECT." },
     { "id": "cba-utc", "from": "CBA", "to": "UTC",
-      "fromDoorCorrect": null, "toDoorCorrect": 627,
+      "fromDoorCorrect": null, "toDoorCorrect": 562,
       "tags": [],
       "note": "CBA has no row at all in UT's Celebrated_Entrances_view -- no correction possible, app's own main (door 316) used. UTC: UT Northeast row 10.9m from door 627, the app's current main -- CORRECT." },
     { "id": "ecj-pai", "from": "ECJ", "to": "PAI",
-      "fromDoorCorrect": 362, "toDoorCorrect": 509,
+      "fromDoorCorrect": 312, "toDoorCorrect": 462,
       "tags": [],
       "note": "ECJ carries a distinct Non_ADA_Celebrated_Entrances_view row (the ceremonial, non-barrier-free door): 17.2m from door 362 (secondary); app main is door 361. The barrier-free UT row for the same building is 33.7m from door 361 (the app's main) -- farther, so the non-ADA row is used as \"the door most students use\" per docs/walk-evidence.md §E. PAI: see wel-pai." },
     { "id": "jgb-gdc", "from": "JGB", "to": "GDC",
-      "fromDoorCorrect": 438, "toDoorCorrect": 382,
+      "fromDoorCorrect": 392, "toDoorCorrect": 340,
       "tags": [],
       "note": "JGB: UT Southwest row 20.2m from door 438 (secondary) -- above the 15-16m \"clean\" separation docs/walk-evidence.md found elsewhere, but it is the only and nearest match; app main is door 440. GDC: see gdc-jes." },
     { "id": "nhb-pma", "from": "NHB", "to": "PMA",
-      "fromDoorCorrect": 499, "toDoorCorrect": 526,
+      "fromDoorCorrect": 456, "toDoorCorrect": 479,
       "tags": ["speedway"],
       "note": "Crosses Speedway (reverse of eer-nhb / pma-mez). NHB: see eer-nhb. PMA: see pma-mez (CORRECT)." },
     { "id": "phr-bio", "from": "PHR", "to": "BIO",
-      "fromDoorCorrect": 521, "toDoorCorrect": 286,
+      "fromDoorCorrect": 475, "toDoorCorrect": 240,
       "tags": [],
       "note": "PHR: both UT rows (North, West) agree on door 521 (secondary), 8.6m at the closer one; app main is door 522. BIO: UT's only row is 48.8m from door 286 (secondary) -- loose, but consistent with docs/walk-evidence.md's independently-measured 59.2m figure for this building; app main is door 287." },
     { "id": "wch-mai", "from": "WCH", "to": "MAI",
-      "fromDoorCorrect": 637, "toDoorCorrect": 463,
+      "fromDoorCorrect": 573, "toDoorCorrect": 414,
       "tags": ["level-change"],
       "note": "Candidate level-change pair: the South Mall rises to the Main Building/Tower plaza. WCH: UT West row 1.4m from door 637 (secondary) -- the cleanest match in this whole set; app main is door 638. MAI: UT West row 25.5m from door 463 (secondary); app main is door 465. Whether the route actually crosses a mapped `highway=steps` way is reported per-pair by walkmeter.mjs (m.stairSets), not assumed." },
     { "id": "pcl-unb", "from": "PCL", "to": "UNB",
-      "fromDoorCorrect": 518, "toDoorCorrect": null,
+      "fromDoorCorrect": 471, "toDoorCorrect": null,
       "tags": ["level-change", "drag"],
       "note": "Candidate level-change pair: the West Mall descends toward Guadalupe near the Union. PCL: see pcl-gdc. UNB has no row in UT's Celebrated_Entrances_view -- no correction possible, app's own main (door 619) used. m.stairSets is reported by walkmeter.mjs, not assumed." },
     { "id": "pat-rlp", "from": "PAT", "to": "RLP",
-      "fromDoorCorrect": 513, "toDoorCorrect": null,
+      "fromDoorCorrect": 469, "toDoorCorrect": null,
       "tags": [],
       "note": "PAT: UT North row 16.9m from door 513 (secondary); app main is door 514. RLP: see rlp-gar (presumed correct, ambiguous UT match)." },
     { "id": "utc-fac", "from": "UTC", "to": "FAC",
-      "fromDoorCorrect": null, "toDoorCorrect": 374,
+      "fromDoorCorrect": null, "toDoorCorrect": 329,
       "tags": [],
       "note": "UTC: see cba-utc (CORRECT). FAC: two UT rows on different sides (Southeast 31.4m from door 374, Northwest 50.8m from door 372) -- neither clean; the closer one (374) is used as the best-available call, documented rather than silently picked. App main is door 373." }
+  ],
+ "_reindexed": {
+  "when": "2026-08-27",
+  "why": "The indices in this file are POSITIONS in data/walk_graph.json's `d` array, and that array is renumbered by any re-bake. On 2026-08-27 the shipped walk_graph.json was found STALE against the data/entrances.geojson the same tree ships (656 doors in the graph, 591 in the entrance file, and snapshot 2026-08-16 against a manifest on 2026-08-27). Re-baking it renumbered every door, so all 30 frozen indices below came to point at a DIFFERENT BUILDING -- GDC's front door became Jester East, MAI's became Painter Hall -- and walkmeter scored them without complaint: metric A read 282.0 m and the signed total -6856 m, all of it an artifact. They were re-derived by the rule this file's own `_what` already states -- the graph door nearest UT's published Celebrated entrance for that code, from the 97-row UT_CELEBRATED table in js/wayfind.js -- against the current graph. Same building on all 30, and the ground truth got CLOSER to UT's point in the process (median 3.7 m -> 1.4 m, worst 47.1 m -> 2.6 m) because HANDOFF 198 moved those doors there. `mToUT` below is each new index's distance to the UT point it was matched on, so the derivation can be checked without re-running it. walkmeter.mjs now self-checks that each index's door carries the pair's own building code and FAILS if it does not, so this cannot rot quietly again. Full write-up: docs/walkways-on-the-real-paths.md 2.",
+  "graphFingerprint": {
+   "doors": 591,
+   "snapshot": "2026-08-27",
+   "asOf": "2026-07-30T16:47:30Z"
+  },
+  "remapped": [
+   {
+    "pair": "gdc-jes",
+    "side": "from",
+    "was": 382,
+    "now": 340,
+    "mToUT": 1.41
+   },
+   {
+    "pair": "gdc-jes",
+    "side": "to",
+    "was": 435,
+    "now": 389,
+    "mToUT": 1.34
+   },
+   {
+    "pair": "wel-pai",
+    "side": "to",
+    "was": 509,
+    "now": 462,
+    "mToUT": 0.44
+   },
+   {
+    "pair": "gdc-wel",
+    "side": "from",
+    "was": 382,
+    "now": 340,
+    "mToUT": 1.41
+   },
+   {
+    "pair": "eer-nhb",
+    "side": "from",
+    "was": 363,
+    "now": 316,
+    "mToUT": 0.86
+   },
+   {
+    "pair": "eer-nhb",
+    "side": "to",
+    "was": 499,
+    "now": 456,
+    "mToUT": 0.63
+   },
+   {
+    "pair": "rlp-gar",
+    "side": "to",
+    "was": 377,
+    "now": 333,
+    "mToUT": 5.42
+   },
+   {
+    "pair": "pma-mez",
+    "side": "from",
+    "was": 526,
+    "now": 479,
+    "mToUT": 2.02
+   },
+   {
+    "pair": "pma-mez",
+    "side": "to",
+    "was": 481,
+    "now": 432,
+    "mToUT": 1.53
+   },
+   {
+    "pair": "pcl-gdc",
+    "side": "from",
+    "was": 518,
+    "now": 471,
+    "mToUT": 1.33
+   },
+   {
+    "pair": "pcl-gdc",
+    "side": "to",
+    "was": 382,
+    "now": 340,
+    "mToUT": 1.41
+   },
+   {
+    "pair": "wag-gar",
+    "side": "from",
+    "was": 636,
+    "now": 570,
+    "mToUT": 2.6
+   },
+   {
+    "pair": "wag-gar",
+    "side": "to",
+    "was": 377,
+    "now": 333,
+    "mToUT": 5.42
+   },
+   {
+    "pair": "mez-cal",
+    "side": "from",
+    "was": 481,
+    "now": 432,
+    "mToUT": 1.53
+   },
+   {
+    "pair": "bur-szb",
+    "side": "from",
+    "was": 306,
+    "now": 260,
+    "mToUT": 0.63
+   },
+   {
+    "pair": "bur-szb",
+    "side": "to",
+    "was": 594,
+    "now": 532,
+    "mToUT": 1.08
+   },
+   {
+    "pair": "cba-utc",
+    "side": "to",
+    "was": 627,
+    "now": 562,
+    "mToUT": 8.27
+   },
+   {
+    "pair": "ecj-pai",
+    "side": "from",
+    "was": 362,
+    "now": 312,
+    "mToUT": 0.24
+   },
+   {
+    "pair": "ecj-pai",
+    "side": "to",
+    "was": 509,
+    "now": 462,
+    "mToUT": 0.44
+   },
+   {
+    "pair": "jgb-gdc",
+    "side": "from",
+    "was": 438,
+    "now": 392,
+    "mToUT": 11.5
+   },
+   {
+    "pair": "jgb-gdc",
+    "side": "to",
+    "was": 382,
+    "now": 340,
+    "mToUT": 1.41
+   },
+   {
+    "pair": "nhb-pma",
+    "side": "from",
+    "was": 499,
+    "now": 456,
+    "mToUT": 0.63
+   },
+   {
+    "pair": "nhb-pma",
+    "side": "to",
+    "was": 526,
+    "now": 479,
+    "mToUT": 2.02
+   },
+   {
+    "pair": "phr-bio",
+    "side": "from",
+    "was": 521,
+    "now": 475,
+    "mToUT": 0.84
+   },
+   {
+    "pair": "phr-bio",
+    "side": "to",
+    "was": 286,
+    "now": 240,
+    "mToUT": 2.6
+   },
+   {
+    "pair": "wch-mai",
+    "side": "from",
+    "was": 637,
+    "now": 573,
+    "mToUT": 1.64
+   },
+   {
+    "pair": "wch-mai",
+    "side": "to",
+    "was": 463,
+    "now": 414,
+    "mToUT": 7.69
+   },
+   {
+    "pair": "pcl-unb",
+    "side": "from",
+    "was": 518,
+    "now": 471,
+    "mToUT": 1.33
+   },
+   {
+    "pair": "pat-rlp",
+    "side": "from",
+    "was": 513,
+    "now": 469,
+    "mToUT": 0.44
+   },
+   {
+    "pair": "utc-fac",
+    "side": "to",
+    "was": 374,
+    "now": 329,
+    "mToUT": 0.89
+   }
   ]
+ }
 }

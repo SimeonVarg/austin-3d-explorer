@@ -1,5 +1,121 @@
 # Austin 3D Explorer — Full Handoff
 
+## 200. Aug 27 2026 — a mall is a surface, not a fence: the router crosses the plazas now, and the walk graph turned out to be stale against its own doors (`acer/cd-walkways`, not merged)
+
+Full write-up with the before/after frames: `docs/walkways-on-the-real-paths.md`.
+Two scripts changed — `scripts/bake_walk.py` (owns `data/walk_graph.json`) and a
+new `scripts/trace_walkways.py` (owns `data/walkway_evidence.json`). **No app
+code. `data/ground.geojson` byte-identical, checked by SHA-256. `WAYFIND.on`
+still `false`.**
+
+**The brief's premise was half stale, and checking it decided the round.** It
+said the drawn paths do not follow the real ones. Measured, they do: campusmeter
+puts them within 5 m of a fresh OSM pull on 624 of 625 sampled points, median
+1.2 m, and 98.5 % of a route's metres already stand on a drawn surface. What
+does not follow the real ones is the ROUTE. `build_raw()` puts a
+`highway=pedestrian area=yes` way into the graph as a ring of edges and nothing
+across the middle, so the router walks students AROUND the South Mall.
+**UT Tower → PCL was 630 m for a walk that is 484 m.**
+
+**THE THING TO READ FIRST, and it is not about walkways.** `data/walk_graph.json`
+as committed carries **656 doors**; the `data/entrances.geojson` in the same tree
+carries **591**. §198/§199 deleted 118 invented doors and moved 17 onto UT's
+surveyed points and the walk graph was never re-baked. Re-baking with no
+functional change moved nodes 11,284 → 11,206 and the snapshot 2026-08-16 →
+2026-08-27 (`snapshot_parity.py` now reports `walk_graph.json PASS`; 0 of 2,453
+footprint geometries differ between those two snapshots, so nothing moved) — and it renumbered the `d` array, so **all thirty of the frozen
+ground-truth door indices in `scripts/verify/walk-pairs.json` came to point at a
+DIFFERENT BUILDING** (GDC's front door became Jester East, MAI's became Painter
+Hall). `walkmeter.mjs` scored them without a word: 87.0 m became 282.0 m and the
+signed total became −6,856 m, all of it an artifact. The indices were re-derived
+by the rule that file's own `_what` states — nearest graph door to UT's published
+Celebrated entrance — same building on all 30, and the ground truth got closer to
+UT's point in the process (median 3.7 m → 1.4 m, worst 47.1 m → 2.6 m). And
+`walkmeter.mjs` now FAILS its self-check when an index's door does not carry the
+pair's own building code, and it was WATCHED failing — pointed at the pre-repair
+pair file it prints thirty complaints and exits 1 where it used to print a
+confident wrong number. **§198's housekeeping note
+lists six bakes on a stale snapshot. `bake_walk.py` was on that list by its
+snapshot and NOT on it by its doors, and the doors were the half that mattered:
+the stale snapshot moved nothing (0 of 2,453 geometries differ), the stale door
+file moved sixty-five doors and broke the meter.**
+
+**The chords, and the one change to the patch §6 of `docs/walk-sidewalks.md`
+asked for.** That patch said to triangulate the 41 pedestrian areas. It would
+have been wrong: **OSM's plaza polygons on this campus are not all pavement.**
+The Main Mall polygon contains the two South Mall LAWN PANELS. So every chord is
+put to a real aerial photograph — USGS NAIP, public domain, fetched at the
+source's own 0.30 m/px — before it is added, and one running over open turf is
+refused.
+
+```
+6,720 vertex pairs on 36 plazas -> 1,711 survive the geometry
+   -134 refused: OPEN TURF under the line          <- the point of the whole thing
+ = 1,577 confirmed, 1,573 become new edges across 33 plazas
+```
+
+**The numbers, with the control run.** Both arms are the same re-baked graph and
+the same repaired ground truth, so the delta is the chords alone (door array
+order identical, 591 of 591 rows):
+
+```
+walkmeter                       no chords      with chords
+  A extra m over pairs it makes worse   2.0 m        2.0 m
+  A signed total                     -594.9 m     -541.4 m
+  B ends at UT's own door              38/38        38/38
+  mean route length                   435.4 m      431.2 m
+  self-check drift / live UI gate    0.00 / PASS  0.00 / PASS
+
+bake_ground.py --walkaudit, 20 pairs, 1 m, zero tolerance
+  drawn metres                        13,042       12,828   (-214 m)
+  on a drawn WALK                     95.20 %      96.55 %
+  on any drawn surface                98.50 %      98.37 %
+  over bare ground                1.50 % (196 m)  1.63 % (209 m)
+```
+
+The signed total moves 53.5 m the "wrong" way and that is the metric working:
+the chords shorten the route FORCED to the ground-truth door more than the app's
+own, because that was the route taking the long way round a mall. Bare ground
+gains 13 m of 12,828 and the doc names it rather than rounding it away.
+
+**Desire paths: ZERO, and it was pushed hard before it was written down.**
+42,233 geometric shortcut candidates in the campus bbox; 9,497 cross a
+carriageway, 5,627 a building, 740 water, 138 a mapped fence; of what reached the
+photograph, 3,947 have flanks that are not lawn (a shortcut across a paved court
+is a missing link, not a desire path) and 49 have lawn either side and **no worn
+line**. Relaxed to a 1.15 detour ratio and a 5 m gain: 100,003 candidates, 617
+with lawn on both flanks, **zero** reaching the worn threshold and two reaching
+half of it. Three reasons that zero could still be wrong — 0.30 m/px is under
+three pixels for a 0.8 m track, both ends must already be OSM nodes, and NAIP is
+one flight on one date — are in the doc. `desire_paths` ships as an empty array
+that the bake reads every run, so the wiring is there when evidence turns up.
+
+**`campusmeter.mjs` is byte-identical to the starting numbers and that is
+correct: its two paths metrics score `data/ground.geojson`, and this round
+changed `data/walk_graph.json`. It never opens the walking graph.** A campusmeter
+section that read the graph would be the honest fix and this lane deliberately
+did not add one — a lane extending the scoreboard it is graded on should not be
+believed.
+
+**Two things measured and NOT shipped, so nobody re-derives them.** (1)
+campusmeter's paths metric B is **not** a hem artifact: pulling every sampled
+ring vertex up to 2.4 m into its own slab, on 0.30 m imagery, does not move it
+(15.7 % → 15.4 %). What the same points do say is that only **2.1 %** of them are
+open sunlit turf — the rest is dark and green, i.e. canopy — which resolves the
+caveat that metric prints about itself. (2) **Every walkway in this city is 2.4 m
+wide because that is the default**: 0 of 3,098 campus footways carries a `width`
+tag, so `DEFAULT_WIDTH['footway']` is stamped on all of them, which is the facade
+template defect one system over. It cannot be fixed from this photograph — the
+aggregate perpendicular profile of 8,822 stations across every campus footway is
+FLAT out to 7.8 m, because most campus walks are not bordered by turf at all.
+That needs finer imagery or LiDAR intensity, not another go at this one.
+
+**New in `scripts/verify/`:** `plazawalk.mjs` photographs a route and reports how
+many ribbon polygons the renderer actually rasterised, because a frame with a
+route pill and no ribbon has happened here before. It caught itself twice this
+round: once reading the wrong one of the three wayfind sources, once framing a
+route that never entered the box.
+
 ## 200. Aug 27 2026 — a measured building gets a bigger tile: the walk-band window pitch from 10.4x wrong to 2.6x, and the crawl at eye level halved (`acer/cd-facades`, not merged)
 
 Full write-up with the before/after frames: `docs/facade-tile-size.md`.
