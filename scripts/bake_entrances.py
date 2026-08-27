@@ -333,6 +333,135 @@ UT_MATCH_R = 12.0       # m; one of our doors IS this UT door within this far.
                         # js/wayfind.js WAYFIND.utDoorMatchM is the same number
                         # for the same reason; keep them together.
 
+# ── `derived` WAS TWO DIFFERENT CLAIMS WEARING ONE WORD ───────────────
+# This file's header promises that "`src` on every emitted piece says where its
+# POSITION came from", and then two stages that know very different amounts
+# both wrote `derived`:
+#
+#   stage2_paths  a real OSM footway physically CROSSES this wall here, or a
+#                 real path dead-ends against it. Something in the world put a
+#                 line on the ground leading to this exact spot. That is
+#                 evidence about a door.
+#   stage3_public a ranking. No path touches this wall at all; it merely scores
+#                 well on the publicness field — it faces a walkable line
+#                 within APPROACH_R and the building has budget left over. That
+#                 is a GUESS, and a defensible one (the alternative is 168 of
+#                 274 named campus buildings with no door at all), but it is not
+#                 evidence and it should never have been able to hide behind the
+#                 same word as a measured path crossing.
+#
+# Measured on the 2026-08-16 snapshot: 706 doors, of which 573 said `derived`.
+# Splitting them is the whole reason a reader can now see, on any single door,
+# whether the app is reporting something it found or something it inferred.
+# Nothing in the repo branched on the string `derived` (only `westcampus`, in
+# bake_walk.py), so this is a vocabulary change, not a behaviour change.
+SRC_PATH = "path"     # a real footway crosses / dies at this wall  [M]
+SRC_FIELD = "field"   # nothing touches this wall; the publicness field
+                      # ranked it and the building had budget left      [A]
+
+# ── A GUESS MAY SAY "THERE IS A DOOR". IT MAY NOT SAY "THERE ARE FIVE" ─
+# Once the split above made the field doors countable, the shape of the problem
+# was legible for the first time. On the 2026-08-16 snapshot: 707 doors on 295
+# buildings, 333 of them from the field. 136 of those 295 buildings have NO
+# evidenced door of any kind — no UT survey point, no OSM node, no footway
+# reaching a wall — so removing the field outright would leave 46% of campus
+# doorless, which is its own lie. The field has to stay.
+#
+# But look at how the 333 were spread: 141 buildings got exactly one, and then
+# 55 got two, 15 got three, 5 got four, 2 got five, one unnamed footprint got
+# SEVEN — seven doors, on a building about which nothing whatever is known. The
+# second, third and seventh field door are not a second opinion; they are the
+# same single guess ("this wall faces a walkway and the building is big") run
+# again on the next-best-scoring sample, because `budget_for` sized the budget
+# off PERIMETER LENGTH (P_PER_DOOR) and stage 3 spends whatever is left.
+#
+# That is the mechanism behind the worst numbers in the entrance scoreboard:
+# the Seay Building's five field doors are what put drawn doors 80-98 m from
+# UT's own surveyed Seay entrance.
+#
+# So: the field may assert EXISTENCE, once. Every door past the first on a
+# building must be evidenced by something in the world. A building with four
+# real doors still gets four — this cap never touches an `osm`, `path`, `ut`,
+# `authored` or `westcampus` door.
+FIELD_MAX = 1         # field-sourced doors per building.  TASTE-ADJACENT: if
+                      # campus reads as under-doored on screen, raise this to 2
+                      # here and nowhere else. It is deliberately one number.
+
+# ── UT'S SURVEY SETS THE POSITION, NOT ONLY THE ROLE ──────────────────
+# The stage below used to do one thing on a match and one thing only: relabel
+# our door `main`. It kept OUR coordinate. So a building could carry UT's own
+# survey flags on a door drawn 11.8 m from where UT says the door is, and the
+# file would report it as a success — the header above says UT's answer "beats
+# every heuristic in this file", and then the heuristic kept the geometry.
+#
+# Measured on the 2026-08-16 snapshot before this pass: of the 81 UT doors with
+# a host in scope, 31 were RELABEL cases, and 7 of those sat 10.5-11.8 m from
+# UT's point — inside UT_MATCH_R, so "the same doorway", and still drawn on the
+# wrong part of the wall. The other 47 were PLACE cases, which already used
+# UT's coordinate, and those score 44 of 47 within 10 m. The two halves of one
+# stage disagreed about whether the survey was authoritative.
+#
+# So a matched door is now MOVED onto UT's surveyed point (projected onto the
+# host wall by the same snap_to_edge the PLACE branch uses), and its `src`
+# becomes `ut`, because `src` in this file means where the POSITION came from.
+UT_SNAP = True          # move a matched door onto UT's own point   [A]
+UT_SNAP_OVER = (SRC_PATH, SRC_FIELD)  # ...but only over these. An `osm`
+                        # door is not a heuristic — it is a second independent
+                        # survey that already sits 0.4 m (median) from its own
+                        # node, and overwriting one survey with another is not
+                        # an accuracy gain, it is a coin toss with extra steps.
+                        # Add "osm" to this tuple in one line if
+                        # a later round decides UT outranks OSM outright; the
+                        # bake prints how many doors the choice affects.
+UT_EDGE_SCAN = 24       # candidate footprint edges the UT stage ranks before
+                        # choosing a wall. The old code snapped to the SINGLE
+                        # nearest edge and threw the surveyed door away if that
+                        # edge's outward normal pointed back into the mass —
+                        # which is exactly what happens when UT's point lands in
+                        # a re-entrant corner or a light well. UT says there is
+                        # a door here; the right answer is to look at the next
+                        # wall, not to discard a door a human physically stood
+                        # in front of. 3 doors were being dropped this way
+                        # (`normal test 3` on the bake's UT line); with the scan
+                        # it is 0. 24 rather than 4 because Overture tessellates
+                        # one real wall into many short edges.
+
+# ── WHAT UT'S `Directional` COLUMN ACTUALLY MEANS. READ BEFORE REUSING ─
+# Column 4 of every UT_CELEBRATED row is UT's own `Directional` field — W, SW,
+# NE. It looked like the answer to the question a coordinate cannot settle
+# (WHICH WALL), so this pass tried using it to pick the wall: rank the edges,
+# keep the nearest one whose outward normal agrees with UT's compass point.
+#
+# IT MADE THE DATA WORSE AND THE A/B IS WHY IT IS NOT IN THE CODE. Baked both
+# ways on the 2026-08-16 snapshot and compared per door, the rule moved ten
+# doors and eight of them moved AWAY from UT's own surveyed coordinate:
+#
+#     ECJ W  17.8 -> 33.8 m      MBB SW  1.2 -> 13.1 m
+#     PHR N   1.1 -> 11.1 m      WWH W  10.5 -> 20.4 m
+#     JON S  12.3 -> 18.7 m      ECJ W   0.3 ->  4.3 m
+#     JES NW  1.2 ->  3.9 m      FAC NW  2.2 ->  3.7 m
+#   (only WEL NE 14.7 -> 13.4 and JHH W 11.6 -> 10.7 improved)
+#
+# UT doors with a drawn door within 10 m went 72 -> 70 of 81.
+#
+# The reason is that `Directional` is not a wall bearing. It says WHICH PART OF
+# THE BUILDING YOU WALK TO — the south-west corner, the north end — and a door
+# in a corner or a recessed entry court very often has a leaf facing a
+# direction the corner is not named after. Moffett's SW entrance sits in a
+# re-entrant corner whose leaf does not face south-west at all; obeying the
+# column marched the door 13 m to a wall that does. So the column answers
+# "where do I go", which is what UT wrote it for, and not "which way does the
+# leaf face", which is what a renderer needs.
+#
+# It is kept as an AUDIT (see the side audit after clear_buried) because a door
+# that ends up on the OPPOSITE wall is still definitely wrong, and that check
+# costs nothing. It is not kept as a placement rule.
+UT_SIDE_MIN = 0.35      # cos, audit only: below this the drawn door is not on
+                        # any wall UT's compass point could reasonably name.
+                        # ~70 deg — excludes the opposite wall (cos -1) and both
+                        # perpendicular ones (cos 0), admits a wall up to 22.5
+                        # deg off the named eight-point compass reading.
+
 TERM_R = 8.0            # m; how far a dead-end path may sit off a wall
 CLUSTER_R = 5.0         # m; two candidates this close are one entrance
 NORMAL_MIN = 0.25       # cos; how squarely a path must face the wall
@@ -2570,6 +2699,30 @@ def snap_to_edge(bldg, px, py):
     return best
 
 
+def snap_to_edge_ranked(bldg, px, py, limit):
+    """snap_to_edge, but the `limit` nearest edges in order instead of one.
+
+    Only the UT stage uses this, and only because a surveyed door is worth a
+    second look: UT's point is a coordinate inside the doorway, so on a
+    building with a re-entrant corner, a light well or a recessed entry court
+    the nearest EDGE can be a wall whose outward normal points back into the
+    mass. The single-edge snap then failed normal_test and the door — which a
+    human at UT physically stood in front of — was dropped. Returning a short
+    ranked list lets the caller keep walking outward until a wall actually
+    faces the street."""
+    out = []
+    for ri, ring in enumerate(bldg.rings):
+        for i in range(len(ring) - 1):
+            a, bb = ring[i], ring[i + 1]
+            qx, qy, t = _seg_closest(px, py, a[0], a[1], bb[0], bb[1])
+            d = math.hypot(qx - px, qy - py)
+            elen = math.hypot(bb[0] - a[0], bb[1] - a[1])
+            out.append((d, qx, qy) + _norm(bb[0] - a[0], bb[1] - a[1]) +
+                       edge_normal(a, bb, ri) + (elen, t * elen, ri, i))
+    out.sort(key=lambda r: r[0])
+    return out[:max(1, int(limit))]
+
+
 def wall_run(b, ri, ei, s):
     """How much STRAIGHT WALL an opening actually has, walking through nearly
     collinear neighbouring edges.
@@ -2864,6 +3017,22 @@ def stage_ut(blds, stats):
             if best is not None:
                 best.role = "main"
                 best.ut = (side, bf, ao)
+                # UT_SNAP: the survey owns the POSITION too, not just the role.
+                # Only over a provenance in UT_SNAP_OVER — see the constant.
+                if UT_SNAP and best.src in UT_SNAP_OVER:
+                    sn = ut_pick_edge(bb, x, y, stats)
+                    if sn is not None:
+                        moved = math.hypot(sn[1] - best.x, sn[2] - best.y)
+                        (_d, best.x, best.y, best.tx, best.ty, best.nx,
+                         best.ny, best.elen, best.s, best.ri, best.ei) = sn
+                        best.src = "ut"
+                        best.run = None   # the wall it sits on has changed
+                        stats["ut_moved"] += 1
+                        stats["ut_moved_m"] += moved
+                    else:
+                        stats["ut_move_no_wall"] += 1
+                elif UT_SNAP:
+                    stats["ut_kept_own_survey"] += 1
                 claimed.append((bb, best))
                 stats["ut_relabelled"] += 1
                 continue
@@ -2876,14 +3045,11 @@ def stage_ut(blds, stats):
             if host is None or hd > OSM_MAX_SNAP:
                 stats["ut_unplaceable"] += 1
                 continue
-            sn = snap_to_edge(host, x, y)
+            sn = ut_pick_edge(host, x, y, stats)
             if sn is None:
-                stats["ut_unplaceable"] += 1
-                continue
-            d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
-            if not normal_test(host, qx, qy, nx, ny):
                 stats["normal_fail_ut"] += 1
                 continue
+            d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
             c = Cand(qx, qy, tx, ty, nx, ny, elen, sa, "main", "ut",
                      11.0, 0, None, None, ri, ei)
             c.ut = (side, bf, ao)
@@ -2998,7 +3164,7 @@ def stage2_paths(blds, tree, paths, stats):
             stats["approach_gate_reject"] += 1
             continue
         kept[b.bid].append(Cand(sx, sy, tx, ty, nx, ny, elen, sa, None,
-                                "derived", 2.0 if hw == "steps" else 1.0, gen,
+                                SRC_PATH, 2.0 if hw == "steps" else 1.0, gen,
                                 None, None, ri, ei))
         nkept += 1
         DERIVED_ALL.append((sx, sy))
@@ -3077,8 +3243,15 @@ def stage3_public(blds, grid, stats):
                     best += FACADE_BONUS
                 samples.append((best, px, py, tx, ty, nx, ny, elen, d, i))
         samples.sort(key=lambda s: -s[0])
+        # FIELD_MAX: the field may assert that this building HAS a door. It may
+        # not assert how many. Anything past the first is the same guess spent
+        # again on the next-best sample of the same wall-facing-a-walkway rule.
+        placed_here = 0
         for sc, px, py, tx, ty, nx, ny, elen, d, ei in samples:
             if len(b.ents) >= b.budget:
+                break
+            if placed_here >= FIELD_MAX:
+                stats["field_capped_bldgs"] += 1
                 break
             if sc <= MIN_SCORE:
                 break
@@ -3088,14 +3261,54 @@ def stage3_public(blds, grid, stats):
                 stats["normal_fail_stage3"] += 1
                 continue
             b.ents.append(Cand(px, py, tx, ty, nx, ny, elen, d, None,
-                               "derived", sc, 3, None, None, 0, ei))
+                               SRC_FIELD, sc, 3, None, None, 0, ei))
             DERIVED_ALL.append((px, py))
+            placed_here += 1
             stats["stage3_placed"] += 1
 
 
 def _side_ok(side, nx, ny):
     return {"E": nx > 0.5, "W": nx < -0.5,
             "N": ny > 0.5, "S": ny < -0.5}.get(side, False)
+
+
+# UT's `Directional` column, as a unit vector in the bake's own (east, north)
+# metric frame. Eight points, because that is what the survey actually uses —
+# the 97 frozen rows contain exactly N/S/E/W/NE/NW/SE/SW and nothing else.
+_UT_SIDE_VEC = {
+    "N": (0.0, 1.0), "S": (0.0, -1.0), "E": (1.0, 0.0), "W": (-1.0, 0.0),
+    "NE": (0.70710678, 0.70710678), "NW": (-0.70710678, 0.70710678),
+    "SE": (0.70710678, -0.70710678), "SW": (-0.70710678, -0.70710678),
+}
+
+
+def ut_side_cos(side, nx, ny):
+    """How well a wall's outward normal agrees with UT's published side.
+
+    Returns None when the side is not one this file knows, so a caller can tell
+    "UT disagrees" apart from "UT did not say" — the two must not collapse into
+    the same falsy value, which is how a missing field silently becomes a
+    finding."""
+    v = _UT_SIDE_VEC.get((side or "").strip().upper())
+    if v is None:
+        return None
+    return v[0] * nx + v[1] * ny
+
+
+def ut_pick_edge(host, x, y, stats):
+    """The wall a UT-surveyed door belongs on: the NEAREST wall to UT's own
+    point that actually faces outward.
+
+    Not the nearest wall full stop — that is what used to drop three surveyed
+    doors a bake, because UT's coordinate sits inside the doorway and the
+    nearest edge to a point in a re-entrant corner can be a wall whose outward
+    normal points back into the mass. Not the wall UT's `Directional` column
+    names either; the block above records the A/B that ruled that out."""
+    for c in snap_to_edge_ranked(host, x, y, UT_EDGE_SCAN):
+        if normal_test(host, c[1], c[2], c[5], c[6]):
+            return c
+    stats["ut_no_outward_wall"] += 1
+    return None
 
 
 def budget_for(b):
@@ -5303,8 +5516,11 @@ def main():
 
     grid = Grid(segs, 25.0)
     stage3_public(scope, grid, stats)
-    print("stage 3 publicness : %d placed  (normal test %d)"
-          % (stats["stage3_placed"], stats["normal_fail_stage3"]))
+    print("stage 3 publicness : %d placed  (normal test %d);"
+          " FIELD_MAX=%d stopped %d buildings from spending the rest of a"
+          " perimeter budget on further guesses"
+          % (stats["stage3_placed"], stats["normal_fail_stage3"],
+             FIELD_MAX, stats["field_capped_bldgs"]))
 
     # ── E1, PER CANDIDATE INSTEAD OF PER BUILDING. Only the register-coded
     #    shopfront hosts admitted above are tested; every other place host is
@@ -5373,6 +5589,14 @@ def main():
           % (stats["ut_relabelled"], stats["ut_placed"], stats["ut_demoted"],
              stats["ut_no_host"], stats["ut_unplaceable"],
              stats["normal_fail_ut"]))
+    print("  UT_SNAP          : %d of those %d relabelled doors MOVED onto UT's"
+          " own coordinate (mean %.1f m, over src in %s); %d left where a second"
+          " survey had already put them; %d found no outward-facing wall within"
+          " %d ranked edges"
+          % (stats["ut_moved"], stats["ut_relabelled"],
+             stats["ut_moved_m"] / max(1, stats["ut_moved"]),
+             "/".join(UT_SNAP_OVER), stats["ut_kept_own_survey"],
+             stats["ut_move_no_wall"], UT_EDGE_SCAN))
 
     # ── THE TWO AUDITS. After every placement stage, before roles: a door
     #    that is about to be deleted must not first have been promoted to main.
@@ -5385,6 +5609,31 @@ def main():
           " footprint re-drawn (IoU >= %.2f) and are excluded from that"
           " host's burial test and march"
           % (stats["self_masses"], stats["self_mass_hosts"], SELF_IOU))
+    # THE SIDE AUDIT. Not the same claim as "how many did the side filter
+    # choose" — that counts what the RULE did. This counts what the DATA ends
+    # up saying, over every door carrying UT's survey flags, after every later
+    # stage (clear_buried can and does move a door to another wall). A door
+    # whose outward normal disagrees with UT's own compass column is on the
+    # wrong elevation no matter how close its coordinate is.
+    _side_hit = _side_miss = _side_unknown = 0
+    _side_bad = []
+    for b in scope:
+        for c in b.ents:
+            if not c.ut:
+                continue
+            k = ut_side_cos(c.ut[0], c.nx, c.ny)
+            if k is None:
+                _side_unknown += 1
+            elif k >= UT_SIDE_MIN:
+                _side_hit += 1
+            else:
+                _side_miss += 1
+                _side_bad.append("%s/%s" % (b.ref or "-", c.ut[0]))
+    print("  side audit       : %d of %d drawn UT doors face the side UT itself"
+          " publishes (cos >= %.2f); %d face another wall%s%s"
+          % (_side_hit, _side_hit + _side_miss, UT_SIDE_MIN, _side_miss,
+             "; %d rows name no side" % _side_unknown if _side_unknown else "",
+             "  " + " ".join(sorted(_side_bad)) if _side_bad else ""))
     for k in sorted(stats):
         if k.startswith("buriedmove|"):
             print("                     moved   %dx %s"
