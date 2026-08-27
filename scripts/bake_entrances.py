@@ -800,7 +800,10 @@ RAIL_MIN_RISERS = 2     # [A] IBC wants rails at 4+; 2 so the rail reads
 CHEEK_W = 0.42          # m; solid limestone cheek instead of a tube rail [A]
 CHEEK_H = 0.60          # m over the nosing                              [A]
 CANOPY_SIDE = 0.60      # m the canopy runs past the bank either side    [A]
-CANOPY_SIDE_D = 1.20    # ... on family D, whose canopy is the identity  [A]
+CANOPY_SIDE_D = 0.60    # was 1.20, "family D, whose canopy is the identity".
+                        # That identity was never in a photograph and is gone
+                        # (see WHAT STANDS OVER THE DOOR below); the wider
+                        # overhang went with the claim that justified it.  [A]
 RAMP_SLOPE = 1.0 / 12.0 # [C] ADA
 RAMP_W = 1.50           # m                                             [A]
 RAMP_SEGS = 4           # slabs a ramp is approximated with
@@ -1385,6 +1388,303 @@ FAMILIES = {
         dt="hinged-pair", accent=None, accent_h=0.0,
     ),
 }
+
+
+# ════════════════════════════════════════════════════════════════════
+#  WHAT STANDS OVER THE DOOR - docs/entrances/shelter.md
+#
+#  THE DEFECT THIS FIXES, in one sentence: family D's own comment above used
+#  to read "the canopy is the identifying feature", and NOBODY HAD EVER
+#  CHECKED THAT AGAINST A PHOTOGRAPH. It was an era rule - built after 1990,
+#  therefore a 3.20 m steel blade over the door - and it painted one on 335
+#  of 591 doors. The round that named family D's win, the Tom & Cinda Hicks
+#  North Gate (NEZ), cites a photograph of that exact door with NO CANOPY IN
+#  IT. The identity was invented.
+#
+#  THE MEASUREMENT. 343 of UT's own building photographs (utdirect.utexas.edu
+#  /apps/campus/buildings/information/nlogon/..., no login, fetched and
+#  VIEWED 2026-08-27) across all 148 codes that carry a drawn door. 98 of
+#  them show the entrance well enough to say what is over it. Counted by eye,
+#  one call per building, each cited below:
+#
+#      canopy  15    a roof/blade/marquee/porte-cochere STANDS OVER the doors,
+#                    cantilevered or on its own posts, separate from the mass
+#      arcade  15    a colonnade or covered walk runs in front and the doors
+#                    open off it - the shelter is the building's own piers
+#      recess  19    the doors sit back under the building's own upper floors
+#      flush   49    a plain opening in the wall plane; nothing over it
+#
+#  THE RULE THAT FALLS OUT, and it is not the one the file had. A projecting
+#  canopy is on 15 of 98 entrances - 15% - and IT DOES NOT TRACK THE ERA at
+#  all: family C (1950-89) 6 of 40, family D (1990-2026) 4 of 24. Those are
+#  the same rate. Cret (family B) is 0 of 20 and Gilbert (family A) 0 of 3,
+#  which the file already had right. So the canopy is a PER-BUILDING FACT,
+#  not an era fact, and the honest default is the one this file already
+#  applies to families themselves: OPT IN BY EVIDENCE, NULL OTHERWISE.
+#
+#      old rule (canopy iff era in C/D/E2):     41% right on the 98 photos
+#      new rule (canopy iff a photo shows one): 100% where a photo exists,
+#                                               and its DEFAULT alone - "no
+#                                               canopy" - is 85% right
+#
+#  THE SHAPE WAS RIGHT; THE ASSIGNMENT WAS THE LIE. Scaled off the doors in
+#  the photographs (a leaf is 2.13 m), the canopies on the Forty Acres proper
+#  have a MEDIAN projection of 2.40 m, top 3.60 m, thickness 0.25 m - which
+#  is family C's canopy exactly. Family D's 3.20 / 4.20 / 0.18 matches
+#  nothing measured. So the fallback below is the measured median, and every
+#  building that has one carries its own numbers.
+#
+#  WHAT THIS DOES NOT DO, said plainly: `recess` and `arcade` are RECORDED
+#  and they darken the reveal, but neither is drawn as geometry - the
+#  entrance wall is an extruded footprint and this bake cannot cut into it.
+#  34 of 98 entrances are sheltered by something real that the city still
+#  does not show. That is the next round's job, not a claim of this one.
+# ════════════════════════════════════════════════════════════════════
+
+# -- the doctrine, in one line each so it can be overruled in one line ------
+SHELTER_CANOPY_BY_DEFAULT = False   # a canopy nobody photographed is invented
+SHELTER_APPLIES_TO = ("main",)      # a photo of the front door evidences the
+                                    # FRONT DOOR. It says nothing about the
+                                    # service door round the back, so the back
+                                    # door keeps the default.          [rule]
+SHELTER_FALLBACK_NO_MAIN = True     # ... unless the bake never called ANY
+                                    # door on this building `main`. Every
+                                    # parking garage is in that state: its
+                                    # entrance is a vehicle lane and role
+                                    # assignment gives it `service`. Then the
+                                    # row applies to the door the bake itself
+                                    # ranks first, which is the one it would
+                                    # have called main if it named one. [rule]
+
+# The measured median of the canopies on the Forty Acres. Any building that
+# gives its own proj/t/top below overrides this; this is what a photographed
+# canopy with no legible dimensions falls back to.
+CANOPY_MEDIAN = dict(proj=2.40, t=0.25, top=3.60, mat="steel")   # [M]
+
+# Reveal depth by what the photograph says shelters the door. `reveal_d` in
+# this file drives the DARKENING of the reveal panel, not real depth (the
+# wall is an extruded footprint), so these are shading values: a door under
+# an arcade is in deeper shade than one flush on a sunlit wall.
+SHELTER_REVEAL_D = dict(canopy=None,    # keep the family's own
+                        arcade=1.90,    # [A] deepest - a covered walk
+                        recess=1.60,    # [A] under the mass above
+                        flush=0.15)     # [A] nothing over it at all
+
+# -- THE OBSERVATIONS. `k` is the call; `src` is the photograph. Photographs
+#    are NOT committed - UT Direct states no licence on them, so this repo
+#    keeps the measurement and cites the page, the way it already treats
+#    other UT-sourced material. Every row was opened and looked at on
+#    2026-08-27 at SHELTER_PHOTO_PAGE % ref.
+#    A row here is TRAINING DATA. The held-out third lives in
+#    scripts/verify/campusmeter-fixtures/door-shelter.blind.json and this
+#    table may never contain a code that file names - campusmeter self-checks
+#    the two are disjoint and exits 1 if they are not.
+SHELTER_PHOTO_PAGE = ("https://utdirect.utexas.edu/apps/campus/buildings/"
+                      "information/nlogon/maps/UTM/%s/")
+
+SHELTER_OBS = {
+    # -- CANOPY. Eight on the Forty Acres proper, one on a plant building,
+    #    two toll canopies over garage lanes, and one 19th-century porch that
+    #    family V already draws. (Four more canopies were observed and are
+    #    NOT here: they fell in the held-out third and this table may not see
+    #    them.)
+    "ATT": dict(k="canopy", proj=2.60, t=0.20, top=5.20, mat="steel",
+                src="[M] AT&T Conference Center: a glass-and-steel canopy on "
+                    "outrigger struts runs the whole arcade elevation over "
+                    "the walk, well above the arched openings."),
+    "ETC": dict(k="canopy", proj=3.00, t=0.20, top=4.00, mat="steel",
+                src="[M] Engineering Teaching Center: a flat metal canopy on "
+                    "two round columns over the doors, signage on the "
+                    "fascia. This is the one building family C's canopy fits."),
+    "LTH": dict(k="canopy", proj=3.20, t=0.30, top=3.50, mat="steel",
+                src="[M] LTH: a ribbed metal canopy on posts over the ticket "
+                    "windows and the door bank."),
+    "NMS": dict(k="canopy", proj=1.60, t=0.25, top=3.40, mat="steel",
+                src="[M] NMS: a flat dark marquee over the doors, between "
+                    "the limestone piers at the head of the entrance steps."),
+    "CS6": dict(k="canopy", proj=1.40, t=0.18, top=3.10, mat="steel",
+                src="[M] CS6: a small dark sloping metal canopy over a single "
+                    "service door - the one canopy found on an E5 building, "
+                    "and the reason the default is a default and not a law."),
+    "FNT": dict(k="canopy", proj=2.00, t=0.25, top=3.60, mat="steel",
+                src="[M] FNT: a CURVED brushed-metal canopy over one door at "
+                    "the head of a stair. Drawn as a rectangle - the "
+                    "primitive has no curve and inventing one is the failure "
+                    "this table exists to stop."),
+    "GSB": dict(k="canopy", proj=2.20, t=0.25, top=4.50, mat="steel",
+                src="[M] Graduate School of Business: a glazed marquee over "
+                    "the entrance where the mirrored wall meets the plaza."),
+    "UTX": dict(k="canopy", proj=2.40, t=0.35, top=3.30, mat="stone",
+                src="[M] UTX: a tiled porch roof carried on posts over the "
+                    "entrance of a low pavilion."),
+    "MAG": dict(k="canopy", proj=6.00, t=0.30, top=4.60, mat="steel",
+                src="[M] Manor Garage: a wide flat canopy over the toll lanes "
+                    "at the vehicle entrance. A garage entrance is a vehicle "
+                    "opening and this is what shelters it."),
+    "SAG": dict(k="canopy", proj=6.00, t=0.30, top=4.60, mat="steel",
+                src="[M] San Antonio Garage: the same toll canopy over the "
+                    "entrance lane, signed 'San Antonio Garage'."),
+    "ANB": dict(k="canopy",
+                src="[M] Neill-Cochran House: a two-storey columned portico "
+                    "over the entrance. Family V already draws this as its "
+                    "PORCH - no dimensions here, the family owns them."),
+
+    # -- ARCADE. The shelter is the building's own colonnade.
+    "BMA": dict(k="arcade", src="[M] Blanton: the doors open off a vaulted "
+                "arcade on the plaza, under the petal roofs."),
+    "SEA": dict(k="arcade", src="[M] Seay: a two-storey column arcade runs "
+                "the elevation; the entrance is behind it."),
+    "JES": dict(k="arcade", src="[M] Jester: the low block's entrance sits "
+                "behind a run of arched openings."),
+    "HSM": dict(k="arcade", src="[M] HSM: a two-storey colonnade across the "
+                "whole entrance front on the plaza."),
+    "CDL": dict(k="arcade", src="[M] CDL: a hipped-roof pavilion carried on "
+                "columns - the roof over the walk IS the shelter."),
+    "CCJ": dict(k="arcade", src="[M] Connally Center: a classical columned "
+                "portico across the entrance bay."),
+    "GEA": dict(k="arcade", src="[M] GEA: the doors open off a covered loggia "
+                "round the courtyard."),
+    "HMA": dict(k="arcade", src="[M] Hogg Memorial Auditorium: a pilastered "
+                "portico over the door bank."),
+    "LTD": dict(k="arcade", src="[M] Littlefield Dormitory: the entrance is "
+                "behind a run of round arches at the head of the terrace."),
+    "SRH": dict(k="arcade", src="[M] Sid Richardson Hall: the whole building "
+                "stands on a colonnade and every door opens off it."),
+
+    # -- RECESS. The doors sit back under the building's own mass.
+    "SJH": dict(k="recess", src="[M] San Jacinto Hall: the entrance is set "
+                "into the base under the wings, at the head of a fan stair."),
+    "RLP": dict(k="recess", src="[M] Patton Hall: a glazed ground floor set "
+                "back under the deeply overhanging upper floors."),
+    "SEZ": dict(k="recess", src="[M] South End Zone: a glazed storefront "
+                "under the overhanging deck above."),
+    "NHB": dict(k="recess", src="[M] Hackerman: the ground entrance is behind "
+                "the piers; the big projecting element is a sunshade five "
+                "storeys up, not a door canopy."),
+    "WIN": dict(k="recess", src="[M] Winship: the doors are under the "
+                "cantilevered upper mass, lit by a soffit of downlights."),
+    "UTC": dict(k="recess", src="[M] University Teaching Center: the entrance "
+                "is deep under the overhanging concrete mass."),
+    "PAT": dict(k="recess", src="[M] Patterson: the ground floor is recessed "
+                "the full length under the brick block above."),
+    "CMA": dict(k="recess", src="[M] Jesse Jones Communication A: the whole "
+                "ground floor steps back under the upper floors."),
+    "MRH": dict(k="recess", src="[M] Music Building: the entrance is under a "
+                "wide bridge of building with the stair rising through it."),
+    "JGB": dict(k="recess", src="[M] Jackson Geosciences: the doors are set "
+                "back under the overhanging floor above."),
+    "JON": dict(k="recess", src="[M] Jones: the entrance is under the "
+                "cantilevered upper block."),
+    "WWH": dict(k="recess", src="[M] WWH: a recessed dark ground floor under "
+                "the brick mass."),
+    "COM": dict(k="recess", src="[M] COM: a recessed portal cut into the "
+                "limestone block."),
+    "NUR": dict(k="recess", src="[M] Nursing: the entrance is behind the "
+                "brise-soleil, set back from the wall line."),
+    "DFA": dict(k="recess", src="[M] DFA: the entrance is under the "
+                "overhanging building above the lawn."),
+    "MBB": dict(k="recess", src="[M] MBB: the entrance is a deep arched "
+                "masonry passage through the building."),
+    "TSC": dict(k="recess", src="[M] TSC: the doors are set back in a "
+                "columned portal in the flat mass."),
+
+    # -- FLUSH. Nothing over the door. The biggest class, and the one the old
+    #    rule got wrong most often.
+    "RSC": dict(k="flush", src="[M] Recreational Sports Center: banks of red "
+                "aluminium doors flush in a flat masonry wall."),
+    "ECJ": dict(k="flush", src="[M] Civil Engineering: doors at the head of a "
+                "stair in a flat wall under the incised building name."),
+    "BWY": dict(k="flush", src="[M] BWY: one door flush in a rusticated stone "
+                "wall."),
+    "WMB": dict(k="flush", src="[M] WMB: a flush door in a limestone wall."),
+    "WEL": dict(k="flush", src="[M] Welch: a monumental limestone portal at "
+                "the head of the steps - carved surround, no projection."),
+    "BEN": dict(k="flush", src="[M] Benedict: an arched portal at the head of "
+                "a straight flight, flush in the wall."),
+    "MEZ": dict(k="flush", src="[M] Mezes: a limestone door surround flush in "
+                "the wall."),
+    "TNH": dict(k="flush", src="[M] Townes: a carved limestone door surround "
+                "at the head of the steps."),
+    "PHR": dict(k="flush", src="[M] Pharmacy: a balustraded limestone stair "
+                "to a carved door surround with an oculus over it - the "
+                "photograph the last round cited AGAINST family C's awning."),
+    "CS3": dict(k="flush", src="[M] CS3: a plain opening in a brick utility "
+                "wall."),
+    "PPL": dict(k="flush", src="[M] Power Plant: a big arched opening flush "
+                "in the brick."),
+    "PPE": dict(k="flush", src="[M] PPE: a full-height overhead door flush in "
+                "the wall."),
+    "PPA": dict(k="flush", src="[M] PPA: a flat brick utility elevation."),
+    "LCH": dict(k="flush", src="[M] Littlefield Carriage House: an arched "
+                "opening in red brick, nothing over it."),
+    "MFH": dict(k="flush", src="[M] Mithoff Field House: a flat limestone "
+                "base under the brick, signed, no projection."),
+    "BME": dict(k="flush", src="[M] Biomedical Engineering: a dark recessed "
+                "opening in a flat limestone base, no canopy."),
+    "POB": dict(k="flush", src="[M] O'Donnell: punched openings in a flat "
+                "limestone base."),
+    "GWB": dict(k="flush", src="[M] GWB: an open TRELLIS runs the terrace - "
+                "open timber, not a solid canopy, and the doors are flush in "
+                "the wall behind it."),
+    "AHG": dict(k="flush", src="[M] AHG: arched openings flush in the brick."),
+    "AND": dict(k="flush", src="[M] AND: a flush entrance in the limestone "
+                "base."),
+    "BHD": dict(k="flush", src="[M] BHD: a flush arched entrance."),
+    "CRD": dict(k="flush", src="[M] Carothers: a round-arched portal flush in "
+                "the wall."),
+    "EPS": dict(k="flush", src="[M] EPS: a small square portal flush in the "
+                "brick-and-limestone wall."),
+    "GAR": dict(k="flush", src="[M] Garrison: a carved round-arched portal, "
+                "lanterns either side, no projection."),
+    "GOL": dict(k="flush", src="[M] Goldsmith: a portal flush in the wall on "
+                "the court side."),
+    "GRE": dict(k="flush", src="[M] Gregory Gym: three great arched doors at "
+                "the head of the steps, flush in the brick."),
+    "HRH": dict(k="flush", src="[M] Homer Rainey: a carved door surround at "
+                "the head of the steps."),
+    "PAI": dict(k="flush", src="[M] Painter: a carved portal flush in the "
+                "limestone."),
+    "PHD": dict(k="flush", src="[M] PHD: a flush entrance off the court."),
+    "RHD": dict(k="flush", src="[M] Roberts: a flush arched entrance."),
+    "UNB": dict(k="flush", src="[M] Texas Union: a round-arched portal flush "
+                "in the wall on the West Mall front."),
+    "BIO": dict(k="flush", src="[M] Biological Labs: a flush opening under "
+                "the Gilbert arcade band."),
+    "BTL": dict(k="flush", src="[M] Battle Hall: a flush entrance under the "
+                "arcaded wall."),
+    "SUT": dict(k="flush", src="[M] Sutton Hall: THE reference door - a round "
+                "arch with a leaded fanlight and a pair of green bronze "
+                "leaves, flush in the limestone. Nothing over it."),
+    "GEB": dict(k="flush", src="[M] GEB: a flush opening in the limestone "
+                "base."),
+    "BRG": dict(k="flush", src="[M] Brazos Garage: a plain vehicle opening."),
+    "GUG": dict(k="flush", src="[M] Guadalupe Garage: a plain vehicle "
+                "opening."),
+    "TRG": dict(k="flush", src="[M] Trinity Garage: a signed vehicle opening, "
+                "flush in the concrete frame."),
+}
+
+
+SHELTER_USED = set()   # (ref, role) pairs an observation actually reached
+
+
+def shelter_for(ref, role, b=None, c=None):
+    """What the photograph says stands over THIS door, or None if nobody
+    looked. Returns (kind, row) so a caller can cite the row it obeyed.
+
+    A photograph of a front door evidences the front door only
+    (SHELTER_APPLIES_TO). Every other door on the same building falls back to
+    the default, which is the whole point: the file may not generalise one
+    picture across a building it never saw the back of."""
+    row = SHELTER_OBS.get(ref or "")
+    if not row:
+        return None, None
+    if role not in SHELTER_APPLIES_TO:
+        if not (SHELTER_FALLBACK_NO_MAIN and b is not None and c is not None
+                and not any(e.role == "main" for e in b.ents)
+                and c is max(b.ents, key=lambda e: (e.score, -e.x, -e.y))):
+            return None, None
+    return row["k"], row
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -4532,8 +4832,12 @@ def assemble_w(feats, b, c, eid, stats):
         ctop = GROUND_Z + min(WC_CAN_TOP_MAX, lobby_h - WC_CAN_HEAD_CLEAR)
     ctop = max(ctop, head + WC_CAN_CLEAR + ct_)
     ctop = min(ctop, z_top - WC_RAIL_T)
+    # `csrc` on every canopy in the file, so "how many canopies are sourced"
+    # is one query rather than an archaeology project. This one is
+    # westcampus.md §1's signboard canopy, cited there.
     e.box("canopy", "steel", STEEL, -(half + WC_CAN_SIDE), half + WC_CAN_SIDE,
-          0.0, cp, ctop - ct_, ctop, None, ex)
+          0.0, cp, ctop - ct_, ctop, None,
+          dict(ex or {}, csrc="westcampus"))
     e.box("canopy", "steel", SOFFIT_DK, -(half + WC_CAN_SIDE),
           half + WC_CAN_SIDE, 0.0, cp, ctop - ct_ - 0.06, ctop - ct_, None, ex)
 
@@ -4590,6 +4894,61 @@ def assemble(feats, b, c, eid, stats):
             fam["canopy"] = None
 
     role = c.role or "secondary"
+
+    # ── WHAT STANDS OVER THIS DOOR. Families A, B, E3, E4 and E5 already
+    #    say `canopy=None` and the photographs agree with all of them (0 of
+    #    23 observed). Families C, D and E2 asserted one on every door they
+    #    touched and no photograph was ever consulted; V's porch and W's
+    #    signboard are cited in eras.md/westcampus.md and stay. So the gate
+    #    runs on exactly the three unevidenced families, and it runs the same
+    #    way every time: obey the photograph, and where there is no
+    #    photograph, draw nothing.
+    #
+    #    `fam_src`-style provenance rides out on the piece as `csrc`, so a
+    #    later pass can find every canopy in the file and read why it is
+    #    there without re-deriving this table.
+    shelter, sh_row = shelter_for(b.ref, role, b, c)
+    fam["shelter"] = shelter or "unknown"
+    fam["canopy_src"] = None
+    if fam_key not in ("V", "W"):
+        # OBEY THE PHOTOGRAPH BOTH WAYS. A canopy the picture shows gets drawn
+        # whatever family the building is in — the one canopy found on a plant
+        # building (CS6) and the two toll canopies over garage lanes are the
+        # reason this is not restricted to the three families that used to
+        # assert one. And a canopy no picture shows is dropped, which only
+        # ever bites C / D / E2, because they are the only families that had
+        # one to drop.
+        if shelter == "canopy":
+            base = dict(CANOPY_MEDIAN)
+            for k in ("proj", "t", "top", "mat"):
+                if sh_row.get(k) is not None:
+                    base[k] = sh_row[k]
+            base["col"] = {"steel": STEEL, "concrete": CONCRETE,
+                           "stone": LIMESTONE}.get(base["mat"], STEEL)
+            fam["canopy"] = base
+            fam["canopy_src"] = "photo"
+            stats["canopy_photographed"] += 1
+        else:
+            if fam["canopy"]:
+                stats["canopy_unevidenced_dropped"] += 1
+                if not SHELTER_CANOPY_BY_DEFAULT:
+                    fam["canopy"] = None
+    elif fam["canopy"]:
+        # V's porch, W's signboard: both cited in their own docs.
+        fam["canopy_src"] = "family"
+
+    # The shelter also sets how deep the reveal reads. This is a SHADE, not a
+    # depth — see SHELTER_REVEAL_D — and it is the only part of `recess` and
+    # `arcade` that reaches the screen at all.
+    if shelter and SHELTER_REVEAL_D.get(shelter) is not None:
+        fam["reveal_d"] = SHELTER_REVEAL_D[shelter]
+        stats["shelter_reveal_" + shelter] += 1
+    if shelter:
+        # "reached a door" means the row actually applied, not merely that the
+        # building has a door somewhere. MAG and SAG are the reason: both have
+        # a photographed toll canopy and neither has a door the bake calls
+        # `main`, so both rows sit idle and this line is what says so.
+        SHELTER_USED.add((b.ref, role))
     src = c.src
 
     # ── the opening, clamped to the wall it sits on and slid clear of the
@@ -4950,6 +5309,11 @@ def assemble(feats, b, c, eid, stats):
     can = fam["canopy"]
     if can:
         side = can.get("side", CANOPY_SIDE_D if fam_key == "D" else CANOPY_SIDE)
+        # A canopy read off a photograph gets that photograph's projection, so
+        # it also gets the plain side overhang — the wide one only ever
+        # existed to make family D's invented blade legible.
+        if fam.get("canopy_src") == "photo":
+            side = CANOPY_SIDE
         # A PORCH is measured from the door it shelters, a blade from the
         # ground. Family V is the only one that gives `over_head`, and it does
         # so because its flight height can come out of OSM steps evidence — an
@@ -4969,7 +5333,8 @@ def assemble(feats, b, c, eid, stats):
         ccol = (scale(b.wd, PORCH_HOST_DARKEN) if can.get("host")
                 else can["col"])
         e.box("canopy", can["mat"], ccol, -(half + side), half + side,
-              0.0, can["proj"], ct - can["t"], ct)
+              0.0, can["proj"], ct - can["t"], ct,
+              extra={"csrc": fam.get("canopy_src") or "family"})
         e.box("canopy", can["mat"], can.get("soffit", SOFFIT_DK),
               -(half + side), half + side,
               0.0, can["proj"], ct - can["t"] - 0.06, ct - can["t"])
@@ -6351,6 +6716,26 @@ def main():
     print("  bad base/h/colour: %d %s" % (len(bad), bad[:5]))
     print("  ramps %d   sign bands %d   arch spandrel sets %d"
           % (stats["ramps"], stats["sign_bands"], stats["arch_spandrels"]))
+
+    # ── WHAT STANDS OVER THE DOOR. Printed loudly because the whole point of
+    #    the change is that a canopy is now a claim with a source, and a
+    #    table row that reaches no door is a row quietly doing nothing.
+    reached = {r for r, _ in SHELTER_USED}
+    idle = sorted(set(SHELTER_OBS) - reached)
+    print("SHELTER            : %d canopies drawn from a photograph, "
+          "%d unevidenced canopies dropped"
+          % (stats["canopy_photographed"], stats["canopy_unevidenced_dropped"]))
+    print("                     reveal deepened: arcade %d, recess %d, "
+          "flush %d"
+          % (stats["shelter_reveal_arcade"], stats["shelter_reveal_recess"],
+             stats["shelter_reveal_flush"]))
+    print("  observations idle: %d of %d rows reached no door on their "
+          "building %s"
+          % (len(idle), len(SHELTER_OBS), idle[:8]))
+    idle_canopy = [r for r in idle if SHELTER_OBS[r]["k"] == "canopy"]
+    if idle_canopy:
+        print("      ^^ %d of those is a photographed CANOPY that is still "
+              "not drawn: %s" % (len(idle_canopy), ", ".join(idle_canopy)))
 
     # ── NOTHING FLOATS. Two audits over the LOCAL frame, because the whole
     #    PCL defect is a support question and a support test in lon/lat is a

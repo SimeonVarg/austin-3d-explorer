@@ -640,11 +640,169 @@ async function scoreEraProvenance() {
            unverifiedYearClaims: liars.length };
 }
 
+
+// ════════════════════════════════════════════════════════════════════════
+// SECTION 1c — DOOR SHELTER (what stands over the door, and does a
+//              PHOTOGRAPH agree) — added 2026-08-27
+//
+// The gap this closes, in the reviewer's own words: "Family D's GEOMETRY was
+// never checked against a photograph, on this building or any other — only
+// its ASSIGNMENT got a sourced pass." bake_entrances.py hardcoded
+// `canopy=dict(proj=3.20, t=0.18, top=4.20, mat="steel")` as family D's
+// identifying feature on every building it touched, permanently, and the very
+// entrance the previous round cited as its win (the Tom & Cinda Hicks North
+// Gate) has no canopy at all in UT's own photograph of it. Section 1b scores
+// whether a door's ERA is honestly sourced. Nothing scored whether the SHAPE
+// is.
+//
+// THE ORACLE IS HELD OUT ON PURPOSE. Every one of the 98 observations was made
+// the same way — open UT's own building photograph, look at the entrance, say
+// what is over it — and then a deterministic third of them
+// (sha1(code)[0] in "0123", fixed before a single row was written) was
+// WITHHELD from the bake. 76 rows are training data and live in
+// bake_entrances.py's SHELTER_OBS; the other 22 live only in
+// campusmeter-fixtures/door-shelter.blind.json and the bake has never read
+// them. So this score is not "does the file agree with the table it reads" —
+// which would be a tautology and would go straight to 100% — it is "on 22
+// buildings the file has never seen, does what it draws match the photo".
+//
+// WHY THAT CANNOT BE GAMED BY COPYING THE ANSWERS ACROSS. The first
+// self-check below asserts the two sets are DISJOINT and exits 1 if any code
+// appears in both. A lane that pasted blind rows into SHELTER_OBS to lift the
+// number would fail the harness rather than raise the score.
+//
+// IT ALSO CANNOT BE GAMED BY DRAWING NOTHING. Two of the four numbers below
+// are recall on the canopies that really exist. Delete every canopy in the
+// file and "no canopy" scores 18 of 22 on the blind set but 0 of 4 on the
+// buildings that have one, and both halves are printed side by side.
+//
+// THE BASELINE IS READ OUT OF THE FILE, NOT REMEMBERED. The "family rule"
+// column is what the era alphabet ALONE would draw — a canopy iff this door's
+// family declares one in FAMILIES — and it is recovered by slicing the real
+// FAMILIES table out of the served bake source at run time. C, D and E2 still
+// declare their canopy dicts (the change gates them at assembly, it did not
+// delete the vocabulary), so the old rule stays measurable from the file
+// itself and this comparison keeps working without a number copied into here.
+async function scoreDoorShelter() {
+  console.log('\n── DOOR SHELTER (is the shape over the door in the photo?) ──');
+
+  const blind = JSON.parse(fs.readFileSync(
+    path.join(FIXTURES, 'door-shelter.blind.json'), 'utf8'));
+  selfCheck('blind shelter fixture carries its declared row count',
+    blind.rows.length === blind._count, `${blind.rows.length} vs ${blind._count}`);
+
+  const bakeSrc = await getText(`${BASE}/scripts/bake_entrances.py`);
+
+  // --- the TRAINING codes, sliced out of the bake itself -----------------
+  const obsRaw = extractBalanced(bakeSrc, 'SHELTER_OBS = {', '{', '}');
+  const trainCodes = new Set();
+  for (const m of obsRaw.matchAll(/"([A-Z0-9]{2,7})":\s*dict\(k=/g)) trainCodes.add(m[1]);
+  selfCheck('SHELTER_OBS parses to the training half of the survey (>= 60 codes)',
+    trainCodes.size >= 60, `got ${trainCodes.size}`);
+
+  const overlap = blind.rows.map(r => r.code).filter(c => trainCodes.has(c));
+  selfCheck('training table and held-out fixture are DISJOINT',
+    overlap.length === 0,
+    `${overlap.length} code(s) in both: ${overlap.join(', ')} — the held-out ` +
+    'third has leaked into the table the bake reads, and this score is no ' +
+    'longer a held-out score');
+
+  // --- the OLD rule, recovered from FAMILIES ----------------------------
+  const famRaw = extractBalanced(bakeSrc, 'FAMILIES = {', '{', '}');
+  const famDeclaresCanopy = new Map();
+  // each family is `"KEY": dict( ... ),` at one indent level; split on the keys
+  const famKeys = [...famRaw.matchAll(/\n    "([A-Z0-9]{1,2})":\s*dict\(/g)];
+  for (let i = 0; i < famKeys.length; i++) {
+    const from = famKeys[i].index;
+    const to = i + 1 < famKeys.length ? famKeys[i + 1].index : famRaw.length;
+    const body = famRaw.slice(from, to);
+    famDeclaresCanopy.set(famKeys[i][1], /canopy=dict\(/.test(body));
+  }
+  const declaring = [...famDeclaresCanopy.entries()].filter(([, v]) => v).map(([k]) => k);
+  selfCheck('FAMILIES parses to 10 door families, >= 3 of which declare a canopy',
+    famDeclaresCanopy.size === 10 && declaring.length >= 3,
+    `${famDeclaresCanopy.size} families, canopy declared by [${declaring.join(',')}]`);
+
+  // --- what the running city actually DRAWS -----------------------------
+  const entGJ = await getJSON(`${BASE}/data/entrances.geojson`);
+  const doors = new Map();
+  for (const f of entGJ.features || []) {
+    const p = f.properties || {};
+    let d = doors.get(p.eid);
+    if (!d) { d = { eid: p.eid, ref: null, fam: null, role: null, canopy: false, csrc: null }; doors.set(p.eid, d); }
+    if (d.ref === null && p.ref) d.ref = p.ref;
+    if (d.fam === null && p.fam) d.fam = p.fam;
+    if (d.role === null && p.role) d.role = p.role;
+    if (p.k === 'canopy') { d.canopy = true; if (p.csrc) d.csrc = p.csrc; }
+  }
+  const drawn = [...doors.values()];
+  const withCanopy = drawn.filter(d => d.canopy);
+  const sourced = withCanopy.filter(d => d.csrc);
+  console.log(`  ${drawn.length} drawn doors, ${withCanopy.length} of them carry a canopy, ` +
+    `${sourced.length} of those cite where it came from (\`csrc\`)`);
+  const bySrc = {};
+  for (const d of withCanopy) bySrc[d.csrc || '(uncited)'] = (bySrc[d.csrc || '(uncited)'] || 0) + 1;
+  console.log(`      ${JSON.stringify(bySrc)}`);
+
+  // --- the held-out score -----------------------------------------------
+  // One call per BUILDING: the photograph is of the building's entrance, so
+  // the building is judged on whether ANY of its drawn doors carries a canopy.
+  const byRef = new Map();
+  for (const d of drawn) {
+    if (!d.ref) continue;
+    const e = byRef.get(d.ref) || { canopy: false, fams: new Set(), n: 0 };
+    e.canopy = e.canopy || d.canopy;
+    e.fams.add(d.fam);
+    e.n++;
+    byRef.set(d.ref, e);
+  }
+
+  let nowRight = 0, oldRight = 0, checked = 0;
+  let nowCanRight = 0, oldCanRight = 0, nCan = 0;
+  const rows = [];
+  for (const r of blind.rows) {
+    const e = byRef.get(r.code);
+    if (!e) continue;                       // no drawn door on this code
+    checked++;
+    const wantCanopy = r.shelter === 'canopy';
+    if (wantCanopy) nCan++;
+    const isNow = e.canopy;
+    // the old rule: the era alphabet alone. W is the one family whose canopy
+    // is drawn by its own assembler rather than declared in FAMILIES; no
+    // held-out code is family W, and if one ever is this line says so.
+    const isOld = [...e.fams].some(f => famDeclaresCanopy.get(f) === true || f === 'W');
+    if (isNow === wantCanopy) { nowRight++; if (wantCanopy) nowCanRight++; }
+    if (isOld === wantCanopy) { oldRight++; if (wantCanopy) oldCanRight++; }
+    rows.push({ code: r.code, photo: r.shelter, fam: [...e.fams].join('/'),
+                old: isOld ? 'canopy' : 'none', now: isNow ? 'canopy' : 'none',
+                oldOK: isOld === wantCanopy, nowOK: isNow === wantCanopy });
+  }
+
+  console.log(`\n  HELD OUT — ${checked} buildings the bake has never seen a row for:`);
+  console.log('  code   photograph says   era-alphabet drew   this build draws');
+  console.log('  ---------------------------------------------------------------');
+  for (const r of rows.sort((a, b) => a.photo.localeCompare(b.photo) || a.code.localeCompare(b.code))) {
+    console.log(`  ${r.code.padEnd(6)} ${r.photo.padEnd(17)} ` +
+      `${(r.old + (r.oldOK ? '  ok' : '  NO')).padEnd(19)} ` +
+      `${r.now + (r.nowOK ? '  ok' : '  NO')}`);
+  }
+  console.log(`\n  HEADLINE: ${nowRight} of ${checked} held-out buildings show what the ` +
+    `photograph shows (the era alphabet alone: ${oldRight} of ${checked})`);
+  console.log(`  and on the ${nCan} held-out buildings that really DO have a canopy, ` +
+    `this build draws ${nowCanRight} (the era alphabet: ${oldCanRight}) — ` +
+    'printed so "draw nothing" cannot pass as an answer');
+
+  return { checked, nowRight, oldRight, canopies: nCan, nowCanRight, oldCanRight,
+           drawnDoors: drawn.length, drawnCanopies: withCanopy.length,
+           sourcedCanopies: sourced.length, bySrc, trainRows: trainCodes.size };
+}
+
 // ════════════════════════════════════════════════════════════════════════
 const results = {};
 try {
   results.entrances = await scoreEntrances();
   results.eras = await scoreEraProvenance();
+  results.shelter = await scoreDoorShelter();
   results.facades = await scoreFacades();
   results.paths = await scorePaths();
 } catch (e) {
@@ -663,6 +821,11 @@ if (results.entrances) {
 if (results.eras) {
   console.log(`eras       ${results.eras.measured}/${results.eras.doors} drawn doors have a MEASURED era ` +
     `(${results.eras.none} have none at all)`);
+}
+if (results.shelter) {
+  console.log(`shelter    ${results.shelter.nowRight}/${results.shelter.checked} HELD-OUT buildings' door shelter matches the photograph ` +
+    `(era alphabet alone: ${results.shelter.oldRight}/${results.shelter.checked}); ` +
+    `${results.shelter.sourcedCanopies}/${results.shelter.drawnCanopies} drawn canopies cite a source`);
 }
 if (results.facades) {
   console.log(`facades    ${results.facades.matches}/${results.facades.targets} target buildings' drawn grid matches the photograph`);
