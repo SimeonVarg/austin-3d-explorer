@@ -115,10 +115,33 @@ LAWN_TONE = {
     # own entry) and `endzone` (burnt orange, not green).
 }
 
-# Drawn width in metres for paths OSM does not measure. GENERATIVE.
+# Drawn width in metres for paths OSM does not measure. GENERATIVE, and it is
+# the FALLBACK now rather than the answer -- see MEASURED_WIDTHS below.
 DEFAULT_WIDTH = {
     "footway": 2.4, "steps": 3.0, "cycleway": 2.2, "path": 1.5, "pedestrian": 6.0,
 }
+
+# ── measured widths ────────────────────────────────────────────────────────
+# 0 of 3,098 campus footways in data/osm_cache/footways.json carries an OSM
+# `width` tag -- not a few, none -- so before this, every walk in the city was
+# the same 2.4 m ribbon whether it was a service alley behind a dorm or a mall
+# approach carrying thousands of students. That is the facade-template defect
+# one system over.
+#
+# `scripts/trace_walk_widths.py` measures each way against the CITY OF AUSTIN's
+# planimetric impervious-surface survey -- real digitised polygons of the
+# actual paved slab, public domain -- and writes data/walkway_widths.json. It
+# owns that file; this bake only reads it.
+#
+# IT IS OPT-IN AND ONLY EVER WIDENS OR NARROWS A WAY THAT HAS A ROW. A way
+# with no row keeps DEFAULT_WIDTH and is marked unsourced, because a missing
+# row does NOT mean "no walk here": the city's survey does not cover all of
+# UT's interior campus, and two off-pavement cases were put to the aerial
+# photograph and shown to be real, obviously paved courts the city simply
+# has not mapped. Nothing here is allowed to delete or move a path.
+WALK_WIDTHS_REL = "data/walkway_widths.json"
+MEASURED_WIDTHS_ON = os.environ.get("MW", "1") != "0"   # A/B control arm
+MEASURED_WIDTH_SRC = "atxplan"      # the `src` a measured way carries out
 
 # ── the kerb apron ─────────────────────────────────────────────────────────
 # A `footway=crossing` way is not drawn as a path, and that is right: the
@@ -354,6 +377,26 @@ def load(key):
         return []
     with open(p, encoding="utf-8") as f:
         return json.load(f).get("elements", [])
+
+
+def load_measured_widths():
+    """{osm way id (str): width in metres} from data/walkway_widths.json.
+
+    Absent file is not an error -- it is the unsourced state this bake had
+    before the survey existed -- but it IS a warning, because a silently
+    missing evidence file that puts every walk back on the template is
+    exactly the bake trap this repo keeps being bitten by.
+    """
+    if not MEASURED_WIDTHS_ON:
+        return {}
+    p = os.path.join(ROOT, WALK_WIDTHS_REL.replace("/", os.sep))
+    if not os.path.exists(p):
+        warnings.append("%s missing: every walk falls back to DEFAULT_WIDTH "
+                        "(run scripts/trace_walk_widths.py)" % WALK_WIDTHS_REL)
+        return {}
+    with open(p, encoding="utf-8") as f:
+        d = json.load(f)
+    return {k: float(v["w"]) for k, v in (d.get("widths") or {}).items()}
 
 
 def parse_width(val):
@@ -4466,6 +4509,7 @@ def walkaudit(pairs=None, where=False, prov=False, coverage=False,
 def main():
     feats = []
     stats = Counter()
+    measured_w = load_measured_widths()
 
     # ---- paths (lines) -------------------------------------------------
     for el in load("footways"):
@@ -4570,6 +4614,24 @@ def main():
         surf, tagged = surface_of(t, use)
         w = parse_width(t.get("width")) or parse_width(t.get("est_width"))
         extra = {}
+
+        # A surveyed width beats the template. OSM's own `width` tag still
+        # wins over it -- that is a surveyor's claim about THIS way, and the
+        # measurement is a claim about the slab under it -- but there are
+        # none on campus, so in practice this is the first real number any
+        # of these walks has ever had.
+        if w is None:
+            mw = measured_w.get(str(el["id"]))
+            if mw is not None:
+                w = mw
+                extra["src"] = MEASURED_WIDTH_SRC
+                stats["path_width_measured"] += 1
+                d = mw - DEFAULT_WIDTH.get(use, 2.0)
+                if abs(d) > 0.5:
+                    stats["path_width_off_template"] += 1
+                    stats["path_width_wider" if d > 0 else "path_width_narrower"] += 1
+            else:
+                stats["path_width_default"] += 1
 
         # ---- Speedway Mall -------------------------------------------------
         # OSM tags the corridor in two halves: surface=paving_stones north of

@@ -1,5 +1,99 @@
 # Austin 3D Explorer — Full Handoff
 
+## 201. Aug 27 2026 — every walk in this city was 2.4 metres wide: 782 of them measured off a real survey, 74 % of those more than half a metre off the template (`acer/cd-walkways`, not merged)
+
+Full write-up with the before/after frames: `docs/walkways-widths.md`.
+One new script, `scripts/trace_walk_widths.py`, which owns `data/walkway_widths.json`
+and writes nothing else; +64 lines in `scripts/bake_ground.py`, which owns
+`data/ground.geojson`. No app code. `WAYFIND.on` untouched. **`data/walk_graph.json`
+is byte-identical** — this round changed the painted pavement, not the router.
+
+**The defect the round-1 reviewer named, and it was real.** `DEFAULT_WIDTH` in
+`bake_ground.py` was marked GENERATIVE and read `footway 2.4`. **0 of 3,098
+campus footways carries an OSM `width` tag** — not a few, none — so a service
+alley behind a dorm and a mall approach were the same ribbon. The facade-template
+defect one system over.
+
+**The source, and it is not a photograph.** Round 1 proved a photograph cannot
+do this (§6b: the perpendicular profile of 8,822 stations at 0.30 m/px is flat,
+because most campus walks have no pavement/grass edge). This uses the **City of
+Austin's planimetric impervious-surface survey** — real digitised polygons of
+the paved slab, public domain, 10,571 of them over the footway bbox, each
+carrying the orthophotography year it was traced off. A survey sees through
+live oak. The 16 MB extract is regenerable and gitignored under
+`data/gis_cache/`; the committed artifact is the verdict.
+
+**The rule refuses more than it answers, on purpose.** A station only counts if
+BOTH perpendicular marches find an edge inside 6 m — inside a continuous paved
+court there IS no edge, the court is the surface. Without that requirement
+Speedway came back at the 16 m search cap against the 30 ft this repo already
+has from Public Works' own record.
+
+```
+782 of 3,430 ways measured   71,475 m of 160,363 m of drawn walk (44.6 %)
+p10 1.4  p25 1.7  median 2.4  p75 3.5  p90 4.5  max 10.4 m
+578 of 782 (74 %) more than 0.5 m from the 2.4 m default
+in the bake: 745 line-ways, 558 moved — 282 WIDER and 276 NARROWER
+```
+
+**It is strictly opt-in and may never say "there is no walk here".** 46.7 % of
+ways get no row, and the biggest reason is that the city's survey does not cover
+UT's interior campus — two off-pavement cases were put to NAIP and both show a
+wide, obviously paved court the city has simply not mapped
+(`docs/shots/walkwidths-coverage-gap.jpg`). Twelve of those midpoints were sent
+back to the FeatureServer as point queries: 12 of 12 agree with the script's own
+reader, so the gap is in the data, not in us. A way with no row keeps
+`DEFAULT_WIDTH`. Nothing here deletes, moves or narrows a path for want of
+evidence.
+
+**The number reached the CITY, not just the file.** `scripts/verify/walkwidth.mjs`
+is new: near-nadir, trees hidden, it walks outward in RENDER space asking the map
+at each screen pixel whether a `k:'patharea'` polygon is drawn there, with the
+target widths read out of the SERVED evidence file rather than typed in.
+
+```
+way          survey    drawn BEFORE   drawn AFTER
+1216105912   1.35 m       2.60 m  x      1.40 m  ok
+1058218049   1.70 m       2.50 m  ok     1.80 m  ok
+126328774    5.50 m       2.40 m  x      5.60 m  ok
+1120921416   5.85 m       2.50 m  x      5.50 m  ok
+             FAIL — 3 of 4 on the old bake        PASS on this one
+```
+Both gates are watchable failing. `trace_walk_widths.py --selftest --break`
+reinstates the defect (the marcher stops at a fixed 1.2 m, so everything is
+2.4 m) and 5 of 7 assertions go red; `walkwidth.mjs --break` hides the ground
+layers and all four go red.
+
+**Numbers** (`serve.py 8825`). campusmeter **paths B 105/624 → 83/625** on
+vegetation in the real NAIP photograph, 16.8 % → 13.3 % — the metric round 1
+said the scoreboard could not see this work with, moved by a fifth. Paths A
+unchanged at 624/625 within 5 m (median 1.2 → 1.1 m; its p90 goes 1.2 → 1.4 m,
+which is arithmetic: a 5.5 m ribbon puts its ring vertices 2.75 m off the
+centreline the metric compares against). `--walkaudit` on a drawn walk
+96.55 % → **96.60 %**, bare 209 → **203 m**. Everything else byte-identical:
+entrances A 74/181 B 69/516, eras 301/591, shelter 19/22, facades 0/7.
+**walkmeter: 2.0 m over the pairs it makes worse, signed −541.4 m, 38 of 38 at
+UT's own door, drift 0.00, UI gate PASS** — all four unchanged, because the
+router's file was not touched.
+
+**The brief's other question, answered with a number.** *"Real paths that exist
+in the data and the router ignores — data problem or routing problem?"* On the
+shipped graph: **5,647 m of surveyed walkway (2.6 %) sits in 47 ISLANDS the
+router cannot reach**, 1,151 m of it in the campus core. **Not one island is
+within 5 m of the main network** — the gaps are 10 to 278 m — so it is not a
+snapping tolerance a larger epsilon would close (`bake_walk.py` already snaps:
+63 candidates, 8 accepted, 59 → 48 components). It is missing connection
+geometry upstream in OSM, and bridging a 118 m gap with invented geometry is
+the thing this project does not do. Left named, with the number attached.
+
+**Still wrong, and named in the doc:** 55 % of drawn walk metres are still on
+the 2.4 m template and the largest reason is the survey's coverage gap over UT's
+interior — closing it needs UT's own facilities GIS or leaf-off orthophotography
+at 0.15 m/px, NOT another pass at summer NAIP. The measured width is the paved
+SLAB, so a walk along the edge of an apron measures as wide as the apron.
+Widths are per way, not per metre. And the 5,647 stranded metres above.
+
+
 ## 200. Aug 27 2026 — a mall is a surface, not a fence: the router crosses the plazas now, and the walk graph turned out to be stale against its own doors (`acer/cd-walkways`, not merged)
 
 Full write-up with the before/after frames: `docs/walkways-on-the-real-paths.md`.
