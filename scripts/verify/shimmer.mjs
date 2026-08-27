@@ -122,7 +122,14 @@ await page.addInitScript((cfg) => {
 
 // _harness.html forces preserveDrawingBuffer, which is the only way drawImage of
 // the map canvas returns anything but black.
-await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
+//
+// SHIM_Q appends extra query parameters to that URL, so an A/B against one of
+// the app's own load-time switches (`?facadegrids=0`, `?roofcaps=0`, `?outer=0`)
+// is measurable on ONE BUILD. Three sessions share this working tree and
+// HANDOFF §32 records what a mid-pass `git checkout` costs; the switches exist
+// for exactly this and there was no way to reach them from here.
+const EXTRA_Q = process.env.SHIM_Q ? '&' + String(process.env.SHIM_Q).replace(/^[?&]+/, '') : '';
+await page.goto(SERVER + '/_harness.html?intro=0&drift=0' + EXTRA_Q, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForFunction(() => {
   const m = window.__map;

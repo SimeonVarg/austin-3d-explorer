@@ -390,9 +390,118 @@ async function scoreFacades() {
     console.log(`  ${r.name.padEnd(21)} ${String(r.height).padStart(5)}m  ${(r.cls || '-').padEnd(14)} ${r.fam.padEnd(10)} ${(`${r.appRows}x${r.appCols}`).padEnd(10)} ${realStr.padEnd(12)} ${r.match ? 'MATCH' : 'no'}`);
   }
   const matches = rows.filter(r => r.match).length;
-  console.log(`\n  HEADLINE: ${matches} of ${rows.filter(r => r.found).length} target buildings' app-drawn grid matches the photograph's real grid`);
+  console.log(`\n  HEADLINE (A, the FALLBACK): ${matches} of ${rows.filter(r => r.found).length} target buildings' app-drawn grid matches the photograph's real grid`);
 
-  return { targets: rows.length, matches, rows };
+  const b = await scoreRenderedFacades(facadesSrc, byName, rows);
+  return { targets: rows.length, matches, rows, rendered: b };
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════════════
+ * METRIC B — WHAT THE WALL ACTUALLY RENDERS  (added 2026-08-27)
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ * METRIC A ABOVE IS UNTOUCHED, and its number is still the headline it always
+ * was. This is an addition beside it, not a replacement, and it exists because
+ * A cannot see the thing that changed.
+ *
+ * WHY A CANNOT. Metric A compares `GRIDS[familyFor(props)].rows` against the
+ * photographed storey count. That comparison is only meaningful while the grid
+ * is a HEIGHT CLASSIFIER, because it silently assumes the tile's row count is
+ * the building's storey count — and it is not. js/facades.js's pattern is
+ * SCREEN-locked: one repeat covers REPEAT_M metres of wall, so `rows` sets a
+ * FLOOR-TO-FLOOR PITCH and the number of rows that land on a building is
+ * `rows * height / REPEAT_M`. Battle Hall's measured tile has three rows, and
+ * three rows over its 21.5 m wall is two storeys, which is what Battle Hall
+ * has. Metric A reads that tile as "3", compares it to "2", and calls it a
+ * miss. So A is now correctly read as a score of the FALLBACK TEMPLATES — it
+ * evaluates familyFor outside a browser, where the measured registry is empty
+ * by construction — and it should stay pinned at 0 of 7 until the templates
+ * themselves change.
+ *
+ * WHAT B SCORES, and the one thing that makes it worth trusting: it uses THIS
+ * FILE'S OWN seven photographed counts, in TARGET_FACADES above, which were
+ * counted in a different pass off different Wikimedia files than the sixteen in
+ * data/facade_grids.json. That makes them a HELD-OUT SET for the measured
+ * grids — a building can only score here by agreeing with a count nobody
+ * fitted it to. Two of the seven disagree with the measured file outright
+ * (Garrison and Goldsmith, where the two passes counted a different number of
+ * storey bands off different photographs) and those are reported as
+ * disagreements rather than quietly reconciled.
+ *
+ * ROWS ONLY, deliberately. Columns can only be scored against a wall whose
+ * length is known, and exactly one of the sixteen has a bay count anchored to a
+ * measured wall. Scoring columns off an unanchored count would be inventing
+ * precision.
+ */
+async function scoreRenderedFacades(facadesSrc, byName, aRows) {
+  console.log('\n  ── B: what the wall actually RENDERS ────────────────────');
+
+  // REPEAT_M, extracted from js/facades.js's source rather than typed here, so
+  // a change to TIER_CSS or REF_ZOOM moves this score with no edit — the same
+  // rule the rest of this file follows for GRIDS and familyFor.
+  const refZoom = Number((facadesSrc.match(/const REF_ZOOM = (\d+)/) || [])[1]);
+  const tierCss = Number((facadesSrc.match(/const TIER_CSS = (\d+)/) || [])[1]);
+  selfCheck('REPEAT_M inputs parse out of js/facades.js', Number.isFinite(refZoom) && Number.isFinite(tierCss),
+            `REF_ZOOM=${refZoom} TIER_CSS=${tierCss}`);
+  if (!Number.isFinite(refZoom) || !Number.isFinite(tierCss)) return null;
+  const REPEAT_M = tierCss * 67551 / Math.pow(2, refZoom);
+
+  let doc;
+  try { doc = await getJSON(`${BASE}/data/facade_grids.json`); } catch (e) { doc = null; }
+  if (!doc || !doc.buildings || !doc.buildings.length) {
+    console.log('  data/facade_grids.json is absent or empty — no building carries a measured');
+    console.log('  grid, so B is exactly A. Nothing to score.');
+    return { scored: 0, matches: 0 };
+  }
+  console.log(`  ${doc.buildings.length} measured buildings, from snapshot ${doc._snapshot}`);
+  console.log(`  one repeat = ${REPEAT_M.toFixed(2)} m of wall (TIER_CSS ${tierCss} at REF_ZOOM ${refZoom})`);
+
+  const measuredByName = new Map(doc.buildings.map(b => [b.name, b]));
+  const out = [];
+  for (const t of TARGET_FACADES) {
+    const props = byName.get(t.name);
+    const m = measuredByName.get(t.name);
+    if (!props || !m) { out.push({ name: t.name, skipped: !props ? 'not in snapshot' : 'not measured' }); continue; }
+    // The DERIVATION, straight out of the measured file and the app's own
+    // height: `rows` is chosen so that `storeys` land on this wall.
+    const rows = Math.min(10, Math.max(1, Math.round(m.storeys * REPEAT_M / props.final_height)));
+    const renderRows = rows * props.final_height / REPEAT_M;
+    const realRows = t.real && typeof t.real.rows === 'number' ? t.real.rows : null;
+    // Same derived tolerance the facadegrid harness uses: the tile row count is
+    // an integer, so half a tile row is the finest it can be steered, and on
+    // the wall that is 0.5 * height / REPEAT_M.
+    const tol = Math.max(0.5, 0.5 * props.final_height / REPEAT_M);
+    out.push({
+      name: t.name, storeysMeasured: m.storeys, realRows, tileRows: rows, renderRows, tol,
+      heightM: props.final_height,
+      agree: realRows == null ? null : m.storeys === realRows,
+      match: realRows != null && Math.abs(renderRows - realRows) <= tol,
+    });
+  }
+
+  console.log('\n  building              height  tile rows  renders   this file\'s photo count  match');
+  console.log('  ' + '-'.repeat(88));
+  for (const r of out) {
+    if (r.skipped) { console.log(`  ${r.name.padEnd(21)} ${r.skipped}`); continue; }
+    console.log(`  ${r.name.padEnd(21)} ${String(r.heightM).padStart(5)}m  ${String(r.tileRows).padStart(6)}     `
+      + `${r.renderRows.toFixed(1).padStart(5)}r   ${String(r.realRows == null ? 'no grid / approx' : r.realRows + 'r').padEnd(22)} `
+      + `${r.match ? 'MATCH' : 'no'}`);
+  }
+  const scored = out.filter(r => !r.skipped && r.realRows != null).length;
+  const matches = out.filter(r => r.match).length;
+  const disagree = out.filter(r => r.agree === false);
+  if (disagree.length) {
+    console.log('\n  Counted differently by the two passes, stated rather than reconciled:');
+    for (const r of disagree) {
+      console.log(`    ${r.name}: this file counted ${r.realRows} storey bands, data/facade_grids.json counted `
+        + `${r.storeysMeasured} off a different photograph.`);
+    }
+  }
+  console.log(`\n  HEADLINE (B, RENDERED): ${matches} of ${scored} scoreable target buildings now draw the`);
+  console.log('  photographed number of window rows on their own wall. Rows only — columns need a');
+  console.log('  wall length, and 1 of 16 measured buildings has a bay count anchored to one.');
+  return { scored, matches, rows: out };
 }
 
 // ════════════════════════════════════════════════════════════════════════

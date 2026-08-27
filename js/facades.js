@@ -335,15 +335,31 @@
   // line. Exposed so a verification script can assert on it too.
   window.facadeGridAudit = function facadeGridAudit() {
     const rows = [];
-    for (const [fam, g] of Object.entries(GRIDS)) {
+    // The measured per-building families are audited by the SAME arithmetic as
+    // the seven templates, deliberately: a bespoke grid that reads as
+    // scaffolding is exactly as wrong as a template that does, and a guard the
+    // new path can skip is a guard the new path will eventually break.
+    const all = Object.entries(GRIDS).concat(Object.entries(measuredGridTable()));
+    for (const [fam, g] of all) {
       if (!g) continue;
       const glaze = (g.rows * g.cols * g.w * g.h) / (TILE * TILE);
       const pier = TILE / g.cols - g.w, spandrel = TILE / g.rows - g.h;
       const ok = Math.abs(glaze - g.want) < 0.04 &&
                  (g.curtain || (pier >= MIN_PIER && spandrel >= MIN_SPANDREL));
-      rows.push({ fam, glaze: +(glaze * 100).toFixed(1), want: +(g.want * 100).toFixed(1),
-                  pierPx: +pier.toFixed(1), spandrelPx: +spandrel.toFixed(1), ok });
-      if (!ok) console.warn('[facades] grid out of spec:', fam, rows[rows.length - 1]);
+      const row = { fam, glaze: +(glaze * 100).toFixed(1), want: +(g.want * 100).toFixed(1),
+                    pierPx: +pier.toFixed(1), spandrelPx: +spandrel.toFixed(1), ok };
+      // For a measured family, the interesting number is not `want` (which is
+      // recomputed from the geometry that came out) but how far the CLAMPS
+      // dragged it away from the template's glazing. That distance is the
+      // honest cost of asking a 64 px tile for more rows than it can carry.
+      if (g.measured) {
+        row.measured = true;
+        row.baseWant = +(g.baseWant * 100).toFixed(1);
+        row.clampCostPct = +((glaze - g.baseWant) * 100).toFixed(1);
+        row.clamp = g.clamp.join(' ') || '-';
+      }
+      rows.push(row);
+      if (!ok) console.warn('[facades] grid out of spec:', fam, row);
     }
     return rows;
   };
@@ -732,7 +748,39 @@
     'industrial', 'manufacture', 'warehouse', 'utility', 'service',
   ].join('|'));
 
+  // ── PER-BUILDING MEASURED GRIDS ─────────────────────────────────────
+  //
+  // The seven families below are a HEIGHT CLASSIFIER, and that is the defect
+  // Simeon named: "windows on walls are just a template copied and pasted".
+  // Every 4-to-7 storey campus hall lands on `mh` — 8 rows, 5 columns — so
+  // Welch, Painter, Burdine and Mezes are different buildings wearing the same
+  // wall. A height class cannot tell a two-storey Beaux-Arts reading room from
+  // an eight-storey Brutalist slab, because it is not looking at either one.
+  //
+  // So the grid becomes a PER-BUILDING PROPERTY where somebody has measured
+  // one, and the seven templates survive as the fallback for the ~2,437
+  // buildings nobody has. `data/facade_grids.json` (scripts/bake_facade_grids.py)
+  // carries the measurements; `registerMeasuredGrids` below turns each into its
+  // own family and this map is the join, keyed by the snapshot's own feature id.
+  //
+  // WHY THE MAP IS DECLARED HERE, three lines above the function that reads it,
+  // and not up beside GRIDS: `scripts/verify/campusmeter.mjs` scores the
+  // FALLBACK by slicing this file's source from `const RESIDENTIAL =` to the
+  // baked-palette banner and evaluating it outside a browser. A map declared
+  // inside that slice comes out EMPTY there, so campusmeter keeps measuring
+  // exactly what it measured before — the templates, unchanged — and cannot be
+  // accidentally flattered by a registry that only exists at runtime.
+  const MEASURED = new Map();     // feature id -> { fam, base, ... }
+  const MEASURED_GRIDS = {};      // family code -> grid, read by gridFor()
+  const MEASURED_BASE = {};       // family code -> the template it borrows
+                                  // wall MATERIAL from (mottle, streaks, piers,
+                                  // occupancy). Only the GRID is per-building;
+                                  // changing the material at the same time
+                                  // would make a regression unattributable.
+
   function familyFor(props) {
+    const m = props && props.id != null ? MEASURED.get(props.id) : null;
+    if (m) return m.fam;
     const cls = props.building_class || '';
     if (/parking|garage|carport/.test(cls)) return 'dk';
     // A stadium is not an office building. Before this, DKR was 63 m tall so it
@@ -899,6 +947,188 @@
     bakedSource = 'baked ' + baked.snapshot;
     return stampAll(features, baked.buckets);
   }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  MEASURED GRIDS — turning "2 storeys, 7 bays, 1:2.8 windows" into a tile
+  //  data: scripts/bake_facade_grids.py -> data/facade_grids.json
+  // ══════════════════════════════════════════════════════════════════
+  //
+  // THE ONE THING THAT MAKES THIS SUBTLE, and getting it wrong is how you ship
+  // a confident wrong number: `rows` IS NOT THE BUILDING'S STOREY COUNT. This
+  // file's own header spends four hundred words on why — the pattern is
+  // SCREEN-locked, so one 64 px repeat covers a fixed number of METRES of wall
+  // set by the camera, not by the building. A tile with 8 rows puts a window
+  // row every REPEAT_M/8 metres, and a 12 m building shows a different number
+  // of them than a 40 m one. Writing `rows: 2` for a two-storey building would
+  // draw TWO ROWS PER 33 METRES — a 16 m floor-to-floor — which is not Battle
+  // Hall, it is a grain silo.
+  //
+  // So the measurement is a COUNT ON THE REAL BUILDING and the conversion is
+  // done here, against the height the app actually extrudes:
+  //
+  //     rows = round(storeys * REPEAT_M / height_m)
+  //     cols = round(bays    * REPEAT_M / wall_m)
+  //
+  // which renders exactly `storeys` window rows down that wall and exactly
+  // `bays` across it. Both are inverted from the same identity, so a later fix
+  // to the height bake moves the facade with it and needs no edit here. That
+  // matters, because several of the sixteen have visibly wrong heights today
+  // (Burdine's 8 floors are extruded into 12.8 m) and the residual shows up in
+  // `clamped` below rather than being quietly absorbed.
+  //
+  // REF_ZOOM is the zoom the conversion is anchored at. It is 16 because that
+  // is what the TIER_CSS block above already calibrated against — "the repeat
+  // is 33 m of wall at the zoom this app spawns at" — and using a different
+  // one here than the taste knob was set with would silently rescale every
+  // window in the city. TASTE KNOB, and the only one in this block: raising it
+  // makes every measured building's windows smaller and more numerous.
+  const REF_ZOOM = 16;
+  const REPEAT_M = TIER_CSS * 67551 / Math.pow(2, REF_ZOOM);   // 32.98 m
+
+  // THE ALIASING FLOOR, and it is a hard limit rather than a preference. This
+  // file's material block already establishes that a feature under ~2 texels
+  // does not survive camera motion, and docs/shimmer-mechanism.md root-caused
+  // the window rows CRAWLING as continuous minification aliasing — denser
+  // grids make it worse. So a measured building cannot ask for more rows than
+  // the tile can carry: with MIN_SPANDREL 3 px of wall between rows and a
+  // 3 px minimum opening, 64/(3+3) is ten. Same arithmetic across, with
+  // MIN_PIER 5: 64/(5+2) is nine. A building that wants more is CLAMPED and
+  // says so, which is the honest failure — Burdine asks for 21 rows because
+  // its extruded height is a third of the real building's.
+  const GRID_CLAMP = { maxRows: 10, maxCols: 9, minRows: 1, minCols: 2, minOpen: 2 };
+
+  /**
+   * One measured entry -> a grid this file can draw.
+   *
+   * GLAZING IS NOT A FREE PARAMETER. The measurements carry the window's
+   * ASPECT (a ratio, which survives an oblique photograph) and NOT its area
+   * fraction, which was not measured this round. So the opening keeps the base
+   * template's `want` and the aspect only REDISTRIBUTES that area: a 1:5.5
+   * Burdine slot and a 1:1.5 Jackson punch cover the same share of wall as the
+   * template they replace. That keeps this file's own hardest-won rule intact
+   * — A WALL IS MOSTLY WALL — and means a regression here can only be a shape
+   * or rhythm regression, never a "someone turned the glass up" one.
+   */
+  function gridFromMeasured(m, base) {
+    const notes = [];
+    const h = m.app_height_m || 0;
+    let rows = h > 0 ? Math.round(m.storeys * REPEAT_M / h) : base.rows;
+    if (rows > GRID_CLAMP.maxRows) { notes.push(`rows ${rows}->${GRID_CLAMP.maxRows}`); rows = GRID_CLAMP.maxRows; }
+    if (rows < GRID_CLAMP.minRows) { notes.push(`rows ${rows}->${GRID_CLAMP.minRows}`); rows = GRID_CLAMP.minRows; }
+
+    // Columns only when the photograph could carry the count against a wall
+    // whose length the footprint knows. Otherwise the building keeps its
+    // template's column rhythm — an unmeasured axis stays unmeasured rather
+    // than being filled in with something that looks like a measurement.
+    let cols = base.cols, colsMeasured = false;
+    if (m.bays && m.bay_wall_m) {
+      cols = Math.round(m.bays * REPEAT_M / m.bay_wall_m);
+      colsMeasured = true;
+      if (cols > GRID_CLAMP.maxCols) { notes.push(`cols ${cols}->${GRID_CLAMP.maxCols}`); cols = GRID_CLAMP.maxCols; }
+      if (cols < GRID_CLAMP.minCols) { notes.push(`cols ${cols}->${GRID_CLAMP.minCols}`); cols = GRID_CLAMP.minCols; }
+    }
+
+    // Area from the base family, shape from the measurement.
+    const stepX = TILE / cols, stepY = TILE / rows;
+    const want = base.want;
+    const area = want * stepX * stepY;
+    const a = m.aspect > 0 ? m.aspect : 1;
+    let w = Math.round(Math.sqrt(area / a));
+    let h2 = Math.round(w * a);
+    // The pier/spandrel minima are the same guard `facadeGridAudit` enforces on
+    // the templates; applying them here means a measured family can never be
+    // the one that makes a wall read as scaffolding.
+    const wCap = Math.floor(stepX - (base.curtain ? 1 : MIN_PIER));
+    const hCap = Math.floor(stepY - (base.curtain ? 1 : MIN_SPANDREL));
+    if (w > wCap) { notes.push(`w ${w}->${wCap}`); w = wCap; }
+    if (h2 > hCap) { notes.push(`h ${h2}->${hCap}`); h2 = hCap; }
+    w = Math.max(GRID_CLAMP.minOpen, w);
+    h2 = Math.max(GRID_CLAMP.minOpen, h2);
+
+    return {
+      rows, cols, w, h: h2,
+      // `want` is recomputed from the geometry that actually came out, so
+      // facadeGridAudit's glazing check stays a real check of the CLAMPS
+      // rather than a tautology: the distance from the base family's `want` is
+      // exactly what the clamps cost, and it is printed.
+      want: (rows * cols * w * h2) / (TILE * TILE),
+      baseWant: want,
+      curtain: !!base.curtain,
+      measured: true, colsMeasured, clamp: notes,
+      // rendered on THIS building's wall — the number that is comparable to
+      // the photograph, and what scripts/verify/facadegrid.mjs asserts on.
+      renderRows: h > 0 ? rows * h / REPEAT_M : null,
+      renderCols: m.bay_wall_m ? cols * m.bay_wall_m / REPEAT_M : null,
+    };
+  }
+
+  /** The grid for a family, template or measured. One lookup, one fallback. */
+  function gridFor(fam) {
+    return MEASURED_GRIDS[fam] || GRIDS[fam] || GRIDS.mh;
+  }
+  /** The family whose wall MATERIAL a family borrows. Identity for templates. */
+  function baseFamOf(fam) { return MEASURED_BASE[fam] || fam; }
+  /** Live view of the measured families, for facadeGridAudit above. */
+  function measuredGridTable() { return MEASURED_GRIDS; }
+  window.facadeGridFor = gridFor;
+  window.facadeMeasuredCount = () => MEASURED.size;
+  window.facadeRepeatM = () => REPEAT_M;
+  window.facadeGridClamp = () => ({ ...GRID_CLAMP });
+
+  /**
+   * Adopt `data/facade_grids.json`. Called by js/app.js BEFORE quantiseFacades,
+   * because familyFor() reads the registry and quantiseFacades is what stamps
+   * `wp`/`wf` on every feature.
+   *
+   * Family codes are `k0`..`kz` (base 36). Two characters, because `wp` is
+   * family + a two-digit bucket and the whole atlas is keyed on that four-char
+   * string; `k` is unused by lo/mr/mh/tr/tg/dk/st and by bake_stadium's `s?`
+   * tiles. Thirty-six measured buildings is the ceiling, and passing it is
+   * loud rather than silent.
+   *
+   * COST, because the atlas budget is not free and was hard-won (its
+   * main-thread share went from ~46% to 2-3% on 2026-08-19): each measured
+   * building adds at most ONE (family, bucket) combo, and each combo is two
+   * images (near + far tier). Sixteen buildings is at most 32 extra images on
+   * top of the campus atlas's existing ~30, and in practice fewer, because
+   * buildings sharing a colour bucket still get separate families — that is
+   * the point — but a building whose grid comes out identical to its template
+   * is not registered at all (see `same` below).
+   */
+  window.registerMeasuredGrids = function registerMeasuredGrids(doc) {
+    MEASURED.clear();
+    for (const k of Object.keys(MEASURED_GRIDS)) delete MEASURED_GRIDS[k];
+    for (const k of Object.keys(MEASURED_BASE)) delete MEASURED_BASE[k];
+    const list = (doc && doc.buildings) || [];
+    const out = [];
+    let n = 0, same = 0;
+    for (const m of list) {
+      if (!m || !m.id) continue;
+      const base = GRIDS[m.base] || GRIDS.mh;
+      const g = gridFromMeasured(m, base);
+      // A measured building whose grid comes out exactly its template's is not
+      // given a family of its own: it would cost an atlas image to draw the
+      // identical tile. Sutton Hall is the real instance — 3 storeys on 13.0 m
+      // derives 8 rows, which IS `mh`. It only earns a family if the SHAPE
+      // differs too, which for every building in this set it does.
+      if (g.rows === base.rows && g.cols === base.cols && g.w === base.w && g.h === base.h) {
+        same++;
+        out.push({ ...m, fam: m.base, grid: g, sameAsTemplate: true });
+        continue;
+      }
+      if (n >= 36) { console.warn('[facades] more than 36 measured grids; ignoring', m.ref); break; }
+      const fam = 'k' + n.toString(36);
+      MEASURED_GRIDS[fam] = g;
+      MEASURED_BASE[fam] = m.base;
+      MEASURED.set(m.id, { fam, base: m.base, ref: m.ref });
+      out.push({ ...m, fam, grid: g, sameAsTemplate: false });
+      n++;
+    }
+    window.facadeMeasured = out;
+    console.log('[facades] measured grids: %d buildings, %d own families, %d identical to their template',
+                list.length, n, same);
+    return out;
+  };
 
   // ── quantisation ──────────────────────────────────────────────────
   /**
@@ -1372,7 +1602,15 @@
     // this fallback threw on an unregistered family instead of degrading to
     // one. `mh` is the intended default: the punched campus-hall grid, the
     // safest thing to put on a wall we cannot classify.
-    const g = GRIDS[fam] || GRIDS.mh;
+    // `gridFor` is the ONE lookup: a measured per-building grid if this family
+    // has one, else the template. Everything below this line is unchanged and
+    // does not know which it got — a measured family is a family.
+    const g = gridFor(fam);
+    // MATERIAL, on the other hand, comes from the family the measurement was
+    // taken against. Only the GRID is per-building; a measured Battle Hall
+    // still wears `mh`'s mottle, streaks, piers, occupancy and tone bias, so a
+    // change in this pass can only ever be a rhythm or shape change.
+    const mat = baseFamOf(fam);
     const stepX = TILE / g.cols, stepY = TILE / g.rows;
     const offX = (stepX - g.w) / 2, offY = (stepY - g.h) / 2;
 
@@ -1388,15 +1626,22 @@
     // building in the city was wearing the garage texture, reported verbatim as
     // "maybe theyre all garages going all the way up". It stays in `dk`, which
     // is a garage. Wall texture now comes from material, below.
-    const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(fam) + 1;
-    const seed = bucketIdx * 4 + famIdx;
-    drawWallMaterial(ctx, fam, wall, dark, seed);
+    // `mat`, not `fam`, so a measured family lands on its template's index and
+    // wears its template's material. The measured families then get their OWN
+    // slot in the seed stream from the second term: without it `k0` and `k1`
+    // sharing a colour bucket would land on the identical seed and light the
+    // identical night-window scatter on two different buildings, which is the
+    // "copied and pasted" complaint reappearing after dark.
+    const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(mat) + 1;
+    const measIdx = fam === mat ? 0 : (parseInt(fam.slice(1), 36) + 1);
+    const seed = bucketIdx * 4 + famIdx + measIdx * 331;
+    drawWallMaterial(ctx, mat, wall, dark, seed);
 
     // Pilaster relief, LOCKED to the window column pitch and given no count of
     // its own. A second vertical frequency near but not equal to the window
     // pitch beats against it, and that is the ribbed-metal failure this file has
     // already shipped once.
-    if (WALL.PIER[fam]) {
+    if (WALL.PIER[mat]) {
       const lit = css(mix(wall, [255,255,255], WALL.PIER_LIGHT * (1 - dark * 0.8)));
       const sha = css(mix(wall, [0,0,0], WALL.PIER_SHADOW * (1 - dark * 0.5)));
       for (let c = 0; c < g.cols; c++) {
@@ -1416,10 +1661,10 @@
     // and between the four rolls each pane makes (lit / tone / bright / hot);
     // the salts are primes far larger than any bucket index so the streams
     // can't collide.
-    const occRange = OCCUPANCY[fam] || OCCUPANCY.mh;
+    const occRange = OCCUPANCY[mat] || OCCUPANCY.mh;
     const occRoll = hash01(seed + 4001, 0, 0);
     const occupancy = occRange[0] + (occRange[1] - occRange[0]) * occRoll * occRoll;
-    const warmBias = TONE_WARM_BIAS[fam] != null ? TONE_WARM_BIAS[fam] : 1;
+    const warmBias = TONE_WARM_BIAS[mat] != null ? TONE_WARM_BIAS[mat] : 1;
 
     for (let r = 0; r < g.rows; r++) {
       for (let c = 0; c < g.cols; c++) {

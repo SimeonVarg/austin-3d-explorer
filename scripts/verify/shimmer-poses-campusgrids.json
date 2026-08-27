@@ -1,0 +1,29 @@
+[
+  {
+    "name": "mall-battle",
+    "note": "Battle Hall's east elevation from the South Mall — the building whose grid changed most (8 rows to 3, and the openings from 5x4 landscape to 4x11 portrait). If the measured grids cost crawl anywhere, the biggest single rhythm change is where to look first.",
+    "center": [-97.74033, 30.28541],
+    "zoom": 17.6,
+    "pitch": 70,
+    "bearing": 275,
+    "p": 0.5
+  },
+  {
+    "name": "mall-south",
+    "note": "the South Mall looking south from below the Tower: Garrison, Waggener, Calhoun, Batts and Homer Rainey in one frame. This is the pose where the DENSER measured grids sit — Garrison went 8 rows to 10 — so it is the honest place to look for a crawl regression rather than only at the building that got sparser.",
+    "center": [-97.7392, 30.2847],
+    "zoom": 16.9,
+    "pitch": 72,
+    "bearing": 180,
+    "p": 0.5
+  },
+  {
+    "name": "pcl-plaza",
+    "note": "Perry-Castaneda Library's west wall — 20% punched glazing down to 7% narrow slots. Sparser and finer at the same time, which are opposite pressures on minification aliasing, so its sign is not predictable from the change alone.",
+    "center": [-97.73821, 30.28272],
+    "zoom": 17.2,
+    "pitch": 68,
+    "bearing": 300,
+    "p": 0.5
+  }
+]
