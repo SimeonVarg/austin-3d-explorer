@@ -61,6 +61,13 @@ WHAT THIS BAKE DELIBERATELY DOES NOT DO, and the reasoning is
     Capitol. walls-campus.md §6.5. The geometry ships over the existing tile and
     the night is MEASURED not to be darker than live.
 
+SOURCES OF A STOREY COUNT, in the order they are trusted:
+  1. `data/facade_grids.json` -- counted on a licensed photograph of that exact
+     elevation, sixteen buildings, each with its photo URL and licence beside
+     it. Skips the PITCH_MIN/MAX gate; still has to clear STOREY_MIN_M.
+  2. the snapshot's own `num_floors`, gated to a 2.60-5.20 m implied pitch.
+  3. STOREY_M, the nominal 3.46 m read off a rectified elevation of the Tower.
+
 OWNERSHIP (CLAUDE.md rule 1). This script writes exactly one file,
 `data/campus_storeys.geojson`, and nothing else writes it. It claims NO building
 ids — `replacedBuildingIds` is absent on purpose: six passes already claim ids,
@@ -125,6 +132,47 @@ STOREY_MIN_M = 2.00      # under this a "storey" is a parapet and gets no lines
 # final_height/num_floors on campus family `dk` is 2.47 m over n=6, which is
 # thin evidence, hence one constant rather than a derivation.
 DECK_M = 2.80
+
+# THE PHOTOGRAPHED COUNT OUTRANKS BOTH, and it is the only source here that was
+# read off the building rather than inferred from it. `data/facade_grids.json`
+# carries a storey count counted on a licensed photograph for sixteen campus
+# buildings, with the elevation and the photo URL beside each one. Those sixteen
+# skip the num_floors path and the PITCH_MIN/MAX gate entirely -- that gate
+# exists to catch an OSM `building:levels` that is describing mezzanines or
+# parking decks, and a count somebody counted on a wall is not that.
+#
+# WHY IT MATTERS MORE HERE THAN IN THE ATLAS. js/facades.js's window grid is
+# SCREEN-locked: one pattern repeat is 1.03 m of wall by z21, so no tile can
+# draw a 10.75 m Battle Hall storey there however it is redrawn. These bands are
+# GEOMETRY, in metres, so they are the same storeys at every zoom -- which makes
+# them the only thing on that wall that is still right when you walk up to it.
+# Battle Hall went from five floor lines to one grand storey between a base
+# course and a cornice, which is what the photograph shows.
+#
+# The pitch a measurement implies is still checked against STOREY_MIN_M, and
+# three buildings fail it -- Burdine, PCL and the Jackson School all have a
+# measured storey count that does not fit the height the app extrudes them at
+# (Burdine's eight floors are extruded into 12.8 m). Those fall back to the
+# nominal and are counted as `pitch_photo_rejected`, exactly as
+# scripts/verify/facadegrid.mjs reports them as HEIGHT-LIMITED rather than
+# grid-wrong. It is the height bake's defect, and it is named rather than
+# absorbed.
+MEASURED_GRIDS_FILE = os.path.join(DATA, "facade_grids.json")
+
+
+def load_measured_storeys():
+    """id -> storeys counted on a photograph, from data/facade_grids.json."""
+    if not os.path.exists(MEASURED_GRIDS_FILE):
+        return {}
+    doc = json.load(open(MEASURED_GRIDS_FILE, encoding="utf-8"))
+    out = {}
+    for m in doc.get("buildings", []):
+        if m.get("id") and isinstance(m.get("storeys"), int) and m["storeys"] >= 1:
+            out[m["id"]] = m["storeys"]
+    return out
+
+
+MEASURED_STOREYS = load_measured_storeys()
 
 # When a building carries a real floor count we FIT the storeys to it instead of
 # dividing by STOREY_M — 75 of 668 campus buildings do, and they are 36.9 % of
@@ -416,6 +464,19 @@ def pitch_for(props, fam, lo, hi, stats):
     is not a storey."""
     if fam == FAMILY_DECK:
         return DECK_M
+    # Photographed first. `storeys` counts the whole wall including the ground
+    # floor, and the ground floor sits below DATUM_M, so the banded span carries
+    # (storeys - 1) floor joins -- the same arithmetic the num_floors branch
+    # uses, for the same reason. A two-storey building therefore asks for ONE
+    # span and gets no interior floor line at all, which is the point.
+    ph = MEASURED_STOREYS.get(props.get("id"))
+    if ph:
+        n = max(1, int(ph) - 1)
+        p = (hi - lo) / n
+        if p >= STOREY_MIN_M:
+            stats["pitch_photo"] += 1
+            return p
+        stats["pitch_photo_rejected"] += 1
     lv = props.get("num_floors")
     if isinstance(lv, (int, float)) and lv >= LEVELS_MIN:
         # The ground floor is below DATUM_M, so the wall this bake bands carries
@@ -599,7 +660,9 @@ def main():
                            "against": "final_height in snapshots/%s" % date},
         "storeys": stats["storeys_total"],
         "dated_buildings": stats["dated"],
-        "pitch": {"measured": stats["pitch_measured"], "nominal": stats["pitch_nominal"],
+        "pitch": {"photographed": stats["pitch_photo"],
+                  "photographed_rejected": stats["pitch_photo_rejected"],
+                  "measured": stats["pitch_measured"], "nominal": stats["pitch_nominal"],
                   "levels_rejected": stats["pitch_levels_rejected"]},
         "by_era": {k[4:]: v for k, v in sorted(stats.items()) if k.startswith("era_")},
         "by_family": {k[4:]: v for k, v in sorted(stats.items()) if k.startswith("fam_")},
