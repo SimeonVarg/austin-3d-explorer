@@ -498,6 +498,31 @@ async function pass(label, flags) {
     // Force the ground-truth door where walk-pairs.json names one, otherwise
     // fall back to the SAME doorSet the app used (never invent an improvement
     // on an endpoint we have no ground truth for).
+    // THE INDEX IS NOT A NAME, AND IT ROTS SILENTLY. `fromDoorCorrect` is a
+    // POSITION in walk_graph.json's `d` array, and a re-bake renumbers that
+    // array. On 2026-08-27 the shipped graph turned out to be stale against the
+    // entrance file the same tree ships; re-baking it renumbered every door and
+    // ALL THIRTY frozen ground-truth indices in walk-pairs.json came to point at
+    // a different building — GDC's front door became Jester East, MAI's became
+    // Painter Hall. Metric A went on printing numbers (87.0 m became 282.0 m and
+    // the signed total became -6856 m) with no complaint from anything here,
+    // because nothing checked that the door at index i belongs to the building
+    // the pair names. It does now, and a mismatch is a SELF-CHECK FAILURE, in
+    // the same class as the Dijkstra drift check: an instrument that cannot say
+    // "I am measuring the wrong thing" is not an instrument.
+    for (const [side, di] of [['from', p.fromDoorCorrect], ['to', p.toDoorCorrect]]) {
+      if (di == null) continue;
+      const d = g.doors[di];
+      const want = side === 'from' ? p.from : p.to;
+      const got = d ? (d[6] || '') : '(no such door index)';
+      if (got !== want) {
+        console.error(`PAIR ${id}: ground-truth ${side} door index ${di} carries ref ` +
+          `"${got}", not "${want}" — walk-pairs.json's indices are STALE against ` +
+          `this data/walk_graph.json. Re-derive them (see walk-pairs.json _reindexed) ` +
+          `before believing any metric A number.`);
+        selfCheckFail++;
+      }
+    }
     const fromDoors = p.fromDoorCorrect != null ? [p.fromDoorCorrect] : doorSetFor(g, p.from);
     const toDoors = p.toDoorCorrect != null ? [p.toDoorCorrect] : doorSetFor(g, p.to);
     const corrected = routeBetween(g, WF, fromDoors, toDoors, false);

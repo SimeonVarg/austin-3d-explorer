@@ -198,6 +198,40 @@
     cageMember: 2,
     cageGlassLit: 0.30,
 
+    // ── the pitches every count above is really made of ──────────────────
+    //
+    // Metres of wall between one row (or bay) and the next. Two of them are
+    // MEASURED and are the reason this block exists rather than being a
+    // restatement of the counts:
+    //
+    //   eerFloorM 4.65 -- `eerFloor` below, bake_heroes.py's own number (a
+    //       40.5 m parapet over nine floors less a 3.0 m ground-floor overrun).
+    //       The authored `stoneRows: 9` puts a floor line every 3.66 m at
+    //       HERO_REF_ZOOM, 21 % too close together, and this file's own comment
+    //       admitted it ("that is the closest a pattern can get"). It is not --
+    //       it was only true while the count was fixed. Seven rows at 4.71 m is.
+    //   gdcFloorM 4.10 -- the measured Pelli module named in the GDC comment.
+    //       The authored eight rows already land on it at HERO_REF_ZOOM, so GDC
+    //       does not move at cruise at all; it stops collapsing as you come in.
+    //
+    // The rest are DERIVED from the authored counts at HERO_REF_ZOOM, so they
+    // reproduce today's tile exactly there. They are honest placeholders for a
+    // measurement, not measurements, and they are marked as such.
+    eerFloorM: 4.65,                 // MEASURED
+    eerBayM: 32.98 / 24,             // derived from stoneCols
+    gdcFloorM: 4.10,                 // MEASURED
+    gdcBayM: 32.98 / 16,             // derived
+    gdcPierM: 32.98 / 8,             // derived from brickPier (8 px of 64)
+    nhbFloorM: 32.98 / 7,            // derived from nbRows
+    nhbBayM: 32.98 / 9,              // derived from nbCols
+    glassFloorM: 32.98 / 6,          // derived from glassRows
+    glassBayM: 32.98 / 8,            // derived from glassCols
+    // The CAGE is deliberately not anchored. It is one object, not a rhythm --
+    // "the cage is 21.4 m wide and 21.1 m tall and its panels are square" -- so
+    // a metre pitch would ask for eight panels where the photograph shows five.
+    // Anchoring it needs the cage drawn as geometry at its own size, not a
+    // count changed in a tile. Written down rather than half-done.
+
     // ── EER's authored composition, in metres ────────────────────────────
     // Every one of these is applied by authorEER() as its own banded prism.
     // The bars are 80.5 x 22.7 m (north) and 81.0 x 23.2 m (south) with a
@@ -355,8 +389,48 @@
     return ((x ^ (x >> 16)) >>> 0) / 4294967295;
   }
 
-  let _ctx = null;
+  // ══════════════════════════════════════════════════════════════════
+  //  THESE TILES ARE ANCHORED IN METRES TOO
+  // ══════════════════════════════════════════════════════════════════
+  //
+  // Same defect js/facades.js's own header spends four hundred words on, and
+  // this file's EER comment already names it: "fill-extrusion-pattern has no
+  // vertical anchor and its world scale halves at every integer zoom". These
+  // seven tiles are registered with no `pixelRatio`, so displaySize is T and one
+  // repeat covers `T * 67551 / 2^tileZoom` metres of wall -- 32.98 m at z17,
+  // and 1.03 m by z22. EER's nine rows are a 3.7 m floor at z17 and a 12 cm
+  // floor at walking height.
+  //
+  // So every count below is derived from a PITCH IN METRES against the repeat
+  // the camera is drawing at, exactly as js/facades.js now does, and the tiles
+  // are redrawn when the anchor moves. It reads the anchor off facades.js
+  // (`window.facadeZoomAnchor`) rather than keeping a second one, so the two
+  // passes cannot drift apart about what zoom the city is at.
+  //
+  // HERO_REF_ZOOM is 17 and not 16 because these tiles are pixelRatio 1 where
+  // the facade atlas is pixelRatio 2: displaySize T at z17 is the same 32.98 m
+  // of wall as the atlas's displaySize 32 at z16. Every authored count in
+  // HEROES is a count AT THAT ZOOM, and clamping the anchor there means this
+  // can only ever coarsen a wall, never densify one.
   const T = 64;
+  const HERO_REF_ZOOM = 17;
+  const heroRepeatM = z => T * 67551 / Math.pow(2, z);
+  const HERO_REF_M = heroRepeatM(HERO_REF_ZOOM);         // 32.98 m
+  function heroAnchorZoom() {
+    let z = HERO_REF_ZOOM;
+    try { if (typeof window.facadeZoomAnchor === 'function') z = window.facadeZoomAnchor(); } catch (e) {}
+    return Math.max(HERO_REF_ZOOM, isFinite(z) ? z : HERO_REF_ZOOM);
+  }
+  const heroRepeatNowM = () => heroRepeatM(heroAnchorZoom());
+  /**
+   * Rows (or bays) for a metre pitch, at the anchor, never denser than the
+   * count this file authored at HERO_REF_ZOOM.
+   */
+  const countFor = (pitchM, authored) =>
+    Math.max(1, Math.min(authored, Math.round(heroRepeatNowM() / pitchM)));
+  window.heroesAnchor = () => ({ zoom: heroAnchorZoom(), repeatM: +heroRepeatNowM().toFixed(2) });
+
+  let _ctx = null;
   function ctx2d() {
     if (!_ctx) {
       const c = document.createElement('canvas');
@@ -387,8 +461,8 @@
    * photograph regularly shows six. Clusters and blanks are a RULE, not a
    * density, so the generator has to walk them.
    */
-  function stoneSlotsFor(row) {
-    const C = HEROES.stoneCols, out = [];
+  function stoneSlotsFor(row, C) {
+    const out = [];
     const pick = (r, k, i) => r[0] + Math.floor(hash01(row * 31 + i, k) * (r[1] - r[0] + 1));
     let c = Math.floor(hash01(row + 71, 5) * HEROES.stoneGap[1]);
     for (let i = 0; c < C && i < 40; i++) {
@@ -410,8 +484,8 @@
     ctx.fillStyle = css(base);
     ctx.fillRect(0, 0, T, T);
 
-    const R = HEROES.stoneRows, step = T / R;
-    const C = HEROES.stoneCols, bay = T / C;
+    const R = countFor(HEROES.eerFloorM, HEROES.stoneRows), step = T / R;
+    const C = countFor(HEROES.eerBayM, HEROES.stoneCols), bay = T / C;
     const sh = Math.max(2, Math.round(step * HEROES.stoneSlotTall));
     for (let r = 0; r < R; r++) {
       const y0 = Math.round(r * step);
@@ -420,7 +494,7 @@
       ctx.fillStyle = css(mix(base, [0, 0, 0], HEROES.stoneJoint));
       ctx.fillRect(0, y0, T, 1);
       const ys = y0 + Math.max(1, Math.round((step - sh) / 2));
-      for (const s of stoneSlotsFor(r)) {
+      for (const s of stoneSlotsFor(r, C)) {
         const w = Math.max(1, Math.round(bay * (s.wide ? 0.62 : 0.34)));
         const x = Math.round(s.c * bay + (bay - w) / 2);
         let v = mix(base, [0, 0, 0], HEROES.stoneSlotDark);
@@ -446,7 +520,9 @@
     ctx.fillStyle = css(brick);
     ctx.fillRect(0, 0, T, T);
 
-    const R = HEROES.brickRows, step = T / R;
+    const R = countFor(HEROES.gdcFloorM, HEROES.brickRows), step = T / R;
+    const BAYS = countFor(HEROES.gdcBayM, 16);
+    const PIER = Math.max(2, Math.round(T / countFor(HEROES.gdcPierM, T / HEROES.brickPier)));
     const bh = Math.max(1, Math.round(step * HEROES.brickBandFrac));
     const sh = Math.max(1, Math.round(step * HEROES.brickScreenFrac));
     const gh = Math.max(1, Math.round(step * HEROES.brickGlassFrac));
@@ -459,16 +535,16 @@
       // 2. the terracotta screen, hung over the head of every bay. It stops
       //    short of each pier, which is what makes it read as a hung panel
       //    rather than as a second spandrel.
-      for (let c = 0; c < 16; c++) {
+      for (let c = 0; c < BAYS; c++) {
         ctx.fillStyle = css(screen);
-        ctx.fillRect(Math.round(c * T / 16) + 1, y0 + bh, Math.round(T / 16) - 2, sh);
+        ctx.fillRect(Math.round(c * T / BAYS) + 1, y0 + bh, Math.max(1, Math.round(T / BAYS) - 2), sh);
       }
       // 3. the glazed bay under it
-      for (let c = 0; c < 16; c++) {
+      for (let c = 0; c < BAYS; c++) {
         let v = glass;
         if (night > 0 && hash01(c + 4, r + 9) < HEROES.brickLit) v = mix(v, lit, night * 0.70);
         ctx.fillStyle = css(v);
-        ctx.fillRect(Math.round(c * T / 16) + 1, y0 + bh + sh, Math.round(T / 16) - 2, gh);
+        ctx.fillRect(Math.round(c * T / BAYS) + 1, y0 + bh + sh, Math.max(1, Math.round(T / BAYS) - 2), gh);
       }
     }
     // The stack-bond piers: a brick vertical every structural bay, drawn over
@@ -476,9 +552,9 @@
     // run unbroken from the base to the roof plane and everything else is
     // infill between them.
     ctx.fillStyle = css(brick);
-    for (let x = 0; x < T; x += HEROES.brickPier) ctx.fillRect(x, 0, 2, T);
+    for (let x = 0; x < T; x += PIER) ctx.fillRect(x, 0, 2, T);
     ctx.fillStyle = css(mix(brick, [255, 255, 255], 0.14));
-    for (let x = 0; x < T; x += HEROES.brickPier) ctx.fillRect(x, 0, 1, T);
+    for (let x = 0; x < T; x += PIER) ctx.fillRect(x, 0, 1, T);
     return grab(ctx);
   }
 
@@ -492,7 +568,8 @@
     ctx.fillStyle = css(brick);
     ctx.fillRect(0, 0, T, T);
 
-    const R = HEROES.nbRows, C = HEROES.nbCols;
+    const R = countFor(HEROES.nhbFloorM, HEROES.nbRows);
+    const C = countFor(HEROES.nhbBayM, HEROES.nbCols);
     const sx = T / C, sy = T / R;
     const ww = Math.max(1, Math.round(sx * HEROES.nbWindow));
     const wh = Math.max(1, Math.round(sy * HEROES.nbWindow));
@@ -521,7 +598,9 @@
       const night = nightAt(p);
       ctx.fillStyle = css(frame);
       ctx.fillRect(0, 0, T, T);
-      const R = HEROES.glassRows, C = HEROES.glassCols, M = HEROES.glassMullion;
+      const R = countFor(HEROES.glassFloorM, HEROES.glassRows);
+      const C = countFor(HEROES.glassBayM, HEROES.glassCols);
+      const M = HEROES.glassMullion;
       const sx = T / C, sy = T / R;
       for (let r = 0; r < R; r++) {
         for (let c = 0; c < C; c++) {
@@ -905,11 +984,18 @@
   let _lastPq = null;
   const PQ = 128;
 
+  // The anchor the images currently HOLD. A tile is a function of (hour,
+  // anchor), so both have to move it off the quantised early-out below --
+  // otherwise crossing a zoom while the clock is still leaves the old rhythm up.
+  let _lastAnchor = null;
+
   window.applyHeroColors = function applyHeroColors(map, p, force) {
     if (!HEROES.on || !map || !map.getLayer) return;
     const pq = Math.round(Math.max(0, Math.min(1, p)) * PQ) / PQ;
-    if (force !== true && _lastPq !== null && pq === _lastPq) return;
+    const az = heroAnchorZoom();
+    if (force !== true && _lastPq !== null && pq === _lastPq && az === _lastAnchor) return;
     _lastPq = pq;
+    _lastAnchor = az;
     try {
       if (map.getLayer(L.solid)) map.setPaintProperty(L.solid, 'fill-extrusion-color', wallColor(p));
     } catch (e) {}
@@ -928,6 +1014,19 @@
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);
+
+    // Crossing an integer zoom changes what these tiles should draw, the same
+    // way crossing an hour does. Cheap to test (one integer compare) and the
+    // redraw behind it is six 64 px canvases, so it can hang off `zoom`
+    // directly without a debounce of its own.
+    if (!map.__heroesZoomWatch) {
+      map.__heroesZoomWatch = true;
+      map.on('zoom', () => {
+        if (heroAnchorZoom() === _lastAnchor) return;
+        const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
+        try { window.applyHeroColors(map, p, true); } catch (e) {}
+      });
+    }
 
     const hookTod = () => {
       if (typeof window.applyTimeOfDay !== 'function' || window.applyTimeOfDay.__heroes) return;

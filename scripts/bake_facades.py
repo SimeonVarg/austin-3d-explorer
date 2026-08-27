@@ -154,7 +154,92 @@ def coarse_key(rgb):
     return "%d-%d-%d" % (math.floor(h * 12), math.floor(l * 5), 0 if s < 0.22 else 1)
 
 
+# ------------------------------------------------- measured grids, ported --
+#
+# js/facades.js's MEASURED registry, and the SAME warning applies as to the
+# regexes above: this is a transcription, not a re-derivation, and
+# scripts/verify/facade_parity.py is what convicts it when it drifts.  It is
+# here because `family_for` now returns a measured family (`k0`..`kz`) for the
+# sixteen buildings data/facade_grids.json carries, and a bake that did not
+# know that would disagree with the browser on `wf` for exactly those sixteen
+# -- which is the one thing the parity harness exists to catch.
+#
+# Only the parts that decide the CODE are ported.  The tile drawing is not, and
+# does not need to be: the bake never draws a tile.
+TILE = 64                  # js/facades.js:47
+TIER_CSS = 32              # js/facades.js TIERS block
+REF_ZOOM = 16              # js/facades.js MEASURED GRIDS block
+REPEAT_M = TIER_CSS * 67551 / (2 ** REF_ZOOM)
+MIN_PIER, MIN_SPANDREL = 5, 3
+GRID_CLAMP = {"maxRows": 10, "maxCols": 9, "minRows": 1, "minCols": 2, "minOpen": 2}
+GRIDS = {
+    "lo": {"rows": 2,  "cols": 3, "w": 8, "h": 7, "want": 0.08},
+    "mr": {"rows": 6,  "cols": 5, "w": 6, "h": 4, "want": 0.18},
+    "mh": {"rows": 8,  "cols": 5, "w": 5, "h": 4, "want": 0.20},
+    "tr": {"rows": 9,  "cols": 5, "w": 5, "h": 4, "want": 0.22},
+    "tg": {"rows": 10, "cols": 7, "w": 6, "h": 5, "want": 0.51, "curtain": True},
+}
+
+
+def _grid_from_measured(m, base):
+    """js/facades.js gridFromMeasured(), same arithmetic, same clamp order."""
+    h = m.get("app_height_m") or 0
+    rows = int(round(m["storeys"] * REPEAT_M / h)) if h > 0 else base["rows"]
+    rows = min(GRID_CLAMP["maxRows"], max(GRID_CLAMP["minRows"], rows))
+
+    cols = base["cols"]
+    if m.get("bays") and m.get("bay_wall_m"):
+        cols = int(round(m["bays"] * REPEAT_M / m["bay_wall_m"]))
+        cols = min(GRID_CLAMP["maxCols"], max(GRID_CLAMP["minCols"], cols))
+
+    step_x, step_y = TILE / cols, TILE / rows
+    area = base["want"] * step_x * step_y
+    a = m["aspect"] if m.get("aspect", 0) > 0 else 1
+    w = int(round(math.sqrt(area / a)))
+    hh = int(round(w * a))
+    w_cap = math.floor(step_x - (1 if base.get("curtain") else MIN_PIER))
+    h_cap = math.floor(step_y - (1 if base.get("curtain") else MIN_SPANDREL))
+    w = max(GRID_CLAMP["minOpen"], min(w, w_cap))
+    hh = max(GRID_CLAMP["minOpen"], min(hh, h_cap))
+    return {"rows": rows, "cols": cols, "w": w, "h": hh}
+
+
+def _load_measured():
+    """id -> family code, matching registerMeasuredGrids()'s numbering.
+
+    JS rounds with Math.round (half away from zero for positives); Python's
+    round() is banker's rounding and would disagree at exactly .5, so every
+    round above goes through int(round(x)) on a value the JS also rounds --
+    the one place they can differ is a dead-on .5, which the parity harness
+    would report as a family mismatch rather than hide."""
+    path = os.path.join(DATA, "facade_grids.json")
+    if not os.path.exists(path):
+        return {}
+    doc = json.load(open(path, encoding="utf-8"))
+    out, n = {}, 0
+    for m in doc.get("buildings", []):
+        if not m.get("id"):
+            continue
+        base = GRIDS.get(m.get("base")) or GRIDS["mh"]
+        g = _grid_from_measured(m, base)
+        if (g["rows"] == base["rows"] and g["cols"] == base["cols"]
+                and g["w"] == base["w"] and g["h"] == base["h"]):
+            continue                      # identical to its template; no family
+        if n >= 36:
+            break
+        # base 36, same alphabet as JS Number.prototype.toString(36)
+        out[m["id"]] = "k" + "0123456789abcdefghijklmnopqrstuvwxyz"[n]
+        n += 1
+    return out
+
+
+MEASURED_FAM = _load_measured()
+
+
 def family_for(p):
+    fam = MEASURED_FAM.get(p.get("id"))
+    if fam:
+        return fam
     cls = p.get("building_class") or ""
     if GARAGE.search(cls):
         return "dk"

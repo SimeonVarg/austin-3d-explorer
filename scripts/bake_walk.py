@@ -104,6 +104,43 @@ ROAD_WALKABLE = {"service", "residential", "living_street", "unclassified"}
 ROAD_ACCESS_MAX_M = 250.0  # cap per adopted chain; measured need is <= 143 m
 ROAD_CAND_SEGS = 3         # road segments tried per stranded door, nearest first
 
+# ── Plaza interiors: a mall is a SURFACE, not a fence ─────────────────────
+#
+# A `highway=pedestrian area=yes` way is a closed ring, and build_raw() puts
+# it into the graph as a ring of edges and nothing across the middle.  So the
+# router walks students AROUND the South Mall rather than down it.
+# docs/walk/graph.md §10 accepted that for v1 and docs/walk-sidewalks.md §6
+# measured it as the biggest thing left, down to the patch it wanted:
+#
+#     "for each of the 42 `area=yes highway=pedestrian` ways, triangulate or
+#      grid the interior and add the interior chords as ordinary footway
+#      edges ... Expected: door links on the Six Pack and both malls collapse
+#      from ~16-24 m to ~2 m, and the PCL→UNB class of detour drops by a
+#      third."
+#
+# This is that patch, with ONE change to what it asked for, and the change is
+# the whole point: a chord is not added because OSM drew a polygon round it.
+# **OSM's pedestrian areas on this campus are not all pavement.** The Main
+# Mall polygon contains the two South Mall LAWN PANELS, and a blind
+# triangulation routes students straight across them.  So every chord is put
+# to a real aerial photograph first, and one that runs over open turf is
+# refused: 134 of 1,711 were, and the picture of which ones is in
+# docs/walkways-on-the-real-paths.md.
+#
+# The photograph lives in scripts/trace_walkways.py, which owns
+# data/walkway_evidence.json and is the only thing that writes it.  This bake
+# reads that file and never looks at an image — the imagery is a regenerable
+# input, the verdict is the committed artifact.
+#
+# A chord is an ordinary footway edge and costs plain metres.  It carries NO
+# new flag bit (the flag byte is full — see the note by `re` in the wire
+# format) and NO new cost term, on purpose: scripts/verify/walkmeter.mjs
+# re-implements the client's cost model to self-check, and a genuinely new
+# term makes it go red rather than quiet.  Membership ships out of band as
+# `pe`, exactly like the road access legs do.
+PLAZA_CHORDS = os.environ.get("CHORDS", "1") != "0"
+PLAZA_EVIDENCE = "data/walkway_evidence.json"
+
 # A route "passes through a building" only if it stays inside the footprint
 # for longer than this.  See find_through_edges() for the measurement that
 # produced the number.
@@ -648,6 +685,50 @@ def build_raw():
                 mismatch=mismatch, rings=rings, areas=areas, layered=layered)
 
 
+def plaza_chords(G):
+    """Add the photograph-confirmed chords across pedestrian areas.
+
+    Endpoints are OSM node ids, so they resolve through this bake's own node
+    index and a chord whose nodes this graph does not carry is skipped and
+    counted rather than guessed at.  Lengths are recomputed here from the
+    graph's own coordinates — the centimetres in the evidence file are a
+    record of what was measured, never the number this bake trusts."""
+    out = dict(added=0, unknown_node=0, already=0, plazas=set(), metres=0.0,
+               refused_by_photo=0, file=PLAZA_EVIDENCE, as_of="", keys=set())
+    if not PLAZA_CHORDS:
+        return out
+    try:
+        ev = load(PLAZA_EVIDENCE)
+    except FileNotFoundError:
+        out["file"] = PLAZA_EVIDENCE + " (MISSING — no chords added)"
+        return out
+    out["as_of"] = ev.get("_generated", "")
+    out["refused_by_photo"] = int(ev.get("refused", {}).get("chord_photo_turf", 0))
+    nid_ix, edges = G["nid_ix"], G["edges"]
+    nx, ny = G["nx"], G["ny"]
+    for row in ev.get("plaza_chords", []):
+        wid, na, nb = row[0], row[1], row[2]
+        ia, ib = nid_ix.get(na), nid_ix.get(nb)
+        if ia is None or ib is None or ia == ib:
+            out["unknown_node"] += 1
+            continue
+        key = (ia, ib) if ia < ib else (ib, ia)
+        if key in edges:
+            out["already"] += 1
+            continue
+        L = dist_m(nx[ia], ny[ia], nx[ib], ny[ib])
+        if L <= 0.0:
+            out["unknown_node"] += 1
+            continue
+        edges[key] = [L, 0, -1, 0]
+        out["keys"].add(key)
+        out["added"] += 1
+        out["metres"] += L
+        out["plazas"].add(wid)
+    G["kind_len"]["plaza_chord"] += out["metres"]
+    return out
+
+
 def components(n, edge_keys):
     d = DSU(n)
     for a, b in edge_keys:
@@ -1125,7 +1206,8 @@ def build_doors():
     return out
 
 
-def anchor_doors(G, doors, main, bgrid, road_keys=None, bclass=None):
+def anchor_doors(G, doors, main, bgrid, road_keys=None, bclass=None,
+                 chord_keys=None):
     """Project each door onto the nearest main-component segments.
 
     Four traps, all honoured here:
@@ -1250,6 +1332,12 @@ def anchor_doors(G, doors, main, bgrid, road_keys=None, bclass=None):
                 was_road = road_keys is not None and key in road_keys
                 if was_road:
                     road_keys.discard(key)
+                # A split PLAZA CHORD is still two plaza chords. Without this
+                # the `pe` list quietly under-reports: 33 of 1,573 chords are
+                # spliced by a door anchor, and both halves lost the label.
+                was_chord = chord_keys is not None and key in chord_keys
+                if was_chord:
+                    chord_keys.discard(key)
                 for (u, v) in ((a, node), (node, b)):
                     k2 = (u, v) if u < v else (v, u)
                     edges[k2] = [dist_m(nx[u], ny[u], nx[v], ny[v]), f, sid, layer]
@@ -1257,6 +1345,8 @@ def anchor_doors(G, doors, main, bgrid, road_keys=None, bclass=None):
                     incm[v].add(k2)
                     if was_road:
                         road_keys.add(k2)
+                    if was_chord:
+                        chord_keys.add(k2)
                 main.add(node)
                 sgrid.add(nx[a], ny[a], qx, qy, (a, node) if a < node else (node, a))
                 sgrid.add(qx, qy, nx[b], ny[b], (node, b) if node < b else (b, node))
@@ -1376,6 +1466,8 @@ def bake(verbose=True):
     G = build_raw()
     nx, ny, edges = G["nx"], G["ny"], G["edges"]
     n_raw_nodes, n_raw_edges = len(nx), len(edges)
+    pc = plaza_chords(G)
+    chord_keys = pc["keys"]
 
     _, _, sizes0, main0 = components(len(nx), edges.keys())
     comps0 = len(sizes0)
@@ -1392,7 +1484,7 @@ def bake(verbose=True):
     comps = len(sizes)
 
     an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys,
-                      bclass=bclass)
+                      bclass=bclass, chord_keys=chord_keys)
     through, clip_events = find_through_edges(edges, nx, ny, bgrid, polys, bclass)
 
     # --- code index: refs (split on ';'), nm aliases, then ref joins -------
@@ -1628,6 +1720,16 @@ def bake(verbose=True):
         rd.append(i - prevr)
         prevr = i
 
+    # Plaza chords ship the same way and for the same reason: they are
+    # ordinary footway edges costing plain metres, and the only thing a
+    # client might want to know is which ones they are, so it can word or
+    # draw "cross the mall" differently from "follow the walk".
+    cix = [i for i, k in enumerate(order) if k in chord_keys]
+    cd, prevc = [], 0
+    for i in cix:
+        cd.append(i - prevc)
+        prevc = i
+
     qx, qy = [], []
     lastx = lasty = 0
     for i in range(len(nx)):
@@ -1661,6 +1763,10 @@ def bake(verbose=True):
         snap_rejected_layer=sn["rej_layer"], snap_rejected_building=sn["rej_bldg"],
         snap_rejected_road=sn["rej_road"], dead_ends=sn["dead_ends"],
         road_edges=len(road_keys), road_km=ra["km"],
+        plaza_chords=pc["added"], plaza_chord_m=round(pc["metres"], 1),
+        plaza_chord_plazas=len(pc["plazas"]),
+        plaza_chords_refused_by_photo=pc["refused_by_photo"],
+        plaza_chord_evidence=pc["file"], plaza_chord_as_of=pc["as_of"],
         road_chains=ra["targets"], road_portals=ra["portals"],
         road_forest_violations=ra.get("forest_violations", 0),
         doors=len(doors), doors_linked=sum(1 for d in doors if d.get("anchors")),
@@ -1696,9 +1802,14 @@ def bake(verbose=True):
                     "walkable-road access legs (service/residential); they "
                     "are dead-end chains off the main component, never "
                     "through-routes, and cost plain metres like any footway. "
+                    "pe: delta-coded edge indices that are PLAZA CHORDS -- a "
+                    "straight crossing of a mapped pedestrian area whose "
+                    "middle a real aerial photograph confirms is walkable "
+                    "(scripts/trace_walkways.py). They cost plain metres too. "
                     "d: [x,y,anchorNodes,linkCm,role,src,"
                     "ref,name]. poi: [x,y,node,cat,name,opening_hours]."),
         "re": rd,
+        "pe": cd,
         "d": dd,
         "code": {k: v for k, v in sorted(code_doors.items())},
         "name": name_ix,
@@ -1728,6 +1839,7 @@ def bake(verbose=True):
     gz = len(gzip.compress(blob.encode("utf-8"), 9))
 
     ctx = dict(G=G, edges=edges, doors=doors, main=main, sizes=sizes,
+               plaza=pc,
                through_edges=through, clip_events=clip_events, names=bnames,
                bclass=bclass,
                zero_w=zero_w, deg0=deg0,
@@ -1772,6 +1884,13 @@ def print_health(c):
     P(f"    ACCEPTED             {h['snap_accepted']}   (cap {SNAP_MAX_ACCEPTED})")
     P(f"    rejected: layer {h['snap_rejected_layer']}  building {h['snap_rejected_building']}"
       f"  road {h['snap_rejected_road']}")
+    P("")
+    P("  PLAZA CHORDS  (a mall is a surface, not a fence)")
+    P(f"    added                {h['plaza_chords']}   across {h['plaza_chord_plazas']} "
+      f"mapped pedestrian areas, {h['plaza_chord_m']} m")
+    P(f"    refused by the photo {h['plaza_chords_refused_by_photo']}   "
+      f"(open turf under the line -- OSM's plaza polygons are not all pavement)")
+    P(f"    evidence             {h['plaza_chord_evidence']}  generated {h['plaza_chord_as_of']}")
     P("")
     P("  ROAD ACCESS LEGS  (dead-end chains only; classes %s)"
       % ", ".join(sorted(ROAD_WALKABLE)))

@@ -1,5 +1,86 @@
 # QUEUE — Acer lane
 
+## CAMPUS DETAIL PASS — SHIPPED 2026-08-27 (`docs/campus-detail-verdict.md`)
+
+The three pieces (entrances, facades, walkways) were integrated, re-measured on
+the merged tree by the ship lane, and merged. **The history had to be rebuilt to
+merge them** — see C1. What is left over, in priority order:
+
+### C1 — DONE, but know what happened: the piece branches could not be merged as-is
+
+All three piece branches were stacked on `acer/img-rooms`, whose commit `2de2013`
+copies a real five-digit registration `unique` out of Simeon's gitignored answer
+key into `scripts/verify/schedimg.mjs`. Verified independently by this lane:
+exactly one 5-digit literal added by that commit, exact match against
+`scripts/verify/schedule-images/real/truth.json`. `main` did not contain it, so
+**merging any piece branch was the act that would have put it on the public repo
+permanently.**
+
+The final *tree* is clean — a scan of all 818 tracked text files against 445
+answer-key terms found one hit, and it is a float timestamp in
+`shots/r/slidein/flight-log.json` that is already on `main` and untouched by this
+round. So the fix was to replay the verified tree onto `origin/main` as fresh
+commits and never merge the poisoned history. The final tree hash was asserted
+equal to the verified one before pushing.
+
+**Rule this leaves behind:** before merging any branch that descends from
+`acer/img-rooms`, check `git merge-base --is-ancestor 2de2013 <branch>`. If it
+returns true, replay the tree; do not merge.
+
+### C2 — Point the existing snap stage at the 47 stranded components
+
+`docs/walkways-widths.md` §8 shipped a table claiming no stranded island was
+within 5 m of the routable network and the largest was 118 m out, and concluded
+there was nothing to do. **That was wrong and is now corrected in the doc.** A
+from-scratch decode of `data/walk_graph.json` plus brute-force haversine finds:
+
+```
+within  5 m:   4 islands,   913 m      (doc said 0)
+within 10 m:  12 islands, 1,324 m      (doc said 3, 387 m)
+largest island: 1,825 m of walkway, 19.00 m out   (doc said 118 m)
+nearest island:   175 m of walkway,  2.45 m out
+```
+
+19 m is inside tolerances this codebase already uses (`DOOR_LINK_MAX_M` 30 m,
+`UT_VIRTUAL_SNAP` 75 m). `bake_walk.py` already owns a snap stage (63 candidates,
+8 accepted, components 59 → 48); its candidate radius simply never reaches these.
+Job: widen or re-target that stage at the 47 components, re-run `walkmeter.mjs`
+and confirm the record (2.0 m / −541.4 m / 38 of 38 / drift 0.00) does not move.
+The long tail really is unmapped OSM geometry — do not invent it.
+
+### C3 — Give windows a SHAPE, not just a count
+
+The biggest remaining visual gap, and the one Simeon's original complaint is
+really about. `js/facades.js` fixes repeat *pitch* only: every opening in the
+city is a plain rectangle. Battle Hall's real facade is round-arched Palladian
+windows with iron balconies; Gregory Gym is two tiers of arched clerestory
+windows; the Main Building's base is an arcade. All of them now draw the right
+number of rectangles.
+
+Wanted: an arch primitive plus a per-building arched/square flag, sourced from
+photographs the way `data/facade_grids.json`'s storey counts already are. This
+will move a blind comparison further than any further work on counts.
+
+### C4 — Recess and arcade entrances still cannot be drawn
+
+34 of 98 photographed entrances are sheltered by a colonnade or a cantilevered
+recessed floor. `bake_entrances.py` records the type and can only darken a flat
+panel, because the wall is an extruded footprint and depth here is a colour, not
+a distance. Needs real added/subtracted geometry. Bigger and more visible than
+the canopy problem that was fixed.
+
+### C5 — The atlas doubled; watch the sun slider
+
+`MEASURED_MUL` took the facade atlas 5,250 KB to 10,050 KB. Cruise frames are
+unaffected (no-op 0.8 ms both arms; cruise median 571 ms vs 580 ms, measured arm
+marginally faster). But a full repaint when the time-of-day bucket changes went
+323.6 ms to 780.8 ms of main-thread canvas. Not a cruise cost; it is a longer
+hitch when the sun slider crosses an hour. `facade-perf.mjs` could not be run —
+it needs a real GPU and this box rasterises in software at 0.9 fps. Someone with
+a GPU should run it before the atlas grows again (mul 8 is priced at 4x this).
+
+---
+
 ## PHOTO IMPORT — THE REAL-CORPUS QUEUE (2026-08-26, `docs/img-real-baseline.md`)
 
 **Everything below is ordered by what was measured on seven real screenshots

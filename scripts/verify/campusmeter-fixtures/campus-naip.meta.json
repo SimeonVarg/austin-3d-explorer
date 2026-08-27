@@ -1,0 +1,18 @@
+{
+  "_what": "USGS NAIP orthoimagery over UT Austin's CAMPUS bbox (see bake_entrances.py's CAMPUS const, read live by campusmeter.mjs). Real aerial photograph, not a basemap render — used as an independent ground truth for the paths check: it was not derived from OSM and does not share any pipeline with data/ground.geojson.",
+  "_source_url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage",
+  "_query": {
+    "bbox": "-97.7420,30.2795,-97.7255,30.2930",
+    "bboxSR": "4326",
+    "size": "1024,1024",
+    "imageSR": "4326",
+    "format": "jpgpng",
+    "f": "image"
+  },
+  "_fetched": "2026-08-26",
+  "_license": "USGS NAIP imagery is a U.S. federal government work, public domain.",
+  "bbox": { "minlon": -97.7420, "minlat": 30.2795, "maxlon": -97.7255, "maxlat": 30.2930 },
+  "width": 1024,
+  "height": 1024,
+  "note": "bbox order is (west,south,east,north) i.e. (minlon,minlat,maxlon,maxlat), matching the exportImage bbox param. Row 0 of the image is the NORTH edge (maxlat); pixel (0,0) is the top-left = (minlon,maxlat)."
+}

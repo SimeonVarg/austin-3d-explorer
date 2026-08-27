@@ -1,0 +1,20 @@
+[
+  {
+    "name": "battle-walk",
+    "note": "Battle Hall's east wall filling the frame at walking height (z21, pitch 85) - the band MEASURED_MUL changes and the one the old cruise-only pose set never looked at.",
+    "center": [-97.740167, 30.285403],
+    "zoom": 21.0,
+    "pitch": 85,
+    "bearing": 275,
+    "p": 0.5
+  },
+  {
+    "name": "calhoun-walk",
+    "note": "Calhoun Hall's north wall from the mall at walking height - a 4-storey punched hall, the commonest campus case.",
+    "center": [-97.740252, 30.284980],
+    "zoom": 20.4,
+    "pitch": 84,
+    "bearing": 180,
+    "p": 0.5
+  }
+]

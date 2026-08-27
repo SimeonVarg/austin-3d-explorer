@@ -1,5 +1,356 @@
 # Austin 3D Explorer — Full Handoff
 
+## 202. Aug 27 2026 — the campus detail pass, integrated and shipped (`acer/cd-ship`, MERGED)
+
+Full verdict with the before/after frames: `docs/campus-detail-verdict.md`.
+Three pieces built and criticised over three rounds each (entrances, facades,
+walkways), integrated here, **every number re-measured by this lane on the merged
+tree**, not read off any piece's write-up. `WAYFIND.on` still `false`.
+
+**The blocker nobody upstream hit, because only merging triggers it.** All three
+piece branches were stacked on `acer/img-rooms`, whose commit `2de2013` copies a
+real five-digit registration `unique` out of Simeon's gitignored answer key into
+`scripts/verify/schedimg.mjs`. `QUEUE.md` §R0 had already found this for the img
+branch; what was missed is that **the campus work inherited it**, so merging any
+piece branch would have put that literal on the public `main` permanently.
+Verified independently: exactly one 5-digit literal added by that commit, exact
+match against `scripts/verify/schedule-images/real/truth.json`. The final *tree*
+is clean (818 tracked text files scanned against 445 key terms; the single hit is
+a float timestamp in `shots/r/slidein/flight-log.json`, already on `main`,
+untouched by this round). **Fix: the verified tree was replayed onto `origin/main`
+as fresh commits, tree hash asserted equal, poisoned history never merged.**
+
+**The scores, before → after, all re-measured here:**
+
+```
+entrances   64/204 within 10 m of UT's own door  ->  74/181, and 118 invented doors deleted
+shelter     10/22 held-out (era guess)           ->  19/22; 39/39 canopies cite a photograph
+facades     worst wall 10.43x its real storeys   ->  2.61x (WALK band); 2.61x -> 1.30x (LOOK)
+            window crawl at Battle Hall 44.28%   ->  24.15%
+            rendered rows matching the photo     ->  3 of 5 scoreable
+paths       105/624 points on vegetation (16.8%) ->  83/625 (13.3%)
+            782 ways carry a surveyed width; 578 of them were >0.5 m off the 2.4 m template
+walking     87.0 m / -393.7 m / 38 of 38 / 0.00  ->  2.0 m / -541.4 m / 38 of 38 / 0.00
+cruise      579.7 ms median                      ->  571.1 ms (min of 3 interleaved reps)
+```
+
+**The walking record moved and most of it is an instrument repair, not a win.**
+`walk-pairs.json` freezes ground-truth doors as *indices* into `walk_graph.json`,
+and a re-bake renumbers that array — the shipped graph was stale against the
+entrance file in the same tree, so all thirty indices pointed at the wrong
+building while metric A printed plausible numbers. `87.0` was measured against
+the wrong doors. There is now a self-check that the door at index *i* belongs to
+the named building; **I watched it go red** (rotate one index by 7 → prints the
+mismatch, exits 1) and restored the file byte-identical.
+
+**A wrong number found and corrected.** `docs/walkways-widths.md` §8 claimed no
+stranded island was within 5 m of the routable network and the largest was 118 m
+out, and used that to conclude there was nothing to do. A from-scratch decode of
+`walk_graph.json` (delta coords, cumulative edge indices) plus brute-force
+haversine — a decode that reproduces every *other* anchor in that section exactly
+— gives **4 islands within 5 m (nearest 2.45 m), 12 within 10 m, and the largest
+island 19.00 m out, not 118 m.** That is inside tolerances this repo already uses
+(`DOOR_LINK_MAX_M` 30 m). Doc and §201 corrected; queued as C2.
+
+**Nothing invented, checked rather than assumed.** 39/39 canopies and 16/16
+measured facade grids cite a source. 1,577 plaza chords are all photograph-
+confirmed with both endpoints on existing OSM nodes, 134 refused for turf, and
+**zero of 42,233 candidate desire paths shipped.** 46.7 % of ways keep the default
+width rather than a guessed one.
+
+**Still wrong, and named:** every window in the city is a plain rectangle — the
+round arches, balconies and arcades that make Battle Hall, Gregory Gym and the
+Main Building recognisable are absent, which is why none of the three pieces won
+a blind comparison against a photograph. `recess`/`arcade` entrance shelters
+(34 of 98) still cannot be drawn. The facade atlas doubled to 10 MB and an
+hour-change repaint went 324 ms → 781 ms (cruise frames unaffected).
+
+## 201. Aug 27 2026 — every walk in this city was 2.4 metres wide: 782 of them measured off a real survey, 74 % of those more than half a metre off the template (`acer/cd-walkways`, not merged)
+
+Full write-up with the before/after frames: `docs/walkways-widths.md`.
+One new script, `scripts/trace_walk_widths.py`, which owns `data/walkway_widths.json`
+and writes nothing else; +64 lines in `scripts/bake_ground.py`, which owns
+`data/ground.geojson`. No app code. `WAYFIND.on` untouched. **`data/walk_graph.json`
+is byte-identical** — this round changed the painted pavement, not the router.
+
+**The defect the round-1 reviewer named, and it was real.** `DEFAULT_WIDTH` in
+`bake_ground.py` was marked GENERATIVE and read `footway 2.4`. **0 of 3,098
+campus footways carries an OSM `width` tag** — not a few, none — so a service
+alley behind a dorm and a mall approach were the same ribbon. The facade-template
+defect one system over.
+
+**The source, and it is not a photograph.** Round 1 proved a photograph cannot
+do this (§6b: the perpendicular profile of 8,822 stations at 0.30 m/px is flat,
+because most campus walks have no pavement/grass edge). This uses the **City of
+Austin's planimetric impervious-surface survey** — real digitised polygons of
+the paved slab, public domain, 10,571 of them over the footway bbox, each
+carrying the orthophotography year it was traced off. A survey sees through
+live oak. The 16 MB extract is regenerable and gitignored under
+`data/gis_cache/`; the committed artifact is the verdict.
+
+**The rule refuses more than it answers, on purpose.** A station only counts if
+BOTH perpendicular marches find an edge inside 6 m — inside a continuous paved
+court there IS no edge, the court is the surface. Without that requirement
+Speedway came back at the 16 m search cap against the 30 ft this repo already
+has from Public Works' own record.
+
+```
+782 of 3,430 ways measured   71,475 m of 160,363 m of drawn walk (44.6 %)
+p10 1.4  p25 1.7  median 2.4  p75 3.5  p90 4.5  max 10.4 m
+578 of 782 (74 %) more than 0.5 m from the 2.4 m default
+in the bake: 745 line-ways, 558 moved — 282 WIDER and 276 NARROWER
+```
+
+**It is strictly opt-in and may never say "there is no walk here".** 46.7 % of
+ways get no row, and the biggest reason is that the city's survey does not cover
+UT's interior campus — two off-pavement cases were put to NAIP and both show a
+wide, obviously paved court the city has simply not mapped
+(`docs/shots/walkwidths-coverage-gap.jpg`). Twelve of those midpoints were sent
+back to the FeatureServer as point queries: 12 of 12 agree with the script's own
+reader, so the gap is in the data, not in us. A way with no row keeps
+`DEFAULT_WIDTH`. Nothing here deletes, moves or narrows a path for want of
+evidence.
+
+**The number reached the CITY, not just the file.** `scripts/verify/walkwidth.mjs`
+is new: near-nadir, trees hidden, it walks outward in RENDER space asking the map
+at each screen pixel whether a `k:'patharea'` polygon is drawn there, with the
+target widths read out of the SERVED evidence file rather than typed in.
+
+```
+way          survey    drawn BEFORE   drawn AFTER
+1216105912   1.35 m       2.60 m  x      1.40 m  ok
+1058218049   1.70 m       2.50 m  ok     1.80 m  ok
+126328774    5.50 m       2.40 m  x      5.60 m  ok
+1120921416   5.85 m       2.50 m  x      5.50 m  ok
+             FAIL — 3 of 4 on the old bake        PASS on this one
+```
+Both gates are watchable failing. `trace_walk_widths.py --selftest --break`
+reinstates the defect (the marcher stops at a fixed 1.2 m, so everything is
+2.4 m) and 5 of 7 assertions go red; `walkwidth.mjs --break` hides the ground
+layers and all four go red.
+
+**Numbers** (`serve.py 8825`). campusmeter **paths B 105/624 → 83/625** on
+vegetation in the real NAIP photograph, 16.8 % → 13.3 % — the metric round 1
+said the scoreboard could not see this work with, moved by a fifth. Paths A
+unchanged at 624/625 within 5 m (median 1.2 → 1.1 m; its p90 goes 1.2 → 1.4 m,
+which is arithmetic: a 5.5 m ribbon puts its ring vertices 2.75 m off the
+centreline the metric compares against). `--walkaudit` on a drawn walk
+96.55 % → **96.60 %**, bare 209 → **203 m**. Everything else byte-identical:
+entrances A 74/181 B 69/516, eras 301/591, shelter 19/22, facades 0/7.
+**walkmeter: 2.0 m over the pairs it makes worse, signed −541.4 m, 38 of 38 at
+UT's own door, drift 0.00, UI gate PASS** — all four unchanged, because the
+router's file was not touched.
+
+**The brief's other question, answered with a number.** *"Real paths that exist
+in the data and the router ignores — data problem or routing problem?"* On the
+shipped graph: **5,647 m of surveyed walkway (2.6 %) sits in 47 ISLANDS the
+router cannot reach**, 1,151 m of it in the campus core. ~~Not one island is
+within 5 m of the main network~~ — **that claim was WRONG and the ship lane
+retracted it on 2026-08-27 (see §202 and `docs/walkways-widths.md` §8).** A
+brute-force recomputation off a from-scratch decode of `data/walk_graph.json`
+finds **4 islands within 5 m (nearest 2.45 m), 12 within 10 m**, and the largest
+island — 1,825 m, a third of all stranded walkway — **19 m** from the network,
+not 118 m. `bake_walk.py` already snaps (63 candidates, 8 accepted, 59 → 48
+components); its candidate radius just never reaches these 47 components.
+Some of the tail really is missing OSM geometry, but "nothing to do here" was
+not what the measurement said. Now a real queued job, not a closed question.
+
+**Still wrong, and named in the doc:** 55 % of drawn walk metres are still on
+the 2.4 m template and the largest reason is the survey's coverage gap over UT's
+interior — closing it needs UT's own facilities GIS or leaf-off orthophotography
+at 0.15 m/px, NOT another pass at summer NAIP. The measured width is the paved
+SLAB, so a walk along the edge of an apron measures as wide as the apron.
+Widths are per way, not per metre. And the 5,647 stranded metres above.
+
+
+## 200. Aug 27 2026 — a mall is a surface, not a fence: the router crosses the plazas now, and the walk graph turned out to be stale against its own doors (`acer/cd-walkways`, not merged)
+
+Full write-up with the before/after frames: `docs/walkways-on-the-real-paths.md`.
+Two scripts changed — `scripts/bake_walk.py` (owns `data/walk_graph.json`) and a
+new `scripts/trace_walkways.py` (owns `data/walkway_evidence.json`). **No app
+code. `data/ground.geojson` byte-identical, checked by SHA-256. `WAYFIND.on`
+still `false`.**
+
+**The brief's premise was half stale, and checking it decided the round.** It
+said the drawn paths do not follow the real ones. Measured, they do: campusmeter
+puts them within 5 m of a fresh OSM pull on 624 of 625 sampled points, median
+1.2 m, and 98.5 % of a route's metres already stand on a drawn surface. What
+does not follow the real ones is the ROUTE. `build_raw()` puts a
+`highway=pedestrian area=yes` way into the graph as a ring of edges and nothing
+across the middle, so the router walks students AROUND the South Mall.
+**UT Tower → PCL was 630 m for a walk that is 484 m.**
+
+**THE THING TO READ FIRST, and it is not about walkways.** `data/walk_graph.json`
+as committed carries **656 doors**; the `data/entrances.geojson` in the same tree
+carries **591**. §198/§199 deleted 118 invented doors and moved 17 onto UT's
+surveyed points and the walk graph was never re-baked. Re-baking with no
+functional change moved nodes 11,284 → 11,206 and the snapshot 2026-08-16 →
+2026-08-27 (`snapshot_parity.py` now reports `walk_graph.json PASS`; 0 of 2,453
+footprint geometries differ between those two snapshots, so nothing moved) — and it renumbered the `d` array, so **all thirty of the frozen
+ground-truth door indices in `scripts/verify/walk-pairs.json` came to point at a
+DIFFERENT BUILDING** (GDC's front door became Jester East, MAI's became Painter
+Hall). `walkmeter.mjs` scored them without a word: 87.0 m became 282.0 m and the
+signed total became −6,856 m, all of it an artifact. The indices were re-derived
+by the rule that file's own `_what` states — nearest graph door to UT's published
+Celebrated entrance — same building on all 30, and the ground truth got closer to
+UT's point in the process (median 3.7 m → 1.4 m, worst 47.1 m → 2.6 m). And
+`walkmeter.mjs` now FAILS its self-check when an index's door does not carry the
+pair's own building code, and it was WATCHED failing — pointed at the pre-repair
+pair file it prints thirty complaints and exits 1 where it used to print a
+confident wrong number. **§198's housekeeping note
+lists six bakes on a stale snapshot. `bake_walk.py` was on that list by its
+snapshot and NOT on it by its doors, and the doors were the half that mattered:
+the stale snapshot moved nothing (0 of 2,453 geometries differ), the stale door
+file moved sixty-five doors and broke the meter.**
+
+**The chords, and the one change to the patch §6 of `docs/walk-sidewalks.md`
+asked for.** That patch said to triangulate the 41 pedestrian areas. It would
+have been wrong: **OSM's plaza polygons on this campus are not all pavement.**
+The Main Mall polygon contains the two South Mall LAWN PANELS. So every chord is
+put to a real aerial photograph — USGS NAIP, public domain, fetched at the
+source's own 0.30 m/px — before it is added, and one running over open turf is
+refused.
+
+```
+6,720 vertex pairs on 36 plazas -> 1,711 survive the geometry
+   -134 refused: OPEN TURF under the line          <- the point of the whole thing
+ = 1,577 confirmed, 1,573 become new edges across 33 plazas
+```
+
+**The numbers, with the control run.** Both arms are the same re-baked graph and
+the same repaired ground truth, so the delta is the chords alone (door array
+order identical, 591 of 591 rows):
+
+```
+walkmeter                       no chords      with chords
+  A extra m over pairs it makes worse   2.0 m        2.0 m
+  A signed total                     -594.9 m     -541.4 m
+  B ends at UT's own door              38/38        38/38
+  mean route length                   435.4 m      431.2 m
+  self-check drift / live UI gate    0.00 / PASS  0.00 / PASS
+
+bake_ground.py --walkaudit, 20 pairs, 1 m, zero tolerance
+  drawn metres                        13,042       12,828   (-214 m)
+  on a drawn WALK                     95.20 %      96.55 %
+  on any drawn surface                98.50 %      98.37 %
+  over bare ground                1.50 % (196 m)  1.63 % (209 m)
+```
+
+The signed total moves 53.5 m the "wrong" way and that is the metric working:
+the chords shorten the route FORCED to the ground-truth door more than the app's
+own, because that was the route taking the long way round a mall. Bare ground
+gains 13 m of 12,828 and the doc names it rather than rounding it away.
+
+**Desire paths: ZERO, and it was pushed hard before it was written down.**
+42,233 geometric shortcut candidates in the campus bbox; 9,497 cross a
+carriageway, 5,627 a building, 740 water, 138 a mapped fence; of what reached the
+photograph, 3,947 have flanks that are not lawn (a shortcut across a paved court
+is a missing link, not a desire path) and 49 have lawn either side and **no worn
+line**. Relaxed to a 1.15 detour ratio and a 5 m gain: 100,003 candidates, 617
+with lawn on both flanks, **zero** reaching the worn threshold and two reaching
+half of it. Three reasons that zero could still be wrong — 0.30 m/px is under
+three pixels for a 0.8 m track, both ends must already be OSM nodes, and NAIP is
+one flight on one date — are in the doc. `desire_paths` ships as an empty array
+that the bake reads every run, so the wiring is there when evidence turns up.
+
+**`campusmeter.mjs` is byte-identical to the starting numbers and that is
+correct: its two paths metrics score `data/ground.geojson`, and this round
+changed `data/walk_graph.json`. It never opens the walking graph.** A campusmeter
+section that read the graph would be the honest fix and this lane deliberately
+did not add one — a lane extending the scoreboard it is graded on should not be
+believed.
+
+**Two things measured and NOT shipped, so nobody re-derives them.** (1)
+campusmeter's paths metric B is **not** a hem artifact: pulling every sampled
+ring vertex up to 2.4 m into its own slab, on 0.30 m imagery, does not move it
+(15.7 % → 15.4 %). What the same points do say is that only **2.1 %** of them are
+open sunlit turf — the rest is dark and green, i.e. canopy — which resolves the
+caveat that metric prints about itself. (2) **Every walkway in this city is 2.4 m
+wide because that is the default**: 0 of 3,098 campus footways carries a `width`
+tag, so `DEFAULT_WIDTH['footway']` is stamped on all of them, which is the facade
+template defect one system over. It cannot be fixed from this photograph — the
+aggregate perpendicular profile of 8,822 stations across every campus footway is
+FLAT out to 7.8 m, because most campus walks are not bordered by turf at all.
+That needs finer imagery or LiDAR intensity, not another go at this one.
+
+**New in `scripts/verify/`:** `plazawalk.mjs` photographs a route and reports how
+many ribbon polygons the renderer actually rasterised, because a frame with a
+route pill and no ribbon has happened here before. It caught itself twice this
+round: once reading the wrong one of the three wayfind sources, once framing a
+route that never entered the box.
+
+## 200. Aug 27 2026 — a measured building gets a bigger tile: the walk-band window pitch from 10.4x wrong to 2.6x, and the crawl at eye level halved (`acer/cd-facades`, not merged)
+
+Full write-up with the before/after frames: `docs/facade-tile-size.md`.
+Round 3 of the facade work, and it closes the gap round 2 named and did not start.
+
+**The defect, in one line.** `rows` is an integer >= 1, so the coarsest storey
+pitch a tile can draw is ONE REPEAT — 1.03 m of wall at z21, which is ordinary
+"stand at a wall and lower your gaze" range in this app's own walk mode. Battle
+Hall's storeys are 10.75 m apart, so a two-storey building drew **twenty rows**
+there. Round 2's metre anchor was right at cruise and could not touch this.
+
+**What was in the way, and it was one wrong assumption.** A bigger repeat needs a
+bigger IMAGE (`displaySize` is `texels / pixelRatio` and MapLibre carries
+`pixelRatio` in a Uint16, so it cannot go below 1) — that part was true. But
+`pixelRatio` CANCELS: a family drawn in a `TILE*mul` unit space at `RES*mul`
+texels registers at the SAME pixelRatio and lands a `displaySize` of
+`TIER_CSS*mul`. And a DRAWING UNIT IS THE SAME NUMBER OF METRES AT EVERY mul, so
+`MIN_PIER`, `MIN_SPANDREL`, the mottle cell, the head shadow and the sill are all
+left alone and still mean what they meant; only the counts and the clamps scale.
+So the change is "this family's image is `mul` times larger per axis", and only
+the sixteen photographed buildings pay for it. `MEASURED_MUL = 4`, one knob, in
+`js/facades.js`.
+
+```
+worst rendered-rows / photographed-storeys, LOOK band z16-19    2.61x -> 1.30x
+worst rendered-rows / photographed-storeys, WALK band z20-21   10.43x -> 2.61x
+crawl at walking height, shimmer battle-walk                    44.28% -> 23.97%
+crawl at cruise, mall-battle / mall-south / pcl-plaza    3.17/2.58/5.49 -> 3.14/2.57/5.49
+```
+
+Every one of the sixteen improved. Ratchets lowered: `RATCHET_NEAR` 2.7 -> 1.4,
+`RATCHET_WALK` 10.5 -> 2.7. Both arms measured on the same build in the same
+minute through the new `facadegrid.mjs --mul1` (`?facademul=1`), which against
+the new ratchets is **red, exit 1** — so the ratchet can be watched failing by
+turning off the thing that earned it.
+
+**The bill, measured, in a new instrument (`scripts/verify/facadeatlas.mjs`):**
+atlas 5250 -> 10050 KB (all of it the sixteen: 320 -> 5120 KB), full repaint
+388 -> 676 ms headless swiftshader. **The per-frame path did not move: 0.6 ms
+against 0.5 ms** for an `updateFacades` with nothing changed, which is the number
+the 2-3% main-thread share won on 2026-08-19 is about. Load time 7431 vs 7390 ms,
+inside this suite's own noise. `mul` 8 is the next step and the doc prices it.
+
+**An instrument that had been passing on noise, found and fixed.** The opening
+size was measured as the LONGEST dark run on the darkest line over the whole
+image — an extreme-value estimator with three systematic biases. The identical
+drawing read 3x6 at mul 1 and **3x13** at mul 4. It now measures in one
+template-sized window, takes the MEDIAN run, and thresholds at half-depth on that
+line (FWHM, which a symmetric blur does not move). The row now prints what the
+counter READ beside what the module DREW: within one texel on **10 of 16**. The
+six it misses are the tiles at their row ceiling, whose openings are fused —
+which is why Garrison, Burdine and Perry-Castaneda now print under a new
+**CELL-LIMITED** heading instead of passing. **That is a relaxation and the doc
+says so**: Burdine's tile draws a 2x3 opening and the old counter called it 2x9,
+which happened to sit near its photographed 5.5:1.
+
+**Unchanged and re-run:** `facade_parity.py` PASS 3057/3057, `facade-parity.mjs`
+PASS on both `wp` and `wf` (the same-as-template test is deliberately taken at
+mul 1, so no building's family code moved), `night-silhouette` PASS 22.5 / 10.0,
+`coplanar --gate` no file gained a pair, `campusmeter` facades **A 0/7, B 3/5** —
+A is the held-out TEMPLATE path and stays pinned there until the templates
+change; B was made mul-aware and reports the same 3 of 5 either way.
+
+**Still wrong, and named in the doc:** Battle Hall is still 2.61x at z21 — the
+floor moved from 1.03 m to 4.12 m, it did not go away. Burdine, PCL and Jackson
+are extruded too short for their own storey counts and no facade change reaches
+them. ~180 UT buildings and all of downtown still wear one of seven templates at
+mul 1; the way to spend this mechanism is more photographs, not more code. And
+`js/heroes.js`'s seven pattern layers were metre-anchored in round 2 but never
+given a `mul`, so they still have the z21 floor the atlas just left.
+
+
 ## 196. Aug 26 2026 — the missing rooms on UT Registration Plus: 59 of 95 real meetings to 86, still nothing invented (`acer/img-rooms`, not merged)
 
 **The reader was finding those classes all along.** It put each one in the right

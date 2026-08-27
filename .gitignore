@@ -63,3 +63,8 @@ _serve.log
 # the machine and only the derived SCORES are committed. The name/EID panel was
 # already cropped off real-03 before it ever landed here.
 scripts/verify/schedule-images/real/
+
+# The City of Austin planimetric survey trace_walk_widths.py measures against.
+# Regenerable (the script records the exact query), 16 MB, and it is an INPUT
+# to a bake, never something the site loads.
+data/gis_cache/

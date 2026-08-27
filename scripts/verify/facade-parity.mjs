@@ -64,7 +64,19 @@ import { BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const OUT_DIR = path.join('scripts', 'verify', 'out');
+// Resolved from THIS FILE, not from the working directory, and that is a fix
+// rather than a tidy-up. `path.join('scripts','verify','out')` is relative to
+// wherever node was launched, and this directory's README tells you to run its
+// scripts FROM `scripts/verify` — so a run started the documented way wrote the
+// capture to `scripts/verify/scripts/verify/out/`, silently, while
+// `facade_parity.py` kept reading the real path and comparing against whatever
+// capture happened to be sitting there. On 2026-08-27 that was a 23-day-old
+// file from snapshot 2026-08-04: the harness reported 17 findings, 1,274
+// mismatched families and "NOT a bijection", none of which were real, and the
+// obvious reading of that output is that the change under test broke the bake.
+// The stray nested copy had also been committed. A capture that lands in a
+// different place depending on your shell's cwd is not a capture.
+const OUT_DIR = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'out');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const browser = await launch(chromium);
