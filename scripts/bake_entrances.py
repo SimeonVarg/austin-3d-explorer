@@ -102,6 +102,27 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
 
+# ══════════════════════════════════════════════════════════════════════
+#  ERA_BASELINE=1 — the before-number, produced by the after-instrument
+#
+#  The ERA PROVENANCE block at the bottom of this file is new, so a
+#  before/after on it is only honest if BOTH numbers come out of the SAME
+#  counter. `ERA_BASELINE=1 python scripts/bake_entrances.py` reverts exactly
+#  the five 2026-08-27 sourcing changes and nothing else:
+#
+#    1. YEAR_UTDIRECT      the 22 years UT Direct has and ut_buildings.json
+#                          does not
+#    2. REG_ABBREV         the register's own abbreviations in reg_name_key()
+#    3. OSM_CLASS          OSM's building=* filling an empty Overture class
+#    4. split_ref()        multi-value `ref=A;B`
+#    5. "thermal storage"  in NULL_NAME_PARTS
+#
+#  CEL_FAM_NEEDS_SRC is deliberately NOT reverted by it: all four
+#  disagreements are cited, so it changes no family either way, and leaving
+#  it on keeps the comparison to the five that actually moved doors. Write
+#  the output somewhere else when using this — it changes data/entrances.geojson.
+ERA_BASELINE = os.environ.get("ERA_BASELINE") == "1"
+
 SNAP_SOURCE = "buildings.detailed.geojson"
 # `SNAP_DATE=2026-08-16 python scripts/bake_entrances.py` pins the bake to a
 # named snapshot instead of `manifest.latest`. It exists because a rebake for
@@ -1481,6 +1502,13 @@ CELEBRATED = {
     ),
     "LBJ": dict(
         fam="D", tier=1,
+        fam_src="[M] UT Direct's own building photograph (LBJ, fetched "
+                "2026-08-27): a windowless ten-storey travertine block on a "
+                "raised plaza. The register dates it 1971, which the date test "
+                "reads as family C — a 3.05 m aluminium storefront under a "
+                "concrete awning. That is the ONE thing this building's own "
+                "note says never to draw on it. D is the monumental-modern "
+                "family and is kept deliberately, not by inertia.",
         open_w=5.00, n=4, dt="hinged-quad", mat="glass",   # [U]
         risers=0, rail=False, cheek=False, canopy=False,
         note="The opposite problem to everyone else: it barely has a door. An "
@@ -1503,6 +1531,12 @@ CELEBRATED = {
     ),
     "HRC": dict(
         fam="D", tier=1, facade="S",
+        fam_src="[M] UT Direct's own building photograph (HRC, fetched "
+                "2026-08-27): a travertine box carried on a colonnade with a "
+                "FULL-HEIGHT GLAZED ground floor running the length of the "
+                "elevation behind the columns. The register's 1972 reads as "
+                "family C, whose storefront head is 3.05 m; the photographed "
+                "glazing is a whole storey and keeps going. D.",
         at=[(-97.740931, 30.284281, "main")],   # [M] OSM entrance=main, SE
         open_w=6.00, n=4, dt="sliding", mat="glass",       # [U] 2003 accessible
         risers=0, rail=False, cheek=False,
@@ -1556,6 +1590,12 @@ CELEBRATED = {
     ),
     "PAC": dict(
         fam="D", tier=2,
+        fam_src="[M] UT Direct's own building photograph (PAC, fetched "
+                "2026-08-27): a multi-storey glass curtain-wall lobby with a "
+                "visible structural mullion grid, hung with the venue's "
+                "banners. The register's 1980 reads as family C. The "
+                "photograph is family D and settles the note below, which had "
+                "called the glazed band 'genre knowledge'.",
         open_w=8.00, n=6, dt="hinged-quad", mat="glass",   # [U] genre, not fact
         risers=2, rail=True, cheek=False,
         note="Bass Concert Hall, named 'College of Fine Arts Performing Arts "
@@ -1584,6 +1624,31 @@ CELEBRATED = {
                      "not design. Plain recessed glass under concrete."),
     "WEL": dict(fam="C", tier=3, open_w=6.00, n=4, dt="hinged-quad",
                 mat="aluminium", risers=2, rail=True, cheek=False,
+                fam_src="[M]/[C] MEASURED THIS ROUND, because C on a 1930 "
+                        "building looks exactly like the defect this branch "
+                        "exists to remove and it is not one. Welch is THREE "
+                        "buildings under one Overture footprint: the 1929 "
+                        "Herbert M. Greene / Laroche & Dahl Chemistry "
+                        "Building, a 1959 wing by Preston M. Geren and a 1974 "
+                        "wing by Wyatt C. Hedrick [C], en.wikipedia.org/wiki/"
+                        "Welch_Hall_(University_of_Texas_at_Austin). UT's own "
+                        "register dates the building 1930, which the date test "
+                        "reads as family B. But plotting UT Facilities' three "
+                        "surveyed WEL doors (E, NE, NW) on USGS NAIP "
+                        "orthoimagery [M] puts ALL THREE on the flat "
+                        "pale-roofed later wings, not on either of the "
+                        "red-tile-roofed 1929 blocks — so every door this file "
+                        "actually draws on WEL is on post-war fabric, and C is "
+                        "the correct family FOR THOSE DOORS. The 1929 portal "
+                        "is real and is documented "
+                        "(commons.wikimedia.org/wiki/File:Welch_Hall_UT_Austin_"
+                        "Texas_2024.jpg, CC BY 4.0, Larry D. Moore, 2024-08-06: "
+                        "semicircular arch, wrought-iron fanlight grille, "
+                        "CHEMISTRY carved in limestone, two lanterns, a "
+                        "monumental stair with stone cheeks and pipe rails) — "
+                        "it is simply not at any coordinate this pass has, so "
+                        "it is NOT drawn. Placing it on a guessed wall would "
+                        "be inventing structure.",
                 note="Demoted out of tier 1: the public face is dominated by "
                      "the later addition and no celebrated portal was found."),
 }
@@ -1636,9 +1701,39 @@ def reg_name_key(s):
     Centre on top of the Blanton — that failure mode needs partial matching
     and this function cannot produce one."""
     s = (s or "").lower().replace("&", " and ")
-    s = re.sub(r"\bbldg\b", "building", s)
     s = re.sub(r"[^a-z0-9]+", " ", s)
-    return " ".join(s.split())
+    return " ".join(REG_ABBREV.get(t, t) for t in s.split())
+
+
+# The register's OWN abbreviations, read off the register's own name column and
+# nothing else — every key below is a token that literally appears in
+# data/ut_buildings.json, and every value is the long form the same register
+# spells out in another row. This is a NORMALISATION, not a similarity score:
+# after it runs the two names either are the same words in the same order or
+# they are not, and reg_name_key() still cannot produce a partial match. The
+# failure graph.md §5 rejected (a 0.5-Jaccard hit on "austin" putting the Lake
+# Austin Centre on top of the Blanton) needs partial matching and is still
+# impossible here. `bldg` was already in this function; the rest are its
+# siblings, found by tokenising all 198 register names and reading out every
+# token that is short or ends in a period (the audit that produced them is in
+# docs/entrances/doors-in-the-right-clothes.md §3).
+#
+# WHAT IT ACTUALLY BUYS, MEASURED, and it is small: 3 doors, on one building —
+# "AT&T Executive Education and Conference Center" (the footprint) against
+# "AT&T EXECUTIVE EDUC & CONF CENTER" (the register), which is ATT, occupied
+# 2008. Every join it makes is printed by name every run, so a wrong one is a
+# line in the log rather than a silent relabel.  [S] data/ut_buildings.json
+REG_ABBREV = {
+    "bldg": "building", "ctr": "center", "engr": "engineering",
+    "disc": "discovery", "educ": "education", "conf": "conference",
+    "comm": "communication", "equip": "equipment", "maint": "maintenance",
+    "univ": "university", "tx": "texas", "sci": "science",
+    "rec": "recreational", "tech": "technology", "math": "mathematics",
+    "rehab": "rehabilitation", "trk": "track", "labs": "laboratories",
+    "ofc": "office", "jr": "junior",
+}
+if ERA_BASELINE:                      # keep only the one that was always here
+    REG_ABBREV = {"bldg": "building"}
 
 
 UT_REGISTER = os.path.join(ROOT, "data", "ut_buildings.json")
@@ -1668,6 +1763,104 @@ if os.path.exists(UT_REGISTER):
         _seen[_k] = _e["ref"]
         REG_NAME_TO_REF[_k] = _e["ref"]
 
+# ══════════════════════════════════════════════════════════════════════
+#  THE REGISTER IS NOT THE WHOLE REGISTER — 23 codes carry a drawn door and
+#  no year
+#
+#  data/ut_buildings.json has 198 rows and every one of them has a year, which
+#  reads like full coverage and is not: sweeping every building code that
+#  actually carries a door in data/entrances.geojson found 23 with no row in
+#  it at all, and those doors were falling all the way through the cascade to
+#  the E5 null door.
+#
+#  UT publishes the missing years itself, per code, with NO LOGIN, at
+#      https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/
+#          maps/UTM/<CODE>/
+#  which serves "UT Building Since: <year>" alongside the address, the floor
+#  count and the gross square footage. Fetched 2026-08-27, one request per
+#  code, for EVERY code with a door and no register row — not a hand-picked
+#  few, so the table cannot be accused of cherry-picking the flattering ones.
+#  Nine of the 23 have no page at all (LLA/LLB/LLC/LLD/LLE/LLF, MBE, EAS,
+#  and the non-UT hotel AUSUAHX / BMC / MNAC) and are recorded here as None so
+#  the next sweep does not re-fetch them hoping for a different answer.
+#
+#  FROZEN rather than fetched at bake time for the same reason _ENTRANCE_ROWS
+#  and _BUILDING_ROWS are: a live query the bake depends on is a live query
+#  the bake can silently lose. It is also NOT written into
+#  data/ut_buildings.json — that file is another bake's output and this lane
+#  writes exactly one file (CLAUDE.md lane rule).
+#
+#  Most of these are plant, and NULL_NAME_PARTS still beats a year, so most of
+#  them change nothing — that is deliberate. A cooling tower with a measured
+#  2014 on it must still get the null door, and the year is recorded so the
+#  NEXT reader does not have to re-derive that it was checked. The four that
+#  actually move a door are marked.                        [S] utdirect.utexas.edu
+YEAR_UTDIRECT_URL = ("https://utdirect.utexas.edu/apps/campus/buildings/"
+                     "information/nlogon/maps/UTM/%s/")
+YEAR_UTDIRECT_DATE = "2026-08-27"
+YEAR_UTDIRECT = {
+    "COM": 1961,    # COMPUTATION CENTER          — MOVES 5 doors E5 -> C
+    "UPB": 1960,    # UNIVERSITY POLICE BUILDING  — MOVES 3 doors E5 -> C
+    "ARC": 1977,    # ANIMAL RESOURCES CENTER     — MOVES 2 doors E5 -> C
+    "NEZ": 2008,    # NORTH END ZONE BUILDING     — MOVES 6 doors, with REF_SPLIT
+    "WCH": 1932,    # WILL C. HOGG BLDG.
+    "STD": 1988,    # DARRELL K ROYAL TX MEMORIAL STADIUM
+    "TCP": 2004,    # TEXAS COWBOYS PAVILION
+    "ATT": 2008,    # AT&T EXECUTIVE EDUC & CONF CENTER — reached by REG_ABBREV
+    "ACS": 2026,    # AUTRY C. STEPHENS ENGR DISC BLDG
+    "JES": 1969,    # BEAUFORD H. JESTER CENTER
+    "JCD": 1969,    # JESTER RESIDENCE HALL
+    "KIN": 1958,    # KINSOLVING RESIDENCE HALL
+    # ── plant. Dated, and still E5 by NULL_NAME_PARTS. Recorded, not used.
+    "PPL": 1927,    # HAL C. WEAVER POWER PLANT
+    "PPA": 1968,    # HAL C. WEAVER POWER PLANT ANNEX
+    "PPE": 1988,    # HAL C WEAVER POWER PLANT EXPANSION
+    "CS3": 1970,    # CENTRAL CHILLING STATION NO. 3
+    "CS5": 1986,    # CENTRAL CHILLING STATION NO. 5
+    "CS6": 2009,    # CENTRAL CHILLING STATION NO. 6
+    "CT2": 2017,    # UTM COOLING TOWER 2
+    "CT7": 2014,    # UTM COOLING TOWER 7
+    "TS1": 2011,    # UTM THERMAL STORAGE 1 — see NULL_NAME_PARTS below
+    "TS2": 2014,    # UTM THERMAL STORAGE 2
+}
+# ── PLANT BY CODE, because the name test cannot reach a nameless footprint.
+#
+#  CAUGHT BY THE ERA PROVENANCE AUDIT ON ITS FIRST RUN, and written down
+#  because the near-miss is the whole argument for building the audit first.
+#  Adding "thermal storage" to NULL_NAME_PARTS was supposed to stop UTM Thermal
+#  Storage 1 and 2 taking family D's seven-metre glazed lobby once YEAR_UTDIRECT
+#  gave them a 2011/2014 date. It did not, and the diff said so: TS1, TS2 and
+#  CT7 went E5 -> D. Their footprints carry NO NAME AT ALL — only the code — so
+#  a name test can never fire on them, and the year sailed straight through into
+#  a curtain-wall entrance on a chilled-water tank.
+#
+#  The rule is fixed at the level the rule was wrong: plant is identified by the
+#  thing these footprints actually carry, which is the code. Every code here is
+#  one whose UT Direct page names it plant in its own title (CENTRAL CHILLING
+#  STATION, UTM COOLING TOWER, UTM THERMAL STORAGE, HAL C. WEAVER POWER PLANT).
+#  This is not a second guess about their age — the dates above stay, and stay
+#  correct. It is a statement that a cooling tower does not have a front door,
+#  which was always NULL_NAME_PARTS's intent.                     [M] utdirect
+PLANT_REFS = frozenset((
+    "TS1", "TS2",                     # UTM THERMAL STORAGE 1 / 2
+    "CT2", "CT7",                     # UTM COOLING TOWER 2 / 7
+    "CS3", "CS5", "CS6",              # CENTRAL CHILLING STATION 3 / 5 / 6
+    "PPL", "PPA", "PPE",              # HAL C. WEAVER POWER PLANT (+ annex, exp)
+))
+
+# Codes swept on 2026-08-27 that UT Direct itself has no page for. Kept so the
+# sweep is reproducible and the next reader can see it was actually asked.
+YEAR_UTDIRECT_NOPAGE = ("LLA", "LLB", "LLC", "LLD", "LLE", "LLF", "MBE",
+                        "EAS", "BMC", "MNAC", "AUSUAHX", "RMRZ", "SRD", "DKR")
+# YEAR ONLY. Deliberately NOT added to REG_CODES: that set is the
+# REGISTER_SCOPE admission list, and putting the stadium (STD) or a conference
+# hotel (ATT) into it would pull whole new footprints into the pass through a
+# side door. This table answers "how old is it", never "is it in scope".
+if ERA_BASELINE:
+    YEAR_UTDIRECT = {}
+for _c, _y in YEAR_UTDIRECT.items():
+    YEAR_BY_REF.setdefault(_c, _y)      # the register still wins where it has one
+
 # eras.md §5.2 rule 6, boundaries verbatim. Parameterised per CLAUDE.md
 # rule 11: each pair is (last year of the family, family).
 #
@@ -1680,6 +1873,14 @@ if os.path.exists(UT_REGISTER):
 # just the last year inside it.
 ERA_BOUNDS = ((1909, "V"), (1925, "A"), (1949, "B"), (1989, "C"))
 ERA_AFTER = "D"
+
+# A CELEBRATED row whose hand-typed `fam` disagrees with the measured year must
+# carry `fam_src`. With this False the old behaviour comes back in one line
+# (CLAUDE.md rule 11) — the flag exists so the change is reversible and
+# testable, not because the old behaviour is defensible.
+CEL_FAM_NEEDS_SRC = True
+
+
 
 
 def era_family_from_year(year):
@@ -1723,9 +1924,17 @@ for _r in ("GDC", "EER", "NHB", "BMA", "RRH", "WCP", "BMC", "HDB", "HTB",
 # porch on a coach house would be a confident lie. A dull correct door on a
 # building nobody has looked at is the honest answer (eras.md §4E5).
 NULL_REFS = frozenset(("LCH",))
+# `thermal storage` joined this list the day YEAR_UTDIRECT landed and for
+# exactly that reason: UT Direct dates UTM THERMAL STORAGE 1 and 2 to 2011 and
+# 2014, and with a year in hand the cascade would have handed two chilled-water
+# tanks family D's 7 m glazed lobby. A measured date is evidence about AGE, not
+# about whether the thing has a front door. Plant was always meant to be null;
+# the list just never had to say this word before.
 NULL_NAME_PARTS = ("chilling station", "cooling tower", "power plant",
                    "facilities complex", "sign shop", "field support",
-                   "carriage house")
+                   "carriage house", "thermal storage")
+if ERA_BASELINE:
+    NULL_NAME_PARTS = NULL_NAME_PARTS[:-1]
 # The two lists AS THEY STOOD before family V, frozen, so that
 # classify_pre_register() keeps telling the truth about what moved. It is a
 # historical record and it must not drift when the live list is edited.
@@ -1836,6 +2045,46 @@ CLASS_FAMILY = {
     "detached": "E2",
     "dormitory": "E2",
 }
+
+# ══════════════════════════════════════════════════════════════════════
+#  OSM'S OWN `building=*`, WHICH THIS FILE WAS ALREADY FETCHING AND THROWING
+#  AWAY
+#
+#  join_refs() has always read the OSM tag block — that is where `ref` and the
+#  OSM `name` come from — and it has always used exactly ONE field out of it:
+#  `building=garage|parking` (plus `amenity=parking`) to set cls="parking".
+#  The other 69 class-bearing tags in the same 384 rows went in the bin, so an
+#  Overture footprint that carries no building_class of its own fell to E5 even
+#  when OSM was sitting right there saying `building=church`.
+#
+#  Measured on this data, that cost TEN CHURCH DOORS — All Saints' Episcopal,
+#  University Christian, University Avenue Church of Christ, University United
+#  Methodist, the University Catholic Center — every one of them drawn with
+#  E5's flush 2.20 m aluminium door when family E4 (arched head, wood leaves,
+#  leaded glass, limestone surround) exists in this very file and was never
+#  reaching them. Plus 15 apartment doors, 5 dormitory and 2 detached.
+#
+#  The trust argument is that there is no new trust: this is the same table,
+#  the same spatial join, and the same `not tgt.cls` guard the parking branch
+#  has used since the pass was written. It only ever FILLS a class Overture
+#  left empty; it can never overwrite one. Every value below is a value
+#  CLASS_FAMILY already understands — this map exists so the two lists cannot
+#  drift apart silently, and so the whole behaviour is one editable table
+#  (CLAUDE.md rule 11) rather than a condition buried in the join.
+#
+#  `university`, `office`, `commercial`, `public`, `hospital`, `college`,
+#  `school`, `retail`, `stadium`, `yes` are deliberately ABSENT. E5 is the
+#  honest answer for a building whose only claim is that it is a building, and
+#  a four-family scheme with no null case gives Chipotle a Paul Cret portal.
+OSM_CLASS = {
+    "garage": "parking", "parking": "parking",
+    "church": "church", "chapel": "church", "cathedral": "church",
+    "mosque": "mosque", "synagogue": "church",
+    "apartments": "apartments", "residential": "residential",
+    "house": "house", "detached": "detached", "dormitory": "dormitory",
+}
+if ERA_BASELINE:                      # the two the parking branch always had
+    OSM_CLASS = {"garage": "parking", "parking": "parking"}
 # E1 — draw nothing. bake_places.py and js/drag.js already own these frontages
 # with their own SHOP_DATUM / SIGN_H / BULKHEAD / PROUD; a second entrance on top
 # is a double-draw. Only the RETAIL hosts are excluded: a POI inside a dining
@@ -2464,7 +2713,7 @@ def refresh():
 class Bldg(object):
     __slots__ = ("bid", "name", "cls", "h", "wd", "rings", "poly", "area",
                  "perim", "ref", "osm_name", "fam", "budget", "ents",
-                 "cx", "cy", "wc", "reg")
+                 "cx", "cy", "wc", "reg", "famwhy")
 
 
 def load_buildings():
@@ -2505,9 +2754,40 @@ def load_buildings():
         b.reg = False          # carries a UT register code inside SURVEY
         b.ents = []
         b.fam = "E5"
+        b.famwhy = "default"
         b.budget = 0
         out.append(b)
     return out
+
+
+OSM_CLASS_FILLED = []    # (class, who) rows the OSM class fill actually made
+REF_SPLIT_ROWS = []      # (raw, chosen) rows the multi-value ref split made
+
+
+def split_ref(raw):
+    """An OSM `ref` may be MULTI-VALUED, and one on this campus is.
+
+    OSM's convention for a tag that legitimately holds several values is to
+    join them with a semicolon, and the Red McCombs Red Zone footprint carries
+    `ref=RMRZ;NEZ` — two real UT codes on one structure. Compared whole, that
+    string equals no code at all, so the footprint matched nothing, took no
+    year, and its SIX doors came out as E5 null doors even though NEZ (North
+    End Zone Building) is dated 2008 by UT's own register page.
+
+    The rule is the narrowest one that fixes it and it is not a fuzzy match:
+    split on `;`, and prefer the first token the register actually knows. If
+    the register knows none of them, take the first token, which is exactly
+    what a single-valued ref would have given. A ref with no semicolon in it
+    goes through this function unchanged, so it cannot disturb the other 176.
+    Every split is printed by run so a wrong pick is a line in the log."""
+    if ERA_BASELINE or not raw or ";" not in raw:
+        return raw
+    parts = [p.strip() for p in raw.split(";") if p.strip()]
+    if not parts:
+        return raw
+    pick = next((p for p in parts if p in YEAR_BY_REF), parts[0])
+    REF_SPLIT_ROWS.append((raw, pick))
+    return pick
 
 
 def join_refs(blds, tree):
@@ -2548,13 +2828,17 @@ def join_refs(blds, tree):
                 if pool else None
         if tgt is None:
             continue
+        ref = split_ref(ref)
         if ref and not tgt.ref:          # a ref beats a bare name
             tgt.ref = ref
             hit += 1
         if name and not tgt.osm_name:
             tgt.osm_name = name
-        if (bt in ("garage", "parking") or am == "parking") and not tgt.cls:
-            tgt.cls = "parking"
+        # OSM's own class, but only ever INTO an empty one. See OSM_CLASS.
+        cls = OSM_CLASS.get(bt) or ("parking" if am == "parking" else None)
+        if cls and not tgt.cls:
+            tgt.cls = cls
+            OSM_CLASS_FILLED.append((cls, ref or name or "(unnamed)"))
     for b in blds:                       # authored codes OSM does not carry
         if not b.ref:
             nm = b.name or b.osm_name
@@ -2589,39 +2873,107 @@ def is_parking(b):
     return b.cls == "parking" or "garage" in nm or "parking" in nm
 
 
-def classify(b):
-    """The cascade, docs/entrances/eras.md §5.2, now WITH its rule-6 date
-    test, running on the measured year in data/ut_buildings.json. First match
-    wins, and the ORDER is §5.2's: authored evidence (WC table, NULL list,
-    CELEBRATED) first, then the classes that no date can overrule (a 2003
-    garage is a garage, not a family-D glazed bay), then the measured year,
-    then the hand-maintained named list for undated refs, then the
-    residential class, and the LAST rule is NULL, not "C". Families are
+# ══════════════════════════════════════════════════════════════════════
+#  ERA PROVENANCE — the instrument, and it is the reason this round exists
+#
+#  classify() used to return a bare family letter, which meant the file could
+#  not answer the only question that matters about it: WHERE DID THIS DOOR'S
+#  ERA COME FROM, and was that a measurement or a guess. Nothing printed it,
+#  nothing asserted it, and so nobody could see that 225 of 591 drawn doors —
+#  38% of the campus — were wearing a family that came from no source at all.
+#
+#  Every rule in the cascade is now labelled with one of four grades:
+#
+#    MEASURED  a dated, first-party, checkable record said so — UT's own
+#              register (data/ut_buildings.json), UT Direct's own building
+#              page (YEAR_UTDIRECT), or OSM's own building=* tag.
+#    AUTHORED  a human typed it into a table in this file WITH its evidence.
+#              CELEBRATED rows and the West Campus lobby table. Trustworthy
+#              in proportion to the citation, which is why `fam_src` is now
+#              mandatory on every CELEBRATED row (see the assertion below).
+#    GUESSED   a human typed it with no evidence recorded. The
+#              hand-maintained FAMILY_BY_REF list is the whole of this grade
+#              and it is meant to shrink.
+#    NONE      nothing is known. E5 — a dull correct door on a building
+#              nobody has looked at. This is an HONEST answer, not a failure,
+#              and it must never be inflated into a confident wrong one.
+#
+#  The grade is written onto the building and printed every run. It is also
+#  written onto every emitted piece as `fam`, so a verification script can ask
+#  the served file the same question without re-deriving this cascade.
+ERA_GRADE = {
+    "wc-table":      ("AUTHORED", "West Campus lobby table, westcampus.md"),
+    "null-ref":      ("NONE",     "explicit NULL_REFS"),
+    "null-name":     ("NONE",     "plant/outbuilding by name"),
+    "celebrated":    ("AUTHORED", "CELEBRATED row, fam_src cited"),
+    "parking":       ("MEASURED", "OSM building=garage / amenity=parking"),
+    "worship":       ("MEASURED", "OSM building=church|mosque"),
+    "register-year": ("MEASURED", "UT register / UT Direct occupied year"),
+    "named-list":    ("GUESSED",  "hand-maintained FAMILY_BY_REF"),
+    "osm-class":     ("MEASURED", "OSM building=* class"),
+    "wc-secondary":  ("AUTHORED", "W tower's side/service door -> E2, "
+                                  "westcampus.md"),
+    "default":       ("NONE",     "nothing known — E5"),
+}
+
+
+def classify_why(b):
+    """The cascade, docs/entrances/eras.md §5.2, WITH its rule-6 date test,
+    running on the measured year in data/ut_buildings.json and (since
+    2026-08-27) on UT Direct's own page for the 23 codes that file does not
+    carry. First match wins, and the ORDER is §5.2's: authored evidence (WC
+    table, NULL list, CELEBRATED) first, then the classes that no date can
+    overrule (a 2003 garage is a garage, not a family-D glazed bay), then the
+    measured year, then the hand-maintained named list for undated refs, then
+    the residential class, and the LAST rule is NULL, not "C". Families are
     OPT-IN — but a measured year IS evidence, so a dated dormitory now gets
-    its era's doorway rather than the E2 shrug, exactly as §5.2 rule 6
-    always specified for a present start_date."""
+    its era's doorway rather than the E2 shrug, exactly as §5.2 rule 6 always
+    specified for a present start_date.
+
+    Returns (family, rule) — see ERA_GRADE for what each rule is worth."""
     if b.wc:
-        return "W"          # the named list beats everything, here too
+        return "W", "wc-table"          # the named list beats everything, here too
     nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
-    if b.ref in NULL_REFS:
-        return "E5"
+    if b.ref in NULL_REFS or (not ERA_BASELINE and b.ref in PLANT_REFS):
+        return "E5", "null-ref"
     for w in NULL_NAME_PARTS:
         if w in nm:
-            return "E5"
+            return "E5", "null-name"
     if b.ref and b.ref in CELEBRATED:
-        return CELEBRATED[b.ref]["fam"]
+        cel = CELEBRATED[b.ref]
+        yr = YEAR_BY_REF.get(b.ref)
+        # A HAND-TYPED FAMILY MAY OUTRANK A MEASURED YEAR ONLY IF IT SAYS WHY.
+        # This is the rule the round was built around. Before it, CELEBRATED
+        # sat above the date test unconditionally, and four of the twenty rows
+        # disagreed with UT's own register with nothing written down either
+        # way — so a 1930 limestone-and-brick building could wear a 1970s
+        # aluminium storefront and the bake had no opinion about it. All four
+        # are now cited (LBJ/HRC/PAC off UT Direct's own photographs, WEL off
+        # NAIP + Wikipedia), and any FUTURE uncited disagreement loses to the
+        # measurement instead of quietly winning.
+        if (CEL_FAM_NEEDS_SRC and yr is not None
+                and era_family_from_year(yr) != cel["fam"]
+                and not cel.get("fam_src")):
+            return era_family_from_year(yr), "register-year"
+        return cel["fam"], "celebrated"
     if is_parking(b):
-        return "E3"
+        return "E3", "parking"
     if b.cls in ("church", "mosque"):
-        return "E4"
+        return "E4", "worship"
     year = YEAR_BY_REF.get(b.ref or "")
     if year is not None:
-        return era_family_from_year(year)
+        return era_family_from_year(year), "register-year"
     if b.ref and b.ref in FAMILY_BY_REF:
-        return FAMILY_BY_REF[b.ref]
+        return FAMILY_BY_REF[b.ref], "named-list"
     if b.cls in CLASS_FAMILY:
-        return CLASS_FAMILY[b.cls]
-    return "E5"
+        return CLASS_FAMILY[b.cls], "osm-class"
+    return "E5", "default"
+
+
+def classify(b):
+    fam, why = classify_why(b)
+    b.famwhy = why
+    return fam
 
 
 def classify_pre_register(b):
@@ -3829,11 +4181,31 @@ WC_AUDIT = {}
 class Ent(object):
     """One entrance. Emits its own pieces, all of them proud of the wall."""
 
-    def __init__(self, feats, eid, b, c, fam, cel, role, n, dt, mat, src):
+    def __init__(self, feats, eid, b, c, fam, cel, role, n, dt, mat, src,
+                 famkey=None, famwhy=None):
         self.feats, self.eid = feats, eid
         self.bid, self.ref = b.bid, b.ref
         self.nm = b.name or b.osm_name
         self.role, self.era, self.n, self.dt, self.mat = role, fam["era"], n, dt, mat
+        # `fam` and `famsrc` are the ERA PROVENANCE fields (see ERA_GRADE).
+        # `era` alone cannot answer "what kind of door is this" — E2, E3, E4
+        # and E5 all report era="utility", so a church's arched wood leaf and a
+        # loading dock's roll shutter come out of the served file wearing the
+        # same word, and neither a verification script nor a human can tell
+        # them apart. The family letter and the rule that chose it are cheap
+        # (two short strings on a piece that already carries eleven) and they
+        # make the question answerable from the file the app actually fetches.
+        # THE LETTER THE DOOR WAS ACTUALLY ASSEMBLED WITH, not the building's.
+        # These are not always the same and the difference is deliberate: a
+        # West Campus tower is family W, but only its ONE leasing lobby is
+        # assembled as W — its side and service doors drop to E2, because a
+        # second two-storey glazed storefront on the back of the same tower is
+        # the double-draw this pass exists to avoid. Writing b.fam here would
+        # have told the served file those back doors were W, which is the
+        # instrument lying about the thing it was built to measure.
+        self.fam = famkey or b.fam
+        self.famsrc = famwhy or b.famwhy
+        self._srcdone = False
         self.src = src
         self.cx, self.cy = c.x, c.y
         self.tx, self.ty, self.nx, self.ny = c.tx, c.ty, c.nx, c.ny
@@ -3865,9 +4237,23 @@ class Ent(object):
             "k": k, "eid": self.eid, "bid": self.bid, "ref": self.ref,
             "nm": self.nm, "role": self.role, "era": self.era,
             "n": self.n, "dt": self.dt, "mat": mat,
+            "fam": self.fam,
             "base": round(z0, 3), "h": round(z1 - z0, 3),
             "wd": wd, "wg": wg, "wn": wn or wn_auto, "src": self.src,
         }
+        # `famsrc` RIDES THE FIRST PIECE OF EACH ENTRANCE ONLY, and that is a
+        # payload decision with a measured reason. It is one value per DOOR, but
+        # a GeoJSON FeatureCollection has no per-door container, so writing it on
+        # all 14,720 pieces cost 0.65 MB on a file the app already defers because
+        # it is 6.7 MB (see the js/entrances.js header on ENT.defer). `fam` is
+        # one or two characters and rides everything; `famsrc` is a word and
+        # rides the reveal. The contract for a reader is therefore: GROUP BY
+        # `eid` AND TAKE THE PIECE THAT CARRIES IT — which is what
+        # scripts/verify/campusmeter.mjs does, and what any per-door question has
+        # to do anyway.
+        if not self._srcdone:
+            props["famsrc"] = self.famsrc
+            self._srcdone = True
         if extra:
             # `nmv` / `gtv`: "how much of West Campus is guessed" has to be a
             # query, not an archaeology project (westcampus.md §8 rule 3).
@@ -3956,7 +4342,7 @@ def assemble_w(feats, b, c, eid, stats):
     if c.wcrole == "gate":
         gtv = (c.wcmeth == "sourced")
         e = Ent(feats, eid, b, c, fam, None, "service", 1, "roll", "steel",
-                c.src)
+                c.src, famkey="W", famwhy="wc-table")
         gh = min(WC_GATE_H_MAX, band_h - WC_GATE_HEAD)
         half = WC_GATE_W / 2.0
         ex = {"gtv": gtv}
@@ -4035,7 +4421,8 @@ def assemble_w(feats, b, c, eid, stats):
         z_top = head + WC_CAN_CLEAR + WC_RAIL_T
         stats["wc_head_clamped"] += 1
 
-    e = Ent(feats, eid, b, c, fam, None, "main", n_leaf, dt, "glass", c.src)
+    e = Ent(feats, eid, b, c, fam, None, "main", n_leaf, dt, "glass", c.src,
+            famkey="W", famwhy="wc-table")
     gcol = glass_for(b.ref, fam, b.bid)
     gnight = night_glass(eid)
     lease_night = GLASS_NIGHT_LIT[1 % len(GLASS_NIGHT_LIT)]
@@ -4317,7 +4704,10 @@ def assemble(feats, b, c, eid, stats):
     #       standing REVEAL_PROUD off the wall whose COLOUR is the shadow, plus
     #       two jamb returns that are the only real 3D depth in the assembly.
     #       Depth is read from value, not from geometry.
-    e = Ent(feats, eid, b, c, fam, cel, role, n_leaf, dt, mat, src)
+    e = Ent(feats, eid, b, c, fam, cel, role, n_leaf, dt, mat, src,
+            famkey=fam_key,
+            famwhy=("wc-secondary" if (b.wc and fam_key == "E2")
+                    else b.famwhy))
     # DEPTH IS A COLOUR HERE. The deeper the family's notional reveal, the
     # further the slab goes toward the arcade shadow the repo already sampled.
     # This is the whole of the depth read now; the jamb below is a return, not
@@ -5458,14 +5848,26 @@ def main():
         if old != b.fam:
             changed.append((b.ref or (b.name or b.osm_name or "?")[:14],
                             old, b.fam, YEAR_BY_REF.get(b.ref or "")))
+    _ut_new = sum(1 for c in YEAR_UTDIRECT if c not in REG_CODES)
     print("eras from register : %d of %d in-scope buildings carry a measured"
-          " year (%d refs in data/ut_buildings.json);"
-          % (dated, len(scope), len(YEAR_BY_REF)))
+          " year (%d refs = %d in data/ut_buildings.json + %d that file does"
+          " NOT carry, fetched from UT Direct %s);"
+          % (dated, len(scope), len(YEAR_BY_REF),
+             len(YEAR_BY_REF) - _ut_new, _ut_new, YEAR_UTDIRECT_DATE))
     print("                     %d changed family vs the hand-maintained list:"
           % len(changed))
     for ref, old, new, yr in sorted(changed, key=lambda t: (t[1], t[2], t[0])):
         print("                     %-14s %-2s -> %-2s  (%s)"
               % (ref, old, new, yr if yr is not None else "no year"))
+    if REF_SPLIT_ROWS:
+        print("multi-value osm ref: %d split on ';'" % len(REF_SPLIT_ROWS))
+        for raw, pick in REF_SPLIT_ROWS:
+            print("                     %-14s -> %s" % (raw, pick))
+    if OSM_CLASS_FILLED:
+        print("osm class fill     : %d footprints took a class from OSM's own"
+              " building=* where Overture had none  %s"
+              % (len(OSM_CLASS_FILLED),
+                 dict(Counter(c for c, _ in OSM_CLASS_FILLED))))
 
     n1 = stage1_osm(blds, tree, stats)
     print("stage 1 osm        : %d placed  (unplaceable %d, off-campus %d,"
@@ -5887,6 +6289,63 @@ def main():
             if not p.get(key) or len(p[key]) != 7:
                 bad.append((p["k"], key, p.get(key), p["ref"]))
     print("")
+    # ══════════════════════════════════════════════════════════════════
+    #  ERA PROVENANCE — the headline of this pass, printed every run
+    #
+    #  Not "how many doors", not "how far from UT's door" — WHERE DID EACH
+    #  DOOR'S FAMILY COME FROM, and is that source a measurement or a shrug.
+    #  Before this block existed the answer was unknowable from the outside
+    #  and nobody had asked; the first run of it said 265 of 591 doors, 45%,
+    #  and 225 of them had no era at all.
+    #
+    #  It cannot be gamed by deleting doors: deleting a MEASURED one lowers
+    #  the numerator, deleting an unsourced one lowers the denominator, and
+    #  the percentage of the CITY that is honestly known does not move up by
+    #  drawing less of it. The complement is printed next to it for the same
+    #  reason.
+    # ══════════════════════════════════════════════════════════════════
+    doors = {}
+    for f in feats:
+        pr = f["properties"]
+        if "famsrc" in pr:
+            doors[pr["eid"]] = pr
+    by_rule = Counter(p.get("famsrc") for p in doors.values())
+    by_grade = Counter(ERA_GRADE.get(p.get("famsrc"), ("?", ""))[0]
+                       for p in doors.values())
+    by_fam = Counter(p.get("fam") for p in doors.values())
+    nd = max(1, len(doors))
+    print("ERA PROVENANCE     : %d doors; %d MEASURED (%.0f%%), %d AUTHORED,"
+          " %d GUESSED, %d with no era known at all"
+          % (nd, by_grade["MEASURED"], 100.0 * by_grade["MEASURED"] / nd,
+             by_grade["AUTHORED"], by_grade["GUESSED"], by_grade["NONE"]))
+    for rule, n in sorted(by_rule.items(), key=lambda kv: -kv[1]):
+        grade, what = ERA_GRADE.get(rule, ("?", "unknown rule"))
+        print("      %-8s %4d doors  %-8s %s" % (grade, n, rule, what))
+    print("  by family        : %s"
+          % dict(sorted(by_fam.items(), key=lambda kv: -kv[1])))
+
+    # THE DISAGREEMENT LIST. A hand-typed CELEBRATED family against UT's own
+    # measured year, every run, cited or not — this is the audit that found
+    # the round's defect and it stays so the class of error cannot hide again.
+    dis = []
+    for ref, cel in sorted(CELEBRATED.items()):
+        yr = YEAR_BY_REF.get(ref)
+        if yr is None or era_family_from_year(yr) == cel["fam"]:
+            continue
+        dis.append((ref, cel["fam"], era_family_from_year(yr), yr,
+                    bool(cel.get("fam_src"))))
+    print("  hand-typed family vs measured year: %d of %d CELEBRATED rows"
+          " disagree" % (len(dis), len(CELEBRATED)))
+    for ref, fam, yfam, yr, cited in dis:
+        print("      %-4s authored %-2s   year %d says %-2s   %s"
+              % (ref, fam, yr, yfam,
+                 "CITED, authored wins" if cited
+                 else "UNCITED -> the year wins (CEL_FAM_NEEDS_SRC)"))
+    uncited = [r for r, _, _, _, c in dis if not c]
+    if uncited:
+        print("      ^^ %d uncited disagreement(s): %s"
+              % (len(uncited), ", ".join(uncited)))
+
     print("pieces             : %d   kinds %s"
           % (len(feats), dict(Counter(f["properties"]["k"] for f in feats))))
     print("  bad base/h/colour: %d %s" % (len(bad), bad[:5]))
