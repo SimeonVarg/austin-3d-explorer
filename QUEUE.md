@@ -27,6 +27,137 @@ Two rules for whoever picks any of this up:
 
 ---
 
+### R0 — `acer/img-rooms` IS NOT MERGED, AND THE REASON IS A LEAK IN ITS HISTORY, NOT ITS SCORE
+
+**The work is good and it is blocked anyway.** The reader goes **16 of 95 to 86
+of 95 on the real corpus with zero wrong answers**, reproduced independently by
+this lane on the branch tip. It does not merge, because one of its five commits
+copies a literal out of Simeon's screenshots into a tracked file, and a merge
+puts that commit on `main` permanently.
+
+**The finding, with the line.** Commit `2de2013` ("Zero inventions on the real
+corpus") added to `scripts/verify/schedimg.mjs:249`:
+
+```
+W('<CODE>', 0, 0), W('<NUM>,', 40, 0), W('<FIVE-DIGIT>', 90, 0), ...
+```
+
+The five-digit number in that fixture is an **exact `unique` value in
+`scripts/verify/schedule-images/real/truth.json`** — a real registration number
+off one of the seven images. The very next commit, `e3878dd`, silently replaced
+the whole line with invented values (`scripts/verify/schedimg.mjs:932` in that
+diff), which is the branch catching its own mistake. **It fixed the file. It did
+not remove the commit.** `git merge-base --is-ancestor 2de2013 origin/main`
+returns false; the commit is reachable only from this branch, so merging is the
+act that would put it on `main`.
+
+*How this lane established it, so the next one does not redo it.* Built a term
+list of every `unique`, `building`, `room`, `instructor`, `instructorTruncated`
+and `course` value in `truth.json` (237 terms), ran it over every added line and
+every commit message in `origin/main..acer/img-rooms`, then for each hit asked
+`git log --all -S<term>` which commits carry it and whether each is an ancestor
+of `origin/main`. That last question is the whole test — a term already on
+`main` is a separate problem, and a term only on the branch is this one.
+
+**Provenance matters and it cleared two false alarms.** Two building-and-room
+pairs long used as worked examples — one in `js/schedimg.js`, one in
+`image-bench.mjs`'s own extractor contract — are also real pairs in the key. Both
+were introduced **2026-08-24 and 2026-08-25** (`e855af3`, `82c0472`), while the
+corpus itself only arrived **2026-08-26** (`b204a1d`). They cannot have been
+copied from images that did not exist yet; they are coincidence, and `2de2013`
+adding two more copies of one of them to `js/schedimg.js` comments is a developer
+reusing the file's own example. The five-digit unique is the
+opposite: added *after* the corpus landed, an exact key match, and reverted one
+commit later. That is a copy.
+
+**What it costs to fix, measured.** The branch is 5 commits; only `2de2013`
+carries the literal, and the offending hunk is already superseded in-tree by
+`e3878dd`. So the cheapest clean route is to **rebuild the branch as a single
+commit of its final tree onto current `origin/main`** — the tree is already
+clean, verified below — rather than an interactive rebase that has to be
+re-verified hunk by hunk. `origin/main` has moved 7 commits ahead of the
+merge-base (`2d548af`), and **the only files both sides touch are `HANDOFF.md`
+and `docs/img-real-corpus.md` — both docs. There is no code conflict at all**:
+`js/schedimg.js`, `js/schedconfirm.js` and `scripts/verify/schedimg.mjs` are
+untouched on `main`.
+
+**The rebuild is safe because the branch's own tree was measured, not assumed.**
+Running the key over all five files the branch changes: `js/schedimg.js`,
+`js/schedconfirm.js`, `scripts/verify/schedimg.mjs` and `HANDOFF.md` carry **zero**
+key literals. Every hit — seven of them — is in `docs/img-real-corpus.md`, the
+one file the branch is carrying `main`'s stale copy of, and §R0b is the fix for
+it. **So the code is clean and only the history is not**, which is precisely why
+replaying the final tree works and a hunk-by-hunk rebase is not needed.
+
+Two things the rebuild has to get right, and neither is guessable from the diff:
+
+- **Take `main`'s `docs/img-real-corpus.md`, not the branch's.** This lane
+  scrubbed it further (§R0b), so the branch's copy is now the stale one.
+- **Renumber the HANDOFF entries.** The branch calls them 195 and 196; `main`
+  already has a *different* 196 (`acer/si-watch`). 198 onward is free.
+
+**Do not force-push over the existing remote branch without Simeon's say-so.**
+`origin/acer/img-rooms` is already pushed and `2de2013` is already on the public
+remote, so the exposure is live *now* and deleting the remote branch is a
+separate, larger decision than this queue entry — GitHub keeps unreachable
+commits addressable for a while after a force-push, and the repo is public.
+
+**Verified on the branch tip before it was blocked** (port 8937, `serve.py`,
+`SCHEDIMG_BASE` set, one browser harness at a time): real corpus **86 of 95, 87
+predictions, 0 wrong, 0 hallucinations**; `WAYFIND.on` still `false` at
+`js/wayfind.js:88`; no NUL bytes in any changed file. The score is not in
+question. The history is.
+
+---
+
+### R0b — A LEAK THE FIRST SCRUB MISSED IS LIVE ON `main` RIGHT NOW
+
+Separate from the branch and more urgent than it. `docs/img-real-corpus.md` on
+`main` — the current tree, what a visitor reads on GitHub today — still carried
+**twelve exact literals from `truth.json`, across five different kinds**:
+
+- **five `unique` values** — real registration numbers (lines 79, 80, 83, 89);
+- **three `instructorTruncated` forms**, including a bare single initial that a
+  length filter will skip straight past (lines 79, 80, 83);
+- **two real `room` values** used as layout examples (lines 104, 116, 125);
+- **the real non-class block title that names where Simeon works** (line 147);
+- **the real student organisation he attends** (line 148).
+
+The genuinely generic labels beside those last two — a meal, a study block — are
+left alone deliberately: they carry no course, no room and no person.
+
+Commit `eb80751` (and `96da857`, the same scrub applied to `main`) replaced the
+course codes and the full surnames with invented ones and says in its own message
+that "every example in the layout sections is now invented." **It was not.** The
+registration numbers, the truncated initials, the rooms, the employer and the
+club were all left exactly as photographed — the check that commit describes was
+run over full names and over nothing else. Fixed in the tree by this lane; every
+replacement invented and grepped against the key first, zero surviving matches.
+**Still in history via `003aedf`**, an ancestor of `main`, which no tree-level fix
+reaches.
+
+**Five kinds, and the first scrub caught one.** That is the measurement worth
+keeping, not the count of strings.
+
+**And the good news, which is worth having in writing: that one file is the
+whole of it.** Every tracked text file on `main` — `.md`, `.js`, `.mjs`, `.py`,
+`.html`, `.css`, `.txt`, `.yml`, `.sh`, `.cmd` — was swept against the key's
+high-signal fields. Outside `docs/img-real-corpus.md` there are five hits and
+**all five already existed in the repo before the corpus arrived** (checked
+against `b204a1d~1`): they are UT building names and older worked examples that
+happen to share a surname with an instructor. Coincidences, not copies. **No
+tracked image, crop or thumbnail of a schedule exists, and
+`scripts/verify/schedule-images/real/` is still gitignored** — `git ls-files`
+returns nothing under it.
+
+**The rule that would have caught all of this, stated so it is mechanical:** the
+grep is over *every* literal a doc or fixture introduces — five-digit numbers,
+one- and two-character truncations, room numbers and the name of a club or an
+employer included — not over the ones that look like names. And it is run over
+your own diff before you commit, not over the file afterwards.
+
+---
+
 ### R1 — A COURSE CODE IS BEING COMMITTED AS A LOCATION, SILENTLY. Do this first.
 
 **The only silent-wrong-answer defect on real images, and it is the exact

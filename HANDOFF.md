@@ -1,5 +1,100 @@
 # Austin 3D Explorer — Full Handoff
 
+## 197. Aug 26 2026 — the ship lane on `acer/img-rooms`: the score reproduced, a leak in the history did not clear, NOTHING MERGED (ship lane, docs only to `main`, `docs/img-real-repair.md`)
+
+**The reader really does go 16 of 95 to 86 of 95 with nothing invented. It is
+still not on `main`, and the reason is one commit, not the code.**
+
+This lane was sent to finish a round that was stopped mid-flight when a builder
+hard-coded real instructor surnames out of Simeon's screenshots into a test
+fixture. That scrub held — none of those seven surnames is anywhere on the
+branch. A different literal in the same class was not caught, and it is what
+blocks the merge.
+
+### What reproduced
+
+Independently re-run on the branch tip `eb80751`, `python scripts/serve.py 8937`,
+`SCHEDIMG_BASE` set, one browser harness at a time:
+
+```
+  real, 7 images     86 / 95   90.5%   87 predictions   0 wrong   0 hallucinations
+```
+
+`false+ 0` on **every one of the seven images**, not just in aggregate. Six of
+the seven score above 92%; `real-04` alone sits at 4/12 and contributes zero false
+positives, so the residual failure is a decline, not an invention. The optional
+crop-cut meeting scores 1/1. **The second veto — any invented location on the
+real set — is clear, on this lane's own measurement rather than on the builder's
+word.**
+
+### What did not
+
+**Commit `2de2013` copied a five-digit registration number out of one of the
+seven images into `scripts/verify/schedimg.mjs:249` as fixture data.** Commit
+`e3878dd` replaced that line with invented values one commit later — the branch
+caught its own mistake — but a later commit does not remove an earlier one.
+`git merge-base --is-ancestor 2de2013 origin/main` is false. The commit is
+reachable only from this branch, so **merging is the act that would put it on
+`main`.** It is already on the public remote, because the branch was pushed.
+
+*Method, so the next lane does not rebuild it.* A term list of every `unique`,
+`building`, `room`, `instructor`, `instructorTruncated` and `course` value in
+`truth.json` — 237 terms — run over every added line and every commit message in
+`origin/main..acer/img-rooms`; then, for each hit, `git log --all -S<term>` to
+ask which commits carry it and whether each is an ancestor of `origin/main`.
+**That last question is the whole test.** A hit already on `main` is a different
+problem; a hit only on the branch is this one.
+
+*It cleared two false alarms, and the mechanism is worth keeping.* Two
+building-and-room pairs used as worked examples in the repo are also real pairs
+in the key — but both were introduced **2026-08-24 and 2026-08-25**, while the
+corpus itself only arrived **2026-08-26**. **They cannot have been copied from
+images that did not exist yet.** Provenance by date is what separates a copy from
+a coincidence, and without it this lane would have raised two findings that were
+not real.
+
+### And a leak the first scrub missed, live on `main` right now
+
+`docs/img-real-corpus.md` in `main`'s current tree still carried **twelve exact
+literals from the key, across five different kinds** — five registration
+numbers, three truncated instructor forms (one of them a bare single initial,
+which any length filter skips straight past), two real rooms used as layout
+examples, the block title naming where Simeon works, and the student
+organisation he attends. The scrub commit that produced that file states in its
+own message that "every example in the layout sections is now invented." **It was
+not.** The course codes and the full surnames were replaced and everything else
+was left exactly as photographed.
+
+Scrubbed in this commit; every replacement invented and grepped against the key
+first, 0 surviving matches. Still in history via `003aedf`, an ancestor of
+`main`, which no tree-level fix reaches.
+
+**Both misses have the same shape, and it is the lesson of the day.** The check
+was run over the literals that *look* personal — names — and not over the ones
+that are just as personal but look like data: a five-digit number, a
+two-character truncation. A rule that depends on noticing which literals are
+sensitive is not a rule. **The grep is over every literal a change introduces, or
+it is not a check.**
+
+### State
+
+- `acer/img-rooms` **left open, not merged, not force-pushed, not deleted.** The
+  rebuild route with its measured cost is `QUEUE.md` §R0. Deleting or rewriting
+  the public remote branch is Simeon's call, not this lane's — the exposure is
+  already live and a force-push does not retract it on its own.
+- Its HANDOFF entries are numbered 195 and 196; `main` already has a *different*
+  196 (`acer/si-watch`). Renumber on rebuild.
+- `main` gets docs only: this entry, `docs/img-real-repair.md`, `QUEUE.md` §R0
+  and §R0b, the `docs/img-real-corpus.md` scrub, and the `docs/walk-progress.md`
+  note.
+- `WAYFIND.on` verified `false` at `js/wayfind.js:88` on both `main` and the
+  branch. No NUL bytes in any changed file. No image or answer key is tracked;
+  `git status` clean of both.
+- Server on 8937 stopped, port re-confirmed free, every process killed. No
+  `.claude/worktrees` existed this round. Disk 32.4 GB free (6.8%) — tight, and
+  `.git` alone is 5.0 GB, which is why this lane used git plumbing for the docs
+  commit instead of a sixth worktree.
+
 ## 196. Aug 26 2026 — a live window onto what the agents are doing, and where the thinking actually went (`acer/si-watch`, merged, PR #230)
 
 *(Numbered 196, not 195: `acer/img-rooms` has an unmerged HANDOFF 195 in flight.)*

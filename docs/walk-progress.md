@@ -4610,3 +4610,23 @@ answer to "is it safe to ship" is no, not yet. New in this branch:
 `scripts/verify/schedule-fixtures/integration-tuesday.ics`,
 `docs/si-integration.md`, and eleven frames the doc cites. One browser, killed on
 exit; server on 8971 stopped and the port re-confirmed free.
+
+---
+
+## Photo import, the real-corpus repair — measured, not merged (Aug 26 2026)
+
+The photo path of this feature was re-measured on **seven real screenshots
+Simeon took himself**, and repaired against them. The reader goes **16 of 95 to
+86 of 95 scored meetings with zero wrong answers and zero hallucinations**, with
+`false+ 0` on every individual image; the fifteen-image synthetic corpus does not
+move (134 of 171, 0 wrong), so the regression guard is intact.
+
+**It is not on `main`.** The branch `acer/img-rooms` is left open: one of its
+commits copied a registration number out of one of the images into a tracked
+test fixture, and although a later commit on the same branch replaced that line
+with invented values, the commit itself is reachable only from the branch — so
+merging is what would put it on `main`. Full account and the rebuild route:
+`docs/img-real-repair.md` and `QUEUE.md` §R0.
+
+Nothing in the walk feature itself changed this round. `WAYFIND.on` is still
+`false` at `js/wayfind.js:88` on both `main` and the branch.

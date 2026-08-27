@@ -76,17 +76,17 @@ Three lines, and the third line is what we want. Variations seen across the four
   totals appear across the four images, the largest of them fourteen courses. A
   free integrity check — if we place a number of distinct courses that disagrees
   with that count, we are wrong and can say so.
-- **A dense schedule truncates with an ellipsis**: `Q V 310, 37220 – Wh…`,
-  `TAQ 320, 64530 – Quin…`. The course code survives; the instructor does not.
+- **A dense schedule truncates with an ellipsis**: `Q V 310, 60318 – Delacr…`,
+  `TAQ 320, 37904 – Ashf…`. The course code survives; the instructor does not.
   Never try to recover a truncated name.
-- **Unique numbers appear** in the dense variant: `HCF 208B, 51840 – R…`,
-  `DRV 355, 23054 – Halloran`. A five-digit number after the course code is a
+- **Unique numbers appear** in the dense variant: `HCF 208B, 51840 – T…`,
+  `DRV 355, 19274 – Halloran`. A five-digit number after the course code is a
   registration unique, not a room.
 - **Non-class blocks exist and must be ignored** — a job shift, a meal, a
   student-organisation meeting. They have times and grid positions and look
   exactly like classes. They have **no building code**, which is the tell.
 - **An ASYNC / OTHER row sits below the grid** with classes that have *no time
-  and no day at all*: `PYX 312L, 78430 – Halloran`, `VNH 317L, 45320 – Vance`.
+  and no day at all*: `PYX 312L, 25683 – Halloran`, `VNH 317L, 82461 – Vance`.
   These cannot be walked to and must be reported as such, not dropped.
 - **Legend chips** (`WAITLISTED`, `CANCELLED`, `CLOSED`) sit on the same row and
   are not classes.
@@ -101,7 +101,7 @@ course links. A cell is:
 ```
 PYX 370S      <- course code, underlined link, orange
 KTM           <- BUILDING CODE ON ITS OWN LINE
-B0.306        <- ROOM ON THE NEXT LINE
+B0.412        <- ROOM ON THE NEXT LINE
 ```
 
 **This is the single most important structural difference and the shipped
@@ -113,7 +113,7 @@ variant it splits the *course code* too:
 DRV
 303
 VNH
-3.134
+4.208
 ```
 
 Four lines, one class. A reader that pairs "the token after the course code" as
@@ -122,7 +122,7 @@ the building will get `303` as a building. Also seen:
 - **A cell with a building and no room at all** — a bare three-letter code on
   its own, three times across these images. Real, common, and correct: some
   rooms are simply not published. Must not be treated as a failed read.
-- **A room with a letter-digit floor**, of the form `B0.306` — a basement. The
+- **A room with a letter-digit floor**, of the form `B0.412` — a basement. The
   leading `B0` is not a typo and not an OCR error.
 - **Times in the compact form** `10:00-11:00AM` — a hyphen, no spaces, one
   am/pm marker for the pair, uppercase.
@@ -144,8 +144,8 @@ the building will get `303` as a building. Also seen:
 2. **Week-grid day assignment must work under perspective.** Day comes from
    which column a block sits in. Under a phone-camera warp the columns are not
    axis-aligned, and the current code gives up. This is the 0-of-35 failure.
-3. **A block without a building code is not a class.** `Lunch`, `Dell Med Work`
-   and `Longhorn Developers Meeting` will otherwise become classes with invented
+3. **A block without a building code is not a class.** `Lunch`, `Library Shift`
+   and `Rocket Club Meeting` will otherwise become classes with invented
    locations — the exact defect this feature promised not to have.
 4. **The header count is a free check.** `4 COURSES` on the page and five
    distinct course codes read means a misread, and the app can say so.
