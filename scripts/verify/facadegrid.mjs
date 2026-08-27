@@ -50,10 +50,41 @@
  * back red. Four guards in this repo have shipped unable to fail; this one was
  * watched.
  *
+ * ── THE ZOOM SWEEP, ADDED 2026-08-27, AND WHY THE FIRST CUT NEEDED IT ──
+ *
+ * Everything above was measured at ONE zoom — REF_ZOOM, the level the
+ * count->tile conversion is anchored at — and the tile is the same tile at
+ * every zoom, so it read as if the question were settled. It was not. The
+ * repeat covers `TIER_CSS * 67551 / 2^tileZoom` METRES, which HALVES per zoom,
+ * so a tile holding a fixed row count draws a storey pitch that halves with it.
+ * Standing 30 m off Battle Hall at eye height — z19.93, the pose this app's own
+ * walk mode puts you in — a two-storey building rendered about fifteen rows.
+ * The measurement was right and the render was wrong, and no assertion in here
+ * could see it.
+ *
+ * So this script now sweeps `window.facadeSetZoomAnchor()` across every zoom
+ * the camera can reach and re-reads the atlas bytes at each one. Two questions,
+ * kept apart on purpose:
+ *
+ *   ANCHORED  the tile the atlas holds at zoom z carries the row count the
+ *             building's METRE PITCH asks for at z. A pixel question — the
+ *             expected bin has to be the strongest bin in the row profile.
+ *   RESIDUAL  how far the rendered storey count still sits from the
+ *             photograph, per zoom. This one has a real floor: `rows` is an
+ *             integer >= 1, so no tile can draw a pitch coarser than one
+ *             repeat, and past z19 a repeat is under 4 m of wall. Reported as a
+ *             RATCHET against the worst case at the time it was written, with
+ *             the ceiling named, rather than pretended away.
+ *
  * Usage:
- *   node facadegrid.mjs            # 5 assertions x 16 buildings
- *   node facadegrid.mjs --report   # print the table, never fail
- *   node facadegrid.mjs --break    # sabotage in-page; must fail
+ *   node facadegrid.mjs              # REF assertions + the zoom sweep
+ *   node facadegrid.mjs --report     # print the tables, never fail
+ *   node facadegrid.mjs --break      # empty the measured registry; must fail
+ *   node facadegrid.mjs --break-anchor  # pin the anchor at REF_ZOOM (i.e. put
+ *                                    # the pre-2026-08-27 behaviour back); the
+ *                                    # sweep must go red and the REF block must
+ *                                    # NOT, which is what proves the sweep is
+ *                                    # testing something the old gate did not.
  *
  * Exit: 0 pass, 1 an assertion failed, 2 could not run.
  */
@@ -62,6 +93,37 @@ import { BASE, launch } from './chrome.mjs';
 
 const REPORT = process.argv.includes('--report');
 const BREAK = process.argv.includes('--break');
+const BREAK_ANCHOR = process.argv.includes('--break-anchor');
+
+// Every integer zoom the atlas anchor can sit at, from the calibration zoom up
+// to the highest the camera reaches. 21 is not arbitrary: at eye height (1.7 m)
+// the pose is only expressible between pitch 84.7 and PITCH_MAX 88
+// (js/controls.js pitchFloorAt), which puts walking height at z19.9 to z21.4.
+const ZOOMS = [16, 17, 18, 19, 20, 21];
+
+// THE RATCHET. Worst `rendered rows / photographed storeys` seen across the
+// whole sweep on the day the sweep was written, rounded up to one decimal. It
+// is a record of where this got to, not a target: the representation cannot do
+// better than one row per repeat, and at z21 a repeat is 1.03 m of wall, so a
+// 10.75 m Battle Hall storey is physically not expressible there. Lower it when
+// a change earns it; never raise it without saying so out loud.
+// THE TWO RATCHETS, split because the two bands have different physics.
+//
+// LOOK band, z16-z19: every "stand and look at a building" pose measured on the
+// running app lands here (z17.1-17.8 at 10-55 m from a wall; z19.9 at eye height
+// with a level gaze). A tile can express these, so the bar is tight.
+//
+// WALK band, z20-z21: eye height with a lowered gaze. Here the repeat is 2.06 m
+// and then 1.03 m of wall, and a tile that must hold at least one row therefore
+// CANNOT draw a storey pitch coarser than that. The number is a record of where
+// this got to, not a target — see the note the sweep prints under it.
+//
+// Both are ratchets: lower them when a change earns it, and never raise one
+// without saying so out loud in the commit message.
+const NEAR_MAX = 19;
+const RATCHET_NEAR = 2.7;
+const RATCHET_WALK = 10.5;
+
 
 // How far the rendered row/column count may sit from the photographed count.
 //
@@ -97,7 +159,12 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 try {
   page.on('console', m => { if (/^\[facades\]/.test(m.text())) console.log('  page:', m.text()); });
-  await page.goto(`${BASE}/index.html`, { waitUntil: 'load', timeout: 120000 });
+  // `?intro=0&drift=0`. Not cosmetic: the intro flight and the idle cinematic
+  // both move the camera, every camera move fires `zoom`, and the atlas anchor
+  // follows `zoom` — so without these the sweep's forced anchor is reverted
+  // underneath it mid-settle and four of six zooms silently measure the REF
+  // tile. Same trap shot.mjs's own header documents for its first frame.
+  await page.goto(`${BASE}/index.html?intro=0&drift=0`, { waitUntil: 'load', timeout: 120000 });
   // Correctness measure, not a speed one: the auto-detect probe swaps the
   // graphics preset mid-flight and would repaint the atlas underneath us.
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
@@ -119,10 +186,31 @@ try {
     console.log('  --break: measured registry emptied in-page; every assertion below must go red\n');
   }
 
-  const R = await page.evaluate(async ({ ACCEPT }) => {
+  if (BREAK_ANCHOR) {
+    // Sabotage IN THE PAGE only: the anchor stops following the camera, which
+    // is exactly the state this file's zoom sweep was written to convict. The
+    // REF_ZOOM block must stay green through this — that is the point.
+    await page.evaluate(() => {
+      const real = window.facadeSetZoomAnchor;
+      window.facadeSetZoomAnchor = (map) => real(map, window.facadeRefZoom());
+    });
+    console.log('  --break-anchor: the zoom anchor is pinned at REF_ZOOM in-page; the SWEEP');
+    console.log('  must go red and the REF block must not');
+    console.log('');
+  }
+
+  const measure = z => page.evaluate(async ({ ACCEPT, z }) => {
     const map = window.__map;
+    // Move the atlas onto this zoom and let MapLibre consume the new bytes.
+    // `updateImage` marks the image; a tile built before the mark still holds
+    // the old atlas until it is patched, so read after a settle, not in the
+    // same tick.
+    window.facadeSetZoomAnchor(map, z);
+    map.triggerRepaint();
+    await new Promise(r => setTimeout(r, 250));
     const doc = await fetch('data/facade_grids.json').then(r => r.json());
-    const REPEAT_M = window.facadeRepeatM();
+    const REPEAT_M = window.facadeRepeatMAt(z);
+    const ANCHOR = window.facadeZoomAnchor();
     // `getData()`, not `_data`: MapLibre v5's GeoJSONSource keeps the raw
     // option object in `_data`, not the parsed collection, and reading the
     // private field silently yields something with no `features` at all.
@@ -331,10 +419,24 @@ try {
       const rowLeg = (() => { const p = Math.max(...Object.values(g.rowSpec)); return p > 0 ? (g.rowSpec[want.rows] || 0) / p : 0; })();
       const colLeg = (() => { const p = Math.max(...Object.values(g.colSpec)); return p > 0 ? (g.colSpec[want.cols] || 0) / p : 0; })();
       const legible = rowLeg >= LEGIBLE && colLeg >= LEGIBLE;
+      const peakBin0 = spec => {
+        let k = 0, mx = -1;
+        for (const b of Object.keys(spec)) if (spec[b] > mx) { mx = spec[b]; k = +b; }
+        for (const d of [2, 3]) {
+          const sub = k / d;
+          if (Number.isInteger(sub) && sub >= 1 && spec[sub] >= mx * ACCEPT) return sub;
+        }
+        return k;
+      };
       selfChecks.push({
         fam, id, want: want.rows + 'x' + want.cols, got: g.rows + 'x' + g.cols,
         rowLeg: +rowLeg.toFixed(3), colLeg: +colLeg.toFixed(3), legible,
         ok: g.rows === want.rows && g.cols === want.cols,
+        // The SWEEP reads the strongest bin rather than bestCount, so that
+        // reading has to be checked against a published grid too — otherwise
+        // the sweep would be a second instrument nobody had watched.
+        peak: peakBin0(g.rowSpec) + 'x' + peakBin0(g.colSpec),
+        peakOk: peakBin0(g.rowSpec) === want.rows && peakBin0(g.colSpec) === want.cols,
       });
     }
 
@@ -350,20 +452,65 @@ try {
       // taken against — the "am I looking at my own output" control.
       const twin = m.base + wp.slice(-2);
       const timg = map.getImage && map.getImage(twin);
+      // What the METRE ANCHOR asks this tile for at this zoom, read out of the
+      // module rather than recomputed here, and how much of the row profile's
+      // peak actually sits in that bin. Bin `wantRows` being the strongest bin
+      // IS the pixel form of "the tile is anchored in metres".
+      const want = window.facadeGridAt(wp.slice(0, 2), z);
+      // THE FUNDAMENTAL, bin 1 included, with bestCount's OWN subharmonic guard.
+      // Two things forced this rather than a bare argmax. (1) `bestCount`
+      // starts at k=2 and structurally cannot report a tile whose period is the
+      // whole tile — which is what every family collapses to past z19, so the
+      // sweep needs a reading it cannot give. (2) A bare argmax is wrong for the
+      // same reason bestCount's guard exists: Gregory Gym's bucket puts its
+      // glass almost at the wall's own luminance, so its 1-row tile carries
+      // more energy at bin 2 (the head shadow and sill, one near each edge)
+      // than at bin 1, and argmax alone read it as two rows. Same ACCEPT, same
+      // rule, one extra bin — and the self-check above scores this reading
+      // against the five published template grids too, so it is watched.
+      const peakBin = spec => {
+        let k = 0, mx = -1;
+        for (const b of Object.keys(spec)) if (spec[b] > mx) { mx = spec[b]; k = +b; }
+        for (const d of [2, 3]) {
+          const sub = k / d;
+          if (Number.isInteger(sub) && sub >= 1 && spec[sub] >= mx * ACCEPT) return sub;
+        }
+        return k;
+      };
+      const shareOf = (spec, bin) => { const p = Math.max(...Object.values(spec)); return p > 0 ? (spec[bin] || 0) / p : 0; };
       rows.push({
         ref: m.ref, name: m.name, wp, base: m.base, twin,
         heightM: props.final_height,
         storeys: m.storeys, aspect: m.aspect,
         bays: m.bays, bayWallM: m.bay_wall_m,
         px: g,
+        wantRows: want.rows, wantCols: want.cols,
+        pitchDrawnM: want.pitchDrawnM, bayDrawnM: want.bayDrawnM,
+        rowBinShare: shareOf(g.rowSpec, want.rows),
+        colBinShare: shareOf(g.colSpec, want.cols),
+        rowPeakBin: peakBin(g.rowSpec), colPeakBin: peakBin(g.colSpec),
         differsFromTemplate: timg ? bytesOf(img) !== bytesOf(timg) : null,
+        // Rendered on THIS wall, and BOTH are pixel numbers.
+        //   renderRows      the DFT's own count (k >= 2). Unchanged, and it is
+        //                   what the REF_ZOOM assertions below still score on.
+        //   renderRowsPeak  the strongest bin of the row profile, 1 included.
+        //                   The sweep needs this because a tile that collapses
+        //                   to ONE row has its period equal to the whole tile,
+        //                   and bestCount starts at k=2 and structurally cannot
+        //                   report it. The self-check below proves the two
+        //                   agree wherever both can speak.
         renderRows: g.rows * props.final_height / REPEAT_M,
+        renderRowsPeak: peakBin(g.rowSpec) * props.final_height / REPEAT_M,
         renderCols: m.bay_wall_m ? g.cols * m.bay_wall_m / REPEAT_M : null,
+        renderColsPeak: m.bay_wall_m ? peakBin(g.colSpec) * m.bay_wall_m / REPEAT_M : null,
       });
     }
-    return { REPEAT_M, rows, selfChecks, clamp: window.facadeGridClamp(),
+    return { z, ANCHOR, REPEAT_M, rows, selfChecks, clamp: window.facadeGridClamp(),
              measuredCount: window.facadeMeasuredCount() };
-  }, { ACCEPT });
+  }, { ACCEPT, z });
+
+  const REF_Z = await page.evaluate(() => window.facadeRefZoom());
+  const R = await measure(REF_Z);
 
   console.log('\n  SELF-CHECK — the pixel counter against the five published template grids');
   let selfBad = 0, testable = 0;
@@ -379,7 +526,9 @@ try {
     }
     testable++;
     if (!c.ok) selfBad++;
-    console.log(`    ${c.fam}  ${c.id}  source says ${c.want}, pixels say ${c.got}  ${c.ok ? 'ok' : 'MISMATCH'}`);
+    if (!c.peakOk) selfBad++;
+    console.log(`    ${c.fam}  ${c.id}  source says ${c.want}, pixels say ${c.got} `
+      + `(strongest bin ${c.peak})  ${c.ok && c.peakOk ? 'ok' : 'MISMATCH'}`);
   }
   if (illegible.length) {
     console.log(`\n    ^ ${illegible.map(c => c.fam).join(' and ')}: a REAL DEFECT in the existing city, not a`);
@@ -464,8 +613,92 @@ try {
     }
   }
 
+  // ==================================================================
+  //  THE ZOOM SWEEP
+  // ==================================================================
+  //
+  // Everything above is one zoom. This is every zoom the camera reaches, and
+  // it is the half the first cut of this file did not have.
+  const sweep = [];
+  for (const z of ZOOMS) sweep.push(z === REF_Z ? R : await measure(z));
+
+  console.log('');
+  console.log('  ZOOM SWEEP - the same wall, read out of the atlas at every zoom the camera reaches');
+  console.log('  ' + '-'.repeat(100));
+  console.log('  ref  photo  ' + ZOOMS.map(z => ('z' + z).padStart(9)).join('') + '   look / walk');
+  const anchorFails = [];
+  const residual = [];
+  for (let i = 0; i < R.rows.length; i++) {
+    const ref = R.rows[i].ref;
+    if (R.rows[i].missing) continue;
+    const cells = [], nearRatios = [], walkRatios = [];
+    for (const S of sweep) {
+      const r = S.rows[i];
+      // ANCHORED, and this is the whole pixel question: does the bin the metre
+      // pitch asks for carry the strongest energy in this tile's row profile?
+      //
+      // "At or within ACCEPT of the strongest", not "IS the strongest", and the
+      // 0.75 is not a new number — it is `ACCEPT`, the share this file already
+      // publishes for bestCount's subharmonic guard. Bin 1 is where a tile's
+      // NON-periodic content lands (the wall mottle, the head-and-sill pair on
+      // a one-row tile, any top-to-bottom asymmetry), so on a sparse grid it can
+      // edge past a period that is plainly in the pixels: Burdine's five-row
+      // z18 tile draws a 5 px slot in a 64 px row, so its own fundamental is
+      // diluted 5:64 and lands at 93 % of bin 1. Convicting the tile for that
+      // would be convicting it for the profile being a MEAN.
+      const held = r.rowBinShare >= ACCEPT;
+      const drawn = (held ? r.wantRows : r.rowPeakBin) * r.heightM / S.REPEAT_M;
+      if (!held) anchorFails.push({ ref, z: S.z, want: r.wantRows, got: r.rowPeakBin, share: r.rowBinShare });
+      (S.z <= NEAR_MAX ? nearRatios : walkRatios).push(drawn / r.storeys);
+      cells.push(((held ? '' : '!') + drawn.toFixed(1) + 'r').padStart(9));
+    }
+    const worstNear = Math.max.apply(null, nearRatios);
+    const worstWalk = Math.max.apply(null, walkRatios);
+    residual.push({ ref, worstNear, worstWalk });
+    console.log('  ' + ref.padEnd(4) + ' ' + (R.rows[i].storeys + 'r').padStart(5) + '  '
+      + cells.join('') + '   ' + worstNear.toFixed(1) + 'x' + ' / ' + worstWalk.toFixed(1) + 'x');
+  }
+  console.log('');
+  console.log('  each cell is the window rows this build draws on that building\'s own wall at that');
+  console.log('  zoom, read out of the atlas image MapLibre is sampling. A leading ! means the tile');
+  console.log('  is NOT carrying the pitch it was drawn for, and the number is then what the pixels');
+  console.log('  actually say. The two ratios are the worst miss in the LOOK band (z' + ZOOMS[0]
+    + '-' + NEAR_MAX + ') and in the');
+  console.log('  WALK band (z' + (NEAR_MAX + 1) + '-' + ZOOMS[ZOOMS.length - 1] + ').');
+
+  console.log('');
+  console.log('  ASSERTIONS - zoom sweep');
+  ok(anchorFails.length === 0,
+    'the tile carries its metre pitch at all ' + ZOOMS.length + ' zooms, on every measured building',
+    anchorFails.slice(0, 8).map(f => f.ref + '@z' + f.z + ' asks ' + f.want
+      + ' rows, pixels peak at ' + f.got + ' (bin share ' + f.share.toFixed(2) + ')').join('; '));
+
+  const wNear = residual.reduce((a, b) => (b.worstNear > a.worstNear ? b : a), { worstNear: 0, ref: '-' });
+  const wWalk = residual.reduce((a, b) => (b.worstWalk > a.worstWalk ? b : a), { worstWalk: 0, ref: '-' });
+  ok(wNear.worstNear <= RATCHET_NEAR,
+    'in the LOOK band (z' + ZOOMS[0] + '-' + NEAR_MAX + ') no wall draws more than '
+      + RATCHET_NEAR + 'x its photographed storey count',
+    wNear.ref + ' draws ' + wNear.worstNear.toFixed(2) + 'x');
+  ok(wWalk.worstWalk <= RATCHET_WALK,
+    'in the WALK band (z' + (NEAR_MAX + 1) + '-' + ZOOMS[ZOOMS.length - 1] + ') no wall draws more than '
+      + RATCHET_WALK + 'x its photographed storey count',
+    wWalk.ref + ' draws ' + wWalk.worstWalk.toFixed(2) + 'x');
+
+  console.log('');
+  console.log('  worst residual: LOOK band ' + wNear.ref + ' ' + wNear.worstNear.toFixed(2)
+    + 'x (ratchet ' + RATCHET_NEAR + 'x);  WALK band ' + wWalk.ref + ' '
+    + wWalk.worstWalk.toFixed(2) + 'x (ratchet ' + RATCHET_WALK + 'x)');
+  console.log('  BOTH ARE RATCHETS, NOT TARGETS, and the WALK one has a hard floor under it that no');
+  console.log('  redrawing of a tile can pass: `rows` is an integer >= 1, so the coarsest pitch a tile');
+  console.log('  can draw is ONE REPEAT, and at z21 a repeat is '
+    + (32 * 67551 / Math.pow(2, 21)).toFixed(2) + ' m of wall. A building whose storeys');
+  console.log('  sit further apart than that - Battle Hall\'s are 10.75 m apart - cannot be drawn right');
+  console.log('  by ANY tile there. Closing it needs a bigger displaySize, which needs a bigger IMAGE');
+  console.log('  (MapLibre carries pixelRatio as a Uint16 and it cannot go below 1), which is an atlas');
+  console.log('  budget question; or it needs geometry, which data/campus_storeys.geojson already is.');
+
   if (REPORT) { console.log('\n  --report: not failing on assertions'); }
-  else if (BREAK) {
+  else if (BREAK || BREAK_ANCHOR) {
     console.log(`\n  --break produced ${fails} failures.`);
     if (fails === 0) { console.log('  THE GUARD CANNOT FAIL. That is the bug.'); process.exit(1); }
     process.exit(0);
