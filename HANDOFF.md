@@ -25958,3 +25958,113 @@ is the next stage's job and this file is deliberately agnostic about it. Did not
 delete `acer/img-corpus` after merging, against the usual rule, because the round
 that follows was told that branch name and a deleted branch would strand it.
 
+
+
+## 184. Aug 26 2026 — campus ground truth: 16 buildings, sourced entrances/heights/window grids (docs-only, pushed straight to `main` per rule 4)
+
+The foundation round for the entrances/facades detail pass QUEUE asked for.
+`docs/campus-truth/<CODE>.md` x16 + `data/campus_truth.json`. No app code
+touched — this is the ground truth the actual fix gets built and scored
+against next, not the fix itself.
+
+**Target set, and the reasoning for it.** 198 buildings in
+`data/ut_buildings.json` is too many for one round to source rigorously, and
+the brief said so. Picked the 16 that actually matter: what the camera flies
+past (`TOUR`/`AP_TOUR` in `js/app.js` — down the Drag, up the South Mall to
+the Tower, a quarter-orbit, out to DKR) — MAI, BTL, SUT, GAR, WAG; what a
+student walks between — UNB (West Mall plaza), the "Six Pack" quad (CAL, BAT,
+HRH); and buildings with a genuinely distinctive real facade worth getting
+right — PCL, GRE, GOL, BUR, WEL, JGB, LFH. Full per-building rationale in
+`docs/campus-truth/README.md`. Left for later: the three heroes (EER/GDC/NHB,
+already bespoke in `js/heroes.js`), DKR (already its own megastructure), and
+the other ~180 buildings.
+
+**Sources, all live-fetched this round, nothing from memory.** OSM/Overpass
+(footprints, `entrance=*` nodes, the footway/path/pedestrian/steps network);
+City of Austin's official LiDAR building-footprint layer
+(`UTILITIESCOMMUNICATION_building_footprints_2017`, public domain) for real
+measured heights, matched by exact polygon intersection — an early pass used
+a 45 m buffer box instead and it pulled in neighbouring South Mall buildings'
+heights, so it was redone properly; UT Direct's own facilities register
+(no login wall) for official floor counts and gross square footage; Wikimedia
+Commons for one CC-licensed reference photo per building, license checked via
+the API per file, downloaded and actually viewed (cropped to a band and
+re-viewed where an eyeball count was ambiguous — Main Building's arcade,
+PCL's window band, Gregory Gym's gable tiers all got this). HABS/HAER came
+back empty for every UT Austin building tried, confirmed unusable rather than
+assumed. Mapillary and Google Street View are both blocked without a client
+token, confirmed twice, no keyless coverage check either.
+
+**The best find of the round wasn't a new source — it was already in the
+repo.** `scripts/bake_entrances.py` already carries `UT_CELEBRATED`, UT
+Facilities' own hand-surveyed front-door table (97 doors, 67 buildings,
+fetched 2026-08-23 from UT's own ArcGIS FeatureServer), plus a hand-authored
+`CELEBRATED` table with [M]/[C]/[D]/[S]/[U] confidence marks per field. 14 of
+this round's 16 target buildings are covered by one or the other. Used that
+rather than re-deriving it from scratch, and then did something nobody had
+done with it yet: read `js/facades.js`'s `familyFor()` and `data/entrances.
+geojson` against it, live, in Python, to state exactly what the running app
+does today rather than assume.
+
+**Entrances, scored against that: better than Simeon's complaint would
+suggest, for exactly the reason that matters.** 11 of 16 have their real door
+correctly placed AND labelled `main`. 2 (Main Building, Jackson Geosciences)
+have the RIGHT door already sitting in the data within centimetres to a few
+metres of UT's own surveyed point — but tagged `secondary` or `exit`, while a
+door 7-56 m away on a different wall wears `main`. Main Building specifically:
+`data/entrances.geojson` eid 448 sits 0.6 m from the OSM `entrance=main` node
+AND from the coordinate already authored in `CELEBRATED` for MAI — excellent
+geometry — tagged `secondary`; eid 446, tagged `main`, sits 56.1 m away near a
+service door. 1 (PCL) is a 12.3 m close miss against the bake script's own
+12 m tolerance, plausibly because PCL's real entrance is on the second floor
+off a plaza, not a ground door (also cited from the bake script's own note).
+2 (Union Building, Littlefield House) have no authoritative source
+coordinate at all — UNB's own `CELEBRATED` entry says so explicitly ("THE
+BIGGEST HOLE IN THE SPEC"). Said plainly in the doc: this is a
+better-than-average subset, because these are exactly the buildings a prior
+round already gave hand-authored or UT-surveyed attention — the bake
+script's own header comment states the campus-wide heuristic gets `main`
+right on only 16 of 55 routable buildings before the UT stage runs at all.
+
+**Facades: this is where the "template copied and pasted" complaint is
+exactly right, quantified.** `familyFor()` re-run in Python on each
+building's own baked `final_height`/`building_class`: 12 of 16 (75%) get the
+literal same `mh` family — 8 rows x 5 cols — regardless of whether the real
+building has 2 storeys (Battle Hall, Garrison Hall, Homer Rainey Hall) or 8
+(Burdine Hall), round Beaux-Arts arches or narrow Brutalist slots, or in
+PCL's case almost no windows over most of its walls at all. 3 more (Goldsmith
+Hall, Union Building, Littlefield House) get the `mr` "2-3 storey walk-up"
+template on a 5-floor architecture school, a 5-floor union with a round
+arcade and a tower, and a one-of-a-kind 1894 Victorian mansion. Main Building
+gets a `tr` 9x5 tower grid painted as ONE shape across both its 3-storey
+limestone base (really three different 1x7 bands) and its narrower 27-floor
+tower shaft (really 4 columns). At most 1 of 16 (Jackson Geosciences)
+plausibly matches on both axes, and even that only on one photographed wing.
+
+**Two real control cases, worth keeping so the next round doesn't over-
+correct.** Burdine Hall genuinely is close to a uniform punched grid (a 1970
+Brutalist tower) — the row count (8) happens to already match, only the
+column count (~11-12 real vs 5 assigned) and window shape are wrong. Batts
+Hall, Calhoun Hall and Homer Rainey Hall were built together in the 1950s-60s
+as a deliberately matched "Six Pack" trio — sharing one template across
+THOSE THREE is architecturally honest, unlike sharing it with the other 13.
+
+**Disk/process:** no browser launched, no server started — every fetch was a
+direct HTTP/API call (Overpass, Austin's ArcGIS, UT Direct, Wikimedia
+Commons), and every photo was downloaded to the scratchpad, never `shots/`.
+Pushed as a single docs+data commit straight to `main` (no PR — CLAUDE.md
+rule 4) via isolated git plumbing (a side index seeded from `origin/main`,
+never touching this shared checkout's working tree or its checked-out branch)
+specifically because another session was actively editing tracked files in
+this same checkout at the time (`HANDOFF.md`, `scripts/verify/campusmeter*`)
+and a real `git checkout`/branch switch here would have risked its in-flight
+work landing on the wrong branch.
+
+**What this did NOT do.** Did not touch `js/facades.js`, `scripts/bake_
+entrances.py`, `scripts/bake_detail.py`, or any other app code — only added
+new docs and one new data file that nothing in the app reads yet. Did not
+attempt to fix the two mislabelled-entrance bugs found (Main Building,
+Jackson Geosciences) or the facade template problem — both are precisely
+diagnosed and cited here for whoever picks this up next. Did not extend
+ground truth to any of the other ~180 buildings. Did not verify production,
+since nothing render-affecting was deployed.
