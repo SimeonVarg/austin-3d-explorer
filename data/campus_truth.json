@@ -1,0 +1,1059 @@
+{
+  "_source_note": "Ground truth assembled 2026-08-26 for the campus-detail round (entrances/facades/window-grids). Every number below is sourced; see docs/campus-truth/<CODE>.md for the full per-building writeup and docs/campus-truth/README.md for the target-set rationale and scoring methodology. Nothing here was invented -- where a fact could not be sourced this round it is marked as such.",
+  "target_set_left_out": "The three 'hero' buildings (EER, GDC, NHB) already have bespoke authored facades in js/heroes.js -- not part of this round's atlas-template problem, so left alone. DKR-Memorial Stadium is on the camera's TOUR flight path but is already a distinct, separately modelled megastructure (data/stadium.geojson), not a template-grid building. The remaining ~180 UT Austin buildings are real buildings too, but most are never on screen during the reel or a typical walking path, and 198 is too many for one round to source rigorously -- the task brief said so itself. HABS/HAER was checked and came back empty for every UT Austin main-campus building tried (Old Main, Sutton, Battle, Littlefield all zero hits) -- not usable regardless of which buildings this round had picked. Mapillary and Google Street View are both blocked without a client token/API key (confirmed twice this round, no keyless path even to a coverage check) -- this ground truth relies on Wikimedia Commons, UT Direct, UT's own facilities survey, Austin's LiDAR footprints, and OSM instead.",
+  "buildings": {
+    "MAI": {
+      "ref": "MAI",
+      "name": "Main Building",
+      "common_name": "Main Building (\"the Tower\")",
+      "centroid": {
+        "lat": 30.286025038229848,
+        "lon": -97.73937230197411
+      },
+      "height": {
+        "austin_footprint_ft": 337.0,
+        "austin_footprint_m": 102.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "37",
+        "utdirect_gross_sqft": "327,701",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/MAI/",
+        "app_baked_final_height_m": 94.0,
+        "app_baked_num_floors": 2,
+        "app_baked_building_class": "university",
+        "note": "Wikipedia/UT's own public figure (matches every campus tour and the observation-deck sign): 307 ft (94 m), 27 floors. Two OTHER real sources measured this round disagree with that figure and with each other, and neither is dismissed here, only flagged: Austin's LiDAR building-footprint layer measures the single MAX_HEIGHT-tagged footprint at 337.0 ft (102.7 m); UT Direct's own facilities register page lists the floor count as \"37\". The app's own baked `final_height` for this building is 94.0 m -- matching the canonical 307 ft figure almost exactly, so the app's HEIGHT is not the problem here."
+      },
+      "entrance": {
+        "note": "Unambiguous: the south portico, a 7-arch limestone loggia beneath the carved inscription \"YE SHALL KNOW THE TRUTH AND THE TRUTH SHALL MAKE YOU FREE\", reached by a monumental exterior stair. This is both the OSM `entrance=main` node (30.285759, -97.739416) and the coordinate already hand-authored in `scripts/bake_entrances.py`'s CELEBRATED table for MAI, marked [M] \"OSM entrance=main\". THE BUG: the baked `data/entrances.geojson` places a door 0.6 m from that exact point (eid 448) -- excellent geometry -- but tags it `role: secondary`. The door actually tagged `role: main` (eid 446) sits 56.1 m away on the WNW side, near a service door. UT's own separate hand-surveyed accessible-entrance table (a different, west-side barrier-free door, distinct from the monumental south portico) also does not match eid 446 within its own 12 m tolerance (the nearest candidate, eid 447, sits 7.3 m away and is ALSO tagged secondary). So on this building specifically, the correct door exists in the data twice over and neither copy carries the 'main' tag.",
+        "osm_tagged_nodes_on_this_building": [
+          {
+            "node_id": 2073529336,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2859549,
+            "lon": -97.7397431,
+            "bearing_deg": 257.6,
+            "compass_from_centroid": "WSW",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 6797111254,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2857591,
+            "lon": -97.7394161,
+            "bearing_deg": 188.1,
+            "compass_from_centroid": "S",
+            "osm_tags": {
+              "entrance": "main"
+            }
+          },
+          {
+            "node_id": 13141953689,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2859798,
+            "lon": -97.7389819,
+            "bearing_deg": 97.6,
+            "compass_from_centroid": "E",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          }
+        ],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 447,
+          "nearest_app_role": "secondary",
+          "dist_m": 7.3,
+          "within_12m": true,
+          "is_main": false,
+          "ut_side": "W"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the south portico (entrance) elevation",
+        "window_grid_from_photo": "South (entrance) elevation, 3-tier limestone base pavilion, each tier 7 bays wide and counted directly off the photograph: (1) ground -- 7 round arches forming an open loggia, the centre arch the main door; (2) piano nobile -- 7 tall windows on a continuous iron balcony rail, aligned 1:1 over the arches, the centre 3 marked with carved cartouches, the inscription band beneath; (3) attic -- 7 more windows in terracotta-panel surrounds under urn-topped pilasters, below a red-tile hip roof. Above that the tower shaft sets back and narrows: 4 vertical columns of small square windows (one per floor) run up all ~27 floors between blank stone piers, then an open colonnaded observation deck, the clock, and a stepped cupola. NOTHING about this is a uniform NxM grid across one wall plane -- it is three different 1x7 bands stacked over a base block, topped by an unrelated 4-column tower.",
+        "app_current_family_assignment": {
+          "family_code": "tr",
+          "family_grid": "9 rows x 5 cols (residential towers)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 94.0
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Main Building (University of Texas at Austin) - DSC08595.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Main_Building_(University_of_Texas_at_Austin)_-_DSC08595.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Main_Building_%28University_of_Texas_at_Austin%29_-_DSC08595.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Daderot\" title=\"User:Daderot\">Daderot</a>"
+      },
+      "target_set_rationale": "the literal centre of both camera tours -- TOUR dwells on it and quarter-orbits it, AP_TOUR keeps it dead ahead for the first half of the flight -- and the single most recognised building on campus."
+    },
+    "BTL": {
+      "ref": "BTL",
+      "name": "Battle Hall",
+      "common_name": "Battle Hall",
+      "centroid": {
+        "lat": 30.285414542112484,
+        "lon": -97.74032687297857
+      },
+      "height": {
+        "austin_footprint_ft": 73.4,
+        "austin_footprint_m": 22.4,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "46,348",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BTL/",
+        "app_baked_final_height_m": 21.5,
+        "app_baked_num_floors": 3,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 73.4 ft (22.4 m). UT Direct's facilities register: 7 floors -- but only 2 storeys are visible above grade on the photographed (east) elevation. Battle Hall was built as the university's library and its stack hall is known to carry internal book-stack tiers; that almost certainly accounts for the gap between '7 floors' on paper and 2 storeys on the wall, but this round did not independently verify the stack-tier count, so it is flagged rather than asserted."
+      },
+      "entrance": {
+        "note": "The single central round-arched door on the EAST elevation (facing the South Mall), flanked by wrought-iron lanterns. Confirmed three ways: visible in the photograph, `scripts/bake_entrances.py`'s CELEBRATED table already carries it as `facade=\"E\"` with an authored point marked [D] \"centre of the east wall\", and the final `data/entrances.geojson` places its `role: main` door 1.4 m from that authored point -- this is one of the entrances the pipeline gets right end to end.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "celebrated_authored",
+          "nearest_app_eid": 118,
+          "nearest_app_role": "main",
+          "dist_m": 1.4,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "authored"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the east (South Mall-facing) elevation",
+        "window_grid_from_photo": "East elevation, 2 storeys over a rusticated limestone base, counted off the photograph. Upper floor: 5 tall round-arched Palladian bays -- paired casements with divided lights, a small wrought-iron Juliet balcony under each, a carved roundel medallion above each arch. Ground floor: roughly 4 tall double-hung windows on each side of the central door (~8 total, symmetric), about 2 per upper arch bay -- the row counts do NOT match between floors. Red clay tile hip roof, deep bracketed eave with a polychrome tile frieze.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 21.5
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Battle Hall - UT Austin (54983869707).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Battle_Hall_-_UT_Austin_(54983869707).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Battle_Hall_-_UT_Austin_%2854983869707%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/83136374@N05\">ajay_suresh</a>"
+      },
+      "target_set_rationale": "one of the four halls the camera flies past on \"up the South Mall to the Tower\"; a richly documented, non-generic Beaux-Arts facade a generic grid currently flattens."
+    },
+    "SUT": {
+      "ref": "SUT",
+      "name": "Sutton Hall",
+      "common_name": "Sutton Hall",
+      "centroid": {
+        "lat": 30.284954449999997,
+        "lon": -97.74083159999999
+      },
+      "height": {
+        "austin_footprint_ft": 75.0,
+        "austin_footprint_m": 22.9,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "59,498",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SUT/",
+        "app_baked_final_height_m": 13.0,
+        "app_baked_num_floors": 3,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 75.0 ft (22.9 m). UT Direct: 5 floors; 3 storeys are visible above the ground-floor arcade in the photograph. A '1917' cornerstone is carved into the base, and the deep bracketed eave implies attic space -- plausible reasons for the gap, not verified."
+      },
+      "entrance": {
+        "note": "\"SUTTON HALL\" is carved into the limestone base at the building's north corner; the door is recessed under the second arch from the corner. `scripts/bake_entrances.py`'s CELEBRATED table already authors this as `facade=\"N\"` -- flagging that the ORIGINAL south entrance was closed and the north one created by a 1982 renovation -- at a point marked [D]. The final `data/entrances.geojson` places its `role: main` door 2.6 m from that authored point: correct.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 267,
+          "nearest_app_role": "main",
+          "dist_m": 2.3,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "N"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the north (entrance) + west corner",
+        "window_grid_from_photo": "Corner (north + west) view. North (entrance) elevation: 4 round arches at grade (1 door, 3 windows), 4 window bays above at floors 2 and 3, some with small iron Juliet balconies, polychrome tile spandrel panels between floors, brick walls with cast-stone quoins at the corner. The west elevation continues the same rhythm under a colonnaded arcade for at least 6-7 more bays, visible but not fully countable in this photograph -- not claimed as counted.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 13.0
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Sutton Hall (University of Texas at Austin) - DSC08578.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Sutton_Hall_(University_of_Texas_at_Austin)_-_DSC08578.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/9/94/Sutton_Hall_%28University_of_Texas_at_Austin%29_-_DSC08578.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Daderot\" title=\"User:Daderot\">Daderot</a>"
+      },
+      "target_set_rationale": "same South Mall approach as Battle Hall, its architectural companion piece."
+    },
+    "GAR": {
+      "ref": "GAR",
+      "name": "Garrison Hall",
+      "common_name": "Garrison Hall",
+      "centroid": {
+        "lat": 30.285151284801426,
+        "lon": -97.73851980895644
+      },
+      "height": {
+        "austin_footprint_ft": 76.5,
+        "austin_footprint_m": 23.3,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "51,822",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/GAR/",
+        "app_baked_final_height_m": 12.9,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 76.5 ft (23.3 m) -- OSM's own height=23m tag agrees closely. UT Direct: 5 floors."
+      },
+      "entrance": {
+        "note": "\"GARRISON HALL\" is carved into the stone frieze above a 3-arch limestone ground-floor arcade. UT's own hand-surveyed celebrated-entrance table (see `UT_CELEBRATED` in `scripts/bake_entrances.py`, fetched from UT's ArcGIS FeatureServer 2026-08-23) lists two doors for GAR, at S and W; the final `data/entrances.geojson` places its `role: main` door 4.2 m from the nearer of the two: correct.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 2,
+          "source": "ut_survey",
+          "nearest_app_eid": 571,
+          "nearest_app_role": "main",
+          "dist_m": 4.2,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "S"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the arcaded (entrance) elevation",
+        "window_grid_from_photo": "Ground floor: 3 round arches (the arcade), flanked outside the arcade by barred windows. Upper floor, red brick: a projecting 2-storey ornamented oriel-style window bay carved \"AUSTIN\" at its head, plus plainer cast-stone-surround windows. The distinctive REAL detail the current template cannot express: terracotta medallions of historic Texas cattle-brand marks set into niches between the upper windows (`scripts/bake_entrances.py`'s own CELEBRATED entry for GAR independently cites the same detail: \"32 terra-cotta cattle brands\"). Red clay tile hip roof.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 12.9
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Garrison hall 2014.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Garrison_hall_2014.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Garrison_hall_2014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200p\" class=\"extiw\" title=\"en:User:Nv8200p\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "same South Mall approach; carries a real, sourced, non-generic decorative program (carved founders' names, cattle-brand medallions) worth checking a fix against."
+    },
+    "WAG": {
+      "ref": "WAG",
+      "name": "Waggener Hall",
+      "common_name": "Waggener Hall",
+      "centroid": {
+        "lat": 30.285105286423587,
+        "lon": -97.73760376129874
+      },
+      "height": {
+        "austin_footprint_ft": 84.3,
+        "austin_footprint_m": 25.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "06",
+        "utdirect_gross_sqft": "57,538",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/WAG/",
+        "app_baked_final_height_m": 24.8,
+        "app_baked_num_floors": 5,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 84.3 ft (25.7 m) -- OSM's height=23m tag undercounts it. UT Direct: 6 floors."
+      },
+      "entrance": {
+        "note": "\"WAGGENER HALL\" is carved above a central round-arched double door with a wrought-iron grille fanlight, flanked by 2 carved roundels, with a decorative iron grille/balconet above at floor 2. `scripts/bake_entrances.py`'s own comment calls WAG \"THE REGRESSION FIXTURE\": UT's survey table lists it, OSM independently carries 5 measured `entrance=yes` nodes on 4 sides of the building (more than any other celebrated building), and the final `data/entrances.geojson` places its `role: main` door 2.7 m from UT's own surveyed point: correct.",
+        "osm_tagged_nodes_on_this_building": [
+          {
+            "node_id": 1430682339,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2849456,
+            "lon": -97.7377244,
+            "bearing_deg": 213.1,
+            "compass_from_centroid": "SSW",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 1430682343,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2851141,
+            "lon": -97.7377075,
+            "bearing_deg": 275.6,
+            "compass_from_centroid": "W",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 1430682353,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.28528,
+            "lon": -97.7376909,
+            "bearing_deg": 336.7,
+            "compass_from_centroid": "NNW",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 13141953684,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2849381,
+            "lon": -97.7375159,
+            "bearing_deg": 155.6,
+            "compass_from_centroid": "SSE",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 13141953685,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.285266,
+            "lon": -97.737483,
+            "bearing_deg": 33.0,
+            "compass_from_centroid": "NNE",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          }
+        ],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 527,
+          "nearest_app_role": "main",
+          "dist_m": 2.7,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "NE"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the principal (south, entrance) elevation",
+        "window_grid_from_photo": "A flat, symmetric, unobstructed elevation, and a strong reference photograph. Raised limestone ground floor: 4 tall windows on each side of the entrance (8 total, some shuttered). 3 full brick floors above: 4 regular window bays on each side of a narrower centre bay (so 8 outer windows + 1 narrow centre window per floor -- NOT the same count top to bottom, since the centre bay's ground-floor slot is a decorative grille, not a window), soldier-course brick headers over every opening. The top 'attic' band under the deep bracketed eave ALTERNATES small windows with terracotta relief medallion panels (a Longhorn head, a book, sheaves of wheat, and others) -- it is not a uniform window row at all.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 24.8
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Waggener Hall - UT Austin (54984752686).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Waggener_Hall_-_UT_Austin_(54984752686).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Waggener_Hall_-_UT_Austin_%2854984752686%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/83136374@N05\">ajay_suresh</a>"
+      },
+      "target_set_rationale": "same South Mall approach; already flagged in the bake script's own comments as \"THE REGRESSION FIXTURE\" for entrance placement -- worth carrying the same status into facade ground truth."
+    },
+    "CAL": {
+      "ref": "CAL",
+      "name": "Calhoun Hall",
+      "common_name": "Calhoun Hall",
+      "centroid": {
+        "lat": 30.284473888768908,
+        "lon": -97.74023145037661
+      },
+      "height": {
+        "austin_footprint_ft": 74.5,
+        "austin_footprint_m": 22.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "55,077",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CAL/",
+        "app_baked_final_height_m": 22.1,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 74.5 ft (22.7 m). UT Direct: 7 floors. Built 1967, one of the \"Six Pack\"."
+      },
+      "entrance": {
+        "note": "Ground-floor round-arched arcade on the west (mall-facing) elevation; a campus wayfinding sign reading \"Calhoun Hall\" stands at the walk. UT's survey table lists one door, S; the final `data/entrances.geojson` places its `role: main` door 8.1 m from that point: correct (within the 12 m tolerance the bake script itself uses).",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 254,
+          "nearest_app_role": "main",
+          "dist_m": 8.1,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "S"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the west (arcade, entrance) elevation",
+        "window_grid_from_photo": "Ground arcade of round arches (partly tree-obscured in the photograph, ~5-6 visible). Above: a 3-storey block with a slightly projecting stair-tower bay (one tall multi-pane window per floor) beside a wider wing with regularly spaced windows set into shallow vertical piers, tied together by a 2nd-floor iron-railed walkway. Built together with Batts Hall (BAT) and Homer Rainey Hall (HRH) as a deliberately matched trio (the \"Six Pack\") -- a real case where sharing one template across three buildings would be architecturally honest, unlike the rest of this set.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 22.1
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Calhoun hall 2014.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Calhoun_hall_2014.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Calhoun_hall_2014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200p\" class=\"extiw\" title=\"en:User:Nv8200p\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "the \"Six Pack\" trio (with BAT, HRH) is a real, deliberately matched set built together in the 1950s-60s -- a second control case (a family where SHARING one template is architecturally correct) sitting on a heavily walked block between the South Mall and 21st Street."
+    },
+    "BAT": {
+      "ref": "BAT",
+      "name": "Batts Hall",
+      "common_name": "Batts Hall",
+      "centroid": {
+        "lat": 30.284804852302496,
+        "lon": -97.73892134912667
+      },
+      "height": {
+        "austin_footprint_ft": 84.8,
+        "austin_footprint_m": 25.9,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "39,143",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BAT/",
+        "app_baked_final_height_m": 20.5,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 84.8 ft (25.8 m). UT Direct: 5 floors. Built as one of the \"Six Pack\"."
+      },
+      "entrance": {
+        "note": "\"BATTS HALL\" is carved on a limestone tablet above a recessed wood double door. UT's survey table lists THREE doors for BAT (SW, E, N); the final `data/entrances.geojson` places its `role: main` door 0.8 m from the nearest surveyed point: correct, and the closest match in the whole set.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 3,
+          "source": "ut_survey",
+          "nearest_app_eid": 431,
+          "nearest_app_role": "main",
+          "dist_m": 0.8,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "N"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the entrance pavilion (west elevation)",
+        "window_grid_from_photo": "The photograph shows the entrance pavilion only -- tree canopy hides the long wings, and that limit is stated rather than papered over. Ground floor: 2 twelve-light windows flank the door. 2nd floor (this bay only): 3 tall multi-pane windows on a continuous iron Juliet balcony rail. The full-facade grid for the wings is NOT resolved by this photograph -- flagged, not guessed.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 20.5
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Batts hall 2014.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Batts_hall_2014.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/6/63/Batts_hall_2014.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200p\" class=\"extiw\" title=\"en:User:Nv8200p\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "see CAL -- part of the same deliberately matched \"Six Pack\" trio."
+    },
+    "HRH": {
+      "ref": "HRH",
+      "name": "Homer Rainey Hall",
+      "common_name": "Homer Rainey Hall",
+      "centroid": {
+        "lat": 30.284063689074298,
+        "lon": -97.74019326299367
+      },
+      "height": {
+        "austin_footprint_ft": 74.5,
+        "austin_footprint_m": 22.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "54,405",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/HRH/",
+        "app_baked_final_height_m": 17.1,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 74.5 ft (22.7 m). UT Direct: 5 floors. Built as one of the \"Six Pack\"."
+      },
+      "entrance": {
+        "note": "Ground-floor door(s), partly hidden by shrubs in the photograph, under a 2nd-floor pedimented window bay; flanked by 2 lantern sconces. UT's survey table lists one door, SW; the final `data/entrances.geojson` places its `role: main` door 4.0 m from that point: correct.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 158,
+          "nearest_app_role": "main",
+          "dist_m": 4.0,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "SW"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the south elevation",
+        "window_grid_from_photo": "2-storey limestone elevation under a red clay tile hip roof with a dormer. Centre bay: a broken-scroll pediment with a carved shell cartouche frames a tall multi-pane French door opening onto a continuous iron Juliet balcony at floor 2, flanked by 2 plainer windows. Left wing: ~4 window bays per floor with a quoined corner pilaster. Same \"Six Pack\" family as CAL and BAT.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 17.1
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Homer rainey hall.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Homer_rainey_hall.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Homer_rainey_hall.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200pa\" class=\"extiw\" title=\"w:User:Nv8200pa\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "see CAL -- part of the same deliberately matched \"Six Pack\" trio."
+    },
+    "GOL": {
+      "ref": "GOL",
+      "name": "Goldsmith Hall",
+      "common_name": "Goldsmith Hall (School of Architecture)",
+      "centroid": {
+        "lat": 30.285428368056788,
+        "lon": -97.74115919013929
+      },
+      "height": {
+        "austin_footprint_ft": 78.6,
+        "austin_footprint_m": 23.9,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "84,041",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/GOL/",
+        "app_baked_final_height_m": 11.5,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 78.6 ft (24.0 m). UT Direct: 5 floors."
+      },
+      "entrance": {
+        "note": "\"ARCHITECTURE\" is carved above a recessed door with an iron security gate; heavy bike parking in the photograph confirms this is the door actually used. UT's survey table lists two doors, SW and NW; the final `data/entrances.geojson` places its `role: main` door 1.3 m from the nearer point: correct. `scripts/bake_entrances.py`'s own CELEBRATED note adds a real fact this round did not re-derive: Goldsmith wraps a courtyard and has a second, inward-facing entrance in addition to the street doors.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 2,
+          "source": "ut_survey",
+          "nearest_app_eid": 90,
+          "nearest_app_role": "main",
+          "dist_m": 1.3,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "SW"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the east (Inner Campus Drive, entrance) elevation",
+        "window_grid_from_photo": "The long west wing (around the corner from the entrance) has a regular row of multi-light double-hung windows at both ground and 2nd floor, evenly spaced (~7-8 visible per floor before tree cover). The entrance bay itself: 2 tall multi-pane windows flank the door at 2nd floor, with a partly visible carved tablet higher up. Full grid for the courtyard-facing elevation not photographed this round.",
+        "app_current_family_assignment": {
+          "family_code": "mr",
+          "family_grid": "6 rows x 5 cols (2-3 storey walk-ups)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 11.5
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Goldsmith Hall.JPG",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Goldsmith_Hall.JPG",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Goldsmith_Hall.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY-SA 3.0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Gu%C3%B0s%C3%BEegn\" class=\"mw-redirect\" title=\"User:Guðsþegn\">Guðsþegn</a>"
+      },
+      "target_set_rationale": "directly on Inner Campus Drive next to Battle Hall; a real, heavily used building (labelled \"ARCHITECTURE\", visible bike traffic) with solid Commons coverage."
+    },
+    "BUR": {
+      "ref": "BUR",
+      "name": "Burdine Hall",
+      "common_name": "Burdine Hall",
+      "centroid": {
+        "lat": 30.28884281450003,
+        "lon": -97.73844843525967
+      },
+      "height": {
+        "austin_footprint_ft": 90.1,
+        "austin_footprint_m": 27.5,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "08",
+        "utdirect_gross_sqft": "101,502",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BUR/",
+        "app_baked_final_height_m": 12.8,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 90.1 ft (27.5 m). UT Direct: 8 floors."
+      },
+      "entrance": {
+        "note": "Not visible in the photograph used (an upper-corner view; ground level is hidden by trees). UT's survey table lists one door, S; the final `data/entrances.geojson` places its `role: main` door 3.7 m from that point: correct, but this round did not visually confirm it against a ground-level photograph -- flagged as geometry-only confirmation.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 394,
+          "nearest_app_role": "main",
+          "dist_m": 3.7,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "S"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the upper NE corner (ground level and doors not shown)",
+        "window_grid_from_photo": "A 1970 Brutalist brick tower. Deeply recessed, narrow, full-height vertical slot windows, one per structural bay, in a genuinely regular repeating grid: ~11-12 columns counted across the near wing in this photograph, 3 rows visible in the crop (more floors run above and below, out of frame; 8 real floors total per UT Direct). Unlike every other building in this set, Burdine's real facade IS close to a uniform punched-window grid -- worth keeping as the control case: not every building here needs a bespoke fix, and Burdine is the one where the row count (8 real vs 8 assigned) roughly lines up, even though the column count (~11-12 real vs 5 assigned) and the window shape (narrow slot vs square punch) do not.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 12.8
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Burdine Hall UT Austin 2018.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Burdine_Hall_UT_Austin_2018.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Burdine_Hall_UT_Austin_2018.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200pa\" class=\"extiw\" title=\"en:User:Nv8200pa\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "one of the tallest, most visible academic buildings (8 floors); the deliberate CONTROL CASE -- a building whose real facade genuinely is close to a uniform punched-window grid, so this set is not skewed entirely toward \"everything is bespoke\"."
+    },
+    "LFH": {
+      "ref": "LFH",
+      "name": "Littlefield House",
+      "common_name": "Littlefield House",
+      "centroid": {
+        "lat": 30.288109074771604,
+        "lon": -97.74077971875565
+      },
+      "height": {
+        "austin_footprint_ft": 75.7,
+        "austin_footprint_m": 23.1,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "04",
+        "utdirect_gross_sqft": "16,135",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/LFH/",
+        "app_baked_final_height_m": 10.8,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "detached",
+        "note": "Austin LiDAR: 75.7 ft (23.1 m) -- this is the tallest POINT on the roofline (the corner tower's spire tip), not a storey height; a simple box model reasonably uses the lower main-roof eave line instead, which is closer to the app's own baked 10.8 m. UT Direct: 4 floors. Built 1894, James Wahrenberger architect; listed on the National Register of Historic Places (ref 70000767)."
+      },
+      "entrance": {
+        "note": "Marble steps lead to the wraparound double-decker gallery/porch on the south elevation; the door itself is recessed behind the columns and not directly visible in this photograph. NOT in UT's surveyed celebrated-entrance table and NOT given a coordinate in `scripts/bake_entrances.py`'s CELEBRATED table either -- that entry (`fam=\"V\"`) authors the door's SHAPE (recessed behind polished stone Corinthian columns, a 2-storey iron veranda, ~5 stone risers with a thin retrofitted pipe rail, read off a different Commons photograph than the one used here) but explicitly places no `at` coordinate, so its ground position is whatever the building's generic placement pass produced.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": false
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the south / southwest corner",
+        "window_grid_from_photo": "NO repeating grid. A genuinely asymmetric High Victorian (Second Empire/Queen Anne) composition: a round corner tower under a conical fish-scale-slate roof, a taller square tower with a steep slate pyramidal roof and a gabled dormer, an octagonal bay window, tall paired double-hung windows of VARYING width per bay, all under a two-tier wraparound gallery (cast-iron columns below, stone Corinthian columns above). The single clearest proof in this set that 'uniform primitives' is the wrong null hypothesis for a real chunk of this campus.",
+        "app_current_family_assignment": {
+          "family_code": "mr",
+          "family_grid": "6 rows x 5 cols (2-3 storey walk-ups)",
+          "computed_from": {
+            "building_class": "detached",
+            "final_height_m": 10.8
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:University of Texas at Austin August 2019 10 (Littlefield House).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:University_of_Texas_at_Austin_August_2019_10_(Littlefield_House).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/University_of_Texas_at_Austin_August_2019_10_%28Littlefield_House%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY-SA 4.0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Michael_Barera\" title=\"User:Michael Barera\">Michael Barera</a>"
+      },
+      "target_set_rationale": "the single most visually distinctive building on campus (a unique Victorian mansion, National Register of Historic Places) on the northern approach near the Drag/West Mall corridor; the strongest possible proof that \"uniform primitives are the null hypothesis\" is wrong for at least one high-visibility building."
+    },
+    "PCL": {
+      "ref": "PCL",
+      "name": "Perry-Castañeda Library",
+      "common_name": "Perry-Castañeda Library",
+      "centroid": {
+        "lat": 30.282721787009518,
+        "lon": -97.73821206211075
+      },
+      "height": {
+        "austin_footprint_ft": 118.4,
+        "austin_footprint_m": 36.1,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "491,578",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/PCL/",
+        "app_baked_final_height_m": 15.8,
+        "app_baked_num_floors": 5,
+        "app_baked_building_class": "library",
+        "note": "Austin LiDAR: 118.4 ft (36.1 m). UT Direct: 7 floors, 491,578 gross sq ft -- the largest single building by floor area in this set."
+      },
+      "entrance": {
+        "note": "Not visible in the photograph used (an almost entirely blank face, no doors in frame). UT's survey lists one door, N, at (30.282994, -97.737865). The final `data/entrances.geojson` places its `role: main` door 12.3 m from that point -- just OUTSIDE the 12 m tolerance the bake script's own UT-relabelling stage uses, so it is a close miss rather than a clean pass. `scripts/bake_entrances.py`'s CELEBRATED note for PCL adds a real, sourced fact: \"the entrance to the library is on the SECOND FLOOR, accessible from a plaza\" -- so a ground-wall-only proxy is inherently a little off for this specific building, which is a plausible reason for the miss, not confirmed as the cause.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 15,
+          "nearest_app_role": "main",
+          "dist_m": 12.3,
+          "within_12m": false,
+          "is_main": true,
+          "ut_side": "N"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the east/southeast plaza-facing wall (doors not shown)",
+        "window_grid_from_photo": "THE key finding for this building. Most of the exterior is COMPLETELY BLANK precast-concrete/limestone panel wall with zero windows -- a defining, well-known trait of this building, built for book-stack preservation and security rather than daylight. The one photographed face shows a single recessed band of tall, narrow, deeply shadowed full-height window strips: 13 counted across the top row of the band, with a second row emerging under tree canopy (not fully countable). This directly contradicts any generic 'N rows x M columns over the whole wall' template -- PCL's correct rule is 'blank everywhere except one or two narrow recessed bands'.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "library",
+            "final_height_m": 15.8
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:University of Texas at Austin August 2019 26 (Perry–Castañeda Library).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:University_of_Texas_at_Austin_August_2019_26_(Perry–Castañeda_Library).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/University_of_Texas_at_Austin_August_2019_26_%28Perry%E2%80%93Casta%C3%B1eda_Library%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY-SA 4.0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Michael_Barera\" title=\"User:Michael Barera\">Michael Barera</a>"
+      },
+      "target_set_rationale": "the biggest library on campus, heavily walked past; its blank-wall-with-one-window-band reality is the single most extreme rebuttal to \"every building gets a window grid\", worth having in the set specifically to prove that null."
+    },
+    "UNB": {
+      "ref": "UNB",
+      "name": "Union Building",
+      "common_name": "Union Building (Texas Union)",
+      "centroid": {
+        "lat": 30.286567005724528,
+        "lon": -97.74115360567617
+      },
+      "height": {
+        "austin_footprint_ft": 68.7,
+        "austin_footprint_m": 21.0,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "05",
+        "utdirect_gross_sqft": "171,276",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UNB/",
+        "app_baked_final_height_m": 11.9,
+        "app_baked_num_floors": null,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 68.7 ft (20.9 m). UT Direct: 5 floors, 171,276 gross sq ft."
+      },
+      "entrance": {
+        "note": "Unambiguous in the photograph: \"THE EYES OF TEXAS ARE UPON YOU / THE UNION\" is carved into the stone base beneath a monumental round arch under a tower with a projecting bracketed roof, on the WEST elevation facing the West Mall plaza; a Longhorn medallion marks a secondary door in the lower west wing. This is, by `scripts/bake_entrances.py`'s own comment, \"THE BIGGEST HOLE IN THE SPEC\": UNB is NOT in UT's surveyed celebrated-entrance table, has no OSM `entrance=*` node, and the CELEBRATED override for UNB authors no coordinate at all -- its own note reads \"No source states which elevation the main door is on... the generic pass places it.\" This photograph is itself new, useful evidence toward closing that hole: a clear, labelled, unambiguous west-facing entrance, CC-licensed and citable.",
+        "osm_tagged_nodes_on_this_building": [],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": false
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the west (entrance, tower) elevation",
+        "window_grid_from_photo": "Not a uniform grid. South wing (right of the tower): ground-floor round arcade (~6-7 arches with radiating fanlights) with paired rectangular windows above at floor 2, roughly 1:1 with the arches below. Lower west wing (left of the tower): 3 ground windows plus a door, 3 tall shuttered casement windows above, a roof deck with a balustrade and 2 large ceramic urns. The tower itself: one large arched window/Juliet-balcony opening at floor 3, a band of narrow louvred slit openings near the roofline, a deep bracketed eave.",
+        "app_current_family_assignment": {
+          "family_code": "mr",
+          "family_grid": "6 rows x 5 cols (2-3 storey walk-ups)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 11.9
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Union Building - UT Austin (54984999764).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Union_Building_-_UT_Austin_(54984999764).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/2/28/Union_Building_-_UT_Austin_%2854984999764%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/83136374@N05\">ajay_suresh</a>"
+      },
+      "target_set_rationale": "sits on the West Mall plaza between the Drag and the core campus -- the building most students physically enter multiple times a week -- with an unmistakable, unambiguous carved entrance and a rich multi-part facade."
+    },
+    "WEL": {
+      "ref": "WEL",
+      "name": "Robert A. Welch Hall",
+      "common_name": "Robert A. Welch Hall (Chemistry)",
+      "centroid": {
+        "lat": 30.286901121047716,
+        "lon": -97.73786820745929
+      },
+      "height": {
+        "austin_footprint_ft": 107.0,
+        "austin_footprint_m": 32.6,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "430,256",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/WEL/",
+        "app_baked_final_height_m": 17.2,
+        "app_baked_num_floors": 4,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 107.0 ft (32.6 m). UT Direct: 7 floors, 430,256 gross sq ft."
+      },
+      "entrance": {
+        "note": "Unambiguous: \"CHEMISTRY\" is carved above a round-arched entrance with a wrought-iron grille fanlight and painted sky-blue double doors, and a wall plaque beside the door literally reads \"WEL / WELCH HALL\". UT's survey table lists THREE doors (E, NW, NE); the final `data/entrances.geojson` places its `role: main` door 4.7 m from the nearest: correct. Worth flagging for whoever owns this next: `scripts/bake_entrances.py`'s own CELEBRATED table has WEL DEMOTED out of tier 1 with the note \"the public face is dominated by the later addition and no celebrated portal was found\" -- this round's photograph shows a clearly labelled, clearly real entrance that may be exactly that later addition rather than the original 1930s portal celebrated.md describes; the two are not reconciled here.",
+        "osm_tagged_nodes_on_this_building": [
+          {
+            "node_id": 1831341612,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2862733,
+            "lon": -97.7373899,
+            "bearing_deg": 146.7,
+            "compass_from_centroid": "SSE",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 13108775680,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2857477,
+            "lon": -97.7376535,
+            "bearing_deg": 170.9,
+            "compass_from_centroid": "S",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          }
+        ],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 3,
+          "source": "ut_survey",
+          "nearest_app_eid": 586,
+          "nearest_app_role": "main",
+          "dist_m": 4.7,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "E"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the entrance tower (central bay)",
+        "window_grid_from_photo": "The central entrance tower is 4 stacked storeys of single windows in an ornamented Spanish/Churrigueresque pilaster surround (fluted colonettes), rising above \"CHEMISTRY\", with a small iron balconet at the top window. The flanking brick wings show a plain grid of regular multi-pane (roughly 9-over-9 light) windows, one per bay, evenly spaced brick piers -- full wing width not counted from this photograph.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 17.2
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Welch Hall UT Austin Texas 2024.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Welch_Hall_UT_Austin_Texas_2024.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Welch_Hall_UT_Austin_Texas_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200pa\" class=\"extiw\" title=\"w:User:Nv8200pa\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "a large (430k sq ft), 7-floor building with an unambiguous labelled entrance and strong documentation, anchoring the northeast quad near Speedway."
+    },
+    "JGB": {
+      "ref": "JGB",
+      "name": "Jackson Geological Sciences Building",
+      "common_name": "Jackson School of Geosciences",
+      "centroid": {
+        "lat": 30.28584149189408,
+        "lon": -97.73568861195501
+      },
+      "height": {
+        "austin_footprint_ft": 107.4,
+        "austin_footprint_m": 32.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "200,215",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/JGB/",
+        "app_baked_final_height_m": 16.7,
+        "app_baked_num_floors": 7,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 107.4 ft (32.7 m). UT Direct: 7 floors, 200,215 gross sq ft."
+      },
+      "entrance": {
+        "note": "\"Jackson School of Geosciences\" is on a stone tablet above a glass storefront-style ground-floor entrance with a red address plate (\"305\"), on the north/northwest side. UT's survey table lists one door, SW, at (30.285622, -97.735839). THE BUG, precisely measured this round: the nearest app door to that surveyed point is only 11.5 m away (within the bake script's own 12 m tolerance) -- but it is tagged `role: secondary`, not `main`. The same mislabelling pattern as Main Building, on a different building.",
+        "osm_tagged_nodes_on_this_building": [
+          {
+            "node_id": 1597056956,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2860865,
+            "lon": -97.735788,
+            "bearing_deg": 340.7,
+            "compass_from_centroid": "NNW",
+            "osm_tags": {
+              "entrance": "exit"
+            }
+          },
+          {
+            "node_id": 13818579725,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2859323,
+            "lon": -97.7360358,
+            "bearing_deg": 286.9,
+            "compass_from_centroid": "WNW",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          },
+          {
+            "node_id": 13819043456,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2856022,
+            "lon": -97.7359535,
+            "bearing_deg": 223.7,
+            "compass_from_centroid": "SW",
+            "osm_tags": {
+              "entrance": "yes"
+            }
+          }
+        ],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "ut_survey",
+          "nearest_app_eid": 495,
+          "nearest_app_role": "secondary",
+          "dist_m": 11.5,
+          "within_12m": true,
+          "is_main": false,
+          "ut_side": "SW"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the entrance (north/northwest) elevation",
+        "window_grid_from_photo": "A plain modern brick grid: 2-light (roughly 1-over-1) rectangular windows, one per bay, with soldier-course brick lintels and sills. ~4-5 window columns counted per floor in the photographed near wing (partly tree-obscured, and the building turns a corner setback beyond the frame), 4 full window rows visible below a cropped-off top floor. Of the whole set, this is the one building whose real grid is closest in shape to the app's current 8-row x 5-column template: 8 rows is one off the real 7 floors, and 5 columns sits at the low end of the ~4-5 counted here -- flagged as the single plausible near-match, not a confirmed one, since the full width of every wing was not counted.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 16.7
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:Jackson School of Geosciences UT Austin 2019.jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:Jackson_School_of_Geosciences_UT_Austin_2019.jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Jackson_School_of_Geosciences_UT_Austin_2019.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY 4.0",
+        "artist_html": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200p\" class=\"extiw\" title=\"en:User:Nv8200p\">Larry D. Moore</a>"
+      },
+      "target_set_rationale": "another large (200k sq ft) modern building with a clean, well-documented, genuinely regular grid -- a second \"close to uniform is actually fine here\" data point, distinct in era and material from Burdine."
+    },
+    "GRE": {
+      "ref": "GRE",
+      "name": "Gregory Gymnasium",
+      "common_name": "Gregory Gymnasium",
+      "centroid": {
+        "lat": 30.28400746597594,
+        "lon": -97.73637977897704
+      },
+      "height": {
+        "austin_footprint_ft": 94.3,
+        "austin_footprint_m": 28.7,
+        "austin_footprint_source": "City of Austin UTILITIESCOMMUNICATION_building_footprints_2017 (ArcGIS FeatureServer; public domain)",
+        "utdirect_floors": "07",
+        "utdirect_gross_sqft": "265,610",
+        "utdirect_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/GRE/",
+        "app_baked_final_height_m": 20.0,
+        "app_baked_num_floors": 3,
+        "app_baked_building_class": "university",
+        "note": "Austin LiDAR: 94.3 ft (28.8 m). UT Direct: 7 floors, 265,610 gross sq ft."
+      },
+      "entrance": {
+        "note": "Unambiguous: \"GREGORY GYMNASIUM\" is carved on a stone lintel beneath 3 tall round arches on the west elevation, each with a radiating fanlight of glazing and an ornamental iron security grille, reached by a grand exterior stair. This is the OSM `entrance=main` node (30.284010, -97.736834) and the coordinate already authored in `scripts/bake_entrances.py`'s CELEBRATED table for GRE, marked [M]. The final `data/entrances.geojson` places its `role: main` door 1.0 m from that point: correct.",
+        "osm_tagged_nodes_on_this_building": [
+          {
+            "node_id": 1427259422,
+            "dist_m": 0.0,
+            "inside_footprint": false,
+            "lat": 30.2840096,
+            "lon": -97.7368337,
+            "bearing_deg": 270.3,
+            "compass_from_centroid": "W",
+            "osm_tags": {
+              "entrance": "main"
+            }
+          }
+        ],
+        "ut_facilities_survey_score": {
+          "ut_surveyed": true,
+          "n_ut_doors": 1,
+          "source": "celebrated_authored",
+          "nearest_app_eid": 67,
+          "nearest_app_role": "main",
+          "dist_m": 1.0,
+          "within_12m": true,
+          "is_main": true,
+          "ut_side": "authored"
+        }
+      },
+      "facade": {
+        "photographed_elevation": "the west (entrance) gable elevation",
+        "window_grid_from_photo": "NOT a repeating rectangular grid -- a raked Romanesque gable end, counted off the photograph. Above the 3-arch entrance: a stone balcony/balustrade, then TWO level tiers of small round-arched clerestory windows: the lower tier has 9 arches, the upper (higher in the gable) has 7. Each tier is edged by a dogtooth brick corbel-table cornice that runs the length of the gable's raking edges. This corbel-table trim is the same real detail already reproduced in this app's `data/roofs.geojson`, per HANDOFF's Gregory Gym gable/corbel fix -- this photograph is a citable reference to check that fix against.",
+        "app_current_family_assignment": {
+          "family_code": "mh",
+          "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
+          "computed_from": {
+            "building_class": "university",
+            "final_height_m": 20.0
+          }
+        }
+      },
+      "photo": {
+        "wikimedia_title": "File:University of Texas at Austin August 2019 24 (Gregory Gymnasium).jpg",
+        "wikimedia_page": "https://commons.wikimedia.org/wiki/File:University_of_Texas_at_Austin_August_2019_24_(Gregory_Gymnasium).jpg",
+        "full_res_url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/University_of_Texas_at_Austin_August_2019_24_%28Gregory_Gymnasium%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "license": "CC BY-SA 4.0",
+        "artist_html": "<a href=\"//commons.wikimedia.org/wiki/User:Michael_Barera\" title=\"User:Michael Barera\">Michael Barera</a>"
+      },
+      "target_set_rationale": "one of the most structurally distinctive buildings on campus (raked gable, corbel tables, triple-arch entrance), and already has a partial, real fix in data/roofs.geojson this ground truth can be checked against."
+    }
+  }
+}
