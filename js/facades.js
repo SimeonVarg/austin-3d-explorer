@@ -244,6 +244,72 @@
   const REF_ZOOM = 16;
   const repeatMAt = z => TIER_CSS * 67551 / Math.pow(2, z);
   const REPEAT_M = repeatMAt(REF_ZOOM);   // 32.98 m
+
+  // ══════════════════════════════════════════════════════════════════
+  //  A MEASURED TILE COVERS MORE WALL THAN A TEMPLATE ONE  (`MEASURED_MUL`)
+  // ══════════════════════════════════════════════════════════════════
+  //
+  // WHAT THE METRE ANCHOR ABOVE STILL COULD NOT DO, and it is the defect the
+  // reviewer of the previous round named as the biggest one left. `rows` is an
+  // INTEGER >= 1, so the coarsest storey pitch a tile can express is ONE
+  // REPEAT. At z21 — ordinary "stand at a wall and lower your gaze" range in
+  // this app's own walk mode — a repeat is 1.03 m of wall, and Battle Hall's
+  // storeys are 10.75 m apart. Measured out of the atlas bytes by
+  // scripts/verify/facadegrid.mjs, a two-storey building drew TWENTY rows
+  // there: a 10.4x residual, against 2.6x in the LOOK band.
+  //
+  // The previous round wrote down the two ways out and started neither. This is
+  // the first one, and the arithmetic that made it look unaffordable was for a
+  // tile that grows in BOTH axes at once for EVERY building:
+  //
+  //   * `displaySize` is `texels / pixelRatio` and `pixelRatio` is a Uint16
+  //     vertex attribute, so it cannot go below 1: a bigger repeat needs a
+  //     bigger IMAGE, there is no free scaling knob.
+  //   * BUT `pixelRatio` cancels. A family drawn in a `TILE*mul` unit space at
+  //     `RES*mul` texels registers at `RES*mul / (TIER_CSS*mul)` — the SAME
+  //     pixelRatio as today, 2*SCALE — and lands a displaySize of
+  //     `TIER_CSS*mul` CSS px. So the whole change is "this family's image is
+  //     mul times larger per axis", and every invariant in the TIERS block
+  //     survives untouched: both tiers of a family still share one scale, and
+  //     the mip chain is still one drawing at two resolutions.
+  //   * A DRAWING UNIT IS THE SAME NUMBER OF METRES AT EVERY mul.
+  //     `TIER_CSS*mul*67551 / 2^z` metres over `TILE*mul` units cancels to
+  //     `TIER_CSS*67551 / (2^z * TILE)`. That is why MIN_PIER, MIN_SPANDREL,
+  //     WALL.CELL, the head shadow, the sill and every other px constant in
+  //     this file are LEFT ALONE and still mean what they meant — and why the
+  //     aliasing floor is preserved exactly: texels per unit is `SCALE` either
+  //     way, so a mul tile is no denser on screen than a template one.
+  //     Only the COUNTS scale, which is why GRID_CLAMP is multiplied below.
+  //   * ONLY THE SIXTEEN MEASURED BUILDINGS PAY. A template family keeps
+  //     mul 1 and its bytes are unchanged, so the other ~340 combos in the
+  //     atlas do not move at all.
+  //
+  // WHAT EACH VALUE BUYS, computed over z16-z21 against the sixteen
+  // photographed storey counts (worst |drawn pitch / real pitch| either way):
+  //
+  //     mul                    1      2      4      8     16
+  //     worst residual     10.43x  5.21x  2.61x  1.30x  1.30x
+  //     worst bay residual  6.40x  3.20x  1.60x  1.25x  1.25x
+  //     atlas cost           +0%   +17%   +68%  +285%  +1140%
+  //
+  // TASTE / BUDGET KNOB, and it is the whole knob. 4 is chosen because it puts
+  // the WALK band where the LOOK band already is (2.6x) for a cost the atlas
+  // can carry — its main-thread share was 2-3% and hard-won on 2026-08-19, and
+  // the measurement of what this actually cost is in docs/facade-tile-size.md.
+  // 8 is the next honest step and it is an ATLAS BUDGET decision, not a
+  // correctness one: it would take Battle Hall to 1.30x and quadruple the
+  // sixteen buildings' share of the atlas again.
+  //
+  // It must be a POWER OF TWO. `pixelRatio` is `RES*mul / (TIER_CSS*mul)` so it
+  // does not care, but `decimate` halves the near tier's texel count and a
+  // non-power-of-two mul can make that odd.
+  const MEASURED_MUL = 4;
+  // `?facademul=1` puts every measured family back on a 1x tile with nothing
+  // else different, so the A/B is a URL and not a checkout — same precedent as
+  // `?facadeanchor=0` above, and for the same reason: an A/B across two
+  // checkouts measures the machine.
+  const MUL_ON = !/[?&]facademul=1(?:&|$)/.test(location.search);
+  window.FACADE_MEASURED_MUL = () => (MUL_ON ? MEASURED_MUL : 1);
   // `?facadeanchor=0` freezes the anchor at REF_ZOOM, i.e. puts the pre-anchor
   // behaviour back with no other difference. It exists so the A/B is a URL and
   // not a checkout: scripts/verify/shimmer.mjs (via SHIM_Q) and the perf scripts
@@ -377,6 +443,11 @@
       aspect: g.h / g.w,              // opening height / width
       curtain: !!g.curtain,
       measured: false,
+      // A TEMPLATE IS NEVER GROWN. It is the fallback for the ~180 buildings
+      // nobody has photographed, it is what campusmeter.mjs parses out of this
+      // file as its held-out oracle, and bake_facades.py transcribes it — so
+      // its bytes stay exactly what they were.
+      mul: 1,
     };
   }
 
@@ -395,16 +466,23 @@
    * regression, never a "someone turned the glass up" one.
    */
   function gridFromSpec(spec, z) {
-    const R = repeatMAt(z);
+    // `mul` is this family's tile size in template tiles — see MEASURED_MUL.
+    // A mul tile covers mul times more wall per axis AND holds mul times more
+    // drawing units, so every px constant below keeps its meaning in metres and
+    // only the counts and the clamps scale.
+    const mul = spec.mul > 1 ? spec.mul : 1;
+    const T = TILE * mul;
+    const maxRows = GRID_CLAMP.maxRows * mul, maxCols = GRID_CLAMP.maxCols * mul;
+    const R = repeatMAt(z) * mul;
     const notes = [];
     let rows = Math.round(R / spec.pitchM);
-    if (rows > GRID_CLAMP.maxRows) { notes.push(`rows ${rows}->${GRID_CLAMP.maxRows}`); rows = GRID_CLAMP.maxRows; }
+    if (rows > maxRows) { notes.push(`rows ${rows}->${maxRows}`); rows = maxRows; }
     if (rows < GRID_CLAMP.minRows) { notes.push(`rows ${rows}->${GRID_CLAMP.minRows}`); rows = GRID_CLAMP.minRows; }
     let cols = Math.round(R / spec.bayM);
-    if (cols > GRID_CLAMP.maxCols) { notes.push(`cols ${cols}->${GRID_CLAMP.maxCols}`); cols = GRID_CLAMP.maxCols; }
+    if (cols > maxCols) { notes.push(`cols ${cols}->${maxCols}`); cols = maxCols; }
     if (cols < GRID_CLAMP.minCols) { notes.push(`cols ${cols}->${GRID_CLAMP.minCols}`); cols = GRID_CLAMP.minCols; }
 
-    const stepX = TILE / cols, stepY = TILE / rows;
+    const stepX = T / cols, stepY = T / rows;
     const area = spec.want * stepX * stepY;
     const a = spec.aspect > 0 ? spec.aspect : 1;
     let w = Math.round(Math.sqrt(area / a));
@@ -432,15 +510,35 @@
                           spec.curtain ? Infinity : Math.floor(stepY * OPEN_MAX_FRAC));
     if (w > wCap) { notes.push(`w ${w}->${wCap}`); w = wCap; }
     if (h > hCap) { notes.push(`h ${h}->${hCap}`); h = hCap; }
+    // ── A PORTRAIT WINDOW MAY NOT BE DRAWN LANDSCAPE ───────────────────
+    //
+    // `hCap` is `floor(stepY - MIN_SPANDREL)` and it bites hardest exactly
+    // where the metre anchor works best: getting a storey pitch RIGHT can make
+    // the cell shorter than the rounded-up one it replaced, and then the
+    // opening loses a unit of height while keeping every unit of width. On the
+    // UT Tower's 4x tile that came out 4 units wide by 3 tall — a window WIDER
+    // THAN IT IS TALL on a building whose photographed openings are 1.4:1 the
+    // other way. The previous round's whole headline was "every window turned
+    // portrait"; a cap that quietly turns one back is a regression of it.
+    //
+    // So the ORIENTATION is held even when the size cannot be: if the
+    // photograph says taller-than-wide and the cell has forced the opposite,
+    // the width comes down to match the height that survived. It only ever
+    // makes an opening narrower, so it cannot break MIN_PIER, and it is a
+    // no-op on every template at REF_ZOOM and on thirteen of the sixteen.
+    if (a > 1 && h <= w && w > GRID_CLAMP.minOpen) {
+      const wa = Math.max(GRID_CLAMP.minOpen, Math.min(w, Math.round(h / a)));
+      if (wa !== w) { notes.push(`w ${w}->${wa} (portrait)`); w = wa; }
+    }
     w = Math.max(GRID_CLAMP.minOpen, w);
     h = Math.max(GRID_CLAMP.minOpen, h);
 
     return {
-      rows, cols, w, h,
+      rows, cols, w, h, mul, tileUnits: T,
       // Recomputed from the geometry that actually came out, so
       // facadeGridAudit's glazing check stays a real check of the CLAMPS rather
       // than a tautology.
-      want: (rows * cols * w * h) / (TILE * TILE),
+      want: (rows * cols * w * h) / (T * T),
       baseWant: spec.want,
       curtain: spec.curtain,
       measured: !!spec.measured,
@@ -525,11 +623,11 @@
   const detailK = () => Math.max(1, Math.min(DETAIL_K_MAX, Math.round(REPEAT_M / repeatMAt(_zAnchor))));
 
   const _noise = new Map();
-  function noiseCells(seed, cellPx) {
-    const key = seed + '|' + cellPx;
+  function noiseCells(seed, cellPx, T) {
+    const key = seed + '|' + cellPx + '|' + T;
     let a = _noise.get(key);
     if (a) return a;
-    const N = TILE / cellPx;
+    const N = T / cellPx;
     a = new Float32Array(N * N);
     for (let i = 0; i < a.length; i++) a[i] = hash01(seed + 5501, i % N, (i / N) | 0) * 2 - 1;
     _noise.set(key, a);
@@ -540,19 +638,26 @@
   let _mottle = null;
 
   /** Fill a full-height column, wrapping across the tile seam. */
-  function fillWrap(ctx, x, w, style) {
+  function fillWrap(ctx, x, w, style, T) {
     ctx.fillStyle = style;
-    x = ((x % TILE) + TILE) % TILE;
-    ctx.fillRect(x, 0, w, TILE);
-    if (x + w > TILE) ctx.fillRect(x - TILE, 0, w, TILE);
+    x = ((x % T) + T) % T;
+    ctx.fillRect(x, 0, w, T);
+    if (x + w > T) ctx.fillRect(x - T, 0, w, T);
   }
 
-  function drawWallMaterial(ctx, fam, wall, dark, seed) {
+  // `fam` here is the MATERIAL family (a template — see `mat` in drawTile), so
+  // the tile size has to be passed in rather than looked up from it: a measured
+  // building wears its base family's mottle and streaks on its OWN bigger tile.
+  function drawWallMaterial(ctx, fam, wall, dark, seed, T) {
     const k = detailK();
     // Mottle is handed to tileData rather than drawn — see noiseCells above.
     // `cellPx` is 4 at REF_ZOOM and doubles with the anchor, so a cell is the
     // same 2 m of wall at every zoom. Capped at TILE/2 so there is always more
     // than one cell across the tile.
+    // Capped against TILE, not T: the cap exists so more than one cell fits
+    // across a template tile, and a mul tile is the same wall at mul times the
+    // width — capping it at T/2 would make a measured building's mottle cell
+    // four times the metres of everyone else's.
     const cellPx = Math.min(TILE / 2, WALL.CELL * k);
     // AMPLITUDE FALLS AS THE CELL GROWS, and it has to. The authored 7-8% is
     // block-to-block scatter seen at cruise, where a 4 px cell is averaged away
@@ -565,7 +670,7 @@
     // usual variance-preserving fall for a block average, so the wall keeps the
     // same total scatter per square metre and stops shouting it per block.
     const amp = WALL.MOTTLE[fam] && WALL.MOTTLE[fam] * Math.sqrt(WALL.CELL / cellPx);
-    _mottle = amp ? { cells: noiseCells(seed, cellPx), cellPx, amp: amp * (1 - dark * 0.6) } : null;
+    _mottle = amp ? { cells: noiseCells(seed, cellPx, T), cellPx, amp: amp * (1 - dark * 0.6), T } : null;
     // Weathering: aperiodic in x, CONSTANT in y, so it tiles in both axes with
     // no anchor dependency and cannot moire against the window grid. Same
     // technique as DKR's `sd` band, which is the one large flat surface in this
@@ -573,12 +678,17 @@
     // COUNT falls and WIDTH rises with the anchor, both by the same k, so the
     // streaks stay the same distance apart and the same width IN METRES. The
     // `max(1)` is what stops a close-in wall going completely unweathered.
-    const n = Math.max(WALL.STREAKS[fam] ? 1 : 0, Math.round((WALL.STREAKS[fam] || 0) / k));
+    // COUNT also rises with the tile size, for the same reason: a mul tile is
+    // mul times more wall across, so holding the count would thin the
+    // weathering to a quarter of everyone else's per square metre.
+    const mulT = T / TILE;
+    const n = Math.max(WALL.STREAKS[fam] ? 1 : 0,
+                       Math.round((WALL.STREAKS[fam] || 0) * mulT / k));
     for (let s = 0; s < n; s++) {
-      const x = Math.round(hash01(seed + 5623, s, 0) * TILE);
+      const x = Math.round(hash01(seed + 5623, s, 0) * T);
       const w = (2 + Math.round(hash01(seed + 5641, s, 0) * 2)) * k;   // 2-4 px at REF, never 1
       fillWrap(ctx, x, w, css(mix(wall, [0, 0, 0], WALL.STREAK_DARK),
-                              WALL.STREAK_ALPHA * (1 - dark * 0.7)));
+                              WALL.STREAK_ALPHA * (1 - dark * 0.7)), T);
     }
   }
 
@@ -593,8 +703,13 @@
     const all = Object.entries(GRIDS).concat(Object.entries(measuredGridTable()));
     for (const [fam, g] of all) {
       if (!g) continue;
-      const glaze = (g.rows * g.cols * g.w * g.h) / (TILE * TILE);
-      const pier = TILE / g.cols - g.w, spandrel = TILE / g.rows - g.h;
+      // `tileUnits` is TILE for a template and TILE*mul for a measured family
+      // (see MEASURED_MUL). Using TILE here would read a 4x tile's glazing as a
+      // sixteenth of what it is, and the audit would call every measured
+      // building unglazed.
+      const T = g.tileUnits || TILE;
+      const glaze = (g.rows * g.cols * g.w * g.h) / (T * T);
+      const pier = T / g.cols - g.w, spandrel = T / g.rows - g.h;
       const ok = Math.abs(glaze - g.want) < 0.04 &&
                  (g.curtain || (pier >= MIN_PIER && spandrel >= MIN_SPANDREL));
       const row = { fam, glaze: +(glaze * 100).toFixed(1), want: +(g.want * 100).toFixed(1),
@@ -1260,6 +1375,11 @@
       want: base.want,
       aspect: m.aspect > 0 ? m.aspect : 1,
       curtain: !!base.curtain,
+      // A MEASURED BUILDING GETS THE BIG TILE. That is the whole of the
+      // MEASURED_MUL block above: a building we have actually counted the
+      // storeys of is worth the atlas bytes it takes to draw them at the
+      // distance Simeon looks at it from. A building we have not is not.
+      mul: MUL_ON ? MEASURED_MUL : 1,
       measured: true, colsMeasured,
       // Carried so a verifier can compare against the photograph without
       // re-deriving anything: what the building really is.
@@ -1270,6 +1390,21 @@
 
   /** The spec for a family, measured or template. One lookup, one fallback. */
   function specFor(fam) { return MEASURED_SPECS[fam] || SPECS[fam] || SPECS.mh; }
+  /**
+   * This family's tile size in template tiles. 1 for every template and for
+   * stadium/deck/DKR, MEASURED_MUL for a measured building. See MEASURED_MUL.
+   *
+   * `st`, `dk` and the `s?` DKR tiles are drawn by their own routines and are
+   * looked up here too, so they resolve through SPECS.mh's mul of 1 rather than
+   * needing a special case — but the lookup is by FAMILY, not by spec, because
+   * drawTile branches to those routines before it ever asks for a grid.
+   */
+  function mulOf(fam) {
+    const s = MEASURED_SPECS[fam];
+    return (s && s.mul > 1) ? s.mul : 1;
+  }
+  /** Drawing units across one repeat for this family. `TILE` for a template. */
+  function tileUnitsOf(fam) { return TILE * mulOf(fam); }
   /** The grid a family draws AT THE ZOOM THE ATLAS IS CURRENTLY ANCHORED AT. */
   function gridFor(fam) { return gridAt(fam, _zAnchor); }
   // One grid object per (family, zoom). drawTile asks for this once per tile
@@ -1300,6 +1435,21 @@
   /** The zoom the atlas is currently drawn for. Never below REF_ZOOM. */
   window.facadeZoomAnchor = () => _zAnchor;
   window.facadeGridClamp = () => ({ ...GRID_CLAMP });
+  /** The wall a tile must keep between openings, in drawing units. */
+  window.facadeGridGaps = () => ({ pier: MIN_PIER, spandrel: MIN_SPANDREL });
+  /** This family's tile size in template tiles (see MEASURED_MUL). */
+  window.facadeMulOf = fam => mulOf(fam);
+  /** Drawing units across one repeat for this family — TILE, or TILE*mul. */
+  window.facadeTileUnits = fam => tileUnitsOf(fam);
+  /**
+   * Metres of wall one repeat of THIS FAMILY covers at zoom z.
+   *
+   * `facadeRepeatMAt` is the template repeat and stays the template repeat —
+   * scripts and the bake both read it. A measured family's tile is mul times
+   * bigger, so its repeat is mul times more wall, and anything converting a
+   * tile row count into rows-on-a-building has to divide by THIS, not by that.
+   */
+  window.facadeFamRepeatMAt = (fam, z) => repeatMAt(z) * mulOf(fam);
 
   /**
    * Adopt `data/facade_grids.json`. Called by js/app.js BEFORE quantiseFacades,
@@ -1342,15 +1492,25 @@
       // them when they do not). A test taken at the CURRENT zoom would hand a
       // building a family code that changes as you fly, which is not a thing
       // `wp` can express.
+      // ...AND IT IS TAKEN AT mul 1, for the same reason it is taken at
+      // REF_ZOOM. `wp` is stamped once and bake_facades.py transcribes the
+      // decision; growing a measured tile (MEASURED_MUL) multiplies its row and
+      // column COUNTS, so comparing a 4x tile's 12 rows against `mh`'s 8 would
+      // hand every building a family it did not have before and break
+      // scripts/verify/facade_parity.py's 3057-feature agreement for a reason
+      // that has nothing to do with the building. Compared at the template's
+      // own size, the answer is byte-identical to the previous round's.
+      const gTpl = gridFromSpec({ ...spec, mul: 1 }, REF_ZOOM);
+      // What this building actually draws at REF_ZOOM, at its own tile size.
       const g = gridFromSpec(spec, REF_ZOOM);
       // A measured building whose grid comes out exactly its template's is not
       // given a family of its own: it would cost an atlas image to draw the
       // identical tile. Sutton Hall is the real instance — 3 storeys on 13.0 m
       // derives 8 rows, which IS `mh`. It only earns a family if the SHAPE
       // differs too, which for every building in this set it does.
-      if (g.rows === base.rows && g.cols === base.cols && g.w === base.w && g.h === base.h) {
+      if (gTpl.rows === base.rows && gTpl.cols === base.cols && gTpl.w === base.w && gTpl.h === base.h) {
         same++;
-        out.push({ ...m, fam: baseFam, grid: g, spec, sameAsTemplate: true });
+        out.push({ ...m, fam: baseFam, grid: gTpl, spec, sameAsTemplate: true });
         continue;
       }
       if (n >= 36) { console.warn('[facades] more than 36 measured grids; ignoring', m.ref); break; }
@@ -1779,6 +1939,11 @@
 
   /** Draw one (family, bucket) tile for time-of-day p into a canvas ctx. */
   function drawTile(ctx, fam, bucketIdx, p) {
+    // Drawing units across one repeat. TILE for every template, TILE*mul for a
+    // measured building — see the MEASURED_MUL block. Every px constant in this
+    // function keeps its meaning because a drawing unit is the same number of
+    // metres at every mul; only how many of them fit changes.
+    const T = tileUnitsOf(fam);
     const bucket = palette[bucketIdx] || palette[0];
     const wallBase = lerpHexAt(bucket, p);
     // TWO night factors, deliberately on different schedules.
@@ -1800,9 +1965,9 @@
     // Pull the wall the rest of the way toward its night tone once the sun is
     // actually down, so the skyline silhouettes correctly through dusk.
     const wall = mix(wallBase, bucket ? hexToRgb(bucket.wn) : wallBase, Math.max(0, dark - night));
-    ctx.clearRect(0, 0, TILE, TILE);
+    ctx.clearRect(0, 0, T, T);
     ctx.fillStyle = css(wall);
-    ctx.fillRect(0, 0, TILE, TILE);
+    ctx.fillRect(0, 0, T, T);
 
     // Glass tone: cool + dark by day, amber-reflective at golden, near-black at
     // night (the lit windows are painted over it).
@@ -1863,11 +2028,11 @@
       // the camera comes in. Capped so at least one band fits in the tile.
       const dk = Math.max(1, Math.min(4, detailK()));
       const pitch = 13 * dk, slot = 7 * dk, top = 5 * dk;
-      for (let y = top; y < TILE; y += pitch) {
+      for (let y = top; y < T; y += pitch) {
         ctx.fillStyle = css(shade);
-        ctx.fillRect(0, y, TILE, slot);
+        ctx.fillRect(0, y, T, slot);
         ctx.fillStyle = css(edge, 0.85);
-        ctx.fillRect(0, y + slot, TILE, Math.max(1, Math.round(dk / 2)));
+        ctx.fillRect(0, y + slot, T, Math.max(1, Math.round(dk / 2)));
       }
       return;
     }
@@ -1885,7 +2050,7 @@
     // still wears `mh`'s mottle, streaks, piers, occupancy and tone bias, so a
     // change in this pass can only ever be a rhythm or shape change.
     const mat = baseFamOf(fam);
-    const stepX = TILE / g.cols, stepY = TILE / g.rows;
+    const stepX = T / g.cols, stepY = T / g.rows;
     const offX = (stepX - g.w) / 2, offY = (stepY - g.h) / 2;
 
     // WHAT USED TO BE HERE, and why it is gone: a full-width dark line across
@@ -1909,7 +2074,7 @@
     const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(mat) + 1;
     const measIdx = fam === mat ? 0 : (parseInt(fam.slice(1), 36) + 1);
     const seed = bucketIdx * 4 + famIdx + measIdx * 331;
-    drawWallMaterial(ctx, mat, wall, dark, seed);
+    drawWallMaterial(ctx, mat, wall, dark, seed, T);
 
     // Pilaster relief, LOCKED to the window column pitch and given no count of
     // its own. A second vertical frequency near but not equal to the window
@@ -1939,8 +2104,8 @@
       const sha = css(mix(wall, [0,0,0], WALL.PIER_SHADOW * (1 - dark * 0.5)));
       for (let c = 0; c < g.cols; c++) {
         const xc = Math.round(c * stepX);       // cell boundary = pier centre
-        fillWrap(ctx, xc - dkCol, 2 * dkCol, lit);
-        fillWrap(ctx, xc + dkCol, dkCol, sha);
+        fillWrap(ctx, xc - dkCol, 2 * dkCol, lit, T);
+        fillWrap(ctx, xc + dkCol, dkCol, sha, T);
       }
     }
 
@@ -2003,12 +2168,17 @@
   }
 
   let _canvas = null, _ctx = null;
+  // Keyed by texel size — see rawTile.
+  const _canvases = new Map();
   // One draw serves all three tiers — they are the SAME picture at three screen
   // sizes, and only the prefilter differs. Drawing once and blurring three ways
   // is what keeps a three-tier atlas from costing three times the repaint.
   let _rawKey = null, _raw = null;
 
-  /** Draw (fam, bucket, p) once into a RES x RES buffer, mottle applied. */
+  /** Texels per repeat in the NEAR tier for one family. `RES` for a template. */
+  function famRes(fam) { return RES * mulOf(fam); }
+
+  /** Draw (fam, bucket, p) once into a famRes x famRes buffer, mottle applied. */
   function rawTile(fam, bucketIdx, p) {
     // `_zAnchor` is in the key because it changes the DRAWING (row and column
     // counts, mottle cell size, deck band pitch), not just the resampling. It
@@ -2016,31 +2186,41 @@
     // like it had no effect: the tile was correct and stale.
     const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor;
     if (_rawKey === key) return _raw;
-    if (!_canvas) {
-      _canvas = document.createElement('canvas');
-      _canvas.width = _canvas.height = RES;
-      _ctx = _canvas.getContext('2d', { willReadFrequently: true });
+    // ONE CANVAS PER TILE SIZE, not one canvas. A measured family draws into a
+    // `RES*mul` square (see MEASURED_MUL) and resizing the shared canvas per
+    // family would throw away its backing store on every combo — the atlas
+    // repaint walks ~350 of them and this ran at 44 ms.
+    const RESF = famRes(fam);
+    let c = _canvases.get(RESF);
+    if (!c) {
+      const el = document.createElement('canvas');
+      el.width = el.height = RESF;
+      c = { el, ctx: el.getContext('2d', { willReadFrequently: true }) };
+      _canvases.set(RESF, c);
     }
+    _canvas = c.el; _ctx = c.ctx;
     _mottle = null;
-    // Everything below draws in 64-unit space; the transform puts it on RES
-    // texels. Every rect in this file is on integer 64-space coordinates, so at
-    // an integer SCALE they stay pixel-aligned and nothing gains an AA fringe.
+    // Everything below draws in T-unit space (64 for a template, 64*mul for a
+    // measured building); the transform puts it on RESF texels at the SAME
+    // texels-per-unit either way. Every rect in this file is on integer
+    // coordinates, so at an integer SCALE they stay pixel-aligned and nothing
+    // gains an AA fringe.
     _ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
     drawTile(_ctx, fam, bucketIdx, p);
     _ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const d = _ctx.getImageData(0, 0, RES, RES).data;
+    const d = _ctx.getImageData(0, 0, RESF, RESF).data;
     if (_mottle) {
       // Block-to-block value scatter, one 4-unit cell = ~2 m of wall. Applied
       // over the finished tile so the openings pick it up too, which is right:
       // the glass in a weathered wall is not uniformly clean either.
-      const { cells, amp, cellPx } = _mottle;
-      const N = TILE / cellPx, C = cellPx * SCALE;
-      for (let y = 0; y < RES; y++) {
+      const { cells, amp, cellPx, T } = _mottle;
+      const N = T / cellPx, C = cellPx * SCALE;
+      for (let y = 0; y < RESF; y++) {
         const row = ((y / C) | 0) * N;
-        for (let x = 0; x < RES; x++) {
+        for (let x = 0; x < RESF; x++) {
           const t = cells[row + ((x / C) | 0)];
           if (!t) continue;
-          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * RES + x) * 4;
+          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * RESF + x) * 4;
           d[i]     += (tgt - d[i])     * k;
           d[i + 1] += (tgt - d[i + 1]) * k;
           d[i + 2] += (tgt - d[i + 2]) * k;
@@ -2084,9 +2264,13 @@
   /** The image for one tier: the shared drawing at that tier's resolution. */
   function tileData(fam, bucketIdx, p, tier) {
     const raw = rawTile(fam, bucketIdx, p);
-    const res = tierRes(tier);
+    // `mul` multiplies the texels AND the css px the image is shown over, so
+    // `tierPixelRatio` — which is `tierRes / TIER_CSS` — is unchanged by it and
+    // is deliberately NOT given a mul: see the MEASURED_MUL block.
+    const mul = mulOf(fam);
+    const res = tierRes(tier) * mul;
     // ours, and softenTile mutates it
-    const d = tier.div > 1 ? decimate(raw, RES, tier.div) : new Uint8ClampedArray(raw);
+    const d = tier.div > 1 ? decimate(raw, RES * mul, tier.div) : new Uint8ClampedArray(raw);
     softenTile(d, fam, tier, res);
     // A VIEW, not `d.buffer.slice(0)`. The buffer was allocated on the line
     // above and nothing else holds it, so the second copy was 300 x 64 KB of

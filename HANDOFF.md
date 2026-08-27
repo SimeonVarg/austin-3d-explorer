@@ -1,5 +1,77 @@
 # Austin 3D Explorer — Full Handoff
 
+## 200. Aug 27 2026 — a measured building gets a bigger tile: the walk-band window pitch from 10.4x wrong to 2.6x, and the crawl at eye level halved (`acer/cd-facades`, not merged)
+
+Full write-up with the before/after frames: `docs/facade-tile-size.md`.
+Round 3 of the facade work, and it closes the gap round 2 named and did not start.
+
+**The defect, in one line.** `rows` is an integer >= 1, so the coarsest storey
+pitch a tile can draw is ONE REPEAT — 1.03 m of wall at z21, which is ordinary
+"stand at a wall and lower your gaze" range in this app's own walk mode. Battle
+Hall's storeys are 10.75 m apart, so a two-storey building drew **twenty rows**
+there. Round 2's metre anchor was right at cruise and could not touch this.
+
+**What was in the way, and it was one wrong assumption.** A bigger repeat needs a
+bigger IMAGE (`displaySize` is `texels / pixelRatio` and MapLibre carries
+`pixelRatio` in a Uint16, so it cannot go below 1) — that part was true. But
+`pixelRatio` CANCELS: a family drawn in a `TILE*mul` unit space at `RES*mul`
+texels registers at the SAME pixelRatio and lands a `displaySize` of
+`TIER_CSS*mul`. And a DRAWING UNIT IS THE SAME NUMBER OF METRES AT EVERY mul, so
+`MIN_PIER`, `MIN_SPANDREL`, the mottle cell, the head shadow and the sill are all
+left alone and still mean what they meant; only the counts and the clamps scale.
+So the change is "this family's image is `mul` times larger per axis", and only
+the sixteen photographed buildings pay for it. `MEASURED_MUL = 4`, one knob, in
+`js/facades.js`.
+
+```
+worst rendered-rows / photographed-storeys, LOOK band z16-19    2.61x -> 1.30x
+worst rendered-rows / photographed-storeys, WALK band z20-21   10.43x -> 2.61x
+crawl at walking height, shimmer battle-walk                    44.28% -> 23.97%
+crawl at cruise, mall-battle / mall-south / pcl-plaza    3.17/2.58/5.49 -> 3.14/2.57/5.49
+```
+
+Every one of the sixteen improved. Ratchets lowered: `RATCHET_NEAR` 2.7 -> 1.4,
+`RATCHET_WALK` 10.5 -> 2.7. Both arms measured on the same build in the same
+minute through the new `facadegrid.mjs --mul1` (`?facademul=1`), which against
+the new ratchets is **red, exit 1** — so the ratchet can be watched failing by
+turning off the thing that earned it.
+
+**The bill, measured, in a new instrument (`scripts/verify/facadeatlas.mjs`):**
+atlas 5250 -> 10050 KB (all of it the sixteen: 320 -> 5120 KB), full repaint
+388 -> 676 ms headless swiftshader. **The per-frame path did not move: 0.6 ms
+against 0.5 ms** for an `updateFacades` with nothing changed, which is the number
+the 2-3% main-thread share won on 2026-08-19 is about. Load time 7431 vs 7390 ms,
+inside this suite's own noise. `mul` 8 is the next step and the doc prices it.
+
+**An instrument that had been passing on noise, found and fixed.** The opening
+size was measured as the LONGEST dark run on the darkest line over the whole
+image — an extreme-value estimator with three systematic biases. The identical
+drawing read 3x6 at mul 1 and **3x13** at mul 4. It now measures in one
+template-sized window, takes the MEDIAN run, and thresholds at half-depth on that
+line (FWHM, which a symmetric blur does not move). The row now prints what the
+counter READ beside what the module DREW: within one texel on **10 of 16**. The
+six it misses are the tiles at their row ceiling, whose openings are fused —
+which is why Garrison, Burdine and Perry-Castaneda now print under a new
+**CELL-LIMITED** heading instead of passing. **That is a relaxation and the doc
+says so**: Burdine's tile draws a 2x3 opening and the old counter called it 2x9,
+which happened to sit near its photographed 5.5:1.
+
+**Unchanged and re-run:** `facade_parity.py` PASS 3057/3057, `facade-parity.mjs`
+PASS on both `wp` and `wf` (the same-as-template test is deliberately taken at
+mul 1, so no building's family code moved), `night-silhouette` PASS 22.5 / 10.0,
+`coplanar --gate` no file gained a pair, `campusmeter` facades **A 0/7, B 3/5** —
+A is the held-out TEMPLATE path and stays pinned there until the templates
+change; B was made mul-aware and reports the same 3 of 5 either way.
+
+**Still wrong, and named in the doc:** Battle Hall is still 2.61x at z21 — the
+floor moved from 1.03 m to 4.12 m, it did not go away. Burdine, PCL and Jackson
+are extruded too short for their own storey counts and no facade change reaches
+them. ~180 UT buildings and all of downtown still wear one of seven templates at
+mul 1; the way to spend this mechanism is more photographs, not more code. And
+`js/heroes.js`'s seven pattern layers were metre-anchored in round 2 but never
+given a `mul`, so they still have the z21 floor the atlas just left.
+
+
 ## 196. Aug 26 2026 — the missing rooms on UT Registration Plus: 59 of 95 real meetings to 86, still nothing invented (`acer/img-rooms`, not merged)
 
 **The reader was finding those classes all along.** It put each one in the right

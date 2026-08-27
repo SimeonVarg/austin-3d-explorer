@@ -445,7 +445,20 @@ async function scoreRenderedFacades(facadesSrc, byName, aRows) {
   selfCheck('REPEAT_M inputs parse out of js/facades.js', Number.isFinite(refZoom) && Number.isFinite(tierCss),
             `REF_ZOOM=${refZoom} TIER_CSS=${tierCss}`);
   if (!Number.isFinite(refZoom) || !Number.isFinite(tierCss)) return null;
+  // MEASURED_MUL — a measured family's tile is this many template tiles per
+  // axis, so its repeat is this much more WALL and its row clamp is this much
+  // higher. Parsed out of the source for the same reason REF_ZOOM and TIER_CSS
+  // are: this file must model the derivation the app actually runs, and after
+  // 2026-08-27 the app's derivation has a mul in it. Absent (an older build)
+  // reads as 1 and this is exactly what it was.
+  //
+  // It does not move the score. The mul multiplies the repeat and the row count
+  // together, so `rows * height / repeat` — the number on the WALL, which is
+  // what B scores — cancels back to the same value except where the clamp bites.
+  // Measured on 2026-08-27: 3 of 5 both ways.
+  const mul = Number((facadesSrc.match(/const MEASURED_MUL = (\d+)/) || [])[1]) || 1;
   const REPEAT_M = tierCss * 67551 / Math.pow(2, refZoom);
+  const REPEAT_MEAS_M = REPEAT_M * mul;
 
   let doc;
   try { doc = await getJSON(`${BASE}/data/facade_grids.json`); } catch (e) { doc = null; }
@@ -456,6 +469,7 @@ async function scoreRenderedFacades(facadesSrc, byName, aRows) {
   }
   console.log(`  ${doc.buildings.length} measured buildings, from snapshot ${doc._snapshot}`);
   console.log(`  one repeat = ${REPEAT_M.toFixed(2)} m of wall (TIER_CSS ${tierCss} at REF_ZOOM ${refZoom})`);
+  console.log(`  a measured family's tile is ${mul}x that — ${REPEAT_MEAS_M.toFixed(2)} m per repeat, row ceiling ${10 * mul}`);
 
   const measuredByName = new Map(doc.buildings.map(b => [b.name, b]));
   const out = [];
@@ -465,8 +479,9 @@ async function scoreRenderedFacades(facadesSrc, byName, aRows) {
     if (!props || !m) { out.push({ name: t.name, skipped: !props ? 'not in snapshot' : 'not measured' }); continue; }
     // The DERIVATION, straight out of the measured file and the app's own
     // height: `rows` is chosen so that `storeys` land on this wall.
-    const rows = Math.min(10, Math.max(1, Math.round(m.storeys * REPEAT_M / props.final_height)));
-    const renderRows = rows * props.final_height / REPEAT_M;
+    const rows = Math.min(10 * mul, Math.max(1,
+      Math.round(m.storeys * REPEAT_MEAS_M / props.final_height)));
+    const renderRows = rows * props.final_height / REPEAT_MEAS_M;
     const realRows = t.real && typeof t.real.rows === 'number' ? t.real.rows : null;
     // Same derived tolerance the facadegrid harness uses: the tile row count is
     // an integer, so half a tile row is the finest it can be steered, and on

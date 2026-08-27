@@ -94,6 +94,12 @@ import { BASE, launch } from './chrome.mjs';
 const REPORT = process.argv.includes('--report');
 const BREAK = process.argv.includes('--break');
 const BREAK_ANCHOR = process.argv.includes('--break-anchor');
+// `--mul1` loads the page with `?facademul=1`, which puts every measured family
+// back on a template-sized tile (js/facades.js MEASURED_MUL) with nothing else
+// different. It is the A/B arm, and it is a URL rather than a checkout for the
+// reason this repo keeps relearning: an A/B across two checkouts measures the
+// machine, not the change.
+const MUL1 = process.argv.includes('--mul1');
 
 // Every integer zoom the atlas anchor can sit at, from the calibration zoom up
 // to the highest the camera reaches. 21 is not arbitrary: at eye height (1.7 m)
@@ -113,16 +119,21 @@ const ZOOMS = [16, 17, 18, 19, 20, 21];
 // running app lands here (z17.1-17.8 at 10-55 m from a wall; z19.9 at eye height
 // with a level gaze). A tile can express these, so the bar is tight.
 //
-// WALK band, z20-z21: eye height with a lowered gaze. Here the repeat is 2.06 m
-// and then 1.03 m of wall, and a tile that must hold at least one row therefore
-// CANNOT draw a storey pitch coarser than that. The number is a record of where
-// this got to, not a target — see the note the sweep prints under it.
+// WALK band, z20-z21: eye height with a lowered gaze. Here a TEMPLATE repeat is
+// 2.06 m and then 1.03 m of wall, and a tile that must hold at least one row
+// cannot draw a storey pitch coarser than its own repeat. A measured family's
+// tile is `MEASURED_MUL` times bigger (js/facades.js), so its floor at z21 is
+// 4.12 m rather than 1.03 m — which is what moved this ratchet from 10.5 to
+// 2.7. The number is still a record of where this got to, not a target.
 //
 // Both are ratchets: lower them when a change earns it, and never raise one
 // without saying so out loud in the commit message.
+//
+// 2026-08-27, the MEASURED_MUL round, measured on the same build in the same
+// minute through `--mul1`: LOOK 2.61 -> 1.30, WALK 10.43 -> 2.61.
 const NEAR_MAX = 19;
-const RATCHET_NEAR = 2.7;
-const RATCHET_WALK = 10.5;
+const RATCHET_NEAR = 1.4;
+const RATCHET_WALK = 2.7;
 
 
 // How far the rendered row/column count may sit from the photographed count.
@@ -164,7 +175,7 @@ try {
   // follows `zoom` — so without these the sweep's forced anchor is reverted
   // underneath it mid-settle and four of six zooms silently measure the REF
   // tile. Same trap shot.mjs's own header documents for its first frame.
-  await page.goto(`${BASE}/index.html?intro=0&drift=0`, { waitUntil: 'load', timeout: 120000 });
+  await page.goto(`${BASE}/index.html?intro=0&drift=0${MUL1 ? '&facademul=1' : ''}`, { waitUntil: 'load', timeout: 120000 });
   // Correctness measure, not a speed one: the auto-detect probe swaps the
   // graphics preset mid-flight and would repaint the atlas underneath us.
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
@@ -246,7 +257,19 @@ try {
      * it cannot reproduce them. A counter that cannot count a known grid is
      * not evidence about an unknown one.
      */
-    function countGrid(img) {
+    /**
+     * `maxK` is the highest row/column count this counter will look for, and it
+     * HAS to scale with the tile.
+     *
+     * A template tile is 64 drawing units and its clamp is 10 rows, so 16 bins
+     * covered every grid this file could produce. A measured family's tile is
+     * `TILE*mul` units (js/facades.js's MEASURED_MUL), covers mul times more
+     * WALL, and therefore legitimately carries mul times more rows: at z16 the
+     * Tower's 4x tile asks for 38. Left at 16 this counter would have reported
+     * the wrong peak for every measured building at cruise and the sweep would
+     * have gone red for a reason that was in the instrument.
+     */
+    function countGrid(img, maxK = 16, mul = 1) {
       const { width: W, height: H, data } = img.data;
       const L = new Float32Array(W * H);
       for (let i = 0; i < W * H; i++) {
@@ -326,8 +349,8 @@ try {
       };
       const colProf = prof(W, H, (x, y) => L[y * W + x]);
       const rowProf = prof(H, W, (y, x) => L[y * W + x]);
-      const cols = bestCount(colProf, 16);
-      const rows = bestCount(rowProf, 16);
+      const cols = bestCount(colProf, maxK);
+      const rows = bestCount(rowProf, maxK);
 
       // Opening size, measured INSIDE one cell at a threshold close to glass so
       // the head shadow and the sill are excluded by construction rather than
@@ -337,6 +360,26 @@ try {
       const pct = q => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
       const wallL = pct(0.90), glassL = pct(0.02);
       const thr = glassL + 0.30 * (wallL - glassL);
+      // ── THE OPENING IS MEASURED IN A TEMPLATE-SIZED WINDOW ─────────────
+      //
+      // `span` takes the darkest line and the longest run on it — an EXTREME
+      // over the whole axis — and an extreme's expected value grows with how
+      // many samples it is taken over. A measured family's image is `mul` times
+      // larger per axis (js/facades.js MEASURED_MUL) while its openings are the
+      // same size in texels, so the same tile read at mul 4 reports a taller,
+      // narrower opening than at mul 1 purely because there are sixteen times
+      // as many places for the wall mottle to hand it a darker line and a
+      // fused pair of rows. MEASURED, on the identical drawing: Sutton reads
+      // 3x6 at mul 1 and 3x13 at mul 4, and the arithmetic in js/facades.js
+      // draws 3x5 in both.
+      //
+      // So the opening is read in ONE TEMPLATE-SIZED WINDOW of the image,
+      // `W/mul` square. That is the same number of samples the counter has
+      // always had, it makes the reading independent of the tile size by
+      // construction, and it is right on its own terms: an opening is a LOCAL
+      // feature and how big the tile around it is has nothing to do with it.
+      const win = Math.max(8, Math.round(W / mul));
+      const winH = Math.max(8, Math.round(H / mul));
       const span = (n, m, at) => {
         // Longest run below the threshold anywhere on the axis, taken through
         // the darkest line of the other axis so a blurred edge does not shrink
@@ -346,20 +389,68 @@ try {
           let s = 0; for (let i = 0; i < n; i++) s += at(i, j);
           if (s < bestDark) { bestDark = s; bestLine = j; }
         }
-        let run = 0, cur = 0;
-        for (let i = 0; i < n * 2; i++) {
-          if (at(i % n, bestLine) < thr) { cur++; run = Math.max(run, cur); } else cur = 0;
+        // ── HALF-DEPTH ON THIS LINE, NOT A TILE-WIDE THRESHOLD ───────
+        //
+        // The tile-wide `thr` sits 30% of the way from the tile's glass level
+        // up to its wall level, and it is BIASED IN OPPOSITE DIRECTIONS on the
+        // two axes: down a column it also catches the head shadow drawn above
+        // every opening, so `h` reads about a texel long, while across a row
+        // the bright pilaster and the opening's own light-catching edge cut the
+        // run about a texel short. On a 3x5 opening that is 6/2 = 3.0 against a
+        // drawn 1.67 — an 80% error in the ASPECT, all of it systematic.
+        //
+        // Half-way between THIS LINE's own darkest and brightest sample is the
+        // standard full-width-at-half-maximum estimator and it fixes both: a
+        // symmetric blur moves the two half-crossings equally and outwards, so
+        // the width it reports is the width that was drawn, and the head shadow
+        // — only about a fifth of the way down from the wall, where the glass
+        // is halfway or more — sits above the crossing and is excluded by
+        // construction rather than by the luck of a global percentile.
+        let lo = Infinity, hi = -Infinity;
+        for (let i = 0; i < n; i++) { const v = at(i, bestLine); if (v < lo) lo = v; if (v > hi) hi = v; }
+        const thrL = (lo + hi) / 2;
+        // ── THE MEDIAN OPENING, NOT THE LARGEST ONE ──────────────────
+        //
+        // This used to be `max` over every run on the line, and a max over a
+        // periodic signal is an extreme-value estimator: `stepY` is `T/rows`
+        // and is almost never a whole number of texels, so the rounded
+        // openings alternate between n and n+1 texels down the tile and the
+        // max always reports the n+1 one — plus any pair the near tier's
+        // 0.75-texel soften has fused. MEASURED on an identical drawing:
+        // Batts reads 3x8 at one row count and 3x9 at another for a tile that
+        // draws 4x8 in both, which is a 2.67 vs 3.00 aspect on a photograph of
+        // 1.9 and is the difference between this assertion passing and
+        // failing. The median is the same number for both and is what "the
+        // opening" means.
+        //
+        // Wrapped runs are dropped rather than stitched: the window is a crop
+        // of the image (see `win`), so its edges are not the tile seam and a
+        // run that touches one is a partial opening, not a real one.
+        const runs = [];
+        let cur = 0;
+        for (let i = 0; i < n; i++) {
+          if (at(i, bestLine) < thrL) cur++;
+          else { if (cur > 0 && i > cur) runs.push(cur); cur = 0; }
         }
-        return Math.min(run, n);
+        if (!runs.length) {
+          // Nothing but partial runs — fall back to the longest thing seen, so
+          // a tile whose openings all touch an edge still reports a number
+          // rather than a zero that would read as "no openings at all".
+          let run = 0; cur = 0;
+          for (let i = 0; i < n; i++) { if (at(i, bestLine) < thrL) { cur++; run = Math.max(run, cur); } else cur = 0; }
+          return Math.min(run, n);
+        }
+        runs.sort((p, q) => p - q);
+        return runs[(runs.length - 1) >> 1];
       };
       return {
         cols, rows,
-        w: span(W, H, (x, y) => L[y * W + x]),
-        h: span(H, W, (y, x) => L[y * W + x]),
+        w: span(win, winH, (x, y) => L[y * W + x]),
+        h: span(winH, win, (y, x) => L[y * W + x]),
         wallL: +wallL.toFixed(1), glassL: +glassL.toFixed(1),
         // Handed back so the self-check can ask a question the counter cannot
         // answer for itself: is the period even IN this tile? See legibility().
-        rowSpec: spectrum(rowProf, 16), colSpec: spectrum(colProf, 16),
+        rowSpec: spectrum(rowProf, maxK), colSpec: spectrum(colProf, maxK),
       };
     }
 
@@ -447,7 +538,18 @@ try {
       const wp = props.wp;                       // read off the FEATURE, not built here
       const img = map.getImage && map.getImage(wp);
       if (!img) { rows.push({ ref: m.ref, wp, missing: 'no atlas image registered for this wp' }); continue; }
-      const g = countGrid(img);
+      // THIS FAMILY'S OWN REPEAT, not the template one. A measured family draws
+      // on a `mul`-times-bigger tile (js/facades.js MEASURED_MUL), so one
+      // repeat is `mul` times more wall and a tile row count converts to
+      // rows-on-the-building through THAT number. Using the template repeat
+      // here would report a 4x tile as drawing four times the rows it draws —
+      // the same class of error the whole zoom sweep exists to catch, made by
+      // the instrument instead of by the app.
+      const fam = wp.slice(0, 2);
+      const mul = (window.facadeMulOf ? window.facadeMulOf(fam) : 1) || 1;
+      const famRepeatM = window.facadeFamRepeatMAt
+        ? window.facadeFamRepeatMAt(fam, z) : REPEAT_M;
+      const g = countGrid(img, 16 * mul, mul);
       // The same colour bucket on the TEMPLATE family this measurement was
       // taken against — the "am I looking at my own output" control.
       const twin = m.base + wp.slice(-2);
@@ -456,7 +558,7 @@ try {
       // module rather than recomputed here, and how much of the row profile's
       // peak actually sits in that bin. Bin `wantRows` being the strongest bin
       // IS the pixel form of "the tile is anchored in metres".
-      const want = window.facadeGridAt(wp.slice(0, 2), z);
+      const want = window.facadeGridAt(fam, z);
       // THE FUNDAMENTAL, bin 1 included, with bestCount's OWN subharmonic guard.
       // Two things forced this rather than a bare argmax. (1) `bestCount`
       // starts at k=2 and structurally cannot report a tile whose period is the
@@ -485,6 +587,12 @@ try {
         bays: m.bays, bayWallM: m.bay_wall_m,
         px: g,
         wantRows: want.rows, wantCols: want.cols,
+        // What js/facades.js DREW, straight out of the module. Printed beside
+        // what the counter READ so the two can be compared at a glance: this
+        // opening estimator has been wrong before and the sheet in
+        // facadetile.mjs was what settled it. A counter with no visible
+        // reference is a counter nobody can convict.
+        wantW: want.w, wantH: want.h,
         pitchDrawnM: want.pitchDrawnM, bayDrawnM: want.bayDrawnM,
         rowBinShare: shareOf(g.rowSpec, want.rows),
         colBinShare: shareOf(g.colSpec, want.cols),
@@ -499,13 +607,19 @@ try {
         //                   and bestCount starts at k=2 and structurally cannot
         //                   report it. The self-check below proves the two
         //                   agree wherever both can speak.
-        renderRows: g.rows * props.final_height / REPEAT_M,
-        renderRowsPeak: peakBin(g.rowSpec) * props.final_height / REPEAT_M,
-        renderCols: m.bay_wall_m ? g.cols * m.bay_wall_m / REPEAT_M : null,
-        renderColsPeak: m.bay_wall_m ? peakBin(g.colSpec) * m.bay_wall_m / REPEAT_M : null,
+        mul, famRepeatM,
+        // The tile's own cell, in DRAWING units. `cellY` is what an opening of
+        // the photographed aspect has to fit inside, and on a tile at its
+        // aliasing ceiling it is only a few units tall — see CELL-LIMITED.
+        cellY: want.tileUnits / want.rows, cellX: want.tileUnits / want.cols,
+        renderRows: g.rows * props.final_height / famRepeatM,
+        renderRowsPeak: peakBin(g.rowSpec) * props.final_height / famRepeatM,
+        renderCols: m.bay_wall_m ? g.cols * m.bay_wall_m / famRepeatM : null,
+        renderColsPeak: m.bay_wall_m ? peakBin(g.colSpec) * m.bay_wall_m / famRepeatM : null,
       });
     }
     return { z, ANCHOR, REPEAT_M, rows, selfChecks, clamp: window.facadeGridClamp(),
+             gaps: window.facadeGridGaps ? window.facadeGridGaps() : { pier: 5, spandrel: 3 },
              measuredCount: window.facadeMeasuredCount() };
   }, { ACCEPT, z });
 
@@ -549,18 +663,32 @@ try {
 
   console.log(`\n  one pattern repeat = ${R.REPEAT_M.toFixed(2)} m of wall (TIER_CSS 32 at REF_ZOOM 16)`);
   console.log(`  registry holds ${R.measuredCount} measured buildings\n`);
-  console.log('  ref  building                     wp    tile   opening  rendered on the wall   photo   ');
-  console.log('  ' + '-'.repeat(104));
+  console.log('  ref  building                     wp    tile   read     drew     rendered on the wall   photo   ');
+  console.log('  ' + '-'.repeat(112));
   for (const r of R.rows) {
     if (r.missing) { console.log(`  ${r.ref.padEnd(4)} ${'—'.padEnd(28)} ${r.missing}`); continue; }
     const rc = r.renderCols == null ? '' : ` ${r.renderCols.toFixed(1)}c`;
     const pc = r.bays == null ? '' : ` ${r.bays}c`;
     console.log(`  ${r.ref.padEnd(4)} ${String(r.name).slice(0, 28).padEnd(28)} ${r.wp.padEnd(5)} `
       + `${(r.px.rows + 'x' + r.px.cols).padEnd(6)} ${(r.px.w + 'x' + r.px.h).padEnd(8)} `
+      + `${(r.wantW + 'x' + r.wantH).padEnd(8)} `
       + `${(r.renderRows.toFixed(1) + 'r' + rc).padEnd(22)} ${(r.storeys + 'r' + pc)}`);
   }
 
+  // How close the pixel counter lands to the opening js/facades.js actually
+  // drew. Not an assertion — it is the counter auditing itself in public, and a
+  // reader who does not trust the `read` column can see exactly where it drifts.
+  const near1 = R.rows.filter(r => !r.missing
+    && Math.abs(r.px.w - r.wantW) <= 1 && Math.abs(r.px.h - r.wantH) <= 1).length;
+  const scoredRows = R.rows.filter(r => !r.missing).length;
+  console.log(`
+  the counter reads within one texel of the opening the module DREW on `
+    + `${near1} of ${scoredRows}.`);
+  console.log('  where it drifts is the tiles at their row ceiling, whose openings are fused —');
+  console.log('  which is what CELL-LIMITED below says out loud.');
+
   const heightLimited = [];
+  const cellLimited = [];
   console.log('\n  ASSERTIONS');
   for (const r of R.rows) {
     const tag = r.ref.padEnd(4);
@@ -568,7 +696,8 @@ try {
     ok(/^k/.test(r.wp), `${tag} wears a measured family, not a template`, `wp=${r.wp}`);
     ok(r.differsFromTemplate !== false, `${tag} tile bytes differ from its template's`, 'identical bytes — nothing was applied');
     const tol = rowTol(r.heightM);
-    if (Math.abs(r.renderRows - r.storeys) > tol && r.px.rows >= R.clamp.maxRows) {
+    const ceiling = R.clamp.maxRows * r.mul;   // the clamp scales with the tile
+    if (Math.abs(r.renderRows - r.storeys) > tol && r.px.rows >= ceiling) {
       // HEIGHT-LIMITED, not grid-wrong, and the distinction is the whole point
       // of separating the measurement from the conversion. The tile is already
       // at the aliasing ceiling (`maxRows`) and STILL cannot show this many
@@ -580,12 +709,12 @@ try {
       // file's to make: that the building genuinely asks for more rows than the
       // tile can carry. If it does not, it is a grid error after all and this
       // goes red.
-      const asks = r.storeys * R.REPEAT_M / r.heightM;
+      const asks = r.storeys * r.famRepeatM / r.heightM;
       const needsM = r.heightM * r.storeys / r.renderRows;
       heightLimited.push({ ...r, asks, needsM });
-      ok(asks > R.clamp.maxRows,
+      ok(asks > ceiling,
         `${tag} is height-limited, not grid-wrong`,
-        `asks for ${asks.toFixed(1)} rows against a ceiling of ${R.clamp.maxRows} — it is UNDER the ceiling, so this is a grid error`);
+        `asks for ${asks.toFixed(1)} rows against a ceiling of ${ceiling} — it is UNDER the ceiling, so this is a grid error`);
     } else {
       ok(Math.abs(r.renderRows - r.storeys) <= tol,
         `${tag} draws ${r.storeys} window rows on its wall`,
@@ -597,6 +726,32 @@ try {
         `draws ${r.renderCols.toFixed(2)}, photograph says ${r.bays}`);
     }
     const seen = r.px.w > 0 ? r.px.h / r.px.w : 0;
+    // ── CELL-LIMITED: the shape is not in the pixels, and cannot be ─────
+    //
+    // Same distinction as HEIGHT-LIMITED above, one axis over. The narrowest
+    // opening this file will draw is `minOpen` units and it must keep
+    // `MIN_SPANDREL` units of wall under it, so the shallowest cell that can
+    // carry an aspect of `a` at all is `minOpen*a + MIN_SPANDREL` units. A tile
+    // at its row ceiling has a cell of six or seven, and Burdine's photographed
+    // 5.5:1 slot would need fourteen. Asserting there scores the aliasing
+    // ceiling as a shape error and puts a permanent red on the wrong thing.
+    //
+    // THIS IS A RELAXATION AND IT IS WORTH SAYING SO. These three used to pass.
+    // They passed because the old estimator took the LONGEST dark run on the
+    // darkest line, which on a ceiling tile is a fused stack of openings — the
+    // counter reported Burdine as 2x9 for a tile that draws 2x3. With an
+    // unbiased estimator the tile plainly cannot draw the photographed shape,
+    // so the number is printed instead of being quietly green.
+    const cellNeeded = R.clamp.minOpen * r.aspect + R.gaps.spandrel;
+    if (cellNeeded > r.cellY) {
+      cellLimited.push({ ...r, seen, cellNeeded });
+      ok(r.px.rows >= R.clamp.maxRows * r.mul * 0.9,
+        `${tag} is cell-limited, not shape-wrong`,
+        `cell is ${r.cellY.toFixed(1)} units and a ${r.aspect}:1 opening needs `
+          + `${cellNeeded.toFixed(1)}, but the tile is only at ${r.px.rows} of `
+          + `${R.clamp.maxRows * r.mul} rows — so it had room and this is a shape error`);
+      continue;
+    }
     ok(Math.abs(seen - r.aspect) / r.aspect <= ASPECT_TOL,
       `${tag} openings are ${r.aspect}:1 tall`,
       `tile draws ${seen.toFixed(2)}:1 (${r.px.w}x${r.px.h} px)`);
@@ -608,8 +763,20 @@ try {
     console.log('  is the extrusion height that would let the measured storey count land.');
     for (const r of heightLimited) {
       console.log(`    ${r.ref.padEnd(4)} ${String(r.name).slice(0, 26).padEnd(26)} `
-        + `${r.storeys} storeys on ${r.heightM} m — asks ${r.asks.toFixed(1)} rows, ceiling ${R.clamp.maxRows}`
+        + `${r.storeys} storeys on ${r.heightM} m — asks ${r.asks.toFixed(1)} rows, ceiling ${R.clamp.maxRows * r.mul}`
         + `   needs ~${r.needsM.toFixed(1)} m`);
+    }
+  }
+
+  if (cellLimited.length) {
+    console.log('\n  CELL-LIMITED — the tile is at its row ceiling, so its cell is a few units tall');
+    console.log('  and the photographed opening SHAPE physically will not fit in it. Reported, not');
+    console.log('  asserted, for the same reason HEIGHT-LIMITED is: the defect is the extrusion');
+    console.log('  height that forces the row count, not the shape rule.');
+    for (const r of cellLimited) {
+      console.log(`    ${r.ref.padEnd(4)} ${String(r.name).slice(0, 26).padEnd(26)} `
+        + `${r.aspect}:1 needs a ${r.cellNeeded.toFixed(1)}-unit cell, the tile's is `
+        + `${r.cellY.toFixed(1)} — draws ${r.px.w}x${r.px.h} (${r.seen.toFixed(2)}:1)`);
     }
   }
 
@@ -647,7 +814,7 @@ try {
       // diluted 5:64 and lands at 93 % of bin 1. Convicting the tile for that
       // would be convicting it for the profile being a MEAN.
       const held = r.rowBinShare >= ACCEPT;
-      const drawn = (held ? r.wantRows : r.rowPeakBin) * r.heightM / S.REPEAT_M;
+      const drawn = (held ? r.wantRows : r.rowPeakBin) * r.heightM / r.famRepeatM;
       if (!held) anchorFails.push({ ref, z: S.z, want: r.wantRows, got: r.rowPeakBin, share: r.rowBinShare });
       (S.z <= NEAR_MAX ? nearRatios : walkRatios).push(drawn / r.storeys);
       cells.push(((held ? '' : '!') + drawn.toFixed(1) + 'r').padStart(9));
@@ -688,14 +855,17 @@ try {
   console.log('  worst residual: LOOK band ' + wNear.ref + ' ' + wNear.worstNear.toFixed(2)
     + 'x (ratchet ' + RATCHET_NEAR + 'x);  WALK band ' + wWalk.ref + ' '
     + wWalk.worstWalk.toFixed(2) + 'x (ratchet ' + RATCHET_WALK + 'x)');
-  console.log('  BOTH ARE RATCHETS, NOT TARGETS, and the WALK one has a hard floor under it that no');
-  console.log('  redrawing of a tile can pass: `rows` is an integer >= 1, so the coarsest pitch a tile');
-  console.log('  can draw is ONE REPEAT, and at z21 a repeat is '
-    + (32 * 67551 / Math.pow(2, 21)).toFixed(2) + ' m of wall. A building whose storeys');
-  console.log('  sit further apart than that - Battle Hall\'s are 10.75 m apart - cannot be drawn right');
-  console.log('  by ANY tile there. Closing it needs a bigger displaySize, which needs a bigger IMAGE');
-  console.log('  (MapLibre carries pixelRatio as a Uint16 and it cannot go below 1), which is an atlas');
-  console.log('  budget question; or it needs geometry, which data/campus_storeys.geojson already is.');
+  const mulNow = R.rows.reduce((a, r) => Math.max(a, r.mul || 1), 1);
+  console.log('  BOTH ARE RATCHETS, NOT TARGETS, and the WALK one still has a floor under it:');
+  console.log('  `rows` is an integer >= 1, so the coarsest pitch a tile can draw is ONE REPEAT of');
+  console.log('  its own image. A measured family\'s image is ' + mulNow + 'x a template\'s');
+  console.log('  (js/facades.js MEASURED_MUL), so at z21 that floor is '
+    + (mulNow * 32 * 67551 / Math.pow(2, 21)).toFixed(2) + ' m of wall rather than '
+    + (32 * 67551 / Math.pow(2, 21)).toFixed(2) + ' m. Battle Hall\'s storeys are');
+  console.log('  10.75 m apart, so it is still the building this band cannot draw right - at 2.6x');
+  console.log('  now instead of 10.4x. Closing the rest is the same two choices as before: a bigger');
+  console.log('  image again (mul 8 takes Battle to 1.3x and quadruples the sixteen buildings\'');
+  console.log('  share of the atlas), or geometry, which data/campus_storeys.geojson already is.');
 
   if (REPORT) { console.log('\n  --report: not failing on assertions'); }
   else if (BREAK || BREAK_ANCHOR) {

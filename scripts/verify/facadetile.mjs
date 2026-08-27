@@ -40,18 +40,42 @@ try {
     for (const f of feats) if (f.properties && f.properties.id) byId.set(f.properties.id, f.properties);
     const doc = await fetch('data/facade_grids.json').then(r => r.json());
 
-    const Z = 6;                              // magnification
-    const COLS = 4, PAD = 46, CELL = 64 * Z;
+    // MAGNIFICATION IS PER TEXEL, NOT PER TILE, and it has to be.
+    // A measured family's image is `mul` times larger per axis than its
+    // template's (js/facades.js MEASURED_MUL) and covers `mul` times more WALL,
+    // so drawing both into the same square would show a 4x tile's windows at a
+    // quarter size and the sheet would say the openings shrank when they did
+    // not. Same texels per screen pixel for every tile: the measured tile comes
+    // out physically bigger on the sheet, which is what it is.
+    const Z = 6;                              // screen px per TEXEL
+    const COLS = 2, PAD = 46;
     const items = [];
     for (const m of doc.buildings) {
       const props = byId.get(m.id);
       if (!props) continue;
       items.push({ ref: m.ref, wp: props.wp, twin: m.base + props.wp.slice(-2) });
     }
-    const rows = Math.ceil(items.length / COLS);
+    // Measure every tile first — cells are no longer a fixed size.
+    for (const it of items) {
+      const a = map.getImage(it.wp), b = map.getImage(it.twin);
+      it.aw = a ? a.data.width * Z : 0; it.ah = a ? a.data.height * Z : 0;
+      it.bw = b ? b.data.width * Z : 0; it.bh = b ? b.data.height * Z : 0;
+      it.cw = it.aw + it.bw; it.ch = Math.max(it.ah, it.bh);
+    }
+    const colW = [];
+    const rowH = [];
+    items.forEach((it, i) => {
+      const c = i % COLS, r = Math.floor(i / COLS);
+      colW[c] = Math.max(colW[c] || 0, it.cw);
+      rowH[r] = Math.max(rowH[r] || 0, it.ch);
+    });
+    const colX = []; let ax = PAD;
+    for (let c = 0; c < COLS; c++) { colX[c] = ax; ax += colW[c] + PAD; }
+    const rowY = []; let ay = PAD;
+    for (let r = 0; r < rowH.length; r++) { rowY[r] = ay; ay += rowH[r] + PAD * 2; }
     const cv = document.createElement('canvas');
-    cv.width = COLS * (CELL * 2 + PAD) + PAD;
-    cv.height = rows * (CELL + PAD * 2) + PAD;
+    cv.width = ax;
+    cv.height = ay;
     const g = cv.getContext('2d');
     g.imageSmoothingEnabled = false;
     g.fillStyle = '#101014'; g.fillRect(0, 0, cv.width, cv.height);
@@ -62,23 +86,25 @@ try {
       const id = new ImageData(new Uint8ClampedArray(data), W, H);
       const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
       tmp.getContext('2d').putImageData(id, 0, 0);
-      g.drawImage(tmp, 0, 0, W, H, x, y, CELL, CELL);
+      g.drawImage(tmp, 0, 0, W, H, x, y, W * Z, H * Z);
     };
 
     items.forEach((it, i) => {
-      const cx = PAD + (i % COLS) * (CELL * 2 + PAD);
-      const cy = PAD + Math.floor(i / COLS) * (CELL + PAD * 2);
+      const cx = colX[i % COLS];
+      const cy = rowY[Math.floor(i / COLS)];
       const a = map.getImage(it.wp), b = map.getImage(it.twin);
       // LEFT = the measured tile, RIGHT = the template tile it replaced, same
       // colour bucket. Side by side is the whole point: a claim that a tile
       // changed is checkable in one glance.
       if (a) put(a, cx, cy + 26);
-      if (b) put(b, cx + CELL, cy + 26);
-      g.fillStyle = '#ffcc55'; g.fillText(`${it.ref}  ${it.wp}`, cx, cy);
-      g.fillStyle = '#8899aa'; g.fillText(`was ${it.twin}`, cx + CELL, cy);
+      if (b) put(b, cx + it.aw, cy + 26);
+      g.fillStyle = '#ffcc55';
+      g.fillText(`${it.ref}  ${it.wp}  ${a ? a.data.width + 'px' : '-'}`, cx, cy);
+      g.fillStyle = '#8899aa';
+      g.fillText(`was ${it.twin}  ${b ? b.data.width + 'px' : '-'}`, cx + it.aw, cy);
       g.strokeStyle = '#ffcc55'; g.lineWidth = 2;
-      g.strokeRect(cx, cy + 26, CELL, CELL);
-      g.strokeStyle = '#556'; g.strokeRect(cx + CELL, cy + 26, CELL, CELL);
+      g.strokeRect(cx, cy + 26, it.aw, it.ah);
+      g.strokeStyle = '#556'; g.strokeRect(cx + it.aw, cy + 26, it.bw, it.bh);
     });
     return cv.toDataURL('image/png');
   }, P);
