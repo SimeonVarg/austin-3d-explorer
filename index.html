@@ -144,6 +144,13 @@
        booting off window.__map; ?slopes=0 leaves it out. After lod.js, which
        lists its layer id. KEEP IN SYNC WITH _harness.html. -->
   <script src="js/slopes.js"></script>
+  <!-- Its three generators, each one shape from baked data (headers in each
+       file): the roofs off the rig on roofs.geojson, the arches off the
+       `arches` member on entrances.geojson, the dome lathed from its discs.
+       Self-booting off window.slopes; ?slopes=0 leaves all three out. -->
+  <script src="js/slopes-roofs.js"></script>
+  <script src="js/slopes-arches.js"></script>
+  <script src="js/slopes-dome.js"></script>
   <!-- ────────────────────────────────────────────────────────────────────────
        WHAT WE TELL A STUDENT ABOUT THEIR OWN SCHEDULE, AND WHERE TO EDIT IT.
 

@@ -12,12 +12,25 @@
  * shares the depth buffer, the sun, the hour, the haze and the render distance
  * with the buildings beside it. Walls stay fill-extrusion.
  *
- * NOTHING DRAWS BY DEFAULT YET. This is the plumbing — the part that makes a
- * mesh behave exactly like the fill-extrusion building next to it — plus a
- * debug scene (?slopesdebug=1) that proves each piece. The generators (roof
- * rigs, arches, the dome lathe) land on `slopes.add()` and `slopes.material()`
- * and never touch MapLibre. scripts/verify/slopes-layer.mjs asserts all of it
- * from pixels; read its header for the numbers.
+ * This file is the plumbing — the part that makes a mesh behave exactly like
+ * the fill-extrusion building next to it — plus a debug scene (?slopesdebug=1)
+ * that proves each piece. The generators are three files beside it, each one
+ * shape, each generated from baked data and nothing hand-modelled:
+ *
+ *   js/slopes-roofs.js    the pitched roofs, from the `rig` foreign member
+ *                         scripts/bake_roofs.py writes on roofs.geojson (the
+ *                         profile, rays and caps every slab ring was a
+ *                         multiply-add on), plus Gregory Gym's gable front
+ *   js/slopes-arches.js   every arched doorway, from the `arches` member
+ *                         scripts/bake_entrances.py writes on entrances.geojson
+ *   js/slopes-dome.js     the Capitol dome, bullock-dome and cupola, lathed
+ *                         from their own disc profiles in capitol_dome.geojson
+ *
+ * Each lands on `slopes.add()` with `slopes.material()` and `slopes.build`,
+ * hides the fill-extrusion stand-ins it replaces by FILTER (never by deleting
+ * anything) while `SLOPES.on` is true, and puts them back the moment it is
+ * false — `slopes.onSwitch()` is the hook. scripts/verify/slopes-layer.mjs
+ * asserts all of it from pixels; read its header for the numbers.
  *
  * THE CONTRACT, each line of it measured on this build, not reasoned:
  *
@@ -103,6 +116,13 @@
  *
  * Public (window) API:
  *   SLOPES                         — the taste block; SLOPES.on is the switch
+ *                                    (an accessor: setting it fires onSwitch hooks)
+ *   slopes.onSwitch(fn)            — fn(on) whenever SLOPES.on changes
+ *   slopes.build()                 — a geometry builder (quads, polygons,
+ *                                    extrusions in a wall frame), one draw call
+ *   slopes.frame(o, t, n)          — a wall frame in local metres from lng/lat
+ *   slopes.stats()                 — renderer.info for the last frame, per group
+ *   slopes.fetchJSON(url)          — one cached fetch per URL
  *   slopes.toLocal(lng, lat, up)   → {x, y, z} local metres (east, north, up)
  *   slopes.toLngLat(x, y, z)       → {lng, lat, alt}
  *   slopes.project(x, y, z)        → {x, y} CSS pixels on the map canvas, or null
@@ -168,6 +188,27 @@
     debugLatheSegments: 48,               // × detail(); what the preset changes
   };
   window.SLOPES = SLOPES;
+
+  // `SLOPES.on` is an ACCESSOR, so `window.SLOPES.on = false` from the console
+  // is still the whole switch — and the generators, which hide fill-extrusion
+  // stand-ins by filter while the mesh draws, hear it and put them back. The
+  // value is still read live in render(); this only adds the notification.
+  const _switchHooks = [];
+  (function observable() {
+    let v = SLOPES.on;
+    Object.defineProperty(SLOPES, 'on', {
+      enumerable: true, configurable: true,
+      get() { return v; },
+      set(x) {
+        x = !!x;
+        if (x === v) return;
+        v = x;
+        for (const fn of _switchHooks) { try { fn(v); } catch (e) { console.error('[slopes] switch hook', e); } }
+        if (_map) _map.triggerRepaint();
+      },
+    });
+  })();
+  function onSwitch(fn) { _switchHooks.push(fn); return fn; }
 
   // ── The shader: MapLibre's fill-extrusion lighting, transcribed ─────────
   //
@@ -353,6 +394,150 @@
   function add(obj) { if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
   function remove(obj) { if (root) root.remove(obj); if (_map) _map.triggerRepaint(); }
 
+  // ── The builder: one geometry, one draw call, flat normals ──────────────
+  //
+  // Every generator emits triangles into one of these per material group and
+  // gets back a single non-indexed BufferGeometry carrying position, normal
+  // and the colour triple — merged by construction, so a campus of roofs is
+  // one draw call and the dome another. Faces are flat-shaded (the normal is
+  // the face's own), which is what MapLibre gives an extrusion's wall and what
+  // a hip, a pediment and an archivolt want; the lathe computes smooth
+  // normals itself and does not come through here.
+  //
+  //   b.tri(a, b, c, col, want)         a triangle; `want` (optional) is the
+  //                                      side it must face — the order is
+  //                                      flipped if the winding disagrees
+  //   b.quad(a, b, c, d, col, want)     two triangles, split a-c
+  //   b.polygon(pts, col, want, plane)  a planar polygon (earcut), `plane` =
+  //                                      'xy' | 'uz' picks the 2-D projection
+  //   b.extrude(poly2d, frame, v0, v1, col, opts)
+  //                                      a polygon in a wall's (u, z) plane
+  //                                      swept from depth v0 to v1: front,
+  //                                      back and every side, faces outward
+  //   b.geometry()                      the BufferGeometry (call once)
+  //
+  // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
+  function build() {
+    const T = window.THREE;
+    const pos = [], nrm = [], cd = [], cg = [], cn = [];
+    const cache = new Map();
+    const rgb = hex => { let c = cache.get(hex); if (!c) { c = hexToRgb01(hex); cache.set(hex, c); } return c; };
+    const push = (p, n, col) => {
+      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]);
+      const d = rgb(col[0]), g = rgb(col[1]), k = rgb(col[2]);
+      cd.push(d[0], d[1], d[2]); cg.push(g[0], g[1], g[2]); cn.push(k[0], k[1], k[2]);
+    };
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    let tris = 0;
+    function tri(a, b, c, col, want) {
+      let n = cross(sub(b, a), sub(c, a));
+      const L = Math.hypot(n[0], n[1], n[2]);
+      if (L < 1e-9) return;                        // degenerate: nothing to draw
+      n = [n[0] / L, n[1] / L, n[2] / L];
+      if (want && dot(n, want) < 0) { const t = b; b = c; c = t; n = [-n[0], -n[1], -n[2]]; }
+      push(a, n, col); push(b, n, col); push(c, n, col); tris++;
+    }
+    function quad(a, b, c, d, col, want) { tri(a, b, c, col, want); tri(a, c, d, col, want); }
+    /** A planar polygon, any orientation; triangulated in the given plane. */
+    function polygon(pts, col, want, plane) {
+      if (pts.length < 3) return;
+      const T2 = window.THREE;
+      const flat = pts.map(p => plane === 'uz' ? new T2.Vector2(p[3], p[2]) : new T2.Vector2(p[0], p[1]));
+      let idx;
+      try { idx = T2.ShapeUtils.triangulateShape(flat, []); } catch (e) { idx = []; }
+      for (const [i, j, k] of idx) tri(pts[i], pts[j], pts[k], col, want);
+    }
+    /**
+     * `poly` is [[u, z], ...] in the frame's wall plane (any winding), `frame`
+     * is from slopes.frame(). Sweeps it from depth v0 to v1 along the frame's
+     * normal and emits a closed solid: cap at v1 facing +n, cap at v0 facing
+     * -n, one quad per edge facing that edge's outward direction. `opts.sides`
+     * = false skips the side quads (a face that sits against a wall).
+     */
+    function extrude(poly, frame, v0, v1, col, opts) {
+      opts = opts || {};
+      const P = (u, v, z) => frame.at(u, v, z);
+      const N = frame.N, nn = [-N[0], -N[1], -N[2]];
+      const n = poly.length;
+      if (n < 3) return;
+      // signed area in (u, z): CCW > 0 — so every edge's outward normal below is (dz, -du)
+      let A = 0;
+      for (let i = 0; i < n; i++) { const p = poly[i], q = poly[(i + 1) % n]; A += p[0] * q[1] - q[0] * p[1]; }
+      const ccw = A > 0 ? 1 : -1;
+      if (opts.front !== false) {
+        const cap = poly.map(p => { const q = P(p[0], v1, p[1]); return [q[0], q[1], q[2], p[0]]; });
+        polygon(cap, col, N, 'uz');
+      }
+      if (opts.back !== false) {
+        const cap = poly.map(p => { const q = P(p[0], v0, p[1]); return [q[0], q[1], q[2], p[0]]; });
+        polygon(cap, col, nn, 'uz');
+      }
+      if (opts.sides !== false) {
+        for (let i = 0; i < n; i++) {
+          const p = poly[i], q = poly[(i + 1) % n];
+          const du = q[0] - p[0], dz = q[1] - p[1];
+          if (Math.hypot(du, dz) < 1e-6) continue;
+          // outward in (u, z) for the polygon's own winding, mapped to 3-D
+          const ou = ccw * dz, oz = -ccw * du;
+          const want = [frame.T[0] * ou, frame.T[1] * ou, oz];
+          if (opts.skipDown && oz < -0.9 * Math.hypot(ou, oz)) continue;   // a bottom face on a sill
+          quad(P(p[0], v0, p[1]), P(q[0], v0, q[1]), P(q[0], v1, q[1]), P(p[0], v1, p[1]), col, want);
+        }
+      }
+    }
+    function geometry() {
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      g.setAttribute('normal', new T.Float32BufferAttribute(nrm, 3));
+      g.setAttribute('cDay', new T.Float32BufferAttribute(cd, 3));
+      g.setAttribute('cGold', new T.Float32BufferAttribute(cg, 3));
+      g.setAttribute('cNight', new T.Float32BufferAttribute(cn, 3));
+      g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
+      g.computeBoundingSphere();
+      return g;
+    }
+    return { tri, quad, polygon, extrude, geometry, get triangles() { return tris; } };
+  }
+
+  /**
+   * A wall frame in local metres. `o` is [lng, lat]; `t` and `n` are the
+   * wall's along and outward unit vectors expressed as DEGREES PER METRE
+   * ([dlng, dlat]) — the shape the bakes write, so no projection constant is
+   * restated here. at(u, v, z) → [x, y, z] local metres: u along the wall,
+   * v out of it, z up. Linear over the tens of metres a door or a gable spans
+   * (Mercator is affine to 1e-6 at that scale, measured against toLocal).
+   */
+  function frame(o, t, n) {
+    const O = toLocal(o[0], o[1], 0);
+    const Tp = toLocal(o[0] + t[0], o[1] + t[1], 0), Np = toLocal(o[0] + n[0], o[1] + n[1], 0);
+    const Tv = [Tp.x - O.x, Tp.y - O.y, 0], Nv = [Np.x - O.x, Np.y - O.y, 0];
+    return {
+      O: [O.x, O.y, 0], T: Tv, N: Nv,
+      at: (u, v, z) => [O.x + u * Tv[0] + v * Nv[0], O.y + u * Tv[1] + v * Nv[1], z || 0],
+    };
+  }
+
+  /** What the last frame cost: renderer.info, plus each group's own count. */
+  function stats() {
+    const r = renderer && renderer.info && renderer.info.render;
+    const groups = root ? root.children.map(g => {
+      let t = 0; g.traverse(o => { if (o.isMesh && o.geometry) { const p = o.geometry.attributes.position; t += o.geometry.index ? o.geometry.index.count / 3 : (p ? p.count / 3 : 0); } });
+      return { name: g.name, visible: g.visible, triangles: Math.round(t), lod: g.userData.lod || null, minzoom: g.userData.minzoom == null ? null : g.userData.minzoom };
+    }) : [];
+    return { calls: r ? r.calls : 0, triangles: r ? r.triangles : 0, frames: _frames, groups };
+  }
+
+  const _fetches = new Map();
+  /** One fetch per URL for the whole layer; the browser's cache does the rest. */
+  function fetchJSON(url) {
+    if (!_fetches.has(url)) {
+      _fetches.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + ': ' + r.status); return r.json(); }));
+    }
+    return _fetches.get(url);
+  }
+
   // ── The light ───────────────────────────────────────────────────────────
   /**
    * The same light the painter is drawing the buildings with, this frame.
@@ -410,7 +595,20 @@
     isVisible() { return _visible; },
     render(gl, args) {
       // The switch, read LIVE every frame — never cached at onAdd.
-      if (!SLOPES.on || !_visible || !scene) return;
+      if (!SLOPES.on || !scene) return;
+      // Each generator's group carries the minzoom and the LOD tier of the
+      // fill-extrusion layer it replaces (userData.minzoom, userData.lod), so
+      // the roofs go at the altitude js/lod.js drops `roofs-pitched` while the
+      // dome, which no tier lists, stays on the skyline. `_visible` is
+      // lod.js's decision and applies to the 'mid' groups only.
+      const zoom = _map.getZoom();
+      let any = false;
+      for (const g of root.children) {
+        const ud = g.userData || {};
+        const vis = !(ud.minzoom != null && zoom < ud.minzoom) && (_visible || ud.lod !== 'mid');
+        g.visible = vis; any = any || vis;
+      }
+      if (!any) return;
       const T = window.THREE;
       if (!renderer) {
         // Built here, not in onAdd: see contract point 7.
@@ -537,6 +735,7 @@
     dome.userData.segments = seg;
     g.add(dome);
 
+    g.userData.lod = 'mid';          // hidden at altitude with the roofs, as the gate asserts
     _debugGroup = g;
     root.add(g);
 
@@ -619,6 +818,7 @@
 
   window.slopes = {
     toLocal, toLngLat, project, raycast, material, colour, add, remove, detail,
+    onSwitch, build, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
