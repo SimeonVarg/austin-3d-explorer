@@ -189,6 +189,125 @@ city today. Shipping them is a deliberate change to what the app draws — one
 a look at the render, not to this pass.
 
 
+## 204c. Sep 2 2026 — the dome came off the skyline at altitude: LOD hid the whole custom layer, and the fix is one verdict per group (`acer/slopes`, not merged)
+
+**The defect.** Climb over the Capitol far enough for the mid detail tier to
+drop and there was no dome at all — not the mesh dome, and not the 18+7+4
+fill-extrusion discs it replaces either, because `SLOPES.on` was still true and
+the layer's own filter was still holding them down. Only the drum and the
+statue's spire, which the filter does not name, were left standing.
+
+**Why.** `js/lod.js` listed `slopes-mesh` in the `mid` tier — correct, the real
+roofs should go exactly where `roofs-pitched` goes — and its `setVisible()` did
+two things: called `implementation.setVisible(false)` AND wrote
+`setLayoutProperty(id, 'visibility', 'none')`, as belt and braces. MapLibre 5.24
+honours `visibility` on a custom layer the hard way: **a hidden custom layer's
+`render()` is never called again.** So the exemption inside `js/slopes.js`'s
+render() that keeps the dome drawing at any altitude — `(_visible || ud.lod !==
+'mid')` — was dead code. It cannot run in a function nobody calls.
+
+**The fix.** `lod.js` tells a custom layer through `setVisible()` and ONLY
+through `setVisible()`; the layout write is gone. The layer keeps rendering and
+gives the tier's verdict **per group**, each group following the tier of the
+fill-extrusion layer it replaces: the roofs (`userData.lod = 'mid'`) go with
+`roofs-pitched`; the arches (`lod: null` — no tier lists `entrances-portal`)
+and the Capitol dome (`lod: null` — a skyline silhouette is what you look at
+from further away) stay.
+
+**THE CONTRACT CHANGED. Whoever asserts on this, assert this instead** (the old
+one, in §203 item 6 and in the plumbing pass, said the custom layer's visibility
+goes `'none'`):
+
+- `getLayoutProperty('slopes-mesh','visibility')` is `'visible'` at every
+  altitude — `lod.js` never writes it.
+- `window.LOD_isHidden('slopes-mesh')` is `true` above the tier's altitude and
+  `slopes.layer.isVisible()` is `false` with it — both unchanged.
+- `render()` keeps running while it is hidden: `slopes.frames` keeps climbing.
+- `slopes.stats().groups` is what says which shapes are drawing, per group.
+
+`scripts/verify/slopes-layer.mjs`'s lod section now asserts exactly that (four
+lines where there were two).
+
+**Proved, hardware GL (ANGLE NVIDIA RTX 3050 Ti D3D11), 1440x900,
+`?intro=0&drift=0`, second of two screenshots, `cancelGraphicsAutoDetect()`
+first.** The control is the SAME COMMIT with the SAME data on the SAME server —
+`js/lod.js` and `js/slopes.js` at HEAD are served to the control page by route
+interception — so control and test differ by the working-tree diff and nothing
+else.
+
+**At the verifier's own altitude pose** — the Capitol at zoom 14.9 / pitch 55,
+camera-to-centre 1,569 m, **eye altitude 900 m** (js/lod.js measures the flight
+controller's EYE altitude, not the camera distance; the "1,569 m" in §204 is the
+camera distance), Detail distance 700 m. HEAD: `visibility 'none'`, `render()`
+never called, the layer's group flags frozen at their last drawn values and
+`slopes.project` returning a stale off-screen point. Fixed: `visibility
+'visible'`, `LOD_isHidden` true, `layer.isVisible()` false, groups
+**`slopes-roofs: false, slopes-dome: true, slopes-arches: false`** (the arches
+by minzoom at that zoom), `slopes.frames` **289 -> 291** over one repaint while
+hidden. The dome's own column, 3x3 box averages, against the `?slopes=0` discs
+at the same pose — and the sky point differs by **0** across all three pages, so
+there is no exposure confound in this table:
+
+| point | HEAD | fixed | ?slopes=0 discs | fixed-discs | HEAD-discs |
+|---|---|---|---|---|---|
+| cupola | 158,114,46 | 173,113,51 | 180,115,53 | 7 | 22 |
+| dome apex | 161,109,44 | 184,104,52 | 184,105,51 | **1** | 23 |
+| dome mid | 168,101,48 | 180,101,51 | 183,104,51 | **3** | 15 |
+| dome base | 183,104,51 | 179,100,51 | 180,101,51 | 1 | 3 |
+| sky above | 152,86,31 | 152,86,31 | 152,86,31 | 0 | 0 |
+
+Whole frame, HEAD against fixed: **240 px**, all of them in
+[614,363 109x247] — the dome and nothing else. The dome is 12 px tall there,
+which is why the picture worth looking at is the close one.
+
+**Close, where the dome is 100 px tall** — same centre and bearing, zoom 17.668,
+eye altitude **151 m**, the Detail-distance slider at its **minimum, 150 m**, so
+the mid tier is down at street level (it drops on the way in and the 8%
+hysteresis holds it down to 138 m). `roofs-pitched` is `'none'` on all three
+pages, so this is like for like. Down the dome's shell, 5x5 box averages:
+
+| point | HEAD | fixed | discs | fixed-discs | HEAD-discs |
+|---|---|---|---|---|---|
+| shell top | 128,95,18 | 156,84,47 | 162,82,44 | 6 | 34 |
+| shell upper | 128,97,17 | 154,83,46 | 159,81,44 | 5 | 31 |
+| shell middle | 126,94,32 | 154,83,46 | 159,82,44 | 5 | 33 |
+| shell lower | 139,90,38 | 154,83,46 | 155,81,44 | 2 | 16 |
+| sky above | 151,98,52 | 153,103,55 | 151,98,52 | 5 | 0 |
+
+HEAD's shell column is the **green lawn behind the Capitol** showing through
+where the dome should be; the fixed build is terracotta within **2-6 units** of
+the discs, of which up to 5 is a whole-frame exposure difference between page
+loads — measured on the sky, where nothing changed. Frames:
+`shots/slopes/dome-lod-bug.png`, `dome-lod-fixed.png`, `dome-lod-off.png`
+(307x230 crops on the dome). Put the slider back to 1,500 m at the same pose and
+every group returns with `roofs-pitched`.
+
+**And it changes nothing anywhere else.** The control page is served HEAD's
+`js/lod.js` and `js/slopes.js` by route interception — same commit, same data,
+same server, same browser session — so the pair differs by this diff and nothing
+else. At the pass's four poses, tolerance 0: **mall-cruise 0 px, gregory 0 px,
+capitol-dome 0 px, battle-street 3 px** (max delta 6, inside a 117x4 px sliver).
+Against the independent verifier's own ON frames from the day before,
+capitol-dome is **0 px** — cross-load determinism is exact — and mall-cruise
+201,193 / gregory 97,843 / battle-street 27,189 px are commit f23f62c (Battle
+Hall's folded deck ring and the archivolt crown), which landed after that
+verifier ran; this pass contributes 0, 0 and 3 of them.
+
+**The taste knob the verifier asked for.** Mesh roofs read lighter and
+lower-contrast than the slabs by day (gregory morning: a sunlit slope is
+175,77,43 as a mesh and was 136,60,31 as a slab) because the light is falling on
+the true 22.6° pitch instead of `js/timeofday.js`'s painted 38° `ROOF_SHADE.tilt`
+— an exaggeration invented precisely because a slab cannot slope. The look is
+unchanged; it is now a single named constant, **`SLOPES.roofShade`** at the top
+of `js/slopes.js` (default `1.0`, a bit-exact multiply by one). Set it to 0.78
+and the sunlit slope lands back on the slab's old tone; below that it goes
+darker, above 1.0 brighter. It multiplies SLOPED faces only — no vertical
+gradient and a normal that is neither vertical nor flat — so walls stay
+pixel-identical to the fill-extrusion wall beside them. Measured live at the
+gregory pose on one page load with nothing but the uniform moving: 1.00 -> 0.78
+changes **114,683 px** (max delta 48); put back to 1.00 it is today's frame.
+
+
 ## 203. Sep 2 2026 — the slopes layer: a three.js custom layer that a fill-extrusion cannot tell from itself (`acer/slopes`, not merged)
 
 Nothing new draws by default. This is the plumbing under the pass that will

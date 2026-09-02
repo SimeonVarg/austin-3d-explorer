@@ -589,6 +589,19 @@ VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against htt
   same door is measured again from 22 m (`battle-door`, ~300 px) where the
   difference is the picture. Frames land in `--shots DIR` as
   `ridge-gregory.png`, `arch-battle-street.png`, `arch-battle-door.png`.
+- **The LOD assertions changed on September 2 2026 and the old ones were
+  wrong.** `js/lod.js` hides a custom layer by calling
+  `implementation.setVisible(false)` and NOTHING ELSE — it must never write
+  `visibility` on one. MapLibre 5.24 honours that property on a custom layer by
+  never calling its `render()` again, and `render()` is where js/slopes.js
+  gives the tier's verdict PER GROUP; hidden wholesale, the Capitol dome went
+  with the roofs while the layer's own filter still held its fill-extrusion
+  discs down, so there was no dome at all. Assert, at altitude:
+  `getLayoutProperty('slopes-mesh','visibility') === 'visible'` (not `'none'`),
+  `LOD_isHidden('slopes-mesh') === true`, `slopes.layer.isVisible() === false`,
+  `slopes.frames` still climbing over a repaint, and
+  `slopes.stats().groups` reading `slopes-roofs: false` with
+  `slopes-dome: true`.
 - **Budget: ~15 minutes** — three full page loads and twelve poses. Run it in
   the background if your shell has a shorter ceiling; the watchdog is 1500 s.
 

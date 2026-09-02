@@ -109,7 +109,11 @@
       'roofs-pitched', 'moody-roof', 'arts-cap',
       // The three.js layer (js/slopes.js) that is replacing the pitched-roof
       // slabs. Same tier as `roofs-pitched` on purpose: the real roofs and the
-      // slabs go at the same altitude, whichever of them is drawing.
+      // slabs go at the same altitude, whichever of them is drawing. Listing
+      // it here does NOT hide the whole layer — see setVisible() below. It
+      // hands the layer this tier's verdict and the layer applies it to the
+      // groups the tier is about (the roofs), keeping the ones it is not (the
+      // Capitol dome, which has no tier and belongs on the skyline).
       'slopes-mesh',
     ],
   };
@@ -156,18 +160,41 @@
 
   /**
    * A `type:'custom'` layer has no layout, so `setLayoutProperty` is not how
-   * it is hidden: MapLibre still honours `visibility` on one (probed on 5.24 —
-   * a hidden custom layer's render() is simply never called), but the layer
-   * cannot see that decision from the inside, and js/slopes.js needs to,
-   * because its own switch and this one gate drawing independently. So a
-   * custom layer that exposes `setVisible(bool)` on its implementation is
-   * told directly, AND the visibility property is written, so either path
-   * alone would have hidden it.
+   * it is hidden here — and writing it anyway was a BUG, not belt-and-braces.
+   *
+   * MapLibre 5.24 does honour `visibility` on a custom layer, and it honours
+   * it the hard way: a hidden custom layer's `render()` is never called at
+   * all. That is fine for a layer that draws ONE thing. js/slopes.js draws
+   * three groups with three different LOD answers — each group carries the
+   * tier of the fill-extrusion layer it replaces, so the pitched roofs go
+   * with `roofs-pitched` at this tier, the arches never go (no tier lists
+   * `entrances-portal`) and neither does the CAPITOL DOME, because a dome is
+   * a skyline silhouette and you look at it from further away, not less. Its
+   * render() sorts that out per group. Take render() away and the per-group
+   * decision cannot run: the roofs and the dome both vanish, while
+   * `SLOPES.on` is still true so the layer's filter is still holding the
+   * dome's 18+7+4 fill-extrusion discs down. Photographed 2026-09-02 over the
+   * Capitol from an eye altitude of 151 m with this slider at its minimum
+   * (150 m), the same commit with and without this line:
+   * shots/slopes/dome-lod-bug.png against shots/slopes/dome-lod-fixed.png —
+   * the shell is gone and only the drum and the statue's spire, which the
+   * filter does not name, are left standing.
+   *
+   * So: a custom layer that exposes `setVisible(bool)` is told directly and
+   * ONLY directly. It keeps rendering; what it draws is its own business.
+   * `window.LOD_isHidden(id)` is unchanged and still answers for it — this
+   * module's `_hidden` set is what that reads, not the style.
+   *
+   * THE CONTRACT, for whoever asserts on it: after this module hides
+   * `slopes-mesh`, `getLayoutProperty('slopes-mesh','visibility')` stays
+   * 'visible' (it is never written), `LOD_isHidden('slopes-mesh')` is true,
+   * and `slopes.layer.isVisible()` is false. The old contract — visibility
+   * 'none' — is gone on purpose.
    */
   function setVisible(id, on) {
     const layer = _map.getLayer(id);
     const impl = layer && layer.type === 'custom' && layer.implementation;
-    if (impl && typeof impl.setVisible === 'function') impl.setVisible(on);
+    if (impl && typeof impl.setVisible === 'function') { impl.setVisible(on); return; }
     _map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
   }
   /** Is `id` currently hidden by this module? (For custom layers' own render paths.) */

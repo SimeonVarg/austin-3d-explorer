@@ -108,11 +108,42 @@
  *      MapLibre owns the canvas size (js/graphics.js drives it through
  *      map.setPixelRatio) and resetState() re-reads it every frame.
  *
- *   8. LOD. js/lod.js hides `roofs-pitched` at altitude with
- *      setLayoutProperty, which a custom layer does not have. It now calls
- *      `implementation.setVisible(bool)` on any custom layer in its tiers, and
- *      this layer is in the same `mid` tier as the slabs, so the mesh goes at
- *      the same altitude they do.
+ *   8. LOD IS PER GROUP, AND THE LAYER NEVER STOPS RENDERING. js/lod.js
+ *      hides `roofs-pitched` at altitude with setLayoutProperty, which a
+ *      custom layer does not have. MapLibre 5.24 *does* honour `visibility`
+ *      on a custom layer — by never calling its render() again — and that is
+ *      exactly why lod.js must NOT write it here: this layer's three groups
+ *      have three different answers, and render() is where they are given.
+ *      THE RULE: each group carries the tier of the fill-extrusion layer it
+ *      replaces, and nothing else. The roofs carry `userData.lod = 'mid'`
+ *      because that is where `roofs-pitched` is, and go with it. The arches
+ *      carry `lod: null` because no tier lists `entrances-portal`. The
+ *      Capitol dome carries `lod: null` because a dome is a skyline
+ *      silhouette — you look at it from further away, not less — which is
+ *      what js/slopes-dome.js's `lod: null` promises. Hide the layer
+ *      wholesale and the dome disappears while `SLOPES.on` is still true and
+ *      still filtering its 18+7+4 fill-extrusion discs away, so there is no
+ *      dome at all — only the drum and the statue's spire, which are not in
+ *      the filter. Photographed 2026-09-02 over the Capitol from an eye
+ *      altitude of 151 m with the Detail-distance slider at its minimum
+ *      (150 m, so the mid tier is down at street level and the dome is 100 px
+ *      tall), the same commit with and without this fix and with the layer
+ *      off altogether: shots/slopes/dome-lod-bug.png,
+ *      shots/slopes/dome-lod-fixed.png, shots/slopes/dome-lod-off.png.
+ *      (js/lod.js measures the flight controller's EYE altitude, not the
+ *      camera-to-centre distance: the pass's high pose, "1,569 m" in §204, is
+ *      1,569 m of camera distance and 900 m of altitude.)
+ *
+ *      THE CONTRACT, changed here on 2026-09-02 (the old one said the custom
+ *      layer's visibility goes 'none'; it does not any more):
+ *        - `getLayoutProperty('slopes-mesh','visibility')` is 'visible' at
+ *          every altitude — lod.js never writes it.
+ *        - `window.LOD_isHidden('slopes-mesh')` is true above the tier's
+ *          altitude, and `slopes.layer.isVisible()` is false with it.
+ *        - render() still runs; `slopes.stats().groups` is what says which
+ *          shapes are drawing (`visible` per group), and `slopes.frames`
+ *          keeps climbing.
+ *        - The mid groups' pixels go with `roofs-pitched`; the dome's do not.
  *
  * Public (window) API:
  *   SLOPES                         — the taste block; SLOPES.on is the switch
@@ -169,6 +200,23 @@
     // fill-extrusion pass in this repo uses.
     layerId: 'slopes-mesh',
     fogLayerId: 'aerial-fog',
+    // ── The one taste knob over how the real slopes are LIT ────────────
+    // A multiplier on the lit colour of every SLOPED face this layer draws —
+    // roof pitches, gable rakes, arch intrados, the dome's curve. Not walls
+    // (those have a vertical gradient and must stay pixel-identical to the
+    // fill-extrusion wall beside them), not flat decks, not tops.
+    //
+    // 1.0 is today's look and is bit-exact: the shader multiplies by it, and
+    // x * 1.0 == x. It is here because real geometry at the true 5:12 pitch
+    // (22.6°) reads LIGHTER and lower-contrast than the flat slabs it
+    // replaced, which were painted with js/timeofday.js's ROOF_SHADE.tilt of
+    // 38° — an exaggeration invented precisely because a slab cannot slope.
+    // Measured at Gregory Gym, morning: a sunlit slope is 175,77,43 as a mesh
+    // and was 136,60,31 as slabs. That is not a bug — it is what the light
+    // actually does to a 22.6° roof — but it is a LOOK, so it is a one-line
+    // edit: set roofShade to 0.78 and the sunlit slope lands back on the
+    // slab's tone; below that it goes darker still, above 1.0 brighter.
+    roofShade: 1.0,
     // MapLibre darkens a fill-extrusion wall toward its base
     // (`fill-extrusion-vertical-gradient`, on by default). 1 applies the same
     // curve to mesh WALLS — faces given a gradient attribute by
@@ -242,6 +290,7 @@
     uniform float u_lightintensity;
     uniform float u_vertical_gradient;
     uniform float u_opacity;
+    uniform float u_roof_shade;
     uniform float u_p;
     attribute vec3 cDay;
     attribute vec3 cGold;
@@ -263,7 +312,14 @@
       }
       vec3 lit = clamp(color * directional * u_lightcolor,
                        mix(vec3(0.0), vec3(0.3), vec3(1.0) - u_lightcolor), vec3(1.0));
-      v_color = vec4(lit, 1.0) * u_opacity;
+      // SLOPES.roofShade — the one look knob, applied to sloped faces only.
+      // "Sloped" = carries no vertical gradient (aGrad.y == 0: roofs, domes,
+      // arch soffits — never a wall) AND its normal is neither flat nor
+      // vertical. At the default 1.0 this is an exact multiply by one.
+      float k = 1.0;
+      float az = abs(n.z);
+      if (aGrad.y == 0.0 && az > 0.02 && az < 0.98) k = u_roof_shade;
+      v_color = vec4(lit * k, 1.0) * u_opacity;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
   const FRAG = `
@@ -601,6 +657,13 @@
       // the roofs go at the altitude js/lod.js drops `roofs-pitched` while the
       // dome, which no tier lists, stays on the skyline. `_visible` is
       // lod.js's decision and applies to the 'mid' groups only.
+      //
+      // THIS LOOP IS THE WHOLE REASON js/lod.js MUST NOT WRITE `visibility`
+      // ON THIS LAYER. MapLibre 5.24 answers a hidden custom layer by never
+      // calling render() again, and a decision taken here cannot be taken in
+      // a function nobody calls: hidden wholesale, the dome went with the
+      // roofs while the layer's filter still held its discs down, and there
+      // was no dome at all. See contract point 8 in the header.
       const zoom = _map.getZoom();
       let any = false;
       for (const g of root.children) {
@@ -670,6 +733,7 @@
     if (!U || !map) return;
     U.u_vertical_gradient.value = SLOPES.verticalGradient;
     U.u_opacity.value = SLOPES.opacity;
+    U.u_roof_shade.value = SLOPES.roofShade;
     if (SLOPES.debug) debugScene(map);
     map.triggerRepaint();
   };
@@ -788,6 +852,7 @@
       u_lightintensity: { value: 0.28 },
       u_vertical_gradient: { value: SLOPES.verticalGradient },
       u_opacity: { value: SLOPES.opacity },
+      u_roof_shade: { value: SLOPES.roofShade },
       u_p: { value: pq(window.__todCurrentP != null ? window.__todCurrentP : 0.5) },
     };
     scene = new T.Scene();

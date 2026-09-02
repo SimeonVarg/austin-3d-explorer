@@ -40,7 +40,13 @@
  *             the fog on (175,108,60) and off (153,87,46); the fog moves both.
  *   lod       at ~800 m with render distance 700 the mesh is hidden with
  *             roofs-pitched (LOD_isHidden, and its pixel is the ground);
- *             at the slider's top it is back.
+ *             at the slider's top it is back. LOD IS PER GROUP: the custom
+ *             layer's layout visibility stays 'visible' at every altitude
+ *             (lod.js never writes it), render() keeps running, the roofs
+ *             group goes and the Capitol dome group stays. Asserting
+ *             visibility 'none' here was the old contract and it is gone —
+ *             a hidden custom layer's render() is never called, which took
+ *             the dome off the skyline with the roofs on 2026-09-02.
  *   preset    GFX.preset = 'performance' halves slopes.detail(); the debug
  *             lathe rebuilds at half its segments.
  *   raycast   slopes.raycast() at the cube's top centre hits it at 16.00 m;
@@ -289,21 +295,45 @@ await pose(page, lodPose, zoomFor(850, 60, 30.2846), 60, 0);
 const lod = await page.evaluate(async () => {
   const m = window.__map, s = window.slopes;
   const alt = () => { try { const a = window.__fly && window.__fly.eye().alt; if (isFinite(a) && a > 0) return a; } catch (e) {} return m.transform.cameraToCenterDistance / m.transform.pixelsPerMeter; };
-  const state = () => ({ alt: +alt().toFixed(0), roofs: m.getLayoutProperty('roofs-pitched', 'visibility') || 'visible', meshHidden: window.LOD_isHidden('slopes-mesh'), meshVisible: s.layer.isVisible(), custVis: m.getLayoutProperty('slopes-mesh', 'visibility') || 'visible' });
+  const groups = () => { const o = {}; for (const g of s.stats().groups) o[g.name] = g.visible; return o; };
+  const state = () => ({ alt: +alt().toFixed(0), roofs: m.getLayoutProperty('roofs-pitched', 'visibility') || 'visible', meshHidden: window.LOD_isHidden('slopes-mesh'), meshVisible: s.layer.isVisible(), custVis: m.getLayoutProperty('slopes-mesh', 'visibility') || 'visible', frames: s.frames, groups: groups() });
   window.GFX.renderDistance = 700; window.applyLOD(m); await new Promise(r => setTimeout(r, 500));
   const hidden = state();
+  // The layer must still be RENDERING while LOD holds it down — that is the
+  // whole point of the per-group contract, and a frame counter that has
+  // stopped is how the dome disappeared on 2026-09-02.
+  m.triggerRepaint(); await new Promise(r => setTimeout(r, 500));
+  const hiddenLater = state();
   window.GFX.renderDistance = 1500; window.applyLOD(m); await new Promise(r => setTimeout(r, 500));
   const shown = state();
   window.GFX.renderDistance = 700; window.applyLOD(m); await new Promise(r => setTimeout(r, 500));
-  return { hidden, shown };
+  return { hidden, hiddenLater, shown };
 });
 const P2 = await scr(page, P.x, P.y, P.E - 0.01);
 const cubeHidden = (await sample(page, [P2], 1))[0];
 await page.evaluate(async () => { window.GFX.renderDistance = 1500; window.applyLOD(window.__map); await new Promise(r => setTimeout(r, 500)); });
 const cubeShown = (await sample(page, [P2], 1))[0];
+// THE CONTRACT CHANGED ON 2026-09-02 and this is where it is asserted. It used
+// to read `custVis === 'none'`: js/lod.js wrote layout visibility on the custom
+// layer as well as calling setVisible. MapLibre 5.24 honours that by never
+// calling render() again — and render() is where this layer decides PER GROUP,
+// so the Capitol dome (no tier, `lod: null`) went with the roofs and there was
+// no dome at all, its 18+7+4 discs still held down by the layer's own filter.
+// Now lod.js tells the layer and ONLY tells the layer: visibility stays
+// 'visible' at every altitude, render() keeps running, and the groups answer
+// for themselves.
 check('at altitude past the render distance the mesh is hidden with roofs-pitched',
-  lod.hidden.alt > 700 * 1.08 && lod.hidden.roofs === 'none' && lod.hidden.meshHidden === true && lod.hidden.meshVisible === false && lod.hidden.custVis === 'none',
-  `alt ${lod.hidden.alt} m, D=700: roofs-pitched ${lod.hidden.roofs}, LOD_isHidden(slopes-mesh) ${lod.hidden.meshHidden}, layer.isVisible ${lod.hidden.meshVisible}, visibility '${lod.hidden.custVis}'`);
+  lod.hidden.alt > 700 * 1.08 && lod.hidden.roofs === 'none' && lod.hidden.meshHidden === true && lod.hidden.meshVisible === false && lod.hidden.custVis === 'visible',
+  `alt ${lod.hidden.alt} m, D=700: roofs-pitched ${lod.hidden.roofs}, LOD_isHidden(slopes-mesh) ${lod.hidden.meshHidden}, layer.isVisible ${lod.hidden.meshVisible}, visibility '${lod.hidden.custVis}' (must stay 'visible' — lod.js never writes it)`);
+check('...and the layer is still RENDERING while it is hidden, so the per-group verdict can be given',
+  lod.hiddenLater.frames > lod.hidden.frames,
+  `frames ${lod.hidden.frames} -> ${lod.hiddenLater.frames} over one repaint while LOD_isHidden is true`);
+check('...the roofs group goes with roofs-pitched and the DOME STAYS ON THE SKYLINE',
+  lod.hidden.groups['slopes-roofs'] === false && lod.hidden.groups['slopes-dome'] === true,
+  `groups at D=700: ${JSON.stringify(lod.hidden.groups)}`);
+check('...and every group is back when the slider is at the top',
+  lod.shown.groups['slopes-roofs'] === true && lod.shown.groups['slopes-dome'] === true,
+  `groups at D=1500: ${JSON.stringify(lod.shown.groups)}`);
 check('...and the slider top brings both back', lod.shown.roofs === 'visible' && lod.shown.meshHidden === false && lod.shown.meshVisible === true, `D=1500: roofs-pitched ${lod.shown.roofs}, LOD_isHidden ${lod.shown.meshHidden}, isVisible ${lod.shown.meshVisible}`);
 check('...measured on the cube itself: its pixel is the ground while hidden and the cube when shown', maxd(cubeHidden, cubeShown) >= 15, `cube top ${rgb(cubeHidden)} hidden vs ${rgb(cubeShown)} shown`);
 await shot(page, 'lod-altitude');
