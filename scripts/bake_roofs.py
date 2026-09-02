@@ -80,7 +80,22 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SNAP = os.path.join(ROOT, "data", "snapshots", "2026-07-30", "buildings.detailed.geojson")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bake_facades  # noqa: E402
+
+# THE SNAPSHOT THE ROOFS SIT ON IS THE ONE THE APP DRAWS. This was pinned to
+# 2026-07-30 until 2026-09-02, nineteen snapshots behind `manifest.latest`,
+# which is what js/app.js loads the walls from. Measured across that gap:
+# every footprint identical, but two buildings' heights moved (University
+# Catholic Center 7.4 -> 12.8 m, University Christian Church 37.0 -> 16.5 m)
+# and one wall colour — and a roof's `base` is the wall's `final_height`, so
+# a pinned bake puts a roof either inside the walls the renderer draws or
+# floating over them, and the height gate (MAX_HEIGHT_M) judges a building
+# by a height the app no longer uses. bake_entrances.py made the same call
+# for the same reason. `SNAP_DATE=2026-07-30 python scripts/bake_roofs.py`
+# pins a named snapshot for a rebake that must not roll the city under it.
+SNAP_DATE = os.environ.get("SNAP_DATE") or bake_facades.snapshot_date()
+SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, "buildings.detailed.geojson")
 TILES = os.path.join(ROOT, "data", "imagery_cache")
 OUT = os.path.join(ROOT, "data", "roofs.geojson")
 MEAS = os.path.join(ROOT, "data", "roof_runs.json")   # what the photograph said
@@ -2040,7 +2055,8 @@ def gable_front_parts(ring, spec, height_m):
             a0, a1 = max(u0, -hw), min(u1, hw)
             if a1 - a0 < 0.4:
                 continue
-            parts.append((rect(a0, a1, vu - gable_d, vu + proud_g), h0, h1, brick, True))
+            parts.append((rect(a0, a1, vu - gable_d, vu + proud_g), h0, h1, brick, True,
+                          "course"))
             # QUEUE H5: a flat 1.5 m block measured in from EACH end assumed
             # the course was wide enough to hold both. Near the apex, and on
             # the narrower side wings of a many-cornered elevation (Gregory
@@ -2059,7 +2075,7 @@ def gable_front_parts(ring, spec, height_m):
                 if e1 - e0 < 0.3:
                     continue
                 parts.append((rect(e0, e1, vu - gable_d, vu + proud_g + 0.26),
-                              h0 - 0.36, h0 + 0.06, stone, True))
+                              h0 - 0.36, h0 + 0.06, stone, True, "rake"))
 
     # ── 3. THE INNER PEDIMENT, on the bay's own plane ────────────────────
     # The footprint's 24.9 m projection IS the second pediment in the
@@ -2080,7 +2096,7 @@ def gable_front_parts(ring, spec, height_m):
         hw = (W_in * 0.5) * (1.0 - f0) + 0.6 * f0
         parts.append((rect(-hw, hw, inner_rear, proud_g),
                       eave + (apex_in - eave) * f0,
-                      eave + (apex_in - eave) * f1, brick, True))
+                      eave + (apex_in - eave) * f1, brick, True, "course"))
     n_c = int(spec.get("corbels", 13))
     for side in (-1, 1):
         for c in range(n_c):
@@ -2111,7 +2127,7 @@ def gable_front_parts(ring, spec, height_m):
             outer = spring + math.sqrt(max(0.0, R * R - xm * xm)) if abs(xm) < R else spring
             if outer - inner < 0.05:
                 continue
-            parts.append((rect(ua, ub, 0.0, proud_a), inner, outer, brick, False))
+            parts.append((rect(ua, ub, 0.0, proud_a), inner, outer, brick, False, "ring"))
         for sx in (-1, 1):
             parts.append((rect(u_c + sx * r, u_c + sx * (r + ring_m), 0.0, proud_a),
                           podium, spring, brick, False))
@@ -2138,7 +2154,9 @@ def gable_front_parts(ring, spec, height_m):
                           0.0, podium * 0.55, conc, False))
 
     out, buried = [], 0
-    for rg_m, b0, h0, day, free in parts:
+    for part in parts:
+        rg_m, b0, h0, day, free = part[:5]
+        kind = part[5] if len(part) > 5 else "gable"
         if h0 - b0 < 0.02 or not day:
             continue
         # ANYTHING BELOW THE BUILDING'S OWN HEIGHT MUST STAND OUTSIDE IT.
@@ -2153,11 +2171,36 @@ def gable_front_parts(ring, spec, height_m):
             if inside((cx, cy), pm):
                 buried += 1
                 continue
-        out.append(_band_feature(rg_m, lat0, b0, h0, day, az))
+        out.append(_band_feature(rg_m, lat0, b0, h0, day, az, kind))
     if buried:
         print("  GABLE FRONT: %d parts below the eave were inside the building "
               "and were dropped — check the wall this front is anchored to" % buried)
-    return out
+    # THE SAME ELEVATION, AS THE NUMBERS THE PRISMS WERE CUT FROM. Everything
+    # js/slopes-roofs.js needs to draw the two pediments as real triangular
+    # prisms with a raking cornice and the archivolts as real half-rings —
+    # the frame of the anchor wall, the segments of the elevation in that
+    # frame, and the spec's own metres — so the mesh and the prisms above are
+    # two readings of one spec and cannot disagree about where the wall is.
+    k = math.cos(math.radians(lat0))
+    grig = {
+        "dpm": [1.0 / (M_LAT * k), 1.0 / M_LAT],
+        "foot": [round(foot[0], 3), round(foot[1], 3)],
+        "t": [round(tx, 6), round(ty, 6)], "n": [round(nx, 6), round(ny, 6)],
+        "az": round(az, 1),
+        "eave": eave, "apex_out": round(apex_out, 3), "apex_in": round(apex_in, 3),
+        "w_out": W_out, "w_in": round(W_in, 3),
+        "apex_hw_out": 0.7, "apex_hw_in": 0.6,      # the flat crown, as above
+        "gable_d": gable_d, "proud_g": round(proud_g, 3),
+        "bay_back": 0.9, "bay_v": 0.4,              # the anchored bay steps back
+        "inner_rear": round(inner_rear, 3),
+        "rake": {"up": 0.06, "down": 0.36, "proud": 0.26, "reach": 1.6},
+        "west": [[round(u0, 3), round(u1, 3), round(v, 3)] for (u0, u1, v) in west],
+        "arches": {"n": n_ar, "pitch": ar_p, "r": r, "ring": ring_m,
+                   "spring": spring, "proud": round(proud_a, 3)},
+        "brick": list(make_roof_colors(brick)),
+        "stone": list(make_roof_colors(stone)),
+    }
+    return out, grig
 
 
 # ── FACADE BANDS: what a 1960s dorm is actually made of ───────────────
@@ -2227,8 +2270,16 @@ BAND_SHADE     = 0.82  # how dark a band's own shaded end is. Roof facets use
                        # into a black stripe.
 
 
-def _band_feature(ring_m, lat0, b0, h0, day, az):
+def _band_feature(ring_m, lat0, b0, h0, day, az, kind="band"):
     """One authored elevation prism, with its own shade range and azimuth.
+
+    `kind` is the `f` tag js/slopes-roofs.js filters on when the three.js
+    layer is drawing the real shapes: an authored part that is ALREADY the
+    right shape (a stair, a veneer, a precast course — "gable" / "band") stays
+    on screen; one that is a stair-step stand-in for a slope or a curve
+    ("course", "rake", "ring") is hidden while the mesh draws it properly, and
+    comes back untouched when the layer is off. The roof slabs themselves
+    carry no `f` at all, so the filter is one `match` on one key.
 
     `az` IS THE WALL'S OWN OUTWARD NORMAL, not 0. Every authored part in the
     first cut of this carried az=0, so `roofFacetColor` gave all four sides of
@@ -2244,7 +2295,8 @@ def _band_feature(ring_m, lat0, b0, h0, day, az):
                      "coordinates": [close_ring(to_ll([(x, y) for x, y in ring_m], lat0))]},
         "properties": {"b": round(b0, 2), "h": round(h0, 2), "az": round(az, 1),
                        "rd": rd, "rdd": tint(rd, BAND_SHADE),
-                       "rg": rg, "rgd": tint(rg, BAND_SHADE), "rn": rn},
+                       "rg": rg, "rgd": tint(rg, BAND_SHADE), "rn": rn,
+                       "f": kind},
     }
 
 
@@ -2785,6 +2837,11 @@ def main():
     overrides = load_overrides()
     tile_base, tile_base_n = campus_tile_base(feats, cache)
     retinted = {}            # building id -> the tile triple its cap must take
+    # THE RIG. Everything below is computed per roof and was thrown away once
+    # the slabs were written; js/slopes-roofs.js reads it back to draw the
+    # continuous surface the slabs are a staircase of. See `rig` at the write.
+    rig = {}
+    gables = {}
     out = []
     stats = Counter()
     # Pinned so it prints even at zero. A count that only appears when it is
@@ -3083,6 +3140,7 @@ def main():
             # travelling far), so the church at 22nd got a cross-shaped plate at
             # the top of its rise with two arms running 25 m down a wing only
             # 13 m wide. A capped ring cannot leave the building.
+            rig_deck = None
             deck = rings[-1][0]
             if deck is None or abs(signed_area(deck)) < 1.0:
                 deck = None
@@ -3143,6 +3201,7 @@ def main():
                 # extrusion never has to be reasoned about.
                 props.update({"b": round(top - DECK_SKIRT_M, 2), "h": top, "az": 0})
                 emitted.append((deck[:-1], top, props))
+                rig_deck = [props["rd"], props["rg"], props["rn"]]
                 stats["decks" if membrane else "ridge_tops"] += 1
 
             if made < 1:
@@ -3179,6 +3238,26 @@ def main():
                     "properties": dict(props),
                 })
             stats["tiled"] += 1
+            # The rig: the profile, its rays and caps, the depth the slope runs
+            # to and the heights it runs between — the numbers every ring above
+            # was a multiply-add on. Metres in this file's own frame; `dpm`
+            # (degrees per metre, x then y) is the way back to lng/lat, so the
+            # reader carries no projection constant of its own.
+            kk = math.cos(math.radians(lat0))
+            rig[key] = {
+                "name": p.get("name"),
+                "dpm": [1.0 / (M_LAT * kk), 1.0 / M_LAT],
+                "pts": [[round(x, 2), round(y, 2)] for (x, y) in ppts],
+                "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in prays],
+                "caps": [round(c, 2) for c in pcaps],
+                "spans": [[a, b] for (a, b) in spans],
+                "d": round(d_use, 3), "run": round(run, 2), "rise": round(rise, 3),
+                "base": round(base, 2), "steps": steps,
+                "col": [rd_real, rg_real, rn_real],   # settled below, with the facets
+                "lip": ([rd_real, rg_real, rn_real] if eave_ring is not None else None),
+                "deck": rig_deck,
+                "_rb": rb_here,
+            }
             # A WING IS NOT THE BUILDING. `pitched` tells the parapet-cap rule
             # below to leave a building's cap terracotta because it has a real
             # tiled hip. Calhoun's cross bar does — and the two stems either
@@ -3262,11 +3341,12 @@ def main():
         h = float(p.get("final_height") or 0)
         spec = ov.get("gable_front")
         if spec and h > 4:
-            made = gable_front_parts(rings[0], spec, h)
+            made, grig = gable_front_parts(rings[0], spec, h)
             out.extend(made)
             stats["gable_front_parts"] += len(made)
             if made:
                 stats["gable_fronts"] += 1
+                gables[p.get("id")] = dict(grig, name=p.get("name"))
         spec = ov.get("facade_bands")
         if spec and h > 6:
             # EVERY ring, not just the outer one: Jester West's courtyard is a
@@ -3316,6 +3396,16 @@ def main():
         pr["rg"] = tint(base_g, 1.0)
         pr["rgd"] = tint(base_g, SHADE_LO / SHADE_HI)
     stats["colour_from_imagery"] = moved
+    # ...and the rig's facet colour moves with its facets: the same shift, on
+    # the unshaded roof colour, so a mesh roof lit by the real sun starts from
+    # the tone its own slabs are shaded around.
+    for ent in rig.values():
+        rb = ent.pop("_rb", None)
+        if rb is None or not median_rb:
+            continue
+        ent["col"] = [shift_to_measured(ent["col"][0], rb, median_rb),
+                      shift_to_measured(ent["col"][1], rb, median_rb),
+                      ent["col"][2]]
 
     # ── The parapet caps over membrane decks ─────────────────────────────
     #
@@ -3339,7 +3429,15 @@ def main():
         if bid:
             caps[bid] = triple
             cap_stats["cap_took_the_tile_colour"] += 1
-    fc = {"type": "FeatureCollection", "features": out, "caps": caps}
+    # THE RIG IS A SECOND FOREIGN MEMBER, beside `caps` and for the same
+    # reasons: MapLibre ignores it, the app already holds this parsed object,
+    # and a shape is not a feature. `roofs` is keyed like `caps` plus the ring
+    # index (`id/ri`), `gables` by building id; `meta` carries the constants
+    # the slabs were built with so the reader never restates one.
+    fc = {"type": "FeatureCollection", "features": out, "caps": caps,
+          "rig": {"meta": {"lip": 0.35, "over": EAVE_OUT_M, "skirt": DECK_SKIRT_M,
+                           "pitch": PITCH, "snapshot": os.path.basename(os.path.dirname(SNAP))},
+                  "roofs": rig, "gables": gables}}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     with open(MEAS, "w", encoding="utf-8") as fh:
@@ -3350,6 +3448,9 @@ def main():
         "counts": dict(sorted(stats.items())),
         "parapet_caps": dict(sorted(cap_stats.items())),
         "caps_kb": round(len(json.dumps(caps, separators=(",", ":"))) / 1024, 1),
+        "rig_kb": round(len(json.dumps(fc["rig"], separators=(",", ":"))) / 1024, 1),
+        "rig_roofs": len(rig),
+        "rig_gables": len(gables),
         "tile_colour": {
             "campus base": tile_base,
             "derived from": tile_base_n or "nothing — the constant %s stood in" % TILE_BASE,
