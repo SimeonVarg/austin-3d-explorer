@@ -107,6 +107,10 @@
     mid: [
       'trees-canopy', 'roofscape-major', 'roofscape-deck',
       'roofs-pitched', 'moody-roof', 'arts-cap',
+      // The three.js layer (js/slopes.js) that is replacing the pitched-roof
+      // slabs. Same tier as `roofs-pitched` on purpose: the real roofs and the
+      // slabs go at the same altitude, whichever of them is drawing.
+      'slopes-mesh',
     ],
   };
   window.LOD_TIERS = TIERS;
@@ -150,6 +154,25 @@
     return isHidden ? alt > thr * (1 - LOD.hysteresis) : alt > thr * (1 + LOD.hysteresis);
   }
 
+  /**
+   * A `type:'custom'` layer has no layout, so `setLayoutProperty` is not how
+   * it is hidden: MapLibre still honours `visibility` on one (probed on 5.24 —
+   * a hidden custom layer's render() is simply never called), but the layer
+   * cannot see that decision from the inside, and js/slopes.js needs to,
+   * because its own switch and this one gate drawing independently. So a
+   * custom layer that exposes `setVisible(bool)` on its implementation is
+   * told directly, AND the visibility property is written, so either path
+   * alone would have hidden it.
+   */
+  function setVisible(id, on) {
+    const layer = _map.getLayer(id);
+    const impl = layer && layer.type === 'custom' && layer.implementation;
+    if (impl && typeof impl.setVisible === 'function') impl.setVisible(on);
+    _map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  }
+  /** Is `id` currently hidden by this module? (For custom layers' own render paths.) */
+  window.LOD_isHidden = id => _hidden.has(id);
+
   function apply() {
     if (!_map || !_map.getStyle) return;
     const alt = altitude();
@@ -160,11 +183,11 @@
         if (!_map.getLayer(id)) continue;
         if (hide) {
           if (_hidden.has(id)) continue;
-          try { _map.setLayoutProperty(id, 'visibility', 'none'); _hidden.add(id); } catch (e) {}
+          try { setVisible(id, false); _hidden.add(id); } catch (e) {}
         } else if (_hidden.has(id)) {
           // Only ever restore what we hid — never force-show a layer some other
           // module is deliberately holding down.
-          try { _map.setLayoutProperty(id, 'visibility', 'visible'); } catch (e) {}
+          try { setVisible(id, true); } catch (e) {}
           _hidden.delete(id);
         }
       }

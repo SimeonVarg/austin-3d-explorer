@@ -28,6 +28,12 @@
        it needs. harness-drift.mjs could not see the gap because its regex
        matched `js/...` sources only; it compares CDN scripts too now. -->
   <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+  <!-- three.js, for js/slopes.js — the one layer in this app that is not
+       fill-extrusion. r159 (MIT) is the last release that ships a plain-script
+       build; r160 removed three.min.js, so a newer pin means an ES module.
+       `defer`: it is not on the boot path (slopes.js waits for window.THREE)
+       and 668 KB must not hold the city up. KEEP IN SYNC WITH _harness.html. -->
+  <script src="https://unpkg.com/three@0.159.0/build/three.min.js" defer></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -105,6 +111,10 @@
   <!-- Render distance (docs: js/lod.js header). Self-booting; needs the tag in
        BOTH files or the harness measures a scene the site does not serve. -->
   <script src="js/lod.js"></script>
+  <!-- Real slopes (js/slopes.js header): the three.js custom layer. Self-
+       booting off window.__map; ?slopes=0 leaves it out. After lod.js, which
+       lists its layer id. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/slopes.js"></script>
   <script src="js/controls.js"></script>
   <!-- These four bootstrap themselves off window.__map, so position in this list
        does not matter; anywhere before </body> works.
