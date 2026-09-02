@@ -149,14 +149,21 @@ if (BREAK) {
 }
 
 // stack
+// js/sky.js anchors the fog AFTER THE LAST layer that writes depth and before
+// the trailing run of labels — not before the first symbol layer in the style
+// (passes interleave symbol layers among the 3D ones; the first run of this
+// gate asserted the stricter thing and went red at slopes 208 / fog 210 /
+// first symbol 199). The claim that matters: the mesh is below the fog, and
+// nothing below the labels sits above the fog except the sky compositor.
 const order = await page.evaluate(() => {
   const m = window.__map, o = m.style._order;
-  const sym = m.getStyle().layers.filter(l => l.type === 'symbol').map(l => o.indexOf(l.id)).filter(i => i > o.indexOf('buildings-3d'));
-  return { slopes: o.indexOf('slopes-mesh'), fog: o.indexOf('aerial-fog'), sky: o.indexOf('sky-overlay'), firstSymbol: Math.min(...sym), n: o.length };
+  const fog = o.indexOf('aerial-fog');
+  const above = o.slice(fog + 1).filter(id => id !== 'sky-overlay' && !(m.getLayer(id) && m.getLayer(id).type === 'symbol'));
+  return { slopes: o.indexOf('slopes-mesh'), fog, sky: o.indexOf('sky-overlay'), aboveFogNotLabel: above, n: o.length };
 });
-check('slopes-mesh sits before aerial-fog, which sits before the labels',
-  order.slopes >= 0 && order.slopes < order.fog && order.fog < order.firstSymbol,
-  `order: slopes ${order.slopes}, fog ${order.fog}, sky ${order.sky}, first symbol ${order.firstSymbol} of ${order.n}`);
+check('slopes-mesh sits before aerial-fog, and only the sky and the labels sit above the fog',
+  order.slopes >= 0 && order.slopes < order.fog && order.aboveFogNotLabel.length === 0,
+  `order: slopes ${order.slopes}, fog ${order.fog}, sky ${order.sky} of ${order.n}; non-label layers above the fog: [${order.aboveFogNotLabel.join(', ')}]`);
 
 // frame
 const proj = await page.evaluate(() => {
@@ -306,14 +313,17 @@ const C = await mallFrame(`${SERVER}/index.html?intro=0&drift=0&slopes=0`, 'swit
 const offState = await C.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes ? window.slopes.frames : -1, renderer: !!(window.slopes && window.slopes.renderer), on: window.SLOPES.on }));
 check('?slopes=0 leaves no layer, no renderer and no frame', !offState.layer && offState.frames === 0 && !offState.renderer && offState.on === false, `layer ${offState.layer}, frames ${offState.frames}, renderer ${offState.renderer}, SLOPES.on ${offState.on}`);
 await C.pg.close();
-const d1 = diffPNG(A.f, fA2), d2 = diffPNG(A.f, C.f);
+// Within one page the comparison is exact. Across two page LOADS a channel
+// may wobble by a unit or two (the first run: 1 pixel, Δ1, against a pristine
+// main), so cross-load comparisons ignore Δ ≤ 2 and print the raw count too.
+const d1 = diffPNG(A.f, fA2), d2 = diffPNG(A.f, C.f, 2), d2raw = diffPNG(A.f, C.f);
 check('SLOPES.on = false at runtime: the mall-cruise frame is pixel-identical', d1.pixels === 0, `${d1.pixels} of ${d1.total} pixels differ (max channel Δ ${d1.maxChannelDiff})`);
-check('the empty layer ON vs ?slopes=0 (a separate page load): pixel-identical', d2.pixels === 0, `${d2.pixels} of ${d2.total} pixels differ (max channel Δ ${d2.maxChannelDiff})${d2.bbox ? ', bbox ' + d2.bbox.join(',') : ''}`);
+check('the empty layer ON vs ?slopes=0 (a separate page load): pixel-identical beyond Δ2', d2.pixels === 0, `${d2.pixels} of ${d2.total} pixels differ by more than 2 (${d2raw.pixels} by any amount, max channel Δ ${d2raw.maxChannelDiff})${d2.bbox ? ', bbox ' + d2.bbox.join(',') : ''}`);
 if (AGAINST) {
   const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
   await D.pg.close();
-  const d3 = diffPNG(C.f, D.f);
-  check(`?slopes=0 vs the build at ${AGAINST}: pixel-identical`, d3.pixels === 0, `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+  const d3 = diffPNG(C.f, D.f, 2), d3raw = diffPNG(C.f, D.f);
+  check(`?slopes=0 vs the build at ${AGAINST}: pixel-identical beyond Δ2`, d3.pixels === 0, `${d3.pixels} of ${d3.total} pixels differ by more than 2 (${d3raw.pixels} by any amount, max channel Δ ${d3raw.maxChannelDiff})${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
 }
 if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
 
