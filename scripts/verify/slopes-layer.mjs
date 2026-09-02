@@ -46,6 +46,27 @@
  *   raycast   slopes.raycast() at the cube's top centre hits it at 16.00 m;
  *             at the sky it returns null.
  *
+ * With the generators (js/slopes-roofs.js, -arches.js, -dome.js) drawing:
+ *
+ *   built     112 roofs + Gregory Gym's gable, 24 arched entrances and the
+ *             three dome parts are in the scene; roofs-pitched shows only the
+ *             `f` tags it keeps, entrances-portal/glass exclude `arc`, and
+ *             capitol-dome excludes the three lathed parts; SLOPES.on = false
+ *             puts all three filters back to what they were.
+ *   ridge     at the gregory pose, on the hipped roof nearest the frame's
+ *             centre whose two long slopes the light tells apart most: the
+ *             slopes read as two tones either side of the ridge (pixels), each
+ *             slope is one tone along its length (pixels), and a raycast down
+ *             the slope climbs continuously at the rig's own pitch — a
+ *             staircase would plateau.
+ *   arch      at the battle-street pose, on the arched door nearest the
+ *             frame's centre: six raycasts along the surround's curve all hit
+ *             the arches mesh within 10 cm of the ellipse, the six pixels are
+ *             one tone and lighter than the fanlight glass inside, and the
+ *             frame differs from the chord frame where the arch is. The same
+ *             door from 22 m (`battle-door`), where the curve is 300 px wide,
+ *             is the frame worth looking at.
+ *
  * --break moves the layer to the END of the style, above the fog — inside the
  * page only — and the stack and haze assertions must go red. Use it before
  * trusting a green.
@@ -84,7 +105,7 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass, detai
 const rgb = v => v ? v.join(',') : 'null';
 const maxd = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
 
-const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 900000 });
+const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 1500000 });   // three page loads and twelve poses: ~15 min
 const errors = [];
 async function open(url) {
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
@@ -290,6 +311,138 @@ await page.evaluate(() => { window.GFX.renderDistance = 700; });
 await pose(page, lodPose, zoomFor(60, 60, 30.2846), 60, 20);
 const back = await page.evaluate(async () => { window.applyLOD(window.__map); await new Promise(r => setTimeout(r, 500)); return { roofs: window.__map.getLayoutProperty('roofs-pitched', 'visibility') || 'visible', meshHidden: window.LOD_isHidden('slopes-mesh'), vis: window.slopes.layer.isVisible() }; });
 check('descending restores the mesh with the slabs', back.roofs === 'visible' && !back.meshHidden && back.vis, `roofs-pitched ${back.roofs}, LOD_isHidden ${back.meshHidden}, isVisible ${back.vis}`);
+
+// ═══════════════════════════════════════════════════════════════════════
+// 1b. The generators: real shapes, from pixels.
+// ═══════════════════════════════════════════════════════════════════════
+const GREGORY = { center: [-97.7365, 30.2845], zoom: 17.722, pitch: 50, bearing: 90 };
+const BATTLE = { center: [-97.74095, 30.28495], zoom: 19.765, pitch: 65, bearing: 200 };
+const BATTLE_DOOR = { center: [-97.74015, 30.28541], zoom: 21.17, pitch: 75, bearing: 270 };
+await page.evaluate(() => window.GFX.renderDistance = 1500);
+await page.waitForFunction(() => window.slopesRoofs && window.slopesRoofs.count.roofs > 0 && window.slopesArches && window.slopesArches.count.done && window.slopesDome && window.slopesDome.count.done, null, { timeout: 90000 }).catch(() => {});
+const gen = await page.evaluate(() => {
+  const m = window.__map;
+  const names = window.slopes.root.children.map(g => g.name);
+  return { roofs: window.slopesRoofs.count, arches: window.slopesArches.count, dome: window.slopesDome.count, names,
+           filters: { roofs: JSON.stringify(m.getFilter('roofs-pitched') || null), portal: JSON.stringify(m.getFilter('entrances-portal') || null), glass: JSON.stringify(m.getFilter('entrances-glass') || null), dome: JSON.stringify(m.getFilter('capitol-dome') || null) } };
+});
+check('the three generators built: roofs + gable, 24 arches, 3 dome parts, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3 && ['slopes-roofs', 'slopes-arches', 'slopes-dome'].every(n => gen.names.includes(n)),
+  `${gen.roofs.roofs} roofs + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris); groups ${gen.names.join(', ')}`);
+check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
+  /"match","\["get","f"\]/.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
+  `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
+const restored = await page.evaluate(async () => {
+  const m = window.__map;
+  window.SLOPES.on = false; await new Promise(r => setTimeout(r, 300));
+  const off = { roofs: m.getFilter('roofs-pitched') || null, portal: JSON.stringify(m.getFilter('entrances-portal') || null), glass: JSON.stringify(m.getFilter('entrances-glass') || null), dome: m.getFilter('capitol-dome') || null, groups: window.slopes.root.children.map(g => g.name) };
+  window.SLOPES.on = true; await new Promise(r => setTimeout(r, 300));
+  return off;
+});
+check('SLOPES.on = false puts every filter back (roofs-pitched and capitol-dome to none, the entrance layers to their own) and takes the groups out',
+  restored.roofs === null && restored.dome === null && !/arc/.test(restored.portal) && !/arc/.test(restored.glass) && /"k"/.test(restored.portal) && !restored.groups.some(n => /slopes-(roofs|arches|dome)/.test(n)),
+  `off: roofs ${restored.roofs}, dome ${restored.dome}, portal …${restored.portal.slice(-60)}, groups [${restored.groups.join(', ')}]`);
+
+// ridge: the hipped roof the light separates best, near the frame's centre
+await pose(page, GREGORY.center, GREGORY.zoom, GREGORY.pitch, GREGORY.bearing);
+const ridge = await page.evaluate(() => {
+  const S = window.slopes, R = window.slopesRoofs.data, meta = R.meta, cv = window.__map.getCanvas();
+  const L = S.light().enu, Ln = Math.hypot(...L);
+  const cands = [];
+  for (const key of Object.keys(R.roofs)) {
+    const r = R.roofs[key]; const M = r.pts.length;
+    if (M !== 4 || !r.deck) continue;                        // a plain hip: four corners, a ridge or a narrow deck
+    const at = (k, d) => { const c = Math.min(d, r.caps[k]); const l = S.toLocal((r.pts[k][0] + r.rays[k][0] * c) * r.dpm[0], (r.pts[k][1] + r.rays[k][1] * c) * r.dpm[1], 0); return [l.x, l.y]; };
+    const z = d => r.base + meta.lip + r.rise * d / r.d;
+    const edges = r.spans.map(([a, b]) => { const p = r.pts[a], q = r.pts[b % M]; const dx = q[0] - p[0], dy = q[1] - p[1], Lw = Math.hypot(dx, dy); return { a, b: b % M, L: Lw, n: [dy / Lw, -dx / Lw] }; }).sort((x, y) => y.L - x.L);
+    if (edges[0].L < 25) continue;
+    const pitch = Math.atan2(r.rise, r.d);
+    const lit = e => { const n = [e.n[0] * Math.sin(pitch), e.n[1] * Math.sin(pitch), Math.cos(pitch)]; return Math.max(0, Math.min(1, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]))); };
+    const mid = (e, f) => { const d = r.d * f; const A = at(e.a, d), B = at(e.b, d); return { x: (A[0] + B[0]) / 2, y: (A[1] + B[1]) / 2, z: z(d) }; };
+    const scr = p => { const s = S.project(p.x, p.y, p.z); return s && s.x > 40 && s.x < cv.clientWidth - 40 && s.y > 80 && s.y < cv.clientHeight - 80 ? [s.x, s.y] : null; };
+    const A = mid(edges[0], 0.5), B = mid(edges[1], 0.5);
+    const sa = scr(A), sb = scr(B);
+    if (!sa || !sb) continue;
+    const dl = Math.abs(lit(edges[0]) - lit(edges[1]));
+    const along = [0.12, 0.3, 0.5, 0.7, 0.88].map(f => { const p = mid(edges[0], f); return { px: scr(p), z: p.z, d: r.d * f }; });
+    if (along.some(a => !a.px)) continue;
+    const c = Math.hypot(sa[0] - cv.clientWidth / 2, sa[1] - cv.clientHeight / 2);
+    cands.push({ key, name: r.name, dl, sa, sb, along, pitch: r.rise / r.d, centre: c, base: r.base, rise: r.rise, dUse: r.d });
+  }
+  cands.sort((x, y) => (y.dl - x.dl) || (x.centre - y.centre));
+  return cands[0] || null;
+});
+if (!ridge) check('a hipped roof is in the gregory frame', false, 'no four-corner roof with both long slopes on screen');
+else {
+  const pts = [ridge.sa, ridge.sb].concat(ridge.along.map(a => a.px));
+  const on = await sample(page, pts, 1);
+  const rc = await page.evaluate(pts => pts.map(([x, y]) => { const h = window.slopes.raycast(x, y); return h ? { o: h.object.name, z: +h.point.z.toFixed(3) } : null; }), ridge.along.map(a => a.px));
+  await setOn(page, false); const off = await sample(page, pts, 1); await setOn(page, true);
+  const lA = luma(on[0]), lB = luma(on[1]);
+  const alongL = on.slice(2).map(luma);
+  const spread = Math.max(...alongL) - Math.min(...alongL);
+  check(`ridge: ${ridge.name}'s two long slopes read as two tones either side of the ridge`, Math.abs(lA - lB) >= 6,
+    `slope A ${rgb(on[0])} (luma ${lA.toFixed(1)}) vs slope B ${rgb(on[1])} (luma ${lB.toFixed(1)}); predicted lit difference ${ridge.dl.toFixed(2)}; slabs read ${rgb(off[0])} / ${rgb(off[1])}`);
+  check('...and one slope is one tone from the eave to the ridge (a plane, not five treads)', spread <= 8,
+    `luma along the slope ${alongL.map(v => v.toFixed(0)).join(' ')} (spread ${spread.toFixed(1)}); the slabs there ${off.slice(2).map(rgb).join(' | ')}`);
+  const zs = rc.map(h => h && h.z);
+  const hits = rc.every(h => h && h.o === 'roofs');
+  const climbs = hits && zs.every((z, i) => i === 0 || z > zs[i - 1] + 0.05);
+  const want = ridge.along.map(a => a.z);
+  const err = hits ? Math.max(...zs.map((z, i) => Math.abs(z - want[i]))) : 1e9;
+  check('...and a raycast down the slope climbs continuously at the rig\'s own pitch', climbs && err < 0.35,
+    `hits ${rc.map(h => h ? h.o + '@' + h.z : 'none').join(', ')}; expected z ${want.map(v => v.toFixed(2)).join(', ')} (base ${ridge.base}, rise ${ridge.rise} over ${ridge.dUse} m: ${(ridge.pitch * 12).toFixed(1)}:12); worst ${err.toFixed(2)} m`);
+  await shot(page, 'ridge-gregory');
+}
+
+// arch: the arched door nearest the frame's centre at the battle-street pose, then the same door from the street
+async function archTest(P, label, minPx) {
+  await pose(page, P.center, P.zoom, P.pitch, P.bearing);
+  const A = await page.evaluate(() => {
+    const S = window.slopes, D = window.slopesArches.data, cv = window.__map.getCanvas();
+    let best = null;
+    for (const eid of Object.keys(D)) {
+      const a = D[eid]; if (!a.band) continue;
+      const F = S.frame(a.o, a.t, a.n);
+      const crown = a.spring + a.rise, sw = a.band.sw, v = a.band.v[1] + 0.005;
+      const pt = (th, dv) => { const w = a.half * Math.cos(th), u = w + (w >= 0 ? sw / 2 : -sw / 2); const p = F.at(u, v + (dv || 0), a.spring + a.rise * Math.sin(th)); return p; };
+      const ths = [20, 45, 70, 110, 135, 160].map(d => d * Math.PI / 180);
+      const world = ths.map(th => pt(th));
+      const scr = world.map(p => S.project(p[0], p[1], p[2]));
+      if (scr.some(s => !s || s.w <= 0)) continue;
+      const cx = scr.reduce((s, p) => s + p.x, 0) / scr.length, cy = scr.reduce((s, p) => s + p.y, 0) / scr.length;
+      if (cx < 60 || cx > cv.clientWidth - 60 || cy < 80 || cy > cv.clientHeight - 80) continue;
+      const g = F.at(0, a.tr ? a.tr.v[1] + 0.005 : v, a.spring + a.rise * 0.45); const gs = S.project(g[0], g[1], g[2]);
+      const span = Math.hypot(scr[0].x - scr[5].x, scr[0].y - scr[5].y);
+      const c = Math.hypot(cx - cv.clientWidth / 2, cy - cv.clientHeight / 2);
+      // toward the camera a hair, so the ray lands on the band's face and not behind it
+      if (!best || c < best.centre) best = { eid, ref: a.ref, centre: c, span, pts: scr.map(s => [s.x, s.y]), world, glass: gs && [gs.x, gs.y], half: a.half, rise: a.rise };
+    }
+    return best;
+  });
+  if (!A) { check(`an arched door is in the ${label} frame`, false, 'none on screen'); return; }
+  const on = await sample(page, A.pts.concat([A.glass]), 1);
+  const rc = await page.evaluate(([pts, world]) => pts.map(([x, y], i) => { const h = window.slopes.raycast(x, y); if (!h) return null; const w = world[i]; return { o: h.object.name, d: +Math.hypot(h.point.x - w[0], h.point.y - w[1], h.point.z - w[2]).toFixed(3) }; }), [A.pts, A.world]);
+  await setOn(page, false); const off = await sample(page, A.pts.concat([A.glass]), 1);
+  // the frame changes where the arch is: a grid over the door's head, on vs off
+  const box = (() => { const xs = A.pts.map(p => p[0]), ys = A.pts.map(p => p[1]); return [Math.min(...xs) - 4, Math.min(...ys) - 4, Math.max(...xs) + 4, Math.max(...ys) + 4]; })();
+  const grid = []; for (let y = box[1]; y <= box[3]; y += 2) for (let x = box[0]; x <= box[2]; x += 2) grid.push([x, y]);
+  const gOff = await sample(page, grid, 0); await setOn(page, true); const gOn = await sample(page, grid, 0);
+  const changed = grid.filter((_, i) => maxd(gOn[i], gOff[i]) > 10).length;
+  const bandL = on.slice(0, 6).map(luma), glassL = luma(on[6]);
+  const spread = Math.max(...bandL) - Math.min(...bandL);
+  const hits = rc.every(h => h && h.o === 'arches' && h.d <= 0.12);
+  check(`arch (${label}): six raycasts along ${A.ref}'s surround curve hit the arches mesh on the ellipse (${A.span.toFixed(0)} px across)`, hits,
+    `eid ${A.eid}, half ${A.half} rise ${A.rise}: ${rc.map(h => h ? h.o + ' ' + h.d + ' m' : 'miss').join(', ')}`);
+  check(`arch (${label}): the six pixels on the curve are one tone, lighter than the fanlight inside`, spread <= 24 && Math.min(...bandL) >= glassL + 12,
+    `band ${bandL.map(v => v.toFixed(0)).join(' ')} (spread ${spread.toFixed(0)}) vs glass ${glassL.toFixed(0)}; the chords there read ${off.slice(0, 6).map(luma).map(v => v.toFixed(0)).join(' ')}`);
+  check(`arch (${label}): the frame differs from the chord frame over the door's head`, changed >= Math.max(3, grid.length * 0.03),
+    `${changed} of ${grid.length} grid points over the head differ by more than 10/255 between curve and chords${A.span < minPx ? ' — at ' + A.span.toFixed(0) + ' px the curve and the chords are within a pixel of each other on the band itself; the closer pose below is the visual proof' : ''}`);
+  await shot(page, `arch-${label}`);
+}
+await archTest(BATTLE, 'battle-street', 120);
+await archTest(BATTLE_DOOR, 'battle-door', 120);
+await page.evaluate(() => window.GFX.renderDistance = 700);
 await page.close();
 
 // ═══════════════════════════════════════════════════════════════════════

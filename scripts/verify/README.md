@@ -543,11 +543,15 @@ node walk-trunk.mjs [reps]      # QUEUE Y15 from a real walk, walk vs hop, inter
 ## The slopes layer gate (added September 2 2026)
 
 `js/slopes.js` is the one layer in the app that is not MapLibre's own — a
-three.js `custom` / `renderingMode: '3d'` layer that will carry the real
-pitched roofs, the Capitol dome and the arches. `slopes-layer.mjs` proves,
-from pixels on the real page, that a mesh in it is treated exactly like the
-fill-extrusion beside it, and that switched off it leaves a frame identical to
-the one it was never in.
+three.js `custom` / `renderingMode: '3d'` layer that carries the real pitched
+roofs (`js/slopes-roofs.js`, off the `rig` member of roofs.geojson), the
+arches (`js/slopes-arches.js`, off the `arches` member of entrances.geojson)
+and the Capitol dome (`js/slopes-dome.js`, lathed from capitol_dome.geojson).
+`slopes-layer.mjs` proves, from pixels on the real page, that a mesh in it is
+treated exactly like the fill-extrusion beside it, that the generators draw
+a slope where the slabs drew stairs and a curve where the chords drew five
+flats, and that switched off it leaves a frame identical to the one it was
+never in.
 
 ```bash
 VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs                 # the gate
@@ -571,8 +575,22 @@ VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against htt
   count of differing pixels, the max channel difference and a bounding box.
   A count and a box, because "0 pixels differ" and "26,621 pixels differ, all
   inside the slab" are different sentences and a hash can only say the first.
-- **Budget: 10-12 minutes** — three full page loads and nine poses. Run it in
-  the background if your shell has a shorter ceiling; the watchdog is 900 s.
+- **Section 1b is the generators.** On the same page, after the debug
+  scene: the three groups exist and the three filters are in place (and are
+  put back, exactly, by `SLOPES.on = false`); at the gregory pose the hipped
+  roof whose two long slopes the current light separates best reads as two
+  tones either side of its ridge, one tone along each slope, and a raycast
+  down the slope climbs continuously at the rig's pitch (a staircase would
+  plateau); at the battle-street pose six raycasts along the nearest arched
+  door's surround land on the ellipse within 10 cm, the six pixels are one
+  tone lighter than the fanlight, and the frame differs from the chord frame
+  over the door's head. At that pose the arch is ~45 px across and the curve
+  and the chords are within a pixel of each other on the band itself, so the
+  same door is measured again from 22 m (`battle-door`, ~300 px) where the
+  difference is the picture. Frames land in `--shots DIR` as
+  `ridge-gregory.png`, `arch-battle-street.png`, `arch-battle-door.png`.
+- **Budget: ~15 minutes** — three full page loads and twelve poses. Run it in
+  the background if your shell has a shorter ceiling; the watchdog is 1500 s.
 
 ### Two things this gate found on its first day, both about the matrix
 
