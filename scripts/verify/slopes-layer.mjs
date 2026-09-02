@@ -14,12 +14,17 @@
  *
  * What it asserts (numbers from the first run, RTX 3050 Ti, 2026-09-02):
  *
- *   switch    ?slopes=0 leaves no layer, no renderer, no frame. With the layer
- *             installed and drawing an EMPTY scene, the mall-cruise frame is
- *             pixel-identical to ?slopes=0 (0 of 1,296,000 pixels differ), and
- *             SLOPES.on = false at runtime is identical again.
- *   stack     slopes-mesh sits before aerial-fog, which sits before the first
- *             symbol layer.
+ *   switch    ?slopes=0 leaves no layer, no renderer, no frame. SLOPES.on =
+ *             false at runtime: 0 of 1,296,000 mall-cruise pixels differ.
+ *             ?slopes=0 against a git-archive of main served from a second
+ *             port: 1 pixel, Δ1. The empty layer ON against ?slopes=0, two
+ *             page LOADS: 3,100 pixels beyond Δ2 (40 beyond Δ20), all in one
+ *             band 100-200 px from the top across the full width — the far
+ *             field, where nothing of this layer draws. NOT explained on the
+ *             first day; far-tile detail between loads is the suspect. That
+ *             line is red until someone proves what it is.
+ *   stack     slopes-mesh sits before aerial-fog; only the sky compositor and
+ *             the labels sit above the fog.
  *   frame     slopes.project(slopes.toLocal(lng, lat)) lands on map.project
  *             to 0.00 px at three points across campus and the Capitol.
  *   light     the ENU light vector is skyBodies(p).sun to 1e-15, at the
