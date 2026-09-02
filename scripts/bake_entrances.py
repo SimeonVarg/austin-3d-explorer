@@ -787,6 +787,10 @@ COLLINEAR_COS = 0.985   # cos ~10 deg; two footprint edges this parallel are one
 COLLINEAR_HOPS = 6      # how many neighbours the walk may cross
 TRANSOM_GAP = 0.04      # m of frame between head and transom
 ARCH_TIERS = 5          # horizontal chords an arch head is drawn with
+# The property every one of those chords carries — and nothing else does — so
+# js/slopes-arches.js can hide exactly the pieces that exist only because
+# ARCH_TIERS is finite, and put them back untouched when it is off.
+ARC_CHORD = {"arc": 1}
 RAIL_H = 0.90           # m over the nosing                             [C] IBC 1014.3
 RAIL_D = 0.10           # m; DRAWN diameter. A true 38 mm tube is sub-pixel at
                         # cruise altitude. Deliberate, parameterised over-scale
@@ -4473,6 +4477,18 @@ def deck_support(x, y, want):
 # (eid, k, u0, u1, v0, v1, z0, z1) — the geojson itself is lon/lat by then and
 # a support test in lon/lat is a test nobody can read.
 LOCAL = []
+
+# THE ARCHES, AS CURVES. Every arched head below is drawn as ARCH_TIERS flat
+# chords because a fill-extrusion cannot slope or curve, and 448 of the 509
+# arch pieces in the served file exist only because of that. js/slopes-arches.js
+# draws the same head as one continuous quarter-ellipse in a three.js layer,
+# and hides those chords while it does. So the numbers the chords are sampled
+# from — the opening's frame on the wall, `half`, `spring_h`, `arch_rise`, and
+# each tier's own depth and colour — are written here, once per entrance, as
+# the `arches` foreign member of the FeatureCollection, keyed by `eid`. The
+# reader restates no constant: the frame is in degrees per metre, the depths
+# are the ones the chords were boxed at, the colours the ones they carry.
+ARCHES = {}
 # bid -> bay count actually drawn, so the West Campus audit can print the bay
 # mix without re-deriving it from the geometry.
 WC_AUDIT = {}
@@ -4514,6 +4530,27 @@ class Ent(object):
     def pt(self, u, v):
         return to_ll(self.cx + u * self.tx + v * self.nx,
                      self.cy + u * self.ty + v * self.ny)
+
+    def arch(self, kind, half, spring, rise, wd, wn, v0, v1, sw=None):
+        """One curved piece of this entrance's head, for ARCHES (see there).
+
+        `kind` is `tr` (the fanlight), `band` (the surround) or `sp` (the
+        spandrel). `sw` is the band's horizontal width — the chords step
+        OUTWARD by it, not along the curve's normal, and the mesh does the
+        same so the two are the same shape. Colours are exactly what `box`
+        would have written on the chords."""
+        wg, wn_auto = wall_ramp(wd)
+        ent = ARCHES.setdefault(self.eid, {
+            "ref": self.ref, "bid": self.bid, "fam": self.fam,
+            "o": list(to_ll(self.cx, self.cy)),
+            "t": [round(self.tx / KX, 11), round(self.ty / M_LAT, 11)],
+            "n": [round(self.nx / KX, 11), round(self.ny / M_LAT, 11)],
+            "half": round(half, 3), "spring": round(spring, 3), "rise": round(rise, 3),
+        })
+        piece = {"v": [round(v0, 3), round(v1, 3)], "c": [wd, wg, wn or wn_auto]}
+        if sw is not None:
+            piece["sw"] = round(sw, 3)
+        ent[kind] = piece
 
     def box(self, k, mat, wd, u0, u1, v0, v1, z0, z1, wn=None, extra=None):
         """ONE piece. `base` is the bottom, `h` is the THICKNESS — see the
@@ -5133,7 +5170,8 @@ def assemble(feats, b, c, eid, stats):
                 w = half * math.sqrt(max(0.0, 1.0 - ((t0 + t1) / 2) ** 2))
                 e.box("transom", "glass", gcol, -w, w,
                       PROUD_DOOR, PROUD_DOOR + LEAF_T,
-                      sp + rr * t0, sp + rr * t1, gnight)
+                      sp + rr * t0, sp + rr * t1, gnight, extra=ARC_CHORD)
+            e.arch("tr", half, sp, rr, gcol, gnight, PROUD_DOOR, PROUD_DOOR + LEAF_T)
         else:
             th = min(fam["transom_h"], max(0.0, (b.h or 99.0) - head - 0.4))
             e.box("transom", "glass", gcol, -half + 0.05, half - 0.05,
@@ -5159,7 +5197,8 @@ def assemble(feats, b, c, eid, stats):
                 w = half * math.sqrt(max(0.0, 1.0 - ((t0 + t1) / 2) ** 2))
                 for sgn in (-1, 1):
                     e.box("surround", sur_mat, sur_col, sgn * w, sgn * (w + sw),
-                          0.0, sp_, spr + rr * t0, spr + rr * t1)
+                          0.0, sp_, spr + rr * t0, spr + rr * t1, extra=ARC_CHORD)
+            e.arch("band", half, spr, rr, sur_col, None, 0.0, sp_, sw)
             top = spr + rr
         else:
             for sgn in (-1, 1):
@@ -5190,7 +5229,8 @@ def assemble(feats, b, c, eid, stats):
                 for sgn in (-1, 1):
                     e.box("surround", "terracotta", fam["accent"],
                           sgn * (w + sw), sgn * (half + sw), 0.0, sp_ + 0.04,
-                          spr + rr * t0, spr + rr * t1)
+                          spr + rr * t0, spr + rr * t1, extra=ARC_CHORD)
+            e.arch("sp", half, spr, rr, fam["accent"], None, 0.0, sp_ + 0.04, sw)
             # ... and the keystone, which is the other half of the citation and
             # is the one place on an arch where a block genuinely sits.
             e.box("surround", "terracotta", fam["accent"],
@@ -6850,7 +6890,9 @@ def main():
            # PROUD GEOMETRY ONLY. This pass claims no building ids, on purpose
            # and permanently, so it can never collide with facades/drag/heroes/
            # westcampus/capitol in either order.
-           "replacedBuildingIds": []}
+           "replacedBuildingIds": [],
+           # The curves the chords are sampled from — see ARCHES at the top.
+           "arches": ARCHES}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"))
     mb = os.path.getsize(OUT) / 1048576.0
