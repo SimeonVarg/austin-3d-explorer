@@ -539,3 +539,52 @@ node walk.mjs [reps] [--quiet]  # the gate: 3 sites walk, every frame under 12 m
                                 # plus a WATCHED FAILURE that must come back lifted
 node walk-trunk.mjs [reps]      # QUEUE Y15 from a real walk, walk vs hop, interleaved
 ```
+
+## The slopes layer gate (added September 2 2026)
+
+`js/slopes.js` is the one layer in the app that is not MapLibre's own — a
+three.js `custom` / `renderingMode: '3d'` layer that will carry the real
+pitched roofs, the Capitol dome and the arches. `slopes-layer.mjs` proves,
+from pixels on the real page, that a mesh in it is treated exactly like the
+fill-extrusion beside it, and that switched off it leaves a frame identical to
+the one it was never in.
+
+```bash
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs                 # the gate
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --break         # must go red on stack + haze
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against http://127.0.0.1:8443
+```
+
+- **It runs on the real GPU by default** (`VERIFY_GL=swiftshader` to override),
+  which the rest of the pixel suite does not. That is allowed here because
+  every assertion is RELATIVE — a mesh cube against a fill-extrusion twin in
+  the same frame, the layer on against off — never an absolute hex.
+- **`?slopesdebug=1` is the fixture.** The gate does not build geometry; it
+  measures the debug scene js/slopes.js ships behind that flag (a parity cube
+  and its extrusion twin on the South Mall lawn, slabs behind and in front of
+  the Tower, a post pair 2.5 km out for the fog, a lathe for the preset).
+- **`--against URL`** compares the `?slopes=0` frame with the same pose served
+  from a second checkout — how "off is pixel-identical to today" was proved
+  against a `git archive` of `main` rather than against the branch itself.
+- **`lib/png.mjs`** is the differ it uses: a dependency-free decoder for
+  exactly what Playwright writes (8-bit RGBA, non-interlaced), reporting the
+  count of differing pixels, the max channel difference and a bounding box.
+  A count and a box, because "0 pixels differ" and "26,621 pixels differ, all
+  inside the slab" are different sentences and a hash can only say the first.
+- **Budget: 10-12 minutes** — three full page loads and nine poses. Run it in
+  the background if your shell has a shorter ceiling; the watchdog is 900 s.
+
+### Two things this gate found on its first day, both about the matrix
+
+- Of the matrices MapLibre 5.24 hands a custom layer, only
+  `defaultProjectionData.mainMatrix` takes MercatorCoordinate units.
+  `modelViewProjectionMatrix` fed those units collapses every vertex onto one
+  sub-pixel point — the layer "renders" every frame and draws nothing, and
+  nothing says so. The first cut of the layer shipped that way for an hour;
+  the fill-extrusion twin in the debug scene is what made it visible.
+- MapLibre's mercator matrix already carries a reflection, so the local
+  east/north/up frame's mirror goes in the CAMERA matrix. Put it on a three.js
+  Group instead and three flips the winding for that group's negative
+  determinant, which uncancels it: every front face is culled and the sampled
+  wall reads exactly the formula's UNLIT value. A pixel proved that in a way
+  no amount of handedness reasoning had.

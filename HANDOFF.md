@@ -1,5 +1,77 @@
 # Austin 3D Explorer — Full Handoff
 
+## 203. Sep 2 2026 — the slopes layer: a three.js custom layer that a fill-extrusion cannot tell from itself (`acer/slopes`, not merged)
+
+Nothing new draws by default. This is the plumbing under the pass that will
+replace the 4,794 stacked roof slabs (`data/roofs.geojson`), the 75-disc
+Capitol dome and the five-chord arches (`ARCH_TIERS = 5`) with real angled
+geometry: **`js/slopes.js`**, one `type:'custom', renderingMode:'3d'` layer
+drawn by three.js r159 (pinned from unpkg in both HTML files — the last
+plain-script build; r160 dropped it) inserted before `aerial-fog`, plus a
+debug scene behind `?slopesdebug=1` and a gate, `scripts/verify/slopes-layer.mjs`,
+that proves every line of the contract from pixels. **The switch is
+`window.SLOPES.on`, seeded from `?slopes=0`, read live in `render()`.**
+`WAYFIND.on` untouched.
+
+**What a generator gets.** `slopes.toLocal(lng, lat, up)` → metres east/north/up
+of one origin (the Tower), exact through MapLibre's own MercatorCoordinate;
+`slopes.toLngLat`, `slopes.project` (local → CSS px, 0.00 px from `map.project`
+at three points across campus), `slopes.raycast(px, py)` (a helper only — the
+app has no tap-to-select and none was invented), `slopes.material()` (the
+served maplibre-gl@5.24.0 bundle's fill-extrusion lighting block, transcribed,
+fed the painter's own evaluated light each frame), `slopes.colour(geom,
+[day, golden, night], wall)` (per-vertex baked triple, blended for the hour on
+the GPU on timeofday.js's own 1/128 grid), `slopes.add()`, `slopes.detail()`
+(`SLOPES.byPreset` off `GFX.preset`). Up is +Z; the one reflection into
+mercator lives in the camera matrix. `js/lod.js` now hides a custom layer
+through `implementation.setVisible` and lists `slopes-mesh` in the same tier as
+`roofs-pitched`, and exposes `window.LOD_isHidden(id)`.
+
+**Measured, RTX 3050 Ti, `?intro=0&drift=0&slopesdebug=1`, 1440×900.** A 16 m
+mesh cube beside a fill-extrusion twin of the same baked colour on the South
+Mall lawn: top / south / west faces **160,92,49 = 160,92,49** at golden hour,
+within 3/255 at morning and night — same hour, same sun, same azimuth
+convention, same vertical gradient. A slab behind the Tower: the Tower's pixel
+**identical** with the layer on and off; the same slab visible from the north.
+A slab in front: 154,88,47 on, 108,93,46 off. A mesh post and an extrusion
+post 2.5 km out under the fog ladder: **175,108,60 both** with the haze on,
+153,87,46 both with it off. The empty layer ON, `SLOPES.on = false` live, and
+`?slopes=0` — and a `git archive` of `main` at e232953 served from a second
+port — at the mall-cruise pose: see the gate's own PASS lines for the pixel
+counts, which are the claim.
+
+**Two things the first hour got wrong, both about the matrix, both now in the
+file header so nobody re-learns them.** Of the matrices MapLibre 5.24 hands
+`render()`, only `defaultProjectionData.mainMatrix` takes MercatorCoordinate
+units — `modelViewProjectionMatrix` fed those collapses every vertex onto one
+sub-pixel point while the frame counter climbs, and the scout doc's advice to
+use `args.projectionMatrix` was wrong for placing geometry (it is the
+projection alone; sky.js only reads frustum terms off it). And MapLibre's
+mercator matrix already carries a reflection, so the local frame's mirror must
+be in the camera matrix: on a mirrored three.js Group the winding flips twice
+and every wall reads the formula's UNLIT value (135 where lit is 153, to the
+unit). The fill-extrusion twin in the debug scene is what made both visible;
+without it the layer looked fine and drew nothing.
+
+**Not established, stated plainly.** No frame-time A/B with real geometry —
+there is no geometry; the empty layer's cost is one `resetState` and an empty
+`render` per frame and was not timed. Cross-page-load pixel identity depends
+on MapLibre's own determinism (labels, tile order); the gate reports the count
+rather than assuming zero. The 20–60 s `jumpTo` stall the baseline pass hit
+reproduced here **only while a 972 MB `git archive` was extracting on the same
+disk** (41–54 s per pose); on the idle machine `jumpTo` itself took 7–147 ms
+in-page and a pose settled in 1.7–4.4 s — evidence, not proof, that the stall
+is I/O contention and not the app. `bake_roofs.py`'s snapshot pin
+(2026-07-30 vs the manifest's 2026-08-27) was not touched or judged: no bake
+ran in this pass.
+
+**Next: the generators.** Roof rigs (a `rig` foreign member on
+`roofs.geojson`, see the scout's data contract), the dome lathe off
+`capitol_dome.geojson`'s 18/7/4 disc profiles, arches off the entrances'
+`(half, spring_h, arch_rise)` in the per-opening frame. Each lands on
+`slopes.add()` with `slopes.material()`, keeps `?slopes=0` as the A/B, and
+must keep `slopes-layer.mjs` green.
+
 ## 202. Aug 27 2026 — the campus detail pass, integrated and shipped (`acer/cd-ship`, MERGED)
 
 Full verdict with the before/after frames: `docs/campus-detail-verdict.md`.
