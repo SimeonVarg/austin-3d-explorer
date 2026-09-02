@@ -31,7 +31,10 @@
  * quad the way the surface really bends. The eave lip (flat top, fascia,
  * soffit) sits outside the wall by `over`, and the deck fills the ring at
  * d_use at the top of the rise, the bake's own "whatever the slope encloses
- * is filled at the top of the slope". Same eave line, same ridge, same colours
+ * is filled at the top of the slope" — untangled first, because that ring
+ * folds by a few centimetres on 43 of the 108 roofs and earcut answers a
+ * folded ring with triangles outside it (see `untangle` below). Same eave
+ * line, same ridge, same colours
  * (`col` is the roof's settled colour; the slabs' bright/dark ends are the
  * fake-tilt shading js/timeofday.js needs for flat tops and are not used —
  * the real 22.6° face under the real light needs no exaggeration).
@@ -87,6 +90,8 @@
     gableWallMaxM: 3.0,          // how far the gable's anchor may sit from a wall
     ringSegments: 48,            // archivolt half-ring segments × slopes.detail()
     dedupeM: 0.02,               // deck ring points closer than this are one point
+    untangleDeck: true,          // split a folded deck ring before triangulating it
+    deckMinM2: 0.01,             // ...and drop the loops smaller than this
   };
   window.SLOPES_ROOFS = ROOFS;
 
@@ -128,6 +133,82 @@
       out.push(q);
     }
     while (out.length > 1 && Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < tol) out.pop();
+    return out;
+  }
+  const ringArea = r => { let A = 0; for (let i = 0; i < r.length; i++) { const p = r[i], q = r[(i + 1) % r.length]; A += p[0] * q[1] - q[0] * p[1]; } return A / 2; };
+  /**
+   * THE DECK RING FOLDS, AND EARCUT DOES NOT SAY SO.
+   *
+   * `top` is the profile offset by the full depth, each point clamped at its
+   * own cap: `pts[k] + rays[k] * min(d, caps[k])`. Two neighbours whose caps
+   * differ by a few centimetres reach the ridge at slightly different places
+   * and their edges CROSS — measured on the shipped rig, 43 of the 108 deck
+   * rings self-intersect, most of them by 2–6 cm. A crossing that small is
+   * invisible; what is not invisible is what THREE.ShapeUtils.triangulateShape
+   * does with it. Earcut assumes a simple polygon, and fed a tangled one it
+   * emits triangles that lie OUTSIDE the ring — 36 roofs did, the worst of
+   * them (Anna Hiss) spilling 891 m² of deck over a 475 m² roof. Coplanar
+   * with the hip planes underneath, that reads as a triangular wedge of deck
+   * colour punched through the terracotta with a bright sliver down its edge:
+   * the notch on Battle Hall's roof, and the one over the West Mall.
+   *
+   * So the ring is untangled BEFORE it is triangulated. Every proper crossing
+   * becomes a shared node, the walk is split into simple loops at those nodes
+   * (stack pop — a node seen twice closes the loop between its two visits),
+   * and only the loops wound the ring's own way are kept. The folded-back
+   * slivers are wound the other way and go. Nothing else changes: the loops
+   * that survive are bounded by the same top edges the slopes end on.
+   */
+  function untangle(ring, minA) {
+    const n = ring.length;
+    if (n < 3) return [];
+    const pts = ring.slice();                      // node id -> point
+    const hits = [];                               // per edge: [{ t, id }]
+    for (let i = 0; i < n; i++) hits.push([]);
+    for (let i = 0; i < n; i++) {
+      const a = ring[i], b = ring[(i + 1) % n];
+      for (let j = i + 1; j < n; j++) {
+        if (j === i || j === (i + 1) % n || (i === 0 && j === n - 1)) continue;
+        const c = ring[j], d = ring[(j + 1) % n];
+        const rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1];
+        const den = rx * sy - ry * sx;
+        if (Math.abs(den) < 1e-12) continue;
+        const t = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den;
+        const u = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den;
+        if (t <= 1e-9 || t >= 1 - 1e-9 || u <= 1e-9 || u >= 1 - 1e-9) continue;
+        const id = pts.length;
+        pts.push([a[0] + rx * t, a[1] + ry * t]);
+        hits[i].push({ t, id });
+        hits[j].push({ t: u, id });
+      }
+    }
+    if (!pts.length || pts.length === n) return [ring];
+    const seq = [];
+    for (let i = 0; i < n; i++) {
+      seq.push(i);
+      hits[i].sort((p, q) => p.t - q.t);
+      for (const h of hits[i]) seq.push(h.id);
+    }
+    const loops = [], stack = [], at = new Map();
+    for (const id of seq) {
+      if (at.has(id)) {
+        const p = at.get(id);
+        loops.push(stack.slice(p));
+        for (let k = p; k < stack.length; k++) at.delete(stack[k]);
+        stack.length = p;
+      }
+      at.set(id, stack.length);
+      stack.push(id);
+    }
+    if (stack.length) loops.push(stack);
+    const want = Math.sign(ringArea(ring)) || 1;
+    const out = [];
+    for (const L of loops) {
+      if (L.length < 3) continue;
+      const poly = L.map(id => pts[id]);
+      const A = ringArea(poly);
+      if (Math.sign(A) === want && Math.abs(A) >= minA) out.push(poly);
+    }
     return out;
   }
 
@@ -198,7 +279,10 @@
     // 3. the deck at the top of the rise
     if (ROOFS.deck && r.deck) {
       const ring = dedupe(top, ROOFS.dedupeM);
-      if (ring.length >= 3) B.polygon(ring.map(q => [q[0], q[1], zTop]), r.deck, UP, 'xy');
+      if (ring.length >= 3) {
+        const loops = ROOFS.untangleDeck ? untangle(ring, ROOFS.deckMinM2) : [ring];
+        for (const L of loops) B.polygon(L.map(q => [q[0], q[1], zTop]), r.deck, UP, 'xy');
+      }
     }
   }
 

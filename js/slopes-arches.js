@@ -22,11 +22,19 @@
  *
  *   tr    the fanlight: the half-ellipse itself, glass, PROUD_DOOR deep
  *   band  the surround: the region between the ellipse and the ellipse
- *         shifted OUTWARD by `sw` — outward horizontally, exactly as the
- *         chords step (`sgn*w .. sgn*(w+sw)`), not along the curve's normal,
- *         so the band meets itself `2*sw` wide at the crown as the chords do
- *   sp    the spandrel: between that outer curve and the vertical `half+sw`,
- *         the corner of the square the arch is set into
+ *         GROWN by `sw` on both axes (half+sw, rise+sw) — a real archivolt,
+ *         `sw` wide at every angle, and on a semicircle exactly the
+ *         concentric circle. The chords step outward in u alone
+ *         (`sgn*w .. sgn*(w+sw)`), which leaves the band with no thickness
+ *         at all over the crown; see `arcOut` for why that is not copied
+ *   sp    the spandrel: between that outer curve and the vertical `half+sw`
+ *         under a head at `crown + sw`, the corner of the square the arch is
+ *         set into
+ *
+ * (ARCHES.cappedFams is the one exception, and it is the bake's, not the
+ * geometry's: a family that lays an entablature straight on the crown has no
+ * room above the head, so those arches keep the chords' flat crown until the
+ * bake writes a head height on the `arches` member.)
  *
  * in the per-opening (u, v, z) frame the flat pieces already use, proud of
  * the wall by the same v. The chords carry `arc: 1` and nothing else does;
@@ -58,6 +66,18 @@
     lod: null,                     // no js/lod.js tier lists the entrances
     segments: 24,                  // points per quarter-curve × slopes.detail()
     transom: true, band: true, spandrel: true,
+    radial: true,                  // extrados grown on both axes (a real archivolt);
+                                   // false steps out in u alone, as the chords do
+    // ...EXCEPT where the surround carries an entablature straight on the crown.
+    // A real archivolt reaches `crown + sw`, so the head of the square it sits
+    // in is there too — which is fine over plain wall or a spandrel, and wrong
+    // under family B's architrave + frieze + cornice (bake_entrances.py's
+    // `cornice=0.30`, laid on `top = spring + rise`). Raised, Gregory Gym's
+    // west door grew a 0.25 m stone hump over its own entablature — seen in a
+    // magnified A/B of that door on 2026-09-02. The bake knows the number and
+    // does not write it — HANDOFF asks for a head height on the `arches`
+    // member, and this list goes away the day it arrives.
+    cappedFams: ['B'],             // families whose arch cannot grow past its head
   };
   window.SLOPES_ARCHES = ARCHES;
 
@@ -77,19 +97,64 @@
     return out;
   }
 
+  /**
+   * THE EXTRADOS — the curve the band's OUTER edge follows.
+   *
+   * `arcPts(.., sw, ..)` steps outward in u alone, which is what the five
+   * chords do: at the crown cos θ = 0, so the outer point is (sw, crown) and
+   * the inner one (0, crown) — the same height. The annulus closes to a
+   * horizontal line there and the archivolt has NO THICKNESS over the top of
+   * the arch, so the fanlight glass meets the spandrel across the crown with
+   * nothing between them. Battle Hall's portal is the frame the critics
+   * magnify and that seam is at the middle of it.
+   *
+   * So the extrados is the intrados grown by `sw` on BOTH axes: half+sw and
+   * rise+sw. On a semicircle — 18 of the 24 arches, and every monumental one:
+   * Battle Hall, Sutton, Gregory, the Biomedical and Blanton portals — that
+   * is exactly the concentric circle a real archivolt is, sw wide at every
+   * angle. On the six segmental Victorian fanlights it is the same curve the
+   * chords approximate, and it stays a simple convex arc where a true normal
+   * offset would cusp (JHH's radius of curvature at the springing is 0.265 m
+   * against a 0.26 m band, and E4's crown is 0.21 m against 0.30 m — both
+   * would fold back on themselves).
+   *
+   * The consequences are the arch's, not this file's: the head of the square
+   * the arch sits in rises to `crown + sw`, because that is where an arch of
+   * outer radius half+sw springing at `spring` actually reaches, and the
+   * spandrel that fills the corner between the two follows it. The straight
+   * legs of the surround below the springing are untouched — at θ = 0 this
+   * curve still lands on (half + sw, spring), the exact top of the
+   * fill-extrusion jamb it continues.
+   */
+  function arcOut(a, n, sw, from, to) {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const th = from + (to - from) * i / n;
+      out.push([(a.half + sw) * Math.cos(th), a.spring + (a.rise + sw) * Math.sin(th)]);
+    }
+    return out;
+  }
+
   function archOne(B, a, seg) {
     const S = window.slopes;
     const F = S.frame(a.o, a.t, a.n);
     const crown = a.spring + a.rise;
+    const radial = ARCHES.radial && ARCHES.cappedFams.indexOf(a.fam) < 0;
     if (ARCHES.transom && a.tr) {
       // the half-ellipse, from (half, spring) over the crown to (-half, spring)
       const poly = arcPts(a, 2 * seg, 0, 0, Math.PI);
       B.extrude(poly, F, a.tr.v[0], a.tr.v[1], a.tr.c, { back: false, skipDown: true });
     }
-    if (ARCHES.band && a.band) {
+    if (ARCHES.band && a.band && radial) {
+      // ONE ring, not two halves: the extrados runs right over the crown, so
+      // there is no seam at u = 0 for two coincident side faces to fight over.
+      const sw = a.band.sw;
+      const outer = arcOut(a, 2 * seg, sw, 0, Math.PI);        // (half+sw, spring) → (0, crown+sw) → (-(half+sw), spring)
+      const inner = arcPts(a, 2 * seg, 0, Math.PI, 0);         // (-half, spring) → (0, crown) → (half, spring)
+      B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+    } else if (ARCHES.band && a.band) {
       for (const sgn of [1, -1]) {
         const sw = a.band.sw;
-        // outer curve up (shifted out by sw), across the crown to u=0, inner curve down
         const outer = arcPts(a, seg, sw, 0, Math.PI / 2).map(p => [sgn * Math.abs(p[0]), p[1]]);
         const inner = arcPts(a, seg, 0, Math.PI / 2, 0).map(p => [sgn * Math.abs(p[0]), p[1]]);
         outer[outer.length - 1] = [sgn * sw, crown];
@@ -99,10 +164,13 @@
     }
     if (ARCHES.spandrel && a.sp) {
       for (const sgn of [1, -1]) {
-        const sw = a.sp.sw, x = a.half + sw;
-        const curve = arcPts(a, seg, sw, Math.PI / 2, 0).map(p => [sgn * Math.abs(p[0]), p[1]]);
-        curve[0] = [sgn * sw, crown];
-        const poly = [[sgn * x, crown]].concat(curve);          // top corner, then down the outer curve to (x, spring)
+        const sw = a.sp.sw, x = a.half + sw, head = crown + (radial ? sw : 0);
+        // the corner between the extrados and the square: pinched to a point
+        // at the crown, where the archivolt now reaches the head itself
+        const curve = (radial ? arcOut(a, seg, sw, Math.PI / 2, 0) : arcPts(a, seg, sw, Math.PI / 2, 0))
+          .map(p => [sgn * Math.abs(p[0]), p[1]]);
+        curve[0] = radial ? [0, head] : [sgn * sw, head];
+        const poly = [[sgn * x, head]].concat(curve);          // top corner, then down the outer curve to (x, spring)
         B.extrude(poly, F, a.sp.v[0], a.sp.v[1], a.sp.c, { back: false, skipDown: true });
       }
     }
