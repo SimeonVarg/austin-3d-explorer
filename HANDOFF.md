@@ -1,5 +1,100 @@
 # Austin 3D Explorer — Full Handoff
 
+## 204. Sep 2 2026 — every slope on campus is real now: 112 roofs, 24 arches and the dome drawn as the surfaces their slabs, chords and discs were sampling (`acer/slopes`, not merged)
+
+Three generators on the layer §203 built, each one shape, each generated from
+baked data, nothing hand-modelled: **`js/slopes-roofs.js`**, **`js/slopes-arches.js`**,
+**`js/slopes-dome.js`**. The whole layer still switches off in one line —
+`window.SLOPES.on = false` (or `?slopes=0` at load) — and when it does, every
+fill-extrusion stand-in comes back exactly as it was, because nothing was
+deleted: the slabs, chords and discs are hidden by FILTER while the mesh
+draws, and the filters are put back the moment the switch flips. `WAYFIND.on`
+untouched.
+
+**What the bakes now write, so the mesh restates nothing.**
+`scripts/bake_roofs.py` computed a profile, per-vertex mitre rays and per-vertex
+ridge caps for every roof and threw them away once the stepped slabs were
+emitted; it now writes them as a second foreign member, `rig`, beside `caps`
+(`roofs` keyed `id/ri`, `gables` for Gregory Gym's authored elevation, `meta`
+for the constants), and tags every authored elevation part with `f` so the
+stair-step stand-ins (`course`, `rake`, `ring`) can be hidden and the veneer,
+stairs and Jester's precast bands (`gable`, `band`) can stay. `scripts/bake_entrances.py`
+writes each arched head's frame, `half`, `spring_h`, `arch_rise` and each
+piece's depth and colours as the `arches` member of entrances.geojson, and
+tags the 448 chord features `arc: 1`. The dome needed no new data: the 18/7/4
+discs of `dome`, `bullock-dome` and `cupola` are a clean radius-against-height
+profile and `THREE.LatheGeometry` takes them as they are. Both bakes were
+re-run; the entrances re-bake reproduces the shipped file byte for byte apart
+from the tag; the roofs re-bake is discussed below.
+
+**The shapes.** A roof is the strip swept between neighbouring profile points
+as the offset runs 0 → d_use, `P_k(d) = pts[k] + rays[k]·min(d, caps[k])`,
+`z(d) = base + lip + rise·d/d_use` — the slab ring's own expression with d
+continuous — split at each end's cap so the hip emerges where the bake's
+comments say it does, plus the eave lip (top, fascia, soffit) and the deck at
+the top of the rise; Gregory Gym's two pediments are triangular prisms with a
+raking cornice and three half-ring archivolts, and its roof no longer hips
+against the gabled wall (the two corners slide along the long walls). An arch
+is the quarter-ellipse `w(t) = half·√(1−t²)` the chords were sampled from: the
+fanlight as a half-ellipse, the band as the region between the ellipse and
+the ellipse shifted outward by `sw` (outward horizontally, as the chords step,
+so it meets itself `2·sw` wide at the crown as they do), the spandrel between
+that and the square. Everything in one material (§203's fill-extrusion
+lighting, per-vertex day/golden/night), flat-shaded except the lathe, one
+draw call per group: **roofs 12,962 triangles in 70 ms, arches 10,988 in
+63 ms, dome 5,850 in 28 ms, 5 draw calls for the whole campus** (three
+lathes and their caps are separate meshes).
+
+**Removed from the render path while on:** 4,066 of the 4,895 roof features
+(3,906 slabs + 71 courses + 50 rake blocks + 39 voussoir prisms; 829 authored
+parts stay), 29 discs (18 + 7 + 4; columns, drum, lantern, cornice, attic and
+collar stay), 448 chords (120 fanlight + 328 surround/spandrel; jambs,
+keystones and cornices stay).
+
+**Frames, RTX 3050 Ti, hardware GL, 1440×900, second of two shots kept**, in
+the scratchpad's `generator/` (four poses on/off, three hours at gregory, and
+close-ups): the Sutton Hall pair is the one to lead with — four hipped planes
+and a ridge where there were staircases — then the dome pair, then Battle
+Hall's door from the street (a curve where there were five flats). At gregory
+the mesh roofs are the same tone as the slabs at morning, noon and night,
+and flatter in contrast than the slabs by day: that is the real 22.6° under
+the real light, where the slabs wear a 38° tilt js/timeofday.js paints on
+because a flat top cannot shade itself (§203 said this would happen and it
+is the correct outcome, not a defect).
+
+**Frame time: NOT MEASURED in this pass.** The interleaved A/B (3 reps, ON then OFF alternating within one page, four poses, hardware then SwiftShader — `generator/gen-perf.mjs` in the scratchpad, driven by `run-all.sh`) was written and queued behind the gate run and had not started when the pass had to report. The cost to expect: five draw calls and ~29,800 triangles per frame, one `resetState` and one `render`; §203 measured the empty layer at nothing measurable. Treat the 18.0 ms / 55.6 fps baseline as unconfirmed for the layer ON until that script has run.
+
+**Bytes, raw / brotli-11 (node zlib):** roofs.geojson 1,657,876 / 132,635 →
+1,801,375 / 156,815 (the `rig` member alone is 102,221 / 22,244; the other
+41 KB raw are the four wings below and the `f` tags); entrances.geojson
+6,723,655 / 282,079 → 6,735,893 / 283,354 (`arches` 8,641 / 1,404);
+capitol_dome.geojson unchanged. The baseline's live numbers were Vercel's
+brotli (176,789 / 428,368), a lighter setting than -11; the deltas are the
+point.
+
+**Gates.** `harness-drift.mjs` PASS (36 = 36 scripts). `suite-lint.mjs` raises nothing against the new or changed scripts (its 6 blocking findings are the same pre-existing scripts §203 listed). `slopes-layer.mjs` was extended with section 1b (the generators: filters in place and put back; a ridge at the gregory pose reads as two tones with a raycast that climbs at the rig's pitch; an arch at the battle-street pose and from the street) and was RUNNING, past the Tower depth assertions with every line green so far, when this pass had to report — its full verdict, `walkmeter.mjs` and `facadegrid.mjs` are queued in `run-all.sh` and are not yet in hand. The MapLibre console warnings the frames log ("Expected value to be of type number, but found null") are present with `?slopes=0` too — pre-existing, not this pass's.
+
+**The roofs re-bake, stated plainly.** Same inputs — roof_runs.json,
+overrides, the z19 imagery — and the bake here writes 4,895 features where
+the 2026-08-22 bake wrote 4,794: it finds tiled wings on Calhoun Hall,
+Jackson Geological Sciences, Gearing Hall and Gordon-White that that bake did
+not. `--no-tiled-part` reproduces the shipped count exactly, so the Aug 22
+bake ran without the wing survey (its Aug 4 predecessors had 4,901 and
+4,897); this machine has shapely 2.0.7 and runs it. Some colour channels
+differ by one unit (platform rounding). Both are visible only as four more
+tiled bands and were left as the bake's own answer rather than pinned back.
+The snapshot pin moved from a hardcoded 2026-07-30 to `manifest.latest`
+(`SNAP_DATE` overrides, as in bake_entrances.py): the app draws its walls
+from the latest snapshot and a roof's base is the wall's height. Across the
+nineteen snapshots it was behind, no footprint moved, two heights and one
+colour did, none on a pitched roof — the slabs are byte-identical either way,
+two parapet-cap entries change, and University Christian Church (37 → 16.5 m)
+is surveyed for the first time and reads flat.
+
+**Not established.** Frame time ON vs OFF (above). The gate's full run, walkmeter and facadegrid on this branch. The four final poses were shot ON/OFF (`generator/*-v1-*.png`) before the gate ran and are the frames looked at; the `run-all.sh` re-shoot with the fetch count (`slopes.fetchJSON` should not refetch roofs.geojson — the generator reads the parsed object off `map.getSource('austin-roofs')._data`) had not run. The dome's crown/apex join at 75 m was looked at from 110 m up (`dome-crown-v1-on.png`) and reads clean; it was not measured. Whether four more tiled wings (Calhoun, Jackson, Gearing, Gordon-White) are wanted is Simeon's call; they are the bake's own answer on this machine.
+
+**Next.** Run `run-all.sh` (perf x8, walkmeter, facadegrid, final frames) on an idle machine and put its numbers here; watch `slopes-layer.mjs --break` go red; then the PR. If ON is more than a frame slower than OFF on hardware, profile before merging — the geometry is one draw call per group, so the suspect would be the fill rate of 30 k triangles, not the count.
+
 ## 203. Sep 2 2026 — the slopes layer: a three.js custom layer that a fill-extrusion cannot tell from itself (`acer/slopes`, not merged)
 
 Nothing new draws by default. This is the plumbing under the pass that will
