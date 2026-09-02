@@ -58,7 +58,14 @@ Whatever the slope encloses is always filled at the TOP of the slope. Leaving it
 on the wall cap was a real bug: the band climbed 3 m while the middle stayed
 down, so the steps floated over a flat plane exactly as the render showed.
 
-Usage:  python scripts/bake_roofs.py [--report] [--remeasure] [--audit]
+Usage:  python scripts/bake_roofs.py [--rebake] [--report] [--remeasure] [--audit]
+
+  (no flag)     AUGMENT. Generate everything, write only what data/roofs.geojson
+                does not already carry — the `f` tags and the `rig` member —
+                and stop dead if a generated feature disagrees with a shipped
+                one. See the AUGMENT block below for the pixels this cost.
+
+  --rebake      write the features this bake generated. The city changes.
 
   --remeasure   re-read the imagery instead of reusing data/roof_runs.json.
                 Required after changing the imagery cache or the tile rule; the
@@ -94,7 +101,53 @@ import bake_facades  # noqa: E402
 # by a height the app no longer uses. bake_entrances.py made the same call
 # for the same reason. `SNAP_DATE=2026-07-30 python scripts/bake_roofs.py`
 # pins a named snapshot for a rebake that must not roll the city under it.
-SNAP_DATE = os.environ.get("SNAP_DATE") or bake_facades.snapshot_date()
+# ── THE SHIPPED FEATURES ARE THE CITY. THIS BAKE AUGMENTS THEM. ──────
+#
+# WHAT WENT WRONG, MEASURED. The slopes pass (HANDOFF §204) needed two new
+# things in this file — the `rig` foreign member and the `f` tags — and got
+# them by re-running the bake. The re-bake also, silently, rebuilt the city:
+# against `main` at `?slopes=0`, with the three.js layer switched OFF and
+# therefore drawing nothing at all, 174,547 of 1,296,000 mall-cruise pixels
+# differed (13.5%, max channel delta 140), 91,519 at gregory, 204,516 at
+# battle-street. Copying only this file into a clean `main` checkout
+# reproduced every one of them. Three inputs had moved under the bake:
+#
+#   1. THE WING SURVEY (`tiled_part`, --no-tiled-part below). It needs
+#      shapely; this machine has 2.0.7 and the Aug 22 bake's machine did not
+#      run it. It added 101 features — a whole tiled roof on Calhoun Hall's
+#      north wing where the shipped city has a flat grey deck.
+#   2. THE SNAPSHOT. `manifest.latest` is the right answer for a real bake
+#      (see the block below) and it is a DIFFERENT answer from the one the
+#      shipped file was baked with. Different building order in, different
+#      feature order out — and coplanar roof steps whose draw-order ties then
+#      resolve the other way, which is a delta-1 dither along every step edge
+#      across the whole campus.
+#   3. THE IMAGERY. `data/imagery_cache/` is GITIGNORED — 2,335 tiles that
+#      are not in the repo and are not the same on two machines. The deck
+#      vote (`membrane`, DECK_MIN_PX) is read live from it on every bake, and
+#      it flipped on 12 roofs here: twelve deck tops that ship terracotta came
+#      out grey, up to 96 channel units apart. No pin can fix this one. The
+#      measurements ARE cached (data/roof_runs.json); this vote is not.
+#
+# SO: BY DEFAULT THIS SCRIPT NO LONGER WRITES THE FEATURES IT GENERATES.
+# It generates them, checks them against the ones already in
+# `data/roofs.geojson`, and writes the SHIPPED array back with only the `f`
+# tags added, plus `rig` computed from the pass that would have written them.
+# The generated features are the proof, not the product: if a single one
+# disagrees with the shipped file on geometry or on any property but colour,
+# the run stops (exit 2) and names the index. Zero pixels move, by
+# construction rather than by hope.
+#
+# `--rebake` is the opt-out and is what a real roof change runs: latest
+# snapshot, wing survey on, features written as generated. It WILL move
+# pixels — that is what it is for — and it is the roofs lane's call, not a
+# side effect of a pass that only wanted to add a member.
+AUGMENT            = "--rebake" not in sys.argv
+AUGMENT_SNAP       = "2026-07-30"   # the snapshot data/roofs.geojson was baked from
+AUGMENT_TILED_PART = False          # ...and without the wing survey
+
+SNAP_DATE = (os.environ.get("SNAP_DATE")
+             or (AUGMENT_SNAP if AUGMENT else bake_facades.snapshot_date()))
 SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, "buildings.detailed.geojson")
 TILES = os.path.join(ROOT, "data", "imagery_cache")
 OUT = os.path.join(ROOT, "data", "roofs.geojson")
@@ -2703,7 +2756,8 @@ def tile_run(pm, lat0, hs):
 # IT CAN ONLY ADD, NEVER CHANGE. It is reached only when the whole-footprint
 # probe has already returned run 0, so no roof that exists today can be altered
 # by it, and the 108 that exist are bit-identical with it on and off.
-TILED_PART        = "--no-tiled-part" not in sys.argv
+TILED_PART        = (AUGMENT_TILED_PART if AUGMENT
+                     else "--no-tiled-part" not in sys.argv)
 TILED_PART_CELL   = 1.2     # classification grid, metres
 TILED_PART_MIN_M2 = 220.0   # a wing worth roofing; below this it is a chimney
 TILED_PART_AREA   = 0.25    # whole-footprint tile fraction before we even look
@@ -2824,6 +2878,91 @@ def tiled_part(poly, lat0):
         return None
     return sub
 
+
+
+# ── THE AUGMENT: THE SHIPPED FEATURES, PLUS `f`, PLUS `rig` ───────────
+# Everything below runs on a bake that has already finished. `out` is what
+# this machine would have written; `ship` is what the app draws today. The
+# only thing that leaves here is `ship` — the generated array is the PROOF
+# that the rig belongs to these features, and nothing else.
+AUG_COLOUR_KEYS = ("rd", "rdd", "rg", "rgd", "rn")
+
+
+def _aug_key(f):
+    """A feature as everything about it that is not a colour and not `f`."""
+    props = {k: v for k, v in f["properties"].items()
+             if k not in AUG_COLOUR_KEYS and k != "f"}
+    return json.dumps([f["geometry"], props], sort_keys=True, separators=(",", ":"))
+
+
+def _aug_stop(msg):
+    """Exit 2 — "could not run" — never 1. See scripts/verify/README.md."""
+    sys.stderr.write(msg + chr(10))
+    sys.exit(2)
+
+
+def augment_shipped(out, rig, gables, caps, meta):
+    """Put `f` and `rig` on the shipped features. Never anything else.
+
+    Exits 2 rather than writing if the generated features are not the shipped
+    ones: a mismatch means the inputs moved (a new snapshot, the wing survey,
+    a rule change) and the answer is `--rebake` and a look at the render, not
+    a quiet overwrite of the city.
+    """
+    if not os.path.exists(OUT):
+        _aug_stop("AUGMENT: %s does not exist, so there is nothing to augment. "
+                 "Run with --rebake to write a new one." % OUT)
+    with open(OUT, encoding="utf-8") as fh:
+        ship = json.load(fh)
+    sf = ship["features"]
+    if len(sf) != len(out):
+        _aug_stop("AUGMENT: this bake made %d features, the shipped file holds "
+                 "%d. The inputs moved. See AUGMENT at the top of this file; "
+                 "use --rebake if the city is meant to change." % (len(out), len(sf)))
+    for i, (g, t) in enumerate(zip(out, sf)):
+        if _aug_key(g) != _aug_key(t):
+            _aug_stop("AUGMENT: feature %d differs from the shipped file." % i
+                     + chr(10) + "  baked:   " + _aug_key(g)[:400]
+                     + chr(10) + "  shipped: " + _aug_key(t)[:400])
+    # THE COLOURS ARE ALLOWED TO DISAGREE AND THE SHIPPED ONE WINS — but the
+    # disagreement is counted and printed, because it is the only signal that
+    # the imagery under this bake is not the imagery the city was baked from.
+    drift = sum(1 for g, t in zip(out, sf) for k in AUG_COLOUR_KEYS
+                if g["properties"].get(k) != t["properties"].get(k))
+    tagged = 0
+    for g, t in zip(out, sf):
+        f = g["properties"].get("f")
+        if f is not None:
+            t["properties"]["f"] = f
+            tagged += 1
+        else:
+            t["properties"].pop("f", None)
+    # The deck at the top of a rise is the one surface whose colour is that
+    # live vote, so the rig takes it from the feature the mesh replaces.
+    decks_taken = 0
+    for ent in rig.values():
+        di = ent.pop("_deck_i", None)
+        if di is None or ent.get("deck") is None:
+            continue
+        sp = sf[di]["properties"]
+        took = [sp.get("rd"), sp.get("rg"), sp.get("rn")]
+        if took != ent["deck"]:
+            decks_taken += 1
+        ent["deck"] = took
+    caps_moved = sum(1 for k, v in caps.items() if ship["caps"].get(k) != v)
+    caps_new = len([k for k in caps if k not in ship["caps"]])
+    ship["rig"] = {"meta": meta, "roofs": rig, "gables": gables}
+    print(json.dumps({"augment": {
+        "shipped_features_kept": len(sf),
+        "f_tags_written": tagged,
+        "colour_slots_this_bake_disagreed_on": drift,
+        "rig_decks_taken_from_the_shipped_feature": decks_taken,
+        "caps_this_bake_disagreed_on": caps_moved,
+        "caps_this_bake_would_have_added": caps_new,
+        "snapshot": os.path.basename(os.path.dirname(SNAP)),
+        "wing_survey": TILED_PART,
+    }}, indent=2))
+    return ship
 
 def main():
     report = "--report" in sys.argv
@@ -3140,7 +3279,7 @@ def main():
             # travelling far), so the church at 22nd got a cross-shaped plate at
             # the top of its rise with two arms running 25 m down a wing only
             # 13 m wide. A capped ring cannot leave the building.
-            rig_deck = None
+            rig_deck, rig_deck_props, rig_deck_i = None, None, None
             deck = rings[-1][0]
             if deck is None or abs(signed_area(deck)) < 1.0:
                 deck = None
@@ -3201,7 +3340,7 @@ def main():
                 # extrusion never has to be reasoned about.
                 props.update({"b": round(top - DECK_SKIRT_M, 2), "h": top, "az": 0})
                 emitted.append((deck[:-1], top, props))
-                rig_deck = [props["rd"], props["rg"], props["rn"]]
+                rig_deck, rig_deck_props = [props["rd"], props["rg"], props["rn"]], props
                 stats["decks" if membrane else "ridge_tops"] += 1
 
             if made < 1:
@@ -3232,6 +3371,13 @@ def main():
                 if not survives_rounding(ll):
                     stats["rings_lost_to_rounding"] += 1
                     continue
+                # WHERE THE DECK LANDED in the feature array. The augment
+                # pass takes the deck's colour off the SHIPPED feature rather
+                # than off this run, because that one colour is a live vote on
+                # gitignored imagery (see AUGMENT at the top) and is the only
+                # value in this file that two machines disagree about.
+                if rig_deck_i is None and props is rig_deck_props:
+                    rig_deck_i = len(out)
                 out.append({
                     "type": "Feature",
                     "geometry": {"type": "Polygon", "coordinates": ll},
@@ -3255,7 +3401,7 @@ def main():
                 "base": round(base, 2), "steps": steps,
                 "col": [rd_real, rg_real, rn_real],   # settled below, with the facets
                 "lip": ([rd_real, rg_real, rn_real] if eave_ring is not None else None),
-                "deck": rig_deck,
+                "deck": rig_deck, "_deck_i": rig_deck_i,
                 "_rb": rb_here,
             }
             # A WING IS NOT THE BUILDING. `pitched` tells the parapet-cap rule
@@ -3434,20 +3580,27 @@ def main():
     # and a shape is not a feature. `roofs` is keyed like `caps` plus the ring
     # index (`id/ri`), `gables` by building id; `meta` carries the constants
     # the slabs were built with so the reader never restates one.
-    fc = {"type": "FeatureCollection", "features": out, "caps": caps,
-          "rig": {"meta": {"lip": 0.35, "over": EAVE_OUT_M, "skirt": DECK_SKIRT_M,
-                           "pitch": PITCH, "snapshot": os.path.basename(os.path.dirname(SNAP))},
-                  "roofs": rig, "gables": gables}}
+    rig_meta = {"lip": 0.35, "over": EAVE_OUT_M, "skirt": DECK_SKIRT_M,
+                "pitch": PITCH, "snapshot": os.path.basename(os.path.dirname(SNAP))}
+    if AUGMENT:
+        fc = augment_shipped(out, rig, gables, caps, rig_meta)
+    else:
+        for ent in rig.values():
+            ent.pop("_deck_i", None)
+        fc = {"type": "FeatureCollection", "features": out, "caps": caps,
+              "rig": {"meta": rig_meta, "roofs": rig, "gables": gables}}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     with open(MEAS, "w", encoding="utf-8") as fh:
         json.dump(cache, fh, separators=(",", ":"), sort_keys=True)
     print(json.dumps({
-        "roof_steps": len(out),
+        "wrote": "the shipped features + f + rig" if AUGMENT else "a fresh bake",
+        "roof_steps": len(fc["features"]),
+        "roof_steps_this_bake_made": len(out),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
         "parapet_caps": dict(sorted(cap_stats.items())),
-        "caps_kb": round(len(json.dumps(caps, separators=(",", ":"))) / 1024, 1),
+        "caps_kb": round(len(json.dumps(fc["caps"], separators=(",", ":"))) / 1024, 1),
         "rig_kb": round(len(json.dumps(fc["rig"], separators=(",", ":"))) / 1024, 1),
         "rig_roofs": len(rig),
         "rig_gables": len(gables),

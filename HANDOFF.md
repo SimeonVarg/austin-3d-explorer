@@ -1,6 +1,10 @@
 # Austin 3D Explorer — Full Handoff
 
-## 204. Sep 2 2026 — every slope on campus is real now: 112 roofs, 24 arches and the dome drawn as the surfaces their slabs, chords and discs were sampling (`acer/slopes`, not merged)
+## 204. Sep 2 2026 — every slope on campus is real now: 108 roofs, 24 arches and the dome drawn as the surfaces their slabs, chords and discs were sampling (`acer/slopes`, not merged)
+
+> **The counts in this section were written from an over-baked `roofs.geojson`
+> and are corrected in §204b below**, which is also where the reason the
+> layer's OFF state is `main` again — to the pixel — is written down.
 
 Three generators on the layer §203 built, each one shape, each generated from
 baked data, nothing hand-modelled: **`js/slopes-roofs.js`**, **`js/slopes-arches.js`**,
@@ -94,6 +98,96 @@ is surveyed for the first time and reads flat.
 **Not established.** Frame time ON vs OFF (above). The gate's full run, walkmeter and facadegrid on this branch. The four final poses were shot ON/OFF (`generator/*-v1-*.png`) before the gate ran and are the frames looked at; the `run-all.sh` re-shoot with the fetch count (`slopes.fetchJSON` should not refetch roofs.geojson — the generator reads the parsed object off `map.getSource('austin-roofs')._data`) had not run. The dome's crown/apex join at 75 m was looked at from 110 m up (`dome-crown-v1-on.png`) and reads clean; it was not measured. Whether four more tiled wings (Calhoun, Jackson, Gearing, Gordon-White) are wanted is Simeon's call; they are the bake's own answer on this machine.
 
 **Next.** Run `run-all.sh` (perf x8, walkmeter, facadegrid, final frames) on an idle machine and put its numbers here; watch `slopes-layer.mjs --break` go red; then the PR. If ON is more than a frame slower than OFF on hardware, profile before merging — the geometry is one draw call per group, so the suspect would be the fill rate of 30 k triangles, not the count.
+
+### 204b. The OFF state was not main, and the bake is now an augmentation
+
+**The defect, in pixels.** With the whole three.js layer switched off —
+`?slopes=0`, nothing of this pass drawing at all — the branch was not the app
+`main` ships. Against a `git archive` of e232953 served on a second port, same
+harness, same machine, noise floor 0: **mall-cruise 174,547 of 1,296,000 px
+(13.5%, max channel Δ 140), gregory 91,519, battle-street 204,516,
+capitol-dome 0.** Copying only `data/roofs.geojson` from the branch into a
+clean `main` checkout reproduced every one of them. Nothing in `js/`,
+`index.html` or `entrances.geojson` contributed. The pass wanted two new
+things in that file and got them by re-running the bake; the re-bake also,
+silently, rebuilt the city.
+
+**Three inputs had moved under it, and one of them cannot be pinned.**
+
+1. **The wing survey.** `tiled_part` needs shapely. This machine has 2.0.7 and
+   runs it; the Aug 22 bake's machine did not. 101 extra features.
+2. **The snapshot.** Moving the pin from `2026-07-30` to `manifest.latest` is
+   the right answer for a real bake — the app draws its walls from the latest
+   snapshot and a roof's `base` is a wall's height — and it is a DIFFERENT
+   answer. Different building order in, different feature order out, and
+   coplanar roof steps whose draw-order ties then resolve the other way: a
+   delta-1 dither along every step edge on campus.
+3. **The imagery.** `data/imagery_cache/` is **gitignored** — 2,335 z19 tiles
+   that are not in the repo and are not the same on two machines. The deck
+   vote (`membrane`) is read live from it on every bake and flipped on **12
+   roofs** here: twelve deck tops that ship terracotta came out grey, up to 96
+   channel units apart. The run measurements are cached in
+   `data/roof_runs.json`; this vote is not. No pin fixes it.
+
+**So `scripts/bake_roofs.py` no longer writes the features it generates.** It
+generates them all, compares them to the ones already in
+`data/roofs.geojson`, and writes the **shipped array** back with only the `f`
+tags added, plus `rig` from the pass that would have written them. Colours are
+allowed to disagree and the shipped one wins — the disagreement is counted and
+printed, because it is the only signal that the imagery under the bake is not
+the imagery the city was baked from (it prints 60 slots = the 12 decks × 5
+keys). If a generated feature disagrees on geometry or on any property but
+colour, the run **stops at exit 2 and names the index**, having written
+nothing. Watched red: `SNAP_DATE=2026-08-27 python scripts/bake_roofs.py`
+stops at feature 28 and the file's md5 is unchanged. Run twice, the output is
+byte-identical. `--rebake` is the opt-out and is what a real roof change runs
+(latest snapshot, wing survey on, features written as generated); it will move
+pixels, which is what it is for, and it is the roofs lane's call rather than a
+side effect of a pass that only wanted to add a member.
+
+**Proved.** Hardware GL (ANGLE / RTX 3050 Ti / D3D11), 1440×900,
+`?intro=0&drift=0` on the archive and `+&slopes=0` on the branch, graphics
+auto-detect cancelled, deferred sources waited on, two screenshots per pose
+with the second kept, diffed at tolerance 0:
+
+```
+mall-cruise     0 / 1,296,000 px      gregory        0 / 1,296,000 px
+battle-street   0 / 1,296,000 px      capitol-dome   0 / 1,296,000 px
+```
+
+Noise floor measured the same way on this machine, two independent loads of
+the identical build: **0 px at all four poses.** In the data: all 4,794 of
+main's features present, in order, every geometry and every property
+identical, the only addition being `f` on 989 of them (band 768, course 71,
+gable 61, rake 50, ring 39); `caps` identical, 1,840 entries, none changed and
+none added. With the layer ON the three generators still build off the new
+file, no console errors: **slopes-roofs 12,782 triangles, slopes-arches
+10,988, slopes-dome 5,850**, 2 draw calls at mall-cruise and 6 at
+battle-street; the hipped roofs and Gregory Gym's pediment read at the gregory
+pose. Frames: the scratchpad's `fix/bake/` (`off/`, `mainshots/`,
+`mainshots2/`, `on/`).
+
+**Corrections to the numbers above in §204**, which were written from the
+over-baked file: the file holds **4,794 features, not 4,895**; the rig covers
+**108 roofs + Gregory Gym's gable, not 112**; slopes-roofs is **12,782
+triangles, not 12,962**; removed from the render path while on is **3,965 of
+4,794** features (3,805 slabs + 160 stand-ins), not 4,066 of 4,895. Bytes,
+raw / brotli-11: **1,657,876 / 132,635 → 1,768,651 / 154,185**, of which the
+`rig` member is 99,862 / 21,713.
+
+**OPEN, for the roofs lane — the four wings are real, and the shipped city is
+missing them.** The wing survey's four additions were checked against the z19
+photograph rather than left as an argument about a count
+(`docs/shots/roof-wings-imagery.jpg`, the footprint in cyan): **Calhoun
+Hall**'s middle cross bar is an unmistakable terracotta hip with dormers
+between two flat membrane stems; **Jackson Geological Sciences**' west wing is
+a tile hip against a concrete deck; **Mary E. Gearing Hall**'s whole north
+range is tile with dormers; **Gordon-White**'s south range is tile and its
+north half is white deck. All four are right and all four are absent from the
+city today. Shipping them is a deliberate change to what the app draws — one
+`--rebake`, four new tiled bands — and it belongs to whoever owns roofs, with
+a look at the render, not to this pass.
+
 
 ## 203. Sep 2 2026 — the slopes layer: a three.js custom layer that a fill-extrusion cannot tell from itself (`acer/slopes`, not merged)
 
