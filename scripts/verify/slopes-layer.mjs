@@ -14,15 +14,37 @@
  *
  * What it asserts (numbers from the first run, RTX 3050 Ti, 2026-09-02):
  *
- *   switch    ?slopes=0 leaves no layer, no renderer, no frame. SLOPES.on =
- *             false at runtime: 0 of 1,296,000 mall-cruise pixels differ.
- *             ?slopes=0 against a git-archive of main served from a second
- *             port: 1 pixel, Δ1. The empty layer ON against ?slopes=0, two
- *             page LOADS: 3,100 pixels beyond Δ2 (40 beyond Δ20), all in one
- *             band 100-200 px from the top across the full width — the far
- *             field, where nothing of this layer draws. NOT explained on the
- *             first day; far-tile detail between loads is the suspect. That
- *             line is red until someone proves what it is.
+ *   switch    THE PROMISE IS ABOUT OFF, NOT ABOUT ON. With the generators
+ *             drawing, the ON frame is SUPPOSED to differ from the slabs —
+ *             108 roofs, 24 arches and a dome are in the mall-cruise frame.
+ *             What must hold is that the switch RETURNS and that OFF is
+ *             today's city: `SLOPES.on` false then true again is the frame it
+ *             started from at 0 of 1,296,000 px; every filter the layer
+ *             touched comes back BYTE-IDENTICAL to a `?slopes=0` page's;
+ *             `?slopes=0` equals a `git archive main` served on a second port
+ *             (--against) at 0 px, which is the bake-identity contract for
+ *             scripts/bake_roofs.py. Two supporting lines keep those zeros
+ *             honest: the harness's own noise floor (one settled page shot
+ *             twice = 0 px) and a live count showing the layer really draws at
+ *             this pose, so nothing here can pass by drawing nothing.
+ *
+ *             The one line that is NOT a zero, with its reason: the OFF frame
+ *             against a `?slopes=0` LOAD is 6,134 px (0.47 %, nine independent
+ *             pairs, identical to ±1). None of it is the mesh — stopping the
+ *             layer's render() altogether moves 0 pixels, and that control is
+ *             asserted beside it. 5,178 px is the mere PRESENCE of one more
+ *             layer in the style: MapLibre slices the depth range per layer,
+ *             so a 224-layer style resolves the ties between coplanar roof
+ *             steps the other way from a 223-layer one. The last 969 px, which
+ *             survive removing the layer, are not explained. So that line is a
+ *             ratchet with its ceiling named, not a zero pretended into being.
+ *
+ *             All of it became measurable only once auto-exposure was pinned
+ *             off in open(): the meter rides map 'move' and reads the previous
+ *             frame, so any two pages compared across a jumpTo were being
+ *             compared on their METER HISTORIES. That, and not this layer, was
+ *             the 163,822-px Δ1 "far field" and the 3.8% toggle brightening
+ *             chased on 2026-09-02 — both reproduce with no layer present.
  *   stack     slopes-mesh sits before aerial-fog; only the sky compositor and
  *             the labels sit above the fog.
  *   frame     slopes.project(slopes.toLocal(lng, lat)) lands on map.project
@@ -46,7 +68,11 @@
  *             group goes and the Capitol dome group stays. Asserting
  *             visibility 'none' here was the old contract and it is gone —
  *             a hidden custom layer's render() is never called, which took
- *             the dome off the skyline with the roofs on 2026-09-02.
+ *             the dome off the skyline with the roofs on 2026-09-02. The other
+ *             half of that defect is asserted too: while the layer is held
+ *             down, capitol-dome's filter must STILL be excluding the stacked
+ *             discs, because the dome group is still drawing. Both shapes gone
+ *             at once is how the skyline went empty.
  *   preset    GFX.preset = 'performance' halves slopes.detail(); the debug
  *             lathe rebuilds at half its segments.
  *   raycast   slopes.raycast() at the cube's top centre hits it at 16.00 m;
@@ -54,28 +80,48 @@
  *
  * With the generators (js/slopes-roofs.js, -arches.js, -dome.js) drawing:
  *
- *   built     112 roofs + Gregory Gym's gable, 24 arched entrances and the
+ *   built     108 roofs + Gregory Gym's gable, 24 arched entrances and the
  *             three dome parts are in the scene; roofs-pitched shows only the
  *             `f` tags it keeps, entrances-portal/glass exclude `arc`, and
  *             capitol-dome excludes the three lathed parts; SLOPES.on = false
- *             puts all three filters back to what they were.
+ *             puts all three filters back to what they were. The roofs-filter
+ *             regex is ROOFS_FILTER_RE at the top of this file, and it is
+ *             there because the first one (/"match","\["get","f"\]/) could
+ *             not match a correct filter: the gate was red on 2026-09-02
+ *             against a filter that was right.
  *   ridge     at the gregory pose, on the hipped roof nearest the frame's
  *             centre whose two long slopes the light tells apart most: the
  *             slopes read as two tones either side of the ridge (pixels), each
  *             slope is one tone along its length (pixels), and a raycast down
  *             the slope climbs continuously at the rig's own pitch — a
  *             staircase would plateau.
- *   arch      at the battle-street pose, on the arched door nearest the
- *             frame's centre: six raycasts along the surround's curve all hit
- *             the arches mesh within 10 cm of the ellipse, the six pixels are
- *             one tone and lighter than the fanlight glass inside, and the
- *             frame differs from the chord frame where the arch is. The same
- *             door from 22 m (`battle-door`), where the curve is 300 px wide,
- *             is the frame worth looking at.
+ *   arch      the stand-in is not a five-sided polygon, it is a STAIRCASE:
+ *             bake_entrances.py's ARCH_TIERS = 5 chords each freeze their half
+ *             width at their own tier's mid height. So on the arched door
+ *             nearest the frame's centre: ARCH_SAMPLES = 33 raycasts walk the
+ *             head from 8° to 172° and must land on the arches mesh within
+ *             3 cm of the exact ellipse, where the five chords are out by tens
+ *             of centimetres — both numbers printed, and the mesh must be 5x
+ *             closer. Then ARCH_PROBES = 6 pixels chosen where the curve is
+ *             surround and the chords are NOT must move when the chords come
+ *             back, and the head as a whole must differ from the chord frame.
+ *             (The first version asked instead that "the six pixels on the
+ *             curve are one tone". That was over-strict AND blind: at
+ *             battle-door the mesh reads 136 103 87 136 136 136 and the chords
+ *             read exactly the same, so it went red on a correct arch and
+ *             would have gone green on a wrong one. What separates a curve
+ *             from five chords is WHERE the surround is, not its tone.)
  *
- * --break moves the layer to the END of the style, above the fog — inside the
- * page only — and the stack and haze assertions must go red. Use it before
- * trusting a green.
+ * --break sabotages the page — inside the page only, no file on disk changes —
+ * in the two ways this gate exists to catch, and NINE lines must go red:
+ *   1. the layer is moved to the END of the style, above the fog: the `stack`
+ *      line and the two `haze` lines (3).
+ *   2. SLOPES_ARCHES.on = false, so the arched heads are the five chords
+ *      again: all three `arch` lines at both poses (6). That is the exact
+ *      regression those assertions exist to catch — and they are the ones
+ *      this gate already got wrong once, so they are the ones worth watching.
+ * Use it before trusting a green. Measured 2026-09-02, hardware GL:
+ * 38/47 with --break (no --against) against 48/48 without.
  *
  * Usage (from scripts/verify, README's way):
  *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]
@@ -106,6 +152,62 @@ const zoomFor = (alt, pitch, lat) => {
   return Math.log2(40075016.686 * Math.cos(lat * Math.PI / 180) / (512 * mpp));
 };
 
+// ══════════════════════════════════════════════════════════════════════
+//  The gate's own constants. CLAUDE.md rule 11: no measurement buried in a
+//  function body.
+// ══════════════════════════════════════════════════════════════════════
+
+// roofs-pitched's filter serialises as ["match",["get","f"],[...],true,false]:
+// a `match` whose input is the ["get","f"] EXPRESSION, not the string "f".
+// The first version of this line asked for /"match","\["get","f"\]/ — the
+// comma INSIDE the quotes — which no correct filter can ever produce. The gate
+// was red on 2026-09-02 against a filter that was right. A regex that cannot
+// match is a guard that cannot pass, which is the same defect as one that
+// cannot fail (README: "every gate must be watchable failing").
+const ROOFS_FILTER_RE = /^\["match",\["get","f"\],\[/;
+
+// THE ARCH IS A CURVE — and the stand-in it replaces is not a five-sided
+// polygon, it is a STAIRCASE. scripts/bake_entrances.py draws an arched head
+// as ARCH_TIERS = 5 horizontal chords, each a rectangle whose half width is
+// frozen at its own tier's MID height:
+//     w_i = half * sqrt(1 - t_i²),   t_i = (i + 0.5) / 5
+// so at a given height the chords are out by up to `half` near the crown
+// (the top tier is 57 cm wide on Battle Hall where the ellipse has closed to
+// nothing) and by millimetres near the springing. That is the number this
+// gate measures against.
+//
+// The assertion it replaces — "the six pixels on the curve are one tone" —
+// was over-strict AND non-discriminating: at battle-door the mesh reads
+// 136 103 87 136 136 136 and the chords read exactly the same, so it was red
+// on a correct arch and would have been green on a wrong one. What separates
+// a curve from five chords is WHERE the surround is, not what tone it is.
+const ARCH_SAMPLES = 33;          // raycasts across the head, ARCH_TH0..ARCH_TH1
+const ARCH_TH0 = 8, ARCH_TH1 = 172;   // degrees; inside the springing, over the crown
+const ARCH_ON_ELLIPSE_M = 0.03;   // a 24-segment quarter is off its ellipse by 0.7 mm
+const ARCH_CHORD_RATIO = 5;       // ...and must be at least this much closer than the chords
+const ARCH_TIERS = 5;             // bake_entrances.py's own ARCH_TIERS
+// The probes are chosen in the (u, z) PLANE, not along the band's midline.
+// At a given height the mesh's surround occupies u from the intrados
+// half*sqrt(1-t²) out to the extrados (half+sw)*sqrt(1-(t')²), and the chords'
+// occupies [w_i, w_i + sw] with w_i frozen at the tier's mid height. Where
+// those two intervals do NOT overlap by at least ARCH_PROBE_GAP is a place the
+// two shapes genuinely disagree — limestone surround on the mesh against
+// fanlight glass (inside) or terracotta spandrel (outside) on the chords. The
+// first cut of this measured clearance along the midline alone and found only
+// 5 such samples of 33 on a semicircular portal, which is why it is written
+// this way.
+// Some probe positions are a TIE even where the two shapes disagree — the
+// chord's spandrel and the mesh's surround can happen to carry the same tone
+// at that height. The first run of this asked 5 of 6 and got exactly 5 at both
+// poses, i.e. no margin at all, which is how a correct arch turns a gate red.
+// So it asks for a MAJORITY of a wider sample.
+const ARCH_PROBES = 8;            // pixels sampled where the curve is surround and the chords are not
+const ARCH_PROBE_GAP = 0.10;      // m; the disagreement must be this wide to be worth a pixel
+const ARCH_PROBE_UMIN = 0.35;     // m; keep off the centreline — bake_entrances.py lays a KEYSTONE
+                                  // across the crown, proud of the band, present in BOTH shapes
+const ARCH_PROBE_DELTA = 12;      // /255 luma; how far such a pixel must move when the chords come back
+const ARCH_PROBE_MIN = 5;         // of ARCH_PROBES — a majority, not all of them
+
 const results = [];
 const check = (name, pass, detail) => { results.push({ name, pass: !!pass, detail }); };
 const rgb = v => v ? v.join(',') : 'null';
@@ -120,6 +222,23 @@ async function open(url) {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 180000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 180000 });
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+  // AUTO-EXPOSURE OFF ON EVERY PAGE THIS GATE OPENS — the reason the switch
+  // comparisons below can be asked for ZERO pixels.
+  //
+  // js/graphics.js's meter is OPEN LOOP and rides `updateSky`, which runs on
+  // map 'move', 'resize' and hour changes — never per frame — and its 40x24
+  // drawImage reads the PREVIOUS frame's buffer. So the first jumpTo after a
+  // load meters the LOAD pose, and any two pages compared across a jumpTo are
+  // comparing METER HISTORIES, not renders. That is the whole of the
+  // 163,822-pixel Δ1 "far field" difference chased on 2026-09-02 and of the
+  // 3.8% brightening the runtime toggle appeared to cause; both reproduce on a
+  // ?slopes=0 page with no layer present at all. aeMeter resets its gain to 1
+  // the next time it runs with the flag off, which the pose's jumpTo
+  // guarantees, and every frame this gate diffs is asserted at gain 1.
+  // gl.readPixels never saw the gain anyway (the grade is a CSS filter on
+  // #map), so the sampled colours above are untouched — only the screenshots
+  // move, and they move to zero.
+  await page.evaluate(() => { window.GFX.autoExposure = false; });
   await page.waitForFunction(() => {
     const m = window.__map;
     return m.getSource('austin-buildings') && m.getLayer('buildings-3d') && m.getLayer('aerial-fog');
@@ -296,7 +415,7 @@ const lod = await page.evaluate(async () => {
   const m = window.__map, s = window.slopes;
   const alt = () => { try { const a = window.__fly && window.__fly.eye().alt; if (isFinite(a) && a > 0) return a; } catch (e) {} return m.transform.cameraToCenterDistance / m.transform.pixelsPerMeter; };
   const groups = () => { const o = {}; for (const g of s.stats().groups) o[g.name] = g.visible; return o; };
-  const state = () => ({ alt: +alt().toFixed(0), roofs: m.getLayoutProperty('roofs-pitched', 'visibility') || 'visible', meshHidden: window.LOD_isHidden('slopes-mesh'), meshVisible: s.layer.isVisible(), custVis: m.getLayoutProperty('slopes-mesh', 'visibility') || 'visible', frames: s.frames, groups: groups() });
+  const state = () => ({ alt: +alt().toFixed(0), roofs: m.getLayoutProperty('roofs-pitched', 'visibility') || 'visible', meshHidden: window.LOD_isHidden('slopes-mesh'), meshVisible: s.layer.isVisible(), custVis: m.getLayoutProperty('slopes-mesh', 'visibility') || 'visible', frames: s.frames, groups: groups(), domeFilter: JSON.stringify(m.getFilter('capitol-dome') || null) });
   window.GFX.renderDistance = 700; window.applyLOD(m); await new Promise(r => setTimeout(r, 500));
   const hidden = state();
   // The layer must still be RENDERING while LOD holds it down — that is the
@@ -331,6 +450,16 @@ check('...and the layer is still RENDERING while it is hidden, so the per-group 
 check('...the roofs group goes with roofs-pitched and the DOME STAYS ON THE SKYLINE',
   lod.hidden.groups['slopes-roofs'] === false && lod.hidden.groups['slopes-dome'] === true,
   `groups at D=700: ${JSON.stringify(lod.hidden.groups)}`);
+// The other half of the 2026-09-02 dome defect, and the half that made it
+// INVISIBLE rather than merely wrong: while the layer was held down, the
+// eighteen stacked discs it stands in for were STILL filtered out of
+// capitol-dome. Neither shape was on the skyline. Whatever the layer does at
+// altitude, the filter it installed must keep matching the group that is
+// still drawing — so the discs stay hidden exactly as long as the dome mesh
+// is there to replace them.
+check('...and the stand-in discs stay filtered out while the dome group draws, so the skyline is never empty',
+  lod.hidden.groups['slopes-dome'] === true && /bullock-dome/.test(lod.hidden.domeFilter),
+  `at D=700 the dome group is ${lod.hidden.groups['slopes-dome']} and capitol-dome's filter is ${lod.hidden.domeFilter}`);
 check('...and every group is back when the slider is at the top',
   lod.shown.groups['slopes-roofs'] === true && lod.shown.groups['slopes-dome'] === true,
   `groups at D=1500: ${JSON.stringify(lod.shown.groups)}`);
@@ -360,7 +489,7 @@ check('the three generators built: roofs + gable, 24 arches, 3 dome parts, each 
   gen.roofs.roofs >= 100 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3 && ['slopes-roofs', 'slopes-arches', 'slopes-dome'].every(n => gen.names.includes(n)),
   `${gen.roofs.roofs} roofs + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris); groups ${gen.names.join(', ')}`);
 check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
-  /"match","\["get","f"\]/.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
+  ROOFS_FILTER_RE.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
   `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
 const restored = await page.evaluate(async () => {
   const m = window.__map;
@@ -425,50 +554,135 @@ else {
   await shot(page, 'ridge-gregory');
 }
 
-// arch: the arched door nearest the frame's centre at the battle-street pose, then the same door from the street
+// arch: the arched door nearest the frame's centre at the battle-street pose,
+// then the same door from the street.
+//
+// THREE ASSERTIONS, and the point of all three is to separate a curve from the
+// five chords it replaces — not to describe the curve in a way the chords also
+// satisfy. See ARCH_* at the top of this file for the chord's own geometry.
+//
+//   1. WHERE the surround is. ARCH_SAMPLES raycasts walk the head from
+//      ARCH_TH0 to ARCH_TH1 degrees; each must land on the arches mesh within
+//      ARCH_ON_ELLIPSE_M of the exact ellipse the bake wrote. The same samples
+//      are measured against the five-chord staircase and the two numbers are
+//      printed side by side: the mesh must be ARCH_CHORD_RATIO times closer.
+//      A staircase cannot pass this — its half width is constant through a
+//      whole tier while the ellipse's is not — so no separate plateau test is
+//      needed on top of it.
+//   2. PIXELS, where the two shapes disagree. ARCH_PROBES points are chosen on
+//      the curve that lie at least ARCH_PROBE_CLEAR outside the chords' own
+//      band at the same height: surround on the mesh, something else on the
+//      chords. Swapping the mesh back for the chords must MOVE those pixels.
+//   3. The head as a whole differs from the chord frame (the grid test, kept).
 async function archTest(P, label, minPx) {
   await pose(page, P.center, P.zoom, P.pitch, P.bearing);
-  const A = await page.evaluate(() => {
+  const A = await page.evaluate(([N, TH0, TH1, TIERS, GAP, UMIN, NPROBE]) => {
     const S = window.slopes, D = window.slopesArches.data, cv = window.__map.getCanvas();
+    const R = Math.PI / 180;
     let best = null;
     for (const eid of Object.keys(D)) {
       const a = D[eid]; if (!a.band) continue;
       const F = S.frame(a.o, a.t, a.n);
-      const crown = a.spring + a.rise, sw = a.band.sw, v = a.band.v[1] + 0.005;
-      const pt = (th, dv) => { const w = a.half * Math.cos(th), u = w + (w >= 0 ? sw / 2 : -sw / 2); const p = F.at(u, v + (dv || 0), a.spring + a.rise * Math.sin(th)); return p; };
-      const ths = [20, 45, 70, 110, 135, 160].map(d => d * Math.PI / 180);
-      const world = ths.map(th => pt(th));
-      const scr = world.map(p => S.project(p[0], p[1], p[2]));
-      if (scr.some(s => !s || s.w <= 0)) continue;
-      const cx = scr.reduce((s, p) => s + p.x, 0) / scr.length, cy = scr.reduce((s, p) => s + p.y, 0) / scr.length;
+      const sw = a.band.sw, v = a.band.v[1] + 0.005;   // a hair proud, so the ray lands on the band's face
+      // the band's MIDLINE at angle th, in the opening's own (u, v, z) frame
+      const uz = th => { const w = a.half * Math.cos(th); return [w + (w >= 0 ? sw / 2 : -sw / 2), a.spring + a.rise * Math.sin(th)]; };
+      // the FIVE CHORDS at the same height: half width frozen at the tier's mid t
+      const chordU = z => { const t = Math.max(0, Math.min(1, (z - a.spring) / a.rise));
+        const i = Math.min(TIERS - 1, Math.floor(t * TIERS)), tm = (i + 0.5) / TIERS;
+        const w = a.half * Math.sqrt(Math.max(0, 1 - tm * tm)); return [w, w + sw]; };
+      // the MESH's own surround at the same height: intrados to extrados.
+      // SLOPES_ARCHES.radial says which extrados js/slopes-arches.js drew.
+      const radial = window.SLOPES_ARCHES.radial !== false;
+      const uin = z => { const t = Math.max(0, Math.min(1, (z - a.spring) / a.rise)); return a.half * Math.sqrt(Math.max(0, 1 - t * t)); };
+      const uout = z => { if (!radial) return uin(z) + sw;
+        const t = Math.max(0, Math.min(1, (z - a.spring) / (a.rise + sw))); return (a.half + sw) * Math.sqrt(Math.max(0, 1 - t * t)); };
+      const ths = []; for (let i = 0; i < N; i++) ths.push((TH0 + (TH1 - TH0) * i / (N - 1)) * R);
+      const rows = ths.map(th => {
+        const uzv = uz(th), u = uzv[0], z = uzv[1];
+        const p = F.at(u, v, z); const sp = S.project(p[0], p[1], p[2]);
+        const cu = chordU(z), c0 = cu[0], c1 = cu[1], au = Math.abs(u);
+        // how far the chord's own band midline is from the ellipse's, in metres
+        const err = Math.abs(au - (c0 + c1) / 2);
+        // WHERE THE TWO SHAPES DISAGREE at this height: the mesh's surround
+        // runs [i0, i1]; the chords' runs [c0, c1]. Take the wider of the two
+        // non-overlapping stretches, off the keystone's centreline.
+        const i0 = uin(z), i1 = uout(z);
+        const cand = [[i0, Math.min(i1, c0)], [Math.max(i0, c1), i1]]
+          .map(g => ({ w: g[1] - g[0], u: (g[0] + g[1]) / 2 }))
+          .filter(g => g.w >= GAP && g.u >= UMIN)
+          .sort((x, y) => y.w - x.w)[0] || null;
+        let probe = null;
+        if (cand) { const pw = F.at(Math.sign(u || 1) * cand.u, v, z); const ps = S.project(pw[0], pw[1], pw[2]);
+                    if (ps && ps.w > 0) probe = { px: [ps.x, ps.y], u: +cand.u.toFixed(2), gap: +cand.w.toFixed(2) }; }
+        return { th: th / R, u: u, z: z, world: p, s: sp && [sp.x, sp.y], ok: !!(sp && sp.w > 0), err: err, probe: probe };
+      });
+      if (rows.some(r => !r.ok)) continue;
+      const xs = rows.map(r => r.s[0]), ys = rows.map(r => r.s[1]);
+      const cx = xs.reduce((p, q) => p + q, 0) / xs.length, cy = ys.reduce((p, q) => p + q, 0) / ys.length;
       if (cx < 60 || cx > cv.clientWidth - 60 || cy < 80 || cy > cv.clientHeight - 80) continue;
-      const g = F.at(0, a.tr ? a.tr.v[1] + 0.005 : v, a.spring + a.rise * 0.45); const gs = S.project(g[0], g[1], g[2]);
-      const span = Math.hypot(scr[0].x - scr[5].x, scr[0].y - scr[5].y);
       const c = Math.hypot(cx - cv.clientWidth / 2, cy - cv.clientHeight / 2);
-      // toward the camera a hair, so the ray lands on the band's face and not behind it
-      if (!best || c < best.centre) best = { eid, ref: a.ref, centre: c, span, pts: scr.map(s => [s.x, s.y]), world, glass: gs && [gs.x, gs.y], half: a.half, rise: a.rise };
+      if (best && c >= best.centre) continue;
+      const g = F.at(0, a.tr ? a.tr.v[1] + 0.005 : v, a.spring + a.rise * 0.45); const gs = S.project(g[0], g[1], g[2]);
+      const span = Math.hypot(rows[0].s[0] - rows[N - 1].s[0], rows[0].s[1] - rows[N - 1].s[1]);
+      // the probes: spread EVENLY through the qualifying heights, so they are
+      // not all bunched at the crown where one keystone could answer for all six
+      const qual = rows.filter(r => r.probe);
+      const probes = qual.length <= NPROBE ? qual
+        : Array.from({ length: NPROBE }, (_, k) => qual[Math.round(k * (qual.length - 1) / (NPROBE - 1))]);
+      best = { eid: eid, ref: a.ref, centre: c, span: span, half: a.half, rise: a.rise, sw: sw,
+               pts: rows.map(r => r.s), world: rows.map(r => r.world),
+               chordErr: rows.map(r => r.err),
+               qual: qual.length,
+               probes: probes.map(r => ({ px: r.probe.px, th: +r.th.toFixed(0), u: r.probe.u, gap: r.probe.gap })),
+               glass: gs && [gs.x, gs.y] };
     }
     return best;
-  });
+  }, [ARCH_SAMPLES, ARCH_TH0, ARCH_TH1, ARCH_TIERS, ARCH_PROBE_GAP, ARCH_PROBE_UMIN, ARCH_PROBES]);
   if (!A) { check(`an arched door is in the ${label} frame`, false, 'none on screen'); return; }
-  const on = await sample(page, A.pts.concat([A.glass]), 1);
-  const rc = await page.evaluate(([pts, world]) => pts.map(([x, y], i) => { const h = window.slopes.raycast(x, y); if (!h) return null; const w = world[i]; return { o: h.object.name, d: +Math.hypot(h.point.x - w[0], h.point.y - w[1], h.point.z - w[2]).toFixed(3) }; }), [A.pts, A.world]);
-  await setOn(page, false); const off = await sample(page, A.pts.concat([A.glass]), 1);
-  // the frame changes where the arch is: a grid over the door's head, on vs off
+
+  // 1. the curve, from ARCH_SAMPLES raycasts
+  const rc = await page.evaluate(([pts, world]) => pts.map(([x, y], i) => {
+    const h = window.slopes.raycast(x, y); if (!h) return null; const w = world[i];
+    return { o: h.object.name, d: +Math.hypot(h.point.x - w[0], h.point.y - w[1], h.point.z - w[2]).toFixed(4) };
+  }), [A.pts, A.world]);
+  const misses = rc.filter(h => !h || h.o !== 'arches').length;
+  const meshErr = misses ? Infinity : Math.max(...rc.map(h => h.d));
+  const chordErr = Math.max(...A.chordErr);
+  check(`arch (${label}): ${A.ref}'s head is the ellipse and not the five chords — ${ARCH_SAMPLES} raycasts across the surround (${A.span.toFixed(0)} px across)`,
+    misses === 0 && meshErr <= ARCH_ON_ELLIPSE_M && meshErr * ARCH_CHORD_RATIO <= chordErr,
+    misses ? `${misses} of ${ARCH_SAMPLES} rays did not land on the arches mesh: ${rc.map(h => h ? h.o : 'none').join(' ')}`
+           : `eid ${A.eid}, half ${A.half} rise ${A.rise} sw ${A.sw}: the mesh is off the ellipse by at most ${(meshErr * 100).toFixed(1)} cm over ${ARCH_TH0}°..${ARCH_TH1}°, where the ${ARCH_TIERS} chords are off by ${(chordErr * 100).toFixed(1)} cm — ${(chordErr / Math.max(1e-6, meshErr)).toFixed(0)}x closer, tolerance ${(ARCH_ON_ELLIPSE_M * 100).toFixed(0)} cm`);
+
+  // 2. pixels, at the places the two shapes disagree about
+  const probePts = A.probes.map(p => p.px);
+  const onP = probePts.length ? await sample(page, probePts, 1) : [];
+  await setOn(page, false);
+  const offP = probePts.length ? await sample(page, probePts, 1) : [];
+  // 3. the head as a whole, on vs off
   const box = (() => { const xs = A.pts.map(p => p[0]), ys = A.pts.map(p => p[1]); return [Math.min(...xs) - 4, Math.min(...ys) - 4, Math.max(...xs) + 4, Math.max(...ys) + 4]; })();
   const grid = []; for (let y = box[1]; y <= box[3]; y += 2) for (let x = box[0]; x <= box[2]; x += 2) grid.push([x, y]);
   const gOff = await sample(page, grid, 0); await setOn(page, true); const gOn = await sample(page, grid, 0);
   const changed = grid.filter((_, i) => maxd(gOn[i], gOff[i]) > 10).length;
-  const bandL = on.slice(0, 6).map(luma), glassL = luma(on[6]);
-  const spread = Math.max(...bandL) - Math.min(...bandL);
-  const hits = rc.every(h => h && h.o === 'arches' && h.d <= 0.12);
-  check(`arch (${label}): six raycasts along ${A.ref}'s surround curve hit the arches mesh on the ellipse (${A.span.toFixed(0)} px across)`, hits,
-    `eid ${A.eid}, half ${A.half} rise ${A.rise}: ${rc.map(h => h ? h.o + ' ' + h.d + ' m' : 'miss').join(', ')}`);
-  check(`arch (${label}): the six pixels on the curve are one tone, lighter than the fanlight inside`, spread <= 24 && Math.min(...bandL) >= glassL + 12,
-    `band ${bandL.map(v => v.toFixed(0)).join(' ')} (spread ${spread.toFixed(0)}) vs glass ${glassL.toFixed(0)}; the chords there read ${off.slice(0, 6).map(luma).map(v => v.toFixed(0)).join(' ')}`);
+
+  const moved = probePts.map((_, i) => Math.abs(luma(onP[i]) - luma(offP[i])));
+  const nMoved = moved.filter(d => d >= ARCH_PROBE_DELTA).length;
+  check(`arch (${label}): the curve is surround where the chords are not — ${ARCH_PROBES} pixels off the staircase move when the chords come back`,
+    probePts.length >= ARCH_PROBES && nMoved >= ARCH_PROBE_MIN,
+    probePts.length < ARCH_PROBES ? `only ${A.qual} of ${ARCH_SAMPLES} heights disagree by ${ARCH_PROBE_GAP} m outside u=${ARCH_PROBE_UMIN} — the chords track this arch too closely to probe`
+      : `${nMoved} of ${probePts.length} moved by >= ${ARCH_PROBE_DELTA}/255 luma (${A.qual} of ${ARCH_SAMPLES} heights qualified): ` + A.probes.map((p, i) => `${p.th}° u${p.u} gap${p.gap} ${rgb(onP[i])}->${rgb(offP[i])} d${moved[i].toFixed(0)}`).join(', '));
+
   check(`arch (${label}): the frame differs from the chord frame over the door's head`, changed >= Math.max(3, grid.length * 0.03),
-    `${changed} of ${grid.length} grid points over the head differ by more than 10/255 between curve and chords${A.span < minPx ? ' — at ' + A.span.toFixed(0) + ' px the curve and the chords are within a pixel of each other on the band itself; the closer pose below is the visual proof' : ''}`);
+    `${changed} of ${grid.length} grid points over the head differ by more than 10/255 between curve and chords${A.span < minPx ? ' — at ' + A.span.toFixed(0) + ' px the curve and the chords are within a pixel of each other over much of the band; the closer pose below is the visual proof' : ''}`);
   await shot(page, `arch-${label}`);
+}
+if (BREAK) {
+  // The sabotage the arch lines are watched failing under: the page draws the
+  // FIVE CHORDS again — the mesh gone, the entrance layers' own filters back.
+  // That is exactly the regression these three assertions exist to catch, so
+  // all three must go red, at both poses.
+  await page.evaluate(() => { window.SLOPES_ARCHES.on = false; window.applySlopesArches(window.__map); });
+  await page.waitForTimeout(800);
+  console.log('--break: SLOPES_ARCHES.on = false — the arched heads are five chords again');
 }
 await archTest(BATTLE, 'battle-street', 120);
 await archTest(BATTLE_DOOR, 'battle-door', 120);
@@ -479,39 +693,138 @@ await page.close();
 // 2. The switch, on the REAL page (no debug scene): off is today.
 // ═══════════════════════════════════════════════════════════════════════
 const MALL = { center: [-97.7393, 30.2856], zoom: 17.48, pitch: 55, bearing: 0 };   // the pass's mall-cruise pose
+const FILTERED = ['roofs-pitched', 'entrances-portal', 'entrances-glass', 'capitol-dome'];
 const tmp = SHOTS || fs.mkdtempSync(path.join(process.env.TEMP || process.env.TMPDIR || '.', 'slopes-'));
+const snap = async (pg, name) => {
+  const f = path.join(tmp, `${name}.png`);
+  await pg.screenshot({ path: f }); await pg.waitForTimeout(300); await pg.screenshot({ path: f });
+  return f;
+};
 async function mallFrame(url, name, before) {
   const pg = await open(url);
   if (before) await before(pg);
   await pose(pg, MALL.center, MALL.zoom, MALL.pitch, MALL.bearing);
   await pg.waitForTimeout(3000); await pg.evaluate(() => window.__settle(4000));
-  const f = path.join(tmp, `${name}.png`);
-  await pg.screenshot({ path: f }); await pg.waitForTimeout(300); await pg.screenshot({ path: f });
-  return { pg, f };
+  return { pg, f: await snap(pg, name) };
 }
-const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', async pg => {
-  await pg.waitForFunction(() => window.slopes && window.slopes.frames > 0, null, { timeout: 90000 });
+// Everything the page must have finished before a frame of it is worth diffing.
+const settled = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
+  && window.slopesRoofs && window.slopesRoofs.count.roofs > 0
+  && window.slopesArches && window.slopesArches.count.done
+  && window.slopesDome && window.slopesDome.count.done, null, { timeout: 120000 });
+const filtersOf = pg => pg.evaluate(ids => Object.fromEntries(ids.map(id => [id, JSON.stringify(window.__map.getFilter(id) || null)])), FILTERED);
+
+const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', settled);
+const fNoise = await snap(A.pg, 'switch-on-again');
+const onState = await A.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes.frames, renderer: !!window.slopes.renderer, groups: window.slopes.root.children.map(g => g.name), gain: window.__ae().gain }));
+// THE OLD CONTRACT WAS `root.children === 0` — written the day the layer was
+// installed empty, and stale from the moment the generators landed. On the real
+// page the scene is the three generator groups and nothing else (the debug
+// scene only exists under ?slopesdebug=1).
+const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome'];
+check('by default the layer is installed and the three generators are the whole of its scene',
+  onState.layer && onState.frames > 0 && onState.renderer
+  && onState.groups.length === WANT_GROUPS.length && WANT_GROUPS.every(n => onState.groups.includes(n)),
+  `layer ${onState.layer}, frames ${onState.frames}, renderer ${onState.renderer}, groups [${onState.groups.join(', ')}]`);
+check('the frames this gate diffs are metered at gain 1 (auto-exposure pinned off)', onState.gain === 1, `__ae().gain ${onState.gain}`);
+
+await A.pg.evaluate(() => { window.SLOPES.on = false; window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+const fOff = await snap(A.pg, 'switch-live-off');
+const offFilters = await filtersOf(A.pg);
+// THE CONTROL THAT DECIDES WHAT THE RESIDUE BELOW IS. MapLibre stops calling a
+// custom layer's render() once its layout visibility is 'none' — that is the
+// §204c dome bug's own mechanism, and here it is the cleanest way to ask "is
+// the switched-off layer still putting anything on the screen?" without
+// touching the style's layer LIST.
+const inert = await A.pg.evaluate(async () => {
+  const m = window.__map, before = window.slopes.frames;
+  m.setLayoutProperty('slopes-mesh', 'visibility', 'none'); m.triggerRepaint();
+  await new Promise(r => setTimeout(r, 1500));
+  return { before, after: window.slopes.frames };
 });
-const onState = await A.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes.frames, renderer: !!window.slopes.renderer, children: window.slopes.root.children.length }));
-check('by default the layer is installed, drawing an empty scene', onState.layer && onState.frames > 0 && onState.renderer && onState.children === 0, `layer ${onState.layer}, frames ${onState.frames}, renderer ${onState.renderer}, root children ${onState.children}`);
-await A.pg.evaluate(() => { window.SLOPES.on = false; window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(800);
-const fA2 = path.join(tmp, 'switch-live-off.png'); await A.pg.screenshot({ path: fA2 }); await A.pg.waitForTimeout(300); await A.pg.screenshot({ path: fA2 });
+const fInert = await snap(A.pg, 'switch-off-render-stopped');
+await A.pg.evaluate(() => { window.__map.setLayoutProperty('slopes-mesh', 'visibility', 'visible'); window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+await A.pg.evaluate(() => { window.SLOPES.on = true; window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+const fOn2 = await snap(A.pg, 'switch-live-on2');
 await A.pg.close();
+
 const C = await mallFrame(`${SERVER}/index.html?intro=0&drift=0&slopes=0`, 'switch-url-off');
-const offState = await C.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes ? window.slopes.frames : -1, renderer: !!(window.slopes && window.slopes.renderer), on: window.SLOPES.on }));
-check('?slopes=0 leaves no layer, no renderer and no frame', !offState.layer && offState.frames === 0 && !offState.renderer && offState.on === false, `layer ${offState.layer}, frames ${offState.frames}, renderer ${offState.renderer}, SLOPES.on ${offState.on}`);
+const offState = await C.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes ? window.slopes.frames : -1, renderer: !!(window.slopes && window.slopes.renderer), on: window.SLOPES.on, gain: window.__ae().gain }));
+const urlFilters = await filtersOf(C.pg);
+check('?slopes=0 leaves no layer, no renderer and no frame', !offState.layer && offState.frames === 0 && !offState.renderer && offState.on === false && offState.gain === 1, `layer ${offState.layer}, frames ${offState.frames}, renderer ${offState.renderer}, SLOPES.on ${offState.on}, gain ${offState.gain}`);
 await C.pg.close();
-// Within one page the comparison is exact. Across two page LOADS a channel
-// may wobble by a unit or two (the first run: 1 pixel, Δ1, against a pristine
-// main), so cross-load comparisons ignore Δ ≤ 2 and print the raw count too.
-const d1 = diffPNG(A.f, fA2), d2 = diffPNG(A.f, C.f, 2), d2raw = diffPNG(A.f, C.f);
-check('SLOPES.on = false at runtime: the mall-cruise frame is pixel-identical', d1.pixels === 0, `${d1.pixels} of ${d1.total} pixels differ (max channel Δ ${d1.maxChannelDiff})`);
-check('the empty layer ON vs ?slopes=0 (a separate page load): pixel-identical beyond Δ2', d2.pixels === 0, `${d2.pixels} of ${d2.total} pixels differ by more than 2 (${d2raw.pixels} by any amount, max channel Δ ${d2raw.maxChannelDiff})${d2.bbox ? ', bbox ' + d2.bbox.join(',') : ''}`);
+
+// THE NOISE FLOOR, MEASURED HERE RATHER THAN ASSUMED. Every number below is
+// worthless without it: two screenshots of one settled page, no camera move
+// between them.
+const dN = diffPNG(A.f, fNoise);
+check('the harness is deterministic: one settled page shot twice is the same frame', dN.pixels === 0, `${dN.pixels} of ${dN.total} pixels differ (max channel Δ ${dN.maxChannelDiff})`);
+// ...and the pose is one where the layer really draws, so nothing below can
+// pass by drawing nothing anywhere.
+const dLive = diffPNG(A.f, fOff);
+check('...and the layer is really drawing at this pose, so the zeros below are not vacuous', dLive.pixels > 10000, `${dLive.pixels} of ${dLive.total} mall-cruise pixels change when SLOPES.on goes false (max channel Δ ${dLive.maxChannelDiff})`);
+
+// WHAT THE SWITCH ACTUALLY PROMISES. Not "on looks like off" — the generators
+// draw 108 roofs, 24 arches and a dome at this pose and they are SUPPOSED to
+// differ from the slabs. The old lines compared an ON frame against an OFF one
+// and were stale from the day the roofs landed.
+const dBack = diffPNG(A.f, fOn2);
+check('SLOPES.on = false and true again is the frame it started from, to the pixel', dBack.pixels === 0, `${dBack.pixels} of ${dBack.total} pixels differ (max channel Δ ${dBack.maxChannelDiff})${dBack.bbox ? ', bbox ' + dBack.bbox.join(',') : ''}`);
+// The restoration contract, asserted on the DATA at exact equality: every
+// filter the layer touched must come back to what a page that never had the
+// layer is carrying — not merely "null" or "no arc", which is what the older
+// line asked and which cannot see a filter restored to the wrong expression.
+const filterDiff = FILTERED.filter(id => offFilters[id] !== urlFilters[id]);
+check('SLOPES.on = false: every filter it touched is byte-identical to the ?slopes=0 page\'s',
+  filterDiff.length === 0,
+  filterDiff.length ? filterDiff.map(id => `${id}: ${offFilters[id]} vs ${urlFilters[id]}`).join(' | ')
+                    : `${FILTERED.length} layers match exactly: ` + FILTERED.map(id => `${id}=${urlFilters[id]}`).join(', '));
+
+// AND THE FRAME — with the number this gate could not honestly ask for at zero,
+// and the reason, measured on 2026-09-02 rather than argued:
+//
+//   plain ?slopes=0 load vs plain ?slopes=0 load ............... 0 px (3 pairs)
+//   ON -> OFF -> ON, same page ................................ 0 px
+//   OFF with the layer's render() STOPPED vs render() running .. 0 px
+//   OFF vs a ?slopes=0 LOAD ............................... 6,134 px, maxΔ 78 (9 pairs, ±1)
+//   ...with slopes-mesh REMOVED from the style ................ 969 px, maxΔ 12
+//
+// So: the mesh puts NOTHING on the screen when the switch is off (line 3 — the
+// `inert` control below asserts it), the filters come back byte for byte (the
+// line above), and what is left is MapLibre's own doing. 5,178 px of it is the
+// mere PRESENCE of one more layer in the style: MapLibre slices the depth range
+// per layer, so a 224-layer style gives every layer a thinner slice than a
+// 223-layer one and the depth ties between coplanar roof steps land the other
+// way — 0.47 % of pixels, almost all Δ1-8, 39 of them above Δ20, isolated, no
+// clusters, concentrated where distant geometry is densest. It is not the
+// opaquePassCutoff (84 in every state) and it is not a filter round-trip (0 px
+// on a ?slopes=0 page put through the identical round-trip). The last 969 px,
+// which survive removing the layer, are NOT explained — whatever else
+// js/slopes.js's boot leaves behind. So this line is a RATCHET with its
+// ceiling named, the way facadegrid.mjs's sweep is, not a zero pretended into
+// existence.
+const SWITCH_OFF_PX = 7000;        // measured 6,134; the ceiling, not the target
+const dOff = diffPNG(fOff, C.f);
+check(`SLOPES.on = false at runtime is the ?slopes=0 page to within ${SWITCH_OFF_PX} px of MapLibre's own depth-slice dither`,
+  dOff.pixels <= SWITCH_OFF_PX,
+  `${dOff.pixels} of ${dOff.total} pixels differ (max channel Δ ${dOff.maxChannelDiff}) — ceiling ${SWITCH_OFF_PX}, measured 6,134 on 2026-09-02`);
+const dInert = diffPNG(fOff, fInert);
+check('...and NONE of that is the mesh: stopping the layer\'s render() altogether does not move one pixel',
+  inert.after === inert.before && dInert.pixels === 0,
+  `slopes.frames ${inert.before} -> ${inert.after} with visibility 'none' (render() stopped: ${inert.after === inert.before}); ${dInert.pixels} of ${dInert.total} pixels differ (max channel Δ ${dInert.maxChannelDiff})`);
+
+// THE BAKE IDENTITY. scripts/bake_roofs.py adds `rig` and the `f` tags to
+// data/roofs.geojson and must change nothing the slabs draw, so the branch with
+// the layer switched off at LOAD has to be main. Serve `git archive main` on a
+// second port and pass it as --against; 0 px is the contract, and it holds
+// because neither page carries the custom layer.
 if (AGAINST) {
   const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
   await D.pg.close();
-  const d3 = diffPNG(C.f, D.f, 2), d3raw = diffPNG(C.f, D.f);
-  check(`?slopes=0 vs the build at ${AGAINST}: pixel-identical beyond Δ2`, d3.pixels === 0, `${d3.pixels} of ${d3.total} pixels differ by more than 2 (${d3raw.pixels} by any amount, max channel Δ ${d3raw.maxChannelDiff})${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+  const d3 = diffPNG(C.f, D.f);
+  check(`?slopes=0 is the build at ${AGAINST}, to the pixel (the bake changed nothing the slabs draw)`, d3.pixels === 0, `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+} else {
+  console.log('   (no --against: the bake-identity line was not run)');
 }
 if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
 
@@ -521,7 +834,7 @@ report();
 function report() {
   let bad = 0;
   for (const r of results) { console.log(`${r.pass ? ' PASS ' : '*FAIL '} ${r.name}\n         ${r.detail}`); if (!r.pass) bad++; }
-  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack and haze lines are meant to be red)' : ''}`);
+  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze and arch lines are meant to be red — 9 of them)' : ''}`);
   browser.__done();
   process.exit(bad ? 1 : 0);
 }

@@ -1,5 +1,120 @@
 # Austin 3D Explorer — Full Handoff
 
+## 204d. Sep 2 2026 — the layer's gate was red against a layer that was right: 32/38 to 48/48, and the 6,134 pixels nobody had explained (`acer/slopes`, not merged, `scripts/verify/slopes-layer.mjs`)
+
+**The situation.** `scripts/verify/slopes-layer.mjs` ran **32/38** on hardware.
+Not one of the six reds was a defect in the app. Four were assertions that had
+gone stale under the generators that landed after them, one was a regex that
+could not match a correct filter, and one was a premise that was simply false.
+A guard that cannot fail and a guard that cannot pass are the same bug, and
+this file already carries four incidents of the first kind (§8, and the README's
+own list). This is the fifth, of the second kind.
+
+**The six, and what each is now.**
+
+1. *"the stand-ins are filtered out"* — `roofs-pitched`'s filter serialises as
+   `["match",["get","f"],[...],true,false]`: a `match` whose input is the
+   `["get","f"]` EXPRESSION. The gate asked for `/"match","\["get","f"\]/` —
+   the comma inside the quotes — which no correct filter can produce. It is now
+   `ROOFS_FILTER_RE`, anchored, at the top of the file with the reason beside it.
+2-3. *"the six pixels on the curve are one tone"* (both arch poses) — over-strict
+   AND blind. At `battle-door` the mesh reads `136 103 87 136 136 136` and the
+   chords read **exactly the same**, so it went red on a correct arch and would
+   have gone green on a wrong one. **What separates a curve from its stand-in is
+   WHERE the surround is, not its tone** — and the stand-in is not a five-sided
+   polygon, it is a STAIRCASE (`bake_entrances.py`'s `ARCH_TIERS = 5`, each chord
+   freezing its half width at its own tier's mid height). So the head is now
+   walked with 33 raycasts against the exact ellipse, and the five chords are
+   measured on the same samples: **the mesh is off the ellipse by 0.5-0.6 cm
+   where the chords are off by 56.7 cm — 98x and 111x closer**, tolerance 3 cm.
+   A second line puts 8 pixels where the two shapes genuinely disagree (the
+   mesh's surround runs intrados-to-extrados, the chords' runs `[w_i, w_i+sw]`;
+   19 of 33 heights disagree by more than 10 cm outside the keystone) and
+   requires a majority of them to move when the chords come back: 6 of 8 moved
+   at both poses, by up to 58/255 of luma. The first cut of that line asked 5 of
+   6 and got exactly 5 — no margin at all, which is how a correct arch turns a
+   gate red — so it asks for a majority of a wider sample instead.
+4. *"the layer is installed, drawing an empty scene"* — `root.children === 0`,
+   written the day the layer landed, stale the moment the generators did. It
+   names the three groups now.
+5-6. The two switch comparisons compared an ON frame against an OFF frame, and
+   with 108 roofs, 24 arches and a dome in the mall-cruise frame those are
+   SUPPOSED to differ. Rewritten below.
+
+**The auto-exposure pin, which is why any of the switch numbers mean anything.**
+`js/graphics.js`'s meter is open loop and runs from `updateSky`, which fires on
+map `move`, `resize` and hour changes — never per frame — and its 40x24
+`drawImage` reads the PREVIOUS frame's buffer. Any two pages compared across a
+`jumpTo` were being compared on their METER HISTORIES rather than on their
+renders; that was the 163,822-px Δ1 "far field" and the 3.8 % toggle brightening
+(both reproduce with no layer present). `open()` now sets
+`GFX.autoExposure = false` on every page the gate opens, and every page it diffs
+is asserted at `__ae().gain === 1`. `gl.readPixels` never saw the gain (the grade
+is a CSS filter on `#map`), so the sampled colours are untouched — only the
+screenshots move. **Any cross-page screenshot comparison in this suite needs the
+same pin.**
+
+**THE 6,134 PIXELS, WHICH ARE NOT THE MESH.** With that pinned, the switched-off
+frame still differed from a `?slopes=0` LOAD, and this pass measured what it is
+rather than loosening a threshold over it. Hardware GL (ANGLE / RTX 3050 Ti /
+D3D11), 1440x900, `?intro=0&drift=0`, mall-cruise, `cancelGraphicsAutoDetect()`,
+4 s settle + idle, two shots per pose with the second kept, `lib/png.mjs` at
+tolerance 0:
+
+| comparison | pixels of 1,296,000 |
+|---|---|
+| plain `?slopes=0` load vs plain `?slopes=0` load (3 pairs) | **0** |
+| ON → OFF → ON, same page | **0** |
+| OFF with the layer's `render()` STOPPED vs `render()` running | **0** |
+| OFF vs a `?slopes=0` LOAD (9 pairs, ±1) | 6,134, maxΔ 78 |
+| ...with `slopes-mesh` REMOVED from the style | 969, maxΔ 12 |
+
+So **the mesh puts nothing on the screen when the switch is off** — proved by
+setting the custom layer's layout visibility to `none` so MapLibre stops calling
+`render()` at all (the §204c dome bug's own mechanism, used here as a control):
+`slopes.frames` stops climbing and **0** pixels move. And every filter the layer
+touched comes back byte-identical to a real `?slopes=0` page's, compared against
+one rather than merely checked for `null`.
+
+5,178 px of the residue is the mere **PRESENCE** of one more layer in the style:
+MapLibre slices the depth range per layer, so a 224-layer style gives every layer
+a thinner slice than a 223-layer one and the depth ties between coplanar roof
+steps land the other way. It is 0.47 % of the frame, almost all Δ1-8, 39 pixels
+above Δ20, isolated, no clusters, densest where distant geometry is. It is **not**
+`opaquePassCutoff` (84 in every state) and it is **not** a filter round-trip
+(0 px on a `?slopes=0` page put through the identical round-trip, filters
+verified restored). **The last 969 px, which survive removing the layer, are NOT
+explained** — something else `js/slopes.js`'s boot leaves behind. That line is a
+ratchet with its ceiling named (7,000), the way `facadegrid.mjs`'s sweep is, not
+a zero pretended into existence, and the unexplained 969 is open work for
+whoever next touches `js/slopes.js`.
+
+**Added while in there.** The other half of the §204c dome defect is asserted
+now: while LOD holds the layer down, `capitol-dome`'s filter must STILL be
+excluding the stacked discs, because the dome group is still drawing — both
+shapes gone at once is how the skyline went empty. And the bake-identity
+contract from §204b is a gate line rather than a one-off: `?slopes=0` against a
+`git archive main` served on a second port, **0 px**.
+
+**Watched failing.** `--break` now sabotages the page two ways and nothing on
+disk changes: the layer is moved above the fog (the `stack` and both `haze`
+lines) and `SLOPES_ARCHES.on = false` puts the five chords back in place of the
+mesh (the `arch` lines, both poses) — the exact regression those assertions
+exist to catch, because they are the ones this gate already got wrong once.
+Measured: **38/47 with `--break`** (no `--against`) against 48/48 without.
+
+**Verdicts, hardware GL, this machine, branch worktree on :8491 and
+`git archive main` on :8492.** `slopes-layer.mjs` **48/48, exit 0**.
+`walkmeter.mjs` **PASS, exit 0** — self-check drift 0 over limit, 0 route
+errors, and the live-mouse "Avoid stairs" UI gate passing (WCH -> MAI, 240 m ->
+47 m and back). `facadegrid.mjs` **0 failing assertions, exit 0** — the tile
+carries its metre pitch at all six zooms, worst residual LOOK band BTL 1.30x
+(ratchet 1.4x) and WALK band BTL 2.61x (ratchet 2.7x). Frames and every log under the scratchpad's
+`fix/gate/` (`shots3/`, `log/`), and the five diagnosis runs that produced the
+table above are in `log/` as `farfield.log`, `floor.log`, `removelayer.log`,
+`inert.log`, `filterrt.log`, `presence.log`.
+
+
 ## 204. Sep 2 2026 — every slope on campus is real now: 108 roofs, 24 arches and the dome drawn as the surfaces their slabs, chords and discs were sampling (`acer/slopes`, not merged)
 
 > **The counts in this section were written from an over-baked `roofs.geojson`

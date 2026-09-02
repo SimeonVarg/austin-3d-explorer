@@ -555,9 +555,98 @@ never in.
 
 ```bash
 VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs                 # the gate
-VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --break         # must go red on stack + haze
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --break         # 9 lines must go red
 VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against http://127.0.0.1:8443
 ```
+
+**Read this before you trust or edit a line of it. On September 2 2026 the gate
+ran 32/38 against a layer that was RIGHT** — six reds, and not one of them was
+a defect in the app. Four of the six were assertions that had gone stale under
+the generators they were written before; one was a regex that could not match a
+correct filter; one was a premise that was simply false. The repair is in the
+list below and the lesson is the older one in this file: a guard that cannot
+fail and a guard that cannot pass are the same bug. It is **48/48** now, on
+hardware GL against `git archive main` on a second port, and the things that
+changed are:
+
+- **The roofs filter regex.** `roofs-pitched`'s filter serialises as
+  `["match",["get","f"],[...],true,false]` — a `match` whose input is the
+  `["get","f"]` EXPRESSION. The gate asked for `/"match","\["get","f"\]/`,
+  with the comma inside the quotes, which no correct filter can produce. It is
+  `ROOFS_FILTER_RE` at the top of the file now, anchored, so the next person
+  reading a red line can see what shape was expected.
+- **`root.children === 0` is gone.** "The layer is installed, drawing an empty
+  scene" was written the day the layer landed and was stale the moment the
+  generators did. The line now names the three groups it expects —
+  `slopes-roofs`, `slopes-arches`, `slopes-dome` — and asserts the scene is
+  those and nothing else.
+- **The arch is measured as a SHAPE, not as a tone.** The old line asked that
+  the six pixels on the surround's curve be one tone lighter than the fanlight.
+  At `battle-door` the mesh reads `136 103 87 136 136 136` and the chords read
+  *exactly the same*, so it went red on a correct arch and would have gone
+  green on a wrong one. What separates a curve from its stand-in is WHERE the
+  surround is: the stand-in is not a five-sided polygon, it is a STAIRCASE
+  (`bake_entrances.py`'s `ARCH_TIERS = 5`, each chord freezing its half width
+  at its own tier's mid height). So the gate walks the head with
+  `ARCH_SAMPLES` raycasts and asserts every one lands on the arches mesh
+  within `ARCH_ON_ELLIPSE_M` of the exact ellipse — printing, from the same
+  samples, how far the five chords are from it, and requiring the mesh be
+  `ARCH_CHORD_RATIO` times closer. A staircase cannot pass that, so no
+  separate "no plateau" test is needed on top of it. A second line samples
+  `ARCH_PROBES` pixels chosen where the curve is surround and the chords are
+  NOT, and asserts they move when the chords come back.
+- **The switch section asks about OFF, not about ON.** With the generators
+  drawing, the ON frame is *supposed* to differ from the slabs — the old lines
+  compared them and were stale from the day the roofs landed. The promise is:
+  `SLOPES.on` false then true again is the frame it started from at 0 px;
+  every filter the layer touched comes back BYTE-IDENTICAL to a `?slopes=0`
+  page's (compared against a real one, not merely checked for `null`);
+  `?slopes=0` equals a `git archive main` on `--against` at 0 px. Two
+  supporting lines keep those zeros honest — the harness's own noise floor
+  (one settled page shot twice) and a live count proving the layer really
+  draws at that pose, so nothing here can pass by drawing nothing.
+- **One line in that section is NOT a zero, and it is a ratchet with the
+  ceiling named.** The switched-off frame against a `?slopes=0` LOAD is
+  **6,134 px of 1,296,000 (0.47 %)**, reproducible to ±1 across nine
+  independent pairs. Measured on September 2 2026, hardware GL:
+
+  | comparison | pixels |
+  |---|---|
+  | plain `?slopes=0` load vs plain `?slopes=0` load (3 pairs) | 0 |
+  | ON → OFF → ON, same page | 0 |
+  | OFF with the layer's `render()` STOPPED vs running | 0 |
+  | OFF vs a `?slopes=0` LOAD (9 pairs) | 6,134, maxΔ 78 |
+  | ...with `slopes-mesh` REMOVED from the style | 969, maxΔ 12 |
+
+  So the mesh puts **nothing** on the screen when the switch is off — the gate
+  asserts that control explicitly, by setting the custom layer's layout
+  visibility to `none` so MapLibre stops calling `render()` at all, and
+  requiring 0 px. 5,178 px of the residue is the mere PRESENCE of one more
+  layer in the style: MapLibre slices the depth range per layer, so a
+  224-layer style gives every layer a thinner slice than a 223-layer one and
+  the depth ties between coplanar roof steps land the other way. It is almost
+  all Δ1-8, 39 pixels above Δ20, isolated, no clusters, densest where distant
+  geometry is. It is **not** `opaquePassCutoff` (84 in every state) and it is
+  **not** a filter round-trip (0 px on a `?slopes=0` page put through the
+  identical round-trip). The last **969 px, which survive removing the layer,
+  are not explained** — something else `js/slopes.js`'s boot leaves behind, and
+  the next person to touch that file should find it.
+- **AUTO-EXPOSURE IS PINNED OFF ON EVERY PAGE THE GATE OPENS, and without it
+  none of the numbers above mean anything.** `js/graphics.js`'s meter is open loop and runs from
+  `updateSky`, which fires on map `move`, `resize` and hour changes — never per
+  frame — and its 40x24 `drawImage` reads the PREVIOUS frame's buffer. So the
+  first `jumpTo` after a load meters the LOAD pose, and any two pages compared
+  across a `jumpTo` are being compared on their METER HISTORIES rather than on
+  their renders. That, and not this layer, was the 163,822-pixel Δ1 "far field"
+  difference and the 3.8% brightening the runtime toggle appeared to cause on
+  September 2 2026 — both reproduce on a `?slopes=0` page with no layer
+  present. `aeMeter` resets its gain to 1 the next time it runs with the flag
+  off, which the pose's `jumpTo` guarantees, and the gate asserts `__ae().gain
+  === 1` on every page it diffs. `gl.readPixels` never saw the gain anyway
+  (the grade is a CSS filter on `#map`), so the SAMPLED colours are untouched
+  — only the screenshots move, and pinning it took the cross-load difference
+  from 176,269 px beyond Δ2 down to 0 for two plain loads.
+  **Any cross-page screenshot comparison in this suite needs the same pin.**
 
 - **It runs on the real GPU by default** (`VERIFY_GL=swiftshader` to override),
   which the rest of the pixel suite does not. That is allowed here because
@@ -581,12 +670,11 @@ VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against htt
   roof whose two long slopes the current light separates best reads as two
   tones either side of its ridge, one tone along each slope, and a raycast
   down the slope climbs continuously at the rig's pitch (a staircase would
-  plateau); at the battle-street pose six raycasts along the nearest arched
-  door's surround land on the ellipse within 10 cm, the six pixels are one
-  tone lighter than the fanlight, and the frame differs from the chord frame
-  over the door's head. At that pose the arch is ~45 px across and the curve
-  and the chords are within a pixel of each other on the band itself, so the
-  same door is measured again from 22 m (`battle-door`, ~300 px) where the
+  plateau); at the battle-street pose the nearest arched door's head is walked
+  with 33 raycasts against its ellipse and against the five chords, six pixels
+  are sampled where the curve is surround and the chords are not, and the head
+  as a whole is diffed against the chord frame. The same door is measured
+  again from 22 m (`battle-door`) where the curve is ~100 px across and the
   difference is the picture. Frames land in `--shots DIR` as
   `ridge-gregory.png`, `arch-battle-street.png`, `arch-battle-door.png`.
 - **The LOD assertions changed on September 2 2026 and the old ones were
@@ -601,9 +689,22 @@ VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against htt
   `LOD_isHidden('slopes-mesh') === true`, `slopes.layer.isVisible() === false`,
   `slopes.frames` still climbing over a repaint, and
   `slopes.stats().groups` reading `slopes-roofs: false` with
-  `slopes-dome: true`.
-- **Budget: ~15 minutes** — three full page loads and twelve poses. Run it in
-  the background if your shell has a shorter ceiling; the watchdog is 1500 s.
+  `slopes-dome: true`. And the other half of that defect, which is the half
+  that made it invisible rather than merely wrong: while the layer is held
+  down, `capitol-dome`'s filter must STILL be excluding the stacked discs,
+  because the dome group is still drawing. Both shapes gone at once is how the
+  skyline went empty, so the gate asserts the filter at altitude too.
+- **`--break` sabotages the page in two ways and NINE lines must go red.** The
+  layer is moved to the END of the style, above the fog (`stack` and both
+  `haze` lines — 3), and `SLOPES_ARCHES.on = false` puts the five chords back
+  in place of the mesh (all three `arch` lines at both poses — 6). Nothing on
+  disk changes. The second sabotage is there because the arch assertions are
+  the ones most easily written so that they cannot tell the two shapes apart —
+  the ones this gate already got wrong once. Measured September 2 2026:
+  **38/47** with `--break` (no `--against`) against **48/48** without.
+- **Budget: ~18 minutes** — four full page loads (five with `--against`) and
+  twelve poses. Run it in the background if your shell has a shorter ceiling;
+  the watchdog is 1500 s.
 
 ### Two things this gate found on its first day, both about the matrix
 
