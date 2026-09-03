@@ -1,5 +1,139 @@
 # Austin 3D Explorer — Full Handoff
 
+## 207. Sep 3 2026 — the critics' round 2: Gregory's hall reads as a gable because its planes are shaded the way the city shades a roof, and the Capitol's drum is a drum in tiers with the dome springing flush from its balustrade (`acer/slopes`, not merged, commits `0e9872d` `bb5b3fe`)
+
+Round 2 of the blind critics on the round-1 frames (§206). Mall-cruise and
+battle-street they gave to us again and those are untouched in shape;
+gregory and capitol-dome they named, and every gap below was closed in a
+generator or a bake — nothing typed for one building — with `?slopes=0`
+still `main` to the pixel (the bake-identity line of the gate, and four
+poses diffed against the `git archive` of e232953 by hand, below).
+
+**gregory — "it does not read as a gable" (`0e9872d`).** The geometry was
+right in round 1 (the hall's two planes are at the pediment's own 0.40
+pitch, ridge 30.4 m, eaves 21.35 m; a raycast down each lands to the
+centimetre) and it still read as one flat orange plate, because at golden
+hour with the sun in the WSW the north and south planes of a real 21° roof
+under the real light are eight luma apart (74 and 82 in the round-1 frame).
+The slabs the mesh replaced never had that problem: js/timeofday.js paints
+every slab facet between a dark end (0.70 x the roof colour) and a bright
+end (1.28 x) from the live sun on an EXAGGERATED 38° tilt, precisely because
+a flat top cannot shade itself. So the mesh now shades its roof facets by
+that same rule — `SLOPES.facetShade` in js/slopes.js (ambient 0.35, ends
+0.70 / 1.28, tilt 38°, the four numbers ROOF_SHADE and SHADE_LO/HI already
+carry), transcribed into the vertex shader for faces a generator marks
+`facet` (`slopes.build().facet(true)`: the slope strips and the hall's
+planes; never a wall, a deck, a dome or an arch) and lit as the flat top
+they stand in for. Same pose, same hour: the north plane is now 62 luma and
+the south 96 — the gable is two tones and the ridge is a line. `on: false`
+is round 1's real normal under the real light. The rest of what a gable
+has, in js/slopes-roofs.js, all taste constants: a strip of ridge tiles
+along the hall's ridge from the pediment's back to the rear wall
+(`ROOFS.ridgeCap`), the clerestory monitor with its own roof creased on the
+ridge instead of a flat lid (`ROOFS.monitorPitch`, 0.18 — a monitor's roof
+cannot be read from a nadir tile, marked [U] like its height), and a
+continuous stone band under the corbel table along the inner pediment's
+rake (`ROOFS.corbelBand`) so the 26 corbel blocks the bake keeps read as one
+raked line from the air and as a dogtooth from the street. The annex the
+critic saw as "a big hipped orange roof with a strong ridge" was the deck
+colour: the z19 tile under `scripts/bake_roofs.py` votes that deck grey
+membrane (#927c6f) and the shipped slab says terracotta (#96492f), because a
+machine with no imagery cannot see a membrane and votes "tile" every time.
+`RIG_DECK_FROM_VOTE` (true) puts the photograph's colour on the rig — the
+mesh's deck — and leaves the slab alone; the twelve roofs where the two
+disagree are printed by every run (Gregory, Welch, the Union, Goldsmith,
+Hogg, the Blanton, the Seay, Smith, Student Services and three unnamed).
+The arches: every curved piece the layer extrudes — the gable's three
+archivolts, the fanlights, bands, spandrels and arcade bays of
+js/slopes-arches.js — now carries per-vertex normals averaged across each
+shallow corner (`extrude`'s `opts.smooth`, a 40° crease; `ROOFS.smoothArcs`,
+`ARCHES.smooth`), so a curve shades as one curve rather than as a necklace
+of flat facets; a real corner keeps its two faces. The one thing NOT
+changed is the pitch: 0.40 is the photograph's number (the override's
+working) and the mesh is at it; what the critic measured as a shallow
+chevron was one tone over the whole roof.
+
+**capitol-dome — the drum, the ledge, the wings, the pavilions, the bullet
+(`bb5b3fe`).** `scripts/bake_capitol.py` now writes a `drum` member beside
+the discs: the drum in its tiers — a windowed base ring (the widest, the
+shipped cornice's 14.0 m so the footprint does not grow), a peristyle of
+24 freestanding columns in front of a windowed wall, their entablature
+overhanging, a narrower upper tier with its openings, a low balustrade —
+every radius and height a proportion read off the critics' own reference
+frame (the verifier's `bar/capitol-dome.png`, Google Earth's photogrammetry
+from the same pose; the pixel columns and rows are in the bake beside the
+constants `DRUM_*`), scaled onto the bake's own Z_ATTIC_TOP..Z_DRUM_TOP.
+js/slopes-dome.js draws it (`drumParts`) in place of the shipped cylinder,
+its 24 pilaster strips and the cornice, which the filter now hides with the
+three lathed parts, and the dome springs at exactly the balustrade's radius
+(`spring_r` 12.184 m = `DRUM_BAL_R` x R_base): the 1.8 m ledge between the
+old cornice (14.0) and the old springing (12.19) is gone. The lathe profile
+is a SUPERELLIPSE now (`LATHE_POWER` 2.5; 2 is the ellipse of round 1), so
+the shell stays near its springing radius through its lower half and turns
+over into the crown — a dome, not a bullet — and the base swell is a bump
+that stands OUTSIDE the springing (`LATHE_SWELL` 0.03 of R, peaking 1.5 m
+up) instead of a recess under it: raycast at the pose, the balustrade top
+at 59.91 m and the shell at 61.79 m directly above it, widest ring 12.53 m
+at z 61.25. The four corner pavilions get the same low hip as the wings
+(`CAP_HIP_PAVILIONS`, `CAP_PAVILION_M2`): the shipped bake's own pavilion
+rule (`350 < area < 700` m²) never matched the 298..301 m² parts, so the
+shipped city has never had a pavilion cap and they ship as flat 32 m boxes
+— that stays as it is (an augment), and the mesh puts a 2.1 m hip on each.
+And the wings' hips, which the critic still read as "flat-topped slabs
+with a thin parapet ledge", read now for the same reason Gregory's hall
+does: they go through `slopesRoofs.emit` and take the facet shading, two
+tones either side of every ridge. Not done, and why: the north portico's
+pediment — OSM's 39 m is the box's top, a pediment "one storey shorter
+than the block" means lowering a shipped height on a photograph's estimate,
+which is a `--rebake` decision for whoever owns the Capitol, not an
+augment; and the wings' window pitch, which is the facades bake's.
+
+**The bakes are augments, still.** `bake_roofs.py` reproduced its 4,794
+features and 1,840 caps byte for byte and rewrote only `rig` (the deck
+colours above). `bake_capitol.py` reproduced its six outputs and wrote
+`capitol_dome.geojson` = the shipped features + `lathe` + `rig` + `drum`.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8481 and `git archive e232953` on :8482.**
+`scripts/verify/slopes-layer.mjs --against` **48/48, exit 0**, no assertion
+touched — and the ridge line is now a parity proof as much as a contrast
+one: at the gregory pose Waggener Hall's two slopes read 123,61,32 and
+183,88,46 (luma 72.1 / 105.2) where the slabs they replace read 123,60,32
+and 182,88,46 — the facet rule lands on the city's own tones to 1/255, one
+tone along a slope (spread 0.0), the raycast at the rig's pitch to 0.00 m.
+The arch lines hold with the smooth normals (0.6 cm and 0.5 cm off the
+ellipse where the chords are 56.7 cm — 98x and 111x; 7 of 8 and 6 of 8
+probes move); the switch lines: on-off-on 0 px, off vs a `?slopes=0` load
+6,135 px (ceiling 7,000, the depth-slice dither of 204d), render() stopped
+0 px, and the bake-identity line 0 px against the archive.
+`?slopes=0` on the branch against the archive at all four critics' poses,
+second of two shots, tolerance 0: **mall-cruise 0, gregory 0, battle-street 0,
+capitol-dome 0** of 1,296,000 px (the archive page reports no layer and no
+`slopes.detail`, which is how a served archive is told from a served branch —
+the first gate run of this pass compared the branch with ITSELF because
+`scripts/serve.py` serves its own repo root, not the cwd it is started in;
+the archive must be served by its own copy of the script). The generators ON at the
+poses: roofs 108 + 1 gable in 12,725 triangles, arches 24 in 18,315, dome 3
+parts + 5 drum tiers + 3 wing hips + 4 pavilion hips in 11,322 (9,504
+before); 2 draw calls at mall-cruise and gregory, 7 at battle-street, 6 at
+capitol-dome; no console errors at any pose. `walkmeter.mjs` and
+`facadegrid.mjs` were not re-run: nothing this pass touched is on their
+path (no walk graph, no facade grid, no entrance feature moved).
+
+**Frames.** The round-2 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r2/{mall-cruise,gregory,battle-street,
+capitol-dome}.png`. Before/after crops at the critics' own poses, side by
+side, in this pass's scratchpad `proof/{gregory,capitol-dome,battle-street,
+mall-cruise}-before-after.png` — lead with capitol-dome (a cylinder with
+stripes became a drum in tiers under a dome that springs from it), then
+gregory (one orange plate became a two-tone gable with a ridge, a creased
+monitor and a grey annex deck inside its tile rim).
+
+**Next.** Round 3 of the critics on these frames. If they still want the
+north portico's pediment, that is the `--rebake` decision above. If
+`SLOPES.facetShade` reads too strong anywhere, it is one line — `on: false`
+is round 1's look, and the four numbers are the city's own.
+
 ## 206. Sep 3 2026 — the critics' round 1: Gregory Gym's hall is a gable to its pediment, Sutton Hall's ground floor is the arcade the truth file always said it was, the Capitol dome is a dome with a lantern on it and its wings have roofs (`acer/slopes`, not merged, commits `33065b9` `1668791` `5ffa842`)
 
 Three blind critics compared four poses of this branch against Google Earth
