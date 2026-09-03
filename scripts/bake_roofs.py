@@ -1992,6 +1992,94 @@ def _parallel_edges(pm, foot, tvec, nvec, half_span, tol_deg=34.0):
     return sorted(out)
 
 
+# ── THE HALL BEHIND THE PEDIMENT ──────────────────────────────────────
+#
+# A gable front is the end of a gabled HALL, and until 2026-09-03 the roof
+# behind it was the same 5:12 hip ring and flat deck every tiled roof gets: from
+# the gregory pose the 46 x 60 m of it read as one flat orange plate with a
+# pediment glued on the front, and the critics said so. The z19 nadir tile
+# (data/imagery_cache 19/119804/215829) says what is really there: two slopes
+# falling from a ridge that runs from the pediment's apex straight back to where
+# the hall ends, a light clerestory monitor along that ridge, and the annex to
+# the south under a separate roof of its own.
+#
+# NOTHING HERE IS TYPED FOR ONE BUILDING. The hall is read off the footprint, in
+# the gable's own (u along the wall, v out of it) frame:
+#   - its two FLANK walls are the footprint edges that run straight back from
+#     the front (along -n), nearest on each side to where the pediment's own
+#     eave corners are (+-outer_w/2). Gregory Gym: the 62 m north wall at
+#     u=-23.1, and at u=+23.1 the 2.3 m stub beside the pediment -- the rest of
+#     that flank is interior, the annex being built against it.
+#   - its BACK is the far end of the LONGER flank: an attached block can
+#     shorten one flank, it cannot shorten both. Gregory: v=-65.0, and the tile
+#     agrees -- along the ridge the dark hall roof turns into the pool block's
+#     lighter deck at exactly the north wall's jog.
+#   - its FRONT is the rear plane of the pediment prisms, per elevation
+#     segment, so the roof begins where the pediment stops and steps with it.
+#   - its RIDGE is the pediment's apex (apex_out). That is the whole point: the
+#     pediment is the end of this roof, and the critics' first complaint was a
+#     pediment with no ridge behind it.
+# The monitor's plan is transcribed into the override from the tile with its
+# working (`_monitor_note` there); js/slopes-roofs.js draws all of it, and
+# hides the hip rig inside the rectangle while it does. The shipped slabs are
+# untouched: this is the `rig` member, which the augment rewrites every run.
+HALL_FLANK_ALONG = 0.95    # |edge direction . n| above this: the edge runs along the hall
+HALL_FLANK_MIN_FRAC = 0.5  # a flank sits at least this fraction of outer_w/2 off the ridge
+HALL_FLANK_FRONT_M = 0.5   # ...and starts within this of the elevation's deepest plane
+HALL_MIN_DEPTH_M = 5.0     # shallower than this behind the pediment is not a hall
+
+
+def _hall_rig(pm, foot, tvec, nvec, W_out, west, spec, gable_d, apex_out,
+              bay_back, bay_v):
+    """The gabled hall behind a gable front, or None if the footprint has none.
+
+    Returned in the gable frame js/slopes-roofs.js already draws the pediment
+    in: `uL`/`uR` the flank walls, `front` the pediment prisms' rear plane per
+    elevation segment as [u0, u1, v], `v1` the back, `ridge` the apex, and
+    `monitor` the override's clerestory plan when it carries one.
+    """
+    tx, ty = tvec
+    nx, ny = nvec
+    uv = [((x - foot[0]) * tx + (y - foot[1]) * ty,
+           (x - foot[0]) * nx + (y - foot[1]) * ny) for (x, y) in pm]
+    v_front = min(v for (_u0, _u1, v) in west)
+    half = W_out * 0.5
+    best = {-1: None, 1: None}
+    n = len(pm)
+    for i in range(n):
+        (ua, va), (ub, vb) = uv[i], uv[(i + 1) % n]
+        L = math.hypot(ub - ua, vb - va)
+        if L < 0.8 or abs((vb - va) / L) < HALL_FLANK_ALONG:
+            continue                        # not a wall running along the hall
+        if max(va, vb) < v_front - HALL_FLANK_FRONT_M:
+            continue                        # does not start at the front
+        u = 0.5 * (ua + ub)
+        if abs(u) < half * HALL_FLANK_MIN_FRAC:
+            continue
+        side = 1 if u > 0 else -1
+        score = abs(abs(u) - half)
+        if best[side] is None or score < best[side][0]:
+            best[side] = (score, u, min(va, vb))
+    if best[-1] is None or best[1] is None:
+        return None
+    v1 = min(best[-1][2], best[1][2])
+    front = []
+    for (u0, u1, v) in west:
+        vu = v - bay_back if abs(v) < bay_v else v
+        front.append([round(u0, 3), round(u1, 3), round(vu - gable_d, 3)])
+    v0 = max(f[2] for f in front)
+    if v0 - v1 < HALL_MIN_DEPTH_M:
+        return None
+    hall = {"uL": round(best[-1][1], 3), "uR": round(best[1][1], 3),
+            "front": front, "v1": round(v1, 3), "ridge": round(apex_out, 3)}
+    if spec.get("monitor_w_m"):
+        hall["monitor"] = {"w": float(spec["monitor_w_m"]),
+                           "h": float(spec.get("monitor_h_m", 1.8)),
+                           "v0": -float(spec.get("monitor_from_m", 0.0)),
+                           "v1": -float(spec.get("monitor_to_m", 0.0))}
+    return hall
+
+
 def gable_front_parts(ring, spec, height_m):
     """Every prism of one gable-fronted elevation, ready to append.
 
@@ -2253,6 +2341,8 @@ def gable_front_parts(ring, spec, height_m):
         "brick": list(make_roof_colors(brick)),
         "stone": list(make_roof_colors(stone)),
     }
+    grig["hall"] = _hall_rig(pm, foot, (tx, ty), (nx, ny), W_out, west, spec,
+                             gable_d, apex_out, 0.9, 0.4)
     return out, grig
 
 

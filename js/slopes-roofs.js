@@ -92,6 +92,15 @@
     dedupeM: 0.02,               // deck ring points closer than this are one point
     untangleDeck: true,          // split a folded deck ring before triangulating it
     deckMinM2: 0.01,             // ...and drop the loops smaller than this
+    // The hall behind a gable front (rig.gables[bid].hall, written by
+    // scripts/bake_roofs.py's _hall_rig): a gable roof to the pediment's apex
+    // in place of the hip rig inside it. See "the hall behind a gable front".
+    hall: true,
+    hallEnd: true,               // ...closed at its back by a brick gable wall
+    hallJunction: true,          // ...and walled where an attached block's deck stands above its eave
+    hallTolM: 0.3,               // a profile edge within this of the hall rectangle belongs to the hall
+    monitor: true,               // the clerestory monitor on the ridge (the override's measured plan)
+    monitorColour: 'stone',      // 'stone' | 'brick' | 'roof': the tone the monitor takes
   };
   window.SLOPES_ROOFS = ROOFS;
 
@@ -212,6 +221,128 @@
     return out;
   }
 
+  // ── the hall behind a gable front ───────────────────────────────────────
+  //
+  // A gable front is the end of a gabled HALL. Until 2026-09-03 the roof
+  // behind Gregory Gym's pediment was the same hip rig as every tiled roof —
+  // a 4 m tile band around a flat deck at 25.5 m — and from the gregory pose
+  // the whole 46 x 60 m of it read as one flat orange plate with a pediment
+  // glued to its front (the critics' words, and the z19 tile agrees with
+  // them). scripts/bake_roofs.py now reads the hall off the footprint and
+  // writes it as `rig.gables[bid].hall`, in the gable's own (u along the
+  // wall, v out of it) frame: the flank walls `uL` / `uR`, the pediment
+  // prisms' rear plane per elevation segment (`front`), the back `v1`, the
+  // ridge height (the pediment's apex), and the clerestory monitor's plan
+  // where the override measured one. This file:
+  //
+  //   - takes the hip rig OUT of that rectangle: profile edges inside it are
+  //     skipped the way gableEnd skips the gable wall, a corner where a kept
+  //     edge meets a skipped one slides straight in along the kept wall (so
+  //     the kept strip ends square instead of mitring into the hall), and the
+  //     deck is clipped to the parts of the footprint beside and behind it;
+  //   - draws the hall: two planes from the flank eaves to the ridge, with a
+  //     front edge that steps with the pediment; the eave lip along each
+  //     flank; a brick gable wall closing the back; the monitor as a low box
+  //     on the ridge in the gable's stone; and, where an attached block's deck
+  //     stands above the hall's eave, the wall between them along the clipped
+  //     deck's edge, so the step from hall to annex reads.
+  //
+  // Nothing here is typed for one building: every number is the rig's, the
+  // override's, or a taste constant above.
+  function clipHalf(poly, axis, c, keepGE) {
+    const out = [], n = poly.length;
+    for (let i = 0; i < n; i++) {
+      const a = poly[i], b = poly[(i + 1) % n];
+      const ia = keepGE ? a[axis] >= c - 1e-9 : a[axis] <= c + 1e-9;
+      const ib = keepGE ? b[axis] >= c - 1e-9 : b[axis] <= c + 1e-9;
+      if (ia) out.push(a);
+      if (ia !== ib) { const t = (c - a[axis]) / (b[axis] - a[axis]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+    }
+    return out;
+  }
+  function hallSetup(r, rays, skipEdge, g) {
+    const H = g.hall, tol = ROOFS.hallTolM, M = r.pts.length;
+    const toUV = p => [(p[0] - g.foot[0]) * g.t[0] + (p[1] - g.foot[1]) * g.t[1],
+                       (p[0] - g.foot[0]) * g.n[0] + (p[1] - g.foot[1]) * g.n[1]];
+    const fromUV = q => [g.foot[0] + g.t[0] * q[0] + g.n[0] * q[1], g.foot[1] + g.t[1] * q[0] + g.n[1] * q[1]];
+    const uv = r.pts.map(toUV);
+    const vTop = Math.max(...g.west.map(s => s[2]));
+    const inHall = k => uv[k][0] >= H.uL - tol && uv[k][0] <= H.uR + tol && uv[k][1] >= H.v1 - tol && uv[k][1] <= vTop + tol;
+    const n = r.spans.length;
+    const isIn = r.spans.map(([a, b]) => inHall(a) && inHall(b % M));
+    let skipped = 0;
+    for (let i = 0; i < n; i++) {
+      if (!isIn[i]) continue;
+      const [a, bRaw] = r.spans[i];
+      for (let k = a; k < bRaw; k++) { skipEdge.add(k % M); skipped++; }
+      const prev = (i - 1 + n) % n, next = (i + 1) % n;
+      if (!isIn[prev]) rays[a] = inwardOf(r, r.spans[prev]);          // the kept wall before ends square
+      if (!isIn[next]) rays[bRaw % M] = inwardOf(r, r.spans[next]);   // ...and the one after
+    }
+    const front = H.front.slice().sort((p, q) => p[0] - q[0]);
+    const frontRear = u => { for (const [u0, u1, vr] of front) if (u >= u0 - 1e-6 && u <= u1 + 1e-6) return vr; return Math.max(...front.map(s => s[2])); };
+    return { H, toUV, fromUV, front, frontRear, skipped };
+  }
+  function hallParts(B, r, meta, g, hall, F, zLip, zTop) {
+    const H = hall.H, over = meta.over;
+    const zAt = u => u < 0 ? H.ridge - (H.ridge - zLip) * (u / H.uL) : H.ridge - (H.ridge - zLip) * (u / H.uR);
+    // 1. the two planes, their front edge stepping with the pediment
+    const frontEdge = (ua, ub) => {
+      const out = [];
+      for (const [u0, u1, vr] of hall.front) { const a = Math.max(u0, ua), b = Math.min(u1, ub); if (b - a > 0.01) out.push([a, vr], [b, vr]); }
+      if (!out.length) { const vr = hall.frontRear(0.5 * (ua + ub)); out.push([ua, vr], [ub, vr]); }
+      return out;
+    };
+    const plane = (ua, ub, want) => {
+      const pts2 = frontEdge(ua, ub).concat([[ub, H.v1], [ua, H.v1]]);
+      B.polygon(pts2.map(([u, v]) => F.at(u, v, zAt(u))), r.col, want, 'xy');
+    };
+    plane(H.uL, 0, [-F.T[0], -F.T[1], 1]);
+    plane(0, H.uR, [F.T[0], F.T[1], 1]);
+    // 2. the eave lip along each flank, from the pediment's rear to the back
+    if (r.lip) {
+      for (const [u, sgn] of [[H.uL, -1], [H.uR, 1]]) {
+        const vf = hall.frontRear(u - sgn * 0.01), ue = u + sgn * over;
+        B.quad(F.at(ue, vf, zLip), F.at(ue, H.v1, zLip), F.at(u, H.v1, zLip), F.at(u, vf, zLip), r.lip, UP);
+        if (ROOFS.fascia) B.quad(F.at(ue, vf, r.base), F.at(ue, H.v1, r.base), F.at(ue, H.v1, zLip), F.at(ue, vf, zLip), r.lip, [sgn * F.T[0], sgn * F.T[1], 0]);
+        if (ROOFS.soffit) B.quad(F.at(u, vf, r.base), F.at(u, H.v1, r.base), F.at(ue, H.v1, r.base), F.at(ue, vf, r.base), r.lip, DOWN);
+      }
+    }
+    // 3. the gable wall closing the back
+    if (ROOFS.hallEnd) {
+      const tri = [[H.uL, zLip], [H.uR, zLip], [0, H.ridge]].map(([u, z]) => F.at(u, H.v1, z).concat(u));
+      B.polygon(tri, g.brick, [-F.N[0], -F.N[1], 0], 'uz');
+    }
+    // 4. the monitor: a low box astride the ridge, in the gable's stone
+    const Mo = H.monitor;
+    if (ROOFS.monitor && Mo && Mo.w > 0 && Mo.h > 0) {
+      const col = ROOFS.monitorColour === 'brick' ? g.brick : ROOFS.monitorColour === 'roof' ? r.col : g.stone;
+      const hw = Mo.w / 2, zt = H.ridge + Mo.h, za = zAt(-hw), zb = zAt(hw);
+      const v0 = Math.min(Mo.v0, hall.frontRear(0)), v1 = Math.max(Mo.v1, H.v1);
+      if (v0 - v1 > 0.5) {
+        B.quad(F.at(-hw, v0, zt), F.at(hw, v0, zt), F.at(hw, v1, zt), F.at(-hw, v1, zt), col, UP);
+        B.quad(F.at(hw, v0, zb), F.at(hw, v1, zb), F.at(hw, v1, zt), F.at(hw, v0, zt), col, [F.T[0], F.T[1], 0]);
+        B.quad(F.at(-hw, v0, za), F.at(-hw, v1, za), F.at(-hw, v1, zt), F.at(-hw, v0, zt), col, [-F.T[0], -F.T[1], 0]);
+        for (const [v, sgn] of [[v0, 1], [v1, -1]]) {
+          const end = [[-hw, za], [0, H.ridge], [hw, zb], [hw, zt], [-hw, zt]].map(([u, z]) => F.at(u, v, z).concat(u));
+          B.polygon(end, col, [sgn * F.N[0], sgn * F.N[1], 0], 'uz');
+        }
+      }
+    }
+  }
+  /** The wall between the hall's eave and an attached block's deck, along the clipped deck's edge on the flank line. */
+  function hallJunction(B, piece, u, sgn, hall, F, zLip, zTop, col) {
+    if (!ROOFS.hallJunction || zTop <= zLip + 0.05) return;
+    const H = hall.H, vf = hall.frontRear(u - sgn * 0.01);
+    for (let i = 0; i < piece.length; i++) {
+      const a = piece[i], b = piece[(i + 1) % piece.length];
+      if (Math.abs(a[0] - u) > 1e-4 || Math.abs(b[0] - u) > 1e-4) continue;
+      const va = Math.max(H.v1, Math.min(vf, Math.min(a[1], b[1]))), vb = Math.max(H.v1, Math.min(vf, Math.max(a[1], b[1])));
+      if (vb - va < 0.05) continue;
+      B.quad(F.at(u, va, zLip), F.at(u, vb, zLip), F.at(u, vb, zTop), F.at(u, va, zTop), col, [-sgn * F.T[0], -sgn * F.T[1], 0]);
+    }
+  }
+
   // ── one roof ────────────────────────────────────────────────────────────
   function gableEnd(r, rays, skipEdge, g) {
     const M = r.pts.length;
@@ -240,13 +371,13 @@
     const rays = r.rays.map(v => v.slice()), caps = r.caps;
     const skipEdge = new Set();
     if (gable && ROOFS.gableEnd) gableEnd(r, rays, skipEdge, gable);
+    const hall = (gable && ROOFS.hall && gable.hall) ? hallSetup(r, rays, skipEdge, gable) : null;
     const lip = meta.lip, over = meta.over, dUse = r.d;
     const zLip = r.base + lip, zTop = zLip + r.rise;
-    const at = (k, d) => {
-      const c = Math.min(d, caps[k]);
-      const l = S.toLocal((r.pts[k][0] + rays[k][0] * c) * r.dpm[0], (r.pts[k][1] + rays[k][1] * c) * r.dpm[1], 0);
-      return [l.x, l.y];
-    };
+    // the offset points, in the bake's own metre frame and in local metres
+    const atB = (k, d) => { const c = Math.min(d, caps[k]); return [r.pts[k][0] + rays[k][0] * c, r.pts[k][1] + rays[k][1] * c]; };
+    const loc = q => { const l = S.toLocal(q[0] * r.dpm[0], q[1] * r.dpm[1], 0); return [l.x, l.y]; };
+    const at = (k, d) => loc(atB(k, d));
     const z = d => zLip + r.rise * Math.max(0, Math.min(1, d / dUse));
     const eave = [], wall = [], top = [];
     for (let k = 0; k < M; k++) { eave.push(at(k, -over)); wall.push(at(k, 0)); top.push(at(k, dUse)); }
@@ -277,12 +408,31 @@
       }
     }
     // 3. the deck at the top of the rise
-    if (ROOFS.deck && r.deck) {
+    if (ROOFS.deck && r.deck && !hall) {
       const ring = dedupe(top, ROOFS.dedupeM);
       if (ring.length >= 3) {
         const loops = ROOFS.untangleDeck ? untangle(ring, ROOFS.deckMinM2) : [ring];
         for (const L of loops) B.polygon(L.map(q => [q[0], q[1], zTop]), r.deck, UP, 'xy');
       }
+    }
+    // 3b. with a hall: the deck beside and behind it, then the hall itself
+    if (hall) {
+      const g = gable, H = hall.H;
+      const F = S.frame([g.foot[0] * g.dpm[0], g.foot[1] * g.dpm[1]],
+                        [g.t[0] * g.dpm[0], g.t[1] * g.dpm[1]], [g.n[0] * g.dpm[0], g.n[1] * g.dpm[1]]);
+      if (ROOFS.deck && r.deck) {
+        const ring = dedupe(r.pts.map((_, k) => hall.toUV(atB(k, dUse))), ROOFS.dedupeM);
+        const loops = ring.length >= 3 ? (ROOFS.untangleDeck ? untangle(ring, ROOFS.deckMinM2) : [ring]) : [];
+        const put = piece => { if (piece.length >= 3 && Math.abs(ringArea(piece)) >= ROOFS.deckMinM2) B.polygon(piece.map(q => { const l = loc(hall.fromUV(q)); return [l[0], l[1], zTop]; }), r.deck, UP, 'xy'); };
+        for (const L of loops) {
+          const right = clipHalf(L, 0, H.uR, true), left = clipHalf(L, 0, H.uL, false);
+          const behind = clipHalf(clipHalf(clipHalf(L, 0, H.uL, true), 0, H.uR, false), 1, H.v1, false);
+          put(right); put(left); put(behind);
+          hallJunction(B, right, H.uR, 1, hall, F, zLip, zTop, g.brick);
+          hallJunction(B, left, H.uL, -1, hall, F, zLip, zTop, g.brick);
+        }
+      }
+      hallParts(B, r, meta, g, hall, F, zLip, zTop);
     }
   }
 
