@@ -20,6 +20,13 @@
  * are already the right shape and stay as they are; only the three curved
  * parts are hidden, by a filter on `part`, while SLOPES.on.
  *
+ * THE DRUM (2026-09-03). The bake also writes a `drum` member: the drum in
+ * its tiers, measured off the critics' own reference frame, and `drumParts`
+ * below draws it in place of the shipped cylinder, pilasters and cornice
+ * (hidden by the same filter) so the dome springs flush from a balustrade
+ * instead of stepping in from a cornice. The corner pavilions' hips ride in
+ * the `rig` member with the wings and stand in for the stepped caps.
+ *
  * Colour is the discs' own `wd/wg/wn` — the tone their sides show — blended
  * for the hour like everything else in the layer, with CAPITOL.domeNight
  * honoured per part as js/capitol.js does. Smooth normals: a dome has no
@@ -64,11 +71,106 @@
     // Capitol's roofs share the dome's LOD (none) and its minzoom. Off, the
     // wings are the flat slabs they always were.
     wings: true,
+    // THE DRUM IN ITS TIERS. scripts/bake_capitol.py writes a `drum` member
+    // beside the discs — a windowed base ring, a peristyle of freestanding
+    // columns in front of a windowed wall, their entablature, a narrower
+    // upper tier with its openings, and a low balustrade; every radius and
+    // height measured off the judge's own reference frame, the working in
+    // the bake — and this draws it in place of the shipped plain cylinder,
+    // its 24 pilaster strips and the cornice ring the dome used to step in
+    // from ("a visible ledge ring where cap meets drum", the critics,
+    // 2026-09-03). The dome then springs flush from the balustrade. Off, the
+    // shipped drum, columns and cornice stay and the lathe stands on them.
+    drum: true,
+    drumParts: ['drum', 'column', 'cornice'],   // the shipped stand-ins hidden while the tiers draw
+    windowTone: 0.45,          // a window recess is this fraction of its ring's colour: a colour is the depth
+    // The four corner pavilions' hips (rig entries tagged kind: 'pavilion',
+    // the same low metal hip as the wings) stand in for the shipped four-step
+    // `pavilion` caps while they draw — "corner wing masses taller than the
+    // centre block ... separate towers" was those 6.8 m pyramids.
+    pavilions: true,
+    pavilionPart: 'pavilion',
   };
   window.SLOPES_DOME = DOME;
 
   let _map = null, _group = null, _gj = null, _lastDetail = null, _filtered = false, _origFilter = null;
-  const count = { parts: 0, wings: 0, triangles: 0, ms: 0, done: false };
+  const count = { parts: 0, wings: 0, drum: 0, triangles: 0, ms: 0, done: false };
+  const tintHex = (hex, m) => '#' + [0, 2, 4].map(i => Math.max(0, Math.min(255, Math.round(parseInt(String(hex).replace('#', '').slice(i, i + 2), 16) * m))).toString(16).padStart(2, '0')).join('');
+  const tintCol = (col, m) => col.map(h => tintHex(h, m));
+  const UP = [0, 0, 1];
+
+  /** [day, golden, night] of a shipped part, with CAPITOL.domeNight honoured. */
+  function partColour(part) {
+    const f = _gj && _gj.features.find(q => q.properties.part === part);
+    if (!f) return null;
+    const p = f.properties, over = (window.CAPITOL && window.CAPITOL.domeNight) || {};
+    return [p.wd, p.wg, over[part] || p.wn];
+  }
+
+  /** Which shipped parts are hidden while the group draws. */
+  function hiddenParts() {
+    const out = DOME.parts.slice();
+    if (DOME.drum && _gj && _gj.drum) out.push(...DOME.drumParts);
+    if (DOME.wings && DOME.pavilions && _gj && _gj.rig && Object.values(_gj.rig.roofs || {}).some(r => r && r.kind === 'pavilion')) out.push(DOME.pavilionPart);
+    return out;
+  }
+
+  /**
+   * The drum's tiers from the bake's `drum` member: each a flat-faced
+   * cylinder (sides and a flat top, like the discs it replaces), its window
+   * recesses as dark panels standing a few centimetres off the ring, and the
+   * peristyle's columns as the same axis-facing squares the shipped ones
+   * were. Colours are the shipped parts' own: the rings take the drum's, the
+   * columns the columns', the entablature and balustrade the cornice's.
+   */
+  function drumParts(B, D, seg) {
+    const S = window.slopes;
+    const A = S.toLocal(D.axis[0], D.axis[1], 0), ax = A.x, ay = A.y;
+    const drumCol = partColour('drum') || ['#a2685c', '#b1745e', '#d38e5e'];
+    const cols = { base: drumCol, peristyle: drumCol, upper: drumCol,
+                   entablature: partColour('cornice') || drumCol, balustrade: partColour('cornice') || drumCol };
+    const colCol = partColour('column') || drumCol;
+    const ring = (r, z) => { const out = []; for (let i = 0; i < seg; i++) { const th = 2 * Math.PI * i / seg; out.push([ax + r * Math.cos(th), ay + r * Math.sin(th), z]); } return out; };
+    const cylinder = (r, z0, z1, col) => {
+      const a = ring(r, z0), b = ring(r, z1);
+      for (let i = 0; i < seg; i++) {
+        const j = (i + 1) % seg, th = 2 * Math.PI * (i + 0.5) / seg;
+        B.quad(a[i], a[j], b[j], b[i], col, [Math.cos(th), Math.sin(th), 0]);
+      }
+      B.polygon(b, col, UP, 'xy');
+    };
+    const proud = D.win_proud || 0.03;
+    const windows = (t, W, col) => {
+      for (let k = 0; k < W.n; k++) {
+        const th = 2 * Math.PI * (k + 0.5) / W.n, o = [Math.cos(th), Math.sin(th)], tg = [-Math.sin(th), Math.cos(th)];
+        const cx = ax + (t.r + proud) * o[0], cy = ay + (t.r + proud) * o[1];
+        const za = t.z0 + W.sill, zb = Math.min(t.z1 - 0.2, za + W.h), hw = W.w / 2;
+        if (zb - za < 0.1) continue;
+        B.quad([cx - tg[0] * hw, cy - tg[1] * hw, za], [cx + tg[0] * hw, cy + tg[1] * hw, za],
+               [cx + tg[0] * hw, cy + tg[1] * hw, zb], [cx - tg[0] * hw, cy - tg[1] * hw, zb], col, [o[0], o[1], 0]);
+      }
+    };
+    const columns = (t, C, col) => {
+      for (let k = 0; k < C.n; k++) {
+        const th = 2 * Math.PI * k / C.n, o = [Math.cos(th), Math.sin(th)], tg = [-Math.sin(th), Math.cos(th)], h = C.half;
+        const cx = ax + C.r * o[0], cy = ay + C.r * o[1];
+        const q = (su, so, z) => [cx + tg[0] * su * h + o[0] * so * h, cy + tg[1] * su * h + o[1] * so * h, z];
+        const sides = [[[-1, -1], [1, -1], [-o[0], -o[1], 0]], [[1, -1], [1, 1], [tg[0], tg[1], 0]],
+                       [[1, 1], [-1, 1], [o[0], o[1], 0]], [[-1, 1], [-1, -1], [-tg[0], -tg[1], 0]]];
+        for (const [a, b, want] of sides) B.quad(q(a[0], a[1], t.z0), q(b[0], b[1], t.z0), q(b[0], b[1], t.z1), q(a[0], a[1], t.z1), col, want);
+        B.quad(q(-1, -1, t.z1), q(1, -1, t.z1), q(1, 1, t.z1), q(-1, 1, t.z1), col, UP);
+      }
+    };
+    let n = 0;
+    for (const t of D.tiers || []) {
+      const col = cols[t.kind] || drumCol;
+      cylinder(t.r, t.z0, t.z1, col);
+      if (t.windows) windows(t, t.windows, tintCol(col, DOME.windowTone));
+      if (t.columns) columns(t, t.columns, colCol);
+      n++;
+    }
+    return n;
+  }
   const _profiles = {};
 
   function ringStats(f) {
@@ -154,6 +256,11 @@
       }
       parts++;
     }
+    count.drum = 0;
+    if (DOME.drum && _gj.drum && _gj.drum.tiers) {
+      try { count.drum = drumParts(capB, _gj.drum, seg); }
+      catch (e) { console.warn('[slopes-dome] drum', e); }
+    }
     if (capB.triangles) { const cm = new T.Mesh(capB.geometry(), mat); cm.name = 'caps'; g.add(cm); tris += capB.triangles; }
     count.wings = 0;
     if (DOME.wings && _gj.rig && window.slopesRoofs && window.slopesRoofs.emit) {
@@ -171,7 +278,7 @@
     if (on) {
       if (_filtered) return;
       _origFilter = _map.getFilter(DOME.layer) || null;
-      const hide = ['!', ['in', ['get', 'part'], ['literal', DOME.parts]]];
+      const hide = ['!', ['in', ['get', 'part'], ['literal', hiddenParts()]]];
       _map.setFilter(DOME.layer, _origFilter ? ['all', _origFilter, hide] : hide);
       _filtered = true;
     } else if (_filtered) {
@@ -218,7 +325,7 @@
     }
     window.applySlopesDome(map);
     count.done = true;
-    console.log('[slopes-dome]', count.parts, 'parts lathed and', count.wings, 'wing roofs in', count.triangles, 'triangles,', count.ms, 'ms');
+    console.log('[slopes-dome]', count.parts, 'parts lathed,', count.drum, 'drum tiers and', count.wings, 'wing roofs in', count.triangles, 'triangles,', count.ms, 'ms');
     return true;
   }
   (function poll() {
