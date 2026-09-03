@@ -39,6 +39,21 @@
  * fake-tilt shading js/timeofday.js needs for flat tops and are not used —
  * the real 22.6° face under the real light needs no exaggeration).
  *
+ * THE FULL HIP (the critics' round 4, 2026-09-03). "Not a single ridge is
+ * visible. Every red roof is a flat lid, a stepped stack of flat lids, or an
+ * L-shaped flat plate." True: `tile_run` stops a ring short of the ridge on
+ * every full hip (the ridge line is lit and flashed and fails RING_MIN), so
+ * the slab profile stopped at ~0.85 of the half-span and a plate in the roof
+ * colour filled the rest — on 93 of the 108 roofs, by the bake's own deck
+ * vote (`ridge_tops`: the middle of the roof reads tile, so it is not a
+ * deck, it is the two slopes meeting). For those the bake now writes a
+ * second profile solved to the half-span, `rig.roofs[key].full`
+ * (RIG_FULL_HIP in the bake), and ROOFS.fullHip draws THAT one with no deck:
+ * every point climbs at the pitch until its own cap, so a rectangle gets a
+ * ridge, an L gets two ridges meeting over a valley, and the corners hip.
+ * Nothing is typed for a building; the shape is still the bake's mitres and
+ * caps. `fullHip: false` is round 3's band-and-plate.
+ *
  * SHADING. Every slope strip and the hall's planes are marked `facet` on the
  * builder, so SLOPES.facetShade (js/slopes.js) colours them the way
  * js/timeofday.js colours the slabs they replace — two tones either side of
@@ -142,12 +157,18 @@
     // line and how far it stands proud of the pediment face (the blocks stand
     // 0.26; the band stops short of them so nothing is coplanar).
     corbelBand: { down: 0.64, up: 0.05, proud: 0.20 },
+    // ── round 4 (2026-09-03): ridges, eaves, the Main Building ──────────
+    // A roof whose middle the photograph reads as tile (the bake's `ridge_tops`
+    // vote; `rig.roofs[key].full` is present) is drawn to its ridge with no
+    // deck. false draws every roof as its slab profile, band and plate.
+    fullHip: true,
   };
   window.SLOPES_ROOFS = ROOFS;
 
   let _map = null, _group = null, _rig = null;
   let _filtered = false, _origFilter = null, _lastDetail = null;
-  const count = { roofs: 0, gables: 0, blocks: 0, triangles: 0, ms: 0 };
+  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, triangles: 0, ms: 0 };
+  let _full = 0;                 // roofs drawn to their ridge in the last build
   let _blocks = 0;               // attached blocks drawn in the last build
 
   // ── helpers ─────────────────────────────────────────────────────────────
@@ -489,6 +510,15 @@
    */
   function roofOne(B, r, meta, gable, opts) {
     const S = window.slopes;
+    // THE FULL HIP: the profile solved to the half-span, and no deck, so
+    // zk below runs every point up to its own cap. A gabled hall keeps the
+    // slab profile its hall rig was solved on (Gregory: a membrane vote
+    // anyway).
+    if (ROOFS.fullHip && r.full && !(gable && ROOFS.hall && gable.hall)) {
+      const F = r.full;
+      r = { ...r, pts: F.pts, rays: F.rays, caps: F.caps, spans: F.spans, d: F.d, rise: F.rise, deck: null };
+      _full++;
+    }
     const M = r.pts.length;
     const rays = r.rays.map(v => v.slice()), caps = r.caps;
     const skipEdge = new Set(), skipLip = new Set();
@@ -630,7 +660,7 @@
     const t0 = performance.now();
     const B = S.build();
     let roofs = 0, gables = 0;
-    _blocks = 0;
+    _blocks = 0; _full = 0;
     for (const key of Object.keys(_rig.roofs)) {
       const r = _rig.roofs[key];
       const g = ROOFS.gable && _rig.gables && _rig.gables[key.split('/')[0]];
@@ -650,7 +680,7 @@
     g.userData.lod = ROOFS.lod;
     g.userData.minzoom = ROOFS.minzoom;
     g.add(mesh);
-    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.triangles = B.triangles;
+    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.full = _full; count.triangles = B.triangles;
     count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
     return g;
@@ -736,7 +766,7 @@
       window.applySlopesSettings = wrapped;
     }
     window.applySlopesRoofs(map);
-    console.log('[slopes-roofs]', count.roofs, 'roofs and', count.gables, 'gable in', count.triangles, 'triangles,', count.ms, 'ms');
+    console.log('[slopes-roofs]', count.roofs, 'roofs (' + count.full + ' to their ridge) and', count.gables, 'gable in', count.triangles, 'triangles,', count.ms, 'ms');
     return true;
   }
   (function poll() {

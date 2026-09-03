@@ -157,6 +157,25 @@ AUGMENT_TILED_PART = False          # ...and without the wing survey
 # both colours, are printed every run. False puts the shipped colour back on
 # the rig, as before.
 RIG_DECK_FROM_VOTE = True
+# THE MESH RUNS A TILE ROOF TO ITS RIDGE. `tile_run` stops where the imagery
+# stops reading tile, and on a full hip that is short of the ridge by a ring
+# or two: the ridge line is lit, flashed and a metre wide, and the last ring
+# before it is the one that fails RING_MIN. So the slabs stop at ~0.85 of the
+# half-span and a flat plate in the roof colour fills the rest -- "not a
+# single ridge is visible ... every red roof is a flat lid", the fair-camera
+# critic at mall-cruise, 2026-09-03. The deck VOTE already knows which roofs
+# these are: it samples the middle of the roof and reads tile on 93 of the
+# 108 (`ridge_tops` below, against `decks`), and a middle that reads tile is
+# not a deck, it is the two slopes meeting. For every such roof the rig
+# carries a second profile solved to the half-span, `full`, and
+# js/slopes-roofs.js draws that one -- the slope climbs at PITCH until it
+# meets the slope from the other side, hips at the corners, valleys where
+# two wings meet -- with no deck at all. The slabs are untouched; ?slopes=0
+# is main. A roof whose middle reads membrane (Sutton, the Union, Welch,
+# Gregory) keeps its band-and-deck. The vote and its colour are cached in
+# data/roof_runs.json (the fifth entry) so a machine without the imagery
+# draws the same city.
+RIG_FULL_HIP = True
 
 SNAP_DATE = (os.environ.get("SNAP_DATE")
              or (AUGMENT_SNAP if AUGMENT else bake_facades.snapshot_date()))
@@ -3026,6 +3045,20 @@ def tile_run(pm, lat0, hs):
 # by it, and the 108 that exist are bit-identical with it on and off.
 TILED_PART        = (AUGMENT_TILED_PART if AUGMENT
                      else "--no-tiled-part" not in sys.argv)
+# THE WING SURVEY STILL RUNS FOR THE MESH. In AUGMENT the survey is off for
+# the slabs (AUGMENT_TILED_PART: the shipped city was baked without it, and
+# its four wings would be 101 new features and a moved city — the open item
+# in HANDOFF 204b). But the rig is the mesh's, and a roof the photograph
+# shows can go on the rig without a slab moving: with this on, a footprint
+# the whole-roof probe calls flat is still asked for its tiled wing, and a
+# wing that passes goes into `rig` tagged `wing: 1` with NO features written
+# (the deck vote and the full-hip rule apply to it as to any roof). Calhoun
+# Hall's cross bar — "unmistakable terracotta hip with dormers between two
+# flat membrane stems" — is the case. The survey's answer (the wing's
+# outline in metres, its run, eave and colour) is cached in data/roof_runs.json
+# as `<key>/wing`, so a machine without the imagery draws the same wings.
+# --rebake still writes the slabs as before.
+TILED_PART_RIG    = True
 TILED_PART_CELL   = 1.2     # classification grid, metres
 TILED_PART_MIN_M2 = 220.0   # a wing worth roofing; below this it is a chimney
 TILED_PART_AREA   = 0.25    # whole-footprint tile fraction before we even look
@@ -3106,7 +3139,7 @@ def tiled_part(poly, lat0):
     Returns a cleaned CCW ring in metres, or None. `poly` is the whole
     footprint, already cleaned and CCW.
     """
-    if not TILED_PART:
+    if not (TILED_PART or (AUGMENT and TILED_PART_RIG)):
         return None
     from shapely.geometry import Polygon, box
     from shapely.ops import unary_union
@@ -3282,6 +3315,11 @@ def main():
     stats["gable_front_parts"] = 0
     stats["facade_band_buildings"] = 0
     stats["facade_band_parts"] = 0
+    stats["rig_full_hips"] = 0
+    stats["deck_votes_from_cache"] = 0
+    stats["rig_only_wings"] = 0
+    full_names = []
+    wing_names = []
     rows = []
     audit = []
     diag = []
@@ -3307,6 +3345,9 @@ def main():
                 continue
             lat0 = sum(q[1] for q in ring) / len(ring)
             pm = clean(simplify(clean(to_m(ring, lat0)), SIMPLIFY_M))
+            # the footprint as the walls are drawn (unsimplified), for the
+            # eave's shadow band the mesh stands in front of the parapet cap
+            foot_m = ccw(clean(to_m(ring, lat0)))
             if len(pm) < 3:
                 stats["degenerate_footprint"] += 1
                 continue
@@ -3362,23 +3403,49 @@ def main():
                 run = float(ov["roof_run_m"])
                 stats["run_from_override"] += 1
             sub_of = None
-            if run < MIN_RUN_M and TILED_PART and h >= TILED_PART_MIN_H \
+            mesh_only = False
+            wkey = key + "/wing"
+            if run < MIN_RUN_M and (TILED_PART or (AUGMENT and TILED_PART_RIG)) \
+                    and h >= TILED_PART_MIN_H \
                     and area_fr >= TILED_PART_AREA and not ov.get("roof_run_m"):
                 # J1. The whole footprint says flat. Ask the photograph whether
                 # a rectangular WING of it is tile, and if so put the same
                 # question to that wing — same probe, same thresholds, smaller
                 # ring. Anything this cannot justify falls straight through to
                 # the flat path below, which is where it is today.
-                sub = tiled_part(poly, lat0)
+                # THE ANSWER IS CACHED (`<key>/wing`: the wing's outline in
+                # metres and its probe), the way the whole footprint's is,
+                # because the survey reads the gitignored imagery and a
+                # machine without it would find no wing at all.
+                wc = cache.get(wkey)
+                if isinstance(wc, dict) and wc.get("poly"):
+                    sub = ccw([tuple(q) for q in wc["poly"]])
+                elif isinstance(wc, dict):
+                    sub = None                        # surveyed before: no wing
+                else:
+                    sub = tiled_part(poly, lat0)
+                    # rounded BEFORE it is used, so the run that surveys and
+                    # the run that reads the cache solve the same polygon
+                    if sub is not None:
+                        sub = ccw([(round(x, 2), round(y, 2)) for (x, y) in sub])
+                    cache[wkey] = ({"poly": [list(q) for q in sub]}
+                                   if sub is not None else {"poly": None})
                 if sub is not None:
                     s_mrays = mitre_rays(sub)
                     if s_mrays is not None:
                         s_caps = vertex_caps(sub, s_mrays)
                         s_hs = max(s_caps)
                         if s_hs >= 1.2:
-                            s_run, s_eave, s_meas = tile_run(sub, lat0, s_hs)
+                            wc = cache.get(wkey) or {}
+                            if "run" in wc:
+                                s_run, s_eave, s_meas = wc["run"], wc["eave"], wc.get("meas")
+                            else:
+                                s_run, s_eave, s_meas = tile_run(sub, lat0, s_hs)
+                                wc.update({"run": round(s_run, 2), "eave": round(s_eave, 3), "meas": s_meas})
+                                cache[wkey] = wc
                             if s_run >= MIN_RUN_M:
                                 sub_of = poly
+                                mesh_only = not TILED_PART   # the rig's, not the city's
                                 poly = sub
                                 mrays = s_mrays
                                 caps, capped = edge_event_caps(sub, s_mrays, s_caps)
@@ -3556,6 +3623,7 @@ def main():
             # the top of its rise with two arms running 25 m down a wing only
             # 13 m wide. A capped ring cannot leave the building.
             rig_deck, rig_deck_props, rig_deck_i = None, None, None
+            ridge_top = False
             deck = rings[-1][0]
             if deck is None or abs(signed_area(deck)) < 1.0:
                 deck = None
@@ -3581,7 +3649,27 @@ def main():
                             continue
                         cols.append([int(c[0]), int(c[1]), int(c[2])])
                         hits += is_tile(c)
-                membrane = len(cols) >= DECK_MIN_PX and hits / len(cols) <= DECK_TILE_MAX
+                # THE VOTE IS CACHED WITH ITS COLOUR (data/roof_runs.json's
+                # fifth entry: [samples, tile fraction, median hex]), because
+                # the imagery is gitignored and a machine without it casts
+                # "tile" on every roof -- twelve grey decks came out terracotta
+                # that way (HANDOFF 204b), and with RIG_FULL_HIP that machine
+                # would also run twelve membrane decks up to a ridge. The
+                # cache is written whenever the photograph was read and used
+                # only when it was not.
+                cached_vote = (cache[key][4] if len(cache.get(key, ())) >= 5
+                               and isinstance(cache[key][4], list) else None)
+                dc_cached = None
+                if len(cols) >= DECK_MIN_PX or cached_vote is None:
+                    membrane = len(cols) >= DECK_MIN_PX and hits / len(cols) <= DECK_TILE_MAX
+                    vote = [len(cols), (round(hits / len(cols), 3) if cols else None),
+                            (deck_colour(cols, rd_real) if membrane else None)]
+                    if len(cache.get(key, ())) >= 4:
+                        cache[key] = list(cache[key][:4]) + [vote]
+                else:
+                    n_v, fr_v, dc_cached = (cached_vote + [None, None, None])[:3]
+                    membrane = (n_v or 0) >= DECK_MIN_PX and fr_v is not None and fr_v <= DECK_TILE_MAX
+                    stats["deck_votes_from_cache"] += 1
                 # AN OVERRIDDEN DECK COLOUR SKIPS THE VOTE, not just the value.
                 # On Jester the probe's own sample ring is half tile and half
                 # concrete, so `membrane` is a coin flip on a roof whose middle
@@ -3592,7 +3680,7 @@ def main():
                     membrane = True
                     dc = ov["deck_colour"]
                 elif membrane:
-                    dc = deck_colour(cols, rd_real)
+                    dc = deck_colour(cols, rd_real) if cols else (dc_cached or rd_real)
                 if membrane:
                     props = {"rd": dc, "rdd": dc,
                              "rg": like(dc, rd_real, rg_real),
@@ -3618,6 +3706,7 @@ def main():
                 emitted.append((deck[:-1], top, props))
                 rig_deck, rig_deck_props = [props["rd"], props["rg"], props["rn"]], props
                 stats["decks" if membrane else "ridge_tops"] += 1
+                ridge_top = not membrane
 
             if made < 1:
                 stats["tiled_but_degenerate"] += 1
@@ -3652,6 +3741,8 @@ def main():
                 # than off this run, because that one colour is a live vote on
                 # gitignored imagery (see AUGMENT at the top) and is the only
                 # value in this file that two machines disagree about.
+                if mesh_only:
+                    continue                          # the wing is the rig's; no slab is written
                 if rig_deck_i is None and props is rig_deck_props:
                     rig_deck_i = len(out)
                 out.append({
@@ -3659,7 +3750,7 @@ def main():
                     "geometry": {"type": "Polygon", "coordinates": ll},
                     "properties": dict(props),
                 })
-            stats["tiled"] += 1
+            stats["rig_only_wings" if mesh_only else "tiled"] += 1
             # The rig: the profile, its rays and caps, the depth the slope runs
             # to and the heights it runs between — the numbers every ring above
             # was a multiply-add on. Metres in this file's own frame; `dpm`
@@ -3679,7 +3770,37 @@ def main():
                 "lip": ([rd_real, rg_real, rn_real] if eave_ring is not None else None),
                 "deck": rig_deck, "_deck_i": rig_deck_i,
                 "_rb": rb_here,
+                # the wall under the eave: its own colour and its top, for the
+                # eave's shadow band (js/slopes-roofs.js ROOFS.capShade)
+                "wall": [p.get("wd"), p.get("wg"), p.get("wn")], "h": round(h, 2),
             }
+            if sub_of is None:
+                # js/slopes-roofs.js ROOFS.eaveShadow draws the wall's own
+                # colour, in shadow, over the cap app.js paints in the ROOF
+                # colour between h and `base`; it follows the walls, not the
+                # simplified profile, so no jog pokes through. Not for a wing:
+                # its eave covers part of the building only.
+                rig[key]["foot"] = [[round(x, 2), round(y, 2)] for (x, y) in foot_m]
+            if sub_of is not None:
+                rig[key]["wing"] = 1                  # a tiled wing of a flat building
+                wing_names.append(p.get("name") or key)
+            if RIG_FULL_HIP and ridge_top:
+                # THE FULL HIP (see RIG_FULL_HIP): the same walls, mitres and
+                # caps, profiled to the half-span instead of to the measured
+                # run, so a long wall whose middle can outrun its corners gains
+                # its sample points for THIS depth. The mesh draws this profile
+                # with no deck: every point climbs at PITCH until its own cap.
+                f_pts, f_rays, f_caps, f_spans = wall_profile(poly, mrays, caps, hs)
+                d_full = max(max(f_caps), hs)
+                rig[key]["full"] = {
+                    "pts": [[round(x, 2), round(y, 2)] for (x, y) in f_pts],
+                    "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in f_rays],
+                    "caps": [round(c, 2) for c in f_caps],
+                    "spans": [[a, b] for (a, b) in f_spans],
+                    "d": round(d_full, 3), "rise": round(min(RISE_MAX, PITCH * d_full), 3),
+                }
+                stats["rig_full_hips"] += 1
+                full_names.append(p.get("name") or key)
             # A WING IS NOT THE BUILDING. `pitched` tells the parapet-cap rule
             # below to leave a building's cap terracotta because it has a real
             # tiled hip. Calhoun's cross bar does — and the two stems either
@@ -3896,6 +4017,9 @@ def main():
         "rig_kb": round(len(json.dumps(fc["rig"], separators=(",", ":"))) / 1024, 1),
         "rig_roofs": len(rig),
         "rig_gables": len(gables),
+        "rig_full_hips": sorted(n for n in full_names if not re.match(r"^[0-9a-f]{8}-", n))
+                         + ["+%d unnamed" % sum(1 for n in full_names if re.match(r"^[0-9a-f]{8}-", n))],
+        "rig_wings": sorted(wing_names),
         "tile_colour": {
             "campus base": tile_base,
             "derived from": tile_base_n or "nothing — the constant %s stood in" % TILE_BASE,
