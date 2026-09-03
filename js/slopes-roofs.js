@@ -66,6 +66,7 @@
  *   slopesRoofs.rebuild()   — rebuild from the rig (after a taste edit)
  *   slopesRoofs.count       — { roofs, gables, triangles, ms }
  *   slopesRoofs.rig(name)   — the rig entry whose name matches, for scripts
+ *   slopesRoofs.emit(B, rig) — draw another file's rig member (the Capitol's wings) into a builder
  *   applySlopesRoofs(map)   — re-evaluate the filter and the group's membership
  */
 (function () {
@@ -379,6 +380,16 @@
     const loc = q => { const l = S.toLocal(q[0] * r.dpm[0], q[1] * r.dpm[1], 0); return [l.x, l.y]; };
     const at = (k, d) => loc(atB(k, d));
     const z = d => zLip + r.rise * Math.max(0, Math.min(1, d / dUse));
+    // WHERE A POINT STOPS, ITS SLOPE STOPS. A profile point capped short of
+    // d_use has reached this roof's ridge; the slab bake kept lifting it with
+    // the ring anyway (a ring is one height), which leaves the vertical fin
+    // over every wing's ridge that the deck then hides. A rig with NO deck —
+    // the Capitol's wings, bake_capitol.py — has nothing to hide a fin behind,
+    // so there its height is its own: zLip + pitch * min(d, cap). The ridge
+    // is then as high as the roof is wide at that place, which is what a hip
+    // over an irregular outline actually does. Rigs with a deck keep the fin,
+    // because the deck's edge stands on it.
+    const zk = r.deck ? ((k, d) => z(d)) : ((k, d) => zLip + r.rise * Math.min(d, caps[k]) / dUse);
     const eave = [], wall = [], top = [];
     for (let k = 0; k < M; k++) { eave.push(at(k, -over)); wall.push(at(k, 0)); top.push(at(k, dUse)); }
 
@@ -404,7 +415,7 @@
       for (let i = 0; i + 1 < brk.length; i++) {
         const d0 = brk[i], d1 = brk[i + 1];
         if (d1 - d0 < 1e-4) continue;
-        B.quad(P(at(k, d0), z(d0)), P(at(j, d0), z(d0)), P(at(j, d1), z(d1)), P(at(k, d1), z(d1)), r.col, want);
+        B.quad(P(at(k, d0), zk(k, d0)), P(at(j, d0), zk(j, d0)), P(at(j, d1), zk(j, d1)), P(at(k, d1), zk(k, d1)), r.col, want);
       }
     }
     // 3. the deck at the top of the rise
@@ -527,6 +538,24 @@
 
   window.slopesRoofs = {
     rebuild() { if (_group) { window.slopes.remove(_group); _group = null; } window.applySlopesRoofs(); },
+    /**
+     * Draw another file's `rig` member into a builder: the same schema
+     * scripts/bake_roofs.py writes for the campus (profile, rays, caps,
+     * spans, heights), the same roofOne. scripts/bake_capitol.py writes one
+     * for the Capitol's wings and js/slopes-dome.js calls this with it, so
+     * those hips live in the dome's group and keep its LOD (none: a skyline
+     * stays). Returns the number of roofs drawn.
+     */
+    emit(B, rig) {
+      if (!rig || !rig.roofs) return 0;
+      const meta = { lip: 0, over: 0, ...(rig.meta || {}) };
+      let n = 0;
+      for (const key of Object.keys(rig.roofs)) {
+        try { roofOne(B, rig.roofs[key], meta, null); n++; }
+        catch (e) { console.warn('[slopes-roofs] rig', key, e); }
+      }
+      return n;
+    },
     rig(name) { if (!_rig) return null; const k = Object.keys(_rig.roofs).find(k => (_rig.roofs[k].name || '').indexOf(name) >= 0); return k ? { key: k, ...(_rig.roofs[k]) } : null; },
     get count() { return { ...count }; },
     get group() { return _group; },

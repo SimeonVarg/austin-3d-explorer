@@ -49,11 +49,26 @@
     minTopR: 0.3,                 // the smallest closing radius, metres
     cap: true,                    // a flat disc closes each part's top
     topJoinTolM: 0.02,            // a part whose base is this close to our top gives us its radius
+    // The bake's own continuous profile, where it writes one. scripts/
+    // bake_capitol.py puts a `lathe` foreign member beside the discs (the
+    // dome only, today): an elliptical quadrant that stays full through its
+    // lower half and turns over into a crown wide enough for the lantern to
+    // stand ON it. The discs stay the fill-extrusion stand-in they were and
+    // are what the lathe falls back to when the member is absent. Off, the
+    // discs' own profile is revolved, closed onto the lantern -- the 28 m
+    // spike the critics saw on 2026-09-03.
+    lathe: true,
+    // The wings' hips: scripts/bake_capitol.py writes a `rig` member beside
+    // the discs (bake_roofs.py's own schema, on the OSM part outlines), and
+    // js/slopes-roofs.js's roofOne draws it here, into THIS group, so the
+    // Capitol's roofs share the dome's LOD (none) and its minzoom. Off, the
+    // wings are the flat slabs they always were.
+    wings: true,
   };
   window.SLOPES_DOME = DOME;
 
   let _map = null, _group = null, _gj = null, _lastDetail = null, _filtered = false, _origFilter = null;
-  const count = { parts: 0, triangles: 0, ms: 0, done: false };
+  const count = { parts: 0, wings: 0, triangles: 0, ms: 0, done: false };
   const _profiles = {};
 
   function ringStats(f) {
@@ -75,12 +90,22 @@
     ax /= st.length; ay /= st.length;
     const A = S.toLocal(ax, ay, 0);
     const radius = s => { let r = 0; for (const q of s.ring) { const l = S.toLocal(q[0], q[1], 0); r += Math.hypot(l.x - A.x, l.y - A.y); } return r / s.ring.length; };
-    const prof = discs.map((f, i) => [radius(st[i]), f.properties.base]);
-    const top = discs[discs.length - 1].properties.h;
+    let prof = discs.map((f, i) => [radius(st[i]), f.properties.base]);
+    let top = discs[discs.length - 1].properties.h;
     // the closing radius: the part that starts on our top, else the last slope carried on
     const next = _gj.features.filter(f => DOME.parts.indexOf(f.properties.part) < 0 && !/column/.test(f.properties.part)
                                             && Math.abs(f.properties.base - top) <= DOME.topJoinTolM);
+    const L = DOME.lathe && _gj.lathe && _gj.lathe[part];
     let rTop;
+    if (L && L.prof && L.prof.length >= 2) {
+      // the bake's profile carries its own crown; nothing is joined onto it
+      prof = L.prof.map(q => [q[0], q[1]]);
+      top = prof[prof.length - 1][1];
+      rTop = Math.max(DOME.minTopR, prof[prof.length - 1][0]);
+      const p = discs[0].properties;
+      const over = (window.CAPITOL && window.CAPITOL.domeNight) || {};
+      return { axis: [A.x, A.y], prof, col: [p.wd, p.wg, over[part] || p.wn], top, rTop, discs: discs.length, join: null, lathe: true };
+    }
     if (next.length) {
       const s = ringStats(next[0]);
       const B = S.toLocal(s.cx, s.cy, 0);
@@ -130,6 +155,12 @@
       parts++;
     }
     if (capB.triangles) { const cm = new T.Mesh(capB.geometry(), mat); cm.name = 'caps'; g.add(cm); tris += capB.triangles; }
+    count.wings = 0;
+    if (DOME.wings && _gj.rig && window.slopesRoofs && window.slopesRoofs.emit) {
+      const WB = S.build();
+      count.wings = window.slopesRoofs.emit(WB, _gj.rig);
+      if (WB.triangles) { const wm = new T.Mesh(WB.geometry(), mat); wm.name = 'wings'; g.add(wm); tris += WB.triangles; }
+    }
     count.parts = parts; count.triangles = Math.round(tris); count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
     return g;
@@ -187,7 +218,7 @@
     }
     window.applySlopesDome(map);
     count.done = true;
-    console.log('[slopes-dome]', count.parts, 'parts lathed in', count.triangles, 'triangles,', count.ms, 'ms');
+    console.log('[slopes-dome]', count.parts, 'parts lathed and', count.wings, 'wing roofs in', count.triangles, 'triangles,', count.ms, 'ms');
     return true;
   }
   (function poll() {
