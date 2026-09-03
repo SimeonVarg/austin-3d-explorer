@@ -217,6 +217,23 @@
     // edit: set roofShade to 0.78 and the sunlit slope lands back on the
     // slab's tone; below that it goes darker still, above 1.0 brighter.
     roofShade: 1.0,
+    // ── The city's own roof shading, on the mesh's sloped faces ─────────
+    // js/timeofday.js paints every slab facet between a DARK end (rdd, 0.70 x
+    // the roof colour) and a BRIGHT end (rd, 1.28 x — SHADE_LO/SHADE_HI in
+    // scripts/bake_roofs.py) from the live sun on a painted 38° tilt
+    // (ROOF_SHADE there), because a flat top cannot shade itself. The mesh's
+    // real 22.6° under the real light is honest and it is also why Gregory
+    // Gym's hall read as one flat orange plate to three blind critics on
+    // 2026-09-03: at golden hour its two planes were 74 and 82 luma — eight
+    // apart — where the slabs they replaced would have been ~45 % apart. With
+    // this on, a sloped face its generator marked `facet` (the roof pitches
+    // and the gabled halls; never a wall, a deck, a dome or an arch) takes
+    // that same rule — same ambient, same two ends, same tilt — and is lit
+    // as the flat top it stands in for, so a mesh roof and the slabs beside
+    // it are one look at every hour. `on: false` is the real normal under
+    // the real light, as before. The four numbers must match ROOF_SHADE in
+    // js/timeofday.js and SHADE_LO/SHADE_HI in scripts/bake_roofs.py.
+    facetShade: { on: true, ambient: 0.35, lo: 0.70, hi: 1.28, tilt: 38 },
     // MapLibre darkens a fill-extrusion wall toward its base
     // (`fill-extrusion-vertical-gradient`, on by default). 1 applies the same
     // curve to mesh WALLS — faces given a gradient attribute by
@@ -292,18 +309,52 @@
     uniform float u_opacity;
     uniform float u_roof_shade;
     uniform float u_p;
+    uniform float u_facet_on;
+    uniform float u_facet_ambient;
+    uniform float u_facet_lo;
+    uniform float u_facet_hi;
+    uniform float u_facet_sin;
+    uniform float u_facet_cos;
     attribute vec3 cDay;
     attribute vec3 cGold;
     attribute vec3 cNight;
     attribute vec2 aGrad;
+    attribute float aFacet;
     varying vec4 v_color;
     void main() {
       vec3 color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0)
                                 : mix(cGold, cNight, (u_p - 0.5) * 2.0);
+      vec3 n = normalize(normal);
+      float az = abs(n.z);
+      // "Sloped" = carries no vertical gradient (aGrad.y == 0: roofs, domes,
+      // arch soffits — never a wall) AND its normal is neither flat nor vertical.
+      bool sloped = (aGrad.y == 0.0 && az > 0.02 && az < 0.98);
+      // SLOPES.facetShade — js/timeofday.js's roofFacetColor, transcribed:
+      // a facet marked by its generator is coloured between the slabs' dark
+      // and bright ends by the live sun on the painted tilt, and then lit as
+      // the FLAT TOP it stands in for (the slab's own normal), so it lands on
+      // the tone the slab would have. The night colour carries no ends (the
+      // slabs' rn has no rnd), so the range closes toward it past golden.
+      vec3 nl = n;
+      if (u_facet_on > 0.5 && aFacet > 0.5 && sloped) {
+        vec3 L = normalize(u_lightpos);
+        float sinE = L.z;
+        float cosE = length(L.xy);
+        vec2 sh = (cosE > 1e-4) ? L.xy / cosE : vec2(0.0, 1.0);
+        vec2 nh = normalize(n.xy);
+        float d = u_facet_sin * cosE * dot(nh, sh) + u_facet_cos * sinE;
+        float A = u_facet_ambient;
+        float lit = A + (1.0 - A) * max(0.0, d);
+        float flat_ = A + (1.0 - A) * max(0.0, sinE);
+        float t = clamp((lit / max(flat_, 1e-4) - u_facet_lo) / (u_facet_hi - u_facet_lo), 0.0, 1.0);
+        float m = mix(u_facet_lo, u_facet_hi, t);
+        color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0) * m
+                             : mix(cGold * m, cNight, (u_p - 0.5) * 2.0);
+        nl = vec3(0.0, 0.0, 1.0);
+      }
       float colorvalue = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
       color += vec3(0.03);
-      vec3 n = normalize(normal);
-      float directional = clamp(dot(n, u_lightpos), 0.0, 1.0);
+      float directional = clamp(dot(nl, u_lightpos), 0.0, 1.0);
       directional = mix(1.0 - u_lightintensity,
                         max(1.0 - colorvalue + u_lightintensity, 1.0), directional);
       if (aGrad.y > 0.0 && n.y != 0.0) {
@@ -313,12 +364,8 @@
       vec3 lit = clamp(color * directional * u_lightcolor,
                        mix(vec3(0.0), vec3(0.3), vec3(1.0) - u_lightcolor), vec3(1.0));
       // SLOPES.roofShade — the one look knob, applied to sloped faces only.
-      // "Sloped" = carries no vertical gradient (aGrad.y == 0: roofs, domes,
-      // arch soffits — never a wall) AND its normal is neither flat nor
-      // vertical. At the default 1.0 this is an exact multiply by one.
-      float k = 1.0;
-      float az = abs(n.z);
-      if (aGrad.y == 0.0 && az > 0.02 && az < 0.98) k = u_roof_shade;
+      // At the default 1.0 this is an exact multiply by one.
+      float k = sloped ? u_roof_shade : 1.0;
       v_color = vec4(lit * k, 1.0) * u_opacity;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
@@ -445,6 +492,7 @@
     geom.setAttribute('cGold', new T.BufferAttribute(cg, 3));
     geom.setAttribute('cNight', new T.BufferAttribute(cn, 3));
     geom.setAttribute('aGrad', new T.BufferAttribute(gr, 2));
+    geom.setAttribute('aFacet', new T.BufferAttribute(new Float32Array(n), 1));   // never a roof facet
     return geom;
   }
   function add(obj) { if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
@@ -470,16 +518,24 @@
   //                                      a polygon in a wall's (u, z) plane
   //                                      swept from depth v0 to v1: front,
   //                                      back and every side, faces outward
+  //                                      (opts.smooth: curved sides shade
+  //                                      continuously — see extrude)
+  //   b.facet(bool)                     mark what follows as roof facets for
+  //                                      SLOPES.facetShade (roof pitches only)
   //   b.geometry()                      the BufferGeometry (call once)
   //
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
   function build() {
     const T = window.THREE;
-    const pos = [], nrm = [], cd = [], cg = [], cn = [];
+    const pos = [], nrm = [], cd = [], cg = [], cn = [], fc = [];
     const cache = new Map();
     const rgb = hex => { let c = cache.get(hex); if (!c) { c = hexToRgb01(hex); cache.set(hex, c); } return c; };
+    // `facet(true)` marks everything pushed after it as a roof facet for
+    // SLOPES.facetShade (a sloped face shaded like the slab it replaces);
+    // `facet(false)` ends the run. Walls, decks, domes and arches never set it.
+    let _facet = 0;
     const push = (p, n, col) => {
-      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]);
+      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); fc.push(_facet);
       const d = rgb(col[0]), g = rgb(col[1]), k = rgb(col[2]);
       cd.push(d[0], d[1], d[2]); cg.push(g[0], g[1], g[2]); cn.push(k[0], k[1], k[2]);
     };
@@ -496,6 +552,16 @@
       push(a, n, col); push(b, n, col); push(c, n, col); tris++;
     }
     function quad(a, b, c, d, col, want) { tri(a, b, c, col, want); tri(a, c, d, col, want); }
+    /** A triangle with its own per-vertex normals (a smooth-shaded curve); wound to face their mean. */
+    function triN(a, b, c, na, nb, nc, col) {
+      let n = cross(sub(b, a), sub(c, a));
+      const L = Math.hypot(n[0], n[1], n[2]);
+      if (L < 1e-9) return;
+      n = [n[0] / L, n[1] / L, n[2] / L];
+      const avg = [na[0] + nb[0] + nc[0], na[1] + nb[1] + nc[1], na[2] + nb[2] + nc[2]];
+      if (dot(n, avg) < 0) { let t = b; b = c; c = t; t = nb; nb = nc; nc = t; }
+      push(a, na, col); push(b, nb, col); push(c, nc, col); tris++;
+    }
     /** A planar polygon, any orientation; triangulated in the given plane. */
     function polygon(pts, col, want, plane) {
       if (pts.length < 3) return;
@@ -511,6 +577,12 @@
      * normal and emits a closed solid: cap at v1 facing +n, cap at v0 facing
      * -n, one quad per edge facing that edge's outward direction. `opts.sides`
      * = false skips the side quads (a face that sits against a wall).
+     * `opts.smooth` (true, or a crease angle in degrees; default 40) gives the
+     * side faces per-vertex normals averaged across each polygon vertex whose
+     * corner is shallower than the crease, so a curve — an archivolt's
+     * extrados, a fanlight's edge — shades continuously instead of as a
+     * necklace of flat facets ("faint corners at close range", the critics,
+     * 2026-09-03). A real corner keeps its two flat faces.
      */
     function extrude(poly, frame, v0, v1, col, opts) {
       opts = opts || {};
@@ -531,15 +603,38 @@
         polygon(cap, col, nn, 'uz');
       }
       if (opts.sides !== false) {
+        // each edge's outward unit normal in (u, z), and — for opts.smooth —
+        // each vertex's, averaged across the corner when it is shallower
+        // than the crease angle
+        const en = [];
         for (let i = 0; i < n; i++) {
           const p = poly[i], q = poly[(i + 1) % n];
+          const du = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(du, dz) || 1;
+          en.push([ccw * dz / L, -ccw * du / L]);
+        }
+        const creaseCos = opts.smooth ? Math.cos((typeof opts.smooth === 'number' ? opts.smooth : 40) * Math.PI / 180) : 2;
+        const vn = i => {
+          const a = en[(i - 1 + n) % n], b = en[i];
+          if (a[0] * b[0] + a[1] * b[1] < creaseCos) return null;
+          const s = [a[0] + b[0], a[1] + b[1]], L = Math.hypot(s[0], s[1]) || 1;
+          return [s[0] / L, s[1] / L];
+        };
+        const to3 = m => { const v = [frame.T[0] * m[0], frame.T[1] * m[0], m[1]]; const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
+        for (let i = 0; i < n; i++) {
+          const p = poly[i], q = poly[(i + 1) % n], j = (i + 1) % n;
           const du = q[0] - p[0], dz = q[1] - p[1];
           if (Math.hypot(du, dz) < 1e-6) continue;
           // outward in (u, z) for the polygon's own winding, mapped to 3-D
           const ou = ccw * dz, oz = -ccw * du;
           const want = [frame.T[0] * ou, frame.T[1] * ou, oz];
           if (opts.skipDown && oz < -0.9 * Math.hypot(ou, oz)) continue;   // a bottom face on a sill
-          quad(P(p[0], v0, p[1]), P(q[0], v0, q[1]), P(q[0], v1, q[1]), P(p[0], v1, p[1]), col, want);
+          const p0 = P(p[0], v0, p[1]), p1 = P(q[0], v0, q[1]), p2 = P(q[0], v1, q[1]), p3 = P(p[0], v1, p[1]);
+          if (opts.smooth) {
+            const na = to3(vn(i) || en[i]), nb = to3(vn(j) || en[i]);
+            triN(p0, p1, p2, na, nb, nb, col); triN(p0, p2, p3, na, nb, na, col);
+          } else {
+            quad(p0, p1, p2, p3, col, want);
+          }
         }
       }
     }
@@ -551,10 +646,12 @@
       g.setAttribute('cGold', new T.Float32BufferAttribute(cg, 3));
       g.setAttribute('cNight', new T.Float32BufferAttribute(cn, 3));
       g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
+      g.setAttribute('aFacet', new T.Float32BufferAttribute(fc, 1));
       g.computeBoundingSphere();
       return g;
     }
-    return { tri, quad, polygon, extrude, geometry, get triangles() { return tris; } };
+    function facet(v) { _facet = v ? 1 : 0; }
+    return { tri, triN, quad, polygon, extrude, geometry, facet, get triangles() { return tris; } };
   }
 
   /**
@@ -728,12 +825,24 @@
   }
 
   // ── Settings ────────────────────────────────────────────────────────────
+  /** SLOPES.facetShade → the shader's uniforms (the tilt as its sine and cosine). */
+  function facetUniforms() {
+    const F = SLOPES.facetShade || {};
+    const R = Math.PI / 180;
+    U.u_facet_on.value = F.on ? 1 : 0;
+    U.u_facet_ambient.value = isFinite(F.ambient) ? F.ambient : 0.35;
+    U.u_facet_lo.value = isFinite(F.lo) ? F.lo : 0.70;
+    U.u_facet_hi.value = isFinite(F.hi) ? F.hi : 1.28;
+    U.u_facet_sin.value = Math.sin((isFinite(F.tilt) ? F.tilt : 38) * R);
+    U.u_facet_cos.value = Math.cos((isFinite(F.tilt) ? F.tilt : 38) * R);
+  }
   window.applySlopesSettings = function applySlopesSettings(map) {
     map = map || _map;
     if (!U || !map) return;
     U.u_vertical_gradient.value = SLOPES.verticalGradient;
     U.u_opacity.value = SLOPES.opacity;
     U.u_roof_shade.value = SLOPES.roofShade;
+    facetUniforms();
     if (SLOPES.debug) debugScene(map);
     map.triggerRepaint();
   };
@@ -854,7 +963,10 @@
       u_opacity: { value: SLOPES.opacity },
       u_roof_shade: { value: SLOPES.roofShade },
       u_p: { value: pq(window.__todCurrentP != null ? window.__todCurrentP : 0.5) },
+      u_facet_on: { value: 0 }, u_facet_ambient: { value: 0.35 }, u_facet_lo: { value: 0.70 },
+      u_facet_hi: { value: 1.28 }, u_facet_sin: { value: 0 }, u_facet_cos: { value: 1 },
     };
+    facetUniforms();
     scene = new T.Scene();
     root = new T.Group(); root.name = 'slopes-root';   // identity: NO mirror here, see point 3
     scene.add(root);

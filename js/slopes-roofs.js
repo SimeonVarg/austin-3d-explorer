@@ -39,6 +39,11 @@
  * fake-tilt shading js/timeofday.js needs for flat tops and are not used —
  * the real 22.6° face under the real light needs no exaggeration).
  *
+ * SHADING. Every slope strip and the hall's planes are marked `facet` on the
+ * builder, so SLOPES.facetShade (js/slopes.js) colours them the way
+ * js/timeofday.js colours the slabs they replace — two tones either side of
+ * a ridge at every hour. The decks, lips, walls and the pediments are not.
+ *
  * GREGORY GYM. Its west elevation is hand-authored in data/building_overrides
  * .json and baked by gable_front_parts as prisms: two pediments of 22 courses
  * each, a raking cornice of 1.5 m blocks, and three archivolts of 13 voussoir
@@ -90,6 +95,7 @@
     gableEnd: true,              // ...and no hip against the gabled wall
     gableWallMaxM: 3.0,          // how far the gable's anchor may sit from a wall
     ringSegments: 48,            // archivolt half-ring segments × slopes.detail()
+    smoothArcs: true,            // ...shaded as one curve, not 48 facets (slopes.build's extrude opts.smooth)
     dedupeM: 0.02,               // deck ring points closer than this are one point
     untangleDeck: true,          // split a folded deck ring before triangulating it
     deckMinM2: 0.01,             // ...and drop the loops smaller than this
@@ -102,6 +108,27 @@
     hallTolM: 0.3,               // a profile edge within this of the hall rectangle belongs to the hall
     monitor: true,               // the clerestory monitor on the ridge (the override's measured plan)
     monitorColour: 'stone',      // 'stone' | 'brick' | 'roof': the tone the monitor takes
+    // ── the gable's READ, after the critics' round 1 (2026-09-03) ──────
+    // Two planes the same tone, no ridge line, the monitor a flat sticker:
+    // "it does not read as a gable". The planes are marked `facet` for
+    // SLOPES.facetShade (the city's own slab shading: two tones either side
+    // of a ridge at every hour, see js/slopes.js), and the ridge and the
+    // monitor get what the photograph shows a real roof has:
+    ridgeCap: { w: 0.6, h: 0.12, tone: 0.86 },   // ridge tiles along the hall's ridge, front to
+                                                 // back: width, stand above the ridge, tint of
+                                                 // the roof colour. null draws no ridge.
+    monitorPitch: 0.18,          // the monitor's own roof, rise per metre of half-width, so it
+                                 // has a crease of its own on the ridge instead of a flat lid
+                                 // [U — a monitor's roof cannot be read from a nadir tile]
+    // The corbel table on the inner pediment's rake is 26 stone blocks in
+    // data/roofs.geojson (kept: they are the right shape), and from 160 m up a
+    // row of blocks is "a jagged staircase of dashes". This is the continuous
+    // stone band a corbel table stands on, drawn under the blocks along the
+    // rake so the two together read as one raked line from the air and as a
+    // band with its dogtooth from the street. Depths below/above the rake
+    // line and how far it stands proud of the pediment face (the blocks stand
+    // 0.26; the band stops short of them so nothing is coplanar).
+    corbelBand: { down: 0.64, up: 0.05, proud: 0.20 },
   };
   window.SLOPES_ROOFS = ROOFS;
 
@@ -112,6 +139,9 @@
   // ── helpers ─────────────────────────────────────────────────────────────
   const UP = [0, 0, 1], DOWN = [0, 0, -1];
   const P = (xy, z) => [xy[0], xy[1], z];
+  const tintHex = (hex, m) => '#' + [0, 2, 4].map(i => Math.max(0, Math.min(255, Math.round(parseInt(String(hex).replace('#', '').slice(i, i + 2), 16) * m))).toString(16).padStart(2, '0')).join('');
+  const tintCol = (col, m) => col.map(h => tintHex(h, m));
+  const facet = (B, on) => { if (B.facet) B.facet(on); };
   const outward = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dy / L, -dx / L, 0]; };
   const inwardOf = (r, span) => {
     const M = r.pts.length, a = r.pts[span[0]], b = r.pts[span[1] % M];
@@ -298,8 +328,19 @@
       const pts2 = frontEdge(ua, ub).concat([[ub, H.v1], [ua, H.v1]]);
       B.polygon(pts2.map(([u, v]) => F.at(u, v, zAt(u))), r.col, want, 'xy');
     };
+    facet(B, true);
     plane(H.uL, 0, [-F.T[0], -F.T[1], 1]);
     plane(0, H.uR, [F.T[0], F.T[1], 1]);
+    facet(B, false);
+    // 1b. the ridge: a strip of ridge tiles from the roof's front to its back
+    const RC = ROOFS.ridgeCap;
+    if (RC && RC.w > 0) {
+      const hw = RC.w / 2, zt = H.ridge + RC.h, vf = hall.frontRear(0), col = tintCol(r.col, RC.tone);
+      const za = zAt(-hw), zb = zAt(hw);
+      B.quad(F.at(-hw, vf, zt), F.at(hw, vf, zt), F.at(hw, H.v1, zt), F.at(-hw, H.v1, zt), col, UP);
+      B.quad(F.at(hw, vf, zb), F.at(hw, H.v1, zb), F.at(hw, H.v1, zt), F.at(hw, vf, zt), col, [F.T[0], F.T[1], 0]);
+      B.quad(F.at(-hw, vf, za), F.at(-hw, H.v1, za), F.at(-hw, H.v1, zt), F.at(-hw, vf, zt), col, [-F.T[0], -F.T[1], 0]);
+    }
     // 2. the eave lip along each flank, from the pediment's rear to the back
     if (r.lip) {
       for (const [u, sgn] of [[H.uL, -1], [H.uR, 1]]) {
@@ -318,14 +359,24 @@
     const Mo = H.monitor;
     if (ROOFS.monitor && Mo && Mo.w > 0 && Mo.h > 0) {
       const col = ROOFS.monitorColour === 'brick' ? g.brick : ROOFS.monitorColour === 'roof' ? r.col : g.stone;
-      const hw = Mo.w / 2, zt = H.ridge + Mo.h, za = zAt(-hw), zb = zAt(hw);
+      // its walls stand Mo.h over the ridge to their eave `ze`; its own roof
+      // rises from there to a crease `zt` over the ridge at ROOFS.monitorPitch
+      const hw = Mo.w / 2, ze = H.ridge + Mo.h, mp = Math.max(0, ROOFS.monitorPitch || 0), zt = ze + hw * mp;
+      const za = zAt(-hw), zb = zAt(hw);
       const v0 = Math.min(Mo.v0, hall.frontRear(0)), v1 = Math.max(Mo.v1, H.v1);
       if (v0 - v1 > 0.5) {
-        B.quad(F.at(-hw, v0, zt), F.at(hw, v0, zt), F.at(hw, v1, zt), F.at(-hw, v1, zt), col, UP);
-        B.quad(F.at(hw, v0, zb), F.at(hw, v1, zb), F.at(hw, v1, zt), F.at(hw, v0, zt), col, [F.T[0], F.T[1], 0]);
-        B.quad(F.at(-hw, v0, za), F.at(-hw, v1, za), F.at(-hw, v1, zt), F.at(-hw, v0, zt), col, [-F.T[0], -F.T[1], 0]);
+        if (mp > 0) {
+          facet(B, true);
+          B.quad(F.at(-hw, v0, ze), F.at(0, v0, zt), F.at(0, v1, zt), F.at(-hw, v1, ze), col, [-F.T[0], -F.T[1], 1]);
+          B.quad(F.at(0, v0, zt), F.at(hw, v0, ze), F.at(hw, v1, ze), F.at(0, v1, zt), col, [F.T[0], F.T[1], 1]);
+          facet(B, false);
+        } else {
+          B.quad(F.at(-hw, v0, ze), F.at(hw, v0, ze), F.at(hw, v1, ze), F.at(-hw, v1, ze), col, UP);
+        }
+        B.quad(F.at(hw, v0, zb), F.at(hw, v1, zb), F.at(hw, v1, ze), F.at(hw, v0, ze), col, [F.T[0], F.T[1], 0]);
+        B.quad(F.at(-hw, v0, za), F.at(-hw, v1, za), F.at(-hw, v1, ze), F.at(-hw, v0, ze), col, [-F.T[0], -F.T[1], 0]);
         for (const [v, sgn] of [[v0, 1], [v1, -1]]) {
-          const end = [[-hw, za], [0, H.ridge], [hw, zb], [hw, zt], [-hw, zt]].map(([u, z]) => F.at(u, v, z).concat(u));
+          const end = [[-hw, za], [0, H.ridge], [hw, zb], [hw, ze], [0, zt], [-hw, ze]].map(([u, z]) => F.at(u, v, z).concat(u));
           B.polygon(end, col, [sgn * F.N[0], sgn * F.N[1], 0], 'uz');
         }
       }
@@ -404,6 +455,7 @@
       }
     }
     // 2. the slope: one strip per profile edge, split where either end reaches its cap
+    facet(B, true);
     for (let k = 0; k < M; k++) {
       const j = (k + 1) % M;
       if (skipEdge.has(k)) continue;
@@ -418,6 +470,7 @@
         B.quad(P(at(k, d0), zk(k, d0)), P(at(j, d0), zk(j, d0)), P(at(j, d1), zk(j, d1)), P(at(k, d1), zk(k, d1)), r.col, want);
       }
     }
+    facet(B, false);
     // 3. the deck at the top of the rise
     if (ROOFS.deck && r.deck && !hall) {
       const ring = dedupe(top, ROOFS.dedupeM);
@@ -470,13 +523,22 @@
       }
     }
     B.extrude(trap(g.w_in, g.apex_in, g.apex_hw_in), F, g.inner_rear, g.proud_g, g.brick, { skipDown: true });
+    // the corbel table's band, along the inner pediment's rake under the blocks
+    const CB = ROOFS.corbelBand;
+    if (CB && CB.down > CB.up) {
+      for (const side of [-1, 1]) {
+        const u0 = side * g.w_in / 2, u1 = side * g.apex_hw_in;
+        const poly = [[u0, g.eave - CB.down], [u1, g.apex_in - CB.down], [u1, g.apex_in - CB.up], [u0, g.eave - CB.up]];
+        B.extrude(poly, F, g.inner_rear, g.proud_g + CB.proud, g.stone, {});
+      }
+    }
     const A = g.arches, seg = Math.max(8, Math.round(ROOFS.ringSegments * S.detail()));
     for (let j = 0; j < A.n; j++) {
       const uc = (j - (A.n - 1) / 2) * A.pitch, R = A.r + A.ring;
       const poly = [];
       for (let i = 0; i <= seg; i++) { const th = Math.PI * i / seg; poly.push([uc + R * Math.cos(th), A.spring + R * Math.sin(th)]); }
       for (let i = seg; i >= 0; i--) { const th = Math.PI * i / seg; poly.push([uc + A.r * Math.cos(th), A.spring + A.r * Math.sin(th)]); }
-      B.extrude(poly, F, 0, A.proud, g.brick, { back: false });
+      B.extrude(poly, F, 0, A.proud, g.brick, { back: false, smooth: ROOFS.smoothArcs });
     }
   }
 

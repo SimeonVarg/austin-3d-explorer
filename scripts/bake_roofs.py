@@ -145,6 +145,18 @@ import bake_facades  # noqa: E402
 AUGMENT            = "--rebake" not in sys.argv
 AUGMENT_SNAP       = "2026-07-30"   # the snapshot data/roofs.geojson was baked from
 AUGMENT_TILED_PART = False          # ...and without the wing survey
+# THE MESH'S DECK IS THE PHOTOGRAPH'S. The one colour in this file that is a
+# live vote on the gitignored imagery is the deck at the top of a rise
+# (`membrane`), and twelve of them ship terracotta where the z19 tile under
+# this bake says grey: a machine with no imagery cannot see a membrane, and
+# every vote it casts is "tile". The SLAB keeps its shipped colour — off,
+# the city is main to the pixel — but the `rig` member is the mesh's, and
+# the mesh draws what the photograph shows. Gregory Gym's annex was the case
+# the critics named on 2026-09-03 ("a big hipped orange roof with a strong
+# ridge"; the tile: a grey plate inside a terracotta rim). Which roofs, and
+# both colours, are printed every run. False puts the shipped colour back on
+# the rig, as before.
+RIG_DECK_FROM_VOTE = True
 
 SNAP_DATE = (os.environ.get("SNAP_DATE")
              or (AUGMENT_SNAP if AUGMENT else bake_facades.snapshot_date()))
@@ -3028,17 +3040,23 @@ def augment_shipped(out, rig, gables, caps, meta):
         else:
             t["properties"].pop("f", None)
     # The deck at the top of a rise is the one surface whose colour is that
-    # live vote, so the rig takes it from the feature the mesh replaces.
-    decks_taken = 0
-    for ent in rig.values():
+    # live vote. RIG_DECK_FROM_VOTE says which side of the disagreement the
+    # rig carries; the disagreement itself is printed either way.
+    decks_taken, deck_votes = 0, []
+    for key, ent in rig.items():
         di = ent.pop("_deck_i", None)
         if di is None or ent.get("deck") is None:
             continue
         sp = sf[di]["properties"]
         took = [sp.get("rd"), sp.get("rg"), sp.get("rn")]
         if took != ent["deck"]:
-            decks_taken += 1
-        ent["deck"] = took
+            deck_votes.append({"roof": ent.get("name") or key,
+                               "imagery": ent["deck"][0], "shipped": took[0]})
+            if not RIG_DECK_FROM_VOTE:
+                decks_taken += 1
+                ent["deck"] = took
+        else:
+            ent["deck"] = took
     caps_moved = sum(1 for k, v in caps.items() if ship["caps"].get(k) != v)
     caps_new = len([k for k in caps if k not in ship["caps"]])
     ship["rig"] = {"meta": meta, "roofs": rig, "gables": gables}
@@ -3047,6 +3065,8 @@ def augment_shipped(out, rig, gables, caps, meta):
         "f_tags_written": tagged,
         "colour_slots_this_bake_disagreed_on": drift,
         "rig_decks_taken_from_the_shipped_feature": decks_taken,
+        "rig_decks_where_the_imagery_disagrees_with_the_shipped_slab": deck_votes,
+        "rig_deck_from_vote": RIG_DECK_FROM_VOTE,
         "caps_this_bake_disagreed_on": caps_moved,
         "caps_this_bake_would_have_added": caps_new,
         "snapshot": os.path.basename(os.path.dirname(SNAP)),

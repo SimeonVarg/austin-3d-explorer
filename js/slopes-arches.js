@@ -65,6 +65,8 @@
     minzoom: 15.2,                 // ENT.minZoom; read live from window.ENT when it exists
     lod: null,                     // no js/lod.js tier lists the entrances
     segments: 24,                  // points per quarter-curve × slopes.detail()
+    smooth: true,                  // the curved pieces shade as one curve, not a necklace of
+                                   // facets (slopes.build's extrude opts.smooth; corners stay sharp)
     transom: true, band: true, spandrel: true,
     radial: true,                  // extrados grown on both axes (a real archivolt);
                                    // false steps out in u alone, as the chords do
@@ -159,7 +161,7 @@
     if (ARCHES.transom && a.tr) {
       // the half-ellipse, from (half, spring) over the crown to (-half, spring)
       const poly = arcPts(a, 2 * seg, 0, 0, Math.PI);
-      B.extrude(poly, F, a.tr.v[0], a.tr.v[1], a.tr.c, { back: false, skipDown: true });
+      B.extrude(poly, F, a.tr.v[0], a.tr.v[1], a.tr.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
     }
     if (ARCHES.band && a.band && radial) {
       // ONE ring, not two halves: the extrados runs right over the crown, so
@@ -167,7 +169,7 @@
       const sw = a.band.sw;
       const outer = arcOut(a, 2 * seg, sw, 0, Math.PI);        // (half+sw, spring) → (0, crown+sw) → (-(half+sw), spring)
       const inner = arcPts(a, 2 * seg, 0, Math.PI, 0);         // (-half, spring) → (0, crown) → (half, spring)
-      B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+      B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
     } else if (ARCHES.band && a.band) {
       for (const sgn of [1, -1]) {
         const sw = a.band.sw;
@@ -175,7 +177,7 @@
         const inner = arcPts(a, seg, 0, Math.PI / 2, 0).map(p => [sgn * Math.abs(p[0]), p[1]]);
         outer[outer.length - 1] = [sgn * sw, crown];
         inner[0] = [0, crown];
-        B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+        B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
       }
     }
     if (ARCHES.arcade && a.arcade) arcadeParts(B, a, seg, F);
@@ -189,7 +191,7 @@
         curve[0] = radial ? [0, head] : [sgn * sw, head];
         const poly = [[sgn * x, head]].concat(curve);          // top corner, then down the outer curve to (x, spring)
         const spCol = (a.arcade && ARCHES.arcade && ARCHES.arcadeSpandrel === 'band' && a.band) ? a.band.c : a.sp.c;
-        B.extrude(poly, F, a.sp.v[0], a.sp.v[1], spCol, { back: false, skipDown: true });
+        B.extrude(poly, F, a.sp.v[0], a.sp.v[1], spCol, { back: false, skipDown: true, smooth: ARCHES.smooth });
       }
     }
   }
@@ -207,11 +209,11 @@
     if (ARCHES.arcadeDark && A.dark) {
       // the opening: a rectangle to the springing and the half-ellipse over it, in the loggia's shadow
       const poly = [[a.half, 0], [a.half, a.spring]].concat(arcPts(sh, 2 * seg, 0, 0, Math.PI).slice(1, -1)).concat([[-a.half, a.spring], [-a.half, 0]]);
-      B.extrude(shift(poly), F, A.dark.v[0], A.dark.v[1], A.dark.c, { back: false, skipDown: true });
+      B.extrude(shift(poly), F, A.dark.v[0], A.dark.v[1], A.dark.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
     }
     // the band: the same concentric archivolt as the door's
     const outer = arcOut(sh, 2 * seg, sw, 0, Math.PI), inner = arcPts(sh, 2 * seg, 0, Math.PI, 0);
-    B.extrude(shift(outer.concat(inner)), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+    B.extrude(shift(outer.concat(inner)), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
     // its straight legs, grade to springing
     for (const sgn of [1, -1]) {
       const leg = [[sgn * a.half, 0], [sgn * (a.half + sw), 0], [sgn * (a.half + sw), a.spring], [sgn * a.half, a.spring]];
@@ -224,7 +226,7 @@
         const x = a.half + sw, head = crown + sw;
         const curve = arcOut(sh, seg, sw, Math.PI / 2, 0).map(p => [sgn * Math.abs(p[0]), p[1]]);
         curve[0] = [0, head];
-        B.extrude(shift([[sgn * x, head]].concat(curve)), F, a.sp.v[0], a.sp.v[1], col, { back: false, skipDown: true });
+        B.extrude(shift([[sgn * x, head]].concat(curve)), F, a.sp.v[0], a.sp.v[1], col, { back: false, skipDown: true, smooth: ARCHES.smooth });
       }
     }
   }
