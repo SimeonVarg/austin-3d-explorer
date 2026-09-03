@@ -234,6 +234,16 @@
     // the real light, as before. The four numbers must match ROOF_SHADE in
     // js/timeofday.js and SHADE_LO/SHADE_HI in scripts/bake_roofs.py.
     facetShade: { on: true, ambient: 0.35, lo: 0.70, hi: 1.28, tilt: 38 },
+    // What counts as a SLOPED face for facetShade and roofShade: a face whose
+    // normal is more than this many degrees off vertical (walls are excluded
+    // separately, by their gradient attribute, and a wall's 0.02 stays in the
+    // shader). It was a bare 0.98 in the shader — 11.5° — and Gregory Gym's
+    // clerestory monitor, a real gable at 10° (SLOPES_ROOFS.monitorPitch
+    // 0.18), fell under it and was lit as the flat top a lid is: its two
+    // slopes read 142 and 151 luma to the round-3 critics, "a flat-topped tan
+    // rectangular block". Nothing on campus is pitched between 6° and 11.5°
+    // except that monitor; the hips are 22.6°, the Capitol's wings 16.7°.
+    slopedMinDeg: 6,
     // MapLibre darkens a fill-extrusion wall toward its base
     // (`fill-extrusion-vertical-gradient`, on by default). 1 applies the same
     // curve to mesh WALLS — faces given a gradient attribute by
@@ -315,6 +325,7 @@
     uniform float u_facet_hi;
     uniform float u_facet_sin;
     uniform float u_facet_cos;
+    uniform float u_sloped_max_z;
     attribute vec3 cDay;
     attribute vec3 cGold;
     attribute vec3 cNight;
@@ -328,7 +339,7 @@
       float az = abs(n.z);
       // "Sloped" = carries no vertical gradient (aGrad.y == 0: roofs, domes,
       // arch soffits — never a wall) AND its normal is neither flat nor vertical.
-      bool sloped = (aGrad.y == 0.0 && az > 0.02 && az < 0.98);
+      bool sloped = (aGrad.y == 0.0 && az > 0.02 && az < u_sloped_max_z);   // SLOPES.slopedMinDeg
       // SLOPES.facetShade — js/timeofday.js's roofFacetColor, transcribed:
       // a facet marked by its generator is coloured between the slabs' dark
       // and bright ends by the live sun on the painted tilt, and then lit as
@@ -835,6 +846,7 @@
     U.u_facet_hi.value = isFinite(F.hi) ? F.hi : 1.28;
     U.u_facet_sin.value = Math.sin((isFinite(F.tilt) ? F.tilt : 38) * R);
     U.u_facet_cos.value = Math.cos((isFinite(F.tilt) ? F.tilt : 38) * R);
+    U.u_sloped_max_z.value = Math.cos((isFinite(SLOPES.slopedMinDeg) ? SLOPES.slopedMinDeg : 6) * R);
   }
   window.applySlopesSettings = function applySlopesSettings(map) {
     map = map || _map;
@@ -965,6 +977,7 @@
       u_p: { value: pq(window.__todCurrentP != null ? window.__todCurrentP : 0.5) },
       u_facet_on: { value: 0 }, u_facet_ambient: { value: 0.35 }, u_facet_lo: { value: 0.70 },
       u_facet_hi: { value: 1.28 }, u_facet_sin: { value: 0 }, u_facet_cos: { value: 1 },
+      u_sloped_max_z: { value: Math.cos(6 * Math.PI / 180) },
     };
     facetUniforms();
     scene = new T.Scene();

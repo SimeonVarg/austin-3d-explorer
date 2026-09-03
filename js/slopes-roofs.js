@@ -69,7 +69,7 @@
  * Public (window) API:
  *   SLOPES_ROOFS            — the taste block (ROOFS.on is this generator's own switch)
  *   slopesRoofs.rebuild()   — rebuild from the rig (after a taste edit)
- *   slopesRoofs.count       — { roofs, gables, triangles, ms }
+ *   slopesRoofs.count       — { roofs, gables, blocks, triangles, ms }
  *   slopesRoofs.rig(name)   — the rig entry whose name matches, for scripts
  *   slopesRoofs.emit(B, rig) — draw another file's rig member (the Capitol's wings) into a builder
  *   applySlopesRoofs(map)   — re-evaluate the filter and the group's membership
@@ -107,19 +107,32 @@
     hallJunction: true,          // ...and walled where an attached block's deck stands above its eave
     hallTolM: 0.3,               // a profile edge within this of the hall rectangle belongs to the hall
     monitor: true,               // the clerestory monitor on the ridge (the override's measured plan)
-    monitorColour: 'stone',      // 'stone' | 'brick' | 'roof': the tone the monitor takes
+    monitorColour: 'stone',      // 'stone' | 'brick' | 'roof': the tone the monitor's ROOF takes
+    monitorWallColour: 'brick',  // ...and its walls and the wall part of its ends: the photogrammetry
+                                 // shows the sides dark under a light roof; one colour for both
+                                 // made the north wall and the north slope one tan face (round 3)
     // ── the gable's READ, after the critics' round 1 (2026-09-03) ──────
     // Two planes the same tone, no ridge line, the monitor a flat sticker:
     // "it does not read as a gable". The planes are marked `facet` for
     // SLOPES.facetShade (the city's own slab shading: two tones either side
     // of a ridge at every hour, see js/slopes.js), and the ridge and the
     // monitor get what the photograph shows a real roof has:
-    ridgeCap: { w: 0.6, h: 0.12, tone: 0.86 },   // ridge tiles along the hall's ridge, front to
-                                                 // back: width, stand above the ridge, tint of
-                                                 // the roof colour. null draws no ridge.
-    monitorPitch: 0.18,          // the monitor's own roof, rise per metre of half-width, so it
-                                 // has a crease of its own on the ridge instead of a flat lid
+    ridgeCap: { w: 1.0, h: 0.12, colour: 'stone', tone: 1.0 },
+                                 // the ridge line along the hall's ridge, front to back: width,
+                                 // stand above the ridge, colour ('stone' | 'brick' | 'roof' — the
+                                 // photograph shows a light line on a dark roof), a tint of it.
+                                 // null draws no ridge. At 0.86 of the roof colour it landed
+                                 // between the two planes' tones and vanished (round 3).
+    monitorPitch: 0.18,          // the monitor's own roof, rise per metre of half-width: a low
+                                 // gable (Google's photogrammetry shows the end face about 3 m
+                                 // tall over the ridge, walls and peak together, which is what
+                                 // 1.8 m of wall and this pitch make); 'hall' takes the hall's own
+                                 // pitch instead. It read as a flat lid in round 3 because the
+                                 // shader's "sloped" line sat at 11.5° — SLOPES.slopedMinDeg now.
                                  // [U — a monitor's roof cannot be read from a nadir tile]
+    hallColour: true,            // the hall's planes take rig hall.col (the z19 tile's median inside
+                                 // the hall) when the bake wrote one; false keeps the roof's colour
+    blocks: true,                // the attached blocks (rig.gables[bid].blocks) are their own hips
     // The corbel table on the inner pediment's rake is 26 stone blocks in
     // data/roofs.geojson (kept: they are the right shape), and from 160 m up a
     // row of blocks is "a jagged staircase of dashes". This is the continuous
@@ -134,7 +147,8 @@
 
   let _map = null, _group = null, _rig = null;
   let _filtered = false, _origFilter = null, _lastDetail = null;
-  const count = { roofs: 0, gables: 0, triangles: 0, ms: 0 };
+  const count = { roofs: 0, gables: 0, blocks: 0, triangles: 0, ms: 0 };
+  let _blocks = 0;               // attached blocks drawn in the last build
 
   // ── helpers ─────────────────────────────────────────────────────────────
   const UP = [0, 0, 1], DOWN = [0, 0, -1];
@@ -280,6 +294,29 @@
   //
   // Nothing here is typed for one building: every number is the rig's, the
   // override's, or a taste constant above.
+  //
+  // ROUND 3 (2026-09-03). The critics: "a flat dark-orange field with a
+  // flat-topped tan rectangular block sitting in the middle of it — no ridge,
+  // no pitch"; the annex "a flat grey-olive field with a thin orange rim".
+  // Measured on the frame: the monitor's two mini-slopes read 142 and 151
+  // luma — one tone — because at ROOFS.monitorPitch 0.18 (10°) their normal's
+  // z is 0.984, above the shader's 0.98 "sloped" line, so they were lit as
+  // the flat top a lid is; the ridge cap at 0.86 of the roof colour landed
+  // between the two planes' tones and vanished; and the annex met the hall
+  // at a vertical wall where the photograph has tile rising from the flank.
+  // So: the shader's "sloped" line is a named constant (SLOPES.slopedMinDeg,
+  // 6°) and the monitor's real 10° roof reads as two tones with a peaked end,
+  // its walls in brick under a stone roof; the ridge is a strip in that stone
+  // (a light line on a dark roof, as the photograph shows); the hall's planes
+  // take `hall.col`, the z19 tile's own median inside the hall (the campus
+  // tile rule painted it terracotta from an eave ring the annex owns — see
+  // HALL_COLOUR_FROM_TILE in the bake); and where the bake wrote
+  // `rig.gables[bid].blocks` — the footprint clipped outside the hall, each
+  // piece its own hip through the bake's own pipeline — those are drawn by
+  // roofOne in place of the whole-footprint rig, their `interior` edges (the
+  // cut along the hall's flank or back) carrying a slope but no lip, and the
+  // hall's eave lip is drawn only where the footprint has a wall under it.
+  // Without `blocks` the clipped-deck reading below is what draws.
   function clipHalf(poly, axis, c, keepGE) {
     const out = [], n = poly.length;
     for (let i = 0; i < n; i++) {
@@ -312,10 +349,28 @@
     }
     const front = H.front.slice().sort((p, q) => p[0] - q[0]);
     const frontRear = u => { for (const [u0, u1, vr] of front) if (u >= u0 - 1e-6 && u <= u1 + 1e-6) return vr; return Math.max(...front.map(s => s[2])); };
-    return { H, toUV, fromUV, front, frontRear, skipped };
+    /** The v-ranges along the flank at u where the footprint has a wall (an eave lip belongs there and nowhere else). */
+    const flankRanges = (u, vLo, vHi) => {
+      const out = [];
+      for (let k = 0; k < M; k++) {
+        const a = uv[k], b = uv[(k + 1) % M];
+        if (Math.abs(a[0] - u) > tol || Math.abs(b[0] - u) > tol) continue;
+        const va = Math.max(vLo, Math.min(a[1], b[1])), vb = Math.min(vHi, Math.max(a[1], b[1]));
+        if (vb - va > 0.05) out.push([va, vb]);
+      }
+      return out;
+    };
+    return { H, toUV, fromUV, front, frontRear, skipped, uv, flankRanges };
   }
-  function hallParts(B, r, meta, g, hall, F, zLip, zTop) {
+  /** ROOFS.monitorPitch as a number: 'hall' is the hall's own rise per metre of half-width. */
+  function monitorPitch(H, zLip) {
+    const mp = ROOFS.monitorPitch;
+    if (mp === 'hall') return (H.ridge - zLip) / Math.max(Math.abs(H.uL), Math.abs(H.uR), 0.1);
+    return Math.max(0, +mp || 0);
+  }
+  function hallParts(B, r, meta, g, hall, F, zLip, zTop, blocks) {
     const H = hall.H, over = meta.over;
+    const hc = (ROOFS.hallColour && H.col) ? H.col : r.col;   // the hall's planes: the photograph's colour when the bake read one
     const zAt = u => u < 0 ? H.ridge - (H.ridge - zLip) * (u / H.uL) : H.ridge - (H.ridge - zLip) * (u / H.uR);
     // 1. the two planes, their front edge stepping with the pediment
     const frontEdge = (ua, ub) => {
@@ -326,28 +381,34 @@
     };
     const plane = (ua, ub, want) => {
       const pts2 = frontEdge(ua, ub).concat([[ub, H.v1], [ua, H.v1]]);
-      B.polygon(pts2.map(([u, v]) => F.at(u, v, zAt(u))), r.col, want, 'xy');
+      B.polygon(pts2.map(([u, v]) => F.at(u, v, zAt(u))), hc, want, 'xy');
     };
     facet(B, true);
     plane(H.uL, 0, [-F.T[0], -F.T[1], 1]);
     plane(0, H.uR, [F.T[0], F.T[1], 1]);
     facet(B, false);
-    // 1b. the ridge: a strip of ridge tiles from the roof's front to its back
+    // 1b. the ridge: a strip along the hall's ridge from the roof's front to its back
     const RC = ROOFS.ridgeCap;
     if (RC && RC.w > 0) {
-      const hw = RC.w / 2, zt = H.ridge + RC.h, vf = hall.frontRear(0), col = tintCol(r.col, RC.tone);
+      const rcSrc = RC.colour === 'stone' ? g.stone : RC.colour === 'brick' ? g.brick : hc;
+      const hw = RC.w / 2, zt = H.ridge + RC.h, vf = hall.frontRear(0), col = tintCol(rcSrc, RC.tone == null ? 1 : RC.tone);
       const za = zAt(-hw), zb = zAt(hw);
       B.quad(F.at(-hw, vf, zt), F.at(hw, vf, zt), F.at(hw, H.v1, zt), F.at(-hw, H.v1, zt), col, UP);
       B.quad(F.at(hw, vf, zb), F.at(hw, H.v1, zb), F.at(hw, H.v1, zt), F.at(hw, vf, zt), col, [F.T[0], F.T[1], 0]);
       B.quad(F.at(-hw, vf, za), F.at(-hw, H.v1, za), F.at(-hw, H.v1, zt), F.at(-hw, vf, zt), col, [-F.T[0], -F.T[1], 0]);
     }
-    // 2. the eave lip along each flank, from the pediment's rear to the back
+    // 2. the eave lip along each flank, from the pediment's rear to the back —
+    //    with the attached blocks drawn, only where the footprint has a wall
+    //    under the flank (an interior flank meets a block's slope in a valley)
     if (r.lip) {
       for (const [u, sgn] of [[H.uL, -1], [H.uR, 1]]) {
         const vf = hall.frontRear(u - sgn * 0.01), ue = u + sgn * over;
-        B.quad(F.at(ue, vf, zLip), F.at(ue, H.v1, zLip), F.at(u, H.v1, zLip), F.at(u, vf, zLip), r.lip, UP);
-        if (ROOFS.fascia) B.quad(F.at(ue, vf, r.base), F.at(ue, H.v1, r.base), F.at(ue, H.v1, zLip), F.at(ue, vf, zLip), r.lip, [sgn * F.T[0], sgn * F.T[1], 0]);
-        if (ROOFS.soffit) B.quad(F.at(u, vf, r.base), F.at(u, H.v1, r.base), F.at(ue, H.v1, r.base), F.at(ue, vf, r.base), r.lip, DOWN);
+        const ranges = blocks ? hall.flankRanges(u, H.v1, vf) : [[H.v1, vf]];
+        for (const [va, vb] of ranges) {
+          B.quad(F.at(ue, vb, zLip), F.at(ue, va, zLip), F.at(u, va, zLip), F.at(u, vb, zLip), r.lip, UP);
+          if (ROOFS.fascia) B.quad(F.at(ue, vb, r.base), F.at(ue, va, r.base), F.at(ue, va, zLip), F.at(ue, vb, zLip), r.lip, [sgn * F.T[0], sgn * F.T[1], 0]);
+          if (ROOFS.soffit) B.quad(F.at(u, vb, r.base), F.at(u, va, r.base), F.at(ue, va, r.base), F.at(ue, vb, r.base), r.lip, DOWN);
+        }
       }
     }
     // 3. the gable wall closing the back
@@ -358,10 +419,11 @@
     // 4. the monitor: a low box astride the ridge, in the gable's stone
     const Mo = H.monitor;
     if (ROOFS.monitor && Mo && Mo.w > 0 && Mo.h > 0) {
-      const col = ROOFS.monitorColour === 'brick' ? g.brick : ROOFS.monitorColour === 'roof' ? r.col : g.stone;
+      const tone = k => k === 'brick' ? g.brick : k === 'roof' ? hc : g.stone;
+      const col = tone(ROOFS.monitorColour), wcol = tone(ROOFS.monitorWallColour || ROOFS.monitorColour);
       // its walls stand Mo.h over the ridge to their eave `ze`; its own roof
       // rises from there to a crease `zt` over the ridge at ROOFS.monitorPitch
-      const hw = Mo.w / 2, ze = H.ridge + Mo.h, mp = Math.max(0, ROOFS.monitorPitch || 0), zt = ze + hw * mp;
+      const hw = Mo.w / 2, ze = H.ridge + Mo.h, mp = monitorPitch(H, zLip), zt = ze + hw * mp;
       const za = zAt(-hw), zb = zAt(hw);
       const v0 = Math.min(Mo.v0, hall.frontRear(0)), v1 = Math.max(Mo.v1, H.v1);
       if (v0 - v1 > 0.5) {
@@ -373,11 +435,14 @@
         } else {
           B.quad(F.at(-hw, v0, ze), F.at(hw, v0, ze), F.at(hw, v1, ze), F.at(-hw, v1, ze), col, UP);
         }
-        B.quad(F.at(hw, v0, zb), F.at(hw, v1, zb), F.at(hw, v1, ze), F.at(hw, v0, ze), col, [F.T[0], F.T[1], 0]);
-        B.quad(F.at(-hw, v0, za), F.at(-hw, v1, za), F.at(-hw, v1, ze), F.at(-hw, v0, ze), col, [-F.T[0], -F.T[1], 0]);
+        B.quad(F.at(hw, v0, zb), F.at(hw, v1, zb), F.at(hw, v1, ze), F.at(hw, v0, ze), wcol, [F.T[0], F.T[1], 0]);
+        B.quad(F.at(-hw, v0, za), F.at(-hw, v1, za), F.at(-hw, v1, ze), F.at(-hw, v0, ze), wcol, [-F.T[0], -F.T[1], 0]);
         for (const [v, sgn] of [[v0, 1], [v1, -1]]) {
-          const end = [[-hw, za], [0, H.ridge], [hw, zb], [hw, ze], [0, zt], [-hw, ze]].map(([u, z]) => F.at(u, v, z).concat(u));
-          B.polygon(end, col, [sgn * F.N[0], sgn * F.N[1], 0], 'uz');
+          // each end: the wall up to the eave, then the little gable over it
+          const nrm = [sgn * F.N[0], sgn * F.N[1], 0];
+          const wall = [[-hw, za], [0, H.ridge], [hw, zb], [hw, ze], [-hw, ze]].map(([u, z]) => F.at(u, v, z).concat(u));
+          B.polygon(wall, wcol, nrm, 'uz');
+          if (zt > ze + 1e-3) B.polygon([[-hw, ze], [hw, ze], [0, zt]].map(([u, z]) => F.at(u, v, z).concat(u)), col, nrm, 'uz');
         }
       }
     }
@@ -417,13 +482,23 @@
     return true;
   }
 
-  function roofOne(B, r, meta, gable) {
+  /**
+   * One roof from one rig entry. `opts.interior` lists the spans (footprint
+   * edges) that are not on the building's outline — a block's cut along the
+   * hall's flank or back — which carry a slope but no eave lip.
+   */
+  function roofOne(B, r, meta, gable, opts) {
     const S = window.slopes;
     const M = r.pts.length;
     const rays = r.rays.map(v => v.slice()), caps = r.caps;
-    const skipEdge = new Set();
+    const skipEdge = new Set(), skipLip = new Set();
+    if (opts && opts.interior) for (const i of opts.interior) { const sp = r.spans[i]; if (sp) for (let k = sp[0]; k < sp[1]; k++) skipLip.add(k % M); }
     if (gable && ROOFS.gableEnd) gableEnd(r, rays, skipEdge, gable);
     const hall = (gable && ROOFS.hall && gable.hall) ? hallSetup(r, rays, skipEdge, gable) : null;
+    // the attached blocks, when the bake wrote them: each its own hip, drawn
+    // below in place of this whole-footprint rig's strips and deck
+    const blocks = (hall && ROOFS.blocks && gable.blocks && gable.blocks.length) ? gable.blocks : null;
+    const own = !blocks;
     const lip = meta.lip, over = meta.over, dUse = r.d;
     const zLip = r.base + lip, zTop = zLip + r.rise;
     // the offset points, in the bake's own metre frame and in local metres
@@ -445,10 +520,10 @@
     for (let k = 0; k < M; k++) { eave.push(at(k, -over)); wall.push(at(k, 0)); top.push(at(k, dUse)); }
 
     // 1. the eave lip: flat top from the overhang to the wall, its fascia, its soffit
-    if (r.lip) {
+    if (own && r.lip) {
       for (let k = 0; k < M; k++) {
         const j = (k + 1) % M;
-        if (skipEdge.has(k)) continue;
+        if (skipEdge.has(k) || skipLip.has(k)) continue;
         B.quad(P(eave[k], zLip), P(eave[j], zLip), P(wall[j], zLip), P(wall[k], zLip), r.lip, UP);
         if (ROOFS.fascia) B.quad(P(eave[k], r.base), P(eave[j], r.base), P(eave[j], zLip), P(eave[k], zLip), r.lip, outward(eave[k], eave[j]));
         if (ROOFS.soffit) B.quad(P(wall[k], r.base), P(wall[j], r.base), P(eave[j], r.base), P(eave[k], r.base), r.lip, DOWN);
@@ -456,7 +531,7 @@
     }
     // 2. the slope: one strip per profile edge, split where either end reaches its cap
     facet(B, true);
-    for (let k = 0; k < M; k++) {
+    for (let k = 0; own && k < M; k++) {
       const j = (k + 1) % M;
       if (skipEdge.has(k)) continue;
       const brk = [0, dUse];
@@ -472,7 +547,7 @@
     }
     facet(B, false);
     // 3. the deck at the top of the rise
-    if (ROOFS.deck && r.deck && !hall) {
+    if (own && ROOFS.deck && r.deck && !hall) {
       const ring = dedupe(top, ROOFS.dedupeM);
       if (ring.length >= 3) {
         const loops = ROOFS.untangleDeck ? untangle(ring, ROOFS.deckMinM2) : [ring];
@@ -484,7 +559,14 @@
       const g = gable, H = hall.H;
       const F = S.frame([g.foot[0] * g.dpm[0], g.foot[1] * g.dpm[1]],
                         [g.t[0] * g.dpm[0], g.t[1] * g.dpm[1]], [g.n[0] * g.dpm[0], g.n[1] * g.dpm[1]]);
-      if (ROOFS.deck && r.deck) {
+      if (blocks) {
+        // the blocks built against the hall, each a hip of its own in the
+        // roof's colours; `interior` edges slope but carry no lip
+        for (const b of blocks) {
+          roofOne(B, { ...b, name: r.name, col: r.col, lip: r.lip, deck: r.deck }, meta, null, { interior: b.interior });
+          _blocks++;
+        }
+      } else if (ROOFS.deck && r.deck) {
         const ring = dedupe(r.pts.map((_, k) => hall.toUV(atB(k, dUse))), ROOFS.dedupeM);
         const loops = ring.length >= 3 ? (ROOFS.untangleDeck ? untangle(ring, ROOFS.deckMinM2) : [ring]) : [];
         const put = piece => { if (piece.length >= 3 && Math.abs(ringArea(piece)) >= ROOFS.deckMinM2) B.polygon(piece.map(q => { const l = loc(hall.fromUV(q)); return [l[0], l[1], zTop]; }), r.deck, UP, 'xy'); };
@@ -496,7 +578,7 @@
           hallJunction(B, left, H.uL, -1, hall, F, zLip, zTop, g.brick);
         }
       }
-      hallParts(B, r, meta, g, hall, F, zLip, zTop);
+      hallParts(B, r, meta, g, hall, F, zLip, zTop, !!blocks);
     }
   }
 
@@ -548,6 +630,7 @@
     const t0 = performance.now();
     const B = S.build();
     let roofs = 0, gables = 0;
+    _blocks = 0;
     for (const key of Object.keys(_rig.roofs)) {
       const r = _rig.roofs[key];
       const g = ROOFS.gable && _rig.gables && _rig.gables[key.split('/')[0]];
@@ -567,7 +650,7 @@
     g.userData.lod = ROOFS.lod;
     g.userData.minzoom = ROOFS.minzoom;
     g.add(mesh);
-    count.roofs = roofs; count.gables = gables; count.triangles = B.triangles;
+    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.triangles = B.triangles;
     count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
     return g;

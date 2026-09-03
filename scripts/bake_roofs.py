@@ -2039,6 +2039,61 @@ HALL_FLANK_ALONG = 0.95    # |edge direction . n| above this: the edge runs alon
 HALL_FLANK_MIN_FRAC = 0.5  # a flank sits at least this fraction of outer_w/2 off the ridge
 HALL_FLANK_FRONT_M = 0.5   # ...and starts within this of the elevation's deepest plane
 HALL_MIN_DEPTH_M = 5.0     # shallower than this behind the pediment is not a hall
+# ── the hall's own colour (round 3) ──
+#
+# THE HALL'S COLOUR. The campus tile rule (TILE_COLOUR_RULE) paints a roof
+# terracotta from the eave RING of the whole footprint, and Gregory Gym's eave
+# ring is the annex's tile band. The hall's roof, measured inside the hall
+# rectangle on the same z19 tile (the monitor strip and a margin excluded), is
+# a warm grey -- (110,98,86) north of the ridge, (129,115,102) south of it --
+# against the annex's tile at (161,125,94)/(189,147,110). So the hall takes
+# the deck's own vote: the median of the tile-free samples, tempered by
+# deck_colour exactly as a membrane deck is, carried to golden hour and night
+# by like(). It is written as `hall.col` on the rig -- the photograph's colour
+# on the mesh, the shipped slab untouched -- and only when the sample is not
+# tile; a hall that reads tile keeps the roof's colour. The reading is cached
+# in data/roof_runs.json beside the runs (`<key>/hall`) so a machine without
+# the imagery reproduces this rig.
+HALL_COLOUR_FROM_TILE = True  # write hall.col from the imagery
+HALL_COLOUR_MARGIN_M = 2.0    # keep this far off the flanks, front, back and monitor
+
+
+def _hall_colour(grig, ent, lat0, cache, key, stats):
+    """hall.col from the z19 tile inside the hall rectangle, or None. See HALL_COLOUR_FROM_TILE."""
+    H = grig["hall"]
+    foot, (tx, ty), (nx, ny) = grig["foot"], grig["t"], grig["n"]
+    kk = math.cos(math.radians(lat0))
+    m = HALL_COLOUR_MARGIN_M
+    ckey = "%s/hall" % key
+    if ckey in cache and len(cache[ckey]) >= 3:
+        dc, n_s, frac = cache[ckey][:3]
+    else:
+        mon = H.get("monitor")
+        v_front = min(f[2] for f in H["front"])
+        cols, hits = [], 0
+        u = H["uL"] + m
+        while u <= H["uR"] - m:
+            if not (mon and abs(u) <= mon["w"] * 0.5 + m):
+                v = H["v1"] + m
+                while v <= v_front - m:
+                    x, y = foot[0] + tx * u + nx * v, foot[1] + ty * u + ny * v
+                    c = px_at(x / (M_LAT * kk), y / M_LAT)
+                    if c is not None:
+                        cols.append([int(c[0]), int(c[1]), int(c[2])])
+                        hits += is_tile(c)
+                    v += 1.0
+            u += 1.0
+        n_s = len(cols)
+        frac = round(hits / n_s, 3) if n_s else None
+        dc = deck_colour(cols, ent["col"][0]) if (n_s >= DECK_MIN_PX and frac <= DECK_TILE_MAX) else None
+        cache[ckey] = [dc, n_s, frac]
+    if not dc:
+        stats["hall_colour_kept_the_roofs"] += 1
+        return None
+    stats["hall_colour_from_imagery"] += 1
+    rd, rg, rn = ent["col"]
+    return {"col": [dc, like(dc, rd, rg), like(dc, rd, rn)],
+            "col_note": "z19 median inside the hall, %d samples, tile fraction %s" % (n_s, frac)}
 
 
 def _hall_rig(pm, foot, tvec, nvec, W_out, west, spec, gable_d, apex_out,
@@ -3602,7 +3657,18 @@ def main():
             stats["gable_front_parts"] += len(made)
             if made:
                 stats["gable_fronts"] += 1
-                gables[p.get("id")] = dict(grig, name=p.get("name"))
+                grig = dict(grig, name=p.get("name"))
+                key = "%s/0" % p.get("id")
+                ent = rig.get(key)
+                if grig.get("hall") and ent:
+                    # the same polygon the rig above was solved on
+                    lat0 = sum(q[1] for q in rings[0]) / len(rings[0])
+                    pm_poly = ccw(clean(simplify(clean(to_m(rings[0], lat0)), SIMPLIFY_M)))
+                    if HALL_COLOUR_FROM_TILE:
+                        hc = _hall_colour(grig, ent, lat0, cache, key, stats)
+                        if hc:
+                            grig["hall"].update(hc)
+                gables[p.get("id")] = grig
         spec = ov.get("facade_bands")
         if spec and h > 6:
             # EVERY ring, not just the outer one: Jester West's courtyard is a
