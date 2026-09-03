@@ -2039,7 +2039,36 @@ HALL_FLANK_ALONG = 0.95    # |edge direction . n| above this: the edge runs alon
 HALL_FLANK_MIN_FRAC = 0.5  # a flank sits at least this fraction of outer_w/2 off the ridge
 HALL_FLANK_FRONT_M = 0.5   # ...and starts within this of the elevation's deepest plane
 HALL_MIN_DEPTH_M = 5.0     # shallower than this behind the pediment is not a hall
-# ── the hall's own colour (round 3) ──
+# ── the blocks built against the hall, and the hall's own colour (round 3) ──
+#
+# The critics' round 3 on the gregory pose: the annex "shows a flat grey-olive
+# field with a thin orange rim; the real block has a hipped clay-tile roof
+# sloping in from all four eaves to a flat central well". True, and the reason
+# is the rig: the hip rig was solved on the WHOLE footprint, so where the annex
+# is built against the hall's flank there is no eave at all -- the annex's deck
+# ran to the flank line and js/slopes-roofs.js stood a wall there. Google's
+# photogrammetry and the z19 nadir tile both show tile rising from that line
+# (the five vents sit on it) up to the well.
+#
+# THE RULE: a footprint with a hall is the hall PLUS the blocks built against
+# it, and each block is a hip of its own -- the footprint clipped outside the
+# hall's rectangle (beside it on either flank, and behind its back), cleaned,
+# and put through the same mitre_rays / vertex_caps / edge_event_caps /
+# wall_profile the whole footprint went through, at the BUILDING's own run,
+# rise and steps -- the depths the shipped slabs were cut at; a block is a part
+# of that roof with one more eave, not a new roof. (Measuring each block's run
+# with tile_run was tried and dropped: Gregory's pool block is half a flat
+# white deck and half a tile hip, so its eave ring reads 0.46 tile at every
+# depth and the probe walked 14.3 m into it -- the same averaging defect J1
+# describes, one level down.) An edge of a block that is not on the
+# footprint's outline -- the cut along the hall's flank or back, or between
+# two blocks -- is INTERIOR: it still carries a slope (a valley where two roofs
+# meet at their eaves) but no fascia, soffit or lip, because there is no wall
+# under it. Written as `rig.gables[bid].blocks`, each entry the same schema as
+# `rig.roofs` plus `interior` (the span indices), so js/slopes-roofs.js draws
+# them with roofOne unchanged and draws the building's whole-footprint rig not
+# at all. All or nothing: if any block cannot be built no blocks are written
+# and the mesh keeps the clipped-deck reading.
 #
 # THE HALL'S COLOUR. The campus tile rule (TILE_COLOUR_RULE) paints a roof
 # terracotta from the eave RING of the whole footprint, and Gregory Gym's eave
@@ -2054,8 +2083,90 @@ HALL_MIN_DEPTH_M = 5.0     # shallower than this behind the pediment is not a ha
 # tile; a hall that reads tile keeps the roof's colour. The reading is cached
 # in data/roof_runs.json beside the runs (`<key>/hall`) so a machine without
 # the imagery reproduces this rig.
+HALL_BLOCKS          = True   # write the blocks
+HALL_BLOCK_MIN_M2    = 40.0   # a clipped sliver smaller than this is not a block
+HALL_EDGE_TOL_M      = 0.15   # a block edge this near the outline is an exterior wall
 HALL_COLOUR_FROM_TILE = True  # write hall.col from the imagery
 HALL_COLOUR_MARGIN_M = 2.0    # keep this far off the flanks, front, back and monitor
+
+
+def _clip_half(poly, axis, c, keep_ge):
+    """Sutherland-Hodgman against one axis line; poly is [(u, v), ...]."""
+    out, n = [], len(poly)
+    for i in range(n):
+        a, b = poly[i], poly[(i + 1) % n]
+        ia = a[axis] >= c - 1e-9 if keep_ge else a[axis] <= c + 1e-9
+        ib = b[axis] >= c - 1e-9 if keep_ge else b[axis] <= c + 1e-9
+        if ia:
+            out.append(a)
+        if ia != ib:
+            t = (c - a[axis]) / (b[axis] - a[axis])
+            out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+    return out
+
+
+def _seg_dist(p, a, b):
+    ax, ay = a; bx, by = b; px, py = p
+    dx, dy = bx - ax, by - ay
+    L2 = dx * dx + dy * dy
+    t = 0.0 if L2 < 1e-12 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2))
+    return math.hypot(px - (ax + dx * t), py - (ay + dy * t))
+
+
+def _hall_blocks(pm_poly, grig, ent, lat0, stats):
+    """The hips of the blocks built against the hall, or None. See HALL_BLOCKS."""
+    H = grig["hall"]
+    foot, (tx, ty), (nx, ny) = grig["foot"], grig["t"], grig["n"]
+    uv = [((x - foot[0]) * tx + (y - foot[1]) * ty,
+           (x - foot[0]) * nx + (y - foot[1]) * ny) for (x, y) in pm_poly]
+    uL, uR, v1 = H["uL"], H["uR"], H["v1"]
+    pieces = [
+        ("right", _clip_half(uv, 0, uR, True)),
+        ("left", _clip_half(uv, 0, uL, False)),
+        ("behind", _clip_half(_clip_half(_clip_half(uv, 0, uL, True), 0, uR, False), 1, v1, False)),
+    ]
+    blocks = []
+    kk = math.cos(math.radians(lat0))
+    for bi, (side, piece) in enumerate(pieces):
+        if len(piece) < 3:
+            continue
+        xy = [(foot[0] + tx * u + nx * v, foot[1] + ty * u + ny * v) for (u, v) in piece]
+        bpoly = ccw(clean(clean(xy)))
+        if len(bpoly) < 3 or abs(signed_area(bpoly + [bpoly[0]])) < HALL_BLOCK_MIN_M2:
+            continue
+        mrays = mitre_rays(bpoly)
+        if mrays is None:
+            stats["hall_block_degenerate"] += 1
+            return None
+        caps = vertex_caps(bpoly, mrays)
+        hs = max(caps)
+        caps, _capped = edge_event_caps(bpoly, mrays, caps)
+        if hs < 1.2:
+            stats["hall_block_degenerate"] += 1
+            return None
+        run, steps, d_use, rise = ent["run"], ent["steps"], ent["d"], ent["rise"]
+        ppts, prays, pcaps, spans = wall_profile(bpoly, mrays, caps, d_use)
+        interior = []
+        nb = len(bpoly)
+        for i in range(nb):
+            a, b = bpoly[i], bpoly[(i + 1) % nb]
+            mid = ((a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5)
+            on_outline = any(_seg_dist(mid, pm_poly[j], pm_poly[(j + 1) % len(pm_poly)]) <= HALL_EDGE_TOL_M
+                             for j in range(len(pm_poly)))
+            if not on_outline:
+                interior.append(i)
+        blocks.append({
+            "side": side,
+            "dpm": [1.0 / (M_LAT * kk), 1.0 / M_LAT],
+            "pts": [[round(x, 2), round(y, 2)] for (x, y) in ppts],
+            "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in prays],
+            "caps": [round(c, 2) for c in pcaps],
+            "spans": [[a, b] for (a, b) in spans],
+            "d": round(d_use, 3), "run": round(run, 2), "rise": round(rise, 3),
+            "base": ent["base"], "steps": steps,
+            "interior": interior,
+        })
+    return blocks or None
 
 
 def _hall_colour(grig, ent, lat0, cache, key, stats):
@@ -3664,6 +3775,11 @@ def main():
                     # the same polygon the rig above was solved on
                     lat0 = sum(q[1] for q in rings[0]) / len(rings[0])
                     pm_poly = ccw(clean(simplify(clean(to_m(rings[0], lat0)), SIMPLIFY_M)))
+                    if HALL_BLOCKS:
+                        blocks = _hall_blocks(pm_poly, grig, ent, lat0, stats)
+                        if blocks:
+                            grig["blocks"] = blocks
+                            stats["hall_blocks"] += len(blocks)
                     if HALL_COLOUR_FROM_TILE:
                         hc = _hall_colour(grig, ent, lat0, cache, key, stats)
                         if hc:
