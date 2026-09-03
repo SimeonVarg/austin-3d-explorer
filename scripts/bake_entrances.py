@@ -791,6 +791,25 @@ ARCH_TIERS = 5          # horizontal chords an arch head is drawn with
 # js/slopes-arches.js can hide exactly the pieces that exist only because
 # ARCH_TIERS is finite, and put them back untouched when it is off.
 ARC_CHORD = {"arc": 1}
+# THE ARCADE. Where a photograph says the door is one bay of a ground-floor
+# arcade, the CELEBRATED row carries `arcade=True` and the door's `arches`
+# entry grows an `arcade` member: the wall's extent in the door's own frame,
+# the bay pitch, and where the bays fall. js/slopes-arches.js draws the other
+# bays as the same arch as the door -- band, spandrel, the dark of a loggia
+# behind them -- with the stone continuing between them and a string course
+# over the lot. The fill-extrusion file is untouched: nothing here is a chord.
+#
+# THE PITCH IS DERIVED, NOT TYPED. The narrowest an arcade bay can be is the
+# opening plus its two surround bands plus a pier (ARCADE_PIER_M): 2.60 +
+# 0.90 + 0.50 = 4.00 m on family A. Where the same wall carries a second
+# arched door, both doors sit on one bay grid, so the pitch is that nominal
+# snapped to divide the distance between them: Sutton Hall's two north doors
+# are 27.86 m apart, 7 bays of 3.98 m. (The other reading of Sutton --
+# campus_truth.json: "4 round arches at grade (1 door, 3 windows), 4 window
+# bays above" -- is one arch per bay, which is what this draws.)
+ARCADE_PIER_M = 0.50    # [D] the bare pier between two bands, at its narrowest
+ARCADE_STRING_M = 0.35  # [U] the string course over the arcade: one course of stone
+ARCADE_DARK_V = (0.02, 0.05)   # m; the loggia's shadow, a hair off the wall, behind the band
 RAIL_H = 0.90           # m over the nosing                             [C] IBC 1014.3
 RAIL_D = 0.10           # m; DRAWN diameter. A true 38 mm tube is sub-pixel at
                         # cruise altitude. Deliberate, parameterised over-scale
@@ -1739,6 +1758,14 @@ CELEBRATED = {
         risers=3, rail=False, cheek=True,       # [U]
         sur_col=LIMESTONE,                      # [C] limestone to the 1st floor
         lanterns=2,                             # [C] custom iron lanterns
+        arcade=True,                            # [C] campus_truth.json, off the
+                                                # north+west photograph: "4 round
+                                                # arches at grade (1 door, 3
+                                                # windows)" on the north front,
+                                                # the arcade continuing round
+                                                # the west. The other bays are
+                                                # drawn by js/slopes-arches.js
+                                                # from the `arcade` member.
         note="NORTH is a trap: the present main entrance was CREATED on the "
              "north facade by the 1982 renovation [C]. The vaulted arcade's "
              "side is unresolved — not drawn. No inscription found.",
@@ -4552,6 +4579,24 @@ class Ent(object):
             piece["sw"] = round(sw, 3)
         ent[kind] = piece
 
+    def arcade_wall(self, left, right, sur_col, proj):
+        """This door is one bay of an arcade: record the wall it can run along.
+
+        `left`/`right` are wall_run()'s metres of straight wall either side of
+        the door; the bays themselves are laid out in finish_arcades() once
+        every door on the wall is known, because the pitch depends on where
+        the other doors are."""
+        ent = ARCHES.get(self.eid)
+        if not ent:
+            return
+        wg, wn = wall_ramp(sur_col)
+        dg, dn = wall_ramp(ARCH_SHADOW)
+        ent["_wall"] = [round(-left, 3), round(right, 3)]
+        ent["_xy"] = [self.cx, self.cy, self.tx, self.ty, self.nx, self.ny]
+        ent["_role"] = self.role
+        ent["_skin"] = {"v": [0.0, round(proj, 3)], "c": [sur_col, wg, wn]}
+        ent["_dark"] = {"v": [ARCADE_DARK_V[0], ARCADE_DARK_V[1]], "c": [ARCH_SHADOW, dg, dn]}
+
     def box(self, k, mat, wd, u0, u1, v0, v1, z0, z1, wn=None, extra=None):
         """ONE piece. `base` is the bottom, `h` is the THICKNESS — see the
         module header; this file disagrees with places.geojson on purpose."""
@@ -5242,6 +5287,11 @@ def assemble(feats, b, c, eid, stats):
                   -(half + sw), half + sw,
                   0.0, sp_ + 0.04, top, top + fam["accent_h"])
             top += fam["accent_h"]
+
+    # ── 4b. THE ARCADE this door is one bay of (see ARCADE_PIER_M).
+    if fam["arched"] and (cel or {}).get("arcade") and sw > 0.01:
+        e.arcade_wall(left, right, sur_col, sp_)
+        stats["arcade_doors"] += 1
 
     # ── 5. SIGN. The schema carries no text, so this is the BAND; the words are
     #       in INSCRIPTIONS above, cited, and nothing uncited is carved.
@@ -6130,6 +6180,55 @@ def refresh_ut():
                 print("#     %-5s %5.1f m" % (code, m))
 
 
+def finish_arcades():
+    """Lay out every recorded arcade wall: the pitch from the doors on it, the
+    bays where a band fits, all in the MAIN door's frame. Runs once, after
+    every door is placed."""
+    walls = [e for e in ARCHES.values() if "_wall" in e]
+    by_bid = {}
+    for e in walls:
+        by_bid.setdefault(e["bid"], []).append(e)
+    made = 0
+    for bid, ents in by_bid.items():
+        ents.sort(key=lambda e: (e.get("_role") != "main", -abs(e["_wall"][1] - e["_wall"][0])))
+        lead = ents[0]
+        cx, cy, tx, ty, nx, ny = lead["_xy"]
+        others = []
+        for e in ents[1:]:
+            ox, oy, otx, oty = e["_xy"][0], e["_xy"][1], e["_xy"][2], e["_xy"][3]
+            if otx * tx + oty * ty < 0.995:
+                continue                      # a different wall
+            u = (ox - cx) * tx + (oy - cy) * ty
+            v = (ox - cx) * nx + (oy - cy) * ny
+            if abs(v) > 0.5:
+                continue                      # a parallel wall, not this one
+            others.append(round(u, 3))
+        half, sw = lead["half"], lead["band"]["sw"]
+        nominal = 2 * half + 2 * sw + ARCADE_PIER_M
+        pitch = nominal
+        if others:
+            D = min(abs(u) for u in others)
+            k = max(1, int(round(D / nominal)))
+            pitch = D / k
+        u0, u1 = lead["_wall"]
+        reach = half + sw
+        k0 = int(math.ceil((u0 + reach) / pitch))
+        k1 = int(math.floor((u1 - reach) / pitch))
+        bays = [round(k * pitch, 3) for k in range(k0, k1 + 1)]
+        crown = lead["spring"] + lead["rise"]
+        lead["arcade"] = {
+            "wall": [u0, u1], "pitch": round(pitch, 3), "bays": bays,
+            "doors": [0.0] + sorted(others),
+            "string": [round(crown + sw, 3), round(crown + sw + ARCADE_STRING_M, 3)],
+            "skin": lead["_skin"], "dark": lead["_dark"],
+        }
+        made += 1
+    for e in walls:
+        for k in ("_wall", "_xy", "_role", "_skin", "_dark"):
+            e.pop(k, None)
+    return made
+
+
 def main():
     if "--refresh" in sys.argv:
         refresh()
@@ -6880,6 +6979,7 @@ def main():
     assert not mid_glass, "glazing neither lit nor dark: %s" % mid_glass[:5]
     assert not float_sills, "floating sills: %s" % float_sills[:5]
 
+    stats["arcades"] = finish_arcades()
     out = {"type": "FeatureCollection",
            # Provenance, not decoration. Every door below is placed against one
            # named footprint file; this records which, so a check can compare

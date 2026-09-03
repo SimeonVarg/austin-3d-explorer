@@ -78,6 +78,22 @@
     // does not write it — HANDOFF asks for a head height on the `arches`
     // member, and this list goes away the day it arrives.
     cappedFams: ['B'],             // families whose arch cannot grow past its head
+    // THE ARCADE. Where scripts/bake_entrances.py writes an `arcade` member
+    // on a door (a CELEBRATED row with arcade=True — Sutton Hall's north
+    // front, off campus_truth.json's photograph: "4 round arches at grade (1
+    // door, 3 windows)"), the other bays of that wall are drawn here as the
+    // same arch as the door: band, spandrel, and the dark of the loggia
+    // behind, with the stone carried between the bays from grade to a string
+    // course over the crowns. The critics' read of the pose on 2026-09-03 was
+    // a flat wall of atlas windows with one lone arched door; the truth file
+    // had said "arcade" all along, and nothing drew it.
+    arcade: true,
+    arcadeDark: true,              // the openings as the loggia's shadow, a hair off the wall
+    arcadeString: true,            // the string course over the crowns
+    arcadeStringProud: 0.06,       // m the string course stands proud of the skin
+    arcadeSpandrel: 'band',        // 'band': the spandrels take the surround's stone on an
+                                   // arcaded wall (the critics read the family's terracotta
+                                   // wedges as a texture defect there); 'own': the accent
   };
   window.SLOPES_ARCHES = ARCHES;
 
@@ -162,6 +178,7 @@
         B.extrude(outer.concat(inner), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
       }
     }
+    if (ARCHES.arcade && a.arcade) arcadeParts(B, a, seg, F);
     if (ARCHES.spandrel && a.sp) {
       for (const sgn of [1, -1]) {
         const sw = a.sp.sw, x = a.half + sw, head = crown + (radial ? sw : 0);
@@ -171,8 +188,80 @@
           .map(p => [sgn * Math.abs(p[0]), p[1]]);
         curve[0] = radial ? [0, head] : [sgn * sw, head];
         const poly = [[sgn * x, head]].concat(curve);          // top corner, then down the outer curve to (x, spring)
-        B.extrude(poly, F, a.sp.v[0], a.sp.v[1], a.sp.c, { back: false, skipDown: true });
+        const spCol = (a.arcade && ARCHES.arcade && ARCHES.arcadeSpandrel === 'band' && a.band) ? a.band.c : a.sp.c;
+        B.extrude(poly, F, a.sp.v[0], a.sp.v[1], spCol, { back: false, skipDown: true });
       }
+    }
+  }
+
+  /**
+   * One arcade bay at u = uc in the door's frame: the head (band, spandrels in
+   * stone, and the dark half-ellipse of the opening), and below the springing
+   * the dark opening between the bands' straight legs. `skin`/`dark` are the
+   * arcade's own pieces from the bake.
+   */
+  function arcadeBay(B, a, seg, F, uc, A) {
+    const crown = a.spring + a.rise, sw = a.band.sw;
+    const sh = { ...a, half: a.half };            // the same arch, shifted along the wall
+    const shift = pts => pts.map(p => [p[0] + uc, p[1]]);
+    if (ARCHES.arcadeDark && A.dark) {
+      // the opening: a rectangle to the springing and the half-ellipse over it, in the loggia's shadow
+      const poly = [[a.half, 0], [a.half, a.spring]].concat(arcPts(sh, 2 * seg, 0, 0, Math.PI).slice(1, -1)).concat([[-a.half, a.spring], [-a.half, 0]]);
+      B.extrude(shift(poly), F, A.dark.v[0], A.dark.v[1], A.dark.c, { back: false, skipDown: true });
+    }
+    // the band: the same concentric archivolt as the door's
+    const outer = arcOut(sh, 2 * seg, sw, 0, Math.PI), inner = arcPts(sh, 2 * seg, 0, Math.PI, 0);
+    B.extrude(shift(outer.concat(inner)), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+    // its straight legs, grade to springing
+    for (const sgn of [1, -1]) {
+      const leg = [[sgn * a.half, 0], [sgn * (a.half + sw), 0], [sgn * (a.half + sw), a.spring], [sgn * a.half, a.spring]];
+      B.extrude(shift(leg), F, a.band.v[0], a.band.v[1], a.band.c, { back: false, skipDown: true });
+    }
+    // the spandrels, to the square's head at crown + sw
+    if (a.sp) {
+      const col = ARCHES.arcadeSpandrel === 'band' ? a.band.c : a.sp.c;
+      for (const sgn of [1, -1]) {
+        const x = a.half + sw, head = crown + sw;
+        const curve = arcOut(sh, seg, sw, Math.PI / 2, 0).map(p => [sgn * Math.abs(p[0]), p[1]]);
+        curve[0] = [0, head];
+        B.extrude(shift([[sgn * x, head]].concat(curve)), F, a.sp.v[0], a.sp.v[1], col, { back: false, skipDown: true });
+      }
+    }
+  }
+  /**
+   * The whole arcade on the door's wall: every bay the bake laid out that is
+   * not a door, the stone between the bays (grade to the string course), the
+   * panel over each head, and the string course itself.
+   */
+  function arcadeParts(B, a, seg, F) {
+    const A = a.arcade;
+    if (!A || !A.bays || !A.bays.length || !a.band) return;
+    const crown = a.spring + a.rise, sw = a.band.sw, reach = a.half + sw;
+    const skin = A.skin, zs = A.string;
+    const isDoor = u => A.doors.some(d => Math.abs(d - u) < reach);
+    const cols = A.bays.map(u => ({ u, door: isDoor(u) }));
+    for (const c of cols) if (!c.door) arcadeBay(B, a, seg, F, c.u, A);
+    if (!skin) return;
+    const zTop = ARCHES.arcadeString ? zs[1] : zs[0];
+    // the stone between the bays: from the wall's start, between each pair, to its end.
+    // Beside a door bay the door's own fill-extrusion legs stand at ±half..±(half+sw)
+    // up to the springing, so the pier starts past them there.
+    const edges = [A.wall[0]].concat(cols.flatMap(c => [c.u - reach, c.u + reach])).concat([A.wall[1]]);
+    for (let i = 0; i < edges.length; i += 2) {
+      const u0 = edges[i], u1 = edges[i + 1];
+      if (u1 - u0 < 0.03) continue;
+      B.extrude([[u0, 0], [u1, 0], [u1, zTop], [u0, zTop]], F, skin.v[0], skin.v[1], skin.c, { back: false, skipDown: true });
+    }
+    // the panel over each head, door bays included, from the square's head to
+    // the string course (a door's own band and spandrels reach the head; its
+    // keystone stands proud of this panel)
+    for (const c of cols) {
+      const poly = [[c.u - reach, crown + sw], [c.u + reach, crown + sw], [c.u + reach, zTop], [c.u - reach, zTop]];
+      B.extrude(poly, F, skin.v[0], skin.v[1], skin.c, { back: false, skipDown: true });
+    }
+    if (ARCHES.arcadeString) {
+      const v1 = skin.v[1] + ARCHES.arcadeStringProud;
+      B.extrude([[A.wall[0], zs[0]], [A.wall[1], zs[0]], [A.wall[1], zs[1]], [A.wall[0], zs[1]]], F, skin.v[0], v1, skin.c, { back: false });
     }
   }
 
