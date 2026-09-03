@@ -1,5 +1,160 @@
 # Austin 3D Explorer — Full Handoff
 
+## 208. Sep 3 2026 — the critics' round 3: Gregory's monitor is a gable and its ridge a line, the hall's roof is the photograph's grey, and the annex is a hip of its own with an eave on the hall's flank (`acer/slopes`, not merged, commits `59ee9f6` `d9ca55b`)
+
+Round 3 of the blind critics on the round-2 frames (§207). Mall-cruise,
+battle-street and capitol-dome they gave to us and those are untouched —
+the round-3 reshoot of each is 0 px against round 2's, below. Gregory they
+named, and every gap was closed in a generator or a bake with `?slopes=0`
+still `main` to the pixel; nothing typed for one building.
+
+**What the critic saw, measured on the frame before anything was changed.**
+"A flat dark-orange field with a flat-topped tan rectangular block sitting
+in the middle of it — no ridge, no pitch." Raycast and sampled at the
+critics' own pose (`r3/probe/greg.js` in this pass's scratchpad): the hall's
+two planes WERE two tones (62 and 96 luma) — the facet shading of §207
+works — but the monitor's two mini-slopes read 142 and 151, one tone, with
+its front end at 200: at `ROOFS.monitorPitch` 0.18 (10°) the mini-slopes'
+normal has z = 0.984, and the shader's "sloped" test was a bare
+`az < 0.98` (11.5°), so a real 10° gable was lit as the flat top a lid is.
+The ridge cap (0.6 m, 0.86 of the roof colour) landed at a luma BETWEEN the
+two planes' and vanished; the front 13 m of ridge is under the "Gregory
+Gym" label in every frame, ours and Google's. And the annex met the hall at
+a vertical wall (`hallJunction`) where Google's photogrammetry and the z19
+nadir tile both show tile rising from the hall's flank to the well — the
+five vents sit on it.
+
+**gregory, the roof (`59ee9f6`).** Three changes, each a constant or a
+reading:
+- `SLOPES.slopedMinDeg` (js/slopes.js, 6): what counts as a sloped face for
+  facetShade / roofShade, as a named number instead of 0.98 in the shader.
+  Nothing on campus is pitched between 6° and 11.5° except that monitor;
+  the hips are 22.6°, the Capitol's wings 16.7°. The monitor's pitch stays
+  0.18 — Google's end face is about 3 m tall over the ridge, walls and peak
+  together, which is what 1.8 m of wall [U] and 0.18 make; 'hall' is also
+  accepted and takes the hall's own 0.39, and was looked at and is a 4.5 m
+  wedge. Same pose: the mini-slopes read 123 and 189 now, a crease between
+  them, and each end is a wall (`ROOFS.monitorWallColour`, brick — the
+  sides are dark under a light roof in the photogrammetry) with a little
+  gable of stone over it.
+- `ROOFS.ridgeCap` is a light strip now — `{ w: 1.0, h: 0.12, colour:
+  'stone', tone: 1.0 }` — because the photograph shows a light line on a
+  dark roof; raycast along the ridge behind the monitor at the pose, 7 m of
+  it (v = -58 … -64) is the cap at 30.52 m, 3 px wide, where the monitor's
+  back end hides the first 3.6 m.
+- The hall's roof takes the photograph's colour, the way the annex's deck
+  did in §207. `HALL_COLOUR_FROM_TILE` in scripts/bake_roofs.py samples the
+  z19 tile inside the hall rectangle (2 m off the flanks, front, back and
+  the monitor strip; 1,375 samples) and finds it 0.2 % tile: a warm grey,
+  (110,98,86) north of the ridge and (129,115,102) south of it, against the
+  annex's tile at (161,125,94) and (189,147,110). The campus tile rule had
+  painted the whole building terracotta from the eave RING of the whole
+  footprint, which the annex owns. The median goes through `deck_colour`
+  exactly as a membrane deck does and lands as `hall.col` #786255 on the
+  rig, carried to golden and night by `like()`; the shipped slab is
+  untouched, and a hall that reads tile keeps the roof's colour. Cached in
+  data/roof_runs.json as `<key>/hall`. `ROOFS.hallColour = false` puts the
+  terracotta back. At the pose the planes read 73 and 112 luma, grey-brown,
+  as Google's do.
+
+**gregory, the annex (`d9ca55b`).** "A flat grey-olive field with a thin
+orange rim; the real block has a hipped clay-tile roof sloping in from all
+four eaves to a flat central well." The rim was 9.2 m of tile on three
+sides and a wall on the fourth, because the hip rig was solved on the whole
+footprint, where the annex's north side is not an edge. `HALL_BLOCKS` in
+scripts/bake_roofs.py: a footprint with a hall is the hall PLUS the blocks
+built against it — the footprint clipped outside the hall's rectangle
+(beside it on either flank, behind its back), cleaned, and put through the
+same `mitre_rays` → `vertex_caps` → `edge_event_caps` → `wall_profile` the
+whole footprint went through, at the building's own run, rise and steps
+(the depths the shipped slabs were cut at). An edge of a block that is not
+on the footprint's outline — the cut along the hall's flank or back, or
+between two blocks — is `interior`: it carries a slope (a valley where two
+roofs meet at their eaves) but no fascia, soffit or lip. Written as
+`rig.gables[bid].blocks` in the `rig.roofs` schema; js/slopes-roofs.js
+draws each with `roofOne` (a new `opts.interior`) in place of the
+whole-footprint rig, and draws the hall's own eave lip only where the
+footprint has a wall under the flank (`hallSetup().flankRanges`). Gregory:
+two blocks, the annex (six corners, one interior edge — the 75 m flank) and
+the pool block behind the hall (ten, two interior). All or nothing: if a
+block cannot be built none are written and the clipped-deck reading of §206
+draws. Measuring each block's own run with `tile_run` was tried and
+dropped: the pool block is half a flat white deck and half a tile hip, so
+its eave ring read 0.46 tile at every depth and the probe walked 14.3 m
+into it — J1's averaging defect one level down — and a 6 m orange hip stood
+up behind the hall's back. At the building's 9.8 m the annex's well is
+33 m of its 51 m width with 9.2 m of tile on all four sides (Google's
+bands measure 10–13 m on the nadir tile; the run is the bake's), and the
+block behind shows as the grey deck Google shows there.
+
+**Not done, and why.** (1) "A's arch curves are stair-stepped at 4–5 px
+per step": the three archivolts are 48-segment half-rings (0.2 m chords,
+0.3 px at this distance) and the steps are the rasteriser's — the layer
+shares MapLibre's context, which the app creates with `antialias:
+!!window.GFX_MSAA`, off by default, so every edge in the city is drawn
+without multisampling; a 6 px tall arc cannot be smoother without it, and
+turning it on changes `?slopes=0` against `main`. The knob exists and is
+the app's. (2) The row of small clerestory windows above the pediment
+(data/campus_truth.json counts 9 and 7) and the corbelling: the 26 corbel
+blocks and their band are there and are 1–2 px from 163 m; the windows are
+an authored elevation's numbers off the May 2013 photograph, the same
+kind of override as `gable_front` itself, and Simeon's call whether that
+is wanted (§206's rule for authored elevations). (3) The front 13 m of the
+ridge is under the "Gregory Gym" label at this pose in ours and in
+Google's alike; the label is the app's.
+
+**The bake is an augment, still.** Two runs, no `--rebake`: 4,794 features
+byte for byte, `caps` and `rig.roofs` identical, `rig.gables[Gregory]`
+grew `hall.col` and `blocks`; data/roof_runs.json gained one key.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8501 and `git archive e232953` on :8502 (served by its own
+`scripts/serve.py`).**
+`scripts/verify/slopes-layer.mjs --against` **47/48, exit 1** — every
+assertion green but one, and that one is not this pass: *"?slopes=0 is the
+build at :8502, to the pixel"* read **1 of 1,296,000 pixels, max channel
+Δ 1, at (132, 839)** — a single pixel in the bottom-left UI, one unit off,
+between two page loads. Nothing of this pass runs under `?slopes=0` (the
+generators' polls return before they read anything; the 4,794 features are
+byte for byte the shipped ones, above), and the same comparison run by hand
+found 0. The assertion was not touched: its expectation is right and a
+1-px Δ1 raster flicker is not a reason to loosen a zero. The lines that are
+about this pass: `built` 108 roofs + 1 gable, 24 arches, 3 dome parts; the
+`ridge` line on Waggener Hall two tones and a raycast at the rig's pitch;
+the arch lines at both poses; the switch lines 0 px on-off-on and 0 px with
+`render()` stopped; no page errors.
+`?slopes=0` on the branch against the archive at all four critics' poses,
+second of two shots, tolerance 0: **mall-cruise 0, gregory 0, capitol-dome
+0, battle-street 3** of 1,296,000 px (max Δ 6, inside a 117x4 px sliver at
+[565,169] — the identical sliver §204c measured between two loads of ONE
+commit); and measured again as three interleaved pairs at mall-cruise and battle-street (`r3/identity3/`, six page loads): **0, 0, 0 and 0, 0, 0 px** — the sliver and the gate's pixel are load noise, not this pass.
+The generators ON at the poses: roofs 108 + 1 gable + 2 blocks in 12,718
+triangles (12,725 before), arches 24 in 18,315, dome 11,322; 2 draw calls at
+mall-cruise and gregory, 7 at battle-street, 6 at capitol-dome; no console
+errors at any pose. The three poses the critics already gave us, round-3
+reshoot against round 2's frames, tolerance 0: **mall-cruise 0 px,
+capitol-dome 0 px, battle-street 7,590 px of max Δ 4** — one to three units
+on the terracotta facets and a facade in the frame's centre, no shape
+moved, below what a screen shows. gregory: 24,559 px, the building.
+`walkmeter.mjs` and `facadegrid.mjs` were not re-run: nothing this pass
+touched is on their path (no walk graph, no facade grid, no entrance
+moved).
+
+
+**Frames.** The round-3 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r3/{mall-cruise,gregory,
+battle-street,capitol-dome}.png`. Before/after at the critics' own pose,
+side by side, in this pass's scratchpad `r3/proof/gregory-before-after.png`
+(the building at 2x) and `r3/proof/gregory-monitor-6x.png` (the monitor
+and the ridge behind it at 6x) — lead with the first: one orange plate
+with a tan lid on it became a grey two-tone gable with a low light monitor
+riding its ridge and a tiled hip beside it.
+
+**Next.** Round 4 of the critics on these frames. If the arches are named
+again, the lever is `GFX_MSAA` and it is the app's, not this layer's. If
+the hall's grey reads wrong to Simeon, `ROOFS.hallColour = false` is the
+terracotta back in one line.
+
 ## 207. Sep 3 2026 — the critics' round 2: Gregory's hall reads as a gable because its planes are shaded the way the city shades a roof, and the Capitol's drum is a drum in tiers with the dome springing flush from its balustrade (`acer/slopes`, not merged, commits `0e9872d` `bb5b3fe`)
 
 Round 2 of the blind critics on the round-1 frames (§206). Mall-cruise and
