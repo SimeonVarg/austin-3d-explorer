@@ -54,6 +54,22 @@
  * Nothing is typed for a building; the shape is still the bake's mitres and
  * caps. `fullHip: false` is round 3's band-and-plate.
  *
+ * THE EAVE'S SHADOW (same round). "The roof colour runs down over the wall
+ * top as a thick band, which reads as a parapet, not an overhang." That band
+ * is js/app.js's `buildings-roof`: the top of every wall re-extruded from h
+ * to h + max(1, 0.015 h) — the roof's own `base` — in the ROOF colour, a
+ * parapet cap painted terracotta on a tiled building, and the roof's eave
+ * sits on top of it. ROOFS.eaveShadow draws the wall in the shadow of its
+ * own eave over it: a band on the building's exact footprint (rig `foot`,
+ * the walls as they are drawn, not the simplified profile), a few
+ * centimetres outside the wall so it stands in front of the cap, from the
+ * wall's top to the eave's soffit, in the wall's own colour times a tone.
+ * Geometry only — no layer's paint is touched, so the switch stays exact
+ * to the pixel. (The first cut re-painted `buildings-roof` by expression
+ * instead; a data-driven paint change reloads the buildings source, and a
+ * reload resolves MapLibre's coplanar depth ties the other way — 971 px of
+ * Δ1 on every toggle, the same dither 204d could not explain.)
+ *
  * SHADING. Every slope strip and the hall's planes are marked `facet` on the
  * builder, so SLOPES.facetShade (js/slopes.js) colours them the way
  * js/timeofday.js colours the slabs they replace — two tones either side of
@@ -162,6 +178,14 @@
     // vote; `rig.roofs[key].full` is present) is drawn to its ridge with no
     // deck. false draws every roof as its slab profile, band and plate.
     fullHip: true,
+    // The wall in its own eave's shadow, drawn over the parapet cap js/app.js
+    // paints in the ROOF colour (`buildings-roof`, h → the roof's base):
+    // the wall's wd/wg/wn × tone, `proud` metres outside the wall. 1.0 is
+    // the wall's own colour with no shadow; the slab facets' dark end is
+    // 0.70 (SHADE_LO) and a wall under a metre of eave is darker than a
+    // roof facing away from the sun, so a little below it. `on: false`
+    // leaves the cap terracotta.
+    eaveShadow: { on: true, tone: 0.62, proud: 0.05, miterLimit: 4 },
   };
   window.SLOPES_ROOFS = ROOFS;
 
@@ -557,6 +581,27 @@
         B.quad(P(eave[k], zLip), P(eave[j], zLip), P(wall[j], zLip), P(wall[k], zLip), r.lip, UP);
         if (ROOFS.fascia) B.quad(P(eave[k], r.base), P(eave[j], r.base), P(eave[j], zLip), P(eave[k], zLip), r.lip, outward(eave[k], eave[j]));
         if (ROOFS.soffit) B.quad(P(wall[k], r.base), P(wall[j], r.base), P(eave[j], r.base), P(eave[k], r.base), r.lip, DOWN);
+      }
+    }
+    // 1b. the eave's shadow: the wall band under the soffit, in front of the
+    //     parapet cap, on the building's exact footprint (a CCW ring)
+    const ES = ROOFS.eaveShadow;
+    if (own && ES && ES.on && r.foot && r.foot.length >= 3 && r.wall && r.wall.every(c => typeof c === 'string' && c.length === 7)
+        && r.h != null && r.base > r.h + 1e-3 && !r.wing) {
+      const col = tintCol(r.wall, ES.tone == null ? 1 : ES.tone);
+      const F = r.foot, N = F.length, proud = ES.proud || 0, lim = ES.miterLimit || 4;
+      const on2 = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1; return [dy / L, -dx / L]; };
+      const off = [];
+      for (let k = 0; k < N; k++) {
+        const a = on2(F[(k - 1 + N) % N], F[k]), b = on2(F[k], F[(k + 1) % N]);
+        let mx = a[0] + b[0], my = a[1] + b[1]; const L = Math.hypot(mx, my) || 1; mx /= L; my /= L;
+        const cosHalf = mx * a[0] + my * a[1];                  // the mitre grows as 1/cos of half the turn
+        const m = Math.min(lim, cosHalf > 1e-6 ? 1 / cosHalf : lim);
+        off.push(loc([F[k][0] + mx * m * proud, F[k][1] + my * m * proud]));
+      }
+      for (let k = 0; k < N; k++) {
+        const j = (k + 1) % N;
+        B.quad(P(off[k], r.h), P(off[j], r.h), P(off[j], r.base), P(off[k], r.base), col, outward(off[k], off[j]));
       }
     }
     // 2. the slope: one strip per profile edge, split where either end reaches its cap
