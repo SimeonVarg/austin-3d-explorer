@@ -1,5 +1,151 @@
 # Austin 3D Explorer — Full Handoff
 
+## 206. Sep 3 2026 — the critics' round 1: Gregory Gym's hall is a gable to its pediment, Sutton Hall's ground floor is the arcade the truth file always said it was, the Capitol dome is a dome with a lantern on it and its wings have roofs (`acer/slopes`, not merged, commits `33065b9` `1668791` `5ffa842`)
+
+Three blind critics compared four poses of this branch against Google Earth
+(mall-cruise, gregory, battle-street, capitol-dome) and named what was wrong
+with ours; mall-cruise they gave to us and it is untouched. Every gap below
+was closed in a generator or a bake — no vertex typed for one building — and
+every bake change is an AUGMENT: `?slopes=0` is still `main`, to the pixel,
+because each bake compares what it generates with the shipped features and
+writes only the foreign member it came for (the doctrine of 204b, now on all
+three bakes).
+
+**gregory — the hall behind the pediment (`33065b9`).** The critic: *"drawn
+as a single flat orange plane over the whole footprint ... a warehouse box
+with a pediment glued on the front."* True: behind the gable front was the
+same 5:12 hip ring and flat deck every tiled roof gets, 4 m of tile round a
+25.5 m plate, the pediment standing 5 m above it. `scripts/bake_roofs.py`
+now reads the HALL off the footprint in the gable's own frame (`_hall_rig`,
+written as `rig.gables[bid].hall`): its flank walls are the footprint edges
+running straight back from the front nearest to where the pediment's eave
+corners are (u = -23.09 and +23.11 — the 62 m north wall, and the 2.3 m
+stub beside the pediment, the rest of that flank being interior because the
+annex is built against it); its back is the far end of the longer flank
+(v = -65.0 — an attached block can shorten one flank, not both — and along
+the ridge the z19 tile's dark hall roof turns into the pool block's lighter
+deck at exactly that jog); its front is the pediment prisms' rear plane per
+elevation segment; its ridge is the pediment's apex, 30.4 m. The clerestory
+monitor is measured off the z19 nadir tile into the override with its
+working (`_monitor_note`: 14 m wide, 13 to 53 m behind the pediment plane;
+its height cannot be read from above, 1.8 m is marked [U]).
+`js/slopes-roofs.js` takes the hip rig out of that rectangle (edges inside
+it are skipped the way `gableEnd` skips the gable wall, corners where a kept
+edge meets a skipped one slide straight in, the deck is clipped to the parts
+of the footprint beside and behind the hall) and draws two planes from the
+flank eaves to the ridge with a front that steps with the pediment, the eave
+lip along each flank, a brick gable wall closing the back, the monitor as a
+low box on the ridge in the gable's stone, and — where the annex's deck
+stands above the hall's eave — the wall between them along the clipped
+deck's edge, so the step from hall to annex reads. Proved by raycast at
+three poses (`probe-hall.mjs` in the scratchpad): the planes are where the
+rig says to 0.3 m, the monitor top at 32.2 m, the end wall at 28.4 m from
+the east, the junction wall at 23.4 m. Taste block: `ROOFS.hall / hallEnd /
+hallJunction / hallTolM / monitor / monitorColour`. Not done: the arches
+recessed INTO the projecting bay — the bay projects 2.9 m in the footprint
+already and the recess is a 5 cm dark panel because this renderer cannot cut
+a fill-extrusion wall; a colour is the depth, as on every entrance.
+
+**battle-street — Sutton Hall's arcade (`5ffa842`).** The critic: *"a flat
+wall of square windows with one lone arched door (and red triangular wedges
+in its spandrels) ... should be a continuous arcade."* `data/campus_truth.json`
+had said so since the truth pass ("4 round arches at grade (1 door, 3
+windows), 4 window bays above ... the arcade continuing round the west") and
+nothing drew it. `scripts/bake_entrances.py`: the CELEBRATED row for SUT
+carries `arcade=True` [C], the door records the straight wall it sits on
+(`wall_run`), and `finish_arcades()` lays the bays out in the main door's
+frame once every door is placed. The pitch is DERIVED: the narrowest a bay
+can be is the opening plus its two bands plus a pier (2.60 + 0.90 + 0.50 =
+4.00 m), snapped so the wall's second arched door lands on the grid —
+Sutton's are 27.86 m apart, 7 bays of 3.981 m — 15 bays from u = -27.86 to
++27.86 on the 62.3 m wall, two of them the doors. Written as the `arcade`
+member on the main door's `arches` entry; the 14,070 features are
+byte-identical. `js/slopes-arches.js` draws every bay that is not a door as
+the same arch as the door (band, spandrel, the dark of the loggia behind it
+a hair off the wall), carries the stone between the bays from grade to a
+string course over the crowns, and on an arcaded wall the spandrels take
+the surround's stone (`ARCHES.arcadeSpandrel = 'band'`; the critic read the
+family's terracotta wedges as a texture defect — `'own'` puts them back).
+Not done, and why: the courtyard's paving is the ground bake's, not a
+slope; the roof the critic called "a flat slab with a very deep overhang"
+is the 5:12 hip and 0.5 m eave lip every campus roof has, seen from 26 m up
+at 65° of pitch, and was left; the loggia's recess is a colour, as above.
+
+**capitol-dome — the dome, the lantern, the wings (`1668791`).** The
+critic: *"a tall pointed ogive, taller than it is wide, with nothing on
+top."* The lathe was revolving the eighteen discs' own profile and closing
+it onto the lantern's 3.1 m, so dome, lantern and cupola were one 28 m
+spike. `scripts/bake_capitol.py` now writes a `lathe` member beside the
+discs: an elliptical quadrant from the same springing radius (12.57 m) that
+stays full through its lower half and turns over into a crown 0.42 of the
+springing radius wide (`LATHE_CROWN`), with a 3 % swell over the first
+1.5 m (`LATHE_SWELL`) so the widest ring sits just above the drum. The
+lantern stands ON that crown as the separate smaller cylinder it is. And a
+`rig` member for the wings: `bake_roofs.py`'s own `mitre_rays` /
+`vertex_caps` / `edge_event_caps` / `wall_profile` run on the OSM part
+outlines of the three big parts (simplified at `CAP_HIP_SIMPLIFY_M` 2.5 m
+so pilaster jogs do not fan into slivers), pitch `CAP_HIP_PITCH` 0.30
+(16.7°), no lip, no deck; parts under `CAP_HIP_MIN_M2` (the pavilions, the
+stair towers) keep their shipped stepped caps. `js/slopes-dome.js` reads
+both; the wings go through `slopesRoofs.emit()` into the dome's group, so
+they keep its LOD (none — a skyline stays) and its minzoom. One rule
+changed in `js/slopes-roofs.js` for them: a rig with NO deck rises to its
+own ridge at every point (`zLip + pitch * min(d, cap)`), because the
+vertical fin a capped point used to leave was only ever hidden by a deck
+(campus rigs have decks and are bit-for-bit what they were). The centre
+block's hip now dies into the attic wall, which is what the critic asked
+of the podium. Not done: the two-tier drum (a windowed lower ring is new
+content with no measurement behind it), the pediment on the north pavilion
+(an authored elevation like Gregory's, a taste call), the wings' window
+pitch (the facades bake's, not a slope).
+
+**The bakes are augments, all three.** `bake_capitol.py` grew the same
+doctrine as `bake_roofs.py`: without `--rebake` it generates every output,
+compares each to the file on disk, stops at exit 2 writing nothing if any
+differs, and otherwise writes only `capitol_dome.geojson` = the shipped
+features + `lathe` + `rig` (its six outputs reproduce the shipped files
+byte for byte on this machine). `bake_entrances.py` reproduced its 14,070
+features byte for byte and added one `arcade`. `bake_roofs.py` kept its
+4,794 features, `caps` and `rig.roofs` identical and added `hall`.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8471 and `git archive e232953` on :8472.**
+`scripts/verify/slopes-layer.mjs --against` **48/48, exit 0**, no assertion
+touched: the bake-identity line 0 px; SLOPES.on off-and-on 0 px; off vs a
+`?slopes=0` load 6,134 px (the same 6,134 as 204d); the ridge line on
+Waggener Hall (luma 79.6 vs 99.1 either side); the arch lines on SUT at
+battle-street (mesh 0.6 cm off the ellipse where the chords are 56.7 cm —
+98x — and 7 of 8 probes move) and BTL from the street (0.5 cm, 111x).
+`walkmeter.mjs` **PASS, exit 0** (drift 0, 0 route errors, the live-mouse
+"Avoid stairs" gate WCH -> MAI 240 m -> 47 m and back). `facadegrid.mjs`
+**0 failing assertions, exit 0** (BTL LOOK band 1.30x, ratchet 1.4x; WALK
+band 2.61x, ratchet 2.7x — unchanged). And separately, `?slopes=0` on the
+branch against the archive at ALL FOUR critics' poses, second of two shots,
+tolerance 0: **mall-cruise 0, gregory 0, battle-street 0, capitol-dome 0**
+of 1,296,000 px. The generators ON: roofs 108 + 1 gable in 12,691 triangles
+(12,782 before — the hall's hip strips are gone and its planes are fewer),
+arches 24 entrances in 18,315 (10,988 before; the 13 arcade bays), dome 3
+parts + 3 wing hips in 9,504 (5,850 before; the denser lathe and the hips);
+2 draw calls at mall-cruise and gregory, 6-7 at battle-street, 6 at
+capitol-dome; no console errors at any pose. Frame time was NOT re-measured
+this round (204's own A/B is still the open item there).
+
+**Frames.** The round-1 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r1/{mall-cruise,gregory,battle-street,
+capitol-dome}.png`. Before/after crops at the critics' own poses, magnified
+2x, side by side: this pass's scratchpad `proof/{gregory,battle-street,
+capitol-dome,mall-cruise}-before-after.png` — lead with battle-street (one
+door on a flat wall became fifteen bays of arcade), then gregory (the flat
+plate became two slopes, a ridge and a monitor), then the dome. The gate's
+own frames are under `gate/shots/`; the identity frames under `identity/`.
+
+**Next.** Round 2 of the critics on these frames. If they still want the
+Capitol's drum in two tiers or the north pavilion's pediment, both are
+authored elevations in the sense of Gregory's `gable_front` — an override
+with the numbers off a photograph and the working written down — and
+Simeon's call whether that is wanted at all.
+
+
 ## 204d. Sep 2 2026 — the layer's gate was red against a layer that was right: 32/38 to 48/48, and the 6,134 pixels nobody had explained (`acer/slopes`, not merged, `scripts/verify/slopes-layer.mjs`)
 
 **The situation.** `scripts/verify/slopes-layer.mjs` ran **32/38** on hardware.
