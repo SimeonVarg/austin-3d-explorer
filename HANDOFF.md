@@ -1,5 +1,58 @@
 # Austin 3D Explorer — Full Handoff
 
+## 210. Sep 3 2026 — round 5 of the fair-camera critic, frames only: the same Google Earth camera reshot against the tip that closed §209's four fixes (`acer/slopes`, no code changes this entry — verification frames for the next critic)
+
+§209 ended "Next: Round 5 of the fair-camera critic on these frames." This
+entry is that reshoot, not a fix — the pose math is unchanged from round 4
+(`judge/fair/r1`) because it was never wrong; only the app side needed a
+fresh capture off the tip that now carries the ridge/eave/Main-Building/wing
+work (`597fb01`, i.e. `cc3f810` `704c7be` `de9e251` `61194b7` all in).
+
+**The camera, shown not asserted.** mall-cruise's pose (`before/README.md`):
+center `[-97.7393, 30.2856]`, zoom `17.48` (FOV-corrected — the bar scout's
+original `19.8` assumed a 36.87° vertical FOV; this app's real one is 58°,
+`js/controls.js:52`), pitch 55, bearing 0, viewport 1440×900. Converted to a
+Google Earth URL with the app's own ground-resolution formula:
+`metresPerPixel = 156543.03392·cos(lat)/2^zoom = 0.7394 m/px`, camera-to-pivot
+`dist = (0.5·900/tan(29°))·metresPerPixel = 600.29 m` (half-VFOV 29° = 58/2),
+`alt` = the bar scout's own verified ground elevation at this lat/lng (190 m
+ASL), heading = bearing = 0, tilt = pitch = 55:
+`https://earth.google.com/web/@30.2856,-97.7393,190a,600d,35y,0h,55t,0r`.
+Final page URL did not snap. Google's own camera readback in the captured
+frame (534 m camera / 184 m ground ASL → 350 m above ground) lands within
+1.7% of the formula's 344.3 m — the maths tracks Google Earth's real
+geometry at this FOV, not a coincidence.
+
+**Both frames, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+second of two shots kept, zero console errors, one headless Chrome at a time
+(orphan-swept before and after via `Get-CimInstance`).** Google: 30 s tile
+settle, Escape to dismiss the projects popup. Ours: `scripts/serve.py` on
+:8099 (never the stdlib server — see its own header), `?intro=0&drift=0`,
+every core + deferred source confirmed loaded, `cancelGraphicsAutoDetect()`
+before the jump. Both cropped to map-only content (chrome measured fresh by
+pixel sampling on these frames, not reused unchecked from round 4) to the
+same 912×570 window, independently centred on the UT Tower, upscaled to
+1100 px wide.
+
+**What's in frame, both cameras:** UT Tower dead centre; Texas Union and
+Peter T. Flawn Academic Center left; Robert A. Welch Hall and the science
+quad (Norman Hackerman, Neural & Molecular Science, Chemical & Petroleum
+Engineering) right — the side round-0's verdict said was missing; George
+Washington statue and the Main Mall lawn in the centre foreground. Same
+camera, same subject, both cameras — this is what round 4 already fixed and
+round 5 confirms is still true on the current tip.
+
+**Full arithmetic, both crops, and the exact chrome/subject pixel
+measurements:** the verifier's `judge/fair/r2/key.txt`. Side by side, one
+frame: `docs/shots/mallcruise-fair-r2-side-by-side.jpg`.
+
+**Next.** This is frames only — no critique attached. Whoever runs round 5
+proper should look at `docs/shots/mallcruise-fair-r2-side-by-side.jpg` (or
+the fuller `judge/fair/r2/{A,B}.png`) against §209's specific claims (ridge
+visibility, the eave band, the Main Building's three hips, the four wings)
+and say whether each one now reads correctly at this pose, the way §209 did
+for round 4.
+
 ## 209. Sep 3 2026 — the fair-camera critic: every tile roof runs to its ridge, the Main Building's three roofs are hips, the eave is a shadow line, the wing survey's four roofs are on the mesh, and the gate names its 971 pixels (`acer/slopes`, not merged, commits `cc3f810` `704c7be` `de9e251` `61194b7`)
 
 Round 4 was a fair fight: Google Earth's camera put at OUR mall-cruise pose
