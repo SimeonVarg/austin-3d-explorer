@@ -28,6 +28,10 @@
  *             twice = 0 px) and a live count showing the layer really draws at
  *             this pose, so nothing here can pass by drawing nothing.
  *
+ *             (Since 2026-09-03 the three zero lines accept, at most, the
+ *             facade atlas' own two-state residue — the same 971 pixels of
+ *             Δ ≤ 12 on the pattern walls' window grids, present between two
+ *             pages that carry no mesh at all; ATLAS_RESIDUE_PX below.)
  *             The one line that is NOT a zero, with its reason: the OFF frame
  *             against a `?slopes=0` LOAD is 6,134 px (0.47 %, nine independent
  *             pairs, identical to ±1). None of it is the mesh — stopping the
@@ -209,6 +213,26 @@ const ARCH_PROBE_UMIN = 0.35;     // m; keep off the centreline — bake_entranc
                                   // across the crown, proud of the band, present in BOTH shapes
 const ARCH_PROBE_DELTA = 12;      // /255 luma; how far such a pixel must move when the chords come back
 const ARCH_PROBE_MIN = 5;         // of ARCH_PROBES — a majority, not all of them
+// THE 971 PIXELS THAT ARE NOT THE MESH, named at last (2026-09-03). Three
+// runs of this gate on one tree: the OFF→ON toggle line read 971 px twice
+// and 0 once; the bake-identity line (?slopes=0 against a `git archive main`
+// on a second port — two pages with NO custom layer in either) read 0, 1 and
+// 968 px; the render()-stopped control 0, 1 and 0. The two 971-pixel sets
+// are the SAME 971 pixels with the same before/after colours, and 884 of
+// them are in the 968. Marked on the frame they sit on the WINDOW GRIDS of
+// the fill-extrusion-pattern walls — js/facades.js's atlas — at Δ1 to Δ12:
+// the pattern is sampled at one of two texel phases, and which one a page
+// lands in is decided at load (or at a source reload, which a setFilter on
+// the toggle causes). It is the "last 969 px which survive removing the
+// layer" of 204d, and it appears between two mesh-less pages, so it is not
+// this layer's. A zero is still the usual outcome and still the target;
+// these three lines now accept AT MOST this residue, bounded in both count
+// and depth so nothing the mesh could do — a roof over a wall is Δ 50+,
+// the ON frame is 223,748 px — can hide under it.
+const ATLAS_RESIDUE_PX = 1200;      // measured 968, 971, 971
+const ATLAS_RESIDUE_DELTA = 16;     // measured Δ 12
+const zeroButAtlas = d => d.pixels === 0 || (d.pixels <= ATLAS_RESIDUE_PX && d.maxChannelDiff <= ATLAS_RESIDUE_DELTA);
+const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' two-state residue (≤ ${ATLAS_RESIDUE_PX} px, Δ ≤ ${ATLAS_RESIDUE_DELTA})`;
 // The generator groups the scene must hold on a plain page: the campus
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
@@ -786,7 +810,7 @@ check('...and the layer is really drawing at this pose, so the zeros below are n
 // differ from the slabs. The old lines compared an ON frame against an OFF one
 // and were stale from the day the roofs landed.
 const dBack = diffPNG(A.f, fOn2);
-check('SLOPES.on = false and true again is the frame it started from, to the pixel', dBack.pixels === 0, `${dBack.pixels} of ${dBack.total} pixels differ (max channel Δ ${dBack.maxChannelDiff})${dBack.bbox ? ', bbox ' + dBack.bbox.join(',') : ''}`);
+check('SLOPES.on = false and true again is the frame it started from, to the pixel (or the facade atlas\' own two-state residue)', zeroButAtlas(dBack), `${dBack.pixels} of ${dBack.total} pixels differ (max channel Δ ${dBack.maxChannelDiff})${residueNote(dBack)}${dBack.bbox ? ', bbox ' + dBack.bbox.join(',') : ''}`);
 // The restoration contract, asserted on the DATA at exact equality: every
 // filter the layer touched must come back to what a page that never had the
 // layer is carrying — not merely "null" or "no arc", which is what the older
@@ -826,9 +850,9 @@ check(`SLOPES.on = false at runtime is the ?slopes=0 page to within ${SWITCH_OFF
   dOff.pixels <= SWITCH_OFF_PX,
   `${dOff.pixels} of ${dOff.total} pixels differ (max channel Δ ${dOff.maxChannelDiff}) — ceiling ${SWITCH_OFF_PX}, measured 6,134 on 2026-09-02`);
 const dInert = diffPNG(fOff, fInert);
-check('...and NONE of that is the mesh: stopping the layer\'s render() altogether does not move one pixel',
-  inert.after === inert.before && dInert.pixels === 0,
-  `slopes.frames ${inert.before} -> ${inert.after} with visibility 'none' (render() stopped: ${inert.after === inert.before}); ${dInert.pixels} of ${dInert.total} pixels differ (max channel Δ ${dInert.maxChannelDiff})`);
+check('...and NONE of that is the mesh: stopping the layer\'s render() altogether does not move one pixel (or the atlas residue)',
+  inert.after === inert.before && zeroButAtlas(dInert),
+  `slopes.frames ${inert.before} -> ${inert.after} with visibility 'none' (render() stopped: ${inert.after === inert.before}); ${dInert.pixels} of ${dInert.total} pixels differ (max channel Δ ${dInert.maxChannelDiff})${residueNote(dInert)}`);
 
 // THE BAKE IDENTITY. scripts/bake_roofs.py adds `rig` and the `f` tags to
 // data/roofs.geojson and must change nothing the slabs draw, so the branch with
@@ -839,7 +863,7 @@ if (AGAINST) {
   const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
-  check(`?slopes=0 is the build at ${AGAINST}, to the pixel (the bake changed nothing the slabs draw)`, d3.pixels === 0, `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+  check(`?slopes=0 is the build at ${AGAINST}, to the pixel or the atlas residue (the bake changed nothing the slabs draw)`, zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
 } else {
   console.log('   (no --against: the bake-identity line was not run)');
 }
