@@ -57,18 +57,23 @@
  * THE EAVE'S SHADOW (same round). "The roof colour runs down over the wall
  * top as a thick band, which reads as a parapet, not an overhang." That band
  * is js/app.js's `buildings-roof`: the top of every wall re-extruded from h
- * to h + max(1, 0.015 h) — the roof's own `base` — in the ROOF colour, a
- * parapet cap painted terracotta on a tiled building, and the roof's eave
- * sits on top of it. ROOFS.eaveShadow draws the wall in the shadow of its
- * own eave over it: a band on the building's exact footprint (rig `foot`,
- * the walls as they are drawn, not the simplified profile), a few
- * centimetres outside the wall so it stands in front of the cap, from the
- * wall's top to the eave's soffit, in the wall's own colour times a tone.
- * Geometry only — no layer's paint is touched, so the switch stays exact
- * to the pixel. (The first cut re-painted `buildings-roof` by expression
- * instead; a data-driven paint change reloads the buildings source, and a
- * reload resolves MapLibre's coplanar depth ties the other way — 971 px of
- * Δ1 on every toggle, the same dither 204d could not explain.)
+ * to h + max(1, 0.015 h) in the ROOF colour — a parapet cap, painted
+ * terracotta on a tiled building — and the roof's eave sits on top of it.
+ * While the mesh draws, ROOFS.capShade paints that cap, on every building
+ * with a rig, as the wall in the shadow of its own eave: the wall's wd/wg/wn
+ * times a tone. One paint expression on one layer, wrapped around the hour's
+ * own (js/timeofday.js rewrites it at every quantised hour, so the wrapper
+ * is re-applied from the applyTimeOfDay chain), and put back the moment
+ * SLOPES.on is false. Nothing is hidden and no geometry is added.
+ *
+ * OTHER BAKES' RIGS (same round). The Main Building's three tile roofs are
+ * scripts/bake_tower.py's, drawn as three stepped slabs each (`kind: 'roof'`
+ * in data/tower.geojson — "a three-tier staircase of slabs under the
+ * Tower"). That bake now writes a `rig` member in this file's schema, and
+ * ROOFS.extra lists it: each entry is fetched, drawn through `emit` into a
+ * group of its own (its own LOD tier and minzoom — the Main Building's roof
+ * stays on the skyline with the Tower), and its stand-ins are hidden by a
+ * filter on its layer while SLOPES.on.
  *
  * SHADING. Every slope strip and the hall's planes are marked `facet` on the
  * builder, so SLOPES.facetShade (js/slopes.js) colours them the way
@@ -178,21 +183,30 @@
     // vote; `rig.roofs[key].full` is present) is drawn to its ridge with no
     // deck. false draws every roof as its slab profile, band and plate.
     fullHip: true,
-    // The wall in its own eave's shadow, drawn over the parapet cap js/app.js
-    // paints in the ROOF colour (`buildings-roof`, h → the roof's base):
-    // the wall's wd/wg/wn × tone, `proud` metres outside the wall. 1.0 is
-    // the wall's own colour with no shadow; the slab facets' dark end is
-    // 0.70 (SHADE_LO) and a wall under a metre of eave is darker than a
-    // roof facing away from the sun, so a little below it. `on: false`
-    // leaves the cap terracotta.
-    eaveShadow: { on: true, tone: 0.62, proud: 0.05, miterLimit: 4 },
+    // The parapet cap under a mesh roof (js/app.js `buildings-roof`, the top
+    // ~1 m of the wall in the ROOF colour) is painted as the wall in the
+    // eave's shadow: wd/wg/wn × tone. `on: false` leaves it terracotta.
+    // 1.0 is the wall's own colour with no shadow; the slab facets' dark end
+    // is 0.70 of their colour (SHADE_LO) and a wall under a metre of eave is
+    // darker than a roof facing away from the sun, so a little below it.
+    capShade: { on: true, tone: 0.62, layer: 'buildings-roof' },
+    // Other bakes' rigs, each in a group of its own: `url` (or the parsed
+    // object on `source`), the fill-extrusion `layer` whose features of
+    // `kind` are hidden while it draws, and the group's tier and minzoom.
+    extra: [
+      { name: 'slopes-tower', url: 'data/tower.geojson', source: 'austin-tower',
+        layer: 'tower-solid', hideKind: 'roof', lod: null,
+        minzoom: () => (window.TOWER && typeof window.TOWER.minZoom === 'number') ? window.TOWER.minZoom : 14 },
+    ],
   };
   window.SLOPES_ROOFS = ROOFS;
 
   let _map = null, _group = null, _rig = null;
   let _filtered = false, _origFilter = null, _lastDetail = null;
-  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, triangles: 0, ms: 0 };
+  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, triangles: 0, ms: 0, extra: {} };
   let _full = 0;                 // roofs drawn to their ridge in the last build
+  let _capOn = false;            // ROOFS.capShade wanted (SLOPES.on && ROOFS.on)
+  const _extras = ROOFS.extra.map(spec => ({ spec, rig: null, group: null, filtered: false, origFilter: null, count: null }));
   let _blocks = 0;               // attached blocks drawn in the last build
 
   // ── helpers ─────────────────────────────────────────────────────────────
@@ -583,27 +597,6 @@
         if (ROOFS.soffit) B.quad(P(wall[k], r.base), P(wall[j], r.base), P(eave[j], r.base), P(eave[k], r.base), r.lip, DOWN);
       }
     }
-    // 1b. the eave's shadow: the wall band under the soffit, in front of the
-    //     parapet cap, on the building's exact footprint (a CCW ring)
-    const ES = ROOFS.eaveShadow;
-    if (own && ES && ES.on && r.foot && r.foot.length >= 3 && r.wall && r.wall.every(c => typeof c === 'string' && c.length === 7)
-        && r.h != null && r.base > r.h + 1e-3 && !r.wing) {
-      const col = tintCol(r.wall, ES.tone == null ? 1 : ES.tone);
-      const F = r.foot, N = F.length, proud = ES.proud || 0, lim = ES.miterLimit || 4;
-      const on2 = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1; return [dy / L, -dx / L]; };
-      const off = [];
-      for (let k = 0; k < N; k++) {
-        const a = on2(F[(k - 1 + N) % N], F[k]), b = on2(F[k], F[(k + 1) % N]);
-        let mx = a[0] + b[0], my = a[1] + b[1]; const L = Math.hypot(mx, my) || 1; mx /= L; my /= L;
-        const cosHalf = mx * a[0] + my * a[1];                  // the mitre grows as 1/cos of half the turn
-        const m = Math.min(lim, cosHalf > 1e-6 ? 1 / cosHalf : lim);
-        off.push(loc([F[k][0] + mx * m * proud, F[k][1] + my * m * proud]));
-      }
-      for (let k = 0; k < N; k++) {
-        const j = (k + 1) % N;
-        B.quad(P(off[k], r.h), P(off[j], r.h), P(off[j], r.base), P(off[k], r.base), col, outward(off[k], off[j]));
-      }
-    }
     // 2. the slope: one strip per profile edge, split where either end reaches its cap
     facet(B, true);
     for (let k = 0; own && k < M; k++) {
@@ -731,6 +724,105 @@
     return g;
   }
 
+  // ── the eave's shadow: the parapet cap painted as the wall ──────────────
+  // js/timeofday.js's bakedColor(p) is ['interpolate', ['linear'], p, 0, rd,
+  // 0.5, rg, 1, rn] with p a NUMBER, rewritten at every quantised hour. The
+  // wrapper keeps that hour: ['match', id, <the rig's building ids>, <the
+  // wall's wd/wg/wn × tone at the same p>, <the hour's own expression>].
+  // Restoring puts the inner expression back — byte for byte what a page
+  // without this layer holds at that hour.
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  function capIds() {
+    // a tiled WING of a flat building (rig `wing`: the wing survey) has an
+    // eave over part of the wall only; its cap keeps the deck's colour
+    const seen = new Set();
+    for (const k of Object.keys(_rig.roofs)) { const id = k.split('/')[0]; if (id && !_rig.roofs[k].wing) seen.add(id); }
+    return [...seen];
+  }
+  function capWrap(inner) {
+    const tone = ROOFS.capShade.tone;
+    const p = (Array.isArray(inner) && inner[0] === 'interpolate' && typeof inner[2] === 'number') ? inner[2]
+            : (typeof window.__todCurrentP === 'number' ? clamp01(window.__todCurrentP) : 0.5);
+    const ch = (prop, i) => ['*', tone, ['at', i, ['to-rgba', ['to-color', ['get', prop], '#888888']]]];
+    const col = prop => ['rgb', ch(prop, 0), ch(prop, 1), ch(prop, 2)];
+    const shade = ['interpolate', ['linear'], p, 0, col('wd'), 0.5, col('wg'), 1, col('wn')];
+    return ['match', ['get', 'id'], capIds(), shade, inner];
+  }
+  const capIsOurs = e => Array.isArray(e) && e[0] === 'match' && e.length === 5 && Array.isArray(e[3]) && e[3][0] === 'interpolate' && Array.isArray(e[3][4]) && e[3][4][0] === 'rgb';
+  function setCap(on) {
+    const C = ROOFS.capShade;
+    if (!_map || !C || !_map.getLayer(C.layer)) return;
+    let cur = null;
+    try { cur = _map.getPaintProperty(C.layer, 'fill-extrusion-color'); } catch (e) { return; }
+    if (on && C.on && _rig) {
+      if (capIsOurs(cur)) return;                          // already ours, at this hour
+      const ids = capIds();
+      if (!ids.length) return;
+      _map.setPaintProperty(C.layer, 'fill-extrusion-color', capWrap(cur));
+    } else if (capIsOurs(cur)) {
+      _map.setPaintProperty(C.layer, 'fill-extrusion-color', cur[4]);   // the hour's own
+    }
+  }
+
+  // ── other bakes' rigs (ROOFS.extra) ─────────────────────────────────────
+  function buildExtra(x) {
+    const S = window.slopes, T = window.THREE;
+    const t0 = performance.now();
+    const B = S.build();
+    const n = window.slopesRoofs.emit(B, x.rig);
+    const g = new T.Group();
+    g.name = x.spec.name;
+    g.userData.lod = x.spec.lod || null;
+    const mz = typeof x.spec.minzoom === 'function' ? x.spec.minzoom() : x.spec.minzoom;
+    g.userData.minzoom = mz == null ? null : mz;
+    if (B.triangles) { const mesh = new T.Mesh(B.geometry(), S.material()); mesh.name = 'roofs'; g.add(mesh); }
+    x.count = { roofs: n, triangles: B.triangles, ms: +(performance.now() - t0).toFixed(1) };
+    count.extra[x.spec.name] = x.count;
+    return g;
+  }
+  function setExtraFilter(x, on) {
+    if (!_map || !_map.getLayer(x.spec.layer)) return;
+    if (on) {
+      if (x.filtered) return;
+      x.origFilter = _map.getFilter(x.spec.layer) || null;
+      const hide = ['!=', ['get', 'kind'], x.spec.hideKind];
+      _map.setFilter(x.spec.layer, x.origFilter ? ['all', x.origFilter, hide] : hide);
+      x.filtered = true;
+    } else if (x.filtered) {
+      _map.setFilter(x.spec.layer, x.origFilter);
+      x.filtered = false;
+    }
+  }
+  function applyExtras(want) {
+    const S = window.slopes;
+    for (const x of _extras) {
+      if (!x.rig) continue;
+      const on = want && x.spec.on !== false;
+      if (on && !x.group) { x.group = buildExtra(x); S.add(x.group); }
+      else if (on && x.group && _lastDetail !== S.detail()) { S.remove(x.group); x.group = buildExtra(x); S.add(x.group); }
+      else if (!on && x.group) { S.remove(x.group); x.group = null; }
+      setExtraFilter(x, on);
+    }
+  }
+  async function bootExtra(x) {
+    const map = _map, S = window.slopes;
+    if (!map.getLayer(x.spec.layer)) return false;         // the pass that owns it has not booted (or ?tower=0)
+    let gj = null;
+    try {
+      const src = x.spec.source && map.getSource(x.spec.source);
+      const d = src && src._data;
+      if (d && typeof d === 'object' && d.rig) gj = d;
+    } catch (e) {}
+    if (!gj) {
+      try { gj = await S.fetchJSON(x.spec.url); } catch (e) { console.warn('[slopes-roofs]', x.spec.name, e.message); return true; }
+    }
+    if (!gj || !gj.rig || !gj.rig.roofs) { console.warn('[slopes-roofs]', x.spec.url, 'carries no rig — its slabs stay'); return true; }
+    x.rig = gj.rig;
+    window.applySlopesRoofs(map);
+    console.log('[slopes-roofs]', x.spec.name + ':', x.count ? x.count.roofs : 0, 'roofs in', x.count ? x.count.triangles : 0, 'triangles');
+    return true;
+  }
+
   function setFilter(on) {
     if (!_map || !_map.getLayer(ROOFS.layer)) return;
     if (on) {
@@ -749,15 +841,23 @@
     if (!map || !_rig) return;
     const S = window.slopes;
     const want = !!(window.SLOPES.on && ROOFS.on);
+    // the extras first: they compare _lastDetail before build() moves it
+    applyExtras(want);
     if (want && !_group) { _group = build(); S.add(_group); }
     else if (want && _group && _lastDetail !== S.detail()) { S.remove(_group); _group = build(); S.add(_group); }
     else if (!want && _group) { S.remove(_group); _group = null; }
     setFilter(want);
+    _capOn = want;
+    setCap(want);
     map.triggerRepaint();
   };
 
   window.slopesRoofs = {
-    rebuild() { if (_group) { window.slopes.remove(_group); _group = null; } window.applySlopesRoofs(); },
+    rebuild() {
+      if (_group) { window.slopes.remove(_group); _group = null; }
+      for (const x of _extras) if (x.group) { window.slopes.remove(x.group); x.group = null; }
+      window.applySlopesRoofs();
+    },
     /**
      * Draw another file's `rig` member into a builder: the same schema
      * scripts/bake_roofs.py writes for the campus (profile, rays, caps,
@@ -781,6 +881,7 @@
     get group() { return _group; },
     get data() { return _rig; },
     get filtered() { return _filtered; },
+    get extras() { return _extras.map(x => ({ name: x.spec.name, ready: !!x.rig, drawn: !!x.group, filtered: x.filtered, count: x.count })); },
   };
 
   // ── boot ────────────────────────────────────────────────────────────────
@@ -810,8 +911,35 @@
       wrapped.__roofsHooked = true;
       window.applySlopesSettings = wrapped;
     }
+    // the cap's shadow rides the hour: js/timeofday.js rewrites the cap's
+    // colour at every quantised hour, and this re-wraps it (a no-op when the
+    // hour has not moved — see setCap)
+    if (!window.__slopesRoofsTodHooked && typeof window.applyTimeOfDay === 'function') {
+      const origTod = window.applyTimeOfDay;
+      window.applyTimeOfDay = function (m, pp, force) {
+        const r = origTod.apply(this, arguments);
+        try { if (_capOn) setCap(true); } catch (e) {}
+        return r;
+      };
+      window.__slopesRoofsTodHooked = true;
+    }
     window.applySlopesRoofs(map);
     console.log('[slopes-roofs]', count.roofs, 'roofs (' + count.full + ' to their ridge) and', count.gables, 'gable in', count.triangles, 'triangles,', count.ms, 'ms');
+    // the other bakes' rigs boot on their own clock: each waits for the
+    // layer that draws its stand-ins
+    for (const x of _extras) {
+      (function pollExtra() {
+        let n = 0, busy = false;
+        const t = setInterval(async () => {
+          if (busy) return;
+          busy = true;
+          let done = false;
+          try { done = await bootExtra(x); } catch (e) { console.error('[slopes-roofs]', x.spec.name, e); done = true; }
+          busy = false;
+          if (done || ++n > 900) clearInterval(t);
+        }, 150);
+      })();
+    }
     return true;
   }
   (function poll() {

@@ -80,8 +80,10 @@
  *
  * With the generators (js/slopes-roofs.js, -arches.js, -dome.js) drawing:
  *
- *   built     108 roofs + Gregory Gym's gable, 24 arched entrances and the
- *             three dome parts are in the scene; roofs-pitched shows only the
+ *   built     108 roofs + Gregory Gym's gable, 24 arched entrances, the
+ *             three dome parts and the Main Building's three hips (the
+ *             tower bake's rig, its own group `slopes-tower` since
+ *             2026-09-03) are in the scene; roofs-pitched shows only the
  *             `f` tags it keeps, entrances-portal/glass exclude `arc`, and
  *             capitol-dome excludes the three lathed parts; SLOPES.on = false
  *             puts all three filters back to what they were. The roofs-filter
@@ -207,6 +209,10 @@ const ARCH_PROBE_UMIN = 0.35;     // m; keep off the centreline — bake_entranc
                                   // across the crown, proud of the band, present in BOTH shapes
 const ARCH_PROBE_DELTA = 12;      // /255 luma; how far such a pixel must move when the chords come back
 const ARCH_PROBE_MIN = 5;         // of ARCH_PROBES — a majority, not all of them
+// The generator groups the scene must hold on a plain page: the campus
+// roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
+// Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
+const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower'];
 
 const results = [];
 const check = (name, pass, detail) => { results.push({ name, pass: !!pass, detail }); };
@@ -478,29 +484,39 @@ const GREGORY = { center: [-97.7365, 30.2845], zoom: 17.722, pitch: 50, bearing:
 const BATTLE = { center: [-97.74095, 30.28495], zoom: 19.765, pitch: 65, bearing: 200 };
 const BATTLE_DOOR = { center: [-97.74015, 30.28541], zoom: 21.17, pitch: 75, bearing: 270 };
 await page.evaluate(() => window.GFX.renderDistance = 1500);
-await page.waitForFunction(() => window.slopesRoofs && window.slopesRoofs.count.roofs > 0 && window.slopesArches && window.slopesArches.count.done && window.slopesDome && window.slopesDome.count.done, null, { timeout: 90000 }).catch(() => {});
+await page.waitForFunction(() => window.slopesRoofs && window.slopesRoofs.count.roofs > 0 && window.slopesArches && window.slopesArches.count.done && window.slopesDome && window.slopesDome.count.done
+  && window.slopesRoofs.extras.every(x => x.ready), null, { timeout: 90000 }).catch(() => {});
 const gen = await page.evaluate(() => {
   const m = window.__map;
   const names = window.slopes.root.children.map(g => g.name);
   return { roofs: window.slopesRoofs.count, arches: window.slopesArches.count, dome: window.slopesDome.count, names,
            filters: { roofs: JSON.stringify(m.getFilter('roofs-pitched') || null), portal: JSON.stringify(m.getFilter('entrances-portal') || null), glass: JSON.stringify(m.getFilter('entrances-glass') || null), dome: JSON.stringify(m.getFilter('capitol-dome') || null) } };
 });
-check('the three generators built: roofs + gable, 24 arches, 3 dome parts, each a group in the scene',
-  gen.roofs.roofs >= 100 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3 && ['slopes-roofs', 'slopes-arches', 'slopes-dome'].every(n => gen.names.includes(n)),
-  `${gen.roofs.roofs} roofs + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris); groups ${gen.names.join(', ')}`);
+// Since 2026-09-03 the roofs generator also draws the Main Building's three
+// hips from data/tower.geojson's rig into a fourth group, `slopes-tower`
+// (SLOPES_ROOFS.extra), and 93 of the 108 campus roofs run to their ridge
+// (count.full) instead of stopping at a deck.
+check('the generators built: roofs + gable (most of them to a ridge), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
+  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3
+  && WANT_GROUPS.every(n => gen.names.includes(n)),
+  `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
 check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
   ROOFS_FILTER_RE.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
   `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
 const restored = await page.evaluate(async () => {
   const m = window.__map;
   window.SLOPES.on = false; await new Promise(r => setTimeout(r, 300));
-  const off = { roofs: m.getFilter('roofs-pitched') || null, portal: JSON.stringify(m.getFilter('entrances-portal') || null), glass: JSON.stringify(m.getFilter('entrances-glass') || null), dome: m.getFilter('capitol-dome') || null, groups: window.slopes.root.children.map(g => g.name) };
+  const off = { roofs: m.getFilter('roofs-pitched') || null, portal: JSON.stringify(m.getFilter('entrances-portal') || null), glass: JSON.stringify(m.getFilter('entrances-glass') || null), dome: m.getFilter('capitol-dome') || null, groups: window.slopes.root.children.map(g => g.name),
+                tower: JSON.stringify(m.getFilter('tower-solid') || null), cap: JSON.stringify(m.getPaintProperty('buildings-roof', 'fill-extrusion-color') || null) };
   window.SLOPES.on = true; await new Promise(r => setTimeout(r, 300));
   return off;
 });
-check('SLOPES.on = false puts every filter back (roofs-pitched and capitol-dome to none, the entrance layers to their own) and takes the groups out',
-  restored.roofs === null && restored.dome === null && !/arc/.test(restored.portal) && !/arc/.test(restored.glass) && /"k"/.test(restored.portal) && !restored.groups.some(n => /slopes-(roofs|arches|dome)/.test(n)),
-  `off: roofs ${restored.roofs}, dome ${restored.dome}, portal …${restored.portal.slice(-60)}, groups [${restored.groups.join(', ')}]`);
+check('SLOPES.on = false puts every filter back (roofs-pitched and capitol-dome to none, the entrance layers and tower-solid to their own), the cap colour to the hour it had, and takes the groups out',
+  restored.roofs === null && restored.dome === null && !/arc/.test(restored.portal) && !/arc/.test(restored.glass) && /"k"/.test(restored.portal)
+  && !/"kind"\],"roof"/.test(restored.tower) && !/^\["match","\["get","id"/.test(restored.cap) && /^\["interpolate"/.test(restored.cap)
+  && !restored.groups.some(n => /slopes-(roofs|arches|dome|tower)/.test(n)),
+  `off: roofs ${restored.roofs}, dome ${restored.dome}, portal …${restored.portal.slice(-60)}, tower ${restored.tower}, cap ${restored.cap.slice(0, 40)}…, groups [${restored.groups.join(', ')}]`);
 
 // ridge: the hipped roof the light separates best, near the frame's centre
 await pose(page, GREGORY.center, GREGORY.zoom, GREGORY.pitch, GREGORY.bearing);
@@ -710,6 +726,7 @@ async function mallFrame(url, name, before) {
 // Everything the page must have finished before a frame of it is worth diffing.
 const settled = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
   && window.slopesRoofs && window.slopesRoofs.count.roofs > 0
+  && window.slopesRoofs.extras.every(x => x.ready)          // the Main Building's rig, on its own poll
   && window.slopesArches && window.slopesArches.count.done
   && window.slopesDome && window.slopesDome.count.done, null, { timeout: 120000 });
 const filtersOf = pg => pg.evaluate(ids => Object.fromEntries(ids.map(id => [id, JSON.stringify(window.__map.getFilter(id) || null)])), FILTERED);
@@ -721,7 +738,7 @@ const onState = await A.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slo
 // installed empty, and stale from the moment the generators landed. On the real
 // page the scene is the three generator groups and nothing else (the debug
 // scene only exists under ?slopesdebug=1).
-const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome'];
+// (WANT_GROUPS is declared with the gate's constants at the top of the file)
 check('by default the layer is installed and the three generators are the whole of its scene',
   onState.layer && onState.frames > 0 && onState.renderer
   && onState.groups.length === WANT_GROUPS.length && WANT_GROUPS.every(n => onState.groups.includes(n)),
