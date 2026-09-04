@@ -1,5 +1,90 @@
 # Austin 3D Explorer — Full Handoff
 
+## 215. Sep 4 2026 — the Main Mall comparison, round 4: matched the camera first this time, and it landed close — Google Earth's `dist` re-tuned from round 3's 470m to 550m against a freshly re-shot `ours.png` (`acer/slopes`, no app code changes this entry — verification frame only)
+
+Round 3 (§212) tuned Google Earth's `dist` to 470m and called it a materially
+better match than round 1/2's 600m, while saying plainly its own pixel
+measurements were too noisy between the two renderers to trust a number. This
+round was told three straight rounds had all been judged the same way —
+**"ours sat higher and farther back than Google's"** — meaning our Tower reads
+smaller than Google's at any of the distances tried so far, so Google needed
+to pull back FARTHER than round 3's 470m, not closer. The brief's instruction
+this time was explicit: match the camera BEFORE anything else, re-derive
+`dist` from the formula, iterate against a fresh `ours.png` shot off the
+current tip (`8ba67df`, carrying the ridge/hip/valley roof courses §213 added
+and the double-fetch fix §214 just landed — neither round 1-3's `ours.png` had
+either), and this time get a real number for the residual instead of giving up
+on one.
+
+**Camera pose, unchanged fourth round running:** center `[-97.7393, 30.2856]`,
+zoom 17.48 (FOV-corrected for this app's real 58° vertical FOV,
+`js/controls.js:52`), pitch 55, bearing 0, 1440×900. Only Google's `dist`
+moved. The brief's own formula re-derives to essentially round 1/2's original
+number: `dist = (0.5·900/tan 29°) · 156543.03392·cos(30.2856°)/2^17.48 =
+600.29m`.
+
+**Iteration, 3 of the brief's 5-load budget:** `dist=600` (the formula's own
+baseline, and round 1/2's original value) — by eye against the fresh
+`ours.png`, still visibly too small, same finding as three rounds ago.
+`dist=470` (round 3's old final, re-tried as a sanity check) — this time
+overshot the other way, reading as large or larger than ours; the fresh
+`ours.png`'s new roof geometry reads differently than the old one did, or the
+true match point was never quite at either round's endpoint. `dist=550`
+(split the 470/600 bracket, final) — by eye the closest of the three, Tower
+prominent and un-clipped with comparable context both sides.
+
+Final URL:
+`https://earth.google.com/web/@30.2856,-97.7393,190a,550d,35y,0h,55t,0r`
+
+Google's own in-app readback confirms the camera landed where asked, not
+snapped: camera 505m ASL, ground 188m ASL → 317m above ground, against
+`dist·cos(55°)`'s predicted 315.5m — 0.5% off.
+
+**The number round 3 didn't get: measured on the SAME architectural feature in
+both renders, not on where each renderer happens to draw an occluding
+rooftop.** The Tower's open observation-deck colonnade — the four vertical
+dark window-slits directly under the roof cap, sharp in both a flat-shaded
+low-poly render and a photogrammetry mesh — spans 28px in Google's frame
+against 26px in ours, on the final 1100-wide chrome-free crops: a 2px, ~7%
+difference, inside the brief's ~10% bar. A second, independent feature (roof
+cap to the setback ledge where the shaft meets the Tower's own base block)
+gives 188px vs 194px, 3% off, same direction. Roof-cap top itself lands at the
+identical pixel row in both. Horizontally, the Peter T. Flawn Academic Center
+and Union Building labels match to 1-5px on a 1100px-wide frame. **What
+didn't work, flagged for whoever measures round 5:** a first attempt measured
+full Tower height down to where each render's OWN foreground rooftop occludes
+the shaft, and got a spurious ~30% gap — discarded once it was clear the two
+renderers simply model the Old Main/Sutton roofline in front of the Tower at
+different heights, so that occlusion point reflects a geometry-modeling
+difference between the renderers, not a camera mismatch. Only shared,
+identifiable Tower architecture is a valid cross-renderer ruler; an occlusion
+boundary is not. Full arithmetic, every iteration's readback, and both
+measurement passes (the one that worked and the one that was thrown out) in
+more detail: `judge/fair/r4/key.txt` (scratchpad, not the repo).
+
+**Both frames, hardware GL, 1440×900, second of two shots kept, zero console
+errors, one headless Chrome at a time (orphan-swept via `Get-CimInstance`
+before finishing, none found).** Ours shot once (pose is fixed by the brief;
+only Google's `dist` moved). Google: each `dist` iteration got its own
+20-40s-settle shot, same two-popup dismissal-by-coordinate-click as rounds
+1-3. The crop this round used an IDENTICAL 1080×675 source-pixel window for
+both images (not just a matching final aspect) so a size difference in the
+1100-wide finals reflects a real camera mismatch and not a crop-window one; a
+first crop attempt left Google's own bottom-right icon cluster (person/no-fly/
+2D/compass buttons) in frame and was redone once that was spotted.
+
+**Committed:** `docs/shots/mallcruise-fair-r4-side-by-side.jpg` (A: Google at
+dist=550m; B: ours). The round's full working files (`ours.png`,
+`google-v{1,2,3}.png`, `A.png`/`B.png`, every measurement crop, `key.txt`)
+stay in the scratchpad per the disk rule — only the cited comparison frame is
+committed. The local `scripts/serve.py :8099` this round started was stopped
+at the end.
+
+**Next.** This is the closest of the four rounds by every metric measured —
+colonnade span within 7%, setback-ledge height within 3%, roof-cap pixel-
+identical. Whoever runs the roof-geometry critic next should use THIS pose
+(`judge/fair/r4`, dist=550), not round 3's 470 or round 1/2's 600.
+
 ## 214. Sep 4 2026 — the entrances file was downloaded TWICE on every page the roofs/arches/dome layer was on; it is downloaded once now, and the layer's whole page cost went to zero (`acer/slopes`, not merged)
 
 The one blocker left on the real-slopes pass after its final check: an ON page
