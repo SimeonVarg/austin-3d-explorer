@@ -1,5 +1,212 @@
 # Austin 3D Explorer — Full Handoff
 
+## 213. Sep 3 2026 — round 6 of the fair-camera critic: a hip from the air is its ridge and hip COURSES, and the mesh now draws them — Garrison, the Main Building's south block and the roofs north of the Tower read as hips at mall-cruise (`acer/slopes`, not merged, commits `6ffc531` `c75eab7`)
+
+Round 6 was the same fair fight (Google Earth at OUR mall-cruise pose, now at
+§212's dist=470) on the tip that closed §211, and the critic picked Google
+again: "B is crisp but almost every red roof reads as a flat plateau with a
+bevelled rim (a truncated pyramid), not two slopes meeting at a ridge; from
+this height the Main Building's south block and Garrison Hall look like lids
+with a chamfer ... Both roofs render as a bright flat top plane with a narrow
+darker sloped band around the edge. They should be true hips: one ridge line
+running the full long axis, hip lines from each ridge end down to the
+building corners, and the two slopes lit differently so the ridge is a
+visible line from the air." Secondary: the roofs north of the Tower
+(Biological Laboratories) "plain red slabs with no ridge or hip"; the Tower
+crown "a straight shaft with a flat cap"; aliased roof edges.
+
+**Check the premise first: the mesh already WAS every one of those things.**
+§209 ran every tile-middle roof to its ridge (`full`, 104 of 115 drawn) and
+§211 made the Main Building's three roofs hips; the gate's `ridge` line reads
+two tones either side of a ridge at gregory every run. So the critic was
+looking at a true hip and reading a lid. Measured on the frame they judged
+(`judge/fair/r3/ours.png`, tip df5e9f2, golden hour, bearing 0, pitch 55,
+0.74 m/px), a pixel column down Garrison's roof at x = 900: **60 rows of one
+tone (224,85,24), then 4 rows of (146,55,13) beyond the ridge, then the
+eave.** That is what a bare hip IS from this camera: a slope facing away
+projects to `0.574·w − 0.819·rise` screen-metres (the camera looks down at
+35°: `sin 35 · w − cos 35 · rise`) — 2.8 m of Garrison's 12.2 m half-span,
+four pixels — while the slope facing the camera gets `0.574·w + 0.819·rise`,
+11.2 m, and the facet shading (§204c's `SLOPES.facetShade`, the slabs' own
+38° rule) puts the far slope at 0.65-0.70 of the near one (Batts 65 vs 93
+luma, Mezes 76 vs 110, Hogg 69 vs 96 — the pass's `before/` probe). Four
+pixels at 0.7 IS "a narrow darker band around the edge", and a 60-px plane
+with nothing on the line where it turns over IS "a bright flat top". The
+shape was right; nothing MARKED the ridge. Google's frame marks it: a
+barrel-tile roof carries a RIDGE COURSE and HIP COURSES — round tiles bedded
+in mortar, standing proud of the field — and from the air they are pale
+lines at roughly 1.5× the field's luma along every ridge and every hip, and
+those lines are what the eye reads as "hip" at this distance
+(`docs/shots/courses-garrison-google-vs-ours.jpg`, left panel). The
+critic's own prescription ("the two slopes lit differently so the ridge is a
+visible line") names the line as the goal; the lighting was already doing
+its part.
+
+**The fix (`js/slopes-roofs.js`, `ROOFS.lines`, commit `6ffc531`).** The
+courses, generated from the rig alone, nothing typed for a building. A RIDGE
+is a slope strip's top edge where the profile has stopped —
+`at(k, min(d_use, caps[k]))` to `at(j, …)` — longer than a point
+(`minM` 0.4 m), drawn once (the two slopes either side of a ridge both end on
+it; deduped by endpoints); on an L the two legs' ridges meet at the inside
+corner by construction, because that is where the rig's caps put them. A HIP
+is a convex corner's own path from the eave's edge (out over the lip) to
+where the corner stops. A concave corner's path is a VALLEY — flashing, not
+tile — a darker line (`valley.tone` 0.82) lying flush. A mid-wall sample
+point the bake added along a long wall (|ray| = 1, turning less than
+`straightDeg` 8°) is a seam inside one plane and gets nothing. A roof drawn
+to a deck (a truncated hip, the Union's blocks) keeps its hips and gets no
+ridge — its top edge is the deck's outline. Edges the gable end or Gregory's
+hall took, a block's interior edges, and the corners on them draw nothing;
+Gregory's hall keeps its own `ridgeCap`. Each course is a box `w` wide whose
+top stands `h` proud of the line (`ridge` 1.0 × 0.15 m, `hip` 0.8 × 0.15)
+with sides dropping 0.5 m below the surface (hidden — no gap under it from
+any angle) and a cap on its low end, in the roof's colour `pale` 0.38 of the
+way to white (0.08 at night, when nothing on a roof is lit), never a facet:
+lit as the tile it is. A real ridge course is ~0.4 m wide; foreshortened by
+0.574 at mall-cruise that is half a pixel and would draw as a broken dash on
+the map's un-antialiased context, so the width is the number that carries
+the read — the same call bake_tower.py made drawing the clock dial at 3.05 m
+instead of 3.66 ("the RING is the thing that carries the read at this
+distance, so it gets the pixels") — and it is stated in the taste block. The
+Main Building's three arms get theirs through the same `roofOne` (22 courses
+on `slopes-tower`); the Capitol's wings do not (`js/slopes-dome.js` passes
+`lines: false`: standing-seam painted metal at 16.7°, not barrel tile — and
+capitol-dome moves by nothing but raster noise below). `lines.on = false` is round 5's roofs.
+Cost: 1,780 courses on the campus rig — a replica of the rule off the rig
+splits them as ~880 ridges, ~690 hips and ~220 valleys (1,790; the ten
+fewer on the mesh are the edges Gregory's hall and its blocks skip), and
+the Main Building's 22 are 8 ridges, 13 hips and 1 valley exactly —
+11,780 → 31,484 triangles in the roofs group (88 → 133 ms to build; one
+draw call as before).
+
+**Proved from pixels at mall-cruise** (hardware GL, ANGLE / RTX 3050 Ti /
+D3D11, 1440×900, `?intro=0&drift=0`, graphics auto-detect cancelled,
+auto-exposure pinned off, every core and deferred source waited on, second of
+two shots; before = the tip this pass started from, after = the tree,
+same server, same harness — the pass's `cap.mjs`): the ridge's pixel column
+on every probed plain hip went from the slopes' own tones to a pale row —
+Garrison rows 488-491 luma 75 → 123-135 over slopes of 75 / 114; Batts
+60 → 114-128 over 60 / 94; Hogg 65 → 116-130 over 65 / 97; Biological
+Laboratories 108 → 124 over 108 / 108 (its far slope is under four rows
+tall there, so "both slopes" is one tone) — and a raycast at each ridge
+lands on the mesh 0.15 m above it where it landed ON it before (Batts 25.97
+→ 26.12, Battle 27.75 → 27.89, Hogg 20.77 → 20.92, Biological Labs 20.96
+→ 21.11). Whole frame ON, before → after: **26,072 px (2.01 %)** — the courses and
+nothing else (the tip's generator served to a control page by route
+interception, same server, same harness, same settle — the §204c control). Frames, committed because this entry cites them:
+`docs/shots/courses-garrison-before-after-4x.jpg` (lead with this: an L
+that read as a lid, now two ridges meeting over a valley with hips to every
+corner), `docs/shots/courses-mainbuilding-before-after-4x.jpg` (the south
+block under the "UT Tower" label: a ridge the full length, hips to the
+corners), `docs/shots/courses-north-biolabs-before-after-4x.jpg` (Biological
+Laboratories and Painter's wing, the "plain red slabs"),
+`docs/shots/courses-mezes-batts-before-after-3x.jpg` (an E-shaped roof:
+three ridges, two valleys), `docs/shots/courses-mallcruise-before-after.jpg`
+(the frame), `docs/shots/courses-garrison-google-vs-ours.jpg` (Google, ours
+before, ours after: the ridge, the hips and the valley on the first and
+the third, nothing on the second),
+and for round 7 `docs/shots/mallcruise-fair-r3-courses-side-by-side.jpg`
+(§212's A against the new B at the same crop).
+
+**The other three poses, old generator against new — the §204c control:**
+the tip's `js/slopes-roofs.js` and `js/slopes-dome.js` served to a control
+page by route interception, same server, same harness, same settle:
+**gregory 12,210 px (0.94 %), battle-street 19,184 px (1.48 %),
+capitol-dome 2,613 px of max channel Δ 1-2** (2,583 at Δ1, 30 at Δ2, all
+in the far top-left of the frame — the same haze/label raster noise §209
+saw at this pose at 1,573 px of Δ1; the Capitol did not move, its wings
+take no courses). gregory's pixels are the dorm roofs either side of the
+gym and the gym's own annex block wearing their hips and ridges — the
+hall is untouched, its ridgeCap being its own; battle-street's are Sutton
+Hall's ridge and hip courses seen from the street, a thin pale line along
+the ridge at that distance (the pass's `fourcmp/` crops in the scratchpad).
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+branch worktree on :8711, the verifier's `git archive e232953` on :8712,
+each served by its own scripts/serve.py, graphics auto-detect cancelled,
+auto-exposure pinned off, second of two shots kept, one headless Chrome at
+a time (orphan-swept by `Get-CimInstance` before and after).**
+`scripts/verify/slopes-layer.mjs --against`: **50/50, exit 0** on the
+third run — the first was 49/50 with the new `courses` line red on ITS OWN
+geometry (a rounded pixel put the raycast 0.6 m along the view, on the
+box's side face instead of its top; the far-slope sample 4 m out projected
+on to the course itself on the foreshortened roofs; four ridges at the
+frame's top edge were sub-pixel; one ridge was behind a taller building),
+the second crashed on a constant the page could not see, and no other
+line moved across the three. The lines about this pass: `built` 115 roofs
+(104 to their ridge; 8 flat, drawn as 11 parts; **1,780 courses**) + 1
+gable in 31,484 triangles, the Main Building 3 roofs, 22 courses, 424
+triangles; **`courses`: 11 plain hips in frame with a ridge ≥ 20 px, 11
+with the ridge in view, 11 with the raycast landing exactly 0.15 m proud
+of the ridge, 11 lighter at the ridge** — Sutton 106 vs 85 luma, Parlin
+112 / 95, Batts 111 / 93, West Mall Office 114 / 100, Biological Labs 118
+/ 106, Gordon-White 136 / 98, Carothers 117 / 106, Painter 127 / 100,
+Hogg 113 / 96, Waggener 117 / 106, Welch 134 / 101; the `ridge` line at
+gregory still on Jester East's part, 101.0 / 131.4 luma; the toggle line
+980 px Δ 12 (the atlas residue), OFF vs a `?slopes=0` load 6,156 px
+(ceiling 7,000), render()-stopped 0 px, no page errors. Two expectations changed
+deliberately and both are named in the file: the `built` line asks for the
+courses beside the ridges (`lines ≥ 1000` on the campus rig, `≥ 12` on the
+tower's; the shipped rig has 1,780 and 22), and a new `courses` line at
+mall-cruise takes every plain four-corner hip in frame, projects its
+longest ridge's midpoint and a point 4 m down each slope off the rig's own
+`full` profile, and asks that a raycast at the ridge lands on the mesh
+`h` above it (±6 cm) and that the ridge's pixel column (the row and its two
+neighbours — a 1-px course lands on one row or the next) reads at least 10
+luma over the brighter slope, on three quarters of them. `--break` gained a
+fourth sabotage — `SLOPES_ROOFS.lines.on = false` on the switch page — and
+is watched failing: **38/49 with `--break` (no `--against`), the eleven intended reds
+and nothing else** — under the sabotage the line reads 0 courses, 0 proud, 0
+lighter. `?slopes=0` on the branch against the verifier's `git
+archive e232953` (`…/34cffdba…/scratchpad/main-e232953`, its own
+scripts/serve.py on :8712), tolerance 0: **mall-cruise 0 of 1,296,000 px, max channel Δ 0** — two page loads by
+the pass's own harness, both at zero console errors — and the gate's
+bake-identity line on the same pair, run 1: 968 px of Δ ≤ 12, the facade
+atlas' two-state residue §209 named (its toggle line 980 px of Δ 12, its
+render()-stopped control 0 px, OFF against a `?slopes=0` load 6,156 px
+under the 7,000 ceiling); run 3: 969 px of Δ ≤ 12, the same residue. The generators
+are never read by a `?slopes=0` page and no bake ran this pass: `data/` is
+untouched. The reshoot ON, all four poses, second of two shots:
+`judge/fair/reshoot/r3/{mall-cruise,gregory,battle-street,capitol-dome}.png`
+(the verifier's scratchpad).
+
+**Not done, and why.** (1) **The pitch stays 22.6°** (bake `PITCH` 0.42,
+5:12). The critic asked for "25-30° so the slopes are tall enough to shade
+distinctly", but the shading is the slabs' own painted 38° rule (facetShade)
+and does not depend on the pitch, and from THIS camera a steeper roof makes
+the far slope THINNER, not taller (`0.574·w − 0.819·rise`: Garrison's north
+slope 2.8 m at 22.6°, 2.2 m at 25.5°, 1.2 m at 30°) — the read the critic
+wanted comes from the courses. The only measured pitch on campus is the
+Main Building's 25.5° (bake_tower.py, off two photographs), and the
+campus roofs' 5:12 is a stated style default; if someone measures Garrison
+or Batts off a photograph, `full.rise` is where a rig pitch would go — it is
+ON-only, the slabs (OFF = main) never move. (2) **The Tower crown is left as
+measured.** Ours has both set-backs the critic asked for (shaft 1.0 →
+clock stage 0.86 → belfry 0.49 of the shaft, bake_tower.py's rectified-
+elevation numbers) and the colonnade; at 0.74 m/px the 0.29 m gaps between
+each pair of belfry columns are sub-pixel, so the colonnade reads as a box
+with slits, and Google's rounded cap is photogrammetry smoothing a stepped
+cap. Redrawing a measured building against a blob is the wrong trade;
+`docs/shots/…` has both crowns if a later pass wants to argue it. (3)
+**The aliased edges are the map's, not the layer's**: js/app.js creates the
+WebGL context with `antialias: !!window.GFX_MSAA`, which only the `ultra`
+preset sets (a reload), so every fill-extrusion edge in the city is
+aliased at the default preset too; the custom layer draws into that
+context and cannot antialias its own edges alone. The 1-px courses are
+drawn as wide as they are partly for this reason (above). (4) The valley
+courses and the width/proudness/paleness numbers are taste
+(`ROOFS.lines`); `valley.on = false` leaves the crease bare, `pale` is one
+number. (5) Whether a ridge course should stay this wide at street level
+(battle-street, 0.15 m/px: 1.0 m is ~7 px on Sutton's ridge) was looked at
+and left: Sutton's ridge is some 40 m from that camera, so the course is
+2-3 px there, a line and not a slab; the pose where a 1.0 m course would
+be eight pixels wide is standing on a roof, which the app does not do.
+
+**Next.** Round 7 of the fair-camera critic on
+`docs/shots/mallcruise-fair-r3-courses-side-by-side.jpg` (or the fuller
+`judge/fair/reshoot/r3/mall-cruise.png` against `judge/fair/r3/A.png`). If
+the courses read too bright, `pale` is the number; too wide, `ridge.w`.
+
 ## 212. Sep 3 2026 — the Main Mall comparison, round 3: same camera wasn't enough, it needed the same SCALE too — Google Earth's `dist` tuned by eye, 600m → 470m (`acer/slopes`, no app code changes this entry — verification frame only)
 
 Rounds 1/2 (§209–§210 above, `judge/fair/r1`, `judge/fair/r2`) fixed WHICH
