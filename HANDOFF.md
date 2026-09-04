@@ -48,8 +48,53 @@ round. The follow-up is written as the true and useful version instead — the
 renderer untangles folded rings at runtime (`ROOFS.untangleDeck`) and the bake
 should not write them.
 
-**Next: the PR, the merge, and the live check** — appended to this entry as a
-docs-only commit on `main` once the deployment has been looked at.
+**Merged.** PR [#234](https://github.com/SimeonVarg/austin-3d-explorer/pull/234),
+merge commit **`92e2f025f82c697109e984573166efe879c66697`**, `acer/slopes` deleted
+local and remote. `gh pr merge` reported `failed to run git: fatal: 'main' is
+already used by worktree at 'C:/Users/simip/Projects/austin-3d-facades'` — that
+is `gh` failing to check `main` out LOCALLY afterwards, not a failed merge; the
+merge itself landed (`gh pr view 234` reads `MERGED`, `origin/main` moved
+`e232953 → 92e2f02`). The facades lane's worktree was not touched.
+
+**The live site was looked at, not assumed.**
+`https://flyover-utx.vercel.app/js/slopes.js` was polled until it returned 200
+carrying this branch's content (`slopedMinDeg`, which exists nowhere on
+`main` before this merge) — 404 for two polls, 200 on the third, about 50 s
+after the merge. The deployed `index.html` carries the three.js tag (line 32,
+`three@0.159.0`) and all four slopes scripts (lines 146, 151-153); all three
+generator files return 200.
+
+Then the deployed page itself, headless Chrome on the real GPU (ANGLE / NVIDIA
+RTX 3050 Ti / D3D11), 1440×900, `?intro=0&drift=0`,
+`cancelGraphicsAutoDetect()` at the top, deferred sources confirmed loaded,
+screenshot twice and the second kept, a **fresh browser per configuration**:
+
+- **`live/gregory-live.png`** — `SLOPES.on` true, `slopes-mesh` present, not
+  LOD-hidden, layer visible, all four groups drawing (**dome 11,322 + roofs
+  31,484 + tower 424 + arches 18,315 = 61,545 triangles**, the same numbers as
+  local), preset `balanced`, `window.THREE` defined, **0 console and 0 page
+  errors**. Looked at: **Gregory Gym's gabled hall is there** — two slopes
+  meeting at a ridge with the pale clerestory monitor riding it, the pediment
+  front with its raked cornice, and the three arched doorways under it.
+- **`live/gregory-live-off.png`** (`&slopes=0`) — `SLOPES.on` false,
+  `getLayer('slopes-mesh')` false, `stats()` empty, 0 errors. Looked at: the
+  slab city. Gregory's hall is one flat red plate and every roof around it is
+  a stack of stepped slabs again.
+- **`live/mall-live.png`** — the Main Mall, ON: Calhoun, Mezes, Garrison and
+  the Main Building's wings all reading as hips with ridges and courses.
+
+**`data/entrances.geojson` is requested EXACTLY ONCE on the live ON page** (CDP
+`Network.requestWillBeSent`, counted over the whole load) — the double-fetch
+§214 found is fixed where it actually ships, not only on `scripts/serve.py`.
+
+Frames and the full per-load state in the scratchpad
+(`…/34cffdba…/scratchpad/live/`, with `live-log.json`); per the disk rule only
+the frames `docs/real-slopes.md` cites are in the repo.
+
+**Cleanup.** The `austin-3d-slopes` worktree was removed and pruned from the
+primary checkout, the two local `scripts/serve.py` instances (8801, 8811) were
+stopped, and the headless Chrome count was checked back to its starting
+baseline — the owner's headed Chrome left alone.
 
 ## 215. Sep 4 2026 — the Main Mall comparison, round 4: matched the camera first this time, and it landed close — Google Earth's `dist` re-tuned from round 3's 470m to 550m against a freshly re-shot `ours.png` (`acer/slopes`, no app code changes this entry — verification frame only)
 
