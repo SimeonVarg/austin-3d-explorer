@@ -126,9 +126,17 @@
  *             a raycast at each flat entry's centroid does not land on the
  *             mesh at the plate's exact height, and the cap wrapper carries
  *             a deck branch.
+ *   courses   (round 6, 2026-09-03) every roof carries its ridge, hip and
+ *             valley courses (SLOPES_ROOFS.lines — the pale lines a barrel-
+ *             tile roof shows from the air, which are what makes a hip read
+ *             as a hip at mall-cruise, where a far slope is four pixels).
+ *             Measured at mall-cruise on the plain four-corner hips in
+ *             frame: a raycast at the ridge lands on the mesh `h` above the
+ *             ridge, and the ridge's pixel column is lighter than both
+ *             slopes 4 m either side; the generators report the count.
  *
  * --break sabotages the page — inside the page only, no file on disk changes —
- * in the three ways this gate exists to catch, and TEN lines must go red:
+ * in the four ways this gate exists to catch, and ELEVEN lines must go red:
  *   1. the layer is moved to the END of the style, above the fog: the `stack`
  *      line and the two `haze` lines (3).
  *   2. SLOPES_ARCHES.on = false, so the arched heads are the five chords
@@ -137,10 +145,13 @@
  *      this gate already got wrong once, so they are the ones worth watching.
  *   3. SLOPES_ROOFS.flatRoofs = false on the switch page, so every flat roof
  *      wears its band and plate again: the `flat roofs` line (1).
+ *   4. SLOPES_ROOFS.lines.on = false on the same page, so no roof carries a
+ *      course: the `courses` line (1).
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
  * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
  * the flat line: 38/48 with --break (the ten intended reds and nothing
- * else) against 49/49 with --against.
+ * else) against 49/49 with --against; later that day with the courses
+ * line: see HANDOFF §213 for the pair.
  *
  * Usage (from scripts/verify, README's way):
  *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]
@@ -250,6 +261,25 @@ const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' tw
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
 const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower'];
+// THE COURSES (round 6, 2026-09-03). "Almost every red roof reads as a flat
+// plateau with a bevelled rim (a truncated pyramid), not two slopes meeting
+// at a ridge" — on a mesh whose roofs already ran to their ridges. From the
+// mall-cruise camera a far slope is four pixels and nothing marked the
+// ridge; a barrel-tile roof marks it with a ridge course and hip courses,
+// pale from the air (Google's Garrison at the same pose). SLOPES_ROOFS.lines
+// draws them as boxes standing `h` proud of the ridge, so at every plain
+// hip in frame a raycast at the ridge lands on the mesh `h` ABOVE the ridge
+// (not on the ridge itself), and the ridge's pixel column reads lighter
+// than both slopes 4 m either side. Measured on the first run: 1,780 courses
+// on the campus rig, 22 on the Main Building; the ridge column 114-135 luma
+// over slopes of 60-114. --break switches the courses off.
+const COURSES_MIN = 1000;         // campus courses, measured 1,780
+const COURSE_Z_TOL = 0.06;        // m; a raycast at the ridge may land at most this much above ridge + h
+const COURSE_LUMA = 10;           // /255; the ridge column must beat the brighter slope sample by this
+const COURSE_FRAC = 0.75;         // ...on this share of the plain hips in frame (a 1-px course lands on one row or the next)
+const COURSE_RIDGE_PX = 20;       // a ridge shorter than this on screen is too small to carry a course a pixel wide
+const COURSE_SLOPE_PX = 2;        // a slope sample this close (Chebyshev, px) to the ridge pixel is the course itself, not the slope
+const COURSE_OCCLUDED_M = 1.0;    // a raycast this far from the ridge hit something in front of it: no verdict
 
 const results = [];
 const check = (name, pass, detail) => { results.push({ name, pass: !!pass, detail }); };
@@ -538,11 +568,14 @@ const gen = await page.evaluate(() => {
 // Auditorium, Seay, the three Jesters) and writes their parts as roofs of
 // their own (count.parts, 11) — so `roofs` counts the entries DRAWN (115:
 // 112 + 11 parts − 8 flat) and `full` the ones to a ridge (104).
-check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
-  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
-  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3
+// Since round 6 (same day) every roof also carries its ridge, hip and valley
+// COURSES (count.lines — 1,780 on the shipped rig, 22 more on the Main
+// Building's three arms; SLOPES_ROOFS.lines).
+check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts, all of them with their courses), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.lines >= COURSES_MIN && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
+  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines >= 12
   && WANT_GROUPS.every(n => gen.names.includes(n)),
-  `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
+  `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts; ${gen.roofs.lines} courses) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
 check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
   ROOFS_FILTER_RE.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
   `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
@@ -778,9 +811,11 @@ const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', a
   if (BREAK) {
     // the round-5 sabotage: the band-and-plate back on every flat roof, so
     // the `flat roofs` line below must go red (the plate is back at its height)
-    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.slopesRoofs.rebuild(); });
+    // ...and the round-6 sabotage: no courses, so the `courses` line below
+    // must go red (the raycast lands on the bare ridge, nothing pale there)
+    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); });
     await pg.waitForTimeout(800);
-    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again');
+    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again; SLOPES_ROOFS.lines.on = false — no ridge or hip courses');
   }
 });
 const fNoise = await snap(A.pg, 'switch-on-again');
@@ -821,6 +856,66 @@ const plated = flat.out.filter(f => f.hit && f.hit.o === 'roofs' && Math.abs(f.h
 check('flat roofs (round 5): the bake tagged some, their parts draw as hips, no flat roof in frame wears a plate at the top of a band, and the cap wrapper paints their caps the flat roof\'s colour',
   flat.count.flat >= 4 && flat.count.parts >= 6 && flat.out.length >= 2 && plated.length === 0 && flat.deckBranches >= 1,
   `${flat.count.flat} flat roofs, ${flat.count.parts} parts drawn; in frame: ${flat.out.map(f => `${f.name} @${f.px.join(',')} plate ${f.plate} -> ${f.hit ? f.hit.o + '@' + f.hit.z : 'nothing'}`).join('; ')}; ${plated.length} plated; cap wrapper deck branches ${flat.deckBranches}`);
+// THE COURSES (round 6): on every plain hip in the mall-cruise frame (four
+// corners, drawn to its ridge), the longest ridge's midpoint and a point 4 m
+// down each slope, from the rig's own `full` profile. See COURSES_MIN above.
+const courses = await A.pg.evaluate(RIDGE_PX => {
+  const S = window.slopes, R = window.slopesRoofs.data, meta = R.meta, cv = window.__map.getCanvas();
+  const LN = window.SLOPES_ROOFS.lines;
+  const out = [];
+  for (const key of Object.keys(R.roofs)) {
+    const r = R.roofs[key];
+    if (r.flat || !r.full || r.full.pts.length !== 4) continue;
+    const F = r.full, M = 4;
+    const at = (k, d) => { const c = Math.min(d, F.caps[k]); const l = S.toLocal((F.pts[k][0] + F.rays[k][0] * c) * r.dpm[0], (F.pts[k][1] + F.rays[k][1] * c) * r.dpm[1], 0); return [l.x, l.y]; };
+    const zk = (k, d) => r.base + meta.lip + F.rise * Math.min(d, F.caps[k]) / F.d;
+    let best = null;
+    for (let k = 0; k < M; k++) { const j = (k + 1) % M; const a = at(k, F.d), b = at(j, F.d); const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (!best || L > best.L) best = { k, j, L, a, b }; }
+    if (!best || best.L < 8) continue;
+    const mid = [(best.a[0] + best.b[0]) / 2, (best.a[1] + best.b[1]) / 2], zm = (zk(best.k, F.d) + zk(best.j, F.d)) / 2;
+    const n = [(best.b[1] - best.a[1]) / best.L, -(best.b[0] - best.a[0]) / best.L], pitch = F.rise / F.d, off = 4;
+    const P = [[mid[0], mid[1], zm], [mid[0] + n[0] * off, mid[1] + n[1] * off, zm - off * pitch], [mid[0] - n[0] * off, mid[1] - n[1] * off, zm - off * pitch]];
+    const prj = P.map(p => { const q = S.project(p[0], p[1], p[2]); return q && q.w > 0 && q.x > 40 && q.x < cv.clientWidth - 40 && q.y > 80 && q.y < cv.clientHeight - 80 ? [q.x, q.y] : null; });
+    if (prj.some(q => !q)) continue;
+    // the ridge's length on screen: a ridge a few pixels long at the top of
+    // the frame carries a course a fraction of a pixel wide, and says nothing
+    const ea = S.project(best.a[0], best.a[1], zk(best.k, F.d)), eb = S.project(best.b[0], best.b[1], zk(best.j, F.d));
+    const ridgePx = (ea && eb) ? Math.hypot(ea.x - eb.x, ea.y - eb.y) : 0;
+    if (ridgePx < RIDGE_PX) continue;
+    // the raycast goes through the EXACT projected point (a pixel's rounding
+    // is 0.6 m along the view at this pose — off the box's 1.0 m top and on
+    // to its side); the samples below need whole pixels
+    const h = S.raycast(prj[0][0], prj[0][1]);
+    out.push({ name: r.name || key, px: prj.map(q => [Math.round(q[0]), Math.round(q[1])]), ridgePx: Math.round(ridgePx), zRidge: +zm.toFixed(2), hit: h ? { o: h.object.name, z: +h.point.z.toFixed(2) } : null });
+  }
+  return { out, h: (LN && LN.on && LN.ridge) ? LN.ridge.h : 0, on: !!(LN && LN.on), count: window.slopesRoofs.count.lines };
+}, COURSE_RIDGE_PX);
+{
+  const pts = [];
+  for (const c of courses.out) pts.push([c.px[0][0], c.px[0][1] - 1], c.px[0], [c.px[0][0], c.px[0][1] + 1], c.px[1], c.px[2]);
+  const cols = pts.length ? await sample(A.pg, pts, 0) : [];
+  const near = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) <= COURSE_SLOPE_PX;
+  const rows = courses.out.map((c, i) => {
+    const v = cols.slice(i * 5, i * 5 + 5).map(luma);
+    const ridge = Math.max(v[0], v[1], v[2]);
+    // a slope sample that projects on to the ridge's own pixels is the far
+    // slope foreshortened to nothing (four rows on Biological Labs) — it is
+    // the course, not the slope, and is dropped
+    const sl = [3, 4].filter(k => !near(c.px[k - 2], c.px[0])).map(k => v[k]);
+    const slopes = sl.length ? Math.max(...sl) : null;
+    const zWant = c.zRidge + courses.h;
+    // the ridge is behind something else at this pose (the raycast is a
+    // metre or more from the ridge): not a verdict either way
+    const occluded = !(c.hit && c.hit.o === 'roofs') || Math.abs(c.hit.z - c.zRidge) > COURSE_OCCLUDED_M;
+    return { ...c, ridge, slopes, occluded, lit: slopes != null && ridge >= slopes + COURSE_LUMA,
+             proud: !!(c.hit && c.hit.o === 'roofs' && c.hit.z > c.zRidge + 0.005 && c.hit.z <= zWant + COURSE_Z_TOL), zWant: +zWant.toFixed(2) };
+  });
+  const seen = rows.filter(r => !r.occluded && r.slopes != null);
+  const nLit = seen.filter(r => r.lit).length, nProud = seen.filter(r => r.proud).length;
+  check('courses (round 6): the plain hips in frame carry a ridge course — a raycast at the ridge lands on the mesh above the ridge (no more than h above it), and the ridge column reads lighter than the slopes',
+    courses.count >= COURSES_MIN && seen.length >= 4 && nProud >= Math.ceil(seen.length * COURSE_FRAC) && nLit >= Math.ceil(seen.length * COURSE_FRAC),
+    `${courses.count} courses (lines.on ${courses.on}, h ${courses.h}); ${rows.length} plain hips in frame with a ridge ≥ ${COURSE_RIDGE_PX} px, ${seen.length} with the ridge in view, ${nProud} with the ridge proud, ${nLit} lighter at the ridge: ` + rows.map(r => `${r.name} @${r.px[0].join(',')} (${r.ridgePx} px) ridge ${r.zRidge} -> ${r.hit ? r.hit.o + '@' + r.hit.z : 'nothing'} (want ≤ ${r.zWant})${r.occluded ? ' OCCLUDED' : ''}, luma ridge ${r.ridge.toFixed(0)} vs slopes ${r.slopes == null ? 'n/a' : r.slopes.toFixed(0)}`).join('; '));
+}
 // THE OLD CONTRACT WAS `root.children === 0` — written the day the layer was
 // installed empty, and stale from the moment the generators landed. On the real
 // page the scene is the three generator groups and nothing else (the debug
@@ -938,7 +1033,7 @@ report();
 function report() {
   let bad = 0;
   for (const r of results) { console.log(`${r.pass ? ' PASS ' : '*FAIL '} ${r.name}\n         ${r.detail}`); if (!r.pass) bad++; }
-  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze and arch lines are meant to be red — 9 of them)' : ''}`);
+  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof and courses lines are meant to be red — 11 of them)' : ''}`);
   browser.__done();
   process.exit(bad ? 1 : 0);
 }
