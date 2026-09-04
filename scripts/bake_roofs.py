@@ -171,11 +171,58 @@ RIG_DECK_FROM_VOTE = True
 # js/slopes-roofs.js draws that one -- the slope climbs at PITCH until it
 # meets the slope from the other side, hips at the corners, valleys where
 # two wings meet -- with no deck at all. The slabs are untouched; ?slopes=0
-# is main. A roof whose middle reads membrane (Sutton, the Union, Welch,
-# Gregory) keeps its band-and-deck. The vote and its colour are cached in
+# is main. A roof whose middle reads membrane (the Union, Welch, Gregory)
+# is NOT run to a ridge: RIG_ROOF_PARTS below asks the photograph where its
+# tile actually is. The vote and its colour are cached in
 # data/roof_runs.json (the fifth entry) so a machine without the imagery
 # draws the same city.
 RIG_FULL_HIP = True
+# A ROOF IS EITHER PITCHED TO A RIDGE OR FLAT; A TILE BAND ROUND A FLAT LID IS
+# NEITHER. The fair-camera critic at mall-cruise, round 5 (2026-09-03): "Welch
+# Hall is one giant flat brown lid with a wide orange tile band running round
+# the whole perimeter, so it reads as a flat slab with a mansard rim, a shape
+# the building does not have ... Texas Union: a stepped flat orange slab."
+# True. A footprint whose middle reads membrane kept its band-and-plate under
+# RIG_FULL_HIP -- 8 m of tile at PITCH round all 9,400 m2 of Welch, 9.8 m
+# round the Union's 64 x 146 m -- because the whole-footprint probe only ever
+# asked how far in from the eave the tile goes, never WHERE on the roof it is.
+# The z19 tile says where: Welch's tile is two blocks (the 1929 wing, a
+# rectangle, 2,350 m2, and an L along 24th Street) on a membrane deck; the
+# Union's is two hip blocks either side of a flat middle; T. S. Painter Hall
+# is one tile wing beside a flat mechanical deck that the whole-footprint vote
+# never saw, because the middle it samples is the wing's ridge.
+#
+# THE RULE: a footprint whose middle reads membrane is NOT one hip. It is a
+# flat roof carrying tiled parts. `tiled_parts` asks the photograph which
+# blocks of it are tile -- EVERY block now, not the largest one; an L or a T
+# is two or three rectangles (PARTS_MAX_RECTS); a tile ring round a well is a
+# block whose middle is a deck, not a U -- and puts the ordinary ring probe to
+# each. A block that passes goes on the rig as a hip of its own (`<key>/p<i>`,
+# tagged `wing`, to its ridge or to its own deck by its own vote); the
+# footprint's entry is tagged `flat` with the deck's colour, and the mesh
+# draws no band for it and paints its parapet cap the deck's colour
+# (js/slopes-roofs.js ROOFS.flatRoofs). A footprint whose middle reads TILE
+# keeps its full hip unless the survey finds a block AND, beside it, a
+# remainder that is large, compact, light and not tile (PARTS_REST_*): a
+# flat deck, which is Painter. A live oak over the corner of a hip is small,
+# dark or green, and leaves the hip alone. The survey, every probe and every
+# vote are cached in data/roof_runs.json (`<key>/parts`), so a machine
+# without the imagery draws the same city. Rig only: the slabs are untouched
+# and ?slopes=0 is main.
+RIG_ROOF_PARTS = True
+PARTS_MAX_RECTS = 4          # an L is two rectangles, a T or a U three, a ring four
+PARTS_RECT_MIN_M2 = 60.0     # a rectangle may be this small (a ring's bar is thin)...
+PARTS_RECT_MIN_CELLS = 3     # ...but never thinner than this many cells (3.6 m)
+PARTS_WELL_EDGE_FR = 0.30    # a void touching the block's rectangle on less of its
+                             # perimeter than this, light and not green, is a well
+                             # (a deck on the hip), not a notch or a courtyard
+PARTS_REST_MIN_FR = 0.30     # a tile-middle roof's flat part: at least this much of the footprint...
+PARTS_REST_MIN_M2 = 400.0    # ...and this many square metres...
+PARTS_REST_FILL = 0.55       # ...compact (of its own rectangle)...
+PARTS_REST_TILE_MAX = 0.35   # ...not tile (DECK_TILE_MAX's own number)...
+PARTS_REST_LUMA_MIN = 80.0   # ...and light: a membrane, not a shadow or a canopy
+PARTS_GREEN_CAST = 10        # green beats red and blue by this much: a canopy, not a grey
+PARTS_WHOLE_FR = 0.85        # a block that is this much of the footprint IS the footprint
 
 SNAP_DATE = (os.environ.get("SNAP_DATE")
              or (AUGMENT_SNAP if AUGMENT else bake_facades.snapshot_date()))
@@ -3180,6 +3227,494 @@ def tiled_part(poly, lat0):
     return sub
 
 
+# ── THE PARTS OF A ROOF (RIG_ROOF_PARTS) ──────────────────────────────
+#
+# `tiled_part` above answers "which ONE rectangle of a flat footprint is
+# tile" and is reached only when the whole-footprint probe said flat. This
+# is the same question asked of a footprint the probe called TILED, and asked
+# for every block: the tile mask on the survey grid, opened and closed as
+# above, split into its connected patches; each patch with its wells filled
+# (a tile ring round a membrane well is a hip with a deck on top -- the
+# Union, Hogg Auditorium -- not a courtyard); a patch that fills its own
+# rotated rectangle is that rectangle, and one that does not is cut into at
+# most PARTS_MAX_RECTS rectangles in the rectangle's own frame (an L along
+# 24th Street on Welch is two; a T is three), the rectangles together having
+# to cover TILED_PART_FILL of the patch or it is not a block at all. A void
+# the rectangles leave inside the patch's rectangle that touches its edge on
+# less than PARTS_WELL_EDGE_FR of the perimeter is a well and is filled; one
+# that touches more is a notch and stays open. Every block is then clipped to
+# the footprint, cleaned and simplified the way every roof outline is, and
+# what comes back is a list of CCW rings in metres -- the caller puts the
+# ordinary ring probe and the ordinary deck vote to each. `rest` describes
+# what is left of the footprint outside the blocks (its largest compact
+# piece: area, fill, tile fraction, median colour), which is how a
+# tile-middle roof with a real flat deck beside its wing is told from a hip
+# under a tree.
+def _tile_mask(poly, lat0):
+    """The survey grid: tile mask (opened and closed), inside mask, colours."""
+    cell = TILED_PART_CELL
+    xs = [q[0] for q in poly]; ys = [q[1] for q in poly]
+    x0, y0 = min(xs), min(ys)
+    W = int((max(xs) - x0) / cell) + 1
+    H = int((max(ys) - y0) / cell) + 1
+    if W < 3 or H < 3 or W * H > 200_000:
+        return None
+    ring = poly + [poly[0]]
+    m = np.zeros((H, W), dtype=bool)
+    inside = np.zeros((H, W), dtype=bool)
+    col = np.zeros((H, W, 3), dtype=np.int16)
+    seen = np.zeros((H, W), dtype=bool)
+    for j in range(H):
+        for i in range(W):
+            x = x0 + (i + 0.5) * cell
+            y = y0 + (j + 0.5) * cell
+            if not point_in_ring(x, y, ring):
+                continue
+            inside[j, i] = True
+            lon, lat = to_ll([(x, y)], lat0)[0]
+            c = px_at(lon, lat)
+            if c is None:
+                continue
+            seen[j, i] = True
+            col[j, i] = (int(c[0]), int(c[1]), int(c[2]))
+            if is_tile(c):
+                m[j, i] = True
+    if int(inside.sum()) < 12:
+        return None
+
+    def _dilate(a):
+        r = np.zeros_like(a)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                r |= np.roll(np.roll(a, dy, 0), dx, 1)
+        return r
+    def _erode(a):
+        return ~_dilate(~a)
+    m = _dilate(_erode(m))          # open: kill speckle
+    m = _erode(_dilate(m))          # close: fill pinholes
+    return {"m": m, "inside": inside, "col": col, "seen": seen, "org": (x0, y0),
+            "W": W, "H": H}
+
+
+def _components(m):
+    """4-connected components of a boolean mask: (labels, [size per tag])."""
+    H, W = m.shape
+    lab = np.zeros((H, W), dtype=np.int32)
+    sizes = [0]
+    tag = 0
+    for j in range(H):
+        for i in range(W):
+            if not m[j, i] or lab[j, i]:
+                continue
+            tag += 1
+            stack = [(j, i)]
+            lab[j, i] = tag
+            n = 0
+            while stack:
+                cj, ci = stack.pop()
+                n += 1
+                for dj, di in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nj, ni = cj + dj, ci + di
+                    if 0 <= nj < H and 0 <= ni < W and m[nj, ni] and not lab[nj, ni]:
+                        lab[nj, ni] = tag
+                        stack.append((nj, ni))
+            sizes.append(n)
+    return lab, sizes
+
+
+def _fill_holes(m):
+    """A mask with every enclosed hole filled (flood from the border)."""
+    H, W = m.shape
+    out = np.zeros((H, W), dtype=bool)   # the complement reachable from outside
+    stack = [(j, i) for j in range(H) for i in (0, W - 1) if not m[j, i]]
+    stack += [(j, i) for i in range(W) for j in (0, H - 1) if not m[j, i]]
+    for j, i in stack:
+        out[j, i] = True
+    while stack:
+        cj, ci = stack.pop()
+        for dj, di in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nj, ni = cj + dj, ci + di
+            if 0 <= nj < H and 0 <= ni < W and not m[nj, ni] and not out[nj, ni]:
+                out[nj, ni] = True
+                stack.append((nj, ni))
+    return m | ~out
+
+
+def _max_rect(m):
+    """The largest all-true axis-aligned rectangle in a mask: (j0, i0, h, w)."""
+    H, W = m.shape
+    best = (0, 0, 0, 0, 0)            # area, j0, i0, h, w
+    heights = [0] * W
+    for j in range(H):
+        for i in range(W):
+            heights[i] = heights[i] + 1 if m[j, i] else 0
+        stack = []
+        for i in range(W + 1):
+            hcur = heights[i] if i < W else 0
+            start = i
+            while stack and stack[-1][1] >= hcur:
+                s, hh = stack.pop()
+                area = hh * (i - s)
+                if area > best[0]:
+                    best = (area, j - hh + 1, s, hh, i - s)
+                start = s
+            stack.append((start, hcur))
+    return best[1:] if best[0] > 0 else None
+
+
+def _peel_rects(m, cell):
+    """Up to PARTS_MAX_RECTS rectangles (in cells) that between them cover the mask."""
+    m = m.copy()
+    rects = []
+    for k in range(PARTS_MAX_RECTS):
+        r = _max_rect(m)
+        if r is None:
+            break
+        j0, i0, h, w = r
+        m2 = h * w * cell * cell
+        if h < PARTS_RECT_MIN_CELLS or w < PARTS_RECT_MIN_CELLS:
+            break
+        if m2 < PARTS_RECT_MIN_M2:
+            break
+        rects.append(r)
+        m[j0:j0 + h, i0:i0 + w] = False
+    return rects
+
+
+def _median_colour(tm, geom):
+    """Median colour of the survey cells whose centres fall inside `geom`."""
+    from shapely.geometry import Point
+    from shapely.prepared import prep
+    pr = prep(geom)
+    cell = TILED_PART_CELL
+    x0, y0 = tm["org"]
+    js, iss = np.nonzero(tm["seen"])
+    cols = [tm["col"][j, i] for j, i in zip(js, iss)
+            if pr.contains(Point(x0 + (i + 0.5) * cell, y0 + (j + 0.5) * cell))]
+    if len(cols) < 4:
+        return None
+    med = np.median(np.array(cols, dtype=float), axis=0)
+    return {"hex": _rgb2hex(*[int(round(v)) for v in med]),
+            "luma": round(float(0.2126 * med[0] + 0.7152 * med[1] + 0.0722 * med[2]), 1),
+            "green": bool(med[1] - max(med[0], med[2]) > PARTS_GREEN_CAST), "n": len(cols)}
+
+
+def _block_of(cells_poly, foot_poly, tm):
+    """The block a filled tile patch is: its rectangle, or the union of the
+    rectangles it is cut into (with any well filled), clipped to the footprint.
+    Returns a shapely Polygon or None."""
+    from shapely.geometry import Polygon, box, Point
+    from shapely.ops import unary_union
+    from shapely import affinity
+    from shapely.prepared import prep
+    rect = cells_poly.minimum_rotated_rectangle
+    if rect.is_empty or rect.area <= 0:
+        return None
+    if cells_poly.area / rect.area >= TILED_PART_FILL:
+        blk = rect
+    else:
+        # the patch in its rectangle's own frame, on a fresh cell grid
+        rc = list(rect.exterior.coords)
+        theta = math.degrees(math.atan2(rc[1][1] - rc[0][1], rc[1][0] - rc[0][0]))
+        origin = (rect.centroid.x, rect.centroid.y)
+        rot = affinity.rotate(cells_poly, -theta, origin=origin)
+        minx, miny, maxx, maxy = rot.bounds
+        cell = TILED_PART_CELL
+        W = int((maxx - minx) / cell) + 1
+        H = int((maxy - miny) / cell) + 1
+        if W < 3 or H < 3 or W * H > 200_000:
+            return None
+        pr = prep(rot)
+        mk = np.zeros((H, W), dtype=bool)
+        for j in range(H):
+            for i in range(W):
+                if pr.contains(Point(minx + (i + 0.5) * cell, miny + (j + 0.5) * cell)):
+                    mk[j, i] = True
+        rects = _peel_rects(mk, cell)
+        if not rects:
+            return None
+        boxes = [box(minx + i0 * cell, miny + j0 * cell,
+                     minx + (i0 + w) * cell, miny + (j0 + h) * cell)
+                 for (j0, i0, h, w) in rects]
+        blk = affinity.rotate(unary_union(boxes), theta, origin=origin)
+        # A WELL THE RECTANGLES LEAVE INSIDE THE PATCH'S RECTANGLE IS A DECK
+        # ON TOP OF THE HIP, and the block is the rectangle (the Union's north
+        # block, Hogg Auditorium: a tile ring round a light membrane well). A
+        # notch is not: it touches the rectangle's edge on two sides (the arm
+        # of an L, the flat middle of the Union beside its south block), and
+        # a courtyard is not either: it is enclosed, but it is dark or green
+        # (Goldsmith's trees), and a hip does not climb over a courtyard.
+        # The rectangle is shrunk a cell first so the half-cell sliver the
+        # grid leaves along every edge cannot join the voids into one.
+        cell = TILED_PART_CELL
+        rect_in = rect.buffer(-cell)
+        void = rect_in.difference(blk) if not rect_in.is_empty else rect_in
+        pieces = [void] if void.geom_type == "Polygon" else list(getattr(void, "geoms", []))
+        wells = []
+        for pc in pieces:
+            if pc.is_empty or pc.area < PARTS_RECT_MIN_M2 / 2:
+                continue
+            shared = pc.boundary.intersection(rect_in.boundary).length / max(1e-9, rect_in.length)
+            if shared > PARTS_WELL_EDGE_FR:
+                continue
+            mc = _median_colour(tm, pc)
+            if mc and mc["luma"] >= PARTS_REST_LUMA_MIN and not mc["green"]:
+                wells.append(pc.buffer(cell * 1.01, join_style=2))
+        if wells:
+            blk = unary_union([blk] + wells)
+        # the block must still be the patch: the rectangles and the wells
+        # between them cover TILED_PART_FILL of the tile, or this is a scatter
+        if blk.intersection(cells_poly).area / cells_poly.area < TILED_PART_FILL:
+            return None
+        # heal the half-cell slivers the grid leaves between the pieces
+        blk = blk.buffer(cell / 4, join_style=2).buffer(-cell / 4, join_style=2)
+    g = blk.intersection(foot_poly)
+    if g.is_empty:
+        return None
+    if g.geom_type != "Polygon":
+        gs = [q for q in getattr(g, "geoms", []) if q.geom_type == "Polygon"]
+        if not gs:
+            return None
+        g = max(gs, key=lambda q: q.area)
+    return g
+
+
+def tiled_parts(poly, lat0):
+    """Every tile block of a footprint, and what is left beside them.
+
+    Returns {"parts": [CCW ring in metres, ...], "rest": {...} or None}, or
+    None when the survey cannot run. `poly` is the whole footprint, cleaned
+    and CCW.
+    """
+    try:
+        from shapely.geometry import Polygon, box
+        from shapely.ops import unary_union
+    except ImportError:
+        return None
+    tm = _tile_mask(poly, lat0)
+    if tm is None:
+        return None
+    m, inside, colg, seen, (x0, y0) = tm["m"], tm["inside"], tm["col"], tm["seen"], tm["org"]
+    cell = TILED_PART_CELL
+    foot = Polygon(poly).buffer(0)
+    parts, covered = [], []
+    if m.any():
+        lab, sizes = _components(m)
+        order = sorted(range(1, len(sizes)), key=lambda t: -sizes[t])
+        for t in order:
+            if sizes[t] * cell * cell < TILED_PART_MIN_M2:
+                break
+            comp = _fill_holes(lab == t)
+            js, iss = np.nonzero(comp)
+            cells = unary_union([box(x0 + i * cell, y0 + j * cell,
+                                     x0 + (i + 1) * cell, y0 + (j + 1) * cell)
+                                 for j, i in zip(js, iss)])
+            if cells.is_empty or cells.geom_type != "Polygon":
+                cells = max(getattr(cells, "geoms", [cells]), key=lambda q: q.area) if not cells.is_empty else None
+                if cells is None:
+                    continue
+            g = _block_of(cells, foot, tm)
+            if g is None or g.area < TILED_PART_MIN_M2:
+                continue
+            # coarsen a buffered outline's near-collinear runs BEFORE `clean`,
+            # whose sagitta test drops every point of a dense arc at once
+            g = g.simplify(0.3, preserve_topology=True)
+            sub = ccw(clean(simplify(clean([(x, y) for x, y in list(g.exterior.coords)[:-1]]),
+                                     SIMPLIFY_M)))
+            if len(sub) < 3 or abs(signed_area(sub + [sub[0]])) < TILED_PART_MIN_M2:
+                continue
+            parts.append(sub)
+            covered.append(g)
+    # what is left: the largest compact piece of the footprint outside the
+    # blocks, read for size, shape and colour
+    rest = None
+    left = inside.copy()
+    if covered:
+        cov = unary_union(covered).buffer(cell * 0.5)
+        from shapely.prepared import prep
+        pr = prep(cov)
+        from shapely.geometry import Point
+        js, iss = np.nonzero(left)
+        for j, i in zip(js, iss):
+            if pr.contains(Point(x0 + (i + 0.5) * cell, y0 + (j + 0.5) * cell)):
+                left[j, i] = False
+    if left.any():
+        lab, sizes = _components(left)
+        t = max(range(1, len(sizes)), key=lambda k: sizes[k])
+        piece = lab == t
+        js, iss = np.nonzero(piece)
+        pcells = unary_union([box(x0 + i * cell, y0 + j * cell,
+                                  x0 + (i + 1) * cell, y0 + (j + 1) * cell)
+                              for j, i in zip(js, iss)])
+        rrect = pcells.minimum_rotated_rectangle
+        cols = [colg[j, i] for j, i in zip(js, iss) if seen[j, i]]
+        med = np.median(np.array(cols, dtype=float), axis=0) if cols else None
+        rest = {"m2": round(sizes[t] * cell * cell, 1),
+                "fr": round(sizes[t] / max(1, int(inside.sum())), 3),
+                "fill": round(pcells.area / rrect.area, 3) if rrect.area > 0 else 0.0,
+                "tile": round(sum(1 for j, i in zip(js, iss) if m[j, i]) / max(1, sizes[t]), 3),
+                "hex": (_rgb2hex(*[int(round(v)) for v in med]) if med is not None else None),
+                "luma": (round(float(0.2126 * med[0] + 0.7152 * med[1] + 0.0722 * med[2]), 1) if med is not None else None),
+                "green": (bool(med[1] - max(med[0], med[2]) > PARTS_GREEN_CAST) if med is not None else None)}
+    return {"parts": parts, "rest": rest}
+
+
+def rest_is_a_deck(rest):
+    """Is what the survey left beside the blocks a flat deck (PARTS_REST_*)?"""
+    if not rest or rest.get("hex") is None:
+        return False
+    return (rest["m2"] >= PARTS_REST_MIN_M2 and rest["fr"] >= PARTS_REST_MIN_FR
+            and rest["fill"] >= PARTS_REST_FILL and rest["tile"] <= PARTS_REST_TILE_MAX
+            and (rest.get("luma") or 0) >= PARTS_REST_LUMA_MIN and not rest.get("green"))
+
+
+def _deck_vote(ppts, prays, pcaps, run, hs, lat0, rd_real):
+    """The middle of a roof, read: [samples, tile fraction, membrane hex or None].
+
+    The same probe the whole-footprint vote in main() runs (sample DEEPER than
+    the slope is drawn, 16 x 16 over the ring's box, is_tile per pixel,
+    membrane below DECK_TILE_MAX) — restated here for a part, so a part's
+    middle is judged exactly as a roof's is.
+    """
+    sample = profile_ring(ppts, prays, pcaps, min(run + 1.6, hs * 0.95))
+    if sample is None or abs(signed_area(sample)) < 1.0:
+        return [0, None, None]
+    sll = to_ll(sample, lat0)
+    lons = [q[0] for q in sll]; lats = [q[1] for q in sll]
+    cols, hits = [], 0
+    for i in range(16):
+        for j in range(16):
+            lon = min(lons) + (max(lons) - min(lons)) * (i + 0.5) / 16
+            lat = min(lats) + (max(lats) - min(lats)) * (j + 0.5) / 16
+            if not point_in_ring(lon, lat, sll):
+                continue
+            c = px_at(lon, lat)
+            if c is None:
+                continue
+            cols.append([int(c[0]), int(c[1]), int(c[2])])
+            hits += is_tile(c)
+    membrane = len(cols) >= DECK_MIN_PX and hits / len(cols) <= DECK_TILE_MAX
+    return [len(cols), (round(hits / len(cols), 3) if cols else None),
+            (deck_colour(cols, rd_real) if membrane else None)]
+
+
+def roof_parts_rig(key, poly, lat0, cache, ridge_top, p, h, base,
+                   rd_real, rg_real, rn_real, rb, stats):
+    """The tiled parts of one footprint as rig entries, and the flat roof's colour.
+
+    Returns ([entry, ...], deck triple or None) when the footprint is a flat
+    roof carrying parts, or None when it is one roof and the rig the caller
+    has already written stands: no block found (the footprint's own tile ring
+    is the only reading there is — Goldsmith round its courtyard), one block
+    that is most of the footprint (PARTS_WHOLE_FR), or a tile-middle roof
+    whose remainder is not a deck (a hip under a tree). Everything read off
+    the photograph — the blocks, each block's ring probe and its deck vote —
+    is cached under `<key>/parts` in data/roof_runs.json, rounded to 2 cm
+    before it is used so the surveying run and the cached run solve the same
+    polygons (the lesson of the wing survey, HANDOFF 209).
+    """
+    ck = key + "/parts"
+    pc = cache.get(ck)
+    if not isinstance(pc, dict):
+        res = tiled_parts(poly, lat0)
+        if res is None:
+            stats["parts_survey_could_not_run"] += 1
+            return None
+        pc = {"polys": [[[round(x, 2), round(y, 2)] for (x, y) in s] for s in res["parts"]],
+              "rest": res["rest"], "probe": [], "vote": []}
+        cache[ck] = pc
+    polys = [ccw([tuple(q) for q in s]) for s in (pc.get("polys") or [])]
+    rest = pc.get("rest")
+    if not polys:
+        stats["parts_no_block_found"] += 1
+        return None
+    foot_m2 = abs(signed_area(poly + [poly[0]]))
+    if len(polys) == 1 and foot_m2 > 0 \
+            and abs(signed_area(polys[0] + [polys[0][0]])) / foot_m2 >= PARTS_WHOLE_FR:
+        stats["parts_block_is_the_footprint"] += 1
+        return None
+    if ridge_top and not rest_is_a_deck(rest):
+        stats["parts_hip_kept_no_deck_beside_it"] += 1
+        return None
+    probes = list(pc.get("probe") or [])
+    votes = list(pc.get("vote") or [])
+    while len(probes) < len(polys):
+        probes.append(None)
+    while len(votes) < len(polys):
+        votes.append(None)
+    entries = []
+    kk = math.cos(math.radians(lat0))
+    for i, sub in enumerate(polys):
+        mrays = mitre_rays(sub)
+        if mrays is None:
+            stats["parts_degenerate"] += 1
+            continue
+        caps = vertex_caps(sub, mrays)
+        hs = max(caps)
+        if hs < 1.2:
+            stats["parts_degenerate"] += 1
+            continue
+        caps, capped = edge_event_caps(sub, mrays, caps)
+        stats["walls_capped_at_an_edge_event"] += capped
+        if probes[i] is None:
+            run, eave, meas = tile_run(sub, lat0, hs)
+            probes[i] = [round(run, 2), round(eave, 3), meas]
+        run, eave, meas = probes[i][0], probes[i][1], probes[i][2]
+        if run < MIN_RUN_M:
+            stats["parts_eave_said_no"] += 1
+            continue
+        steps = max(STEPS_MIN, min(STEPS_MAX, int(round(run / STEP_TARGET_M))))
+        d_use = run * steps / (steps + 0.35)
+        ppts, prays, pcaps, spans = wall_profile(sub, mrays, caps, d_use)
+        rise = min(RISE_MAX, PITCH * run)
+        if votes[i] is None:
+            votes[i] = _deck_vote(ppts, prays, pcaps, run, hs, lat0, rd_real)
+        n_v, fr_v, dc_v = (list(votes[i]) + [None, None, None])[:3]
+        membrane = (n_v or 0) >= DECK_MIN_PX and fr_v is not None and fr_v <= DECK_TILE_MAX
+        if membrane:
+            dc = dc_v or rd_real
+            deck = [dc, like(dc, rd_real, rg_real), like(dc, rd_real, rn_real)]
+        else:
+            deck = [rd_real, rg_real, rn_real]
+        ent = {
+            "name": p.get("name"),
+            "dpm": [1.0 / (M_LAT * kk), 1.0 / M_LAT],
+            "pts": [[round(x, 2), round(y, 2)] for (x, y) in ppts],
+            "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in prays],
+            "caps": [round(c, 2) for c in pcaps],
+            "spans": [[a, b] for (a, b) in spans],
+            "d": round(d_use, 3), "run": round(run, 2), "rise": round(rise, 3),
+            "base": round(base, 2), "steps": steps,
+            "col": [rd_real, rg_real, rn_real],
+            "lip": [rd_real, rg_real, rn_real],
+            "deck": deck, "_rb": rb,
+            "wall": [p.get("wd"), p.get("wg"), p.get("wn")], "h": round(h, 2),
+            "wing": 1, "part": i,
+        }
+        if RIG_FULL_HIP and not membrane:
+            f_pts, f_rays, f_caps, f_spans = wall_profile(sub, mrays, caps, hs)
+            d_full = max(max(f_caps), hs)
+            ent["full"] = {
+                "pts": [[round(x, 2), round(y, 2)] for (x, y) in f_pts],
+                "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in f_rays],
+                "caps": [round(c, 2) for c in f_caps],
+                "spans": [[a, b] for (a, b) in f_spans],
+                "d": round(d_full, 3), "rise": round(min(RISE_MAX, PITCH * d_full), 3),
+            }
+        entries.append(ent)
+    pc["probe"], pc["vote"] = probes, votes
+    if not entries:
+        stats["parts_none_passed_the_eave"] += 1
+        return None
+    flat_deck = None
+    if ridge_top and rest and rest.get("hex"):
+        # the flat part's colour: the remainder's median, tempered as a deck is
+        hx = rest["hex"]
+        dc = deck_colour([[int(hx[i:i + 2], 16) for i in (1, 3, 5)]], rd_real)
+        flat_deck = [dc, like(dc, rd_real, rg_real), like(dc, rd_real, rn_real)]
+    return entries, flat_deck
+
+
 
 # ── THE AUGMENT: THE SHIPPED FEATURES, PLUS `f`, PLUS `rig` ───────────
 # Everything below runs on a bake that has already finished. `out` is what
@@ -3318,8 +3853,15 @@ def main():
     stats["rig_full_hips"] = 0
     stats["deck_votes_from_cache"] = 0
     stats["rig_only_wings"] = 0
+    stats["rig_flat_roofs"] = 0
+    stats["rig_parts"] = 0
+    stats["parts_no_block_found"] = 0
+    stats["parts_block_is_the_footprint"] = 0
+    stats["parts_hip_kept_no_deck_beside_it"] = 0
+    stats["parts_eave_said_no"] = 0
     full_names = []
     wing_names = []
+    flat_names = []
     rows = []
     audit = []
     diag = []
@@ -3801,6 +4343,31 @@ def main():
                 }
                 stats["rig_full_hips"] += 1
                 full_names.append(p.get("name") or key)
+            # ── THE PARTS OF THE ROOF (RIG_ROOF_PARTS) ──────────────────
+            # A footprint whose middle reads membrane is a flat roof carrying
+            # tiled parts; one whose middle reads tile is a hip unless a flat
+            # deck stands beside its tile block. The footprint's own entry
+            # above stays (tagged `flat`, its `deck` the flat roof's colour,
+            # so ROOFS.flatRoofs = false in the mesh is today's band-and-
+            # plate) and each part is an entry of its own, `<key>/p<i>`.
+            if RIG_ROOF_PARTS and sub_of is None and rig_deck is not None \
+                    and not ov.get("gable_front"):
+                pr = roof_parts_rig(key, poly, lat0, cache, ridge_top, p, h, base,
+                                    rd_real, rg_real, rn_real, rb_here, stats)
+                if pr is not None:
+                    part_ents, flat_deck = pr
+                    for i, ent in enumerate(part_ents):
+                        rig["%s/p%d" % (key, i)] = ent
+                        if "full" in ent:
+                            stats["rig_full_hips"] += 1
+                    rig[key]["flat"] = 1
+                    if flat_deck is not None:
+                        rig[key]["deck"] = flat_deck
+                    stats["rig_flat_roofs"] += 1
+                    stats["rig_parts"] += len(part_ents)
+                    flat_names.append("%s: %d part%s%s" % (
+                        p.get("name") or key, len(part_ents), "" if len(part_ents) == 1 else "s",
+                        "" if not ridge_top else " (its middle read tile; the deck beside it is flat)"))
             # A WING IS NOT THE BUILDING. `pitched` tells the parapet-cap rule
             # below to leave a building's cap terracotta because it has a real
             # tiled hip. Calhoun's cross bar does — and the two stems either
@@ -4020,6 +4587,7 @@ def main():
         "rig_full_hips": sorted(n for n in full_names if not re.match(r"^[0-9a-f]{8}-", n))
                          + ["+%d unnamed" % sum(1 for n in full_names if re.match(r"^[0-9a-f]{8}-", n))],
         "rig_wings": sorted(wing_names),
+        "rig_flat_roofs_with_parts": sorted(flat_names),
         "tile_colour": {
             "campus base": tile_base,
             "derived from": tile_base_n or "nothing — the constant %s stood in" % TILE_BASE,

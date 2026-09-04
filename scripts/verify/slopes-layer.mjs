@@ -118,16 +118,28 @@
  *             would have gone green on a wrong one. What separates a curve
  *             from five chords is WHERE the surround is, not its tone.)
  *
+ *   flat      (round 5, 2026-09-03) the footprints the bake tagged `flat` —
+ *             a membrane middle, or a flat deck beside a tile block: Welch,
+ *             the Union, Painter, Hogg Auditorium — draw no band and no
+ *             plate; their tiled parts are hips of their own and their cap
+ *             is painted the flat roof's colour. Measured at mall-cruise:
+ *             a raycast at each flat entry's centroid does not land on the
+ *             mesh at the plate's exact height, and the cap wrapper carries
+ *             a deck branch.
+ *
  * --break sabotages the page — inside the page only, no file on disk changes —
- * in the two ways this gate exists to catch, and NINE lines must go red:
+ * in the three ways this gate exists to catch, and TEN lines must go red:
  *   1. the layer is moved to the END of the style, above the fog: the `stack`
  *      line and the two `haze` lines (3).
  *   2. SLOPES_ARCHES.on = false, so the arched heads are the five chords
  *      again: all three `arch` lines at both poses (6). That is the exact
  *      regression those assertions exist to catch — and they are the ones
  *      this gate already got wrong once, so they are the ones worth watching.
+ *   3. SLOPES_ROOFS.flatRoofs = false on the switch page, so every flat roof
+ *      wears its band and plate again: the `flat roofs` line (1).
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
- * 38/47 with --break (no --against) against 48/48 without.
+ * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
+ * the flat line: see HANDOFF 211 for the --break count on the day.
  *
  * Usage (from scripts/verify, README's way):
  *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]
@@ -518,13 +530,18 @@ const gen = await page.evaluate(() => {
 });
 // Since 2026-09-03 the roofs generator also draws the Main Building's three
 // hips from data/tower.geojson's rig into a fourth group, `slopes-tower`
-// (SLOPES_ROOFS.extra), and 93 of the 108 campus roofs run to their ridge
-// (count.full) instead of stopping at a deck.
-check('the generators built: roofs + gable (most of them to a ridge), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
-  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
+// (SLOPES_ROOFS.extra), and most campus roofs run to their ridge
+// (count.full) instead of stopping at a deck. Since round 5 (same day) the
+// bake also tags the footprints that are FLAT roofs carrying tiled parts
+// (count.flat, 8 on the shipped rig: Welch, the Union, Painter, Hogg
+// Auditorium, Seay, the three Jesters) and writes their parts as roofs of
+// their own (count.parts, 11) — so `roofs` counts the entries DRAWN (115:
+// 112 + 11 parts − 8 flat) and `full` the ones to a ridge (104).
+check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
   && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3
   && WANT_GROUPS.every(n => gen.names.includes(n)),
-  `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
+  `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
 check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
   ROOFS_FILTER_RE.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
   `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
@@ -550,7 +567,7 @@ const ridge = await page.evaluate(() => {
   const cands = [];
   for (const key of Object.keys(R.roofs)) {
     const r = R.roofs[key]; const M = r.pts.length;
-    if (M !== 4 || !r.deck) continue;                        // a plain hip: four corners, a ridge or a narrow deck
+    if (M !== 4 || !r.deck || r.flat) continue;              // a plain hip: four corners, a ridge or a narrow deck (a `flat` entry draws no roof of its own — round 5)
     const at = (k, d) => { const c = Math.min(d, r.caps[k]); const l = S.toLocal((r.pts[k][0] + r.rays[k][0] * c) * r.dpm[0], (r.pts[k][1] + r.rays[k][1] * c) * r.dpm[1], 0); return [l.x, l.y]; };
     const z = d => r.base + meta.lip + r.rise * d / r.d;
     const edges = r.spans.map(([a, b]) => { const p = r.pts[a], q = r.pts[b % M]; const dx = q[0] - p[0], dy = q[1] - p[1], Lw = Math.hypot(dx, dy); return { a, b: b % M, L: Lw, n: [dy / Lw, -dx / Lw] }; }).sort((x, y) => y.L - x.L);
@@ -755,9 +772,54 @@ const settled = pg => pg.waitForFunction(() => window.slopes && window.slopes.fr
   && window.slopesDome && window.slopesDome.count.done, null, { timeout: 120000 });
 const filtersOf = pg => pg.evaluate(ids => Object.fromEntries(ids.map(id => [id, JSON.stringify(window.__map.getFilter(id) || null)])), FILTERED);
 
-const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', settled);
+const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', async pg => {
+  await settled(pg);
+  if (BREAK) {
+    // the round-5 sabotage: the band-and-plate back on every flat roof, so
+    // the `flat roofs` line below must go red (the plate is back at its height)
+    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.slopesRoofs.rebuild(); });
+    await pg.waitForTimeout(800);
+    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again');
+  }
+});
 const fNoise = await snap(A.pg, 'switch-on-again');
 const onState = await A.pg.evaluate(() => ({ layer: !!window.__map.getLayer('slopes-mesh'), frames: window.slopes.frames, renderer: !!window.slopes.renderer, groups: window.slopes.root.children.map(g => g.name), gain: window.__ae().gain }));
+// THE FLAT ROOFS (round 5, 2026-09-03). "Welch Hall is one giant flat brown
+// lid with a wide orange tile band running round the whole perimeter ... a
+// shape the building does not have." A rig entry the bake tagged `flat`
+// (scripts/bake_roofs.py RIG_ROOF_PARTS: a footprint whose middle reads
+// membrane, or a tile-middle one with a flat deck beside its tile block)
+// draws no band and no plate; its parts are hips of their own, and its
+// parapet cap is painted the flat roof's colour. Measured on the flat
+// entries whose centroid is in the mall-cruise frame: a raycast at the
+// centroid must NOT land on the mesh at the PLATE's height — base + lip +
+// rise, exactly where round 4's band-and-plate put its lid (a flat plane,
+// so the raycast's z there is exact to the centimetre) — nothing there, or
+// a part's surface at some other height, both pass; and the wrapper on
+// buildings-roof's colour must carry at least one deck branch (a second
+// `match` output beside the eave-shadow one). --break puts the plate back.
+const flat = await A.pg.evaluate(() => {
+  const S = window.slopes, R = window.slopesRoofs.data, meta = R.meta, cv = window.__map.getCanvas();
+  const out = [];
+  for (const key of Object.keys(R.roofs)) {
+    const r = R.roofs[key]; if (!r.flat) continue;
+    let cx = 0, cy = 0; for (const q of r.pts) { cx += q[0]; cy += q[1]; } cx /= r.pts.length; cy /= r.pts.length;
+    const l = S.toLocal(cx * r.dpm[0], cy * r.dpm[1], 0);
+    const plate = r.base + meta.lip + r.rise;
+    const s = S.project(l.x, l.y, plate);
+    if (!s || s.w <= 0 || s.x < 40 || s.x > cv.clientWidth - 40 || s.y < 80 || s.y > cv.clientHeight - 80) continue;
+    const h = S.raycast(s.x, s.y);
+    out.push({ name: r.name || key, px: [Math.round(s.x), Math.round(s.y)], plate: +plate.toFixed(2), hit: h ? { o: h.object.name, z: +h.point.z.toFixed(2) } : null });
+  }
+  const cap = window.__map.getPaintProperty('buildings-roof', 'fill-extrusion-color');
+  const deckBranches = Array.isArray(cap) && cap[0] === 'match' ? Math.max(0, (cap.length - 5) / 2) : 0;
+  return { out, count: window.slopesRoofs.count, deckBranches };
+});
+const FLAT_PLATE_TOL_M = 0.05;
+const plated = flat.out.filter(f => f.hit && f.hit.o === 'roofs' && Math.abs(f.hit.z - f.plate) < FLAT_PLATE_TOL_M);
+check('flat roofs (round 5): the bake tagged some, their parts draw as hips, no flat roof in frame wears a plate at the top of a band, and the cap wrapper paints their caps the flat roof\'s colour',
+  flat.count.flat >= 4 && flat.count.parts >= 6 && flat.out.length >= 2 && plated.length === 0 && flat.deckBranches >= 1,
+  `${flat.count.flat} flat roofs, ${flat.count.parts} parts drawn; in frame: ${flat.out.map(f => `${f.name} @${f.px.join(',')} plate ${f.plate} -> ${f.hit ? f.hit.o + '@' + f.hit.z : 'nothing'}`).join('; ')}; ${plated.length} plated; cap wrapper deck branches ${flat.deckBranches}`);
 // THE OLD CONTRACT WAS `root.children === 0` — written the day the layer was
 // installed empty, and stale from the moment the generators landed. On the real
 // page the scene is the three generator groups and nothing else (the debug

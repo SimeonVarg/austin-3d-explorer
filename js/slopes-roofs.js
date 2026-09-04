@@ -54,6 +54,25 @@
  * Nothing is typed for a building; the shape is still the bake's mitres and
  * caps. `fullHip: false` is round 3's band-and-plate.
  *
+ * THE FLAT ROOFS (round 5, 2026-09-03). "Welch Hall is one giant flat brown
+ * lid with a wide orange tile band running round the whole perimeter, so it
+ * reads as a flat slab with a mansard rim, a shape the building does not
+ * have ... Texas Union: a stepped flat orange slab." A footprint whose middle
+ * the photograph reads as membrane kept its band-and-plate under the rule
+ * above, 8 m of tile round all 9,400 m² of Welch. The bake's RIG_ROOF_PARTS
+ * now asks the photograph WHERE the tile is: a membrane-middle footprint is a
+ * flat roof carrying tiled parts (Welch: the 1929 wing, a rectangle, and an
+ * L along 24th Street; the Union: two hip blocks either side of a flat
+ * middle), and a tile-middle footprint with a flat deck beside its block is
+ * one too (Painter Hall). The footprint's entry is tagged `flat`, its parts
+ * are entries of their own (`<key>/p<i>`, tagged `wing`), and ROOFS.flatRoofs
+ * draws a flat entry as NOTHING — no band, no plate — its parts as hips (to
+ * a ridge, or to their own deck, by their own vote), and its parapet cap in
+ * the flat roof's colour through capShade, the way js/app.js's cap table
+ * already paints every flat building's cap in its deck's colour. A roof is
+ * pitched to a ridge or it is flat; a tile band round a flat lid is neither.
+ * `flatRoofs: false` is round 4's band-and-plate.
+ *
  * THE EAVE'S SHADOW (same round). "The roof colour runs down over the wall
  * top as a thick band, which reads as a parapet, not an overhang." That band
  * is js/app.js's `buildings-roof`: the top of every wall re-extruded from h
@@ -183,12 +202,27 @@
     // vote; `rig.roofs[key].full` is present) is drawn to its ridge with no
     // deck. false draws every roof as its slab profile, band and plate.
     fullHip: true,
+    // ── round 5 (2026-09-03): a roof is pitched to a ridge, or it is flat ──
+    // "Welch Hall: one giant flat brown lid with a wide orange tile band
+    // running round the whole perimeter ... a shape the building does not
+    // have." A rig entry the bake tagged `flat` (RIG_ROOF_PARTS in
+    // scripts/bake_roofs.py: a footprint whose middle reads membrane, or a
+    // tile-middle one with a flat deck beside its tile block) draws NO band
+    // and NO plate. Its tiled parts are entries of their own (`<key>/p<i>`,
+    // tagged `wing`, each a hip to its ridge or to its own deck by its own
+    // vote), and its parapet cap takes the flat roof's colour — the rig's
+    // `deck` — through capShade below, the way js/app.js's own cap table
+    // paints every flat building's cap in its deck's colour. false draws the
+    // entry's own profile, the band and plate of round 4, and hides its parts.
+    flatRoofs: true,
     // The parapet cap under a mesh roof (js/app.js `buildings-roof`, the top
     // ~1 m of the wall in the ROOF colour) is painted as the wall in the
     // eave's shadow: wd/wg/wn × tone. `on: false` leaves it terracotta.
     // 1.0 is the wall's own colour with no shadow; the slab facets' dark end
     // is 0.70 of their colour (SHADE_LO) and a wall under a metre of eave is
     // darker than a roof facing away from the sun, so a little below it.
+    // A FLAT roof's cap (rig `flat`, ROOFS.flatRoofs) is painted the flat
+    // roof's own colour instead: it has no eave to stand in the shadow of.
     capShade: { on: true, tone: 0.62, layer: 'buildings-roof' },
     // Other bakes' rigs, each in a group of its own: `url` (or the parsed
     // object on `source`), the fill-extrusion `layer` whose features of
@@ -203,7 +237,7 @@
 
   let _map = null, _group = null, _rig = null;
   let _filtered = false, _origFilter = null, _lastDetail = null;
-  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, triangles: 0, ms: 0, extra: {} };
+  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, flat: 0, parts: 0, triangles: 0, ms: 0, extra: {} };
   let _full = 0;                 // roofs drawn to their ridge in the last build
   let _capOn = false;            // ROOFS.capShade wanted (SLOPES.on && ROOFS.on)
   const _extras = ROOFS.extra.map(spec => ({ spec, rig: null, group: null, filtered: false, origFilter: null, count: null }));
@@ -697,12 +731,16 @@
     const S = window.slopes, T = window.THREE;
     const t0 = performance.now();
     const B = S.build();
-    let roofs = 0, gables = 0;
+    let roofs = 0, gables = 0, flat = 0, parts = 0;
     _blocks = 0; _full = 0;
     for (const key of Object.keys(_rig.roofs)) {
       const r = _rig.roofs[key];
+      // A FLAT roof draws nothing here: no band, no plate (its cap is painted
+      // by setCap, its parts are entries of their own). With flatRoofs off
+      // the entry's own band-and-plate draws instead and the parts stay out.
+      if (ROOFS.flatRoofs ? r.flat : (r.wing && r.part != null)) { if (r.flat) flat++; continue; }
       const g = ROOFS.gable && _rig.gables && _rig.gables[key.split('/')[0]];
-      try { roofOne(B, r, _rig.meta, g || null); roofs++; }
+      try { roofOne(B, r, _rig.meta, g || null); roofs++; if (r.part != null) parts++; }
       catch (e) { console.warn('[slopes-roofs] roof', r.name || key, e); }
     }
     if (ROOFS.gable && _rig.gables) {
@@ -718,7 +756,7 @@
     g.userData.lod = ROOFS.lod;
     g.userData.minzoom = ROOFS.minzoom;
     g.add(mesh);
-    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.full = _full; count.triangles = B.triangles;
+    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.full = _full; count.flat = flat; count.parts = parts; count.triangles = B.triangles;
     count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
     return g;
@@ -727,17 +765,26 @@
   // ── the eave's shadow: the parapet cap painted as the wall ──────────────
   // js/timeofday.js's bakedColor(p) is ['interpolate', ['linear'], p, 0, rd,
   // 0.5, rg, 1, rn] with p a NUMBER, rewritten at every quantised hour. The
-  // wrapper keeps that hour: ['match', id, <the rig's building ids>, <the
-  // wall's wd/wg/wn × tone at the same p>, <the hour's own expression>].
-  // Restoring puts the inner expression back — byte for byte what a page
-  // without this layer holds at that hour.
+  // wrapper keeps that hour: ['match', id, [CAP_MARK, <the rig's building
+  // ids>], <the wall's wd/wg/wn × tone at the same p>, [<a flat roof's id>],
+  // <its deck colour at the same p>, ..., <the hour's own expression>].
+  // Restoring puts the inner expression — always the last element — back:
+  // byte for byte what a page without this layer holds at that hour.
   const clamp01 = v => Math.max(0, Math.min(1, v));
-  function capIds() {
-    // a tiled WING of a flat building (rig `wing`: the wing survey) has an
-    // eave over part of the wall only; its cap keeps the deck's colour
-    const seen = new Set();
-    for (const k of Object.keys(_rig.roofs)) { const id = k.split('/')[0]; if (id && !_rig.roofs[k].wing) seen.add(id); }
-    return [...seen];
+  const CAP_MARK = '__slopes-cap__';   // an id no building has, first in the wrapper's labels so it can be told from the hour's own
+  function capSets() {
+    // a tiled WING of a flat building (rig `wing`: the wing survey, or a
+    // part of a flat roof) has an eave over part of the wall only, so its
+    // cap is not shaded; a FLAT roof (rig `flat`, ROOFS.flatRoofs) has no
+    // eave at all, so its cap takes the flat roof's own colour, rig `deck`
+    const shade = new Set(), deck = new Map();
+    for (const k of Object.keys(_rig.roofs)) {
+      const r = _rig.roofs[k], id = k.split('/')[0];
+      if (!id || r.wing) continue;
+      if (r.flat && ROOFS.flatRoofs) { if (Array.isArray(r.deck) && r.deck.length === 3) deck.set(id, r.deck); continue; }
+      shade.add(id);
+    }
+    return { shade: [...shade], deck };
   }
   function capWrap(inner) {
     const tone = ROOFS.capShade.tone;
@@ -746,9 +793,13 @@
     const ch = (prop, i) => ['*', tone, ['at', i, ['to-rgba', ['to-color', ['get', prop], '#888888']]]];
     const col = prop => ['rgb', ch(prop, 0), ch(prop, 1), ch(prop, 2)];
     const shade = ['interpolate', ['linear'], p, 0, col('wd'), 0.5, col('wg'), 1, col('wn')];
-    return ['match', ['get', 'id'], capIds(), shade, inner];
+    const sets = capSets();
+    const e = ['match', ['get', 'id'], [CAP_MARK, ...sets.shade], shade];
+    for (const [id, d] of sets.deck) e.push([id], ['interpolate', ['linear'], p, 0, ['to-color', d[0]], 0.5, ['to-color', d[1]], 1, ['to-color', d[2]]]);
+    e.push(inner);
+    return e;
   }
-  const capIsOurs = e => Array.isArray(e) && e[0] === 'match' && e.length === 5 && Array.isArray(e[3]) && e[3][0] === 'interpolate' && Array.isArray(e[3][4]) && e[3][4][0] === 'rgb';
+  const capIsOurs = e => Array.isArray(e) && e[0] === 'match' && Array.isArray(e[2]) && e[2][0] === CAP_MARK;
   function setCap(on) {
     const C = ROOFS.capShade;
     if (!_map || !C || !_map.getLayer(C.layer)) return;
@@ -756,11 +807,11 @@
     try { cur = _map.getPaintProperty(C.layer, 'fill-extrusion-color'); } catch (e) { return; }
     if (on && C.on && _rig) {
       if (capIsOurs(cur)) return;                          // already ours, at this hour
-      const ids = capIds();
-      if (!ids.length) return;
+      const sets = capSets();
+      if (!sets.shade.length && !sets.deck.size) return;
       _map.setPaintProperty(C.layer, 'fill-extrusion-color', capWrap(cur));
     } else if (capIsOurs(cur)) {
-      _map.setPaintProperty(C.layer, 'fill-extrusion-color', cur[4]);   // the hour's own
+      _map.setPaintProperty(C.layer, 'fill-extrusion-color', cur[cur.length - 1]);   // the hour's own
     }
   }
 
@@ -856,6 +907,7 @@
     rebuild() {
       if (_group) { window.slopes.remove(_group); _group = null; }
       for (const x of _extras) if (x.group) { window.slopes.remove(x.group); x.group = null; }
+      setCap(false);           // the cap wrapper is rebuilt with the current taste (flatRoofs, capShade)
       window.applySlopesRoofs();
     },
     /**
