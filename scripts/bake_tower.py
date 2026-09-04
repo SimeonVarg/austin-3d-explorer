@@ -596,7 +596,7 @@ def build(feature, stats):
             b.add(cur, H_ATTIC + i * rise, H_ATTIC + (i + 1) * rise,
                   c_tile, "roof", "mb-roof-" + key)
             cur = offset(cur, -ROOF_INSET)
-    b.rig = main_building_rig(arms_ll, [C_TILE, C_TILE_G, C_TILE_N], stats) if MB_RIG else None
+    b.rig = main_building_rig(arms_ll, [C_TILE, C_TILE_G, C_TILE_N], stats, wall=c_attic) if MB_RIG else None
 
     # ── 2. The Tower ──────────────────────────────────────────────────
     c_shaft = trio(C_SHAFT, N_SHAFT)
@@ -732,13 +732,20 @@ ARM_NAMES = {"w": "Main Building west wing", "e": "Main Building east wing",
              "s": "Main Building south block"}
 
 
-def main_building_rig(arms_ll, col, stats):
+def main_building_rig(arms_ll, col, stats, wall=None):
     """The arms' hips, in scripts/bake_roofs.py's `rig` schema.
 
     One pitch for all three (MB_ROOF_PITCH, or solved so the widest arm's
     ridge lands on H_RIDGE), no deck, an eave lip of MB_LIP_M standing
     MB_EAVE_OUT_M past the wall. Every number here is a measurement of the
     building or a constant above; the profile is bake_roofs' own.
+
+    `wall` is the attic loggia's colour triple (the storey under the eave);
+    with it each arm carries `wall`, `h` (the eave, H_ATTIC) and `foot` (the
+    arm's outline as its walls are drawn), which is what js/slopes-roofs.js
+    draws the eave's shadow band from where there is no parapet cap to
+    paint (ROOFS.eaveBand — the fair-camera critic, round 5: "Main Building
+    wings: no visible eave overhang, tile meets wall flush").
     """
     import bake_roofs as BR
     prof = {}
@@ -757,13 +764,18 @@ def main_building_rig(arms_ll, col, stats):
         hs = max(caps)
         caps, _bit = BR.edge_event_caps(poly, mrays, caps)
         pts, rays, pcaps, spans = BR.wall_profile(poly, mrays, caps, hs)
-        prof[key] = (lat0, pts, rays, pcaps, spans, max(max(pcaps), hs))
+        prof[key] = (lat0, pts, rays, pcaps, spans, max(max(pcaps), hs), poly)
     if not prof:
         return None
     hs_max = max(v[5] for v in prof.values())
     pitch = MB_ROOF_PITCH if MB_ROOF_PITCH else (H_RIDGE - H_ATTIC - MB_LIP_M) / hs_max
+    wall_col = None
+    if isinstance(wall, dict):
+        wall_col = [wall.get("wd"), wall.get("wg"), wall.get("wn")]
+    elif isinstance(wall, (list, tuple)) and len(wall) == 3:
+        wall_col = list(wall)
     roofs = {}
-    for key, (lat0, pts, rays, pcaps, spans, d_use) in prof.items():
+    for key, (lat0, pts, rays, pcaps, spans, d_use, poly) in prof.items():
         k = math.cos(math.radians(lat0))
         roofs["main-building/" + key] = {
             "name": ARM_NAMES.get(key, "Main Building " + key),
@@ -777,6 +789,11 @@ def main_building_rig(arms_ll, col, stats):
             "base": round(H_ATTIC, 2), "steps": 0,
             "col": col, "lip": col, "deck": None,
         }
+        if wall_col and all(isinstance(c, str) and len(c) == 7 for c in wall_col):
+            roofs["main-building/" + key].update({
+                "wall": wall_col, "h": round(H_ATTIC, 2),
+                "foot": [[round(x, 2), round(y, 2)] for (x, y) in poly],
+            })
         stats["rig_arms"] += 1
     return {"meta": {"lip": MB_LIP_M, "over": MB_EAVE_OUT_M, "skirt": 0.0,
                      "pitch": round(pitch, 4), "ridge": H_RIDGE, "eave": H_ATTIC},

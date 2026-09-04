@@ -83,7 +83,12 @@
  * times a tone. One paint expression on one layer, wrapped around the hour's
  * own (js/timeofday.js rewrites it at every quantised hour, so the wrapper
  * is re-applied from the applyTimeOfDay chain), and put back the moment
- * SLOPES.on is false. Nothing is hidden and no geometry is added.
+ * SLOPES.on is false. Nothing is hidden and no geometry is added. Where
+ * there is no cap layer to paint — another bake's rig, the Main Building's
+ * arms on `tower-solid` — ROOFS.eaveBand draws the same shadow as geometry
+ * (round 5: "Main Building wings: no visible eave overhang, tile meets wall
+ * flush"): the top metre of the wall under the eave, a hair outside it, in
+ * the wall's colour × tone, from the rig's own `wall`, `h` and `foot`.
  *
  * OTHER BAKES' RIGS (same round). The Main Building's three tile roofs are
  * scripts/bake_tower.py's, drawn as three stepped slabs each (`kind: 'roof'`
@@ -224,6 +229,15 @@
     // A FLAT roof's cap (rig `flat`, ROOFS.flatRoofs) is painted the flat
     // roof's own colour instead: it has no eave to stand in the shadow of.
     capShade: { on: true, tone: 0.62, layer: 'buildings-roof' },
+    // The same shadow as GEOMETRY where there is no parapet cap to paint:
+    // another bake's rig (ROOFS.extra) whose entries carry the wall under
+    // the eave (`wall`, `h`) and its outline (`foot`). A band `depth` metres
+    // tall from the wall's top down, `proud` metres outside it, in the
+    // wall's colour × tone — the Main Building's attic loggia under its
+    // tile eave ("no visible eave overhang, tile meets wall flush" — the
+    // fair-camera critic, round 5, 2026-09-03; Mezes and Calhoun read as
+    // overhangs because their caps wear this shadow). `on: false` draws none.
+    eaveBand: { on: true, tone: 0.62, depth: 1.0, proud: 0.10 },
     // Other bakes' rigs, each in a group of its own: `url` (or the parsed
     // object on `source`), the fill-extrusion `layer` whose features of
     // `kind` are hidden while it draws, and the group's tier and minzoom.
@@ -631,6 +645,21 @@
         if (ROOFS.soffit) B.quad(P(wall[k], r.base), P(wall[j], r.base), P(eave[j], r.base), P(eave[k], r.base), r.lip, DOWN);
       }
     }
+    // 1b. the eave's shadow as geometry (ROOFS.eaveBand), for a rig drawn
+    //     where no parapet cap can be painted: the top `depth` metres of the
+    //     wall under the eave, a hair outside it, in the wall's colour × tone
+    const EB = ROOFS.eaveBand;
+    if (own && opts && opts.eaveBand && EB && EB.on && EB.depth > 0 && Array.isArray(r.foot) && r.foot.length >= 3
+        && Array.isArray(r.wall) && r.wall.length === 3 && r.wall.every(c => typeof c === 'string' && c.length === 7) && typeof r.h === 'number') {
+      const col = tintCol(r.wall, EB.tone), N = r.foot.length, zt = r.h, zb = r.h - EB.depth, pr = EB.proud || 0;
+      const fl = r.foot.map(loc);
+      for (let k = 0; k < N; k++) {
+        const j = (k + 1) % N, o = outward(fl[k], fl[j]);
+        if (Math.hypot(fl[j][0] - fl[k][0], fl[j][1] - fl[k][1]) < 1e-6) continue;
+        const a = [fl[k][0] + o[0] * pr, fl[k][1] + o[1] * pr], b = [fl[j][0] + o[0] * pr, fl[j][1] + o[1] * pr];
+        B.quad(P(a, zb), P(b, zb), P(b, zt), P(a, zt), col, o);
+      }
+    }
     // 2. the slope: one strip per profile edge, split where either end reaches its cap
     facet(B, true);
     for (let k = 0; own && k < M; k++) {
@@ -820,7 +849,7 @@
     const S = window.slopes, T = window.THREE;
     const t0 = performance.now();
     const B = S.build();
-    const n = window.slopesRoofs.emit(B, x.rig);
+    const n = window.slopesRoofs.emit(B, x.rig, { eaveBand: true });
     const g = new T.Group();
     g.name = x.spec.name;
     g.userData.lod = x.spec.lod || null;
@@ -916,14 +945,16 @@
      * spans, heights), the same roofOne. scripts/bake_capitol.py writes one
      * for the Capitol's wings and js/slopes-dome.js calls this with it, so
      * those hips live in the dome's group and keep its LOD (none: a skyline
-     * stays). Returns the number of roofs drawn.
+     * stays). `opts.eaveBand` draws ROOFS.eaveBand under each entry that
+     * carries `wall`, `h` and `foot` (the Main Building's arms). Returns
+     * the number of roofs drawn.
      */
-    emit(B, rig) {
+    emit(B, rig, opts) {
       if (!rig || !rig.roofs) return 0;
       const meta = { lip: 0, over: 0, ...(rig.meta || {}) };
       let n = 0;
       for (const key of Object.keys(rig.roofs)) {
-        try { roofOne(B, rig.roofs[key], meta, null); n++; }
+        try { roofOne(B, rig.roofs[key], meta, null, opts || null); n++; }
         catch (e) { console.warn('[slopes-roofs] rig', key, e); }
       }
       return n;
