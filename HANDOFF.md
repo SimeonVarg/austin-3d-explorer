@@ -29,7 +29,12 @@ Capitol dome (75 discs against a lathed shell on a tiered drum), Sutton's
 arcade (a flat wall against a run of round-headed arches), and the matched-
 camera Main Mall pair, Google at `dist=550` beside ours. Google's frame is
 labelled in the doc as a comparison screenshot with its attribution; every
-working frame from the pass stays in the scratchpad.
+working frame from the pass stays in the scratchpad. **The doc's picture links
+were wrong on the first commit and were fixed in a follow-up** — a bare
+`shots/slopes/x.jpg` inside `docs/` resolves to `docs/shots/slopes/x.jpg` on
+GitHub and 404s; this repo's convention (`docs/facade-grids.md`) is
+`![](../shots/...)`, and all sixteen now render inline and were checked to
+resolve on disk.
 
 **Three things in the doc that were checked rather than copied forward.**
 (1) `?slopes=0` really does still download three.js and all four slopes scripts

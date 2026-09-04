@@ -20,7 +20,9 @@ switch it off.
 
 ### The Capitol dome
 
-`shots/slopes/capitol-dome-crop-before.jpg` → `shots/slopes/capitol-dome-crop-after.jpg`
+| before — 75 flat discs | after — a lathed shell on a tiered drum |
+|---|---|
+| ![](../shots/slopes/capitol-dome-crop-before.jpg) | ![](../shots/slopes/capitol-dome-crop-after.jpg) |
 
 This is the one to look at first. Before, it is nakedly a wedding cake: 75 flat
 discs, a visibly stepped silhouette, a ledge ring where the cap meets the drum,
@@ -30,11 +32,13 @@ freestanding columns, its entablature, an upper windowed tier and a balustrade �
 and the dome springs flush off that balustrade instead of stepping in from it.
 The wings and the four corner pavilions got real hips at the same time.
 
-Whole frames: `shots/slopes/capitol-dome-before.jpg` → `shots/slopes/capitol-dome-after.jpg`
+Whole frames: [`capitol-dome-before.jpg`](../shots/slopes/capitol-dome-before.jpg) → [`capitol-dome-after.jpg`](../shots/slopes/capitol-dome-after.jpg)
 
 ### Sutton Hall's arcade
 
-`shots/slopes/sutton-arcade-before.jpg` → `shots/slopes/sutton-arcade-after.jpg`
+| before — a flat wall, one lone arched door | after — the arcade |
+|---|---|
+| ![](../shots/slopes/sutton-arcade-before.jpg) | ![](../shots/slopes/sutton-arcade-after.jpg) |
 
 Before: a flat wall with one lone arched door and some square windows. After: a
 continuous run of round-headed arches with the stone carried between the bays
@@ -46,11 +50,13 @@ pier (2.60 + 0.90 + 0.50 = 4.00 m), snapped so the wall's second arched door
 lands on the grid — Sutton's are 27.86 m apart, so 7 bays of 3.981 m, 15 bays
 across the 62.3 m wall, two of them the doors.
 
-Whole frames: `shots/slopes/battle-street-before.jpg` → `shots/slopes/battle-street-after.jpg`
+Whole frames: [`battle-street-before.jpg`](../shots/slopes/battle-street-before.jpg) → [`battle-street-after.jpg`](../shots/slopes/battle-street-after.jpg)
 
 ### Gregory Gym's front doors — chords against a curve
 
-`shots/slopes/gregory-door-before.jpg` → `shots/slopes/gregory-door-after.jpg`
+| before — five chords and a flat plateau | after — one continuous archivolt |
+|---|---|
+| ![](../shots/slopes/gregory-door-before.jpg) | ![](../shots/slopes/gregory-door-after.jpg) |
 
 Magnified 20×, so you can see the individual pixels. In the BEFORE, the centre
 arch's head has a flat plateau across the top with a hard corner where one
@@ -62,7 +68,7 @@ continuous curve, and the terracotta spandrel wedges shrink to what a real
 spandrel is. The red slab band that was standing in for the pediment is a real
 pediment with a raked cornice.
 
-Whole frames: `shots/slopes/gregory-before.jpg` → `shots/slopes/gregory-after.jpg`
+Whole frames: [`gregory-before.jpg`](../shots/slopes/gregory-before.jpg) → [`gregory-after.jpg`](../shots/slopes/gregory-after.jpg)
 
 Across campus: 24 entrances are arched, and between them they carried **509
 chord-and-cap features, 448 of which existed purely because the arc was five
@@ -71,7 +77,9 @@ were chords.
 
 ### The Main Mall, over the whole campus
 
-`shots/slopes/mall-cruise-before.jpg` → `shots/slopes/mall-cruise-after.jpg`
+| before | after |
+|---|---|
+| ![](../shots/slopes/mall-cruise-before.jpg) | ![](../shots/slopes/mall-cruise-after.jpg) |
 
 Ten of the twelve roofs in that frame now read as ridge / hips / eaves rather
 than as a bevelled lid.
@@ -80,9 +88,13 @@ than as a bevelled lid.
 
 ## The fair fight: our Main Mall against Google's
 
-`shots/slopes/mainmall-google.jpg` (Google Earth 3D, © Google / Maxar
-Technologies — a screenshot used here for comparison only)
-`shots/slopes/mainmall-ours.jpg` (ours, same camera)
+| Google Earth 3D, `dist=550` | ours, same camera |
+|---|---|
+| ![](../shots/slopes/mainmall-google.jpg) | ![](../shots/slopes/mainmall-ours.jpg) |
+
+*Google's frame is `shots/slopes/mainmall-google.jpg`, a screenshot used here
+for comparison only, © Google / Maxar Technologies. Ours is
+`shots/slopes/mainmall-ours.jpg`.*
 
 This was run as a blind, matched-camera comparison, six rounds of critique on
 the render plus four rounds of getting the two cameras to actually agree. The
