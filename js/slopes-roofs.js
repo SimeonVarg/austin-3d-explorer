@@ -104,6 +104,25 @@
  * js/timeofday.js colours the slabs they replace — two tones either side of
  * a ridge at every hour. The decks, lips, walls and the pediments are not.
  *
+ * THE COURSES (round 6, 2026-09-03). "Almost every red roof reads as a flat
+ * plateau with a bevelled rim (a truncated pyramid), not two slopes meeting
+ * at a ridge ... Garrison Hall and the Main Building's south block render as
+ * a bright flat top plane with a narrow darker sloped band around the
+ * edge." Measured at that pose, that is what a bare hip IS from a camera at
+ * bearing 0 and pitch 55: a far slope projects to 0.574·w − 0.819·rise
+ * screen-metres — 2.8 m of Garrison's 12.2 m half-span, four pixels — and
+ * its 0.65 tone reads as a rim, while the lit slope is sixty pixels of one
+ * colour with nothing on the line where it turns over. A barrel-tile roof
+ * marks that line: a RIDGE COURSE and HIP COURSES of round tiles bedded in
+ * mortar, standing proud of the field, pale from the air (Google's Garrison
+ * at the same pose: lines at ~1.5× the field's luma along every ridge and
+ * hip). ROOFS.lines draws them from the rig alone — a ridge is a strip's top
+ * edge where the profile has stopped, a hip a convex corner's own path, a
+ * valley a concave one's (darker, flush) — as boxes standing `h` proud of
+ * the surface in the roof colour `pale` of the way to white, never facets,
+ * on every rig drawn through roofOne except where a caller says `lines:
+ * false` (the Capitol's standing-seam wings). `lines.on = false` is round 5.
+ *
  * GREGORY GYM. Its west elevation is hand-authored in data/building_overrides
  * .json and baked by gable_front_parts as prisms: two pediments of 22 courses
  * each, a raking cornice of 1.5 m blocks, and three archivolts of 13 voussoir
@@ -238,6 +257,45 @@
     // fair-camera critic, round 5, 2026-09-03; Mezes and Calhoun read as
     // overhangs because their caps wear this shadow). `on: false` draws none.
     eaveBand: { on: true, tone: 0.62, depth: 1.0, proud: 0.10 },
+    // ── round 6 (2026-09-03): the ridge and hip courses ──────────────────
+    // "Almost every red roof reads as a flat plateau with a bevelled rim (a
+    // truncated pyramid), not two slopes meeting at a ridge" — the fair-camera
+    // critic at mall-cruise, on a mesh that already ran every one of those
+    // roofs to its ridge (round 4). Measured on that frame (bearing 0, pitch
+    // 55, golden hour): Garrison's south slope is 60 px of one tone, the
+    // north slope beyond the ridge is 4 px at 0.65 of it — a far slope
+    // projects to 0.574·w − 0.819·rise screen-metres from this camera, 2.8 m
+    // of a 12.2 m half-span — and NOTHING marks the ridge itself. Google's
+    // frame marks it: a barrel-tile roof carries a RIDGE COURSE and HIP
+    // COURSES — round tiles bedded in mortar, standing proud of the field —
+    // and from the air they are pale lines about 1.5× the field's luma along
+    // every ridge and every hip (docs/shots/courses-garrison-google-vs-ours.jpg).
+    // These are those courses, generated from the rig alone: a ridge is a
+    // strip's top edge where the profile has STOPPED (both ends at their
+    // caps — deduped, since the two slopes share it); a hip is a convex
+    // corner's own path from the eave to where it stops; a mid-wall sample
+    // point (|ray| = 1, no turn) is a seam inside one plane and gets nothing;
+    // a concave corner is a valley — flashing, not tile, so a darker line
+    // lying flush. A roof with a deck keeps its hips and gets no ridge (its
+    // top edge is the deck's own). Gregory's hall keeps ridgeCap above.
+    lines: {
+      on: true,
+      ridge:  { w: 1.0, h: 0.15 },   // metres: the course's width, and how proud of the ridge it stands
+      hip:    { w: 0.8, h: 0.15 },
+      // A real ridge course is ~0.4 m wide; at mall-cruise (0.74 m/px, the
+      // width foreshortened by 0.574) that is half a pixel and would draw as
+      // a broken dash under the map's un-antialiased context — the same
+      // reason bake_tower.py draws the clock dial at 3.05 m not 3.66: "the
+      // RING is the thing that carries the read at this distance, so it gets
+      // the pixels". 1.0 m is ~1 px of top face plus the lit side. [taste]
+      valley: { on: true, w: 0.5, tone: 0.82 },   // darker, flush; `on: false` leaves the crease bare
+      pale: 0.38,       // the course colour: this far from the roof colour toward white (day, golden)
+      paleNight: 0.08,  // ...and at night, when nothing on a roof is lit
+      drop: 0.5,        // the course's sides run this far below the surface (hidden; no gap at any angle)
+      minM: 0.4,        // a top edge shorter than this is a point, not a ridge
+      straightDeg: 8,   // a corner turning less than this is a sample point on a wall, not a hip
+      eave: true,       // hips run out over the eave lip to its edge (false: from the wall line)
+    },
     // Other bakes' rigs, each in a group of its own: `url` (or the parsed
     // object on `source`), the fill-extrusion `layer` whose features of
     // `kind` are hidden while it draws, and the group's tier and minzoom.
@@ -251,8 +309,9 @@
 
   let _map = null, _group = null, _rig = null;
   let _filtered = false, _origFilter = null, _lastDetail = null;
-  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, flat: 0, parts: 0, triangles: 0, ms: 0, extra: {} };
+  const count = { roofs: 0, gables: 0, blocks: 0, full: 0, flat: 0, parts: 0, lines: 0, triangles: 0, ms: 0, extra: {} };
   let _full = 0;                 // roofs drawn to their ridge in the last build
+  let _lines = 0;                // ridge, hip and valley courses drawn (ROOFS.lines) since the last reset
   let _capOn = false;            // ROOFS.capShade wanted (SLOPES.on && ROOFS.on)
   const _extras = ROOFS.extra.map(spec => ({ spec, rig: null, group: null, filtered: false, origFilter: null, count: null }));
   let _blocks = 0;               // attached blocks drawn in the last build
@@ -264,6 +323,91 @@
   const tintCol = (col, m) => col.map(h => tintHex(h, m));
   const facet = (B, on) => { if (B.facet) B.facet(on); };
   const outward = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [dy / L, -dx / L, 0]; };
+  // a colour `k` of the way from its own value toward white, per channel
+  const mixHex = (hex, k) => '#' + [0, 2, 4].map(i => { const c = parseInt(String(hex).replace('#', '').slice(i, i + 2), 16); return Math.max(0, Math.min(255, Math.round(c + (255 - c) * k))).toString(16).padStart(2, '0'); }).join('');
+  const paleCol = (col, k, kn) => [mixHex(col[0], k), mixHex(col[1], k), mixHex(col[2], kn)];
+
+  // ── the ridge and hip courses (ROOFS.lines) ─────────────────────────────
+  /**
+   * A course of tiles along the 3-D segment A→B: a box `w` wide whose top
+   * stands `h` proud of the line and whose sides drop `drop` below it — the
+   * surface hides the rest, so there is no gap under it from any angle. The
+   * low end is capped (a hip course seen end-on from under the eave).
+   */
+  function course(B, A, Bp, w, h, drop, col) {
+    const dx = Bp[0] - A[0], dy = Bp[1] - A[1], L = Math.hypot(dx, dy);
+    if (L < 1e-6 || !(w > 0)) return;
+    const px = dy / L * w / 2, py = -dx / L * w / 2;      // half the width, perpendicular in plan
+    const dn = h + drop;
+    const a1 = [A[0] + px, A[1] + py, A[2] + h], b1 = [Bp[0] + px, Bp[1] + py, Bp[2] + h];
+    const a2 = [A[0] - px, A[1] - py, A[2] + h], b2 = [Bp[0] - px, Bp[1] - py, Bp[2] + h];
+    const lo = p => [p[0], p[1], p[2] - dn];
+    B.quad(a1, b1, b2, a2, col, UP);
+    B.quad(a1, b1, lo(b1), lo(a1), col, [px, py, 0]);
+    B.quad(a2, b2, lo(b2), lo(a2), col, [-px, -py, 0]);
+    B.quad(a1, a2, lo(a2), lo(a1), col, [-dx, -dy, 0]);
+  }
+  /**
+   * The courses of one roof, from the same profile its strips were swept
+   * from. Ridges: every strip's top edge — `at(k, min(d_use, caps[k]))` to
+   * `at(j, …)` — that is longer than a point, once (the two slopes either
+   * side of a ridge both end on it). Hips and valleys: each corner's own
+   * path from the wall line (and out over the lip to the eave's edge) to
+   * where it stops; convex corners are hips in the pale course, concave
+   * ones valleys in a darker one lying flush; a point that turns less than
+   * `straightDeg` is a sample point the bake added along a long wall, whose
+   * ray is a seam inside one plane. A roof drawn to a deck gets its hips and
+   * no ridge: its top edges are the deck's outline. Edges the gable end or
+   * the hall took (skipEdge) and a block's interior edges (skipLip) and the
+   * corners on them draw nothing.
+   */
+  function roofLines(B, r, caps, dUse, at, zk, zLip, over, skipEdge, skipLip, M) {
+    const LN = ROOFS.lines;
+    const pale = paleCol(r.col, LN.pale, LN.paleNight);
+    const ridge = !r.deck && LN.ridge && LN.ridge.w > 0;
+    let area = 0;
+    for (let k = 0; k < M; k++) { const p = r.pts[k], q = r.pts[(k + 1) % M]; area += p[0] * q[1] - q[0] * p[1]; }
+    if (ridge) {
+      const seen = new Set();
+      for (let k = 0; k < M; k++) {
+        const j = (k + 1) % M;
+        if (skipEdge.has(k)) continue;
+        const dk = Math.min(dUse, caps[k]), dj = Math.min(dUse, caps[j]);
+        const a = at(k, dk), b = at(j, dj);
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) < LN.minM) continue;
+        const A = P(a, zk(k, dk)), Bp = P(b, zk(j, dj));
+        const key = [A, Bp].map(p => p.map(v => v.toFixed(2)).join(',')).sort().join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        course(B, A, Bp, LN.ridge.w, LN.ridge.h, LN.drop, pale);
+        _lines++;
+      }
+    }
+    const sinS = Math.sin((LN.straightDeg || 0) * Math.PI / 180);
+    for (let k = 0; k < M; k++) {
+      const i = (k - 1 + M) % M, j = (k + 1) % M;
+      if (skipEdge.has(i) || skipEdge.has(k) || skipLip.has(i) || skipLip.has(k)) continue;
+      const p0 = r.pts[i], p1 = r.pts[k], p2 = r.pts[j];
+      const e0 = [p1[0] - p0[0], p1[1] - p0[1]], e1 = [p2[0] - p1[0], p2[1] - p1[1]];
+      const L0 = Math.hypot(e0[0], e0[1]), L1 = Math.hypot(e1[0], e1[1]);
+      if (L0 < 1e-6 || L1 < 1e-6) continue;
+      const cr = (e0[0] * e1[1] - e0[1] * e1[0]) / (L0 * L1), dt = (e0[0] * e1[0] + e0[1] * e1[1]) / (L0 * L1);
+      if (dt > 0 && Math.abs(cr) < sinS) continue;                 // a sample point on a wall: a seam, not a hip
+      const dk = Math.min(dUse, caps[k]);
+      if (dk < LN.minM) continue;
+      const top = P(at(k, dk), zk(k, dk)), foot = P(at(k, 0), zLip);
+      if ((cr > 0) === (area > 0)) {                                // convex: a hip
+        if (!LN.hip || !(LN.hip.w > 0)) continue;
+        course(B, foot, top, LN.hip.w, LN.hip.h, LN.drop, pale);
+        if (LN.eave && over > 0 && r.lip) course(B, P(at(k, -over), zLip), foot, LN.hip.w, LN.hip.h, LN.drop, pale);
+      } else {                                                      // concave: a valley
+        if (!LN.valley || !LN.valley.on || !(LN.valley.w > 0)) continue;
+        const hv = (LN.valley.w / 2) * (r.rise / Math.max(dUse, 1e-6)) + 0.02;   // clear the two planes rising away from the crease
+        course(B, foot, top, LN.valley.w, hv, LN.drop, tintCol(r.col, LN.valley.tone));
+      }
+      _lines++;
+    }
+  }
   const inwardOf = (r, span) => {
     const M = r.pts.length, a = r.pts[span[0]], b = r.pts[span[1] % M];
     const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
@@ -677,6 +821,13 @@
       }
     }
     facet(B, false);
+    // 2b. the ridge, hip and valley courses (ROOFS.lines) — never facets,
+    //     lit as the tile they are; a caller may leave them off (the
+    //     Capitol's standing-seam wings, js/slopes-dome.js)
+    if (own && ROOFS.lines && ROOFS.lines.on && !(opts && opts.lines === false)) {
+      try { roofLines(B, r, caps, dUse, at, zk, zLip, over, skipEdge, skipLip, M); }
+      catch (e) { console.warn('[slopes-roofs] courses', r.name, e); }
+    }
     // 3. the deck at the top of the rise
     if (own && ROOFS.deck && r.deck && !hall) {
       const ring = dedupe(top, ROOFS.dedupeM);
@@ -761,7 +912,7 @@
     const t0 = performance.now();
     const B = S.build();
     let roofs = 0, gables = 0, flat = 0, parts = 0;
-    _blocks = 0; _full = 0;
+    _blocks = 0; _full = 0; _lines = 0;
     for (const key of Object.keys(_rig.roofs)) {
       const r = _rig.roofs[key];
       // A FLAT roof draws nothing here: no band, no plate (its cap is painted
@@ -785,7 +936,7 @@
     g.userData.lod = ROOFS.lod;
     g.userData.minzoom = ROOFS.minzoom;
     g.add(mesh);
-    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.full = _full; count.flat = flat; count.parts = parts; count.triangles = B.triangles;
+    count.roofs = roofs; count.gables = gables; count.blocks = _blocks; count.full = _full; count.flat = flat; count.parts = parts; count.lines = _lines; count.triangles = B.triangles;
     count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
     return g;
@@ -849,6 +1000,7 @@
     const S = window.slopes, T = window.THREE;
     const t0 = performance.now();
     const B = S.build();
+    const l0 = _lines;
     const n = window.slopesRoofs.emit(B, x.rig, { eaveBand: true });
     const g = new T.Group();
     g.name = x.spec.name;
@@ -856,7 +1008,7 @@
     const mz = typeof x.spec.minzoom === 'function' ? x.spec.minzoom() : x.spec.minzoom;
     g.userData.minzoom = mz == null ? null : mz;
     if (B.triangles) { const mesh = new T.Mesh(B.geometry(), S.material()); mesh.name = 'roofs'; g.add(mesh); }
-    x.count = { roofs: n, triangles: B.triangles, ms: +(performance.now() - t0).toFixed(1) };
+    x.count = { roofs: n, lines: _lines - l0, triangles: B.triangles, ms: +(performance.now() - t0).toFixed(1) };
     count.extra[x.spec.name] = x.count;
     return g;
   }

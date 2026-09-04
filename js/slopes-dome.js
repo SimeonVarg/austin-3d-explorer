@@ -265,7 +265,10 @@
     count.wings = 0;
     if (DOME.wings && _gj.rig && window.slopesRoofs && window.slopesRoofs.emit) {
       const WB = S.build();
-      count.wings = window.slopesRoofs.emit(WB, _gj.rig);
+      // no ridge or hip courses on the wings (SLOPES_ROOFS.lines, round 6):
+      // the Capitol's wing roofs are standing-seam painted metal at 16.7°,
+      // not barrel tile, and a pale tile course is not theirs
+      count.wings = window.slopesRoofs.emit(WB, _gj.rig, { lines: false });
       if (WB.triangles) { const wm = new T.Mesh(WB.geometry(), mat); wm.name = 'wings'; g.add(wm); tris += WB.triangles; }
     }
     count.parts = parts; count.triangles = Math.round(tris); count.ms = +(performance.now() - t0).toFixed(1);
