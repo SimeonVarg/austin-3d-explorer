@@ -1,5 +1,76 @@
 # Austin 3D Explorer — Full Handoff
 
+## 212. Sep 3 2026 — the Main Mall comparison, round 3: same camera wasn't enough, it needed the same SCALE too — Google Earth's `dist` tuned by eye, 600m → 470m (`acer/slopes`, no app code changes this entry — verification frame only)
+
+Rounds 1/2 (§209–§210 above, `judge/fair/r1`, `judge/fair/r2`) fixed WHICH
+camera: Google Earth's lat/lng/heading/tilt set to match ours exactly, closing
+round 0's "these are different cameras" verdict. This round was told that
+wasn't the whole fix — **"both critics said our frame sat HIGHER and FARTHER
+BACK than Google's"** — same camera position, but a real scale mismatch: even
+with matching lat/lng/heading/tilt, the two frames disagreed on how big the
+Tower reads, because round 1/2's `dist` formula matches GROUND-PLANE coverage
+assuming both cameras share this app's 58° vertical FOV — but Google Earth's
+URL leaves its own FOV at its default 35° (`y=35`, per the bar scout's
+empirical notes), a narrower lens that shows less ground per pixel at that
+distance than the 58°-FOV formula assumed.
+
+**The fix, and why it's `dist` alone.** Our camera pose is untouched this
+round — center/zoom/pitch/bearing, `before/README.md`, never moves. Only
+Google Earth's `dist` was tuned, by eye, against a fixed `ours.png`, per the
+brief's instruction to iterate up to four Earth loads. Three distinct values
+were loaded and compared: **600m** (round 1/2's value — confirmed by eye to
+read too small), **507m** (still a bit small), **433m** (as large or larger
+than ours — the Tower's belfry started crowding the safe-crop boundary, a
+sign of having gone at least as far as needed), **470m** (final — splits the
+bracket; side-by-side the Tower reads close to the same screen size and
+position in both frames, un-clipped, flanked by comparable context on both
+sides). Google's own in-app camera-height readback moved monotonically with
+each step (camera-above-ground: 350m → 289m → 245m → 268m), each within 1.7%
+of `dist·cos(55°)`'s prediction — confirmation the camera genuinely moved as
+intended at every step, independent of how hard the Tower itself was to
+measure by eye.
+
+Final URL: `https://earth.google.com/web/@30.2856,-97.7393,190a,470d,35y,0h,55t,0r`
+
+**Said plainly: this is not pixel-perfect, and the honest reason why is
+recorded, not glossed over.** Several pixel-measurement passes on the final
+crops (an architectural feature's height, a raw shaft-width color-scan) gave
+inconsistent readings — from near-parity to ours reading up to ~15-20%
+taller — because the two renderers are different ENOUGH in style
+(photogrammetry mesh vs. flat-shaded low-poly city) that hand-picking a
+matching "architectural feature" edge in both is genuinely noisy, and an
+automated width-scan came back with a spread as wide as its own median rather
+than a clean number. No number from that exercise is trustworthy enough to
+report. What IS trustworthy — the holistic by-eye read across three real
+iterations, and Google's own readback confirming the camera actually moved —
+says 470m is a materially better match than 600m, full stop. Full arithmetic,
+every iteration's readback, and this reasoning in more detail:
+`judge/fair/r3/key.txt` (scratchpad, not the repo — see below).
+
+**Both frames, hardware GL, 1440×900, second of two shots kept, zero console
+errors, one headless Chrome at a time (orphan-swept before via
+`Get-CimInstance`, none found).** Ours: shot once (pose never changed this
+round, so re-shooting it per Google iteration would have been pure waste).
+Google: each `dist` iteration got its own shot; the "Find and manage
+projects" popup and a second "Ask Google Earth for help"/Gemini popup (which
+appears centered right over the Tower after the first is dismissed) answer
+neither Escape nor Playwright's `getByText` locator — both needed raw
+coordinate clicks, which took several retries at the SAME dist value before
+landing a clean, popup-free frame; none of those retries changed the camera,
+only the UI chrome in frame.
+
+**Committed:** `docs/shots/mallcruise-fair-r3-side-by-side.jpg` (A: Google at
+dist=470m: B: ours). The round's full working files (`google.png`, `ours.png`,
+`A.png`/`B.png`, every iteration's frame, `key.txt`) stay in the scratchpad
+per the disk rule — only the cited comparison frame is committed.
+
+**Next.** Round 6 of the fair-camera critic (the roof-geometry review, §206-
+211's series) should run against THIS pose (`judge/fair/r3`, dist=470), not
+round 1/2's dist=600 — the Tower is meaningfully bigger in-frame now, which
+changes how much roof detail is legible at this zoom. If a critic still finds
+the scale off, the two brackets already explored here (433 too far, 507 not
+far enough) narrow the next search a lot.
+
 ## 211. Sep 3 2026 — round 5 of the fair-camera critic: a roof is pitched to a ridge or it is flat — Welch, the Union and Painter are their tiled parts on a flat roof, and the Main Building's eave stands in its own shadow (`acer/slopes`, not merged, commits `5b150d3` `ebbd9bc`)
 
 Round 5 was the same fair fight as round 4 (§209–§210: Google Earth's
