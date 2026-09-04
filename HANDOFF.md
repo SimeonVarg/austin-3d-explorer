@@ -1,5 +1,56 @@
 # Austin 3D Explorer — Full Handoff
 
+## 216. Sep 4 2026 — the real-slopes pass shipped: `docs/real-slopes.md`, the cited frames, the PR, and the live site checked with our own eyes (`acer/slopes` → `main`)
+
+Nothing in `js/`, `data/`, `index.html` or `scripts/` changed in this entry.
+This is the ship: the doc, the frames a doc actually cites, the PR, the merge,
+and a look at the deployed site.
+
+**`origin/main` had not moved** — still `e232953`, the same commit the branch
+was cut from and the same commit `--against` compares to — so there was no
+merge worktree, no rebase and no re-verification of a merged result. The tip
+verified by the final check (`fd368af`) is the tip that shipped; this entry
+adds a Markdown file and sixteen JPEGs on top of it and changes no rendered
+pixel.
+
+**The doc: `docs/real-slopes.md`.** Written for someone who reads pictures, not
+diffs. Every picture cited by path, every number with the conditions it was
+measured under, the switch and the honest note that `?slopes=0` is a rendering
+switch and not a byte switch, the taste constants with their defaults and what
+each one is for, the whole matched-camera record with each round's gap and each
+fix and the verdict in the critic's own words, what was not fixed and why, and
+seven follow-ups.
+
+**The frames, `shots/slopes/` (CITED ONLY, per the disk rule).** Sixteen JPEGs,
+quality 82, at most 1440 px wide, none over 300 KB, 2.6 MB for the lot:
+before/after at all four poses, and four magnified pairs — Gregory's centre
+door at 20× (the five-chord plateau against a continuous archivolt), the
+Capitol dome (75 discs against a lathed shell on a tiered drum), Sutton's
+arcade (a flat wall against a run of round-headed arches), and the matched-
+camera Main Mall pair, Google at `dist=550` beside ours. Google's frame is
+labelled in the doc as a comparison screenshot with its attribution; every
+working frame from the pass stays in the scratchpad.
+
+**Three things in the doc that were checked rather than copied forward.**
+(1) `?slopes=0` really does still download three.js and all four slopes scripts
+— the `<script>` tags in `index.html` are unconditional (lines 32, 146,
+151-153), so the 329.4 KiB is paid on both pages and the flag buys back the
+build, not the bytes. (2) three.js is loaded from `unpkg.com` with no SRI hash;
+that is now a written follow-up rather than an unstated fact. (3) `MAI` carries
+no `arches` entry in `data/entrances.geojson` — 14 building ids do, and the
+Main Building is not one of them — so "the Main Building's portal is not arched
+in the data" is a measured statement, not an assumption.
+
+**What was deliberately NOT claimed.** The "43 self-intersecting deck rings"
+number that had been carried in conversation is not in the doc: nothing on disk
+sources it, and reconstructing every deck ring to count them was not worth the
+round. The follow-up is written as the true and useful version instead — the
+renderer untangles folded rings at runtime (`ROOFS.untangleDeck`) and the bake
+should not write them.
+
+**Next: the PR, the merge, and the live check** — appended to this entry as a
+docs-only commit on `main` once the deployment has been looked at.
+
 ## 215. Sep 4 2026 — the Main Mall comparison, round 4: matched the camera first this time, and it landed close — Google Earth's `dist` re-tuned from round 3's 470m to 550m against a freshly re-shot `ours.png` (`acer/slopes`, no app code changes this entry — verification frame only)
 
 Round 3 (§212) tuned Google Earth's `dist` to 470m and called it a materially
