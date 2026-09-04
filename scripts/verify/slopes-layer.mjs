@@ -139,7 +139,8 @@
  *      wears its band and plate again: the `flat roofs` line (1).
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
  * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
- * the flat line: see HANDOFF 211 for the --break count on the day.
+ * the flat line: 38/48 with --break (the ten intended reds and nothing
+ * else) against 49/49 with --against.
  *
  * Usage (from scripts/verify, README's way):
  *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]

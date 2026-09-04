@@ -1,5 +1,194 @@
 # Austin 3D Explorer — Full Handoff
 
+## 211. Sep 3 2026 — round 5 of the fair-camera critic: a roof is pitched to a ridge or it is flat — Welch, the Union and Painter are their tiled parts on a flat roof, and the Main Building's eave stands in its own shadow (`acer/slopes`, not merged, commits `5b150d3` `ebbd9bc`)
+
+Round 5 was the same fair fight as round 4 (§209–§210: Google Earth's
+camera at OUR mall-cruise pose) on the tip that closed §209, and the critic
+picked Google again. "B gets the Main Building wings, Mezes, Calhoun and
+Battle Hall right as crisp hips with ridges and a small eave step, but it
+invents a shape on its biggest masses: Welch Hall, Texas Union and the long
+block north-east of the Tower are drawn as huge flat lids with a wide orange
+band around the rim, which reads as a truncated hip or mansard that none of
+those buildings have. A crisp wrong shape on three of the largest buildings
+in frame loses to A's soft but correct forms." And the rule to fix it: "a
+roof is either fully pitched to a ridge or flat; never paint a tile band on
+the edge of a flat lid." Every gap below is closed in a generator or a bake,
+nothing typed for one building, with `?slopes=0` still `main` to the pixel.
+
+**What the critic saw, measured.** The three shapes are ONE mechanism: the
+15 roofs whose middle the deck vote reads as membrane (§209 left them "their
+band and plate") — Welch, the Union, Hogg Auditorium, Seay, Goldsmith, the
+Jesters… — were drawn as the slab profile: `run` metres of tile climbing at
+PITCH from every edge of the WHOLE footprint, then a flat plate in the
+membrane colour. 8 m of tile round all 9,376 m² of Welch, 9.8 m round the
+Union's 64 × 146 m: the truncated hip the critic named. The "long block
+north-east of the Tower" is Welch's own far side seen behind its lid (its
+rig centroid projects to (1062, 305) at this pose and nothing else with a
+band stands there; T. S. Painter Hall beside it was a FULL hip, and a wrong
+one, below). The whole-footprint probe only ever asked how far in from the
+eave the tile goes, never WHERE on the roof it is. The z19 tile says where
+(`flat/imagery/*.png` and `flat/parts3/*.png` in this pass's scratchpad,
+the survey's blocks in green): Welch's tile is two blocks on a membrane deck
+— the 1929 wing along the north, a rectangle, and an L along 24th Street —
+with a courtyard in the middle (the footprint's own inner ring); the Union's
+is two hip blocks either side of a flat middle, each with a light deck along
+its top (Google's photogrammetry shows the same light strip on both, so they
+keep a deck); Painter Hall is one tile wing beside a flat mechanical deck
+that the whole-footprint vote never saw, because the middle it samples is
+the wing's ridge — so it ran a hip over the deck.
+
+**The rule (`scripts/bake_roofs.py`, `RIG_ROOF_PARTS`, commit `5b150d3`).** A
+footprint whose middle reads membrane is NOT one hip. It is a flat roof
+carrying tiled parts. `tiled_parts` asks the photograph which blocks of it
+are tile — the same 1.2 m survey grid as the wing survey (`tiled_part`,
+204b), opened and closed the same way, but EVERY connected patch now, not
+the largest: a patch with its wells filled (a tile ring round a membrane
+well is a hip with a deck on top — the Union's north block, Hogg — not a
+courtyard); a patch that fills TILED_PART_FILL of its own rotated rectangle
+is that rectangle, and one that does not is cut into at most
+PARTS_MAX_RECTS rectangles in the rectangle's own frame (the L on Welch is
+two; a ring is four), which must between them cover TILED_PART_FILL of the
+tile or the patch is a scatter and not a block; a void the rectangles leave
+inside the rectangle that touches its edge on less than PARTS_WELL_EDGE_FR
+of the perimeter, light and not green, is a well and is filled — one that
+touches more is a notch (the flat middle of the Union beside its south
+block) and stays open, and a dark or green one is a courtyard (Goldsmith's
+trees) and stays open too. Each block is clipped to the footprint, cleaned
+and simplified as every roof outline is, and then gets the ORDINARY ring
+probe (`tile_run`: its eave must read tile by the same rule every roof
+passes) and the ordinary deck vote (its own middle, 16 × 16, `_deck_vote` —
+restated for a part exactly as main() runs it for a roof). A part that
+passes goes on the rig as a roof of its own, `<key>/p<i>`, tagged `wing`,
+to its ridge (`full`) when its middle reads tile and to its own deck when
+it does not; the footprint's entry stays as it was and is tagged `flat`,
+its `deck` the flat roof's colour. A footprint whose middle reads TILE keeps
+its full hip unless the survey finds a block AND, beside it, a remainder
+that is large, compact, light and not tile (`rest_is_a_deck`, PARTS_REST_*:
+≥ 400 m² and ≥ 30 % of the footprint, ≥ 0.55 of its own rectangle, ≤ 0.35
+tile, luma ≥ 80, not green) — a flat deck, which is Painter and nobody
+else; a live oak over the corner of a hip is small, dark or green and
+leaves the hip alone (19 tile-middle roofs had a block and no deck beside
+it and kept their hip: San Jacinto, Blanton Dormitory, Sutton among them).
+A membrane roof where no block is found keeps its band-and-plate (54
+footprints, Goldsmith round its courtyard and two tile-fringed flat ones
+among them — the band there is the only reading there is), and one whose
+single block is ≥ PARTS_WHOLE_FR of the footprint IS the footprint (26:
+Smith, the Blanton, Student Services — their own vote already decided
+them). Gabled halls keep their hall rig. The survey, every part's probe and
+every part's vote are cached in data/roof_runs.json (`<key>/parts`, 107
+keys, 53 with blocks), rounded to 2 cm before use, so a machine without the
+imagery draws the same city. Rig only: the bake is still an augment — 4,794
+features and 1,840 caps byte for byte the shipped ones, `gables` identical,
+rig 112 → 123 roofs (8 flat: Welch 2 parts, the Union 2, Seay 2, Painter 1,
+Hogg 1, the three Jesters 1 each — 11 parts, 8 of them to a ridge; `full`
+97 → 105), raw 1,871,828 → 1,882,735, brotli-11 162,100 → 162,924. Two runs
+(5 m 19 s surveying, 2 m 43 s off the cache), byte-identical output.
+
+**The mesh (`js/slopes-roofs.js`, `ROOFS.flatRoofs`, same commit).** A
+`flat` entry draws NOTHING — no band, no plate; its parts draw through
+`roofOne` like any wing; and its parapet cap takes the flat roof's colour:
+`capSets` splits the rig's buildings into the eave-shadow set (as before)
+and a deck set, and the one `match` wrapper on `buildings-roof`'s colour
+now carries a branch per flat building — `[CAP_MARK, …ids] → the wall in
+shadow`, `[id] → rd/rg/rn of its deck at the same p`, …, the hour's own —
+with a sentinel id first so the wrapper is told from the hour's own by its
+own mark rather than by its length, and the inner expression always last.
+This is what js/app.js's own cap table does for every flat building in the
+shipped city (a deck's cap takes the deck's colour), done live for the
+buildings the mesh has just made flat. `count.flat` and `count.parts` are
+new; `count.roofs` is the entries DRAWN (115 = 112 + 11 − 8). `flatRoofs:
+false` is round 4's band-and-plate, parts hidden. Two things seen and left:
+the Union is a `drag` building (bake_drag.py's `replacedBuildingIds`) whose
+cap is `drag-cap`, not `buildings-roof`, so the wrapper does not reach it —
+it never needed to, the drag bake's cap is already grey; and the lighter
+rectangle inside Welch's flat middle is its courtyard floor through the
+footprint's inner ring, not a deck (the cap has the hole the footprint has).
+
+**The Main Building's eave (commit `ebbd9bc`).** "Main Building wings and Welch:
+no visible eave overhang, tile meets wall flush; add the same small
+overhang step that Mezes and Calhoun already show." Mezes and Calhoun show
+it because their parapet cap is painted as the wall in the eave's shadow
+(`capShade`, §209); the Main Building's arms stand on `tower-solid`, where
+there is no cap to paint, so a metre of tile eave met the attic loggia with
+nothing under it. `scripts/bake_tower.py`'s rig now carries each arm's
+`wall` (the attic loggia's colour triple), `h` (the eave, H_ATTIC) and
+`foot` (the arm's outline as its walls are drawn), and `ROOFS.eaveBand`
+draws the same shadow as geometry for a rig drawn through `emit` with
+`eaveBand`: the top `depth` (1.0) metres of the wall under the eave,
+`proud` (0.10) m outside it, in the wall's colour × 0.62 — 28 triangles,
+`slopes-tower` 116 → 144. Welch got the step for free: its parts carry the
+campus eave (0.5 m over, 0.35 m lip). The tower bake stays an augment (225
+features byte for byte, `replacedBuildingIds` and the wall colour
+identical; raw 73,170 → 73,687, brotli-11 3,509 → 3,550; two runs
+byte-identical).
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+branch worktree on :8611, the verifier's `git archive e232953`
+(`…/34cffdba…/scratchpad/main-e232953`) on :8612, each served by its own
+scripts/serve.py, graphics auto-detect cancelled, auto-exposure pinned off,
+second of two shots kept, one headless Chrome at a time (orphan-swept by
+`Get-CimInstance` before and after).**
+`scripts/verify/slopes-layer.mjs --against`: **49/49, exit 0 — twice, on the tree before and after the one-line `rebuild()` fix below; the lines about this pass: `built` 115 roofs (104 to their ridge; 8 flat, drawn as 11 parts) + 1 gable in 11,780 triangles, tower 3 roofs in 144; `flat roofs` — the Union @338,291 plate 17.37 → nothing, Hogg @464,261 plate 16.45 → its part at 16.08, Seay → nothing, Painter @823,248 plate 19.67 → its part at 16.04, Welch @1062,305 plate 21.91 → nothing, 0 plated, 8 deck branches on the wrapper; the `ridge` line now lands on JESTER EAST HALL'S PART at the gregory pose (a 4-corner hip of its own the survey cut out of a flat footprint) and reads it as any roof: two tones either side of the ridge (luma 101.0 / 120.2), one tone along the slope (spread 0.0), the raycast climbing at the rig's pitch to 0.10 m; the toggle line 971 px Δ 12 (the atlas residue), OFF vs a `?slopes=0` load 5,184 px (ceiling 7,000), render()-stopped 0 px, the bake-identity line against the archive 0 px, no page errors**. Two expectations
+changed deliberately and both are named in the file: the `built` line asks
+for the flat roofs and their parts beside the ridges (`flat ≥ 4`, `parts ≥
+6`; the shipped rig has 8 and 11), and a new `flat roofs` line at
+mall-cruise projects every flat entry's centroid and asks that a raycast
+there does NOT land on the mesh at the plate's exact height (base + lip +
+rise, where round 4's lid was; tolerance 5 cm — a part's surface at some
+other height, or nothing, both pass) and that the cap wrapper carries a
+deck branch. `--break` gained a third sabotage — `SLOPES_ROOFS.flatRoofs =
+false` on the switch page — so that line is watched failing with the other
+nine: ****38/48 with `--break`, the ten intended reds and nothing else** (the first `--break` run of this pass had an eleventh — the toggle line at 1,736 px Δ 43 — because the sabotage's `rebuild()` left the cap wrapper as it was wrapped at boot, deck branches and all, and the OFF→ON re-wrap then changed 8 caps; `rebuild()` now re-wraps the cap with the current taste, and the toggle line is 971 px again under the sabotage)**.
+`?slopes=0` on the branch against the archive, tolerance 0: **mall-cruise
+0 px, gregory 0 px, battle-street 0 px, capitol-dome 0 (at bearing 180, the bar scout's pose; 0 at bearing 0 too) px** of
+1,296,000. The generators are never read by a `?slopes=0` page.
+The reshoot ON, all four poses, second of two shots (the bar scout's four
+poses, capitol-dome at bearing 180), against the tip this pass started from:
+**mall-cruise 29,616 (2.29 %) px** (Welch, the Union, Painter, Hogg and the Main
+Building's eave — the change), **gregory 42,180 (3.25 %) px, battle-street 0 px,
+capitol-dome 0 px** — measured against the OLD tip under identical conditions — its js/slopes-roofs.js, data/roofs.geojson and data/tower.geojson served to a control page by route interception (the §204c control), same harness, same settle — rather than against `judge/fair/reshoot/r1`, whose frames were shot under other capture settings (r1's capitol-dome is at bearing 180, the bar scout's pose, where this pass first used 0; its gregory and battle-street frames differ from any frame of this tip by 300,000+ px before anything here). gregory's 42,180 px are the two Jesters at the frame's right edge — Jester East's tile part where its band was, Jester Center's flat deck with its roofscape plant showing (`docs/shots/flatroofs-jester-gregory-before-after-2x.jpg`); Gregory Gym itself is untouched. Generators ON at mall-cruise: 115 roofs
+(104 to a ridge; 8 flat, 11 parts) + 1 gable + 2 blocks in 11,780 triangles
+(13,248 before: a plate and a band are more triangles than two hips), the
+Main Building 3 hips + the band in 144, arches 18,315, dome 11,322; no
+console errors at any pose.
+
+**Frames.** Before/after at the critic's own pose, side by side, committed
+because this entry cites them: `docs/shots/flatroofs-welch-painter-before-after-3x.jpg`
+(lead with this: one lid with a rim became the 1929 wing's hip, a flat
+middle with its courtyard, and the L along 24th Street; Painter's flat deck
+beside its wing at the left), `docs/shots/flatroofs-union-before-after-2x.jpg`
+(a 146 m slab became two hip blocks with their decks and a flat middle),
+`docs/shots/flatroofs-mainbuilding-eave-before-after-3x.jpg` (the shadow
+line under the south block's eave), `docs/shots/flatroofs-mallcruise-before-after.jpg`
+(the frame). The reshoot, all four poses ON, in the verifier's scratchpad:
+`judge/fair/reshoot/r2/{mall-cruise,gregory,battle-street,capitol-dome}.png`.
+The survey's own pictures (the tile mask, every block in green over the z19
+tile) in this pass's scratchpad, `flat/parts3/`.
+
+**Not done, and why.** (1) Goldsmith Hall round its courtyard keeps the
+band-and-plate: its tile is a ring (four ranges of hips round a court) and
+the four rectangles the survey cuts it into cover 0.54 of it, under the
+0.72 a block must reach; the honest reading is four hips with the courtyard
+open, which needs the rig to take a footprint's inner ring, a roofs-lane
+change. (2) The Union's blocks keep a deck on top: the nadir tile and
+Google's photogrammetry both show a light strip along each ridge, so they
+are truncated hips there and the rule was not bent to the critic's "ridge
+over each wing". (3) The three Jesters are flat with one tile part each
+now, at the footprint's own height (51.6 m on Jester West) — the
+photograph's tile is the two-storey perimeter wings, which the one-height
+footprint cannot stand at the right level; that is the massing, not the
+roof. (4) `PARTS_MAX_RECTS` 4 and `TILED_PART_FILL` 0.72 are the survey's
+own numbers; a T-shaped wing with thin arms could fall under them and keep
+its whole-footprint reading — the counts above say which did, and
+`flat/survey_parts.py` in this pass's scratchpad prints the coverage table
+for every roof.
+
+**Next.** Round 6 of the fair-camera critic on `judge/fair/reshoot/r2`. If a
+flat roof's cap reads too grey against its parts, the colour is the rig's
+`deck` (the photograph's median through `deck_colour`); if the Main
+Building's band reads too heavy, `ROOFS.eaveBand.tone` is one number and
+`on: false` is round 4's flush eave.
+
 ## 210. Sep 3 2026 — round 5 of the fair-camera critic, frames only: the same Google Earth camera reshot against the tip that closed §209's four fixes (`acer/slopes`, no code changes this entry — verification frames for the next critic)
 
 §209 ended "Next: Round 5 of the fair-camera critic on these frames." This
