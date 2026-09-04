@@ -121,6 +121,11 @@
  *   applyEntranceDensity(map)      — re-read the LOD knob
  *   applyEntranceSettings(map)     — re-read ENT after a live edit
  *   entrancesStats()               — what actually got drawn
+ *   entrancesGeoJSON()             — a promise for the PARSED file, so nothing
+ *                                    else downloads 6.4 MB a second time.
+ *                                    Resolves with the FeatureCollection, or
+ *                                    null (?entrances=0 / fetch failed); never
+ *                                    rejects. See the comment on it below.
  *   ENT                            — the taste block (below)
  */
 (function () {
@@ -985,6 +990,42 @@
 
   let _added = false, _stats = null;
 
+  /**
+   * THE PARSED FILE, PUBLISHED — so nothing else has to download 6.4 MB twice.
+   *
+   * data/entrances.geojson carries a foreign member THIS FILE NEVER READS:
+   * `arches`, the closed form js/slopes-arches.js lathes every arched head
+   * from. That pass used to recover it from the source this file adds —
+   * `map.getSource('austin-entrances')._data.arches` — and fall back to its own
+   * fetch when that came up empty. The fallback fired on EVERY load, because
+   * MapLibre does not keep what you hand it: on 5.24.0 GeoJSONSource stores
+   * `_data = { geojson: <your object> }` (probed, 2026-09-04; the original
+   * survives on `_options.data`). So `_data.arches` was always undefined, the
+   * file was fetched a second time at full price, and an ON page went
+   * 18.67 MB -> 25.04 MB on the wire — 6.4 MB of pure duplicate, and the whole
+   * of the layer's page delta. Measured cold with CDP encodedDataLength.
+   *
+   * A PROMISE and not a global object, because this load is DEFERRED
+   * (ENT.defer): a consumer polling for a global cannot tell "not yet" from
+   * "never", and the honest answer is a thing you can await. It settles
+   * exactly once and it ALWAYS settles:
+   *   the parsed FeatureCollection — once the fetch lands;
+   *   null                         — ?entrances=0, or the fetch failed.
+   * It never rejects, so `await window.entrancesGeoJSON()` cannot hang a
+   * caller and cannot need a try/catch around it.
+   *
+   * Consumers must not mutate what they get — it is the same object the
+   * geojson source was built from.
+   */
+  let _gjResolve = null, _gjSettled = false;
+  const _gjReady = new Promise(r => { _gjResolve = r; });
+  function publishGeoJSON(gj) {
+    if (_gjSettled) return;
+    _gjSettled = true;
+    _gjResolve(gj || null);
+  }
+  window.entrancesGeoJSON = () => _gjReady;
+
   window.initEntrances = async function initEntrances(map) {
     if (!ENT.on || _added || map.getSource(SRC)) return;
     _added = true;
@@ -997,9 +1038,15 @@
       gj = await r.json();
     } catch (e) {
       console.warn('[entrances]', e.message, '- pass not drawn');
+      publishGeoJSON(null);
       return;
     }
     if (window.__entDefer) window.__entDefer.fetchParseMs = +(performance.now() - _tFetch).toFixed(0);
+    // Published HERE, at the parse and not at the end of this function, so a
+    // waiter gets the file even if something below throws. Waiters that also
+    // need the LAYERS (js/slopes-arches.js filters `arc` out of them) check for
+    // the layers themselves — see its boot().
+    publishGeoJSON(gj);
     // Read the band tones off the real file (see portalColor).
     for (const f of gj.features) {
       const pr = f.properties;
@@ -1497,7 +1544,9 @@
       on: !!(D && D.on), altM: D && D.altM, armedAt: performance.now(),
       trigger: null, firedAt: null, fetchParseMs: null, sourceLoadedAt: null,
     };
-    if (!ENT.on) { dbg.trigger = 'off'; return; }
+    // ?entrances=0: nothing will ever be fetched, so say so once rather than
+    // leaving every waiter parked on a promise that cannot settle.
+    if (!ENT.on) { dbg.trigger = 'off'; publishGeoJSON(null); return; }
     if (!dbg.on) {
       dbg.trigger = 'eager'; dbg.firedAt = performance.now();
       window.initEntrances(map);

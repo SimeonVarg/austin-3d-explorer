@@ -329,22 +329,46 @@
   };
 
   // ── boot ────────────────────────────────────────────────────────────────
-  // The entrances are a deferred source (js/entrances.js ENT.defer); this
-  // waits for the layers that draw the chords, then reads `arches` off the
-  // object app.js handed the source, or fetches the file if it was tiled.
+  // THE FILE IS FETCHED ONCE, BY js/entrances.js, AND WAITED FOR HERE.
+  //
+  // data/entrances.geojson is 6.4 MB on the wire and is loaded on a DEFER
+  // (js/entrances.js ENT.defer: idle + 2 s, capped at 25 s), so at the moment
+  // this file boots there is nothing to read. The first version handled that by
+  // trying `map.getSource('austin-entrances')._data.arches` and FETCHING THE
+  // FILE AGAIN when that came up empty — and it always came up empty, because
+  // MapLibre 5.24.0 does not store what you hand a geojson source: `_data` is
+  // `{ geojson: <your object> }` (probed on the running app, 2026-09-04; the
+  // original object is on `_options.data`). So the fallback fired on every
+  // single ON load: entrances.geojson was requested twice, at full price both
+  // times, and the page went 18.67 MB -> 25.04 MB on the wire — the whole of
+  // this layer's measured page delta, for a file it shares with another pass.
+  //
+  // The fix is not a better private field to read. It is that js/entrances.js
+  // now PUBLISHES what it parsed, as a promise that always settles
+  // (`window.entrancesGeoJSON()`), and this waits on that. The direct fetch
+  // survives only for a page that loads this file WITHOUT js/entrances.js —
+  // there is no such page in the repo today, and if one appears it should get
+  // arches rather than a silent nothing.
+  //
+  // `?entrances=0` is handled above and deliberately builds NOTHING: the whole
+  // job of this group is to draw the curve those 448 flat chords approximate
+  // and to hide the chords from `entrances-portal` / `entrances-glass`. With
+  // the doors switched off there are no chords, no layers to filter, and an
+  // arch band hanging in the air where its own doorway is not drawn.
   async function boot() {
     const map = window.__map, S = window.slopes;
     if (!map || !S || !S.root) return false;
     if (window.ENT && window.ENT.on === false) { count.done = true; return true; }   // no doors, no arches
+    // Still gated on the layers, not only on the data: setFilters() has to have
+    // something to take the chords out of, and the layers land in the same call
+    // that resolves the promise.
     if (!ARCHES.layers.some(id => map.getLayer(id))) return false;
     _map = map;
     let arches = null;
-    try {
-      const src = map.getSource(ARCHES.source);
-      const d = src && src._data;
-      if (d && typeof d === 'object' && d.arches) arches = d.arches;
-    } catch (e) {}
-    if (!arches) {
+    if (typeof window.entrancesGeoJSON === 'function') {
+      const gj = await window.entrancesGeoJSON();      // never rejects
+      arches = gj && gj.arches;
+    } else {
       try { const gj = await S.fetchJSON(ARCHES.url); arches = gj && gj.arches; } catch (e) { console.warn('[slopes-arches]', e.message); }
     }
     count.done = true;

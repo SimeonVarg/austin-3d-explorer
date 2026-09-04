@@ -117,6 +117,22 @@
  *             read exactly the same, so it went red on a correct arch and
  *             would have gone green on a wrong one. What separates a curve
  *             from five chords is WHERE the surround is, not its tone.)
+ *   one fetch (2026-09-04) data/entrances.geojson — 6.4 MB, wanted by
+ *             js/entrances.js for the doors and by js/slopes-arches.js for its
+ *             `arches` member — is REQUESTED EXACTLY ONCE per page load. It
+ *             was requested twice on every ON load until this line existed:
+ *             the arches pass recovered the parsed object from
+ *             `getSource('austin-entrances')._data.arches` and fetched the
+ *             file when that came up empty, and it ALWAYS came up empty,
+ *             because MapLibre 5.24.0 stores `_data = { geojson: <your
+ *             object> }` and keeps the original on `_options.data`. The ON
+ *             page was 25.04 MB against ?slopes=0's 18.67 MB and that
+ *             duplicate was the whole of the delta (CDP encodedDataLength,
+ *             cold, both figures). The fix is a published promise —
+ *             js/entrances.js's `window.entrancesGeoJSON()` — not a better
+ *             private field to read. Counted as REQUESTS and not as bytes: a
+ *             duplicate the HTTP cache absorbs is still the defect, and this
+ *             gate shares one cache across its three page loads.
  *
  *   flat      (round 5, 2026-09-03) the footprints the bake tagged `flat` —
  *             a membrane middle, or a flat deck beside a tile block: Welch,
@@ -136,7 +152,7 @@
  *             slopes 4 m either side; the generators report the count.
  *
  * --break sabotages the page — inside the page only, no file on disk changes —
- * in the four ways this gate exists to catch, and ELEVEN lines must go red:
+ * in the five ways this gate exists to catch, and TWELVE lines must go red:
  *   1. the layer is moved to the END of the style, above the fog: the `stack`
  *      line and the two `haze` lines (3).
  *   2. SLOPES_ARCHES.on = false, so the arched heads are the five chords
@@ -147,6 +163,9 @@
  *      wears its band and plate again: the `flat roofs` line (1).
  *   4. SLOPES_ROOFS.lines.on = false on the same page, so no roof carries a
  *      course: the `courses` line (1).
+ *   5. data/entrances.geojson is fetched a second time from the page, which is
+ *      exactly what js/slopes-arches.js did until 2026-09-04: the `one fetch`
+ *      line (1).
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
  * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
  * the flat line: 38/48 with --break (the ten intended reds and nothing
@@ -305,12 +324,34 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass, detai
 const rgb = v => v ? v.join(',') : 'null';
 const maxd = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
 
-const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware', maxMs: 1500000 });   // three page loads and twelve poses: ~15 min
+// Three page loads and twelve poses: ~15 min on a quiet machine, and the 25 min
+// ceiling has been enough every time until 2026-09-04, when a run was killed at
+// it mid-gate. VERIFY_MAX_MS raises it, which chrome.mjs's own header tells you
+// to do and §155 made possible — a hard-coded `maxMs:` used to win over the
+// env, which is the same shape of dead gate walk.mjs was in (exit 124 one
+// minute after it had printed PASS on everything). The floor stays 25 min: the
+// watchdog exists because "slow" and "wedged" look identical from outside.
+const browser = await launch(chromium, {
+  gl: process.env.VERIFY_GL || 'hardware',
+  maxMs: Math.max(1500000, Number(process.env.VERIFY_MAX_MS) || 0),
+});
 const errors = [];
 async function open(url) {
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  // EVERY REQUEST THE PAGE MAKES, so the gate can count them. See the
+  // `one fetch` assertion below: data/entrances.geojson is 6.4 MB and two
+  // passes want it, and for a while both downloaded it.
+  //
+  // 'request', not 'response' and not CDP encodedDataLength: a duplicate that
+  // the HTTP cache happens to absorb is still the defect, and would still cost
+  // a visitor the round trip on a cold load. Counting requests catches it
+  // whatever the cache did. (It also survives this gate sharing one browser —
+  // and therefore one cache — across its three page loads, where a byte count
+  // would read zero on the second page and prove nothing.)
+  page.__requests = [];
+  page.on('request', r => page.__requests.push(r.url()));
   await page.goto(url, { waitUntil: 'networkidle', timeout: 180000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 180000 });
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
@@ -388,7 +429,11 @@ check('three.js is the pinned unpkg build', env.three === '159' && /unpkg\.com\/
 
 if (BREAK) {
   await page.evaluate(() => { window.__map.moveLayer('slopes-mesh'); });   // to the very end: above the fog and the sky
-  console.log('--break: slopes-mesh moved to the end of the style');
+  // ...and download the entrances file a second time, which is exactly what
+  // js/slopes-arches.js did on every load until 2026-09-04. Not awaited: the
+  // `one fetch` line counts REQUESTS, and the request is made synchronously.
+  page.evaluate(() => { fetch('data/entrances.geojson').catch(() => {}); });
+  console.log('--break: slopes-mesh moved to the end of the style; entrances.geojson re-fetched');
 }
 
 // stack
@@ -595,6 +640,23 @@ check('the generators built: roofs + gable (most of them to a ridge, the flat on
   && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines >= 12
   && WANT_GROUPS.every(n => gen.names.includes(n)),
   `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts; ${gen.roofs.lines} courses) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
+// ONE FETCH. data/entrances.geojson is 6.4 MB on the wire and TWO passes want
+// it: js/entrances.js draws the doors from it, js/slopes-arches.js lathes the
+// arched heads from its `arches` member. Until 2026-09-04 they each downloaded
+// it — the arches pass tried to recover the parsed object from
+// `map.getSource('austin-entrances')._data.arches` and fell back to its own
+// fetch, and the fallback fired EVERY time, because MapLibre 5.24.0 stores
+// `_data = { geojson: <your object> }` rather than the object itself. An ON
+// page was 25.04 MB against ?slopes=0's 18.67 MB, and that 6.4 MB was the
+// whole of the layer's page delta (CDP encodedDataLength, cold, 2026-09-04).
+// js/entrances.js now publishes what it parsed as `window.entrancesGeoJSON()`
+// and the arches await it. This line is placed AFTER the built check on
+// purpose: 24 arches in the scene means slopes-arches got its data, so a
+// second request would already have been made by now.
+const entReq = page.__requests.filter(u => /\/data\/entrances\.geojson(\?|$)/.test(u));
+check('data/entrances.geojson is downloaded ONCE — the arches read the file js/entrances.js parsed and do not fetch 6.4 MB again',
+  entReq.length === 1, `${entReq.length} request(s) for data/entrances.geojson on this page`);
+
 check('the stand-ins are filtered out: roofs-pitched keeps only its f tags, entrances exclude arc, capitol-dome excludes the lathed parts',
   ROOFS_FILTER_RE.test(gen.filters.roofs.replace(/\s/g, '')) && /has","arc/.test(gen.filters.portal) && /has","arc/.test(gen.filters.glass) && /bullock-dome/.test(gen.filters.dome),
   `roofs ${gen.filters.roofs} | portal …${gen.filters.portal.slice(-40)} | dome ${gen.filters.dome}`);
@@ -1052,7 +1114,7 @@ report();
 function report() {
   let bad = 0;
   for (const r of results) { console.log(`${r.pass ? ' PASS ' : '*FAIL '} ${r.name}\n         ${r.detail}`); if (!r.pass) bad++; }
-  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof and courses lines are meant to be red — 11 of them)' : ''}`);
+  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof, courses and one-fetch lines are meant to be red — 12 of them)' : ''}`);
   browser.__done();
   process.exit(bad ? 1 : 0);
 }

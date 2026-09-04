@@ -1,5 +1,128 @@
 # Austin 3D Explorer — Full Handoff
 
+## 214. Sep 4 2026 — the entrances file was downloaded TWICE on every page the roofs/arches/dome layer was on; it is downloaded once now, and the layer's whole page cost went to zero (`acer/slopes`, not merged)
+
+The one blocker left on the real-slopes pass after its final check: an ON page
+pulled **25.04 MB** off the wire against `?slopes=0`'s **18.67 MB**, and the
+entire 6.4 MB difference was `data/entrances.geojson` arriving twice. Fixed.
+An ON page is **18.67 MB** now and the whole-page delta between ON and OFF is
+**66 bytes** — the query string on `index.html`. (CDP
+`Network.loadingFinished.encodedDataLength`, cold context per load, hardware
+GL, `scripts/serve.py` on 8811. Same script and same conditions as the
+measurement that found it.)
+
+**The mechanism was not the one the brief predicted, and the difference is the
+whole fix.** `js/slopes-arches.js` boot() did try to reuse the parsed file
+before fetching it — `map.getSource('austin-entrances')._data.arches`, with
+`S.fetchJSON(ARCHES.url)` as the fallback — and the guess was that the defer
+(`ENT.defer`: idle + 2 s) meant the source did not exist yet at boot. It did
+exist. boot() has always waited for `entrances-portal` / `entrances-glass`,
+which are added in the same call that parses the file, and the measurement
+shows it running **428 ms after** `initEntrances` fired. The source was there.
+The data was not:
+
+    map.getSource('austin-entrances')._data   ->  { geojson: {...} }
+    map.getSource('austin-entrances')._options.data
+                                              ->  { type, features, arches, ... }
+
+**MapLibre 5.24.0 does not store what you hand a geojson source.** It wraps it.
+So `_data.arches` was `undefined` on every load that ever ran, the fallback
+fetch fired every time, and because 6.4 MB is past what Chrome will hold in its
+memory cache the second request went to the network at full price. Probed on
+the running app, not read out of the library.
+
+**So the fix is not a better private field to read.** `js/entrances.js` now
+publishes what it parsed:
+
+    window.entrancesGeoJSON()   // a promise; the FeatureCollection, or null
+
+A promise and not a global object, because the load is deferred and a consumer
+polling a global cannot tell "not yet" from "never". It settles exactly once
+and it always settles — `null` for `?entrances=0` and for a failed fetch — and
+never rejects, so `await` cannot hang a caller. `js/slopes-arches.js` awaits it
+and keeps its own fetch only for a page that loads the generator WITHOUT
+`js/entrances.js`; there is no such page in the repo today.
+
+**`?entrances=0` builds no arches, and that was already right.** boot() has
+returned early on `ENT.on === false` since it was written, and it should: the
+group's whole job is to draw the curve those 448 flat chords approximate and to
+filter the chords out of two layers that, with the doors off, do not exist.
+Measured on that URL: zero requests for the file, zero arches, no group in the
+scene, no hang on the promise. `?entdefer=0` (the eager load) still builds all
+24.
+
+**Proof, all on hardware (RTX 3050 Ti, ANGLE/D3D11), server on 8811:**
+
+| | before | after |
+|---|---|---|
+| requests for `data/entrances.geojson`, ON | 2 | **1** |
+| that URL's bytes on the wire, ON | 13,157.2 KB | **6,578.6 KB** |
+| whole ON page | 25.04 MB | **18.67 MB** |
+| ON minus `?slopes=0` | 6.4 MB | **66 bytes** |
+| arches built | 24 / 18,315 tris | **24 / 18,315 tris** |
+
+The four final frames are **unchanged, 0 of 1,296,000 pixels at tolerance 0**,
+re-shot with the same `shoot_after.mjs` under the same waiting discipline:
+mall-cruise 0, gregory 0, battle-street 0, capitol-dome 0. `slopes.stats()`
+reports the same four groups at the same triangle counts at every pose.
+
+**The gate now watches it, and the gate can watch it fail.**
+`scripts/verify/slopes-layer.mjs` gained a `one fetch` line that counts the
+page's REQUESTS for that URL — requests and not bytes, on purpose: a duplicate
+the HTTP cache happens to absorb is still the defect, and this gate shares one
+browser and one cache across its three page loads, so a byte count would read
+zero on the second page and prove nothing. `--break` gained a fifth sabotage
+(the page re-fetches the file itself), so the intended-red count goes 11 -> 12.
+Both run on hardware against 8811 with `git archive e232953` on 8812:
+**51/51 clean** (bake identity 968 px at Δ 12, inside the atlas residue; the
+harness noise floor 0 px; the layer moving 225,295 px at mall-cruise, so the
+zeros are not vacuous) and **38/50 with `--break`** — the twelve intended reds
+and nothing else, the new line reading `2 request(s)`.
+
+**One harness change came out of this and it is not cosmetic.** The first run
+of the gate was killed by its own watchdog at 25 minutes, mid-gate, and the
+ceiling was hard-coded past `VERIFY_MAX_MS` — the exact shape of dead gate
+§155 fixed in `walk.mjs` (exit 124 a minute after it had printed PASS on
+everything). `maxMs` is now `Math.max(1500000, VERIFY_MAX_MS)`: the 25-minute
+floor stays, because the watchdog exists precisely because "slow" and "wedged"
+look identical from outside, but a slow machine can be given room. The runs
+above used 50 minutes and finished in about 16.
+
+**And one trap in running it, worth a line because it cost a whole 16-minute
+run.** `scripts/serve.py` takes its document root as a SECOND ARGUMENT and
+otherwise serves the repo the script itself lives in — `-WorkingDirectory` does
+nothing. A `--against` server started without that argument serves the BRANCH,
+so the bake-identity line compares the branch's `?slopes=0` against the
+branch's ON page and reads 229,574 px. That is not a red gate, it is a
+misconfigured harness, and the tell is that the number is the same order as the
+layer's own 225,295 px. Check `curl <against>/js/slopes.js` returns 404 before
+believing that line either way.
+
+**Not fixed, and named so the next pass can decide.** Three more files are
+requested twice on the same page, for two different reasons.
+`js/slopes-roofs.js` reads `_data` exactly the way the arches did, for
+`data/roofs.geojson` and `data/tower.geojson`, and falls through to its own
+fetch for the same reason — the identical defect, one file smaller.
+`data/capitol_dome.geojson` is a different shape: `js/capitol.js` hands
+MapLibre the URL rather than an object (`data: 'data/capitol_dome.geojson'`),
+so MapLibre fetches it, and `js/slopes-dome.js` never tries to reuse anything —
+it just fetches its own copy. Counted on the same ON page:
+
+    entrances.geojson    1 request   6,578.6 KB
+    roofs.geojson        2 requests  1,838.9 KB + 0 KB
+    tower.geojson        2 requests     72.2 KB + 0 KB
+    capitol_dome.geojson 2 requests        0 KB
+
+The second request costs **nothing on the wire** in all three cases — they are
+small enough that Chrome serves the repeat out of its own cache at
+`encodedDataLength` 0, which is exactly why the 6.4 MB one was the only visible
+symptom. What they still cost is a second `JSON.parse` of 1.8 MB on the main
+thread during boot. Left alone on purpose: the fix is not this lane's to make
+alone (it wants `js/roofs.js`, `js/tower.js` and `js/capitol.js` to publish
+what they parsed, the way `js/entrances.js` now does), and no measurement here
+says it is worth a page's byte or a frame. Written down so the next pass has
+the numbers rather than the suspicion.
+
 ## 213. Sep 3 2026 — round 6 of the fair-camera critic: a hip from the air is its ridge and hip COURSES, and the mesh now draws them — Garrison, the Main Building's south block and the roofs north of the Tower read as hips at mall-cruise (`acer/slopes`, not merged, commits `6ffc531` `c75eab7`)
 
 Round 6 was the same fair fight (Google Earth at OUR mall-cruise pose, now at
