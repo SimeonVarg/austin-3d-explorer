@@ -539,3 +539,184 @@ node walk.mjs [reps] [--quiet]  # the gate: 3 sites walk, every frame under 12 m
                                 # plus a WATCHED FAILURE that must come back lifted
 node walk-trunk.mjs [reps]      # QUEUE Y15 from a real walk, walk vs hop, interleaved
 ```
+
+## The slopes layer gate (added September 2 2026)
+
+`js/slopes.js` is the one layer in the app that is not MapLibre's own — a
+three.js `custom` / `renderingMode: '3d'` layer that carries the real pitched
+roofs (`js/slopes-roofs.js`, off the `rig` member of roofs.geojson), the
+arches (`js/slopes-arches.js`, off the `arches` member of entrances.geojson)
+and the Capitol dome (`js/slopes-dome.js`, lathed from capitol_dome.geojson).
+`slopes-layer.mjs` proves, from pixels on the real page, that a mesh in it is
+treated exactly like the fill-extrusion beside it, that the generators draw
+a slope where the slabs drew stairs and a curve where the chords drew five
+flats, and that switched off it leaves a frame identical to the one it was
+never in.
+
+```bash
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs                 # the gate
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --break         # 9 lines must go red
+VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs --shots DIR --against http://127.0.0.1:8443
+```
+
+**Read this before you trust or edit a line of it. On September 2 2026 the gate
+ran 32/38 against a layer that was RIGHT** — six reds, and not one of them was
+a defect in the app. Four of the six were assertions that had gone stale under
+the generators they were written before; one was a regex that could not match a
+correct filter; one was a premise that was simply false. The repair is in the
+list below and the lesson is the older one in this file: a guard that cannot
+fail and a guard that cannot pass are the same bug. It is **48/48** now, on
+hardware GL against `git archive main` on a second port, and the things that
+changed are:
+
+- **The roofs filter regex.** `roofs-pitched`'s filter serialises as
+  `["match",["get","f"],[...],true,false]` — a `match` whose input is the
+  `["get","f"]` EXPRESSION. The gate asked for `/"match","\["get","f"\]/`,
+  with the comma inside the quotes, which no correct filter can produce. It is
+  `ROOFS_FILTER_RE` at the top of the file now, anchored, so the next person
+  reading a red line can see what shape was expected.
+- **`root.children === 0` is gone.** "The layer is installed, drawing an empty
+  scene" was written the day the layer landed and was stale the moment the
+  generators did. The line now names the three groups it expects —
+  `slopes-roofs`, `slopes-arches`, `slopes-dome` — and asserts the scene is
+  those and nothing else.
+- **The arch is measured as a SHAPE, not as a tone.** The old line asked that
+  the six pixels on the surround's curve be one tone lighter than the fanlight.
+  At `battle-door` the mesh reads `136 103 87 136 136 136` and the chords read
+  *exactly the same*, so it went red on a correct arch and would have gone
+  green on a wrong one. What separates a curve from its stand-in is WHERE the
+  surround is: the stand-in is not a five-sided polygon, it is a STAIRCASE
+  (`bake_entrances.py`'s `ARCH_TIERS = 5`, each chord freezing its half width
+  at its own tier's mid height). So the gate walks the head with
+  `ARCH_SAMPLES` raycasts and asserts every one lands on the arches mesh
+  within `ARCH_ON_ELLIPSE_M` of the exact ellipse — printing, from the same
+  samples, how far the five chords are from it, and requiring the mesh be
+  `ARCH_CHORD_RATIO` times closer. A staircase cannot pass that, so no
+  separate "no plateau" test is needed on top of it. A second line samples
+  `ARCH_PROBES` pixels chosen where the curve is surround and the chords are
+  NOT, and asserts they move when the chords come back.
+- **The switch section asks about OFF, not about ON.** With the generators
+  drawing, the ON frame is *supposed* to differ from the slabs — the old lines
+  compared them and were stale from the day the roofs landed. The promise is:
+  `SLOPES.on` false then true again is the frame it started from at 0 px;
+  every filter the layer touched comes back BYTE-IDENTICAL to a `?slopes=0`
+  page's (compared against a real one, not merely checked for `null`);
+  `?slopes=0` equals a `git archive main` on `--against` at 0 px. Two
+  supporting lines keep those zeros honest — the harness's own noise floor
+  (one settled page shot twice) and a live count proving the layer really
+  draws at that pose, so nothing here can pass by drawing nothing.
+- **One line in that section is NOT a zero, and it is a ratchet with the
+  ceiling named.** The switched-off frame against a `?slopes=0` LOAD is
+  **6,134 px of 1,296,000 (0.47 %)**, reproducible to ±1 across nine
+  independent pairs. Measured on September 2 2026, hardware GL:
+
+  | comparison | pixels |
+  |---|---|
+  | plain `?slopes=0` load vs plain `?slopes=0` load (3 pairs) | 0 |
+  | ON → OFF → ON, same page | 0 |
+  | OFF with the layer's `render()` STOPPED vs running | 0 |
+  | OFF vs a `?slopes=0` LOAD (9 pairs) | 6,134, maxΔ 78 |
+  | ...with `slopes-mesh` REMOVED from the style | 969, maxΔ 12 |
+
+  So the mesh puts **nothing** on the screen when the switch is off — the gate
+  asserts that control explicitly, by setting the custom layer's layout
+  visibility to `none` so MapLibre stops calling `render()` at all, and
+  requiring 0 px. 5,178 px of the residue is the mere PRESENCE of one more
+  layer in the style: MapLibre slices the depth range per layer, so a
+  224-layer style gives every layer a thinner slice than a 223-layer one and
+  the depth ties between coplanar roof steps land the other way. It is almost
+  all Δ1-8, 39 pixels above Δ20, isolated, no clusters, densest where distant
+  geometry is. It is **not** `opaquePassCutoff` (84 in every state) and it is
+  **not** a filter round-trip (0 px on a `?slopes=0` page put through the
+  identical round-trip). The last **969 px, which survive removing the layer,
+  are not explained** — something else `js/slopes.js`'s boot leaves behind, and
+  the next person to touch that file should find it.
+- **AUTO-EXPOSURE IS PINNED OFF ON EVERY PAGE THE GATE OPENS, and without it
+  none of the numbers above mean anything.** `js/graphics.js`'s meter is open loop and runs from
+  `updateSky`, which fires on map `move`, `resize` and hour changes — never per
+  frame — and its 40x24 `drawImage` reads the PREVIOUS frame's buffer. So the
+  first `jumpTo` after a load meters the LOAD pose, and any two pages compared
+  across a `jumpTo` are being compared on their METER HISTORIES rather than on
+  their renders. That, and not this layer, was the 163,822-pixel Δ1 "far field"
+  difference and the 3.8% brightening the runtime toggle appeared to cause on
+  September 2 2026 — both reproduce on a `?slopes=0` page with no layer
+  present. `aeMeter` resets its gain to 1 the next time it runs with the flag
+  off, which the pose's `jumpTo` guarantees, and the gate asserts `__ae().gain
+  === 1` on every page it diffs. `gl.readPixels` never saw the gain anyway
+  (the grade is a CSS filter on `#map`), so the SAMPLED colours are untouched
+  — only the screenshots move, and pinning it took the cross-load difference
+  from 176,269 px beyond Δ2 down to 0 for two plain loads.
+  **Any cross-page screenshot comparison in this suite needs the same pin.**
+
+- **It runs on the real GPU by default** (`VERIFY_GL=swiftshader` to override),
+  which the rest of the pixel suite does not. That is allowed here because
+  every assertion is RELATIVE — a mesh cube against a fill-extrusion twin in
+  the same frame, the layer on against off — never an absolute hex.
+- **`?slopesdebug=1` is the fixture.** The gate does not build geometry; it
+  measures the debug scene js/slopes.js ships behind that flag (a parity cube
+  and its extrusion twin on the South Mall lawn, slabs behind and in front of
+  the Tower, a post pair 2.5 km out for the fog, a lathe for the preset).
+- **`--against URL`** compares the `?slopes=0` frame with the same pose served
+  from a second checkout — how "off is pixel-identical to today" was proved
+  against a `git archive` of `main` rather than against the branch itself.
+- **`lib/png.mjs`** is the differ it uses: a dependency-free decoder for
+  exactly what Playwright writes (8-bit RGBA, non-interlaced), reporting the
+  count of differing pixels, the max channel difference and a bounding box.
+  A count and a box, because "0 pixels differ" and "26,621 pixels differ, all
+  inside the slab" are different sentences and a hash can only say the first.
+- **Section 1b is the generators.** On the same page, after the debug
+  scene: the three groups exist and the three filters are in place (and are
+  put back, exactly, by `SLOPES.on = false`); at the gregory pose the hipped
+  roof whose two long slopes the current light separates best reads as two
+  tones either side of its ridge, one tone along each slope, and a raycast
+  down the slope climbs continuously at the rig's pitch (a staircase would
+  plateau); at the battle-street pose the nearest arched door's head is walked
+  with 33 raycasts against its ellipse and against the five chords, six pixels
+  are sampled where the curve is surround and the chords are not, and the head
+  as a whole is diffed against the chord frame. The same door is measured
+  again from 22 m (`battle-door`) where the curve is ~100 px across and the
+  difference is the picture. Frames land in `--shots DIR` as
+  `ridge-gregory.png`, `arch-battle-street.png`, `arch-battle-door.png`.
+- **The LOD assertions changed on September 2 2026 and the old ones were
+  wrong.** `js/lod.js` hides a custom layer by calling
+  `implementation.setVisible(false)` and NOTHING ELSE — it must never write
+  `visibility` on one. MapLibre 5.24 honours that property on a custom layer by
+  never calling its `render()` again, and `render()` is where js/slopes.js
+  gives the tier's verdict PER GROUP; hidden wholesale, the Capitol dome went
+  with the roofs while the layer's own filter still held its fill-extrusion
+  discs down, so there was no dome at all. Assert, at altitude:
+  `getLayoutProperty('slopes-mesh','visibility') === 'visible'` (not `'none'`),
+  `LOD_isHidden('slopes-mesh') === true`, `slopes.layer.isVisible() === false`,
+  `slopes.frames` still climbing over a repaint, and
+  `slopes.stats().groups` reading `slopes-roofs: false` with
+  `slopes-dome: true`. And the other half of that defect, which is the half
+  that made it invisible rather than merely wrong: while the layer is held
+  down, `capitol-dome`'s filter must STILL be excluding the stacked discs,
+  because the dome group is still drawing. Both shapes gone at once is how the
+  skyline went empty, so the gate asserts the filter at altitude too.
+- **`--break` sabotages the page in two ways and NINE lines must go red.** The
+  layer is moved to the END of the style, above the fog (`stack` and both
+  `haze` lines — 3), and `SLOPES_ARCHES.on = false` puts the five chords back
+  in place of the mesh (all three `arch` lines at both poses — 6). Nothing on
+  disk changes. The second sabotage is there because the arch assertions are
+  the ones most easily written so that they cannot tell the two shapes apart —
+  the ones this gate already got wrong once. Measured September 2 2026:
+  **38/47** with `--break` (no `--against`) against **48/48** without.
+- **Budget: ~18 minutes** — four full page loads (five with `--against`) and
+  twelve poses. Run it in the background if your shell has a shorter ceiling;
+  the watchdog is 1500 s.
+
+### Two things this gate found on its first day, both about the matrix
+
+- Of the matrices MapLibre 5.24 hands a custom layer, only
+  `defaultProjectionData.mainMatrix` takes MercatorCoordinate units.
+  `modelViewProjectionMatrix` fed those units collapses every vertex onto one
+  sub-pixel point — the layer "renders" every frame and draws nothing, and
+  nothing says so. The first cut of the layer shipped that way for an hour;
+  the fill-extrusion twin in the debug scene is what made it visible.
+- MapLibre's mercator matrix already carries a reflection, so the local
+  east/north/up frame's mirror goes in the CAMERA matrix. Put it on a three.js
+  Group instead and three flips the winding for that group's negative
+  determinant, which uncancels it: every front face is culled and the sampled
+  wall reads exactly the formula's UNLIT value. A pixel proved that in a way
+  no amount of handedness reasoning had.

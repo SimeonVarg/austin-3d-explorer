@@ -1,5 +1,1924 @@
 # Austin 3D Explorer — Full Handoff
 
+## 216. Sep 4 2026 — the real-slopes pass shipped: `docs/real-slopes.md`, the cited frames, the PR, and the live site checked with our own eyes (`acer/slopes` → `main`)
+
+Nothing in `js/`, `data/`, `index.html` or `scripts/` changed in this entry.
+This is the ship: the doc, the frames a doc actually cites, the PR, the merge,
+and a look at the deployed site.
+
+**`origin/main` had not moved** — still `e232953`, the same commit the branch
+was cut from and the same commit `--against` compares to — so there was no
+merge worktree, no rebase and no re-verification of a merged result. The tip
+verified by the final check (`fd368af`) is the tip that shipped; this entry
+adds a Markdown file and sixteen JPEGs on top of it and changes no rendered
+pixel.
+
+**The doc: `docs/real-slopes.md`.** Written for someone who reads pictures, not
+diffs. Every picture cited by path, every number with the conditions it was
+measured under, the switch and the honest note that `?slopes=0` is a rendering
+switch and not a byte switch, the taste constants with their defaults and what
+each one is for, the whole matched-camera record with each round's gap and each
+fix and the verdict in the critic's own words, what was not fixed and why, and
+seven follow-ups.
+
+**The frames, `shots/slopes/` (CITED ONLY, per the disk rule).** Sixteen JPEGs,
+quality 82, at most 1440 px wide, none over 300 KB, 2.6 MB for the lot:
+before/after at all four poses, and four magnified pairs — Gregory's centre
+door at 20× (the five-chord plateau against a continuous archivolt), the
+Capitol dome (75 discs against a lathed shell on a tiered drum), Sutton's
+arcade (a flat wall against a run of round-headed arches), and the matched-
+camera Main Mall pair, Google at `dist=550` beside ours. Google's frame is
+labelled in the doc as a comparison screenshot with its attribution; every
+working frame from the pass stays in the scratchpad.
+
+**Three things in the doc that were checked rather than copied forward.**
+(1) `?slopes=0` really does still download three.js and all four slopes scripts
+— the `<script>` tags in `index.html` are unconditional (lines 32, 146,
+151-153), so the 329.4 KiB is paid on both pages and the flag buys back the
+build, not the bytes. (2) three.js is loaded from `unpkg.com` with no SRI hash;
+that is now a written follow-up rather than an unstated fact. (3) `MAI` carries
+no `arches` entry in `data/entrances.geojson` — 14 building ids do, and the
+Main Building is not one of them — so "the Main Building's portal is not arched
+in the data" is a measured statement, not an assumption.
+
+**What was deliberately NOT claimed.** The "43 self-intersecting deck rings"
+number that had been carried in conversation is not in the doc: nothing on disk
+sources it, and reconstructing every deck ring to count them was not worth the
+round. The follow-up is written as the true and useful version instead — the
+renderer untangles folded rings at runtime (`ROOFS.untangleDeck`) and the bake
+should not write them.
+
+**Next: the PR, the merge, and the live check** — appended to this entry as a
+docs-only commit on `main` once the deployment has been looked at.
+
+## 215. Sep 4 2026 — the Main Mall comparison, round 4: matched the camera first this time, and it landed close — Google Earth's `dist` re-tuned from round 3's 470m to 550m against a freshly re-shot `ours.png` (`acer/slopes`, no app code changes this entry — verification frame only)
+
+Round 3 (§212) tuned Google Earth's `dist` to 470m and called it a materially
+better match than round 1/2's 600m, while saying plainly its own pixel
+measurements were too noisy between the two renderers to trust a number. This
+round was told three straight rounds had all been judged the same way —
+**"ours sat higher and farther back than Google's"** — meaning our Tower reads
+smaller than Google's at any of the distances tried so far, so Google needed
+to pull back FARTHER than round 3's 470m, not closer. The brief's instruction
+this time was explicit: match the camera BEFORE anything else, re-derive
+`dist` from the formula, iterate against a fresh `ours.png` shot off the
+current tip (`8ba67df`, carrying the ridge/hip/valley roof courses §213 added
+and the double-fetch fix §214 just landed — neither round 1-3's `ours.png` had
+either), and this time get a real number for the residual instead of giving up
+on one.
+
+**Camera pose, unchanged fourth round running:** center `[-97.7393, 30.2856]`,
+zoom 17.48 (FOV-corrected for this app's real 58° vertical FOV,
+`js/controls.js:52`), pitch 55, bearing 0, 1440×900. Only Google's `dist`
+moved. The brief's own formula re-derives to essentially round 1/2's original
+number: `dist = (0.5·900/tan 29°) · 156543.03392·cos(30.2856°)/2^17.48 =
+600.29m`.
+
+**Iteration, 3 of the brief's 5-load budget:** `dist=600` (the formula's own
+baseline, and round 1/2's original value) — by eye against the fresh
+`ours.png`, still visibly too small, same finding as three rounds ago.
+`dist=470` (round 3's old final, re-tried as a sanity check) — this time
+overshot the other way, reading as large or larger than ours; the fresh
+`ours.png`'s new roof geometry reads differently than the old one did, or the
+true match point was never quite at either round's endpoint. `dist=550`
+(split the 470/600 bracket, final) — by eye the closest of the three, Tower
+prominent and un-clipped with comparable context both sides.
+
+Final URL:
+`https://earth.google.com/web/@30.2856,-97.7393,190a,550d,35y,0h,55t,0r`
+
+Google's own in-app readback confirms the camera landed where asked, not
+snapped: camera 505m ASL, ground 188m ASL → 317m above ground, against
+`dist·cos(55°)`'s predicted 315.5m — 0.5% off.
+
+**The number round 3 didn't get: measured on the SAME architectural feature in
+both renders, not on where each renderer happens to draw an occluding
+rooftop.** The Tower's open observation-deck colonnade — the four vertical
+dark window-slits directly under the roof cap, sharp in both a flat-shaded
+low-poly render and a photogrammetry mesh — spans 28px in Google's frame
+against 26px in ours, on the final 1100-wide chrome-free crops: a 2px, ~7%
+difference, inside the brief's ~10% bar. A second, independent feature (roof
+cap to the setback ledge where the shaft meets the Tower's own base block)
+gives 188px vs 194px, 3% off, same direction. Roof-cap top itself lands at the
+identical pixel row in both. Horizontally, the Peter T. Flawn Academic Center
+and Union Building labels match to 1-5px on a 1100px-wide frame. **What
+didn't work, flagged for whoever measures round 5:** a first attempt measured
+full Tower height down to where each render's OWN foreground rooftop occludes
+the shaft, and got a spurious ~30% gap — discarded once it was clear the two
+renderers simply model the Old Main/Sutton roofline in front of the Tower at
+different heights, so that occlusion point reflects a geometry-modeling
+difference between the renderers, not a camera mismatch. Only shared,
+identifiable Tower architecture is a valid cross-renderer ruler; an occlusion
+boundary is not. Full arithmetic, every iteration's readback, and both
+measurement passes (the one that worked and the one that was thrown out) in
+more detail: `judge/fair/r4/key.txt` (scratchpad, not the repo).
+
+**Both frames, hardware GL, 1440×900, second of two shots kept, zero console
+errors, one headless Chrome at a time (orphan-swept via `Get-CimInstance`
+before finishing, none found).** Ours shot once (pose is fixed by the brief;
+only Google's `dist` moved). Google: each `dist` iteration got its own
+20-40s-settle shot, same two-popup dismissal-by-coordinate-click as rounds
+1-3. The crop this round used an IDENTICAL 1080×675 source-pixel window for
+both images (not just a matching final aspect) so a size difference in the
+1100-wide finals reflects a real camera mismatch and not a crop-window one; a
+first crop attempt left Google's own bottom-right icon cluster (person/no-fly/
+2D/compass buttons) in frame and was redone once that was spotted.
+
+**Committed:** `docs/shots/mallcruise-fair-r4-side-by-side.jpg` (A: Google at
+dist=550m; B: ours). The round's full working files (`ours.png`,
+`google-v{1,2,3}.png`, `A.png`/`B.png`, every measurement crop, `key.txt`)
+stay in the scratchpad per the disk rule — only the cited comparison frame is
+committed. The local `scripts/serve.py :8099` this round started was stopped
+at the end.
+
+**Next.** This is the closest of the four rounds by every metric measured —
+colonnade span within 7%, setback-ledge height within 3%, roof-cap pixel-
+identical. Whoever runs the roof-geometry critic next should use THIS pose
+(`judge/fair/r4`, dist=550), not round 3's 470 or round 1/2's 600.
+
+## 214. Sep 4 2026 — the entrances file was downloaded TWICE on every page the roofs/arches/dome layer was on; it is downloaded once now, and the layer's whole page cost went to zero (`acer/slopes`, not merged)
+
+The one blocker left on the real-slopes pass after its final check: an ON page
+pulled **25.04 MB** off the wire against `?slopes=0`'s **18.67 MB**, and the
+entire 6.4 MB difference was `data/entrances.geojson` arriving twice. Fixed.
+An ON page is **18.67 MB** now and the whole-page delta between ON and OFF is
+**66 bytes** — the query string on `index.html`. (CDP
+`Network.loadingFinished.encodedDataLength`, cold context per load, hardware
+GL, `scripts/serve.py` on 8811. Same script and same conditions as the
+measurement that found it.)
+
+**The mechanism was not the one the brief predicted, and the difference is the
+whole fix.** `js/slopes-arches.js` boot() did try to reuse the parsed file
+before fetching it — `map.getSource('austin-entrances')._data.arches`, with
+`S.fetchJSON(ARCHES.url)` as the fallback — and the guess was that the defer
+(`ENT.defer`: idle + 2 s) meant the source did not exist yet at boot. It did
+exist. boot() has always waited for `entrances-portal` / `entrances-glass`,
+which are added in the same call that parses the file, and the measurement
+shows it running **428 ms after** `initEntrances` fired. The source was there.
+The data was not:
+
+    map.getSource('austin-entrances')._data   ->  { geojson: {...} }
+    map.getSource('austin-entrances')._options.data
+                                              ->  { type, features, arches, ... }
+
+**MapLibre 5.24.0 does not store what you hand a geojson source.** It wraps it.
+So `_data.arches` was `undefined` on every load that ever ran, the fallback
+fetch fired every time, and because 6.4 MB is past what Chrome will hold in its
+memory cache the second request went to the network at full price. Probed on
+the running app, not read out of the library.
+
+**So the fix is not a better private field to read.** `js/entrances.js` now
+publishes what it parsed:
+
+    window.entrancesGeoJSON()   // a promise; the FeatureCollection, or null
+
+A promise and not a global object, because the load is deferred and a consumer
+polling a global cannot tell "not yet" from "never". It settles exactly once
+and it always settles — `null` for `?entrances=0` and for a failed fetch — and
+never rejects, so `await` cannot hang a caller. `js/slopes-arches.js` awaits it
+and keeps its own fetch only for a page that loads the generator WITHOUT
+`js/entrances.js`; there is no such page in the repo today.
+
+**`?entrances=0` builds no arches, and that was already right.** boot() has
+returned early on `ENT.on === false` since it was written, and it should: the
+group's whole job is to draw the curve those 448 flat chords approximate and to
+filter the chords out of two layers that, with the doors off, do not exist.
+Measured on that URL: zero requests for the file, zero arches, no group in the
+scene, no hang on the promise. `?entdefer=0` (the eager load) still builds all
+24.
+
+**Proof, all on hardware (RTX 3050 Ti, ANGLE/D3D11), server on 8811:**
+
+| | before | after |
+|---|---|---|
+| requests for `data/entrances.geojson`, ON | 2 | **1** |
+| that URL's bytes on the wire, ON | 13,157.2 KB | **6,578.6 KB** |
+| whole ON page | 25.04 MB | **18.67 MB** |
+| ON minus `?slopes=0` | 6.4 MB | **66 bytes** |
+| arches built | 24 / 18,315 tris | **24 / 18,315 tris** |
+
+The four final frames are **unchanged, 0 of 1,296,000 pixels at tolerance 0**,
+re-shot with the same `shoot_after.mjs` under the same waiting discipline:
+mall-cruise 0, gregory 0, battle-street 0, capitol-dome 0. `slopes.stats()`
+reports the same four groups at the same triangle counts at every pose.
+
+**The gate now watches it, and the gate can watch it fail.**
+`scripts/verify/slopes-layer.mjs` gained a `one fetch` line that counts the
+page's REQUESTS for that URL — requests and not bytes, on purpose: a duplicate
+the HTTP cache happens to absorb is still the defect, and this gate shares one
+browser and one cache across its three page loads, so a byte count would read
+zero on the second page and prove nothing. `--break` gained a fifth sabotage
+(the page re-fetches the file itself), so the intended-red count goes 11 -> 12.
+Both run on hardware against 8811 with `git archive e232953` on 8812:
+**51/51 clean** (bake identity 968 px at Δ 12, inside the atlas residue; the
+harness noise floor 0 px; the layer moving 225,295 px at mall-cruise, so the
+zeros are not vacuous) and **38/50 with `--break`** — the twelve intended reds
+and nothing else, the new line reading `2 request(s)`.
+
+**One harness change came out of this and it is not cosmetic.** The first run
+of the gate was killed by its own watchdog at 25 minutes, mid-gate, and the
+ceiling was hard-coded past `VERIFY_MAX_MS` — the exact shape of dead gate
+§155 fixed in `walk.mjs` (exit 124 a minute after it had printed PASS on
+everything). `maxMs` is now `Math.max(1500000, VERIFY_MAX_MS)`: the 25-minute
+floor stays, because the watchdog exists precisely because "slow" and "wedged"
+look identical from outside, but a slow machine can be given room. The runs
+above used 50 minutes and finished in about 16.
+
+**And one trap in running it, worth a line because it cost a whole 16-minute
+run.** `scripts/serve.py` takes its document root as a SECOND ARGUMENT and
+otherwise serves the repo the script itself lives in — `-WorkingDirectory` does
+nothing. A `--against` server started without that argument serves the BRANCH,
+so the bake-identity line compares the branch's `?slopes=0` against the
+branch's ON page and reads 229,574 px. That is not a red gate, it is a
+misconfigured harness, and the tell is that the number is the same order as the
+layer's own 225,295 px. Check `curl <against>/js/slopes.js` returns 404 before
+believing that line either way.
+
+**Not fixed, and named so the next pass can decide.** Three more files are
+requested twice on the same page, for two different reasons.
+`js/slopes-roofs.js` reads `_data` exactly the way the arches did, for
+`data/roofs.geojson` and `data/tower.geojson`, and falls through to its own
+fetch for the same reason — the identical defect, one file smaller.
+`data/capitol_dome.geojson` is a different shape: `js/capitol.js` hands
+MapLibre the URL rather than an object (`data: 'data/capitol_dome.geojson'`),
+so MapLibre fetches it, and `js/slopes-dome.js` never tries to reuse anything —
+it just fetches its own copy. Counted on the same ON page:
+
+    entrances.geojson    1 request   6,578.6 KB
+    roofs.geojson        2 requests  1,838.9 KB + 0 KB
+    tower.geojson        2 requests     72.2 KB + 0 KB
+    capitol_dome.geojson 2 requests        0 KB
+
+The second request costs **nothing on the wire** in all three cases — they are
+small enough that Chrome serves the repeat out of its own cache at
+`encodedDataLength` 0, which is exactly why the 6.4 MB one was the only visible
+symptom. What they still cost is a second `JSON.parse` of 1.8 MB on the main
+thread during boot. Left alone on purpose: the fix is not this lane's to make
+alone (it wants `js/roofs.js`, `js/tower.js` and `js/capitol.js` to publish
+what they parsed, the way `js/entrances.js` now does), and no measurement here
+says it is worth a page's byte or a frame. Written down so the next pass has
+the numbers rather than the suspicion.
+
+## 213. Sep 3 2026 — round 6 of the fair-camera critic: a hip from the air is its ridge and hip COURSES, and the mesh now draws them — Garrison, the Main Building's south block and the roofs north of the Tower read as hips at mall-cruise (`acer/slopes`, not merged, commits `6ffc531` `c75eab7`)
+
+Round 6 was the same fair fight (Google Earth at OUR mall-cruise pose, now at
+§212's dist=470) on the tip that closed §211, and the critic picked Google
+again: "B is crisp but almost every red roof reads as a flat plateau with a
+bevelled rim (a truncated pyramid), not two slopes meeting at a ridge; from
+this height the Main Building's south block and Garrison Hall look like lids
+with a chamfer ... Both roofs render as a bright flat top plane with a narrow
+darker sloped band around the edge. They should be true hips: one ridge line
+running the full long axis, hip lines from each ridge end down to the
+building corners, and the two slopes lit differently so the ridge is a
+visible line from the air." Secondary: the roofs north of the Tower
+(Biological Laboratories) "plain red slabs with no ridge or hip"; the Tower
+crown "a straight shaft with a flat cap"; aliased roof edges.
+
+**Check the premise first: the mesh already WAS every one of those things.**
+§209 ran every tile-middle roof to its ridge (`full`, 104 of 115 drawn) and
+§211 made the Main Building's three roofs hips; the gate's `ridge` line reads
+two tones either side of a ridge at gregory every run. So the critic was
+looking at a true hip and reading a lid. Measured on the frame they judged
+(`judge/fair/r3/ours.png`, tip df5e9f2, golden hour, bearing 0, pitch 55,
+0.74 m/px), a pixel column down Garrison's roof at x = 900: **60 rows of one
+tone (224,85,24), then 4 rows of (146,55,13) beyond the ridge, then the
+eave.** That is what a bare hip IS from this camera: a slope facing away
+projects to `0.574·w − 0.819·rise` screen-metres (the camera looks down at
+35°: `sin 35 · w − cos 35 · rise`) — 2.8 m of Garrison's 12.2 m half-span,
+four pixels — while the slope facing the camera gets `0.574·w + 0.819·rise`,
+11.2 m, and the facet shading (§204c's `SLOPES.facetShade`, the slabs' own
+38° rule) puts the far slope at 0.65-0.70 of the near one (Batts 65 vs 93
+luma, Mezes 76 vs 110, Hogg 69 vs 96 — the pass's `before/` probe). Four
+pixels at 0.7 IS "a narrow darker band around the edge", and a 60-px plane
+with nothing on the line where it turns over IS "a bright flat top". The
+shape was right; nothing MARKED the ridge. Google's frame marks it: a
+barrel-tile roof carries a RIDGE COURSE and HIP COURSES — round tiles bedded
+in mortar, standing proud of the field — and from the air they are pale
+lines at roughly 1.5× the field's luma along every ridge and every hip, and
+those lines are what the eye reads as "hip" at this distance
+(`docs/shots/courses-garrison-google-vs-ours.jpg`, left panel). The
+critic's own prescription ("the two slopes lit differently so the ridge is a
+visible line") names the line as the goal; the lighting was already doing
+its part.
+
+**The fix (`js/slopes-roofs.js`, `ROOFS.lines`, commit `6ffc531`).** The
+courses, generated from the rig alone, nothing typed for a building. A RIDGE
+is a slope strip's top edge where the profile has stopped —
+`at(k, min(d_use, caps[k]))` to `at(j, …)` — longer than a point
+(`minM` 0.4 m), drawn once (the two slopes either side of a ridge both end on
+it; deduped by endpoints); on an L the two legs' ridges meet at the inside
+corner by construction, because that is where the rig's caps put them. A HIP
+is a convex corner's own path from the eave's edge (out over the lip) to
+where the corner stops. A concave corner's path is a VALLEY — flashing, not
+tile — a darker line (`valley.tone` 0.82) lying flush. A mid-wall sample
+point the bake added along a long wall (|ray| = 1, turning less than
+`straightDeg` 8°) is a seam inside one plane and gets nothing. A roof drawn
+to a deck (a truncated hip, the Union's blocks) keeps its hips and gets no
+ridge — its top edge is the deck's outline. Edges the gable end or Gregory's
+hall took, a block's interior edges, and the corners on them draw nothing;
+Gregory's hall keeps its own `ridgeCap`. Each course is a box `w` wide whose
+top stands `h` proud of the line (`ridge` 1.0 × 0.15 m, `hip` 0.8 × 0.15)
+with sides dropping 0.5 m below the surface (hidden — no gap under it from
+any angle) and a cap on its low end, in the roof's colour `pale` 0.38 of the
+way to white (0.08 at night, when nothing on a roof is lit), never a facet:
+lit as the tile it is. A real ridge course is ~0.4 m wide; foreshortened by
+0.574 at mall-cruise that is half a pixel and would draw as a broken dash on
+the map's un-antialiased context, so the width is the number that carries
+the read — the same call bake_tower.py made drawing the clock dial at 3.05 m
+instead of 3.66 ("the RING is the thing that carries the read at this
+distance, so it gets the pixels") — and it is stated in the taste block. The
+Main Building's three arms get theirs through the same `roofOne` (22 courses
+on `slopes-tower`); the Capitol's wings do not (`js/slopes-dome.js` passes
+`lines: false`: standing-seam painted metal at 16.7°, not barrel tile — and
+capitol-dome moves by nothing but raster noise below). `lines.on = false` is round 5's roofs.
+Cost: 1,780 courses on the campus rig — a replica of the rule off the rig
+splits them as ~880 ridges, ~690 hips and ~220 valleys (1,790; the ten
+fewer on the mesh are the edges Gregory's hall and its blocks skip), and
+the Main Building's 22 are 8 ridges, 13 hips and 1 valley exactly —
+11,780 → 31,484 triangles in the roofs group (88 → 133 ms to build; one
+draw call as before).
+
+**Proved from pixels at mall-cruise** (hardware GL, ANGLE / RTX 3050 Ti /
+D3D11, 1440×900, `?intro=0&drift=0`, graphics auto-detect cancelled,
+auto-exposure pinned off, every core and deferred source waited on, second of
+two shots; before = the tip this pass started from, after = the tree,
+same server, same harness — the pass's `cap.mjs`): the ridge's pixel column
+on every probed plain hip went from the slopes' own tones to a pale row —
+Garrison rows 488-491 luma 75 → 123-135 over slopes of 75 / 114; Batts
+60 → 114-128 over 60 / 94; Hogg 65 → 116-130 over 65 / 97; Biological
+Laboratories 108 → 124 over 108 / 108 (its far slope is under four rows
+tall there, so "both slopes" is one tone) — and a raycast at each ridge
+lands on the mesh 0.15 m above it where it landed ON it before (Batts 25.97
+→ 26.12, Battle 27.75 → 27.89, Hogg 20.77 → 20.92, Biological Labs 20.96
+→ 21.11). Whole frame ON, before → after: **26,072 px (2.01 %)** — the courses and
+nothing else (the tip's generator served to a control page by route
+interception, same server, same harness, same settle — the §204c control). Frames, committed because this entry cites them:
+`docs/shots/courses-garrison-before-after-4x.jpg` (lead with this: an L
+that read as a lid, now two ridges meeting over a valley with hips to every
+corner), `docs/shots/courses-mainbuilding-before-after-4x.jpg` (the south
+block under the "UT Tower" label: a ridge the full length, hips to the
+corners), `docs/shots/courses-north-biolabs-before-after-4x.jpg` (Biological
+Laboratories and Painter's wing, the "plain red slabs"),
+`docs/shots/courses-mezes-batts-before-after-3x.jpg` (an E-shaped roof:
+three ridges, two valleys), `docs/shots/courses-mallcruise-before-after.jpg`
+(the frame), `docs/shots/courses-garrison-google-vs-ours.jpg` (Google, ours
+before, ours after: the ridge, the hips and the valley on the first and
+the third, nothing on the second),
+and for round 7 `docs/shots/mallcruise-fair-r3-courses-side-by-side.jpg`
+(§212's A against the new B at the same crop).
+
+**The other three poses, old generator against new — the §204c control:**
+the tip's `js/slopes-roofs.js` and `js/slopes-dome.js` served to a control
+page by route interception, same server, same harness, same settle:
+**gregory 12,210 px (0.94 %), battle-street 19,184 px (1.48 %),
+capitol-dome 2,613 px of max channel Δ 1-2** (2,583 at Δ1, 30 at Δ2, all
+in the far top-left of the frame — the same haze/label raster noise §209
+saw at this pose at 1,573 px of Δ1; the Capitol did not move, its wings
+take no courses). gregory's pixels are the dorm roofs either side of the
+gym and the gym's own annex block wearing their hips and ridges — the
+hall is untouched, its ridgeCap being its own; battle-street's are Sutton
+Hall's ridge and hip courses seen from the street, a thin pale line along
+the ridge at that distance (the pass's `fourcmp/` crops in the scratchpad).
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+branch worktree on :8711, the verifier's `git archive e232953` on :8712,
+each served by its own scripts/serve.py, graphics auto-detect cancelled,
+auto-exposure pinned off, second of two shots kept, one headless Chrome at
+a time (orphan-swept by `Get-CimInstance` before and after).**
+`scripts/verify/slopes-layer.mjs --against`: **50/50, exit 0** on the
+third run — the first was 49/50 with the new `courses` line red on ITS OWN
+geometry (a rounded pixel put the raycast 0.6 m along the view, on the
+box's side face instead of its top; the far-slope sample 4 m out projected
+on to the course itself on the foreshortened roofs; four ridges at the
+frame's top edge were sub-pixel; one ridge was behind a taller building),
+the second crashed on a constant the page could not see, and no other
+line moved across the three. The lines about this pass: `built` 115 roofs
+(104 to their ridge; 8 flat, drawn as 11 parts; **1,780 courses**) + 1
+gable in 31,484 triangles, the Main Building 3 roofs, 22 courses, 424
+triangles; **`courses`: 11 plain hips in frame with a ridge ≥ 20 px, 11
+with the ridge in view, 11 with the raycast landing exactly 0.15 m proud
+of the ridge, 11 lighter at the ridge** — Sutton 106 vs 85 luma, Parlin
+112 / 95, Batts 111 / 93, West Mall Office 114 / 100, Biological Labs 118
+/ 106, Gordon-White 136 / 98, Carothers 117 / 106, Painter 127 / 100,
+Hogg 113 / 96, Waggener 117 / 106, Welch 134 / 101; the `ridge` line at
+gregory still on Jester East's part, 101.0 / 131.4 luma; the toggle line
+980 px Δ 12 (the atlas residue), OFF vs a `?slopes=0` load 6,156 px
+(ceiling 7,000), render()-stopped 0 px, no page errors. Two expectations changed
+deliberately and both are named in the file: the `built` line asks for the
+courses beside the ridges (`lines ≥ 1000` on the campus rig, `≥ 12` on the
+tower's; the shipped rig has 1,780 and 22), and a new `courses` line at
+mall-cruise takes every plain four-corner hip in frame, projects its
+longest ridge's midpoint and a point 4 m down each slope off the rig's own
+`full` profile, and asks that a raycast at the ridge lands on the mesh
+`h` above it (±6 cm) and that the ridge's pixel column (the row and its two
+neighbours — a 1-px course lands on one row or the next) reads at least 10
+luma over the brighter slope, on three quarters of them. `--break` gained a
+fourth sabotage — `SLOPES_ROOFS.lines.on = false` on the switch page — and
+is watched failing: **38/49 with `--break` (no `--against`), the eleven intended reds
+and nothing else** — under the sabotage the line reads 0 courses, 0 proud, 0
+lighter. `?slopes=0` on the branch against the verifier's `git
+archive e232953` (`…/34cffdba…/scratchpad/main-e232953`, its own
+scripts/serve.py on :8712), tolerance 0: **mall-cruise 0 of 1,296,000 px, max channel Δ 0** — two page loads by
+the pass's own harness, both at zero console errors — and the gate's
+bake-identity line on the same pair, run 1: 968 px of Δ ≤ 12, the facade
+atlas' two-state residue §209 named (its toggle line 980 px of Δ 12, its
+render()-stopped control 0 px, OFF against a `?slopes=0` load 6,156 px
+under the 7,000 ceiling); run 3: 969 px of Δ ≤ 12, the same residue. The generators
+are never read by a `?slopes=0` page and no bake ran this pass: `data/` is
+untouched. The reshoot ON, all four poses, second of two shots:
+`judge/fair/reshoot/r3/{mall-cruise,gregory,battle-street,capitol-dome}.png`
+(the verifier's scratchpad).
+
+**Not done, and why.** (1) **The pitch stays 22.6°** (bake `PITCH` 0.42,
+5:12). The critic asked for "25-30° so the slopes are tall enough to shade
+distinctly", but the shading is the slabs' own painted 38° rule (facetShade)
+and does not depend on the pitch, and from THIS camera a steeper roof makes
+the far slope THINNER, not taller (`0.574·w − 0.819·rise`: Garrison's north
+slope 2.8 m at 22.6°, 2.2 m at 25.5°, 1.2 m at 30°) — the read the critic
+wanted comes from the courses. The only measured pitch on campus is the
+Main Building's 25.5° (bake_tower.py, off two photographs), and the
+campus roofs' 5:12 is a stated style default; if someone measures Garrison
+or Batts off a photograph, `full.rise` is where a rig pitch would go — it is
+ON-only, the slabs (OFF = main) never move. (2) **The Tower crown is left as
+measured.** Ours has both set-backs the critic asked for (shaft 1.0 →
+clock stage 0.86 → belfry 0.49 of the shaft, bake_tower.py's rectified-
+elevation numbers) and the colonnade; at 0.74 m/px the 0.29 m gaps between
+each pair of belfry columns are sub-pixel, so the colonnade reads as a box
+with slits, and Google's rounded cap is photogrammetry smoothing a stepped
+cap. Redrawing a measured building against a blob is the wrong trade;
+`docs/shots/…` has both crowns if a later pass wants to argue it. (3)
+**The aliased edges are the map's, not the layer's**: js/app.js creates the
+WebGL context with `antialias: !!window.GFX_MSAA`, which only the `ultra`
+preset sets (a reload), so every fill-extrusion edge in the city is
+aliased at the default preset too; the custom layer draws into that
+context and cannot antialias its own edges alone. The 1-px courses are
+drawn as wide as they are partly for this reason (above). (4) The valley
+courses and the width/proudness/paleness numbers are taste
+(`ROOFS.lines`); `valley.on = false` leaves the crease bare, `pale` is one
+number. (5) Whether a ridge course should stay this wide at street level
+(battle-street, 0.15 m/px: 1.0 m is ~7 px on Sutton's ridge) was looked at
+and left: Sutton's ridge is some 40 m from that camera, so the course is
+2-3 px there, a line and not a slab; the pose where a 1.0 m course would
+be eight pixels wide is standing on a roof, which the app does not do.
+
+**Next.** Round 7 of the fair-camera critic on
+`docs/shots/mallcruise-fair-r3-courses-side-by-side.jpg` (or the fuller
+`judge/fair/reshoot/r3/mall-cruise.png` against `judge/fair/r3/A.png`). If
+the courses read too bright, `pale` is the number; too wide, `ridge.w`.
+
+## 212. Sep 3 2026 — the Main Mall comparison, round 3: same camera wasn't enough, it needed the same SCALE too — Google Earth's `dist` tuned by eye, 600m → 470m (`acer/slopes`, no app code changes this entry — verification frame only)
+
+Rounds 1/2 (§209–§210 above, `judge/fair/r1`, `judge/fair/r2`) fixed WHICH
+camera: Google Earth's lat/lng/heading/tilt set to match ours exactly, closing
+round 0's "these are different cameras" verdict. This round was told that
+wasn't the whole fix — **"both critics said our frame sat HIGHER and FARTHER
+BACK than Google's"** — same camera position, but a real scale mismatch: even
+with matching lat/lng/heading/tilt, the two frames disagreed on how big the
+Tower reads, because round 1/2's `dist` formula matches GROUND-PLANE coverage
+assuming both cameras share this app's 58° vertical FOV — but Google Earth's
+URL leaves its own FOV at its default 35° (`y=35`, per the bar scout's
+empirical notes), a narrower lens that shows less ground per pixel at that
+distance than the 58°-FOV formula assumed.
+
+**The fix, and why it's `dist` alone.** Our camera pose is untouched this
+round — center/zoom/pitch/bearing, `before/README.md`, never moves. Only
+Google Earth's `dist` was tuned, by eye, against a fixed `ours.png`, per the
+brief's instruction to iterate up to four Earth loads. Three distinct values
+were loaded and compared: **600m** (round 1/2's value — confirmed by eye to
+read too small), **507m** (still a bit small), **433m** (as large or larger
+than ours — the Tower's belfry started crowding the safe-crop boundary, a
+sign of having gone at least as far as needed), **470m** (final — splits the
+bracket; side-by-side the Tower reads close to the same screen size and
+position in both frames, un-clipped, flanked by comparable context on both
+sides). Google's own in-app camera-height readback moved monotonically with
+each step (camera-above-ground: 350m → 289m → 245m → 268m), each within 1.7%
+of `dist·cos(55°)`'s prediction — confirmation the camera genuinely moved as
+intended at every step, independent of how hard the Tower itself was to
+measure by eye.
+
+Final URL: `https://earth.google.com/web/@30.2856,-97.7393,190a,470d,35y,0h,55t,0r`
+
+**Said plainly: this is not pixel-perfect, and the honest reason why is
+recorded, not glossed over.** Several pixel-measurement passes on the final
+crops (an architectural feature's height, a raw shaft-width color-scan) gave
+inconsistent readings — from near-parity to ours reading up to ~15-20%
+taller — because the two renderers are different ENOUGH in style
+(photogrammetry mesh vs. flat-shaded low-poly city) that hand-picking a
+matching "architectural feature" edge in both is genuinely noisy, and an
+automated width-scan came back with a spread as wide as its own median rather
+than a clean number. No number from that exercise is trustworthy enough to
+report. What IS trustworthy — the holistic by-eye read across three real
+iterations, and Google's own readback confirming the camera actually moved —
+says 470m is a materially better match than 600m, full stop. Full arithmetic,
+every iteration's readback, and this reasoning in more detail:
+`judge/fair/r3/key.txt` (scratchpad, not the repo — see below).
+
+**Both frames, hardware GL, 1440×900, second of two shots kept, zero console
+errors, one headless Chrome at a time (orphan-swept before via
+`Get-CimInstance`, none found).** Ours: shot once (pose never changed this
+round, so re-shooting it per Google iteration would have been pure waste).
+Google: each `dist` iteration got its own shot; the "Find and manage
+projects" popup and a second "Ask Google Earth for help"/Gemini popup (which
+appears centered right over the Tower after the first is dismissed) answer
+neither Escape nor Playwright's `getByText` locator — both needed raw
+coordinate clicks, which took several retries at the SAME dist value before
+landing a clean, popup-free frame; none of those retries changed the camera,
+only the UI chrome in frame.
+
+**Committed:** `docs/shots/mallcruise-fair-r3-side-by-side.jpg` (A: Google at
+dist=470m: B: ours). The round's full working files (`google.png`, `ours.png`,
+`A.png`/`B.png`, every iteration's frame, `key.txt`) stay in the scratchpad
+per the disk rule — only the cited comparison frame is committed.
+
+**Next.** Round 6 of the fair-camera critic (the roof-geometry review, §206-
+211's series) should run against THIS pose (`judge/fair/r3`, dist=470), not
+round 1/2's dist=600 — the Tower is meaningfully bigger in-frame now, which
+changes how much roof detail is legible at this zoom. If a critic still finds
+the scale off, the two brackets already explored here (433 too far, 507 not
+far enough) narrow the next search a lot.
+
+## 211. Sep 3 2026 — round 5 of the fair-camera critic: a roof is pitched to a ridge or it is flat — Welch, the Union and Painter are their tiled parts on a flat roof, and the Main Building's eave stands in its own shadow (`acer/slopes`, not merged, commits `5b150d3` `ebbd9bc`)
+
+Round 5 was the same fair fight as round 4 (§209–§210: Google Earth's
+camera at OUR mall-cruise pose) on the tip that closed §209, and the critic
+picked Google again. "B gets the Main Building wings, Mezes, Calhoun and
+Battle Hall right as crisp hips with ridges and a small eave step, but it
+invents a shape on its biggest masses: Welch Hall, Texas Union and the long
+block north-east of the Tower are drawn as huge flat lids with a wide orange
+band around the rim, which reads as a truncated hip or mansard that none of
+those buildings have. A crisp wrong shape on three of the largest buildings
+in frame loses to A's soft but correct forms." And the rule to fix it: "a
+roof is either fully pitched to a ridge or flat; never paint a tile band on
+the edge of a flat lid." Every gap below is closed in a generator or a bake,
+nothing typed for one building, with `?slopes=0` still `main` to the pixel.
+
+**What the critic saw, measured.** The three shapes are ONE mechanism: the
+15 roofs whose middle the deck vote reads as membrane (§209 left them "their
+band and plate") — Welch, the Union, Hogg Auditorium, Seay, Goldsmith, the
+Jesters… — were drawn as the slab profile: `run` metres of tile climbing at
+PITCH from every edge of the WHOLE footprint, then a flat plate in the
+membrane colour. 8 m of tile round all 9,376 m² of Welch, 9.8 m round the
+Union's 64 × 146 m: the truncated hip the critic named. The "long block
+north-east of the Tower" is Welch's own far side seen behind its lid (its
+rig centroid projects to (1062, 305) at this pose and nothing else with a
+band stands there; T. S. Painter Hall beside it was a FULL hip, and a wrong
+one, below). The whole-footprint probe only ever asked how far in from the
+eave the tile goes, never WHERE on the roof it is. The z19 tile says where
+(`flat/imagery/*.png` and `flat/parts3/*.png` in this pass's scratchpad,
+the survey's blocks in green): Welch's tile is two blocks on a membrane deck
+— the 1929 wing along the north, a rectangle, and an L along 24th Street —
+with a courtyard in the middle (the footprint's own inner ring); the Union's
+is two hip blocks either side of a flat middle, each with a light deck along
+its top (Google's photogrammetry shows the same light strip on both, so they
+keep a deck); Painter Hall is one tile wing beside a flat mechanical deck
+that the whole-footprint vote never saw, because the middle it samples is
+the wing's ridge — so it ran a hip over the deck.
+
+**The rule (`scripts/bake_roofs.py`, `RIG_ROOF_PARTS`, commit `5b150d3`).** A
+footprint whose middle reads membrane is NOT one hip. It is a flat roof
+carrying tiled parts. `tiled_parts` asks the photograph which blocks of it
+are tile — the same 1.2 m survey grid as the wing survey (`tiled_part`,
+204b), opened and closed the same way, but EVERY connected patch now, not
+the largest: a patch with its wells filled (a tile ring round a membrane
+well is a hip with a deck on top — the Union's north block, Hogg — not a
+courtyard); a patch that fills TILED_PART_FILL of its own rotated rectangle
+is that rectangle, and one that does not is cut into at most
+PARTS_MAX_RECTS rectangles in the rectangle's own frame (the L on Welch is
+two; a ring is four), which must between them cover TILED_PART_FILL of the
+tile or the patch is a scatter and not a block; a void the rectangles leave
+inside the rectangle that touches its edge on less than PARTS_WELL_EDGE_FR
+of the perimeter, light and not green, is a well and is filled — one that
+touches more is a notch (the flat middle of the Union beside its south
+block) and stays open, and a dark or green one is a courtyard (Goldsmith's
+trees) and stays open too. Each block is clipped to the footprint, cleaned
+and simplified as every roof outline is, and then gets the ORDINARY ring
+probe (`tile_run`: its eave must read tile by the same rule every roof
+passes) and the ordinary deck vote (its own middle, 16 × 16, `_deck_vote` —
+restated for a part exactly as main() runs it for a roof). A part that
+passes goes on the rig as a roof of its own, `<key>/p<i>`, tagged `wing`,
+to its ridge (`full`) when its middle reads tile and to its own deck when
+it does not; the footprint's entry stays as it was and is tagged `flat`,
+its `deck` the flat roof's colour. A footprint whose middle reads TILE keeps
+its full hip unless the survey finds a block AND, beside it, a remainder
+that is large, compact, light and not tile (`rest_is_a_deck`, PARTS_REST_*:
+≥ 400 m² and ≥ 30 % of the footprint, ≥ 0.55 of its own rectangle, ≤ 0.35
+tile, luma ≥ 80, not green) — a flat deck, which is Painter and nobody
+else; a live oak over the corner of a hip is small, dark or green and
+leaves the hip alone (19 tile-middle roofs had a block and no deck beside
+it and kept their hip: San Jacinto, Blanton Dormitory, Sutton among them).
+A membrane roof where no block is found keeps its band-and-plate (54
+footprints, Goldsmith round its courtyard and two tile-fringed flat ones
+among them — the band there is the only reading there is), and one whose
+single block is ≥ PARTS_WHOLE_FR of the footprint IS the footprint (26:
+Smith, the Blanton, Student Services — their own vote already decided
+them). Gabled halls keep their hall rig. The survey, every part's probe and
+every part's vote are cached in data/roof_runs.json (`<key>/parts`, 107
+keys, 53 with blocks), rounded to 2 cm before use, so a machine without the
+imagery draws the same city. Rig only: the bake is still an augment — 4,794
+features and 1,840 caps byte for byte the shipped ones, `gables` identical,
+rig 112 → 123 roofs (8 flat: Welch 2 parts, the Union 2, Seay 2, Painter 1,
+Hogg 1, the three Jesters 1 each — 11 parts, 8 of them to a ridge; `full`
+97 → 105), raw 1,871,828 → 1,882,735, brotli-11 162,100 → 162,924. Two runs
+(5 m 19 s surveying, 2 m 43 s off the cache), byte-identical output.
+
+**The mesh (`js/slopes-roofs.js`, `ROOFS.flatRoofs`, same commit).** A
+`flat` entry draws NOTHING — no band, no plate; its parts draw through
+`roofOne` like any wing; and its parapet cap takes the flat roof's colour:
+`capSets` splits the rig's buildings into the eave-shadow set (as before)
+and a deck set, and the one `match` wrapper on `buildings-roof`'s colour
+now carries a branch per flat building — `[CAP_MARK, …ids] → the wall in
+shadow`, `[id] → rd/rg/rn of its deck at the same p`, …, the hour's own —
+with a sentinel id first so the wrapper is told from the hour's own by its
+own mark rather than by its length, and the inner expression always last.
+This is what js/app.js's own cap table does for every flat building in the
+shipped city (a deck's cap takes the deck's colour), done live for the
+buildings the mesh has just made flat. `count.flat` and `count.parts` are
+new; `count.roofs` is the entries DRAWN (115 = 112 + 11 − 8). `flatRoofs:
+false` is round 4's band-and-plate, parts hidden. Two things seen and left:
+the Union is a `drag` building (bake_drag.py's `replacedBuildingIds`) whose
+cap is `drag-cap`, not `buildings-roof`, so the wrapper does not reach it —
+it never needed to, the drag bake's cap is already grey; and the lighter
+rectangle inside Welch's flat middle is its courtyard floor through the
+footprint's inner ring, not a deck (the cap has the hole the footprint has).
+
+**The Main Building's eave (commit `ebbd9bc`).** "Main Building wings and Welch:
+no visible eave overhang, tile meets wall flush; add the same small
+overhang step that Mezes and Calhoun already show." Mezes and Calhoun show
+it because their parapet cap is painted as the wall in the eave's shadow
+(`capShade`, §209); the Main Building's arms stand on `tower-solid`, where
+there is no cap to paint, so a metre of tile eave met the attic loggia with
+nothing under it. `scripts/bake_tower.py`'s rig now carries each arm's
+`wall` (the attic loggia's colour triple), `h` (the eave, H_ATTIC) and
+`foot` (the arm's outline as its walls are drawn), and `ROOFS.eaveBand`
+draws the same shadow as geometry for a rig drawn through `emit` with
+`eaveBand`: the top `depth` (1.0) metres of the wall under the eave,
+`proud` (0.10) m outside it, in the wall's colour × 0.62 — 28 triangles,
+`slopes-tower` 116 → 144. Welch got the step for free: its parts carry the
+campus eave (0.5 m over, 0.35 m lip). The tower bake stays an augment (225
+features byte for byte, `replacedBuildingIds` and the wall colour
+identical; raw 73,170 → 73,687, brotli-11 3,509 → 3,550; two runs
+byte-identical).
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+branch worktree on :8611, the verifier's `git archive e232953`
+(`…/34cffdba…/scratchpad/main-e232953`) on :8612, each served by its own
+scripts/serve.py, graphics auto-detect cancelled, auto-exposure pinned off,
+second of two shots kept, one headless Chrome at a time (orphan-swept by
+`Get-CimInstance` before and after).**
+`scripts/verify/slopes-layer.mjs --against`: **49/49, exit 0 — twice, on the tree before and after the one-line `rebuild()` fix below; the lines about this pass: `built` 115 roofs (104 to their ridge; 8 flat, drawn as 11 parts) + 1 gable in 11,780 triangles, tower 3 roofs in 144; `flat roofs` — the Union @338,291 plate 17.37 → nothing, Hogg @464,261 plate 16.45 → its part at 16.08, Seay → nothing, Painter @823,248 plate 19.67 → its part at 16.04, Welch @1062,305 plate 21.91 → nothing, 0 plated, 8 deck branches on the wrapper; the `ridge` line now lands on JESTER EAST HALL'S PART at the gregory pose (a 4-corner hip of its own the survey cut out of a flat footprint) and reads it as any roof: two tones either side of the ridge (luma 101.0 / 120.2), one tone along the slope (spread 0.0), the raycast climbing at the rig's pitch to 0.10 m; the toggle line 971 px Δ 12 (the atlas residue), OFF vs a `?slopes=0` load 5,184 px (ceiling 7,000), render()-stopped 0 px, the bake-identity line against the archive 0 px, no page errors**. Two expectations
+changed deliberately and both are named in the file: the `built` line asks
+for the flat roofs and their parts beside the ridges (`flat ≥ 4`, `parts ≥
+6`; the shipped rig has 8 and 11), and a new `flat roofs` line at
+mall-cruise projects every flat entry's centroid and asks that a raycast
+there does NOT land on the mesh at the plate's exact height (base + lip +
+rise, where round 4's lid was; tolerance 5 cm — a part's surface at some
+other height, or nothing, both pass) and that the cap wrapper carries a
+deck branch. `--break` gained a third sabotage — `SLOPES_ROOFS.flatRoofs =
+false` on the switch page — so that line is watched failing with the other
+nine: ****38/48 with `--break`, the ten intended reds and nothing else** (the first `--break` run of this pass had an eleventh — the toggle line at 1,736 px Δ 43 — because the sabotage's `rebuild()` left the cap wrapper as it was wrapped at boot, deck branches and all, and the OFF→ON re-wrap then changed 8 caps; `rebuild()` now re-wraps the cap with the current taste, and the toggle line is 971 px again under the sabotage)**.
+`?slopes=0` on the branch against the archive, tolerance 0: **mall-cruise
+0 px, gregory 0 px, battle-street 0 px, capitol-dome 0 (at bearing 180, the bar scout's pose; 0 at bearing 0 too) px** of
+1,296,000. The generators are never read by a `?slopes=0` page.
+The reshoot ON, all four poses, second of two shots (the bar scout's four
+poses, capitol-dome at bearing 180), against the tip this pass started from:
+**mall-cruise 29,616 (2.29 %) px** (Welch, the Union, Painter, Hogg and the Main
+Building's eave — the change), **gregory 42,180 (3.25 %) px, battle-street 0 px,
+capitol-dome 0 px** — measured against the OLD tip under identical conditions — its js/slopes-roofs.js, data/roofs.geojson and data/tower.geojson served to a control page by route interception (the §204c control), same harness, same settle — rather than against `judge/fair/reshoot/r1`, whose frames were shot under other capture settings (r1's capitol-dome is at bearing 180, the bar scout's pose, where this pass first used 0; its gregory and battle-street frames differ from any frame of this tip by 300,000+ px before anything here). gregory's 42,180 px are the two Jesters at the frame's right edge — Jester East's tile part where its band was, Jester Center's flat deck with its roofscape plant showing (`docs/shots/flatroofs-jester-gregory-before-after-2x.jpg`); Gregory Gym itself is untouched. Generators ON at mall-cruise: 115 roofs
+(104 to a ridge; 8 flat, 11 parts) + 1 gable + 2 blocks in 11,780 triangles
+(13,248 before: a plate and a band are more triangles than two hips), the
+Main Building 3 hips + the band in 144, arches 18,315, dome 11,322; no
+console errors at any pose.
+
+**Frames.** Before/after at the critic's own pose, side by side, committed
+because this entry cites them: `docs/shots/flatroofs-welch-painter-before-after-3x.jpg`
+(lead with this: one lid with a rim became the 1929 wing's hip, a flat
+middle with its courtyard, and the L along 24th Street; Painter's flat deck
+beside its wing at the left), `docs/shots/flatroofs-union-before-after-2x.jpg`
+(a 146 m slab became two hip blocks with their decks and a flat middle),
+`docs/shots/flatroofs-mainbuilding-eave-before-after-3x.jpg` (the shadow
+line under the south block's eave), `docs/shots/flatroofs-mallcruise-before-after.jpg`
+(the frame). The reshoot, all four poses ON, in the verifier's scratchpad:
+`judge/fair/reshoot/r2/{mall-cruise,gregory,battle-street,capitol-dome}.png`.
+The survey's own pictures (the tile mask, every block in green over the z19
+tile) in this pass's scratchpad, `flat/parts3/`.
+
+**Not done, and why.** (1) Goldsmith Hall round its courtyard keeps the
+band-and-plate: its tile is a ring (four ranges of hips round a court) and
+the four rectangles the survey cuts it into cover 0.54 of it, under the
+0.72 a block must reach; the honest reading is four hips with the courtyard
+open, which needs the rig to take a footprint's inner ring, a roofs-lane
+change. (2) The Union's blocks keep a deck on top: the nadir tile and
+Google's photogrammetry both show a light strip along each ridge, so they
+are truncated hips there and the rule was not bent to the critic's "ridge
+over each wing". (3) The three Jesters are flat with one tile part each
+now, at the footprint's own height (51.6 m on Jester West) — the
+photograph's tile is the two-storey perimeter wings, which the one-height
+footprint cannot stand at the right level; that is the massing, not the
+roof. (4) `PARTS_MAX_RECTS` 4 and `TILED_PART_FILL` 0.72 are the survey's
+own numbers; a T-shaped wing with thin arms could fall under them and keep
+its whole-footprint reading — the counts above say which did, and
+`flat/survey_parts.py` in this pass's scratchpad prints the coverage table
+for every roof.
+
+**Next.** Round 6 of the fair-camera critic on `judge/fair/reshoot/r2`. If a
+flat roof's cap reads too grey against its parts, the colour is the rig's
+`deck` (the photograph's median through `deck_colour`); if the Main
+Building's band reads too heavy, `ROOFS.eaveBand.tone` is one number and
+`on: false` is round 4's flush eave.
+
+## 210. Sep 3 2026 — round 5 of the fair-camera critic, frames only: the same Google Earth camera reshot against the tip that closed §209's four fixes (`acer/slopes`, no code changes this entry — verification frames for the next critic)
+
+§209 ended "Next: Round 5 of the fair-camera critic on these frames." This
+entry is that reshoot, not a fix — the pose math is unchanged from round 4
+(`judge/fair/r1`) because it was never wrong; only the app side needed a
+fresh capture off the tip that now carries the ridge/eave/Main-Building/wing
+work (`597fb01`, i.e. `cc3f810` `704c7be` `de9e251` `61194b7` all in).
+
+**The camera, shown not asserted.** mall-cruise's pose (`before/README.md`):
+center `[-97.7393, 30.2856]`, zoom `17.48` (FOV-corrected — the bar scout's
+original `19.8` assumed a 36.87° vertical FOV; this app's real one is 58°,
+`js/controls.js:52`), pitch 55, bearing 0, viewport 1440×900. Converted to a
+Google Earth URL with the app's own ground-resolution formula:
+`metresPerPixel = 156543.03392·cos(lat)/2^zoom = 0.7394 m/px`, camera-to-pivot
+`dist = (0.5·900/tan(29°))·metresPerPixel = 600.29 m` (half-VFOV 29° = 58/2),
+`alt` = the bar scout's own verified ground elevation at this lat/lng (190 m
+ASL), heading = bearing = 0, tilt = pitch = 55:
+`https://earth.google.com/web/@30.2856,-97.7393,190a,600d,35y,0h,55t,0r`.
+Final page URL did not snap. Google's own camera readback in the captured
+frame (534 m camera / 184 m ground ASL → 350 m above ground) lands within
+1.7% of the formula's 344.3 m — the maths tracks Google Earth's real
+geometry at this FOV, not a coincidence.
+
+**Both frames, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440×900,
+second of two shots kept, zero console errors, one headless Chrome at a time
+(orphan-swept before and after via `Get-CimInstance`).** Google: 30 s tile
+settle, Escape to dismiss the projects popup. Ours: `scripts/serve.py` on
+:8099 (never the stdlib server — see its own header), `?intro=0&drift=0`,
+every core + deferred source confirmed loaded, `cancelGraphicsAutoDetect()`
+before the jump. Both cropped to map-only content (chrome measured fresh by
+pixel sampling on these frames, not reused unchecked from round 4) to the
+same 912×570 window, independently centred on the UT Tower, upscaled to
+1100 px wide.
+
+**What's in frame, both cameras:** UT Tower dead centre; Texas Union and
+Peter T. Flawn Academic Center left; Robert A. Welch Hall and the science
+quad (Norman Hackerman, Neural & Molecular Science, Chemical & Petroleum
+Engineering) right — the side round-0's verdict said was missing; George
+Washington statue and the Main Mall lawn in the centre foreground. Same
+camera, same subject, both cameras — this is what round 4 already fixed and
+round 5 confirms is still true on the current tip.
+
+**Full arithmetic, both crops, and the exact chrome/subject pixel
+measurements:** the verifier's `judge/fair/r2/key.txt`. Side by side, one
+frame: `docs/shots/mallcruise-fair-r2-side-by-side.jpg`.
+
+**Next.** This is frames only — no critique attached. Whoever runs round 5
+proper should look at `docs/shots/mallcruise-fair-r2-side-by-side.jpg` (or
+the fuller `judge/fair/r2/{A,B}.png`) against §209's specific claims (ridge
+visibility, the eave band, the Main Building's three hips, the four wings)
+and say whether each one now reads correctly at this pose, the way §209 did
+for round 4.
+
+## 209. Sep 3 2026 — the fair-camera critic: every tile roof runs to its ridge, the Main Building's three roofs are hips, the eave is a shadow line, the wing survey's four roofs are on the mesh, and the gate names its 971 pixels (`acer/slopes`, not merged, commits `cc3f810` `704c7be` `de9e251` `61194b7`)
+
+Round 4 was a fair fight: Google Earth's camera put at OUR mall-cruise pose
+(same lat/lng, heading, tilt, the 58° FOV maths — the verifier's
+`judge/fair/r1/key.txt`), and the critic picked Google. "Not a single ridge
+is visible. Every red roof is a flat lid, a stepped stack of flat lids (the
+Main Building), or an L-shaped flat plate (Mezes, Garrison). The roof colour
+runs down over the wall top as a thick band, which reads as a parapet, not
+an overhang." Every one of those is a mechanism, and every one is closed in
+a generator or a bake, nothing typed for one building, with `?slopes=0`
+still `main` to the pixel (the data: every shipped feature of
+roofs.geojson and tower.geojson byte for byte what `main` ships, proved
+below; the pixels: the gate's bake-identity line and four poses by hand).
+
+**Why no ridge was visible, measured.** `tile_run` walks in from the eave
+0.9 m at a time and stops at the first ring that reads less than 45 % tile.
+On a full hip that ring is the one ON the ridge — lit, flashed, a metre
+wide — so the measured run stops a ring or two short of the half-span
+(Mezes 8.9 m of 11.0, Garrison 9.8 of 12.2, Battle 10.7 of 13.6) and the
+slab profile stops at `run · steps/(steps+0.35)` ≈ 0.85 of it, with a flat
+plate in the roof colour filling the rest: 5.4 m wide down each leg of
+Mezes, 6 m on Garrison. That plate is what the critic saw as "a lighter
+inset step" — a flat top under the real light is brighter than either
+slope. The bake ALREADY knew which roofs these were: its deck vote samples
+the middle of every roof and counts `ridge_tops` (the middle reads tile) 
+against `decks` (membrane) — 93 of 108 on this machine's imagery — and a
+middle that reads tile is not a deck, it is the two slopes meeting.
+
+**ridges (`cc3f810`).** `scripts/bake_roofs.py` writes a second
+profile for every ridge-top roof, `rig.roofs[key].full`: the same walls,
+mitre rays and caps, solved by `wall_profile` to the HALF-SPAN instead of
+the measured run (so a long wall whose middle can outrun its corners gains
+its sample points for that depth), `d` the deepest cap and `rise` PITCH × d
+(RISE_MAX still binds). `js/slopes-roofs.js` (`ROOFS.fullHip`) draws that
+profile with no deck, through the rule the Capitol's wings already used —
+a rig without a deck climbs every point to its own cap — so a rectangle
+gets a ridge, an L two ridges meeting over a valley, and every corner a
+hip. 93 of the 108 run to a ridge now (97 of 112 with the four wings
+below); the 15 whose middle the
+photograph reads as membrane (Sutton's well, the Union, Welch, Gregory,
+Goldsmith, Hogg Auditorium, the Blanton, the Seay, Smith, Student
+Services, the two Jesters, Andrews, Prather, Creekside) keep their band and
+plate. The vote is now CACHED with its colour in data/roof_runs.json (the
+fifth entry per key: samples, tile fraction, median hex), because the
+imagery is gitignored and a machine without it casts "tile" on every roof
+— which under this rule would have run twelve membrane decks up to a ridge.
+The rig also carries each wall's `wd/wg/wn` and `h` for the eave below.
+Where the photograph and the vote disagree: Sutton Hall's deck sample read
+58 % tile on 64 samples at 11.6 m in, where the tile shows a membrane well
+11 m wide — the ring probe over-read the run (band 9.5 m on the long sides)
+— so Sutton is a full hip here; the deck strip it replaces was 2.6 m wide.
+
+**the Main Building (`de9e251`).** Its three tile roofs are
+`scripts/bake_tower.py`'s, three stepped slabs per arm (`kind: 'roof'` in
+data/tower.geojson), and the z19 nadir tile shows each arm as a full hip
+with a ridge down its long axis. The bake now writes a `rig` member in
+bake_roofs' own schema — each arm's outline (the same box clips of the
+footprint the slabs are built on) through `mitre_rays` / `vertex_caps` /
+`edge_event_caps` / `wall_profile` — with one pitch for all three, solved
+so the widest arm's ridge lands on the measured H_RIDGE (east wing: half-
+span 9.13 m → 29.0 m; south block 8.05 → 28.5; west wing 7.26 → 28.1;
+pitch 0.476, 25.5°), no deck, a 0.25 m tile lip standing 1.0 m past the
+attic loggia (`MB_EAVE_OUT_M`, under the colour note's "1.5 m tile eave"
+[taste]). It grew the augment doctrine of 204b: without `--rebake` it
+compares its 225 features to the shipped file and writes the shipped
+features + `rig`, or stops at exit 2. `js/slopes-roofs.js` gained
+`ROOFS.extra`: other bakes' rigs, each fetched (or read off its source's
+parsed object), drawn through `emit` into a group of its own with its own
+LOD tier and minzoom — `slopes-tower`, `lod: null`, so the Main Building's
+roof stays on the skyline with the Tower instead of going with the campus
+roofs at altitude — and its stand-ins hidden by a filter on its layer
+(`tower-solid` minus `kind: 'roof'`) while SLOPES.on. 116 triangles.
+
+**the eave (`704c7be`).** "The roof colour runs down over the wall top
+as a thick band." That band is js/app.js's `buildings-roof`: the top of
+every wall re-extruded from h to h + max(1, 0.015 h) — the roof's own
+`base` — in the ROOF colour, the parapet cap, terracotta on a tiled
+building, and the roof's eave lip sits on top of it, so under a real hip a
+metre of tile-coloured wall stood between the eave and the windows. The
+bake writes each roof's exact footprint on the rig (`foot`: the walls as
+drawn, not the 1.1 m-simplified profile, so no jog pokes through) and
+`js/slopes-roofs.js` (`ROOFS.eaveShadow`) draws the wall in its own eave's
+shadow over the cap: a band on that footprint, 5 cm outside the wall so it
+stands in front of the cap, from the wall's top to the eave's soffit, in
+the wall's `wd/wg/wn` × 0.62 [taste; the slab facets' dark end is 0.70].
+Geometry only. The first cut re-painted `buildings-roof` by a `match`
+expression on the rig's ids, wrapped around the hour's own and re-applied
+from the applyTimeOfDay chain; it worked and read the same, but a
+data-driven paint change reloads the buildings source on every toggle, and
+the gate's toggle line went red at 971 px under it. That turned out to be
+the page's own residue and not the reload (below), but the geometry is the
+better mechanism regardless: exact to the wall, one draw call, no other
+layer touched, no hook into the hour. Measured at Garrison's south
+eave at mall-cruise (x 900, y 542): the band pixel 191,78,27 → 140,102,59 (luma 98 → 106, brown where it was orange; 1 px tall at this pose, 1.35 m).
+A tiled WING of a flat building (below) gets no band: its eave covers part
+of the wall only.
+
+**the wing survey, for the mesh (`cc3f810`).** 204b left the four
+tiled wings the survey finds — Calhoun Hall's cross bar ("unmistakable
+terracotta hip with dormers between two flat membrane stems"), Jackson
+Geological Sciences' west wing, Gearing's north range, Gordon-White's south
+range — as an open `--rebake` decision, because they are 101 new slab
+features. The rig is the mesh's: with `TILED_PART_RIG` the survey still
+runs in AUGMENT and a wing that passes goes into `rig` tagged `wing: 1`
+with NO feature written (the deck vote and the full-hip rule apply to it
+like any roof: all four run to a ridge). 50 flat footprints were surveyed,
+5 had a rectangular tile patch, 4 passed the eave probe, 1 was refused. The
+survey's answer — the wing's outline in metres, its run, eave and colour —
+is cached as `<key>/wing` in roof_runs.json; the outline is rounded to 2 cm
+BEFORE it is used so the surveying run and the cached run solve the same
+polygon (the first cut did not, and two bakes disagreed in the last decimals).
+
+**The bakes are augments.** roofs.geojson: 4,794 features byte for byte
+main's (the tip's `f` tags kept), `caps` identical, `rig` 108 → 112 roofs
+(97 with `full`, 4 wings, 108 with `foot`), raw 1,770,197 → 1,871,828,
+brotli-11 154,616 → 162,100. tower.geojson: 225 features byte for byte, + `rig` (3 roofs, 1.6
+KB raw), raw 71,484 → 73,170, brotli-11 3,053 → 3,509. Both bakes run
+twice: byte-identical output.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch worktree on :8511, `git archive e232953` on :8512 and `git archive
+31e057e` (the round-3 tip, the critic's B) on :8513, each served by its own
+scripts/serve.py, graphics auto-detect cancelled, auto-exposure pinned off,
+second of two shots kept.**
+`scripts/verify/slopes-layer.mjs --against`: **four runs on one tree —
+47/48, 46/48, 46/48, then **48/48, exit 0** with the gate's three zero lines bounded
+as below.** Two expectations changed deliberately for this pass and both
+are named in the file: the scene holds FOUR generator groups now
+(`slopes-tower` beside roofs, arches and dome — WANT_GROUPS; the `built`
+line asks for the Main Building's 3 hips and for most roofs to reach a
+ridge, `count.full ≥ 80`), and the switch-off line also asks that
+`tower-solid`'s filter and `buildings-roof`'s colour come back to what the
+page had. The lines that are about this pass were green in every run:
+`built` 112 roofs (97 to their ridge) + 1 gable, 24 arches, 3 dome parts,
+the tower's 3 hips; the switch-off restore; OFF vs a `?slopes=0` load
+6,134 / 5,184 px (the 204d ratchet, ceiling 7,000); the ridge line on
+Waggener Hall 72.1 / 105.2 luma against the slabs' own 123,60,32 /
+182,88,46 — the full hip lands on the city's tones to the unit; both arch
+poses; no page errors.
+
+**The 971 pixels, named.** Every red across the first three runs was one
+of the gate's three ZERO lines and one number: run 1 the OFF→ON toggle at
+971 px (Δ ≤ 12); run 2 the render()-stopped control at 1 px and the
+bake-identity line at 1 px (Δ1, at (132, 839) — §208's pixel); run 3 the
+toggle at 971 again and the bake-identity line — `?slopes=0` against the
+`git archive main` page, NEITHER of which carries the custom layer — at
+968. The two 971-pixel sets are the SAME 971 pixels with the same
+before/after colours, and 884 of them are in the 968 (`gate/residue-*.png`
+in this pass's scratchpad, the set marked on the frame): they sit on the
+window grids of the fill-extrusion-pattern walls — js/facades.js's atlas,
+sampled at one of two texel phases, which phase a page lands in decided at
+load or at a source reload (a `setFilter` on the toggle is one). It is
+204d's "last 969 px which survive removing the layer", and it is not this
+layer's. So the three lines accept at most that residue now, bounded in
+count AND depth (`ATLAS_RESIDUE_PX` 1,200, `ATLAS_RESIDUE_DELTA` 16 —
+measured 968-971 and Δ 12; a roof over a wall is Δ 50+, the ON frame is
+223,748 px), with the zero still the usual outcome and the target. The
+first cut of the eave was a paint expression on `buildings-roof` and was
+suspected of causing the 971 on the toggle (a data-driven paint change
+reloads the buildings source); run 3, with the eave as geometry and no
+paint touched, put that theory down — the residue is the page's — but the
+geometry stays: it is cheaper, exact to the wall, and touches nothing.
+`?slopes=0` on the branch against the archive, tolerance 0: **all four
+poses 0 px** (mall-cruise, gregory, battle-street, capitol-dome, shot with
+the full-hip rig in place), and on the final tree at mall-cruise **two
+interleaved pairs, 0 and 0 px**, with the load-to-load controls (two
+`?slopes=0` loads, two archive loads) at 0 and 0. The generators, the
+extra rig and the footprint member are never read by a `?slopes=0` page.
+The frames ON against the round-3 tip at the same poses: mall-cruise 50,338 px (3.9 %, the roofs and the eaves), gregory 18,131 (1.4 %: the dorm roofs either side of the gym reach their ridges; Gregory itself is untouched), battle-street 30,581 (2.4 %: Sutton's ridge and its eave), capitol-dome **1,573 px of max channel Δ 1** (label raster noise — the Capitol did not move).
+Generators ON at mall-cruise: roofs 108 + 1 gable + 2 blocks, 97 of them to a ridge, in 15,558 triangles (12,718 before); the Main Building 3 hips in 116; arches 24 in 18,315; dome 11,322; 3 draw calls at mall-cruise (roofs, arches, tower), 2 at gregory, 7 at battle-street, 6 at capitol-dome; no console errors at any pose.
+`walkmeter.mjs` and `facadegrid.mjs` were not re-run: nothing this pass
+touched is on their path (no walk graph, no facade grid, no entrance moved).
+
+**Frames.** The reshoot, all four poses ON, in the verifier's scratchpad:
+`judge/fair/reshoot/r1/{mall-cruise,gregory,battle-street,capitol-dome}.png`.
+Before/after at the critic's own pose, side by side, in this pass's
+scratchpad (`a67bc0c6…/scratchpad/proof/`): `mall-cruise-before-after.png`
+(the frame), `tower-before-after-3x.png` (the Main Building: three
+staircases became three hips with ridges), `garrison-mezes-before-after-3x.png`
+(two flat plates became ridged L-roofs meeting over a valley, with a dark
+line under the eave), `calhoun-before-after-3x.png` (the cross bar). Lead
+with the Tower.
+
+**Not done, and why.** (1) The Texas Union — "a cluster of hipped tile
+roofs of different heights" — is one 64 × 146 m footprint at one height in
+the data, and the tile shows two hip blocks, a flat middle and a white
+membrane ridge deck on the south block; it needs its roof split into parts
+by the imagery (the survey takes ONE largest rectangular patch), which is
+a roofs-lane change to the massing, not a rig. (2) The south block of the
+Main Building runs the full width in the tower bake's arm boxes where the
+tile shows a white membrane at its west end and a green deck at its east;
+the rig keeps the bake's arms so the mesh and the slabs are one massing.
+(3) The eave overhang on the campus roofs stays the bake's 0.5 m
+(EAVE_OUT_M); the critic's "roughly a metre" is the Main Building's, which
+has it. (4) 204d's OFF-vs-a-`?slopes=0`-load ratchet is untouched (5,184 /
+6,134 px in these runs); its 969-px tail is named above, the ~5,000-px
+depth-slice part is not this pass's. (5) Calhoun's deck plant
+(`roofscape-major`, the two dark boxes on the cross bar) is drawn at deck
+height and the wing's hip now rises through it, so their tops show on the
+ridge; the real roof has dormers there. A `--rebake` with the wing survey
+on would have the same; hiding a flat building's plant under its wing is
+the roofscape bake's call.
+
+**Next.** Round 5 of the fair-camera critic on these frames. If the eave
+shadow reads too heavy, `ROOFS.eaveShadow.tone` is one number (1.0 = the
+wall's own colour, `on: false` the terracotta cap back); if a roof the
+photograph reads as membrane is wanted as a hip anyway, the deck vote is
+the lever (`DECK_TILE_MAX`); `ROOFS.fullHip = false` is round 3's plates.
+
+
+## 208. Sep 3 2026 — the critics' round 3: Gregory's monitor is a gable and its ridge a line, the hall's roof is the photograph's grey, and the annex is a hip of its own with an eave on the hall's flank (`acer/slopes`, not merged, commits `59ee9f6` `d9ca55b`)
+
+Round 3 of the blind critics on the round-2 frames (§207). Mall-cruise,
+battle-street and capitol-dome they gave to us and those are untouched —
+the round-3 reshoot of each is 0 px against round 2's, below. Gregory they
+named, and every gap was closed in a generator or a bake with `?slopes=0`
+still `main` to the pixel; nothing typed for one building.
+
+**What the critic saw, measured on the frame before anything was changed.**
+"A flat dark-orange field with a flat-topped tan rectangular block sitting
+in the middle of it — no ridge, no pitch." Raycast and sampled at the
+critics' own pose (`r3/probe/greg.js` in this pass's scratchpad): the hall's
+two planes WERE two tones (62 and 96 luma) — the facet shading of §207
+works — but the monitor's two mini-slopes read 142 and 151, one tone, with
+its front end at 200: at `ROOFS.monitorPitch` 0.18 (10°) the mini-slopes'
+normal has z = 0.984, and the shader's "sloped" test was a bare
+`az < 0.98` (11.5°), so a real 10° gable was lit as the flat top a lid is.
+The ridge cap (0.6 m, 0.86 of the roof colour) landed at a luma BETWEEN the
+two planes' and vanished; the front 13 m of ridge is under the "Gregory
+Gym" label in every frame, ours and Google's. And the annex met the hall at
+a vertical wall (`hallJunction`) where Google's photogrammetry and the z19
+nadir tile both show tile rising from the hall's flank to the well — the
+five vents sit on it.
+
+**gregory, the roof (`59ee9f6`).** Three changes, each a constant or a
+reading:
+- `SLOPES.slopedMinDeg` (js/slopes.js, 6): what counts as a sloped face for
+  facetShade / roofShade, as a named number instead of 0.98 in the shader.
+  Nothing on campus is pitched between 6° and 11.5° except that monitor;
+  the hips are 22.6°, the Capitol's wings 16.7°. The monitor's pitch stays
+  0.18 — Google's end face is about 3 m tall over the ridge, walls and peak
+  together, which is what 1.8 m of wall [U] and 0.18 make; 'hall' is also
+  accepted and takes the hall's own 0.39, and was looked at and is a 4.5 m
+  wedge. Same pose: the mini-slopes read 123 and 189 now, a crease between
+  them, and each end is a wall (`ROOFS.monitorWallColour`, brick — the
+  sides are dark under a light roof in the photogrammetry) with a little
+  gable of stone over it.
+- `ROOFS.ridgeCap` is a light strip now — `{ w: 1.0, h: 0.12, colour:
+  'stone', tone: 1.0 }` — because the photograph shows a light line on a
+  dark roof; raycast along the ridge behind the monitor at the pose, 7 m of
+  it (v = -58 … -64) is the cap at 30.52 m, 3 px wide, where the monitor's
+  back end hides the first 3.6 m.
+- The hall's roof takes the photograph's colour, the way the annex's deck
+  did in §207. `HALL_COLOUR_FROM_TILE` in scripts/bake_roofs.py samples the
+  z19 tile inside the hall rectangle (2 m off the flanks, front, back and
+  the monitor strip; 1,375 samples) and finds it 0.2 % tile: a warm grey,
+  (110,98,86) north of the ridge and (129,115,102) south of it, against the
+  annex's tile at (161,125,94) and (189,147,110). The campus tile rule had
+  painted the whole building terracotta from the eave RING of the whole
+  footprint, which the annex owns. The median goes through `deck_colour`
+  exactly as a membrane deck does and lands as `hall.col` #786255 on the
+  rig, carried to golden and night by `like()`; the shipped slab is
+  untouched, and a hall that reads tile keeps the roof's colour. Cached in
+  data/roof_runs.json as `<key>/hall`. `ROOFS.hallColour = false` puts the
+  terracotta back. At the pose the planes read 73 and 112 luma, grey-brown,
+  as Google's do.
+
+**gregory, the annex (`d9ca55b`).** "A flat grey-olive field with a thin
+orange rim; the real block has a hipped clay-tile roof sloping in from all
+four eaves to a flat central well." The rim was 9.2 m of tile on three
+sides and a wall on the fourth, because the hip rig was solved on the whole
+footprint, where the annex's north side is not an edge. `HALL_BLOCKS` in
+scripts/bake_roofs.py: a footprint with a hall is the hall PLUS the blocks
+built against it — the footprint clipped outside the hall's rectangle
+(beside it on either flank, behind its back), cleaned, and put through the
+same `mitre_rays` → `vertex_caps` → `edge_event_caps` → `wall_profile` the
+whole footprint went through, at the building's own run, rise and steps
+(the depths the shipped slabs were cut at). An edge of a block that is not
+on the footprint's outline — the cut along the hall's flank or back, or
+between two blocks — is `interior`: it carries a slope (a valley where two
+roofs meet at their eaves) but no fascia, soffit or lip. Written as
+`rig.gables[bid].blocks` in the `rig.roofs` schema; js/slopes-roofs.js
+draws each with `roofOne` (a new `opts.interior`) in place of the
+whole-footprint rig, and draws the hall's own eave lip only where the
+footprint has a wall under the flank (`hallSetup().flankRanges`). Gregory:
+two blocks, the annex (six corners, one interior edge — the 75 m flank) and
+the pool block behind the hall (ten, two interior). All or nothing: if a
+block cannot be built none are written and the clipped-deck reading of §206
+draws. Measuring each block's own run with `tile_run` was tried and
+dropped: the pool block is half a flat white deck and half a tile hip, so
+its eave ring read 0.46 tile at every depth and the probe walked 14.3 m
+into it — J1's averaging defect one level down — and a 6 m orange hip stood
+up behind the hall's back. At the building's 9.8 m the annex's well is
+33 m of its 51 m width with 9.2 m of tile on all four sides (Google's
+bands measure 10–13 m on the nadir tile; the run is the bake's), and the
+block behind shows as the grey deck Google shows there.
+
+**Not done, and why.** (1) "A's arch curves are stair-stepped at 4–5 px
+per step": the three archivolts are 48-segment half-rings (0.2 m chords,
+0.3 px at this distance) and the steps are the rasteriser's — the layer
+shares MapLibre's context, which the app creates with `antialias:
+!!window.GFX_MSAA`, off by default, so every edge in the city is drawn
+without multisampling; a 6 px tall arc cannot be smoother without it, and
+turning it on changes `?slopes=0` against `main`. The knob exists and is
+the app's. (2) The row of small clerestory windows above the pediment
+(data/campus_truth.json counts 9 and 7) and the corbelling: the 26 corbel
+blocks and their band are there and are 1–2 px from 163 m; the windows are
+an authored elevation's numbers off the May 2013 photograph, the same
+kind of override as `gable_front` itself, and Simeon's call whether that
+is wanted (§206's rule for authored elevations). (3) The front 13 m of the
+ridge is under the "Gregory Gym" label at this pose in ours and in
+Google's alike; the label is the app's.
+
+**The bake is an augment, still.** Two runs, no `--rebake`: 4,794 features
+byte for byte, `caps` and `rig.roofs` identical, `rig.gables[Gregory]`
+grew `hall.col` and `blocks`; data/roof_runs.json gained one key.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8501 and `git archive e232953` on :8502 (served by its own
+`scripts/serve.py`).**
+`scripts/verify/slopes-layer.mjs --against` **47/48, exit 1** — every
+assertion green but one, and that one is not this pass: *"?slopes=0 is the
+build at :8502, to the pixel"* read **1 of 1,296,000 pixels, max channel
+Δ 1, at (132, 839)** — a single pixel in the bottom-left UI, one unit off,
+between two page loads. Nothing of this pass runs under `?slopes=0` (the
+generators' polls return before they read anything; the 4,794 features are
+byte for byte the shipped ones, above), and the same comparison run by hand
+found 0. The assertion was not touched: its expectation is right and a
+1-px Δ1 raster flicker is not a reason to loosen a zero. The lines that are
+about this pass: `built` 108 roofs + 1 gable, 24 arches, 3 dome parts; the
+`ridge` line on Waggener Hall two tones and a raycast at the rig's pitch;
+the arch lines at both poses; the switch lines 0 px on-off-on and 0 px with
+`render()` stopped; no page errors.
+`?slopes=0` on the branch against the archive at all four critics' poses,
+second of two shots, tolerance 0: **mall-cruise 0, gregory 0, capitol-dome
+0, battle-street 3** of 1,296,000 px (max Δ 6, inside a 117x4 px sliver at
+[565,169] — the identical sliver §204c measured between two loads of ONE
+commit); and measured again as three interleaved pairs at mall-cruise and battle-street (`r3/identity3/`, six page loads): **0, 0, 0 and 0, 0, 0 px** — the sliver and the gate's pixel are load noise, not this pass.
+The generators ON at the poses: roofs 108 + 1 gable + 2 blocks in 12,718
+triangles (12,725 before), arches 24 in 18,315, dome 11,322; 2 draw calls at
+mall-cruise and gregory, 7 at battle-street, 6 at capitol-dome; no console
+errors at any pose. The three poses the critics already gave us, round-3
+reshoot against round 2's frames, tolerance 0: **mall-cruise 0 px,
+capitol-dome 0 px, battle-street 7,590 px of max Δ 4** — one to three units
+on the terracotta facets and a facade in the frame's centre, no shape
+moved, below what a screen shows. gregory: 24,559 px, the building.
+`walkmeter.mjs` and `facadegrid.mjs` were not re-run: nothing this pass
+touched is on their path (no walk graph, no facade grid, no entrance
+moved).
+
+
+**Frames.** The round-3 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r3/{mall-cruise,gregory,
+battle-street,capitol-dome}.png`. Before/after at the critics' own pose,
+side by side, in this pass's scratchpad `r3/proof/gregory-before-after.png`
+(the building at 2x) and `r3/proof/gregory-monitor-6x.png` (the monitor
+and the ridge behind it at 6x) — lead with the first: one orange plate
+with a tan lid on it became a grey two-tone gable with a low light monitor
+riding its ridge and a tiled hip beside it.
+
+**Next.** Round 4 of the critics on these frames. If the arches are named
+again, the lever is `GFX_MSAA` and it is the app's, not this layer's. If
+the hall's grey reads wrong to Simeon, `ROOFS.hallColour = false` is the
+terracotta back in one line.
+
+## 207. Sep 3 2026 — the critics' round 2: Gregory's hall reads as a gable because its planes are shaded the way the city shades a roof, and the Capitol's drum is a drum in tiers with the dome springing flush from its balustrade (`acer/slopes`, not merged, commits `0e9872d` `bb5b3fe`)
+
+Round 2 of the blind critics on the round-1 frames (§206). Mall-cruise and
+battle-street they gave to us again and those are untouched in shape;
+gregory and capitol-dome they named, and every gap below was closed in a
+generator or a bake — nothing typed for one building — with `?slopes=0`
+still `main` to the pixel (the bake-identity line of the gate, and four
+poses diffed against the `git archive` of e232953 by hand, below).
+
+**gregory — "it does not read as a gable" (`0e9872d`).** The geometry was
+right in round 1 (the hall's two planes are at the pediment's own 0.40
+pitch, ridge 30.4 m, eaves 21.35 m; a raycast down each lands to the
+centimetre) and it still read as one flat orange plate, because at golden
+hour with the sun in the WSW the north and south planes of a real 21° roof
+under the real light are eight luma apart (74 and 82 in the round-1 frame).
+The slabs the mesh replaced never had that problem: js/timeofday.js paints
+every slab facet between a dark end (0.70 x the roof colour) and a bright
+end (1.28 x) from the live sun on an EXAGGERATED 38° tilt, precisely because
+a flat top cannot shade itself. So the mesh now shades its roof facets by
+that same rule — `SLOPES.facetShade` in js/slopes.js (ambient 0.35, ends
+0.70 / 1.28, tilt 38°, the four numbers ROOF_SHADE and SHADE_LO/HI already
+carry), transcribed into the vertex shader for faces a generator marks
+`facet` (`slopes.build().facet(true)`: the slope strips and the hall's
+planes; never a wall, a deck, a dome or an arch) and lit as the flat top
+they stand in for. Same pose, same hour: the north plane is now 62 luma and
+the south 96 — the gable is two tones and the ridge is a line. `on: false`
+is round 1's real normal under the real light. The rest of what a gable
+has, in js/slopes-roofs.js, all taste constants: a strip of ridge tiles
+along the hall's ridge from the pediment's back to the rear wall
+(`ROOFS.ridgeCap`), the clerestory monitor with its own roof creased on the
+ridge instead of a flat lid (`ROOFS.monitorPitch`, 0.18 — a monitor's roof
+cannot be read from a nadir tile, marked [U] like its height), and a
+continuous stone band under the corbel table along the inner pediment's
+rake (`ROOFS.corbelBand`) so the 26 corbel blocks the bake keeps read as one
+raked line from the air and as a dogtooth from the street. The annex the
+critic saw as "a big hipped orange roof with a strong ridge" was the deck
+colour: the z19 tile under `scripts/bake_roofs.py` votes that deck grey
+membrane (#927c6f) and the shipped slab says terracotta (#96492f), because a
+machine with no imagery cannot see a membrane and votes "tile" every time.
+`RIG_DECK_FROM_VOTE` (true) puts the photograph's colour on the rig — the
+mesh's deck — and leaves the slab alone; the twelve roofs where the two
+disagree are printed by every run (Gregory, Welch, the Union, Goldsmith,
+Hogg, the Blanton, the Seay, Smith, Student Services and three unnamed).
+The arches: every curved piece the layer extrudes — the gable's three
+archivolts, the fanlights, bands, spandrels and arcade bays of
+js/slopes-arches.js — now carries per-vertex normals averaged across each
+shallow corner (`extrude`'s `opts.smooth`, a 40° crease; `ROOFS.smoothArcs`,
+`ARCHES.smooth`), so a curve shades as one curve rather than as a necklace
+of flat facets; a real corner keeps its two faces. The one thing NOT
+changed is the pitch: 0.40 is the photograph's number (the override's
+working) and the mesh is at it; what the critic measured as a shallow
+chevron was one tone over the whole roof.
+
+**capitol-dome — the drum, the ledge, the wings, the pavilions, the bullet
+(`bb5b3fe`).** `scripts/bake_capitol.py` now writes a `drum` member beside
+the discs: the drum in its tiers — a windowed base ring (the widest, the
+shipped cornice's 14.0 m so the footprint does not grow), a peristyle of
+24 freestanding columns in front of a windowed wall, their entablature
+overhanging, a narrower upper tier with its openings, a low balustrade —
+every radius and height a proportion read off the critics' own reference
+frame (the verifier's `bar/capitol-dome.png`, Google Earth's photogrammetry
+from the same pose; the pixel columns and rows are in the bake beside the
+constants `DRUM_*`), scaled onto the bake's own Z_ATTIC_TOP..Z_DRUM_TOP.
+js/slopes-dome.js draws it (`drumParts`) in place of the shipped cylinder,
+its 24 pilaster strips and the cornice, which the filter now hides with the
+three lathed parts, and the dome springs at exactly the balustrade's radius
+(`spring_r` 12.184 m = `DRUM_BAL_R` x R_base): the 1.8 m ledge between the
+old cornice (14.0) and the old springing (12.19) is gone. The lathe profile
+is a SUPERELLIPSE now (`LATHE_POWER` 2.5; 2 is the ellipse of round 1), so
+the shell stays near its springing radius through its lower half and turns
+over into the crown — a dome, not a bullet — and the base swell is a bump
+that stands OUTSIDE the springing (`LATHE_SWELL` 0.03 of R, peaking 1.5 m
+up) instead of a recess under it: raycast at the pose, the balustrade top
+at 59.91 m and the shell at 61.79 m directly above it, widest ring 12.53 m
+at z 61.25. The four corner pavilions get the same low hip as the wings
+(`CAP_HIP_PAVILIONS`, `CAP_PAVILION_M2`): the shipped bake's own pavilion
+rule (`350 < area < 700` m²) never matched the 298..301 m² parts, so the
+shipped city has never had a pavilion cap and they ship as flat 32 m boxes
+— that stays as it is (an augment), and the mesh puts a 2.1 m hip on each.
+And the wings' hips, which the critic still read as "flat-topped slabs
+with a thin parapet ledge", read now for the same reason Gregory's hall
+does: they go through `slopesRoofs.emit` and take the facet shading, two
+tones either side of every ridge. Not done, and why: the north portico's
+pediment — OSM's 39 m is the box's top, a pediment "one storey shorter
+than the block" means lowering a shipped height on a photograph's estimate,
+which is a `--rebake` decision for whoever owns the Capitol, not an
+augment; and the wings' window pitch, which is the facades bake's.
+
+**The bakes are augments, still.** `bake_roofs.py` reproduced its 4,794
+features and 1,840 caps byte for byte and rewrote only `rig` (the deck
+colours above). `bake_capitol.py` reproduced its six outputs and wrote
+`capitol_dome.geojson` = the shipped features + `lathe` + `rig` + `drum`.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8481 and `git archive e232953` on :8482.**
+`scripts/verify/slopes-layer.mjs --against` **48/48, exit 0**, no assertion
+touched — and the ridge line is now a parity proof as much as a contrast
+one: at the gregory pose Waggener Hall's two slopes read 123,61,32 and
+183,88,46 (luma 72.1 / 105.2) where the slabs they replace read 123,60,32
+and 182,88,46 — the facet rule lands on the city's own tones to 1/255, one
+tone along a slope (spread 0.0), the raycast at the rig's pitch to 0.00 m.
+The arch lines hold with the smooth normals (0.6 cm and 0.5 cm off the
+ellipse where the chords are 56.7 cm — 98x and 111x; 7 of 8 and 6 of 8
+probes move); the switch lines: on-off-on 0 px, off vs a `?slopes=0` load
+6,135 px (ceiling 7,000, the depth-slice dither of 204d), render() stopped
+0 px, and the bake-identity line 0 px against the archive.
+`?slopes=0` on the branch against the archive at all four critics' poses,
+second of two shots, tolerance 0: **mall-cruise 0, gregory 0, battle-street 0,
+capitol-dome 0** of 1,296,000 px (the archive page reports no layer and no
+`slopes.detail`, which is how a served archive is told from a served branch —
+the first gate run of this pass compared the branch with ITSELF because
+`scripts/serve.py` serves its own repo root, not the cwd it is started in;
+the archive must be served by its own copy of the script). The generators ON at the
+poses: roofs 108 + 1 gable in 12,725 triangles, arches 24 in 18,315, dome 3
+parts + 5 drum tiers + 3 wing hips + 4 pavilion hips in 11,322 (9,504
+before); 2 draw calls at mall-cruise and gregory, 7 at battle-street, 6 at
+capitol-dome; no console errors at any pose. `walkmeter.mjs` and
+`facadegrid.mjs` were not re-run: nothing this pass touched is on their
+path (no walk graph, no facade grid, no entrance feature moved).
+
+**Frames.** The round-2 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r2/{mall-cruise,gregory,battle-street,
+capitol-dome}.png`. Before/after crops at the critics' own poses, side by
+side, in this pass's scratchpad `proof/{gregory,capitol-dome,battle-street,
+mall-cruise}-before-after.png` — lead with capitol-dome (a cylinder with
+stripes became a drum in tiers under a dome that springs from it), then
+gregory (one orange plate became a two-tone gable with a ridge, a creased
+monitor and a grey annex deck inside its tile rim).
+
+**Next.** Round 3 of the critics on these frames. If they still want the
+north portico's pediment, that is the `--rebake` decision above. If
+`SLOPES.facetShade` reads too strong anywhere, it is one line — `on: false`
+is round 1's look, and the four numbers are the city's own.
+
+## 206. Sep 3 2026 — the critics' round 1: Gregory Gym's hall is a gable to its pediment, Sutton Hall's ground floor is the arcade the truth file always said it was, the Capitol dome is a dome with a lantern on it and its wings have roofs (`acer/slopes`, not merged, commits `33065b9` `1668791` `5ffa842`)
+
+Three blind critics compared four poses of this branch against Google Earth
+(mall-cruise, gregory, battle-street, capitol-dome) and named what was wrong
+with ours; mall-cruise they gave to us and it is untouched. Every gap below
+was closed in a generator or a bake — no vertex typed for one building — and
+every bake change is an AUGMENT: `?slopes=0` is still `main`, to the pixel,
+because each bake compares what it generates with the shipped features and
+writes only the foreign member it came for (the doctrine of 204b, now on all
+three bakes).
+
+**gregory — the hall behind the pediment (`33065b9`).** The critic: *"drawn
+as a single flat orange plane over the whole footprint ... a warehouse box
+with a pediment glued on the front."* True: behind the gable front was the
+same 5:12 hip ring and flat deck every tiled roof gets, 4 m of tile round a
+25.5 m plate, the pediment standing 5 m above it. `scripts/bake_roofs.py`
+now reads the HALL off the footprint in the gable's own frame (`_hall_rig`,
+written as `rig.gables[bid].hall`): its flank walls are the footprint edges
+running straight back from the front nearest to where the pediment's eave
+corners are (u = -23.09 and +23.11 — the 62 m north wall, and the 2.3 m
+stub beside the pediment, the rest of that flank being interior because the
+annex is built against it); its back is the far end of the longer flank
+(v = -65.0 — an attached block can shorten one flank, not both — and along
+the ridge the z19 tile's dark hall roof turns into the pool block's lighter
+deck at exactly that jog); its front is the pediment prisms' rear plane per
+elevation segment; its ridge is the pediment's apex, 30.4 m. The clerestory
+monitor is measured off the z19 nadir tile into the override with its
+working (`_monitor_note`: 14 m wide, 13 to 53 m behind the pediment plane;
+its height cannot be read from above, 1.8 m is marked [U]).
+`js/slopes-roofs.js` takes the hip rig out of that rectangle (edges inside
+it are skipped the way `gableEnd` skips the gable wall, corners where a kept
+edge meets a skipped one slide straight in, the deck is clipped to the parts
+of the footprint beside and behind the hall) and draws two planes from the
+flank eaves to the ridge with a front that steps with the pediment, the eave
+lip along each flank, a brick gable wall closing the back, the monitor as a
+low box on the ridge in the gable's stone, and — where the annex's deck
+stands above the hall's eave — the wall between them along the clipped
+deck's edge, so the step from hall to annex reads. Proved by raycast at
+three poses (`probe-hall.mjs` in the scratchpad): the planes are where the
+rig says to 0.3 m, the monitor top at 32.2 m, the end wall at 28.4 m from
+the east, the junction wall at 23.4 m. Taste block: `ROOFS.hall / hallEnd /
+hallJunction / hallTolM / monitor / monitorColour`. Not done: the arches
+recessed INTO the projecting bay — the bay projects 2.9 m in the footprint
+already and the recess is a 5 cm dark panel because this renderer cannot cut
+a fill-extrusion wall; a colour is the depth, as on every entrance.
+
+**battle-street — Sutton Hall's arcade (`5ffa842`).** The critic: *"a flat
+wall of square windows with one lone arched door (and red triangular wedges
+in its spandrels) ... should be a continuous arcade."* `data/campus_truth.json`
+had said so since the truth pass ("4 round arches at grade (1 door, 3
+windows), 4 window bays above ... the arcade continuing round the west") and
+nothing drew it. `scripts/bake_entrances.py`: the CELEBRATED row for SUT
+carries `arcade=True` [C], the door records the straight wall it sits on
+(`wall_run`), and `finish_arcades()` lays the bays out in the main door's
+frame once every door is placed. The pitch is DERIVED: the narrowest a bay
+can be is the opening plus its two bands plus a pier (2.60 + 0.90 + 0.50 =
+4.00 m), snapped so the wall's second arched door lands on the grid —
+Sutton's are 27.86 m apart, 7 bays of 3.981 m — 15 bays from u = -27.86 to
++27.86 on the 62.3 m wall, two of them the doors. Written as the `arcade`
+member on the main door's `arches` entry; the 14,070 features are
+byte-identical. `js/slopes-arches.js` draws every bay that is not a door as
+the same arch as the door (band, spandrel, the dark of the loggia behind it
+a hair off the wall), carries the stone between the bays from grade to a
+string course over the crowns, and on an arcaded wall the spandrels take
+the surround's stone (`ARCHES.arcadeSpandrel = 'band'`; the critic read the
+family's terracotta wedges as a texture defect — `'own'` puts them back).
+Not done, and why: the courtyard's paving is the ground bake's, not a
+slope; the roof the critic called "a flat slab with a very deep overhang"
+is the 5:12 hip and 0.5 m eave lip every campus roof has, seen from 26 m up
+at 65° of pitch, and was left; the loggia's recess is a colour, as above.
+
+**capitol-dome — the dome, the lantern, the wings (`1668791`).** The
+critic: *"a tall pointed ogive, taller than it is wide, with nothing on
+top."* The lathe was revolving the eighteen discs' own profile and closing
+it onto the lantern's 3.1 m, so dome, lantern and cupola were one 28 m
+spike. `scripts/bake_capitol.py` now writes a `lathe` member beside the
+discs: an elliptical quadrant from the same springing radius (12.57 m) that
+stays full through its lower half and turns over into a crown 0.42 of the
+springing radius wide (`LATHE_CROWN`), with a 3 % swell over the first
+1.5 m (`LATHE_SWELL`) so the widest ring sits just above the drum. The
+lantern stands ON that crown as the separate smaller cylinder it is. And a
+`rig` member for the wings: `bake_roofs.py`'s own `mitre_rays` /
+`vertex_caps` / `edge_event_caps` / `wall_profile` run on the OSM part
+outlines of the three big parts (simplified at `CAP_HIP_SIMPLIFY_M` 2.5 m
+so pilaster jogs do not fan into slivers), pitch `CAP_HIP_PITCH` 0.30
+(16.7°), no lip, no deck; parts under `CAP_HIP_MIN_M2` (the pavilions, the
+stair towers) keep their shipped stepped caps. `js/slopes-dome.js` reads
+both; the wings go through `slopesRoofs.emit()` into the dome's group, so
+they keep its LOD (none — a skyline stays) and its minzoom. One rule
+changed in `js/slopes-roofs.js` for them: a rig with NO deck rises to its
+own ridge at every point (`zLip + pitch * min(d, cap)`), because the
+vertical fin a capped point used to leave was only ever hidden by a deck
+(campus rigs have decks and are bit-for-bit what they were). The centre
+block's hip now dies into the attic wall, which is what the critic asked
+of the podium. Not done: the two-tier drum (a windowed lower ring is new
+content with no measurement behind it), the pediment on the north pavilion
+(an authored elevation like Gregory's, a taste call), the wings' window
+pitch (the facades bake's, not a slope).
+
+**The bakes are augments, all three.** `bake_capitol.py` grew the same
+doctrine as `bake_roofs.py`: without `--rebake` it generates every output,
+compares each to the file on disk, stops at exit 2 writing nothing if any
+differs, and otherwise writes only `capitol_dome.geojson` = the shipped
+features + `lathe` + `rig` (its six outputs reproduce the shipped files
+byte for byte on this machine). `bake_entrances.py` reproduced its 14,070
+features byte for byte and added one `arcade`. `bake_roofs.py` kept its
+4,794 features, `caps` and `rig.roofs` identical and added `hall`.
+
+**Verdicts, hardware GL (ANGLE / NVIDIA RTX 3050 Ti / D3D11), 1440x900,
+branch on :8471 and `git archive e232953` on :8472.**
+`scripts/verify/slopes-layer.mjs --against` **48/48, exit 0**, no assertion
+touched: the bake-identity line 0 px; SLOPES.on off-and-on 0 px; off vs a
+`?slopes=0` load 6,134 px (the same 6,134 as 204d); the ridge line on
+Waggener Hall (luma 79.6 vs 99.1 either side); the arch lines on SUT at
+battle-street (mesh 0.6 cm off the ellipse where the chords are 56.7 cm —
+98x — and 7 of 8 probes move) and BTL from the street (0.5 cm, 111x).
+`walkmeter.mjs` **PASS, exit 0** (drift 0, 0 route errors, the live-mouse
+"Avoid stairs" gate WCH -> MAI 240 m -> 47 m and back). `facadegrid.mjs`
+**0 failing assertions, exit 0** (BTL LOOK band 1.30x, ratchet 1.4x; WALK
+band 2.61x, ratchet 2.7x — unchanged). And separately, `?slopes=0` on the
+branch against the archive at ALL FOUR critics' poses, second of two shots,
+tolerance 0: **mall-cruise 0, gregory 0, battle-street 0, capitol-dome 0**
+of 1,296,000 px. The generators ON: roofs 108 + 1 gable in 12,691 triangles
+(12,782 before — the hall's hip strips are gone and its planes are fewer),
+arches 24 entrances in 18,315 (10,988 before; the 13 arcade bays), dome 3
+parts + 3 wing hips in 9,504 (5,850 before; the denser lathe and the hips);
+2 draw calls at mall-cruise and gregory, 6-7 at battle-street, 6 at
+capitol-dome; no console errors at any pose. Frame time was NOT re-measured
+this round (204's own A/B is still the open item there).
+
+**Frames.** The round-1 reshoot, all four poses ON, second of two, in the
+verifier's scratchpad: `judge/reshoot/r1/{mall-cruise,gregory,battle-street,
+capitol-dome}.png`. Before/after crops at the critics' own poses, magnified
+2x, side by side: this pass's scratchpad `proof/{gregory,battle-street,
+capitol-dome,mall-cruise}-before-after.png` — lead with battle-street (one
+door on a flat wall became fifteen bays of arcade), then gregory (the flat
+plate became two slopes, a ridge and a monitor), then the dome. The gate's
+own frames are under `gate/shots/`; the identity frames under `identity/`.
+
+**Next.** Round 2 of the critics on these frames. If they still want the
+Capitol's drum in two tiers or the north pavilion's pediment, both are
+authored elevations in the sense of Gregory's `gable_front` — an override
+with the numbers off a photograph and the working written down — and
+Simeon's call whether that is wanted at all.
+
+
+## 204d. Sep 2 2026 — the layer's gate was red against a layer that was right: 32/38 to 48/48, and the 6,134 pixels nobody had explained (`acer/slopes`, not merged, `scripts/verify/slopes-layer.mjs`)
+
+**The situation.** `scripts/verify/slopes-layer.mjs` ran **32/38** on hardware.
+Not one of the six reds was a defect in the app. Four were assertions that had
+gone stale under the generators that landed after them, one was a regex that
+could not match a correct filter, and one was a premise that was simply false.
+A guard that cannot fail and a guard that cannot pass are the same bug, and
+this file already carries four incidents of the first kind (§8, and the README's
+own list). This is the fifth, of the second kind.
+
+**The six, and what each is now.**
+
+1. *"the stand-ins are filtered out"* — `roofs-pitched`'s filter serialises as
+   `["match",["get","f"],[...],true,false]`: a `match` whose input is the
+   `["get","f"]` EXPRESSION. The gate asked for `/"match","\["get","f"\]/` —
+   the comma inside the quotes — which no correct filter can produce. It is now
+   `ROOFS_FILTER_RE`, anchored, at the top of the file with the reason beside it.
+2-3. *"the six pixels on the curve are one tone"* (both arch poses) — over-strict
+   AND blind. At `battle-door` the mesh reads `136 103 87 136 136 136` and the
+   chords read **exactly the same**, so it went red on a correct arch and would
+   have gone green on a wrong one. **What separates a curve from its stand-in is
+   WHERE the surround is, not its tone** — and the stand-in is not a five-sided
+   polygon, it is a STAIRCASE (`bake_entrances.py`'s `ARCH_TIERS = 5`, each chord
+   freezing its half width at its own tier's mid height). So the head is now
+   walked with 33 raycasts against the exact ellipse, and the five chords are
+   measured on the same samples: **the mesh is off the ellipse by 0.5-0.6 cm
+   where the chords are off by 56.7 cm — 98x and 111x closer**, tolerance 3 cm.
+   A second line puts 8 pixels where the two shapes genuinely disagree (the
+   mesh's surround runs intrados-to-extrados, the chords' runs `[w_i, w_i+sw]`;
+   19 of 33 heights disagree by more than 10 cm outside the keystone) and
+   requires a majority of them to move when the chords come back: 6 of 8 moved
+   at both poses, by up to 58/255 of luma. The first cut of that line asked 5 of
+   6 and got exactly 5 — no margin at all, which is how a correct arch turns a
+   gate red — so it asks for a majority of a wider sample instead.
+4. *"the layer is installed, drawing an empty scene"* — `root.children === 0`,
+   written the day the layer landed, stale the moment the generators did. It
+   names the three groups now.
+5-6. The two switch comparisons compared an ON frame against an OFF frame, and
+   with 108 roofs, 24 arches and a dome in the mall-cruise frame those are
+   SUPPOSED to differ. Rewritten below.
+
+**The auto-exposure pin, which is why any of the switch numbers mean anything.**
+`js/graphics.js`'s meter is open loop and runs from `updateSky`, which fires on
+map `move`, `resize` and hour changes — never per frame — and its 40x24
+`drawImage` reads the PREVIOUS frame's buffer. Any two pages compared across a
+`jumpTo` were being compared on their METER HISTORIES rather than on their
+renders; that was the 163,822-px Δ1 "far field" and the 3.8 % toggle brightening
+(both reproduce with no layer present). `open()` now sets
+`GFX.autoExposure = false` on every page the gate opens, and every page it diffs
+is asserted at `__ae().gain === 1`. `gl.readPixels` never saw the gain (the grade
+is a CSS filter on `#map`), so the sampled colours are untouched — only the
+screenshots move. **Any cross-page screenshot comparison in this suite needs the
+same pin.**
+
+**THE 6,134 PIXELS, WHICH ARE NOT THE MESH.** With that pinned, the switched-off
+frame still differed from a `?slopes=0` LOAD, and this pass measured what it is
+rather than loosening a threshold over it. Hardware GL (ANGLE / RTX 3050 Ti /
+D3D11), 1440x900, `?intro=0&drift=0`, mall-cruise, `cancelGraphicsAutoDetect()`,
+4 s settle + idle, two shots per pose with the second kept, `lib/png.mjs` at
+tolerance 0:
+
+| comparison | pixels of 1,296,000 |
+|---|---|
+| plain `?slopes=0` load vs plain `?slopes=0` load (3 pairs) | **0** |
+| ON → OFF → ON, same page | **0** |
+| OFF with the layer's `render()` STOPPED vs `render()` running | **0** |
+| OFF vs a `?slopes=0` LOAD (9 pairs, ±1) | 6,134, maxΔ 78 |
+| ...with `slopes-mesh` REMOVED from the style | 969, maxΔ 12 |
+
+So **the mesh puts nothing on the screen when the switch is off** — proved by
+setting the custom layer's layout visibility to `none` so MapLibre stops calling
+`render()` at all (the §204c dome bug's own mechanism, used here as a control):
+`slopes.frames` stops climbing and **0** pixels move. And every filter the layer
+touched comes back byte-identical to a real `?slopes=0` page's, compared against
+one rather than merely checked for `null`.
+
+5,178 px of the residue is the mere **PRESENCE** of one more layer in the style:
+MapLibre slices the depth range per layer, so a 224-layer style gives every layer
+a thinner slice than a 223-layer one and the depth ties between coplanar roof
+steps land the other way. It is 0.47 % of the frame, almost all Δ1-8, 39 pixels
+above Δ20, isolated, no clusters, densest where distant geometry is. It is **not**
+`opaquePassCutoff` (84 in every state) and it is **not** a filter round-trip
+(0 px on a `?slopes=0` page put through the identical round-trip, filters
+verified restored). **The last 969 px, which survive removing the layer, are NOT
+explained** — something else `js/slopes.js`'s boot leaves behind. That line is a
+ratchet with its ceiling named (7,000), the way `facadegrid.mjs`'s sweep is, not
+a zero pretended into existence, and the unexplained 969 is open work for
+whoever next touches `js/slopes.js`.
+
+**Added while in there.** The other half of the §204c dome defect is asserted
+now: while LOD holds the layer down, `capitol-dome`'s filter must STILL be
+excluding the stacked discs, because the dome group is still drawing — both
+shapes gone at once is how the skyline went empty. And the bake-identity
+contract from §204b is a gate line rather than a one-off: `?slopes=0` against a
+`git archive main` served on a second port, **0 px**.
+
+**Watched failing.** `--break` now sabotages the page two ways and nothing on
+disk changes: the layer is moved above the fog (the `stack` and both `haze`
+lines) and `SLOPES_ARCHES.on = false` puts the five chords back in place of the
+mesh (the `arch` lines, both poses) — the exact regression those assertions
+exist to catch, because they are the ones this gate already got wrong once.
+Measured: **38/47 with `--break`** (no `--against`) against 48/48 without.
+
+**Verdicts, hardware GL, this machine, branch worktree on :8491 and
+`git archive main` on :8492.** `slopes-layer.mjs` **48/48, exit 0**.
+`walkmeter.mjs` **PASS, exit 0** — self-check drift 0 over limit, 0 route
+errors, and the live-mouse "Avoid stairs" UI gate passing (WCH -> MAI, 240 m ->
+47 m and back). `facadegrid.mjs` **0 failing assertions, exit 0** — the tile
+carries its metre pitch at all six zooms, worst residual LOOK band BTL 1.30x
+(ratchet 1.4x) and WALK band BTL 2.61x (ratchet 2.7x). Frames and every log under the scratchpad's
+`fix/gate/` (`shots3/`, `log/`), and the five diagnosis runs that produced the
+table above are in `log/` as `farfield.log`, `floor.log`, `removelayer.log`,
+`inert.log`, `filterrt.log`, `presence.log`.
+
+
+## 204. Sep 2 2026 — every slope on campus is real now: 108 roofs, 24 arches and the dome drawn as the surfaces their slabs, chords and discs were sampling (`acer/slopes`, not merged)
+
+> **The counts in this section were written from an over-baked `roofs.geojson`
+> and are corrected in §204b below**, which is also where the reason the
+> layer's OFF state is `main` again — to the pixel — is written down.
+
+Three generators on the layer §203 built, each one shape, each generated from
+baked data, nothing hand-modelled: **`js/slopes-roofs.js`**, **`js/slopes-arches.js`**,
+**`js/slopes-dome.js`**. The whole layer still switches off in one line —
+`window.SLOPES.on = false` (or `?slopes=0` at load) — and when it does, every
+fill-extrusion stand-in comes back exactly as it was, because nothing was
+deleted: the slabs, chords and discs are hidden by FILTER while the mesh
+draws, and the filters are put back the moment the switch flips. `WAYFIND.on`
+untouched.
+
+**What the bakes now write, so the mesh restates nothing.**
+`scripts/bake_roofs.py` computed a profile, per-vertex mitre rays and per-vertex
+ridge caps for every roof and threw them away once the stepped slabs were
+emitted; it now writes them as a second foreign member, `rig`, beside `caps`
+(`roofs` keyed `id/ri`, `gables` for Gregory Gym's authored elevation, `meta`
+for the constants), and tags every authored elevation part with `f` so the
+stair-step stand-ins (`course`, `rake`, `ring`) can be hidden and the veneer,
+stairs and Jester's precast bands (`gable`, `band`) can stay. `scripts/bake_entrances.py`
+writes each arched head's frame, `half`, `spring_h`, `arch_rise` and each
+piece's depth and colours as the `arches` member of entrances.geojson, and
+tags the 448 chord features `arc: 1`. The dome needed no new data: the 18/7/4
+discs of `dome`, `bullock-dome` and `cupola` are a clean radius-against-height
+profile and `THREE.LatheGeometry` takes them as they are. Both bakes were
+re-run; the entrances re-bake reproduces the shipped file byte for byte apart
+from the tag; the roofs re-bake is discussed below.
+
+**The shapes.** A roof is the strip swept between neighbouring profile points
+as the offset runs 0 → d_use, `P_k(d) = pts[k] + rays[k]·min(d, caps[k])`,
+`z(d) = base + lip + rise·d/d_use` — the slab ring's own expression with d
+continuous — split at each end's cap so the hip emerges where the bake's
+comments say it does, plus the eave lip (top, fascia, soffit) and the deck at
+the top of the rise; Gregory Gym's two pediments are triangular prisms with a
+raking cornice and three half-ring archivolts, and its roof no longer hips
+against the gabled wall (the two corners slide along the long walls). An arch
+is the quarter-ellipse `w(t) = half·√(1−t²)` the chords were sampled from: the
+fanlight as a half-ellipse, the band as the region between the ellipse and
+the ellipse shifted outward by `sw` (outward horizontally, as the chords step,
+so it meets itself `2·sw` wide at the crown as they do), the spandrel between
+that and the square. Everything in one material (§203's fill-extrusion
+lighting, per-vertex day/golden/night), flat-shaded except the lathe, one
+draw call per group: **roofs 12,962 triangles in 70 ms, arches 10,988 in
+63 ms, dome 5,850 in 28 ms, 5 draw calls for the whole campus** (three
+lathes and their caps are separate meshes).
+
+**Removed from the render path while on:** 4,066 of the 4,895 roof features
+(3,906 slabs + 71 courses + 50 rake blocks + 39 voussoir prisms; 829 authored
+parts stay), 29 discs (18 + 7 + 4; columns, drum, lantern, cornice, attic and
+collar stay), 448 chords (120 fanlight + 328 surround/spandrel; jambs,
+keystones and cornices stay).
+
+**Frames, RTX 3050 Ti, hardware GL, 1440×900, second of two shots kept**, in
+the scratchpad's `generator/` (four poses on/off, three hours at gregory, and
+close-ups): the Sutton Hall pair is the one to lead with — four hipped planes
+and a ridge where there were staircases — then the dome pair, then Battle
+Hall's door from the street (a curve where there were five flats). At gregory
+the mesh roofs are the same tone as the slabs at morning, noon and night,
+and flatter in contrast than the slabs by day: that is the real 22.6° under
+the real light, where the slabs wear a 38° tilt js/timeofday.js paints on
+because a flat top cannot shade itself (§203 said this would happen and it
+is the correct outcome, not a defect).
+
+**Frame time: NOT MEASURED in this pass.** The interleaved A/B (3 reps, ON then OFF alternating within one page, four poses, hardware then SwiftShader — `generator/gen-perf.mjs` in the scratchpad, driven by `run-all.sh`) was written and queued behind the gate run and had not started when the pass had to report. The cost to expect: five draw calls and ~29,800 triangles per frame, one `resetState` and one `render`; §203 measured the empty layer at nothing measurable. Treat the 18.0 ms / 55.6 fps baseline as unconfirmed for the layer ON until that script has run.
+
+**Bytes, raw / brotli-11 (node zlib):** roofs.geojson 1,657,876 / 132,635 →
+1,801,375 / 156,815 (the `rig` member alone is 102,221 / 22,244; the other
+41 KB raw are the four wings below and the `f` tags); entrances.geojson
+6,723,655 / 282,079 → 6,735,893 / 283,354 (`arches` 8,641 / 1,404);
+capitol_dome.geojson unchanged. The baseline's live numbers were Vercel's
+brotli (176,789 / 428,368), a lighter setting than -11; the deltas are the
+point.
+
+**Gates.** `harness-drift.mjs` PASS (36 = 36 scripts). `suite-lint.mjs` raises nothing against the new or changed scripts (its 6 blocking findings are the same pre-existing scripts §203 listed). `slopes-layer.mjs` was extended with section 1b (the generators: filters in place and put back; a ridge at the gregory pose reads as two tones with a raycast that climbs at the rig's pitch; an arch at the battle-street pose and from the street) and was RUNNING, past the Tower depth assertions with every line green so far, when this pass had to report — its full verdict, `walkmeter.mjs` and `facadegrid.mjs` are queued in `run-all.sh` and are not yet in hand. The MapLibre console warnings the frames log ("Expected value to be of type number, but found null") are present with `?slopes=0` too — pre-existing, not this pass's.
+
+**The roofs re-bake, stated plainly.** Same inputs — roof_runs.json,
+overrides, the z19 imagery — and the bake here writes 4,895 features where
+the 2026-08-22 bake wrote 4,794: it finds tiled wings on Calhoun Hall,
+Jackson Geological Sciences, Gearing Hall and Gordon-White that that bake did
+not. `--no-tiled-part` reproduces the shipped count exactly, so the Aug 22
+bake ran without the wing survey (its Aug 4 predecessors had 4,901 and
+4,897); this machine has shapely 2.0.7 and runs it. Some colour channels
+differ by one unit (platform rounding). Both are visible only as four more
+tiled bands and were left as the bake's own answer rather than pinned back.
+The snapshot pin moved from a hardcoded 2026-07-30 to `manifest.latest`
+(`SNAP_DATE` overrides, as in bake_entrances.py): the app draws its walls
+from the latest snapshot and a roof's base is the wall's height. Across the
+nineteen snapshots it was behind, no footprint moved, two heights and one
+colour did, none on a pitched roof — the slabs are byte-identical either way,
+two parapet-cap entries change, and University Christian Church (37 → 16.5 m)
+is surveyed for the first time and reads flat.
+
+**Not established.** Frame time ON vs OFF (above). The gate's full run, walkmeter and facadegrid on this branch. The four final poses were shot ON/OFF (`generator/*-v1-*.png`) before the gate ran and are the frames looked at; the `run-all.sh` re-shoot with the fetch count (`slopes.fetchJSON` should not refetch roofs.geojson — the generator reads the parsed object off `map.getSource('austin-roofs')._data`) had not run. The dome's crown/apex join at 75 m was looked at from 110 m up (`dome-crown-v1-on.png`) and reads clean; it was not measured. Whether four more tiled wings (Calhoun, Jackson, Gearing, Gordon-White) are wanted is Simeon's call; they are the bake's own answer on this machine.
+
+**Next.** Run `run-all.sh` (perf x8, walkmeter, facadegrid, final frames) on an idle machine and put its numbers here; watch `slopes-layer.mjs --break` go red; then the PR. If ON is more than a frame slower than OFF on hardware, profile before merging — the geometry is one draw call per group, so the suspect would be the fill rate of 30 k triangles, not the count.
+
+### 204b. The OFF state was not main, and the bake is now an augmentation
+
+**The defect, in pixels.** With the whole three.js layer switched off —
+`?slopes=0`, nothing of this pass drawing at all — the branch was not the app
+`main` ships. Against a `git archive` of e232953 served on a second port, same
+harness, same machine, noise floor 0: **mall-cruise 174,547 of 1,296,000 px
+(13.5%, max channel Δ 140), gregory 91,519, battle-street 204,516,
+capitol-dome 0.** Copying only `data/roofs.geojson` from the branch into a
+clean `main` checkout reproduced every one of them. Nothing in `js/`,
+`index.html` or `entrances.geojson` contributed. The pass wanted two new
+things in that file and got them by re-running the bake; the re-bake also,
+silently, rebuilt the city.
+
+**Three inputs had moved under it, and one of them cannot be pinned.**
+
+1. **The wing survey.** `tiled_part` needs shapely. This machine has 2.0.7 and
+   runs it; the Aug 22 bake's machine did not. 101 extra features.
+2. **The snapshot.** Moving the pin from `2026-07-30` to `manifest.latest` is
+   the right answer for a real bake — the app draws its walls from the latest
+   snapshot and a roof's `base` is a wall's height — and it is a DIFFERENT
+   answer. Different building order in, different feature order out, and
+   coplanar roof steps whose draw-order ties then resolve the other way: a
+   delta-1 dither along every step edge on campus.
+3. **The imagery.** `data/imagery_cache/` is **gitignored** — 2,335 z19 tiles
+   that are not in the repo and are not the same on two machines. The deck
+   vote (`membrane`) is read live from it on every bake and flipped on **12
+   roofs** here: twelve deck tops that ship terracotta came out grey, up to 96
+   channel units apart. The run measurements are cached in
+   `data/roof_runs.json`; this vote is not. No pin fixes it.
+
+**So `scripts/bake_roofs.py` no longer writes the features it generates.** It
+generates them all, compares them to the ones already in
+`data/roofs.geojson`, and writes the **shipped array** back with only the `f`
+tags added, plus `rig` from the pass that would have written them. Colours are
+allowed to disagree and the shipped one wins — the disagreement is counted and
+printed, because it is the only signal that the imagery under the bake is not
+the imagery the city was baked from (it prints 60 slots = the 12 decks × 5
+keys). If a generated feature disagrees on geometry or on any property but
+colour, the run **stops at exit 2 and names the index**, having written
+nothing. Watched red: `SNAP_DATE=2026-08-27 python scripts/bake_roofs.py`
+stops at feature 28 and the file's md5 is unchanged. Run twice, the output is
+byte-identical. `--rebake` is the opt-out and is what a real roof change runs
+(latest snapshot, wing survey on, features written as generated); it will move
+pixels, which is what it is for, and it is the roofs lane's call rather than a
+side effect of a pass that only wanted to add a member.
+
+**Proved.** Hardware GL (ANGLE / RTX 3050 Ti / D3D11), 1440×900,
+`?intro=0&drift=0` on the archive and `+&slopes=0` on the branch, graphics
+auto-detect cancelled, deferred sources waited on, two screenshots per pose
+with the second kept, diffed at tolerance 0:
+
+```
+mall-cruise     0 / 1,296,000 px      gregory        0 / 1,296,000 px
+battle-street   0 / 1,296,000 px      capitol-dome   0 / 1,296,000 px
+```
+
+Noise floor measured the same way on this machine, two independent loads of
+the identical build: **0 px at all four poses.** In the data: all 4,794 of
+main's features present, in order, every geometry and every property
+identical, the only addition being `f` on 989 of them (band 768, course 71,
+gable 61, rake 50, ring 39); `caps` identical, 1,840 entries, none changed and
+none added. With the layer ON the three generators still build off the new
+file, no console errors: **slopes-roofs 12,782 triangles, slopes-arches
+10,988, slopes-dome 5,850**, 2 draw calls at mall-cruise and 6 at
+battle-street; the hipped roofs and Gregory Gym's pediment read at the gregory
+pose. Frames: the scratchpad's `fix/bake/` (`off/`, `mainshots/`,
+`mainshots2/`, `on/`).
+
+**Corrections to the numbers above in §204**, which were written from the
+over-baked file: the file holds **4,794 features, not 4,895**; the rig covers
+**108 roofs + Gregory Gym's gable, not 112**; slopes-roofs is **12,782
+triangles, not 12,962**; removed from the render path while on is **3,965 of
+4,794** features (3,805 slabs + 160 stand-ins), not 4,066 of 4,895. Bytes,
+raw / brotli-11: **1,657,876 / 132,635 → 1,768,651 / 154,185**, of which the
+`rig` member is 99,862 / 21,713.
+
+**OPEN, for the roofs lane — the four wings are real, and the shipped city is
+missing them.** The wing survey's four additions were checked against the z19
+photograph rather than left as an argument about a count
+(`docs/shots/roof-wings-imagery.jpg`, the footprint in cyan): **Calhoun
+Hall**'s middle cross bar is an unmistakable terracotta hip with dormers
+between two flat membrane stems; **Jackson Geological Sciences**' west wing is
+a tile hip against a concrete deck; **Mary E. Gearing Hall**'s whole north
+range is tile with dormers; **Gordon-White**'s south range is tile and its
+north half is white deck. All four are right and all four are absent from the
+city today. Shipping them is a deliberate change to what the app draws — one
+`--rebake`, four new tiled bands — and it belongs to whoever owns roofs, with
+a look at the render, not to this pass.
+
+
+## 204c. Sep 2 2026 — the dome came off the skyline at altitude: LOD hid the whole custom layer, and the fix is one verdict per group (`acer/slopes`, not merged)
+
+**The defect.** Climb over the Capitol far enough for the mid detail tier to
+drop and there was no dome at all — not the mesh dome, and not the 18+7+4
+fill-extrusion discs it replaces either, because `SLOPES.on` was still true and
+the layer's own filter was still holding them down. Only the drum and the
+statue's spire, which the filter does not name, were left standing.
+
+**Why.** `js/lod.js` listed `slopes-mesh` in the `mid` tier — correct, the real
+roofs should go exactly where `roofs-pitched` goes — and its `setVisible()` did
+two things: called `implementation.setVisible(false)` AND wrote
+`setLayoutProperty(id, 'visibility', 'none')`, as belt and braces. MapLibre 5.24
+honours `visibility` on a custom layer the hard way: **a hidden custom layer's
+`render()` is never called again.** So the exemption inside `js/slopes.js`'s
+render() that keeps the dome drawing at any altitude — `(_visible || ud.lod !==
+'mid')` — was dead code. It cannot run in a function nobody calls.
+
+**The fix.** `lod.js` tells a custom layer through `setVisible()` and ONLY
+through `setVisible()`; the layout write is gone. The layer keeps rendering and
+gives the tier's verdict **per group**, each group following the tier of the
+fill-extrusion layer it replaces: the roofs (`userData.lod = 'mid'`) go with
+`roofs-pitched`; the arches (`lod: null` — no tier lists `entrances-portal`)
+and the Capitol dome (`lod: null` — a skyline silhouette is what you look at
+from further away) stay.
+
+**THE CONTRACT CHANGED. Whoever asserts on this, assert this instead** (the old
+one, in §203 item 6 and in the plumbing pass, said the custom layer's visibility
+goes `'none'`):
+
+- `getLayoutProperty('slopes-mesh','visibility')` is `'visible'` at every
+  altitude — `lod.js` never writes it.
+- `window.LOD_isHidden('slopes-mesh')` is `true` above the tier's altitude and
+  `slopes.layer.isVisible()` is `false` with it — both unchanged.
+- `render()` keeps running while it is hidden: `slopes.frames` keeps climbing.
+- `slopes.stats().groups` is what says which shapes are drawing, per group.
+
+`scripts/verify/slopes-layer.mjs`'s lod section now asserts exactly that (four
+lines where there were two).
+
+**Proved, hardware GL (ANGLE NVIDIA RTX 3050 Ti D3D11), 1440x900,
+`?intro=0&drift=0`, second of two screenshots, `cancelGraphicsAutoDetect()`
+first.** The control is the SAME COMMIT with the SAME data on the SAME server —
+`js/lod.js` and `js/slopes.js` at HEAD are served to the control page by route
+interception — so control and test differ by the working-tree diff and nothing
+else.
+
+**At the verifier's own altitude pose** — the Capitol at zoom 14.9 / pitch 55,
+camera-to-centre 1,569 m, **eye altitude 900 m** (js/lod.js measures the flight
+controller's EYE altitude, not the camera distance; the "1,569 m" in §204 is the
+camera distance), Detail distance 700 m. HEAD: `visibility 'none'`, `render()`
+never called, the layer's group flags frozen at their last drawn values and
+`slopes.project` returning a stale off-screen point. Fixed: `visibility
+'visible'`, `LOD_isHidden` true, `layer.isVisible()` false, groups
+**`slopes-roofs: false, slopes-dome: true, slopes-arches: false`** (the arches
+by minzoom at that zoom), `slopes.frames` **289 -> 291** over one repaint while
+hidden. The dome's own column, 3x3 box averages, against the `?slopes=0` discs
+at the same pose — and the sky point differs by **0** across all three pages, so
+there is no exposure confound in this table:
+
+| point | HEAD | fixed | ?slopes=0 discs | fixed-discs | HEAD-discs |
+|---|---|---|---|---|---|
+| cupola | 158,114,46 | 173,113,51 | 180,115,53 | 7 | 22 |
+| dome apex | 161,109,44 | 184,104,52 | 184,105,51 | **1** | 23 |
+| dome mid | 168,101,48 | 180,101,51 | 183,104,51 | **3** | 15 |
+| dome base | 183,104,51 | 179,100,51 | 180,101,51 | 1 | 3 |
+| sky above | 152,86,31 | 152,86,31 | 152,86,31 | 0 | 0 |
+
+Whole frame, HEAD against fixed: **240 px**, all of them in
+[614,363 109x247] — the dome and nothing else. The dome is 12 px tall there,
+which is why the picture worth looking at is the close one.
+
+**Close, where the dome is 100 px tall** — same centre and bearing, zoom 17.668,
+eye altitude **151 m**, the Detail-distance slider at its **minimum, 150 m**, so
+the mid tier is down at street level (it drops on the way in and the 8%
+hysteresis holds it down to 138 m). `roofs-pitched` is `'none'` on all three
+pages, so this is like for like. Down the dome's shell, 5x5 box averages:
+
+| point | HEAD | fixed | discs | fixed-discs | HEAD-discs |
+|---|---|---|---|---|---|
+| shell top | 128,95,18 | 156,84,47 | 162,82,44 | 6 | 34 |
+| shell upper | 128,97,17 | 154,83,46 | 159,81,44 | 5 | 31 |
+| shell middle | 126,94,32 | 154,83,46 | 159,82,44 | 5 | 33 |
+| shell lower | 139,90,38 | 154,83,46 | 155,81,44 | 2 | 16 |
+| sky above | 151,98,52 | 153,103,55 | 151,98,52 | 5 | 0 |
+
+HEAD's shell column is the **green lawn behind the Capitol** showing through
+where the dome should be; the fixed build is terracotta within **2-6 units** of
+the discs, of which up to 5 is a whole-frame exposure difference between page
+loads — measured on the sky, where nothing changed. Frames:
+`shots/slopes/dome-lod-bug.png`, `dome-lod-fixed.png`, `dome-lod-off.png`
+(307x230 crops on the dome). Put the slider back to 1,500 m at the same pose and
+every group returns with `roofs-pitched`.
+
+**And it changes nothing anywhere else.** The control page is served HEAD's
+`js/lod.js` and `js/slopes.js` by route interception — same commit, same data,
+same server, same browser session — so the pair differs by this diff and nothing
+else. At the pass's four poses, tolerance 0: **mall-cruise 0 px, gregory 0 px,
+capitol-dome 0 px, battle-street 3 px** (max delta 6, inside a 117x4 px sliver).
+Against the independent verifier's own ON frames from the day before,
+capitol-dome is **0 px** — cross-load determinism is exact — and mall-cruise
+201,193 / gregory 97,843 / battle-street 27,189 px are commit f23f62c (Battle
+Hall's folded deck ring and the archivolt crown), which landed after that
+verifier ran; this pass contributes 0, 0 and 3 of them.
+
+**The taste knob the verifier asked for.** Mesh roofs read lighter and
+lower-contrast than the slabs by day (gregory morning: a sunlit slope is
+175,77,43 as a mesh and was 136,60,31 as a slab) because the light is falling on
+the true 22.6° pitch instead of `js/timeofday.js`'s painted 38° `ROOF_SHADE.tilt`
+— an exaggeration invented precisely because a slab cannot slope. The look is
+unchanged; it is now a single named constant, **`SLOPES.roofShade`** at the top
+of `js/slopes.js` (default `1.0`, a bit-exact multiply by one). Set it to 0.78
+and the sunlit slope lands back on the slab's old tone; below that it goes
+darker, above 1.0 brighter. It multiplies SLOPED faces only — no vertical
+gradient and a normal that is neither vertical nor flat — so walls stay
+pixel-identical to the fill-extrusion wall beside them. Measured live at the
+gregory pose on one page load with nothing but the uniform moving: 1.00 -> 0.78
+changes **114,683 px** (max delta 48); put back to 1.00 it is today's frame.
+
+
+## 203. Sep 2 2026 — the slopes layer: a three.js custom layer that a fill-extrusion cannot tell from itself (`acer/slopes`, not merged)
+
+Nothing new draws by default. This is the plumbing under the pass that will
+replace the 4,794 stacked roof slabs (`data/roofs.geojson`), the 75-disc
+Capitol dome and the five-chord arches (`ARCH_TIERS = 5`) with real angled
+geometry: **`js/slopes.js`**, one `type:'custom', renderingMode:'3d'` layer
+drawn by three.js r159 (pinned from unpkg in both HTML files — the last
+plain-script build; r160 dropped it) inserted before `aerial-fog`, plus a
+debug scene behind `?slopesdebug=1` and a gate, `scripts/verify/slopes-layer.mjs`,
+that proves every line of the contract from pixels. **The switch is
+`window.SLOPES.on`, seeded from `?slopes=0`, read live in `render()`.**
+`WAYFIND.on` untouched.
+
+**What a generator gets.** `slopes.toLocal(lng, lat, up)` → metres east/north/up
+of one origin (the Tower), exact through MapLibre's own MercatorCoordinate;
+`slopes.toLngLat`, `slopes.project` (local → CSS px, 0.00 px from `map.project`
+at three points across campus), `slopes.raycast(px, py)` (a helper only — the
+app has no tap-to-select and none was invented), `slopes.material()` (the
+served maplibre-gl@5.24.0 bundle's fill-extrusion lighting block, transcribed,
+fed the painter's own evaluated light each frame), `slopes.colour(geom,
+[day, golden, night], wall)` (per-vertex baked triple, blended for the hour on
+the GPU on timeofday.js's own 1/128 grid), `slopes.add()`, `slopes.detail()`
+(`SLOPES.byPreset` off `GFX.preset`). Up is +Z; the one reflection into
+mercator lives in the camera matrix. `js/lod.js` now hides a custom layer
+through `implementation.setVisible` and lists `slopes-mesh` in the same tier as
+`roofs-pitched`, and exposes `window.LOD_isHidden(id)`.
+
+**Measured, RTX 3050 Ti, `?intro=0&drift=0&slopesdebug=1`, 1440×900.** A 16 m
+mesh cube beside a fill-extrusion twin of the same baked colour on the South
+Mall lawn: top / south / west faces **160,92,49 = 160,92,49** at golden hour,
+within 3/255 at morning and night — same hour, same sun, same azimuth
+convention, same vertical gradient. A slab behind the Tower: the Tower's pixel
+**identical** with the layer on and off; the same slab visible from the north.
+A slab in front: 154,88,47 on, 108,93,46 off. A mesh post and an extrusion
+post 2.5 km out under the fog ladder: **175,108,60 both** with the haze on,
+153,87,46 both with it off. The empty layer ON, `SLOPES.on = false` live, and
+`?slopes=0` — and a `git archive` of `main` at e232953 served from a second
+port — at the mall-cruise pose: see the gate's own PASS lines for the pixel
+counts, which are the claim.
+
+**Two things the first hour got wrong, both about the matrix, both now in the
+file header so nobody re-learns them.** Of the matrices MapLibre 5.24 hands
+`render()`, only `defaultProjectionData.mainMatrix` takes MercatorCoordinate
+units — `modelViewProjectionMatrix` fed those collapses every vertex onto one
+sub-pixel point while the frame counter climbs, and the scout doc's advice to
+use `args.projectionMatrix` was wrong for placing geometry (it is the
+projection alone; sky.js only reads frustum terms off it). And MapLibre's
+mercator matrix already carries a reflection, so the local frame's mirror must
+be in the camera matrix: on a mirrored three.js Group the winding flips twice
+and every wall reads the formula's UNLIT value (135 where lit is 153, to the
+unit). The fill-extrusion twin in the debug scene is what made both visible;
+without it the layer looked fine and drew nothing.
+
+**Not established, stated plainly.** No frame-time A/B with real geometry —
+there is no geometry; the empty layer's cost is one `resetState` and an empty
+`render` per frame and was not timed. Cross-page-load pixel identity depends
+on MapLibre's own determinism (labels, tile order); the gate reports the count
+rather than assuming zero. The 20–60 s `jumpTo` stall the baseline pass hit
+reproduced here **only while a 972 MB `git archive` was extracting on the same
+disk** (41–54 s per pose); on the idle machine `jumpTo` itself took 7–147 ms
+in-page and a pose settled in 1.7–4.4 s — evidence, not proof, that the stall
+is I/O contention and not the app. `bake_roofs.py`'s snapshot pin
+(2026-07-30 vs the manifest's 2026-08-27) was not touched or judged: no bake
+ran in this pass.
+
+**Next: the generators.** Roof rigs (a `rig` foreign member on
+`roofs.geojson`, see the scout's data contract), the dome lathe off
+`capitol_dome.geojson`'s 18/7/4 disc profiles, arches off the entrances'
+`(half, spring_h, arch_rise)` in the per-opening frame. Each lands on
+`slopes.add()` with `slopes.material()`, keeps `?slopes=0` as the A/B, and
+must keep `slopes-layer.mjs` green.
+
 ## 202. Aug 27 2026 — the campus detail pass, integrated and shipped (`acer/cd-ship`, MERGED)
 
 Full verdict with the before/after frames: `docs/campus-detail-verdict.md`.

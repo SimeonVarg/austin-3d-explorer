@@ -45,6 +45,7 @@ Usage:  python scripts/bake_tower.py
 import json
 import math
 import os
+import sys
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -139,6 +140,38 @@ CLOCK_DEPTH = 0.30
 # what a barrel-tile roof of this period is.
 ROOF_STEPS = 3
 ROOF_INSET = 2.55       # metres per step
+
+# ── THE MAIN BUILDING'S ROOF AS A HIP (js/slopes-roofs.js, 2026-09-03) ────
+# The three stepped slabs per arm above are what fill-extrusion can draw, and
+# from the mall they read as what they are: "a three-tier staircase of slabs
+# under the Tower" (the fair-camera critic against Google Earth). The z19
+# nadir tile (data/imagery_cache) shows each arm as a hipped clay-tile roof
+# with a ridge down its long axis and hips closing both ends. So this bake
+# also writes a `rig` member on tower.geojson in exactly scripts/bake_roofs.py's
+# schema — each arm's outline through that bake's own mitre_rays / vertex_caps
+# / edge_event_caps / wall_profile, so the reader (js/slopes-roofs.js, through
+# ROOFS.extra) is the same reader the campus roofs have — and the three.js
+# layer draws the hip in place of the steps, hiding the `kind: 'roof'` slabs
+# by filter while it does. The slabs are untouched: ?slopes=0 is main.
+#
+# The eave and the ridge are measured (see `provenance` at the write): the
+# ridge is H_RIDGE, the eave H_ATTIC, so the pitch is what puts the WIDEST
+# arm's ridge at H_RIDGE — one pitch for the whole roof, the narrower arms
+# topping out lower by their width, as a hip does. The overhang is the
+# tile eave the colour note above already describes ("under a 1.5 m tile
+# eave"); MB_EAVE_OUT_M is a little under it so the roof reads as sitting on
+# the loggia rather than swallowing it [taste]. MB_LIP_M is the thickness
+# of the tile edge, not a parapet.
+MB_RIG = True
+MB_EAVE_OUT_M = 1.0     # the tile eave past the attic loggia's face, metres
+MB_LIP_M = 0.25         # the eave's own thickness
+MB_ROOF_PITCH = None    # rise per metre of run; None solves it from H_RIDGE
+MB_SIMPLIFY_M = 0.3     # the arms are clean box clips of the footprint already
+# THE SHIPPED FEATURES ARE THE CITY (the doctrine of scripts/bake_roofs.py,
+# HANDOFF 204b). Without --rebake this generates everything, compares the
+# features to data/tower.geojson, stops at exit 2 writing nothing if they
+# differ, and otherwise writes the shipped features plus `rig`.
+AUGMENT = "--rebake" not in sys.argv
 
 # ── Colours ───────────────────────────────────────────────────────────
 # The Main Building AND the Tower are both faced in Bedford, Indiana limestone
@@ -545,11 +578,13 @@ def build(feature, stats):
         if p:
             b.add(p, H_ARCADE, H_PAVILION, c_trim, "wall", "mb-" + key, "twplain")
 
+    arms_ll = {}
     for key, box in ARMS.items():
         arm = clip_box(main, *box)
         if not arm:
             stats["arm_empty"] += 1
             continue
+        arms_ll[key] = f.ring_ll(dedupe(arm))
         b.add(arm, H_ENTAB, H_ATTIC, c_attic, "wall", "mb-attic-" + key, "twattic")
         # the hip, as stepped inset facets
         rise = (H_RIDGE - H_ATTIC) / ROOF_STEPS
@@ -561,6 +596,7 @@ def build(feature, stats):
             b.add(cur, H_ATTIC + i * rise, H_ATTIC + (i + 1) * rise,
                   c_tile, "roof", "mb-roof-" + key)
             cur = offset(cur, -ROOF_INSET)
+    b.rig = main_building_rig(arms_ll, [C_TILE, C_TILE_G, C_TILE_N], stats, wall=c_attic) if MB_RIG else None
 
     # ── 2. The Tower ──────────────────────────────────────────────────
     c_shaft = trio(C_SHAFT, N_SHAFT)
@@ -688,8 +724,80 @@ def build(feature, stats):
         b.add(dl, CLOCK_MID - DIAL_D / 2, CLOCK_MID + DIAL_D / 2, c_dial,
               "clock", "clock-dial")
 
-    return b.out
+    return b.out, getattr(b, "rig", None)
 
+
+
+ARM_NAMES = {"w": "Main Building west wing", "e": "Main Building east wing",
+             "s": "Main Building south block"}
+
+
+def main_building_rig(arms_ll, col, stats, wall=None):
+    """The arms' hips, in scripts/bake_roofs.py's `rig` schema.
+
+    One pitch for all three (MB_ROOF_PITCH, or solved so the widest arm's
+    ridge lands on H_RIDGE), no deck, an eave lip of MB_LIP_M standing
+    MB_EAVE_OUT_M past the wall. Every number here is a measurement of the
+    building or a constant above; the profile is bake_roofs' own.
+
+    `wall` is the attic loggia's colour triple (the storey under the eave);
+    with it each arm carries `wall`, `h` (the eave, H_ATTIC) and `foot` (the
+    arm's outline as its walls are drawn), which is what js/slopes-roofs.js
+    draws the eave's shadow band from where there is no parapet cap to
+    paint (ROOFS.eaveBand — the fair-camera critic, round 5: "Main Building
+    wings: no visible eave overhang, tile meets wall flush").
+    """
+    import bake_roofs as BR
+    prof = {}
+    for key, ring_ll in arms_ll.items():
+        ring = ring_ll[:-1] if ring_ll[0] == ring_ll[-1] else list(ring_ll)
+        lat0 = sum(q[1] for q in ring) / len(ring)
+        poly = BR.ccw(BR.clean(BR.simplify(BR.clean(BR.to_m(ring, lat0)), MB_SIMPLIFY_M)))
+        if len(poly) < 3:
+            stats["rig_arm_degenerate"] += 1
+            continue
+        mrays = BR.mitre_rays(poly)
+        if mrays is None:
+            stats["rig_arm_degenerate"] += 1
+            continue
+        caps = BR.vertex_caps(poly, mrays)
+        hs = max(caps)
+        caps, _bit = BR.edge_event_caps(poly, mrays, caps)
+        pts, rays, pcaps, spans = BR.wall_profile(poly, mrays, caps, hs)
+        prof[key] = (lat0, pts, rays, pcaps, spans, max(max(pcaps), hs), poly)
+    if not prof:
+        return None
+    hs_max = max(v[5] for v in prof.values())
+    pitch = MB_ROOF_PITCH if MB_ROOF_PITCH else (H_RIDGE - H_ATTIC - MB_LIP_M) / hs_max
+    wall_col = None
+    if isinstance(wall, dict):
+        wall_col = [wall.get("wd"), wall.get("wg"), wall.get("wn")]
+    elif isinstance(wall, (list, tuple)) and len(wall) == 3:
+        wall_col = list(wall)
+    roofs = {}
+    for key, (lat0, pts, rays, pcaps, spans, d_use, poly) in prof.items():
+        k = math.cos(math.radians(lat0))
+        roofs["main-building/" + key] = {
+            "name": ARM_NAMES.get(key, "Main Building " + key),
+            "dpm": [1.0 / (M_LAT * k), 1.0 / M_LAT],
+            "pts": [[round(x, 2), round(y, 2)] for (x, y) in pts],
+            "rays": [[round(ux, 4), round(uy, 4)] for (ux, uy) in rays],
+            "caps": [round(c, 2) for c in pcaps],
+            "spans": [[a, b] for (a, b) in spans],
+            "d": round(d_use, 3), "run": round(d_use, 2),
+            "rise": round(pitch * d_use, 3),
+            "base": round(H_ATTIC, 2), "steps": 0,
+            "col": col, "lip": col, "deck": None,
+        }
+        if wall_col and all(isinstance(c, str) and len(c) == 7 for c in wall_col):
+            roofs["main-building/" + key].update({
+                "wall": wall_col, "h": round(H_ATTIC, 2),
+                "foot": [[round(x, 2), round(y, 2)] for (x, y) in poly],
+            })
+        stats["rig_arms"] += 1
+    return {"meta": {"lip": MB_LIP_M, "over": MB_EAVE_OUT_M, "skirt": 0.0,
+                     "pitch": round(pitch, 4), "ridge": H_RIDGE, "eave": H_ATTIC},
+            "roofs": roofs}
 
 
 # The Main Building is 120 m across at its widest. Nothing this bake emits has
@@ -730,7 +838,7 @@ def main():
     if not hit:
         raise SystemExit("UT Tower id %s not in the snapshot" % TOWER_ID)
     stats = Counter()
-    out = build(hit[0], stats)
+    out, rig = build(hit[0], stats)
 
     bad = check(out)
     if bad:
@@ -740,14 +848,43 @@ def main():
     fc = {"type": "FeatureCollection", "features": out,
           "replacedBuildingIds": [TOWER_ID],
           "replacedPartWallColour": PART_WD}
+    wrote = "a fresh bake"
+    if AUGMENT:
+        dump = lambda o: json.dumps(o, separators=(",", ":"))
+        try:
+            with open(OUT, encoding="utf-8") as fh:
+                shipped = json.load(fh)
+        except (IOError, OSError, ValueError):
+            raise SystemExit("AUGMENT: %s is unreadable, so there is nothing to "
+                             "augment. Run with --rebake to write a new one." % OUT)
+        ship_cmp = dict(shipped)
+        ship_cmp.pop("rig", None)
+        if dump(ship_cmp) != dump(fc):
+            sys.stderr.write("AUGMENT: this bake does not reproduce the shipped "
+                             "tower.geojson (%d features baked, %d shipped). The "
+                             "inputs moved; nothing was written. Use --rebake if "
+                             "the city is meant to change.\n"
+                             % (len(out), len(shipped.get("features", []))))
+            sys.exit(2)
+        fc = shipped
+        fc.pop("rig", None)
+        wrote = "the shipped features + rig"
+    if rig:
+        fc["rig"] = rig
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     pats = sorted({(f["properties"].get("pat"), f["properties"].get("fam"),
                     f["properties"]["wd"], f["properties"]["wn"])
                    for f in out if f["properties"].get("pat")})
     print(json.dumps({
+        "wrote": wrote,
         "features": len(out),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
+        "rig": (None if not rig else {
+            "arms": {k.split("/")[1]: {"half_span_m": v["d"], "ridge_m": round(v["base"] + MB_LIP_M + v["rise"], 2),
+                                       "points": len(v["pts"])} for k, v in rig["roofs"].items()},
+            "pitch": rig["meta"]["pitch"], "eave_out_m": MB_EAVE_OUT_M, "lip_m": MB_LIP_M,
+            "kb": round(len(json.dumps(rig, separators=(",", ":"))) / 1024, 1)}),
         "counts": dict(sorted(stats.items())),
         "patterns": ["%s (%s) %s -> %s" % p for p in pats],
         "replaced_building_ids": [TOWER_ID],
@@ -769,6 +906,10 @@ def main():
             "main_building_masses": "GENERATIVE - which arm is tall and which "
                                     "middle is low is read off nadir imagery, "
                                     "but the box boundaries are authored",
+            "main_building_hips": "the rig: the arms' own outlines through "
+                                  "bake_roofs.py's mitre/cap/profile; ridge at "
+                                  "H_RIDGE on the widest arm, one pitch for all "
+                                  "three; the 1.0 m eave and 0.25 m lip are taste",
             "colours": "measured off photographs, corrected for illuminant; "
                        "the tower/base tonal split is authored, not a claim "
                        "about the stone (both are Indiana limestone)",
