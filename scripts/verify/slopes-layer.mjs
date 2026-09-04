@@ -253,6 +253,25 @@ const ARCH_PROBE_MIN = 5;         // of ARCH_PROBES — a majority, not all of t
 // these three lines now accept AT MOST this residue, bounded in both count
 // and depth so nothing the mesh could do — a roof over a wall is Δ 50+,
 // the ON frame is 223,748 px — can hide under it.
+// THE MERGE VERIFIER'S NUMBERS (2026-09-04), left here because the next pass
+// will be tempted to tighten this ceiling and should see the floor first.
+// A ceiling of "2 px at Δ ≤ 1" was proposed for the bake-identity line on the
+// strength of two runs that read 1 px at Δ 1. It was NOT taken, and the
+// measurement that settles it is the HARNESS NOISE FLOOR: two loads of the
+// SAME build, same pose, same settle, auto-exposure pinned off, diffed at
+// tolerance 0 — mall-cruise 0 px, gregory 0 px, battle-street 0 px,
+// capitol-dome 12 px at Δ 1. A 2-px ceiling sits UNDER that floor and would
+// go red on a page compared with itself. This run's bake-identity line read
+// 1 px at Δ 1; earlier runs read 0, 968 and 969.
+// What the line is really guarding is settled away from pixels anyway:
+// the bake is PURELY ADDITIVE. Against `git archive e232953`, roofs/entrances/
+// capitol_dome/tower.geojson each keep their feature count, every feature's
+// geometry is byte-identical, no existing property value changes, and the only
+// difference is new keys (`f`, `arc`) and new top-level members (`rig`,
+// `arches`, `drum`, `lathe`) that no fill-extrusion layer reads. data/
+// roof_runs.json changed too and has no runtime consumer at all — only the
+// bake and scripts/verify/roofowner.mjs read it. And ?slopes=0 against that
+// archive is 0 px at ALL FOUR poses at tolerance 0, not just mall-cruise.
 const ATLAS_RESIDUE_PX = 1200;      // measured 968, 971, 971
 const ATLAS_RESIDUE_DELTA = 16;     // measured Δ 12
 const zeroButAtlas = d => d.pixels === 0 || (d.pixels <= ATLAS_RESIDUE_PX && d.maxChannelDiff <= ATLAS_RESIDUE_DELTA);
