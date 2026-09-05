@@ -10,6 +10,7 @@
     "S4": "data/roads.geojson - the unnamed east-west way at lat 30.2880 spanning the building's full width immediately north of it is W 24th St, and Rio Grande St runs north-south along the building's east edge. That is what fixes which end of the obb is which, and it agrees with S2's note that the north court 'opens north, onto W 24th'.",
     "S5": "skyscraperpage for 701 W 24th St, quoted in S2's first line: 94.5 m over 29 stories, i.e. FLOOR = 3.26 m. S2 makes that floor height the square facade module, verified four ways there.",
     "S6": "OSM way 1208654798 - the outline S1's polygon comes from; no height, no levels, no building:part.",
+    "S8": "Google Earth 3D NADIR over the building, camera 590 m, imagery 12/3/2023 (topped out, the south amenity level still a construction deck). This is the plan measurement that settled the two things S2 and the traced outline disagreed about. Scale: Earth's own 40 m bar is 143 px at ground, and the roof at 95 m is magnified by 590/(590-95) = 1.19, so the roof reads 4.25 px/m. Measured on it: the tower roof is 76.1 x 51.7 m, the wings 21.5 and 20.1 m at the north end, the court 35.2 m at the north end and 27.1 m at the south (mean 31.2), and the N-S split north court 11.6 / bar 17.5 / south court 22.7.",
     "S7": "Google Earth 3D at an oblique over West Campus, captured headless with scripts/verify/chrome.mjs on the hardware GL backend and page.screenshot() - used only to place and check the massing against the photogrammetry mesh, never to measure it."
   },
   "footprint": {
@@ -39,7 +40,7 @@
   },
   "frame": "obb",
   "_frame_src": "obbOf(ring): L=80.05, W=55.01, +u at bearing 275.1 deg, so +u runs WEST and u=0 is the east (Rio Grande St) end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. SOUTH, so v=0 is the north (W 24th St) edge (S4). S3 reads the same quad's edges as a long axis at 95.2 deg, which is the same line taken the other way.",
-  "_massing_src": "HOW S2's NUMBERS LAND IN THIS FOOTPRINT, and the one place they disagree. S2 builds the tower outward from the square 3.26 m module: depth 16 MOD = 52.16 m N-S, each wing 7 MOD = 22.82 m, and a podium apron oversailing the tower by 1.5 m on every side. This footprint is 80.05 x 55.01 m. Take S2's 1.5 m apron off the traced outline and the tower depth comes out 52.01 m against S2's 52.16 - agreement to 0.15 m, which independently confirms BOTH the 1.5 m apron and the 3.26 m module, and says the traced outline is the podium apron, not the tower. E-W the same subtraction gives a 77.05 m tower against S2's 82.09, a real 5 m disagreement: S2's E-W is a photograph chain (a cap measured at 7.007 bays in one plane, a court gap at 11.18 MOD), the outline is a traced polygon. The traced outline wins here because everything else in this app is keyed to it and because the N-S agreement shows the trace is good to 0.15 m on the axis where the two can be compared. So: wings stay at the frozen 7 x 3.26 = 22.82 m, and the court absorbs the difference at 31.41 m instead of S2's 36.45 m. That makes the court back wall 10 bays where S2 counted 12 - written down in `open`, not papered over.",
+  "_massing_src": "HOW S2's NUMBERS LAND IN THIS FOOTPRINT, and the one place they disagree. S2 builds the tower outward from the square 3.26 m module: depth 16 MOD = 52.16 m N-S, each wing 7 MOD = 22.82 m, and a podium apron oversailing the tower by 1.5 m on every side. This footprint is 80.05 x 55.01 m. Take S2's 1.5 m apron off the traced outline and the tower depth comes out 52.01 m against S2's 52.16 - agreement to 0.15 m, which independently confirms BOTH the 1.5 m apron and the 3.26 m module, and says the traced outline is the podium apron, not the tower. E-W the same subtraction gives a 77.05 m tower against S2's 82.09, a real 5 m disagreement: S2's E-W is a photograph chain (a cap measured at 7.007 bays in one plane, a court gap at 11.18 MOD), the outline is a traced polygon. The traced outline wins here because everything else in this app is keyed to it and because the N-S agreement shows the trace is good to 0.15 m on the axis where the two can be compared. So: wings stay at the frozen 7 x 3.26 = 22.82 m, and the court absorbs the difference at 31.41 m instead of S2's 36.45 m. That makes the court back wall 10 bays where S2 counted 12 - written down in `open`, not papered over. S8, captured after the first look, CONFIRMS that call independently: the tower roof measures 76.1 x 51.7 m on the nadir against our 77.05 x 52.01, and the court averages 31.2 m against our 31.41. S8 also OVERTURNS one of S2's numbers. S2 splits the 16 modules of depth 6 (north court) + 5 (bar) + 5 (south court); the nadir measures 11.6 / 17.5 / 22.7 m, i.e. the SOUTH court is the deep one, not the north. Rounded to whole modules that is 4 + 5 + 7 = 16, which is what this file builds: north court 13.00, bar 16.25, south court 22.75. The nadir is a photograph of the plan and S2's split is not cited to any measurement there, so the photograph wins. What S2 got right and the nadir confirms is that there are TWO courts, one at each end - S2 records that an automated pass once argued for a U with a continuous north parapet and that Simeon rejected it; the nadir plainly shows two masses projecting north with a gap between them.",
   "levels": {
     "floors": [
       0.0,
@@ -266,7 +267,7 @@
     "flankBlank": {
       "kind": "flat",
       "field": "courtFlute",
-      "_src": "The blank fluted return at each re-entrant corner, where the flank meets the bar - S2: 'a BLANK fluted return of 1-2 bays at each re-entrant corner'. 8.6 m = 2.8 bar-bays, S2's own figure."
+      "_src": "The blank fluted return at each re-entrant corner, where the flank meets the bar - S2: 'a BLANK fluted return of 1-2 bays at each re-entrant corner'. 6.14 m = 2 bar-bays - the low end of S2's own range, because at the corrected 13.0 m north court a 2.8-bay return leaves less than one ribbon's width of wall."
     },
     "loggia": {
       "kind": "storefront",
@@ -422,8 +423,8 @@
           "region": [
             55.43,
             56.03,
-            12.4,
-            21.0
+            8.36,
+            14.5
           ],
           "bands": [
             {
@@ -437,14 +438,14 @@
               "skin": "flankBlank"
             }
           ],
-          "_src": "the blank fluted return at the north court's re-entrant corner, 8.60 m = 2.8 bar-bays (S2)"
+          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2)"
         },
         {
           "region": [
             55.43,
             56.03,
-            37.25,
-            45.85
+            30.75,
+            36.89
           ],
           "bands": [
             {
@@ -476,7 +477,7 @@
           "plan": [
             56.3,
             78.0,
-            37.8,
+            31.3,
             53.0
           ],
           "h": 0.1,
@@ -487,12 +488,12 @@
           "plan": [
             58.0,
             76.0,
-            39.5,
-            47.0
+            33.0,
+            45.0
           ],
           "grid": [
             4,
-            2
+            3
           ],
           "size": [
             6.6,
@@ -506,12 +507,12 @@
           "plan": [
             58.4,
             75.6,
-            40.0,
-            46.5
+            33.4,
+            44.6
           ],
           "grid": [
             4,
-            2
+            3
           ],
           "size": [
             5.8,
@@ -525,7 +526,7 @@
           "plan": [
             59.0,
             74.0,
-            49.5,
+            49.0,
             51.5
           ],
           "grid": [
@@ -544,8 +545,8 @@
           "plan": [
             60.0,
             74.0,
-            6.0,
-            16.0
+            4.5,
+            12.5
           ],
           "h": 2.1,
           "tone": "loungeWhite",
@@ -556,7 +557,7 @@
             56.5,
             78.0,
             2.5,
-            8.0
+            7.0
           ],
           "grid": [
             6,
@@ -612,8 +613,8 @@
           "region": [
             24.02,
             24.62,
-            12.4,
-            21.0
+            8.36,
+            14.5
           ],
           "bands": [
             {
@@ -627,14 +628,14 @@
               "skin": "flankBlank"
             }
           ],
-          "_src": "the blank fluted return at the north court's re-entrant corner, 8.60 m = 2.8 bar-bays (S2)"
+          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2)"
         },
         {
           "region": [
             24.02,
             24.62,
-            37.25,
-            45.85
+            30.75,
+            36.89
           ],
           "bands": [
             {
@@ -666,7 +667,7 @@
           "plan": [
             2.1,
             23.7,
-            37.8,
+            31.3,
             53.0
           ],
           "h": 0.1,
@@ -677,8 +678,8 @@
           "plan": [
             4.0,
             16.5,
-            40.3,
-            50.8
+            36.5,
+            49.5
           ],
           "h": 0.16,
           "tone": "loungeWhite",
@@ -688,8 +689,8 @@
           "plan": [
             4.6,
             15.9,
-            40.9,
-            50.2
+            37.1,
+            48.9
           ],
           "h": 0.24,
           "tone": "water",
@@ -699,12 +700,12 @@
           "plan": [
             18.0,
             22.5,
-            39.5,
+            35.0,
             51.5
           ],
           "grid": [
             2,
-            6
+            7
           ],
           "size": [
             0.75,
@@ -737,8 +738,8 @@
           "plan": [
             4.0,
             18.0,
-            6.0,
-            16.0
+            4.5,
+            12.5
           ],
           "h": 2.1,
           "tone": "loungeWhite",
@@ -749,7 +750,7 @@
             2.1,
             23.5,
             2.5,
-            8.0
+            7.0
           ],
           "grid": [
             6,
@@ -771,10 +772,10 @@
       "plan": [
         24.32,
         55.73,
-        21.0,
-        37.25
+        14.5,
+        30.75
       ],
-      "_plan_src": "u from the wings' inner faces; v = S2's BAR = modules 6..11 of 16, here 21.00 to 37.26. The N-S band split is modular: 6 (north court) + 5 (bar) + 5 (south court) = 16.",
+      "_plan_src": "u from the wings' inner faces; v = modules 4..9 of 16, here 14.50 to 30.75. The split is modular as S2 has it, but the split itself is S8's and not S2's: 4 (north court) + 5 (bar) + 7 (south court) = 16, against the nadir's measured 11.6 / 17.5 / 22.7 m. S2 has 6 + 5 + 5 - see _massing_src.",
       "z0": 19.4,
       "z1": 94.38,
       "bands": [
@@ -807,11 +808,12 @@
       "id": "pavilion",
       "_src": "The L29 covered grill pavilion, standing on the bar. S2 audit 5.5: 'NOT a free-standing pergola and NOT on Level 6: it is the SOUTH FACE OF THE NORTH BAR at Level 29 - an open-sided concrete colonnade spanning the full building width, roofed by a slab that oversails the column line, with the mechanical plant sitting on TOP of that slab behind a ribbed louvre screen.' Proven there two ways: the Hill Country horizon at eye level in the interior panoramas, and the crown aerial photographing it from outside above the parapet.",
       "plan": [
-        24.32,
-        55.73,
-        21.0,
-        37.25
+        2.1,
+        77.95,
+        15.1,
+        30.15
       ],
+      "_plan_src": "THE FULL TOWER WIDTH, not just the court. S2 builds the enclosed core as solid(MAT.pavConc, WW.x0, y, BAR.z0, EW.x1, Y_MECH, zBack) and calls the room 'an open-sided concrete colonnade spanning the full building width' - and S8 shows it directly: the raised deck between the north stubs and the south wings runs unbroken from the west edge to the east edge, with its own bright parapet on both long sides. Inset 0.6 m all round (S2 uses the same 0.6 for its pier line) so it is not coplanar with the wings' and bar's parapets, which would z-fight.",
       "z0": 94.38,
       "z1": 98.93,
       "bands": [
@@ -838,25 +840,14 @@
       "roofItems": [
         {
           "plan": [
-            26.32,
-            53.73,
-            30.5,
-            35.5
-          ],
-          "h": 2.6,
-          "tone": "equip",
-          "_src": "S2: the ribbed louvre screen round the plant deck on top of the pavilion slab"
-        },
-        {
-          "plan": [
-            26.32,
-            53.73,
-            22.0,
-            30.0
+            69.25,
+            76.25,
+            16.1,
+            26.9
           ],
           "grid": [
-            10,
-            4
+            5,
+            6
           ],
           "size": [
             1.15,
@@ -864,18 +855,119 @@
           ],
           "h": 0.9,
           "tone": "planterDark",
-          "_src": "S2: 'DENSE GRIDS of condensers in four clusters' on the plant deck"
+          "_src": "S2 puts four condenser clusters across the plant deck, at 3, 30, 60 and 83 per cent of the span; this is the one at 3 per cent, i.e. hard against the west end. S8 shows exactly that - tight rows of small units over the outer thirds of the deck with the middle kept for the pads and the duct."
         },
         {
           "plan": [
-            36.0,
-            45.0,
-            24.5,
-            29.5
+            48.15,
+            55.15,
+            16.1,
+            26.9
+          ],
+          "grid": [
+            5,
+            6
+          ],
+          "size": [
+            1.15,
+            2.0
+          ],
+          "h": 0.9,
+          "tone": "planterDark",
+          "_src": "S2's cluster at 30 per cent of the span"
+        },
+        {
+          "plan": [
+            25.05,
+            32.05,
+            16.1,
+            26.9
+          ],
+          "grid": [
+            5,
+            6
+          ],
+          "size": [
+            1.15,
+            2.0
+          ],
+          "h": 0.9,
+          "tone": "planterDark",
+          "_src": "S2's cluster at 60 per cent"
+        },
+        {
+          "plan": [
+            7.35,
+            14.35,
+            16.1,
+            26.9
+          ],
+          "grid": [
+            5,
+            6
+          ],
+          "size": [
+            1.15,
+            2.0
+          ],
+          "h": 0.9,
+          "tone": "planterDark",
+          "_src": "S2's cluster at 83 per cent, hard against the east end"
+        },
+        {
+          "plan": [
+            63.95,
+            71.45,
+            17.5,
+            26.0
+          ],
+          "h": 0.55,
+          "tone": "loungeWhite",
+          "_src": "S2: box(MAT.loungeWhite, WW.x0 + 0.19 * SPAN ...) - the first bright roof pad. S8 shows two big white rectangles on the plant deck at about a fifth and three quarters of the span."
+        },
+        {
+          "plan": [
+            16.55,
+            23.05,
+            17.5,
+            26.0
+          ],
+          "h": 0.55,
+          "tone": "loungeWhite",
+          "_src": "S2's second bright pad, at 0.72 of the span, and S8's other white rectangle"
+        },
+        {
+          "plan": [
+            5.5,
+            74.55,
+            23.9,
+            25.0
+          ],
+          "h": 0.5,
+          "tone": "equip",
+          "_src": "S2: box(MAT.equip, ..., SPAN - 8, 0.5, 1.1) - the main duct run down the length of the plant deck, which S8 shows as a pale line crossing the whole deck"
+        },
+        {
+          "plan": [
+            37.85,
+            46.85,
+            19.0,
+            24.0
           ],
           "h": 2.3,
           "tone": "planterWhite",
-          "_src": "S2: box(MAT.planterWhite, ... 9.0, 2.3, 5.0) - the penthouse over the middle of the plant deck"
+          "_src": "S2: box(MAT.planterWhite, ... 9.0, 2.3, 5.0) - the penthouse at 0.47 of the span, in the middle of the plant deck"
+        },
+        {
+          "plan": [
+            3.5,
+            76.55,
+            28.95,
+            29.55
+          ],
+          "h": 2.6,
+          "tone": "equip",
+          "_src": "S2: the ribbed louvre screen that hides the plant from the south, standing on the pavilion slab along the pier line. It is a screen, 0.6 m deep - drawn 4 m deep at the first look it read from the nadir as a grey band across a fifth of the deck, which no reference has."
         }
       ]
     }
@@ -888,7 +980,7 @@
         "plan": [
           24.62,
           55.43,
-          37.55,
+          31.05,
           53.2
         ],
         "z0": 0.0,
@@ -900,8 +992,8 @@
         "plan": [
           32.0,
           46.0,
-          41.0,
-          48.5
+          36.5,
+          46.0
         ],
         "z0": 0.06,
         "h": 0.14,
@@ -912,7 +1004,7 @@
         "plan": [
           51.8,
           55.2,
-          39.0,
+          33.0,
           51.0
         ],
         "z0": 0.06,
@@ -924,8 +1016,8 @@
         "plan": [
           26.5,
           29.0,
-          42.8,
-          45.3
+          38.5,
+          41.0
         ],
         "z0": 0.06,
         "h": 0.5,
@@ -936,8 +1028,8 @@
         "plan": [
           27.0,
           28.5,
-          43.3,
-          44.8
+          39.0,
+          40.5
         ],
         "z0": 0.5,
         "h": 0.12,
@@ -948,8 +1040,8 @@
         "plan": [
           26.5,
           29.0,
-          47.0,
-          49.5
+          42.7,
+          45.2
         ],
         "z0": 0.06,
         "h": 0.5,
@@ -960,8 +1052,8 @@
         "plan": [
           27.0,
           28.5,
-          47.5,
-          49.0
+          43.2,
+          44.7
         ],
         "z0": 0.5,
         "h": 0.12,
@@ -972,8 +1064,8 @@
         "plan": [
           50.6,
           51.0,
-          43.5,
-          48.1
+          39.0,
+          43.6
         ],
         "z0": 0.06,
         "h": 5.2,
@@ -984,8 +1076,8 @@
         "plan": [
           50.2,
           50.6,
-          44.0,
-          47.6
+          39.5,
+          43.1
         ],
         "z0": 2.6,
         "h": 2.2,
@@ -1009,7 +1101,7 @@
           24.62,
           55.43,
           1.8,
-          20.7
+          14.2
         ],
         "z0": 0.0,
         "h": 0.06,
@@ -1020,8 +1112,8 @@
         "plan": [
           27.0,
           53.0,
-          3.4,
-          4.7
+          3.2,
+          4.5
         ],
         "z0": 0.06,
         "h": 0.6,
@@ -1032,8 +1124,8 @@
         "plan": [
           27.3,
           52.7,
-          3.6,
-          4.5
+          3.4,
+          4.3
         ],
         "z0": 0.66,
         "h": 1.1,
@@ -1044,8 +1136,8 @@
         "plan": [
           28.0,
           50.0,
-          16.5,
-          17.6
+          11.4,
+          12.5
         ],
         "z0": 0.06,
         "h": 0.5,
@@ -1068,7 +1160,7 @@
   },
   "open": [
     "The k=(c-r) mod 4 PAIRING is not drawn. S2's outer wall merges every cell into a two-cell domino - k0 with the cell to its right (horizontal, with horizontally-ribbed cladding behind it), k3 with the cell below (vertical) - so half the vertical reveals and half the horizontal ones vanish in a diagonal weave, and the pattern index is continued around the corners so the diagonals wrap on to the end caps. This generator has no per-cell rule, so every cell here is a single: the module, the counts, the window size and the tone statistics are S2's, the weave is not. Adding it would be a fifth skin kind ('mod4') in js/slopes-apartments.js taking a period and a pairing table. TODO for the generator.",
-    "The court is 31.41 m wide here and 36.45 m in S2, because the traced footprint is 5 m narrower E-W than S2's photograph chain (see _massing_src). The visible cost is the court back wall: 10 bays where S2 counted 12 in its reference photographs. A dimensioned plan, or a nadir rectified the way The Standard's was, would settle which is right.",
+    "The N-S split is S8's 4 + 5 + 7 and not S2's 6 + 5 + 5, so the north court is 13.0 m deep here where S2 makes it 19.6. The nadir is unambiguous about which court is the deep one, and S2 cites nothing for its split; but S2 is the better-measured source everywhere else, and a dimensioned plan would be worth having before this is treated as settled. The court is 31.41 m wide here and 36.45 m in S2, because the traced footprint is 5 m narrower E-W than S2's photograph chain (see _massing_src). The visible cost is the court back wall: 10 bays where S2 counted 12 in its reference photographs. A dimensioned plan, or a nadir rectified the way The Standard's was, would settle which is right.",
     "The ground floor is drawn in the podium plane. In S2 it is recessed 2.4 m behind the screen line, on round exposed-concrete columns that carry the oversail; the generator has no per-band inset, so the panes sit 0.5 m back and the columns are not drawn. Same todo as The Castilian's ground floor.",
     "The L6 court loggia is likewise flush: S2 recesses its glazing 3.3 m behind the tower face, which is the single move that makes the court 'change on the way down'. Here it is the colonnade skin in the wall plane.",
     "The podium's vertical fins (0.105 m pitch) and the court flanks' deep fluting (about 0.5 m) are drawn as flat tone. Both are at or under a pixel at this app's cameras, and the Castilian file records what a regular sub-pixel stripe does to a wall: moire arcs the reference does not have.",
