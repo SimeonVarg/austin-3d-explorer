@@ -3,18 +3,18 @@
   "name": "Monochrome for Austin",
   "artist": "Nancy Rubins",
   "year": 2015,
-
-  "at": [-97.737132, 30.287462],
+  "at": [
+    -97.737132,
+    30.287462
+  ],
   "atSource": "landmarks.utexas.edu/artwork/monochrome-austin, 'GPS: 30.287462, -97.737132'. data/art.geojson's parts centre on -97.7370979, 30.2874649 (a buffered OSM node) — 3.4 m away. `atFromData` keeps the piece where its label and footprint already are.",
   "atFromData": true,
-
   "dims": {
     "h": 15.24,
     "w": 16.31,
-    "d": 12.50,
+    "d": 12.5,
     "source": "'600 x 642 x 492 inches' — landmarks.utexas.edu/artwork/monochrome-austin. 600 in = 15.24 m, 642 in = 16.31 m, 492 in = 12.50 m. scripts/bake_art.py's DIMS has the width at 15.85 m from a secondary source; 642 in off Landmarks' own object label is 16.31 m and is what this file uses."
   },
-
   "hulls": {
     "count": 70,
     "countSource": "'a monumental sculpture consisting of 70 aluminum canoes and small boats' — landmarks.utexas.edu/artwork/monochrome-austin.",
@@ -24,54 +24,54 @@
     "depth": 0.42,
     "dimSource": "MEASURED against the published height in Landmarks' elevation photograph (photo Paul Bardagjy, gallery image '29_rubins_monochromeforaustin'): the frame runs 750 px from the plinth's base to the topmost hull tip for the published 15.24 m, i.e. 49.2 px/m. Individual hulls measure 215-275 px long (4.4-5.6 m) and 35-42 px in the beam (0.71-0.85 m). Canoe and small-boat dimensions, which is what the object label says they are.",
     "rocker": 0.055,
-    "sheer": 0.10,
+    "sheer": 0.1,
     "profileSource": "As fractions of hull length: the keel rises 5.5% of length at the ends and the gunwale 10%, which is the pointed, up-swept canoe profile every hull in the photographs shows. A straight-sided slab is what the fill-extrusion bake had to draw and is the thing the owner called blocky."
   },
-
   "cloud": {
-    "centreZ": 8.80,
+    "centreZ": 8.8,
     "semiX": 8.15,
     "semiY": 6.25,
     "semiZ": 6.05,
-    "shell": 0.46,
-    "envelopeSource": "MEASURED in the same elevation photograph at 49.2 px/m: the mass runs from y=1100 px (its lowest hull, 2.4 m above grade, just clear of the plinth head) to y=505 px (15.24 m), so its centre sits 8.8 m up and its vertical semi-axis is 6.05 m; it spans 840 px = 17.1 m across that face against the published 16.31 m, so semiX 8.15 m. semiY is the published 12.50 m depth halved. `shell` biases sampling outward: 0 puts hull centres anywhere in the ellipsoid, 1 puts them all on its surface. 0.46 is what reproduces the photographs' open middle — the mass is a burst, not a lump.",
+    "envelopeSource": "MEASURED in the same elevation photograph at 49.2 px/m: the mass runs from y=1100 px (its lowest hull, 2.4 m above grade, just clear of the plinth head) to y=505 px (15.24 m), so its centre sits 8.8 m up and its vertical semi-axis is 6.05 m; it spans 840 px = 17.1 m across that face against the published 16.31 m, so semiX 8.15 m. semiY is the published 12.50 m depth halved. The envelope is where the TIPS reach, not where the centres sit — see `core`.",
     "radial": 0.82,
     "radialSource": "THE RULE THE OLD RECIPE MISSED, and it is the whole silhouette. In every photograph each hull's long axis points OUTWARD FROM THE CORE: the inner end is buried in the mass and the pointed end juts clear of it, so the work reads as a burst of boats. scripts/bake_art.py drew each hull at an INDEPENDENT random heading (`a = 2*pi*hash01('hull', ...)`), uncorrelated with where the hull sat, and an uncorrelated cloud of sticks is a lump however many of them there are. 0.82 is how far each hull is turned from its own random heading onto the radial one: 1.0 is a perfect sea urchin, 0 is the old bake.",
     "spikes": 9,
-    "spikesSource": "Hulls placed on the envelope rather than sampled, because a sampled cloud almost never reaches its own outline — measured on the old bake, 32 random hulls came back 12.8 m wide against a published 15.85. The photographs are spiky: individual hulls jut a full length clear of the mass and those are what make the outline read as boats."
+    "spikesSource": "Hulls placed on the envelope rather than sampled, because a sampled cloud almost never reaches its own outline — measured on the old bake, 32 random hulls came back 12.8 m wide against a published 15.85. The photographs are spiky: individual hulls jut a full length clear of the mass and those are what make the outline read as boats.",
+    "core": 0.55,
+    "coreSource": "The fraction of the envelope a hull's CENTRE may sit within. Its own length then carries the pointed end out to the envelope, which is what the photographs show: a dense tangled core with the tips radiating out of it. Placing the centres ON the envelope instead — the first pass here — spread seventy hulls into a thin scattered disc with a hole in the middle, which is a different wrong answer from the old bake's lump but still not the work. 0.55 x 8.15 m + a 5 m hull reaches the outline.",
+    "floorZ": 2.2,
+    "floorSource": "No hull comes below this. MEASURED: the lowest hull in the elevation photograph sits at y=1100 px, 2.4 m above grade, just clear of the plinth head at 2.34 m. 2.2 m leaves the cantilever reading without a hull tip through the pavement."
   },
-
   "plinth": {
     "w": 0.85,
     "d": 0.85,
     "h": 2.34,
     "source": "MEASURED in the elevation photograph at 49.2 px/m: the concrete pier is 40 px wide (0.81 m) and runs 115 px from grade to its head (2.34 m). It is strikingly small under a 16 m mass, and that contrast is most of why the work reads as cantilevered."
   },
-
   "mast": {
-    "h": 3.60,
+    "h": 3.6,
     "w": 0.42,
     "source": "The stainless yoke and armature stub above the plinth head, up into the underside of the cloud; 3.6 m is where the photographs' lowest hulls close over it. Mostly hidden by the time the cloud is drawn, which is correct — 'draws its support from a steel armature and intertwining cables' (Landmarks), and the armature is not what you see."
   },
-
   "cables": {
     "count": 26,
     "w": 0.09,
-    "source": "'intertwining cables' — Landmarks. A stainless cable on this piece is about 20 mm and would be sub-pixel at every zoom this app flies at, so it is DRAWN at 0.09 m: the same deliberate over-width as bake_tower.py's clock dial (3.05 m drawn for a true 3.66 m) and SLOPES_ROOFS.lines.ridge (1.0 m drawn for a true 0.4 m). The count is the number that reads against the sky in the elevation photograph, not a survey."
+    "source": "'intertwining cables' — Landmarks. A stainless cable on this piece is about 20 mm and would be sub-pixel at every zoom this app flies at, so it is DRAWN at 0.09 m: the same deliberate over-width as bake_tower.py's clock dial (3.05 m drawn for a true 3.66 m) and SLOPES_ROOFS.lines.ridge (1.0 m drawn for a true 0.4 m). The count is the number that reads against the sky in the elevation photograph, not a survey.",
+    "maxM": 7.0,
+    "maxSource": "A tie longer than this is not drawn. The cables in the photographs are short ties inside the tangle; a long straight run across the mass reads as a suspension bridge, which is what the first pass here drew."
   },
-
   "material": {
-    "day": "#7c8086",
-    "golden": "#88807a",
+    "day": "#8a8e94",
+    "golden": "#968d84",
     "night": "#22252b",
-    "brightDay": "#a6acb4",
-    "brightGolden": "#b3a795",
+    "brightDay": "#b2b8bf",
+    "brightGolden": "#bfb29d",
     "brightNight": "#2a2e36",
-    "brightEvery": 4,
+    "brightEvery": 3,
     "insideDay": "#4a4e54",
     "insideGolden": "#4f4a46",
     "insideNight": "#171a20",
-    "source": "SAMPLED, and it corrects a real error. Median RGB of hull faces in Landmarks' photographs: lit #5e6166 and #77716f, shaded #423c3b, against a concrete plinth in the same frame at #cac2bc. The boats read at about HALF the luminance of concrete — weathered aluminium against a bright sky, not mill finish. scripts/bake_art.py painted them 'alum' #b9bec6 and 'mirror' #cdd8e0, which is a cloud of silver foil. Day is the diffuse reading brought onto the app's own concrete reference (js/props.js ARTMAT 'limest' #ded7c6 at 222 luma x 0.5). One hull in four takes the brighter tone, because the light-and-dark scatter across the mass is what makes seventy overlapping shells read as seventy objects rather than one.",
+    "source": "SAMPLED, and it corrects a real error. Median RGB of hull faces in Landmarks' photographs: lit #5e6166 and #77716f, shaded #423c3b, against a concrete plinth in the same frame at #cac2bc. The boats read at about HALF the luminance of concrete — weathered aluminium against a bright sky, not mill finish. scripts/bake_art.py painted them 'alum' #b9bec6 and 'mirror' #cdd8e0, which is a cloud of silver foil. Day is the diffuse reading brought onto the app's own concrete reference (js/props.js ARTMAT 'limest' #ded7c6 at 222 luma x 0.5). One hull in four takes the brighter tone, because the light-and-dark scatter across the mass is what makes seventy overlapping shells read as seventy objects rather than one. LOOK-FIX 1: day lifted one step from #7c8086 to #8a8e94 and the bright share from one in four to one in three. Against a bright pavement in the app the sampled tone read as dark as the tree trunks beside it; the photographs' hulls are dark against SKY, which is a different contrast problem from the one this scene has.",
     "plinthDay": "#cac2bc",
     "plinthGolden": "#d4c1a4",
     "plinthNight": "#262830",
