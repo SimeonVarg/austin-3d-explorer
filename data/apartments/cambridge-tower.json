@@ -1,0 +1,1024 @@
+{
+  "_readme": "Cambridge Tower, 1801 Lavaca St -- Thomas E. Stanley, 1965, New Formalism, on the National Register since 2018 -- as js/slopes-apartments.js draws it. One 15-storey reinforced-concrete slab standing on a glazed ground floor, with a continuous balcony at every floor whose balustrade is Stanley's pierced 'solar block', thin concrete columns running the full height in front of the balconies, and a row of wide arches at the cornice. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=85.95, W=22.66, +u at bearing 18.4 deg. u=0 is the SOUTH end and +u runs north-north-east; v=0 is the EAST (Colorado St) edge and +v runs west-north-west, so v=22.66 is the WEST (Lavaca St) front. The block sits 18.4 deg off the compass because Lavaca Street does here (S11). Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "b0101452-d54c-4dff-a8a2-e582ddda29d6",
+  "name": "Cambridge Tower",
+  "address": "1801 Lavaca St, Austin, TX 78701",
+  "isApartment": true,
+  "_isApartment_src": "Yes. S2 and S9: it opened in 1965 as a luxury APARTMENT tower and sold its units into a condominium in the late 1970s; it is multi-unit housing today, with professional offices only on the ground floor where the restaurant and shops used to be. It is not student housing -- docs/entrances/westcampus.md flags it as the odd one out of the ten -- but the app is apartments to distance to classes, and this is an apartment building 1.1 km south of the UT Tower.",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature b0101452-d54c-4dff-a8a2-e582ddda29d6: name 'Cambridge Tower', num_floors 15, final_height 55.0, source_height 'overture' (a guess -- OSM way 516187606 carries no height), building_class apartments, wall day #c2beb6. The ring is a 9-vertex near-rectangle, 85.95 x 22.66 m by obbOf, 1925 m2.",
+    "S2": "National Register of Historic Places registration form 100002603 (HHM & Associates, Tara Dudley and Josh Conrad, Oct 2017; listed 20 Jun 2018), atlas.thc.state.tx.us/NR/pdfs/100002603/100002603.pdf, 69 pages, saved to the session scratchpad as ref/nrhp.pdf. Section 7 states: a 15-story reinforced-concrete rectangular block, 'approximately 160-feet tall by 70-feet wide' on the north and south ends and 'approximately 260-feet wide' on the east and west sides, from the ORIGINAL 1964 CONSTRUCTION DRAWINGS at the Austin History Center; a three-part New Formalist facade; vertical bands of thin non-structural concrete columns running continuously from the ground to the cornice, rising into wide plaster arches that span each vertical balcony bay; waist-high balustrades of 12-inch by 12-inch pierced 'solar blocks'; stucco balcony walls painted to match the light concrete; unbroken stucco shear walls on the short ends separating the front and rear facades; floor-to-ceiling glass at the ground floor; a canted concrete automobile canopy on marble-clad columns centred on the WEST (Lavaca) side; half the flat roof a landscaped garden with angular concrete planters, the other half built-up membrane with mechanical equipment and cell antennas; the pool, cabana and cooling tower OUTSIDE this footprint, to the south and east.",
+    "S3": "NRHP form Figure 1 (page 33 of the PDF, ref/fig1_east_elevation.jpg): the 1964 EAST ELEVATION blueprint, Thomas E. Stanley Architects. Measured on the scan: the drawn elevation is 988 px wide and carries 13 arch bays (apexes at 274, 350, 430, 503, 580, 657, 738, 800, 880, 955, 1030, 1103, 1190 px, the outermost half a pitch from each edge), and 13 floor lines between the 2nd- and 15th-floor labels at 37.42 px. 988/13 = 76.0 px per bay against 37.42 px per storey -- the bay is exactly TWICE the floor height. With S2's 260 ft that is a 20 ft bay and a 10 ft floor, both round numbers, and 13 x 20 = 260 ft reproduces S2 exactly. The ground storey measures 75.5 px = 19.9 ft = 20 ft, so the roof slab is 20 + 14x10 = 160 ft, which is S2's stated height.",
+    "S4": "NRHP Photo 3 (page 58, ref/photo3_east.jpg, Josh Conrad, June 2017): the east elevation nearly head-on under overcast. 14 column lines detected at y=180 px (107, 216, 316, 416, 514, 616, 716, 817, 918, 1020, 1122, 1224, 1328, 1446) = 13 bays, and the arch soffits repeat at the same 99 px pitch -- the drawing's 13 bays confirmed on the built building. 14 balustrade rows counted in a one-bay strip (work/p3_strip.png) = storeys 2..15. Vertical check: parapet to 2nd-floor slab is 770 px for 14x10 + 8.7 ft = 5.18 px/ft, against 1339 px / 260 ft = 5.15 px/ft horizontally -- the two axes agree to 0.6 %.",
+    "S5": "NRHP Photo 1 (page 56, ref/photo1_se.jpg): the north-west corner from MLK Jr Blvd and Lavaca St. Shows the crown arcade in three dimensions, the projecting balcony slabs with their pierced balustrades, the white columns standing proud of the balcony fronts, the recessed glazed ground floor under a deep concrete fascia, and -- the reason the end faces are modelled as they are -- the NORTH END: one bay of balconies at each side of a blank stucco shear wall that runs the full height in the middle of the end.",
+    "S6": "NRHP Photo 4 (page 59, ref/photo4_ne.jpg): the north-east corner looking up. The columns are the outermost plane, standing proud of the balcony rails; the balcony soffits are deep and dark; the balustrade block is a warm cream against the white columns.",
+    "S7": "Google Earth 3D, imagery 12/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): nadir (camera 610 m, scale bar 158 px = 40 m -> 0.253 m/px) plus obliques from the south-west, north-east, south-east and two near-elevation poses. The nadir was rectified into this building's own (u,v) frame at 8 px/m with the roof parallax taken out (roof 49 m under a 610 m camera, factor 1.080): work/plan_h49.png. That rectified plan is where the roof garden, the mechanical penthouse and -- the correction that matters -- the tower's TRUE EXTENT inside the snapshot polygon were read.",
+    "S8": "scripts/bake_westcampus.py BUILDINGS['Cambridge Tower'] and docs/PASS_WESTCAMPUS.md: 55.0 m, 15 floors, New Formalism, white concrete, continuous balconies with pierced solar-block parapets, columns sweeping into an arcade of arches at the cornice, a roof terrace at the south end and no pool on the roof (read off a z20 nadir), balconies on 15 floors x 2 elevations, and the WALL COLOUR SAMPLED off reference pixels: the photographed elevations are in open shade under a clear sky so the raw sample #a2b0c5 is strongly blue; the sunlit sidewalk in the same frame reads #d3c5bd and the building's own roof parapet reads #ebead9 in the z20 nadir; both agree on a warm off-white, so #cbc6ba.",
+    "S9": "en.wikipedia.org/wiki/Cambridge_Tower: condominium, New Formalism, 1801 Lavaca St, completed 28 Feb 1965, opened 1 May 1965, height 181 feet (55 m), 15 floors, architect Thomas E. Stanley, contractor Thomas J. Hayman of Dallas, NRHP 20 Jun 2018.",
+    "S10": "docs/entrances/westcampus.md row 10 and HANDOFF section 88: address 1801 Lavaca St, front elevation WEST on Lavaca (baked entrance eid 421 at 30.28075/-97.74052, which lands exactly on this footprint's west edge), an attended garage, and a PORTE-COCHERE already drawn by the entrances bake at proj 6.50 m, t 0.40 m, top 4.60 m. That canopy is NOT redrawn here -- it is a different layer and this generator does not filter it.",
+    "S11": "data/roads.geojson: Lavaca Street runs along this building's west edge on a bearing of 17.6 deg, which is why the block sits 18.4 deg off the compass; MLK Jr Blvd is the north cross street and W 18th St the south.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7402854,
+        30.281101
+      ],
+      [
+        -97.7403726,
+        30.2811264
+      ],
+      [
+        -97.7404916,
+        30.2808247
+      ],
+      [
+        -97.7405514,
+        30.2806668
+      ],
+      [
+        -97.7406589,
+        30.2803954
+      ],
+      [
+        -97.7405611,
+        30.2803669
+      ],
+      [
+        -97.7404354,
+        30.2803308
+      ],
+      [
+        -97.7401721,
+        30.2810154
+      ],
+      [
+        -97.7401537,
+        30.2810625
+      ],
+      [
+        -97.7402854,
+        30.281101
+      ]
+    ],
+    "_src": "S1 verbatim. In (u,v) its nine corners are (85.91,13.37) (85.95,22.22) (50.47,22.48) (31.97,22.38) (0.04,22.66) (0.00,12.73) (0.00,0.00) (80.30,0.03) (85.84,0.01) -- a rectangle to within 0.5 m. It is kept verbatim because the generator's frame is fitted to it, but nothing is drawn on its full length: see the tower block, whose plan is 6.7 m shorter because S2, S3, S4 and S7 all say so."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it. +u at bearing 18.4 deg, so u=0 is the south end at W 18th St and u=86 the north end at MLK Jr Blvd; +v is 90 deg counter-clockwise from +u in (east, north), i.e. west-north-west, so v=0 is the east edge toward Colorado St and v=22.66 the west edge on Lavaca St. Checked against data/roads.geojson (S11): the Lavaca centreline runs at bearing 17.6 deg 17 m west of the v=22.66 edge, and the baked entrance eid 421 (S10) lands exactly on that edge at its midpoint.",
+  "levels": {
+    "floors": [
+      0.0,
+      6.096,
+      9.144,
+      12.192,
+      15.24,
+      18.288,
+      21.336,
+      24.384,
+      27.432,
+      30.48,
+      33.528,
+      36.576,
+      39.624,
+      42.672,
+      45.72,
+      48.768
+    ],
+    "_src": "0 is the ground floor, 6.096 the 2nd, then thirteen more at 3.048 m to 45.72 (the 15th), and 48.768 is the roof slab -- which is also a floor line so the arcade band above it gets its arch openings. All of it is 20 ft + 14 x 10 ft, measured on S3's own drawing (76.0 px per 20 ft bay against 37.42 px per storey: the bay is exactly twice the floor) and confirmed on the built building by S4 (14 balustrade rows; the vertical and horizontal scales of that photograph agree to 0.6 %).",
+    "ground": 6.096,
+    "roof": 48.768,
+    "arcadeTop": 51.42,
+    "penthouseTop": 55.0,
+    "_heights_src": "Roof slab 48.768 m = 160 ft, which is S2's 'approximately 160-feet tall' exactly. The arcade crown band carries it to 51.42 (S3: 71 px from the 15th-floor line to the parapet = one storey plus 8.7 ft) and a 0.3 m cap to 51.72. The snapshot's 55.0 m (S1, overture) and Wikipedia's 181 ft (S9) are 12 ft higher than the roof and are NOT overridden away -- the mechanical penthouse is drawn topping out at exactly 55.0, which is what a lift overrun on a 160 ft roof is, and which keeps the mesh's high point on the number js/controls.js builds its collision field from."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. The four facade tones come from ONE measurement chain: the east elevation of S4 was k-means'd into five clusters over its whole facade region (x 120-1440, y 140-890) -- #d4cdc7 23.2 % (concrete in skylight), #b6b0a8 23.9 %, #918c86 18.6 % (soffit), #6a665f 15.1 % (recess), #444038 19.1 % (glass) -- and then the whole set was scaled by the single factor that maps the brightest cluster on to the wall colour S8 already measured and defended (#cbc6ba), i.e. (0.958, 0.966, 0.935). That is the same discipline as the bake's step 3: the building averages back to the colour the imagery measured, by construction.",
+    "concrete": {
+      "hex": "#cbc6ba",
+      "_src": "S8's sampled wall colour, which is also S4's lit-concrete cluster #d4cdc7 after the exposure match. Columns, balcony slab edges, arch band, parapet, the end shear walls and the ground-floor fascia are all one painted concrete -- S2 says the shear walls and the balcony walls are painted to match the concrete."
+    },
+    "block": {
+      "hex": "#b1a799",
+      "_src": "S4, the mean of the balustrade band alone: rows y 604-622 across x 200-1300 read #b9ada4 (the band is 20 px of a 52 px storey = 3.8 ft, which is the waist-high balustrade), x the exposure factor. This is the DISTANT read of a pierced screen -- block face plus hole -- not the block's own face, which is why it is darker than the concrete."
+    },
+    "recess": {
+      "hex": "#9e9d94",
+      "_src": "S4, the balcony back wall and soffit in shade: rows y 640-652 read #a5a39e, x the exposure factor. S2: the balcony walls are stucco painted to match the concrete, so this is the same paint one step into shadow."
+    },
+    "glass": {
+      "hex": "#4f4740",
+      "_src": "S4, the glazed band above each balustrade: rows y 626-636 read #524a44, x the exposure factor. S2: floor-to-ceiling sliding glass doors and windows behind every balcony."
+    },
+    "archShade": {
+      "hex": "#8a857c",
+      "_src": "S4, the dark centres of the arch soffits detected at y 155-168 (#8a8580 at the apexes that are not in direct skylight), x the exposure factor. This is the shadow inside an arch, which is what an arch reads as at this app's cameras."
+    },
+    "roofWhite": {
+      "hex": "#e4e2d6",
+      "_src": "the membrane roof: S7's rectified nadir reads #e4e7e3 over u 58-78, and S8's z20 nadir read the parapet at #ebead9; entered between the two, warm."
+    },
+    "deckPave": {
+      "hex": "#908476",
+      "_src": "S7's rectified nadir over the roof garden, u 8-40: #908476. It is paving and planting mixed, which is what the deck slab stands in for."
+    },
+    "planter": {
+      "hex": "#7c815b",
+      "_src": "the roof garden's planting beds, olive against the paving in S7's rectified nadir; a look taken off that image, not a clean sample -- the beds are 2-3 px wide there."
+    },
+    "mech": {
+      "hex": "#bcc2c6",
+      "_src": "S7's rectified nadir over the penthouse block at u 45-53: #bcc2c6, a galvanised grey."
+    },
+    "groundGlass": {
+      "hex": "#6b7176",
+      "_src": "the ground-floor storefront. UNMEASURED: S4's ground floor is behind a wood privacy fence and S5's is behind street trees, so no crop of it is clean. Entered as a cool grey glass reflecting an overcast sky, one step lighter than the balcony glass because it is not under a balcony soffit. A look, not a sample."
+    }
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every count comes from a module (the 20 ft bay of S3/S4), never a hard-coded number",
+    "grid": {
+      "kind": "bays",
+      "bay": 6.096,
+      "field": "recess",
+      "strip": {
+        "w": 0.55,
+        "tone": "concrete",
+        "at": "joints"
+      },
+      "floorLine": {
+        "h": 0.32,
+        "tone": "concrete"
+      },
+      "window": {
+        "w": 4.9,
+        "h": 2.25,
+        "sill": 0.32
+      },
+      "glass": "glass",
+      "frame": "recess",
+      "reveal": 0.15,
+      "_src": "The two long elevations behind the balconies. The bay is 6.096 m = 20 ft (S3, S4) and the wall is 79.248 m, so the generator's own round(len/bay) gives exactly 13 bays with no remainder. One floor-to-ceiling opening per bay per floor (S2: 'floor-to-ceiling sliding-glass door and windows'), 4.9 x 2.25 m of a 6.096 x 3.048 m bay. The 0.55 m concrete strip on the bay joints is the wall-plane part of the column; the column ITSELF is a separate block standing 1.5 m in front of this wall, because S6 shows it as the outermost plane of the building."
+    },
+    "end": {
+      "kind": "flat",
+      "field": "concrete",
+      "window": {
+        "cols": [
+          0.1667,
+          0.8333
+        ],
+        "w": 4.9,
+        "h": 2.25,
+        "sill": 0.32
+      },
+      "glass": "glass",
+      "frame": "concrete",
+      "reveal": 0.15,
+      "_src": "The north and south ends. S5 shows the end as one bay of balconies, then a blank stucco shear wall running the full height, then one bay of balconies -- S2 names it: 'unbroken stucco shear walls, originally and currently painted to match the concrete, separate the front and rear facades'. The end wall is 18.288 m = 3 bays, so the two glazed columns sit at 1/6 and 5/6 of it (the centres of the outer bays) and the middle 6.096 m is blank. The shear wall is 33 % of the end; in S5 it reads as about 35-40 %, which is the uncertainty on this number."
+    },
+    "arcade": {
+      "kind": "bays",
+      "bay": 6.096,
+      "field": "concrete",
+      "window": {
+        "w": 5.0,
+        "h": 1.75,
+        "sill": 0.3
+      },
+      "glass": "archShade",
+      "frame": "concrete",
+      "reveal": 0.35,
+      "_src": "The crown. S2: at the cornice the columns 'rise into wide plaster arches that span each vertical balcony bay'. There is no arc primitive in this generator (docs/apartments.md: every feature is a quad), so an arch is drawn as what it reads as at this app's cameras -- a 5.0 m dark opening per bay, set 0.35 m back in a concrete band, with 0.6 m of solid concrete above it for the cornice. The band is 2.65 m: S3 puts the parapet 71 px above the 15th-floor line, which is one 10 ft storey plus 8.7 ft."
+    },
+    "arcadeEnd": {
+      "kind": "flat",
+      "field": "concrete",
+      "window": {
+        "cols": [
+          0.1667,
+          0.8333
+        ],
+        "w": 5.0,
+        "h": 1.75,
+        "sill": 0.3
+      },
+      "glass": "archShade",
+      "frame": "concrete",
+      "reveal": 0.35,
+      "_src": "the same crown on the two ends, where S5 shows the arcade over the two balcony bays only and the shear wall running straight up past it."
+    },
+    "ground": {
+      "kind": "storefront",
+      "mullion": 1.9,
+      "mullionW": 0.14,
+      "fascia": 1.35,
+      "plinth": 0.25,
+      "transom": 0.75,
+      "fasciaTone": "concrete",
+      "glass": "groundGlass",
+      "frame": "concrete",
+      "reveal": 0.6,
+      "_src": "The ground floor. S2: 'large floor-to-ceiling glass panes' on every side, with the storefront continuous round the building and secondary entrances cut into it. The 1.9 m mullion pitch is a plausible module and is NOT dimensioned anywhere -- it is the weakest number in this file. The 0.6 m reveal is what puts the glass behind the column line, which is what S5 shows."
+    },
+    "pier": {
+      "kind": "flat",
+      "field": "concrete",
+      "_src": "one painted-concrete tone, for the free-standing columns"
+    }
+  },
+  "balcony": {
+    "proj": 1.5,
+    "slabT": 0.28,
+    "railH": 1.15,
+    "railT": 0.28,
+    "slabTone": "concrete",
+    "railTone": "block",
+    "_src": "S2 dimensions none of this. The projection is derived: the end of the tower is 70 ft = 21.34 m overall (S2) and the wall-to-wall depth that leaves for a double-loaded corridor is 18.288 m = 3 bays, so each balcony is (21.34 - 18.288)/2 = 1.53 m deep; entered at 1.5. The rail is 1.15 m: S4 measures the balustrade band at 20 px of a 52 px storey = 3.8 ft. The rail is 0.28 m thick because S2 says the balustrade is built of 12-inch solar blocks and 12 inches is 0.30 m. The slab is 0.28 m, a look sized to S4's own slab-edge band."
+  },
+  "blocks": [
+    {
+      "id": "ground",
+      "_src": "The ground storey: lobby, offices and the old restaurant and shops, glazed all round (S2). It runs NORTH past the tower, to u 84.5, because S5 shows a low glazed wing continuing toward MLK Jr Blvd and the snapshot polygon reaches u 86 there while the tower's roof stops at u 80 (S7).",
+      "plan": [
+        1.5,
+        84.5,
+        2.35,
+        20.638
+      ],
+      "z0": 0,
+      "z1": 6.096,
+      "_z_src": "20 ft, measured on S3: 75.5 px from the 2nd-floor line to the drawn ground line at 3.80 px/ft. It is also the number that makes S2's 'approximately 160-feet tall' exact -- 20 + 14 x 10 = 160 ft to the roof slab. UNCERTAINTY: if that drawn line is a foundation rather than the finished grade the ground storey is nearer 14 ft and everything above drops 1.8 m.",
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.096,
+          "skin": "ground"
+        }
+      ],
+      "roofTone": "concrete",
+      "parapet": 0.45,
+      "parapetTone": "concrete",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "tower",
+      "_src": "The 15-storey slab. The plan is NOT the snapshot polygon: S7's rectified nadir puts the tower's roof at u 2.7..80 and v 1.5..21.6, while the polygon runs u 0..85.95 -- the polygon overshoots the tower's north end by about 5 m into the MLK Jr Blvd sidewalk. Entered at S2's own dimensions, 260 ft x 70 ft overall, placed on the measured centre: the wall is u 1.5..80.748 by v 2.35..20.638 (79.248 x 18.288 m) and the 1.5 m balconies take it out to 21.34 m = 70 ft across. Plan uncertainty is +/- 2 m in u and +/- 1 m in v.",
+      "plan": [
+        1.5,
+        80.748,
+        2.35,
+        20.638
+      ],
+      "z0": 6.096,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 6.096,
+          "z1": 48.768,
+          "skin": "grid",
+          "balconies": [
+            {
+              "s0": 0.35,
+              "s1": 78.898
+            }
+          ],
+          "_src": "one continuous balcony per floor per long elevation. S8 records this as sourced -- unlike every other West Campus tower, Cambridge's balconies genuinely run the whole elevation; S4 and S5 both show an unbroken balustrade line from corner to corner."
+        },
+        {
+          "z0": 48.768,
+          "z1": 51.42,
+          "skin": "arcade"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 6.096,
+              "z1": 48.768,
+              "skin": "end",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 6.096
+                },
+                {
+                  "s0": 12.192,
+                  "s1": 17.938
+                }
+              ]
+            },
+            {
+              "z0": 48.768,
+              "z1": 51.42,
+              "skin": "arcadeEnd"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 6.096,
+              "z1": 48.768,
+              "skin": "end",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 6.096
+                },
+                {
+                  "s0": 12.192,
+                  "s1": 17.938
+                }
+              ]
+            },
+            {
+              "z0": 48.768,
+              "z1": 51.42,
+              "skin": "arcadeEnd"
+            }
+          ]
+        },
+        "_src": "u0 is the SOUTH end and u1 the NORTH; both wear the shear-wall face of S5 with one balcony bay at each side. v0 (east, toward Colorado St) and v1 (west, Lavaca St) take the default balcony grid -- S2 says the two long sides match."
+      },
+      "roofTone": "roofWhite",
+      "parapet": 0.3,
+      "parapetTone": "concrete",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ],
+      "_parapet_src": "the thin projecting drip cap over the arcade in S5; 0.3 m is a look sized to that photograph's own cap.",
+      "roofItems": [
+        {
+          "plan": [
+            43.0,
+            57.0,
+            3.5,
+            12.5
+          ],
+          "h": 3.58,
+          "tone": "mech",
+          "_src": "The lift overrun and mechanical rooms. S7's rectified nadir puts a raised grey structure with pipe runs at u 42.5-57, v 2-11, and S4 shows a box standing above the parapet over the middle of the east elevation. Its height is set so the top lands on 55.0 m -- the snapshot's final_height (S1) and Wikipedia's 181 ft (S9), which is 12 ft above S2's 160 ft roof and is exactly what a lift overrun is. That reconciles the two heights instead of choosing between them."
+        },
+        {
+          "plan": [
+            45.0,
+            62.0,
+            13.0,
+            16.5
+          ],
+          "h": 1.2,
+          "tone": "mech",
+          "_src": "S7: the long duct run crossing the membrane roof just north of the garden."
+        },
+        {
+          "plan": [
+            59.0,
+            79.0,
+            4.0,
+            19.0
+          ],
+          "grid": [
+            6,
+            3
+          ],
+          "size": [
+            1.0,
+            1.2
+          ],
+          "h": 0.7,
+          "tone": "mech",
+          "_src": "S7: the scattered small units over the north half of the membrane roof. S2 also puts cell antennas at the roof edge; they are under a pixel at this app's cameras and are not drawn."
+        }
+      ]
+    },
+    {
+      "id": "col-w00",
+      "plan": [
+        1.25,
+        1.75,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete",
+      "_src": "The 28 columns, 14 on each long elevation, on the 20 ft bay lines. S2: 'vertical bands of thin, non-structural concrete columns running continuously from the ground to the cornice'; S6 shows them standing proud of the balcony rails as the outermost plane of the building, which is why they are blocks and not a strip painted on the wall. 0.50 m wide by 0.60 m deep, of which 0.35 m stands proud of the 1.5 m balcony line -- both read off S6 against the 1.15 m balustrade beside them, +/- 0.15 m. They stop at the top of the arcade band, where S2 says they rise into the arches. The two ends have no free-standing columns: S5 shows the shear wall's own edges doing that work there."
+    },
+    {
+      "id": "col-e00",
+      "plan": [
+        1.25,
+        1.75,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w01",
+      "plan": [
+        7.346,
+        7.846,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e01",
+      "plan": [
+        7.346,
+        7.846,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w02",
+      "plan": [
+        13.442,
+        13.942,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e02",
+      "plan": [
+        13.442,
+        13.942,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w03",
+      "plan": [
+        19.538,
+        20.038,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e03",
+      "plan": [
+        19.538,
+        20.038,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w04",
+      "plan": [
+        25.634,
+        26.134,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e04",
+      "plan": [
+        25.634,
+        26.134,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w05",
+      "plan": [
+        31.73,
+        32.23,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e05",
+      "plan": [
+        31.73,
+        32.23,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w06",
+      "plan": [
+        37.826,
+        38.326,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e06",
+      "plan": [
+        37.826,
+        38.326,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w07",
+      "plan": [
+        43.922,
+        44.422,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e07",
+      "plan": [
+        43.922,
+        44.422,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w08",
+      "plan": [
+        50.018,
+        50.518,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e08",
+      "plan": [
+        50.018,
+        50.518,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w09",
+      "plan": [
+        56.114,
+        56.614,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e09",
+      "plan": [
+        56.114,
+        56.614,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w10",
+      "plan": [
+        62.21,
+        62.71,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e10",
+      "plan": [
+        62.21,
+        62.71,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w11",
+      "plan": [
+        68.306,
+        68.806,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e11",
+      "plan": [
+        68.306,
+        68.806,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w12",
+      "plan": [
+        74.402,
+        74.902,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e12",
+      "plan": [
+        74.402,
+        74.902,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-w13",
+      "plan": [
+        80.498,
+        80.998,
+        21.888,
+        22.488
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    },
+    {
+      "id": "col-e13",
+      "plan": [
+        80.498,
+        80.998,
+        0.5,
+        1.1
+      ],
+      "z0": 0,
+      "z1": 51.42,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 51.42,
+          "skin": "pier"
+        }
+      ],
+      "roofTone": "concrete"
+    }
+  ],
+  "deck": {
+    "z": 51.42,
+    "_src": "The roof garden. S2: 'half of the flat roof is given over to a rooftop garden and lounge', with a concrete floor and 'a series of angular concrete planters along the side and occasionally as islands', designed by Dallas landscape architect George Hunt; the other half is membrane roof with mechanical equipment. S7's rectified nadir says which half -- the paved, planted half is the SOUTH half, u 2..38, and the white membrane runs u 38..80. S8 read the same terrace off a z20 nadir and also called it the south end. The deck sits on the model's roof plane, which is the top of the arcade band rather than the structural roof 2.65 m below it; nothing in this app sees the difference, because the arcade screens the roof edge from every camera that is not directly overhead.",
+    "items": [
+      {
+        "plan": [
+          3.0,
+          38.0,
+          3.0,
+          19.8
+        ],
+        "z0": 0.0,
+        "h": 0.12,
+        "tone": "deckPave",
+        "_src": "S7: the paved terrace, u 3-38, full width inside the parapet."
+      },
+      {
+        "plan": [
+          3.5,
+          12.0,
+          3.5,
+          7.0
+        ],
+        "z0": 0.12,
+        "h": 0.55,
+        "tone": "planter",
+        "_src": "S7: the planting bed along the east side of the terrace's south end."
+      },
+      {
+        "plan": [
+          16.0,
+          26.0,
+          15.0,
+          19.5
+        ],
+        "z0": 0.12,
+        "h": 0.55,
+        "tone": "planter",
+        "_src": "S7: the long bed on the west side."
+      },
+      {
+        "plan": [
+          28.0,
+          36.0,
+          4.0,
+          8.5
+        ],
+        "z0": 0.12,
+        "h": 0.55,
+        "tone": "planter",
+        "_src": "S7: the bed at the terrace's north-east corner, against the membrane roof."
+      },
+      {
+        "plan": [
+          7.9,
+          12.5,
+          10.4,
+          14.6
+        ],
+        "z0": 0.12,
+        "h": 2.6,
+        "tone": "mech",
+        "_src": "S7: the white box at u 8-12.5, v 10.4-14.6 -- one of the 'non-descript mechanical rooms' S2 says the patio surrounds."
+      },
+      {
+        "plan": [
+          14.4,
+          18.5,
+          8.1,
+          13.4
+        ],
+        "z0": 0.12,
+        "h": 2.6,
+        "tone": "mech",
+        "_src": "S7: the second white box, u 14.4-18.5."
+      }
+    ]
+  },
+  "todo": [
+    "The cornice arches are drawn as rectangular dark openings in a concrete band, not as arcs. It is the building's signature and the one thing the quad vocabulary cannot say; an arch would need a polygon plan per bay or a new skin kind in js/slopes-apartments.js, which this lane does not edit.",
+    "The pierced solar block itself is not drawn and cannot be at this app's cameras: a 12-inch block is 0.30 m, under a pixel at the oblique and about six at walking height. What is drawn is the balustrade line it forms, in the tone the screen reads as from a distance.",
+    "The pool, the semi-circular open-air cabana, the cooling tower in its brick solar-block screen and the one-storey brick-faced office blocks that protrude east are all real (S2) and all OUTSIDE this snapshot polygon, to the south and east. Nothing here draws them.",
+    "The ground floor's 1.9 m mullion pitch and its glass colour are looks, not measurements -- every photograph of the ground floor is behind a wood privacy fence or street trees.",
+    "The snapshot polygon is about 6.7 m longer than the building at the north end. The tower and the ground floor are placed on the measured extent instead, so the north 1.5 m of the polygon is empty ground while APARTMENTS.on.",
+    "The porte-cochere on Lavaca St is drawn by the entrances bake (S10), not here, and this generator does not filter that layer -- so it is still in the frame, and adding one here would double it."
+  ]
+}
