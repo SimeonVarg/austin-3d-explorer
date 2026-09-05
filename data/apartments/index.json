@@ -14,7 +14,9 @@
     "2819-rio-grande.json",
     "cambridge-tower.json",
     "signature-1909.json",
-    "2706-rio-grande.json"
+    "2706-rio-grande.json",
+    "regents-west-at-24th.json",
+    "26-west-courtyard.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -30,7 +32,9 @@
     "583f3864-f044-4c2c-9d5b-8af47112562b",
     "b0101452-d54c-4dff-a8a2-e582ddda29d6",
     "4d0b4ea1-f597-4bc0-9a75-0c7aeb9ed328",
-    "ec1b4af2-ca22-449a-a9a2-a3bcb1efe198"
+    "ec1b4af2-ca22-449a-a9a2-a3bcb1efe198",
+    "70dcc366-e0b1-482d-aadf-937cbe06724e",
+    "38b2cf1c-830d-4b39-8225-b6aead30f538"
   ],
   "replacedNames": [
     "The Standard",
@@ -44,6 +48,8 @@
     "21 Rio",
     "Moontower",
     "Cambridge Tower",
-    "Signature 1909"
+    "Signature 1909",
+    "Regents West at 24th",
+    "26 West Courtyard"
   ]
 }

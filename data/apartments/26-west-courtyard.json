@@ -1,0 +1,876 @@
+{
+ "_readme": "26 West Courtyard - the interior wings of 26 West, 600 W 26th St - as js/slopes-apartments.js draws them. OSM way 187381193 is one of four `outer` members of OSM relation 2635670 (name=26 West, addr 600 West 26th Street); the others are the W 26th / Nueces perimeter L (data/apartments/26-west.json), the Rio Grande bar and the parking garage. So this polygon is not a nameless building: it is the ring of wings inside the block, the one that wraps the pool court and the tree court. It is one five-storey mass at one height - two storeys of brick base, a pale string course, three storeys of stucco in 9 m colour blocks, a white cornice, and a flat white membrane roof covered in condensers - with projecting balconies on the seven faces that front the courts, and the pool, its spa, the shed canopies and the timber pavilion on the deck between them. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=134.07, W=69.80, +u at bearing 2.8 deg. u=0 is the SOUTH end and +u runs north; v=0 is the EAST edge (Nueces side) and +v runs WEST towards Rio Grande. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+ "id": "38b2cf1c-830d-4b39-8225-b6aead30f538",
+ "name": "26 West Courtyard",
+ "address": "600 W 26th St, Austin, TX 78705",
+ "sources": {
+  "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 38b2cf1c-830d-4b39-8225-b6aead30f538: name null, num_floors null, building_class \"apartments\", final_height 20.2, source_height \"overture\". The ring is 22 vertices, 3,861 m2, 72.2 m east-west by 137.3 m north-south; obbOf makes it 134.07 x 69.80 m with +u at bearing 2.8 deg.",
+  "S2": "openstreetmap.org/api/0.6/way/187381193.json - the way carries exactly one tag, building=apartments. No name, no address, no height, no building:levels, no building:part.",
+  "S3": "openstreetmap.org/api/0.6/relation/2635670.json - type=multipolygon, name=\"26 West\", addr:housenumber=600, addr:street=\"West 26th Street\", addr:postcode=78705, landuse=residential, residential=apartments. Its four outer members are ways 187381178 (the perimeter L on W 26th and Nueces), 187381193 (this ring), 187381195 (the Rio Grande bar) and 187381182 (the parking garage). This relation is what identifies the building - the way itself is untagged, and the snapshot row is too.",
+  "S4": "americancampus.com/student-apartments/tx/austin/26-west - 26 West, 600 West 26th Street, Austin TX 78705, American Campus Communities. 1, 2 and 4 bedroom apartments; swimming pool with hot tub, outdoor kitchen with grills, outdoor gathering pavilions, rooftop basketball court (on the garage, not on this polygon), fitness centre, garage parking, gated.",
+  "S5": "ACC gallery photograph 687_03_pool.jpg (ref/acc_03_pool.jpg in the session scratchpad): the pool court looking north at the cross bar's south wall - THE elevation for this building. Bottom to top it shows a ground floor behind a shed canopy with a pale standing-seam metal roof and a timber gable pavilion at its centre; a second storey of brick; a pale string course; three storeys of stucco in full-height colour blocks (terracotta, cream, blue-grey) with one stack of three projecting balconies a block, each a pale apron under a dark metal rail; a white cornice; and a flat parapet with no hipped cap anywhere along it.",
+  "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): the nadir at @30.2913963,-97.7436685,190a,420d,35y,0h,0t. Scale bar 187.75 px = 50 m, so 0.2664 m per pixel; the four relation-2635670 rings projected on to it at that scale with the view centre at the canvas middle land on the roof edges, and the frame was then resampled into (u,v) at 4 px per metre (ref/rect-uv.png). Every plan number below was read off that gridded plan. Roof edges away from the centre are displaced outward by about h/H of the radius - 10 px at 300 px out - so features were read near the middle of the frame, and the ring agrees with the roof edges to about 3 m at the far north leg.",
+  "S7": "Google Earth obliques at 340 m and 55 deg tilt about the same centre: @...,45h,55t from the south-west and @...,135h,55t from the north-west, both fully loaded (ref/earth-sw.jpg, ref/earth-nw.jpg). They show the ring's roofs to be one continuous white plane level with the perimeter blocks', and they show that no parapet on this polygon carries a hipped cap - every grey cap in those frames sits on a street elevation of way 187381178 or 187381195. The north-east capture drifted off target and was discarded.",
+  "S8": "data/apartments/26-west.json (way 187381178, the perimeter L of this same complex, authored 2026-09-05) and the sources it names: FIVE storeys, built 2008 (rambleratx.com and en.uhomes.com independently); floor lines measured at 0, 4.20, 7.10, 10.00 and 12.90 m, roof plane 15.80, parapet top 16.60; a 9.0 m colour block on a 3.0 m window bay; and the day hexes for brick, stone, cream, terracotta, blue, trim, roof, glass and mech, each a k-means cluster of a named crop of a named Google Earth oblique. This ring is the same fabric by the same developer with its roof in the same plane (S7), so those numbers are used here rather than measured again, and every place the photographs disagree is written down.",
+  "S9": "ACC gallery photographs 687_02_pool.jpg and 687_05_pool.jpg (ref/acc_02_pool.jpg, ref/acc_05_pool.jpg): the pool from the far end, and the court seen from under the timber pavilion. The canopy, the pavilion and the balcony rails were sampled here.",
+  "derived": "a number computed from the ones above and marked so; \"unknown\" stays unknown."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7438597,
+    30.2920315
+   ],
+   [
+    -97.7439696,
+    30.2909685
+   ],
+   [
+    -97.7439133,
+    30.2909685
+   ],
+   [
+    -97.743916,
+    30.2909337
+   ],
+   [
+    -97.7437175,
+    30.2909198
+   ],
+   [
+    -97.7437068,
+    30.2910055
+   ],
+   [
+    -97.7437685,
+    30.2910102
+   ],
+   [
+    -97.743747,
+    30.2911769
+   ],
+   [
+    -97.7434386,
+    30.2911561
+   ],
+   [
+    -97.7434573,
+    30.2908828
+   ],
+   [
+    -97.7432723,
+    30.2908666
+   ],
+   [
+    -97.7432186,
+    30.2914641
+   ],
+   [
+    -97.7434091,
+    30.291478
+   ],
+   [
+    -97.7434278,
+    30.2912881
+   ],
+   [
+    -97.7437336,
+    30.2913182
+   ],
+   [
+    -97.7437095,
+    30.2915012
+   ],
+   [
+    -97.7437997,
+    30.2915092
+   ],
+   [
+    -97.7437474,
+    30.2920134
+   ],
+   [
+    -97.7435432,
+    30.2920014
+   ],
+   [
+    -97.7435351,
+    30.2920825
+   ],
+   [
+    -97.7439026,
+    30.292108
+   ],
+   [
+    -97.7439133,
+    30.2920338
+   ],
+   [
+    -97.7438597,
+    30.2920315
+   ]
+  ],
+  "_ring_src": "S1, verbatim. 22 vertices. The ring's own long edges run about 2 deg off the obb axes, so every block in this file is a polygon in (u,v) taken from these vertices rather than a rectangle - a rectangle would drift 4 m over the 134 m length. It is also why there is not one `overrides` entry here: clipWall() only splits a wall that is exactly axis-parallel and would take or skip each of these walls whole."
+ },
+ "frame": "obb",
+ "_frame_src": "S1's ring through the generator's own obbOf: L=134.07, W=69.80, +u at bearing 2.8 deg. u=0 is the SOUTH end (towards W 26th St), +u runs north; v=0 is the EAST edge (Nueces side) and +v runs WEST, bearing 272.8 deg, towards Rio Grande. In (u,v) the ring is: an east leg 18 m wide at v 1..19 running u 0..66; a west leg 19 to 22 m wide at v 44..69 running u 4..66; a full-width cross bar at u 32..46 joining the two; an 11 m wide north leg at v 54..66 running u 68..122 up the west side of the garage; and a north cross bar at u 124..134, v 34..69. The pool court is the open ground at u 0..31, v 20..44 and the tree court at u 48..66, v 20..46. All of that was read off S6 rectified into this frame.",
+ "levels": {
+  "floors": [
+   0.0,
+   4.2,
+   7.1,
+   10.0,
+   12.9
+  ],
+  "_src": "S8: five storeys, 2.90 m floor to floor above a 4.20 m ground floor, measured on the perimeter L's corner tower where base, cornice and hip apex are all visible against the sidewalk. Checked here against S5, which shows exactly five window rows on the court elevation - two in brick, three in stucco - and against S7, where this ring's roof plane and the perimeter's read as one continuous surface with no step at any junction. S1's 20.2 m is Overture's guess for a building OSM never tagged and stands 3.6 m over the measured parapet, so it is overridden. Uncertainty plus or minus 0.15 m a storey.",
+  "base": 7.1,
+  "cornice": 15.4,
+  "roof": 15.8,
+  "parapetTop": 16.6,
+  "_heights_src": "base 7.10 is the level-3 floor line, where the two-storey brick stops. S5 puts the string course just above the second-storey window heads at about 43 per cent of a wall whose top is 15.8 m, which is 6.8 m, inside the plus or minus 0.8 m spread S8 gives for the same line on the street elevations. roof 15.80 and parapet top 16.60 are S8's; S7 shows this ring's parapet level with the perimeter's at every junction."
+ },
+ "colours": {
+  "_src": "Day hex; golden and night follow js/westcampus.js ramp(). THE PALETTE DECISION: the nine tones this ring shares with the perimeter L are taken from S8 verbatim rather than re-measured off S5. S5 is a marketing photograph and reads hotter than the imagery every neighbouring building in this scene is calibrated against - k-means on its own crops gives terracotta #d19e77 against S8's #d9b898 and blue #8993a2 against #b1c5d3 - and a colour seam running down the middle of ONE complex is a worse defect than a palette a step cool. Where S5 and S8 agree (brick: S5 crop (255,215)-(330,250) clusters 56.8 per cent #98857c against S8's #a98d7d) that is said. The four tones that exist only here - the balcony rail, the canopy, the pavilion and the water - are sampled from S5, S9 and S6 and say so.",
+  "brick": {
+   "hex": "#a98d7d",
+   "_src": "S8's brick, a k-means cluster of two storeys of base on the 26th St elevation. Checked here: S5 crop (255,215)-(330,250), the base under the cream block across the pool, clusters 56.8 per cent #98857c and 26.9 per cent #66574e - the sunlit and shaded halves of the same variegated brick, straddling this value."
+  },
+  "stone": {
+   "hex": "#d6cec1",
+   "_src": "S8's pale rusticated stone. In the court it appears only as the occasional full-height pier - S5 shows one at the right-hand edge of the frame and one at the left - not as the long stretches the street elevations have, which is what the weights below say."
+  },
+  "cream": {
+   "hex": "#e9e6da",
+   "_src": "S8's ivory stucco block. S5 crop (330,90)-(395,170) reads 66.1 per cent #e2dbc7, a step warmer and darker, which is this photograph, not this wall."
+  },
+  "terracotta": {
+   "hex": "#d9b898",
+   "_src": "S8's peach stucco block. S5 reads it at #d19e77, a saturated apricot; see the palette note above for why S8 wins."
+  },
+  "blue": {
+   "hex": "#b1c5d3",
+   "_src": "S8's pale blue stucco block. S5 reads it at #8993a2 in the court's own shade; see the palette note."
+  },
+  "trim": {
+   "hex": "#eae7de",
+   "_src": "S8's white: the window surrounds, the string course, the cornice band and the parapet coping. S5 crop (150,55)-(175,80) on a sunlit cornice returns 70.4 per cent #ded8c9, under this by a step, and the cornice is the brightest thing on that wall."
+  },
+  "roof": {
+   "hex": "#dcddd8",
+   "_src": "S8's membrane. Measured again here on this ring's own roof: S6 rectified, the west leg at u 44..66 / v 56..66, clusters 86.3 per cent #e3e5e2; a step down from that is #dcded9, which is S8's value to within a unit. The two files agree."
+  },
+  "glass": {
+   "hex": "#4a5257",
+   "_src": "S8's: the punched windows are the darkest cells in every facade cluster, entered between a dark opening and one with sky in it."
+  },
+  "mech": {
+   "hex": "#8b9095",
+   "_src": "S8's: the roof condensers, a mid grey a shade darker than the membrane. S6 rectified reads the units on this ring's roofs at about #7e858a in shade."
+  },
+  "rail": {
+   "hex": "#6b7176",
+   "_src": "THE COURT RAILS ARE DARK, and this is where this building parts company with the street elevations - 26-west.json enters a pale #a8aca8 for the rails it can see from the sidewalk. S5 shows the balcony rails here as a black metal picket rail: crop (447,120)-(505,133) across one rail clusters 21.9 per cent #60686e for the metal itself, the rest being sky and the wall seen through it. At the cameras this app is judged from a 0.06 m picket is one or two pixels and reads as that mixture, so the tone is entered between the metal and the through-view rather than at the metal."
+  },
+  "apron": {
+   "hex": "#e3e0d6",
+   "_src": "The pale stucco apron under each rail - the balcony slab edge and its fascia, which S5 shows as a continuous light band. Entered a step under `trim`, which is the surround white beside it in the same frame."
+  },
+  "canopy": {
+   "hex": "#b9bec6",
+   "_src": "S5 crop (188,258)-(310,265) along the shed canopy over the ground floor: 59.5 per cent #d1d6dd and 37.7 per cent #bfc4cb, a pale silver standing-seam metal in full sun. Entered a step down from the sunlit cluster, as every other tone here is."
+  },
+  "pavilion": {
+   "hex": "#7d8286",
+   "_src": "The timber gathering pavilion's roof. S5 crop (330,258)-(410,270) is mostly its shaded underside (#120c08); S6 sees the roof itself from above as a grey pyramid a little darker than the membrane, and that is what is entered."
+  },
+  "timber": {
+   "hex": "#6b3a24",
+   "_src": "S9 (687_05_pool.jpg) crop (150,0)-(420,45), the pavilion's stained cedar frame: 56.5 per cent #4f1d0f in shade and 35.8 per cent #ab7249 in sun. Entered between them. Only the pavilion's posts use it."
+  },
+  "water": {
+   "hex": "#3f8391",
+   "_src": "S6 rectified, the main pool at u 12..20 / v 30..38: 39.2 per cent #28606f teal under 43.8 per cent of surrounding shade. Lifted a step because the resample and the December sun angle both darken it, and S5 and S9 both show a bright turquoise."
+  }
+ },
+ "skins": {
+  "_src": "Two wall treatments and a cornice, on the same two modules the perimeter L uses (S8): a 9.0 m full-height colour block and a 3.0 m window bay. Every count comes from a module, never a hard-coded number.",
+  "masonry": {
+   "kind": "pixel",
+   "course": 3.55,
+   "plank": 9.0,
+   "bond": 0,
+   "macro": [
+    2,
+    1
+   ],
+   "tones": [
+    "brick",
+    "stone"
+   ],
+   "weights": [
+    0.86,
+    0.14
+   ],
+   "runMax": 3,
+   "zBase": 0,
+   "bay": 3.0,
+   "window": {
+    "w": 1.3,
+    "h": 1.7,
+    "sill": 0.9
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "The two-storey base. course 3.55 with macro [2,1] holds one material over both storeys of a block and bond 0 keeps the block edges vertical, which is what a masonry change line is - all three from S8, whose base module is the same. The WEIGHTS are this building's own: on the street the base alternates brick and stone roughly 0.78/0.22, but in the court S5 and S9 show brick running continuously with pale stone only at the occasional full-height pier - two piers in the twelve blocks the two frames cover, so 0.86/0.14. Two window rows fall in this band, at the 0.00 and 4.20 floor lines, and S5 shows both."
+  },
+  "stucco": {
+   "kind": "pixel",
+   "course": 2.9,
+   "plank": 9.0,
+   "bond": 0,
+   "macro": [
+    3,
+    1
+   ],
+   "tones": [
+    "terracotta",
+    "cream",
+    "blue"
+   ],
+   "weights": [
+    0.36,
+    0.34,
+    0.3
+   ],
+   "runMax": 2,
+   "bay": 3.0,
+   "window": {
+    "w": 1.25,
+    "h": 1.75,
+    "sill": 0.75
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module - S8 measured that block width on the street elevations at 7.6 and 9.6 m across two adjacent blocks, and S5 shows the same rhythm in the court: three window bays to a block, one balcony stack in the middle of each. course 2.90 with macro [3,1] makes exactly the three storeys of this band, so a tone runs a block's full height, which is what every frame shows. The band starts at 7.10, not above the string course, so floorsBetween() keeps all three floor lines and the third storey gets its window row. The WEIGHTS are counted on the court walls, not the streets: S5 gives terracotta, cream, blue, terracotta across the elevation it photographs and S7 gives a near-even mix round both courts, so 0.36 / 0.34 / 0.30 rather than S8's street count of 11 cream to 8 terracotta to 6 blue. Window 1.25 x 1.75 on a 0.75 m sill is S8's re-measured opening, and S5 shows the same portrait proportion here."
+  },
+  "cornice": {
+   "kind": "flat",
+   "field": "trim",
+   "_src": "The white band between the top of the stucco and the parapet. Continuous on every elevation in S5, S7 and S9."
+  },
+  "string": {
+   "kind": "flat",
+   "field": "trim",
+   "_src": "The pale string course that closes the top of the brick base. It is a separate projecting block here (0.12 m proud, 7.10 to 7.45) rather than a band, because a band at that z would either bury the third storey's window row or sit coplanar with the stucco and z-fight it. S5 shows it as a light line with a shadow under it, which is a projection, not a change of colour."
+  }
+ },
+ "balcony": {
+  "proj": 1.3,
+  "slabT": 0.45,
+  "railH": 1.05,
+  "railT": 0.06,
+  "slabTone": "apron",
+  "railTone": "rail",
+  "lift": 0.0,
+  "_src": "The building's balcony module, measured in S5 against the 2.90 m storey it sits in. The pale apron under each rail is the deepest thing about these balconies and the first thing that reads - it is 0.45 m, about a sixth of a storey in the frame - and the dark picket rail above it takes the rest to about 1.5 m of guarded height. proj 1.30 m: the balconies are used ones, with chairs and bicycles on them in S5 and S9, so they are a metre and a bit deep, not a Juliette; uncertainty plus or minus 0.2 m because S5 is a wide-angle frame and no balcony in it is side-on. slabT 0.45 and railH 1.05 sum to 1.50, which is what a 1.10 m guard rail on a 0.40 m upstand has to be."
+ },
+ "blocks": [
+  {
+   "id": "ring",
+   "_src": "The whole footprint at one height. S6 rectified shows one white membrane plane over every leg with no step at any junction, and S7 confirms it from two sides, so the null hypothesis - one uniform mass - survives and there is no reason to split this into five bars.",
+   "plan": "footprint",
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "_bands_src": "masonry 0.00..7.10 (two storeys of brick base, window rows at the 0.00 and 4.20 floor lines); stucco 7.10..15.40 (three storeys, window rows at 7.10, 10.00 and 12.90); cornice 15.40..15.80. The string course is the separate `string` block below rather than a fourth band, so that the stucco band can start at 7.10 - floorsBetween() drops any floor line below a band's z0, so a stucco band starting at 7.45 would leave the third storey blank, and S5 plainly has three stucco window rows.",
+   "faces": {
+    "4": {
+     "_src": "face 4 runs (3.8, 44.9) to (13.3, 44.4), 9.5 m, fronting the pool court - the west leg's short east return at u 4..13. 1 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 2.76,
+         "s1": 6.76
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "6": {
+     "_src": "face 6 runs (13.5, 50.3) to (32.0, 49.2), 18.5 m, fronting the pool court - the west leg's east wall. 2 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 2.77,
+         "s1": 6.77
+        },
+        {
+         "s0": 11.77,
+         "s1": 15.77
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "7": {
+     "_src": "face 7 runs (32.0, 49.2) to (31.2, 19.4), 29.7 m, fronting the pool court - the cross bar's south wall, the elevation S5 photographs. 3 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 3.87,
+         "s1": 7.87
+        },
+        {
+         "s0": 12.87,
+         "s1": 16.87
+        },
+        {
+         "s0": 21.87,
+         "s1": 25.87
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "8": {
+     "_src": "face 8 runs (31.2, 19.4) to (0.9, 19.7), 30.3 m, fronting the pool court - the east leg's west wall. 3 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 4.13,
+         "s1": 8.13
+        },
+        {
+         "s0": 13.13,
+         "s1": 17.13
+        },
+        {
+         "s0": 22.13,
+         "s1": 26.13
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "12": {
+     "_src": "face 12 runs (66.9, 18.4) to (45.8, 19.1), 21.1 m, fronting the tree court - the east leg's west wall north of the cross bar. 2 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 4.03,
+         "s1": 8.03
+        },
+        {
+         "s0": 13.03,
+         "s1": 17.03
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "13": {
+     "_src": "face 13 runs (45.8, 19.1) to (47.7, 48.6), 29.6 m, fronting the tree court - the cross bar's north wall. 3 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 3.79,
+         "s1": 7.79
+        },
+        {
+         "s0": 12.79,
+         "s1": 16.79
+        },
+        {
+         "s0": 21.79,
+         "s1": 25.79
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "14": {
+     "_src": "face 14 runs (47.7, 48.6) to (68.0, 47.3), 20.4 m, fronting the tree court - the west leg's east wall north of the cross bar. 2 balcony stack(s) of 4.0 m on a 9.0 m pitch - one a colour block, S5 - centred, with at least 1.4 m clear at each end.",
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 3.68,
+         "s1": 7.68
+        },
+        {
+         "s0": 12.68,
+         "s1": 16.68
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "_src": "Only the seven faces that front the two open courts carry balconies. The other fifteen stand in 3 to 7 m service slots between this ring and the perimeter blocks, or look over the garage deck (S6); S7 shows plain punched windows there. Every face keeps the default bands, so this key only adds balconies."
+   },
+   "roofTone": "roof",
+   "parapet": 0.8,
+   "parapetTone": "trim",
+   "parapetSides": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21"
+   ],
+   "_parapet_src": "0.80 m, S8's measurement of the white upstand between the cornice and the roof plane; S7 shows this ring's parapet level with the perimeter's at every junction. It runs on all 22 edges: this block stands against no other block of its own height, and S6 shows the upstand round every leg including the slot faces.",
+   "roofItems": [
+    {
+     "plan": [
+      6,
+      60,
+      4,
+      17
+     ],
+     "grid": [
+      8,
+      2
+     ],
+     "size": [
+      1.3,
+      3.0
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the east leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+    },
+    {
+     "plan": [
+      16,
+      62,
+      52,
+      66
+     ],
+     "grid": [
+      6,
+      2
+     ],
+     "size": [
+      1.3,
+      3.0
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the west leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+    },
+    {
+     "plan": [
+      35,
+      44,
+      22,
+      48
+     ],
+     "grid": [
+      2,
+      3
+     ],
+     "size": [
+      1.3,
+      3.0
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the cross bar, between the two legs' own rows carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+    },
+    {
+     "plan": [
+      72,
+      118,
+      57,
+      64
+     ],
+     "grid": [
+      6,
+      1
+     ],
+     "size": [
+      1.3,
+      3.0
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north leg - one row, it is only 11 m wide carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+    },
+    {
+     "plan": [
+      126,
+      131,
+      38,
+      66
+     ],
+     "grid": [
+      1,
+      4
+     ],
+     "size": [
+      1.3,
+      3.0
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north cross bar carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+    }
+   ]
+  },
+  {
+   "id": "string",
+   "_src": "The string course: the footprint offset 0.12 m outward along each vertex bisector, from 7.10 to 7.45. A ledge, not a band - see skins.string. The 0.12 m projection is the app's own default window reveal and is the smallest thing that still casts a line at the oblique this scene is judged from; it is not measured off a photograph and the depth is a plausible number, the height is not (S5 puts the course at a third of a storey, 0.35 m).",
+   "plan": [
+    [
+     125.71,
+     64.76
+    ],
+    [
+     7.82,
+     69.52
+    ],
+    [
+     8.09,
+     64.12
+    ],
+    [
+     4.24,
+     64.19
+    ],
+    [
+     3.64,
+     44.82
+    ],
+    [
+     13.39,
+     44.24
+    ],
+    [
+     13.62,
+     50.19
+    ],
+    [
+     31.89,
+     49.05
+    ],
+    [
+     31.06,
+     19.56
+    ],
+    [
+     0.8,
+     19.87
+    ],
+    [
+     -0.13,
+     1.78
+    ],
+    [
+     66.34,
+     -0.12
+    ],
+    [
+     66.98,
+     18.48
+    ],
+    [
+     45.93,
+     19.24
+    ],
+    [
+     47.79,
+     48.52
+    ],
+    [
+     68.11,
+     47.2
+    ],
+    [
+     68.56,
+     55.91
+    ],
+    [
+     124.24,
+     53.64
+    ],
+    [
+     123.88,
+     33.97
+    ],
+    [
+     133.11,
+     33.63
+    ],
+    [
+     134.19,
+     69.29
+    ],
+    [
+     125.71,
+     69.93
+    ]
+   ],
+   "z0": 7.1,
+   "z1": 7.45,
+   "bands": [
+    {
+     "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    }
+   ],
+   "roofTone": "trim",
+   "parapet": 0
+  }
+ ],
+ "deck": {
+  "z": 0,
+  "_src": "The pool court, the open ground at u 0..31 / v 20..44 that this ring wraps. Every plan below was read off S6 rectified into (u,v) at 4 px per metre, on the 5 m grid in ref/rz-pool.png; the heights come from S5, scaled on the 4.20 m ground floor (the second-storey sill is 245 px above the deck in that frame, so 58 px a metre). The paving, the loungers, the umbrellas and the planting are NOT drawn - the ground layer already paints that court and a slab at 0.1 m would fight it.",
+  "items": [
+   {
+    "plan": [
+     7.7,
+     20.6,
+     29.9,
+     40.9
+    ],
+    "z0": 0.1,
+    "z1": 0.24,
+    "tone": "water",
+    "_src": "The main pool: 12.9 by 11.0 m in S6 rectified, its long axis north-south. Entered as a slab 0.14 m proud of the deck so it clears the ground layer instead of z-fighting it."
+   },
+   {
+    "plan": [
+     19.5,
+     24.0,
+     35.0,
+     42.5
+    ],
+    "z0": 0.1,
+    "z1": 0.24,
+    "tone": "water",
+    "_src": "The shallow ledge and spa at the pool's north-west end, one lighter teal shape in S6 at u 19..24 / v 35..43. S4 calls it a hot tub and S5 shows it as a raised tub; it is drawn flat with the pool because at 0.27 m a pixel that is all S6 can support."
+   },
+   {
+    "plan": [
+     28.3,
+     31.9,
+     31.5,
+     44.0
+    ],
+    "z0": 3.05,
+    "z1": 3.85,
+    "tone": "canopy",
+    "_src": "The shed canopy over the ground floor on the cross bar's south wall, west half. S5 measures its top at 215 px above the deck against 58 px a metre = 3.7 m, and it projects about 3.2 m; entered 3.05 to 3.85 so the slab reads as a roof, not a soffit. It runs to the wall at u 31.6 and 0.3 m past it, which hides the joint."
+   },
+   {
+    "plan": [
+     28.3,
+     31.9,
+     21.0,
+     24.5
+    ],
+    "z0": 3.05,
+    "z1": 3.85,
+    "tone": "canopy",
+    "_src": "The same canopy, east half - the timber pavilion interrupts it between v 24.5 and 31.5."
+   },
+   {
+    "plan": [
+     3.0,
+     14.0,
+     19.0,
+     22.5
+    ],
+    "z0": 3.05,
+    "z1": 3.85,
+    "tone": "canopy",
+    "_src": "The second canopy, on the east leg's west wall at the pool's east side: one grey roof straddling v 19.5 at u 3..14 in S6."
+   },
+   {
+    "plan": [
+     22.0,
+     30.0,
+     24.5,
+     31.5
+    ],
+    "z0": 3.05,
+    "z1": 4.15,
+    "tone": "timber",
+    "_src": "The timber gathering pavilion at the centre of the court (S4 \"outdoor gathering pavilions\", S9 photographs it from inside): 8 by 7 m in S6, a stained cedar frame under a grey hipped roof. The frame is entered as one solid storey rather than as posts - a 0.25 m post is under a pixel at every camera here."
+   },
+   {
+    "plan": [
+     22.0,
+     30.0,
+     24.5,
+     31.5
+    ],
+    "z0": 4.15,
+    "z1": 4.75,
+    "tone": "pavilion"
+   },
+   {
+    "plan": [
+     23.0,
+     29.0,
+     25.5,
+     30.5
+    ],
+    "z0": 4.75,
+    "z1": 5.25,
+    "tone": "pavilion"
+   },
+   {
+    "plan": [
+     24.0,
+     28.0,
+     26.5,
+     29.5
+    ],
+    "z0": 5.25,
+    "z1": 5.75,
+    "tone": "pavilion",
+    "_src": "The pavilion roof in three steps to a 5.75 m apex - a pyramid at the zoom this is seen from, and S6 sees it as a grey pyramid about 8 m across from above."
+   }
+  ]
+ },
+ "todo": [
+  "extendCollision() matches a corrected height to a footprint by NAME, and this snapshot row's name is null, so the flight controller keeps the 20.2 m prism here and you can still walk into the top 3.6 m of air over this ring. The perimeter L has the same problem. The fix is in js/slopes-apartments.js, not in this file: match on the feature id as well as the name.",
+  "The balcony projection is plus or minus 0.2 m: no frame here shows a court balcony side-on. A street-level photograph from inside the court, or a Google Earth capture at 60 m and 80 deg tilt looking along one court wall, would settle it.",
+  "Which colour block gets which tone is a hash, not a survey. S5 fixes four blocks on one wall (terracotta, cream, blue, terracotta) and the generator cannot be told about a specific block - only about the module and the weights. A `plankTones` override, a list of tones per plank index for one named face, would let a photographed elevation be reproduced exactly.",
+  "The ground floor behind the canopies is drawn as ordinary brick with punched windows. S5 shows it as a dark storefront - full-height glazed bays between brick piers - all round the pool court. It is invisible behind the canopy from above and from the app's obliques, so it is left as masonry; a walking-height camera in the court would want the `storefront` skin over the 0.00..4.20 band on faces 4, 6, 7 and 8.",
+  "The north leg's roof runs about 3 m wider west than this ring does in S6, and the ring is about 3 m east of the roof edge there. Both are the same parallax: the nadir displaces a 15.8 m roof outward by h/H of its radius, and the OSM way was traced off a different roof-parallaxed image. Nothing here can fix an outline that is 3 m wrong - it would need the way re-traced against a rectified orthophoto."
+ ]
+}
