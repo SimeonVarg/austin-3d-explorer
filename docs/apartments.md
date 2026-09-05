@@ -15,6 +15,14 @@ puts the filters back. `?slopes=0` (the whole three.js layer) takes this with
 it.
 
 Gate: `scripts/verify/slopes-layer.mjs`, section 2b (`apartments:` lines).
+Two archives can stand in for `main` there and answer different questions:
+`--against-tip URL` is a `git archive` of the commit the branch was cut from
+(main with the slopes layer), and ours at `?apartments=0` must be its frame
+at the pose with that page's ridge courses switched off as this branch's
+are; `--against URL` stays the pre-slopes main the gate's bake-identity
+lines are written for, and ours at `?apartments=0&slopes=0` must be its
+frame — the data, the index and the script tags changed nothing the slabs
+draw here.
 
 ![ours from the south-west](shots/apartments-standard-sw-ours.jpg)
 ![Google Earth from the south-west](shots/apartments-standard-sw-earth.jpg)

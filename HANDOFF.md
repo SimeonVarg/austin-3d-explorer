@@ -1,5 +1,210 @@
 # Austin 3D Explorer — Full Handoff
 
+## 217. Sep 5 2026 — The Standard is a building now: the apartments generator, its data file, the gate block, and what the nadir said about the westcampus slabs (`acer/apts`, the apartments piece of the round)
+
+The app is apartments → distance → classes, and the first apartment building
+the owner named is now real geometry instead of three boxes. This entry is
+the apartments piece of the `acer/apts` round: `js/slopes-apartments.js`, the
+fourth generator in the slopes layer, and `data/apartments/the-standard.json`,
+the first building authored from sources. The other builders' pieces
+(`js/slopes-art.js` and the rest) are theirs; only their script tags are in
+this lane's first commit, per the brief.
+
+**Look first: `docs/apartments.md`** carries four frames — ours beside Google
+Earth from the south-west (the brief's pose) and from the north-west — and
+the whole method. What you see from 220 m: the charcoal corner bay at 23rd
+and Pearl with THE STANDARD on both faces, five storeys of light panel with
+rust strips along 23rd, the storefront ground floor, the pool on the deck
+behind the corner bay, tower B's north face of balconies over it and its
+pixel west face with the vertical sign, tower A's pixel L wrapping the east
+end two storeys above the bars, the two light wells, the double-volume gym
+between the towers, the condenser clusters on every roof, the garden roof on
+the lower east wing. 9 blocks, 55 faces, 11,665 cells, 1,584 windows, 26
+balconies, 4 signs, 46,483 triangles in one draw call, 235 ms to build.
+
+**The first commit (`2cc1b29`, within the brief's twenty minutes):** the pale
+ridge and hip courses are off (`SLOPES_ROOFS.lines.on = false`, every sub-key
+kept), the gate asserts their absence the same way it asserted their presence
+— zero counted, a raycast at every plain hip's ridge lands on the bare ridge
+and never above it, the ridge column does not carry the courses' signature —
+and `--break` now turns them back ON to prove that line goes red. The two
+script tags in `index.html` and `_harness.html`; `harness-drift.mjs` 38/38.
+
+**Which corner is which cost the research pass its compass, and
+`data/roads.geojson` settled it in one query:** West 23rd Street's western
+segment runs along this building's NORTH edge, Pearl ends at it at the
+north-west corner, Rio Grande is 58 m east of the east edge. So the corner
+photograph with the street sign is the north-west corner, the dusk aerial
+looks south from the Union on 24th's site, and "tower A is nearer Rio
+Grande" in `measured.json` was the towers' order read with north and south
+swapped. Every plan number in the data file is in the footprint's own
+oriented bounding box (`js/westcampus.js`'s `obbOf`, ported unchanged): +u
+west along 23rd, +v south.
+
+**The nadir, rectified, said TIER4's two "tower slabs" are the two light
+wells.** Google Earth at tilt 0, 260 m up, captured with `chrome.mjs` and
+`page.screenshot()` (the canvas is black through `toDataURL`, as the research
+pass found the hard way), scale from the scale bar (183 px = 30 m), the
+snapshot polygon projected on to it with the canvas centre as the view centre
+— it lands on the roof edges — then resampled into the (u,v) frame at 10 px/m
+with a 10 m grid. Overlaid on it, `TIER4.STD.slabs` `[23.5-41, 57.2-74.3] ×
+[17-31.4]` sit exactly on the two dark rectangles, and those rectangles have
+parking stripes at the bottom: they are wells down to the garage. The deck
+features from the same block — pool, spa, turf, cabana, jumbotron, rail —
+land on the imagery's own features and were kept with their source. The
+towers are the bars round the wells: tower A's north bar u 17-42 × v 8-19,
+tower B u 75-91 × v 11-34 set 4 m behind the Pearl face (the step is a line
+in the plan), the mid bar u 42-57, the south bar v 34-46.45. Which of them is
+the 17-storey element took three more captures (south, east, north at 300 m)
+and the photographs: from the south the pixel face rises two storeys above
+the continuous 9-row elevation at the EAST end, so tower A is the tall one
+and its L wraps the east end; from the north-west "A's roof higher than B's"
+had been a perspective effect (A is 35 m further away), so B and the bars
+are 15 storeys, ±1 off the mesh — written down as ±1 in the file.
+
+**Every number carries its source** (`sources` S1-S12 in the file, a `_src`
+beside every value): OSM's single outline with no height and no parts, the
+snapshot's 20.5 m (Overture's guess, 2.8× short), SkyscraperPage's 191 ft /
+17 floors, the architect's page, Humphreys' photographs in `research/`, the
+roads file, the Earth captures, the westcampus bake's crops and TIER4's
+nadir reads, Rambler's review, the West Campus SOLID trios. Derived numbers
+say derived (the per-floor heights); unknowns say unknown (the garage louvre
+pitch; four unphotographed faces wear the plainest skin and say so).
+
+**Why quads and no texture plumbing.** The brief allowed a canvas-texture
+path in the shared shader. Measured against the cameras this app is judged
+from — the oblique at ~0.3 m/px and the walking height at ~0.05 m/px —
+every feature the photographs show is at least 0.5 m on its short side (a
+2.2 × 0.56 m panel, a 0.9 m slit, a 0.5 m rust strip, a 0.18 m sign dot),
+all legible as geometry; brick coursing at 7 cm is under a pixel at every
+camera here. So `slopes.js` is untouched: a cell tiler cuts each face at
+every course, bay, mullion and window edge and emits one quad per cell,
+windows recessed with four reveal strips, nothing coplanar with anything.
+
+**Three look-fix cycles, ours beside Earth.** (1) The name read backwards on
+both faces of the corner bay: letters advanced along the wall's +T, which
+for a clockwise plan is the viewer's leftward direction; text now runs along
+(−N) × up whichever way the wall winds. (2) The pixel field decided one
+0.56 m plank at a time read as noise from 220 m; the photographs' dark runs
+are two courses by two-to-four planks, so the tone is decided per 2×2 macro
+cell (`skin.macro`) with the plank joints inside it still drawn for the
+walk-up, and the weights re-read for daylight — the bake's blue-hour
+clusters had split the white field into pale and warm by lighting, not
+material. The slit windows had the dark plank's luma and vanished into it:
+glass is #262e34 now. (3) Condenser clusters on every roof where the nadir
+has them (`roofItems` with a `grid`), the most-seen surface from the app's
+own camera.
+
+**The switch and what it hides.** `?apartments=0` at load or
+`window.APARTMENTS.on = false` at runtime. The flat prism goes by an id
+filter on `buildings-3d` and `buildings-roof` (heroes.js's pattern, with
+slopes-roofs.js's save-and-restore), the westcampus bands by a name filter
+on `wc-wall`, `wc-wall-cap`, `wc-solid`, `wc-detail`; both are restored when
+the switch goes off, and the generator waits for the westcampus pass to
+have booted before it filters (40 s, then it stops waiting — `?westcampus=0`
+never boots it). The flight collision is rebuilt with the 58.2 m top,
+carrying westcampus's own corrected heights so Rambler's does not drop.
+
+**The gate, `scripts/verify/slopes-layer.mjs` section 2b:** built (blocks,
+faces, windows, balconies, signs, ≥20,000 triangles, a group of its own,
+the top between 58 and 59 m), the filters in place while it draws, one page
+shot twice is one frame, ON vs OFF differs at the pose, `APARTMENTS.on =
+false` removes the group and restores every filter it touched (compared by
+content — buildings-3d's filter is also edited by the stadium and westcampus
+passes whose clause order is a race, so the generator's one-id clause must be
+gone and the id must appear exactly as often as on the `?apartments=0` page;
+wc-wall's filter, which has no race, byte-identical), the runtime-off frame
+equals the `?apartments=0` frame to the atlas residue, and with `--against`
+the `?apartments=0` frame equals the main archive's at the pose. `--break`
+gains a sixth sabotage (`APARTMENTS.on = false` before the ON frame) and its
+count goes from 12 to 14.
+
+**The gate on hardware (RTX 3050 Ti, `VERIFY_GL=hardware`), first run:
+53/56.** Every apartments line green but one: built (9 blocks, 55 faces,
+1,584 windows, 26 balconies, 4 signs, 46,483 triangles, top 58.2), filters in
+place, one page shot twice 0 px, ON vs OFF 308,875 of 1,296,000 px (max Δ
+207), the restore exact (group gone, one-id clause gone, the id ×1 vs ×1,
+wc-wall identical). The red one held the runtime-off frame against the
+`?apartments=0` load to the atlas residue (≤ 1,200 px, Δ ≤ 16) and measured
+933 px at Δ 51 — the wrong contract for a runtime-off page against a load,
+which the switch section itself measures at mall-cruise at 6,134 px / Δ 78
+and holds to a 7,000 px ceiling; the line uses that ceiling now (`ded2267`
+→ the fix commit) and quotes its 933. The other two reds: the shared scene
+line asked for four groups and found five (the apartments group is now in
+`WANT_GROUPS`), and the 404 for `js/slopes-art.js` on every page load — the
+other builder's file, whose tag this lane committed per the brief. **Second run, `--against` a `git archive main` served on a second port:
+56/58**, every apartments line green — built, filtered, one page shot twice
+0 px, ON vs OFF 308,875 px, the restore exact, the runtime-off frame 933 px
+under the 7,000 ceiling — except the archive comparison itself:
+`?apartments=0` against the archive's frame at the pose was 23,584 px at
+Δ 115. Diffed with a bounding box: 23,572 of them in the top 300 rows and 12
+elsewhere — the horizon, nothing on The Standard. First read as the ridge
+courses main still draws; a third run with the archive page's courses
+switched off reproduced the identical 23,584, which is what showed the
+archive had no `SLOPES_ROOFS` at all: this worktree's local `main` ref is
+`e232953`, the PRE-slopes main — the very build the gate's own bake-identity
+lines are written against (`?slopes=0` must equal it, so it must carry no
+layer) — and the horizon difference is mesh roofs against slab roofs. The
+branch was cut from `8b4b90c`, main with the slopes layer and the courses
+on. So the block asks two questions now (`9d5a56c`, then the flag commit):
+`--against-tip URL` is a `git archive 8b4b90c`, whose page gets its courses
+switched off before its frame (this line is about the apartments switch;
+the `courses` line owns the courses), and ours at `?apartments=0` must be it
+to the atlas residue; against the pre-slopes `--against` archive the honest
+question is the bake-identity one, ours at `?apartments=0&slopes=0` equal to
+it at this pose. **Fourth run, both archives served (`--against http://127.0.0.1:8462`
+the pre-slopes `e232953`, `--against-tip http://127.0.0.1:8463` the branch
+base `8b4b90c`): 58/59.** Every apartments line green; both archive lines 0
+of 1,296,000 pixels, max channel Δ 0 — with the switch off the picture is
+what main draws, to the pixel, and with the layer off too the data, the
+index and the tags changed nothing the slabs draw at this pose. The one red
+is the 404 below. Runs: 53/56, 56/58, 56/58, 58/59 — RTX 3050 Ti, hardware
+GL, the pose loaded fresh for every frame.The other red on every run is the 404 for
+`js/slopes-art.js`, the other builder's file, whose tag the brief asked this
+lane to commit first; it goes green the moment that file lands.
+
+**`westcampus-probe.mjs` on hardware: 19/21.** The two reds are not this
+lane's: `all three layers visible` fails because `js/lod.js` line 91 tiers
+`wc-wall-cap` and the probe's pose (zoom 16.1) is above that tier's altitude
+— the probe run against a `git archive main` (e232953) served on a second port gives the same red, 20/21 — and `no console errors` is the 404 for `js/slopes-art.js`,
+the other builder's file, whose tag the brief asked this lane to commit
+first. The probe's own height line (`nothing stands above final_height`)
+passes: the generator changes neither the westcampus file nor the buildings
+source.
+
+**Next buildings**, from the round's ranked list (`scratchpad apts/list`):
+the twelve after The Standard, biggest first, mixing the 24 TIER-authored
+West Campus towers (their `bake_westcampus.py` entries are a sourced head
+start for the deck and the palette, and a warning about the massing) with
+the big unauthored ones — Jester West, The Villas on Guadalupe, San Jacinto
+Hall, Kinsolving, Jester East, GrandMarc, The Mark. The method is in
+`docs/apartments.md` ("Authoring a building when OSM has one outline"): one
+outline in, the frame line off the console, a stated storey count, a
+rectified nadir for the plan, two obliques and the photographs for the
+faces, inherited numbers kept only where they land on the imagery, tones
+from existing crops before new samples, the podium split where its height
+changes and shared faces skipped, two looks beside the reference.
+
+**Not done, said plainly.** No street-level Google Earth pose (the research
+pass found it stalls at this block; the corner photograph stood in). Tower
+B's and the bars' heights are ±1 storey off the mesh. The corner bay's
+glazed corner stack, the deck's furniture and palms, and the courtyard
+paving are not drawn. The `byPreset` density is reserved, not wired: the
+generator rebuilds on a preset change but draws the same geometry.
+`applyWestcampusSettings()` (the perf A/B, nothing on the site) rewrites
+buildings-3d's filter from its own snapshot and would drop this generator's
+clause until the next `applySlopesApartments()`.
+
+Branch `acer/apts`; commits `2cc1b29` (tags + courses off), `66ce475` (the
+generator and the data), `e170560` (the second and third look, the doc, the
+frames), `ded2267` (the gate block), `5866e0a` (the against page settling
+at once — its message claims two more edits that a failed patch did not
+apply, and the shell ate two backticked phrases in it; `45918c7` is those
+two edits, said plainly), `312fe80` (the doc's before/after pair from the
+gate's own frames), `9d5a56c` (the against page in this branch's courses
+state). Working frames stayed in the scratchpad; the six the doc cites are
+in `docs/shots/` as JPEGs under 170 KB each.
+
 ## 216. Sep 4 2026 — the real-slopes pass shipped: `docs/real-slopes.md`, the cited frames, the PR, and the live site checked with our own eyes (`acer/slopes` → `main`)
 
 Nothing in `js/`, `data/`, `index.html` or `scripts/` changed in this entry.
