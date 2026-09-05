@@ -126,8 +126,8 @@
   "colours": {
     "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given.",
     "panel": {
-      "hex": "#e3e0d8",
-      "_src": "the near-white fibre-cement panel field. The SAME panel in S5 reads #faf6eb in full sun (crop 445,420-505,860, the slot end wall) and #ada9a1 on the shaded long face (crop 560,600-600,625); the day tone is set between the two, nearer the sunlit read, the way the westcampus bake lifts a blue-hour crop."
+      "hex": "#e2e4e5",
+      "_src": "the near-white fibre-cement panel field. The SAME panel in S5 reads #faf6eb in full sun (crop 445,420-505,860, the slot end wall) and #ada9a1 on the shaded long face (crop 560,600-600,625). LOOK-FIX 2: it was entered at #e3e0d8, which carries S5's warm cast (R-B = +11) into a building that is not cream, and from every camera the tower came out beige beside its grey neighbours. The hue is settled off S11 instead, where the panel can be compared with a surface of known colour in the same light: in n2_zoom the sunlit panel is #9aaaba and #9cadbd (R-B = -32, -33) and the white TPO roof membrane four metres away is #99a7b5 (R-B = -28) while the asphalt is neutral (-1) - so Earth's whole frame carries a -30 blue cast and the panel and the white membrane are the SAME hue under it. S2's own earlier read of this tower (#93a3ac) is cool for the same reason. So the day tone keeps S5's value and drops S5's light: neutral, a hair cool, at the luminance the sunlit and shaded reads bracket."
     },
     "panelGrey": {
       "hex": "#98a0a4",
@@ -144,6 +144,10 @@
     "capBlue": {
       "hex": "#2c6f90",
       "_src": "the teal-blue cladding on the cap box over the core. S6 crop 430,270-545,330 clusters at #22749d for the lit face with #222b36 for its soffit."
+    },
+    "mullion": {
+      "hex": "#2f353c",
+      "_src": "the dark anodised curtain-wall frame of the corner amenity volume (S8): the mullions and the floor-line bands read black against the glass. S8 is blue hour, so the read is taken RELATIVE to a surface measured in daylight in the same frame - the podium panel, #a2a6a8 by day and #7ca0b6 in S8 crop 720,880-780,940, a per-channel ratio of 1.31 / 1.04 / 0.92. The mullion band (crop 470,855-600,868, 10th percentile #1e2e46) carried through that ratio is #273040; entered a step lighter and less blue because a 0.1 m frame at this camera is one pixel wide and reads as its own edge, not as its darkest core."
     },
     "coping": {
       "hex": "#adb3b7",
@@ -165,6 +169,12 @@
       "#e9c27a"
     ],
     "_storeGlass_src": "the ground-floor storefront: S8 crop 250,1180-700,1260 at blue hour is #383129 to #564e46 with the interior lit warm behind it, which is the night value. LOOK-FIX 1: the day value was that blue-hour read (#3f4c55) and the glazed corner volume came out a black rectangle at midday; a shopfront glass in daylight carries the sky, so it is lifted to #55646d.",
+    "loungeGlass": [
+      "#4a5b68",
+      "#586170",
+      "#a98a5c"
+    ],
+    "_loungeGlass_src": "the glass of the corner amenity volume. DERIVED, not inverted from a measurement: S8 is the only photograph of it and it is blue hour, and a large reflective plane at blue hour shows the sky, not the surface (S8 crop 470,880-540,925 is #657fab, the sky), so the daylight value cannot be read off it the way the panel's can. It is placed between the two glasses on this building that WERE derived - the punched window (#2a3a45) and the ground-floor storefront (#55646d) - because it is a full-height room glass seen against a lit interior. The night value is the warm downlit lounge S8 shows through it.",
     "stairGlass": [
       "#6d808c",
       "#6f7680",
@@ -319,6 +329,19 @@
       "glass": "storeGlass",
       "reveal": 0.22,
       "_src": "the dark glazed ground floor and the glazed corner volume above it (S8): mullions at about 1.6 m with a transom near three quarters height and a grey fascia under the floor above."
+    },
+    "lounge": {
+      "kind": "storefront",
+      "mullion": 1.1,
+      "mullionW": 0.1,
+      "fascia": 0.3,
+      "plinth": 0.0,
+      "transom": 0.7,
+      "fasciaTone": "mullion",
+      "frame": "mullion",
+      "glass": "loungeGlass",
+      "reveal": 0.1,
+      "_src": "ONE STOREY of the corner amenity volume (S8). Counted at the near corner of S8, where a storey is 240 px: the volume is three panes wide on each face, so the mullion pitch is 1.10 m, and there is a dark band at every floor line with the transom about seven tenths of the way up the glass. It is a per-storey rule because the volume is FOUR of them stacked; see the block's own note."
     },
     "stair": {
       "kind": "storefront",
@@ -1375,29 +1398,6 @@
         "u1": null,
         "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
       },
-      "overrides": [
-        {
-          "region": [
-            56.2,
-            59.4,
-            35.79,
-            35.79
-          ],
-          "bands": [
-            {
-              "z0": 0.0,
-              "z1": 17.66,
-              "skin": "storefront"
-            },
-            {
-              "z0": 17.66,
-              "z1": 29.72,
-              "skin": "fieldGrey"
-            }
-          ],
-          "_src": "the corner volume returns 3.2 m round this step too (S8)"
-        }
-      ],
       "roofTone": "terrace",
       "parapet": 1.05,
       "parapetTone": "coping",
@@ -1508,8 +1508,28 @@
           "bands": [
             {
               "z0": 0.0,
-              "z1": 17.66,
+              "z1": 5.6,
               "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 8.62,
+              "skin": "lounge"
+            },
+            {
+              "z0": 8.62,
+              "z1": 11.63,
+              "skin": "lounge"
+            },
+            {
+              "z0": 11.63,
+              "z1": 14.64,
+              "skin": "lounge"
+            },
+            {
+              "z0": 14.64,
+              "z1": 17.66,
+              "skin": "lounge"
             },
             {
               "z0": 17.66,
@@ -1517,20 +1537,40 @@
               "skin": "fieldGrey"
             }
           ],
-          "_src": "the glazed corner volume at Nueces and 23rd: S8 shows it wrapping the corner for about four storeys above the storefront, so 0 to 17.66 m = the top of floor 5."
+          "_src": "the glazed amenity volume on the corner of 23rd and Nueces. LOOK-FIX 2, three things. (1) It was ONE storefront band from the pavement to 17.66 m, which this generator draws as a single 17.7 m pane with one transom in it - a shopfront the height of a six-storey building. S8 shows four stacked storeys of glass with a dark band at every floor line, so it is four bands of the `lounge` skin, one per storey, over the recessed storefront ground floor. (2) It was 11.3 m long on the 23rd Street face. It is about 3 panes on each face in S8, and in S11's own frame (earth n2, the base of the north elevation resampled: the 35.79 m face spans 715 px, so 20 px/m) the dark glazed corner is 90 px = 4.5 m wide - so 4.20 m, +/- 1 m. (3) On the Nueces face it was carried across two step blocks for 6.3 m; it is now the 6-storey step's own width, 3.14 m, which is inside the same tolerance and leaves no seam mid-volume. On the Nueces face the volume is this step's own width, u 59.40 to 62.54 = 3.14 m."
         },
         {
           "region": [
             62.54,
             62.54,
-            24.5,
+            31.59,
             35.79
           ],
           "bands": [
             {
               "z0": 0.0,
-              "z1": 17.66,
+              "z1": 5.6,
               "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 8.62,
+              "skin": "lounge"
+            },
+            {
+              "z0": 8.62,
+              "z1": 11.63,
+              "skin": "lounge"
+            },
+            {
+              "z0": 11.63,
+              "z1": 14.64,
+              "skin": "lounge"
+            },
+            {
+              "z0": 14.64,
+              "z1": 17.66,
+              "skin": "lounge"
             },
             {
               "z0": 17.66,
@@ -1538,7 +1578,7 @@
               "skin": "fieldGrey"
             }
           ],
-          "_src": "the same volume returning 11.3 m along the 23rd Street face (S8)"
+          "_src": "the glazed amenity volume on the corner of 23rd and Nueces. LOOK-FIX 2, three things. (1) It was ONE storefront band from the pavement to 17.66 m, which this generator draws as a single 17.7 m pane with one transom in it - a shopfront the height of a six-storey building. S8 shows four stacked storeys of glass with a dark band at every floor line, so it is four bands of the `lounge` skin, one per storey, over the recessed storefront ground floor. (2) It was 11.3 m long on the 23rd Street face. It is about 3 panes on each face in S8, and in S11's own frame (earth n2, the base of the north elevation resampled: the 35.79 m face spans 715 px, so 20 px/m) the dark glazed corner is 90 px = 4.5 m wide - so 4.20 m, +/- 1 m. (3) On the Nueces face it was carried across two step blocks for 6.3 m; it is now the 6-storey step's own width, 3.14 m, which is inside the same tolerance and leaves no seam mid-volume. On the 23rd Street face it returns 4.20 m from the corner, v 31.59 to 35.79."
         }
       ],
       "roofTone": "terrace",
