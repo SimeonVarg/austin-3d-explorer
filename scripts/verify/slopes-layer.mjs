@@ -168,6 +168,11 @@
  *   5. data/entrances.geojson is fetched a second time from the page, which is
  *      exactly what js/slopes-arches.js did until 2026-09-04: the `one fetch`
  *      line (1).
+ *   6. APARTMENTS.on = false on the apartments page before its ON frame, so
+ *      The Standard is the flat prism and the westcampus bands again while
+ *      the gate expects the mesh: the `apartments:` build, filter and
+ *      ON-vs-OFF lines (3). (Added 2026-09-05 with section 2b; the count
+ *      below is 15 with it.)
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
  * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
  * the flat line: 38/48 with --break (the ten intended reds and nothing
@@ -1116,13 +1121,115 @@ if (AGAINST) {
 }
 if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// 2b. The apartments generator (js/slopes-apartments.js): The Standard.
+// ═══════════════════════════════════════════════════════════════════════
+// The first building authored from sources rather than baked from a tag
+// (data/apartments/the-standard.json, docs/apartments.md). Measured at the
+// brief's Google Earth pose, @30.28699,-97.74578,190a,220d,35y,45h,55t —
+// the oblique from the south-west, 220 m out at 55° — carried to MapLibre
+// as zoom 18.66 (camera distance 1.5·900 px · 67,580/2^z m, the same
+// height→zoom arithmetic the mall-cruise pose was matched with).
+//
+// What is asserted: the generator built the building (its blocks, faces,
+// windows, balconies and signs, in a group of its own), the flat prism's id
+// is filtered out of buildings-3d and buildings-roof and the westcampus
+// bands out of the four wc- layers while it draws; ON and OFF differ at the
+// pose (so it is drawing something big); APARTMENTS.on = false at runtime
+// removes the group and restores every filter it touched to what a page
+// loaded with ?apartments=0 carries; and, with --against, ?apartments=0
+// equals the main archive's frame at the pose to the atlas residue — the
+// bake-identity contract, for this generator.
+//
+// The filters are compared by CONTENT, not byte-for-byte: buildings-3d's
+// filter is also edited by the stadium and westcampus passes, whose clauses
+// land in whichever order their fetches resolve (js/westcampus.js records
+// the race), so two page loads can legitimately carry the same clauses in a
+// different order. The generator's own clause is a one-id literal; the
+// westcampus clause holds the same id among 24. Off, the one-id literal must
+// be gone and the id must appear exactly as often as on the ?apartments=0
+// page (once: westcampus's); wc-wall's filter has no such race and is
+// compared exactly.
+const STANDARD = { center: [-97.74578, 30.28699], zoom: 18.66, pitch: 55, bearing: 45 };
+const APT_ID = '36365d18-2eb6-43c5-b042-6197e7767e17';
+const APT_NAME = 'The Standard';
+const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced preset)
+const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
+const APT_OWN_CLAUSE = JSON.stringify(['!', ['in', ['get', 'id'], ['literal', [APT_ID]]]]);
+const countOf = (str, sub) => str.split(sub).length - 1;
+const settledApts = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
+  && window.slopesApartments && window.slopesApartments.count.done, null, { timeout: 120000 });
+const aptState = pg => pg.evaluate(([id, name]) => {
+  const m = window.__map, A = window.slopesApartments;
+  const filt = k => JSON.stringify(m.getFilter(k) || null);
+  const st = window.slopes ? window.slopes.stats().groups.find(g => g.name === 'slopes-apartments') : null;
+  return { count: A ? A.count : null, built: A ? A.built : [], filtered: A ? A.filtered : null,
+           on: !!(window.APARTMENTS && window.APARTMENTS.on),
+           b3d: filt('buildings-3d'), roof: filt('buildings-roof'), wc: filt('wc-wall'), wcCap: filt('wc-wall-cap'), wcSolid: filt('wc-solid'), wcDetail: filt('wc-detail'),
+           groups: window.slopes ? window.slopes.root.children.map(g => g.name) : [], tris: st ? st.triangles : 0, visible: st ? st.visible : false };
+}, [APT_ID, APT_NAME]);
+async function standardFrame(url, name, before) {
+  const pg = await open(url);
+  await settledApts(pg).catch(() => {});
+  if (before) await before(pg);
+  await pose(pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);
+  await pg.waitForTimeout(3000); await pg.evaluate(() => window.__settle(4000));
+  return { pg, f: await snap(pg, name) };
+}
+const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
+  if (BREAK) {
+    await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
+    await pg.waitForTimeout(800);
+    console.log('--break: APARTMENTS.on = false — The Standard is the flat prism and the westcampus bands again');
+  }
+});
+const apts = await aptState(AP.pg);
+const c = apts.count || {};
+check('apartments: The Standard is built — one building of blocks, faces, windows, balconies and signs, in a group of its own that is drawing',
+  c.done && c.buildings === 1 && c.blocks >= 8 && c.faces >= 40 && c.windows >= 1000 && c.balconies >= 20 && c.signs === 4 && c.triangles >= APT_TRIS_MIN
+  && apts.groups.includes('slopes-apartments') && apts.tris >= APT_TRIS_MIN && apts.visible && apts.built.some(b => b.name === APT_NAME && b.top > 58 && b.top < 59),
+  `${c.buildings} building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); tops ${JSON.stringify(apts.built)}`);
+check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, and the westcampus bands out of the four wc- layers by name',
+  apts.filtered === true && apts.b3d.includes(APT_OWN_CLAUSE) && apts.roof.includes(APT_OWN_CLAUSE)
+  && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME)),
+  `filtered ${apts.filtered}; own clause in buildings-3d ${apts.b3d.includes(APT_OWN_CLAUSE)}, buildings-roof ${apts.roof.includes(APT_OWN_CLAUSE)}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}`);
+const fAptAgain = await snap(AP.pg, 'apts-on-again');
+await AP.pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); window.__map.triggerRepaint(); });
+await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(3000));
+const fAptOff = await snap(AP.pg, 'apts-live-off');
+const offA = await aptState(AP.pg);
+await AP.pg.close();
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off');
+const urlA = await aptState(C2.pg);
+await C2.pg.close();
+const dAptN = diffPNG(AP.f, fAptAgain);
+check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
+const dAptLive = diffPNG(AP.f, fAptOff);
+check('apartments: ON and OFF differ at the pose — the mesh is drawing The Standard', dAptLive.pixels > APT_LIVE_PX, `${dAptLive.pixels} of ${dAptLive.total} pixels change when APARTMENTS.on goes false (max channel Δ ${dAptLive.maxChannelDiff})`);
+check('apartments: APARTMENTS.on = false removes the group and restores every filter it touched — the one-id clause is gone from buildings-3d and buildings-roof, the id is left exactly as often as the ?apartments=0 page carries it, and wc-wall\'s filter is byte-identical to that page\'s',
+  !offA.groups.includes('slopes-apartments') && offA.filtered === false
+  && !offA.b3d.includes(APT_OWN_CLAUSE) && !offA.roof.includes(APT_OWN_CLAUSE)
+  && countOf(offA.b3d, APT_ID) === countOf(urlA.b3d, APT_ID) && countOf(offA.roof, APT_ID) === countOf(urlA.roof, APT_ID)
+  && offA.wc === urlA.wc && offA.wcSolid === urlA.wcSolid
+  && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
+  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(APT_OWN_CLAUSE) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
+const dAptSwitch = diffPNG(fAptOff, C2.f);
+check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose (to the facade atlas\' two-state residue)', zeroButAtlas(dAptSwitch), `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff})${residueNote(dAptSwitch)}`);
+if (AGAINST) {
+  const G = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+  await G.pg.close();
+  const dAptMain = diffPNG(C2.f, G.f);
+  check('apartments (--against): ?apartments=0 is the main archive\'s frame at the pose (to the facade atlas\' two-state residue)', zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+}
+
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
 report();
 
 function report() {
   let bad = 0;
   for (const r of results) { console.log(`${r.pass ? ' PASS ' : '*FAIL '} ${r.name}\n         ${r.detail}`); if (!r.pass) bad++; }
-  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof, courses and one-fetch lines are meant to be red — 12 of them)' : ''}`);
+  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof, courses, one-fetch and the three apartments lines are meant to be red — 15 of them)' : ''}`);
   browser.__done();
   process.exit(bad ? 1 : 0);
 }
