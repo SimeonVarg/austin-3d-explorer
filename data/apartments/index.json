@@ -4,18 +4,21 @@
     "the-standard.json",
     "the-callaway-house-austin.json",
     "the-castilian.json",
-    "san-jacinto-hall.json"
+    "san-jacinto-hall.json",
+    "the-villas-on-guadalupe.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
     "11b2bb80-d577-4da7-8b10-d27385f80c4b",
     "307878e3-63d2-471c-83d1-6b405de9e7b7",
-    "93cc2567-aa16-4909-ace6-fa13ff385bde"
+    "93cc2567-aa16-4909-ace6-fa13ff385bde",
+    "84a96de1-f96c-453d-9b87-b49b0579af73"
   ],
   "replacedNames": [
     "The Standard",
     "The Callaway House Austin",
     "The Castilian",
-    "San Jacinto Hall"
+    "San Jacinto Hall",
+    "The Villas on Guadalupe"
   ]
 }
