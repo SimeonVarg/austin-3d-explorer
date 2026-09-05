@@ -1,0 +1,758 @@
+{
+ "_readme": "Moontower, 2204 San Antonio St (Gensler design architect, Mark Hart Architecture architect of record, LV Collective developer, 2020), as js/slopes-apartments.js draws it. An 18-storey C/U-shaped student tower over a two-storey dark-glazed base, with FOUR LEVELS OF PARKING BELOW GRADE - so there is no garage screen anywhere on the facade, which is what makes this building read as a tower standing straight on the street. The skin is a two-tone fibre-cement rainscreen: near-white panel blocks two storeys tall and one bay wide, staggered across a charcoal field. The U opens EAST on to San Antonio Street with a level-3 amenity terrace in the notch; a rooftop pool deck sits at the south end under a white open frame carrying the lit orange MOONTOWER wordmark. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=45.58, W=33.81, +u at bearing 184.8 deg, so u=0 is the NORTH end and +u runs SOUTH; v=0 is the WEST (alley) edge and +v runs EAST to San Antonio Street. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+ "id": "b423d7a9-4059-44b3-8fed-3d088563c870",
+ "name": "Moontower",
+ "address": "2204 San Antonio St, Austin, TX 78705",
+ "sources": {
+  "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature b423d7a9-4059-44b3-8fed-3d088563c870: name 'Moontower', num_floors 18, building_class apartments, final_height 57.3, source_height 'overture', facade tones wd #90897c / wg #a29079 / wn #27272a. The footprint is a clean 4-vertex rectangle, 45.58 x 33.81 m (1,541 m2) as obbOf fits it, long axis at bearing 184.8 deg. NOTE the snapshot's source_height label is wrong: S2 shows 57.3024 is an OSM height tag imported from the City of Austin, not an Overture guess, which is why it is kept unaltered.",
+  "S2": "OpenStreetMap way 380922419 (Overpass, read 2026-09-05): building=apartments, building:levels=18, height=57.3024, name=Moontower, addr 2204 San Antonio Street, source='City of Austin', import=yes. No building:part anywhere on it.",
+  "S3": "markhartarch.com/moon-tower (Mark Hart Architecture, architect of record): Moontower, 2204 San Antonio St., multifamily, 204,552 SF, built 2020. 'The U-shaped building footprint maximizes daylight and exterior views, with corner units featuring expansive glazing oriented toward views of the UT Tower.' Multi-function lobby, co-working study lounge, fitness center, outdoor terrace, rooftop pool deck.",
+  "S4": "Mark Hart Architecture photograph 'Moontower Exterior.jpeg' (ref/mha_ext1.jpg in the session scratchpad, 2500x1665, flat daylight, verticals corrected): the whole EAST elevation from San Antonio Street, near head-on from an elevated camera - the two wings, the recessed centre with its regular punched-window grid, the level-3 amenity terrace in the notch, the two-storey glazed base, the white crown band and the orange MOONTOWER sign at the SOUTH end. This is the measuring frame for every height and every colour below.",
+  "S5": "Mark Hart Architecture photograph 'Moontower Exterior2.jpeg' (ref/mha_ext2.jpg, 1832x2420): an oblique from the EAST-NORTH-EAST - the NE corner glazing stack full height, the NORTH elevation's horizontal banding, the level-3 terrace with its turf, planters and chequerboard rug seen into the notch, the ground-floor storefront, and the white open crown frame with the sign standing on it. Orientation fixed by three things that all agree: the neighbouring parking garage with the curved metal screen stands NORTH of Moontower (S8 nadir), the tower crane and the beige mid-rise stand SOUTH of it, and the red-tile church roof lies EAST across San Antonio Street.",
+  "S6": "lvcollective.com/work/moontower-austin (LV Collective, the developer): '166 units and 567 beds across 17 residential floors, as well as four floors of below-grade parking'; 'The eighteenth-floor amenity package includes a zen yoga studio flooded with natural light, a moody spin room ... and an impressive rooftop pool deck with panoramic views of UT campus'; a creative/study floor, a fitness center and an outdoor terrace. Photograph 'MOONTOWER5-Edit' (ref/lv_MOONTOWER5-Edit): the same EAST elevation at dusk, which is where the sign's extent on the wall was measured. Photograph 'MOONTOWER76' (ref/lv_MOONTOWER76): the crown close up - a white open frame of piers and a deep beam, glass guardrail and a tree behind it, and the orange channel letters standing ON TOP of the beam.",
+  "S7": "gensler.com/projects/moontower-student-housing (Gensler, design architect): multi-function lobby, co-working study lounge, fully equipped fitness center, outdoor terrace, rooftop pool deck.",
+  "S8": "Google Earth 3D, imagery dated 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() (toDataURL is black on Earth): a nadir on the snapshot centroid 30.285666,-97.743148 and obliques from the SE, SW and NW. The nadir's own scale bar measures 133 px = 20 m, i.e. 0.15038 m/px, and at that scale the snapshot footprint drawn AT GROUND LEVEL lands on the roof edges to within a few pixels (refs/ov2_c.png) - the frame is effectively orthographic, so it was resampled straight into this file's (u,v) frame at 10 px/m with a 5 m grid (refs/plan_grid.png) and every plan number below was read off that gridded plan in metres.",
+  "S9": "scripts/bake_westcampus.py BUILDINGS['Moontower'] and scripts/bake_entrances.py WC_LOBBIES: base band 7.40 m [sourced], lobby on the EAST elevation at -97.74295,30.28567, a lit warm wordmark 13.0 m long by 2.6 m tall on the parapet, 'seventeen residential floors over four levels of BELOW-grade parking, so no dk band', 'two-tone rainscreen: near-white fibre-cement panel against a charcoal panel in broad vertical strips, over a two-storey dark glazed base'. That file's own note says the two-tone split was built and then DELETED because there was no photograph of Moontower in research/ to say what the split was - S4 and S5 are that photograph, and the split is measured here rather than assumed.",
+  "S10": "js/westcampus.js WC_SIGN_WARM = ('#8a4a22', '#b4622c', '#ff8a3c'), the lit-orange trio the westcampus bake already uses for this building's wordmark; only its night value is taken here, because the day and golden values are measured off S4/S6 instead.",
+  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7433434,
+    30.2854742
+   ],
+   [
+    -97.7429929,
+    30.2854491
+   ],
+   [
+    -97.7429536,
+    30.285857
+   ],
+   [
+    -97.7433041,
+    30.2858822
+   ],
+   [
+    -97.7433434,
+    30.2854742
+   ]
+  ],
+  "_src": "S1 verbatim. In (u,v) the four corners are (45.58,0) (45.57,33.81) (0,33.81) (0,0) - the polygon IS its own oriented bounding box to within 1 cm, so every block below can be a rectangle or an axis-parallel polygon in the frame."
+ },
+ "frame": "obb",
+ "_frame_src": "obbOf(ring) as the generator computes it: L=45.58, W=33.81, +u at bearing 184.8 deg. +u runs SOUTH, so u=0 is the north end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west (alley) edge and v=33.81 is the San Antonio Street edge. Cross-checked against data/roads.geojson: San Antonio Street's nearest centreline vertex is 35 m EAST of the centroid, Nueces Street 76 m west, West 22nd Street 67 m south - and against bake_entrances.py, which puts this building's lobby on side 'E' at -97.74295 (the v=33.81 edge).",
+ "levels": {
+  "floors": [
+   0.0,
+   3.7,
+   7.4,
+   10.22,
+   13.04,
+   15.86,
+   18.68,
+   21.5,
+   24.32,
+   27.14,
+   29.96,
+   32.78,
+   35.6,
+   38.42,
+   41.24,
+   44.06,
+   46.88,
+   49.7,
+   53.3
+  ],
+  "_src": "Measured on S4, which has corrected verticals and is therefore a true elevation vertically. The recessed centre's punched-window rows sit 57.4 px apart in that frame over fourteen clear steps. Two anchors fix the scale: the highest parapet at y=300 is the 57.30 m of S1/S2, and the level-3 terrace floor at y=1322 - the roof of the glazed base - which lands at 7.15 m, against the 7.40 m base band bake_entrances.py already states from its own source (S9). Scale 0.0491 m/px; the ground line falls at y=1470, which the photograph agrees with. So: 7.40 m of two-storey base (two glazed levels of 3.70 m, both measured in S4 and S5), then 2.82 m floor to floor. Levels 3 to 17 are the fifteen punched-window residential floors; level 18 is the taller fully-glazed amenity floor S6 describes (yoga, spin, lounge), 49.70 to 53.30 = 3.60 m, which is why the last step in this array is not 2.82. 2 + 15 + 1 = 18, which is S2's building:levels and S1's num_floors. Uncertainty: plus or minus one floor on where level 18 starts.",
+  "ground": 7.4,
+  "terrace": 7.4,
+  "bandBreak": 18.68,
+  "roof": 53.3,
+  "crown": 57.3,
+  "_heights_src": "roof 53.30 + the crown zone to 57.30 = S1/S2's 57.3024, an OSM height tag imported from the City of Austin. bandBreak 18.68 is the floor line where the white-dominant lower zone ends: measured 11.5 m of white band above the base on the east elevation (S4, four floors), and about thirteen floors below the parapet on the north elevation (S5) - the two readings bracket level 7, and this is that floor line. Plus or minus one floor."
+ },
+ "_window_src": "bay 2.75 m: the north wing's east face is 19.3 m wide and carries seven window columns in S4 (19.3/7 = 2.76). Window 1.25 x 1.60 m with a 0.85 m sill, measured on the recessed centre's regular grid in S4 at 0.0491 m/px.",
+ "colours": {
+  "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Each hex is a k-means cluster centre over a named rectangle of a named photograph, not a single pixel - the share of the rectangle each cluster took is quoted because the two panel tones' SHARES are themselves a measurement this file uses (see skins.panel.weights).",
+  "white": {
+   "hex": "#e3dfdc",
+   "_src": "S4, k-means over the north wing's east face (1370,450)-(1745,1300): 48.7% at #e3dfdc. The same run on the south wing (830,430)-(1140,900) gives 51.4% at #e4e0dd and on its lower band 51.7% at #ddd7d3. The near-white fibre-cement rainscreen panel."
+  },
+  "charcoal": {
+   "hex": "#5a5e67",
+   "_src": "S4, the second cluster of those same four runs: #5d6069 (26.0%), #555a63 (29.0%), #5f626a (24.8%), #525761 (25.3%). Entered as their mean. The charcoal rainscreen panel in daylight."
+  },
+  "charcoalShade": {
+   "hex": "#50525b",
+   "_src": "S4, k-means over the RECESSED centre wall (1160,430)-(1350,1290): 66.2% at #50525b. The same panel, one plane back and in its own shade all day, which is why the notch reads darker than the wings and gets its own tone rather than the wings' value."
+  },
+  "glass": {
+   "hex": "#6d878c",
+   "_src": "S4, third cluster of the north wing run: 10.9% at #6d878c - the punched window's grey-green vision glass. The bright reflection cluster (#a1b3b3, 4.8%) is not used."
+  },
+  "frame": {
+   "hex": "#2a3033",
+   "_src": "S4, fourth cluster of the same run: 9.5% at #232e31 - the dark window frames and reveals. Entered a step lighter because that cluster also collects the reveal's own shadow."
+  },
+  "storeGlass": {
+   "hex": "#71836c",
+   "_src": "S4, k-means over the storefront band (1200,1330)-(1700,1420): 28.2% at #71836c - the green-tinted glazing of the two-storey base."
+  },
+  "storeFrame": {
+   "hex": "#33383a",
+   "_src": "S4, same run, the dark mullion clusters #384026 (26.0%) and #11170d (23.1%); entered as a neutral dark between them because those two also carry the tree canopy's green cast."
+  },
+  "plinth": {
+   "hex": "#3a3d42",
+   "_src": "S5, the blank base wall on the elevations with no storefront. Read off that photograph as a dark grey; LOW CONFIDENCE - that base is partly behind cars and a fence in every frame."
+  },
+  "coping": {
+   "hex": "#dcd8d4",
+   "_src": "S4, the crown band (760,300)-(1090,345): 61.1% at #dadadb. The parapet coping and the crown's white beam."
+  },
+  "roofM": {
+   "hex": "#d5d6d0",
+   "_src": "S8, k-means over a clear stretch of the rectified roof plan: 45.0% at #d5d6d0 - the pale single-ply roof membrane."
+  },
+  "mech": {
+   "hex": "#9d9d99",
+   "_src": "S8, the condenser rows and the mechanical penthouse on the same rectified plan; a mid grey read off their tops."
+  },
+  "pool": {
+   "hex": "#7fc4bd",
+   "_src": "S8, the pool rectangle on the rectified plan: #97cdc7 where the sun is on it and #83bfbb in the shaded half; entered between the two."
+  },
+  "turf": {
+   "hex": "#43481d",
+   "_src": "S4, the level-3 terrace's turf (1175,1285)-(1345,1318): 57.0% at #43481d."
+  },
+  "sign": {
+   "hex": [
+    "#b4531a",
+    "#c8621f",
+    "#ff8a3c"
+   ],
+   "_src": "day from S6's MOONTOWER76, k-means on the M's stroke: 67.5% at #aa4a10 - but that frame is golden hour on the letters' shaded side, so the day value is entered a step brighter and warmer. S4's daylight read of the same letters is #d39874, which is that orange washed out by the sky behind it, so the truth sits between the two and this is it. Night #ff8a3c is taken as given from S10, the value the westcampus bake already lights this wordmark with."
+  },
+  "crownRecess": {
+   "hex": "#4b4f55",
+   "_src": "S6's MOONTOWER76: the shadowed opening between the crown frame's white piers. Derived - it is a shadow, not a material."
+  }
+ },
+ "skins": {
+  "_src": "every skin derives its column count from the 2.75 m bay module, never a fixed count.",
+  "panel": {
+   "kind": "pixel",
+   "course": 1.41,
+   "plank": 1.375,
+   "bond": 0.5,
+   "macro": [
+    4,
+    2
+   ],
+   "runMax": 3,
+   "tones": [
+    "white",
+    "charcoal"
+   ],
+   "weights": [
+    0.62,
+    0.38
+   ],
+   "bay": 2.75,
+   "window": {
+    "w": 1.25,
+    "h": 1.6,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "_src": "S4. The decision cell is 4 courses by 2 planks = 5.64 m by 2.75 m = TWO FLOORS BY ONE BAY, which is the size of every white block in the photograph; the runs of one to three cells are why some blocks are one bay wide and some three. course 1.41 = half a floor and plank 1.375 = half a bay are the real panel joints, and they stay drawn inside a cell so the coursing survives a walk-up. weights 0.62/0.38 are the measured cluster shares of white to charcoal on the east face once the glazing clusters are set aside - 65/35 on the north wing, 64/36 on the south wing."
+  },
+  "panelPale": {
+   "kind": "pixel",
+   "course": 1.41,
+   "plank": 1.375,
+   "bond": 0.5,
+   "macro": [
+    4,
+    2
+   ],
+   "runMax": 3,
+   "tones": [
+    "white",
+    "charcoal"
+   ],
+   "weights": [
+    0.72,
+    0.28
+   ],
+   "bay": 2.75,
+   "window": {
+    "w": 1.25,
+    "h": 1.6,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "_src": "the same rule for the lower zone, where S4 measures 68/32 white to charcoal - the base of every elevation is a broad white band with charcoal strips run through it."
+  },
+  "banded": {
+   "kind": "bays",
+   "field": "charcoal",
+   "bay": 2.75,
+   "floorLine": {
+    "h": 0.45,
+    "tone": "white"
+   },
+   "window": {
+    "w": 1.25,
+    "h": 1.6,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "_src": "S5's north elevation above the break: a charcoal field with a thin light line at every floor, not the wings' vertical blocks. A brightness profile down that face finds only two bands bright enough to be white panel - the parapet and the break itself - so the floor lines are entered thin, 0.45 m. The Google Earth oblique from the south-west (S8) shows the WEST elevation wearing the same horizontal banding."
+  },
+  "centreWall": {
+   "kind": "flat",
+   "field": "charcoalShade",
+   "bay": 2.75,
+   "window": {
+    "w": 1.25,
+    "h": 1.6,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "_src": "S4: the back and the two returns of the notch are one flat charcoal plane with a regular punched grid and no panel pattern at all."
+  },
+  "centreGlass": {
+   "kind": "bays",
+   "field": "frame",
+   "bay": 1.4,
+   "window": {
+    "w": 1.25,
+    "h": 2.6,
+    "sill": 0.4
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "reveal": 0.05,
+   "_src": "S4: the notch's back wall is glazed nearly floor to ceiling at the top level - the level-18 amenity floor S6 describes."
+  },
+  "cornerGlass": {
+   "kind": "bays",
+   "field": "frame",
+   "bay": 1.4,
+   "window": {
+    "w": 1.25,
+    "h": 2.3,
+    "sill": 0.35
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "reveal": 0.05,
+   "_src": "S4 and S5: a full-height glazed stack about one bay wide wraps each of the two street corners - S3's 'corner units featuring expansive glazing oriented toward views of the UT Tower', which is east of here. Modelled as floor-by-floor glazing in a dark frame rather than one tall pane, because that is what the mullion pattern in S5 shows."
+  },
+  "store": {
+   "kind": "storefront",
+   "mullion": 2.75,
+   "mullionW": 0.14,
+   "transom": 0.62,
+   "fascia": 0.7,
+   "fasciaTone": "storeFrame",
+   "plinth": 0.25,
+   "glass": "storeGlass",
+   "frame": "storeFrame",
+   "reveal": 0.22,
+   "_src": "S4 and S5: the whole San Antonio Street frontage is a two-storey dark-framed storefront with green-tinted glass, a transom near two thirds up and a shallow dark fascia under the panel wall."
+  },
+  "baseBlank": {
+   "kind": "flat",
+   "field": "plinth",
+   "_src": "S5: away from the street the base is a blank dark service wall - no storefront, and no garage screen anywhere, because all four parking levels are below grade (S6, S9)."
+  },
+  "crownPier": {
+   "kind": "bays",
+   "field": "crownRecess",
+   "bay": 4.6,
+   "strip": {
+    "w": 1.1,
+    "tone": "white",
+    "at": "joints"
+   },
+   "_src": "S6's MOONTOWER76: the crown is an open frame - white piers about 1.1 m wide roughly 4.6 m apart, with the roof lounge and its glass guardrail in shadow behind them."
+  },
+  "crownBeam": {
+   "kind": "flat",
+   "field": "white",
+   "_src": "S6: the deep white beam the piers carry, and the thing the letters stand on."
+  }
+ },
+ "blocks": [
+  {
+   "id": "base",
+   "plan": [
+    0.0,
+    45.58,
+    0.0,
+    33.81
+   ],
+   "z0": 0.0,
+   "z1": 7.4,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.4,
+     "skin": "baseBlank"
+    }
+   ],
+   "faces": {
+    "v1": {
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.4,
+       "skin": "store"
+      }
+     ]
+    }
+   },
+   "roofTone": "roofM",
+   "roofItems": [
+    {
+     "plan": [
+      19.5,
+      26.7,
+      26.2,
+      33.4
+     ],
+     "h": 0.06,
+     "tone": "turf"
+    },
+    {
+     "plan": [
+      19.5,
+      20.6,
+      26.2,
+      33.4
+     ],
+     "h": 0.85,
+     "tone": "turf"
+    },
+    {
+     "plan": [
+      19.4,
+      26.8,
+      33.45,
+      33.78
+     ],
+     "h": 1.05,
+     "tone": "coping"
+    }
+   ],
+   "_src": "the two glazed levels, on the whole footprint - S4 and S5 show the base wall running out to all four lot lines with the tower stepping back only in the notch. Its ROOF at 7.40 m is the level-3 amenity terrace, and it is visible only inside the notch because the tower covers the rest: the turf, its planter strip and the terrace rail are the three roofItems, laid on the notch's own plan. Storefront on v1, the San Antonio Street face, only."
+  },
+  {
+   "id": "tower",
+   "plan": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     45.58,
+     0.0
+    ],
+    [
+     45.58,
+     33.81
+    ],
+    [
+     26.9,
+     33.81
+    ],
+    [
+     26.9,
+     25.6
+    ],
+    [
+     19.3,
+     25.6
+    ],
+    [
+     19.3,
+     33.81
+    ],
+    [
+     0.0,
+     33.81
+    ]
+   ],
+   "z0": 7.4,
+   "z1": 53.3,
+   "bands": [
+    {
+     "z0": 7.4,
+     "z1": 18.68,
+     "skin": "panelPale"
+    },
+    {
+     "z0": 18.68,
+     "z1": 53.3,
+     "skin": "panel"
+    }
+   ],
+   "faces": {
+    "0": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 18.68,
+       "skin": "panelPale"
+      },
+      {
+       "z0": 18.68,
+       "z1": 53.3,
+       "skin": "banded"
+      }
+     ]
+    },
+    "1": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 18.68,
+       "skin": "panelPale"
+      },
+      {
+       "z0": 18.68,
+       "z1": 53.3,
+       "skin": "panel"
+      }
+     ]
+    },
+    "2": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 18.68,
+       "skin": "panelPale"
+      },
+      {
+       "z0": 18.68,
+       "z1": 53.3,
+       "skin": "panel"
+      }
+     ]
+    },
+    "3": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 49.7,
+       "skin": "centreWall"
+      },
+      {
+       "z0": 49.7,
+       "z1": 53.3,
+       "skin": "centreGlass"
+      }
+     ]
+    },
+    "4": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 49.7,
+       "skin": "centreWall"
+      },
+      {
+       "z0": 49.7,
+       "z1": 53.3,
+       "skin": "centreGlass"
+      }
+     ]
+    },
+    "5": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 49.7,
+       "skin": "centreWall"
+      },
+      {
+       "z0": 49.7,
+       "z1": 53.3,
+       "skin": "centreGlass"
+      }
+     ]
+    },
+    "6": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 18.68,
+       "skin": "panelPale"
+      },
+      {
+       "z0": 18.68,
+       "z1": 53.3,
+       "skin": "panel"
+      }
+     ]
+    },
+    "7": {
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 18.68,
+       "skin": "panelPale"
+      },
+      {
+       "z0": 18.68,
+       "z1": 53.3,
+       "skin": "banded"
+      }
+     ]
+    }
+   },
+   "overrides": [
+    {
+     "region": [
+      42.8,
+      45.58,
+      31.0,
+      33.81
+     ],
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 53.3,
+       "skin": "cornerGlass"
+      }
+     ]
+    },
+    {
+     "region": [
+      0.0,
+      2.78,
+      31.0,
+      33.81
+     ],
+     "bands": [
+      {
+       "z0": 7.4,
+       "z1": 53.3,
+       "skin": "cornerGlass"
+      }
+     ]
+    }
+   ],
+   "roofTone": "roofM",
+   "parapet": 1.1,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "0",
+    "1",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "roofItems": [
+    {
+     "plan": [
+      7.8,
+      11.6,
+      3.0,
+      14.0
+     ],
+     "h": 3.0,
+     "tone": "mech"
+    },
+    {
+     "plan": [
+      12.0,
+      30.0,
+      13.0,
+      24.5
+     ],
+     "h": 1.0,
+     "tone": "roofM"
+    },
+    {
+     "plan": [
+      27.0,
+      45.0,
+      2.0,
+      13.0
+     ],
+     "grid": [
+      8,
+      5
+     ],
+     "size": [
+      1.0,
+      1.2
+     ],
+     "h": 0.9,
+     "tone": "mech"
+    },
+    {
+     "plan": [
+      3.0,
+      10.0,
+      3.0,
+      12.0
+     ],
+     "grid": [
+      3,
+      4
+     ],
+     "size": [
+      1.0,
+      1.2
+     ],
+     "h": 0.9,
+     "tone": "mech"
+    },
+    {
+     "plan": [
+      5.0,
+      16.0,
+      15.0,
+      27.0
+     ],
+     "grid": [
+      5,
+      5
+     ],
+     "size": [
+      1.0,
+      1.2
+     ],
+     "h": 0.9,
+     "tone": "mech"
+    }
+   ],
+   "_src": "the C/U S3 states, read off the rectified nadir (S8): the notch is cut into the EAST elevation from v=25.6 out to the street edge, between u=19.3 and u=26.9. Those two numbers are confirmed twice - the sunken green terrace on the rectified plan runs u 19.2 to 26.7, and the recessed wall in S4 sits between the two wings at the same place, with the wings 19.3 m (north) and 18.7 m (south) wide, which is the composition that photograph shows. Edge keys run in ring order: 0 west, 1 south, 2 east/south wing, 3 notch south return, 4 notch back, 5 notch north return, 6 east/north wing, 7 north. The two overrides are the full-height corner glazing stacks at the two street corners, 2.78 m - one bay - on each face of each corner. The parapet is omitted on edge 2 because the crown block stands on that edge and two coplanar faces there would z-fight. Roof items from the rectified nadir: the mechanical penthouse at u 7.8-11.6, the raised roof plane in the middle, and the three condenser fields, each a grid whose count comes from the rows visible in that frame."
+  },
+  {
+   "id": "crown",
+   "plan": [
+    26.9,
+    45.58,
+    30.6,
+    33.81
+   ],
+   "z0": 53.3,
+   "z1": 57.3,
+   "bands": [
+    {
+     "z0": 53.3,
+     "z1": 55.6,
+     "skin": "crownPier"
+    },
+    {
+     "z0": 55.6,
+     "z1": 57.3,
+     "skin": "crownBeam"
+    }
+   ],
+   "faces": {
+    "v1": {
+     "bands": [
+      {
+       "z0": 53.3,
+       "z1": 55.6,
+       "skin": "crownPier"
+      },
+      {
+       "z0": 55.6,
+       "z1": 57.3,
+       "skin": "crownBeam",
+       "signs": [
+        {
+         "text": "MOONTOWER",
+         "s0": 4.6,
+         "z0": 57.3,
+         "dot": 0.25,
+         "gap": 0.25,
+         "tone": "sign"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "roofTone": "coping",
+   "_src": "the white open frame at the SOUTH end of the roof, on the street edge, that S6's MOONTOWER76 shows in close-up and S4 shows in silhouette: piers to 55.60 m, a deep beam to 57.30 m = S2's height. 3.2 m deep, over the south wing's 18.7 m, from the rectified nadir's parapet line. The wordmark is nine letters on a 0.25 m dot, so 13.25 m long and 1.75 m tall: measured 13.2 m long and about 1.7 m tall in S4 at 0.0485 m/px, and 13.0 x 2.6 m in bake_westcampus.py (S9), which is the same sign. It starts 4.6 m along this face from its north end, i.e. u=31.5, which is where S6's dusk frame puts it, and it STANDS ON the beam rather than being applied to it - that is what every photograph shows, and it is this building's silhouette."
+  }
+ ],
+ "deck": {
+  "z": 53.3,
+  "_src": "the rooftop pool deck S6 and S7 both name, on the tower roof at the SOUTH-EAST corner, every rectangle read off the rectified nadir (S8).",
+  "items": [
+   {
+    "plan": [
+     28.0,
+     45.4,
+     22.3,
+     32.9
+    ],
+    "z0": 0.02,
+    "h": 0.06,
+    "tone": "coping",
+    "_src": "the deck's pale paving, u 28-45.3 by v 22.3-32.7 on the rectified plan"
+   },
+   {
+    "plan": [
+     31.5,
+     41.7,
+     26.0,
+     29.7
+    ],
+    "z0": 0.08,
+    "h": 0.3,
+    "tone": "pool",
+    "_src": "the pool: 10.2 x 3.7 m, measured on the rectified plan"
+   },
+   {
+    "plan": [
+     30.0,
+     43.0,
+     23.0,
+     24.2
+    ],
+    "z0": 0.08,
+    "h": 0.55,
+    "tone": "coping",
+    "_src": "the lounger row along the deck's north side - one bar, not fifteen chairs, which is all that reads at this camera"
+   },
+   {
+    "plan": [
+     28.4,
+     30.0,
+     22.5,
+     32.5
+    ],
+    "z0": 0.08,
+    "h": 0.9,
+    "tone": "turf",
+    "_src": "the planted strip on the deck's west side"
+   }
+  ]
+ },
+ "_open": [
+  "The WEST and SOUTH elevations were never photographed close up. The west wears the north's horizontal banding and the south wears the east's panel blocks, which is what the Google Earth 3D mesh from the south-west (S8) shows of each - a mesh, not a photograph, so both are the plainest rule this building has and are flagged here rather than claimed.",
+  "The partial glazing stack at the notch's north corner - four storeys at the top in S5 - is not drawn; only the two full-height street corners are.",
+  "Level 18's floor line is plus or minus one floor, and so is the 18.68 m break between the pale lower zone and the field above it.",
+  "The crown frame is drawn as a bar on the street edge only. In S6 it returns around the south corner as an L.",
+  "The base's blank elevations are one flat dark grey. S5 shows a brick or masonry plinth under part of the north base; it is behind a car park and a fence in every frame and was not measured."
+ ]
+}
