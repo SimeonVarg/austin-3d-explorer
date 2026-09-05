@@ -14,8 +14,8 @@
   "S8": "Google Earth oblique of the 26th St elevation: @30.290786,-97.743723,183a,230d,35y,10h,62t, 100 % loaded, scale bar 101 px = 10 m so 0.0990 m per pixel. The colour-block rhythm, the base materials and the entrance with its dark 26 WEST sign band were read here.",
   "S9": "Three more Google Earth captures at the same settings: c_southwest (@30.290811,-97.744055,183a,230d,35y,35h,62t) for the west end of the 26th St front, c_east (@30.291097,-97.743054,183a,250d,35y,280h,62t) for the Nueces elevation, and e_sw / e_se at 470 m for the whole block. All 12/3/2023 imagery except e_se, which is 1/1/2021.",
   "S10": "data/roads.geojson: West 26th Street runs along this polygon's south edge - its centreline is 8 to 12 m south of v=0 over the polygon's whole width - and Nueces Street along its east edge. That is what fixes +u as running east and names the two street elevations.",
-  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown.",
-  "S11": "Google Earth oblique squarely on the corner of W 26th and Nueces, the crop (560,360)-(860,640) of S7's frame c_corner enlarged 3.2x. It is the only frame that shows the two elevations meeting, and it settles three things the wider frames could not: the corner is CHAMFERED at 45 degrees over about 3.7 m, its bay wears a pale rusticated stone base under a peach shaft where the rest of the building wears brick, and the two-storey brick base runs unbroken along both streets - it is not half stone. The corner is in tree shade here, so its hexes are read as ratios against the blue block, which appears sunlit at #b1c5d3 in S8 and shaded at #7f97ab here."
+  "S11": "Google Earth oblique squarely on the corner of W 26th and Nueces, the crop (560,360)-(860,640) of S7's frame c_corner enlarged 3.2x. It is the only frame that shows the two elevations meeting, and it settles three things the wider frames could not: the corner is CHAMFERED at 45 degrees over about 3.7 m, its bay wears a pale rusticated stone base under a peach shaft where the rest of the building wears brick, and the two-storey brick base runs unbroken along both streets - it is not half stone. The corner is in tree shade here, so its hexes are read as ratios against the blue block, which appears sunlit at #b1c5d3 in S8 and shaded at #7f97ab here.",
+  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
  },
  "footprint": {
   "ring": [
@@ -155,7 +155,7 @@
    "bay": 3.0,
    "window": {
     "w": 1.35,
-    "h": 1.85,
+    "h": 1.75,
     "sill": 0.85
    },
    "glass": "glass",
@@ -186,13 +186,13 @@
    "bay": 3.0,
    "window": {
     "w": 1.35,
-    "h": 1.9,
-    "sill": 0.65
+    "h": 1.85,
+    "sill": 0.6
    },
    "glass": "glass",
    "frame": "trim",
    "reveal": 0.22,
-   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module, in cream, terracotta and pale blue. The block width was measured in S8 as 77 and 97 px across two adjacent blocks at 0.099 m per pixel = 7.6 and 9.6 m, with the wall nearly perpendicular to the camera so there is almost no foreshortening; 9.0 m is three window bays. The window bay is 3.0 m: S7's blue block measures 5.8 m and carries two window columns. macro [3,1] on a 2.90 m course is exactly the three storeys of this band, so the tone runs the block's full height, which is what the reference does at every block edge. The weights are the share of blocks of each tone counted along the 26th St and Nueces elevations in S8, S9 c_southwest and S9 c_east: 11 cream, 8 terracotta, 6 blue out of 25. The window is 1.35 x 1.50 m on a 0.85 m sill - S7 measures the opening at 1.06 x 1.31 m and the white surround adds about 0.15 m a side. reveal 0.22 is deeper than the app's 0.12 default because these are punched openings in a thick stucco wall and the shadow line inside them is the strongest thing on the reference's elevation. LOOK-FIX: the window was 1.35 x 1.50 and read square beside a reference whose openings are plainly portrait. Measured again in S8 at 0.121 m per pixel (the 3.0 m bay is 25 px, which is what sets that scale): the opening with its white surround is 10 by 14 px = 1.21 x 1.69 m. Entered 1.25 x 1.75. LOOK-FIX 3: measured a third time, this time against the storey rather than against the bay, because the storey is the number this file is surest of. The wall is 15.4 m over 140 px in S8, so 0.110 m a pixel vertically and a 2.90 m storey is 26 px; the openings in the ivory block run 20 to 21 px of that, which is 2.2 to 2.3 m including the white surround. Entered 1.90 m of opening on a 0.65 m sill - a little under the measurement, because the surround the generator draws is the window's own reveal and does not add to its height. At 1.75 m the wall read emptier than the photograph's at every zoom."
+   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module, in cream, terracotta and pale blue. The block width was measured in S8 as 77 and 97 px across two adjacent blocks at 0.099 m per pixel = 7.6 and 9.6 m, with the wall nearly perpendicular to the camera so there is almost no foreshortening; 9.0 m is three window bays. The window bay is 3.0 m: S7's blue block measures 5.8 m and carries two window columns. macro [3,1] on a 2.90 m course is exactly the three storeys of this band, so the tone runs the block's full height, which is what the reference does at every block edge. The weights are the share of blocks of each tone counted along the 26th St and Nueces elevations in S8, S9 c_southwest and S9 c_east: 11 cream, 8 terracotta, 6 blue out of 25. The window is 1.35 x 1.50 m on a 0.85 m sill - S7 measures the opening at 1.06 x 1.31 m and the white surround adds about 0.15 m a side. reveal 0.22 is deeper than the app's 0.12 default because these are punched openings in a thick stucco wall and the shadow line inside them is the strongest thing on the reference's elevation. LOOK-FIX: the window was 1.35 x 1.50 and read square beside a reference whose openings are plainly portrait. Measured again in S8 at 0.121 m per pixel (the 3.0 m bay is 25 px, which is what sets that scale): the opening with its white surround is 10 by 14 px = 1.21 x 1.69 m. Entered 1.25 x 1.75. LOOK-FIX 3: measured a third time, this time against the storey rather than against the bay, because the storey is the number this file is surest of. The wall is 15.4 m over 140 px in S8, so 0.110 m a pixel vertically and a 2.90 m storey is 26 px; the openings in the ivory block run 20 to 21 px of that, which is 2.2 to 2.3 m including the white surround. Entered 1.90 m of opening on a 0.65 m sill - a little under the measurement, because the surround the generator draws is the window's own reveal and does not add to its height. At 1.75 m the wall read emptier than the photograph's at every zoom. LOOK-FIX 4, and it is a defect the first three passes each made worse. `windowsFromBays` only draws a window whose head fits inside its own band, and `floorsBetween` only gives a band the floor lines at or above its z0 - so a band that starts above a floor line loses that whole storey of windows, silently and with no warning in the console. Look-fix 2 put the string course at 7.10..7.45 and pushed the stucco band's start to 7.45, which is 0.35 m above the level-3 floor line at 7.10: the building lost a fifth of its windows and nothing said so. The string course now sits at 6.85..7.10, entirely UNDER the floor line, which is where a string course belongs anyway. Every window height below is now chosen so the head clears its band's top: masonry 4.20 + 0.85 + 1.75 = 6.80 under 6.85, stucco 12.90 + 0.60 + 1.85 = 15.35 under 15.40."
   },
   "cornice": {
    "kind": "flat",
@@ -220,7 +220,7 @@
   "string": {
    "kind": "flat",
    "field": "trim",
-   "_src": "The pale string course that closes the top of the brick base, 0.35 m at z = 7.10. It is the line that tells the eye where the base stops: in S8 and S11 the brick ends in a light band under the stucco on every elevation. Without it the two skins met edge to edge and neither read."
+   "_src": "The pale string course that closes the top of the brick base, 0.35 m at z = 7.10. It is the line that tells the eye where the base stops: in S8 and S11 the brick ends in a light band under the stucco on every elevation. Without it the two skins met edge to edge and neither read. Moved to 6.85..7.10 in look-fix 4: at 7.10..7.45 it pushed the stucco band above the level-3 floor line and cost the building a whole storey of windows."
   },
   "cornerBase": {
    "kind": "flat",
@@ -228,7 +228,7 @@
    "bay": 3.0,
    "window": {
     "w": 1.25,
-    "h": 1.8,
+    "h": 1.7,
     "sill": 0.85
    },
    "glass": "glass",
@@ -242,8 +242,8 @@
    "bay": 3.0,
    "window": {
     "w": 1.25,
-    "h": 2.0,
-    "sill": 0.6
+    "h": 1.9,
+    "sill": 0.55
    },
    "glass": "glass",
    "frame": "trim",
@@ -266,16 +266,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1277,16 +1277,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1302,16 +1302,16 @@
      "bands": [
       {
        "z0": 0.0,
-       "z1": 7.1,
+       "z1": 6.85,
        "skin": "masonry"
       },
       {
-       "z0": 7.1,
-       "z1": 7.45,
+       "z0": 6.85,
+       "z1": 7.1,
        "skin": "string"
       },
       {
-       "z0": 7.45,
+       "z0": 7.1,
        "z1": 15.4,
        "skin": "stucco"
       },
@@ -1774,16 +1774,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1813,16 +1813,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1852,16 +1852,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1891,16 +1891,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1930,16 +1930,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1969,16 +1969,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2008,16 +2008,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2071,16 +2071,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "cornerBase"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "cornerShaft"
     },
@@ -2111,16 +2111,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2150,16 +2150,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2189,16 +2189,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2228,16 +2228,16 @@
    "bands": [
     {
      "z0": 0.0,
-     "z1": 7.1,
+     "z1": 6.85,
      "skin": "masonry"
     },
     {
-     "z0": 7.1,
-     "z1": 7.45,
+     "z0": 6.85,
+     "z1": 7.1,
      "skin": "string"
     },
     {
-     "z0": 7.45,
+     "z0": 7.1,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -2261,6 +2261,7 @@
   "4. The leasing entrance on 26th St - a recessed opening with a canopy and a dark 26 WEST sign band over it, visible in S8 at about x = 720..765 - is not drawn; it wears the base's punched windows instead. It is left out because the frame gives its screen position and not its u, and a sign in the wrong bay is worse than no sign.",
   "5. u = 6.3 and 109.5 on the 26th St front, and v = 28.5 and 66.0 on Nueces, are the pier rule's prediction rather than measurements. A ground photograph of either street would settle them.",
   "6. The west end wall at u = 0 is a party wall against the next polygon of the same block and wears the ordinary skin. Nobody can see it, and it is not worth a face of its own until that neighbour is authored too.",
-  "7. The pier pitch is entered as a uniform 17.2 m from the nadir's least-squares fit, but S8's elevation shows the real rhythm is irregular - three consecutive caps 26.6, 10.6 and 33.2 m apart, and one of them twice the width of the others. A per-pier list of measured u values would beat the rule; it needs a rectified elevation, not a rectified plan."
+  "7. The pier pitch is entered as a uniform 17.2 m from the nadir's least-squares fit, but S8's elevation shows the real rhythm is irregular - three consecutive caps 26.6, 10.6 and 33.2 m apart, and one of them twice the width of the others. A per-pier list of measured u values would beat the rule; it needs a rectified elevation, not a rectified plan.",
+  "8. A band that starts above one of `levels.floors` silently loses that storey's windows - `floorsBetween` drops the floor line and `windowsFromBays` never hears about it. It cost this file a look-fix to find. A one-line console warning when a band's z0 falls between two floor lines would have caught it in the boot log."
  ]
 }
