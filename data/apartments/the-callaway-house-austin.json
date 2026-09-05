@@ -75,8 +75,8 @@
   "colours": {
     "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone.",
     "panel": {
-      "hex": "#c6c3bd",
-      "_src": "S10, earth-east.png crop (625,380)-(700,490), the sunlit residential field on the San Antonio elevation: 37.7% #b7b5b1 and 36.1% #d1cec8 - one stucco/panel material read in sun and in its own floor-line shadow - entered as their share-weighted mean. This is S4's stucco-and-metal-panel field."
+      "hex": "#cfcfcd",
+      "_src": "S10, earth-east.png crop (625,380)-(700,490), the sunlit residential field on the San Antonio elevation: 37.7% #b7b5b1 and 36.1% #d1cec8 - one stucco/panel material read in sun and in its own floor-line shadow - entered as their share-weighted mean (#c3c1bd) and then entered as #cfcfcd. The lift and the de-warming are LOOK-FIX 1 and 2: measured on the matched north camera, our wall rendered #9c8f82 against the reference's neutral #a6a5a7, so the entered tone is lifted and taken off its warm cast until it renders neutral under the app's day light. The measurement is the crop; the entered value is the crop put through this app's light. This is S4's stucco-and-metal-panel field."
     },
     "panelShade": {
       "hex": "#aeaaa4",
@@ -95,8 +95,8 @@
       "_src": "S8's base colour for this building (the ground-floor band under the garage)."
     },
     "garageVoid": {
-      "hex": "#3a2422",
-      "_src": "derived from the same crop's shadow cluster #723c3a, stepped down: the horizontal garage openings are not a surface but a hole with a lit deck behind, and at this camera they read near-black."
+      "hex": "#553231",
+      "_src": "the same crop's own shadow cluster #723c3a, one step down: the horizontal garage openings are a hole with a lit deck behind, so they are darker than the brick but NOT black - in earth-north.png the podium still reads as a red-brown mass at this camera. LOOK-FIX 1 lifted this from #3a2422, which made the podium a stack of black stripes."
     },
     "glass": ["#5b6d69", "#6b7570", "#171d1f"],
     "_glass_src": "S10: the teal-biased pixels (G and B both above R) of earth-east.png (600,370)-(720,500) average #687572 and of earth-north.png (520,250)-(780,440) average #758184. At 0.16 m/px a 1.5 m window is 9 px and that mean is a blend with the panel around it, so the day value is entered one step darker and greener than the blend; golden follows it, night is the dark unlit pane and lit panes take APARTMENTS.nightLitTone.",
@@ -139,18 +139,18 @@
     "_src": "each skin is a rule; its numbers are below with their source",
     "tower": {
       "kind": "bays",
-      "bay": 3.3,
+      "bay": 2.9,
       "field": "panel",
       "strip": {
-        "w": 1.5,
+        "w": 1.6,
         "tone": "brick",
         "at": "joints",
-        "every": 2
+        "every": 4
       },
       "window": {
-        "w": 1.5,
-        "h": 1.55,
-        "sill": 0.9
+        "w": 1.35,
+        "h": 1.45,
+        "sill": 0.95
       },
       "floorLine": {
         "h": 0.30,
@@ -159,17 +159,17 @@
       "glass": "glass",
       "frame": "frame",
       "reveal": 0.14,
-      "_src": "the residential elevation as S6's SW oblique (earth-oblique-sw.png, the closest read of the wall) and the W and E obliques show it: a near-white stucco field cut by BRICK PIERS about one window wide, one punched teal window per bay per floor, and a continuous recessed joint at every floor line. Module: 10 residential floors span 500 px on that frame at 50 px per 3.07 m floor = 0.061 m/px, and a pier-to-pier bay measures 110 px = 6.7 m with two window columns in it, so the window pitch is 3.3 m and the pier falls at every SECOND bay joint. Pier width 25 px = 1.5 m. Window 1.5 x 1.55 with a 0.9 m sill: read at the same scale, and square-ish is what every S6 frame shows.",
-      "_bay_note": "the generator puts ONE window per bay and the strip at bay JOINTS, so `bay` here is the WINDOW pitch (3.3) and `every: 2` is what makes the pier land every 6.6 m. Writing bay 6.6 would have halved the window count."
+      "_src": "the residential elevation as S6's obliques show it: a near-white stucco field cut by BRICK PIERS about one window wide, one punched teal window per bay per floor, and a continuous recessed joint at every floor line. Module read off earth-north.png, which sees the 79 m north elevation nearly head-on and so needs no foreshortening correction: 10 residential floors span 320 px at 0.096 m/px, the brick piers fall about every 130 px = 12.5 m, and four to five window columns sit between two piers, so the window pitch is 2.9 m and the pier lands at every FOURTH bay joint (11.6 m). Pier width 1.6 m; window 1.35 x 1.45 with a 0.95 m sill, read at the same scale.",
+      "_bay_note": "the generator puts ONE window per bay and the strip at bay JOINTS, so `bay` here is the WINDOW pitch (2.9) and `every: 4` is what makes the pier land every 11.6 m. The first version of this file read the module off the SW oblique instead and got 6.7 m - that frame sees this wall at a steep angle and the foreshortening halved it, which put twice as many piers on the building as it has. LOOK-FIX 1."
     },
     "towerBrick": {
       "kind": "bays",
-      "bay": 3.3,
+      "bay": 2.9,
       "field": "brick",
       "window": {
-        "w": 1.2,
-        "h": 1.55,
-        "sill": 0.9
+        "w": 1.1,
+        "h": 1.45,
+        "sill": 0.95
       },
       "glass": "glass",
       "frame": "frame",
@@ -178,12 +178,12 @@
     },
     "court": {
       "kind": "bays",
-      "bay": 3.3,
+      "bay": 2.9,
       "field": "panel",
       "window": {
-        "w": 1.4,
-        "h": 1.5,
-        "sill": 0.9
+        "w": 1.35,
+        "h": 1.45,
+        "sill": 0.95
       },
       "glass": "glass",
       "frame": "frame",
@@ -195,9 +195,9 @@
       "field": "brickDark",
       "louvre": {
         "pitch": 2.90,
-        "w": 1.45,
+        "w": 1.15,
         "tone": "garageVoid",
-        "start": 1.35
+        "start": 1.55
       },
       "_src": "S4's six levels of elevated parking, as the E and NW obliques show them: dark red brick with one continuous horizontal OPENING per parking level. Pitch 2.90 is the garage floor-to-floor from `levels`; the opening is 1.45 m, half the level, which is what the E oblique's slot-to-spandrel ratio reads; `start` 1.35 puts the first opening's head just under the level-2 slab. No brick piers are drawn across the openings - at every camera here the slots read as continuous, and the generator's bands would run over a strip anyway."
     },
@@ -281,6 +281,13 @@
         "v0": { "bands": [{ "z0": 22.8, "z1": 53.5, "skin": "court" }] },
         "_src": "u0 and u1 are the bar's ends, brick (the SW oblique's corners); v0 faces the courtyard and the podium roof over it, so it wears the plain court rule."
       },
+      "overrides": [
+        {
+          "region": [36.0, 46.5, 36.0, 58.5],
+          "bands": [{ "z0": 22.8, "z1": 53.5, "skin": "towerBrick" }],
+          "_src": "the WIDE BRICK PANEL two thirds of the way along the north elevation: in earth-north.png it runs full height between x 480 and 600 of the face's 100-830, which is u 36-46 in this frame - the same u as the mechanical core that stands above the roof here. LOOK-FIX 1: the first version had this stretch in the ordinary pier rhythm and the elevation lost its one strong vertical."
+        }
+      ],
       "roofTone": "roof",
       "parapet": 1.06,
       "parapetTone": "coping",
@@ -478,20 +485,28 @@
         "_src": "S5's rust-orange steel pergola on square concrete columns beside the pool, drawn as its plate. Height 2.65 is derived from the photograph's column-to-person ratio, not measured."
       },
       {
+        "id": "canopyDeck",
+        "plan": [17.5, 50.0, 61.2, 70.0],
+        "z0": 0.35,
+        "z1": 2.55,
+        "tone": "garageVoid",
+        "_src": "the open TOP PARKING LEVEL under the canopy: in earth-north.png the band under that roof is a dark slot with cars in it, the same read as the six levels below. LOOK-FIX 2 - without it the canopy floated over bare paving and the strongest thing on this elevation from 22nd Street was missing."
+      },
+      {
         "id": "canopy",
-        "plan": [23.5, 49.0, 60.8, 70.3],
-        "z0": 3.6,
-        "z1": 4.2,
+        "plan": [17.0, 50.5, 60.8, 70.3],
+        "z0": 2.55,
+        "z1": 3.25,
         "tone": "roof",
-        "_src": "the CANOPY OVER THE TOP PARKING LEVEL, not an amenity building: the N and NW obliques show a long curved white roof along 22nd Street with cars parked under it, and the rectified nadir has it as one smooth pale plane at u 23.5-49, v 61-71. Drawn as its flat plate - the curve is under a pixel at the cameras this app is judged from."
+        "_src": "the CANOPY OVER THAT PARKING LEVEL, not an amenity building: the N and NW obliques show a long pale curved roof along 22nd Street with cars parked under it, and the rectified nadir has it as one smooth plane. Extent from earth-north.png, where it runs between x 370 and 680 of the north face's 100-830 = u 17-50 in this frame (LOOK-FIX 2 widened it from 23.5-49 and dropped it from 3.6-4.2 m over the deck to 2.55-3.25, one parking level, which is where the N oblique puts it). Drawn as a flat plate - the curve is under a pixel at the cameras this app is judged from."
       },
       {
         "id": "deckScreen",
-        "plan": [1.0, 78.0, 70.05, 70.28],
+        "plan": [39.0, 76.0, 70.05, 70.28],
         "z0": 0.0,
         "h": 1.15,
         "tone": "rust",
-        "_src": "S5: the orange perforated-metal guard screen that runs along the deck's 22nd Street edge, between galvanised posts. Drawn solid; the perforation is under a pixel here and the tone (`rust`) is already the perforated read."
+        "_src": "S5: the orange perforated-metal guard screen along the pool deck's 22nd Street edge, between galvanised posts. It runs only where the deck does: LOOK-FIX 2 cut it back from the full 79 m to u 39-76, because west of the canopy the 22nd Street edge in earth-north.png is the podium's own parapet, not this screen. Drawn solid; the perforation is under a pixel here and the tone (`rust`) is already the perforated read."
       }
     ]
   },
