@@ -180,7 +180,7 @@
  * line: see HANDOFF §213 for the pair.
  *
  * Usage (from scripts/verify, README's way):
- *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]
+ *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL] [--against-tip URL]
  *
  *   --shots DIR     save the proof frames (never into the repo; the scratchpad)
  *   --against URL   a second server (e.g. a pristine main export) whose
@@ -197,6 +197,12 @@ const arg = k => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null
 const BREAK = argv.includes('--break');
 const SHOTS = arg('--shots');
 const AGAINST = arg('--against');
+// --against-tip URL: a `git archive` of the commit this branch was cut from
+// (8b4b90c on 2026-09-05 — main WITH the slopes layer), for the apartments
+// line that asks "with the switch off, is the picture what main draws?".
+// --against stays the pre-slopes main the bake-identity lines are written
+// for (its `?slopes=0` contract needs a build with no layer at all).
+const AGAINST_TIP = arg('--against-tip');
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
 const W = 1440, H = 900;
@@ -1222,21 +1228,39 @@ check('apartments: APARTMENTS.on = false removes the group and restores every fi
 // not the generator's. Measured here on the first run: 933 px, maxΔ 51.
 const dAptSwitch = diffPNG(fAptOff, C2.f);
 check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose, within the switch section\'s own OFF-vs-load ceiling', dAptSwitch.pixels <= SWITCH_OFF_PX, `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff}) — ceiling ${SWITCH_OFF_PX}, measured 933 on 2026-09-05`);
-if (AGAINST) {
-  const G = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main', async pg => {
-    // The archive is main as it was: its roofs still wear the ridge and hip
-    // courses this branch switched off in its first commit (2cc1b29), and at
-    // this pose they are the campus roofs on the horizon — 23,572 of the
-    // 23,584 differing pixels on the first --against run were in the top
-    // 300 rows, 12 elsewhere. This line is about the apartments switch, not
-    // the courses (the `courses` line above is), so the archive page is put
-    // in the same state before its frame.
+// "With the switch off the picture is what main draws." Two archives can
+// stand in for main, and they answer different questions:
+//   --against-tip: the commit this branch was cut from, main WITH the slopes
+//     layer. Its roofs still wear the ridge and hip courses this branch
+//     switched off in its first commit (2cc1b29), and at this pose they are
+//     the campus roofs on the horizon, so the archive page is put in the
+//     same courses state before its frame — this line is about the
+//     apartments switch; the `courses` line above owns the courses. Then
+//     ours at ?apartments=0 must be that page to the atlas residue.
+//   --against: the pre-slopes main the bake-identity lines are written for
+//     (no layer at all — the first two --against runs of this block diffed
+//     ours against it and found 23,572 of 23,584 differing pixels in the
+//     top 300 rows: mesh roofs against slab roofs on the horizon, nothing on
+//     The Standard). Against it the honest question is the bake-identity
+//     one: ours at ?apartments=0&slopes=0 must be its frame at this pose —
+//     the data file, the index and the script tags changed nothing the
+//     slabs draw here.
+if (AGAINST_TIP) {
+  const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
     await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
     await pg.waitForTimeout(800);
   });
   await G.pg.close();
-  const dAptMain = diffPNG(C2.f, G.f);
-  check('apartments (--against): ?apartments=0 is the main archive\'s frame at the pose (to the facade atlas\' two-state residue)', zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+  const dAptTip = diffPNG(C2.f, G.f);
+  check('apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose, with that page\'s courses switched off as this branch\'s are (to the facade atlas\' two-state residue)', zeroButAtlas(dAptTip), `${dAptTip.pixels} of ${dAptTip.total} pixels differ (max channel Δ ${dAptTip.maxChannelDiff})${residueNote(dAptTip)}`);
+}
+if (AGAINST) {
+  const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
+  await C3.pg.close();
+  const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+  await G0.pg.close();
+  const dAptMain = diffPNG(C3.f, G0.f);
+  check('apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive\'s frame at the pose (to the facade atlas\' two-state residue) — the data, the index and the tags changed nothing the slabs draw here', zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
 }
 
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
