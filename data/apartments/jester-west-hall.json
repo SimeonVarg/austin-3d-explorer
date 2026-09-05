@@ -252,10 +252,12 @@
    "hex": "#cac8c3",
    "_src": "S6 south elevation, crop (600,490)-(900,545), brightest 10% #e2ded6, normalised. The courtyard wings' spandrel bands."
   },
-  "tile": {
-   "hex": "#a0685c",
-   "_src": "S6 south elevation, crop (600,455)-(760,478), mid cluster #b37465, normalised. The red barrel tile of the wing roofs."
-  },
+  "tile": [
+   "#bc6143",
+   "#d87e52",
+   "#11111c"
+  ],
+  "_tile_src": "The app's own roof bake, data/roofs.geojson, for the campus tile roofs within 260 m of this building - Brackenridge, Roberts, Prather, Moore-Hill: 208 facets carry exactly this trio and another 463 carry one within two per cent of it. Jester's wings wear the same barrel tile as its neighbours, so it wears their measured tone and ages through the same ramp. (An earlier sample off S6's south elevation, normalised, gave #a0685c; rendered beside those neighbours it read pink and twenty per cent too dark, which is the imagery's exposure, not the tile.)",
   "membrane": {
    "hex": "#a2a8aa",
    "_src": "S6 nadir, crop (700,430)-(980,460), mid cluster #b6baba, normalised. The bar's roof."
@@ -269,30 +271,48 @@
   "towerWall": {
    "kind": "bays",
    "field": "brick",
-   "bay": 4.4,
+   "bay": 4.3,
+   "strip": {
+    "w": 1.31,
+    "tone": "precast",
+    "at": "centres"
+   },
+   "floorLine": {
+    "h": 1.17,
+    "tone": "brick"
+   },
    "window": {
-    "w": 0.75,
-    "h": 1.85,
-    "sill": 0.85
+    "w": 0.72,
+    "h": 1.76,
+    "sill": 1.45
    },
    "glass": "glass",
    "frame": "precast",
-   "reveal": 0.28,
-   "_src": "S9: bay 4.40 m. S4 gives the window itself - in crop_win.png the opening is 0.16 of a bay wide and 0.51 of a floor tall (0.70 x 1.76 m) and it sits in a light precast surround 0.30 of a bay by 0.67 of a floor (1.31 x 2.31 m) that stands proud of the brick. The opening is drawn at 0.75 x 1.85 with a 0.28 m reveal in `precast`, so the reveal's four strips read as that surround: 0.75 + 2 x 0.28 = 1.31 wide and 1.85 + 2 x 0.28 = 2.41 tall, the surround's own size. sill 0.85 puts the head 0.78 m under the floor above."
+   "reveal": 0.16,
+   "_src": "Bay 4.30 m: the window columns counted against a 5 m u grid projected on to the wall in S6's south elevation land at u = 36.75, 41.0, 45.5, 49.75, 54.0, 58.25, so 4.25, 4.50, 4.25, 4.25, 4.25 m. (S9's peak-finder read 4.4 by skipping columns Earth's mesh blurs together; the grid count is the better instrument and this is what it says.) The window itself is S4: in crop_win.png the opening is 0.17 of a bay wide by 0.51 of a floor tall (0.72 x 1.76 m) inside a light precast surround 0.30 of a bay by 0.66 of a floor (1.31 x 2.31 m) that stands proud of the brick, with about 1.17 m of brick between one surround and the next up the column. That is drawn as a 1.31 m `precast` strip on the bay centres cut by a 1.17 m `brick` band at every floor line, with the opening punched in it - so a window reads as a dark slot in a light rectangle on a brick wall, which is what the photograph shows. The whole unit sits 0.62 m higher in the floor than S4 measures it, because floorLine can only run upward from a floor line; that is a sixth of a floor and under two pixels at the oblique this app is judged from."
   },
   "towerSlot": {
    "kind": "bays",
    "field": "brick",
-   "bay": 4.1,
+   "bay": 4.3,
+   "strip": {
+    "w": 0.95,
+    "tone": "precast",
+    "at": "centres"
+   },
+   "floorLine": {
+    "h": 1.17,
+    "tone": "brick"
+   },
    "window": {
     "w": 0.4,
-    "h": 1.85,
-    "sill": 0.85
+    "h": 1.76,
+    "sill": 1.45
    },
    "glass": "glass",
    "frame": "precast",
-   "reveal": 0.2,
-   "_src": "S6 north elevation: the projecting service bays are blank brick with a column of narrow slots, about half the width of a room window, on the same floor lines."
+   "reveal": 0.16,
+   "_src": "S6 north elevation: the projecting service bays carry a column of slots about half the width of a room window on the same floor lines and in the same precast surround, on the tower's own 4.30 m bay."
   },
   "towerBlank": {
    "kind": "flat",
@@ -302,20 +322,20 @@
   "wingWall": {
    "kind": "bays",
    "field": "brick",
-   "bay": 4.25,
+   "bay": 4.75,
    "floorLine": {
-    "h": 1.1,
+    "h": 1.45,
     "tone": "band"
    },
    "window": {
-    "w": 0.85,
-    "h": 1.55,
+    "w": 1.25,
+    "h": 1.8,
     "sill": 1.5
    },
    "glass": "glass",
    "frame": "precast",
    "reveal": 0.15,
-   "_src": "S4 crop_lowblock.png: the courtyard wings carry a continuous light spandrel band at every floor, 0.35 of the floor tall (1.10 m at this pitch), with taller-than-wide windows in the brick between them. bay 4.25 is the tower's 4.40 m structural rhythm read on a wing whose own spacing S4 shows as pairs - see todo 1."
+   "_src": "Read against a 5 m u grid projected on to the wing's own wall (v=0, z=12) in S6's south elevation at 23.7 px/m. The wing is not the tower: its windows come in tight pairs about 0.7 m apart - one opening with a central mullion - and the pairs repeat on 3.7 and 5.8 m alternately, so one opening every 4.75 m. The opening is 1.25 m wide and 1.80 m tall (0.52 of a floor) and the light spandrel band that runs the whole face at every floor is 1.45 m (0.42 of a floor). (Round one had bay 4.25 with a 0.85 m window; beside the reference it read as twice as many windows, each half the size.)"
   }
  },
  "blocks": [
@@ -550,14 +570,25 @@
    "roofItems": [
     {
      "plan": [
-      5.9,
-      120.1,
-      1.8,
-      9.4
+      5.0,
+      121.0,
+      0.9,
+      10.3
+     ],
+     "h": 1.5,
+     "tone": "tile",
+     "_src": "The hipped barrel-tile roof as two inset steps, because a true hip is not in this generator's schema (todo 2): the first course set back 0.9 m from the wall and 1.5 m tall, the second set back 2.6 m and carried to the 3.2 m ridge S8 reads. Two steps instead of one so the silhouette leans the way a hip does at the oblique."
+    },
+    {
+     "plan": [
+      6.7,
+      119.3,
+      2.6,
+      8.6
      ],
      "h": 3.2,
      "tone": "tile",
-     "_src": "The hipped tile roof as one inset step: the eave line set back 1.8 m from the wall and carried 3.2 m up to the ridge height S8 reads. A true hip is not in this generator's schema - see todo 2."
+     "_src": "the same roof's upper step."
     }
    ]
   },
@@ -588,14 +619,25 @@
    "roofItems": [
     {
      "plan": [
-      5.9,
-      13.5,
-      13.0,
-      44.4
+      5.0,
+      14.4,
+      12.1,
+      45.3
+     ],
+     "h": 1.5,
+     "tone": "tile",
+     "_src": "as wing-south, the lower step."
+    },
+    {
+     "plan": [
+      6.7,
+      12.7,
+      13.8,
+      43.6
      ],
      "h": 3.2,
      "tone": "tile",
-     "_src": "as wing-south."
+     "_src": "as wing-south, the upper step."
     }
    ]
   },
@@ -626,14 +668,25 @@
    "roofItems": [
     {
      "plan": [
-      91.0,
-      98.8,
-      13.0,
-      38.4
+      90.1,
+      99.7,
+      12.1,
+      39.3
+     ],
+     "h": 1.5,
+     "tone": "tile",
+     "_src": "as wing-south, the lower step."
+    },
+    {
+     "plan": [
+      91.8,
+      98.0,
+      13.8,
+      37.6
      ],
      "h": 3.2,
      "tone": "tile",
-     "_src": "as wing-south."
+     "_src": "as wing-south, the upper step."
     }
    ]
   },
@@ -778,14 +831,25 @@
    "roofItems": [
     {
      "plan": [
-      1.8,
-      14.9,
-      64.0,
-      87.3
+      0.9,
+      15.8,
+      63.1,
+      88.2
+     ],
+     "h": 1.5,
+     "tone": "tile",
+     "_src": "as wing-south, the lower step."
+    },
+    {
+     "plan": [
+      2.6,
+      14.1,
+      64.8,
+      86.5
      ],
      "h": 3.2,
      "tone": "tile",
-     "_src": "as wing-south."
+     "_src": "as wing-south, the upper step."
     }
    ]
   }
@@ -795,6 +859,7 @@
   "2. Every roof in this generator is flat. Four of this building's wings carry hipped barrel-tile roofs (S4, S5, S6). They are drawn here as the wall up to the eave plus a tile-toned box inset 1.8 m and 3.2 m tall on top - one step of a hip, so the silhouette leans the right way and the tile colour reads, but the slope does not. A block-level `hip: {inset, rise}`, or letting the roofs bake keep its pitched roof for a replaced building, would fix it.",
   "3. The light precast surround around each tower window (1.31 x 2.31 m, S4) is drawn as the window's reveal strips rather than as wall tone, because `bays` offers a horizontal band or a vertical strip and never a per-floor rectangle in a second tone. A `window.surround: {w, h, tone}` would draw it as itself.",
   "4. data/apartments/index.json is not this file's to write. To turn this building on, add 'jester-west-hall.json' to `buildings` and '165236c4-c518-419b-a55a-87d5aedd45ce' to `replacedBuildingIds`. It has no js/westcampus.js name, so `replacedNames` needs nothing.",
+  "6. The layer campus-storeys (js/facades.js) is not one of the four the apartments generator filters, so main's twelve horizontal courses for this building (data/campus_storeys.geojson, host = this file's id, at 3.639 m from 7.8 to 47.8 m) keep drawing straight across the mesh - twelve thin ribbons following the whole outline, in the air where the mesh has a courtyard. The fix is one more entry in setFilters' plan: ['campus-storeys', ['!', ['in', ['get', 'host'], ['literal', gone]]]]. Until then the frames in the doc hide that layer to judge the mesh.",
   "5. Not photographed, and wearing the plainest rule the building has: the courtyard-facing walls of all three wings, the north-mid block's own north and west faces, and the whole of north-west-low. The tower's east end (u=100.81) stands six metres from Jester East and was never seen from the ground."
  ]
 }
