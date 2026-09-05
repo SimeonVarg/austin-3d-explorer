@@ -1,6 +1,15 @@
 {
   "_readme": "The apartment buildings js/slopes-apartments.js draws, one file each in this folder (docs/apartments.md). `replacedBuildingIds` are the buildings-3d / buildings-roof feature ids whose flat prisms the mesh replaces (filtered out while APARTMENTS.on); `replacedNames` are the js/westcampus.js building names whose bands it replaces (filtered out of wc-wall, wc-wall-cap, wc-solid, wc-detail). Both default to every building's own id and name when omitted.",
-  "buildings": ["the-standard.json"],
-  "replacedBuildingIds": ["36365d18-2eb6-43c5-b042-6197e7767e17"],
-  "replacedNames": ["The Standard"]
+  "buildings": [
+    "the-standard.json",
+    "the-callaway-house-austin.json"
+  ],
+  "replacedBuildingIds": [
+    "36365d18-2eb6-43c5-b042-6197e7767e17",
+    "11b2bb80-d577-4da7-8b10-d27385f80c4b"
+  ],
+  "replacedNames": [
+    "The Standard",
+    "The Callaway House Austin"
+  ]
 }
