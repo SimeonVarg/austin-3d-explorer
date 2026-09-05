@@ -699,9 +699,24 @@ SELF_IOU = 0.90         # [M] intersection-over-union; see histogram above
 WALL_SEAT = True        # the switch's bake half; js/entrances.js has the other
 WALL_SEAT_MAX = 6.0     # m; a surface further in than this is not this
                         # doorway's wall — it is the far side of a light well
-WALL_SEAT_MIN = 0.15    # m; below this the ring IS the wall and nothing moves.
-                        # EER's 0.13-0.17 m is the door's own PROUD_DOOR
-                        # standoff and must survive untouched.
+WALL_SEAT_MIN = 0.80    # m; below this the door is ON the wall and nothing
+                        # moves. Two reasons for 0.80 and not 0.15:
+                        #   * EER's doors measure 0.13-0.17 m off their bands,
+                        #     which is the bank's own PROUD_DOOR standoff, and
+                        #     must survive untouched;
+                        #   * a sub-metre gap between the footprint ring and an
+                        #     authored re-draw is not an OVERSAIL, it is that
+                        #     re-draw's own modelling slack -- a balcony
+                        #     return, a podium edge -- and closing it buys
+                        #     nothing anyone can see while risking a burial.
+                        #     Measured: at 0.15 the rule seated 29 doors and
+                        #     put Block on 25th East's leaf 0.64 m INSIDE a
+                        #     neighbouring West Campus mass (assemble() slides
+                        #     an opening along its run, so the leaf does not
+                        #     end up where the candidate was tested). At 0.80
+                        #     it seats the doors that were genuinely floating
+                        #     and buries none. The defect this rule exists for
+                        #     is 2.50 m.
 WALL_SEAT_OWN = 0.50    # fraction of an authored mass that has to lie inside
                         # the host ring before it counts as that host's wall.
                         # GDC's atrium is OUTBOARD of the ring and scores 0, so
@@ -5839,6 +5854,14 @@ def seat_on_drawn_wall(scope, stats):
     if not per_file:
         stats["seat_no_masses"] += 1
         return
+    # EVERYTHING THE RENDERER EXTRUDES, for the burial refusal below. The same
+    # set clear_buried() judges against, because "did I just push this door
+    # inside something" is the same question it asks -- and the thing that
+    # buries a seated door is not always the host: Block on 25th East's leaf
+    # goes into a NEIGHBOURING West Campus mass, which a host-only test cannot
+    # see.
+    all_masses, all_owner = load_masses()
+    all_tree = STRtree(all_masses) if all_masses else None
     for b in scope:
         if not b.ents:
             continue
@@ -5857,7 +5880,32 @@ def seat_on_drawn_wall(scope, stats):
             continue
         stats["seat_hosts_with_walls"] += 1
         wall = unary_union(own)
+        # This host's own geometry inside the full mass list, so the refusal
+        # below does not read the wall the door was just seated ON as a burial.
+        own_all = set()
+        if all_tree is not None:
+            for i in all_tree.query(b.poly):
+                i = int(i)
+                if all_owner[i] is not None:
+                    if all_owner[i] == str(b.bid):
+                        own_all.add(i)
+                    continue
+                try:
+                    inter = all_masses[i].intersection(b.poly).area
+                except Exception:
+                    continue
+                if inter and inter / all_masses[i].area >= WALL_SEAT_OWN:
+                    own_all.add(i)
         for c in b.ents:
+            # ALREADY TOUCHING IT? Then it is on a wall and this rule has
+            # nothing to say. Measured cost of not asking: Block on 25th East's
+            # door sat 0.14 m off a westcampus return, the march found a
+            # DIFFERENT face of the same tower 0.78 m further in, and the seat
+            # put the leaf 0.64 m INSIDE the building -- the exact defect
+            # clear_buried() exists to prevent, introduced by its cure.
+            if wall.distance(Point(c.x, c.y)) < WALL_SEAT_MIN:
+                stats["seat_already_on_wall"] += 1
+                continue
             offs = (-WALL_SEAT_SPAN / 2.0, 0.0, WALL_SEAT_SPAN / 2.0)
             best = None
             for u in offs:
@@ -5886,6 +5934,37 @@ def seat_on_drawn_wall(scope, stats):
                 best = d if best is None else min(best, d)
             if best is None or best < WALL_SEAT_MIN:
                 stats["seat_already_on_wall"] += 1
+                continue
+            # AND THE LEAF MUST STILL BE OUTSIDE. Seating puts the door's own
+            # reference on the wall, so its leaf lands PROUD_DOOR out along the
+            # normal -- unless a RETURN wall beside the door covers it, and
+            # then the cure is the disease: Block on 25th East's leaf sat
+            # 0.14 m off a westcampus return, the march found another face of
+            # the same tower 0.78 m further in, and the seat buried the leaf
+            # 0.64 m inside the building. Tested where the leaf actually is,
+            # swept across the bank, and a burial cancels the move outright
+            # rather than shortening it -- a half-seated door is a door on no
+            # plane at all.
+            lv = PROUD_DOOR + LEAF_T / 2.0
+            buried = False
+            for u in offs:
+                lp = Point(c.x + c.tx * u - c.nx * (best - lv),
+                           c.y + c.ty * u - c.ny * (best - lv))
+                if wall.covers(lp):
+                    buried = True
+                    break
+                if all_tree is None:
+                    continue
+                for i in all_tree.query(lp):
+                    if int(i) in own_all:
+                        continue
+                    if all_masses[int(i)].contains(lp):
+                        buried = True
+                        break
+                if buried:
+                    break
+            if buried:
+                stats["seat_would_bury"] += 1
                 continue
             c.x -= c.nx * best
             c.y -= c.ny * best
@@ -6767,6 +6846,8 @@ def main():
     adopt_moved_wall(scope, stats)
     print("                     %d more took the move of a wall another bake"
           " shifted this round (`wpd`)" % stats["seat_adopted"])
+    print("                     %d refused because the seat would have put the"
+          " leaf inside a return wall" % stats["seat_would_bury"])
 
     # THE SIDE AUDIT. Not the same claim as "how many did the side filter
     # choose" — that counts what the RULE did. This counts what the DATA ends
