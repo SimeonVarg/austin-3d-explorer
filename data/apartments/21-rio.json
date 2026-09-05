@@ -88,8 +88,8 @@
       "_src": "S4, crop (500,1332)-(760,1358) of the entrance canopy: 42 % #eb934d in sun, 38 % #180f0a (its own shadow line), entered at 0.82 of the sunlit cluster. One anodised copper-bronze runs through the whole building - the canopy fascia, the vertical podium fins, the balcony pipe rails and the roof trellises are the same metal in S4 and S5."
     },
     "louvreLit": {
-      "hex": "#8a6c50",
-      "_src": "S4, crop (600,930)-(700,975) across one garage opening: the 19 % cluster #816652, the lit face of a slat."
+      "hex": "#8a7754",
+      "_src": "S4, crop (600,930)-(700,975) across one garage opening - the file's own crop, remeasured: its area mean is #7c6754 (124,103,84), and that is a face in DIRECT MIDDAY SUN, so at this file's 0.88 convention for a sunlit cluster the screen should read #6d5b4a in the app. The lit slat is solved back out of that: with louvreDark #3a2a1c covering 0.08 of the 0.22 m pitch (36 %), 0.64*lit + 0.36*dark = #6d5b4a gives lit = #8a7754. The value this file first carried, #8a6c50, was one cluster of the crop rather than the whole screen and blended to #6d543d - visibly darker and browner than the photograph, and at the app's oblique the podium read as a near-black barcode instead of the bronze screen. Same lightness, less saturation."
     },
     "louvreDark": {
       "hex": "#3a2a1c",
