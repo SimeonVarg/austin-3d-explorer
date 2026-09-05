@@ -91,23 +91,36 @@
       // A hull nearer the top of the cloud is turned to point more steeply up:
       // the photographs' upper hulls rake toward the sky, the lower ones splay
       // out and down. 0 makes an even sea urchin.
-      rakeWithHeight: 0.55,
+      rakeWithHeight: 0.32,
       seed: 'rubins2015',
     },
+
+    // ── The hull profile ────────────────────────────────────────────────
+    // The four exponents that decide whether a hull reads as a canoe or as a
+    // scythe. `endPow` is how far down the length the plan and the section
+    // stay full (2 is a lens, 4 holds full beam to mid-length and closes over
+    // the last third, which is what the reference hull does); `kickPow` is how
+    // abruptly the keel and the gunwale turn up at the ends (2 bends the whole
+    // hull into a banana, 6 keeps the middle straight).
+    // `deckW` is the open cockpit's half-width as a fraction of the hull's:
+    // the rest is the GUNWALE RIM, and the rim is what stops a hull reading as
+    // a black slot from above. At 0.94 (the first pass) the recess covered the
+    // whole top face and seventy hulls seen from the air were seventy dark
+    // gashes; the reference nadir is a burst of BRIGHT pointed shapes.
+    prof: { endPow: 4, kickPow: 6, beamPow: 0.42, depthPow: 0.35, deckW: 0.70 },
 
     // ── Circle with Towers ──────────────────────────────────────────────
     circle: {
       on: true,
-      // Draw the recessed joint between two fingers as a darker strip rather
-      // than as geometry: at 1 px per 0.2 m the wedge is a colour, not a shape,
-      // and js/slopes-dome.js's drum windows make the same call.
-      jointStrips: true,
-      // How far the finger's own face is inset from the block face at the
-      // wedge, in metres — the shadow line that makes the palisade read.
-      jointInset: 0.018,
-      // Every course line drawn, or every nth. 21 courses on a 4.3 m tower is
-      // one line per 6 cm of screen at walking distance and a moiré at cruise,
-      // so the coursing is a tone on the face rather than a groove per course.
+      // The top course of the wall and of every tower is drawn as its own
+      // band, one block deep, in the cap tone. In the aerial that coping is
+      // the brightest thing on the piece — a fan of block tops catching the
+      // sky — and without it the wall is a smooth pale ribbon.
+      capH: 0.2032,        // one course
+      // 21 courses on a 4.3 m tower is one line per 6 cm of screen at walking
+      // distance and a moire at cruise, so the coursing on a face is a tone
+      // rather than a groove per course. The wall's palisade is real geometry
+      // because it is 0.23 m and radial; a bed joint is 10 mm and is not.
       courseLines: false,
     },
 
@@ -131,6 +144,7 @@
     return ((h >>> 8) & 0xffffff) / 0xffffff;
   }
 
+  const PROF = ART3D.prof;
   const norm = v => { const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
   const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const add3 = (a, b, s) => [a[0] + b[0] * s, a[1] + b[1] * s, a[2] + b[2] * s];
@@ -171,10 +185,21 @@
     const N = norm(cross(T, ref));        // across the beam
     const U = norm(cross(N, T));          // the hull's own "up"
 
-    const halfB = u => (beam / 2) * Math.pow(Math.max(0, 1 - u * u), 0.62);
-    const dep = u => depth * Math.pow(Math.max(0, 1 - u * u), 0.45);
-    const keel = u => L * rocker * u * u - dep(u);      // rises at the ends
-    const gun = u => L * sheer * u * u;                 // sheer line
+    // THE PROFILE, AND IT IS READ OFF ONE PHOTOGRAPH RATHER THAN REASONED.
+    // Landmarks' own detail frame (photo Paul Bardagjy) shows a hull whose
+    // gunwale is essentially STRAIGHT down the middle and turns up only over
+    // the last sixth of its length, and whose beam is nearly full at
+    // mid-length and closes over the last third. A u^2 sheer bends the whole
+    // hull instead, and seventy of those read as a wheel of scythes — which is
+    // what the first pass drew. So both the plan and the sheer run on u^ENDPOW
+    // / u^KICKPOW, not u^2: flat in the middle, all of the movement at the
+    // ends. See PROF in the taste block.
+    const P4 = u => Math.max(0, 1 - Math.pow(Math.abs(u), PROF.endPow));
+    const kick = u => Math.pow(Math.abs(u), PROF.kickPow);
+    const halfB = u => (beam / 2) * Math.pow(P4(u), PROF.beamPow);
+    const dep = u => depth * Math.pow(P4(u), PROF.depthPow);
+    const keel = u => L * rocker * kick(u) - dep(u);    // rises at the ends
+    const gun = u => L * sheer * kick(u);               // sheer line
 
     const world = (u, v, w) => [p[0] + T[0] * (u * L / 2) + N[0] * v + U[0] * w,
                                 p[1] + T[1] * (u * L / 2) + N[1] * v + U[1] * w,
@@ -203,7 +228,7 @@
     // The open deck: a strip between the two gunwales, dropped into the hull.
     if (deckDrop > 0) {
       const deck = u => {
-        const b = halfB(u) * 0.94, g = gun(u) - dep(u) * deckDrop;
+        const b = halfB(u) * PROF.deckW, g = gun(u) - dep(u) * deckDrop;
         return [-1, 1].map(sgn => [p[0] + T[0] * (u * L / 2) + N[0] * sgn * b + U[0] * g,
                                    p[1] + T[1] * (u * L / 2) + N[1] * sgn * b + U[1] * g,
                                    p[2] + T[2] * (u * L / 2) + N[2] * sgn * b + U[2] * g]);
@@ -231,56 +256,46 @@
     box(B, 0, 0, MA.w, MA.w, P.h, P.h + MA.h, colSteel);
 
     let hulls = 0;
-    const centre = [0, 0, C.centreZ];
     const place = [];
+    // THE PLACEMENT RULE, AND IT IS THE PHYSICAL ONE. Every hull is BOLTED TO
+    // A CENTRAL ARMATURE ("draws its support from a steel armature and
+    // intertwining cables", Landmarks), so their INNER ENDS converge on the
+    // core and their pointed ends radiate. Place the inner end, not the
+    // centre, and the dense middle and the spiky outline both fall out of it —
+    // no outward bias to tune and no spikes bolted on to reach the envelope.
+    //
+    // Directions come off a FIBONACCI LATTICE rather than a hash, then get
+    // jittered. Seventy hashed directions clump: the first pass here had a
+    // comb of near-parallel hulls on one side and a hole on the other, which
+    // is what independent sampling of seventy points on a sphere looks like.
+    // The lattice covers every direction evenly and the jitter puts the tangle
+    // back.
+    const ky = C.semiY / C.semiX, kz = C.semiZ / C.semiX;
+    const GOLD = Math.PI * (3 - Math.sqrt(5));
     for (let i = 0; i < H.count; i++) {
-      // Position: a point in the ellipsoid, biased outward by `shell` so the
-      // middle stays open the way the photographs' middle is open.
-      const u = hash01(M.seed, 4 * i + 1), v = hash01(M.seed, 4 * i + 2), w = hash01(M.seed, 4 * i + 3);
-      const th = 2 * Math.PI * v, ph = Math.acos(1 - 2 * w);
-      // A hull's CENTRE lives inside `core` of the envelope; its own length
-      // then carries the pointed end out to the envelope. Placing the centres
-      // ON the envelope (the first pass here) spreads seventy hulls into a
-      // thin scattered disc with a hole in the middle — the photographs have a
-      // dense tangled core with the tips radiating out of it.
-      const rr = C.core * Math.pow(u, 1 / 2.4);
-      const nx = rr * Math.sin(ph) * Math.cos(th), ny = rr * Math.sin(ph) * Math.sin(th), nz = rr * Math.cos(ph);
-      const p = [C.semiX * nx, C.semiY * ny, C.centreZ + C.semiZ * nz];
-
-      // Orientation: the radial direction out of the core, blended toward an
-      // independent random heading by (1 - radial). THE RULE, and the one the
-      // old recipe did not have.
-      let rad = norm([p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]]);
+      const t = (i + 0.5) / H.count;
+      const zc = 1 - 2 * t, sr = Math.sqrt(Math.max(0, 1 - zc * zc)), ph = GOLD * i;
+      let dir = norm([sr * Math.cos(ph), ky * sr * Math.sin(ph), kz * zc]);
       // Higher hulls rake up, lower ones splay out and down.
-      rad = norm([rad[0], rad[1], rad[2] + M.rakeWithHeight * nz]);
-      const ra = 2 * Math.PI * hash01(M.seed, 4 * i + 4);
-      const re = (hash01(M.seed, 97 * i + 11) - 0.5) * Math.PI;
+      dir = norm([dir[0], dir[1], dir[2] + M.rakeWithHeight * zc]);
+      // Jitter, then blend toward an independent heading by (1 - radial).
+      const ja = 2 * Math.PI * hash01(M.seed, 7 * i + 1);
+      const jm = C.jitter * (hash01(M.seed, 7 * i + 2) - 0.5) * 2;
+      const perp = norm(cross(dir, Math.abs(dir[2]) > 0.9 ? [1, 0, 0] : [0, 0, 1]));
+      const perp2 = norm(cross(dir, perp));
+      dir = norm([dir[0] + jm * (Math.cos(ja) * perp[0] + Math.sin(ja) * perp2[0]),
+                  dir[1] + jm * (Math.cos(ja) * perp[1] + Math.sin(ja) * perp2[1]),
+                  dir[2] + jm * (Math.cos(ja) * perp[2] + Math.sin(ja) * perp2[2])]);
+      const ra = 2 * Math.PI * hash01(M.seed, 7 * i + 3);
+      const re = (hash01(M.seed, 7 * i + 4) - 0.5) * Math.PI;
       const rnd = [Math.cos(re) * Math.cos(ra), Math.cos(re) * Math.sin(ra), Math.sin(re)];
-      const dir = norm([rad[0] * C.radial + rnd[0] * (1 - C.radial),
-                        rad[1] * C.radial + rnd[1] * (1 - C.radial),
-                        rad[2] * C.radial + rnd[2] * (1 - C.radial)]);
-
+      dir = norm([dir[0] * C.radial + rnd[0] * (1 - C.radial),
+                  dir[1] * C.radial + rnd[1] * (1 - C.radial),
+                  dir[2] * C.radial + rnd[2] * (1 - C.radial)]);
       const L = H.lenMin + (H.lenMax - H.lenMin) * hash01(M.seed, 131 * i + 7);
-      // The hull hangs off its inner end, so push its centre out half a length:
-      // the pointed end is what juts clear of the mass.
-      const c = add3(p, dir, L * 0.30);
+      const rin = C.innerMin + (C.innerMax - C.innerMin) * hash01(M.seed, 7 * i + 5);
+      const c = add3([0, 0, C.centreZ], dir, rin + L * 0.5);
       place.push([c, dir, L, i]);
-    }
-
-    // The spikes: hulls placed ON the envelope rather than sampled, because a
-    // sampled cloud almost never reaches its own outline. Evenly round the
-    // horizon plus two high and one low, which is the spread the photographs
-    // show; each is a full length clear of the mass.
-    for (let s = 0; s < C.spikes; s++) {
-      const a = 2 * Math.PI * s / C.spikes + 0.31;
-      const el = s % 3 === 0 ? 0.62 : (s % 3 === 1 ? 0.06 : -0.34);
-      const n = norm([Math.cos(a) * Math.cos(el), Math.sin(a) * Math.cos(el), Math.sin(el)]);
-      const dir = norm([n[0], n[1], n[2] + M.rakeWithHeight * n[2] * 0.5]);
-      const L = H.lenMax * (0.92 + 0.08 * hash01(M.seed, 613 + s));
-      // The TIP lands on the envelope, so a spike sets the outline exactly
-      // rather than overshooting it by its own length.
-      const tip = [C.semiX * n[0], C.semiY * n[1], C.centreZ + C.semiZ * n[2]];
-      place.push([add3(tip, dir, -L * 0.5), dir, L, 1000 + s]);
     }
 
     for (const [c, dir, L, i] of place) {
@@ -322,12 +337,22 @@
   // ══════════════════════════════════════════════════════════════════════
 
   /**
-   * 108 radial block fingers round a 7.82 m circle. Each is a rectangle
-   * 0.1937 m across the face by 0.4064 m deep — a block — turned to its own
-   * bearing, with its INNER face on the inner radius, so adjacent fingers
-   * touch inside and splay to an open wedge outside. Five courses everywhere;
-   * eight runs of five fingers carry on to 21 courses and are the towers, two
-   * blocks deep instead of one so they stand proud into the circle.
+   * The wall is 108 radial block FINGERS round a 7.82 m circle: each a
+   * rectangle 0.1937 m across the face by 0.4064 m deep — a block — turned to
+   * its own bearing with its INNER face on the inner radius, so adjacent
+   * fingers touch inside and splay to an open wedge outside. That palisade is
+   * what the outer face of a radially-laid wall looks like and it is the piece
+   * from any distance.
+   *
+   * The eight TOWERS are NOT that, and reading them as fingers carried up was
+   * this file's own error, corrected by looking again at Landmarks' aerial at
+   * full resolution: a tower's faces are plain RUNNING-BOND stretchers — 2:1
+   * block faces with staggered vertical joints — on a square pier. The deep
+   * vertical grooves that suggested fingers in the level ground view are LEAF
+   * SHADOW; the same frame carries soft diagonal bands of it across the
+   * building behind. So a tower is one square pier, 21 courses tall, its outer
+   * face flush with the wall's and the rest of its depth standing proud into
+   * the circle, with the wall's own fingers stopping where it stands.
    */
   function buildCircle(B, D, detail) {
     const CI = ART3D.circle, blk = D.block, mat = D.material;
@@ -336,48 +361,48 @@
     const wallH = D.wall.courses * blk.course;
     const towH = D.towers.courses * blk.course;
     const wallDeep = D.wall.radialBlocks * blk.length;
-    const towDeep = D.towers.radialBlocks * blk.length;
-    const col = triple(mat, ''), colJoint = [mat.jointDay, mat.golden, mat.night];
+    const towSide = D.towers.sideBlocks * blk.length;      // tangential and radial
+    const col = triple(mat, ''), colCap = [mat.capDay || mat.day, mat.capGolden || mat.golden, mat.capNight || mat.night];
 
-    // Which fingers are towers: the run of `fingers` centred on each bearing.
-    const isTower = new Array(nF).fill(false);
-    let towers = 0;
+    // Where each tower stands, and which fingers it stands on top of.
+    const half = towSide / 2;
+    const skip = new Array(nF).fill(false);
+    const towerAt = [];
     for (const bd of D.towers.bearings) {
       // Bearing is degrees clockwise from north; local +y is north, +x is east.
       const a = (90 - bd) * Math.PI / 180;
-      const centreIdx = Math.round((a / (2 * Math.PI)) * nF);
-      const half = (D.towers.fingers - 1) / 2;
-      for (let k = -Math.floor(half + 0.5); k <= Math.floor(half); k++) {
-        isTower[((centreIdx + k) % nF + nF) % nF] = true;
+      towerAt.push(a);
+      // The angular half-width the pier covers at the outer radius.
+      const dA = Math.atan2(half, Rout);
+      for (let i = 0; i < nF; i++) {
+        let d = 2 * Math.PI * i / nF - a;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        if (Math.abs(d) <= dA) skip[i] = true;
       }
-      towers++;
     }
 
     let fingers = 0;
     for (let i = 0; i < nF; i++) {
+      if (skip[i]) continue;
       const a = 2 * Math.PI * i / nF;
-      const tower = isTower[i];
-      const deep = tower ? towDeep : wallDeep;
-      const h = tower ? towH : wallH;
-      // Outer faces flush: the finger runs inward from Rout.
-      const rc = Rout - deep / 2;
+      const rc = Rout - wallDeep / 2;
       const cx = rc * Math.cos(a), cy = rc * Math.sin(a);
       // The face is `blk.face` across; the pitch at the outer radius is wider,
       // and the difference is the open wedge the palisade reads by.
-      box(B, cx, cy, deep, blk.face, ART3D.lift, ART3D.lift + h, col, a);
-      if (CI.jointStrips) {
-        // The wedge, as a darker strip a hair behind the block face on both
-        // sides. A colour is the depth.
-        const t = blk.face / 2 + CI.jointInset;
-        const s = Math.sin(a), c = Math.cos(a);
-        for (const sgn of [-1, 1]) {
-          const px = cx - s * sgn * t, py = cy + c * sgn * t;
-          box(B, px, py, deep * 0.98, CI.jointInset * 1.6, ART3D.lift, ART3D.lift + h - blk.course * 0.5, colJoint, a);
-        }
-      }
+      box(B, cx, cy, wallDeep, blk.face, ART3D.lift, ART3D.lift + wallH - CI.capH, col, a);
+      // The coping course, laid flat and proud of the face: in the aerial it is
+      // a fan of block tops and it is the brightest thing on the piece.
+      box(B, cx, cy, wallDeep, blk.face, ART3D.lift + wallH - CI.capH, ART3D.lift + wallH, colCap, a);
       fingers++;
     }
-    return { fingers, towers };
+    for (const a of towerAt) {
+      const rc = Rout - towSide / 2;
+      const cx = rc * Math.cos(a), cy = rc * Math.sin(a);
+      box(B, cx, cy, towSide, towSide, ART3D.lift, ART3D.lift + towH - CI.capH, col, a);
+      box(B, cx, cy, towSide, towSide, ART3D.lift + towH - CI.capH, ART3D.lift + towH, colCap, a);
+    }
+    return { fingers, towers: towerAt.length };
   }
 
   // ══════════════════════════════════════════════════════════════════════
