@@ -1,0 +1,1135 @@
+{
+ "_readme": "San Jacinto Hall, 309 E 21st St - the closest residence hall to the Tower, 287 m from it. Schema and method: docs/apartments.md. Numbers are metres in the footprint's oriented bounding box: u = 0 is the NORTH end and +u runs south (bearing 184.9), v = 0 is the WEST edge and +v runs east; L = 132.9, W = 114.6. z = 0 is the low, creek-side grade; the campus grade on the north and west is 6.6 m above it (S4's 'two-story base set into the natural slope'), which is why one eave reads as five storeys from 21st Street and seven from Waller Creek.",
+ "id": "93cc2567-aa16-4909-ace6-fa13ff385bde",
+ "name": "San Jacinto Hall",
+ "address": "309 E 21st St, Austin, TX 78705",
+ "sources": {
+  "S1": "OSM way 125100401 (Overpass, 2026-09-05): building=dormitory, name 'San Jacinto Hall', ref/alt_name SJH, loc_name 'San Jac', addr 309 East 21st Street, ele 156. No height tag, no building:levels and no building:part anywhere in the bbox, so nothing about this building's shape or height is in OSM.",
+  "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 93cc2567-aa16-4909-ace6-fa13ff385bde: the 48-vertex ring (this file's footprint.ring, verbatim), name 'San Jacinto Hall', building_class dormitory, num_floors null, final_height 28.1 with source_height 'overture' - a guess, because OSM never tagged one. The facade bake's measured tones for this feature: wall wd #c5b9a5 / wg #ceb89c / wn #343334, roof rd #877b6b / rg #a1876b / rn #141622.",
+  "S3": "UT Direct campus building record SJH-0502 (utdirect.utexas.edu/apps/campus/buildings/nlogon/maps/UTM/SJH/, read 2026-09-05): number of floors 07, gross square feet 301,307, year built 2000, 309 E 21ST ST. The university's own record, and where the storey count comes from.",
+  "S4": "SchoolDesigns project page, 'University of Texas at Austin, San Jacinto Hall' (read 2026-09-05): architect Lotti Krishan & Short, completed January 2001, 304,183 sq ft, $52.4 M, 854 students in double rooms, 8,800 sq ft of community space - and the sentence the massing here is built on: 'two towers rising from a two-story base, which is set into the natural slope of the site'.",
+  "S5": "Google Earth nadir, @30.28233,-97.73434,160a,440d,35y,0h,0t,0r, 1600x1000, captured 2026-09-05 with playwright and a real Chrome on the hardware GL backend using page.screenshot (canvas.toDataURL is black there); Earth's imagery is dated 12/3/2023. Scale bar 186 px = 50 m -> 0.2688 m/px, and the snapshot ring projected with the view centre at (800,500) lands on the roof edges. Rectified into this file's (u,v) frame at 10 px/m with a 10 m grid. Every plan number in this file was read off that gridded plan.",
+  "S6": "Google Earth obliques at 300 m and 55 degrees of tilt, headings 45/135/225/315, same capture method as S5. What they show: red barrel-tile hipped roofs over every wing, buff brick walls, a light cast-stone frieze under a deep eave, windows in mirrored PAIRS about a party wall, the curved terrace on the creek side standing on a two-storey base, and the amphitheatre below it.",
+  "S7": "Google Earth head-on south elevation, @30.281911,-97.734731,160a,120d,35y,4.9h,88t,0r - heading 4.9 degrees is the outward normal of this building's +u face, so the wall is parallel to the image plane and its scale is uniform across it. Measured on it: window-row pitch 40 px, window opening 13 x 16 px, room module 51 px (windows in pairs 25 px apart, then a 62 px blank), eave-to-ridge 48 px, and a cast-stone belt course 16 px tall capping the two-storey base. Horizontal scale 11.5 +/- 0.8 px/m, taken from the footprint's own 40.8 m south wall (v = 0 to 40.8 at u = 132.7), measured between the west corner and the first courtyard jamb. Earth's own scale bar is NOT usable at 88 degrees of tilt - it disagrees with the footprint by 1.7x, and believing it would have made a storey 2.0 m tall.",
+  "S8": "data/roofs.geojson, the app's own roof bake. Of 1,604 tile facets within 300 m of this building, 243 carry exactly #bc6143 / #d87e52 / #11111c and another 355 carry a trio within 4 per cent of it (Roberts, Prather, Brackenridge, Moore-Hill). San Jacinto wears the same barrel tile its neighbours wear, so it wears their measured tone and ages through the same ramp."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7342788,
+    30.2823538
+   ],
+   [
+    -97.7341469,
+    30.2823439
+   ],
+   [
+    -97.734112,
+    30.2823995
+   ],
+   [
+    -97.7340933,
+    30.282462
+   ],
+   [
+    -97.7340852,
+    30.2825223
+   ],
+   [
+    -97.7340852,
+    30.2825871
+   ],
+   [
+    -97.7341092,
+    30.2826748
+   ],
+   [
+    -97.7342433,
+    30.2826849
+   ],
+   [
+    -97.734237,
+    30.282748
+   ],
+   [
+    -97.7342938,
+    30.2827523
+   ],
+   [
+    -97.7342865,
+    30.2828257
+   ],
+   [
+    -97.734406,
+    30.2828347
+   ],
+   [
+    -97.7343805,
+    30.2830876
+   ],
+   [
+    -97.7345259,
+    30.2830985
+   ],
+   [
+    -97.7345772,
+    30.2831024
+   ],
+   [
+    -97.7346165,
+    30.2827125
+   ],
+   [
+    -97.7345023,
+    30.2827039
+   ],
+   [
+    -97.7345279,
+    30.28245
+   ],
+   [
+    -97.7345563,
+    30.2824521
+   ],
+   [
+    -97.7345586,
+    30.2824291
+   ],
+   [
+    -97.7345898,
+    30.2824314
+   ],
+   [
+    -97.7345969,
+    30.2823612
+   ],
+   [
+    -97.7346042,
+    30.2822887
+   ],
+   [
+    -97.7345925,
+    30.2822879
+   ],
+   [
+    -97.734606,
+    30.2821545
+   ],
+   [
+    -97.7346559,
+    30.2821582
+   ],
+   [
+    -97.7346642,
+    30.2820766
+   ],
+   [
+    -97.7349182,
+    30.2821017
+   ],
+   [
+    -97.7349377,
+    30.2819295
+   ],
+   [
+    -97.7345155,
+    30.281892
+   ],
+   [
+    -97.7345075,
+    30.2819716
+   ],
+   [
+    -97.7344025,
+    30.2819637
+   ],
+   [
+    -97.734408,
+    30.2819093
+   ],
+   [
+    -97.7342574,
+    30.281898
+   ],
+   [
+    -97.7342521,
+    30.2819508
+   ],
+   [
+    -97.7341407,
+    30.2819424
+   ],
+   [
+    -97.734149,
+    30.2818601
+   ],
+   [
+    -97.7337514,
+    30.2818302
+   ],
+   [
+    -97.7337341,
+    30.2820019
+   ],
+   [
+    -97.7339747,
+    30.28202
+   ],
+   [
+    -97.7339932,
+    30.2820214
+   ],
+   [
+    -97.733981,
+    30.2821066
+   ],
+   [
+    -97.7342235,
+    30.2821225
+   ],
+   [
+    -97.7343064,
+    30.2821287
+   ],
+   [
+    -97.7342935,
+    30.2822572
+   ],
+   [
+    -97.7342276,
+    30.2822523
+   ],
+   [
+    -97.7342208,
+    30.2823197
+   ],
+   [
+    -97.7342818,
+    30.2823243
+   ],
+   [
+    -97.7342788,
+    30.2823538
+   ]
+  ],
+  "_src": "S2, verbatim."
+ },
+ "frame": "obb",
+ "_frame_src": "S2 through a port of the generator's own obbOf: L = 132.9, W = 114.6, +u at bearing 184.9 degrees. Confirmed against the console line at load.",
+ "levels": {
+  "floors": [
+   0.0,
+   3.3,
+   6.6,
+   9.9,
+   13.2,
+   16.5,
+   19.8
+  ],
+  "eave": 23.1,
+  "grade": 6.6,
+  "_src": "Seven floors is S3 - the university's own record says 07, and S2 has no floor count at all. The 3.30 m pitch is the one number here with real uncertainty: S7 measures the window-row pitch at 40 px and the horizontal scale at 11.5 +/- 0.8 px/m, which is 3.48 +/- 0.25 m. 3.30 was taken from inside that interval because it is the value at which seven floors (23.10 m to the eave) plus a 25-degree hip over a 19.2 m wing (4.50 m) reaches 27.6 m and over the 30 m deep centre reaches 28.7 - straddling S2's Overture guess of 28.1, which is the only other height statement that exists. If a drawing or a measured elevation ever turns up, this is the number to correct: everything above the eave moves with it."
+ },
+ "colours": {
+  "_src": "Anchor: `brick` is S2's own measured wall-day read for THIS feature, so a mesh panel here and the fill-extrusion band on Prather next door age through the same ramp. Tones sampled from S7 were multiplied by the single scale that takes S7's sunlit brick cluster (#deceb1) to the anchor - (0.887, 0.898, 0.932) - so all of them sit in one light.",
+  "brick": {
+   "hex": "#c5b9a5",
+   "_src": "S2 wd, the facade bake's wall-day read of this building."
+  },
+  "stone": {
+   "hex": "#c8c6c3",
+   "_src": "S7, the belt course capping the base, crop (600,688)-(900,700), mid-50% #e1dcd1, normalised. The same cast stone is the frieze under the eave, the belt course and the parapets."
+  },
+  "glass": {
+   "hex": "#685d4d",
+   "_src": "S7, three window openings at (600,586)-(610,598), (703,586)-(711,598) and (806,586)-(813,598): the core of the opening reads 0.53/0.50/0.47 of the sunlit brick beside it and that ratio is applied to the anchor. Earth's mesh smears a 1.1 m opening at 0.09 m/px, so this is the darkest honest read, not the true glass."
+  },
+  "tile": [
+   "#bc6143",
+   "#d87e52",
+   "#11111c"
+  ],
+  "_tile_src": "S8.",
+  "paving": [
+   "#877b6b",
+   "#a1876b",
+   "#141622"
+  ],
+  "_paving_src": "S2 rd/rg/rn - the bake's own roof read for this feature, which from above is the terrace and the low flat roofs, since the tile is S8's. A measurement that already existed."
+ },
+ "skins": {
+  "wall": {
+   "kind": "bays",
+   "field": "brick",
+   "bay": 4.45,
+   "window": {
+    "w": 1.13,
+    "h": 1.42,
+    "sill": 0.86
+   },
+   "glass": "glass",
+   "frame": "stone",
+   "reveal": 0.14,
+   "_src": "S7: the room module is 51 px = 4.45 m, the opening 13 x 16 px = 1.13 x 1.42 m, the sill 10 px over the floor line. S7 and S6 both show the windows in mirrored PAIRS 2.2 m apart with a 5.4 m blank between pairs - two rooms about a party wall - and this draws them evenly on the 4.45 m half-module instead, because the generator puts one window at each bay centre (todo 1). The count per floor is right; the rhythm is not."
+  },
+  "baseWall": {
+   "kind": "bays",
+   "field": "brick",
+   "bay": 8.9,
+   "window": {
+    "w": 2.3,
+    "h": 1.8,
+    "sill": 0.7
+   },
+   "glass": "glass",
+   "frame": "stone",
+   "reveal": 0.14,
+   "_src": "S7 and S6, the two levels under the belt course on the south and east: service and commons, with openings about twice a room window wide on twice the module. The 2.30 x 1.80 m opening is read off S7's base level at the west end; the loading dock beside it is wider still and is not drawn."
+  },
+  "capBand": {
+   "kind": "flat",
+   "field": "stone",
+   "_src": "S7: a cast-stone belt course 16 px = 1.4 m tall over the base, drawn 5.90 to 6.60."
+  },
+  "frieze": {
+   "kind": "flat",
+   "field": "stone",
+   "_src": "S6 and S7: a light cast-stone frieze between the top windows and the eave. S7 reads the whole eave-to-window zone at 4.9 m, but that includes the top window row washed out in the shade of a deep overhang; the band itself is 1.0 m here, which is what S6's north-west oblique shows looking DOWN on the same wall. Uncertain to +/- 0.4 m."
+  },
+  "plinth": {
+   "kind": "flat",
+   "field": "brick",
+   "_src": "No source - a blind wall, on purpose. These two levels are underground on the campus side and the app's ground is flat, so they are drawn plain rather than invented (todo 3)."
+  }
+ },
+ "blocks": [
+  {
+   "id": "northWing",
+   "plan": [
+    0.0,
+    43.5,
+    21.8,
+    41.0
+   ],
+   "z0": 0,
+   "z1": 23.1,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    },
+    {
+     "z0": 6.6,
+     "z1": 22.1,
+     "skin": "wall"
+    },
+    {
+     "z0": 22.1,
+     "z1": 23.1,
+     "skin": "frieze"
+    }
+   ],
+   "faces": {
+    "v0": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 6.6,
+       "skin": "plinth"
+      },
+      {
+       "z0": 6.6,
+       "z1": 22.1,
+       "skin": "wall"
+      },
+      {
+       "z0": 22.1,
+       "z1": 23.1,
+       "skin": "frieze"
+      }
+     ]
+    },
+    "u0": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 6.6,
+       "skin": "plinth"
+      },
+      {
+       "z0": 6.6,
+       "z1": 22.1,
+       "skin": "wall"
+      },
+      {
+       "z0": 22.1,
+       "z1": 23.1,
+       "skin": "frieze"
+      }
+     ]
+    }
+   },
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      1.92,
+      41.58,
+      23.72,
+      39.08
+     ],
+     "h": 0.9,
+     "tone": "tile",
+     "_src": "S5: the wing runs u 0 to 43.5 between v 21.8 and 41.0, 19.2 m wide, and its ridge sits on the centre line at v 31.4 with a hip at each end. The rise is 19.2/2 at 25 degrees = 4.48 m; S7 measures the eave-to-ridge of the south wing, the same section, at 48 px = 4.2 +/- 0.3 m. Five inset boxes, so the silhouette leans at the roof's own pitch instead of reading as a fascia and a lid."
+    },
+    {
+     "plan": [
+      3.84,
+      39.66,
+      25.64,
+      37.16
+     ],
+     "h": 1.79,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      5.76,
+      37.74,
+      27.56,
+      35.24
+     ],
+     "h": 2.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      7.68,
+      35.82,
+      29.48,
+      33.32
+     ],
+     "h": 3.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.83,
+      34.67,
+      30.63,
+      32.17
+     ],
+     "h": 4.48,
+     "tone": "tile"
+    }
+   ],
+   "_src": "S5. The bar facing 21st Street; its west and north walls stand in the campus grade."
+  },
+  {
+   "id": "midWing",
+   "plan": [
+    43.5,
+    74.2,
+    33.4,
+    52.0
+   ],
+   "z0": 0,
+   "z1": 23.1,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    },
+    {
+     "z0": 6.6,
+     "z1": 22.1,
+     "skin": "wall"
+    },
+    {
+     "z0": 22.1,
+     "z1": 23.1,
+     "skin": "frieze"
+    }
+   ],
+   "faces": {
+    "v0": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 6.6,
+       "skin": "plinth"
+      },
+      {
+       "z0": 6.6,
+       "z1": 22.1,
+       "skin": "wall"
+      },
+      {
+       "z0": 22.1,
+       "z1": 23.1,
+       "skin": "frieze"
+      }
+     ]
+    }
+   },
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      45.36,
+      72.34,
+      35.26,
+      50.14
+     ],
+     "h": 0.87,
+     "tone": "tile",
+     "_src": "S5: u 43.5 to 74.2 between v 33.4 and 52.0 - 18.6 m wide, ridge on the centre line at v 42.7."
+    },
+    {
+     "plan": [
+      47.22,
+      70.48,
+      37.12,
+      48.28
+     ],
+     "h": 1.74,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      49.08,
+      68.62,
+      38.98,
+      46.42
+     ],
+     "h": 2.6,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      50.94,
+      66.76,
+      40.84,
+      44.56
+     ],
+     "h": 3.47,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      52.06,
+      65.64,
+      41.96,
+      43.44
+     ],
+     "h": 4.34,
+     "tone": "tile"
+    }
+   ],
+   "_src": "S5. The bar between the north wing and the central pavilion, terrace on its east side."
+  },
+  {
+   "id": "tower",
+   "plan": [
+    74.2,
+    79.8,
+    27.8,
+    33.5
+   ],
+   "z0": 0,
+   "z1": 25.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    },
+    {
+     "z0": 6.6,
+     "z1": 24.6,
+     "skin": "wall"
+    },
+    {
+     "z0": 24.6,
+     "z1": 25.6,
+     "skin": "frieze"
+    }
+   ],
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      74.76,
+      79.24,
+      28.36,
+      32.94
+     ],
+     "h": 0.27,
+     "tone": "tile",
+     "_src": "S6's north-west oblique: the stair and entry tower stands about 2.5 m over the eave and carries a hip of its own."
+    },
+    {
+     "plan": [
+      75.32,
+      78.68,
+      28.92,
+      32.38
+     ],
+     "h": 0.53,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      75.88,
+      78.12,
+      29.48,
+      31.82
+     ],
+     "h": 0.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.44,
+      77.56,
+      30.04,
+      31.26
+     ],
+     "h": 1.06,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.78,
+      77.22,
+      30.38,
+      30.92
+     ],
+     "h": 1.33,
+     "tone": "tile"
+    }
+   ],
+   "_src": "S5 vertices 18-20: the plan juts west to v 27.8 for u 74.2 to 79.8. S6's north-west oblique shows a tower there with a cast-stone entry portal at its foot."
+  },
+  {
+   "id": "centre",
+   "plan": [
+    74.2,
+    104.8,
+    28.0,
+    58.2
+   ],
+   "z0": 0,
+   "z1": 23.1,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    },
+    {
+     "z0": 6.6,
+     "z1": 22.1,
+     "skin": "wall"
+    },
+    {
+     "z0": 22.1,
+     "z1": 23.1,
+     "skin": "frieze"
+    }
+   ],
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      77.22,
+      101.78,
+      31.02,
+      55.18
+     ],
+     "h": 1.12,
+     "tone": "tile",
+     "_src": "S5: the pavilion is 30.6 x 30.2 m and its roof reads in the nadir as one big hip with the four hips crossing. A 25-degree hip on a 30 m span would put the apex at 30.2 m, over every other ridge here and over S2's 28.1, so the rise is held to 5.60 m (about 20 degrees) and the apex lands at 28.7 - the centre reads a little taller than the wings, which is what the obliques show, not six metres taller."
+    },
+    {
+     "plan": [
+      80.24,
+      98.76,
+      34.04,
+      52.16
+     ],
+     "h": 2.24,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      83.26,
+      95.74,
+      37.06,
+      49.14
+     ],
+     "h": 3.36,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      86.28,
+      92.72,
+      40.08,
+      46.12
+     ],
+     "h": 4.48,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      88.09,
+      90.91,
+      41.89,
+      44.31
+     ],
+     "h": 5.6,
+     "tone": "tile"
+    }
+   ],
+   "_src": "S5: the commons pavilion where the three wings meet, u 74.2 to 104.8 between v 28.0 and 58.2."
+  },
+  {
+   "id": "centreBump",
+   "plan": [
+    83.0,
+    90.4,
+    58.2,
+    64.4
+   ],
+   "z0": 0,
+   "z1": 6.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 6.6,
+     "skin": "plinth"
+    }
+   ],
+   "roofTone": "paving",
+   "parapet": 1.0,
+   "parapetTone": "stone",
+   "parapetSides": [
+    "v1",
+    "u0",
+    "u1"
+   ],
+   "_src": "S5 vertices 44-47: a low projection east of the pavilion, level with the terrace."
+  },
+  {
+   "id": "southWing",
+   "plan": [
+    [
+     104.8,
+     29.3
+    ],
+    [
+     104.8,
+     24.5
+    ],
+    [
+     113.9,
+     24.6
+    ],
+    [
+     113.5,
+     0.0
+    ],
+    [
+     132.6,
+     0.0
+    ],
+    [
+     132.8,
+     40.8
+    ],
+    [
+     124.0,
+     40.7
+    ],
+    [
+     123.8,
+     50.8
+    ],
+    [
+     129.9,
+     50.9
+    ],
+    [
+     129.7,
+     65.4
+    ],
+    [
+     123.8,
+     65.4
+    ],
+    [
+     123.7,
+     76.1
+    ],
+    [
+     132.9,
+     76.2
+    ],
+    [
+     132.4,
+     114.6
+    ],
+    [
+     113.3,
+     114.4
+    ],
+    [
+     113.6,
+     91.1
+    ],
+    [
+     113.6,
+     89.4
+    ],
+    [
+     104.2,
+     89.6
+    ],
+    [
+     104.7,
+     66.2
+    ],
+    [
+     104.8,
+     58.2
+    ]
+   ],
+   "z0": 0,
+   "z1": 23.1,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    },
+    {
+     "z0": 6.6,
+     "z1": 22.1,
+     "skin": "wall"
+    },
+    {
+     "z0": 22.1,
+     "z1": 23.1,
+     "skin": "frieze"
+    }
+   ],
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      115.43,
+      130.87,
+      1.93,
+      40.8
+     ],
+     "h": 0.9,
+     "tone": "tile",
+     "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
+    },
+    {
+     "plan": [
+      115.43,
+      130.87,
+      50.9,
+      65.4
+     ],
+     "h": 0.9,
+     "tone": "tile",
+     "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
+    },
+    {
+     "plan": [
+      115.43,
+      130.87,
+      76.2,
+      112.67
+     ],
+     "h": 0.9,
+     "tone": "tile",
+     "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
+    },
+    {
+     "plan": [
+      117.36,
+      128.94,
+      3.86,
+      40.8
+     ],
+     "h": 1.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.36,
+      128.94,
+      50.9,
+      65.4
+     ],
+     "h": 1.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.36,
+      128.94,
+      76.2,
+      110.74
+     ],
+     "h": 1.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      119.29,
+      127.01,
+      5.79,
+      108.81
+     ],
+     "h": 2.7,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      121.22,
+      125.08,
+      7.72,
+      106.88
+     ],
+     "h": 3.6,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      122.38,
+      123.92,
+      8.88,
+      105.72
+     ],
+     "h": 4.5,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      105.67,
+      112.63,
+      25.37,
+      88.73
+     ],
+     "h": 0.41,
+     "tone": "tile",
+     "_src": "S5: north of the ridge the wing is 8.7 m deeper for v 24.5 to 89.6 (u 104.8 instead of 113.5); that apron carries its own low tile slope up to the main roof."
+    },
+    {
+     "plan": [
+      106.54,
+      111.76,
+      26.24,
+      87.86
+     ],
+     "h": 0.81,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      107.41,
+      110.89,
+      27.11,
+      86.99
+     ],
+     "h": 1.22,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.28,
+      110.02,
+      27.98,
+      86.12
+     ],
+     "h": 1.62,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.8,
+      109.5,
+      28.5,
+      85.6
+     ],
+     "h": 2.03,
+     "tone": "tile"
+    }
+   ],
+   "_src": "S5, the outline verbatim from the snapshot ring: 19.1 m deep at both ends, 28 m deep in the middle where the pavilion joins it, with two courtyards cut 8.8 m into the 21st Street face at v 40.8-50.8 and v 65.4-76.1."
+  },
+  {
+   "id": "terraceBase",
+   "plan": [
+    [
+     43.0,
+     52.0
+    ],
+    [
+     43.0,
+     71.2
+    ],
+    [
+     52.3,
+     74.4
+    ],
+    [
+     59.4,
+     75.1
+    ],
+    [
+     66.1,
+     75.0
+    ],
+    [
+     73.2,
+     73.9
+    ],
+    [
+     79.6,
+     71.2
+    ],
+    [
+     79.8,
+     58.2
+    ],
+    [
+     74.2,
+     58.2
+    ],
+    [
+     74.2,
+     52.0
+    ]
+   ],
+   "z0": 0,
+   "z1": 6.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.9,
+     "skin": "baseWall"
+    },
+    {
+     "z0": 5.9,
+     "z1": 6.6,
+     "skin": "capBand"
+    }
+   ],
+   "roofTone": "paving",
+   "parapet": 1.05,
+   "parapetTone": "stone",
+   "parapetSides": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6"
+   ],
+   "_src": "S5 and S6: the curved terrace over the creek. Its paved deck is at 6.60 m - two levels over the creek-side datum, level with the campus grade - and S6's north-east oblique shows the two-storey base under it with a parapet on the curved edge. The curve is the snapshot ring's own vertices 1 to 6."
+  },
+  {
+   "id": "northLow",
+   "plan": [
+    [
+     28.0,
+     41.0
+    ],
+    [
+     28.0,
+     52.6
+    ],
+    [
+     36.0,
+     52.6
+    ],
+    [
+     36.0,
+     58.2
+    ],
+    [
+     43.0,
+     58.2
+    ],
+    [
+     43.0,
+     41.0
+    ]
+   ],
+   "z0": 0,
+   "z1": 6.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 6.6,
+     "skin": "plinth"
+    }
+   ],
+   "roofTone": "paving",
+   "parapet": 1.05,
+   "parapetTone": "stone",
+   "parapetSides": [
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "_src": "S5: the stepped low piece east of the north wing, u 28 to 43 out to v 52.6 and then 58.2. It is at campus grade on every side, so it is drawn as terrace over a blind plinth."
+  }
+ ],
+ "todo": [
+  "1. windowsFromBays puts ONE window at each bay centre. S6 and S7 both show this building's windows in mirrored PAIRS - two rooms about a party wall, 2.2 m apart, then a 5.4 m blank - on an 8.9 m module. They are drawn here evenly on the 4.45 m half-module, which is the pair's average position: the right number of windows in the wrong rhythm. A `window.pair: {gap}` on windowsFromBays would fix it. Jester West Hall's file asks for exactly the same thing, so two buildings now want it.",
+  "2. The generator draws flat roofs only, so every tile hip here is five inset boxes (the recipe Jester West's wings use). It gives the right silhouette and the right pitch and it is still a staircase at walking height. A `roofHip: {pitch, ridge}` on a block would draw four real slopes.",
+  "3. The app's ground under this building is one flat plane at the creek-side datum, but the site falls 6.6 m from 21st Street to Waller Creek - that is the whole point of S4's 'two-story base set into the natural slope'. The two base levels are therefore drawn on all four sides and wear a blind plinth where the earth really covers them. A per-block ground offset, or terrain, would let them be buried.",
+  "4. Not drawn, and photographed: the amphitheatre stepping down to Waller Creek east of the terrace (it is outside the footprint), the cast-stone entry portal at the foot of the tower, the dormer-like vents in the frieze, and the loading dock at the west end of the south wing.",
+  "5. The faces on the two courtyards, the light wells and the north wing's east wall were not photographed at a usable angle and wear the same wall skin as everything else."
+ ]
+}
