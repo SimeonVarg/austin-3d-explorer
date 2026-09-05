@@ -364,32 +364,43 @@
     return out;
   }
 
-  /** `pixel`: horizontal panel planks in a running bond, tones by hash, slit windows in fixed columns */
+  /**
+   * `pixel`: horizontal panel planks in a running bond, tones by hash, slit
+   * windows in fixed columns. The TONE is decided per macro cell of
+   * `macro[0]` courses by `macro[1]` planks (The Standard: 2 x 2 — its dark
+   * runs are two courses tall and two to four planks long in every
+   * photograph, and single 0.56 m planks decided one by one read as noise
+   * from the oblique camera); the joints between the real planks inside a
+   * macro cell are still drawn, so the coursing survives the walk-up.
+   */
   function skinPixel(spec, ctx, P, key) {
     const course = spec.course || 0.556, plank = spec.plank || 2.2, bond = (spec.bond != null ? spec.bond : 0.5) * plank;
+    const macro = spec.macro || [1, 1];
+    const MR = Math.max(1, macro[0] | 0), MP = Math.max(1, macro[1] | 0);
     const tones = spec.tones.map(t => P[t]);
-    // cumulative weights -> a tone per plank from one hash; runs of 1..runMax planks share a tone
+    // cumulative weights -> a tone per macro plank from one hash; runs of 1..runMax macro planks share a tone
     const w = spec.weights || tones.map(() => 1), tot = w.reduce((a, b) => a + b, 0);
     const cum = []; let acc = 0; for (const x of w) { acc += x / tot; cum.push(acc); }
     const runMax = spec.runMax || 3;
     const zBase = spec.zBase != null ? spec.zBase : ctx.z0;
     const rowOf = z => Math.floor((z - zBase) / course + 1e-6);
-    const toneAt = (row, plankIdx) => {
-      // the plank's run: planks are grouped in runs whose length comes from the hash of the run's start
-      let i = plankIdx, guard = 0;
+    const toneAt = (mrow, mplank) => {
+      // the macro plank's run: runs whose length comes from the hash of the run's start
+      let i = mplank, guard = 0;
       while (guard++ < runMax) {
-        const runLen = 1 + Math.floor(h01(key, 'run', row, i) * runMax);
-        if (i + runLen > plankIdx) break;      // this run covers plankIdx
+        const runLen = 1 + Math.floor(h01(key, 'run', mrow, i) * runMax);
+        if (i + runLen > mplank) break;      // this run covers mplank
         i += runLen;
       }
-      const r = h01(key, 'tone', row, i);
+      const r = h01(key, 'tone', mrow, i);
       for (let k = 0; k < cum.length; k++) if (r <= cum[k]) return tones[k];
       return tones[tones.length - 1];
     };
+    const offOf = row => (Math.floor(row / MR) % 2) * bond;   // the bond steps per macro row
     return {
       rows: (z0, z1) => { const out = []; for (let z = zBase + course * Math.ceil((z0 - zBase) / course - 1e-6); z < z1; z += course) out.push(z); return out; },
-      cols: (zm, len) => { const row = rowOf(zm); const off = (row % 2) * bond; const out = []; for (let s = off - plank; s < len; s += plank) if (s > 0) out.push(s); return out; },
-      tone: (zm, sm) => { const row = rowOf(zm); const off = (row % 2) * bond; return toneAt(row, Math.floor((sm - off + plank) / plank)); },
+      cols: (zm, len) => { const off = offOf(rowOf(zm)); const out = []; for (let s = off - plank; s < len; s += plank) if (s > 0) out.push(s); return out; },
+      tone: (zm, sm) => { const row = rowOf(zm); const off = offOf(row); const plankIdx = Math.floor((sm - off + plank) / plank); return toneAt(Math.floor(row / MR), Math.floor(plankIdx / MP)); },
       windows: windowsFromBays(spec, ctx, P, key),
       glass: spec.glass, frame: spec.frame, reveal: spec.reveal,
     };
@@ -667,12 +678,23 @@
         const sides = blk.parapetSides || keys;
         for (let i = 0; i < walls.length; i++) if (sides.includes(keys[i])) box(B, walls[i], 0, walls[i].L, -APTS.parapetT, 0, zTop, zTop + blk.parapet, P[blk.parapetTone || 'coping'], { bottom: true });
       }
-      // rooftop items (a mechanical bulkhead, a stair head): closed boxes on the roof
+      // rooftop items: closed boxes on the roof — a bulkhead, a stair head, or
+      // a `grid` [nu, nv] of them inside `plan` (a condenser cluster: the
+      // nadir shows the units in tight rows on every roof of The Standard)
+      const roofBox = (plan, h, tone) => {
+        const RW = rectWalls(F, plan);
+        for (const k of RECT_SIDES) box(B, RW[k], 0, RW[k].L, -0.0001, 0, zTop, zTop + h, P[tone || 'coping'], { bottom: true, back: true, s0: true, s1: true, top: true });
+        const c = rectRing(plan).map(p => F.at(p[0], p[1], zTop + h));
+        B.polygon(c, P[tone || 'coping'], [0, 0, 1], 'xy');
+      };
       for (const it of blk.roofItems || []) {
-        const RW = rectWalls(F, it.plan);
-        for (const k of RECT_SIDES) box(B, RW[k], 0, RW[k].L, -0.0001, 0, zTop, zTop + it.h, P[it.tone || 'coping'], { bottom: true, back: true, s0: true, s1: true, top: true });
-        const c = rectRing(it.plan).map(p => F.at(p[0], p[1], zTop + it.h));
-        B.polygon(c, P[it.tone || 'coping'], [0, 0, 1], 'xy');
+        if (!it.grid) { roofBox(it.plan, it.h, it.tone); continue; }
+        const [u0, u1, v0, v1] = it.plan, [nu, nv] = it.grid, [w, d] = it.size || [1.0, 2.0];
+        const du = nu > 1 ? (u1 - u0 - w) / (nu - 1) : 0, dv = nv > 1 ? (v1 - v0 - d) / (nv - 1) : 0;
+        for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+          const a = u0 + i * du, b = v0 + j * dv;
+          roofBox([a, a + w, b, b + d], it.h, it.tone);
+        }
       }
     }
 
