@@ -1,5 +1,90 @@
 # Austin 3D Explorer — Full Handoff
 
+## 219. Sep 5 2026 — The street at eye level: curves stay curves, the keep-core is for a walk BESIDE a road, and furniture stands on pavement (`acer/apts`, the ground/props piece of the round)
+
+Three reported defects, one family: **a rule written for a camera in the air,
+still running under a camera at walking height.** Full write-up with the two
+before/after pictures: `docs/ground-curves-and-kerbs.md`.
+
+**Curves.** `simplify()` ran RDP at 1.2 m on every road and cycleway centreline
+and its own docstring justified the number by "the zoom the camera flies at".
+Measured on `data/osm_cache/roads.json`: 12,124 ways, 70,236 raw vertices, and
+1.2 m threw away 30,676 of them — 44 % of every curve a mapper drew; 0.25 m
+costs 9,882 back. That is only half of it, because a curve in OSM is a chain of
+8–15 m chords whatever the tolerance, so the runs that are CURVED are then
+Chaikin-smoothed. A turn sharper than `CURVE_CORNER_DEG` (40°) is a corner and
+stays sharp; gentler than `CURVE_MIN_DEG` (4°) is straight and is left alone; a
+run that would move more than `CURVE_MAX_DEV_M` (0.60 m) is left unsmoothed and
+COUNTED (1,022 road runs, 37 walk runs, against 4,036 and 1,010 smoothed).
+Sidewalks were never RDP'd at all, so smoothing is the only thing that could
+have fixed them. Mean turn on a curved run: **24.2° → 12.6°.**
+
+**The branches.** `SIDEWALK_KEEP_HALF_M` exempts a surveyed walk's core from the
+carriageway cut — right for the 8.24 km of real pavement the DERIVED carriageway
+was eating, and applied to every metre of every walk including the metres that
+run INTO the street. That is the pale bars shooting into Inner Campus Drive: a
+1.8 m hole punched in the cutter at every kerb ramp OSM tags `footway=sidewalk`
+instead of `footway=crossing`. 29 footways put >3 m² on a carriageway inside one
+380 m box near Waggener. The rule is one sentence — **the keep-core is for a walk
+BESIDE a road, never one ACROSS it** — tested PER SEGMENT against the nearest
+road centreline's bearing, because way 1245334958 is 419 m that runs beside the
+street and turns into it at the end. Drawn pavement standing more than 2.5 m
+inside a carriageway: **3,147 m² → 1,099 m².**
+
+**The stray objects on Guadalupe.** Sweetgreen is OSM way 366244320,
+**30.285757 −97.742110** — the research pass was posed 500 m north of it. 805 of
+4,357 furniture features stood in a carriageway on no pavement. `PROP_IN_ROAD` is
+a table, not a blanket rule: a signal, a gate and a bollard BELONG in a
+carriageway; a pole is snapped-or-left; everything else is snapped-or-dropped. It
+is footprint-aware — snapping the anchor still left nine of a fifteen-dock
+bike-share station's docks in the Drag, and the frame said so — so anything at
+least `PROP_ALIGN_LEN_M` long is laid ALONG the pavement's own edge. Wrong
+objects in a road: **664 → 124.**
+
+**A stale input, found on the way, and worth more than the headline.**
+`bake_props.py` read ground.geojson for `k=='path'` LineStrings and `k=='area'`
+Polygons. Neither survives there — `widen_paths` makes polygons and
+`PEDESTRIAN_AREA_IS_A_WALK` moved the 53 malls to `patharea/pedestrian`. So
+`RoadTest`, whose only job is "nothing we place may stand in a traffic lane", was
+handed an empty list and answered False to everything, and re-baking the shipped
+file produced **117 plaza planters where it holds 1,314**. Repaired, and it warns
+now instead of failing silently.
+
+**Switches, checked by SHA-256 rather than claimed.**
+`CURVES=0 KEEPANG=90 KEEPDEPTH=0 python scripts/bake_ground.py` reproduces
+`data/ground.geojson` (e9a6a0de…) and `data/roads.geojson` (b5b454af…) exactly as
+main has them. `PROPSNAP=0 python scripts/bake_props.py` reproduces all 3,555 of
+main's non-planter features feature-for-feature. This piece is data-only, so its
+switch is a bake flag and not a URL param: `js/ground.js` and `js/props.js` are
+another lane's files and have no URL-param mechanism to hang one on.
+
+**Gates.** `scripts/verify/kerbmeter.py` (new) scores the three rules city-wide;
+every ceiling sits between this branch and main, and `--against DIR` shows it go
+red on main on all four assertions. `scripts/verify/kerbshot.mjs` (new) is the
+picture half: the two scenes changed by 3.16 % and 0.57 % of frame, and at a
+control 300–900 m away 3.07 % changed with **0.006 % of it not ground** — no
+building, tree, roof or label moved. `walkmeter.mjs` PASS (drift 0.00 m, 0 route
+errors, UI gate pass); `plazawalk.mjs` PASS (3/3, pcl-unb 949 m, gre-mai 578 m,
+wag-mez 295 m).
+
+**One instrument bug, kept because it cost the time.** kerbshot first reported
+9,622 non-ground pixels at Waggener. The picture showed why: the door canopies on
+Waggener Hall's east wall were missing from the `before` frame and present in the
+`after` one, and nothing in the data moved them — the entrance layer had not
+finished loading when the shutter opened. `shoot()` now keeps shooting until two
+consecutive frames agree to within 0.02 % of the viewport. 9,622 → 18. The
+tree-antialiasing theory was wrong; looking at the frame is what found it.
+
+**⚠ FOR WHOEVER HAS TIPPECANOE.** `data/tiles/roads.pmtiles` and
+`data/tiles/props.pmtiles` still hold the OLD geometry and the OLD prop
+positions. `scripts/tile.sh` must be re-run or the deployed site shows none of
+this. Every frame in the doc was shot with `?tiles=0`. **This is the one thing
+between this pass and the live site.**
+
+Also queued: the walk-ridden procedural rules in `bake_props.py` (several hundred
+street lamps, benches and racks) are off by an accident of schema. Turning them
+on is a taste call, not a bake fix.
+
 ## 218. Sep 5 2026 — A wall is where the renderer draws it: GDC's atrium off the roof line, and every door seated on the wall its building actually draws (`acer/apts`, the heroes/entrances piece of the round)
 
 Two defects, one cause, one switch. Six passes here re-draw whole buildings
