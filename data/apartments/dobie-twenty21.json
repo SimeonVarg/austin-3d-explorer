@@ -47,18 +47,19 @@
     "deck": 15.8,
     "towerTop": 80.22,
     "crownTop": 82.0,
+    "_crown_src": "the crown band 80.22 to 81.2 and its roof plant to 82.0: the tower's own top, so nothing this file draws stands above final_height.",
     "_height_src": "82.0 m, the snapshot's own final_height (S2, hero_overrides 'Dobie Twenty21 82.0 — 27 floors'). RECONCILING S3's 94: OSM's building:part carries height=94 with building:levels=29 above building:min_level=2, i.e. 31 levels for the whole building, and the whole-building way (S1) says 31 too. Both contradict the sourced 27 storeys (S5). Measured on the photograph (S6m) the floor pitch is 2.63 m and 23 floor lines span 57.8 m; 25 residential floors at that pitch is 63.1 m, which under an 82.0 m top and a 3.1 m crown puts the podium deck at 15.8 m — within 1.0 m of the 16.8 m podium top the West Campus bake reads independently for this building (S8). 94 m would need either 2.63 m floors and a 28 m podium, or a 3.1 m dorm floor; neither is in any source. So 82.0 stands, and it also keeps js/controls.js's collision field, js/shadows.js and the labels on the number the rest of the app already uses.",
     "_floorpitch_src": "2.63 m (S6m). 8 ft 7 in floor to floor is ordinary for a 1972 residence hall; it is measured here, not assumed."
   },
   "colours": {
     "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given.",
     "glassTeal": {
-      "hex": "#8aacb2",
-      "_src": "the vision glass. 3-means on the tower field in S6 (x 430..1100, y 600..1400) returns #283c47 (29.6%), #475b67 (34.6%) and #90b1b6 (35.7%); the bright cluster is the sky-reflecting pane. Entered one step down from it because S6 is a flat overcast frame and the pane there is carrying the whole sky."
+      "hex": "#4c6d74",
+      "_src": "the vision glass. 3-means on the tower field in S6 (x 430..1100, y 600..1400) returns #283c47 (29.6%), #475b67 (34.6%) and #90b1b6 (35.7%); the bright cluster is the sky-reflecting pane, which is what a reflective glass shows a camera looking UP from the pavement. This app looks DOWN, and the same glass in the Google Earth obliques (S7) 3-means to #11171e (56%), #212b31 (34%) and #394b50 (10%) — from above it reflects the ground, not the sky. Entered between the two, near S7's own bright cluster, so the tower reads as the dark green-teal mass it is in every aerial and still shows its glazing."
     },
     "spandrel": {
-      "hex": "#3f535e",
-      "_src": "the dark spandrel panel plus its mullions, between the two dark clusters of the same 3-means (#283c47 and #475b67, S6). A field of this at 45% behind glassTeal at 55% averages near #6b8489, which is what the West Campus bake's own tower colour #5f7a80 (S8) reads as from the same distance — so the mesh and the fill-extrusion bands next door do not disagree."
+      "hex": "#2b3a42",
+      "_src": "the dark spandrel panel plus its mullions: S6's own dark cluster #283c47, which S7's aerial clusters (#11171e, #212b31) agree with from above. Held about 1.9x darker in luma than glassTeal so the spandrel line reads at the oblique camera without turning the wall into a light grid — measured against S7, where the banding is the only thing that reads on this tower at 300 m."
     },
     "crown": {
       "hex": "#4f6268",
@@ -86,14 +87,18 @@
     },
     "glass": ["#1e262c", "#2f363a", "#12171c"],
     "_glass_src": "the punched openings in the painted brick — the ground floor's tall slots read near-black in S6, darker than the brick beside them; night is the unlit pane, lit panes take APARTMENTS.nightLitTone.",
-    "mallGlass": ["#39424a", "#4a4c4c", "#c9a86a"],
+    "mallGlass": ["#4d5a62", "#5b5c59", "#c9a86a"],
+    "mallMullion": {"hex": "#6b6a62"},
+    "_mallMullion_src": "the mall's mullion grid as it reads from an aerial: S7's oblique shows the corner box's frame as a mid grey against its glass, not the near-black S6 measures from the pavement in its own shadow. Entered mid so the grid reads at 300 m; the near-black #2e3036 is kept as mallFrame for the fascia.",
     "_mallGlass_src": "the mall's glazing: dark by day in S6, and the one part of this building that glows warm after dark — a food court behind a two-storey window wall. The night value is S10's own bronze-gold reading (#a2865a lifted), which is where that hero colour actually belongs.",
     "voidDark": ["#141619", "#1c1d1e", "#0e1013"],
     "_voidDark_src": "the square garage openings on the north and east ground floor in S6: an unglazed hole into a dark deck, so it stays dark at night; entered flat, not sampled.",
-    "roof": ["#c9cdd1", "#cdcbc6", "#1b1e26"],
-    "_roof_src": "the white membrane roofs in the nadir (S7), entered cool the way S9 enters top faces.",
-    "deck": ["#b0b6bd", "#bcbbb6", "#1b1e26"],
-    "_deck_src": "S9 deck (concrete pool-deck paving)",
+    "roof": ["#949c9b", "#9d9b93", "#1b1e26"],
+    "_roof_src": "the white membrane roofs in the nadir (S7), entered cool the way S9 enters top faces; the level set by S7's own oblique, whose mall roofs cluster at #868b87 (49%) and #cecec7 (24%).",
+    "roofGrey": ["#6f7d84", "#7c8079", "#181b23"],
+    "_roofGrey_src": "the tower's roof deck and the mall's high-bay ridges: S7's oblique reads the tower roof as #979a9b against a #2a2b2f plant shadow, and the ridges as #868b87. Entered well BELOW those and cool, for the reason js/westcampus.js's SOLID block gives: a top face takes the sun tint, and it measured a neutral #c9bdaa coming back on screen at R/B 1.85. Shot at p=0.12 against S7, #9aa0a2 came back as a pale cream lid — the roof of an 82 m tower is the largest surface this file adds and every camera in this app looks down on it.",
+    "deck": ["#86909a", "#918e8b", "#1b1e26"],
+    "_deck_src": "S9 deck (concrete pool-deck paving), taken down to S7's own reading of this deck (#999ba0) and then cooled again for the top-face sun tint, the same correction roofGrey carries",
     "pool": ["#2f86ad", "#4a8096", "#1d4a63"],
     "_pool_src": "S9 pool",
     "turf": ["#4e7d46", "#6b7d49", "#141f19"],
@@ -186,7 +191,7 @@
       "plinth": 0.9,
       "transom": 0.52,
       "fasciaTone": "mallFrame",
-      "frame": "mallFrame",
+      "frame": "mallMullion",
       "glass": "mallGlass",
       "reveal": 0.18,
       "_src": "the two-storey glazed mall volume (S5 'two-story mall'): a heavy dark bronze mullion grid on about a 2.1 m module with a strong horizontal at mid height, a deep dark fascia at the top under the trellis, and a solid band at its base — the tenant sign band (NAVY, Regus, Subway, Gong Cha, Oma's Kitchen ...) in S6. The sign panels themselves are not drawn."
@@ -202,6 +207,26 @@
         "start": 0.4
       },
       "_src": "the podium's back and side elevations, which no photograph found here shows: given the plainest rule this building has — the same painted masonry, louvred where the garage decks are. Louvre pitch 0.55 is a plausible number, not measured (unknown)."
+    },
+    "podiumWall": {
+      "kind": "bays",
+      "bay": 4.2,
+      "field": "masonry",
+      "strip": {
+        "w": 0.45,
+        "tone": "masonryTrim",
+        "at": "joints",
+        "every": 2
+      },
+      "window": {
+        "w": 1.7,
+        "h": 2.6,
+        "sill": 1.4
+      },
+      "glass": "glass",
+      "frame": "masonryTrim",
+      "reveal": 0.3,
+      "_src": "the mall level away from the corner. S7's NW oblique shows the podium as a WHITE painted wall with punched dark openings along most of both frontages — the glazed box is local to the Guadalupe/21st corner, not a band round the building, and drawing it as a band was this file's first-look defect."
     },
     "blank": {
       "kind": "flat",
@@ -310,10 +335,10 @@
           "_src": "S6: the same rail turning the corner and running down the Guadalupe terrace"
         },
         {
-          "plan": [9.0, 70.0, 6.2, 7.4],
-          "grid": [9, 1],
-          "size": [1.6, 1.2],
-          "h": 0.9,
+          "plan": [12.0, 68.0, 6.3, 7.3],
+          "grid": [6, 1],
+          "size": [1.3, 1.0],
+          "h": 0.7,
           "tone": "turf",
           "_src": "S6: the planters of bougainvillea spaced along the 21st St terrace behind the rail"
         }
@@ -329,7 +354,7 @@
         {
           "z0": 6.6,
           "z1": 15.8,
-          "skin": "mall"
+          "skin": "podiumWall"
         }
       ],
       "faces": {
@@ -338,7 +363,7 @@
             {
               "z0": 6.6,
               "z1": 15.8,
-              "skin": "mall"
+              "skin": "podiumWall"
             }
           ]
         },
@@ -347,7 +372,7 @@
             {
               "z0": 6.6,
               "z1": 15.8,
-              "skin": "mall"
+              "skin": "podiumWall"
             }
           ]
         },
@@ -369,8 +394,32 @@
             }
           ]
         },
-        "_src": "the glazed box wraps the two street frontages in S6; the east and south sides face the service yard and the car park and no photograph found here shows them, so they wear the plainest rule this building has (masonry with garage louvres)."
+        "_src": "the mall level is painted wall with punched openings on both street frontages except at the corner (see overrides); the east and south sides face the service yard and the car park and no photograph found here shows them, so they wear the plainest rule this building has (masonry with garage louvres)."
       },
+      "overrides": [
+        {
+          "region": [44.0, 72.5, 9.0, 9.0],
+          "bands": [
+            {
+              "z0": 6.6,
+              "z1": 15.8,
+              "skin": "mall"
+            }
+          ],
+          "_src": "S6: the two-storey glazed mall box on the West 21st Street front, running about 28 m east from the Guadalupe corner — the extent it reaches in the photograph before the wall turns back to painted brick with garage openings"
+        },
+        {
+          "region": [72.5, 72.5, 9.0, 27.0],
+          "bands": [
+            {
+              "z0": 6.6,
+              "z1": 15.8,
+              "skin": "mall"
+            }
+          ],
+          "_src": "S6/S7: the same box turning the corner and running about 18 m down the Guadalupe front; S7's oblique shows its own glazed roof there and painted wall beyond it"
+        }
+      ],
       "roofTone": "deck",
       "parapet": 0.9,
       "parapetTone": "coping",
@@ -399,11 +448,11 @@
       "_src": "the west and south half of the mall roof stands about 2.6 m above the pool deck and carries a run of parallel ridged monitor roofs — the nadir (S7) reads them as grey-green standing-seam ridges at u 50..72, v 25..50 with a white flat roof and mechanical plant at u 47..72, v 49..58. Height derived: they sit a storey below the deck's own parapet in the NW oblique (S7).",
       "plan": [46.0, 72.5, 24.0, 57.5],
       "z0": 15.8,
-      "z1": 18.4,
+      "z1": 17.4,
       "bands": [
         {
           "z0": 15.8,
-          "z1": 18.4,
+          "z1": 17.4,
           "skin": "mechScreen"
         }
       ],
@@ -412,8 +461,8 @@
         "u1": null,
         "_src": "v1 and u1 stand on the mall's own parapet line at v=57.5 and u=72.5 and are not drawn twice; v0 faces the pool deck and u0 the tower."
       },
-      "roofTone": "roof",
-      "parapet": 0.5,
+      "roofTone": "roofGrey",
+      "parapet": 0.4,
       "parapetTone": "coping",
       "parapetSides": ["v0", "u0", "v1", "u1"],
       "roofItems": [
@@ -421,15 +470,15 @@
           "plan": [50.0, 72.0, 25.0, 49.0],
           "grid": [5, 1],
           "size": [3.2, 23.0],
-          "h": 1.6,
-          "tone": "roof",
+          "h": 0.9,
+          "tone": "roofGrey",
           "_src": "S7 nadir: five parallel ridged monitor roofs running north-south over the mall's high bay. Drawn as low boxes, not as pitched ridges — the generator has no pitched-roof rule and this file adds none."
         },
         {
           "plan": [50.0, 70.0, 50.0, 56.5],
           "grid": [6, 2],
           "size": [1.4, 2.2],
-          "h": 1.1,
+          "h": 1.0,
           "tone": "mech",
           "_src": "S7 nadir: the mechanical field on the white flat roof at the south-west"
         }
@@ -454,17 +503,7 @@
         }
       ],
       "_faces_src": "every one of the 20 edges wears the curtain wall: S6 shows the same module and the same spandrel line turning every corner and running through the fold, and the tower stands free above the podium on all four sides.",
-      "roofTone": "roof",
-      "roofItems": [
-        {
-          "plan": [20.0, 42.0, 22.0, 42.0],
-          "grid": [2, 2],
-          "size": [6.0, 7.0],
-          "h": 1.6,
-          "tone": "mech",
-          "_src": "S7 nadir: the bulkheads and plant enclosures on the tower roof, four blocks round the lift core. Kept under the crown's 82.0 top so nothing stands above the snapshot's final_height."
-        }
-      ]
+      "roofTone": "roofGrey"
     },
     {
       "id": "crown",
@@ -476,15 +515,25 @@
         [30.6, 53.52], [36.69, 47.42], [36.89, 44.99], [43.47, 37.9], [46.42, 38.23]
       ],
       "z0": 80.22,
-      "z1": 82.0,
+      "z1": 81.2,
       "bands": [
         {
           "z0": 80.22,
-          "z1": 82.0,
+          "z1": 81.2,
           "skin": "crown"
         }
       ],
-      "roofTone": "roof"
+      "roofTone": "roofGrey",
+      "roofItems": [
+        {
+          "plan": [20.0, 42.0, 22.0, 42.0],
+          "grid": [2, 2],
+          "size": [6.0, 7.0],
+          "h": 0.8,
+          "tone": "mech",
+          "_src": "S7 nadir: the bulkheads and plant enclosures round the lift core on the tower roof. Held to 0.8 m so their tops land at 82.0 and nothing stands above the snapshot's final_height — the rule scripts/verify/westcampus-probe.mjs enforces."
+        }
+      ]
     }
   ],
   "deck": {
@@ -581,12 +630,15 @@
       }
     ]
   },
+  "_looked": "Three look-fix passes against Google Earth's obliques (S7) at a matched camera (ours zoom 18.39 / pitch 55 / bearing 135, p=0.12 daylight, 1400x1000; Google Earth 300 m / 55 deg / 135h, same centre — the tower's silhouette measures 195 px wide at y=300 in both). (1) The tower was a pale grey grid: glassTeal and spandrel taken down to what a reflective curtain wall shows a camera looking DOWN, which is what every camera in this app does. (2) The roofs and the deck came back as pale cream lids: roofGrey, roof and deck re-entered cool and dark for the top-face sun tint js/westcampus.js's SOLID block measured (a neutral #c9bdaa returning at R/B 1.85). (3) The mall's glazing was drawn as a dark band round the whole podium; S7's NW oblique shows a WHITE painted wall with punched openings along most of both frontages and the glazed box only at the Guadalupe/21st corner, so the band became `podiumWall` with the glazing on two override regions.",
   "_open": [
     "The crown's steps are not drawn — S6 shows the parapet rising in stages to a peak over the middle of each face and the cap here is one flush band.",
     "The tower's corners are chamfered in S6 (the narrow facet at each silhouette edge reads at about 45 deg to the front face) and in S8's own chamfered_square; OSM's way (S3) has sharp corners and is what is drawn. A chamfer of 2-3 m is the likely size and is unmeasured.",
     "The mall's glazed box is canted across the Guadalupe/21st corner in S6; drawn here as a square corner.",
     "The tenant sign band along the base of the mall glazing (S6) is not drawn; nor is the Dobie Market canopy and neon.",
     "The ground floor's plan is a rectangle. The real envelope has a garage entry court on the east (the notch in the parcel ring, u 7..16 v 18..27) and a landscaped south-west corner on Guadalupe, both visible in S7 and both flattened here.",
-    "The mall's high-bay monitors are drawn as flat boxes; they are pitched ridges in S7."
+    "The mall's high-bay monitors are drawn as flat boxes; they are pitched ridges in S7.",
+    "Google Earth's mesh (S7) reads this tower about 8 m lower than 82.0 at what looked like a matched camera. It was NOT possible to settle that inside this pass: the app's own field of view is 58 deg against Google Earth's 35, so the two frames are only comparable after a scale about the principal point, and the rescale did not come out self-consistent against the pool as a check feature. What IS settled is that this file draws the height the app already carries — at the same pose, our mesh's top and `?apartments=0`'s prism top are the same line. If the 82.0 is wrong the fix belongs in scripts/hero_overrides.json, which this file does not own.",
+    "The tenant planters on the terrace are six boxes on a 56 m run; S6 shows them at a closer spacing."
   ]
 }
