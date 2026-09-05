@@ -6,7 +6,9 @@
     "the-castilian.json",
     "san-jacinto-hall.json",
     "the-villas-on-guadalupe.json",
-    "union-on-24th.json"
+    "union-on-24th.json",
+    "skyloft-austin.json",
+    "26-west.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -14,7 +16,9 @@
     "307878e3-63d2-471c-83d1-6b405de9e7b7",
     "93cc2567-aa16-4909-ace6-fa13ff385bde",
     "84a96de1-f96c-453d-9b87-b49b0579af73",
-    "0a6d10a2-a664-4049-9ea2-83ce692103ef"
+    "0a6d10a2-a664-4049-9ea2-83ce692103ef",
+    "4c485eb1-3a42-4633-9f67-df5e1c155b5a",
+    "9363b194-9c98-4d84-a3a5-2e8cce340bba"
   ],
   "replacedNames": [
     "The Standard",
@@ -22,6 +26,8 @@
     "The Castilian",
     "San Jacinto Hall",
     "The Villas on Guadalupe",
-    "Union on 24th"
+    "Union on 24th",
+    "Skyloft Austin",
+    "26 West"
   ]
 }

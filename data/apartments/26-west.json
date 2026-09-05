@@ -1,0 +1,1200 @@
+{
+ "_readme": "26 West, 600 W 26th St - the 2008 student block on the north side of W 26th St between Rio Grande and Nueces - as js/slopes-apartments.js draws it. OSM way 187381178 carries this outline as building=apartments and nothing else: no name, no address, no height, no levels. What this file draws is the L that the polygon is - the five-storey bar along W 26th St and the wing that turns north up Nueces - not the whole 26 West site, whose garage, courtyard ring and north wing are separate polygons in the snapshot. The building is one massing repeated: a two-storey masonry base that alternates red brick and pale rusticated stone in about 9 m blocks, three storeys of stucco above it in the same 9 m blocks in cream, terracotta and pale blue, a white cornice and a flat white roof - with a projecting bay under a grey hipped cap every 17 m along 26th St and a bigger one turning the Nueces corner. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=123.8, W=82.6, +u at bearing 95.1 deg, so u=0 is the WEST end towards Rio Grande, +u runs east along W 26th St, v=0 is the SOUTH (W 26th St) edge and +v runs north. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+ "id": "9363b194-9c98-4d84-a3a5-2e8cce340bba",
+ "name": "26 West",
+ "address": "600 W 26th St, Austin, TX 78705",
+ "sources": {
+  "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 9363b194-9c98-4d84-a3a5-2e8cce340bba: name null, num_floors null, final_height 19.2, source_height 'overture', building_class 'apartments'. The ring is a 10-vertex L; obbOf makes it 123.8 x 82.6 m at bearing 95.1 deg and the ring encloses 3,726 m2.",
+  "S2": "openstreetmap.org/api/0.6/way/187381178.json - the way carries exactly one tag, building=apartments. No name, no address, no height, no building:levels, no building:part. The identification below is geography, not OSM: S10 puts W 26th St on the south edge and Nueces on the east, which is 600 W 26th St.",
+  "S3": "americancampus.com/student-apartments/tx/austin/26-west - 26 West, 600 West 26th Street, Austin TX 78705; 1, 2 and 4 bedroom apartments; pool and hot tub, ROOFTOP BASKETBALL COURT, fitness centre, garage parking, gated. The court and the pool are what identify the site in S6's nadir - and both of them sit on OTHER polygons, the court on the garage and the pool in the courtyard, not on this one.",
+  "S4": "rambleratx.com/resources/west-campus-apartment-review-26-west - '5' stories, built '2008', gated, parking garage, rooftop basketball court, every plan with a balcony or a Juliette balcony.",
+  "S5": "en.uhomes.com/us/austin/detail-apartments-1711452 - 'Highest Floor 5', 'Built in 2008', 80 total units. Independent of S4 and it agrees on both.",
+  "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): the nadir at @30.29106,-97.743592,180a,520d,35y,0h,0t (Earth clamped the camera to 700 m). Scale bar 181 px = 60 m, so 0.3315 m per pixel; S1's ring projected on to it at that scale with the view centre at the canvas middle lands on the roof edges, and the frame was then resampled into (u,v) on a 5 m grid. Every plan number below was read off that gridded plan.",
+  "S7": "Google Earth oblique at W 26th and Nueces: @30.290756,-97.7431,183a,230d,35y,320h,62t, 100 % loaded, scale bar 173 px = 20 m so 0.1156 m per pixel at the screen centre; a vertical metre is 0.1156 / sin(62 deg) per pixel. This is the frame every height below was measured in.",
+  "S8": "Google Earth oblique of the 26th St elevation: @30.290786,-97.743723,183a,230d,35y,10h,62t, 100 % loaded, scale bar 101 px = 10 m so 0.0990 m per pixel. The colour-block rhythm, the base materials and the entrance with its dark 26 WEST sign band were read here.",
+  "S9": "Three more Google Earth captures at the same settings: c_southwest (@30.290811,-97.744055,183a,230d,35y,35h,62t) for the west end of the 26th St front, c_east (@30.291097,-97.743054,183a,250d,35y,280h,62t) for the Nueces elevation, and e_sw / e_se at 470 m for the whole block. All 12/3/2023 imagery except e_se, which is 1/1/2021.",
+  "S10": "data/roads.geojson: West 26th Street runs along this polygon's south edge - its centreline is 8 to 12 m south of v=0 over the polygon's whole width - and Nueces Street along its east edge. That is what fixes +u as running east and names the two street elevations.",
+  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7439106,
+    30.2908922
+   ],
+   [
+    -97.7442526,
+    30.2909185
+   ],
+   [
+    -97.7442714,
+    30.290737
+   ],
+   [
+    -97.7429898,
+    30.2906381
+   ],
+   [
+    -97.7429185,
+    30.2913272
+   ],
+   [
+    -97.7429878,
+    30.2913326
+   ],
+   [
+    -97.7429821,
+    30.2913881
+   ],
+   [
+    -97.7431242,
+    30.2913991
+   ],
+   [
+    -97.7431825,
+    30.290836
+   ],
+   [
+    -97.7439106,
+    30.2908922
+   ]
+  ],
+  "_src": "S1 verbatim. In (u,v) the ten vertices are (33.0,20.2) (0.0,20.1) (0.0,0.0) (123.7,0.0) (123.8,76.5) (117.1,76.5) (117.1,82.7) (103.4,82.7) (103.3,20.2) - a bar 123.7 x 20.15 m along W 26th St with a 20.5 m wide wing running 62 m north up Nueces and stepping 6.2 m further east at its north end."
+ },
+ "frame": "obb",
+ "_frame_src": "obbOf(ring) as the generator computes it: L=123.8, W=82.6, +u at bearing 95.1 deg. +v is 90 deg counter-clockwise from +u in (east, north), so it is very nearly north and v=0 is the W 26th St edge (S10). Confirm against the boot console line.",
+ "levels": {
+  "floors": [
+   0.0,
+   4.2,
+   7.1,
+   10.0,
+   12.9
+  ],
+  "_src": "FIVE storeys - S4 and S5 say so independently, and S7 shows five window rows on the corner tower. Measured in S7 at that tower, whose base, cornice and hip apex are all visible against the sidewalk: base to cornice 126.7 px and the apex 18.3 px above that, which at 0.1156 m per pixel with the 62 deg tilt taken out is 16.59 m to the cornice and 18.99 m to the apex. S1's 19.2 m is a surface-model maximum and lands on the hips, not on the parapet - so the parapet top is entered at 16.60 and the roof plane 0.80 below it at 15.80. Floor to floor in the upper storeys measures 22.5 px = 2.95 m in the same frame (four window rows over 135 px in S7's blue block); 2.90 is entered so that four upper storeys and one taller ground floor close on 15.80 exactly, which makes the ground floor 4.20 m. Uncertainty plus or minus 0.15 m a storey.",
+  "base": 7.1,
+  "cornice": 15.4,
+  "roof": 15.8,
+  "parapetTop": 16.6,
+  "hipApex": 19.0,
+  "_heights_src": "base 7.10 is the level-3 floor line: the masonry base is two storeys. S7 puts the bottom edge of the blue stucco 64 px above the sidewalk on the 26th St face = 8.4 m, and S8 puts the brick's top a little lower on the blocks either side of the entrance; the level-3 floor line at 7.10 is inside that spread and is where a two-storey base has to stop. Uncertainty plus or minus 0.8 m. cornice 15.40 is the white band under the parapet, set so the top row of windows (sill 12.9 + 0.85, head + 1.50 = 15.25) still fits under it."
+ },
+ "colours": {
+  "_src": "Day hex; golden and night follow js/westcampus.js's ramp(). Every hex is a k-means cluster centre of a named crop of a named capture, entered a step down from the sunlit reading because the generator lights the face itself.",
+  "cream": {
+   "hex": "#e2ded1",
+   "_src": "S8, the facade band (300,400)-(880,540) clusters to #e9e7de at 12.6 % and #dcdbd3 at 14.3 % - the ivory stucco and the white roof together; entered between them and a step down."
+  },
+  "terracotta": {
+   "hex": "#dcb590",
+   "_src": "S8, crop (640,410)-(700,450) clusters to #e3c19e at 40.7 % - one sunlit terracotta block; entered a step down. It reads peach in this imagery, not red."
+  },
+  "blue": {
+   "hex": "#adc4d3",
+   "_src": "S8, crop (300,415)-(420,470) clusters to #b3c8d6 at 43.5 % (sunlit); S7's east-facing blue clusters to #839aaf in shade. Entered just under the sunlit value."
+  },
+  "brick": {
+   "hex": "#9f8270",
+   "_src": "S8, crop (560,462)-(640,515) clusters to #b09685 at 45.6 % (sunlit) and #746156 at 10.3 % (shaded); entered between them, nearer the sunlit read. The brick is a red-brown in life and reads warm grey in this photogrammetry - the entered value keeps the photogrammetry's own hue rather than inventing the red."
+  },
+  "stone": {
+   "hex": "#cfc5b8",
+   "_src": "S7, crop (673,512)-(710,545) - the corner tower's rusticated shaft - clusters to #cfc5b8 at 37.6 %."
+  },
+  "trim": {
+   "hex": "#eae7de",
+   "_src": "the white window surrounds, the cornice band and the parapet coping. S7's roof-membrane crop clusters to #dddeda and the cornice reads brighter than it in every oblique, so this is entered above the membrane."
+  },
+  "hip": {
+   "hex": "#8f9598",
+   "_src": "S7, crop (681,407)-(708,418) - the corner tower's hipped cap - clusters to #909699 at 45.9 % and #9aa0a3 at 36.8 %."
+  },
+  "roof": {
+   "hex": "#d9dad5",
+   "_src": "S7, crop (690,378)-(760,392) - the flat roof membrane - clusters to #dddeda at 59.7 %; entered a step down because that crop is the sunlit part of the roof."
+  },
+  "glass": {
+   "hex": "#4a5257",
+   "_src": "the punched windows are the darkest cells in every facade cluster: #3d3b3b and #4e4b48 in S7's blue-wall crop, #5e666f where there is sky in them. Entered between the two - a dark window with a little sky in it, which is what the reference shows."
+  },
+  "rail": {
+   "hex": "#a8aca8",
+   "_src": "the balcony rails read as a pale grey line in S8 and S9 c_southwest; not separately sampled - entered between the trim white and the hip grey."
+  },
+  "mech": {
+   "hex": "#8b9095",
+   "_src": "S6 nadir: the roof condensers are a mid grey a shade darker than the hips."
+  }
+ },
+ "skins": {
+  "_src": "One rule per treatment; every count comes from a module, never a hard-coded number. The building has two wall treatments and a cornice, and both walls use the SAME two modules: a 9.0 m colour block and a 3.0 m window bay.",
+  "masonry": {
+   "kind": "pixel",
+   "course": 3.55,
+   "plank": 9.0,
+   "bond": 0,
+   "macro": [
+    2,
+    1
+   ],
+   "tones": [
+    "brick",
+    "stone"
+   ],
+   "weights": [
+    0.55,
+    0.45
+   ],
+   "runMax": 2,
+   "zBase": 0,
+   "bay": 3.0,
+   "window": {
+    "w": 1.35,
+    "h": 1.5,
+    "sill": 0.9
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "The two-storey base. It is not one material: it alternates red brick and pale rusticated stone in blocks the same width as the stucco blocks above. Reading S9 c_southwest left to right along the 26th St front the base goes stone, brick, brick, stone, brick, and S8 gives the same alternation across the entrance. macro [2,1] on a 3.55 m course makes the tone constant over both storeys of one block; bond 0 keeps the block edges vertical, which is what a masonry change line is. runMax 2 lets two blocks share a material, which the reference does. Two window rows fall in this band, at the 0.0 and 4.2 m floor lines."
+  },
+  "stucco": {
+   "kind": "pixel",
+   "course": 2.9,
+   "plank": 9.0,
+   "bond": 0,
+   "macro": [
+    3,
+    1
+   ],
+   "tones": [
+    "cream",
+    "terracotta",
+    "blue"
+   ],
+   "weights": [
+    0.44,
+    0.32,
+    0.24
+   ],
+   "runMax": 2,
+   "bay": 3.0,
+   "window": {
+    "w": 1.35,
+    "h": 1.5,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module, in cream, terracotta and pale blue. The block width was measured in S8 as 77 and 97 px across two adjacent blocks at 0.099 m per pixel = 7.6 and 9.6 m, with the wall nearly perpendicular to the camera so there is almost no foreshortening; 9.0 m is three window bays. The window bay is 3.0 m: S7's blue block measures 5.8 m and carries two window columns. macro [3,1] on a 2.90 m course is exactly the three storeys of this band, so the tone runs the block's full height, which is what the reference does at every block edge. The weights are the share of blocks of each tone counted along the 26th St and Nueces elevations in S8, S9 c_southwest and S9 c_east: 11 cream, 8 terracotta, 6 blue out of 25. The window is 1.35 x 1.50 m on a 0.85 m sill - S7 measures the opening at 1.06 x 1.31 m and the white surround adds about 0.15 m a side. reveal 0.22 is deeper than the app's 0.12 default because these are punched openings in a thick stucco wall and the shadow line inside them is the strongest thing on the reference's elevation."
+  },
+  "cornice": {
+   "kind": "flat",
+   "field": "trim",
+   "_src": "the white band between the top of the stucco and the roof, under the parapet. Continuous on every elevation in S7, S8 and S9 c_east."
+  }
+ },
+ "balcony": {
+  "proj": 0.32,
+  "slabT": 0.24,
+  "railH": 1.0,
+  "railT": 0.06,
+  "slabTone": "trim",
+  "railTone": "rail",
+  "_src": "S4: every plan has a balcony or a Juliette balcony. The reference's are RECESSED - a slot one bay wide with a pale rail at each floor (S8, S9 c_southwest, S9 c_east) - and the generator only projects, so these stand 0.32 m proud: the rail line and its rhythm are right, the recess is not. Rail height 1.0 m is code, not measured."
+ },
+ "blocks": [
+  {
+   "id": "south",
+   "_src": "S1's ring, the u 0..123.7 by v 0..20.15 part: the bar that fronts W 26th St for the block's whole width, Rio Grande to Nueces. Read off the rectified nadir (S6), where the roof is one plane at one height for the whole length with the courtyard light well behind it at v 21..25.",
+   "plan": [
+    0.0,
+    123.7,
+    0.0,
+    20.15
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco",
+     "balconies": [
+      {
+       "s0": 110.8,
+       "s1": 113.4
+      },
+      {
+       "s0": 93.6,
+       "s1": 96.2
+      },
+      {
+       "s0": 76.4,
+       "s1": 79.0
+      },
+      {
+       "s0": 59.2,
+       "s1": 61.8
+      },
+      {
+       "s0": 42.0,
+       "s1": 44.6
+      },
+      {
+       "s0": 24.8,
+       "s1": 27.4
+      },
+      {
+       "s0": 7.6,
+       "s1": 10.2
+      }
+     ],
+     "_balconies_src": "One railed balcony bay beside each turret, 2.6 m wide, at u = turret + 4.0 .. turret + 6.6 (s on this face is measured from its u1 end, so s = 123.7 - u). The reference's balconies are RECESSED slots with a pale rail at every floor (S8 at the cream block east of the third turret; S9 c_southwest at two more); the generator only projects, so these stand 0.32 m proud. The rail line and its rhythm are right, the recess is not - see todo 1."
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "roofTone": "roof",
+   "parapet": 0.8,
+   "parapetTone": "trim",
+   "parapetSides": [
+    "v0",
+    "u0",
+    "v1",
+    "u1"
+   ],
+   "_parapet_src": "0.80 m: the white upstand between the top of the cornice band and the roof plane, 7 px in S7 at 0.1156 m per pixel with the 62 deg tilt taken out. It runs right round in every oblique.",
+   "roofItems": [
+    {
+     "plan": [
+      8.0,
+      118.0,
+      4.0,
+      17.0
+     ],
+     "grid": [
+      14,
+      2
+     ],
+     "size": [
+      1.2,
+      2.4
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 nadir: this wing's roof carries condensers in two loose rows along its whole length, about 1.2 x 2.4 m each."
+    },
+    {
+     "plan": [
+      2.7,
+      9.9,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip",
+     "_src": "S6 nadir: grey hipped caps measured at u = 24.8, 38.1, 58.4, 76.4, 91.7 and 121.6. A least-squares fit over the first five gives u = 23.5 + 17.2k with residuals 1.3 / -2.6 / 0.5 / 1.3 / -0.6 m, against features about 7 m wide read at 0.33 m per pixel. k = -1..5 is drawn, so u = 6.3 and 109.5 are the rule's prediction rather than a measurement; S9 c_southwest does show a hip at the west end where k = -1 puts one. The apex at 19.0 m is S1's 19.2 m: a surface-model maximum lands on these caps, not on the parapet."
+    },
+    {
+     "plan": [
+      3.92,
+      8.68,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      5.11,
+      7.49,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      19.9,
+      27.1,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      21.12,
+      25.88,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      22.31,
+      24.69,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      37.1,
+      44.3,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      38.32,
+      43.08,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      39.51,
+      41.89,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      54.3,
+      61.5,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      55.52,
+      60.28,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      56.71,
+      59.09,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      71.5,
+      78.7,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      72.72,
+      77.48,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      73.91,
+      76.29,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      88.7,
+      95.9,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      89.92,
+      94.68,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      91.11,
+      93.49,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      105.9,
+      113.1,
+      -1.2,
+      5.6
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      107.12,
+      111.88,
+      -0.01,
+      4.41
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      108.31,
+      110.69,
+      1.18,
+      3.22
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      116.8,
+      125.2,
+      -1.5,
+      6.9
+     ],
+     "h": 1.0,
+     "tone": "hip",
+     "_src": "S7: the corner of W 26th and Nueces carries a bigger hipped tower cap over a chamfered corner bay. Drawn square and one step wider than the others; see todo 2."
+    },
+    {
+     "plan": [
+      118.23,
+      123.77,
+      -0.03,
+      5.43
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      119.61,
+      122.39,
+      1.44,
+      3.96
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    }
+   ]
+  },
+  {
+   "id": "east",
+   "_src": "S1's ring, the u 103.3..123.8 by v 20.15..82.65 arm with its 6.2 m step at the north end: the wing that fronts Nueces St. Entered as a polygon so the step is real. Edge 0 is its south edge and stands on the bar.",
+   "plan": [
+    [
+     103.3,
+     20.15
+    ],
+    [
+     123.8,
+     20.15
+    ],
+    [
+     123.8,
+     76.5
+    ],
+    [
+     117.1,
+     76.5
+    ],
+    [
+     117.1,
+     82.65
+    ],
+    [
+     103.4,
+     82.65
+    ]
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "0": null,
+    "1": {
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 7.1,
+       "skin": "masonry"
+      },
+      {
+       "z0": 7.1,
+       "z1": 15.4,
+       "skin": "stucco",
+       "balconies": [
+        {
+         "s0": 12.35,
+         "s1": 14.95
+        },
+        {
+         "s0": 24.85,
+         "s1": 27.45
+        },
+        {
+         "s0": 37.35,
+         "s1": 39.95
+        },
+        {
+         "s0": 49.85,
+         "s1": 52.45
+        }
+       ]
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    "_src": "0 is the south edge at v = 20.15 and stands on the bar, so it is not drawn. 1 is the Nueces elevation and carries the balcony bays. 5 is the west edge on the light well; 2, 3 and 4 are the north end's step. They all wear the same stack - S9 c_east shows the same base, the same colour blocks and the same cornice on Nueces as on 26th."
+   },
+   "roofTone": "roof",
+   "parapet": 0.8,
+   "parapetTone": "trim",
+   "parapetSides": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+   ],
+   "roofItems": [
+    {
+     "plan": [
+      106.0,
+      121.0,
+      24.0,
+      74.0
+     ],
+     "grid": [
+      2,
+      9
+     ],
+     "size": [
+      1.2,
+      2.4
+     ],
+     "h": 0.7,
+     "tone": "mech",
+     "_src": "S6 nadir: two rows of condensers up this wing."
+    },
+    {
+     "plan": [
+      120.2,
+      127.4,
+      25.1,
+      31.9
+     ],
+     "h": 1.0,
+     "tone": "hip",
+     "_src": "S6 nadir, east edge: hipped caps measured at v = 41.0 and 53.5, a 12.5 m pitch. v = 28.5 and 66.0 are that pitch continued over the wing, which is what S9 c_east's three visible caps along this elevation look like. Uncertainty plus or minus 3 m in v."
+    },
+    {
+     "plan": [
+      121.42,
+      126.18,
+      26.29,
+      30.71
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      122.61,
+      124.99,
+      27.48,
+      29.52
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      120.2,
+      127.4,
+      37.6,
+      44.4
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.42,
+      126.18,
+      38.79,
+      43.21
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      122.61,
+      124.99,
+      39.98,
+      42.02
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      120.2,
+      127.4,
+      50.1,
+      56.9
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.42,
+      126.18,
+      51.29,
+      55.71
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      122.61,
+      124.99,
+      52.48,
+      54.52
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      120.2,
+      127.4,
+      62.6,
+      69.4
+     ],
+     "h": 1.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.42,
+      126.18,
+      63.79,
+      68.21
+     ],
+     "h": 2.1,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      122.61,
+      124.99,
+      64.98,
+      67.02
+     ],
+     "h": 3.2,
+     "tone": "hip"
+    }
+   ]
+  },
+  {
+   "id": "turret-s0",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 6.3. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    3.05,
+    9.55,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s1",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 23.5. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    20.25,
+    26.75,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s2",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 40.7. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    37.45,
+    43.95,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s3",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 57.9. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    54.65,
+    61.15,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s4",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 75.1. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    71.85,
+    78.35,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s5",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 92.3. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    89.05,
+    95.55,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-s6",
+   "_src": "A projecting bay on the 26th St front, 6.5 m wide and 0.9 m deep, standing under the hipped cap at u = 109.5. Width and depth off S6's nadir (the caps are about 7 m square and oversail the wall by two to three pixels) and S8, where the bay's own shadow on the wall beside it is about a metre. Its v1 face is the main wall and is not drawn.",
+   "plan": [
+    106.25,
+    112.75,
+    -0.9,
+    0.0
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-corner",
+   "_src": "The corner tower at W 26th and Nueces. S7 shows it projecting on both streets, with a pale rusticated shaft, a stucco upper and its own hipped cap. Drawn square; the real corner is chamfered - todo 2.",
+   "plan": [
+    117.4,
+    124.6,
+    -0.9,
+    6.3
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-e0",
+   "_src": "A projecting bay on the Nueces front at v = 28.5, the same module as the 26th St bays (S9 c_east).",
+   "plan": [
+    123.8,
+    124.7,
+    25.25,
+    31.75
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-e1",
+   "_src": "A projecting bay on the Nueces front at v = 41.0, the same module as the 26th St bays (S9 c_east).",
+   "plan": [
+    123.8,
+    124.7,
+    37.75,
+    44.25
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-e2",
+   "_src": "A projecting bay on the Nueces front at v = 53.5, the same module as the 26th St bays (S9 c_east).",
+   "plan": [
+    123.8,
+    124.7,
+    50.25,
+    56.75
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  },
+  {
+   "id": "turret-e3",
+   "_src": "A projecting bay on the Nueces front at v = 66.0, the same module as the 26th St bays (S9 c_east).",
+   "plan": [
+    123.8,
+    124.7,
+    62.75,
+    69.25
+   ],
+   "z0": 0,
+   "z1": 15.8,
+   "bands": [
+    {
+     "z0": 0.0,
+     "z1": 7.1,
+     "skin": "masonry"
+    },
+    {
+     "z0": 7.1,
+     "z1": 15.4,
+     "skin": "stucco"
+    },
+    {
+     "z0": 15.4,
+     "z1": 15.8,
+     "skin": "cornice"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "roofTone": "roof",
+   "parapet": 0
+  }
+ ],
+ "todo": [
+  "1. The balconies are recessed in the reference and projecting here. A `loggia` skin - a band of wall set back with a rail in front of it - is the piece the generator is missing; until then a 0.32 m projection carries the rail line.",
+  "2. The W 26th and Nueces corner tower is chamfered at 45 degrees in S7 and is drawn square. A polygon plan can do it, but its two returns then need per-edge faces that the rectangle keys cannot name.",
+  "3. The hipped caps are drawn as three-step grey ziggurats because the generator has no pitched roof. At the app's oblique camera (about 0.3 m per pixel) each step is three pixels and reads as a hip; at walking height it will read as steps.",
+  "4. The leasing entrance on 26th St - a recessed opening with a canopy and a dark 26 WEST sign band over it, at about u=64 in S8 - is not drawn; it wears the base's punched windows instead.",
+  "5. u = 6.3 and 109.5 on the 26th St front, and v = 28.5 and 66.0 on Nueces, are the turret rule's prediction rather than measurements. A ground photograph of either street would settle them.",
+  "6. The west end wall at u=0 is a party wall against the next polygon of the same block and wears the ordinary skin. Nobody can see it, and it is not worth a face of its own until that neighbour is authored too."
+ ]
+}
