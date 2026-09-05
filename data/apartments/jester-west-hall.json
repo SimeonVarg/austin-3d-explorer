@@ -228,9 +228,9 @@
   "eaveLow": 18.6,
   "ridgeLow": 21.8,
   "_low_src": "The courtyard wings: five floors of windows above ground. S8's ruler puts the south wing's spandrel bands at 9.2, 12.7, 16.4, 19.6 and 22.0 m and its tile eave at about 18-19 m, and a 0..17 m test box sat one to two metres low against that eave. 18.60 is the sixth floor line, chosen so the fifth floor's windows fit under it; the tile ridge is 3.2 m above. +/- 1.5 m.",
-  "roofMid": 30.5,
+  "roofMid": 20.6,
   "parapetMid": 1.2,
-  "_mid_src": "The block north of the bar's west end (u 16.7..33.5): in S6's north-west oblique its roof stands at 0.60 +/- 0.06 of the way from the ground to the tower's parapet, i.e. 31 +/- 3 m - eight floors. Never photographed from the ground; +/- 2 storeys.",
+  "_mid_src": "The block north of the bar's west end (u 16.7..33.5, v 57..89). Three test boxes at 22.0, 30.5 and 38.0 m drawn into S6's west elevation and north-west oblique settle it: the grey flat roof in that footprint sits on the 22 m line, and the tile ridges beside it sit below it. (Round one read this block at 0.60 of the tower's height off the north-west oblique alone and put it at 30.5 m; that was the tower's own face behind it, not this block's roof. The three-box test is the instrument that settles it.) Flat membrane roof with a parapet, which is what the rectified nadir shows here - the tile starts west of u=16.7. +/- 1.5 m.",
   "stairTop": 53.4,
   "_stair_src": "The two blank service bays that project north (the footprint's own bumps) rise above the roof: in S6's north elevation the projecting element's top stands about 25 px above the main parapet where one floor is 38 px, i.e. 2.3 m. 53.40 is 3.6 m above the roof slab, 1.8 m above the parapet."
  },
@@ -461,7 +461,7 @@
      ]
     },
     "11": {
-     "z0": 31.7
+     "z0": 21.8
     },
     "12": {
      "z0": 18.6
@@ -848,11 +848,11 @@
     89.11
    ],
    "z0": 0,
-   "z1": 30.5,
+   "z1": 20.6,
    "bands": [
     {
      "z0": 0,
-     "z1": 30.5,
+     "z1": 20.6,
      "skin": "wingWall"
     }
    ],
@@ -870,11 +870,11 @@
     57.24
    ],
    "z0": 0,
-   "z1": 30.5,
+   "z1": 20.6,
    "bands": [
     {
      "z0": 0,
-     "z1": 30.5,
+     "z1": 20.6,
      "skin": "wingWall"
     }
    ],
