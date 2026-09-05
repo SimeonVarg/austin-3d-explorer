@@ -14,7 +14,8 @@
   "S8": "Google Earth oblique of the 26th St elevation: @30.290786,-97.743723,183a,230d,35y,10h,62t, 100 % loaded, scale bar 101 px = 10 m so 0.0990 m per pixel. The colour-block rhythm, the base materials and the entrance with its dark 26 WEST sign band were read here.",
   "S9": "Three more Google Earth captures at the same settings: c_southwest (@30.290811,-97.744055,183a,230d,35y,35h,62t) for the west end of the 26th St front, c_east (@30.291097,-97.743054,183a,250d,35y,280h,62t) for the Nueces elevation, and e_sw / e_se at 470 m for the whole block. All 12/3/2023 imagery except e_se, which is 1/1/2021.",
   "S10": "data/roads.geojson: West 26th Street runs along this polygon's south edge - its centreline is 8 to 12 m south of v=0 over the polygon's whole width - and Nueces Street along its east edge. That is what fixes +u as running east and names the two street elevations.",
-  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+  "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown.",
+  "S11": "Google Earth oblique squarely on the corner of W 26th and Nueces, the crop (560,360)-(860,640) of S7's frame c_corner enlarged 3.2x. It is the only frame that shows the two elevations meeting, and it settles three things the wider frames could not: the corner is CHAMFERED at 45 degrees over about 3.7 m, its bay wears a pale rusticated stone base under a peach shaft where the rest of the building wears brick, and the two-storey brick base runs unbroken along both streets - it is not half stone. The corner is in tree shade here, so its hexes are read as ratios against the blue block, which appears sunlit at #b1c5d3 in S8 and shaded at #7f97ab here."
  },
  "footprint": {
   "ring": [
@@ -117,17 +118,13 @@
    "hex": "#4a5257",
    "_src": "the punched windows are the darkest cells in every facade cluster: #3d3b3b and #4e4b48 in S7's blue-wall crop, #5e666f where there is sky in them. Entered between the two - a dark window with a little sky in it, which is what the reference shows."
   },
-  "rail": {
-   "hex": "#a8aca8",
-   "_src": "the balcony rails read as a pale grey line in S8 and S9 c_southwest; not separately sampled - entered between the trim white and the hip grey."
-  },
   "mech": {
    "hex": "#8b9095",
    "_src": "S6 nadir: the roof condensers are a mid grey a shade darker than the hips."
   },
   "loggia": {
-   "hex": "#2e2826",
-   "_src": "S8 crop (553,430)-(570,505), the full-height recess between two piers: 44.6 % #2d2625 (the 28.6 % #dad6ca beside it is the pale slab edge at each floor and the 26.7 % #72675f is the recess's own return). k-means of a named crop of S8's frame c_south_mid (the 26th St elevation at 230 m, 0.121 m per pixel measured off the 3.0 m window bay), 2026-09-05 look-fix pass. This is the darkest thing on the elevation and the first pass had no tone for it at all."
+   "hex": "#2b2827",
+   "_src": "S8 crop (553,430)-(570,505), the full-height recess between two piers: 44.6 % #2d2625 (the 28.6 % #dad6ca beside it is the pale slab edge at each floor and the 26.7 % #72675f is the recess's own return). k-means of a named crop of S8's frame c_south_mid (the 26th St elevation at 230 m, 0.121 m per pixel measured off the 3.0 m window bay), 2026-09-05 look-fix pass. This is the darkest thing on the elevation and the first pass had no tone for it at all. LOOK-FIX 3: neutralised from #2e2826 - at 2.6 m wide and five storeys tall the warm cast read as chocolate rather than as shadow."
   },
   "slotDark": {
    "hex": "#241f1e",
@@ -150,21 +147,21 @@
     "stone"
    ],
    "weights": [
-    0.55,
-    0.45
+    0.78,
+    0.22
    ],
    "runMax": 2,
    "zBase": 0,
    "bay": 3.0,
    "window": {
-    "w": 1.3,
-    "h": 1.7,
-    "sill": 0.9
+    "w": 1.35,
+    "h": 1.85,
+    "sill": 0.85
    },
    "glass": "glass",
    "frame": "trim",
    "reveal": 0.22,
-   "_src": "The two-storey base. It is not one material: it alternates red brick and pale rusticated stone in blocks the same width as the stucco blocks above. Reading S9 c_southwest left to right along the 26th St front the base goes stone, brick, brick, stone, brick, and S8 gives the same alternation across the entrance. macro [2,1] on a 3.55 m course makes the tone constant over both storeys of one block; bond 0 keeps the block edges vertical, which is what a masonry change line is. runMax 2 lets two blocks share a material, which the reference does. Two window rows fall in this band, at the 0.0 and 4.2 m floor lines. LOOK-FIX: window re-measured with the stucco one, 1.30 x 1.70 on a 0.90 m sill."
+   "_src": "The two-storey base. It is not one material: it alternates red brick and pale rusticated stone in blocks the same width as the stucco blocks above. Reading S9 c_southwest left to right along the 26th St front the base goes stone, brick, brick, stone, brick, and S8 gives the same alternation across the entrance. macro [2,1] on a 3.55 m course makes the tone constant over both storeys of one block; bond 0 keeps the block edges vertical, which is what a masonry change line is. runMax 2 lets two blocks share a material, which the reference does. Two window rows fall in this band, at the 0.0 and 4.2 m floor lines. LOOK-FIX: window re-measured with the stucco one, 1.30 x 1.70 on a 0.90 m sill. LOOK-FIX 2: the weights were 0.55 / 0.45 and the base disappeared - at 45 % the pale stone diluted the brick until the colour blocks above read as running the building's whole height, which is the one thing the reference never does. S11 shows why: the brick runs unbroken round the corner along both streets and only the corner bay itself is stone. 0.78 / 0.22. LOOK-FIX 3: 1.35 x 1.85 on a 0.85 m sill, the stucco opening in a 4.20 m ground storey and a 2.90 m second one."
   },
   "stucco": {
    "kind": "pixel",
@@ -188,14 +185,14 @@
    "runMax": 2,
    "bay": 3.0,
    "window": {
-    "w": 1.25,
-    "h": 1.75,
-    "sill": 0.75
+    "w": 1.35,
+    "h": 1.9,
+    "sill": 0.65
    },
    "glass": "glass",
    "frame": "trim",
    "reveal": 0.22,
-   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module, in cream, terracotta and pale blue. The block width was measured in S8 as 77 and 97 px across two adjacent blocks at 0.099 m per pixel = 7.6 and 9.6 m, with the wall nearly perpendicular to the camera so there is almost no foreshortening; 9.0 m is three window bays. The window bay is 3.0 m: S7's blue block measures 5.8 m and carries two window columns. macro [3,1] on a 2.90 m course is exactly the three storeys of this band, so the tone runs the block's full height, which is what the reference does at every block edge. The weights are the share of blocks of each tone counted along the 26th St and Nueces elevations in S8, S9 c_southwest and S9 c_east: 11 cream, 8 terracotta, 6 blue out of 25. The window is 1.35 x 1.50 m on a 0.85 m sill - S7 measures the opening at 1.06 x 1.31 m and the white surround adds about 0.15 m a side. reveal 0.22 is deeper than the app's 0.12 default because these are punched openings in a thick stucco wall and the shadow line inside them is the strongest thing on the reference's elevation. LOOK-FIX: the window was 1.35 x 1.50 and read square beside a reference whose openings are plainly portrait. Measured again in S8 at 0.121 m per pixel (the 3.0 m bay is 25 px, which is what sets that scale): the opening with its white surround is 10 by 14 px = 1.21 x 1.69 m. Entered 1.25 x 1.75."
+   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module, in cream, terracotta and pale blue. The block width was measured in S8 as 77 and 97 px across two adjacent blocks at 0.099 m per pixel = 7.6 and 9.6 m, with the wall nearly perpendicular to the camera so there is almost no foreshortening; 9.0 m is three window bays. The window bay is 3.0 m: S7's blue block measures 5.8 m and carries two window columns. macro [3,1] on a 2.90 m course is exactly the three storeys of this band, so the tone runs the block's full height, which is what the reference does at every block edge. The weights are the share of blocks of each tone counted along the 26th St and Nueces elevations in S8, S9 c_southwest and S9 c_east: 11 cream, 8 terracotta, 6 blue out of 25. The window is 1.35 x 1.50 m on a 0.85 m sill - S7 measures the opening at 1.06 x 1.31 m and the white surround adds about 0.15 m a side. reveal 0.22 is deeper than the app's 0.12 default because these are punched openings in a thick stucco wall and the shadow line inside them is the strongest thing on the reference's elevation. LOOK-FIX: the window was 1.35 x 1.50 and read square beside a reference whose openings are plainly portrait. Measured again in S8 at 0.121 m per pixel (the 3.0 m bay is 25 px, which is what sets that scale): the opening with its white surround is 10 by 14 px = 1.21 x 1.69 m. Entered 1.25 x 1.75. LOOK-FIX 3: measured a third time, this time against the storey rather than against the bay, because the storey is the number this file is surest of. The wall is 15.4 m over 140 px in S8, so 0.110 m a pixel vertically and a 2.90 m storey is 26 px; the openings in the ivory block run 20 to 21 px of that, which is 2.2 to 2.3 m including the white surround. Entered 1.90 m of opening on a 0.65 m sill - a little under the measurement, because the surround the generator draws is the window's own reveal and does not add to its height. At 1.75 m the wall read emptier than the photograph's at every zoom."
   },
   "cornice": {
    "kind": "flat",
@@ -207,18 +204,51 @@
    "field": "loggia",
    "bay": 3.0,
    "floorLine": {
-    "h": 0.35,
+    "h": 0.45,
     "tone": "trim"
    },
    "window": {
-    "w": 2.0,
-    "h": 1.9,
-    "sill": 0.5
+    "w": 2.2,
+    "h": 2.05,
+    "sill": 0.45
    },
    "glass": "slotDark",
    "frame": "loggia",
    "reveal": 0.35,
-   "_src": "THE RECESSED LOGGIA, and it is the strongest thing on this building's elevation. Beside each projecting pier the wall opens into a slot that runs the whole height of the building, from the pavement to the cornice, and it is nearly black: S8 clusters it at #2d2625 against #ecebe1 for the ivory beside it. Pale floor slabs cross it at every level - the 28.6 % #dad6ca cluster in the same crop - which is what `floorLine` draws. Width measured in S8 at x = 553..571, 18 px at 0.121 m per pixel = 2.18 m; entered at 2.6 m because the slot's own shaded returns eat a pixel a side. The first pass drew these as 0.32 m PROJECTING balconies because the generator only projects; `overrides` turns out to do it properly - a region of a wall wearing other bands - so the recess is a recess."
+   "_src": "THE RECESSED LOGGIA, and it is the strongest thing on this building's elevation. Beside each projecting pier the wall opens into a slot that runs the whole height of the building, from the pavement to the cornice, and it is nearly black: S8 clusters it at #2d2625 against #ecebe1 for the ivory beside it. Pale floor slabs cross it at every level - the 28.6 % #dad6ca cluster in the same crop - which is what `floorLine` draws. Width measured in S8 at x = 553..571, 18 px at 0.121 m per pixel = 2.18 m; entered at 2.6 m because the slot's own shaded returns eat a pixel a side. The first pass drew these as 0.32 m PROJECTING balconies because the generator only projects; `overrides` turns out to do it properly - a region of a wall wearing other bands - so the recess is a recess. LOOK-FIX 2: the slab line was 0.35 m and vanished - two pixels at the zoom this was judged in, against a wall that is nearly black. 0.45 m. LOOK-FIX 3: the opening inside the recess widened to 2.20 x 2.05 - the recess is an outdoor room and what faces the street is nearly all opening, which is why it photographs as a single dark column rather than as five windows."
+  },
+  "string": {
+   "kind": "flat",
+   "field": "trim",
+   "_src": "The pale string course that closes the top of the brick base, 0.35 m at z = 7.10. It is the line that tells the eye where the base stops: in S8 and S11 the brick ends in a light band under the stucco on every elevation. Without it the two skins met edge to edge and neither read."
+  },
+  "cornerBase": {
+   "kind": "flat",
+   "field": "stone",
+   "bay": 3.0,
+   "window": {
+    "w": 1.25,
+    "h": 1.8,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "S11: the chamfered corner bay stands on pale rusticated stone for its two base storeys while the walls either side of it are brick. One tone, one window a bay."
+  },
+  "cornerShaft": {
+   "kind": "flat",
+   "field": "terracotta",
+   "bay": 3.0,
+   "window": {
+    "w": 1.25,
+    "h": 2.0,
+    "sill": 0.6
+   },
+   "glass": "glass",
+   "frame": "trim",
+   "reveal": 0.22,
+   "_src": "S11: above the stone the corner bay is peach for its whole height, one arched opening a floor on each of its three faces. The arch is not drawn - the generator's window is a rectangle - so the opening is entered as the tallest window on the building, 1.15 x 1.85."
   }
  },
  "blocks": [
@@ -241,6 +271,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -287,46 +322,76 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip",
-     "_src": "LOOK-FIX. The first pass drew each cap as a 7.2 x 6.8 m three-step box standing 5.6 m back on the roof, and beside the reference it read as a mechanical penthouse, not a roof. Measured again in S8 with the 3.0 m window bay as the scale (25 px a bay, 0.121 m per pixel): the caps at x = 490..535 and 855..900 are 45 px = 5.4 m wide and the pier under each is 30 to 38 px = 3.6 to 4.6 m, so the cap oversails its pier by about half a metre a side. Entered 5.2 m square, straddling the wall from v = -1.0 (0.4 m proud of the pier's face) to v = 4.2, in five steps instead of three so the silhouette is a pyramid rather than a ziggurat. Apex still 19.0 m - S1's 19.2 m surface-model maximum lands here, not on the parapet. The u pitch is still the nadir's 17.2 m least-squares fit; S8 shows the real rhythm is irregular, which the rule cannot express - see todo 7."
+     "_src": "LOOK-FIX. The first pass drew each cap as a 7.2 x 6.8 m three-step box standing 5.6 m back on the roof, and beside the reference it read as a mechanical penthouse, not a roof. Measured again in S8 with the 3.0 m window bay as the scale (25 px a bay, 0.121 m per pixel): the caps at x = 490..535 and 855..900 are 45 px = 5.4 m wide and the pier under each is 30 to 38 px = 3.6 to 4.6 m, so the cap oversails its pier by about half a metre a side. Entered 5.2 m square, straddling the wall from v = -1.0 (0.4 m proud of the pier's face) to v = 4.2, in five steps instead of three so the silhouette is a pyramid rather than a ziggurat. Apex still 19.0 m - S1's 19.2 m surface-model maximum lands here, not on the parapet. The u pitch is still the nadir's 17.2 m least-squares fit; S8 shows the real rhythm is irregular, which the rule cannot express - see todo 7. LOOK-FIX 2: five steps still read as a ziggurat at 230 m - the eye counted the treads. Eight steps of 0.4 m, which is under a pixel at the app's own oblique and half a pixel at the zoom this was judged in."
     },
     {
      "plan": [
-      4.22,
-      8.38,
-      -0.48,
-      3.68
+      4.03,
+      8.57,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      4.74,
-      7.86,
-      0.04,
-      3.16
+      4.35,
+      8.25,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      5.26,
-      7.34,
-      0.56,
-      2.64
+      4.67,
+      7.92,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      5.78,
-      6.82,
-      1.08,
-      2.12
+      5.0,
+      7.6,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      5.32,
+      7.28,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      5.65,
+      6.95,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      5.97,
+      6.62,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -338,45 +403,75 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      21.42,
-      25.58,
-      -0.48,
-      3.68
+      21.23,
+      25.77,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      21.94,
-      25.06,
-      0.04,
-      3.16
+      21.55,
+      25.45,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      22.46,
-      24.54,
-      0.56,
-      2.64
+      21.88,
+      25.12,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      22.98,
-      24.02,
-      1.08,
-      2.12
+      22.2,
+      24.8,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      22.52,
+      24.48,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      22.85,
+      24.15,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      23.18,
+      23.82,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -388,45 +483,75 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      38.62,
-      42.78,
-      -0.48,
-      3.68
+      38.43,
+      42.98,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      39.14,
-      42.26,
-      0.04,
-      3.16
+      38.75,
+      42.65,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      39.66,
-      41.74,
-      0.56,
-      2.64
+      39.08,
+      42.33,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      40.18,
-      41.22,
-      1.08,
-      2.12
+      39.4,
+      42.0,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      39.73,
+      41.68,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      40.05,
+      41.35,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      40.38,
+      41.03,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -438,45 +563,75 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      55.82,
-      59.98,
-      -0.48,
-      3.68
+      55.62,
+      60.17,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      56.34,
-      59.46,
-      0.04,
-      3.16
+      55.95,
+      59.85,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      56.86,
-      58.94,
-      0.56,
-      2.64
+      56.27,
+      59.52,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      57.38,
-      58.42,
-      1.08,
-      2.12
+      56.6,
+      59.2,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      56.92,
+      58.88,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      57.25,
+      58.55,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      57.57,
+      58.23,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -488,45 +643,75 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      73.02,
-      77.18,
-      -0.48,
-      3.68
+      72.82,
+      77.38,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      73.54,
-      76.66,
-      0.04,
-      3.16
+      73.15,
+      77.05,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      74.06,
-      76.14,
-      0.56,
-      2.64
+      73.47,
+      76.72,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      74.58,
-      75.62,
-      1.08,
-      2.12
+      73.8,
+      76.4,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      74.12,
+      76.07,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      74.45,
+      75.75,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      74.77,
+      75.42,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -538,45 +723,75 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      90.22,
-      94.38,
-      -0.48,
-      3.68
+      90.02,
+      94.58,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      90.74,
-      93.86,
-      0.04,
-      3.16
+      90.35,
+      94.25,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      91.26,
-      93.34,
-      0.56,
-      2.64
+      90.67,
+      93.92,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      91.78,
-      92.82,
-      1.08,
-      2.12
+      91.0,
+      93.6,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      91.33,
+      93.27,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      91.65,
+      92.95,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      91.97,
+      92.62,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
@@ -588,96 +803,156 @@
       -1.0,
       4.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      107.42,
-      111.58,
-      -0.48,
-      3.68
+      107.22,
+      111.78,
+      -0.67,
+      3.88
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      107.94,
-      111.06,
-      0.04,
-      3.16
+      107.55,
+      111.45,
+      -0.35,
+      3.55
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      108.46,
-      110.54,
-      0.56,
-      2.64
+      107.88,
+      111.12,
+      -0.02,
+      3.23
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      108.98,
-      110.02,
-      1.08,
-      2.12
+      108.2,
+      110.8,
+      0.3,
+      2.9
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      108.53,
+      110.47,
+      0.62,
+      2.58
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      108.85,
+      110.15,
+      0.95,
+      2.25
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      109.17,
+      109.83,
+      1.28,
+      1.93
      ],
      "h": 3.2,
      "tone": "hip"
     },
     {
      "plan": [
-      117.7,
-      124.3,
-      -0.6,
-      6.0
+      118.8,
+      125.2,
+      -1.2,
+      5.2
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip",
-     "_src": "S7: the corner of W 26th and Nueces carries a bigger cap over a chamfered corner bay - 6.6 m, one step wider than the rest. Drawn square; see todo 2."
+     "_src": "S11: one grey hip over the whole chamfered corner element, 6.4 m square at (122.0, 2.0) so it covers both returns and the chamfer between them. Grey like the rest - the terracotta tile hip visible in S9 c_east is on the courtyard building behind, not on this polygon."
     },
     {
      "plan": [
-      118.36,
-      123.64,
-      0.06,
-      5.34
+      119.2,
+      124.8,
+      -0.8,
+      4.8
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      119.02,
-      122.98,
-      0.72,
-      4.68
+      119.6,
+      124.4,
+      -0.4,
+      4.4
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      119.68,
-      122.32,
-      1.38,
-      4.02
+      120.0,
+      124.0,
+      0.0,
+      4.0
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      120.34,
-      121.66,
-      2.04,
-      3.36
+      120.4,
+      123.6,
+      0.4,
+      3.6
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      120.8,
+      123.2,
+      0.8,
+      3.2
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.2,
+      122.8,
+      1.2,
+      2.8
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.6,
+      122.4,
+      1.6,
+      2.4
      ],
      "h": 3.2,
      "tone": "hip"
@@ -824,6 +1099,147 @@
        "skin": "cornice"
       }
      ]
+    },
+    {
+     "region": [
+      1.3,
+      3.9,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ],
+     "_src": "The same recesses on the courtyard (north) elevation. S9 c_east looks straight down on that face and shows the identical wall: the same colour blocks, the same grey hips and the same dark full-height slots. Their u is the SOUTH rule continued, not a measurement - the north face has never been photographed square on. The region reaches v = 19.5 .. 20.8 so it catches this rectangle's v1 wall and nothing else."
+    },
+    {
+     "region": [
+      18.5,
+      21.1,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    {
+     "region": [
+      35.7,
+      38.3,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    {
+     "region": [
+      52.9,
+      55.5,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    {
+     "region": [
+      70.1,
+      72.7,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    {
+     "region": [
+      87.3,
+      89.9,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
+    },
+    {
+     "region": [
+      104.5,
+      107.1,
+      19.5,
+      20.8
+     ],
+     "bands": [
+      {
+       "z0": 0.0,
+       "z1": 15.4,
+       "skin": "loggia"
+      },
+      {
+       "z0": 15.4,
+       "z1": 15.8,
+       "skin": "cornice"
+      }
+     ]
     }
    ]
   },
@@ -866,6 +1282,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -886,6 +1307,11 @@
       },
       {
        "z0": 7.1,
+       "z1": 7.45,
+       "skin": "string"
+      },
+      {
+       "z0": 7.45,
        "z1": 15.4,
        "skin": "stucco"
       },
@@ -935,46 +1361,76 @@
       25.9,
       31.1
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip",
-     "_src": "The Nueces caps, the same 5.2 m square five-step rule as the 26th St ones, straddling the wall at u = 123.8 (so u = 119.6 .. 124.8). v = 28.5, 41.0, 53.5, 66.0 - the nadir's two measured caps at 41.0 and 53.5 with that 12.5 m pitch continued over the wing."
+     "_src": "The Nueces caps, the same 5.2 m square eight-step rule as the 26th St ones, straddling the wall at u = 123.8. v = 28.5, 41.0, 53.5, 66.0 - the nadir's two measured caps at 41.0 and 53.5 with that 12.5 m pitch continued over the wing."
     },
     {
      "plan": [
-      120.12,
-      124.28,
-      26.42,
-      30.58
+      119.92,
+      124.48,
+      26.23,
+      30.77
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      120.64,
-      123.76,
-      26.94,
-      30.06
+      120.25,
+      124.15,
+      26.55,
+      30.45
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      121.16,
-      123.24,
-      27.46,
-      29.54
+      120.58,
+      123.83,
+      26.88,
+      30.12
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      121.68,
-      122.72,
-      27.98,
-      29.02
+      120.9,
+      123.5,
+      27.2,
+      29.8
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.23,
+      123.17,
+      27.52,
+      29.48
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.55,
+      122.85,
+      27.85,
+      29.15
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.88,
+      122.53,
+      28.18,
+      28.82
      ],
      "h": 3.2,
      "tone": "hip"
@@ -986,45 +1442,75 @@
       38.4,
       43.6
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      120.12,
-      124.28,
-      38.92,
-      43.08
+      119.92,
+      124.48,
+      38.73,
+      43.27
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      120.64,
-      123.76,
-      39.44,
-      42.56
+      120.25,
+      124.15,
+      39.05,
+      42.95
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      121.16,
-      123.24,
-      39.96,
-      42.04
+      120.58,
+      123.83,
+      39.38,
+      42.62
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      121.68,
-      122.72,
-      40.48,
-      41.52
+      120.9,
+      123.5,
+      39.7,
+      42.3
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.23,
+      123.17,
+      40.02,
+      41.98
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.55,
+      122.85,
+      40.35,
+      41.65
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.88,
+      122.53,
+      40.67,
+      41.33
      ],
      "h": 3.2,
      "tone": "hip"
@@ -1036,45 +1522,75 @@
       50.9,
       56.1
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      120.12,
-      124.28,
-      51.42,
-      55.58
+      119.92,
+      124.48,
+      51.23,
+      55.77
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      120.64,
-      123.76,
-      51.94,
-      55.06
+      120.25,
+      124.15,
+      51.55,
+      55.45
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      121.16,
-      123.24,
-      52.46,
-      54.54
+      120.58,
+      123.83,
+      51.88,
+      55.12
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      121.68,
-      122.72,
-      52.98,
-      54.02
+      120.9,
+      123.5,
+      52.2,
+      54.8
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.23,
+      123.17,
+      52.52,
+      54.48
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.55,
+      122.85,
+      52.85,
+      54.15
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.88,
+      122.53,
+      53.17,
+      53.83
      ],
      "h": 3.2,
      "tone": "hip"
@@ -1086,45 +1602,75 @@
       63.4,
       68.6
      ],
-     "h": 0.64,
+     "h": 0.4,
      "tone": "hip"
     },
     {
      "plan": [
-      120.12,
-      124.28,
-      63.92,
-      68.08
+      119.92,
+      124.48,
+      63.73,
+      68.28
      ],
-     "h": 1.28,
+     "h": 0.8,
      "tone": "hip"
     },
     {
      "plan": [
-      120.64,
-      123.76,
-      64.44,
-      67.56
+      120.25,
+      124.15,
+      64.05,
+      67.95
      ],
-     "h": 1.92,
+     "h": 1.2,
      "tone": "hip"
     },
     {
      "plan": [
-      121.16,
-      123.24,
-      64.96,
-      67.04
+      120.58,
+      123.83,
+      64.38,
+      67.62
      ],
-     "h": 2.56,
+     "h": 1.6,
      "tone": "hip"
     },
     {
      "plan": [
-      121.68,
-      122.72,
-      65.48,
-      66.52
+      120.9,
+      123.5,
+      64.7,
+      67.3
+     ],
+     "h": 2.0,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.23,
+      123.17,
+      65.03,
+      66.97
+     ],
+     "h": 2.4,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.55,
+      122.85,
+      65.35,
+      66.65
+     ],
+     "h": 2.8,
+     "tone": "hip"
+    },
+    {
+     "plan": [
+      121.88,
+      122.53,
+      65.67,
+      66.33
      ],
      "h": 3.2,
      "tone": "hip"
@@ -1233,6 +1779,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1267,6 +1818,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1301,6 +1857,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1335,6 +1896,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1369,6 +1935,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1403,6 +1974,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1437,6 +2013,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1454,34 +2035,64 @@
   },
   {
    "id": "turret-corner",
-   "_src": "The corner tower at W 26th and Nueces. S7 shows it projecting on both streets, with a pale rusticated shaft, a stucco upper and its own hipped cap. Drawn square; the real corner is chamfered - todo 2.",
+   "_src": "THE CHAMFERED CORNER, and todo 2 is closed. S11 shows the corner of W 26th and Nueces cut at 45 degrees over about 3.7 m, with a 3.7 m return on each street, standing 0.8 m proud of both walls - a thin L wrapping the corner, not a solid tower. The ring is that L: edges 0 (the 26th St return), 1 (the chamfer), 2 (the Nueces return), 3 and 6 (the two 0.8 m ends) are drawn; edges 4 and 5 lie on the main walls and are not. z1 is 15.85, five centimetres over the block's 15.80, because this plan overlaps the roof it stands on and two coplanar roof polygons z-fight. Chamfer width 3.68 m = the 2.6 m offset on each axis; the bay is 0.71 m thick at the chamfer. The stone base and the peach shaft are S11's, and they are the one place on this building where the base is not brick.",
    "plan": [
-    117.4,
-    124.6,
-    -0.9,
-    6.3
+    [
+     118.2,
+     -0.8
+    ],
+    [
+     121.9,
+     -0.8
+    ],
+    [
+     124.5,
+     1.8
+    ],
+    [
+     124.5,
+     5.5
+    ],
+    [
+     123.7,
+     5.5
+    ],
+    [
+     123.7,
+     0.0
+    ],
+    [
+     118.2,
+     0.0
+    ]
    ],
    "z0": 0,
-   "z1": 15.8,
+   "z1": 15.85,
    "bands": [
     {
      "z0": 0.0,
      "z1": 7.1,
-     "skin": "masonry"
+     "skin": "cornerBase"
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
-     "skin": "stucco"
+     "skin": "cornerShaft"
     },
     {
      "z0": 15.4,
-     "z1": 15.8,
+     "z1": 15.85,
      "skin": "cornice"
     }
    ],
    "faces": {
-    "v1": null
+    "4": null,
+    "5": null
    },
    "roofTone": "roof",
    "parapet": 0
@@ -1505,6 +2116,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1539,6 +2155,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1573,6 +2194,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
@@ -1607,6 +2233,11 @@
     },
     {
      "z0": 7.1,
+     "z1": 7.45,
+     "skin": "string"
+    },
+    {
+     "z0": 7.45,
      "z1": 15.4,
      "skin": "stucco"
     },
