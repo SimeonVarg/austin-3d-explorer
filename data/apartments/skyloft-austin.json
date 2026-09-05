@@ -1007,7 +1007,15 @@
           ]
         },
         "u0": null,
-        "u1": null,
+        "u1": {
+          "bands": [
+            {
+              "z0": 47.81,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
         "v1": {
           "bands": [
             {
@@ -1017,7 +1025,7 @@
             }
           ]
         },
-        "_src": "u0 and u1 stand against towerM and step15. v1 is the EAST wall of light well B."
+        "_src": "u0 stands against towerM. u1 is the tower's own north wall standing over the top terrace, from the 15-storey step's roof at 47.81 m up. LOOK-FIX 4: the wall that stands above the terrace to the north of it. Every north-facing face of the stepped wing was `null` with the note 'u1 is under the step to the north and is not drawn' - true only up to the NEXT step's roof; above that it is 9 m of open elevation. Four of them were missing (three steps and the tower over the top terrace), about 30 m wide each, and through the holes the camera was reading the block wall at u=39.05 on the far side of the building: in the north frame the window grids of two different steps line up exactly and are the same size, which they cannot be at two depths - one wall seen through two gaps. The riser is the residential field, from the neighbour's roof to this block's own. v1 is the EAST wall of light well B."
       },
       "roofTone": "roof",
       "parapet": 1.05,
@@ -1076,7 +1084,15 @@
           ]
         },
         "u0": null,
-        "u1": null,
+        "u1": {
+          "bands": [
+            {
+              "z0": 47.81,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
         "v0": {
           "bands": [
             {
@@ -1086,7 +1102,7 @@
             }
           ]
         },
-        "_src": "u0 and u1 stand against towerM and step15. v0 is the WEST wall of well B; v1 is Nueces and carries the core and the glazed stair."
+        "_src": "u0 stands against towerM. u1 is the tower's own north wall over the top terrace, from 47.81 m up. LOOK-FIX 4: the wall that stands above the terrace to the north of it. Every north-facing face of the stepped wing was `null` with the note 'u1 is under the step to the north and is not drawn' - true only up to the NEXT step's roof; above that it is 9 m of open elevation. Four of them were missing (three steps and the tower over the top terrace), about 30 m wide each, and through the holes the camera was reading the block wall at u=39.05 on the far side of the building: in the north frame the window grids of two different steps line up exactly and are the same size, which they cannot be at two depths - one wall seen through two gaps. The riser is the residential field, from the neighbour's roof to this block's own. v0 is the WEST wall of well B; v1 is Nueces and carries the core and the glazed stair."
       },
       "overrides": [
         {
@@ -1256,8 +1272,16 @@
             }
           ]
         },
-        "u1": null,
-        "_src": "u0 is the NORTH wall of light well B; u1 is under the step to the north and is not drawn"
+        "u1": {
+          "bands": [
+            {
+              "z0": 38.77,
+              "z1": 47.81,
+              "skin": "field"
+            }
+          ]
+        },
+        "_src": "u0 is the NORTH wall of light well B; u1 is the riser above the next terrace north, from 38.77 m up. LOOK-FIX 4: the wall that stands above the terrace to the north of it. Every north-facing face of the stepped wing was `null` with the note 'u1 is under the step to the north and is not drawn' - true only up to the NEXT step's roof; above that it is 9 m of open elevation. Four of them were missing (three steps and the tower over the top terrace), about 30 m wide each, and through the holes the camera was reading the block wall at u=39.05 on the far side of the building: in the north frame the window grids of two different steps line up exactly and are the same size, which they cannot be at two depths - one wall seen through two gaps. The riser is the residential field, from the neighbour's roof to this block's own."
       },
       "roofTone": "terrace",
       "parapet": 1.05,
@@ -1338,8 +1362,16 @@
           ]
         },
         "u0": null,
-        "u1": null,
-        "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
+        "u1": {
+          "bands": [
+            {
+              "z0": 29.72,
+              "z1": 38.77,
+              "skin": "field"
+            }
+          ]
+        },
+        "_src": "u0 stands against the step to the south; u1 is the riser above the next terrace north, from 29.72 m up. LOOK-FIX 4: the wall that stands above the terrace to the north of it. Every north-facing face of the stepped wing was `null` with the note 'u1 is under the step to the north and is not drawn' - true only up to the NEXT step's roof; above that it is 9 m of open elevation. Four of them were missing (three steps and the tower over the top terrace), about 30 m wide each, and through the holes the camera was reading the block wall at u=39.05 on the far side of the building: in the north frame the window grids of two different steps line up exactly and are the same size, which they cannot be at two depths - one wall seen through two gaps. The riser is the residential field, from the neighbour's roof to this block's own."
       },
       "roofTone": "terrace",
       "parapet": 1.05,
@@ -1420,8 +1452,16 @@
           ]
         },
         "u0": null,
-        "u1": null,
-        "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
+        "u1": {
+          "bands": [
+            {
+              "z0": 20.68,
+              "z1": 29.72,
+              "skin": "field"
+            }
+          ]
+        },
+        "_src": "u0 stands against the step to the south; u1 is the riser above the next terrace north, from 20.68 m up. LOOK-FIX 4: the wall that stands above the terrace to the north of it. Every north-facing face of the stepped wing was `null` with the note 'u1 is under the step to the north and is not drawn' - true only up to the NEXT step's roof; above that it is 9 m of open elevation. Four of them were missing (three steps and the tower over the top terrace), about 30 m wide each, and through the holes the camera was reading the block wall at u=39.05 on the far side of the building: in the north frame the window grids of two different steps line up exactly and are the same size, which they cannot be at two depths - one wall seen through two gaps. The riser is the residential field, from the neighbour's roof to this block's own."
       },
       "roofTone": "terrace",
       "parapet": 1.05,
