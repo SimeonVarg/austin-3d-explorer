@@ -1223,7 +1223,17 @@ check('apartments: APARTMENTS.on = false removes the group and restores every fi
 const dAptSwitch = diffPNG(fAptOff, C2.f);
 check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose, within the switch section\'s own OFF-vs-load ceiling', dAptSwitch.pixels <= SWITCH_OFF_PX, `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff}) — ceiling ${SWITCH_OFF_PX}, measured 933 on 2026-09-05`);
 if (AGAINST) {
-  const G = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+  const G = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main', async pg => {
+    // The archive is main as it was: its roofs still wear the ridge and hip
+    // courses this branch switched off in its first commit (2cc1b29), and at
+    // this pose they are the campus roofs on the horizon — 23,572 of the
+    // 23,584 differing pixels on the first --against run were in the top
+    // 300 rows, 12 elsewhere. This line is about the apartments switch, not
+    // the courses (the `courses` line above is), so the archive page is put
+    // in the same state before its frame.
+    await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
+    await pg.waitForTimeout(800);
+  });
   await G.pg.close();
   const dAptMain = diffPNG(C2.f, G.f);
   check('apartments (--against): ?apartments=0 is the main archive\'s frame at the pose (to the facade atlas\' two-state residue)', zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
