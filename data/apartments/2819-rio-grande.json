@@ -1,0 +1,1276 @@
+{
+  "_readme": "2819 Rio Grande Street - The Block on Rio - as js/slopes-apartments.js draws it. A 2008 six-storey student-housing courtyard block: two storeys of rough-faced Texas limestone under four storeys of stucco in brick-red, buff, cream and khaki colour blocks, balconies on every upper floor, a buff corner tower on Rio Grande under a wide hipped roof, and a flat white membrane roof ringed by a band of grey shingle. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=60.88, W=44.88. u=0 is the EAST end and +u runs WEST; v=0 is the NORTH edge and +v runs SOUTH - see _frame_src. The footprint is a MULTIPOLYGON with a 22.5 x 11.2 m courtyard hole; the generator's plans take one ring, so the building is built as four ranges round the courtyard plus the west wing and its tower, which is also the only way the courtyard gets walls. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "583f3864-f044-4c2c-9d5b-8af47112562b",
+  "name": "The Block on Rio",
+  "address": "2819 Rio Grande St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 583f3864-f044-4c2c-9d5b-8af47112562b: name null, num_floors 6, final_height 27.4, source_height 'overture', building_class 'apartments'. The geometry is a POLYGON WITH A HOLE - an outer ring of 16 vertices, 2585 m2, and an inner ring of 12, 243 m2. Net 2343 m2.",
+    "S2": "OSM relation 5685650, type=multipolygon, building=apartments, building:levels=6, height=27.4, addr:housenumber=2819, addr:street=Rio Grande Street. No name tag. Queried from Overpass 2026-09-05. The height and the level count are the same numbers the snapshot carries, so the snapshot's 27.4 m is OSM's tag, not an independent read.",
+    "S3": "The building is 'The Block on Rio' / 'Block on Rio Grande', a student community at 2819 Rio Grande St (umovefree.com/Apartment/block-on-rio-grande-apartments-austin-tx, apartments.com/the-block-on-rio-grande-austin-tx/cgf27nf, mapquest 'The Block On Rio'). Trulia gives the year built as 2008. It is an apartment building.",
+    "S4": "The listing's exterior photograph, ALN media 8cde1528-351c-4286-b970-00c51dc5b879 (ref/aln_01.jpg in the session scratchpad, 1500 x 1412), a sunlit street-level view of the Rio Grande frontage: the two-storey rough-faced limestone base, the brick-red stucco volume above it with white window surrounds, projecting balconies on cream slabs with corbels and dark bronze rails, the buff corner tower rising one storey higher under a wide hipped roof with exposed rafter tails, and the khaki wing beyond. THE storey count and THE colour palette come from this frame.",
+    "S5": "The listing's night photograph, ALN media bacb318b-1544-4b9a-a730-b0d0efeac102 (ref/aln_02.jpg): the same elevation floodlit green. Useless for colour, decisive for form - six floors, the recessed loggia balconies, the narrow vertical stair-tower slots, the deep bracketed eaves and the gabled roof forms.",
+    "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a nadir at 300 m and obliques at 220-230 m from the west, south, north, east, south-west and north-west (shots/earth-*.jpg). The nadir was RECTIFIED into this building's own (u,v) frame at 10 px per metre with a 10 m grid (shots/_plan_h21.png) and the snapshot's outer and inner rings overlaid on it land on the roof edges and on the courtyard, so every plan number below was read in metres off a gridded plan. Heights were read off a projected metre ladder at three points on the west elevation (shots/_ldw-crop.png).",
+    "S7": "data/roads.geojson: Rio Grande Street runs at longitude -97.74399 at this latitude, about 7 m west of the building's west wall - so the WEST elevation is the address elevation. West 28th Street ends at Rio Grande 13 m north of the north wall. The east side is a parking lot toward Guadalupe and the south side an alley.",
+    "S8": "js/westcampus.js ramp() and its SOLID trios, as data/apartments/the-standard.json and data/apartments/26-west.json use them: a day hex gets its golden and night values from the same relationship the fill-extrusion bands next door use.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.743738,
+        30.294883
+      ],
+      [
+        -97.743737,
+        30.294891
+      ],
+      [
+        -97.743323,
+        30.294861
+      ],
+      [
+        -97.743322,
+        30.294883
+      ],
+      [
+        -97.743295,
+        30.294883
+      ],
+      [
+        -97.743259,
+        30.295252
+      ],
+      [
+        -97.743849,
+        30.295297
+      ],
+      [
+        -97.743856,
+        30.295206
+      ],
+      [
+        -97.743899,
+        30.295208
+      ],
+      [
+        -97.743906,
+        30.295135
+      ],
+      [
+        -97.743883,
+        30.295134
+      ],
+      [
+        -97.743884,
+        30.295115
+      ],
+      [
+        -97.743895,
+        30.295115
+      ],
+      [
+        -97.743916,
+        30.294902
+      ],
+      [
+        -97.743774,
+        30.294893
+      ],
+      [
+        -97.743774,
+        30.294884
+      ],
+      [
+        -97.743738,
+        30.294883
+      ]
+    ],
+    "_src": "S1's OUTER ring verbatim. The inner ring - the courtyard, u 17.5 to 40.0 by v 15.2 to 26.4 - is not carried here because the generator's `footprint` plan takes one ring; it is built as the hole between the four ranges instead."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it: L = 60.88, W = 44.88, +u at bearing 274.8 deg. +u runs WEST, so u = 0 is the east end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. SOUTH, so v = 0 is the north edge. Cross-checked against S6's north-up nadir and S7: u = 60.88 is the Rio Grande wall, v = 0 the West 28th St wall.",
+  "levels": {
+    "floors": [
+      0.0,
+      3.7,
+      6.88,
+      10.06,
+      13.24,
+      16.42,
+      19.6
+    ],
+    "_src": "SIX storeys - S1 and S2 both say building:levels=6, and S4 counts six window rows on the brick-red corner (two in the limestone base, four in the stucco above it). The eave is at 19.60 m: the metre ladder projected on to S6's west oblique puts the top of the wall at 20 m plus or minus 1 m at three separate points - north end, middle and south end. 19.60 divides as a 3.70 m ground floor and five upper floors of 3.18 m, which is the split S4's own window rows measure (the ground and second storeys read within 6 per cent of each other in that frame, so the base is NOT a tall retail storey). Uncertainty plus or minus 0.2 m a storey. The last entry, 19.60, is the tower's seventh floor line and only the tower uses it.",
+    "base": 6.88,
+    "cornice": 19.05,
+    "eave": 19.6,
+    "towerWall": 22.8,
+    "hipApex": 27.4,
+    "_heights_src": "base 6.88 is the level-3 floor line: S4 shows the rough limestone stopping there on every volume in the frame, two full storeys. cornice 19.05 is the cream band under the roof, 0.55 m deep in S4. towerWall 22.80 is one more storey of buff stucco plus its own cream band. hipApex 27.40 is S1/S2's height, which this file reads as the tower's hip apex rather than as the building's parapet - S2's 27.4 m over 6 levels would be 4.57 m a storey, which nothing in S4 supports, and a surface model takes the highest point it can see."
+  },
+  "colours": {
+    "_src": "Day hex; golden and night follow S8's ramp(). Every hex is a k-means cluster centre of a named crop of S4 or a median of a named crop of S6, entered a step down from a sunlit reading because the generator lights the face itself.",
+    "stone": {
+      "hex": "#d3cdbe",
+      "_src": "S4 crop (455,880)-(530,1000), the rough limestone base in sun, clusters to #f1f0ec at 57 % (blown by the sun) and #999f9e at 29 % (the raked joints); the shaded stone on the same building reads #646055. Entered between the blown sunlit read and the joint grey, warm, which is what Lueders limestone is."
+    },
+    "stoneWarm": {
+      "hex": "#dcd4c2",
+      "_src": "one stone a step warm, for the base's variation; derived from `stone`, not sampled."
+    },
+    "stoneCool": {
+      "hex": "#c8c5bc",
+      "_src": "one stone a step cool; derived from `stone`, not sampled."
+    },
+    "brickRed": {
+      "hex": "#a1766a",
+      "_src": "S4 crop (488,430)-(530,560), the sunlit brick-red stucco, clusters to #b99288 at 83 %, and crop (800,230)-(866,420) on the same wall to #b88f85 at 72 %; the shaded return of the same volume reads #2e2321. Entered four fifths of the way from the shade to the sunlit read. The 2008 JPEG's sunlit red is desaturated (saturation 0.27); S6's 2023 mesh reads the same wall at #a4896a, warmer, and the entered value sits between the two hues."
+    },
+    "buff": {
+      "hex": "#c9bb9f",
+      "_src": "S4 crop (390,200)-(450,320), the corner tower's stucco in sun, clusters to #ddcfb6 at 82 %. Entered a step down. S6's w oblique reads the same tower at #9c744f, stronger and more orange; the entered value keeps S4's own hue because S4 is a photograph and S6 is a mesh."
+    },
+    "cream": {
+      "hex": "#dcd6c8",
+      "_src": "the pale stucco blocks. S6 reads them at #c7cdd1 on the sunlit east elevation and #d0d1cf on the south; S4's white trim clusters to #dfe3e7. Entered between the trim white and the stone, warm - it is the same stucco as the buff, one step lighter."
+    },
+    "khaki": {
+      "hex": "#a09679",
+      "_src": "the olive-tan wing S4 shows to the right of the brick-red corner. Its wall is in shade in that frame and clusters to #595750; S6's east oblique reads the sunlit tan-gold wall at #a28d73. Entered at the S6 value with S4's greener hue. The least certain tone in the file."
+    },
+    "trim": {
+      "hex": "#e8e4d9",
+      "_src": "the white window surrounds, the balcony slabs, the cornice band and the parapet caps. S4 crop (500,555)-(610,585) clusters to #dfe3e7 at 26 % (the surround itself; the rest of that crop is sky and wall), and the entrance canopy on the same frame to #d8d2d3. Entered above both because both crops are in the corner's shade."
+    },
+    "glass": {
+      "hex": "#4f5f6c",
+      "_src": "S4 crop (650,712)-(745,760), one whole window, clusters to #596b7a at 78 % - a dark pane with a little sky in it - and to #363f49 at 16 % where the reveal shades it. Entered a step down from the 78 % cluster."
+    },
+    "rail": {
+      "hex": "#3f3d38",
+      "_src": "S4 crop (640,505)-(760,530), one balcony rail, clusters to #3c3b36 at 56 %. Dark bronze, which is what S4 and S5 both show."
+    },
+    "membrane": [
+      "#dcdedb",
+      "#dfd6c4",
+      "#1d2029"
+    ],
+    "_membrane_src": "S6 nadir, median of the roof at (760,360)-(820,390) = #eef5f7, which is blown; entered a step down. Golden and night entered the way S8 enters a top face.",
+    "shingle": {
+      "hex": "#6e6c66",
+      "_src": "the grey shingle roof band that rings the membrane. S6 nadir reads it at #8b8986 on the east slope and #989590 on the south, both in sun, and #261f1b on the north slope, which never gets any. Entered between the sunlit and the shaded read."
+    },
+    "shingleRidge": {
+      "hex": "#7c7a73",
+      "_src": "the ridge course, entered one step above the field so the cap's top edge reads at the oblique camera. Not separately sampled."
+    },
+    "hip": {
+      "hex": "#9aa2a8",
+      "_src": "the tower's hipped roof. S6 nadir reads it at #b6c0ce in sun - a pale grey-blue, which is what a standing-seam metal hip looks like from above; entered a step down."
+    },
+    "hipRidge": {
+      "hex": "#a7aeb3",
+      "_src": "the tower hip's ridge, one step above it."
+    },
+    "wingRoof": {
+      "hex": "#9298a0",
+      "_src": "the Rio Grande wing's pitched roof. S6 nadir reads it at #a4acb4; entered a step down."
+    },
+    "wingRidge": {
+      "hex": "#a0a6ad",
+      "_src": "its ridge, one step above the field."
+    },
+    "mech": {
+      "hex": "#8b8f92",
+      "_src": "S6 nadir: the roof condensers are a mid grey a shade darker than the hips. Not separately sampled - the units are two pixels across in that frame."
+    }
+  },
+  "skins": {
+    "_src": "One rule per treatment; every count comes from a module, never a hard-coded number. The building has two wall treatments - a limestone base and a colour-block stucco - and both stand on the SAME 3.18 m window bay, which is also a quarter of the 12.72 m colour block.",
+    "base": {
+      "kind": "pixel",
+      "course": 0.86,
+      "plank": 1.72,
+      "bond": 0.5,
+      "macro": [
+        1,
+        1
+      ],
+      "tones": [
+        "stone",
+        "stoneWarm",
+        "stoneCool"
+      ],
+      "weights": [
+        0.62,
+        0.21,
+        0.17
+      ],
+      "runMax": 3,
+      "zBase": 0.0,
+      "bay": 3.18,
+      "window": {
+        "w": 1.55,
+        "h": 1.85,
+        "sill": 0.9
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.26,
+      "_src": "The two-storey rough-faced limestone base, all round. S4 shows it laid in courses of unequal block length with a raked joint, the stones varying a little in tone. Course 0.86 m: eight courses fill the 6.88 m base in S4, counted at the corner pier where the whole base stands against the sidewalk. Plank 1.72 m is two courses long, which is the proportion of the blocks in that frame; bond 0.5 steps the joints, which is what an ashlar veneer does. The three tones are one stone with two neighbours a step warm and a step cool, so the wall reads as masonry rather than as a flat panel at the walking camera; the 62/21/17 split is a look, not a count. Windows 1.55 x 1.85 m on a 0.90 m sill - S4's ground-floor openings are taller than the upper ones and the reveal is deep, which is what a stone veneer over a frame gives."
+    },
+    "wall": {
+      "kind": "pixel",
+      "course": 3.18,
+      "plank": 12.72,
+      "bond": 0.0,
+      "macro": [
+        4,
+        1
+      ],
+      "tones": [
+        "cream",
+        "brickRed",
+        "buff",
+        "khaki"
+      ],
+      "weights": [
+        0.42,
+        0.3,
+        0.19,
+        0.09
+      ],
+      "runMax": 2,
+      "zBase": 6.88,
+      "bay": 3.18,
+      "window": {
+        "w": 1.45,
+        "h": 1.55,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.22,
+      "_src": "THE RULE for the four stucco storeys: full-height vertical colour blocks, one tone each, on a 12.72 m module, in cream, brick-red, buff and khaki. The module is four window bays; the bay is 3.18 m, counted on the north elevation in S6's n oblique - that wall is 56.9 m long and carries eighteen window columns. The block width is read off the same frame, where the brick-red block spans 20 m and the pale block beside it 16 m: runMax 2 lets two adjacent modules share a tone, which is how 12.72 m makes both. macro [4,1] on a 3.18 m course is exactly the four storeys of this band, so a tone runs the block's full height - which is what the reference does at every block edge. The weights are the share of blocks of each tone counted round all four elevations in S6 (about seven cream, five brick-red, three buff, one khaki of sixteen). Windows 1.45 x 1.55 m on a 0.85 m sill, measured in S4 against the 3.18 m bay; reveal 0.22 m because these are punched openings in a thick stucco wall with a white surround and the shadow inside them is the strongest line on the elevation."
+    },
+    "redWall": {
+      "kind": "flat",
+      "field": "brickRed",
+      "bay": 3.18,
+      "window": {
+        "w": 1.45,
+        "h": 1.55,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.22,
+      "_src": "the brick-red block on the Rio Grande front, pinned rather than hashed - the same bay and window as `wall`, one tone. S4 is a photograph of this wall."
+    },
+    "buffWall": {
+      "kind": "flat",
+      "field": "buff",
+      "bay": 3.18,
+      "window": {
+        "w": 1.3,
+        "h": 1.45,
+        "sill": 0.95
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.22,
+      "_src": "the corner tower, one tone of buff stucco top to bottom. Its windows are smaller than the flats' - S4 shows a column of small square openings up its Rio Grande face, which is a stair - so 1.30 x 1.45 m."
+    },
+    "cornice": {
+      "kind": "flat",
+      "field": "trim",
+      "_src": "the cream band between the top of the stucco and the roof, 0.55 m deep. Continuous on every elevation in S4, S5 and all six obliques of S6."
+    }
+  },
+  "balcony": {
+    "proj": 0.95,
+    "slabT": 0.26,
+    "railH": 1.02,
+    "railT": 0.06,
+    "slabTone": "trim",
+    "railTone": "rail",
+    "_src": "S4: a cream slab about 1 m deep on shaped corbels, with a dark bronze rail. Projection 0.95 m and slab 0.26 m are measured against the 3.18 m bay in that frame, plus or minus 0.2 m; rail height 1.02 m is code, not measured. Some of the building's balconies are RECESSED loggias instead (S4's top floor, S5) and the generator only projects - see `open`."
+  },
+  "blocks": [
+    {
+      "id": "main-n",
+      "_src": "The north range, West 28th St side: u 0 to 47.0, v 0 to 15.2. The east, north and south ranges together are the ring round the courtyard; 15.2 m deep is the courtyard's own north edge in S1's inner ring, and 47.0 is where the west wing starts in S6's rectified plan (the terracotta parapet line).",
+      "plan": [
+        0.0,
+        47.0,
+        0.0,
+        15.2
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "wall",
+              "balconies": [
+                {
+                  "s0": 4.0,
+                  "s1": 7.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 11.0,
+                  "s1": 14.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 18.0,
+                  "s1": 21.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 25.0,
+                  "s1": 28.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 32.0,
+                  "s1": 35.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 39.0,
+                  "s1": 42.2,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the north elevation: S6's n oblique shows a continuous rail line at every floor across this face. Six stacks of four, one per upper floor line."
+        },
+        "u1": null,
+        "_src": "u1 (u = 47.0) stands against west-n and the tower and is not drawn. v1 (v = 15.2) is the courtyard's north wall where the courtyard is open (u 17.5 to 40.0) and is back to back with main-e and main-w elsewhere, which the schema allows."
+      },
+      "roofTone": "membrane",
+      "parapet": 0,
+      "_parapet_src": "no parapet on this block: the sloped shingle cap below takes the roof edge, and a parapet standing in front of it is a line the reference does not have.",
+      "roofItems": [
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            -0.7,
+            5.2
+          ],
+          "h": 0.58,
+          "tone": "shingle",
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            0.48,
+            5.2
+          ],
+          "h": 1.16,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            1.66,
+            5.2
+          ],
+          "h": 1.74,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            2.84,
+            5.2
+          ],
+          "h": 2.32,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            4.02,
+            5.2
+          ],
+          "h": 2.9,
+          "tone": "shingleRidge"
+        },
+        {
+          "plan": [
+            -0.7,
+            3.6,
+            -1.4,
+            15.9
+          ],
+          "h": 0.5,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            0.38,
+            3.6,
+            -1.4,
+            15.9
+          ],
+          "h": 1.0,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            1.45,
+            3.6,
+            -1.4,
+            15.9
+          ],
+          "h": 1.5,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.52,
+            3.6,
+            -1.4,
+            15.9
+          ],
+          "h": 2.0,
+          "tone": "shingleRidge"
+        },
+        {
+          "plan": [
+            4.0,
+            44.0,
+            6.0,
+            12.0
+          ],
+          "grid": [
+            8,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.7,
+          "tone": "mech",
+          "_src": "S6 nadir: two loose rows of condensers run the length of the north range"
+        }
+      ]
+    },
+    {
+      "id": "main-e",
+      "_src": "The east range, the parking-lot side toward Guadalupe: u 0 to 17.5, v 15.2 to 26.4. 17.5 is the courtyard's east edge in S1's inner ring.",
+      "plan": [
+        0.0,
+        17.5,
+        15.2,
+        26.4
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "wall",
+              "balconies": [
+                {
+                  "s0": 1.4,
+                  "s1": 4.6,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 6.6,
+                  "s1": 9.8,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the east elevation, which S6's e oblique shows as the tan-gold wall with balcony rails at every floor"
+        },
+        "_src": "u1 (u = 17.5) is the courtyard's east wall. v0 and v1 are back to back with main-n and main-s."
+      },
+      "roofTone": "membrane",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            -0.7,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 0.5,
+          "tone": "shingle",
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+        },
+        {
+          "plan": [
+            0.38,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 1.0,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            1.45,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 1.5,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.52,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 2.0,
+          "tone": "shingleRidge"
+        },
+        {
+          "plan": [
+            3.5,
+            15.0,
+            17.0,
+            24.0
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.7,
+          "tone": "mech",
+          "_src": "S6 nadir: a short cluster on the east range"
+        }
+      ]
+    },
+    {
+      "id": "main-s",
+      "_src": "The south range, the alley side: u 0 to 47.0, v 26.4 to 44.7. 26.4 is the courtyard's south edge (S1 inner ring) and 44.7 the south wall (S1's outer ring jogs between 43.8 and 44.9 along this edge; entered as one line).",
+      "plan": [
+        0.0,
+        47.0,
+        26.4,
+        44.7
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "v1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "wall",
+              "balconies": [
+                {
+                  "s0": 5.0,
+                  "s1": 8.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 12.0,
+                  "s1": 15.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 19.0,
+                  "s1": 22.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 26.0,
+                  "s1": 29.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 33.0,
+                  "s1": 36.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 40.0,
+                  "s1": 43.2,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the south elevation, S6's s oblique: cream at the west end, a brick-red block in the middle, pale at the east end, rails at every floor"
+        },
+        "u1": null,
+        "_src": "u1 (u = 47.0) stands against west-s. v0 (v = 26.4) is the courtyard's south wall."
+      },
+      "roofTone": "membrane",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            39.5,
+            45.4
+          ],
+          "h": 0.58,
+          "tone": "shingle",
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            39.5,
+            44.22
+          ],
+          "h": 1.16,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            39.5,
+            43.04
+          ],
+          "h": 1.74,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            39.5,
+            41.86
+          ],
+          "h": 2.32,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -1.4,
+            48.4,
+            39.5,
+            40.68
+          ],
+          "h": 2.9,
+          "tone": "shingleRidge"
+        },
+        {
+          "plan": [
+            -0.7,
+            3.6,
+            25.7,
+            46.1
+          ],
+          "h": 0.5,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            0.38,
+            3.6,
+            25.7,
+            46.1
+          ],
+          "h": 1.0,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            1.45,
+            3.6,
+            25.7,
+            46.1
+          ],
+          "h": 1.5,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.52,
+            3.6,
+            25.7,
+            46.1
+          ],
+          "h": 2.0,
+          "tone": "shingleRidge"
+        },
+        {
+          "plan": [
+            4.0,
+            42.0,
+            29.0,
+            37.0
+          ],
+          "grid": [
+            8,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.7,
+          "tone": "mech",
+          "_src": "S6 nadir: the densest run of condensers on the roof is along the south range"
+        }
+      ]
+    },
+    {
+      "id": "main-w",
+      "_src": "The short range between the courtyard's west wall and the west wing: u 40.0 to 47.0, v 15.2 to 26.4. 40.0 is the courtyard's west edge (S1 inner ring).",
+      "plan": [
+        40.0,
+        47.0,
+        15.2,
+        26.4
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u1": null,
+        "_src": "u0 (u = 40.0) is the courtyard's west wall; u1 stands against the tower and west-s."
+      },
+      "roofTone": "membrane",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            41.0,
+            46.0,
+            17.0,
+            25.0
+          ],
+          "grid": [
+            2,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.7,
+          "tone": "mech",
+          "_src": "S6 nadir: four units beside the courtyard"
+        }
+      ]
+    },
+    {
+      "id": "west-n",
+      "_src": "The north-west corner, which S1's outer ring sets BACK from the Rio Grande wall: u 47.0 to 56.9, v 0 to 10.2. The ring gives u 56.93 at v 0 and 56.75 at v 10.08; S6's rectified plan shows the same step in the roof edge.",
+      "plan": [
+        47.0,
+        56.9,
+        0.0,
+        10.2
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v1": null,
+        "_src": "u0 stands against main-n and v1 against the tower. u1 (u = 56.9) is the set-back west wall and v0 the north wall."
+      },
+      "roofTone": "membrane",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            46.3,
+            58.3,
+            -0.7,
+            5.2
+          ],
+          "h": 0.58,
+          "tone": "shingle",
+          "_src": "the north shingle cap carried across the set-back corner (S6 nadir)"
+        },
+        {
+          "plan": [
+            46.3,
+            58.3,
+            0.48,
+            5.2
+          ],
+          "h": 1.16,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            58.3,
+            1.66,
+            5.2
+          ],
+          "h": 1.74,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            58.3,
+            2.84,
+            5.2
+          ],
+          "h": 2.32,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            58.3,
+            4.02,
+            5.2
+          ],
+          "h": 2.9,
+          "tone": "shingleRidge"
+        }
+      ]
+    },
+    {
+      "id": "tower",
+      "_src": "THE ONE THING THAT MAKES THIS BUILDING RECOGNISABLE: the buff stucco corner tower on Rio Grande, one storey above the rest, under a wide hipped roof with exposed rafter tails. S4 shows it rising behind and north of the brick-red corner with an extra window row and a deep overhang; S5 shows the same silhouette at night; S6's nadir puts its pale hipped roof at u 50 to 62, v 9 to 18. Plan entered as the outer ring's own bump-out, u 47.0 to 60.9, v 10.2 to 18.3 (S1 gives u 60.88 for v 10.21 to 18.31).",
+      "plan": [
+        47.0,
+        60.9,
+        10.2,
+        18.3
+      ],
+      "z0": 0,
+      "z1": 22.8,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "buffWall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        },
+        {
+          "z0": 19.6,
+          "z1": 22.25,
+          "skin": "buffWall"
+        },
+        {
+          "z0": 22.25,
+          "z1": 22.8,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "z0": 19.6,
+          "_src": "u0 (u = 47.0) stands against main-n and main-w up to the eave and shows only the extra storey above it"
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "buffWall",
+              "balconies": [
+                {
+                  "s0": 2.4,
+                  "s1": 5.7,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            },
+            {
+              "z0": 19.6,
+              "z1": 22.25,
+              "skin": "buffWall"
+            },
+            {
+              "z0": 22.25,
+              "z1": 22.8,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the tower's own Rio Grande face, with the one balcony S4 shows on it"
+        },
+        "_src": "v0 and v1 are back to back with west-n and west-s below the eave and exposed above it."
+      },
+      "roofTone": "hip",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            46.1,
+            61.8,
+            9.3,
+            19.2
+          ],
+          "h": 0.92,
+          "tone": "hip",
+          "_src": "The hipped cap. Its apex lands at 27.40 m, which is exactly S1/S2's height for the whole building - a surface-model high point that belongs to this roof and not to the parapet, which is why the snapshot's 27.4 m prism is 7 m too tall everywhere else. Rise 4.60 m and a 0.90 m oversail are read off S4's silhouette against the brick-red parapet beside it, plus or minus 0.8 m."
+        },
+        {
+          "plan": [
+            47.54,
+            60.36,
+            10.21,
+            18.29
+          ],
+          "h": 1.84,
+          "tone": "hip"
+        },
+        {
+          "plan": [
+            48.99,
+            58.91,
+            11.12,
+            17.38
+          ],
+          "h": 2.76,
+          "tone": "hip"
+        },
+        {
+          "plan": [
+            50.43,
+            57.47,
+            12.03,
+            16.47
+          ],
+          "h": 3.68,
+          "tone": "hip"
+        },
+        {
+          "plan": [
+            51.88,
+            56.02,
+            12.94,
+            15.56
+          ],
+          "h": 4.6,
+          "tone": "hipRidge"
+        }
+      ]
+    },
+    {
+      "id": "west-s",
+      "_src": "The Rio Grande wing south of the tower: u 47.0 to 59.7, v 18.3 to 44.7. S1's ring runs at u 59.65 from v 20.42 to v 44.05. S6's rectified plan shows this wing under a pitched grey roof inside a terracotta parapet, not under the white membrane - it is the only part of the roof that is not membrane.",
+      "plan": [
+        47.0,
+        59.7,
+        18.3,
+        44.7
+      ],
+      "z0": 0,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.88,
+          "skin": "base"
+        },
+        {
+          "z0": 6.88,
+          "z1": 19.05,
+          "skin": "wall"
+        },
+        {
+          "z0": 19.05,
+          "z1": 19.6,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v0": null,
+        "u1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "wall",
+              "balconies": [
+                {
+                  "s0": 3.0,
+                  "s1": 6.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 10.0,
+                  "s1": 13.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 17.0,
+                  "s1": 20.2,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the Rio Grande elevation - the front. S4 photographs it: a brick-red block with projecting balconies on cream slabs, over the two-storey limestone base."
+        },
+        "_src": "u0 stands against main-w and main-s, v0 against the tower."
+      },
+      "overrides": [
+        {
+          "region": [
+            47.0,
+            60.9,
+            18.3,
+            31.0
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "redWall",
+              "balconies": [
+                {
+                  "s0": 3.0,
+                  "s1": 6.2,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "THE BRICK-RED BLOCK. S4 is a photograph of exactly this piece of wall - the projecting brick-red volume immediately south of the buff tower, with the balconies and the loggias - and S6's w oblique puts it between v 18 and v 31 on the Rio Grande face. Pinned with an override rather than left to the colour-block skin's hash, because it is the one block a passer-by recognises."
+        }
+      ],
+      "roofTone": "wingRoof",
+      "parapet": 0.9,
+      "parapetTone": "brickRed",
+      "parapetSides": [
+        "u1",
+        "v1"
+      ],
+      "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 0.90 m is a look, sized to the cap band S4 shows.",
+      "roofItems": [
+        {
+          "plan": [
+            48.2,
+            58.5,
+            19.5,
+            43.5
+          ],
+          "h": 0.6,
+          "tone": "wingRoof",
+          "_src": "the wing's pitched roof, inset 1.2 m so it stands behind its own parapet; rise 2.40 m is a shallow pitch that matches the ridge shadows in S6's nadir, plus or minus 1 m"
+        },
+        {
+          "plan": [
+            49.38,
+            57.32,
+            22.26,
+            40.74
+          ],
+          "h": 1.2,
+          "tone": "wingRoof"
+        },
+        {
+          "plan": [
+            50.57,
+            56.13,
+            25.02,
+            37.98
+          ],
+          "h": 1.8,
+          "tone": "wingRoof"
+        },
+        {
+          "plan": [
+            51.75,
+            54.95,
+            27.78,
+            35.22
+          ],
+          "h": 2.4,
+          "tone": "wingRidge"
+        }
+      ]
+    }
+  ],
+  "open": [
+    "The colour blocks are placed by the skin's hash, not by the reference, except the brick-red block on Rio Grande and the buff tower, which are pinned. So the cream/brick-red/buff rhythm is right and the position of any one other block is not.",
+    "The recessed loggia balconies - the deep dark openings at the top of the brick-red volume in S4 and S5 - are drawn as projecting balconies like the rest, because the generator has no recess. A per-band inset would fix it (the same todo the-castilian.json has for its ground floor).",
+    "The pale hipped roof S6's nadir shows at the SOUTH-EAST corner (u 0 to 6, v 38 to 45) is not drawn; the south and east shingle caps cross there instead. It is one more hip like the tower's and would be five more boxes.",
+    "The ground floor's big recessed openings - a garage mouth and what S4 shows as a leasing frontage under the overhang on the Rio Grande corner - are drawn as ordinary punched windows in the stone. The entrance canopy S4 shows is not drawn.",
+    "The courtyard's four walls wear the same skins as the outside. Nothing in any source shows them, and the pool the listing photographs (ALN d9577ed2) is not placed - it is probably in this courtyard but the nadir cannot tell a pool from a shadow at that depth.",
+    "The east elevation's base may be one storey rather than two: S6's e oblique shows the tan stucco running lower on that side than the photographs show on the west. Entered as two storeys all round because that is what S4 measures.",
+    "No sign is drawn. S6's e oblique shows a lit sign panel on the east wall but the community has been renamed since that imagery and the current name is not confirmed."
+  ]
+}
