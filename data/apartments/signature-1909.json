@@ -158,8 +158,9 @@
    },
    "glass": "glass",
    "frame": "panel",
-   "reveal": 0.14,
-   "_src": "The whole building above the ground floor wears one rule, which is what S4's photographs show on every face that was photographed: a charcoal panel field, a continuous white precast band at every floor line, a thin white pier on the bay joints, and one wide window per bay. BAY 4.2 m: window centres in ref/el_strip.png (S4's west elevation at 3x, two floors) repeat every 200-240 crop px against a floor pitch of 160, i.e. 1.25-1.50 floors, and a floor is 3.175 m - so 4.0-4.8 m, and 4.2 puts eight bays on the 34.44 m end and eight on the 31.85 m tower flank. WINDOW 2.60 x 1.75: in the same crop the wide opening is about 150 crop px by 85, i.e. 0.94 of a bay by 0.53 of a floor - the openings on this building are wider than they are tall. The white's share is set to S5's measurement rather than guessed: 4.2 x 0.82 for the floor band plus 0.30 x 2.355 for the pier is 4.15 m2 of a 13.34 m2 cell, 31 per cent, which is S5's white-panel share exactly; the window comes to 34 per cent against S5's implied 30 and the charcoal 35 against 39. WHAT IS SIMPLIFIED: in the photograph the white is a picture frame around each window, about 0.4 m on all four sides, and the openings come in two widths in an irregular rhythm. A `bays` skin can say the floor band and the pier but not the frame's own returns, so the frame is carried by the band below and the band above (0.82 plus 0.23 of charcoal under the sill, and 0.375 of charcoal over the head) and by the pier. At the oblique this app is judged from, 0.3 m is a pixel."
+   "reveal": 0.08,
+   "_src": "The whole building above the ground floor wears one rule, which is what S4's photographs show on every face that was photographed: a charcoal panel field, a continuous white precast band at every floor line, a thin white pier on the bay joints, and one wide window per bay. BAY 4.2 m: window centres in ref/el_strip.png (S4's west elevation at 3x, two floors) repeat every 200-240 crop px against a floor pitch of 160, i.e. 1.25-1.50 floors, and a floor is 3.175 m - so 4.0-4.8 m, and 4.2 puts eight bays on the 34.44 m end and eight on the 31.85 m tower flank. WINDOW 2.60 x 1.75: in the same crop the wide opening is about 150 crop px by 85, i.e. 0.94 of a bay by 0.53 of a floor - the openings on this building are wider than they are tall. The white's share is set to S5's measurement rather than guessed: 4.2 x 0.82 for the floor band plus 0.30 x 2.355 for the pier is 4.15 m2 of a 13.34 m2 cell, 31 per cent, which is S5's white-panel share exactly; the window comes to 34 per cent against S5's implied 30 and the charcoal 35 against 39. WHAT IS SIMPLIFIED: in the photograph the white is a picture frame around each window, about 0.4 m on all four sides, and the openings come in two widths in an irregular rhythm. A `bays` skin can say the floor band and the pier but not the frame's own returns, so the frame is carried by the band below and the band above (0.82 plus 0.23 of charcoal under the sill, and 0.375 of charcoal over the head) and by the pier. At the oblique this app is judged from, 0.3 m is a pixel.",
+   "_lookfix4": "LOOK-FIX 4. At 0.14 m the four reveal strips are drawn in `frame`, which on this building is the white panel, so every window wore a bright outline and the wall read a good ten per cent whiter than the 31 per cent S5 measured. 0.08 keeps the reveal reading as a reveal at the walking camera and stops it adding to the white at the oblique."
   },
   "base": {
    "kind": "storefront",
@@ -243,75 +244,113 @@
     },
     {
      "plan": [
-      19.0,
-      24.0,
+      18.5,
       26.0,
-      32.0
+      25.5,
+      32.5
      ],
      "grid": [
-      3,
+      4,
       4
      ],
      "size": [
-      1.1,
-      1.9
+      1.05,
+      1.85
      ],
      "h": 1.0,
      "tone": "condenser",
-     "_src": "S7 p_roof: per-apartment condensers, the north-east cluster"
+     "_src": "S7 p_roof: the north-east block"
     },
     {
      "plan": [
-      21.0,
-      26.5,
+      18.5,
+      26.0,
       1.5,
-      7.5
+      9.0
      ],
      "grid": [
-      3,
+      4,
       4
      ],
      "size": [
-      1.1,
-      1.9
+      1.05,
+      1.85
      ],
      "h": 1.0,
      "tone": "condenser",
-     "_src": "S7 p_roof: the north-west cluster"
+     "_src": "S7 p_roof: the north-west block"
     },
     {
      "plan": [
-      28.5,
-      34.0,
+      27.0,
+      34.5,
       25.0,
-      32.0
+      32.5
      ],
      "grid": [
-      3,
+      4,
       4
      ],
      "size": [
-      1.1,
-      1.9
+      1.05,
+      1.85
      ],
      "h": 1.0,
      "tone": "condenser",
-     "_src": "S7 p_roof: the east cluster"
+     "_src": "S7 p_roof: the east block"
+    },
+    {
+     "plan": [
+      27.5,
+      34.5,
+      1.5,
+      8.5
+     ],
+     "grid": [
+      4,
+      4
+     ],
+     "size": [
+      1.05,
+      1.85
+     ],
+     "h": 1.0,
+     "tone": "condenser",
+     "_src": "S7 p_roof: the west block"
+    },
+    {
+     "plan": [
+      29.5,
+      34.5,
+      10.0,
+      14.5
+     ],
+     "grid": [
+      3,
+      3
+     ],
+     "size": [
+      1.05,
+      1.85
+     ],
+     "h": 1.0,
+     "tone": "condenser",
+     "_src": "S7 p_roof: the small block south of the screen"
     },
     {
      "plan": [
       35.5,
-      45.5,
-      2.0,
+      46.5,
+      1.5,
       10.5
      ],
      "grid": [
-      5,
-      4
+      6,
+      5
      ],
      "size": [
-      1.1,
-      1.9
+      1.05,
+      1.85
      ],
      "h": 1.0,
      "tone": "condenser",
@@ -320,23 +359,43 @@
     {
      "plan": [
       35.5,
-      45.5,
-      21.5,
-      31.5
+      46.5,
+      12.0,
+      20.5
      ],
      "grid": [
-      5,
-      4
+      6,
+      5
      ],
      "size": [
-      1.1,
-      1.9
+      1.05,
+      1.85
+     ],
+     "h": 1.0,
+     "tone": "condenser",
+     "_src": "S7 p_roof: the south-centre field"
+    },
+    {
+     "plan": [
+      35.5,
+      46.5,
+      22.0,
+      32.0
+     ],
+     "grid": [
+      6,
+      5
+     ],
+     "size": [
+      1.05,
+      1.85
      ],
      "h": 1.0,
      "tone": "condenser",
      "_src": "S7 p_roof: the south-east field"
     }
-   ]
+   ],
+   "_lookfix1": "LOOK-FIX 1. Five clusters left most of the roof empty cream, and beside the reference nadir that is the loudest thing wrong at the top-down camera: S7's p_roof shows per-apartment condensers over most of the membrane - two blocks flanking the screen at the north end and three full-width fields across the southern third. Eight blocks now, read off that image."
   },
   {
    "id": "northWing",
@@ -377,11 +436,12 @@
        "signs": [
         {
          "text": "SIGNATURE",
-         "s0": 13.5,
-         "z0": 15.35,
-         "dot": 0.14,
-         "gap": 0.14,
-         "tone": "sign"
+         "s0": 12.7,
+         "z0": 16.0,
+         "dot": 0.17,
+         "gap": 0.17,
+         "tone": "sign",
+         "_src": "LOOK-FIX 2. It was at z 15.35 with a 0.14 dot, which put the letters straddling the white floor band at 14.725-15.545 - white on white, and in the first render the wordmark was not there at all. 16.00 puts all 1.19 m of it inside the charcoal field between that band and the deck, and the bigger dot makes the block 9.0 m of the 34.44 m face, which is the share S4's photograph shows."
         }
        ]
       }
@@ -470,9 +530,113 @@
     "_src": "S4 Rooftop-Pool: the turf strip between the loungers and the pool's west end"
    },
    {
-    "id": "trellis",
+    "id": "trellisBeam0",
     "plan": [
      1.5,
+     10.0,
+     12.5,
+     12.85
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam1",
+    "plan": [
+     1.5,
+     10.0,
+     13.28,
+     13.62
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam2",
+    "plan": [
+     1.5,
+     10.0,
+     14.05,
+     14.4
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam3",
+    "plan": [
+     1.5,
+     10.0,
+     14.82,
+     15.17
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam4",
+    "plan": [
+     1.5,
+     10.0,
+     15.6,
+     15.95
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam5",
+    "plan": [
+     1.5,
+     10.0,
+     16.38,
+     16.73
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisBeam6",
+    "plan": [
+     1.5,
+     10.0,
+     17.15,
+     17.5
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+   },
+   {
+    "id": "trellisEdge0",
+    "plan": [
+     1.5,
+     1.8,
+     12.5,
+     17.5
+    ],
+    "z0": 2.7,
+    "z1": 3.0,
+    "tone": "shade",
+    "_src": "LOOK-FIX 3: the trellis's own two edge beams, which the photograph shows carrying the cross beams"
+   },
+   {
+    "id": "trellisEdge1",
+    "plan": [
+     9.7,
      10.0,
      12.5,
      17.5
@@ -480,7 +644,59 @@
     "z0": 2.7,
     "z1": 3.0,
     "tone": "shade",
-    "_src": "S7 p_deck: the white lattice at u 1.5-10, v 12.5-17.5, which is S4's shade trellis over the lounge and S5's 'shade trellis'. Drawn as the plate it reads as from above; its posts are not drawn."
+    "_src": "LOOK-FIX 3: the trellis's own two edge beams, which the photograph shows carrying the cross beams"
+   },
+   {
+    "id": "trellisPost",
+    "plan": [
+     1.6,
+     2.05,
+     12.6,
+     13.05
+    ],
+    "z0": 0.0,
+    "h": 2.7,
+    "tone": "shade",
+    "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+   },
+   {
+    "id": "trellisPost",
+    "plan": [
+     1.6,
+     2.05,
+     16.95,
+     17.4
+    ],
+    "z0": 0.0,
+    "h": 2.7,
+    "tone": "shade",
+    "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+   },
+   {
+    "id": "trellisPost",
+    "plan": [
+     9.45,
+     9.9,
+     12.6,
+     13.05
+    ],
+    "z0": 0.0,
+    "h": 2.7,
+    "tone": "shade",
+    "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+   },
+   {
+    "id": "trellisPost",
+    "plan": [
+     9.45,
+     9.9,
+     16.95,
+     17.4
+    ],
+    "z0": 0.0,
+    "h": 2.7,
+    "tone": "shade",
+    "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
    },
    {
     "id": "lounge",
