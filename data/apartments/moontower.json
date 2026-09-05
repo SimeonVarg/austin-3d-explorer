@@ -1,5 +1,5 @@
 {
- "_readme": "Moontower, 2204 San Antonio St (Gensler design architect, Mark Hart Architecture architect of record, LV Collective developer, 2020), as js/slopes-apartments.js draws it. An 18-storey C/U-shaped student tower over a two-storey dark-glazed base, with FOUR LEVELS OF PARKING BELOW GRADE - so there is no garage screen anywhere on the facade, which is what makes this building read as a tower standing straight on the street. The skin is a two-tone fibre-cement rainscreen: near-white panel blocks two storeys tall and one bay wide, staggered across a charcoal field. The U opens EAST on to San Antonio Street with a level-3 amenity terrace in the notch; a rooftop pool deck sits at the south end under a white open frame carrying the lit orange MOONTOWER wordmark. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=45.58, W=33.81, +u at bearing 184.8 deg, so u=0 is the NORTH end and +u runs SOUTH; v=0 is the WEST (alley) edge and +v runs EAST to San Antonio Street. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+ "_readme": "Moontower, 2204 San Antonio St (Gensler design architect, Mark Hart Architecture architect of record, LV Collective developer, 2020), as js/slopes-apartments.js draws it. An 18-storey C/U-shaped student tower over a two-storey dark-glazed base, with FOUR LEVELS OF PARKING BELOW GRADE - so there is no garage screen anywhere on the facade, which is what makes this building read as a tower standing straight on the street. The skin is a two-tone fibre-cement rainscreen: near-white panel blocks two storeys tall and one bay wide, staggered across a charcoal field. The U opens EAST on to San Antonio Street with a level-3 amenity terrace in the notch; a rooftop pool deck sits at the south end under a white open frame carrying the lit orange MOONTOWER wordmark. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=45.26, W=33.81, +u at bearing 184.8 deg, so u=0 is the NORTH end and +u runs SOUTH; v=0 is the WEST (alley) edge and +v runs EAST to San Antonio Street. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
  "id": "b423d7a9-4059-44b3-8fed-3d088563c870",
  "name": "Moontower",
  "address": "2204 San Antonio St, Austin, TX 78705",
@@ -42,7 +42,7 @@
   "_src": "S1 verbatim. In (u,v) the four corners are (45.58,0) (45.57,33.81) (0,33.81) (0,0) - the polygon IS its own oriented bounding box to within 1 cm, so every block below can be a rectangle or an axis-parallel polygon in the frame."
  },
  "frame": "obb",
- "_frame_src": "obbOf(ring) as the generator computes it: L=45.58, W=33.81, +u at bearing 184.8 deg. +u runs SOUTH, so u=0 is the north end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west (alley) edge and v=33.81 is the San Antonio Street edge. Cross-checked against data/roads.geojson: San Antonio Street's nearest centreline vertex is 35 m EAST of the centroid, Nueces Street 76 m west, West 22nd Street 67 m south - and against bake_entrances.py, which puts this building's lobby on side 'E' at -97.74295 (the v=33.81 edge).",
+ "_frame_src": "obbOf(ring) as the generator computes it and prints at boot: L=45.3, W=33.8, +u at bearing 184.8 deg. +u runs SOUTH, so u=0 is the north end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west (alley) edge and v=33.81 is the San Antonio Street edge. Cross-checked against data/roads.geojson: San Antonio Street's nearest centreline vertex is 35 m EAST of the centroid, Nueces Street 76 m west, West 22nd Street 67 m south - and against bake_entrances.py, which puts this building's lobby on side 'E' at -97.74295 (the v=33.81 edge).",
  "levels": {
   "floors": [
    0.0,
@@ -73,7 +73,7 @@
   "crown": 57.3,
   "_heights_src": "roof 53.30 + the crown zone to 57.30 = S1/S2's 57.3024, an OSM height tag imported from the City of Austin. bandBreak 18.68 is the floor line where the white-dominant lower zone ends: measured 11.5 m of white band above the base on the east elevation (S4, four floors), and about thirteen floors below the parapet on the north elevation (S5) - the two readings bracket level 7, and this is that floor line. Plus or minus one floor."
  },
- "_window_src": "bay 2.75 m: the north wing's east face is 19.3 m wide and carries seven window columns in S4 (19.3/7 = 2.76). Window 1.25 x 1.60 m with a 0.85 m sill, measured on the recessed centre's regular grid in S4 at 0.0491 m/px.",
+ "_window_src": "bay 2.75 m: the north wing's east face is 19.3 m wide and carries seven window columns in S4 (19.3/7 = 2.76), and the window centres on that face sit 55 px apart at 0.0485 m/px = 2.67 m. Window 1.20 x 1.80 m: measured 26 x 40 px on the same face, 1.26 x 1.94 m, entered a little smaller because that read takes the frame in with the glass. Sill 0.65 m, which leaves 0.37 m of spandrel under the slab, which is what S4 shows. LOOK-FIX 1: it was 1.25 x 1.60 on a 0.85 sill, and at the oblique camera that read landscape when every window on this building is portrait.",
  "colours": {
   "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Each hex is a k-means cluster centre over a named rectangle of a named photograph, not a single pixel - the share of the rectangle each cluster took is quoted because the two panel tones' SHARES are themselves a measurement this file uses (see skins.panel.weights).",
   "white": {
@@ -89,8 +89,8 @@
    "_src": "S4, k-means over the RECESSED centre wall (1160,430)-(1350,1290): 66.2% at #50525b. The same panel, one plane back and in its own shade all day, which is why the notch reads darker than the wings and gets its own tone rather than the wings' value."
   },
   "glass": {
-   "hex": "#6d878c",
-   "_src": "S4, third cluster of the north wing run: 10.9% at #6d878c - the punched window's grey-green vision glass. The bright reflection cluster (#a1b3b3, 4.8%) is not used."
+   "hex": "#7e969a",
+   "_src": "S4 measures this glass twice on the same face: the vision cluster at #6d878c (10.9%) where it is dark against the sky, and the reflection cluster at #a1b3b3 (4.8%) where it is throwing the sky back. Entered between the two, which is the rule the-castilian.json already uses for a glass measured under two lighting conditions. LOOK-FIX 1: it was the darker of the two on its own, and with a window in every bay on every floor that one value was pulling the whole elevation down."
   },
   "frame": {
    "hex": "#2a3033",
@@ -147,7 +147,7 @@
    "kind": "pixel",
    "course": 1.41,
    "plank": 1.375,
-   "bond": 0.5,
+   "bond": 0.0,
    "macro": [
     4,
     2
@@ -158,24 +158,25 @@
     "charcoal"
    ],
    "weights": [
-    0.62,
-    0.38
+    0.67,
+    0.33
    ],
    "bay": 2.75,
    "window": {
-    "w": 1.25,
-    "h": 1.6,
-    "sill": 0.85
+    "w": 1.2,
+    "h": 1.8,
+    "sill": 0.65
    },
    "glass": "glass",
    "frame": "frame",
-   "_src": "S4. The decision cell is 4 courses by 2 planks = 5.64 m by 2.75 m = TWO FLOORS BY ONE BAY, which is the size of every white block in the photograph; the runs of one to three cells are why some blocks are one bay wide and some three. course 1.41 = half a floor and plank 1.375 = half a bay are the real panel joints, and they stay drawn inside a cell so the coursing survives a walk-up. weights 0.62/0.38 are the measured cluster shares of white to charcoal on the east face once the glazing clusters are set aside - 65/35 on the north wing, 64/36 on the south wing."
+   "reveal": 0.07,
+   "_src": "S4. The decision cell is 4 courses by 2 planks = 5.64 m by 2.75 m = TWO FLOORS BY ONE BAY, which is the size of every white block in the photograph; the runs of one to three cells are why some blocks are one bay wide and some three. course 1.41 = half a floor and plank 1.375 = half a bay are the real panel joints, and they stay drawn inside a cell so the coursing survives a walk-up. weights 0.67/0.33 are the white-to-charcoal split on the east face: k-means over the north wing gives 48.7% white against 26.0% charcoal, i.e. 65/35, and counting the macro cells bay by bay in S4 gives about two white to one charcoal. LOOK-FIX 1, three changes, each with the measurement that forced it. bond was 0.5 and is now 0, because in S4 the panel joints STACK - every vertical joint between a white block and a charcoal one lines up with the ones above and below it, and a running bond shifted every macro row half a plank and made our wall read as ragged noise where the photograph reads as clean vertical slabs. reveal is 0.07 rather than the 0.12 default, because at 0.12 the four dark reveal strips round every window turned the whole elevation charcoal. Together with the weights: the same k-means run on OUR first render gave 39.8% white to 33.9% charcoal against the photograph's 48.7 to 26.0, and these three are what closes that gap."
   },
   "panelPale": {
    "kind": "pixel",
    "course": 1.41,
    "plank": 1.375,
-   "bond": 0.5,
+   "bond": 0.0,
    "macro": [
     4,
     2
@@ -186,18 +187,19 @@
     "charcoal"
    ],
    "weights": [
-    0.72,
-    0.28
+    0.76,
+    0.24
    ],
    "bay": 2.75,
    "window": {
-    "w": 1.25,
-    "h": 1.6,
-    "sill": 0.85
+    "w": 1.2,
+    "h": 1.8,
+    "sill": 0.65
    },
    "glass": "glass",
    "frame": "frame",
-   "_src": "the same rule for the lower zone, where S4 measures 68/32 white to charcoal - the base of every elevation is a broad white band with charcoal strips run through it."
+   "reveal": 0.07,
+   "_src": "the same rule for the lower zone, where S4 measures 51.7% white against 24.8% charcoal, 68/32 - the base of every elevation is a broad white band with charcoal strips run through it. LOOK-FIX 1 as panel: bond 0, reveal 0.07, weights up."
   },
   "banded": {
    "kind": "bays",
@@ -208,9 +210,9 @@
     "tone": "white"
    },
    "window": {
-    "w": 1.25,
-    "h": 1.6,
-    "sill": 0.85
+    "w": 1.2,
+    "h": 1.8,
+    "sill": 0.65
    },
    "glass": "glass",
    "frame": "frame",
@@ -221,9 +223,9 @@
    "field": "charcoalShade",
    "bay": 2.75,
    "window": {
-    "w": 1.25,
-    "h": 1.6,
-    "sill": 0.85
+    "w": 1.2,
+    "h": 1.8,
+    "sill": 0.65
    },
    "glass": "glass",
    "frame": "frame",
@@ -297,7 +299,7 @@
    "id": "base",
    "plan": [
     0.0,
-    45.58,
+    45.26,
     0.0,
     33.81
    ],
@@ -325,8 +327,8 @@
    "roofItems": [
     {
      "plan": [
-      19.5,
-      26.7,
+      19.36,
+      26.51,
       26.2,
       33.4
      ],
@@ -335,8 +337,8 @@
     },
     {
      "plan": [
-      19.5,
-      20.6,
+      19.36,
+      20.46,
       26.2,
       33.4
      ],
@@ -345,8 +347,8 @@
     },
     {
      "plan": [
-      19.4,
-      26.8,
+      19.26,
+      26.61,
       33.45,
       33.78
      ],
@@ -364,27 +366,27 @@
      0.0
     ],
     [
-     45.58,
+     45.26,
      0.0
     ],
     [
-     45.58,
+     45.26,
      33.81
     ],
     [
-     26.9,
+     26.71,
      33.81
     ],
     [
-     26.9,
+     26.71,
      25.6
     ],
     [
-     19.3,
+     19.16,
      25.6
     ],
     [
-     19.3,
+     19.16,
      33.81
     ],
     [
@@ -523,8 +525,8 @@
    "overrides": [
     {
      "region": [
-      42.8,
-      45.58,
+      42.5,
+      45.26,
       31.0,
       33.81
      ],
@@ -539,7 +541,7 @@
     {
      "region": [
       0.0,
-      2.78,
+      2.76,
       31.0,
       33.81
      ],
@@ -567,8 +569,8 @@
    "roofItems": [
     {
      "plan": [
-      7.8,
-      11.6,
+      7.75,
+      11.52,
       3.0,
       14.0
      ],
@@ -577,8 +579,8 @@
     },
     {
      "plan": [
-      12.0,
-      30.0,
+      11.92,
+      29.79,
       13.0,
       24.5
      ],
@@ -587,8 +589,8 @@
     },
     {
      "plan": [
-      27.0,
-      45.0,
+      26.81,
+      44.68,
       2.0,
       13.0
      ],
@@ -605,8 +607,8 @@
     },
     {
      "plan": [
-      3.0,
-      10.0,
+      2.98,
+      9.93,
       3.0,
       12.0
      ],
@@ -623,8 +625,8 @@
     },
     {
      "plan": [
-      5.0,
-      16.0,
+      4.96,
+      15.89,
       15.0,
       27.0
      ],
@@ -645,8 +647,8 @@
   {
    "id": "crown",
    "plan": [
-    26.9,
-    45.58,
+    26.71,
+    45.26,
     30.6,
     33.81
    ],
@@ -679,7 +681,7 @@
        "signs": [
         {
          "text": "MOONTOWER",
-         "s0": 4.6,
+         "s0": 4.57,
          "z0": 57.3,
          "dot": 0.25,
          "gap": 0.25,
@@ -700,8 +702,8 @@
   "items": [
    {
     "plan": [
-     28.0,
-     45.4,
+     27.8,
+     45.08,
      22.3,
      32.9
     ],
@@ -712,8 +714,8 @@
    },
    {
     "plan": [
-     31.5,
-     41.7,
+     31.28,
+     41.41,
      26.0,
      29.7
     ],
@@ -724,8 +726,8 @@
    },
    {
     "plan": [
-     30.0,
-     43.0,
+     29.79,
+     42.7,
      23.0,
      24.2
     ],
@@ -736,8 +738,8 @@
    },
    {
     "plan": [
-     28.4,
-     30.0,
+     28.2,
+     29.79,
      22.5,
      32.5
     ],
@@ -748,6 +750,10 @@
    }
   ]
  },
+ "_frame_scale_src": "Every u below is metres in the GENERATOR's frame, which is 45.26 long, not the 45.58 a naive obb gives: js/slopes-apartments.js uses M_LAT = 110540 for the north-south metre and 111320*cos(lat) for the east-west one, so a u read off a rectification built on 111320 is 0.7% too long. The plan numbers here were measured in the second frame and multiplied by 110540/111320 = 0.99299 so that the south wall lands ON the footprint rather than 0.32 m outside it. v is unchanged - both frames use 111320*cos(lat) across. Confirmed against the boot line: '[slopes-apartments] Moontower: obb L=45.3 W=33.8, +u at bearing 184.8 deg'.",
+ "todo": [
+  "THE GENERATOR'S 5x7 DOT FONT HAS NO 'W'. js/slopes-apartments.js FONT covers T H E S A N D R O I L M C U and a space, so MOONTOWER renders as MOONTO_ER with a hole where the W is - visible from a block away, on the one feature this building is known by. The text stays correct here so the sign is right the moment the glyph lands. The glyph is W: ['10001','10001','10001','10101','10101','11011','10001']."
+ ],
  "_open": [
   "The WEST and SOUTH elevations were never photographed close up. The west wears the north's horizontal banding and the south wears the east's panel blocks, which is what the Google Earth 3D mesh from the south-west (S8) shows of each - a mesh, not a photograph, so both are the plainest rule this building has and are flagged here rather than claimed.",
   "The partial glazing stack at the notch's north corner - four storeys at the top in S5 - is not drawn; only the two full-height street corners are.",
