@@ -1158,8 +1158,10 @@ const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced pr
 const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
 const APT_OWN_CLAUSE = JSON.stringify(['!', ['in', ['get', 'id'], ['literal', [APT_ID]]]]);
 const countOf = (str, sub) => str.split(sub).length - 1;
+// A page that never loaded the generator (the --against archive) settles the
+// moment the layer draws; ours waits for the build to finish.
 const settledApts = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
-  && window.slopesApartments && window.slopesApartments.count.done, null, { timeout: 120000 });
+  && (!window.slopesApartments || window.slopesApartments.count.done), null, { timeout: 120000 });
 const aptState = pg => pg.evaluate(([id, name]) => {
   const m = window.__map, A = window.slopesApartments;
   const filt = k => JSON.stringify(m.getFilter(k) || null);
