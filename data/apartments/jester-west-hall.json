@@ -1,0 +1,800 @@
+{
+ "_readme": "Jester West Hall (JCD), 201 E 21st St - the 14-storey 1969 dormitory bar with its courtyard wings, as data for js/slopes-apartments.js (schema: docs/apartments.md). Every number carries a _src naming a source in `sources`, or says derived or unknown. Metres in the footprint's oriented bounding box: L=121.9 W=89.1, +u at bearing 94.9 deg, so u=0 is the WEST end, +u runs east, v=0 is the SOUTH edge on 21st Street and +v runs north.",
+ "id": "165236c4-c518-419b-a55a-87d5aedd45ce",
+ "name": "Jester West Hall",
+ "address": "201 East 21st Street, Austin TX 78705",
+ "sources": {
+  "S1": "OSM relation 1715386 (Overpass, 2026-09-05): type=multipolygon, building=dormitory, building:levels=14, name 'Jester West Hall', ref/alt_name JCD, addr 201 East 21st Street. Members: way 126569517 outer (36 nodes) and way 126569518 inner (9 nodes) - the courtyard. No height tag and no building:part anywhere in the bbox.",
+  "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 165236c4-c518-419b-a55a-87d5aedd45ce: the 35-vertex outer ring and the 8-vertex courtyard hole (this file's footprint.ring is the outer ring verbatim), name 'Jester West Hall', num_floors 14, building_class dormitory, final_height 51.6 with source_height 'overture', and the facade bake's measured tones wd #c2b6a0 / wg #ccb597 / wn #333233 and rd #948d7c / rg #ac9578 / rn #1b1d27.",
+  "S3": "Wikipedia, 'Jester Center' (read 2026-09-05): built 1969, 'two towers: a 14-level residence (Jester West) and a 10-level residence (Jester East)', capacity 3,200-3,300, occupies a full city block. UT Direct building information JCD-0599 'Jester Residence Hall': year built 1969, 745,685 gross square feet (that figure is the whole complex, both halls).",
+  "S4": "Wikimedia Commons, 'Jester Dormitory on the campus of the University of Texas at Austin (19 03 2003).jpg' (CC BY-SA 3.0), 1024x768, golden hour from the east: the tower's corner at full height - buff brick, one tall narrow window per bay in a light precast surround standing proud of the wall, no spandrel bands on the tower, a blank service tower rising above the roof; and in front of it the five-storey courtyard wing with wide light spandrel bands at every floor under a red barrel-tile hipped roof. Crops used: crop_count.png (a pixel ruler for the floor pitch), crop_win.png (8x on three bays), crop_lowblock.png (the low wing).",
+  "S5": "Wikimedia Commons, 'University of Texas at Austin August 2019 27 (Beauford H. Jester Center).jpg' (CC BY-SA 4.0), 3840x2560, flat daylight, the west entrance front of the Jester Center base block: buff brick, cream cast-stone window surrounds and sills, red barrel-tile eaves, a round-arched ground arcade. Used for the tile and cast-stone colour families only - that block is the separate snapshot feature 9e2404d3, not this building.",
+  "S6": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() (canvas.toDataURL is black on Earth), imagery dated 12/3/2023. Ten poses about the snapshot centroid 30.282142,-97.736805: nadir at 420d and 300d, four obliques at 400d/55t (45h, 135h, 225h, 315h) and four elevations at 340d/72t (0h, 90h, 180h, 270h).",
+  "S7": "The S6 frames projected with the same perspective camera Earth's own URL states (target lat/lng, d metres, 35 degree vertical fov, heading, tilt). Registered by one constant east/north offset (dE -1.77 m, dN +3.97 m) chosen so the snapshot's courtyard hole lands on the courtyard's own trees in the rectified nadir; after that the footprint's two north bumps (u 39.5-51.6 and u 71.0-83.2) land on the two roof bumps to the pixel. The rectified plan is the nadir resampled into this (u,v) frame at 6 and 12 px/m; the massing was tested by drawing candidate boxes back into the obliques.",
+  "S8": "A vertical metre ruler projected on to the tower's south wall at (u=55, v=40.2) in the 340d/72t south elevation: the tower's parapet top reads 51.4 +/- 0.7 m, which is why the snapshot's Overture 51.6 was kept rather than overridden. The same ruler puts spandrel bands on the south wing at 9.2, 12.7, 16.4, 19.6 and 22.0 m.",
+  "S9": "Window module measured off the same south elevation by brightness profile - the gaps between detected window columns converted to metres through S7's projection at v=40.2, z=35: 4.30, 4.35, 4.35, 4.30, 4.55, 4.25, 4.50 m, so a 4.4 m bay. Floor pitch from the same frame: 3.44 m."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7371752,
+    30.2821899
+   ],
+   [
+    -97.7372396,
+    30.2821948
+   ],
+   [
+    -97.7372423,
+    30.2821675
+   ],
+   [
+    -97.7372081,
+    30.282165
+   ],
+   [
+    -97.7372126,
+    30.2821203
+   ],
+   [
+    -97.7372575,
+    30.2821237
+   ],
+   [
+    -97.7372948,
+    30.2817537
+   ],
+   [
+    -97.7360738,
+    30.2816619
+   ],
+   [
+    -97.7360641,
+    30.2817584
+   ],
+   [
+    -97.7362855,
+    30.281775
+   ],
+   [
+    -97.7362754,
+    30.2818748
+   ],
+   [
+    -97.7362244,
+    30.281871
+   ],
+   [
+    -97.7362138,
+    30.2819759
+   ],
+   [
+    -97.7362628,
+    30.2819796
+   ],
+   [
+    -97.7362473,
+    30.2821338
+   ],
+   [
+    -97.7364301,
+    30.2821475
+   ],
+   [
+    -97.7364253,
+    30.2821947
+   ],
+   [
+    -97.7364934,
+    30.2821999
+   ],
+   [
+    -97.736552,
+    30.2822043
+   ],
+   [
+    -97.7365564,
+    30.2821604
+   ],
+   [
+    -97.7367576,
+    30.2821755
+   ],
+   [
+    -97.736753,
+    30.2822214
+   ],
+   [
+    -97.7368782,
+    30.2822308
+   ],
+   [
+    -97.7368825,
+    30.2821876
+   ],
+   [
+    -97.7369447,
+    30.2821923
+   ],
+   [
+    -97.7369103,
+    30.2825339
+   ],
+   [
+    -97.7371833,
+    30.2825544
+   ],
+   [
+    -97.7372574,
+    30.28256
+   ],
+   [
+    -97.7372818,
+    30.2823176
+   ],
+   [
+    -97.7371091,
+    30.2823046
+   ],
+   [
+    -97.7371136,
+    30.2822598
+   ],
+   [
+    -97.7370609,
+    30.2822558
+   ],
+   [
+    -97.7370661,
+    30.2822044
+   ],
+   [
+    -97.7370709,
+    30.2821563
+   ],
+   [
+    -97.7371778,
+    30.2821644
+   ],
+   [
+    -97.7371752,
+    30.2821899
+   ]
+  ],
+  "_ring_src": "S2, verbatim (the outer ring). The courtyard is a hole in the source polygon and is left open here by giving every block its own plan instead of 'footprint'.",
+  "_courtyard": [
+   [
+    -97.7371419,
+    30.2821197
+   ],
+   [
+    -97.7370751,
+    30.2821146
+   ],
+   [
+    -97.7370763,
+    30.2821023
+   ],
+   [
+    -97.7369646,
+    30.2820939
+   ],
+   [
+    -97.7363764,
+    30.2820497
+   ],
+   [
+    -97.7363948,
+    30.281867
+   ],
+   [
+    -97.7364028,
+    30.2817882
+   ],
+   [
+    -97.7371695,
+    30.2818459
+   ],
+   [
+    -97.7371419,
+    30.2821197
+   ]
+  ],
+  "_courtyard_src": "S1/S2 inner ring, kept for reference only - the generator never reads it. In (u,v) it is the rectangle u 15.25..89.25, v 11.19..40.20 with a 1.4 m step at its north-west corner."
+ },
+ "frame": "obb",
+ "_frame_src": "S2's outer ring through the generator's own obbOf: L=121.95, W=89.11, +u at bearing 94.9 degrees. u=0 is the WEST end and +u runs east; v=0 is the SOUTH edge on 21st Street and +v runs north - checked against the latitudes in the ring itself (v=0 at lat 30.28175, v=89 at lat 30.28256).",
+ "levels": {
+  "floors": [
+   0,
+   4.6,
+   8.08,
+   11.56,
+   15.04,
+   18.52,
+   22.0,
+   25.48,
+   28.96,
+   32.44,
+   35.92,
+   39.4,
+   42.88,
+   46.36
+  ],
+  "_src": "14 floors (S1 building:levels=14, S2 num_floors=14, S3 '14-level residence'). The 3.48 m pitch is S9's measurement (3.44 m) rounded so that thirteen of them plus a taller ground floor reach the roof slab: ground 4.60 - the base level carries the lobby and service and reads about a third taller than a room floor in S4 - then 13 at 3.48 to the fourteenth floor line at 46.36. Roof slab 49.84, parapet 1.76, top 51.60, which is S2's Overture height; S8 measured it at 51.4 +/- 0.7 m, so it was kept, not overridden. The split between the ground floor and the rest is derived; only the pitch and the total are measured.",
+  "roofTower": 49.84,
+  "parapetTower": 1.76,
+  "topTower": 51.6,
+  "eaveLow": 18.6,
+  "ridgeLow": 21.8,
+  "_low_src": "The courtyard wings: five floors of windows above ground. S8's ruler puts the south wing's spandrel bands at 9.2, 12.7, 16.4, 19.6 and 22.0 m and its tile eave at about 18-19 m, and a 0..17 m test box sat one to two metres low against that eave. 18.60 is the sixth floor line, chosen so the fifth floor's windows fit under it; the tile ridge is 3.2 m above. +/- 1.5 m.",
+  "roofMid": 30.5,
+  "parapetMid": 1.2,
+  "_mid_src": "The block north of the bar's west end (u 16.7..33.5): in S6's north-west oblique its roof stands at 0.60 +/- 0.06 of the way from the ground to the tower's parapet, i.e. 31 +/- 3 m - eight floors. Never photographed from the ground; +/- 2 storeys.",
+  "stairTop": 53.4,
+  "_stair_src": "The two blank service bays that project north (the footprint's own bumps) rise above the roof: in S6's north elevation the projecting element's top stands about 25 px above the main parapet where one floor is 38 px, i.e. 2.3 m. 53.40 is 3.6 m above the roof slab, 1.8 m above the parapet."
+ },
+ "colours": {
+  "_src": "Anchor: `brick` is S2's own measured wall-day tone for this feature, so a mesh panel here and the fill-extrusion band on the building next door age through the same ramp. Every other tone was sampled from an S6 frame and then multiplied by the single scale that takes that frame's brick cluster to the anchor (0.893, 0.902, 0.915), so all of them sit in one light.",
+  "brick": {
+   "hex": "#c2b6a0",
+   "_src": "S2 wd - the facade bake's wall-day read of this building."
+  },
+  "precast": {
+   "hex": "#c6c5bc",
+   "_src": "S6 south elevation, crop (700,320)-(780,430), brightest 5% #dedace, normalised. The light precast window surrounds and sills."
+  },
+  "glass": {
+   "hex": "#594b4d",
+   "_src": "S4, one window at (196,203)-(215,228): the opening reads 0.46/0.41/0.48 of the brick beside it and that ratio is applied to the anchor. S6 cannot resolve a 0.7 m opening at 0.25 m/px."
+  },
+  "band": {
+   "hex": "#cac8c3",
+   "_src": "S6 south elevation, crop (600,490)-(900,545), brightest 10% #e2ded6, normalised. The courtyard wings' spandrel bands."
+  },
+  "tile": {
+   "hex": "#a0685c",
+   "_src": "S6 south elevation, crop (600,455)-(760,478), mid cluster #b37465, normalised. The red barrel tile of the wing roofs."
+  },
+  "membrane": {
+   "hex": "#a2a8aa",
+   "_src": "S6 nadir, crop (700,430)-(980,460), mid cluster #b6baba, normalised. The bar's roof."
+  },
+  "coping": {
+   "hex": "#b7b5ae",
+   "_src": "S6 south elevation, crop (620,290)-(900,308) along the parapet, cluster #cdc9be, normalised."
+  }
+ },
+ "skins": {
+  "towerWall": {
+   "kind": "bays",
+   "field": "brick",
+   "bay": 4.4,
+   "window": {
+    "w": 0.75,
+    "h": 1.85,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "precast",
+   "reveal": 0.28,
+   "_src": "S9: bay 4.40 m. S4 gives the window itself - in crop_win.png the opening is 0.16 of a bay wide and 0.51 of a floor tall (0.70 x 1.76 m) and it sits in a light precast surround 0.30 of a bay by 0.67 of a floor (1.31 x 2.31 m) that stands proud of the brick. The opening is drawn at 0.75 x 1.85 with a 0.28 m reveal in `precast`, so the reveal's four strips read as that surround: 0.75 + 2 x 0.28 = 1.31 wide and 1.85 + 2 x 0.28 = 2.41 tall, the surround's own size. sill 0.85 puts the head 0.78 m under the floor above."
+  },
+  "towerSlot": {
+   "kind": "bays",
+   "field": "brick",
+   "bay": 4.1,
+   "window": {
+    "w": 0.4,
+    "h": 1.85,
+    "sill": 0.85
+   },
+   "glass": "glass",
+   "frame": "precast",
+   "reveal": 0.2,
+   "_src": "S6 north elevation: the projecting service bays are blank brick with a column of narrow slots, about half the width of a room window, on the same floor lines."
+  },
+  "towerBlank": {
+   "kind": "flat",
+   "field": "brick",
+   "_src": "S4 and S6 north elevation: the stair heads above the roof carry no openings on any face that was photographed."
+  },
+  "wingWall": {
+   "kind": "bays",
+   "field": "brick",
+   "bay": 4.25,
+   "floorLine": {
+    "h": 1.1,
+    "tone": "band"
+   },
+   "window": {
+    "w": 0.85,
+    "h": 1.55,
+    "sill": 1.5
+   },
+   "glass": "glass",
+   "frame": "precast",
+   "reveal": 0.15,
+   "_src": "S4 crop_lowblock.png: the courtyard wings carry a continuous light spandrel band at every floor, 0.35 of the floor tall (1.10 m at this pitch), with taller-than-wide windows in the brick between them. bay 4.25 is the tower's 4.40 m structural rhythm read on a wing whose own spacing S4 shows as pairs - see todo 1."
+  }
+ },
+ "blocks": [
+  {
+   "id": "tower",
+   "_src": "The 14-storey bar. Its plan is the footprint's own strip between the courtyard and the north boundary, taken vertex for vertex from S2, including the two bumps to v=55.99 and v=55.77. Three independent reads put the tall mass here and nowhere else inside this footprint: (a) the rectified nadir (S7) shows exactly one continuous membrane roof inside the polygon and it is this bar, u 21.7..100.8, v 40.2..51; (b) a 0..51.6 m box on this plan, drawn back into the south, west, north and north-west obliques, lands on the tan tower's roof line in every one of them; (c) the mass that continues east of u=100.8 in the north elevation is two floors lower - that is Jester East Hall, the separate snapshot feature 1161f877 at 40.4 m.",
+   "plan": [
+    [
+     21.74,
+     40.2
+    ],
+    [
+     100.81,
+     40.2
+    ],
+    [
+     100.81,
+     50.53
+    ],
+    [
+     83.19,
+     50.53
+    ],
+    [
+     83.19,
+     55.77
+    ],
+    [
+     70.97,
+     55.77
+    ],
+    [
+     70.97,
+     50.9
+    ],
+    [
+     51.56,
+     50.9
+    ],
+    [
+     51.56,
+     55.99
+    ],
+    [
+     39.48,
+     55.99
+    ],
+    [
+     39.48,
+     51.2
+    ],
+    [
+     33.48,
+     51.2
+    ],
+    [
+     21.74,
+     51.2
+    ]
+   ],
+   "z0": 0,
+   "z1": 49.84,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 49.84,
+     "skin": "towerWall"
+    }
+   ],
+   "faces": {
+    "3": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "4": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "5": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "7": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "8": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "9": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 49.84,
+       "skin": "towerSlot"
+      }
+     ]
+    },
+    "11": {
+     "z0": 31.7
+    },
+    "12": {
+     "z0": 18.6
+    }
+   },
+   "_faces_src": "Edges are numbered from the plan above. 3, 4, 5 and 7, 8, 9 are the two projecting service bays: blank brick with slots (S6 north elevation). 11 stands on the mid block and 12 on the west link, so each starts at that block's top; every other face runs to the ground.",
+   "roofTone": "membrane",
+   "parapet": 1.76,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "0",
+    "1",
+    "2",
+    "6",
+    "10",
+    "11",
+    "12"
+   ],
+   "_parapet_src": "S6 north and south elevations: a plain coping band above the top floor. The bay edges (3-5, 7-9) carry none because the stair heads stand on them.",
+   "roofItems": [
+    {
+     "plan": [
+      43.0,
+      90.0,
+      45.6,
+      46.8
+     ],
+     "grid": [
+      10,
+      1
+     ],
+     "size": [
+      1.1,
+      1.2
+     ],
+     "h": 0.9,
+     "tone": "coping",
+     "_src": "S7's rectified nadir at 19.2 px/m: ten small units in one line along the middle of the bar, about every 5.2 m from u=43 to u=90, at v=46.2. The 0.9 m height is derived - a nadir cannot measure it."
+    }
+   ]
+  },
+  {
+   "id": "stairhead-1",
+   "_src": "S6 north elevation: each projecting bay carries a blank head standing about 2.3 m above the main parapet. The plan is the bump's own footprint (S2).",
+   "plan": [
+    39.48,
+    51.56,
+    50.9,
+    55.99
+   ],
+   "z0": 49.84,
+   "z1": 53.4,
+   "bands": [
+    {
+     "z0": 49.84,
+     "z1": 53.4,
+     "skin": "towerBlank"
+    }
+   ],
+   "roofTone": "membrane",
+   "parapet": 0.5,
+   "parapetTone": "coping"
+  },
+  {
+   "id": "stairhead-2",
+   "_src": "S6 north elevation: each projecting bay carries a blank head standing about 2.3 m above the main parapet. The plan is the bump's own footprint (S2).",
+   "plan": [
+    70.97,
+    83.19,
+    50.53,
+    55.77
+   ],
+   "z0": 49.84,
+   "z1": 53.4,
+   "bands": [
+    {
+     "z0": 49.84,
+     "z1": 53.4,
+     "skin": "towerBlank"
+    }
+   ],
+   "roofTone": "membrane",
+   "parapet": 0.5,
+   "parapetTone": "coping"
+  },
+  {
+   "id": "wing-south",
+   "_src": "The 21st Street wing: the footprint between the south boundary (v=0) and the courtyard's south edge (v=11.19), S2. Five floors of banded brick under a hipped barrel-tile roof (S4). Its east end runs to u=121.94, where the outer ring steps 0.48 m to v=10.71; that step is not drawn.",
+   "plan": [
+    4.12,
+    121.94,
+    0.0,
+    11.19
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      5.9,
+      120.1,
+      1.8,
+      9.4
+     ],
+     "h": 3.2,
+     "tone": "tile",
+     "_src": "The hipped tile roof as one inset step: the eave line set back 1.8 m from the wall and carried 3.2 m up to the ridge height S8 reads. A true hip is not in this generator's schema - see todo 2."
+    }
+   ]
+  },
+  {
+   "id": "wing-west",
+   "_src": "The Speedway wing: the footprint west of the courtyard, u 4.17..15.25, v 11.19..46.19 (S2; the outer edge wanders between u=4.12 and u=8.51 over that run and is drawn straight at 4.17). The same five banded floors and tile roof as the south wing (S4, S6 west elevation).",
+   "plan": [
+    4.17,
+    15.25,
+    11.19,
+    46.19
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "v0": null
+   },
+   "_faces_src": "v0 stands on the south wing, which already draws that wall.",
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      5.9,
+      13.5,
+      13.0,
+      44.4
+     ],
+     "h": 3.2,
+     "tone": "tile",
+     "_src": "as wing-south."
+    }
+   ]
+  },
+  {
+   "id": "wing-east",
+   "_src": "The wing east of the courtyard, u 89.25..100.59, v 11.19..40.20 (S2). The same section as the other two wings.",
+   "plan": [
+    89.25,
+    100.59,
+    11.19,
+    40.2
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "v0": null
+   },
+   "_faces_src": "v0 stands on the south wing.",
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      91.0,
+      98.8,
+      13.0,
+      38.4
+     ],
+     "h": 3.2,
+     "tone": "tile",
+     "_src": "as wing-south."
+    }
+   ]
+  },
+  {
+   "id": "wing-east-bump",
+   "_src": "The footprint's step out to u=105.52 between v=21.78 and v=33.42 (S2) - a stair block on the east wing's flank.",
+   "plan": [
+    100.59,
+    105.52,
+    21.78,
+    33.42
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "_faces_src": "u0 stands on wing-east.",
+   "roofTone": "tile",
+   "parapet": 0.6,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "v0",
+    "u1",
+    "v1"
+   ]
+  },
+  {
+   "id": "link-west",
+   "_src": "The short link between the courtyard's north-west corner and the tower's west end, u 15.25..21.74, v 41.57..51.20 (S2).",
+   "plan": [
+    15.25,
+    21.74,
+    41.57,
+    51.2
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "u0": null
+   },
+   "_faces_src": "u0 stands on wing-west.",
+   "roofTone": "tile",
+   "parapet": 0.6,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "v0",
+    "v1"
+   ]
+  },
+  {
+   "id": "north-mid",
+   "_src": "The eight-storey block north of the bar's west end, u 16.66..33.48 (S2's north-west arm, squared off at its two steps). Height from S6's north-west oblique - see levels._mid_src. Flat membrane roof with a parapet, which is what the rectified nadir shows there.",
+   "plan": [
+    16.66,
+    33.48,
+    57.24,
+    89.11
+   ],
+   "z0": 0,
+   "z1": 30.5,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 30.5,
+     "skin": "wingWall"
+    }
+   ],
+   "roofTone": "membrane",
+   "parapet": 1.2,
+   "parapetTone": "coping"
+  },
+  {
+   "id": "north-mid-south",
+   "_src": "The same block's return south to the tower, u 21.74..33.48, v 51.20..57.24 (S2).",
+   "plan": [
+    21.74,
+    33.48,
+    51.2,
+    57.24
+   ],
+   "z0": 0,
+   "z1": 30.5,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 30.5,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "v1": null
+   },
+   "_faces_src": "v1 stands on north-mid.",
+   "roofTone": "membrane",
+   "parapet": 1.2,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "v0",
+    "u0",
+    "u1"
+   ]
+  },
+  {
+   "id": "north-west-low",
+   "_src": "The far north-west corner, u 0.03..16.66, v 62.21..89.11 (S2). The rectified nadir shows barrel tile here, not membrane, and the north-west oblique reads it at the wings' height, not the mid block's.",
+   "plan": [
+    0.03,
+    16.66,
+    62.21,
+    89.11
+   ],
+   "z0": 0,
+   "z1": 18.6,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 18.6,
+     "skin": "wingWall"
+    }
+   ],
+   "faces": {
+    "u1": null
+   },
+   "_faces_src": "u1 stands on north-mid.",
+   "roofTone": "tile",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      1.8,
+      14.9,
+      64.0,
+      87.3
+     ],
+     "h": 3.2,
+     "tone": "tile",
+     "_src": "as wing-south."
+    }
+   ]
+  }
+ ],
+ "todo": [
+  "1. windowsFromBays puts ONE window at each bay centre. S4 shows the courtyard wings' windows in PAIRS about 3.0 m apart on an 8.5 m module - mirrored room pairs about a party wall - while the tower's own bays carry a single window at the centre. The wings are drawn here on a uniform 4.25 m module, which is the pair's average position. A `window.pair: {gap}` on windowsFromBays, or `window.offsets` in fractions of the bay, would draw what the photograph shows.",
+  "2. Every roof in this generator is flat. Four of this building's wings carry hipped barrel-tile roofs (S4, S5, S6). They are drawn here as the wall up to the eave plus a tile-toned box inset 1.8 m and 3.2 m tall on top - one step of a hip, so the silhouette leans the right way and the tile colour reads, but the slope does not. A block-level `hip: {inset, rise}`, or letting the roofs bake keep its pitched roof for a replaced building, would fix it.",
+  "3. The light precast surround around each tower window (1.31 x 2.31 m, S4) is drawn as the window's reveal strips rather than as wall tone, because `bays` offers a horizontal band or a vertical strip and never a per-floor rectangle in a second tone. A `window.surround: {w, h, tone}` would draw it as itself.",
+  "4. data/apartments/index.json is not this file's to write. To turn this building on, add 'jester-west-hall.json' to `buildings` and '165236c4-c518-419b-a55a-87d5aedd45ce' to `replacedBuildingIds`. It has no js/westcampus.js name, so `replacedNames` needs nothing.",
+  "5. Not photographed, and wearing the plainest rule the building has: the courtyard-facing walls of all three wings, the north-mid block's own north and west faces, and the whole of north-west-low. The tower's east end (u=100.81) stands six metres from Jester East and was never seen from the ground."
+ ]
+}
