@@ -1,5 +1,69 @@
 # Austin 3D Explorer — Full Handoff
 
+## 218. Sep 5 2026 — A wall is where the renderer draws it: GDC's atrium off the roof line, and every door seated on the wall its building actually draws (`acer/apts`, the heroes/entrances piece of the round)
+
+Two defects, one cause, one switch. Six passes here re-draw whole buildings
+from authored geometry, and wherever that geometry is INSET from the
+footprint ring, anything placed against the ring floats in front of the
+building.
+
+**The atrium.** `bake_heroes.py` insets every GDC band by `GDC_OVERSAIL =
+2.5 m` (the Overture ring traces Pelli's roof CANOPY, not the wall) and
+emitted the glass atrium at inset 0, with a comment calling that deliberate.
+It is not what the building does. The Esri z20 nadir cannot settle it — the
+notch mouth is in the south bar's shadow and the only edge it offers slopes
+0.35 m of u per metre of v, which is a shadow and not a wall; the 3.4 m
+recess first read off it was that shadow measured three times. Google's z20
+of the same frame, a different overpass with no shadow in the notch, puts a
+hard line at u 29.00 against a brick end wall at 30.00, and both providers
+agree on the bars' roof-canopy end to 0.1 m. Google Earth's 3D mesh from the
+west (Speedway) shows the brick ends standing forward of a receding slot.
+So `GDC_ATRIUM_RECESS = 0.90 m`. In v the atrium KEEPS the ring's own notch:
+growing it to the bars' inset flanks has no measurement behind it and
+swallows GDC's Speedway door (tried — it came out 29 m away on the
+courtyard wall).
+
+**The doors, as a rule.** GDC 166-171 and NHB 581-586 measured **2.63 m**
+outboard of the brick the hero bake draws (2.50 oversail + the 0.13 m the
+bank stands proud of its own reference). EER measured 0.13-0.17 m — its
+bands are at inset 0, and it is the regression control.
+`seat_on_drawn_wall()` marches each candidate inward along its own normal
+onto the first surface ITS OWN host draws; GDC and NHB come out at exactly
+2.50 m, which is the rule reproducing a constant it never reads. It runs
+AFTER `clear_buried()` (seating first moved the burial test's input and threw
+four doors 15-57 m), its floor is 0.80 m (at 0.15 m it buried Block on 25th
+East's leaf 0.64 m inside a neighbour), and a seat that would bury a leaf in
+any drawn mass is refused outright. **22 seated, 4 refused, 561 of 591
+entrances byte-identical to main.**
+
+**The switch.** `?wallplane=0` / `window.WALLPLANE.on`. Entrance pieces carry
+`wp` (the vector back to the ring), the atrium carries `wp0` (its whole
+pre-fix ring — its shape changed too), and a door relocated onto a wall that
+moved this round adopts that wall's `wpd`. Off, the frame is main's: 0 px at
+both GDC poses, 104 px at a zoom-19.2 NHB door close-up, which is the 1.47 cm
+of 7-decimal-place coordinate rounding and nothing else.
+
+**Files (this piece only):** `scripts/bake_heroes.py`, `data/heroes.geojson`,
+`scripts/bake_entrances.py`, `data/entrances.geojson`, the switch block in
+`js/heroes.js` and `js/entrances.js`, `scripts/verify/wallplane.mjs`,
+`scripts/verify/wallplane-off.mjs`, `docs/wall-plane.md` and three cited
+JPEGs in `docs/shots/`.
+
+**Gates.** `wallplane.mjs` all green (float band 34 -> 12, orphans 7 -> 7,
+buried 2 -> 2 none seated). `wallplane-off.mjs` green. `walkmeter.mjs` PASS
+(20 pairs, 0 errors, self-check drift 0, live-mouse UI gate both ways).
+`doorstack.mjs` on HRC 186/187, the tightest pair the seat created: two
+doorways side by side, not one drawn twice. Both bakes re-run byte-identical.
+
+**Two things left for someone else, on purpose.** `data/walk_graph.json`
+still carries the pre-seat anchors for the 23 entrances that moved — that is
+the walk lane's bake, walkmeter passes as it stands, and it wants a re-bake
+before anyone quotes route lengths to the centimetre. And a seated door is up
+to 2.5 m FURTHER from UT's published coordinate, because UT's survey point
+sits on the ring and the ring on these buildings is the canopy; the count
+within 10 m is unchanged at 77 of 591.
+
+
 ## 217. Sep 5 2026 — The Standard is a building now: the apartments generator, its data file, the gate block, and what the nadir said about the westcampus slabs (`acer/apts`, the apartments piece of the round)
 
 The app is apartments → distance → classes, and the first apartment building
