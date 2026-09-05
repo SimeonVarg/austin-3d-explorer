@@ -1,0 +1,1609 @@
+{
+  "_readme": "Skyloft Austin, 507 W 23rd St, as js/slopes-apartments.js draws it. Every number cites a key from `sources` in a sibling `_src`; a value with no source says so. Metres, in the footprint's own oriented bounding box (js/westcampus.js obbOf): L=62.54, W=35.79, +u runs NORTH at bearing 4.5 deg, so u=0 is the SOUTH end and u=62.54 the 23rd Street end; +v runs WEST, so v=0 is the EAST edge and v=35.79 the Nueces edge. Read docs/apartments.md for the schema.",
+  "id": "4c485eb1-3a42-4633-9f67-df5e1c155b5a",
+  "name": "Skyloft Austin",
+  "address": "507 W 23rd St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 4c485eb1-3a42-4633-9f67-df5e1c155b5a: name 'Skyloft Austin', num_floors 18, final_height 57.9 (source_height 'overture'), and a THREE-ring polygon - a 62.54 x 35.79 m rectangle with two interior rings of 63 m2 each. Overpass was not reachable from this machine during the pass, so no OSM way id is quoted; the outline is the snapshot's, verbatim.",
+    "S2": "scripts/bake_westcampus.py, TIER ONE entry 'Skyloft Austin' and its header: '2018, 18 storeys, 442,000 sq ft. The source polygon has TWO 63 m2 holes in it and they are real: the z20 nadir shows two light wells cut clean through the roof plane... Pool on the main roof at the south end (nadir).' Its values: base 6.2 m of BASE_GLASS #454b51, tower #93a3ac, crown 4.0 m of CROWN_COOL #9aa1a6, mech 3.8, deck 'roof', pool (2.0, -22.0, 5.0, 12.0).",
+    "S3": "Mark Hart Architecture, markhartarch.com/skyloft (the architect's own project page): 18 stories, 442,000 SF, 2018, rooftop pool, furnished apartments, market, study areas, fitness centre, parking, bike parking.",
+    "S4": "apartments.com / apartmentfinder.com listing for Skyloft Austin, 507 W 23rd St, Austin TX 78705: built 2018, 18 stories, 212 units, '18th-story rooftop pool'. The address is what fixes the building on 23rd St.",
+    "S5": "markhartarch.com/skyloft photograph 4 of 13 (Leonid Furmansky; saved as mha_04.jpg, 1000x1500): the whole tower in full sun against a blue sky - the near-white panel field with its regular punched-window grid on the long face, a distinctly darker grey panel podium of six storeys under it, a blank end wall carrying scattered narrow slot windows on the same near-white panel, and a glazed amenity volume with a canopy at the top.",
+    "S6": "mha_02.jpg (1000x1500): the exposed board-marked concrete lift and stair core running the whole height, a full-height glazed stair beside it with a landing at every floor, a mid blue-grey panel plane with scattered slot windows on its other side, the white mass stepping down in terraces to the left, and a dark teal-blue clad cap box with a projecting soffit standing on top of the core.",
+    "S7": "mha_06.jpg (1500x1000): a near head-on elevation of a long face, shot from the roof of the parking garage east of the building. Ten floors and about sixteen window columns, plus a recessed bay carrying a concrete pier and a glazed stair. THIS IS THE MODULE SOURCE: floor to floor 86 px, window 45 x 55 px, column pitch 92 px, spandrel under the window 30 px.",
+    "S8": "mha_12.jpg (1000x1500): the Nueces / 23rd corner at blue hour (the NUECES 2300 street sign is in frame). A glazed amenity volume of about four storeys wraps the corner above a dark glazed storefront ground floor; the grey panel podium runs along both street faces; the concrete core with its teal cap stands beyond it; the white mass steps down toward this corner.",
+    "S9": "mha_00.jpg (1500x1000): the north elevation with the UT Tower behind it to the east - the stepped white mass, the concrete core, the glazed stair, and the grey slot-window panel field, all in one frame.",
+    "S10": "research/union24th-area/imagery/aerial/skyloft-austin_nadir_z20.jpg (Esri World Imagery, z20, 931x931, 0.1289 m/px at this latitude), RECTIFIED into this (u,v) frame at 10 px/m. Registration: the capture is a few degrees off nadir, so the 57.9 m roof plane sits +10, -62 px from the ground projection of the polygon (= +1.3 m east, +8.0 m north); with that shift applied the two snapshot holes land exactly on the two black light wells, which is the check. Every roof plan number below was read off that rectified plan. Features BELOW the main roof are displaced by (1 - h/57.9) x 8.0 m south in it.",
+    "S11": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot (imagery 12/3/2023). The useful frame is the one whose own readout says 30 deg 17'12.36\"N 97 deg 44'36.66\"W, camera 352 m, heading 180, tilt 50 - the building from the north, where the terraced north wing and its recessed terrace bands are directly visible.",
+    "S12": "data/roads.geojson: Nueces Street and West 23rd Street share the node (-97.74379, 30.28661), 15 m west-north-west of the building's north-west corner. So 23rd St runs along the NORTH edge and Nueces along the WEST edge, and the address 507 W 23rd St (S4) is the north-west corner.",
+    "S13": "js/westcampus.js SOLID: the West Campus day/golden/night trios for pool, deck paving, turf, mechanical screen and black steel rail.",
+    "S14": "data/hero_designs.json 'Skyloft' ('Blue glass curtain-wall tower; cool glow at night', confidence 'known'). Recorded because it is WRONG - S5 to S9 show a panel tower with punched windows and no curtain wall above the base - and because no tone here was taken from it.",
+    "derived": "a number computed from the sources above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7437291,
+        30.2859359
+      ],
+      [
+        -97.7433579,
+        30.2859107
+      ],
+      [
+        -97.7433068,
+        30.2864745
+      ],
+      [
+        -97.7436779,
+        30.2864996
+      ],
+      [
+        -97.7437291,
+        30.2859359
+      ]
+    ],
+    "_src": "S1's OUTER ring verbatim. In (u,v) it is (62.54,0) (62.51,35.78) (0,35.79) (0.03,0) - a rectangle, every edge axis-parallel in the frame.",
+    "holes": [
+      [
+        [
+          -97.7435485,
+          30.2861748
+        ],
+        [
+          -97.7434866,
+          30.28617
+        ],
+        [
+          -97.7434964,
+          30.2860756
+        ],
+        [
+          -97.7435583,
+          30.2860804
+        ],
+        [
+          -97.7435485,
+          30.2861748
+        ]
+      ],
+      [
+        [
+          -97.7434787,
+          30.2862731
+        ],
+        [
+          -97.7435406,
+          30.2862778
+        ],
+        [
+          -97.7435308,
+          30.2863722
+        ],
+        [
+          -97.7434689,
+          30.2863674
+        ],
+        [
+          -97.7434787,
+          30.2862731
+        ]
+      ]
+    ],
+    "_holes_src": "S1's two interior rings verbatim - the two light wells, 63 m2 each. In (u,v): well A u 17.15-27.69 v 14.59-20.68, well B u 39.05-49.58 v 14.60-20.70. `footprint.holes` is NOT read by js/slopes-apartments.js; it is here because it is the measurement, and the blocks below are cut around it. See `todo`."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=62.54, W=35.79, +u bearing 4.5 deg, confirmed against the console line the generator prints at boot. S12 says which street is on which side.",
+  "levels": {
+    "floors": [
+      0.0,
+      5.6,
+      8.62,
+      11.63,
+      14.64,
+      17.66,
+      20.68,
+      23.69,
+      26.7,
+      29.72,
+      32.73,
+      35.75,
+      38.77,
+      41.78,
+      44.8,
+      47.81,
+      50.83,
+      53.84
+    ],
+    "_src": "18 storeys (S2, S3, S4) to 57.90 m (S1). The ground floor is 5.60 m - in S8 it is about 1.85x a residential floor, and S2's own base band for this building is 6.20 m; 5.60 is between them and is what makes the other 17 come out at a residential 3.015 m. Roof slab 56.85 + a 1.05 m parapet = 57.90. The per-floor split is derived; only the total and the count are sourced.",
+    "ground": 5.6,
+    "floorToFloor": 3.015,
+    "podiumTop": 20.68,
+    "roof": 56.85,
+    "parapet": 1.05,
+    "_height_src": "57.90 m is S1's final_height, which is Overture's - normally a guess. It is KEPT here, unlike The Standard's, because two independent sources state 18 storeys (S3, S4) and 57.90/18 = 3.22 m per storey, which is a residential floor-to-floor with a tall ground floor in it. No stated height in feet was found: SkyscraperPage and Emporis have no page for this building."
+  },
+  "colours": {
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given.",
+    "panel": {
+      "hex": "#e3e0d8",
+      "_src": "the near-white fibre-cement panel field. The SAME panel in S5 reads #faf6eb in full sun (crop 445,420-505,860, the slot end wall) and #ada9a1 on the shaded long face (crop 560,600-600,625); the day tone is set between the two, nearer the sunlit read, the way the westcampus bake lifts a blue-hour crop."
+    },
+    "panelGrey": {
+      "hex": "#98a0a4",
+      "_src": "the accent panel that carries the scattered slot windows. Measured in three lights and neutralised: S6 crop 760,300-960,1300 gives #978379 under a golden evening sun, S7 crop 520,60-690,820 gives #6394c4 under a blue sky, S9 shows it a clear step darker than `panel` and greener. Each read carries its own light; the day tone is the achromatic middle."
+    },
+    "podium": {
+      "hex": "#8d9295",
+      "_src": "the darker grey panel of the six-storey base. S5 clean crops 700,875-770,905 (#9f9e9e) and 840,900-900,935 (#bbb7ad) are sunlit reads of it; S8 has it at #738dae under blue hour. Entered a step below the sunlit read."
+    },
+    "concrete": {
+      "hex": "#b7b3aa",
+      "_src": "the exposed board-marked core. S6 crop 540,300-660,1300 is #c1916b in golden light, S7 crop 700,60-770,820 is #adc0d1 under a blue sky; the day tone is the neutral between them."
+    },
+    "capBlue": {
+      "hex": "#2c6f90",
+      "_src": "the teal-blue cladding on the cap box over the core. S6 crop 430,270-545,330 clusters at #22749d for the lit face with #222b36 for its soffit."
+    },
+    "coping": {
+      "hex": "#adb3b7",
+      "_src": "parapet coping: mill-finish aluminium, the same value js/westcampus.js gives The Standard's (STD_CAP). Not separately sampled."
+    },
+    "frame": {
+      "hex": "#adb3b7",
+      "_src": "window reveal strips and storefront mullions: as `coping`. Not separately sampled."
+    },
+    "glass": [
+      "#2a3a45",
+      "#3a4148",
+      "#141b22"
+    ],
+    "_glass_src": "the punched windows' glass: near-black blue-grey by day. S5 crop 560,560-760,860 has the panes at #16415d at the 10th luminance percentile and S7 at #18548f - both under a blue sky, so the day value is entered without that cast; the night value is the unlit pane, and lit panes take APARTMENTS.nightLitTone.",
+    "storeGlass": [
+      "#3f4c55",
+      "#525860",
+      "#e9c27a"
+    ],
+    "_storeGlass_src": "the ground-floor storefront: S8 crop 250,1180-700,1260 at blue hour is #383129 to #564e46 with the interior lit warm behind it, which is the night value.",
+    "stairGlass": [
+      "#4a5f6d",
+      "#5b626b",
+      "#cfe0ea"
+    ],
+    "_stairGlass_src": "the glazed stair beside the core: paler than a flat window because you see through it to a lit landing at every floor (S6, S9); cool and lit at night.",
+    "roof": [
+      "#c9cdd1",
+      "#cdcbc6",
+      "#1b1e26"
+    ],
+    "_roof_src": "white membrane roof, as it reads in S10; entered cool the way S13 enters top faces.",
+    "mech": [
+      "#9ca1a6",
+      "#a8a191",
+      "#1a1d26"
+    ],
+    "_mech_src": "S13 mech (mechanical penthouse screen and condenser units).",
+    "deck": [
+      "#b0b6bd",
+      "#bcbbb6",
+      "#1b1e26"
+    ],
+    "_deck_src": "S13 deck (concrete pool-deck paving).",
+    "pool": [
+      "#2f86ad",
+      "#4a8096",
+      "#1d4a63"
+    ],
+    "_pool_src": "S13 pool.",
+    "turf": [
+      "#4e7d46",
+      "#6b7d49",
+      "#141f19"
+    ],
+    "_turf_src": "S13 turf.",
+    "rail": [
+      "#2e3136",
+      "#3a3733",
+      "#131519"
+    ],
+    "_rail_src": "S13 rail (black steel)."
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every column count comes from a module in metres, never a count.",
+    "field": {
+      "kind": "bays",
+      "bay": 3.26,
+      "field": "panel",
+      "window": {
+        "w": 1.6,
+        "h": 1.95,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the residential long elevations. S7 head-on: floor to floor 86 px, so 0.03506 m/px at the derived 3.015 m floor; window 45 x 55 px = 1.58 x 1.93 m, column pitch 92 px = 3.23 m, spandrel under the sill 30 px = 1.05 m. Rounded to a 3.26 m bay, a 1.60 x 1.95 m window and a 0.85 m sill so the head clears the slab."
+    },
+    "fieldGrey": {
+      "kind": "bays",
+      "bay": 3.26,
+      "field": "podium",
+      "window": {
+        "w": 1.6,
+        "h": 1.95,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the same window module on the grey podium: S5 shows the podium's windows in line with the tower's, one per bay per floor."
+    },
+    "slots": {
+      "kind": "bays",
+      "bay": 6.6,
+      "field": "panel",
+      "window": {
+        "w": 0.55,
+        "h": 1.7,
+        "sill": 1.05
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the blank end wall in S5: near-white panel carrying narrow slot windows at about one per 6.5 m of wall per floor. In the photographs the slots are SCATTERED, not aligned; a regular 6.6 m module at the same density is what this generator can express (see `todo`). Slot 0.55 x 1.70 m is read off S5 against the 1.60 m windows two bays away."
+    },
+    "slotsGrey": {
+      "kind": "bays",
+      "bay": 6.6,
+      "field": "panelGrey",
+      "window": {
+        "w": 0.55,
+        "h": 1.7,
+        "sill": 1.05
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the same slot field on the accent panel, which is what S6, S7 and S9 show beside the core."
+    },
+    "slotsB": {
+      "kind": "bays",
+      "bay": 5.2,
+      "field": "panel",
+      "window": {
+        "w": 0.55,
+        "h": 1.7,
+        "sill": 2.05
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the second slot module. The end wall is split into three strips wearing `slotsB`, `slots` and `slotsC`, whose bays (5.2 / 6.6 / 7.4 m) and sills (2.05 / 1.05 / 1.55 m) do not divide into each other, so the slots do not line up into columns - which is how they read in S5."
+    },
+    "slotsC": {
+      "kind": "bays",
+      "bay": 7.4,
+      "field": "panel",
+      "window": {
+        "w": 0.55,
+        "h": 1.7,
+        "sill": 1.55
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the third slot strip; see `slotsB`."
+    },
+    "court": {
+      "kind": "bays",
+      "bay": 3.26,
+      "field": "panel",
+      "window": {
+        "w": 1.35,
+        "h": 1.9,
+        "sill": 0.9
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "the four walls of each light well. No photograph shows down a well (S10's nadir reads them as black), so they wear the plainest rule the building has: the same bay, a slightly narrower window, no accent."
+    },
+    "storefront": {
+      "kind": "storefront",
+      "mullion": 1.6,
+      "mullionW": 0.12,
+      "fascia": 0.75,
+      "plinth": 0.15,
+      "transom": 0.74,
+      "fasciaTone": "podium",
+      "frame": "frame",
+      "glass": "storeGlass",
+      "reveal": 0.22,
+      "_src": "the dark glazed ground floor and the glazed corner volume above it (S8): mullions at about 1.6 m with a transom near three quarters height and a grey fascia under the floor above."
+    },
+    "stair": {
+      "kind": "storefront",
+      "mullion": 1.7,
+      "mullionW": 0.14,
+      "fascia": 0.3,
+      "plinth": 0.1,
+      "transom": 0.55,
+      "fasciaTone": "concrete",
+      "frame": "frame",
+      "glass": "stairGlass",
+      "reveal": 0.18,
+      "_src": "the full-height glazed stair beside the core (S6, S7, S9): one tall pane per storey with the landing showing as a line across it."
+    },
+    "concrete": {
+      "kind": "flat",
+      "field": "concrete",
+      "_src": "the exposed core wall (S6, S8, S9): a blank concrete plane, no openings."
+    },
+    "garage": {
+      "kind": "bays",
+      "field": "podium",
+      "louvre": {
+        "pitch": 0.55,
+        "w": 0.24,
+        "tone": "coping",
+        "start": 0.45
+      },
+      "_src": "the base on the two faces that are not a street - the parking podium (S3 lists parking). S5 shows it behind hoarding and S7 shows only its dark band, so the louvre pitch 0.55 m is a plausible number and is NOT measured: unknown."
+    },
+    "capFlat": {
+      "kind": "flat",
+      "field": "capBlue",
+      "_src": "the teal cap box's cladding (S6)"
+    }
+  },
+  "_balcony_src": "no balconies. S5, S6, S7, S8 and S9 show punched windows on a flat panel plane on every face, with no slab projecting anywhere; the outdoor space on this building is the terraces on the north steps and the roof.",
+  "_signs_src": "no sign is modelled: no photograph in S5-S9 and no capture in S11 shows lettering on any face.",
+  "blocks": [
+    {
+      "id": "towerS",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerS is the part south of well A.",
+      "plan": [
+        0.0,
+        17.15,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "v0 east and u0 south face the alley and the neighbouring lot, so their base is the parking podium (S5 shows hoarding, not shopfronts, on them). v1 west is Nueces: storefront base (S8). u1 is the SOUTH wall of light well A - it is drawn across the whole width, and everything outside the well stands inside towerSE / towerSW and is never seen."
+      },
+      "overrides": [
+        {
+          "region": [
+            0.0,
+            0.0,
+            0.0,
+            12.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "slotsB"
+            }
+          ],
+          "_src": "the south end wall is a slot field, not a window grid (S5). It is split into three strips whose bay modules do not divide into each other so the slots do not line up - see the `slots` skins."
+        },
+        {
+          "region": [
+            0.0,
+            0.0,
+            12.0,
+            24.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "slots"
+            }
+          ],
+          "_src": "middle strip of the south end wall"
+        },
+        {
+          "region": [
+            0.0,
+            0.0,
+            24.0,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "slotsC"
+            }
+          ],
+          "_src": "west strip of the south end wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            9.5,
+            14.5,
+            12.3,
+            19.3
+          ],
+          "grid": [
+            3,
+            4
+          ],
+          "size": [
+            1.2,
+            1.9
+          ],
+          "h": 1.0,
+          "tone": "mech",
+          "_src": "S10 rectified plan: the condenser rows at u 9.5-14.5, v 12.3-19.3"
+        },
+        {
+          "plan": [
+            9.0,
+            14.0,
+            1.8,
+            6.8
+          ],
+          "grid": [
+            3,
+            3
+          ],
+          "size": [
+            1.2,
+            1.9
+          ],
+          "h": 1.0,
+          "tone": "mech",
+          "_src": "S10: the second cluster at u 9-14, v 1.8-6.8, hard against the east parapet"
+        }
+      ]
+    },
+    {
+      "id": "towerSE",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerSE is the bar east of well A.",
+      "plan": [
+        17.15,
+        27.69,
+        0.0,
+        14.59
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "u0 and u1 stand against towerS and towerM. v1 is the EAST wall of light well A."
+      },
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "towerSW",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerSW is the bar west of well A.",
+      "plan": [
+        17.15,
+        27.69,
+        20.68,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "u0 and u1 stand against towerS and towerM. v0 is the WEST wall of light well A; v1 is Nueces."
+      },
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v1",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            20.5,
+            27.0,
+            21.3,
+            29.3
+          ],
+          "grid": [
+            3,
+            5
+          ],
+          "size": [
+            1.2,
+            1.9
+          ],
+          "h": 1.0,
+          "tone": "mech",
+          "_src": "S10: the largest condenser field, u 20.5-27, v 21.3-29.3"
+        }
+      ]
+    },
+    {
+      "id": "towerM",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerM is the block between the two wells.",
+      "plan": [
+        27.69,
+        39.05,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "u0 is the NORTH wall of well A and u1 the SOUTH wall of well B; both are drawn across the width and hidden outside the wells."
+      },
+      "overrides": [
+        {
+          "region": [
+            30.0,
+            36.0,
+            0.0,
+            0.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "concrete"
+            }
+          ],
+          "_src": "the east face's concrete pier (S7). S7 cannot be registered along the wall - it is a hand-held frame with no landmark in it - so the pier is put under the roof box S10 puts at u 30-36, which is the only thing on the roof that could be its head. Registration along u: unknown, +/- 5 m."
+        },
+        {
+          "region": [
+            36.0,
+            39.05,
+            0.0,
+            0.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "stair"
+            }
+          ],
+          "_src": "the glazed stair beside that pier (S7)"
+        },
+        {
+          "region": [
+            34.5,
+            39.05,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "concrete"
+            }
+          ],
+          "_src": "the west face's exposed core, south half. The core reads on the Nueces face in S6, S8 and S9; S10 puts its head - the big roof bulkhead - at u 34.5-43.5, which is what sets these two numbers."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            34.5,
+            39.05,
+            22.0,
+            34.0
+          ],
+          "h": 3.0,
+          "tone": "mech",
+          "_src": "S10: the south half of the big roof bulkhead at u 34.5-43.5, v 21.3-34.3; height 3.0 m is derived, not measured"
+        },
+        {
+          "plan": [
+            30.0,
+            36.0,
+            14.5,
+            21.5
+          ],
+          "h": 2.2,
+          "tone": "mech",
+          "_src": "S10: the second raised roof box at u 30-36, v 14.5-21.5; height derived"
+        }
+      ]
+    },
+    {
+      "id": "towerNE",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerNE is the bar east of well B.",
+      "plan": [
+        39.05,
+        49.58,
+        0.0,
+        14.6
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "u0 and u1 stand against towerM and step15. v1 is the EAST wall of light well B."
+      },
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "towerNW",
+      "_src": "the 18-storey block, u 0 to 49.58, cut into six rectangles because the two light wells are HOLES in the plan and this generator's roof cap takes one ring (see `todo`). The six together are the snapshot rectangle south of u=49.58 minus the two interior rings (S1). towerNW is the bar west of well B; the core stands on it.",
+      "plan": [
+        39.05,
+        49.58,
+        20.7,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 56.85,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 56.85,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "u0 and u1 stand against towerM and step15. v0 is the WEST wall of well B; v1 is Nueces and carries the core and the glazed stair."
+      },
+      "overrides": [
+        {
+          "region": [
+            39.05,
+            43.5,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "concrete"
+            }
+          ],
+          "_src": "the west face's exposed core, north half (see towerM's override)"
+        },
+        {
+          "region": [
+            43.5,
+            47.0,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 56.85,
+              "skin": "stair"
+            }
+          ],
+          "_src": "the glazed stair on the Nueces face, immediately north of the core (S6, S9)"
+        },
+        {
+          "region": [
+            47.0,
+            49.58,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 56.85,
+              "skin": "slotsGrey"
+            }
+          ],
+          "_src": "the accent panel with scattered slots north of the stair (S6, S9)"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v1",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            39.05,
+            43.5,
+            22.0,
+            34.0
+          ],
+          "h": 3.0,
+          "tone": "mech",
+          "_src": "S10: the north half of the big roof bulkhead at u 34.5-43.5, v 21.3-34.3"
+        },
+        {
+          "plan": [
+            39.8,
+            43.2,
+            25.5,
+            31.5
+          ],
+          "h": 6.2,
+          "tone": "capBlue",
+          "_src": "the teal cap box on the core (S6, S8, S9): it stands about two storeys proud of the roof in S6, so 6.2 m; it sits inside the bulkhead's plan, which is how S6 shows it - a blue box rising out of the concrete head. Its plan is derived from the bulkhead, not measured separately."
+        }
+      ]
+    },
+    {
+      "id": "step15",
+      "_src": "the north wing steps down to 23rd St in four terraces. S11 (from the north) shows the terraces directly - a recessed band with a guard at every step; S10's rectified plan shows the same three bands as long dark strips across the roof at apparent u 49.3, 54.5 and 59.0, which is where the step depths of about 3.2 m come from. The STOREY COUNTS - 15, 12, 9 and 6 - are counted off S11's mesh and are +/- 1 storey each; no drawing or elevation of this wing was found. This is the 15-storey step, u 49.58 to 52.90.",
+      "plan": [
+        49.58,
+        52.9,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 47.81,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 47.81,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 47.81,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 47.81,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 47.81,
+              "skin": "court"
+            }
+          ]
+        },
+        "u1": null,
+        "_src": "u0 is the NORTH wall of light well B; u1 is under the step to the north and is not drawn"
+      },
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "step12",
+      "_src": "the north wing steps down to 23rd St in four terraces. S11 (from the north) shows the terraces directly - a recessed band with a guard at every step; S10's rectified plan shows the same three bands as long dark strips across the roof at apparent u 49.3, 54.5 and 59.0, which is where the step depths of about 3.2 m come from. The STOREY COUNTS - 15, 12, 9 and 6 - are counted off S11's mesh and are +/- 1 storey each; no drawing or elevation of this wing was found. This is the 12-storey step, u 52.90 to 56.20.",
+      "plan": [
+        52.9,
+        56.2,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 38.77,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 38.77,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 38.77,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 38.77,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
+      },
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "step9",
+      "_src": "the north wing steps down to 23rd St in four terraces. S11 (from the north) shows the terraces directly - a recessed band with a guard at every step; S10's rectified plan shows the same three bands as long dark strips across the roof at apparent u 49.3, 54.5 and 59.0, which is where the step depths of about 3.2 m come from. The STOREY COUNTS - 15, 12, 9 and 6 - are counted off S11's mesh and are +/- 1 storey each; no drawing or elevation of this wing was found. This is the 9-storey step, u 56.20 to 59.40.",
+      "plan": [
+        56.2,
+        59.4,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 29.72,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 29.72,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 29.72,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 29.72,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": null,
+        "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
+      },
+      "overrides": [
+        {
+          "region": [
+            56.2,
+            59.4,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 17.66,
+              "skin": "storefront"
+            },
+            {
+              "z0": 17.66,
+              "z1": 29.72,
+              "skin": "fieldGrey"
+            }
+          ],
+          "_src": "the corner volume returns 3.2 m round this step too (S8)"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "step6",
+      "_src": "the north wing steps down to 23rd St in four terraces. S11 (from the north) shows the terraces directly - a recessed band with a guard at every step; S10's rectified plan shows the same three bands as long dark strips across the roof at apparent u 49.3, 54.5 and 59.0, which is where the step depths of about 3.2 m come from. The STOREY COUNTS - 15, 12, 9 and 6 - are counted off S11's mesh and are +/- 1 storey each; no drawing or elevation of this wing was found. This is the 6-storey step, u 59.40 to 62.54.",
+      "plan": [
+        59.4,
+        62.54,
+        0.0,
+        35.79
+      ],
+      "z0": 0.0,
+      "z1": 20.68,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.6,
+          "skin": "garage"
+        },
+        {
+          "z0": 5.6,
+          "z1": 20.68,
+          "skin": "fieldGrey"
+        },
+        {
+          "z0": 20.68,
+          "z1": 20.68,
+          "skin": "field"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "garage"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 20.68,
+              "skin": "field"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 20.68,
+              "skin": "field"
+            }
+          ]
+        },
+        "u0": null,
+        "u1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.6,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.6,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            },
+            {
+              "z0": 20.68,
+              "z1": 20.68,
+              "skin": "field"
+            }
+          ]
+        },
+        "_src": "u0 stands against the step to the south; u1 is the 23rd Street elevation"
+      },
+      "overrides": [
+        {
+          "region": [
+            59.4,
+            62.54,
+            35.79,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 17.66,
+              "skin": "storefront"
+            },
+            {
+              "z0": 17.66,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            }
+          ],
+          "_src": "the glazed corner volume at Nueces and 23rd: S8 shows it wrapping the corner for about four storeys above the storefront, so 0 to 17.66 m = the top of floor 5."
+        },
+        {
+          "region": [
+            62.54,
+            62.54,
+            24.5,
+            35.79
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 17.66,
+              "skin": "storefront"
+            },
+            {
+              "z0": 17.66,
+              "z1": 20.68,
+              "skin": "fieldGrey"
+            }
+          ],
+          "_src": "the same volume returning 11.3 m along the 23rd Street face (S8)"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    }
+  ],
+  "deck": {
+    "z": 56.85,
+    "_src": "the 18th-storey roof pool (S3, S4). S10's rectified plan puts the water at u 1.8-4.0, v 1.8-8.8 in the south-east corner of the main roof, which is where S2's own note puts it ('pool on the main roof at the south end'). Read at 10 px/m off a 0.129 m/px capture: +/- 0.5 m.",
+    "items": [
+      {
+        "id": "paving",
+        "plan": [
+          0.9,
+          8.5,
+          0.9,
+          12.0
+        ],
+        "z0": 0.0,
+        "h": 0.05,
+        "tone": "deck",
+        "_src": "the paved terrace the pool sits in, taken as the roof corner inside the parapet; derived"
+      },
+      {
+        "id": "pool",
+        "plan": [
+          1.8,
+          4.3,
+          1.8,
+          9.0
+        ],
+        "z0": 0.05,
+        "h": 0.1,
+        "tone": "pool",
+        "_src": "S10: the water, u 1.8-4.3, v 1.8-9.0"
+      },
+      {
+        "id": "turf",
+        "plan": [
+          5.4,
+          8.2,
+          1.8,
+          7.0
+        ],
+        "z0": 0.05,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "the green patch north of the water in S10; +/- 0.5 m"
+      }
+    ]
+  },
+  "todo": [
+    {
+      "what": "polygon plans with holes, and a roof cap that earcuts them",
+      "why": "this building's footprint has two real interior rings (S1, S2). js/slopes-apartments.js takes ONE ring per block and caps it with B.polygon(cap), so a well cannot be a hole; the 18-storey mass is cut into six rectangles round the two wells instead. That draws the right picture - the wells are open to the sky and their four walls are drawn - but it costs six blocks where one would do, and it puts two interior walls (towerS.u1 and towerM.u0/u1) across the plan where nothing sees them. A `plan: {ring, holes}` with the holes passed to the earcut would collapse this to two blocks.",
+      "owner": "js/slopes-apartments.js - not this file"
+    },
+    {
+      "what": "a skin whose windows are scattered rather than on a column",
+      "why": "the end walls in S5, S6 and S9 carry slot windows that are deliberately NOT aligned. `bays` puts one window per bay per floor, on a column. The three strips of `slots`/`slotsB`/`slotsC` with coprime bays and different sills break the columns up, but a `scatter` rule (density per m2, position from the cell hash the pixel skin already has) would be the real thing.",
+      "owner": "js/slopes-apartments.js - not this file"
+    }
+  ],
+  "open": [
+    "The four step heights (15, 12, 9 and 6 storeys) are counted off Google Earth's mesh from the north (S11) and are +/- 1 storey each. A north elevation drawing would settle them.",
+    "The east face's concrete pier and glazed stair are in S7 but S7 cannot be registered along the wall; they are placed under the roof box S10 puts at u 30-36. Position along u: +/- 5 m.",
+    "The light wells' walls were never photographed and wear the plainest skin the building has.",
+    "The roof bulkheads' heights (3.0 m, 2.2 m, 6.2 m) are derived from what stands proud in S6; only their plans are measured.",
+    "The garage louvre pitch is a plausible 0.55 m, not measured."
+  ]
+}
