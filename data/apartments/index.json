@@ -11,7 +11,8 @@
     "26-west.json",
     "21-rio.json",
     "moontower.json",
-    "2819-rio-grande.json"
+    "2819-rio-grande.json",
+    "cambridge-tower.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -24,7 +25,8 @@
     "9363b194-9c98-4d84-a3a5-2e8cce340bba",
     "73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5",
     "b423d7a9-4059-44b3-8fed-3d088563c870",
-    "583f3864-f044-4c2c-9d5b-8af47112562b"
+    "583f3864-f044-4c2c-9d5b-8af47112562b",
+    "b0101452-d54c-4dff-a8a2-e582ddda29d6"
   ],
   "replacedNames": [
     "The Standard",
@@ -36,6 +38,7 @@
     "Skyloft Austin",
     "26 West",
     "21 Rio",
-    "Moontower"
+    "Moontower",
+    "Cambridge Tower"
   ]
 }
