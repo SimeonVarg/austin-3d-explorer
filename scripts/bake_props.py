@@ -44,6 +44,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 CACHE = os.path.join(DATA, "osm_cache")
 GROUND = os.path.join(DATA, "ground.geojson")
+ROADS = os.path.join(DATA, "roads.geojson")
 MANIFEST = os.path.join(DATA, "manifest.json")
 OUT = os.path.join(DATA, "props.geojson")
 # The lamp index: the SAME light points this bake writes into props.geojson,
@@ -353,6 +354,70 @@ SCOOTER_RACK_FRAC   = 0.18   # …at about this share of them
 PLAZA_SURFACES      = ("paving", "concrete", "brick", "limestone")
 SIT_SURFACES        = ("grass", "paving", "concrete", "brick", "limestone", "sand")
 WALK_SURFACES       = ("concrete", "paving", "brick", "limestone")
+
+# ── FURNITURE STANDS ON PAVEMENT ───────────────────────────────────────
+#
+# "stray objects on Guadalupe in front of Sweetgreen."
+#
+# WHAT WAS ACTUALLY THERE, measured rather than guessed: 814 of the 4,452
+# furniture and lamp objects in data/props.geojson stand inside a mapped
+# carriageway and on no pavement at all. 506 of them are one dataset -- the
+# City of Austin bike-parking and bike-share racks, `src:"city"` -- and the
+# rest are OSM nodes. Every one is placed at its raw source coordinate with
+# nothing checking which surface that coordinate lands on. A few metres of GPS
+# drift on a bin outside a shop puts the bin in the street, and the street is
+# where the eye goes.
+#
+# NOT ALL OF THEM ARE WRONG, and this is the part a blanket rule gets backwards.
+# A traffic signal stands at the kerb of a junction and its head hangs over the
+# lane. A gate and a lift gate are ACROSS a road; that is what they are for. A
+# bollard's whole job is to stand where a car would otherwise go. Deleting or
+# shoving those would trade one visible error for another, so the table below
+# says what each kind is:
+#
+#   keep  it belongs in a carriageway; never touched
+#   snap  move it onto pavement within PROP_SNAP_MAX_M, and LEAVE it if there is
+#         none -- a lamp on a median is real, and losing a real lamp is worse
+#         than a lamp standing a metre inside a guessed kerb line
+#   drop  move it onto pavement within PROP_SNAP_MAX_M, and DELETE it if there
+#         is none -- a bench in the middle of Guadalupe is wrong at any distance
+#
+# THE CARRIAGEWAY IS A GUESS AND THE PAVEMENT IS SURVEYED, which is why the
+# radius is small. `w` on a road is lanes x LANE_M + KERB_M, so the polygon runs
+# about 1.4 m per side wider than the painted edge (docs/PASS_ROADS.md). An
+# object that is really on the kerb can therefore read as "in the road" while
+# being centimetres from pavement. PROP_SNAP_MAX_M is sized for that error plus
+# consumer GPS, not for teleporting furniture across a street.
+#
+# EVERY MOVED OBJECT CARRIES ITS OWN MEASUREMENT: `snap` is how far it went in
+# metres and `snapsrc` names the polygon class it was put on. Nothing moves
+# silently.
+#
+# THE SWITCH: `PROPSNAP=0 python scripts/bake_props.py` puts every object back
+# at its raw source coordinate.
+PROP_SNAP_ON        = os.environ.get("PROPSNAP", "1") != "0"
+PROP_SNAP_MAX_M     = float(os.environ.get("PROPSNAP_R", "4.0"))
+# A rack put exactly on the pavement EDGE straddles it. Push it this far inside.
+PROP_SNAP_INSET_M   = 0.6
+# Anything at least this long is laid ALONG the walk it snaps to rather than
+# left on its source heading. A bin is not; a 10 m bike-share station is.
+PROP_ALIGN_LEN_M    = 2.5
+PROP_IN_ROAD_DEFAULT = "drop"
+PROP_IN_ROAD = {
+    # things a carriageway is supposed to contain
+    "traffic_signals": "keep", "gate": "keep", "lift_gate": "keep",
+    "bollard": "keep", "stop": "keep", "give_way": "keep",
+    "cycle_barrier": "keep", "milestone": "keep", "fire_hydrant": "keep",
+    # poles and roofs: real ones stand on medians and verges we do not draw
+    "street_lamp": "snap", "mast": "snap", "utility_pole": "snap",
+    "flagpole": "snap", "phone": "snap", "shelter": "snap", "bus_stop": "snap",
+    "street_cabinet": "snap", "information": "snap",
+    # everything else falls through to PROP_IN_ROAD_DEFAULT: bench,
+    # waste_basket, bicycle_parking, bicycle_rental, drinking_fountain,
+    # picnic_table, planter, post_box, vending_machine, toilets, scooter.
+}
+# The ground classes that count as somewhere a person can stand.
+PROP_PAVEMENT_KINDS = ("patharea", "pathslab")
 NO_LAMP_ON          = ("steps",)
 
 # ── A CONSTRUCTION SITE IS A FENCE, NOT A POST. ────────────────────────
@@ -634,19 +699,190 @@ def load(key):
         return json.load(f).get("elements", [])
 
 
-def load_ground():
-    paths, areas = [], []
+def load_ground(stats=None, warnings=None):
+    """(paths, areas) out of data/ground.geojson, in the schema that file has
+    TODAY rather than the one it had when this was written.
+
+    THE STALE-INPUT BUG THIS FIXES, and it is the bake trap this repo keeps
+    being bitten by. This used to ask for `k=='path'` LineStrings and
+    `k=='area'` Polygons. Neither survives in ground.geojson any more:
+    `widen_paths` turns every walk centreline into a `patharea` POLYGON, and
+    `PEDESTRIAN_AREA_IS_A_WALK` moved the 53 campus malls out of the `area`
+    band into `patharea/pedestrian`. So `paths` came back EMPTY and `areas` came
+    back 53 malls short, silently, and the file kept baking.
+
+    WHAT THAT COST, measured: the shipped data/props.geojson holds 1,314
+    `plaza_planter` planters. Re-baking it unchanged produces 117 -- the malls
+    those 1,197 planters ring are not in the `areas` list any more. And
+    RoadTest, whose whole job is "nothing we place may stand in a traffic lane",
+    was being handed an empty list and answering False to every question.
+
+    ROADS COME FROM data/roads.geojson NOW, and they are returned SEPARATELY.
+    They were LineStrings in ground.geojson when RoadTest was written; they are
+    a separate file today. Handing them back as `paths` would be worse than the
+    bug: rules R1-R4 read `paths` expecting WALKS, and feeding them roads put
+    24 street lamps, 12 scooters and 6 bike racks down the middle of
+    carriageways — measured on the first cut of this repair, not imagined.
+    """
+    paths, areas, roads = [], [], []
+    if os.path.exists(ROADS):
+        with open(ROADS, encoding="utf-8") as f:
+            for feat in json.load(f)["features"]:
+                pr = feat["properties"]
+                g = feat["geometry"]
+                if pr.get("k") == "road" and g["type"] == "LineString":
+                    roads.append((pr, g["coordinates"]))
+    elif warnings is not None:
+        warnings.append("data/roads.geojson missing: RoadTest cannot see a "
+                        "carriageway and procedural objects may land in one")
     if not os.path.exists(GROUND):
-        return paths, areas
+        return paths, areas, roads
     with open(GROUND, encoding="utf-8") as f:
         for feat in json.load(f)["features"]:
             pr = feat["properties"]
             g = feat["geometry"]
-            if pr.get("k") == "path" and g["type"] == "LineString":
-                paths.append((pr, g["coordinates"]))
-            elif pr.get("k") == "area" and g["type"] == "Polygon" and g["coordinates"]:
+            if g["type"] != "Polygon" or not g["coordinates"]:
+                continue
+            k = pr.get("k")
+            # A pedestrian mall is a plaza for every rule in this file; it just
+            # lives in the walk band now. Its own `s` is carried through, so the
+            # PLAZA_SURFACES / WALK_SURFACES tests read exactly as before.
+            if k == "area" or (k == "patharea" and pr.get("u") == "pedestrian"):
                 areas.append((pr, g["coordinates"][0]))
-    return paths, areas
+    if stats is not None:
+        stats["ground_walk_centrelines"] = len(paths)
+        stats["ground_road_centrelines"] = len(roads)
+        stats["ground_areas"] = len(areas)
+    if not paths and warnings is not None:
+        # SAY IT OUT LOUD. `widen_paths` turned every walk centreline into a
+        # polygon, so rules R1-R4 (walk_lamp, path_bench, entrance_bike,
+        # crossing_bollard) have nothing to ride and place NOTHING. That is the
+        # state main ships in and this pass does not change it — turning them
+        # back on would add several hundred lamps and benches to the city, which
+        # is a taste decision and not a bake fix. Queued in HANDOFF.
+        warnings.append("data/ground.geojson holds no k:'path' LineStrings "
+                        "(widen_paths makes polygons): the walk-ridden "
+                        "procedural rules place nothing")
+    return paths, areas, roads
+
+
+# ── where the pavement is ──────────────────────────────────────────────
+class Pavement(object):
+    """Every square metre of drawn walking surface, and every carriageway, as
+    metric geometry that can answer two questions: is this point in a road, and
+    where is the nearest pavement.
+
+    Shapely is required. Without it the snap is skipped and SAID to be skipped --
+    a silent no-op here would put 814 objects back in the street with nothing in
+    the report to show for it.
+    """
+
+    def __init__(self, warnings=None):
+        self.ok = False
+        try:
+            from shapely.geometry import Polygon, Point   # noqa: F401
+            from shapely.strtree import STRtree
+        except ImportError:
+            if warnings is not None:
+                warnings.append("shapely not installed: PROP_SNAP is OFF and "
+                                "furniture stays at its raw source coordinate")
+            return
+        from shapely.geometry import Polygon
+        if not os.path.exists(GROUND):
+            return
+        roads, walks = [], []
+        with open(GROUND, encoding="utf-8") as f:
+            for feat in json.load(f)["features"]:
+                g = feat["geometry"]
+                if g["type"] != "Polygon" or not g["coordinates"]:
+                    continue
+                k = feat["properties"].get("k")
+                if k != "roadarea" and k not in PROP_PAVEMENT_KINDS:
+                    continue
+                try:
+                    q = Polygon(self._m(g["coordinates"][0]),
+                                [self._m(h) for h in g["coordinates"][1:]])
+                    if not q.is_valid:
+                        q = q.buffer(0)
+                except Exception:                                 # noqa: BLE001
+                    continue
+                if q.is_empty:
+                    continue
+                (roads if k == "roadarea" else walks).append(q)
+        if not roads or not walks:
+            return
+        self.roads, self.walks = roads, walks
+        self.rtree, self.wtree = STRtree(roads), STRtree(walks)
+        self.ok = True
+
+    @staticmethod
+    def _m(ring):
+        return [((x + 97.74) * mlon(LAT0), (y - LAT0) * M_LAT) for x, y in ring]
+
+    @staticmethod
+    def _ll(x, y):
+        return [round(x / mlon(LAT0) - 97.74, 6), round(y / M_LAT + LAT0, 6)]
+
+    def in_road(self, pt):
+        return any(self.roads[int(i)].contains(pt) for i in self.rtree.query(pt))
+
+    def on_walk(self, pt):
+        return any(self.walks[int(i)].contains(pt) for i in self.wtree.query(pt))
+
+    def nearest_walk(self, pt, max_m, inset):
+        """(lon, lat, distance_m, kerb_bearing_rad) of the closest point on the
+        nearest pavement polygon, pushed `inset` inside it, or None."""
+        from shapely.ops import nearest_points
+        best, bestd = None, max_m
+        for i in self.wtree.query(pt.buffer(max_m)):
+            q = self.walks[int(i)]
+            d = q.distance(pt)
+            if d < bestd:
+                best, bestd = q, d
+        if best is None:
+            return None
+        edge = nearest_points(best, pt)[0]
+        # Step `inset` in from the edge, so the object's own WIDTH lands on the
+        # slab instead of straddling its boundary.
+        inner = best.buffer(-inset)
+        if not inner.is_empty:
+            edge = nearest_points(inner, pt)[0]
+        return (self._ll(edge.x, edge.y)
+                + [round(edge.distance(pt), 2), self._edge_bearing(best, edge)])
+
+    @staticmethod
+    def _edge_bearing(poly, pt):
+        """Heading of the pavement's own edge nearest `pt`, in radians.
+
+        WHY AN OBJECT IS TURNED AND NOT JUST MOVED. A bike-share station on the
+        Drag is 15 docks and about 10 m long. Snapping its ANCHOR onto the
+        sidewalk still leaves nine docks marching out across the kerb into
+        Guadalupe -- which is exactly what the frame showed after the first cut
+        of this rule, and it is the thing in front of Sweetgreen. A rack that
+        long does not stand across a street in the real world; it runs ALONG the
+        walk it serves. So the pavement's own edge supplies the heading.
+        """
+        # `poly` can be a MultiPolygon: a walk union clipped by the resolver
+        # comes apart into pieces, and the piece nearest the point is the one
+        # whose edge we want. Walk every ring rather than assuming one.
+        parts = list(poly.geoms) if poly.geom_type == "MultiPolygon" else [poly]
+        ring = []
+        for q in parts:
+            ring += list(q.exterior.coords) + [(float("nan"), float("nan"))]
+        best, bd = 0.0, 1e18
+        for i in range(len(ring) - 1):
+            if any(v != v for v in ring[i] + ring[i + 1]):
+                continue
+            (ax, ay), (bx, by) = ring[i], ring[i + 1]
+            dx, dy = bx - ax, by - ay
+            L = dx * dx + dy * dy
+            if L <= 0:
+                continue
+            t = max(0.0, min(1.0, ((pt.x - ax) * dx + (pt.y - ay) * dy) / L))
+            d = math.hypot(pt.x - (ax + dx * t), pt.y - (ay + dy * t))
+            if d < bd:
+                bd, best = d, math.atan2(dy, dx)
+        return best
 
 
 def load_buildings():
@@ -754,6 +990,13 @@ def hoarding_panels(ring, index):
 
 
 # ── emit helpers ───────────────────────────────────────────────────────
+# Set once by main(); make() is the only reader. A module-level handle rather
+# than an argument because make() has eleven call sites and threading an index
+# through all of them is eleven chances to forget one.
+_PAVE = None
+_SNAP_STATS = Counter()
+
+
 def gid_of(kind, lon, lat):
     """One id per OBJECT, shared by all of its parts. The density quantile is
     assigned per gid, never per feature — otherwise `d <= 0.7` draws a bench's
@@ -799,6 +1042,13 @@ def make(kind, lon, lat, ang, src, rule=None, extra=None, size=None):
     already the right length — so only the re-bake would have carried it.
     """
     length, width, h, col, layer, lit = FORM[kind]
+    # FURNITURE STANDS ON PAVEMENT. This is the ONE funnel every bench, bin,
+    # rack, lamp and shelter in the file passes through, which is why the rule
+    # lives here and not at eleven call sites: an object's parts, its `g` group
+    # id and its night-glow Point are all derived from (lon, lat) BELOW this
+    # line, so correcting the position here moves the whole object together --
+    # a 15-dock bike-share station stays a 15-dock station rather than
+    # scattering. See PROP_IN_ROAD.
     # A deterministic wobble on size and heading. Real furniture is not stamped:
     # benches sit a few degrees off, bins are not all the same bin.
     s = 0.90 + det01(lon, lat, kind) * 0.20
@@ -806,8 +1056,40 @@ def make(kind, lon, lat, ang, src, rule=None, extra=None, size=None):
     fp = (length * s, width * s)
     if size:
         fp = size          # a surveyed extent is not wobbled — it is measured
+
+    moved = None
+    if PROP_SNAP_ON and _PAVE is not None and _PAVE.ok:
+        policy = PROP_IN_ROAD.get(kind, PROP_IN_ROAD_DEFAULT)
+        if policy != "keep":
+            from shapely.geometry import Point
+            pt = Point((lon + 97.74) * mlon(LAT0), (lat - LAT0) * M_LAT)
+            if _PAVE.in_road(pt) and not _PAVE.on_walk(pt):
+                # AFTER `fp` is known, and that is the whole fix: the inset has
+                # to clear the object's own WIDTH, and anything longer than
+                # PROP_ALIGN_LEN_M has to be turned to lie along the walk rather
+                # than march across the street. Snapping the anchor alone left
+                # nine of a fifteen-dock station's docks in Guadalupe.
+                inset = max(PROP_SNAP_INSET_M, fp[1] / 2.0)
+                near = _PAVE.nearest_walk(pt, PROP_SNAP_MAX_M, inset)
+                if near is not None:
+                    lon, lat, moved, kerb = near
+                    if fp[0] >= PROP_ALIGN_LEN_M:
+                        ang = kerb
+                        jitter = 0.0        # a measured kerb is not wobbled
+                        _SNAP_STATS["aligned_" + kind] += 1
+                    _SNAP_STATS["snapped_" + kind] += 1
+                elif policy == "drop":
+                    _SNAP_STATS["dropped_in_road_" + kind] += 1
+                    return []
+                else:
+                    _SNAP_STATS["left_in_road_" + kind] += 1
     p = {"k": "lamp" if layer == "pole" else "furn",
          "u": kind, "h": round(h * s, 2), "c": col, "src": src}
+    if moved is not None:
+        # The measurement travels with the object: how far it went, and off
+        # what. Nothing in this file moves without saying so.
+        p["snap"] = moved
+        p["snapsrc"] = "ground:patharea"
     if rule:
         p["rule"] = rule
     if extra:
@@ -839,9 +1121,19 @@ def make(kind, lon, lat, ang, src, rule=None, extra=None, size=None):
 
 
 def main():
+    global _PAVE
     feats = []
     stats = Counter()
     taken = {}          # kind-class -> Spacing
+    warnings = []
+    # BUILT BEFORE THE FIRST make(), because make() is where every object is
+    # checked against it. See PROP_IN_ROAD.
+    _PAVE = Pavement(warnings)
+    globals()["_PAVE"] = _PAVE
+    sys.stderr.write("pavement index: %s%s"
+                     % ("%d walks, %d carriageways" % (len(_PAVE.walks), len(_PAVE.roads))
+                        if _PAVE.ok else "UNAVAILABLE - furniture stays where OSM put it",
+                        chr(10)))
 
     def space(cls):
         return taken.setdefault(cls, Spacing())
@@ -1111,8 +1403,8 @@ def main():
         stats["construction"] += 1
 
     # ── 5. procedural fill, driven by the real ground ──────────────────
-    paths, areas = load_ground()
-    road = RoadTest(paths)
+    paths, areas, roadlines = load_ground(stats, warnings)
+    road = RoadTest(roadlines)
     sys.stderr.write("ground: %d paths, %d areas; %d building rings\n"
                      % (len(paths), len(areas), len(buildings)))
 
@@ -1380,6 +1672,12 @@ def main():
         by_kind[u] += 1
         by_zone_kind.setdefault(u, Counter())[zone_of(f)] += 1
 
+    stats.update(_SNAP_STATS)
+    stats["snapped_total"] = sum(v for k, v in _SNAP_STATS.items() if k.startswith("snapped_"))
+    stats["dropped_in_road_total"] = sum(v for k, v in _SNAP_STATS.items() if k.startswith("dropped_in_road_"))
+    stats["left_in_road_total"] = sum(v for k, v in _SNAP_STATS.items() if k.startswith("left_in_road_"))
+    for w in warnings:
+        sys.stderr.write("WARNING: %s" % w + chr(10))
     print(json.dumps({
         "features": len(feats),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
