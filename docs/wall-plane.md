@@ -132,9 +132,28 @@ Three things the rule learned by being run:
   inside the atrium at every plane the atrium has ever had, so the march puts it
   on the atrium's outer face, and that face travelled 3.40 m.
 
-With the switch off, 3180 of 3185 moved vertices land exactly on main's; the
-worst residual is 8.9 cm on one NHB handrail, where the seated door's own rail
-run resolved a centimetre differently.
+**How exact.** With the switch off, the worst vertex sits **1.47 cm** from
+where main puts it, measured vertex-to-nearest-vertex over every seated
+entrance. That is not tolerance, it is arithmetic: `entrances.geojson` rounds
+every vertex to 7 decimal places — 0.96 cm of longitude and 1.11 cm of latitude
+here — and sqrt(0.96² + 1.11²) = 1.47. A piece translated 2.50 m out and 2.50 m
+back lands on the far side of that grid. (An earlier pass of this measurement
+reported 8.9 cm on an NHB handrail; it was comparing two feature lists in file
+order, and the seat reverses the order of a door's two handrails.)
+
+And the picture, not just the coordinates — `node scripts/verify/wallplane-off.mjs`
+loads the page once with `?wallplane=0`, hands `austin-entrances` and
+`austin-heroes` main's own two files through `setData()`, and diffs the two
+frames inside the page:
+
+| pose | own floor | off vs main | box |
+|---|---|---|---|
+| gdc-plaza (z 18.9) | 8314 px | **0** | — |
+| gdc-notch (z 18.4) | 0 px | **0** | — |
+| nhb-door (z 19.2) | 7 px | 104 px | 193,563 → 329,659 |
+
+The 104 is the 1.47 cm, on a 7 m door bank filling a third of a zoom-19.2 frame.
+Both GDC poses are zero.
 
 ---
 
@@ -168,6 +187,8 @@ Other gates, run on this branch's served app:
   disagree over 28,221 of the 33,043 they draw, with bounding boxes overlapping
   in 15 px of 128. Two doorways side by side, not one doorway drawn twice.
 * `campusmeter.mjs` entrances A: 74/181 within 10 m of UT's own surveyed door.
+* `wallplane-off.mjs` — **green**: with the switch off the frame is main's, at
+  every pose, to within the coordinate grid (table above).
 
 ---
 
