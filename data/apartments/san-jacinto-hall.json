@@ -397,32 +397,102 @@
     },
     {
      "plan": [
-      0.46,
-      43.04,
-      22.26,
-      40.54
+      -0.38,
+      43.88,
+      21.42,
+      41.38
      ],
-     "h": 0.96,
+     "h": 0.57,
      "tone": "tile"
     },
     {
      "plan": [
-      1.76,
-      41.74,
-      23.56,
-      39.24
+      0.1,
+      43.4,
+      21.9,
+      40.9
      ],
-     "h": 1.57,
+     "h": 0.79,
      "tone": "tile"
     },
     {
      "plan": [
-      3.07,
-      40.43,
-      24.87,
-      37.93
+      0.57,
+      42.93,
+      22.37,
+      40.43
      ],
-     "h": 2.18,
+     "h": 1.01,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      1.05,
+      42.45,
+      22.85,
+      39.95
+     ],
+     "h": 1.24,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      1.52,
+      41.98,
+      23.32,
+      39.48
+     ],
+     "h": 1.46,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      2.0,
+      41.5,
+      23.8,
+      39.0
+     ],
+     "h": 1.68,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      2.47,
+      41.03,
+      24.27,
+      38.53
+     ],
+     "h": 1.9,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      2.95,
+      40.55,
+      24.75,
+      38.05
+     ],
+     "h": 2.12,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      3.43,
+      40.07,
+      25.23,
+      37.57
+     ],
+     "h": 2.34,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      3.9,
+      39.6,
+      25.7,
+      37.1
+     ],
+     "h": 2.56,
      "tone": "tile"
     },
     {
@@ -437,32 +507,102 @@
     },
     {
      "plan": [
-      5.68,
-      37.82,
-      27.48,
-      35.32
+      4.85,
+      38.65,
+      26.65,
+      36.15
      ],
-     "h": 3.39,
+     "h": 3.01,
      "tone": "tile"
     },
     {
      "plan": [
-      6.99,
-      36.51,
-      28.79,
-      34.01
+      5.33,
+      38.17,
+      27.13,
+      35.67
      ],
-     "h": 4.0,
+     "h": 3.23,
      "tone": "tile"
     },
     {
      "plan": [
-      8.29,
-      35.21,
-      30.09,
-      32.71
+      5.8,
+      37.7,
+      27.6,
+      35.2
      ],
-     "h": 4.61,
+     "h": 3.45,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      6.27,
+      37.23,
+      28.07,
+      34.73
+     ],
+     "h": 3.67,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      6.75,
+      36.75,
+      28.55,
+      34.25
+     ],
+     "h": 3.89,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      7.22,
+      36.28,
+      29.02,
+      33.78
+     ],
+     "h": 4.11,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      7.7,
+      35.8,
+      29.5,
+      33.3
+     ],
+     "h": 4.33,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.18,
+      35.32,
+      29.98,
+      32.82
+     ],
+     "h": 4.56,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.65,
+      34.85,
+      30.45,
+      32.35
+     ],
+     "h": 4.78,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      9.12,
+      34.38,
+      30.92,
+      31.88
+     ],
+     "h": 5.0,
      "tone": "tile"
     },
     {
@@ -557,32 +697,102 @@
     },
     {
      "plan": [
-      43.92,
-      73.78,
-      33.82,
-      51.58
+      43.11,
+      74.59,
+      33.01,
+      52.39
      ],
-     "h": 0.94,
+     "h": 0.56,
      "tone": "tile"
     },
     {
      "plan": [
-      45.19,
-      72.51,
-      35.09,
-      50.31
+      43.57,
+      74.13,
+      33.47,
+      51.93
      ],
-     "h": 1.53,
+     "h": 0.78,
      "tone": "tile"
     },
     {
      "plan": [
-      46.46,
-      71.24,
-      36.36,
-      49.04
+      44.03,
+      73.67,
+      33.93,
+      51.47
      ],
-     "h": 2.12,
+     "h": 0.99,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      44.5,
+      73.2,
+      34.4,
+      51.0
+     ],
+     "h": 1.21,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      44.96,
+      72.74,
+      34.86,
+      50.54
+     ],
+     "h": 1.42,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      45.42,
+      72.28,
+      35.32,
+      50.08
+     ],
+     "h": 1.64,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      45.88,
+      71.82,
+      35.78,
+      49.62
+     ],
+     "h": 1.85,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      46.34,
+      71.36,
+      36.24,
+      49.16
+     ],
+     "h": 2.07,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      46.8,
+      70.9,
+      36.7,
+      48.7
+     ],
+     "h": 2.29,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      47.26,
+      70.44,
+      37.16,
+      48.24
+     ],
+     "h": 2.5,
      "tone": "tile"
     },
     {
@@ -597,32 +807,102 @@
     },
     {
      "plan": [
-      48.99,
-      68.71,
-      38.89,
-      46.51
+      48.19,
+      69.51,
+      38.09,
+      47.31
      ],
-     "h": 3.31,
+     "h": 2.93,
      "tone": "tile"
     },
     {
      "plan": [
-      50.26,
-      67.44,
-      40.16,
-      45.24
+      48.65,
+      69.05,
+      38.55,
+      46.85
      ],
-     "h": 3.9,
+     "h": 3.15,
      "tone": "tile"
     },
     {
      "plan": [
-      51.53,
-      66.17,
-      41.43,
-      43.97
+      49.11,
+      68.59,
+      39.01,
+      46.39
      ],
-     "h": 4.49,
+     "h": 3.36,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      49.57,
+      68.13,
+      39.47,
+      45.93
+     ],
+     "h": 3.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      50.03,
+      67.67,
+      39.93,
+      45.47
+     ],
+     "h": 3.79,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      50.49,
+      67.21,
+      40.39,
+      45.01
+     ],
+     "h": 4.0,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      50.95,
+      66.75,
+      40.85,
+      44.55
+     ],
+     "h": 4.22,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      51.42,
+      66.28,
+      41.32,
+      44.08
+     ],
+     "h": 4.43,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      51.88,
+      65.82,
+      41.78,
+      43.62
+     ],
+     "h": 4.65,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      52.34,
+      65.36,
+      42.24,
+      43.16
+     ],
+     "h": 4.87,
      "tone": "tile"
     },
     {
@@ -696,32 +976,102 @@
     },
     {
      "plan": [
-      73.81,
-      80.19,
-      27.41,
-      33.89
+      73.52,
+      80.48,
+      27.12,
+      34.18
      ],
-     "h": 0.57,
+     "h": 0.43,
      "tone": "tile"
     },
     {
      "plan": [
-      74.26,
-      79.74,
-      27.86,
-      33.44
+      73.68,
+      80.32,
+      27.28,
+      34.02
      ],
-     "h": 0.78,
+     "h": 0.51,
      "tone": "tile"
     },
     {
      "plan": [
-      74.72,
-      79.28,
-      28.32,
-      32.98
+      73.85,
+      80.15,
+      27.45,
+      33.85
      ],
-     "h": 1.0,
+     "h": 0.59,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.01,
+      79.99,
+      27.61,
+      33.69
+     ],
+     "h": 0.66,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.18,
+      79.82,
+      27.78,
+      33.52
+     ],
+     "h": 0.74,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.35,
+      79.65,
+      27.95,
+      33.35
+     ],
+     "h": 0.82,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.51,
+      79.49,
+      28.11,
+      33.19
+     ],
+     "h": 0.9,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.68,
+      79.32,
+      28.28,
+      33.02
+     ],
+     "h": 0.98,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      74.84,
+      79.16,
+      28.44,
+      32.86
+     ],
+     "h": 1.06,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      75.01,
+      78.99,
+      28.61,
+      32.69
+     ],
+     "h": 1.14,
      "tone": "tile"
     },
     {
@@ -736,32 +1086,102 @@
     },
     {
      "plan": [
-      75.63,
-      78.37,
-      29.23,
-      32.07
+      75.34,
+      78.66,
+      28.94,
+      32.36
      ],
-     "h": 1.43,
+     "h": 1.29,
      "tone": "tile"
     },
     {
      "plan": [
-      76.09,
-      77.91,
-      29.69,
-      31.61
+      75.51,
+      78.49,
+      29.11,
+      32.19
      ],
-     "h": 1.65,
+     "h": 1.37,
      "tone": "tile"
     },
     {
      "plan": [
-      76.54,
-      77.46,
-      30.14,
-      31.16
+      75.67,
+      78.33,
+      29.27,
+      32.03
      ],
-     "h": 1.86,
+     "h": 1.45,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      75.84,
+      78.16,
+      29.44,
+      31.86
+     ],
+     "h": 1.53,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.0,
+      78.0,
+      29.6,
+      31.7
+     ],
+     "h": 1.61,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.17,
+      77.83,
+      29.77,
+      31.53
+     ],
+     "h": 1.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.34,
+      77.66,
+      29.94,
+      31.36
+     ],
+     "h": 1.77,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.5,
+      77.5,
+      30.1,
+      31.2
+     ],
+     "h": 1.84,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.67,
+      77.33,
+      30.27,
+      31.03
+     ],
+     "h": 1.92,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.83,
+      77.17,
+      30.43,
+      30.87
+     ],
+     "h": 2.0,
      "tone": "tile"
     },
     {
@@ -835,32 +1255,102 @@
     },
     {
      "plan": [
-      75.34,
-      103.66,
-      29.14,
-      57.06
+      74.08,
+      104.92,
+      27.88,
+      58.32
      ],
-     "h": 1.03,
+     "h": 0.6,
      "tone": "tile"
     },
     {
      "plan": [
-      77.34,
-      101.66,
-      31.14,
-      55.06
+      74.8,
+      104.2,
+      28.6,
+      57.6
      ],
-     "h": 1.71,
+     "h": 0.85,
      "tone": "tile"
     },
     {
      "plan": [
-      79.33,
-      99.67,
-      33.13,
-      53.07
+      75.52,
+      103.48,
+      29.32,
+      56.88
      ],
-     "h": 2.39,
+     "h": 1.09,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.25,
+      102.75,
+      30.05,
+      56.15
+     ],
+     "h": 1.34,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.97,
+      102.03,
+      30.77,
+      55.43
+     ],
+     "h": 1.59,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      77.7,
+      101.3,
+      31.5,
+      54.7
+     ],
+     "h": 1.84,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      78.43,
+      100.57,
+      32.23,
+      53.97
+     ],
+     "h": 2.08,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      79.15,
+      99.85,
+      32.95,
+      53.25
+     ],
+     "h": 2.33,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      79.88,
+      99.12,
+      33.68,
+      52.52
+     ],
+     "h": 2.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      80.6,
+      98.4,
+      34.4,
+      51.8
+     ],
+     "h": 2.83,
      "tone": "tile"
     },
     {
@@ -875,32 +1365,102 @@
     },
     {
      "plan": [
-      83.32,
-      95.68,
-      37.12,
-      49.08
+      82.05,
+      96.95,
+      35.85,
+      50.35
      ],
-     "h": 3.76,
+     "h": 3.32,
      "tone": "tile"
     },
     {
      "plan": [
-      85.31,
-      93.69,
-      39.11,
-      47.09
+      82.78,
+      96.22,
+      36.58,
+      49.62
      ],
-     "h": 4.44,
+     "h": 3.57,
      "tone": "tile"
     },
     {
      "plan": [
-      87.31,
-      91.69,
-      41.11,
-      45.09
+      83.5,
+      95.5,
+      37.3,
+      48.9
      ],
-     "h": 5.12,
+     "h": 3.82,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      84.23,
+      94.77,
+      38.03,
+      48.17
+     ],
+     "h": 4.07,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      84.95,
+      94.05,
+      38.75,
+      47.45
+     ],
+     "h": 4.31,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      85.68,
+      93.32,
+      39.48,
+      46.72
+     ],
+     "h": 4.56,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      86.4,
+      92.6,
+      40.2,
+      46.0
+     ],
+     "h": 4.81,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      87.13,
+      91.87,
+      40.93,
+      45.27
+     ],
+     "h": 5.06,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      87.85,
+      91.15,
+      41.65,
+      44.55
+     ],
+     "h": 5.3,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      88.58,
+      90.42,
+      42.38,
+      43.82
+     ],
+     "h": 5.55,
      "tone": "tile"
     },
     {
@@ -1099,92 +1659,302 @@
     },
     {
      "plan": [
-      113.96,
-      132.34,
-      0.46,
+      113.13,
+      133.17,
+      0.0,
       40.8
      ],
-     "h": 0.96,
+     "h": 0.57,
      "tone": "tile"
     },
     {
      "plan": [
-      113.96,
-      132.34,
+      113.13,
+      133.17,
       50.9,
       65.4
      ],
-     "h": 0.96,
+     "h": 0.57,
      "tone": "tile"
     },
     {
      "plan": [
-      113.96,
-      132.34,
+      113.13,
+      133.17,
       76.2,
-      114.14
+      114.6
      ],
-     "h": 0.96,
+     "h": 0.57,
      "tone": "tile"
     },
     {
      "plan": [
-      115.28,
-      131.02,
-      1.78,
+      113.6,
+      132.7,
+      0.1,
       40.8
      ],
-     "h": 1.58,
+     "h": 0.8,
      "tone": "tile"
     },
     {
      "plan": [
-      115.28,
-      131.02,
+      113.6,
+      132.7,
       50.9,
       65.4
      ],
-     "h": 1.58,
+     "h": 0.8,
      "tone": "tile"
     },
     {
      "plan": [
-      115.28,
-      131.02,
+      113.6,
+      132.7,
       76.2,
-      112.82
+      114.5
      ],
-     "h": 1.58,
+     "h": 0.8,
      "tone": "tile"
     },
     {
      "plan": [
-      116.59,
-      129.71,
-      3.09,
+      114.08,
+      132.22,
+      0.58,
       40.8
      ],
-     "h": 2.19,
+     "h": 1.02,
      "tone": "tile"
     },
     {
      "plan": [
-      116.59,
-      129.71,
+      114.08,
+      132.22,
       50.9,
       65.4
      ],
-     "h": 2.19,
+     "h": 1.02,
      "tone": "tile"
     },
     {
      "plan": [
-      116.59,
-      129.71,
+      114.08,
+      132.22,
       76.2,
-      111.51
+      114.02
      ],
-     "h": 2.19,
+     "h": 1.02,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      114.56,
+      131.74,
+      1.06,
+      40.8
+     ],
+     "h": 1.24,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      114.56,
+      131.74,
+      50.9,
+      65.4
+     ],
+     "h": 1.24,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      114.56,
+      131.74,
+      76.2,
+      113.54
+     ],
+     "h": 1.24,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.04,
+      131.26,
+      1.54,
+      40.8
+     ],
+     "h": 1.46,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.04,
+      131.26,
+      50.9,
+      65.4
+     ],
+     "h": 1.46,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.04,
+      131.26,
+      76.2,
+      113.06
+     ],
+     "h": 1.46,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.51,
+      130.79,
+      2.01,
+      40.8
+     ],
+     "h": 1.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.51,
+      130.79,
+      50.9,
+      65.4
+     ],
+     "h": 1.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.51,
+      130.79,
+      76.2,
+      112.59
+     ],
+     "h": 1.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.99,
+      130.31,
+      2.49,
+      40.8
+     ],
+     "h": 1.91,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.99,
+      130.31,
+      50.9,
+      65.4
+     ],
+     "h": 1.91,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      115.99,
+      130.31,
+      76.2,
+      112.11
+     ],
+     "h": 1.91,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.47,
+      129.83,
+      2.97,
+      40.8
+     ],
+     "h": 2.13,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.47,
+      129.83,
+      50.9,
+      65.4
+     ],
+     "h": 2.13,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.47,
+      129.83,
+      76.2,
+      111.63
+     ],
+     "h": 2.13,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.95,
+      129.35,
+      3.45,
+      40.8
+     ],
+     "h": 2.35,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.95,
+      129.35,
+      50.9,
+      65.4
+     ],
+     "h": 2.35,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.95,
+      129.35,
+      76.2,
+      111.15
+     ],
+     "h": 2.35,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.42,
+      128.88,
+      3.92,
+      40.8
+     ],
+     "h": 2.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.42,
+      128.88,
+      50.9,
+      65.4
+     ],
+     "h": 2.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.42,
+      128.88,
+      76.2,
+      110.68
+     ],
+     "h": 2.58,
      "tone": "tile"
     },
     {
@@ -1219,32 +1989,102 @@
     },
     {
      "plan": [
-      119.21,
-      127.09,
-      5.71,
-      108.89
+      118.38,
+      127.92,
+      4.88,
+      109.72
      ],
-     "h": 3.41,
+     "h": 3.02,
      "tone": "tile"
     },
     {
      "plan": [
-      120.53,
-      125.77,
-      7.03,
-      107.57
+      118.85,
+      127.45,
+      5.35,
+      109.25
      ],
-     "h": 4.03,
+     "h": 3.25,
      "tone": "tile"
     },
     {
      "plan": [
-      121.84,
-      124.46,
-      8.34,
-      106.26
+      119.33,
+      126.97,
+      5.83,
+      108.77
      ],
-     "h": 4.64,
+     "h": 3.47,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      119.81,
+      126.49,
+      6.31,
+      108.29
+     ],
+     "h": 3.69,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      120.29,
+      126.01,
+      6.79,
+      107.81
+     ],
+     "h": 3.91,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      120.76,
+      125.54,
+      7.26,
+      107.34
+     ],
+     "h": 4.14,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      121.24,
+      125.06,
+      7.74,
+      106.86
+     ],
+     "h": 4.36,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      121.72,
+      124.58,
+      8.22,
+      106.38
+     ],
+     "h": 4.58,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      122.2,
+      124.1,
+      8.7,
+      105.9
+     ],
+     "h": 4.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      122.67,
+      123.63,
+      9.17,
+      105.43
+     ],
+     "h": 5.03,
      "tone": "tile"
     },
     {
@@ -1280,32 +2120,102 @@
     },
     {
      "plan": [
-      104.6,
-      113.7,
-      24.3,
-      89.8
+      104.19,
+      114.11,
+      23.89,
+      90.21
      ],
-     "h": 0.59,
+     "h": 0.44,
      "tone": "tile"
     },
     {
      "plan": [
-      105.25,
-      113.05,
-      24.95,
-      89.15
+      104.42,
+      113.88,
+      24.12,
+      89.98
      ],
-     "h": 0.84,
+     "h": 0.53,
      "tone": "tile"
     },
     {
      "plan": [
-      105.9,
-      112.4,
-      25.6,
-      88.5
+      104.66,
+      113.64,
+      24.36,
+      89.74
      ],
-     "h": 1.08,
+     "h": 0.62,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      104.9,
+      113.4,
+      24.6,
+      89.5
+     ],
+     "h": 0.7,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      105.13,
+      113.17,
+      24.83,
+      89.27
+     ],
+     "h": 0.79,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      105.37,
+      112.93,
+      25.07,
+      89.03
+     ],
+     "h": 0.88,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      105.6,
+      112.7,
+      25.3,
+      88.8
+     ],
+     "h": 0.97,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      105.84,
+      112.46,
+      25.54,
+      88.56
+     ],
+     "h": 1.06,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      106.08,
+      112.22,
+      25.78,
+      88.32
+     ],
+     "h": 1.15,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      106.31,
+      111.99,
+      26.01,
+      88.09
+     ],
+     "h": 1.24,
      "tone": "tile"
     },
     {
@@ -1320,32 +2230,102 @@
     },
     {
      "plan": [
-      107.2,
-      111.1,
-      26.9,
-      87.2
+      106.79,
+      111.51,
+      26.49,
+      87.61
      ],
-     "h": 1.57,
+     "h": 1.41,
      "tone": "tile"
     },
     {
      "plan": [
-      107.85,
-      110.45,
-      27.55,
-      86.55
+      107.02,
+      111.28,
+      26.72,
+      87.38
      ],
-     "h": 1.81,
+     "h": 1.5,
      "tone": "tile"
     },
     {
      "plan": [
-      108.5,
-      109.8,
-      28.2,
-      85.9
+      107.26,
+      111.04,
+      26.96,
+      87.14
      ],
-     "h": 2.06,
+     "h": 1.59,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      107.5,
+      110.8,
+      27.2,
+      86.9
+     ],
+     "h": 1.68,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      107.73,
+      110.57,
+      27.43,
+      86.67
+     ],
+     "h": 1.77,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      107.97,
+      110.33,
+      27.67,
+      86.43
+     ],
+     "h": 1.86,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.2,
+      110.1,
+      27.9,
+      86.2
+     ],
+     "h": 1.95,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.44,
+      109.86,
+      28.14,
+      85.96
+     ],
+     "h": 2.03,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.68,
+      109.62,
+      28.38,
+      85.72
+     ],
+     "h": 2.12,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.91,
+      109.39,
+      28.61,
+      85.49
+     ],
+     "h": 2.21,
      "tone": "tile"
     },
     {
@@ -1493,7 +2473,8 @@
  ],
  "todo": [
   "1. windowsFromBays puts ONE window at each bay centre. S6 and S7 both show this building's windows in mirrored PAIRS - two rooms about a party wall, 2.2 m apart, then a 5.4 m blank - on an 8.9 m module. They are drawn here evenly on the 4.45 m half-module, which is the pair's average position: the right number of windows in the wrong rhythm. A `window.pair: {gap}` on windowsFromBays would fix it. Jester West Hall's file asks for exactly the same thing, so two buildings now want it.",
-  "2. The generator draws flat roofs only, so every tile hip here is five inset boxes (the recipe Jester West's wings use). It gives the right silhouette and the right pitch and it is still a staircase at walking height. A `roofHip: {pitch, ridge}` on a block would draw four real slopes.",
+  "2. The generator draws flat roofs only, so every tile hip here is 23 inset boxes plus a ridge course (the recipe Jester West's wings use, with the step count raised until the tread stopped reading as a terrace). It gives the right silhouette and the right pitch, but the facets are all horizontal or vertical - never the 25-degree plane - so the near slope can only ever be a band of risers. A `roofHip: {pitch, ridge}` on a block would draw four real slopes and cost fewer triangles than this does.",
+  "2b. MORE URGENT THAN ANY OF THESE. This building's tile roof is drawn TWICE and mine loses. data/roofs.geojson carries 250 pitched-roof facets whose centroids fall inside this footprint, sitting from 29.1 m up to 33.94 m - the roof bake put a hip on top of Overture's 28.1 m prism and treated that guess as the EAVE. slopes-apartments hides the flat prism (buildings-3d, buildings-roof) and the westcampus bands, but it does not hide the slopes-roofs mesh, so with ?apartments=1 the baked roof still floats above everything this file draws and the whole roof here is invisible. Every look-fix in the first two rounds was made against that other roof before the facet count gave it away. setFilters() needs a third clause for the roofs layer over a replaced building - or bake_roofs.py needs to skip a building the apartments generator owns. Until then, judge this file's roof with SLOPES_ROOFS.on = false.",
   "3. The app's ground under this building is one flat plane at the creek-side datum, but the site falls 6.6 m from 21st Street to Waller Creek - that is the whole point of S4's 'two-story base set into the natural slope'. The two base levels are therefore drawn on all four sides and wear a blind plinth where the earth really covers them. A per-block ground offset, or terrain, would let them be buried.",
   "4. Not drawn, and photographed: the amphitheatre stepping down to Waller Creek east of the terrace (it is outside the footprint), the cast-stone entry portal at the foot of the tower, the dormer-like vents in the frieze, and the loading dock at the west end of the south wing.",
   "5. The faces on the two courtyards, the light wells and the north wing's east wall were not photographed at a usable angle and wear the same wall skin as everything else."
