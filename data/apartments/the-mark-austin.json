@@ -1,0 +1,620 @@
+{
+  "_readme": "The Mark Austin, 812 W 23rd St - Humphreys & Partners' 17-storey student high-rise of 2023, as js/slopes-apartments.js draws it. A tall panelled slab along W 23rd St with a rooftop amenity deck at its east end, a seven-storey terracotta wing along W 24th St, and an open courtyard between them (the courtyard is the inner ring OSM already draws). Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=83.4, W=55.7. u=0 is the WEST end on Pearl St and +u runs EAST; v=0 is the SOUTH edge on W 23rd St and +v runs NORTH to W 24th St. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "6dfb0958-b416-416a-868d-e45f2bd4e703",
+  "name": "The Mark Austin",
+  "address": "812 W 23rd St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 6dfb0958-b416-416a-868d-e45f2bd4e703: name 'The Mark Austin', building_class apartments, num_floors null, final_height 18.0 with source_height 'class_default' - a placeholder for a building nothing ever tagged, and wrong by roughly 3x (see S3/S4). The geometry is a 14-vertex outer ring (4,475 m2) with one 4-vertex inner ring (623 m2): the courtyard. Facade bake tones wd #a8a39b / wg #b6a593 / wn #2d2d31.",
+    "S2": "OSM relation 16342211 (Overpass, 2026-09-05): type=multipolygon, building=apartments, name 'The Mark Austin', website https://www.themarkatx.com/. Members way 1208654796 (outer, 15 nodes) and way 1208654797 (inner, 5 nodes). No height, no building:levels, no building:part anywhere in the block. The neighbours OSM does tag are way 1208654798 'Union on 24th' (701 W 24th, building:levels 29, height 97.536) immediately EAST, and way 380916747 'The Standard' (715 W 23rd) directly SOUTH across W 23rd - both of them appear in the captures below and place the building.",
+    "S3": "humphreys.com/project/the-mark-at-austin/ (Humphreys & Partners Architects, the architect): 17 stories, high-rise, 263 units, 955 beds, unit sizes 422-2,026 sq ft, site area 1.23 acres, density 776.4 beds/acre, 421 parking spaces, completion 2023, mixed use / student housing, status Built.",
+    "S4": "gmitexas.com/project/the-mark-austin/ (GMi, the interior framing subcontractor): 'ground-up 17-story residential tower', 417,000 sq ft, 'two levels of below-grade parking and one level of above-grade parking at the base of the building', architect Humphreys & Partners, general contractor Landmark Construction, 2023. sgh.com/project/the-mark-austin-tx/ (Simpson Gumpertz & Heger, the enclosure consultant) independently confirms 17 storeys and 263 units and describes the envelope as 'panelized exterior wall assemblies' with 'complex transition details at amenity deck curbs, railings, parapets and rooftop planters'.",
+    "S5": "rambleratx.com/resources/apartment-review-the-mark/ (a West Campus leasing review, read 2026-09-05): 17 storeys, 2023, 263 units, 955 beds; rooftop pool and a courtyard with hammocks 'on the upper levels'; two-storey fitness centre, first-floor clubroom.",
+    "S6": "Humphreys' own photographs of the finished building, downloaded 2026-09-05 from the project page and kept in the session scratchpad as ref/hp_*.jpg: hp_cover (5464x3640, the south elevation from a drone west of the building at roof height - the whole panelled wall, the balcony stacks, the terracotta pilasters, the rooftop condenser rows, with The Standard and Union on 24th behind), hp_0499 (2560x2519, the W 23rd Street elevation from the pavement in flat neutral light - the panel patchwork at full resolution, the balcony backs, the limestone plinth, the slat canopy with THE MARK), hp_drone (the rooftop amenity deck from the east, THE MARK letters on the deck parapet), hp_0404 (the lap pool on the deck).",
+    "S7": "uForis' 2022 pre-construction renderings (ik.imagekit.io/1ckqa5gwo4f/.../MK_Exterior_Final_2K.jpg): USED ONLY FOR THE MASSING IDEA, not for any number or tone. The built building differs from it substantially - the rendering's dark red brick street wall became grey fibre-cement panel, and the white tower it shows rising at one end is not the mass that was built. Every measurement below comes from S6, S8 or S9.",
+    "S8": "Google Earth 3D, imagery dated 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() (canvas.toDataURL is black on Earth). Poses about the snapshot centroid 30.287769,-97.746073: a nadir at 420 m, a second nadir at 300 m, and obliques at 300 m / 58 deg tilt from the S, SW, NW, NE and SE. The NE oblique is the clean read of the W 24th elevation and the SE oblique of the amenity deck and the east end.",
+    "S9": "The S8 nadir registered against ground truth and rectified into this building's own (u,v) frame at 14 px/m with a 10 m grid (the scratchpad's overlay2.py / rectify.py). The scale was FITTED, not assumed: data/roads.geojson's centrelines and every neighbouring snapshot footprint land on their streets and roofs at 0.2649 m per pixel with no offset, and the building's own outline then lands on its own roof edges. Every plan number below was read off that gridded plan. Note the nadir point falls almost exactly on this building's centroid, so roof parallax is under 5 m at the corners and the nadir cannot be used to measure height here - the heights come from storey counts instead.",
+    "S10": "Storey counts. A vertical brightness profile down three columns of the S6 hp_cover elevation (x 2500 / 2860 / 3200, y 600-2900) finds window rows in pairs 27-38 px apart at a floor pitch of 108-134 px (mean 123): fifteen to seventeen rows between the parapet and the condenser ledge over the base, which is the sixteen residential floors of a 17-storey building. In the S8 NE oblique the terracotta W 24th wing shows six residential floors over its base and the pale slab behind it shows ten more - 6 + 10 + 1 = 17, the count S3 and S4 state, reached from the pictures.",
+    "S11": "js/westcampus.js SOLID trios, as The Standard's and The Castilian's files use them: the day/golden/night relationship for a roof, a deck and a mechanical unit.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [-97.7457515, 30.2875563],
+      [-97.7457427, 30.2876531],
+      [-97.7457551, 30.2876539],
+      [-97.7457329, 30.2878975],
+      [-97.745753, 30.2878988],
+      [-97.7457513, 30.287918],
+      [-97.746423, 30.2879639],
+      [-97.746424, 30.2879534],
+      [-97.746532, 30.2879607],
+      [-97.7465341, 30.287938],
+      [-97.746558, 30.2879396],
+      [-97.7466003, 30.28747],
+      [-97.7457353, 30.2874119],
+      [-97.7457225, 30.2875543],
+      [-97.7457515, 30.2875563]
+    ],
+    "_src": "S1 verbatim, the outer ring only. In (u,v) it is very nearly the obb rectangle: the south edge runs the full 83.4 m at v=0, the north edge runs u 12.8 to 77.6 at v=55.7, and the two small notches are at the north-west corner (u 0-12.8 steps back to v 52.1-54.6) and the south-east corner (u 79.4-83.4 at v 15.8-26.5). The inner ring - the courtyard - is [[-97.7459277,30.2876527],[-97.7463761,30.2876845],[-97.7463639,30.2878122],[-97.7459155,30.2877803]], which is u 19.7-63.0 by v 25.1-39.5 (623 m2); it is not repeated here because the schema takes one ring, and the courtyard is made instead by the gap between the blocks below."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) computed with the same minimum-area-rectangle-over-the-hull rule js/westcampus.js uses: L=83.4, W=55.7, +u at bearing 94.4 deg. +v is 90 deg counter-clockwise from +u in (east, north), i.e. bearing 4.4 deg, so v=0 is the SOUTH edge. The corner the frame's origin lands on is the ring's westernmost vertex [-97.7466003, 30.28747], which is the south-west corner on Pearl Street. Confirmed against the streets in S9: the road at v just below 0 is W 23rd Street (The Standard sits across it, S2), the road at v just above 55.7 is W 24th Street, and Pearl Street runs down the u=0 end. TO CHECK at the first look: the generator's own boot line `[slopes-apartments] The Mark Austin: obb L=.. W=.. +u at bearing ..` - if it reports the opposite bearing every u below is 83.4 minus itself.",
+  "levels": {
+    "floors": [
+      0.0, 7.0, 10.0, 13.0, 16.0, 19.0, 22.0, 25.0, 28.0, 31.0,
+      34.0, 37.0, 40.0, 43.0, 46.0, 49.0, 52.0
+    ],
+    "_src": "17 storeys (S3, S4, S10). Level 1 is 7.0 m: in the S8 NE oblique the base band - white piers with the dark garage slots between them - measures 160 px against a residential floor pitch of 68 px in the same column, so 2.35 residential floors, and 2.35 x 3.0 = 7.0 m. That one tall level is the 'one level of above-grade parking at the base' S4 states, with the leasing/retail storefront in front of it on W 23rd. The sixteen residential floors above it are 3.0 m floor to floor: DERIVED, not measured against a ruler - it is the ordinary 9 ft 10 in of a Texas student high-rise and it puts the roof at 55.0 m, between the 17-storey neighbours the same captures show (The Standard, 17 storeys at 58.2 m in data/apartments/the-standard.json). Uncertainty on the total is about plus or minus 3 m; see `open`.",
+    "ground": 7.0,
+    "wingRoof": 25.0,
+    "deckRoof": 49.0,
+    "towerRoof": 55.0,
+    "_heights_src": "wingRoof 25.0 = the top of level 7, the W 24th wing's seven storeys (S10's 6 + 1). deckRoof 49.0 = the top of level 15: in the S8 SE oblique the amenity deck's parapet - the one carrying the THE MARK letters - sits about 1.6 floor pitches below the main roof's parapet at the junction, and hp_drone shows the same step from above. towerRoof 55.0 = the top of level 17. The snapshot's 18.0 m is overridden outright: it is source_height 'class_default' (S1), a per-class guess for a building OSM never tagged, and it is under a third of the height every photograph and every oblique shows."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. The panel tones are medians of named regions of S6 hp_0499, which is the one photograph in flat neutral light - its light panel reads #bababa with a saturation under 0.02, so the frame carries no colour cast to correct.",
+    "panelLight": {
+      "hex": "#bababa",
+      "_src": "S6 hp_0499, median of every near-neutral pixel (saturation < 0.10) with luma 175-215 in the wall rectangle (250,150)-(1200,1150): #bababa over 370,000 pixels. This is the pale fibre-cement panel that is most of the wall."
+    },
+    "panelMid": {
+      "hex": "#a7a7a6",
+      "_src": "S6 hp_0499, the same rectangle, near-neutral pixels with luma 140-175: #a7a7a6 over 107,000 pixels - the second, one step darker panel of the patchwork."
+    },
+    "panelWarm": {
+      "hex": "#9e9080",
+      "_src": "S6 hp_0499, median of the warm greige panel at (400,640)-(480,700) = #9e9080 and (1000,1250)-(1080,1300) = #a8a798 - the third panel in the field, a warm taupe rather than a grey. Entered at the darker of the two reads."
+    },
+    "panelDark": {
+      "hex": "#323332",
+      "_src": "S6 hp_0499, median of the near-neutral pixels darker than luma 60 in the same rectangle: #323332 - the charcoal band that wraps each window head and sill, and the tone of the recessed slots."
+    },
+    "terracotta": {
+      "hex": "#9a5a45",
+      "_src": "the rust panel of the W 24th wing and of the balcony backs and pilasters. Two measurements bracket it: the S8 NE oblique's W 24th wing, median of every pixel in the wing rectangle with hue 5-35 deg, saturation > 0.30 and value > 0.35, is #8a594d over 7,000 pixels (aerial photogrammetry, hazed); S6 hp_cover's sunlit-side pilaster at (1900,700)-(2000,2100), same filter, is #ad7b62 (that face is in shade and carries a blue cast). The value entered sits between them - derived from two measurements, not sampled once."
+    },
+    "terracottaDeep": {
+      "hex": "#5b280d",
+      "_src": "S6 hp_0499, the same hue filter over the balcony recesses at (0,250)-(200,1250): #5b280d. This is the same product read inside a balcony, in shade - used for the balcony back walls, where the app's own light will not put sun on them either."
+    },
+    "glass": {
+      "hex": "#4d6068",
+      "_src": "the vision glass. S6 hp_0499 measures it at #9cb1c8 where it is reflecting sky ((470,390)-(540,425)) and at about #32333x where a window is dark; the S8 obliques show it consistently as a dark teal. The value entered is between the two lighting conditions - derived from two measurements. Most windows in the photographs also carry pale blinds, which is why a straight crop median of a window is useless here."
+    },
+    "frameDark": {
+      "hex": "#2b2c2e",
+      "_src": "S6 hp_0499: the window frames and the charcoal reveal around every opening read black-grey; entered one step above the panelDark measurement so a frame is legible against its own band"
+    },
+    "rail": {
+      "hex": "#26282b",
+      "_src": "S6 hp_0499 and g_bal: the balcony rails are black steel pickets. Not separately sampled - the crops are all backlit; entered as the black they are."
+    },
+    "slab": {
+      "hex": "#c9c9c6",
+      "_src": "S6 hp_0499: the balcony slab edges are the pale panel colour, a half step lighter than panelLight where they catch light"
+    },
+    "limestone": {
+      "hex": "#d1c8bf",
+      "_src": "S6 hp_0499, median of the chopped-stone plinth at (0,1300)-(340,1500) filtered to hue 10-60 deg: #d1c8bf - the cream Texas limestone veneer at the west end of the W 23rd base"
+    },
+    "slat": {
+      "hex": "#d1b5a9",
+      "_src": "S6 hp_0499, median of the horizontal slat canopy over the entrance at (300,1250)-(900,1600): #d1b5a9 - a blush/salmon composite slat, the fascia the THE MARK letters sit on"
+    },
+    "soffit": {
+      "hex": "#c0642a",
+      "_src": "S6 hp_0499: the entrance recess soffit and reveal read as a strong orange under the slat canopy at (900,1560)-(1400,1610). A crop median there is polluted by the dark storefront behind it, so the value is entered from the reading rather than from a median - flagged."
+    },
+    "storeGlass": {
+      "hex": "#2a3138",
+      "_src": "S6 hp_0499: the ground-floor storefront reads near black in every frame - it is dark glass in a dark frame under a deep overhang"
+    },
+    "garageDark": {
+      "hex": "#1d1f20",
+      "_src": "S8 NE oblique: the tall slots between the white piers of the W 24th base are open garage, and read black at every camera"
+    },
+    "roof": ["#cdcabd", "#d5c8b2", "#1c1f27"],
+    "_roof_src": "S8 nadir, median of the main roof membrane at (660,560)-(700,600) = #cdcabd; golden and night entered the way S11 enters a top face",
+    "deckPave": ["#aaafac", "#b4aa9c", "#1c1f27"],
+    "_deckPave_src": "S8 nadir, median of the amenity deck's paving at (880,600)-(910,625) = #aaafac; trio as S11",
+    "turf": ["#5a6b52", "#6b7350", "#151c1c"],
+    "_turf_src": "S8 nadir, median of the deck's artificial turf at (915,600)-(945,620) = #5a6b52; trio as S11",
+    "pool": ["#3fa6c4", "#4fa2b4", "#101c2a"],
+    "_pool_src": "the lap pool. The S8 nadir reads it at #91b0b9 through the aerial haze; S6 hp_0404 (the pool photographed from its own deck) shows the bright cyan entered here. Derived from the photograph, not from the nadir crop.",
+    "condenser": ["#8f9398", "#9a958c", "#1a1d26"],
+    "_condenser_src": "S8 nadir: the roof units are mid grey; the trio is S11's mech tone, as The Standard's and The Castilian's files use it",
+    "coping": {
+      "hex": "#c4c8ce",
+      "_src": "S8 NE oblique, median of the near-white low-saturation pixels of the W 24th wing (#c4c8ce): the parapet capping and the white vertical strips are the same pale panel"
+    },
+    "sign": {
+      "hex": "#e8e9e7",
+      "_src": "S6 hp_drone: the THE MARK letters on the deck parapet are white pan-channel letters. Entered as the white they are."
+    }
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every count comes from a module, never a hard-coded number",
+    "field": {
+      "kind": "pixel",
+      "course": 1.5,
+      "plank": 2.7,
+      "bond": 0.5,
+      "tones": ["panelLight", "panelMid", "panelWarm"],
+      "weights": [0.52, 0.30, 0.18],
+      "runMax": 2,
+      "macro": [2, 1],
+      "bay": 3.8,
+      "window": { "w": 2.6, "h": 1.9, "sill": 0.85 },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.1,
+      "_src": "The residential wall of the tall block and of the deck block, and both end walls. It is a `pixel` skin and not `bays` because the photograph shows a patchwork, not an alternation: in S6 hp_0499 the panels are large rectangles about 2.7 m long and half a floor tall, and three tones - pale, mid grey, warm greige - are scattered across them in runs of one or two, with the pale one about half the field. macro [2,1] decides a tone per full floor course so a run reads as a panel and not as noise from the oblique camera, the way The Standard's file argues. The 3.8 m bay: window centres in S6 hp_0499 are 205 px apart against a 168 px floor pitch in the same column, so 1.22 floors = 3.66 m if the floor is 3.0 m, and that frame looks along the wall so its horizontal scale is foreshortened - 3.8 m is that number rounded up, plus or minus 0.3 m. The window is 2.6 x 1.9 m on a 0.85 m sill: the openings in hp_0499 are wide and low, about two thirds of the bay and 63 per cent of the floor pitch."
+    },
+    "fieldTerracotta": {
+      "kind": "bays",
+      "bay": 3.8,
+      "field": "terracotta",
+      "strip": { "w": 0.95, "tone": "coping", "at": "joints" },
+      "window": { "w": 2.3, "h": 1.9, "sill": 0.85 },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.1,
+      "_src": "The W 24th Street wing. The S8 NE oblique shows it plainly and it is a different rule from the tall block's: a continuous terracotta panel field with narrow white pilasters standing on the bay lines the full height of the wing, one window per bay per floor, and dark recessed slots where the balconies are. Same 3.8 m bay as the tall block (one structural grid), white strip about a quarter of the bay."
+    },
+    "balconyBack": {
+      "kind": "flat",
+      "field": "terracottaDeep",
+      "bay": 3.8,
+      "window": { "w": 2.5, "h": 2.1, "sill": 0.15 },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.35,
+      "_src": "the back wall of a balcony recess: rust panel with a full-height sliding door. S6 hp_0499's balcony columns show exactly this - a rust wall, a door that runs nearly to the slab, and the black rail in front. The reveal is deep because the wall really is set back behind the slab edge."
+    },
+    "pilaster": {
+      "kind": "flat",
+      "field": "terracotta",
+      "_src": "the terracotta pilasters that run the tall block's full height beside each balcony column (S6 hp_cover, where two of them are unmistakable, and hp_0499)"
+    },
+    "core": {
+      "kind": "flat",
+      "field": "panelDark",
+      "_src": "the charcoal strip on the W 23rd elevation that carries the vertical THE MARK sign, at the point where the tall block meets the deck block (S6 hp_0499's right-hand half; the same strip is visible in the S8 SE oblique)"
+    },
+    "garageScreen": {
+      "kind": "bays",
+      "bay": 3.0,
+      "field": "coping",
+      "strip": { "w": 1.7, "tone": "garageDark", "at": "centres" },
+      "_src": "the above-grade parking level behind its screen, on every face except the W 23rd shopfront. The S8 NE oblique shows white piers about 1.3 m wide with tall black openings about 1.7 m wide between them, on a 3.0 m pitch - not a louvre, an open colonnade. No window: what is behind is open deck."
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "limestone",
+      "_src": "the chopped-limestone plinth at the west end of the W 23rd base and returning round the Pearl Street corner (S6 hp_0499, where it is the left-hand third of the base)"
+    },
+    "shopfront": {
+      "kind": "storefront",
+      "mullion": 2.0,
+      "mullionW": 0.12,
+      "fascia": 1.7,
+      "plinth": 0.15,
+      "transom": 0.78,
+      "fasciaTone": "slat",
+      "frame": "frameDark",
+      "glass": "storeGlass",
+      "reveal": 0.35,
+      "_src": "level 1 on W 23rd: the leasing office and the two-storey clubroom (S5) behind dark storefront under the blush slat canopy. Mullion 2.0 m is a module read off S6 hp_0499's bays, not dimensioned. The fascia band is the slat canopy itself, 1.7 m deep in the same frame; the letters sit on it."
+    },
+    "deckWall": {
+      "kind": "flat",
+      "field": "coping",
+      "_src": "the pale parapet band under the amenity deck that the THE MARK letters stand on (S6 hp_drone, S8 SE oblique)"
+    }
+  },
+  "balcony": {
+    "proj": 0.9,
+    "slabT": 0.25,
+    "railH": 1.05,
+    "railT": 0.05,
+    "slabTone": "slab",
+    "railTone": "rail",
+    "_src": "S6 hp_0499 at full resolution (the scratchpad's g_bal crop): the slab edge is a pale band about a quarter of a metre thick, the rail is black steel pickets a little over a metre high, and the balcony projects less than a metre - these are inset balconies with a shallow overhang, not cantilevered decks. The generator only projects, so `proj` is entered at the overhang the photograph shows and the recess is made by the balconyBack skin's own reveal."
+  },
+  "blocks": [
+    {
+      "id": "base",
+      "_src": "Level 1 over the whole site: the leasing/clubroom storefront and the limestone plinth on W 23rd, the above-grade parking behind its screen on the other three sides. S4 states one above-grade parking level; S9's rectified plan shows the screen returning round every corner.",
+      "plan": [0.0, 83.4, 0.0, 55.7],
+      "_plan_src": "the obb rectangle rather than the ring, for the reason The Castilian's file records: clipWall only splits a wall it can prove is axis-parallel, and the ring's edges carry a fraction of a degree of numerical tilt, which makes every region override claim a whole face. The ring is within 2.3 m of this rectangle everywhere except the two small notches noted in footprint._src.",
+      "z0": 0,
+      "z1": 7.0,
+      "bands": [{ "z0": 0, "z1": 7.0, "skin": "garageScreen" }],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 7.0,
+              "skin": "shopfront",
+              "signs": [
+                {
+                  "text": "THE MARK",
+                  "s0": 30.0,
+                  "z0": 5.35,
+                  "dot": 0.12,
+                  "gap": 0.13,
+                  "tone": "frameDark"
+                }
+              ]
+            }
+          ],
+          "_src": "the W 23rd Street front: storefront under the slat canopy with the THE MARK letters on the canopy fascia (S6 hp_0499). The letters are about 0.85 m tall there against a canopy the photograph puts at 1.7 m, hence dot 0.12 for a 5x7 font."
+        },
+        "_src": "v0 is the SOUTH face on W 23rd Street and takes the shopfront; v1 (north, W 24th), u0 (west, Pearl) and u1 (east) take the default garage screen."
+      },
+      "overrides": [
+        {
+          "region": [0.0, 26.0, 0.0, 4.0],
+          "bands": [{ "z0": 0, "z1": 7.0, "skin": "stone" }],
+          "_src": "the limestone plinth: in S6 hp_0499 the west third of the W 23rd base is chopped stone rather than shopfront, with the garage's own louvred vents in it, and it returns round the Pearl Street corner. Extent read off the same frame against the canopy's start, plus or minus 4 m."
+        },
+        {
+          "region": [0.0, 4.0, 0.0, 20.0],
+          "bands": [{ "z0": 0, "z1": 7.0, "skin": "stone" }],
+          "_src": "the same plinth returning up the Pearl Street elevation (S6 hp_0499's left edge; S8 W oblique)"
+        }
+      ],
+      "roofTone": "deckPave",
+      "parapet": 0,
+      "parapetSides": [],
+      "_parapet_src": "none: every edge of this block has another block standing on it, and its roof shows only inside the courtyard"
+    },
+    {
+      "id": "tower",
+      "_src": "The 17-storey block: the whole W 23rd frontage west of the amenity block, turning north up the Pearl Street end. This is the mass whose roof carries the condenser field in S9's rectified plan (u 2-48 by v 2-38) and whose parapet stands about two floors above the amenity deck in the S8 SE oblique.",
+      "plan": [[0.0, 0.0], [50.0, 0.0], [50.0, 23.0], [20.0, 23.0], [20.0, 39.5], [0.0, 39.5]],
+      "_plan_src": "S9's rectified nadir. The bright white condenser roof runs from the west edge to about u=48 at v 0-20 and stops at u=20 for v 20-39, which is the L entered here. The courtyard's south edge reads at v=20-23 at roof level against the snapshot ring's v=25.1 at podium level, so the south wing is entered 23 m deep - about 2 m shallower than the ring, which is what a roof-level read of a well opening should be. The east end at u=50 is where S6 hp_0499 puts the charcoal core strip and where the S8 SE oblique steps down to the deck. Plan uncertainty is plus or minus 3 m in u and 2 m in v.",
+      "z0": 7.0,
+      "z1": 55.0,
+      "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "field" }],
+      "faces": {
+        "1": { "z0": 49.0 },
+        "4": { "z0": 25.0 },
+        "_src": "edge 0 is the SOUTH wall on W 23rd, 1 the east wall against the deck block (drawn only above the deck at 49.0), 2 the north wall on to the courtyard, 3 the east wall on to the courtyard, 4 the north wall against the W 24th wing (drawn only above the wing at 25.0), 5 the WEST end wall on Pearl Street. All of them wear the same panel field: S6 and the S8 obliques show the same patchwork on the street front, on both ends and on the courtyard, and no face of this block was photographed wearing anything else."
+      },
+      "overrides": [
+        {
+          "region": [7.0, 10.8, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 55.0,
+              "skin": "balconyBack",
+              "balconies": [{ "s0": 7.2, "s1": 10.6, "lift": 0.0 }]
+            }
+          ],
+          "_src": "the first balcony stack on W 23rd. S6 hp_cover shows the stacks as full-height columns of inset balconies with a rust back and a black rail, one per floor, beside a terracotta pilaster; hp_0499 shows the same column at the near end of the elevation. Three stacks are entered on this face at roughly a quarter, a half and three quarters of its length, which is where hp_cover and the S8 SW oblique put them, plus or minus 4 m. `s0/s1` are given equal to the region's u range - see `open` about which way s winds on this face."
+        },
+        {
+          "region": [22.6, 26.4, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 55.0,
+              "skin": "balconyBack",
+              "balconies": [{ "s0": 22.8, "s1": 26.2, "lift": 0.0 }]
+            }
+          ],
+          "_src": "the second balcony stack (S6 hp_cover)"
+        },
+        {
+          "region": [38.2, 42.0, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 55.0,
+              "skin": "balconyBack",
+              "balconies": [{ "s0": 38.4, "s1": 41.8, "lift": 0.0 }]
+            }
+          ],
+          "_src": "the third balcony stack (S6 hp_cover)"
+        },
+        {
+          "region": [11.0, 12.6, 0.0, 6.0],
+          "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
+          "_src": "the terracotta pilaster beside the first stack: in S6 hp_cover a rust strip about 1.5 m wide runs the building's full height immediately east of each balcony column, and it is the strongest colour on the elevation"
+        },
+        {
+          "region": [26.6, 28.2, 0.0, 6.0],
+          "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
+          "_src": "the pilaster beside the second stack (S6 hp_cover)"
+        },
+        {
+          "region": [42.2, 43.8, 0.0, 6.0],
+          "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
+          "_src": "the pilaster beside the third stack (S6 hp_cover)"
+        },
+        {
+          "region": [45.6, 50.0, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 55.0,
+              "skin": "core",
+              "signs": [
+                {
+                  "vertical": true,
+                  "text": "THE MARK",
+                  "s": 2.2,
+                  "zTop": 47.0,
+                  "dot": 0.15,
+                  "gap": 0.17,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ],
+          "_src": "the charcoal core strip at the east end of the tall block, with the vertical THE MARK sign on it. S6 hp_0499's right-hand half shows it as a dark full-height band with the name reading downwards; the S8 SE oblique shows the same band at the step between the two roof levels, which is why it is placed at the block's own east end. Width 4.4 m, read against the bay module at about one and a bit bays."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.2,
+      "parapetTone": "coping",
+      "parapetSides": ["0", "1", "2", "3", "5"],
+      "_parapet_src": "S8 SE oblique: a low white upstand round the whole roof. Edge 4 is left off because the W 24th wing stands against it.",
+      "roofItems": [
+        {
+          "plan": [3.0, 46.0, 2.0, 17.0],
+          "grid": [11, 3],
+          "size": [1.1, 1.6],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S9's rectified nadir: the south half of this roof carries long rows of condensers from u 3 to about u 46, in three loose rows. S6 hp_drone shows the same rows from the deck."
+        },
+        {
+          "plan": [3.0, 18.0, 21.0, 37.0],
+          "grid": [4, 4],
+          "size": [1.1, 1.6],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S9's rectified nadir: the west leg of the roof carries a second, denser block of units"
+        },
+        {
+          "plan": [21.0, 30.0, 3.0, 11.0],
+          "h": 3.6,
+          "tone": "coping",
+          "_src": "S8 SE oblique and S9's nadir: a white mechanical penthouse / lift overrun stands on the roof roughly a third of the way along, about 9 by 8 m and a storey tall. Plus or minus 4 m in position."
+        }
+      ]
+    },
+    {
+      "id": "deckblock",
+      "_src": "The east end of the W 23rd frontage, two floors lower than the tall block, with the amenity deck on its roof: the lap pool, the turf, the cabanas and the THE MARK letters on its parapet (S6 hp_drone, hp_0404; S8 SE oblique; S9's rectified nadir).",
+      "plan": [50.0, 83.4, 0.0, 23.0],
+      "z0": 7.0,
+      "z1": 49.0,
+      "_plan_src": "S9's rectified nadir puts the pool at u 53-77 and the deck's furniture between u 51 and the east wall, all of it south of v=23; the west edge at u=50 is the step S6 hp_0499 and the S8 SE oblique both show. Plus or minus 3 m in u.",
+      "bands": [
+        { "z0": 7.0, "z1": 46.0, "skin": "field" },
+        {
+          "z0": 46.0,
+          "z1": 49.0,
+          "skin": "deckWall"
+        }
+      ],
+      "_bands_src": "the panel field to 46.0 and then the pale parapet band the letters stand on. In S6 hp_drone that band is blank white and about a storey deep, which is what separates it from the field below.",
+      "faces": {
+        "u0": null,
+        "v0": {
+          "bands": [
+            { "z0": 7.0, "z1": 46.0, "skin": "field" },
+            {
+              "z0": 46.0,
+              "z1": 49.0,
+              "skin": "deckWall",
+              "signs": [
+                {
+                  "text": "THE MARK",
+                  "s0": 3.4,
+                  "z0": 46.6,
+                  "dot": 0.28,
+                  "gap": 0.30,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ],
+          "_src": "the W 23rd face with the big white THE MARK letters on the parapet band, near the east end (S6 hp_drone, where they are the building's signature, and the S8 SE oblique, where they sit about 12 m in from the corner). dot 0.28 makes a 5x7 letter 1.96 m tall, which is what hp_drone shows against a parapet band a storey deep."
+        },
+        "u1": {},
+        "v1": {},
+        "_src": "u0 (west) is null - the tall block stands against it. u1 is the EAST end wall, v0 the SOUTH wall on W 23rd, v1 the north wall on to the courtyard and, east of u=63.5, against the W 24th wing's return."
+      },
+      "overrides": [
+        {
+          "region": [56.0, 59.8, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 46.0,
+              "skin": "balconyBack",
+              "balconies": [{ "s0": 56.2, "s1": 59.6, "lift": 0.0 }]
+            }
+          ],
+          "_src": "a balcony stack on this block's W 23rd face, the same module as the tall block's (S8 SE oblique, where the stacks continue past the step)"
+        },
+        {
+          "region": [70.0, 73.8, 0.0, 6.0],
+          "bands": [
+            {
+              "z0": 7.0,
+              "z1": 46.0,
+              "skin": "balconyBack",
+              "balconies": [{ "s0": 70.2, "s1": 73.6, "lift": 0.0 }]
+            }
+          ],
+          "_src": "the second stack on this block (S8 SE oblique)"
+        },
+        {
+          "region": [60.0, 61.6, 0.0, 6.0],
+          "bands": [{ "z0": 7.0, "z1": 46.0, "skin": "pilaster" }],
+          "_src": "the terracotta pilaster beside the first stack (S8 SE oblique)"
+        },
+        {
+          "region": [74.0, 75.6, 0.0, 6.0],
+          "bands": [{ "z0": 7.0, "z1": 46.0, "skin": "pilaster" }],
+          "_src": "the pilaster beside the second stack (S8 SE oblique)"
+        }
+      ],
+      "roofTone": "deckPave",
+      "parapet": 1.2,
+      "parapetTone": "coping",
+      "parapetSides": ["v0", "u1", "v1"],
+      "_parapet_src": "S6 hp_drone: a glass-and-metal guard round the deck over a solid upstand. The u0 edge is left off - the tall block stands there.",
+      "roofItems": [
+        {
+          "plan": [77.0, 82.0, 16.0, 22.0],
+          "h": 3.2,
+          "tone": "coping",
+          "_src": "S9's rectified nadir and S8's SE oblique: a white stair and mechanical bulkhead in the deck's north-east corner, about a storey tall"
+        }
+      ]
+    },
+    {
+      "id": "wing24th",
+      "_src": "The W 24th Street wing: seven storeys of terracotta panel with white pilasters over the garage base, stepping back twice near the top. This is the mass the S8 NE oblique shows head on and the one the pre-construction rendering (S7) drew as brick.",
+      "plan": [0.0, 83.4, 39.5, 55.7],
+      "z0": 7.0,
+      "z1": 25.0,
+      "_plan_src": "S9's rectified nadir: the roof band north of v=39.5 is a different, lower, greyer roof than the bright white one south of it, and it runs the full length of the site. Depth 16.2 m to the north edge of the obb. The snapshot's inner ring puts the courtyard's north edge at v=39.5, which is the same line.",
+      "bands": [{ "z0": 7.0, "z1": 25.0, "skin": "fieldTerracotta" }],
+      "faces": {
+        "v0": {
+          "bands": [{ "z0": 7.0, "z1": 25.0, "skin": "field" }],
+          "_src": "the courtyard side. It was not photographed - the courtyard is closed to every camera here - so it wears the plainest rule the building has, the panel field, and this is a guess about a face nobody has seen."
+        },
+        "_src": "v1 is the W 24th Street face and takes the terracotta field; u0 (west, Pearl) and u1 (east) take it too - the S8 NE oblique shows the terracotta turning both corners. v0 faces the courtyard."
+      },
+      "overrides": [
+        {
+          "region": [40.0, 42.6, 50.0, 55.7],
+          "bands": [{ "z0": 7.0, "z1": 25.0, "skin": "core" }],
+          "_src": "the pale stair core strip that runs the wing's full height at about the middle of the W 24th elevation (S8 NE oblique, where it interrupts the terracotta and carries small signage). Position read at 48 per cent of the face, plus or minus 5 m."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["v1", "u0", "u1"],
+      "_parapet_src": "S8 NE oblique: a white upstand along W 24th and round both ends. The v0 edge on the courtyard gets one too in the photographs but is left off here because the tower stands against part of it.",
+      "roofItems": [
+        {
+          "plan": [6.0, 76.0, 43.0, 53.0],
+          "grid": [10, 2],
+          "size": [1.0, 1.4],
+          "h": 0.6,
+          "tone": "condenser",
+          "_src": "S9's rectified nadir: the wing's roof carries two loose rows of units along its length"
+        }
+      ]
+    },
+    {
+      "id": "wingEast",
+      "_src": "The east return of the W 24th wing, closing the courtyard between the wing and the deck block (S1's inner ring stops at u=63.0; S9's rectified nadir shows built roof east of it at the wing's own level).",
+      "plan": [63.5, 83.4, 23.0, 39.5],
+      "z0": 7.0,
+      "z1": 25.0,
+      "bands": [{ "z0": 7.0, "z1": 25.0, "skin": "fieldTerracotta" }],
+      "faces": {
+        "v0": null,
+        "v1": null,
+        "u1": {},
+        "u0": {
+          "bands": [{ "z0": 7.0, "z1": 25.0, "skin": "field" }],
+          "_src": "the courtyard side - unphotographed, so it wears the plain panel field"
+        },
+        "_src": "v0 (south) is null: the deck block stands against it for its whole height. v1 (north) is null: the W 24th wing stands against it at the same height. u1 is the east wall on the street front and u0 faces the courtyard."
+      },
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["u1", "u0"],
+      "roofItems": [
+        {
+          "plan": [66.0, 81.0, 26.0, 36.0],
+          "grid": [4, 3],
+          "size": [1.0, 1.4],
+          "h": 0.6,
+          "tone": "condenser",
+          "_src": "S9's rectified nadir: a dense block of units on this return's roof at u 65-83, v 29-36"
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 49.0,
+    "_src": "the amenity deck on the deck block's roof: the lap pool, the loungers, the turf, the cabanas and the planters, all read off S9's rectified nadir at 14 px/m and confirmed against S6 hp_drone and hp_0404 (which is the pool photographed along its own length, with the loungers on its north side).",
+    "items": [
+      {
+        "plan": [53.0, 77.0, 2.0, 6.0],
+        "z0": 0.0,
+        "h": 0.25,
+        "tone": "pool",
+        "_src": "the lap pool: 24 x 4 m at u 53-77, v 2-6 in S9's rectified nadir. hp_0404 shows it as one long narrow lane with a row of in-water loungers along it."
+      },
+      {
+        "plan": [66.0, 72.0, 6.5, 9.5],
+        "z0": 0.0,
+        "h": 0.25,
+        "tone": "pool",
+        "_src": "the spa, a second smaller basin just north of the lap pool (S9's nadir; hp_drone shows two basins)"
+      },
+      {
+        "plan": [51.0, 62.0, 11.0, 17.0],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "S9's rectified nadir: artificial turf on the deck's west half"
+      },
+      {
+        "plan": [73.0, 82.5, 10.0, 21.0],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "S9's rectified nadir: the second, larger turf lawn at the east end"
+      },
+      {
+        "plan": [64.0, 72.0, 17.0, 22.0],
+        "z0": 0.0,
+        "h": 2.4,
+        "tone": "condenser",
+        "_src": "the blue steel pergolas over the seating between the pools and the north edge (S6 hp_drone and hp_0404 - they are the deck's most visible structures; the tone is the mech grey rather than a sampled blue, flagged in `open`)"
+      },
+      {
+        "plan": [51.0, 62.0, 18.0, 21.5],
+        "z0": 0.0,
+        "h": 2.4,
+        "tone": "condenser",
+        "_src": "the second run of pergolas on the deck's west half (S9's nadir; hp_drone)"
+      },
+      {
+        "plan": [53.0, 77.0, 6.5, 8.2],
+        "z0": 0.0,
+        "h": 0.55,
+        "tone": "deckPave",
+        "_src": "the row of concrete loungers along the pool's north side (S6 hp_0404, where there are about fourteen of them; drawn as one low kerb rather than as fourteen boxes)"
+      }
+    ]
+  },
+  "open": [
+    "The total height is the weakest number here. 17 storeys is stated by the architect and by two independent members of the project team (S3, S4), and the storey count is confirmed from the photographs (S10), but nothing states a height in feet and no source of dimensioned drawings was found. 3.0 m floor to floor is derived, not measured; at 3.2 m the roof would be 58.2 m instead of 55.0. A drawing, a permit, or a rectified vertical ruler on a registered oblique would settle it to a metre.",
+    "The Google Earth obliques could not be registered. A projection of the footprint into the SW oblique using the camera the URL states (target lat/lng, d metres, 35 deg vertical fov, heading, tilt) lands correctly in plan - the two ends of the south wall fall within 15 px of their real pixels - but puts the ground plane about 140 px too high, and no single ground-elevation offset fixes both ends. Until that is understood, every height here rests on storey counts rather than on a measured ruler. The nadir IS registered (S9) and every plan number is measured.",
+    "Which way `s` winds on each face was not verified before this file was written. The balcony stacks are entered with `s0/s1` equal to their region's u range, which is right if s runs with +u on these faces and mirrored about the face's centre if it does not. First look, first fix.",
+    "The courtyard is a gap between blocks rather than a hole in one, because the schema takes one ring. The consequence is that the four walls facing into it are separate blocks' faces, all of them unphotographed and all of them wearing the plainest panel field. Nothing in any source shows the courtyard - S5 says it has hammocks and it is 'on the upper levels', and hp_cover looks straight over it without showing in.",
+    "The published floor area does not reconcile with this massing. 417,000 sq ft (S4) over these blocks would need the upper floors to be about 15 per cent smaller than they are drawn, or that figure excludes the two below-grade parking levels differently than assumed. The massing follows the imagery, which is the stronger evidence, and the discrepancy is recorded rather than resolved.",
+    "The deck's pergolas are bright blue in every photograph (S6 hp_drone, hp_0404) and are drawn in the mechanical grey because no blue was sampled. So are the deck's planters, the in-water loungers, and the trees - none of them are drawn.",
+    "The two setback terraces near the top of the W 24th wing (visible in the S8 NE oblique, where the wing steps back twice before its roof) are not drawn: the wing is one prism to 25.0 m.",
+    "The pre-construction rendering (S7) is a different building from the one that was built, and is cited only so that a later reader does not take it for a source. Nothing in this file comes from it."
+  ]
+}
