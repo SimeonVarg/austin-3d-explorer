@@ -1,5 +1,5 @@
 {
-  "_readme": "The Castilian, 2323 San Antonio St, as js/slopes-apartments.js draws it. One 1969 slab: a full-site podium (retail ground floor, the parking garage behind a vertical metal fin screen, the level-11 amenity floor glazed dark) with the residential tower standing on its roof deck. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=77.45, W=36.86. u=0 is the NORTH end and +u runs SOUTH; v=0 is the WEST (San Antonio St) edge and +v runs EAST - confirmed against the console's frame line, see _frame_src. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "_readme": "The Castilian, 2323 San Antonio St, as js/slopes-apartments.js draws it. One 1969 slab: a full-site podium (retail ground floor, the parking garage behind a vertical metal fin screen, the level-11 amenity floor glazed dark) with the residential tower standing on its roof deck. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=77.0, W=36.9 as obbOf computes it (the ring itself is 77.45 x 36.86). u=0 is the NORTH end and +u runs SOUTH; v=0 is the WEST (San Antonio St) edge and +v runs EAST - confirmed against the console's frame line, see _frame_src. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
   "id": "307878e3-63d2-471c-83d1-6b405de9e7b7",
   "name": "The Castilian",
   "address": "2323 San Antonio St, Austin, TX 78705",
@@ -43,7 +43,7 @@
     "_src": "S1 verbatim. In (u,v) the four corners are (0,0) (0,36.86) (77.45,36.86) (77.45,0) - the polygon IS its own oriented bounding box, so every edge is axis-parallel in the frame."
   },
   "frame": "obb",
-  "_frame_src": "obbOf(ring): L=77.45, W=36.86, +u at bearing 184.9 deg (south). The console line at boot is the check; see _readme.",
+  "_frame_src": "obbOf(ring) as the generator computes it, read off the boot console line: `[slopes-apartments] The Castilian: obb L=77.0 W=36.9, +u at bearing 184.9 deg`. +u runs SOUTH, so u=0 is the north end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west (San Antonio St) edge. The ring measures 77.45 x 36.86 m corner to corner; the obb is 0.45 m shorter because it is fitted to the rotated hull.",
   "levels": {
     "floors": [
       0.0,
@@ -71,8 +71,8 @@
     "finTop": 21.0,
     "spandrelTop": 22.0,
     "deck": 25.6,
-    "crown": 57.5,
-    "towerRoof": 58.6,
+    "crown": 57.0,
+    "towerRoof": 59.0,
     "_heights_src": "deck 25.6 + podium parapet 0.9 = 26.5; tower roof 58.6 + parapet 1.4 = 60.0 = S1's final_height. That 60.0 is a hero/LiDAR high point, and the mechanical penthouse stands above it (roofItems)."
   },
   "colours": {
@@ -140,11 +140,15 @@
     ],
     "_roof_src": "S8 nadir, median of the tower roof membrane at (660,560)-(720,640) = #ded7c7; golden and night entered the way S11 enters a top face",
     "deckTone": [
-      "#c6c8c6",
-      "#cdc4b4",
+      "#b0b3b0",
+      "#bab2a2",
       "#1c1f27"
     ],
-    "_deckTone_src": "S8 nadir, medians of the two podium roof strips: #e0e0e0 west (in sun) and #a5aaad east (in the tower's shadow); the entered day value is between them",
+    "_deckTone_src": "S8 nadir, medians of the two podium roof strips: #e0e0e0 west (in sun) and #a5aaad east (in the tower's shadow); the entered day value is between them, moved down one step after the first look, where a paler deck read as a bare cream plane against the reference's weathered concrete",
+    "penthouseWhite": {
+      "hex": "#d8dad6",
+      "_src": "S8: the mechanical penthouse reads as the brightest white on the roof in both obliques; entered between the roof membrane and the podium white, not separately sampled"
+    },
     "coping": {
       "hex": "#c9ccc9",
       "_src": "the parapet capping reads as the pale precast of the piers (S4/S6); not separately sampled"
@@ -163,19 +167,19 @@
       "bay": 3.2,
       "field": "pier",
       "strip": {
-        "w": 2.05,
+        "w": 2.3,
         "tone": "spandrel",
         "at": "centres"
       },
       "window": {
-        "w": 1.9,
-        "h": 1.9,
+        "w": 2.15,
+        "h": 1.85,
         "sill": 0.55
       },
       "glass": "glass",
       "frame": "coping",
       "reveal": 0.14,
-      "_src": "The tower's long elevations. Bay 3.2 m: twenty pale piers were counted across one long face in a brightness profile of S6 at y 380-420 (piers at x 55, 81, 115, 151, 189, 228, 268, 310, 354, 400, then the core strip, then 499, 552, 607, 665, 726, 789, 857, 928, 1003, 1065), and eighteen in the same profile of the NW oblique (S8) - twenty bays plus the two-bay core strip across a 67 m tower face is 3.2 m. The pier is 1.15 m and the recessed channel between piers 2.05 m: the profile's bright runs are about a third of the pitch. One window per bay per floor, 1.9 x 1.9 m on a 0.55 m sill, so the spandrel shows above and below it (S6, S7)."
+      "_src": "The tower's long elevations. Bay 3.2 m: twenty pale piers were counted across one long face in a brightness profile of S6 at y 380-420 (piers at x 55, 81, 115, 151, 189, 228, 268, 310, 354, 400, then the core strip, then 499, 552, 607, 665, 726, 789, 857, 928, 1003, 1065), and eighteen in the same profile of the NW oblique (S8) - twenty bays plus the two-bay core strip across a 67 m tower face is 3.2 m. The pier is 0.9 m and the recessed channel between piers 2.3 m: a luminance profile across one bay of S6 (rows y 300-340, the bay from x 1002 to x 1065, 63 px) has the pier bright for 17 px - 27 % of the pitch - and the channel dark or mid-grey for the other 46. One window per bay per floor, 2.15 x 1.85 m on a 0.55 m sill: a vertical profile of the same photograph gives glass runs of 45 px in a 64 px floor pitch (70 %) and S7 gives 28 of 50 (56 %); 1.85 of 2.9 m is 64 %, between the two. The three tones keep the photograph's own order and roughly its spacing - measured luma 180 / 104 / 50 for pier / spandrel / glass, ours 189 / 110 / 65."
     },
     "core": {
       "kind": "flat",
@@ -204,11 +208,11 @@
       "bay": 0.57,
       "field": "finLight",
       "strip": {
-        "w": 0.28,
+        "w": 0.22,
         "tone": "finShade",
         "at": "centres"
       },
-      "_src": "The garage screen: vertical metal fins over the whole podium above the ground floor. Pitch 0.57 m - 36 lit fin faces counted in a brightness profile of the head-on elevation (S5) across 700 px at S5's own scale, 0.0293 m/px, = 20.5 m. The lit face and the shaded side are about half the pitch each. No window: the garage behind is open deck, and nothing reads through the screen in any photograph."
+      "_src": "The garage screen: vertical metal fins over the whole podium above the ground floor. Pitch 0.57 m - 36 lit fin faces counted in a brightness profile of the head-on elevation (S5) across 700 px at S5's own scale, 0.0293 m/px, = 20.5 m. The lit face and the shaded side are about half the pitch each in S5 (lit runs 13-16 px, shaded 8-18 px, depending on each fin's angle to the sun). 0.22 m is the low end of the shaded measurement, chosen deliberately: at this app's oblique camera the pitch is about two pixels, and a half-dark share turns the band into a moire barcode instead of the pale blue screen every photograph and the Google Earth mesh show. No window: the garage behind is open deck, and nothing reads through the screen in any photograph."
     },
     "spandrelBand": {
       "kind": "flat",
@@ -239,10 +243,10 @@
       "reveal": 0.3,
       "_src": "level 1: leasing office, retail and the Castilian Cafe (S3, S10) behind a storefront that sits back under the podium overhang, with a white canopy fascia (S4, S5). Mullion 1.6 m read off S5 at its own scale. The recess itself is not modelled - the wall is in the podium plane; see `open`."
     },
-    "roofWhite": {
+    "penthouse": {
       "kind": "flat",
-      "field": "roof",
-      "_src": "the mechanical penthouse (S8)"
+      "field": "penthouseWhite",
+      "_src": "the mechanical penthouse walls (S8) - unused while the penthouse is a roofItem box, kept so a future block can wear it"
     }
   },
   "blocks": [
@@ -289,18 +293,18 @@
           "plan": [
             8.0,
             70.0,
-            26.5,
-            34.0
+            27.0,
+            33.5
           ],
           "grid": [
-            12,
+            9,
             2
           ],
           "size": [
-            1.2,
-            1.8
+            0.9,
+            1.4
           ],
-          "h": 1.0,
+          "h": 0.6,
           "tone": "condenser",
           "_src": "S8 nadir: the east deck strip carries units along its whole length"
         },
@@ -309,17 +313,17 @@
             12.0,
             64.0,
             2.5,
-            7.0
+            6.5
           ],
           "grid": [
-            6,
+            5,
             2
           ],
           "size": [
-            1.2,
-            1.8
+            0.9,
+            1.4
           ],
-          "h": 0.9,
+          "h": 0.6,
           "tone": "condenser",
           "_src": "S8 nadir: the west deck strip carries fewer, in two loose rows"
         }
@@ -335,31 +339,31 @@
         23.6
       ],
       "z0": 25.6,
-      "z1": 58.6,
+      "z1": 59.0,
       "bands": [
         {
           "z0": 25.6,
-          "z1": 57.5,
+          "z1": 57.0,
           "skin": "grid"
         },
         {
-          "z0": 57.5,
-          "z1": 58.6,
+          "z0": 57.0,
+          "z1": 59.0,
           "skin": "core"
         }
       ],
-      "_bands_src": "the punched grid to 57.5, then the dark crown band that stops the grid before the parapet (S6, S7) - `core` is that same charcoal",
+      "_bands_src": "the punched grid to 57.0, then the dark crown band that stops the grid before the parapet (S6, S7) - `core` is that same charcoal. The band measures 0.93 m in S6 (18 px against a 56 px floor pitch) and is drawn 2.0 m: at the first look a 1.1 m band under a 1.4 m pale parapet vanished at the oblique camera, where the reference shows a clear dark line under the coping.",
       "faces": {
         "u0": {
           "bands": [
             {
               "z0": 25.6,
-              "z1": 57.5,
+              "z1": 57.0,
               "skin": "end"
             },
             {
-              "z0": 57.5,
-              "z1": 58.6,
+              "z0": 57.0,
+              "z1": 59.0,
               "skin": "core"
             }
           ]
@@ -368,12 +372,12 @@
           "bands": [
             {
               "z0": 25.6,
-              "z1": 57.5,
+              "z1": 57.0,
               "skin": "end"
             },
             {
-              "z0": 57.5,
-              "z1": 58.6,
+              "z0": 57.0,
+              "z1": 59.0,
               "skin": "core"
             }
           ]
@@ -391,31 +395,31 @@
           "bands": [
             {
               "z0": 25.6,
-              "z1": 58.6,
+              "z1": 59.0,
               "skin": "core",
               "signs": [
                 {
                   "text": "CASTILIAN",
                   "vertical": true,
                   "s": 3.2,
-                  "zTop": 50.5,
-                  "dot": 0.2,
-                  "gap": 0.22,
+                  "zTop": 56.0,
+                  "dot": 0.16,
+                  "gap": 0.18,
                   "tone": "sign",
                   "back": {
-                    "w": 3.0,
+                    "w": 2.6,
                     "tone": "sign",
-                    "pad": 0.6
+                    "pad": 0.5
                   }
                 }
               ]
             }
           ],
-          "_src": "The lift and stair core: a charcoal strip the full height of both long faces, with the white vertical CASTILIAN sign panel on it. Position is 40 % of the tower's length from the north end - six bays stand north of it and ten to eleven south of it in the NW oblique's pier profile (S8), and it falls at the same fraction on the east face in S7. Width 6.4 m = two bays: the gap in S6's pier profile (411-499 px) is 1.76 times the local bay spacing and 2.0 times it in S8's. The sign panel is a white plate about 3 m wide reaching from level 20 down to level 12 (S6, S8); the letters are the same white, so `back` carries the plate and the dots stand proud of it."
+          "_src": "The lift and stair core: a charcoal strip the full height of both long faces, with the white vertical CASTILIAN sign panel on it. Position is 40 % of the tower's length from the north end - six bays stand north of it and ten to eleven south of it in the NW oblique's pier profile (S8), and it falls at the same fraction on the east face in S7. Width 6.4 m = two bays: the gap in S6's pier profile (411-499 px) is 1.76 times the local bay spacing and 2.0 times it in S8's. The sign panel is a white plate about 2.6 m wide - 40 % of the strip - hanging from just under the crown band and about 12 m tall, which is where S6 and S8 both put it; the letters are the same white, so `back` carries the plate and the dots stand proud of it."
         }
       ],
       "roofTone": "roof",
-      "parapet": 1.4,
+      "parapet": 1.0,
       "parapetTone": "coping",
       "parapetSides": [
         "v0",
@@ -432,7 +436,7 @@
             23.0
           ],
           "h": 4.0,
-          "tone": "roofWhite",
+          "tone": "penthouseWhite",
           "_src": "the mechanical penthouse at the north end of the tower roof: a white box in both obliques (S8) and the brightest, most displaced block in the nadir. Extents read off the nadir with the parallax taken out at its own height, plus or minus 3 m; 4.0 m tall is derived from its height against the tower parapet in the SW oblique."
         },
         {
