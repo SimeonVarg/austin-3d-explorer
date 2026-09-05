@@ -882,15 +882,15 @@
       {
         "id": "deckRedWest",
         "plan": [
-          40.0,
-          50.3,
+          46.8,
+          50.4,
           60.6,
           70.0
         ],
         "z0": 0.0,
         "h": 0.06,
         "tone": "deckRed",
-        "_src": "S6 rectified nadir: the red paving band west of the pool, dark with loungers on it."
+        "_src": "S6 rectified nadir: the red paving band west of the pool, dark with loungers on it. TWO READS OVERLAPPED HERE AND ARE RECONCILED: the rectified nadir puts the red lounger paving at u 43-50 and the scaled elevation (S11) puts the canopy's east end at u 48.7, so five metres were claimed twice. The canopy is pulled back to u 46.5 and the paving starts at 46.8 - both inside their own reads' precision, and nothing is drawn in two places."
       },
       {
         "id": "deckRedEast",
@@ -908,8 +908,8 @@
       {
         "id": "loungers",
         "plan": [
-          41.5,
-          49.0,
+          47.0,
+          50.2,
           62.2,
           67.8
         ],
@@ -935,7 +935,7 @@
         "id": "canopyDeck",
         "plan": [
           17.5,
-          50.0,
+          46.2,
           61.2,
           70.0
         ],
@@ -948,14 +948,14 @@
         "id": "canopy",
         "plan": [
           17.0,
-          50.5,
+          46.5,
           60.8,
           70.3
         ],
         "z0": 2.55,
         "z1": 3.25,
         "tone": "roof",
-        "_src": "the CANOPY OVER THAT PARKING LEVEL, not an amenity building: the N and NW obliques show a long pale curved roof along 22nd Street with cars parked under it, and the rectified nadir has it as one smooth plane. Extent from earth-north.png, where it runs between x 370 and 680 of the north face's 100-830 = u 17-50 in this frame (LOOK-FIX 2 widened it from 23.5-49 and dropped it from 3.6-4.2 m over the deck to 2.55-3.25, one parking level, which is where the N oblique puts it). Drawn as a flat plate - the curve is under a pixel at the cameras this app is judged from."
+        "_src": "the CANOPY OVER THAT PARKING LEVEL, not an amenity building: the N and NW obliques show a long pale curved roof along 22nd Street with cars parked under it, and the rectified nadir has it as one smooth plane. Extent from earth-north.png, where it runs between x 370 and 680 of the north face's 100-830 = u 17-50 in this frame (LOOK-FIX 2 widened it from 23.5-49 and dropped it from 3.6-4.2 m over the deck to 2.55-3.25, one parking level, which is where the N oblique puts it). Drawn as a flat plate - the curve is under a pixel at the cameras this app is judged from. TWO READS OVERLAPPED HERE AND ARE RECONCILED: the rectified nadir puts the red lounger paving at u 43-50 and the scaled elevation (S11) puts the canopy's east end at u 48.7, so five metres were claimed twice. The canopy is pulled back to u 46.5 and the paving starts at 46.8 - both inside their own reads' precision, and nothing is drawn in two places."
       },
       {
         "id": "deckScreen",
