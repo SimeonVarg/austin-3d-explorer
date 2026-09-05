@@ -134,8 +134,8 @@
       "_src": "the accent panel that carries the scattered slot windows. Measured in three lights and neutralised: S6 crop 760,300-960,1300 gives #978379 under a golden evening sun, S7 crop 520,60-690,820 gives #6394c4 under a blue sky, S9 shows it a clear step darker than `panel` and greener. Each read carries its own light; the day tone is the achromatic middle."
     },
     "podium": {
-      "hex": "#8d9295",
-      "_src": "the darker grey panel of the six-storey base. S5 clean crops 700,875-770,905 (#9f9e9e) and 840,900-900,935 (#bbb7ad) are sunlit reads of it; S8 has it at #738dae under blue hour. Entered a step below the sunlit read."
+      "hex": "#a2a6a8",
+      "_src": "the darker grey panel of the six-storey base. S5 clean crops 700,875-770,905 (#9f9e9e) and 840,900-900,935 (#bbb7ad) are sunlit reads of it; S8 has it at #738dae under blue hour. LOOK-FIX 1: it was entered at #8d9295, below BOTH sunlit reads, and the six-storey base came out the darkest thing on the building from the north - darker than it is in S5, where the podium is plainly a mid grey against the white above it. Moved on to the measurement."
     },
     "concrete": {
       "hex": "#b7b3aa",
@@ -160,17 +160,17 @@
     ],
     "_glass_src": "the punched windows' glass: near-black blue-grey by day. S5 crop 560,560-760,860 has the panes at #16415d at the 10th luminance percentile and S7 at #18548f - both under a blue sky, so the day value is entered without that cast; the night value is the unlit pane, and lit panes take APARTMENTS.nightLitTone.",
     "storeGlass": [
-      "#3f4c55",
-      "#525860",
+      "#55646d",
+      "#5f666e",
       "#e9c27a"
     ],
-    "_storeGlass_src": "the ground-floor storefront: S8 crop 250,1180-700,1260 at blue hour is #383129 to #564e46 with the interior lit warm behind it, which is the night value.",
+    "_storeGlass_src": "the ground-floor storefront: S8 crop 250,1180-700,1260 at blue hour is #383129 to #564e46 with the interior lit warm behind it, which is the night value. LOOK-FIX 1: the day value was that blue-hour read (#3f4c55) and the glazed corner volume came out a black rectangle at midday; a shopfront glass in daylight carries the sky, so it is lifted to #55646d.",
     "stairGlass": [
-      "#4a5f6d",
-      "#5b626b",
+      "#6d808c",
+      "#6f7680",
       "#cfe0ea"
     ],
-    "_stairGlass_src": "the glazed stair beside the core: paler than a flat window because you see through it to a lit landing at every floor (S6, S9); cool and lit at night.",
+    "_stairGlass_src": "the glazed stair beside the core: paler than a flat window because you see through it to a lit landing at every floor (S6, S9); cool and lit at night. LOOK-FIX 1: at #4a5f6d it read as a dark seam next to the concrete rather than the bright reflective slot S6 and S7 both show, so it is lifted two steps and now sits between the wall and the punched windows.",
     "roof": [
       "#c9cdd1",
       "#cdcbc6",
@@ -201,6 +201,12 @@
       "#141f19"
     ],
     "_turf_src": "S13 turf.",
+    "terrace": [
+      "#82888c",
+      "#8d8a84",
+      "#171a22"
+    ],
+    "_terrace_src": "the paving on the four terrace decks of the north wing. In S10's rectified plan the three terrace bands are the DARKEST thing on the roof plane - darker than the white membrane roofs either side of them - and S11 shows them as recessed shadowed strips behind a guard. LOOK-FIX 1: they were drawn in `roof`, the white membrane, and from the north the four steps read as bright white shelves flying out of the wall instead of as terraces.",
     "rail": [
       "#2e3136",
       "#3a3733",
@@ -859,7 +865,7 @@
         },
         {
           "region": [
-            34.5,
+            36.6,
             39.05,
             35.79,
             35.79
@@ -871,7 +877,7 @@
               "skin": "concrete"
             }
           ],
-          "_src": "the west face's exposed core, south half. The core reads on the Nueces face in S6, S8 and S9; S10 puts its head - the big roof bulkhead - at u 34.5-43.5, which is what sets these two numbers."
+          "_src": "the west face's exposed core, south half. The core reads on the Nueces face in S6, S8 and S9. LOOK-FIX 1: it was first taken as the whole plan of the roof bulkhead S10 puts at u 34.5-43.5, which put 12.5 m of concrete and glass on a 35.8 m elevation - about a third of it, where S8 shows nearer a sixth. The bulkhead is the mechanical penthouse; only the lift shaft inside it comes down the wall. Narrowed to 5.5 m of concrete (u 36.6-42.1) with 2.6 m of glazed stair beside it, which is the proportion in S8."
         }
       ],
       "roofTone": "roof",
@@ -1040,7 +1046,7 @@
         {
           "region": [
             39.05,
-            43.5,
+            42.1,
             35.79,
             35.79
           ],
@@ -1055,8 +1061,8 @@
         },
         {
           "region": [
-            43.5,
-            47.0,
+            42.1,
+            44.7,
             35.79,
             35.79
           ],
@@ -1071,7 +1077,7 @@
         },
         {
           "region": [
-            47.0,
+            44.7,
             49.58,
             35.79,
             35.79
@@ -1207,14 +1213,15 @@
         "u1": null,
         "_src": "u0 is the NORTH wall of light well B; u1 is under the step to the north and is not drawn"
       },
-      "roofTone": "roof",
+      "roofTone": "terrace",
       "parapet": 1.05,
       "parapetTone": "coping",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
-      ]
+      ],
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
     },
     {
       "id": "step12",
@@ -1287,14 +1294,15 @@
         "u1": null,
         "_src": "u0 stands against the step to the south; u1 is under the step to the north and is not drawn"
       },
-      "roofTone": "roof",
+      "roofTone": "terrace",
       "parapet": 1.05,
       "parapetTone": "coping",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
-      ]
+      ],
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
     },
     {
       "id": "step9",
@@ -1390,14 +1398,15 @@
           "_src": "the corner volume returns 3.2 m round this step too (S8)"
         }
       ],
-      "roofTone": "roof",
+      "roofTone": "terrace",
       "parapet": 1.05,
       "parapetTone": "coping",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
-      ]
+      ],
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
     },
     {
       "id": "step6",
@@ -1532,14 +1541,15 @@
           "_src": "the same volume returning 11.3 m along the 23rd Street face (S8)"
         }
       ],
-      "roofTone": "roof",
+      "roofTone": "terrace",
       "parapet": 1.05,
       "parapetTone": "coping",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
-      ]
+      ],
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
     }
   ],
   "deck": {
