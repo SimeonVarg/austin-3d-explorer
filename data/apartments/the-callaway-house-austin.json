@@ -215,8 +215,8 @@
       "_src": "S10, earth-east.png crop (625,380)-(700,490), the sunlit residential field on the San Antonio elevation: 37.7% #b7b5b1 and 36.1% #d1cec8 - one stucco/panel material read in sun and in its own floor-line shadow - entered as their share-weighted mean (#c3c1bd) and then entered as #d2d4d4 - lifted and given a slight cool cast, the way js/westcampus.js's SOLID enters a top face. HOW FAR THAT LIFT GOES, AND WHY IT STOPS: measured at the matched north camera, our wall renders #a99e92 where the reference's is #a1a0a2, because this app's day light multiplies a wall by about (0.79, 0.73, 0.67). Cancelling that exactly would want #ccdbf2 entered here - a blue hex - and Callaway would then be the one cool-white building in a West Campus whose every neighbour wears the same warm light. That is Google Earth's white balance, not a fact about this brick and stucco, so the lift stops at a plausible light stucco. LOOK-FIX 1 and 3 got here; LOOK-FIX 4 wrote down where it stops. This is S4's stucco-and-metal-panel field."
     },
     "panelShade": {
-      "hex": "#aeaaa4",
-      "_src": "derived: one step down from `panel`, for the recessed horizontal joint at every floor line (visible as a continuous shadow line per floor in every S6 oblique)."
+      "hex": "#b8bbbb",
+      "_src": "derived: one step down from `panel`, and neutral with it, for the recessed horizontal joint at every floor line (a continuous shadow line per floor in every S6 oblique). LOOK-FIX 4 took the warm cast off it when `panel` lost its own - a tan line under a neutral wall read as a stain."
     },
     "brick": {
       "hex": "#a2614b",
@@ -977,6 +977,9 @@
     "The four courtyard walls above deck level are unphotographed and wear the plainest rule the building has.",
     "The storefront mullion pitch is unknown; 1.6 m is the plainest module that matches the N oblique.",
     "The curved standing-seam profile of the parking canopy is drawn as a flat plate.",
-    "The dining hall's own glazing on the west (Nueces) end of the ground floor is not separated from the brick base - no frame found shows it."
+    "The dining hall's own glazing on the west (Nueces) end of the ground floor is not separated from the brick base - no frame found shows it.",
+    "The brick pier module, the two brick regions and the west wing all come off S11, one head-on elevation. The south and west elevations were only checked against it, not measured off their own scales.",
+    "A pixel test comparing warm-pixel SHARE between our frame and Google Earth's was tried and dropped: at R - B > 40 the reference reads 15.8% brick and ours 35.1%, but the two renderers disagree about a brick in shadow, so the share is not comparable across them. The module is measured on the elevation instead.",
+    "The reference frames, the rectified plan, the white-roof mask and every ours-beside-reference pair are in the session scratchpad under apts/build/apartments/the-callaway-house-austin/; none is cited by a doc, so none is committed."
   ]
 }
