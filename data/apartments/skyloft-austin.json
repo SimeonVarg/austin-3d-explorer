@@ -170,11 +170,11 @@
     ],
     "_storeGlass_src": "the ground-floor storefront: S8 crop 250,1180-700,1260 at blue hour is #383129 to #564e46 with the interior lit warm behind it, which is the night value. LOOK-FIX 1: the day value was that blue-hour read (#3f4c55) and the glazed corner volume came out a black rectangle at midday; a shopfront glass in daylight carries the sky, so it is lifted to #55646d.",
     "loungeGlass": [
-      "#4a5b68",
-      "#586170",
+      "#5f6f7b",
+      "#68707d",
       "#a98a5c"
     ],
-    "_loungeGlass_src": "the glass of the corner amenity volume. DERIVED, not inverted from a measurement: S8 is the only photograph of it and it is blue hour, and a large reflective plane at blue hour shows the sky, not the surface (S8 crop 470,880-540,925 is #657fab, the sky), so the daylight value cannot be read off it the way the panel's can. It is placed between the two glasses on this building that WERE derived - the punched window (#2a3a45) and the ground-floor storefront (#55646d) - because it is a full-height room glass seen against a lit interior. The night value is the warm downlit lounge S8 shows through it.",
+    "_loungeGlass_src": "the glass of the corner amenity volume. DERIVED, not inverted from a measurement: S8 is the only photograph of it and it is blue hour, and a large reflective plane at blue hour shows the sky, not the surface (S8 crop 470,880-540,925 is #657fab, the sky), so the daylight value cannot be read off it the way the panel's can. It is placed between the two glasses on this building that WERE derived - the punched window (#2a3a45) and the ground-floor storefront (#55646d) - because it is a full-height room glass seen against a lit interior. The night value is the warm downlit lounge S8 shows through it. LOOK-FIX 5: it was entered BELOW the storefront, at #4a5b68, and at the corner the four-storey volume read as one black block over a lighter shopfront - the same defect LOOK-FIX 1 fixed on the storefront itself, in the opposite direction. A room glass four storeys up carries more sky than a shopfront recessed under a soffit, so it is lifted a step ABOVE the storefront.",
     "stairGlass": [
       "#6d808c",
       "#6f7680",
@@ -384,11 +384,6 @@
         "start": 0.45
       },
       "_src": "the base on the two faces that are not a street - the parking podium (S3 lists parking). S5 shows it behind hoarding and S7 shows only its dark band, so the louvre pitch 0.55 m is a plausible number and is NOT measured: unknown."
-    },
-    "capFlat": {
-      "kind": "flat",
-      "field": "capBlue",
-      "_src": "the teal cap box's cladding (S6)"
     }
   },
   "_balcony_src": "no balconies. S5, S6, S7, S8 and S9 show punched windows on a flat panel plane on every face, with no slab projecting anywhere; the outdoor space on this building is the terraces on the north steps and the roof.",
