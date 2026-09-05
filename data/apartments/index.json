@@ -12,7 +12,8 @@
     "21-rio.json",
     "moontower.json",
     "2819-rio-grande.json",
-    "cambridge-tower.json"
+    "cambridge-tower.json",
+    "signature-1909.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -26,7 +27,8 @@
     "73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5",
     "b423d7a9-4059-44b3-8fed-3d088563c870",
     "583f3864-f044-4c2c-9d5b-8af47112562b",
-    "b0101452-d54c-4dff-a8a2-e582ddda29d6"
+    "b0101452-d54c-4dff-a8a2-e582ddda29d6",
+    "4d0b4ea1-f597-4bc0-9a75-0c7aeb9ed328"
   ],
   "replacedNames": [
     "The Standard",
@@ -39,6 +41,7 @@
     "26 West",
     "21 Rio",
     "Moontower",
-    "Cambridge Tower"
+    "Cambridge Tower",
+    "Signature 1909"
   ]
 }
