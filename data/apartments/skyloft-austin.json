@@ -1740,6 +1740,11 @@
       "what": "a skin whose windows are scattered rather than on a column",
       "why": "the end walls in S5, S6 and S9 carry slot windows that are deliberately NOT aligned. `bays` puts one window per bay per floor, on a column. The three strips of `slots`/`slotsB`/`slotsC` with coprime bays and different sills break the columns up, but a `scatter` rule (density per m2, position from the cell hash the pixel skin already has) would be the real thing.",
       "owner": "js/slopes-apartments.js - not this file"
+    },
+    {
+      "what": "a bay whose window is a GROUP, and a chamfered corner",
+      "why": "two rules this building wants and the schema cannot say. (1) S7's head-on elevation repeats a wide window plus a pair of narrow ones about every 6.5 m; `bays` takes one window per bay, so the grid here is the right pitch with the wrong grouping. A `window` that took a LIST of [offset, w] inside the bay would draw it. (2) The corner amenity volume is chamfered in S8; overrides clip axis-parallel walls, so the facet cannot be drawn.",
+      "owner": "js/slopes-apartments.js - not this file"
     }
   ],
   "open": [
@@ -1747,6 +1752,12 @@
     "The east face's concrete pier and glazed stair are in S7 but S7 cannot be registered along the wall; they are placed under the roof box S10 puts at u 30-36. Position along u: +/- 5 m.",
     "The light wells' walls were never photographed and wear the plainest skin the building has.",
     "The roof bulkheads' heights (3.0 m, 2.2 m, 6.2 m) are derived from what stands proud in S6; only their plans are measured.",
-    "The garage louvre pitch is a plausible 0.55 m, not measured."
+    "The garage louvre pitch is a plausible 0.55 m, not measured.",
+    "WHICH long face S5 was shot from is not settled. It shows one long elevation with the punched grid, a blank slot end wall beside it, a six-storey grey block in front and an open parking deck at the far edge; that reading works from the south-east and from the south-west, and the two put the sky lounge on different faces. It is placed on the strip of the SOUTH end wall that stands under the pool deck, because S10's nadir fixes the deck at the roof's south-east corner and S5 shows the lounge immediately beside the terrace. A photograph of the east elevation from the north would settle it.",
+    "The sky lounge's projecting soffit - the canopy over the glass in S5 - is not drawn. The generator has no rule for a slab that oversails a wall, and a roofItem sits on a roof, not at a band's head.",
+    "The corner amenity volume is square in plan here. In S8 its corner is CHAMFERED and each storey steps a little proud of the one above; the generator's overrides clip axis-parallel walls, so a 45-degree facet cannot be expressed.",
+    "S11's north elevation shows a dark glazed corner at the NORTH-EAST corner too, about 5 m wide, as well as the north-west one S8 photographs. It is not authored: that side of the Esri frame is in shadow and dark glass and shadow read alike there. A photograph of the alley corner would settle it.",
+    "The window rhythm is a uniform 3.26 m bay. S7's head-on elevation shows the real unit is a WIDE window with a pair of narrower ones beside it, repeating about every 6.5 m. The `bays` skin puts one window per bay per floor and cannot express a pair; the pitch and the wall-to-glass share are right, the grouping is not (see `todo`).",
+    "The north elevation has a vertical notch in it - a recess splitting the face into two wings, in S8 and in S11's own frame. The footprint here is the snapshot's rectangle with its two interior rings, which has no notch in it."
   ]
 }
