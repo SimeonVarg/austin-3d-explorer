@@ -1,0 +1,57 @@
+{
+  "_": "Sol LeWitt, 'Circle with Towers', 2005/2012 — concrete block, at the Speedway entrance to the Gates-Dell Complex. Read off Landmarks' own photographs rather than from a description, because the description ('a circular wall with towers') is what produced the colonnade this file replaces. EVERY number below carries the pixel or the publication it came from. See docs/real-art.md for the working.",
+  "name": "Circle with Towers",
+  "artist": "Sol LeWitt",
+  "year": 2012,
+
+  "at": [-97.737111, 30.286235],
+  "atSource": "landmarks.utexas.edu/artwork/circle-towers, 'GPS: lon: 97.737111 lat: 30.286235'. data/art.geojson's own parts centre on -97.7369445, 30.2862735 (a buffered OSM node); the two are 17 m apart and the OSM node is what the rest of the city is registered to, so `atFromData` below keeps this piece where its label and its footprint already are.",
+  "atFromData": true,
+
+  "dims": {
+    "h": 4.2672,
+    "diameter": 7.8232,
+    "source": "'168 x 308 inches diameter' — landmarks.utexas.edu/artwork/circle-towers. 168 in = 4.2672 m, 308 in = 7.8232 m."
+  },
+
+  "block": {
+    "course": 0.2032,
+    "face": 0.1937,
+    "length": 0.4064,
+    "source": "Standard US CMU: 8 in nominal course (7 5/8 in unit + 3/8 in joint) = 0.2032 m, 16 in nominal length = 0.4064 m. THIS IS THE KEY: the published height, 168 in, is exactly 21 courses of 8 in, so the artwork's own dimension is stated in the block module. The 0.1937 m face is the 7 5/8 in unit, which is what leaves the joint line visible."
+  },
+
+  "wall": {
+    "courses": 5,
+    "note": "1.016 m. COUNTED, not guessed: on the near arc of Landmarks' aerial (photo Mark Menjivar, landmarks.utexas.edu artwork gallery '01-lewitt-circlewithtowers') the outer face of the wall shows five block courses between the coping's own top and the gravel, and the same count reads on the level ground view (photo Mark Menjivar, gallery image 3) beside the near tower. The bake's 1.35 m was 'read off the photographs' without a count and is one course too tall.",
+    "radialBlocks": 1,
+    "radialNote": "One block thick. The coping in the aerial is a fan of blocks laid RADIALLY — each unit's long axis points at the centre — and the outer face therefore shows block ENDS as narrow vertical strips with an open wedge of shadow between them. That is the signature of this piece from any distance and it is what a smooth tangential wall cannot produce."
+  },
+
+  "fingers": {
+    "count": 108,
+    "source": "DERIVED, and it reproduces the photograph. Radial blocks 0.1937 m wide laid touching at the inner face: inner radius = 3.9116 - 0.4064 = 3.5052 m, inner circumference 22.02 m, 22.02 / 0.2032 = 108.4 -> 108. At the outer radius the pitch is then 0.2276 m, so the open wedge between two fingers is 0.034 m at the outer face, 15% of the pitch — which is what the outer face reads as in the aerial crop."
+  },
+
+  "towers": {
+    "count": 8,
+    "countSource": "Counted in Landmarks' aerial (photo Mark Menjivar): eight towers evenly round the ring. The bake had eight towers AND sixteen posts between them.",
+    "courses": 21,
+    "coursesSource": "21 x 8 in = 168 in, the published height, exactly.",
+    "fingers": 5,
+    "fingersSource": "The tower face in the level ground view reads as four to five vertical strips of the same width as the wall's, separated by the same shadow grooves — the tower is the wall's own radial fingers carried up, not a separate post. 5 x 0.2276 m outer pitch = 1.14 m tangentially, which matches the tower's width measured against the 7.82 m ring in the aerial (~1.0-1.2 m).",
+    "radialBlocks": 2,
+    "radialSource": "Read off the aerial: the towers stand proud of the wall INWARD, intruding on the gravel circle, by about one wall thickness. 2 blocks = 0.8128 m radial depth against the wall's 0.4064 m, outer faces flush.",
+    "bearings": [0, 45, 90, 135, 180, 225, 270, 315],
+    "bearingsSource": "Eight, evenly spaced. The aerial shows no preferred axis and a circle with eight identical towers has no legible orientation to get wrong — the same reason scripts/bake_art.py's HEADINGS table deliberately has no entry for this piece."
+  },
+
+  "material": {
+    "day": "#aeb3b4",
+    "golden": "#bcb0a0",
+    "night": "#262a30",
+    "source": "SAMPLED. Median RGB over a 80x200 px patch of block face in Landmarks' aerial (soft light) is (173,179,182) = #adb3b6; the coping's sunward top face is #c8cdd1 and a shaded face in the level view is #50554f. The day tone is the diffuse reading. Golden and night follow the shift the app's own palette uses between js/props.js ARTMAT 'alum' day #b9bec6 and golden #c6b9a6 (R x1.07, G x0.97, B x0.84). The bake painted this piece 'granite' #8e8b86, which is both darker and warmer than the concrete block actually is.",
+    "jointDay": "#8f9698",
+    "jointNote": "The recessed mortar joint and the wedge between two fingers, one step down from the face. A colour is the depth here, the same trick js/slopes-dome.js uses for the drum's window recesses."
+  }
+}
