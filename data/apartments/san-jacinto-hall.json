@@ -241,8 +241,8 @@
    "_src": "S7, the belt course capping the base, crop (600,688)-(900,700), mid-50% #e1dcd1, normalised. The same cast stone is the frieze under the eave, the belt course and the parapets."
   },
   "glass": {
-   "hex": "#685d4d",
-   "_src": "S7, three window openings at (600,586)-(610,598), (703,586)-(711,598) and (806,586)-(813,598): the core of the opening reads 0.53/0.50/0.47 of the sunlit brick beside it and that ratio is applied to the anchor. Earth's mesh smears a 1.1 m opening at 0.09 m/px, so this is the darkest honest read, not the true glass."
+   "hex": "#453c2f",
+   "_src": "S7, four window openings at (598,584)-(612,600) and the same box on the next three columns: the darkest eighth of the pixels inside the opening reads 0.353/0.328/0.288 of the sunlit brick beside it, and that ratio is applied to the anchor. The MEAN of the opening was used first and gave #685d4d, which rendered as a wall with faint dashes on it while the reference shows the windows as the facade's strongest texture - the mean is diluted by the cast-stone surround Earth's mesh smears into a 1.1 m opening at 0.09 m/px, and the opening's own darkest read is the honest one."
   },
   "tile": [
    "#bc6143",
@@ -251,11 +251,17 @@
   ],
   "_tile_src": "S8.",
   "paving": [
-   "#877b6b",
-   "#a1876b",
-   "#141622"
+   "#9c968d",
+   "#b0a493",
+   "#20222c"
   ],
-  "_paving_src": "S2 rd/rg/rn - the bake's own roof read for this feature, which from above is the terrace and the low flat roofs, since the tile is S8's. A measurement that already existed."
+  "_paving_src": "The terrace deck and the low flat roofs, broom-finished concrete. S5's rectified nadir reads the terrace at #9d8e7c and the tile beside it at #886a64 - the terrace is 1.26x the tile's luma there. Only the LUMA ratio is carried over: Earth's nadir is hazy and desaturated, so normalising the whole colour through the tile turns the concrete orange (it gives #d98253, which is nonsense). #9c968d is a neutral warm grey at 1.26x the app's own tile-day luma; golden and night follow the same 1.26 against S8's trio. S2's rd was used here first and was wrong: the bake's roof read for this feature is its tile, not its terrace, and the terrace disappeared into the roof.",
+  "course": [
+   "#d59d8a",
+   "#e6af94",
+   "#11111c"
+  ],
+  "_course_src": "The ridge course, and the one thing here sized to the camera rather than measured. js/slopes-roofs.js draws one on every campus hip - ROOFS.lines: 1.0 m wide, 0.15 m proud, at `pale` 0.38 of the way from the roof colour toward white for day and golden - and that generator's own note says a REAL ridge course is about 0.4 m and was widened to 1.0 so it would land at mall-cruise. The same argument goes further here: a stepped hip presents only horizontal treads and vertical risers, so at this app's oblique the near slope collapses to a 0.17 foreshortening and a 1.0 m course measured 2 px. It is drawn 2.0 m wide and 0.30 m proud, which lands as a legible ridge line. The colour is S8's tile trio through the same 0.38; night is left at the tile's own night, as the roofs generator leaves it."
  },
  "skins": {
   "wall": {
@@ -380,54 +386,104 @@
    "roofItems": [
     {
      "plan": [
-      1.92,
-      41.58,
-      23.72,
-      39.08
+      -0.85,
+      44.35,
+      20.95,
+      41.85
      ],
-     "h": 0.9,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: the wing runs u 0 to 43.5 between v 21.8 and 41.0, 19.2 m wide, and its ridge sits on the centre line at v 31.4 with a hip at each end. The rise is 19.2/2 at 25 degrees = 4.48 m; S7 measures the eave-to-ridge of the south wing, the same section, at 48 px = 4.2 +/- 0.3 m. Five inset boxes, so the silhouette leans at the roof's own pitch instead of reading as a fascia and a lid."
     },
     {
      "plan": [
-      3.84,
-      39.66,
-      25.64,
-      37.16
+      0.46,
+      43.04,
+      22.26,
+      40.54
      ],
-     "h": 1.79,
+     "h": 0.96,
      "tone": "tile"
     },
     {
      "plan": [
-      5.76,
-      37.74,
-      27.56,
-      35.24
+      1.76,
+      41.74,
+      23.56,
+      39.24
      ],
-     "h": 2.69,
+     "h": 1.57,
      "tone": "tile"
     },
     {
      "plan": [
-      7.68,
-      35.82,
-      29.48,
-      33.32
+      3.07,
+      40.43,
+      24.87,
+      37.93
      ],
-     "h": 3.58,
+     "h": 2.18,
      "tone": "tile"
     },
     {
      "plan": [
-      8.83,
-      34.67,
-      30.63,
-      32.17
+      4.38,
+      39.12,
+      26.18,
+      36.62
      ],
-     "h": 4.48,
+     "h": 2.79,
      "tone": "tile"
+    },
+    {
+     "plan": [
+      5.68,
+      37.82,
+      27.48,
+      35.32
+     ],
+     "h": 3.39,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      6.99,
+      36.51,
+      28.79,
+      34.01
+     ],
+     "h": 4.0,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.29,
+      35.21,
+      30.09,
+      32.71
+     ],
+     "h": 4.61,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.97,
+      34.53,
+      30.77,
+      32.03
+     ],
+     "h": 4.93,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      8.97,
+      34.53,
+      30.4,
+      32.4
+     ],
+     "h": 5.23,
+     "tone": "course"
     }
    ],
    "_src": "S5. The bar facing 21st Street; its west and north walls stand in the campus grade."
@@ -490,54 +546,104 @@
    "roofItems": [
     {
      "plan": [
-      45.36,
-      72.34,
-      35.26,
-      50.14
+      42.65,
+      75.05,
+      32.55,
+      52.85
      ],
-     "h": 0.87,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: u 43.5 to 74.2 between v 33.4 and 52.0 - 18.6 m wide, ridge on the centre line at v 42.7."
     },
     {
      "plan": [
-      47.22,
-      70.48,
-      37.12,
-      48.28
+      43.92,
+      73.78,
+      33.82,
+      51.58
      ],
-     "h": 1.74,
+     "h": 0.94,
      "tone": "tile"
     },
     {
      "plan": [
-      49.08,
-      68.62,
-      38.98,
-      46.42
+      45.19,
+      72.51,
+      35.09,
+      50.31
      ],
-     "h": 2.6,
+     "h": 1.53,
      "tone": "tile"
     },
     {
      "plan": [
-      50.94,
-      66.76,
-      40.84,
-      44.56
+      46.46,
+      71.24,
+      36.36,
+      49.04
      ],
-     "h": 3.47,
+     "h": 2.12,
      "tone": "tile"
     },
     {
      "plan": [
-      52.06,
-      65.64,
-      41.96,
-      43.44
+      47.73,
+      69.97,
+      37.63,
+      47.77
      ],
-     "h": 4.34,
+     "h": 2.72,
      "tone": "tile"
+    },
+    {
+     "plan": [
+      48.99,
+      68.71,
+      38.89,
+      46.51
+     ],
+     "h": 3.31,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      50.26,
+      67.44,
+      40.16,
+      45.24
+     ],
+     "h": 3.9,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      51.53,
+      66.17,
+      41.43,
+      43.97
+     ],
+     "h": 4.49,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      52.19,
+      65.51,
+      42.09,
+      43.31
+     ],
+     "h": 4.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      52.19,
+      65.51,
+      41.7,
+      43.7
+     ],
+     "h": 5.1,
+     "tone": "course"
     }
    ],
    "_src": "S5. The bar between the north wing and the central pavilion, terrace on its east side."
@@ -579,43 +685,83 @@
    "roofItems": [
     {
      "plan": [
-      74.76,
-      79.24,
-      28.36,
-      32.94
+      73.35,
+      80.65,
+      26.95,
+      34.35
      ],
-     "h": 0.27,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S6's north-west oblique: the stair and entry tower stands about 2.5 m over the eave and carries a hip of its own."
     },
     {
      "plan": [
-      75.32,
-      78.68,
-      28.92,
-      32.38
+      73.81,
+      80.19,
+      27.41,
+      33.89
      ],
-     "h": 0.53,
+     "h": 0.57,
      "tone": "tile"
     },
     {
      "plan": [
-      75.88,
-      78.12,
-      29.48,
-      31.82
+      74.26,
+      79.74,
+      27.86,
+      33.44
      ],
-     "h": 0.8,
+     "h": 0.78,
      "tone": "tile"
     },
     {
      "plan": [
-      76.44,
-      77.56,
-      30.04,
-      31.26
+      74.72,
+      79.28,
+      28.32,
+      32.98
      ],
-     "h": 1.06,
+     "h": 1.0,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      75.17,
+      78.83,
+      28.77,
+      32.53
+     ],
+     "h": 1.21,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      75.63,
+      78.37,
+      29.23,
+      32.07
+     ],
+     "h": 1.43,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.09,
+      77.91,
+      29.69,
+      31.61
+     ],
+     "h": 1.65,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      76.54,
+      77.46,
+      30.14,
+      31.16
+     ],
+     "h": 1.86,
      "tone": "tile"
     },
     {
@@ -625,8 +771,18 @@
       30.38,
       30.92
      ],
-     "h": 1.33,
+     "h": 1.98,
      "tone": "tile"
+    },
+    {
+     "plan": [
+      76.0,
+      78.0,
+      30.38,
+      30.92
+     ],
+     "h": 2.28,
+     "tone": "course"
     }
    ],
    "_src": "S5 vertices 18-20: the plan juts west to v 27.8 for u 74.2 to 79.8. S6's north-west oblique shows a tower there with a cast-stone entry portal at its foot."
@@ -668,54 +824,104 @@
    "roofItems": [
     {
      "plan": [
-      77.22,
-      101.78,
-      31.02,
-      55.18
+      73.35,
+      105.65,
+      27.15,
+      59.05
      ],
-     "h": 1.12,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: the pavilion is 30.6 x 30.2 m and its roof reads in the nadir as one big hip with the four hips crossing. A 25-degree hip on a 30 m span would put the apex at 30.2 m, over every other ridge here and over S2's 28.1, so the rise is held to 5.60 m (about 20 degrees) and the apex lands at 28.7 - the centre reads a little taller than the wings, which is what the obliques show, not six metres taller."
     },
     {
      "plan": [
-      80.24,
-      98.76,
-      34.04,
-      52.16
+      75.34,
+      103.66,
+      29.14,
+      57.06
      ],
-     "h": 2.24,
+     "h": 1.03,
      "tone": "tile"
     },
     {
      "plan": [
-      83.26,
-      95.74,
-      37.06,
-      49.14
+      77.34,
+      101.66,
+      31.14,
+      55.06
      ],
-     "h": 3.36,
+     "h": 1.71,
      "tone": "tile"
     },
     {
      "plan": [
-      86.28,
-      92.72,
-      40.08,
-      46.12
+      79.33,
+      99.67,
+      33.13,
+      53.07
      ],
-     "h": 4.48,
+     "h": 2.39,
      "tone": "tile"
     },
     {
      "plan": [
-      88.09,
-      90.91,
-      41.89,
-      44.31
+      81.33,
+      97.67,
+      35.13,
+      51.07
      ],
-     "h": 5.6,
+     "h": 3.08,
      "tone": "tile"
+    },
+    {
+     "plan": [
+      83.32,
+      95.68,
+      37.12,
+      49.08
+     ],
+     "h": 3.76,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      85.31,
+      93.69,
+      39.11,
+      47.09
+     ],
+     "h": 4.44,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      87.31,
+      91.69,
+      41.11,
+      45.09
+     ],
+     "h": 5.12,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      88.34,
+      90.66,
+      42.14,
+      44.06
+     ],
+     "h": 5.47,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      88.34,
+      90.66,
+      42.1,
+      44.1
+     ],
+     "h": 5.77,
+     "tone": "course"
     }
    ],
    "_src": "S5: the commons pavilion where the three wings meet, u 74.2 to 104.8 between v 28.0 and 58.2."
@@ -860,147 +1066,307 @@
    "roofItems": [
     {
      "plan": [
-      115.43,
-      130.87,
-      1.93,
+      112.65,
+      133.65,
+      0.0,
       40.8
      ],
-     "h": 0.9,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
     },
     {
      "plan": [
-      115.43,
-      130.87,
+      112.65,
+      133.65,
       50.9,
       65.4
      ],
-     "h": 0.9,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
     },
     {
      "plan": [
-      115.43,
-      130.87,
+      112.65,
+      133.65,
       76.2,
-      112.67
+      114.6
      ],
-     "h": 0.9,
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: one ridge runs the whole 114.6 m at u 123.15, the centre line of a 19.3 m bar, with a hip at each end; the rise is 4.50 m at 25 degrees. The two lowest steps are cut at v 40.8-50.9 and 65.4-76.2 because the two courtyards there are open to the sky in the nadir; the upper steps are inset far enough north to clear them."
     },
     {
      "plan": [
-      117.36,
-      128.94,
-      3.86,
+      113.96,
+      132.34,
+      0.46,
       40.8
      ],
-     "h": 1.8,
+     "h": 0.96,
      "tone": "tile"
     },
     {
      "plan": [
-      117.36,
-      128.94,
+      113.96,
+      132.34,
       50.9,
       65.4
      ],
-     "h": 1.8,
+     "h": 0.96,
      "tone": "tile"
     },
     {
      "plan": [
-      117.36,
-      128.94,
+      113.96,
+      132.34,
       76.2,
-      110.74
+      114.14
      ],
-     "h": 1.8,
+     "h": 0.96,
      "tone": "tile"
     },
     {
      "plan": [
-      119.29,
-      127.01,
-      5.79,
-      108.81
+      115.28,
+      131.02,
+      1.78,
+      40.8
      ],
-     "h": 2.7,
+     "h": 1.58,
      "tone": "tile"
     },
     {
      "plan": [
-      121.22,
-      125.08,
-      7.72,
-      106.88
+      115.28,
+      131.02,
+      50.9,
+      65.4
      ],
-     "h": 3.6,
+     "h": 1.58,
      "tone": "tile"
     },
     {
      "plan": [
-      122.38,
-      123.92,
-      8.88,
-      105.72
+      115.28,
+      131.02,
+      76.2,
+      112.82
      ],
-     "h": 4.5,
+     "h": 1.58,
      "tone": "tile"
     },
     {
      "plan": [
-      105.67,
-      112.63,
-      25.37,
-      88.73
+      116.59,
+      129.71,
+      3.09,
+      40.8
      ],
-     "h": 0.41,
+     "h": 2.19,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.59,
+      129.71,
+      50.9,
+      65.4
+     ],
+     "h": 2.19,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      116.59,
+      129.71,
+      76.2,
+      111.51
+     ],
+     "h": 2.19,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.9,
+      128.4,
+      4.4,
+      40.8
+     ],
+     "h": 2.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.9,
+      128.4,
+      50.9,
+      65.4
+     ],
+     "h": 2.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      117.9,
+      128.4,
+      76.2,
+      110.2
+     ],
+     "h": 2.8,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      119.21,
+      127.09,
+      5.71,
+      108.89
+     ],
+     "h": 3.41,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      120.53,
+      125.77,
+      7.03,
+      107.57
+     ],
+     "h": 4.03,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      121.84,
+      124.46,
+      8.34,
+      106.26
+     ],
+     "h": 4.64,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      122.52,
+      123.78,
+      9.02,
+      105.58
+     ],
+     "h": 4.96,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      122.15,
+      124.15,
+      9.02,
+      105.58
+     ],
+     "h": 5.26,
+     "tone": "course"
+    },
+    {
+     "plan": [
+      103.95,
+      114.35,
+      23.65,
+      90.45
+     ],
+     "h": 0.35,
      "tone": "tile",
      "_src": "S5: north of the ridge the wing is 8.7 m deeper for v 24.5 to 89.6 (u 104.8 instead of 113.5); that apron carries its own low tile slope up to the main roof."
     },
     {
      "plan": [
-      106.54,
-      111.76,
-      26.24,
-      87.86
+      104.6,
+      113.7,
+      24.3,
+      89.8
      ],
-     "h": 0.81,
+     "h": 0.59,
      "tone": "tile"
     },
     {
      "plan": [
-      107.41,
-      110.89,
-      27.11,
-      86.99
+      105.25,
+      113.05,
+      24.95,
+      89.15
      ],
-     "h": 1.22,
+     "h": 0.84,
      "tone": "tile"
     },
     {
      "plan": [
-      108.28,
-      110.02,
-      27.98,
-      86.12
+      105.9,
+      112.4,
+      25.6,
+      88.5
      ],
-     "h": 1.62,
+     "h": 1.08,
      "tone": "tile"
     },
     {
      "plan": [
-      108.8,
-      109.5,
-      28.5,
-      85.6
+      106.55,
+      111.75,
+      26.25,
+      87.85
      ],
-     "h": 2.03,
+     "h": 1.32,
      "tone": "tile"
+    },
+    {
+     "plan": [
+      107.2,
+      111.1,
+      26.9,
+      87.2
+     ],
+     "h": 1.57,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      107.85,
+      110.45,
+      27.55,
+      86.55
+     ],
+     "h": 1.81,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.5,
+      109.8,
+      28.2,
+      85.9
+     ],
+     "h": 2.06,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.84,
+      109.46,
+      28.54,
+      85.56
+     ],
+     "h": 2.18,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      108.15,
+      110.15,
+      28.54,
+      85.56
+     ],
+     "h": 2.48,
+     "tone": "course"
     }
    ],
    "_src": "S5, the outline verbatim from the snapshot ring: 19.1 m deep at both ends, 28 m deep in the middle where the pavilion joins it, with two courtyards cut 8.8 m into the 21st Street face at v 40.8-50.8 and v 65.4-76.1."
