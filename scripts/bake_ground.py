@@ -301,6 +301,60 @@ PEDESTRIAN_RIM_WALK_M = float(os.environ.get("RIM_W", DEFAULT_WIDTH["footway"]))
 # data/ground.geojson to the same SHA-256.
 SIDEWALK_KEEP_HALF_M = float(os.environ.get("KEEPHALF", "0.9"))
 
+# ── ...BESIDE A ROAD. NOT ACROSS ONE. ─────────────────────────────────────
+#
+# THE DEFECT THE LINE ABOVE CAUSED, photographed before it was changed
+# (docs/shots/ground-waggener-before.jpg, straight down over Inner Campus
+# Drive): pale sidewalk bars shoot out of the kerb, run three to seven metres
+# into the middle of the carriageway, and stop. "Like branches" is exactly what
+# they look like from the air and from the pavement.
+#
+# WHY. SIDEWALK_KEEP_HALF_M exempts the core of every SURVEYED walking
+# centreline from the carriageway cut, and that exemption was written with one
+# case in mind -- a sidewalk running ALONGSIDE a street, which falls inside the
+# derived carriageway only because `w` is a guess from a lane count. It is right
+# for that case and it is 8.24 km of real pavement. But it was applied to the
+# whole centreline, and a campus sidewalk does not only run alongside: it also
+# runs INTO the street, at every kerb ramp, every service entrance and every
+# untagged desire line OSM records as `footway=sidewalk` instead of
+# `footway=crossing`. On those metres the exemption punched a 1.8 m hole in the
+# carriageway cutter and painted a walk on the road.
+#
+# MEASURED near Waggener before the change: 29 surveyed footways put more than
+# 3 m2 of pavement on a carriageway inside one 380 m box, and three of them
+# (ways 1380823430, 1380849647, 1380849648) are 24 m long with 16.5 m2 -- 28 %
+# of their own area -- standing in the street. City-wide, 32,041 m2 of drawn
+# pavement, 7.9 % of all of it, sat on a carriageway.
+#
+# THE RULE, and it is one sentence: THE KEEP-CORE IS FOR A WALK THAT RUNS
+# BESIDE A ROAD, NEVER ONE THAT RUNS ACROSS IT. Segment by segment, compare the
+# walk's own bearing with the bearing of the nearest road CENTRELINE. Within
+# SIDEWALK_KEEP_PARALLEL_DEG the walk is alongside and keeps its core; beyond
+# it the walk is crossing, and this bake does not draw crossings -- the
+# carriageway takes it, exactly as it took every `footway=crossing` before.
+#
+# PER SEGMENT, not per way, and that is the whole point. Way 1245334958 is
+# 419 m of sidewalk that runs beside Inner Campus Drive for most of its length
+# and turns into it at the end. A per-way test would either lose 419 m of real
+# pavement or keep the branch. A per-segment test keeps the 400 m and drops the
+# branch, which is what the picture shows.
+#
+# AND A DEPTH CAP as the second guard, because the bearing test cannot see the
+# case where a walk runs parallel to road A while standing in road B: no part of
+# a keep-core may lie more than SIDEWALK_KEEP_DEPTH_M inside the carriageway
+# from its edge. A walk beside a street pokes a metre or two past the guessed
+# kerb; a walk across one goes to the middle.
+#
+# THE SWITCH. `KEEPANG=90 KEEPDEPTH=0 python scripts/bake_ground.py` disables
+# both tests -- every segment is "alongside" and no depth is capped -- which
+# reproduces the previous data/ground.geojson to the same SHA-256. Checked, not
+# assumed; see docs/ground-curves-and-kerbs.md.
+SIDEWALK_KEEP_PARALLEL_DEG = float(os.environ.get("KEEPANG", "35"))
+# 0 disables the cap. 2.5 m is a kerb plus a gutter plus the slop in a lane
+# count: measured, the derived carriageway is 1.4 m per side wider than the
+# painted edge on the campus streets sampled in docs/PASS_ROADS.md.
+SIDEWALK_KEEP_DEPTH_M = float(os.environ.get("KEEPDEPTH", "2.5"))
+
 # `k:'path'` LineStrings this bake DERIVED rather than read out of OSM carry
 # this private key, and the keep-core exemption skips them. It never reaches the
 # output file: widen_paths re-emits {k, u, s} only. Two things wear it — the
@@ -308,6 +362,151 @@ SIDEWALK_KEEP_HALF_M = float(os.environ.get("KEEPHALF", "0.9"))
 # — and both are cut by the carriageway on purpose, which is what stops an apron
 # reaching past the kerb and a mall creeping onto the asphalt.
 DERIVED_PATH_KEY = "drv"
+
+
+# ── CURVES STAY CURVES ─────────────────────────────────────────────────────
+#
+# "sidewalks and roads are jagged where they should curve."
+#
+# TWO CAUSES, and only one of them was ours.
+#
+# 1. THE TOLERANCE WAS SET FOR A CAMERA THAT NO LONGER EXISTS. `simplify()`
+#    ran Ramer-Douglas-Peucker at 1.2 m on every road and cycleway centreline,
+#    and its own docstring justified it: "at the tolerance used nothing moves
+#    by more than a quarter of a rendered pixel AT THE ZOOM THE CAMERA FLIES
+#    AT". That was true of a flyover. This app walks now -- 1.2 m of lateral
+#    error on a kerb ten metres from a pedestrian's eye is a visible kink, and
+#    it is the same class of mistake as a facade template that only works from
+#    the air. MEASURED on data/osm_cache/roads.json: 12,124 ways, 70,236 raw
+#    vertices, and RDP at 1.2 m threw away 30,676 of them -- 44 % of every
+#    curve the mapper actually drew. At 0.25 m it throws away 20,794, so the
+#    whole cost of keeping four times the accuracy is 9,882 vertices.
+#
+# 2. THE MAPPER'S OWN NODE SPACING. Even with RDP off, a curve in OSM is a
+#    chain of straight chords -- 8 to 15 m apart on a campus kerb -- and a
+#    10 m chord on a 30 m radius stands 0.42 m off the true arc. No tolerance
+#    fixes that, because the vertices are all the source has. It needs the
+#    other half of the rule: put the curve back.
+#
+# SO THE RULE IS IN TWO PARTS AND BOTH ARE NEEDED.
+#   * Simplify at CURVE_SIMPLIFY_M, a walking tolerance instead of a flying
+#     one, so the vertices that describe a curve survive.
+#   * Then CHAIKIN-smooth the runs that are curved, and ONLY those. A turn
+#     sharper than CURVE_CORNER_DEG is a corner -- a junction, a right-angle
+#     kerb return -- and rounding it off would be the tippecanoe
+#     `--simplification` trap in reverse: a visual change hiding inside a
+#     cleanup. A turn gentler than CURVE_MIN_DEG is a straight run and does
+#     not need cutting. Only the band between them is a curve.
+#
+# THE GUARD, because corner-cutting MOVES geometry and this file's truth rule
+# says every position comes from OSM. Chaikin cannot move a point further than
+# a quarter of the shorter adjacent edge, but a long edge in the curved band
+# could still shift a kerb by more than a kerb's width, so a run whose smoothed
+# points stand further than CURVE_MAX_DEV_M from the polyline they came from is
+# LEFT UNSMOOTHED. Reported, never silent: `curve_run_over_dev` in the stats.
+#
+# THE SWITCH. `CURVES=0 python scripts/bake_ground.py` puts the tolerance back
+# to 1.2 m and the smoothing passes to 0, which is exactly what this file did
+# before -- checked by SHA-256, not assumed. See docs/ground-curves-and-kerbs.md.
+_CURVES_ON = os.environ.get("CURVES", "1") != "0"
+# TASTE VALUES, CLAUDE.md rule 11. Every one is a single number at the top.
+CURVE_SIMPLIFY_M = float(os.environ.get("CURVE_EPS", "0.25" if _CURVES_ON else "1.2"))
+CURVE_SMOOTH_PASSES = int(os.environ.get("CURVE_SMOOTH", "2" if _CURVES_ON else "0"))
+CURVE_CORNER_DEG = 40.0     # sharper than this is a CORNER and stays sharp
+CURVE_MIN_DEG = 4.0         # gentler than this is straight and is left alone
+CURVE_MAX_DEV_M = 0.60      # a smoothed run may not move further than this
+
+
+def _turn_deg(a, b, c, kx, ky):
+    """Direction change in degrees at b, walking a -> b -> c."""
+    ux, uy = (b[0] - a[0]) * kx, (b[1] - a[1]) * ky
+    vx, vy = (c[0] - b[0]) * kx, (c[1] - b[1]) * ky
+    if (ux or uy) and (vx or vy):
+        return abs(math.degrees(math.atan2(ux * vy - uy * vx, ux * vx + uy * vy)))
+    return 0.0
+
+
+def _chaikin(seq, passes):
+    """Chaikin corner cutting with both ENDS PINNED, so a smoothed run still
+    starts and finishes on the vertices its neighbours share with it."""
+    for _ in range(passes):
+        out = [seq[0]]
+        for i in range(len(seq) - 1):
+            (px, py), (qx, qy) = seq[i], seq[i + 1]
+            out.append([px + (qx - px) * 0.25, py + (qy - py) * 0.25])
+            out.append([px + (qx - px) * 0.75, py + (qy - py) * 0.75])
+        out.append(seq[-1])
+        seq = out
+    return seq
+
+
+def _dev_m(smoothed, original, kx, ky):
+    """Furthest a smoothed point stands from the polyline it came from, metres."""
+    seg = [((original[i][0] * kx, original[i][1] * ky),
+            (original[i + 1][0] * kx, original[i + 1][1] * ky))
+           for i in range(len(original) - 1)]
+    worst = 0.0
+    for p in smoothed:
+        px, py = p[0] * kx, p[1] * ky
+        best = 1e18
+        for (ax, ay), (bx, by) in seg:
+            dx, dy = bx - ax, by - ay
+            L2 = dx * dx + dy * dy
+            t = 0.0 if L2 <= 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2))
+            best = min(best, math.hypot(px - (ax + dx * t), py - (ay + dy * t)))
+            if best <= worst:
+                break
+        worst = max(worst, best)
+    return worst
+
+
+def smooth_curves(pts, stats=None, key="curve"):
+    """Put the arc back into the runs of `pts` that are curved, and only those.
+
+    Corners stay corners, straight runs stay straight, and a run that would move
+    further than CURVE_MAX_DEV_M is returned exactly as it came in.
+    """
+    if CURVE_SMOOTH_PASSES <= 0 or len(pts) < 4:
+        return pts
+    kx = math.cos(math.radians(pts[0][1])) * M_LAT
+    ky = M_LAT
+    curvy = [False] * len(pts)
+    for i in range(1, len(pts) - 1):
+        a = _turn_deg(pts[i - 1], pts[i], pts[i + 1], kx, ky)
+        curvy[i] = CURVE_MIN_DEG <= a <= CURVE_CORNER_DEG
+    if not any(curvy):
+        return pts
+    out = [pts[0]]
+    i = 1
+    while i < len(pts) - 1:
+        if not curvy[i]:
+            out.append(pts[i])
+            i += 1
+            continue
+        j = i
+        while j < len(pts) - 1 and curvy[j]:
+            j += 1
+        run = pts[i - 1:j + 1]                      # anchored on both sides
+        sm = _chaikin([list(p) for p in run], CURVE_SMOOTH_PASSES)
+        if _dev_m(sm, run, kx, ky) > CURVE_MAX_DEV_M:
+            if stats is not None:
+                stats[key + "_run_over_dev"] += 1
+            out.extend(pts[i:j])
+        else:
+            if stats is not None:
+                stats[key + "_run_smoothed"] += 1
+            out.extend([[round(x, 7), round(y, 7)] for x, y in sm[1:-1]])
+        out.append(pts[j])
+        i = j + 1
+    if i == len(pts) - 1:
+        pass
+    out.append(pts[-1])
+    # A pinned run can re-emit its own anchor; drop only exact repeats.
+    ded = [out[0]]
+    for p in out[1:]:
+        if p != ded[-1]:
+            ded.append(p)
+    return ded
 
 
 def crossing_aprons(coords, apron_m=None):
@@ -665,7 +864,11 @@ def bake_roads(stats, warnings):
         surf = ROAD_SURF.get(surf_raw, "asphalt")
         if surf_raw and surf_raw not in ROAD_SURF:
             unknown_surface[surf_raw] += 1
-        pts = simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g], 1.2)
+        # CURVES STAY CURVES: a walking tolerance, then the arc put back on
+        # the runs that are curved. See the CURVE_* block.
+        pts = smooth_curves(
+            simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g],
+                     CURVE_SIMPLIFY_M), stats, "curve_road")
         n_lanes = lane_count(t)
         props = {
             "k": "road", "c": cls, "w": w, "wt": wt, "s": surf,
@@ -767,7 +970,11 @@ def bake_roads(stats, warnings):
             stats["cycle_skipped_shared_footway"] += 1
             continue
         w = parse_width(t.get("width")) or 0
-        pts = simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g], 1.2)
+        # CURVES STAY CURVES: a walking tolerance, then the arc put back on
+        # the runs that are curved. See the CURVE_* block.
+        pts = smooth_curves(
+            simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g],
+                     CURVE_SIMPLIFY_M), stats, "curve_road")
         surf_raw = (t.get("surface") or "").strip().lower()
         feats.append({
             "type": "Feature",
@@ -3257,13 +3464,81 @@ def carriageway_polys(road_feats):
     return out
 
 
-def sidewalk_keep_polys(feats, stats):
+def _road_bearing_index(road_feats):
+    """(STRtree of road centreline segments, [bearing in degrees]) in metres.
+
+    `far` ways are left out for the same reason carriageway_polys leaves them
+    out: they are simplified five times harder and their bearing is not a claim
+    about a campus kerb.
+    """
+    try:
+        from shapely.geometry import LineString
+        from shapely.strtree import STRtree
+    except ImportError:
+        return None, []
+    segs, bear = [], []
+    for f in road_feats:
+        p = f["properties"]
+        if p.get("k") not in ("road", "cycle") or p.get("far"):
+            continue
+        pts = _line_m(f["geometry"]["coordinates"])
+        for i in range(len(pts) - 1):
+            (ax, ay), (bx, by) = pts[i], pts[i + 1]
+            if ax == bx and ay == by:
+                continue
+            segs.append(LineString([(ax, ay), (bx, by)]))
+            bear.append(math.degrees(math.atan2(by - ay, bx - ax)) % 180.0)
+    if not segs:
+        return None, []
+    return STRtree(segs), bear
+
+
+def _alongside_runs(pts_m, tree, bear):
+    """Split a metric centreline into the runs that are ALONGSIDE the nearest
+    road and drop the ones that cross it. Returns a list of coordinate runs.
+
+    With SIDEWALK_KEEP_PARALLEL_DEG at 90 every segment qualifies and the whole
+    centreline comes back as one run, which is what the switch is for.
+    """
+    from shapely.geometry import Point
+    runs, cur = [], []
+    for i in range(len(pts_m) - 1):
+        (ax, ay), (bx, by) = pts_m[i], pts_m[i + 1]
+        if ax == bx and ay == by:
+            continue
+        ok = True
+        if SIDEWALK_KEEP_PARALLEL_DEG < 90.0 and tree is not None:
+            mid = Point((ax + bx) / 2.0, (ay + by) / 2.0)
+            try:
+                ni = int(tree.nearest(mid))
+            except Exception:
+                ni = None
+            if ni is not None:
+                d = abs(math.degrees(math.atan2(by - ay, bx - ax)) % 180.0 - bear[ni])
+                ok = min(d, 180.0 - d) <= SIDEWALK_KEEP_PARALLEL_DEG
+        if ok:
+            if not cur:
+                cur = [(ax, ay)]
+            cur.append((bx, by))
+        elif cur:
+            runs.append(cur)
+            cur = []
+    if cur:
+        runs.append(cur)
+    return runs
+
+
+def sidewalk_keep_polys(feats, stats, road_feats=(), kerb_band=None):
     """The core strip of every SURVEYED walking centreline, as metric polygons.
 
     Call it BEFORE widen_paths, while the walks are still LineStrings — the same
     ordering walk_direction_runs needs and for the same reason. Ways this bake
     derived itself (DERIVED_PATH_KEY) are excluded: an apron and a mall rim are
     extrapolations, and the carriageway cut is what keeps them honest.
+
+    ONLY THE ALONGSIDE RUNS, and only within SIDEWALK_KEEP_DEPTH_M of the kerb:
+    see SIDEWALK_KEEP_PARALLEL_DEG for why a walk that runs across a street has
+    no claim on the exemption at all.
     """
     if SIDEWALK_KEEP_HALF_M <= 0:
         return []
@@ -3271,6 +3546,7 @@ def sidewalk_keep_polys(feats, stats):
         from shapely.geometry import LineString
     except ImportError:
         return []
+    tree, bear = _road_bearing_index(road_feats)
     out = []
     for f in feats:
         p = f["properties"]
@@ -3280,14 +3556,59 @@ def sidewalk_keep_polys(feats, stats):
             stats["sidewalk_keep_skipped_derived"] += 1
             continue
         try:
-            q = LineString(_line_m(f["geometry"]["coordinates"])).buffer(
-                SIDEWALK_KEEP_HALF_M, cap_style=2, join_style=2, mitre_limit=2.0)
+            pts_m = _line_m(f["geometry"]["coordinates"])
+            runs = _alongside_runs(pts_m, tree, bear)
         except Exception:
             continue
-        if not q.is_empty:
+        if len(runs) != 1 or len(runs[0]) != len(pts_m):
+            stats["sidewalk_keep_crossing_run_dropped"] += 1
+        for run in runs:
+            if len(run) < 2:
+                continue
+            try:
+                q = LineString(run).buffer(
+                    SIDEWALK_KEEP_HALF_M, cap_style=2, join_style=2, mitre_limit=2.0)
+            except Exception:
+                continue
+            if q.is_empty:
+                continue
+            if kerb_band is not None:
+                try:
+                    q = q.intersection(kerb_band)
+                except Exception:
+                    stats["sidewalk_keep_depth_failed"] += 1
+                if q.is_empty:
+                    stats["sidewalk_keep_depth_dropped"] += 1
+                    continue
             out.append(q)
             stats["sidewalk_keep_cores"] += 1
     return out
+
+
+def kerb_band_polys(road_polys, stats):
+    """The strip SIDEWALK_KEEP_DEPTH_M deep just inside every carriageway edge,
+    plus everything outside the carriageways — i.e. every square metre a
+    keep-core is allowed to occupy. None when the cap is switched off.
+
+    Built as `world minus (carriageway eroded by the depth)` rather than as a
+    buffered boundary, because a buffered boundary is a ring and the ground
+    OUTSIDE the road has to stay keepable too.
+    """
+    if SIDEWALK_KEEP_DEPTH_M <= 0 or not road_polys:
+        return None
+    try:
+        from shapely.geometry import box
+        from shapely.ops import unary_union
+    except ImportError:
+        return None
+    ru = unary_union(road_polys)
+    core = ru.buffer(-SIDEWALK_KEEP_DEPTH_M)
+    x0, y0, x1, y1 = ru.bounds
+    world = box(x0 - 5000, y0 - 5000, x1 + 5000, y1 + 5000)
+    band = world if core.is_empty else world.difference(core)
+    # The deep interior of the carriageway: the ground no keep-core may enter.
+    stats["sidewalk_keep_depth_m2_barred"] = 0 if core.is_empty else int(core.area)
+    return band
 
 
 def resolve_ground_conflicts(feats, road_polys, stats, warnings, keep_polys=()):
@@ -4585,7 +4906,13 @@ def main():
             else:
                 stats["skipped_area_way"] += 1
             continue
-        coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
+        # CURVES STAY CURVES, and a sidewalk is the worse case: it is never
+        # RDP-simplified at all, so every facet in it is the mapper's own node
+        # spacing and nothing but smoothing can take it out. Corners survive --
+        # a kerb return turns 90 degrees and CURVE_CORNER_DEG protects it.
+        coords = smooth_curves(
+            [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]],
+            stats, "curve_walk")
         if len(coords) < 2:
             continue
         # Skip crossings: they are road markings, and drawing them as paths
@@ -4841,7 +5168,18 @@ def main():
     # are still surveyed centrelines here, and after it they are one unioned
     # polygon per (use, surface) with no way left to tell a surveyed sidewalk
     # from an apron this bake extrapolated. See SIDEWALK_KEEP_HALF_M.
-    keep_cores = sidewalk_keep_polys(feats, stats)
+    # THE ROADS ARE BAKED HERE NOW, one step earlier than they used to be, and
+    # the reason is SIDEWALK_KEEP_PARALLEL_DEG: deciding whether a walk runs
+    # BESIDE a road or ACROSS it needs the road centrelines, and the keep-cores
+    # have to be built while the walks are still LineStrings. bake_roads() is a
+    # pure read of the OSM cache — it takes no `feats` and mutates nothing this
+    # pass has touched — so moving the call cannot change what it returns, and
+    # data/roads.geojson is written from it further down exactly as before.
+    road_feats = bake_roads(stats, warnings)
+    roads_m = carriageway_polys(road_feats)
+    stats["carriageways_as_cutters"] = len(roads_m)
+    keep_cores = sidewalk_keep_polys(feats, stats, road_feats,
+                                     kerb_band_polys(roads_m, stats))
     feats = widen_paths(feats, stats, warnings)
     # AFTER widen_paths on purpose: a garden's beds are derived from the
     # walks around them and paths are still LineStrings until then. The
@@ -4856,14 +5194,6 @@ def main():
     # the middle of a boulevard, which is the defect PR #78 exists to prevent.
     feats = lay_median_medallions(feats, stats, warnings)
     feats = lay_flagpole_plinths(feats, stats, warnings)
-
-    # The roads are baked BEFORE the ground is resolved now, because the
-    # carriageway is one of the surfaces competing for the ground and the
-    # resolver needs its geometry. bake_roads() itself is unchanged and still
-    # writes data/roads.geojson byte for byte as it did.
-    road_feats = bake_roads(stats, warnings)
-    roads_m = carriageway_polys(road_feats)
-    stats["carriageways_as_cutters"] = len(roads_m)
 
     # AFTER the roads are baked, because a crossing is defined by the way that
     # crosses; BEFORE the resolver, because the resolver is what actually takes
