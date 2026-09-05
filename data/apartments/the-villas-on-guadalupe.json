@@ -352,7 +352,7 @@
    "_src": "derived: the condenser rows in S3's rectified nadir are pale galvanised boxes."
   },
   "garageDark": {
-   "hex": "#4a4a48",
+   "hex": "#63605a",
    "_src": "derived: the shaded openings between the garage's screen slats."
   },
   "water": {
@@ -431,11 +431,11 @@
    "field": "wall",
    "louvre": {
     "pitch": 2.74,
-    "w": 0.62,
+    "w": 0.45,
     "tone": "garageDark",
-    "start": 1.05
+    "start": 1.15
    },
-   "_src": "S9: the parking structure's open sides read as a horizontal slot at every level. The slats are one per floor-to-floor (2.74 m), 0.62 m of open shadow each, starting 1.05 m up; bay 8.20 is the structural bay two stalls wide."
+   "_src": "S9: the parking structure's open sides read as a horizontal slot at every level. The slats are one per floor-to-floor (2.74 m), 0.62 m of open shadow each, starting 1.15 m up; bay 8.20 is the structural bay two stalls wide. 0.62 m of slot read as heavy black banding beside S9, where the structure is barely legible (look-fix 5)."
   }
  },
  "balcony": {
@@ -2770,11 +2770,560 @@
    ]
   },
   {
+   "id": "north-1",
+   "_src": "S9: the residential range on the north boundary, step 1 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+   "plan": [
+    158.2,
+    171.4,
+    14.5,
+    25.0
+   ],
+   "z0": 0,
+   "z1": 10.96,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 2.74,
+     "skin": "base"
+    },
+    {
+     "z0": 2.74,
+     "z1": 10.96,
+     "skin": "wall"
+    }
+   ],
+   "faces": {
+    "u0": null,
+    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+   },
+   "roofTone": "roof",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      158.2,
+      171.85,
+      14.05,
+      25.45
+     ],
+     "h": 0.34,
+     "tone": "trim",
+     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
+    },
+    {
+     "plan": [
+      158.55,
+      171.05,
+      14.85,
+      24.65
+     ],
+     "h": 0.22,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      158.89,
+      170.71,
+      15.19,
+      24.31
+     ],
+     "h": 0.44,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      159.24,
+      170.36,
+      15.54,
+      23.96
+     ],
+     "h": 0.66,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      159.59,
+      170.01,
+      15.89,
+      23.61
+     ],
+     "h": 0.89,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      159.93,
+      169.67,
+      16.23,
+      23.27
+     ],
+     "h": 1.11,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      160.28,
+      169.32,
+      16.58,
+      22.92
+     ],
+     "h": 1.33,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      160.63,
+      168.98,
+      16.93,
+      22.57
+     ],
+     "h": 1.55,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      160.97,
+      168.63,
+      17.27,
+      22.23
+     ],
+     "h": 1.77,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      161.32,
+      168.28,
+      17.62,
+      21.88
+     ],
+     "h": 1.99,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      161.66,
+      167.94,
+      17.96,
+      21.54
+     ],
+     "h": 2.22,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      162.01,
+      167.59,
+      18.31,
+      21.19
+     ],
+     "h": 2.44,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      162.36,
+      167.24,
+      18.66,
+      20.84
+     ],
+     "h": 2.66,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      162.7,
+      166.9,
+      19.0,
+      20.5
+     ],
+     "h": 2.88,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      163.05,
+      166.55,
+      19.35,
+      20.15
+     ],
+     "h": 3.1,
+     "tone": "roofRidge"
+    }
+   ]
+  },
+  {
+   "id": "north-2",
+   "_src": "S9: the residential range on the north boundary, step 2 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+   "plan": [
+    162.9,
+    176.1,
+    25.0,
+    35.0
+   ],
+   "z0": 0,
+   "z1": 10.96,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 2.74,
+     "skin": "base"
+    },
+    {
+     "z0": 2.74,
+     "z1": 10.96,
+     "skin": "wall"
+    }
+   ],
+   "faces": {
+    "u0": null,
+    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+   },
+   "roofTone": "roof",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      162.9,
+      176.55,
+      24.55,
+      35.45
+     ],
+     "h": 0.34,
+     "tone": "trim",
+     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
+    },
+    {
+     "plan": [
+      163.23,
+      175.77,
+      25.33,
+      34.67
+     ],
+     "h": 0.21,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      163.56,
+      175.44,
+      25.66,
+      34.34
+     ],
+     "h": 0.42,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      163.89,
+      175.11,
+      25.99,
+      34.01
+     ],
+     "h": 0.63,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      164.21,
+      174.79,
+      26.31,
+      33.69
+     ],
+     "h": 0.84,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      164.54,
+      174.46,
+      26.64,
+      33.36
+     ],
+     "h": 1.05,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      164.87,
+      174.13,
+      26.97,
+      33.03
+     ],
+     "h": 1.26,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      165.2,
+      173.8,
+      27.3,
+      32.7
+     ],
+     "h": 1.47,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      165.53,
+      173.47,
+      27.63,
+      32.37
+     ],
+     "h": 1.68,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      165.86,
+      173.14,
+      27.96,
+      32.04
+     ],
+     "h": 1.89,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      166.19,
+      172.81,
+      28.29,
+      31.71
+     ],
+     "h": 2.1,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      166.51,
+      172.49,
+      28.61,
+      31.39
+     ],
+     "h": 2.31,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      166.84,
+      172.16,
+      28.94,
+      31.06
+     ],
+     "h": 2.52,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      167.17,
+      171.83,
+      29.27,
+      30.73
+     ],
+     "h": 2.73,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      167.5,
+      171.5,
+      29.6,
+      30.4
+     ],
+     "h": 2.94,
+     "tone": "roofRidge"
+    }
+   ]
+  },
+  {
+   "id": "north-3",
+   "_src": "S9: the residential range on the north boundary, step 3 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+   "plan": [
+    167.6,
+    180.8,
+    35.0,
+    45.5
+   ],
+   "z0": 0,
+   "z1": 10.96,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 2.74,
+     "skin": "base"
+    },
+    {
+     "z0": 2.74,
+     "z1": 10.96,
+     "skin": "wall"
+    }
+   ],
+   "faces": {
+    "u0": null,
+    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+   },
+   "roofTone": "roof",
+   "parapet": 0,
+   "roofItems": [
+    {
+     "plan": [
+      167.6,
+      181.25,
+      34.55,
+      45.95
+     ],
+     "h": 0.34,
+     "tone": "trim",
+     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
+    },
+    {
+     "plan": [
+      167.95,
+      180.45,
+      35.35,
+      45.15
+     ],
+     "h": 0.22,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      168.29,
+      180.11,
+      35.69,
+      44.81
+     ],
+     "h": 0.44,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      168.64,
+      179.76,
+      36.04,
+      44.46
+     ],
+     "h": 0.66,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      168.99,
+      179.41,
+      36.39,
+      44.11
+     ],
+     "h": 0.89,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      169.33,
+      179.07,
+      36.73,
+      43.77
+     ],
+     "h": 1.11,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      169.68,
+      178.72,
+      37.08,
+      43.42
+     ],
+     "h": 1.33,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      170.02,
+      178.37,
+      37.42,
+      43.08
+     ],
+     "h": 1.55,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      170.37,
+      178.03,
+      37.77,
+      42.73
+     ],
+     "h": 1.77,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      170.72,
+      177.68,
+      38.12,
+      42.38
+     ],
+     "h": 1.99,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      171.06,
+      177.34,
+      38.46,
+      42.04
+     ],
+     "h": 2.22,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      171.41,
+      176.99,
+      38.81,
+      41.69
+     ],
+     "h": 2.44,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      171.76,
+      176.64,
+      39.16,
+      41.34
+     ],
+     "h": 2.66,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      172.1,
+      176.3,
+      39.5,
+      41.0
+     ],
+     "h": 2.88,
+     "tone": "roof"
+    },
+    {
+     "plan": [
+      172.45,
+      175.95,
+      39.85,
+      40.65
+     ],
+     "h": 3.1,
+     "tone": "roofRidge"
+    }
+   ]
+  },
+  {
    "id": "garage",
    "_src": "S2's ring north of u=118.7 and west of the east wing: the parking structure whose top deck is the tan plane in S3's nadir and S4's obliques. Three levels at the residential floor-to-floor puts the deck at 8.22 m -- the openings in S9's north face are 0.8 of a residential floor, and three decks of about 2100 m2 are the ~200 stalls 144 units need (todo 3: plus or minus one level).",
    "plan": [
     [
-     165.3,
+     153.4,
      14.5
     ],
     [
@@ -2790,20 +3339,8 @@
      45.96
     ],
     [
-     170.95,
-     46.76
-    ],
-    [
-     174.72,
-     45.67
-    ],
-    [
-     179.82,
-     43.35
-    ],
-    [
-     176.12,
-     39.04
+     167.8,
+     46.0
     ]
    ],
    "z0": 0,
@@ -2818,20 +3355,17 @@
    "faces": {
     "0": null,
     "1": null,
-    "_src": "edge 0 (v=14.5) stands against the east wing and edge 1 (u=118.7) against link-3 and the west wing. The rest is the screen; the west wall is unphotographed (todo 7)."
+    "4": null,
+    "_src": "edge 0 (v=14.5) stands against the east wing, edge 1 (u=118.7) against link-3 and the west wing, and edge 4 (the diagonal) against the north range. Only edge 2, the west wall, is open, and it is unphotographed (todo 7)."
    },
    "roofTone": "deck",
    "parapet": 1.05,
    "parapetTone": "deckRail",
    "parapetSides": [
     "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7"
+    "3"
    ],
-   "_parapet_src": "a 1.05 m guard wall on every open deck edge; edge 1 is the wall the wings already stand on.",
+   "_parapet_src": "a 1.05 m guard wall on the deck's own open edges; edges 0, 1 and 4 are the walls the wings and the north range already stand on.",
    "roofItems": [
     {
      "plan": [
@@ -4916,6 +5450,7 @@
   "4. The pool is a freeform lagoon in S3 and is drawn as a rectangle: deck.items takes rectangles only. A polygon plan there would draw its real edge.",
   "5. The FONT in js/slopes-apartments.js has no V, so the west face's VILLAS wordmark (S6, at the south end of the west wall) is not drawn. Adding V, G, P, B, F, W and Y would let it in.",
   "6. The three turrets' plans are read off S3's rectified nadir with the mesh-lean correction and are plus or minus 3 m in u; a ground photograph of the entry would pin them.",
+  "6b. The north range follows a DIAGONAL boundary and is drawn as three rectangles stepping along it, because roofItems are rectangles and a diagonal hip cannot be built from them. The steps show as 2-3 m jogs in plan; a hip on a polygon block would draw it straight.",
   "7. Faces nobody photographed: the four courtyard walls, the links' end walls, and the garage's west wall. They wear the plainest rule the building has -- the wall skin and the garage screen -- and are named here as unphotographed.",
   "8. index.json is not this piece's file to write. To switch this building on, add \"the-villas-on-guadalupe.json\" to buildings, \"84a96de1-f96c-453d-9b87-b49b0579af73\" to replacedBuildingIds and \"The Villas on Guadalupe\" to replacedNames.",
   "9. THE ONE THING THAT BREAKS THE PICTURE, and it is not in a file this piece owns. The roofscape pass baked its deck, plant, unit, duct and pool on to this building at Overture's 26.3 m: eight features in data/roofscape.geojson whose centroids fall in this footprint sit at b 27.3-27.6 and h 27.6-29.3, and one of them is a deck that covers the whole roof. Our real ridge is 14.96 m, so with roofscape on a grey lid floats 12.6 m above the building and hides all of it -- queryRenderedFeatures at the centre returns roofscape-deck. setFilters in js/slopes-apartments.js hides buildings-3d, buildings-roof and the four wc-* layers but knows nothing about roofscape-deck / -major / -minor, and the roofscape features carry no id or name to filter on, only k/b/h -- so the fix is either a bid on the roofscape bake's features or a geometric clause. Every frame this piece was judged from was taken with those three layers hidden. It will bite any replaced building whose Overture height is far from its real one."
