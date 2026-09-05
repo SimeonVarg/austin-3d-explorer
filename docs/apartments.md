@@ -26,6 +26,14 @@ Gate: `scripts/verify/slopes-layer.mjs`, section 2b (`apartments:` lines).
 bearing 45) and from the north-west (heading 135), ours in daylight. Google
 Earth's imagery is 12/2023.*
 
+![what main draws at the same pose](shots/apartments-standard-sw-main.jpg)
+![ours at the same pose, the gate's own frame](shots/apartments-standard-sw-gate.jpg)
+
+*Above: the gate's two frames at the brief's pose, golden hour, the same
+page load: `?apartments=0` — what `main` draws, `js/westcampus.js`'s bands
+with two slab towers standing on what the nadir shows to be the two light
+wells — and the generator on.*
+
 ## What is in the frame, and where it came from
 
 The building has one outline in OSM (way 380916747: `building=apartments`,
