@@ -330,6 +330,19 @@
       "reveal": 0.22,
       "_src": "the dark glazed ground floor and the glazed corner volume above it (S8): mullions at about 1.6 m with a transom near three quarters height and a grey fascia under the floor above."
     },
+    "skyLounge": {
+      "kind": "storefront",
+      "mullion": 1.5,
+      "mullionW": 0.1,
+      "fascia": 0.25,
+      "plinth": 0.0,
+      "transom": 0.72,
+      "fasciaTone": "mullion",
+      "frame": "mullion",
+      "glass": "loungeGlass",
+      "reveal": 0.45,
+      "_src": "the sky lounge in the top of the tower (S5): a band of mullioned glass about two storeys tall, set BACK behind the panel plane with a soffit over it, immediately beside the open roof terrace. Panes read wider than the corner volume's - about 1.5 m against a 1.95 m window two bays away - and the reveal is 0.45 m because in S5 the glass is plainly in shadow under the plane it sits behind. The soffit itself is not drawn (see `open`)."
+    },
     "lounge": {
       "kind": "storefront",
       "mullion": 1.1,
@@ -499,11 +512,21 @@
             },
             {
               "z0": 20.68,
-              "z1": 56.85,
+              "z1": 50.83,
               "skin": "slotsB"
+            },
+            {
+              "z0": 50.83,
+              "z1": 53.84,
+              "skin": "skyLounge"
+            },
+            {
+              "z0": 53.84,
+              "z1": 56.85,
+              "skin": "skyLounge"
             }
           ],
-          "_src": "the south end wall is a slot field, not a window grid (S5). It is split into three strips whose bay modules do not divide into each other so the slots do not line up - see the `slots` skins."
+          "_src": "the south end wall is a slot field, not a window grid (S5). It is split into three strips whose bay modules do not divide into each other so the slots do not line up - see the `slots` skins. LOOK-FIX 3: the top TWO storeys of this strip are the sky lounge. S5 shows a two-storey band of mullioned glass in the top of the tower with the open roof terrace immediately beyond it, and S10's rectified plan puts the pool deck at u 0.9-8.5, v 0.9-12.0 - the south-east corner of the roof, which is the corner this strip stands under. It is the one placement the photograph and the nadir agree on; which of the two long faces S5 was shot from is in `open`. Two bands, one storey each, because the generator's storefront rule puts one transom in a band."
         },
         {
           "region": [
@@ -1238,13 +1261,14 @@
       },
       "roofTone": "terrace",
       "parapet": 1.05,
-      "parapetTone": "coping",
+      "parapetTone": "rail",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
       ],
-      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source.",
+      "_parapetTone_src": "LOOK-FIX 3: the guard at the edge of a terrace, not a coping. It was `coping` - the pale mill-finish aluminium the main roof's parapet wears - and from the north the four steps read as four bright ledges laid across a grey wall, which is the reverse of the reference: in S11's own frame (earth n2) the terrace line at every step is the DARKEST thing on the north elevation, and S6 and S8 both show a dark metal guard, not a parapet, standing at each step. Same 1.05 m height, `rail` tone."
     },
     {
       "id": "step12",
@@ -1319,13 +1343,14 @@
       },
       "roofTone": "terrace",
       "parapet": 1.05,
-      "parapetTone": "coping",
+      "parapetTone": "rail",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
       ],
-      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source.",
+      "_parapetTone_src": "LOOK-FIX 3: the guard at the edge of a terrace, not a coping. It was `coping` - the pale mill-finish aluminium the main roof's parapet wears - and from the north the four steps read as four bright ledges laid across a grey wall, which is the reverse of the reference: in S11's own frame (earth n2) the terrace line at every step is the DARKEST thing on the north elevation, and S6 and S8 both show a dark metal guard, not a parapet, standing at each step. Same 1.05 m height, `rail` tone."
     },
     {
       "id": "step9",
@@ -1400,13 +1425,14 @@
       },
       "roofTone": "terrace",
       "parapet": 1.05,
-      "parapetTone": "coping",
+      "parapetTone": "rail",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
       ],
-      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source.",
+      "_parapetTone_src": "LOOK-FIX 3: the guard at the edge of a terrace, not a coping. It was `coping` - the pale mill-finish aluminium the main roof's parapet wears - and from the north the four steps read as four bright ledges laid across a grey wall, which is the reverse of the reference: in S11's own frame (earth n2) the terrace line at every step is the DARKEST thing on the north elevation, and S6 and S8 both show a dark metal guard, not a parapet, standing at each step. Same 1.05 m height, `rail` tone."
     },
     {
       "id": "step6",
@@ -1583,13 +1609,14 @@
       ],
       "roofTone": "terrace",
       "parapet": 1.05,
-      "parapetTone": "coping",
+      "parapetTone": "rail",
       "parapetSides": [
         "v0",
         "v1",
         "u1"
       ],
-      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source."
+      "_roofTone_src": "the step roofs are terraces, not membrane: `terrace` paving. See the tone's own source.",
+      "_parapetTone_src": "LOOK-FIX 3: the guard at the edge of a terrace, not a coping. It was `coping` - the pale mill-finish aluminium the main roof's parapet wears - and from the north the four steps read as four bright ledges laid across a grey wall, which is the reverse of the reference: in S11's own frame (earth n2) the terrace line at every step is the DARKEST thing on the north elevation, and S6 and S8 both show a dark metal guard, not a parapet, standing at each step. Same 1.05 m height, `rail` tone."
     }
   ],
   "deck": {
@@ -1634,6 +1661,32 @@
         "h": 0.06,
         "tone": "turf",
         "_src": "the green patch north of the water in S10; +/- 0.5 m"
+      },
+      {
+        "id": "railN",
+        "plan": [
+          8.4,
+          8.5,
+          0.9,
+          12.0
+        ],
+        "z0": 0.05,
+        "h": 1.15,
+        "tone": "rail",
+        "_src": "LOOK-FIX 3: the guard that encloses the pool terrace. S5 shows a balustrade standing round the open roof terrace beside the sky lounge, and a rooftop pool is enclosed. It stands on the two INNER edges of the paving - the roof's own 1.05 m parapet already closes the south and east sides - so the plan follows the paving read in S10 and only the 1.15 m height is derived."
+      },
+      {
+        "id": "railW",
+        "plan": [
+          0.9,
+          8.5,
+          11.9,
+          12.0
+        ],
+        "z0": 0.05,
+        "h": 1.15,
+        "tone": "rail",
+        "_src": "LOOK-FIX 3: the guard that encloses the pool terrace. S5 shows a balustrade standing round the open roof terrace beside the sky lounge, and a rooftop pool is enclosed. It stands on the two INNER edges of the paving - the roof's own 1.05 m parapet already closes the south and east sides - so the plan follows the paving read in S10 and only the 1.15 m height is derived."
       }
     ]
   },
