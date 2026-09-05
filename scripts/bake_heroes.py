@@ -247,9 +247,47 @@ GDC_H = 29.5
 # 2.0-2.5 m inset all round.
 GDC_OVERSAIL = 2.5
 # The seven-storey glass atrium is the link between the two bars, u 10.6..32.5,
-# v -1.0..11.7 in the frame -- the ring's own vertices. It is emitted at inset 0
-# so it stands 2.5 m proud of the brick, which is exactly what it does.
+# v -1.0..11.7 in the frame -- the ring's own vertices, i.e. the NOTCH the ring
+# cuts between the two bars.
 GDC_ATRIUM = (10.60, 32.50, -1.00, 11.70)
+# THE ATRIUM'S PLANE. Until 2026-09-05 the atrium was emitted at inset 0 while
+# every brick band around it was inset GDC_OVERSAIL, and the comment on that
+# line called it deliberate: "it stands 2.5 m proud of the brick, which is
+# exactly what it does." It is not what it does. Two nadir mosaics resampled
+# into this frame at 0.06 m/px disagree with it, and so does Google Earth's
+# mesh from the west (the Speedway side, which is +u here -- bearing 175.116
+# puts +u at 175 degrees anticlockwise from east, i.e. very nearly due west):
+#
+#   Esri World Imagery z20   the notch mouth is in the south bar's shadow and
+#                            the only edge it offers slopes 0.35 m of u per
+#                            metre of v -- a shadow line, not a wall. Unusable,
+#                            and the first read off it (a 3.4 m recess) was
+#                            this shadow being measured three times.
+#   Google z20               the same frame, a different overpass, no shadow in
+#                            the notch: the atrium's own roof runs from the
+#                            link out to u 26.9, a lighter strip follows, and a
+#                            hard dark line stands at u 29.00 across the full
+#                            width of the notch. Both providers put the bars'
+#                            roof canopy end at u 34.0 +/- 0.1, so the two
+#                            frames agree in u to a tenth of a metre.
+#   Google Earth 3D          from 30.28629,-97.73657 at 190 m, heading 90,
+#                            tilt 72: the two brick ends stand FORWARD and the
+#                            slot between them recedes. Nothing stands proud.
+#
+# The brick end wall this bake draws is at 32.50 - GDC_OVERSAIL = 30.00 (the
+# ring's own two end vertices are 32.37 and 32.57). The line the shadow-free
+# frame puts at 29.00 is therefore 0.90 m behind the brick.
+GDC_ATRIUM_RECESS = 0.90  # m the glass sits behind the brick end wall
+# IN v THE ATRIUM KEEPS THE RING'S OWN NOTCH, and that is a decision, not an
+# omission. The oversail moves each bar's notch-facing brick 2.5 m further out,
+# so glass left at the ring's notch width sits 2.5 m INSIDE the brick on both
+# flanks -- a deep reveal, which is what Google Earth's mesh shows from the west
+# (the slot recedes; nothing stands forward). Growing it to meet those flanks
+# was tried and rejected on two counts: the shadow-free Google nadir reads the
+# atrium's roof NARROWER than the ring notch, not wider, so the growth has no
+# measurement behind it; and a 17.7 m-wide glass slab swallows the door on the
+# south flank, which is GDC's Speedway entrance -- it came out of the bake
+# 29 m away on the courtyard wall. One measured change, in u.
 
 # ── NHB ───────────────────────────────────────────────────────────────
 # 7 storeys (CO Architects / Architizer; UT's record says 9 floors and NHB is
@@ -476,11 +514,23 @@ def build_ring(f, slug, stack, out, stats):
         stats[slug + "_bands"] += 1
 
     if slug == "gdc":
-        # The atrium at inset 0: it stands GDC_OVERSAIL proud of the brick, which
-        # is what a glass link between two brick bars looks like.
+        # The atrium on the plane the building actually has: its outer face
+        # 0.90 m behind the brick end wall instead of GDC_OVERSAIL proud of
+        # it, and the ring's own notch kept in v. See GDC_ATRIUM_RECESS.
         u0, u1, v0, v1 = GDC_ATRIUM
-        out.append(feat(frame_rect("gdc", u0, u1, v0, v1),
-                        band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, 28.70, 0)))
+        au1 = u1 - GDC_OVERSAIL - GDC_ATRIUM_RECESS
+        av0, av1 = v0, v1
+        pr = band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, 28.70, 0)
+        # ?wallplane=0 puts the atrium back where main draws it. The shape
+        # changes here, not just the position, so the switch carries the whole
+        # ring rather than an offset the way the entrances bake does.
+        pr["wp0"] = frame_rect("gdc", u0, u1, v0, v1)
+        # And the same move as a VECTOR, for the doors: the outer face
+        # travelled GDC_OVERSAIL + GDC_ATRIUM_RECESS along +u, and any door
+        # standing on that face travelled with it.
+        o = frame_rect("gdc", 0.0, GDC_OVERSAIL + GDC_ATRIUM_RECESS, 0.0, 0.01)
+        pr["wpd"] = [round(o[1][0] - o[0][0], 7), round(o[1][1] - o[0][1], 7)]
+        out.append(feat(frame_rect("gdc", u0, au1, av0, av1), pr))
         stats["gdc_bands"] += 1
         HERO_HEIGHTS["gdc"] = GDC_H
     if slug == "nhb":

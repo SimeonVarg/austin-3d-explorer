@@ -673,6 +673,44 @@ BURIED_RUN_MIN = 3.0    # m of continuously free wall a relocation must find.
 # footprint-re-draw class. 0.90 sits in the empty gap.
 SELF_IOU = 0.90         # [M] intersection-over-union; see histogram above
 
+# ── THE WALL PLANE A DOOR SITS ON (2026-09-05) ────────────────────────
+# A door belongs on the wall the RENDERER DRAWS, and for six buildings on
+# campus that is not the footprint ring. `scripts/bake_heroes.py` insets every
+# GDC and NHB wall band by its own `_OVERSAIL` (2.5 m on both) because the
+# Overture ring traces the ROOF CANOPY and not the wall; this pass placed the
+# doors on the ring. Measured against the shipped files, before this rule:
+#
+#     GDC  eids 166-171   2.63 m outboard of the brick the hero bake draws
+#     NHB  eids 581-586   2.63 m outboard of the same
+#     EER  eids 333-337   0.13-0.17 m  (EER's bands are at inset 0 — correct)
+#
+# 2.63 = GDC_OVERSAIL 2.50 + the 0.13 m the door bank already stands proud of
+# its own wall reference. Twelve doors floating a metre and a half clear of the
+# building, which is exactly what a hovering door looks like from the plaza.
+#
+# THE RULE, and it is a rule and not twelve numbers: march inward from the
+# candidate along its own wall normal and seat it on the first surface THIS
+# HOST actually draws. It is a no-op wherever the footprint IS the wall — every
+# ordinary building (no authored mass at all), EER, Moody, the stadium — so it
+# cannot regress them; it is exactly `_OVERSAIL` wherever a pass insets its
+# walls; and the day somebody adds a seventh inset building it is already
+# right. The candidate carries the metres it moved so the served file can hand
+# the pre-seat position back to `?wallplane=0`.
+WALL_SEAT = True        # the switch's bake half; js/entrances.js has the other
+WALL_SEAT_MAX = 6.0     # m; a surface further in than this is not this
+                        # doorway's wall — it is the far side of a light well
+WALL_SEAT_MIN = 0.15    # m; below this the ring IS the wall and nothing moves.
+                        # EER's 0.13-0.17 m is the door's own PROUD_DOOR
+                        # standoff and must survive untouched.
+WALL_SEAT_OWN = 0.50    # fraction of an authored mass that has to lie inside
+                        # the host ring before it counts as that host's wall.
+                        # GDC's atrium is OUTBOARD of the ring and scores 0, so
+                        # it can never seat a door — clear_buried still owns
+                        # that case, and runs after this.
+WALL_SEAT_STEP = 0.05   # m; the march, then one bisection to 0.01 m
+WALL_SEAT_SPAN = BURIED_SPAN_M   # m of bank swept; the door seats on the
+                        # NEAREST plane its leaves touch, never the deepest
+
 # ── A CELEBRATED PORTAL KEEPS ITS OWN WALL (QUEUE W9) ─────────────────
 # The Main Building's south portal sits in the middle of a 38 m recessed bay
 # and the generic pipeline had put THREE more doors on that same wall, the
@@ -3537,7 +3575,7 @@ ROLE_FROM_TAG = {"main": "main", "yes": "secondary", "staircase": "secondary",
 class Cand(object):
     __slots__ = ("x", "y", "tx", "ty", "nx", "ny", "elen", "s", "role", "src",
                  "score", "wheel", "door", "prio", "risers", "handrail",
-                 "ri", "ei", "wcrole", "wcmeth", "run", "ut")
+                 "ri", "ei", "wcrole", "wcmeth", "run", "ut", "seat")
 
     def __init__(self, x, y, tx, ty, nx, ny, elen, s, role, src, score, prio,
                  wheel=None, door=None, ri=0, ei=0):
@@ -3559,6 +3597,10 @@ class Cand(object):
         # relocated it onto another pass's mass. wall_run() walks b.rings and
         # would be answering a question about the wrong wall.
         self.run = None
+        # (dlon, dlat) BACK to where the footprint ring would have put this
+        # door, when seat_on_drawn_wall() pulled it onto an inset wall. Rides
+        # every piece of the entrance as `wp` so ?wallplane=0 can undo it.
+        self.seat = None
 
 
 def stage1_osm(blds, tree, stats):
@@ -4553,6 +4595,9 @@ class Ent(object):
         self.cx, self.cy = c.x, c.y
         self.tx, self.ty, self.nx, self.ny = c.tx, c.ty, c.nx, c.ny
         self.night = (cel or {}).get("night")
+        # `wp` — the degrees back to the footprint ring, when this door was
+        # seated on an inset wall. See WALL_SEAT.
+        self.seat = getattr(c, "seat", None)
 
     def pt(self, u, v):
         return to_ll(self.cx + u * self.tx + v * self.nx,
@@ -4573,6 +4618,7 @@ class Ent(object):
             "t": [round(self.tx / KX, 11), round(self.ty / M_LAT, 11)],
             "n": [round(self.nx / KX, 11), round(self.ny / M_LAT, 11)],
             "half": round(half, 3), "spring": round(spring, 3), "rise": round(rise, 3),
+            **({"wp": self.seat} if self.seat else {}),
         })
         piece = {"v": [round(v0, 3), round(v1, 3)], "c": [wd, wg, wn or wn_auto]}
         if sw is not None:
@@ -4623,6 +4669,8 @@ class Ent(object):
             "base": round(z0, 3), "h": round(z1 - z0, 3),
             "wd": wd, "wg": wg, "wn": wn or wn_auto, "src": self.src,
         }
+        if self.seat:
+            props["wp"] = self.seat
         # `famsrc` RIDES THE FIRST PIECE OF EACH ENTRANCE ONLY, and that is a
         # payload decision with a measured reason. It is one value per DOOR, but
         # a GeoJSON FeatureCollection has no per-door container, so writing it on
@@ -5715,6 +5763,197 @@ def _free_wall(union, host, px, py, front=None, claims=None):
     return best
 
 
+def load_authored_walls():
+    """The authored masses that ARE a building's walls, per host footprint id.
+
+    Only the files in BURIED_MASS_FILES — the passes that draw whole buildings
+    — and only the pieces that stand at grade, the same filter load_masses()
+    uses for burial. A file's `replacedBuildingIds` says which footprints its
+    geometry stands in for, so a mass is attributed to a host by GEOMETRY
+    (WALL_SEAT_OWN of the mass inside that ring) and the host is only ever one
+    of the ids that file claims. Nothing can seat a door onto a neighbour.
+    """
+    per_file = []
+    for fn_ in BURIED_MASS_FILES:
+        path = os.path.join(ROOT, "data", fn_ + ".geojson")
+        if not os.path.exists(path):
+            continue
+        try:
+            doc = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        claims = [str(b) for b in (doc.get("replacedBuildingIds") or [])]
+        if not claims:
+            continue                     # a pass that claims nothing has no host
+        polys = []
+        for f in doc.get("features") or []:
+            pr = f.get("properties") or {}
+            base = pr.get("base")
+            if base is None:
+                base = pr.get("min_height_m") or 0.0
+            top = pr.get("h")
+            if top is None:
+                top = pr.get("final_height") or pr.get("height_m") or 0.0
+            if base > BURIED_BASE_MAX or top < BURIED_TOP_MIN:
+                continue
+            g = f.get("geometry") or {}
+            if g.get("type") == "Polygon":
+                rings = [g["coordinates"]]
+            elif g.get("type") == "MultiPolygon":
+                rings = g["coordinates"]
+            else:
+                continue
+            for cr in rings:
+                if not cr or len(cr[0]) < 4:
+                    continue
+                try:
+                    q = Polygon([to_m(x, y) for x, y in cr[0]])
+                except Exception:
+                    continue
+                if q.is_valid and not q.is_empty and q.area > 1.0:
+                    polys.append(q)
+        if polys:
+            per_file.append((set(claims), polys))
+    return per_file
+
+
+def seat_on_drawn_wall(scope, stats):
+    """Move every candidate onto the wall plane its own building actually draws.
+
+    See WALL_SEAT above for why. One march per door, inward along its own
+    normal, swept across WALL_SEAT_SPAN of bank, and the door takes the
+    NEAREST plane any part of the bank touches. Runs BEFORE clear_buried(), so
+    a door is judged buried at the place it will finally stand.
+
+    ORDER: AFTER clear_buried(), and that is the whole difference between a
+    27-door change and a 27-door change plus four doors thrown 15-57 m across
+    their own building. Seating first moves the burial test's input, so three
+    GDC doors and one at DKR came out of clear_buried()'s march on completely
+    different walls -- and then `wp` no longer describes the move, because the
+    door did not travel the vector this function recorded. Seating last leaves
+    every other stage byte-for-byte what main bakes, and makes `wp` exact.
+    """
+    if not WALL_SEAT:
+        return
+    per_file = load_authored_walls()
+    if not per_file:
+        stats["seat_no_masses"] += 1
+        return
+    for b in scope:
+        if not b.ents:
+            continue
+        own = []
+        for claims, polys in per_file:
+            if str(b.bid) not in claims:
+                continue
+            for q in polys:
+                try:
+                    inter = q.intersection(b.poly).area
+                except Exception:
+                    continue
+                if inter / q.area >= WALL_SEAT_OWN:
+                    own.append(q)
+        if not own:
+            continue
+        stats["seat_hosts_with_walls"] += 1
+        wall = unary_union(own)
+        for c in b.ents:
+            offs = (-WALL_SEAT_SPAN / 2.0, 0.0, WALL_SEAT_SPAN / 2.0)
+            best = None
+            for u in offs:
+                bx = c.x + c.tx * u
+                by = c.y + c.ty * u
+                if wall.covers(Point(bx, by)):
+                    best = 0.0           # already on or inside the wall
+                    break
+                d = None
+                steps = int(WALL_SEAT_MAX / WALL_SEAT_STEP) + 1
+                for k in range(1, steps + 1):
+                    t = k * WALL_SEAT_STEP
+                    if wall.covers(Point(bx - c.nx * t, by - c.ny * t)):
+                        lo, hi = t - WALL_SEAT_STEP, t
+                        for _ in range(4):
+                            mid = (lo + hi) / 2.0
+                            if wall.covers(Point(bx - c.nx * mid,
+                                                 by - c.ny * mid)):
+                                hi = mid
+                            else:
+                                lo = mid
+                        d = hi
+                        break
+                if d is None:
+                    continue
+                best = d if best is None else min(best, d)
+            if best is None or best < WALL_SEAT_MIN:
+                stats["seat_already_on_wall"] += 1
+                continue
+            c.x -= c.nx * best
+            c.y -= c.ny * best
+            # the vector BACK, in degrees, for ?wallplane=0
+            c.seat = [round(c.nx * best / KX, 7), round(c.ny * best / M_LAT, 7)]
+            stats["seat_moved"] += 1
+            stats["seat_moved_m"] += best
+            SEATED.append((b.ref or b.name or b.osm_name or str(b.bid))[:28]
+                          + " %.2f m" % best)
+
+
+def adopt_moved_wall(scope, stats):
+    """A door that clear_buried() relocated onto a wall THIS ROUND MOVED must
+    carry that wall's move, or ?wallplane=0 leaves it behind.
+
+    GDC's Speedway door is the whole case: it is buried inside the atrium at
+    every plane the atrium has ever had, so the march puts it on the atrium's
+    outer face -- and that face travelled 3.40 m when bake_heroes.py took the
+    atrium off the roof canopy line. The bake that moved the wall stamps the
+    vector on the feature as `wpd`; this reads it back and hands it to the door
+    it moved, so one switch restores both.
+    """
+    moved = []
+    for fn_ in BURIED_MASS_FILES:
+        path = os.path.join(ROOT, "data", fn_ + ".geojson")
+        if not os.path.exists(path):
+            continue
+        try:
+            doc = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        for f in doc.get("features") or []:
+            pr = f.get("properties") or {}
+            wpd = pr.get("wpd")
+            g = f.get("geometry") or {}
+            if not wpd or g.get("type") != "Polygon":
+                continue
+            try:
+                q = Polygon([to_m(x, y) for x, y in g["coordinates"][0]])
+            except Exception:
+                continue
+            if q.is_valid and not q.is_empty:
+                moved.append((q, [round(wpd[0], 7), round(wpd[1], 7)]))
+    if not moved:
+        return
+    for b in scope:
+        for c in b.ents:
+            if c.seat:
+                continue
+            pt = Point(c.x - c.nx * ADOPT_IN, c.y - c.ny * ADOPT_IN)
+            for q, wpd in moved:
+                if q.covers(pt):
+                    c.seat = wpd
+                    stats["seat_adopted"] += 1
+                    break
+
+
+ADOPT_IN = BURIED_PROUD + 0.10   # m. NOT 0.10: a RELOCATED door does not
+                        # stand on the mass, it stands BURIED_PROUD (0.35 m)
+                        # off it, which is the whole point of that constant.
+                        # A step of 0.10 m inward from the door lands in the
+                        # 0.35 m of air between the two and adopts nothing —
+                        # measured, 0 doors, on the one door this exists for.
+
+
+SEATED = []
+
+
 def clear_buried(scope, stats):
     """QUEUE W7. Relocate or drop every door that another pass has walled in.
 
@@ -6515,6 +6754,20 @@ def main():
           " footprint re-drawn (IoU >= %.2f) and are excluded from that"
           " host's burial test and march"
           % (stats["self_masses"], stats["self_mass_hosts"], SELF_IOU))
+
+    seat_on_drawn_wall(scope, stats)
+    from collections import Counter as _C
+    print("wall plane         : %d doors seated on the wall their building"
+          " actually draws (mean %.2f m inward), %d already on it, over %d"
+          " hosts whose walls are authored geometry"
+          % (stats["seat_moved"], stats["seat_moved_m"] / max(1, stats["seat_moved"]),
+             stats["seat_already_on_wall"], stats["seat_hosts_with_walls"]))
+    for row, n in sorted(_C(SEATED).items()):
+        print("                     %s  x%d" % (row, n))
+    adopt_moved_wall(scope, stats)
+    print("                     %d more took the move of a wall another bake"
+          " shifted this round (`wpd`)" % stats["seat_adopted"])
+
     # THE SIDE AUDIT. Not the same claim as "how many did the side filter
     # choose" — that counts what the RULE did. This counts what the DATA ends
     # up saying, over every door carrying UT's survey flags, after every later
