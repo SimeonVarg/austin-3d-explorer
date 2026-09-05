@@ -122,6 +122,9 @@
  * the surface in the roof colour `pale` of the way to white, never facets,
  * on every rig drawn through roofOne except where a caller says `lines:
  * false` (the Capitol's standing-seam wings). `lines.on = false` is round 5.
+ * OFF BY DEFAULT since 2026-09-05: seen on the city, the courses read as pale
+ * lines drawn on the roofs rather than as tile, and the owner rejected them.
+ * The generator and its numbers stay; the gate now asserts no roof carries one.
  *
  * GREGORY GYM. Its west elevation is hand-authored in data/building_overrides
  * .json and baked by gable_front_parts as prisms: two pediments of 22 courses
@@ -279,7 +282,11 @@
     // lying flush. A roof with a deck keeps its hips and gets no ridge (its
     // top edge is the deck's own). Gregory's hall keeps ridgeCap above.
     lines: {
-      on: true,
+      on: false,        // OFF since 2026-09-05: the owner looked at the city and the pale
+                        // lines read as drawn-on, not as tile (rejected taste). Every
+                        // sub-key below is inert while this is false and stays as measured,
+                        // so one building or the campus can have its courses back with this
+                        // one line. scripts/verify/slopes-layer.mjs asserts their ABSENCE.
       ridge:  { w: 1.0, h: 0.15 },   // metres: the course's width, and how proud of the ridge it stands
       hip:    { w: 0.8, h: 0.15 },
       // A real ridge course is ~0.4 m wide; at mall-cruise (0.74 m/px, the

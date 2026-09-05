@@ -142,14 +142,16 @@
  *             a raycast at each flat entry's centroid does not land on the
  *             mesh at the plate's exact height, and the cap wrapper carries
  *             a deck branch.
- *   courses   (round 6, 2026-09-03) every roof carries its ridge, hip and
- *             valley courses (SLOPES_ROOFS.lines — the pale lines a barrel-
- *             tile roof shows from the air, which are what makes a hip read
- *             as a hip at mall-cruise, where a far slope is four pixels).
- *             Measured at mall-cruise on the plain four-corner hips in
- *             frame: a raycast at the ridge lands on the mesh `h` above the
- *             ridge, and the ridge's pixel column is lighter than both
- *             slopes 4 m either side; the generators report the count.
+ *   courses   (round 6, 2026-09-03; INVERTED 2026-09-05) no roof carries a
+ *             ridge, hip or valley course. Round 6 drew them (SLOPES_ROOFS
+ *             .lines — the pale lines a barrel-tile roof shows from the air);
+ *             seen on the city they read as lines drawn on the roofs, and
+ *             the owner rejected them. So the line now asserts their ABSENCE:
+ *             lines.on is false, the generators count zero, a raycast at
+ *             every plain hip's ridge in the mall-cruise frame lands ON the
+ *             bare ridge (never above it), and the ridge column does not
+ *             carry the courses' signature (lighter than both slopes on
+ *             three quarters of the hips in view).
  *
  * --break sabotages the page — inside the page only, no file on disk changes —
  * in the five ways this gate exists to catch, and TWELVE lines must go red:
@@ -161,8 +163,8 @@
  *      this gate already got wrong once, so they are the ones worth watching.
  *   3. SLOPES_ROOFS.flatRoofs = false on the switch page, so every flat roof
  *      wears its band and plate again: the `flat roofs` line (1).
- *   4. SLOPES_ROOFS.lines.on = false on the same page, so no roof carries a
- *      course: the `courses` line (1).
+ *   4. SLOPES_ROOFS.lines.on = true on the same page, so every roof carries
+ *      its courses again: the `courses` line (1).
  *   5. data/entrances.geojson is fetched a second time from the page, which is
  *      exactly what js/slopes-arches.js did until 2026-09-04: the `one fetch`
  *      line (1).
@@ -299,19 +301,18 @@ const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' tw
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
 const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower'];
-// THE COURSES (round 6, 2026-09-03). "Almost every red roof reads as a flat
-// plateau with a bevelled rim (a truncated pyramid), not two slopes meeting
-// at a ridge" — on a mesh whose roofs already ran to their ridges. From the
-// mall-cruise camera a far slope is four pixels and nothing marked the
-// ridge; a barrel-tile roof marks it with a ridge course and hip courses,
-// pale from the air (Google's Garrison at the same pose). SLOPES_ROOFS.lines
-// draws them as boxes standing `h` proud of the ridge, so at every plain
-// hip in frame a raycast at the ridge lands on the mesh `h` ABOVE the ridge
-// (not on the ridge itself), and the ridge's pixel column reads lighter
-// than both slopes 4 m either side. Measured on the first run: 1,780 courses
-// on the campus rig, 22 on the Main Building; the ridge column 114-135 luma
-// over slopes of 60-114. --break switches the courses off.
-const COURSES_MIN = 1000;         // campus courses, measured 1,780
+// THE COURSES (round 6, 2026-09-03; OFF since 2026-09-05). Round 6 drew a
+// ridge course and hip courses on every roof (SLOPES_ROOFS.lines: boxes
+// standing `h` proud of the ridge, pale), because from mall-cruise a far
+// slope is four pixels and nothing marked the ridge. Seen on the city they
+// read as pale lines drawn on the roofs, not as tile, and the owner rejected
+// them: lines.on is false by default now. The same measurement runs in the
+// other direction — at every plain hip in frame a raycast at the ridge lands
+// ON the bare ridge (nothing stands proud of it), the generators count zero
+// courses, and the ridge column does not carry the courses' signature
+// (lighter than both slopes on ≥ COURSE_FRAC of the hips in view — 114-135
+// luma over 60-114 when they were on). --break switches the courses back ON,
+// which must turn this line red.
 const COURSE_Z_TOL = 0.06;        // m; a raycast at the ridge may land at most this much above ridge + h
 const COURSE_LUMA = 10;           // /255; the ridge column must beat the brighter slope sample by this
 const COURSE_FRAC = 0.75;         // ...on this share of the plain hips in frame (a 1-px course lands on one row or the next)
@@ -632,12 +633,13 @@ const gen = await page.evaluate(() => {
 // Auditorium, Seay, the three Jesters) and writes their parts as roofs of
 // their own (count.parts, 11) — so `roofs` counts the entries DRAWN (115:
 // 112 + 11 parts − 8 flat) and `full` the ones to a ridge (104).
-// Since round 6 (same day) every roof also carries its ridge, hip and valley
-// COURSES (count.lines — 1,780 on the shipped rig, 22 more on the Main
-// Building's three arms; SLOPES_ROOFS.lines).
-check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts, all of them with their courses), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
-  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.lines >= COURSES_MIN && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
-  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines >= 12
+// Round 6 (same day) gave every roof its ridge, hip and valley COURSES
+// (count.lines — 1,780 on the shipped rig, 22 more on the Main Building's
+// three arms); since 2026-09-05 they are OFF (SLOPES_ROOFS.lines.on = false,
+// rejected on sight) and both counts must be zero.
+check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts, none of them with a course), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.lines === 0 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
+  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines === 0
   && WANT_GROUPS.every(n => gen.names.includes(n)),
   `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts; ${gen.roofs.lines} courses) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
 // ONE FETCH. data/entrances.geojson is 6.4 MB on the wire and TWO passes want
@@ -892,11 +894,12 @@ const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', a
   if (BREAK) {
     // the round-5 sabotage: the band-and-plate back on every flat roof, so
     // the `flat roofs` line below must go red (the plate is back at its height)
-    // ...and the round-6 sabotage: no courses, so the `courses` line below
-    // must go red (the raycast lands on the bare ridge, nothing pale there)
-    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); });
+    // ...and the round-6 sabotage, flipped on 2026-09-05 with the default:
+    // the courses back ON, so the `courses` line below must go red (the
+    // raycast lands above the ridge again, and the ridge column is pale)
+    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.SLOPES_ROOFS.lines.on = true; window.slopesRoofs.rebuild(); });
     await pg.waitForTimeout(800);
-    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again; SLOPES_ROOFS.lines.on = false — no ridge or hip courses');
+    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again; SLOPES_ROOFS.lines.on = true — the ridge and hip courses turned back on');
   }
 });
 const fNoise = await snap(A.pg, 'switch-on-again');
@@ -937,9 +940,10 @@ const plated = flat.out.filter(f => f.hit && f.hit.o === 'roofs' && Math.abs(f.h
 check('flat roofs (round 5): the bake tagged some, their parts draw as hips, no flat roof in frame wears a plate at the top of a band, and the cap wrapper paints their caps the flat roof\'s colour',
   flat.count.flat >= 4 && flat.count.parts >= 6 && flat.out.length >= 2 && plated.length === 0 && flat.deckBranches >= 1,
   `${flat.count.flat} flat roofs, ${flat.count.parts} parts drawn; in frame: ${flat.out.map(f => `${f.name} @${f.px.join(',')} plate ${f.plate} -> ${f.hit ? f.hit.o + '@' + f.hit.z : 'nothing'}`).join('; ')}; ${plated.length} plated; cap wrapper deck branches ${flat.deckBranches}`);
-// THE COURSES (round 6): on every plain hip in the mall-cruise frame (four
-// corners, drawn to its ridge), the longest ridge's midpoint and a point 4 m
-// down each slope, from the rig's own `full` profile. See COURSES_MIN above.
+// THE COURSES (round 6, now OFF): on every plain hip in the mall-cruise
+// frame (four corners, drawn to its ridge), the longest ridge's midpoint and
+// a point 4 m down each slope, from the rig's own `full` profile. See the
+// COURSE_* constants above: the assertion now runs the other way.
 const courses = await A.pg.evaluate(RIDGE_PX => {
   const S = window.slopes, R = window.slopesRoofs.data, meta = R.meta, cv = window.__map.getCanvas();
   const LN = window.SLOPES_ROOFS.lines;
@@ -993,8 +997,12 @@ const courses = await A.pg.evaluate(RIDGE_PX => {
   });
   const seen = rows.filter(r => !r.occluded && r.slopes != null);
   const nLit = seen.filter(r => r.lit).length, nProud = seen.filter(r => r.proud).length;
-  check('courses (round 6): the plain hips in frame carry a ridge course — a raycast at the ridge lands on the mesh above the ridge (no more than h above it), and the ridge column reads lighter than the slopes',
-    courses.count >= COURSES_MIN && seen.length >= 4 && nProud >= Math.ceil(seen.length * COURSE_FRAC) && nLit >= Math.ceil(seen.length * COURSE_FRAC),
+  // With the courses off, h is 0 and `proud` means "the raycast landed ABOVE
+  // the bare ridge" — impossible on a hip with nothing standing on it. `lit`
+  // on three quarters of the hips is the courses' own signature; below that
+  // is aliasing and whatever stands behind a foreshortened far slope.
+  check('courses (round 6, now OFF): no roof carries a ridge or hip course — lines.on is false, the generators count zero, the raycast at every named ridge lands on the bare hip, never above it, and the ridge column does not read lighter than the slopes the way a course did',
+    courses.count === 0 && courses.on === false && seen.length >= 4 && nProud === 0 && nLit < Math.ceil(seen.length * COURSE_FRAC),
     `${courses.count} courses (lines.on ${courses.on}, h ${courses.h}); ${rows.length} plain hips in frame with a ridge ≥ ${COURSE_RIDGE_PX} px, ${seen.length} with the ridge in view, ${nProud} with the ridge proud, ${nLit} lighter at the ridge: ` + rows.map(r => `${r.name} @${r.px[0].join(',')} (${r.ridgePx} px) ridge ${r.zRidge} -> ${r.hit ? r.hit.o + '@' + r.hit.z : 'nothing'} (want ≤ ${r.zWant})${r.occluded ? ' OCCLUDED' : ''}, luma ridge ${r.ridge.toFixed(0)} vs slopes ${r.slopes == null ? 'n/a' : r.slopes.toFixed(0)}`).join('; '));
 }
 // THE OLD CONTRACT WAS `root.children === 0` — written the day the layer was
