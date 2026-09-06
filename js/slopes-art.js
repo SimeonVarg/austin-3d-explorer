@@ -36,10 +36,27 @@
  *   section, is why the old one read as a silver tree.
  *
  * HOW A HULL IS DRAWN. A real shell, not a prism: stations along the hull, a
- * half-ellipse section at each one whose half-beam and depth both taper to zero
- * at bow and stern, with the keel rockered and the gunwale sheered up at the
- * ends. The top is left open and closed with a recessed dark deck strip, so the
- * hollow reads from above — which is what tells you they are boats.
+ * half-ellipse section at each one, the top left open and closed with a
+ * recessed dark deck strip so the hollow reads from above — which is what
+ * tells you they are boats.
+ *
+ * AND WHAT THAT SHELL LOOKED LIKE UNTIL 2026-09-06, because it is the one
+ * failure this file has repeated. The section tapered to a point at BOTH ends
+ * and both ends curled up (rocker on the keel, sheer on the gunwale), the
+ * beam was 0.82 m off a foreshortened photograph, and seventy of them came off
+ * a Fibonacci lattice over the FULL sphere from a point-sized hub. Every one
+ * of those decisions is defensible on its own and together they draw an agave:
+ * the paired judge frames (scratchpad judge/sculptures/monochrome/A.png ours,
+ * B.png Google Earth) read ours as "roughly forty identical needle-thin spikes
+ * (length-to-width about 15:1) ... every tip curling upward like a leaf,
+ * filling a full sphere so the lower spikes reach the ground", against a
+ * reference that is "a lumpy, asymmetric silver mass with a dozen-odd blunt
+ * lobes of about 5:1 ... clearly a pile of hulls". So the hull is now a BOAT:
+ * one pointed bow, one squared transom, a straight keel and a straight
+ * gunwale, 1.05 m in the beam against 4.5-5.5 m of length (4.8:1), rolled and
+ * jittered, dealt into three clumps over a hemisphere biased upward, hanging
+ * off a 1.1 m knot of overlapping sterns on a steel column that leaves 7 m of
+ * open air under the cloud. Numbers and sources: data/art3d/*.json.
  *
  * THE SWITCH. `?art3d=0` at load, or `window.ART3D.on = false` from the
  * console. Off, the picture is what main draws.
@@ -88,26 +105,26 @@
       // and the hull reads as a solid pod.
       deckDrop: 0.30,
       cables: true,
-      // A hull nearer the top of the cloud is turned to point more steeply up:
-      // the photographs' upper hulls rake toward the sky, the lower ones splay
-      // out and down. 0 makes an even sea urchin.
-      rakeWithHeight: 0.32,
       seed: 'rubins2015',
     },
 
     // ── The hull profile ────────────────────────────────────────────────
-    // The four exponents that decide whether a hull reads as a canoe or as a
-    // scythe. `endPow` is how far down the length the plan and the section
-    // stay full (2 is a lens, 4 holds full beam to mid-length and closes over
-    // the last third, which is what the reference hull does); `kickPow` is how
-    // abruptly the keel and the gunwale turn up at the ends (2 bends the whole
-    // hull into a banana, 6 keeps the middle straight).
+    // The exponents that decide whether a hull reads as a boat or as a needle,
+    // and they are ASYMMETRIC as of 2026-09-06: one pointed bow at u = +1 (the
+    // outer end) and one squared transom at u = -1 (the end bolted to the
+    // core). `bowPow` is how far down the length the plan stays full before it
+    // closes into the bow (3 holds full beam past mid-length and closes over
+    // the last third, which is what the reference hull does); `sternPow` is
+    // how the run narrows to the transom. `kickPow` is how abruptly the keel
+    // and the gunwale turn up at the ends IF the data asks for rocker or sheer
+    // — the data now asks for neither, because both ends curling up is what
+    // made seventy hulls read as an agave.
     // `deckW` is the open cockpit's half-width as a fraction of the hull's:
     // the rest is the GUNWALE RIM, and the rim is what stops a hull reading as
     // a black slot from above. At 0.94 (the first pass) the recess covered the
     // whole top face and seventy hulls seen from the air were seventy dark
     // gashes; the reference nadir is a burst of BRIGHT pointed shapes.
-    prof: { endPow: 4, kickPow: 6, beamPow: 0.42, depthPow: 0.35, deckW: 0.70 },
+    prof: { bowPow: 3, sternPow: 2.5, kickPow: 6, beamPow: 0.42, depthPow: 0.35, deckW: 0.70 },
 
     // ── Circle with Towers ──────────────────────────────────────────────
     circle: {
@@ -171,33 +188,45 @@
 
   /**
    * One hull, as a shell. `p` is its centre in local metres, `dir` its unit
-   * long axis, `L` its length. Stations run bow to stern along `dir`; at each
-   * one a half-ellipse section is swept from gunwale to keel to gunwale, with
-   * the half-beam and the depth both going to zero at the ends (so the bow and
-   * stern are points, not blunt cuts), the keel rockered up and the gunwale
-   * sheered up. The top is left open and closed by a recessed deck strip.
+   * long axis pointing at the BOW, `L` its length. Stations run stern to bow
+   * along `dir`; at each one a half-ellipse section is swept from gunwale to
+   * keel to gunwale. The plan closes to a point at the bow (u = +1) and to a
+   * flat TRANSOM of `transom` x beam at the stern (u = -1), which is then
+   * capped. `roll` turns the hull about its own long axis. The top is left
+   * open and closed by a recessed deck strip.
    */
-  function hull(B, p, dir, L, beam, depth, rocker, sheer, colOut, colIn, stations, sides, deckDrop) {
+  function hull(B, p, dir, L, beam, depth, rocker, sheer, colOut, colIn, stations, sides, deckDrop, transom, roll) {
     const T = norm(dir);
     // A stable pair of axes across the hull. `up` is world up unless the hull
     // is near-vertical, in which case any horizontal reference will do.
     const ref = Math.abs(T[2]) > 0.97 ? [1, 0, 0] : [0, 0, 1];
-    const N = norm(cross(T, ref));        // across the beam
-    const U = norm(cross(N, T));          // the hull's own "up"
+    let N = norm(cross(T, ref));          // across the beam
+    let U = norm(cross(N, T));            // the hull's own "up"
+    // Roll about the long axis, so no two hulls in the cluster present the
+    // same face to the camera.
+    if (roll) {
+      const cr = Math.cos(roll), sr = Math.sin(roll);
+      const N2 = [N[0] * cr + U[0] * sr, N[1] * cr + U[1] * sr, N[2] * cr + U[2] * sr];
+      const U2 = [U[0] * cr - N[0] * sr, U[1] * cr - N[1] * sr, U[2] * cr - N[2] * sr];
+      N = N2; U = U2;
+    }
+    const TR = Math.max(0, Math.min(1, transom || 0));
 
     // THE PROFILE, AND IT IS READ OFF ONE PHOTOGRAPH RATHER THAN REASONED.
     // Landmarks' own detail frame (photo Paul Bardagjy) shows a hull whose
-    // gunwale is essentially STRAIGHT down the middle and turns up only over
-    // the last sixth of its length, and whose beam is nearly full at
-    // mid-length and closes over the last third. A u^2 sheer bends the whole
-    // hull instead, and seventy of those read as a wheel of scythes — which is
-    // what the first pass drew. So both the plan and the sheer run on u^ENDPOW
-    // / u^KICKPOW, not u^2: flat in the middle, all of the movement at the
-    // ends. See PROF in the taste block.
-    const P4 = u => Math.max(0, 1 - Math.pow(Math.abs(u), PROF.endPow));
+    // gunwale is essentially STRAIGHT down its length, whose beam is nearly
+    // full at mid-length and closes over the last third into ONE pointed end,
+    // and whose other end is a flat cut. So: the plan runs on u^bowPow forward
+    // of amidships and closes to `transom` aft of it, and the keel and the
+    // gunwale are straight lines unless the data asks for rocker or sheer
+    // (it does not — see `profileSource` in the data; both ends curling up is
+    // exactly what made the cluster read as an agave).
+    const full = u => (u >= 0
+      ? Math.max(0, 1 - Math.pow(u, PROF.bowPow))
+      : Math.max(0, 1 - (1 - TR) * Math.pow(-u, PROF.sternPow)));
     const kick = u => Math.pow(Math.abs(u), PROF.kickPow);
-    const halfB = u => (beam / 2) * Math.pow(P4(u), PROF.beamPow);
-    const dep = u => depth * Math.pow(P4(u), PROF.depthPow);
+    const halfB = u => (beam / 2) * Math.pow(full(u), PROF.beamPow);
+    const dep = u => depth * Math.pow(full(u), PROF.depthPow);
     const keel = u => L * rocker * kick(u) - dep(u);    // rises at the ends
     const gun = u => L * sheer * kick(u);               // sheer line
 
@@ -225,6 +254,20 @@
         B.quad(a, b, c, d, colOut, [mid[0] - ctr[0], mid[1] - ctr[1], mid[2] - ctr[2]]);
       }
     }
+    // THE TRANSOM. With a squared stern the section at u = -1 is no longer a
+    // point, so the shell ends in an open half-ellipse that you can see
+    // straight through from behind — a hole where the flat plate should be.
+    // Close it with a fan about that section's own centre. (A hull with
+    // transom 0 — a cable, or a canoe — degenerates to zero-area triangles
+    // and costs nothing.)
+    if (TR > 0.01) {
+      const c = axis(-1);
+      for (let j = 0; j < sides - 1; j++) {
+        const t0 = Math.PI * j / (sides - 1), t1 = Math.PI * (j + 1) / (sides - 1);
+        B.tri(c, at(-1, t0), at(-1, t1), colOut, [-T[0], -T[1], -T[2]]);
+      }
+    }
+
     // The open deck: a strip between the two gunwales, dropped into the hull.
     if (deckDrop > 0) {
       const deck = u => {
@@ -259,53 +302,84 @@
     const place = [];
     // THE PLACEMENT RULE, AND IT IS THE PHYSICAL ONE. Every hull is BOLTED TO
     // A CENTRAL ARMATURE ("draws its support from a steel armature and
-    // intertwining cables", Landmarks), so their INNER ENDS converge on the
-    // core and their pointed ends radiate. Place the inner end, not the
-    // centre, and the dense middle and the spiky outline both fall out of it —
-    // no outward bias to tune and no spikes bolted on to reach the envelope.
+    // intertwining cables", Landmarks), so their STERNS converge on the core
+    // and their pointed bows radiate. Place the inner end, not the centre, and
+    // the dense middle and the spiky outline both fall out of it.
     //
-    // Directions come off a FIBONACCI LATTICE rather than a hash, then get
-    // jittered. Seventy hashed directions clump: the first pass here had a
-    // comb of near-parallel hulls on one side and a hole on the other, which
-    // is what independent sampling of seventy points on a sphere looks like.
-    // The lattice covers every direction evenly and the jitter puts the tangle
-    // back.
-    const ky = C.semiY / C.semiX, kz = C.semiZ / C.semiX;
-    const GOLD = Math.PI * (3 - Math.sqrt(5));
+    // WHAT CHANGED 2026-09-06, AND IT IS THE WHOLE SILHOUETTE. Directions came
+    // off a FIBONACCI LATTICE over the full sphere — even coverage, every
+    // direction, including straight down. That is the definition of a sea
+    // urchin, and the paired judge frames say so: ours read as "an agave or
+    // sea urchin ... a perfect radial from a single point-sized hub, filling a
+    // full sphere so the lower spikes reach the ground", the reference as "a
+    // lumpy, asymmetric silver mass with a dozen-odd blunt lobes ... in two or
+    // three clumps". So the lattice is gone. The hulls are dealt round
+    // `clumps` anchor bearings, each with its own rake, and thrown off it by
+    // ±clumpSpreadAz / ±clumpSpreadEl; elevation is clamped to elMin..elMax,
+    // which is a HEMISPHERE BIASED UP rather than a sphere. Everything below
+    // is in the data and every one of them is a one-line edit.
+    const D2R = Math.PI / 180;
+    const nC = Math.max(1, C.clumps | 0);
+    const elC = C.clumpEl || [40];
+    const azS = (C.clumpSpreadAz || 0) * D2R, elS = (C.clumpSpreadEl || 0) * D2R;
+    const elLo = (C.elMin || 0) * D2R, elHi = (C.elMax || 0) * D2R;
     for (let i = 0; i < H.count; i++) {
-      const t = (i + 0.5) / H.count;
-      const zc = 1 - 2 * t, sr = Math.sqrt(Math.max(0, 1 - zc * zc)), ph = GOLD * i;
-      let dir = norm([sr * Math.cos(ph), ky * sr * Math.sin(ph), kz * zc]);
-      // Higher hulls rake up, lower ones splay out and down.
-      dir = norm([dir[0], dir[1], dir[2] + M.rakeWithHeight * zc]);
-      // Jitter, then blend toward an independent heading by (1 - radial).
-      const ja = 2 * Math.PI * hash01(M.seed, 7 * i + 1);
-      const jm = C.jitter * (hash01(M.seed, 7 * i + 2) - 0.5) * 2;
+      const k = i % nC;
+      // The clump's own anchor: evenly spaced in plan, its own rake, and an
+      // offset per clump so three clumps are not three spokes of one wheel.
+      const az0 = 2 * Math.PI * (k / nC + 0.11 * hash01(M.seed, 977 * k + 13));
+      const el0 = (elC[k % elC.length] || 0) * D2R;
+      const az = az0 + azS * (hash01(M.seed, 7 * i + 1) - 0.5) * 2;
+      let el = el0 + elS * (hash01(M.seed, 7 * i + 2) - 0.5) * 2;
+      el = Math.max(elLo, Math.min(elHi, el));
+      let dir = norm([Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el)]);
+      // ±15° of yaw-and-pitch jitter on top, so no two hulls are parallel.
+      const ja = 2 * Math.PI * hash01(M.seed, 7 * i + 3);
+      const jm = C.jitter * (hash01(M.seed, 7 * i + 4) - 0.5) * 2;
       const perp = norm(cross(dir, Math.abs(dir[2]) > 0.9 ? [1, 0, 0] : [0, 0, 1]));
       const perp2 = norm(cross(dir, perp));
       dir = norm([dir[0] + jm * (Math.cos(ja) * perp[0] + Math.sin(ja) * perp2[0]),
                   dir[1] + jm * (Math.cos(ja) * perp[1] + Math.sin(ja) * perp2[1]),
                   dir[2] + jm * (Math.cos(ja) * perp[2] + Math.sin(ja) * perp2[2])]);
-      const ra = 2 * Math.PI * hash01(M.seed, 7 * i + 3);
-      const re = (hash01(M.seed, 7 * i + 4) - 0.5) * Math.PI;
-      const rnd = [Math.cos(re) * Math.cos(ra), Math.cos(re) * Math.sin(ra), Math.sin(re)];
-      dir = norm([dir[0] * C.radial + rnd[0] * (1 - C.radial),
-                  dir[1] * C.radial + rnd[1] * (1 - C.radial),
-                  dir[2] * C.radial + rnd[2] * (1 - C.radial)]);
-      const L = H.lenMin + (H.lenMax - H.lenMin) * hash01(M.seed, 131 * i + 7);
-      const rin = C.innerMin + (C.innerMax - C.innerMin) * hash01(M.seed, 7 * i + 5);
-      const c = add3([0, 0, C.centreZ], dir, rin + L * 0.5);
-      place.push([c, dir, L, i]);
+      // Length in the measured band, then ±lenJitter about it.
+      const L0 = H.lenMin + (H.lenMax - H.lenMin) * hash01(M.seed, 131 * i + 7);
+      const L = L0 * (1 + (H.lenJitter || 0) * (hash01(M.seed, 131 * i + 11) - 0.5) * 2);
+      // THE KNOT. The inner end sits anywhere inside a ball of radius coreR
+      // about the core (cube root, so the ball fills evenly rather than
+      // crowding its skin), and seven hulls in ten hang off it by the stern
+      // while the rest are gripped nearer mid-length and push their transom
+      // out the far side. Seventy overlapping sterns is the ~1 m armature
+      // knot the reference has and the point-hub we drew did not.
+      const rin = C.coreR * Math.cbrt(hash01(M.seed, 7 * i + 5));
+      const byStern = hash01(M.seed, 7 * i + 6) < (C.sternShare == null ? 1 : C.sternShare);
+      const c = add3([0, 0, C.centreZ], dir, rin + L * (byStern ? 0.5 : 0.30));
+      // THE SECOND RANK. Rubins bolts boats to each OTHER, not seventy of them
+      // to one knot, and seventy sterns inside a 0.55 m ball diverge like a
+      // sparkler: air where the reference has aluminium. So a share of the
+      // hulls are displaced off the armature by up to `rank2R` in a RANDOM
+      // direction — sideways as often as outward, so the mass fills without
+      // the silhouette widening.
+      if (C.rank2R && hash01(M.seed, 7 * i + 8) < (C.rank2Share || 0)) {
+        const oa = 2 * Math.PI * hash01(M.seed, 131 * i + 23);
+        const oe = Math.asin(2 * hash01(M.seed, 131 * i + 29) - 1);
+        const om = C.rank2R * Math.cbrt(hash01(M.seed, 131 * i + 31));
+        c[0] += om * Math.cos(oe) * Math.cos(oa);
+        c[1] += om * Math.cos(oe) * Math.sin(oa);
+        c[2] += om * Math.sin(oe);
+      }
+      const roll = (C.roll || 0) * (hash01(M.seed, 131 * i + 17) - 0.5) * 2;
+      place.push([c, dir, L, i, roll]);
     }
 
-    for (const [c, dir, L, i] of place) {
+    for (const [c, dir, L, i, roll] of place) {
       // Keep every hull clear of the pavement: this is a cantilever, and a
       // hull tip through the ground is the one thing that would give it away.
       const low = c[2] - L * 0.5 * Math.abs(dir[2]);
       if (low < C.floorZ) c[2] += C.floorZ - low;
       const bright = i % mat.brightEvery === 0;
       hull(B, c, dir, L, H.beam, H.depth, H.rocker, H.sheer,
-           bright ? colBright : colHull, colIn, stations, sides, ART3D.mono.deckDrop);
+           bright ? colBright : colHull, colIn, stations, sides, ART3D.mono.deckDrop,
+           H.transom, roll);
       hulls++;
     }
 

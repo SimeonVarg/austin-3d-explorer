@@ -1,5 +1,74 @@
 # Austin 3D Explorer — Full Handoff
 
+## 226. Sep 6 2026 — Rubins' boats are boats: the needle spikes are hulls with a beam and a squared stern, on a column with air under them (`acer/apts`, one gap closed on the sculpture critic's verdict)
+
+**Look first: `docs/shots/art-monochrome-hulls.jpg`** — before and after at the
+sculpture critic's own camera (`jumpTo` center −97.7370979, 30.2874649, z 19.6,
+pitch 55, bearing 0, `?intro=0&drift=0`, graphics auto-detect cancelled,
+tod 0.30, second of two shots).
+
+The critic put our Monochrome for Austin beside Google Earth's photogrammetry
+and picked the real thing on both sculptures. The named gap was the primitive:
+ours read as *"roughly forty identical needle-thin spikes (length-to-width about
+15:1), every one a perfect radial from a single point-sized hub, every tip
+curling upward like a leaf, filling a full sphere so the lower spikes reach the
+ground ... an agave or sea urchin"*, against a reference that is *"a lumpy,
+asymmetric silver mass with a dozen-odd blunt lobes of about 5:1 ... clearly a
+pile of hulls."* Six decisions, each defensible alone, drew that agave, and all
+six are now in `data/art3d/monochrome-for-austin.json` with their source:
+
+- **The beam was foreshortened, not measured.** 0.82 m came from reading 35–42
+  px across hulls in an *elevation* photograph, where a hull points at the lens.
+  1.05 m against 4.5–5.5 m of length is 4.8:1, which is the reference's own
+  proportion and is also what a canoe actually is.
+- **Both ends came to a point and both curled up.** `rocker` and `sheer` lifted
+  each end ~0.45 m; seventy of those radiating from a point is a rosette of leaf
+  tips. Both are 0 now — straight keel, straight gunwale — and the plan is
+  asymmetric: one pointed bow, one squared `transom` at 0.62 of the beam, capped.
+- **The hub was a pixel.** Sterns now sit inside a 0.55 m ball, so seventy flat
+  transoms overlap into the ~1 m armature knot the reference has.
+- **A Fibonacci lattice over the full sphere is the definition of a sea urchin.**
+  Directions are dealt round three clump bearings, each with its own rake, thrown
+  ±40° in plan and ±44° in rake and jittered ±15° with ±15° of roll, over a
+  hemisphere clamped to −30°…+84°.
+- **The cloud stood on the ground.** The core moved 8.8 → 9.4 m and the floor
+  2.2 → 5.0 m, and the mast went 0.42 × 3.6 m → 0.50 × 4.9 m, so ~5 m of
+  stainless column stands in open air under the boats and the top still lands on
+  the published 15.24 m.
+- **It was brown.** Every judge frame is shot at tod 0.30 and the golden triple
+  was `#968d84`; brown plus radiating points is an agave whatever the geometry
+  does. The golden tones are neutral greys now — day and night untouched.
+
+Two things needed a second look rather than one, and both are written into the
+data. Three clumps at ±36° of rake is a **flat fan**, and three flat fans on a
+pole is a dragonfly, so the rake spread went to ±44°. And seventy sterns inside
+one 0.55 m ball **diverge like a sparkler** — the outer half of the cloud was
+more air than aluminium — so 55 per cent of the hulls are displaced up to 2.1 m
+in a random direction: Rubins bolts boats to each other, not seventy of them to
+one knot.
+
+Count stays at the published **70** ("70 aluminum canoes and small boats",
+Landmarks), not the ~25 the brief suggested: the reference frame is a dense
+lumpy mass, and 70 wide hulls in clumps is what makes it dense. `count` is one
+line in the data if the next lane disagrees, and so is every number above.
+
+**Gate: `scripts/verify/art-slopes.mjs`, hardware GL, own server on :8213 — 7/7
+passed.** 70 hulls / 8 towers / 64 fingers / 14,126 tris in 91 ms; one settled
+page shot twice 0 px; ON vs OFF 89,172 px at Monochrome and 6,975 at Circle
+against a 2,000 floor; runtime-off equals `?art3d=0` at both poses, 0 px; no
+page errors.
+
+**Not done, and left for whoever picks this up.** The critic's three secondary
+items on **Circle with Towers** are all untouched: the ring wall still draws as
+108 separate radial fingers and stipples to a dotted line at zoom 20 (it wants
+one closed extruded ring behind the fingers, ≥0.2 m thick), the two tree
+canopies still stand on the court and hide the piece from every oblique (that is
+props/trees, not this lane's file), and tower height against wall height still
+cannot be judged until that canopy moves. Nothing on Monochrome's own cloud was
+re-judged against the reference after the second adjustment beyond the one
+before/after look above — the column reads long against the cloud from a low
+oblique, and `cloud.centreZ` / `mast.h` are the two lines that change it.
+
 ## 225. Sep 6 2026 — the carriageway has a kerb now, so the road stops at an edge instead of dissolving into the plaza (`acer/apts`, one gap closed on the street critic's verdict)
 
 **Look first: `docs/shots/street-kerb-garrison-stub.jpg`** — the road stub in
