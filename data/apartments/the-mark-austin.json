@@ -70,7 +70,7 @@
       "_src": "S6 hp_0499, median of the near-neutral pixels darker than luma 60 in the same rectangle: #323332 - the charcoal band that wraps each window head and sill, and the tone of the recessed slots."
     },
     "terracotta": {
-      "hex": "#9a5a45",
+      "hex": "#7c4634",
       "_src": "the rust panel of the W 24th wing and of the balcony backs and pilasters. Two measurements bracket it: the S8 NE oblique's W 24th wing, median of every pixel in the wing rectangle with hue 5-35 deg, saturation > 0.30 and value > 0.35, is #8a594d over 7,000 pixels (aerial photogrammetry, hazed); S6 hp_cover's sunlit-side pilaster at (1900,700)-(2000,2100), same filter, is #ad7b62 (that face is in shade and carries a blue cast). The value entered sits between them - derived from two measurements, not sampled once."
     },
     "terracottaDeep": {
@@ -78,7 +78,7 @@
       "_src": "S6 hp_0499, the same hue filter over the balcony recesses at (0,250)-(200,1250): #5b280d. This is the same product read inside a balcony, in shade - used for the balcony back walls, where the app's own light will not put sun on them either."
     },
     "glass": {
-      "hex": "#4d6068",
+      "hex": "#5e7378",
       "_src": "the vision glass. S6 hp_0499 measures it at #9cb1c8 where it is reflecting sky ((470,390)-(540,425)) and at about #32333x where a window is dark; the S8 obliques show it consistently as a dark teal. The value entered is between the two lighting conditions - derived from two measurements. Most windows in the photographs also carry pale blinds, which is why a straight crop median of a window is useless here."
     },
     "frameDark": {
@@ -113,7 +113,7 @@
       "hex": "#1d1f20",
       "_src": "S8 NE oblique: the tall slots between the white piers of the W 24th base are open garage, and read black at every camera"
     },
-    "roof": ["#cdcabd", "#d5c8b2", "#1c1f27"],
+    "roof": ["#d4d2ca", "#dbd0bb", "#1c1f27"],
     "_roof_src": "S8 nadir, median of the main roof membrane at (660,560)-(700,600) = #cdcabd; golden and night entered the way S11 enters a top face",
     "deckPave": ["#aaafac", "#b4aa9c", "#1c1f27"],
     "_deckPave_src": "S8 nadir, median of the amenity deck's paving at (880,600)-(910,625) = #aaafac; trio as S11",
@@ -144,7 +144,7 @@
       "runMax": 2,
       "macro": [2, 1],
       "bay": 3.8,
-      "window": { "w": 2.6, "h": 1.9, "sill": 0.85 },
+      "window": { "w": 2.15, "h": 1.85, "sill": 0.9 },
       "glass": "glass",
       "frame": "frameDark",
       "reveal": 0.1,
@@ -154,8 +154,8 @@
       "kind": "bays",
       "bay": 3.8,
       "field": "terracotta",
-      "strip": { "w": 0.95, "tone": "coping", "at": "joints" },
-      "window": { "w": 2.3, "h": 1.9, "sill": 0.85 },
+      "strip": { "w": 0.7, "tone": "coping", "at": "joints" },
+      "window": { "w": 1.95, "h": 1.85, "sill": 0.85 },
       "glass": "glass",
       "frame": "frameDark",
       "reveal": 0.1,
@@ -231,7 +231,12 @@
       "z1": 7.0,
       "bands": [{ "z0": 0, "z1": 7.0, "skin": "garageScreen" }],
       "faces": {
-        "v0": {
+        "v0": { "bands": [{ "z0": 0, "z1": 7.0, "skin": "shopfront" }] },
+        "_src": "v0 is the SOUTH face on W 23rd Street and takes the shopfront; v1 (north, W 24th), u0 (west, Pearl) and u1 (east) take the default garage screen."
+      },
+      "overrides": [
+        {
+          "region": [44.0, 56.0, 0.0, 4.0],
           "bands": [
             {
               "z0": 0,
@@ -240,8 +245,8 @@
               "signs": [
                 {
                   "text": "THE MARK",
-                  "s0": 30.0,
-                  "z0": 5.35,
+                  "s0": 3.0,
+                  "z0": 5.4,
                   "dot": 0.12,
                   "gap": 0.13,
                   "tone": "frameDark"
@@ -249,13 +254,10 @@
               ]
             }
           ],
-          "_src": "the W 23rd Street front: storefront under the slat canopy with the THE MARK letters on the canopy fascia (S6 hp_0499). The letters are about 0.85 m tall there against a canopy the photograph puts at 1.7 m, hence dot 0.12 for a 5x7 font."
+          "_src": "the THE MARK letters on the canopy fascia over the entrance (S6 hp_0499). About 0.85 m tall against a canopy the photograph puts at 1.7 m, hence dot 0.12 for a 5x7 font. In its own region for the reason the deck block's sign records."
         },
-        "_src": "v0 is the SOUTH face on W 23rd Street and takes the shopfront; v1 (north, W 24th), u0 (west, Pearl) and u1 (east) take the default garage screen."
-      },
-      "overrides": [
         {
-          "region": [0.0, 26.0, 0.0, 4.0],
+          "region": [0.0, 16.0, 0.0, 4.0],
           "bands": [{ "z0": 0, "z1": 7.0, "skin": "stone" }],
           "_src": "the limestone plinth: in S6 hp_0499 the west third of the W 23rd base is chopped stone rather than shopfront, with the garage's own louvred vents in it, and it returns round the Pearl Street corner. Extent read off the same frame against the canopy's start, plus or minus 4 m."
         },
@@ -285,53 +287,53 @@
       },
       "overrides": [
         {
-          "region": [7.0, 10.8, 0.0, 6.0],
+          "region": [7.8, 10.6, 0.0, 6.0],
           "bands": [
             {
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 7.2, "s1": 10.6, "lift": 0.0 }]
+              "balconies": [{ "s0": 7.9, "s1": 10.5, "lift": 0.0 }]
             }
           ],
           "_src": "the first balcony stack on W 23rd. S6 hp_cover shows the stacks as full-height columns of inset balconies with a rust back and a black rail, one per floor, beside a terracotta pilaster; hp_0499 shows the same column at the near end of the elevation. Three stacks are entered on this face at roughly a quarter, a half and three quarters of its length, which is where hp_cover and the S8 SW oblique put them, plus or minus 4 m. `s0/s1` are given equal to the region's u range - see `open` about which way s winds on this face."
         },
         {
-          "region": [22.6, 26.4, 0.0, 6.0],
+          "region": [23.4, 26.2, 0.0, 6.0],
           "bands": [
             {
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 22.8, "s1": 26.2, "lift": 0.0 }]
+              "balconies": [{ "s0": 23.5, "s1": 26.1, "lift": 0.0 }]
             }
           ],
           "_src": "the second balcony stack (S6 hp_cover)"
         },
         {
-          "region": [38.2, 42.0, 0.0, 6.0],
+          "region": [39.0, 41.8, 0.0, 6.0],
           "bands": [
             {
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 38.4, "s1": 41.8, "lift": 0.0 }]
+              "balconies": [{ "s0": 39.1, "s1": 41.7, "lift": 0.0 }]
             }
           ],
           "_src": "the third balcony stack (S6 hp_cover)"
         },
         {
-          "region": [11.0, 12.6, 0.0, 6.0],
+          "region": [10.8, 11.6, 0.0, 6.0],
           "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
           "_src": "the terracotta pilaster beside the first stack: in S6 hp_cover a rust strip about 1.5 m wide runs the building's full height immediately east of each balcony column, and it is the strongest colour on the elevation"
         },
         {
-          "region": [26.6, 28.2, 0.0, 6.0],
+          "region": [26.4, 27.2, 0.0, 6.0],
           "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
           "_src": "the pilaster beside the second stack (S6 hp_cover)"
         },
         {
-          "region": [42.2, 43.8, 0.0, 6.0],
+          "region": [42.0, 42.8, 0.0, 6.0],
           "bands": [{ "z0": 7.0, "z1": 55.0, "skin": "pilaster" }],
           "_src": "the pilaster beside the third stack (S6 hp_cover)"
         },
@@ -366,7 +368,7 @@
       "roofItems": [
         {
           "plan": [3.0, 46.0, 2.0, 17.0],
-          "grid": [11, 3],
+          "grid": [7, 2],
           "size": [1.1, 1.6],
           "h": 0.7,
           "tone": "condenser",
@@ -374,7 +376,7 @@
         },
         {
           "plan": [3.0, 18.0, 21.0, 37.0],
-          "grid": [4, 4],
+          "grid": [3, 2],
           "size": [1.1, 1.6],
           "h": 0.7,
           "tone": "condenser",
@@ -406,7 +408,14 @@
       "_bands_src": "the panel field to 46.0 and then the pale parapet band the letters stand on. In S6 hp_drone that band is blank white and about a storey deep, which is what separates it from the field below.",
       "faces": {
         "u0": null,
-        "v0": {
+        "v0": {},
+        "u1": {},
+        "v1": {},
+        "_src": "u0 (west) is null - the tall block stands against it. u1 is the EAST end wall, v0 the SOUTH wall on W 23rd, v1 the north wall on to the courtyard and, east of u=63.5, against the W 24th wing's return."
+      },
+      "overrides": [
+        {
+          "region": [66.0, 80.0, 0.0, 6.0],
           "bands": [
             { "z0": 7.0, "z1": 46.0, "skin": "field" },
             {
@@ -416,53 +425,48 @@
               "signs": [
                 {
                   "text": "THE MARK",
-                  "s0": 3.4,
-                  "z0": 46.6,
-                  "dot": 0.28,
-                  "gap": 0.30,
+                  "s0": 1.1,
+                  "z0": 46.7,
+                  "dot": 0.24,
+                  "gap": 0.26,
                   "tone": "sign"
                 }
               ]
             }
           ],
-          "_src": "the W 23rd face with the big white THE MARK letters on the parapet band, near the east end (S6 hp_drone, where they are the building's signature, and the S8 SE oblique, where they sit about 12 m in from the corner). dot 0.28 makes a 5x7 letter 1.96 m tall, which is what hp_drone shows against a parapet band a storey deep."
+          "_src": "the big white THE MARK letters on the parapet band near the east end (S6 hp_drone, where they are the building's signature; the S8 SE oblique puts them about 12 m in from the corner). dot 0.24 makes a 5x7 letter 1.68 m tall on a parapet band a storey deep. THE SIGN LIVES IN ITS OWN OVERRIDE REGION AND NOT ON THE FACE, and that is the first look's finding: `overrides` cut the wall into segments and every segment redraws the face's bands, so a sign on the face was drawn once per segment - five overlapping copies of THE MARK across this elevation. One region, one segment, one sign."
         },
-        "u1": {},
-        "v1": {},
-        "_src": "u0 (west) is null - the tall block stands against it. u1 is the EAST end wall, v0 the SOUTH wall on W 23rd, v1 the north wall on to the courtyard and, east of u=63.5, against the W 24th wing's return."
-      },
-      "overrides": [
         {
-          "region": [56.0, 59.8, 0.0, 6.0],
+          "region": [56.4, 59.2, 0.0, 6.0],
           "bands": [
             {
               "z0": 7.0,
               "z1": 46.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 56.2, "s1": 59.6, "lift": 0.0 }]
+              "balconies": [{ "s0": 56.5, "s1": 59.1, "lift": 0.0 }]
             }
           ],
           "_src": "a balcony stack on this block's W 23rd face, the same module as the tall block's (S8 SE oblique, where the stacks continue past the step)"
         },
         {
-          "region": [70.0, 73.8, 0.0, 6.0],
+          "region": [70.4, 73.2, 0.0, 6.0],
           "bands": [
             {
               "z0": 7.0,
               "z1": 46.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 70.2, "s1": 73.6, "lift": 0.0 }]
+              "balconies": [{ "s0": 70.5, "s1": 73.1, "lift": 0.0 }]
             }
           ],
           "_src": "the second stack on this block (S8 SE oblique)"
         },
         {
-          "region": [60.0, 61.6, 0.0, 6.0],
+          "region": [59.4, 60.2, 0.0, 6.0],
           "bands": [{ "z0": 7.0, "z1": 46.0, "skin": "pilaster" }],
           "_src": "the terracotta pilaster beside the first stack (S8 SE oblique)"
         },
         {
-          "region": [74.0, 75.6, 0.0, 6.0],
+          "region": [73.4, 74.2, 0.0, 6.0],
           "bands": [{ "z0": 7.0, "z1": 46.0, "skin": "pilaster" }],
           "_src": "the pilaster beside the second stack (S8 SE oblique)"
         }
@@ -511,7 +515,7 @@
       "roofItems": [
         {
           "plan": [6.0, 76.0, 43.0, 53.0],
-          "grid": [10, 2],
+          "grid": [6, 2],
           "size": [1.0, 1.4],
           "h": 0.6,
           "tone": "condenser",
@@ -543,7 +547,7 @@
       "roofItems": [
         {
           "plan": [66.0, 81.0, 26.0, 36.0],
-          "grid": [4, 3],
+          "grid": [3, 2],
           "size": [1.0, 1.4],
           "h": 0.6,
           "tone": "condenser",
@@ -615,6 +619,7 @@
     "The published floor area does not reconcile with this massing. 417,000 sq ft (S4) over these blocks would need the upper floors to be about 15 per cent smaller than they are drawn, or that figure excludes the two below-grade parking levels differently than assumed. The massing follows the imagery, which is the stronger evidence, and the discrepancy is recorded rather than resolved.",
     "The deck's pergolas are bright blue in every photograph (S6 hp_drone, hp_0404) and are drawn in the mechanical grey because no blue was sampled. So are the deck's planters, the in-water loungers, and the trees - none of them are drawn.",
     "The two setback terraces near the top of the W 24th wing (visible in the S8 NE oblique, where the wing steps back twice before its roof) are not drawn: the wing is one prism to 25.0 m.",
+    "LOOK-FIX 2 (the second look, from the south-west at the S8 SW camera): the terracotta was the biggest gap. Beside the reference our elevation read as a striped orange-and-cream building where the reference is a grey building with two or three narrow rust accents. The tone was moved from #9a5a45 to #7c4634 (the app lifts a sunlit face hard, and the lighter value came back as salmon), the pilasters were narrowed to 0.8 m, the balcony recesses to 2.8 m, the window to 2.15 m so more wall shows between openings, and the limestone plinth was cut from 26 m of frontage to 16 m. What remains is that the reference shows PALE backs behind two of its balcony stacks and rust behind the others; every stack here is rust, because the ground photograph (S6 hp_0499) shows rust and nothing says which stacks differ.",
     "The pre-construction rendering (S7) is a different building from the one that was built, and is cited only so that a later reader does not take it for a source. Nothing in this file comes from it."
   ]
 }
