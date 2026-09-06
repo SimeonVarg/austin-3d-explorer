@@ -1,5 +1,125 @@
 # Austin 3D Explorer — Full Handoff
 
+## 220. Sep 6 2026 — The generator learns what twenty-two builders could not draw: hips, recesses, window frames and Union's weave, after its five bugs (`acer/apts`, the apartments generator's second round)
+
+Twenty-two builders authored a building each from sources this round and
+wrote down, in every file's `todo`/`open`, what `js/slopes-apartments.js`
+could not draw — with the numbers already measured. This entry is the
+generator's answer: five bugs fixed, four new fields, and the data files
+converted to use them. **Look first:** the frames under
+`docs/shots/apartments-round2-*.jpg` (listed at the end) — San Jacinto's
+five tile hips, the Villas' grey slate roofs and turrets, Union on 24th's
+weave over its colonnade.
+
+**The five bugs (`6d4ead7`, then `0001377`).** (a) The 5×7 dot font had the
+fourteen letters THE STANDARD needed, so MOONTOWER rendered as MOONTO ER —
+the alphabet, the digits and the marks a wordmark carries are in it now,
+and the boot log counts any character a sign still asks for that it lacks.
+(b) An override cut a wall into pieces and every piece redrew the face's
+bands, signs included: THE MARK five times across one block. A face's own
+fixtures are drawn once per wall (`wallFixtures`); an override region's are
+its own. (c) `floorsBetween` dropped the floor line just below a band's z0
+silently (26 West's todo 8): within `APARTMENTS.floorSlack` (1 m) the
+storey's windows are kept and clipped to the band, beyond it dropped, and
+the boot log names the band either way, once per building. (d) The switch
+hid the prism and the wc- bands but not `js/roofs.js`'s roofscape pass,
+whose deck plates were baked at the SNAPSHOT height and floated over every
+building authored lower (Regents West's 41 × 44 m slab 6.5 m up, the
+Villas' 12.6). Those features carry no id or name, so they are hidden by
+geometry — `['>', ['distance', <every footprint inset 1 m>], 0]`, which
+MapLibre answers 0 for an overlap — as is `roofs-pitched`, whose kept
+`f: band` features over Jester West's tower are its precast strips baked on
+the snapshot (against the footprint itself: they stand ON the wall line);
+`campus-storeys` by `host`; and the rig `js/slopes-roofs.js` draws over San
+Jacinto Hall from `data/roofs.geojson` (a hip on Overture's 28.1 m, six
+metres over the authored roof) is lifted out of that generator's data while
+we draw and put back after. The restore strips our clause out of whatever
+filter a layer carries now, wherever another pass has wrapped it since —
+slopes-roofs and westcampus both save and restore the same layers on their
+own clocks, so a snapshot could only put back the wrong state. (e)
+`docs/apartments.md` states the two constants a ring becomes metres by
+(110,540 per degree of latitude, 111,320 · cos lat per degree of longitude)
+so no builder mis-scales a plan again.
+
+**Two instrument lessons from (d), both in the doc.** A `queryRenderedFeatures`
+on a fill-extrusion answers for the whole extruded volume along the view
+ray: at pitch 55 the "deck still there" over Regents West's courtyard was a
+neighbour's deck at 17 m sitting on the ray. Ask at a NADIR. And a bisection
+of our own mesh (build one building alone, count vertices above 54 m, drop
+blocks and skin parts one at a time) found nothing for Jester West's
+"poles" — they were another layer's, which one probe on one pole then named.
+
+**Hipped roofs (`56a2d13`).** Nine buildings came in with their hips as five
+to twenty-three inset boxes each. A block's `roof: { kind, pitch, over,
+lipH, tone, lipTone, deck, d, inset, sides, gable, gableTone }` is the real
+thing: the eave profile solved by the straight-skeleton arithmetic ported
+from `scripts/bake_roofs.py` (mitre rays, caps, edge events, the wall
+profile), packed into that bake's rig schema in longitude/latitude with
+`dpm [1, 1]`, and handed to `slopesRoofs.emit()` the way the dome draws the
+Capitol's wings — a rectangle gets a ridge, a square a point, an L two ridges
+over a valley, every strip a facet shaded as the campus roofs are. `deck`
+with `d` is a band-and-plate (Regents West's mitred cap round its membrane,
+the Block on Rio's shingle band on three sides with `sides`), `inset` a roof
+behind a parapet (the Block on Rio's wing), a standing edge a gable end
+(Dobie's five monitor ridges) or the deck's own vertical edge. A `roofItem`
+may carry a `roof` (2706 Rio Grande's two hipped masses, 26 West's turret
+caps, the Villas' bay caps). A point on a straight run of a polygon (San
+Jacinto's south wing, where the courtyard notches meet the long wall) no
+longer fails the mitre.
+
+**Recesses (`a347db2`).** `inset` on a band (a number, or `{ d, tone,
+columns }`; on a face or a block for every band of it) tiles the band's wall
+by its own skin `d` behind the face plane, and the generator closes the
+recess: the soffit, the floor when the band starts above the block's foot,
+columns on the face line (`pitch` on the bay centres or `on: "joints"`, or
+an `at` list), and at each end a return wall where the neighbour is not
+recessed at the same band, or nothing where it is — two faces recessed by
+the same depth meet at the mitre of their offset lines, so Union's colonnade
+is open round the corner. The corner arithmetic is in the file's `recess`
+comment. Union's ground floor (2.4 m, round columns 7.5 m apart per
+union.js), its L6 loggia (3.3 m, square columns on every bay line), The
+Castilian's ground floor (2 m), 21 Rio's (1.5 m, a look).
+
+**Window frames and pairs (`a041f99`).** `frame: { w, h, tone }` on a window
+spec is a picture frame cut into the wall's own cells — coplanar with
+nothing, exactly as wide as the number — for Signature 1909's 0.4 m white
+surrounds and Jester West's and East's 1.31 × 2.31 m precast; `offsets:
+[[off, w], ...]` draws the mirrored pairs about a party wall that Jester's
+and San Jacinto's wings asked for.
+
+**Union's weave (`e23108c`).** The `mod4` skin pairs cells into dominoes by
+k = (c − r) mod `period` with a `pairs` table, the fractions, the seams,
+`colOffset` and `wrap` ported from the owner's own `utx-diorama/workbench/js/
+union.js`; the column index is continued round the corners (`mod4W`, `mod4N`,
+`mod4S` in the file) so the diagonals wrap on to the end caps. On the page:
+1,380 cells, 642 dominoes, 93 per cent paired, the rest edge orphans.
+
+**The data files (`5e8df75` the data, `950d950` the doc).** Fourteen files converted, every number the builder's own and every answered todo rewritten to say so: the Villas (33 blocks get a `roof`, about 120 boxes go), San Jacinto (five hips, the wall windows in pairs), Jester West and East (the wings' hips, the precast surround as a frame, the wing pairs, and both files in `index.json` with their ids as their todos asked), 26 West (twelve turret pyramids as roof items), the Block on Rio (the tower's hip to S1/S2's 27.4 m apex, the wing's roof behind its parapet, the shingle band as a deck roof on three sides, the south-east hip), 2706 Rio Grande (the two hipped masses), Dobie (five monitor gables; still not in the index, its builder never asked), Regents West (the upstand becomes the mitred cap), Union (the weave on the long walls and both caps with the column index continued round the corners, the ground floor and the loggia inset on columns), The Castilian and 21 Rio (the ground floor inset), Signature 1909 (0.4 m frames). On the page after the conversion: 24 buildings, 71 pitched roofs, 30 recesses, 1,933 framed windows, 642 dominoes, no errors.
+
+**The gate.** `scripts/verify/slopes-layer.mjs`'s apartments block asks for
+every indexed building built; every planned clause in place (roofscape by
+distance, storeys by host, roofs-pitched by footprint, the San Jacinto rig
+lifted out); the font complete and no sign short a glyph; the Regents West
+deck absent at a nadir query on the ON page and present on the
+`?apartments=0` page; a sign count that does not move when THE STANDARD's
+signed face is cut in three; `floorsBetween` keeping, dropping and warning;
+and four in-place tests that patch one field into The Standard's own data,
+rebuild, measure the real mesh and take the field out — a 30° hip on the gym
+whose ridge a nadir raycast must find at 31.31 m, the corner bay's
+storefront 2.0 m back that a ray from 23rd St must hit 2.0 m inside the face,
+a charcoal frame the podium's windows return on rays beside the pane, and
+the court skin's dominoes by count. **Score, RTX 3050 Ti, hardware GL, both archives served, the watchdog raised to 60 min through VERIFY_MAX_MS (the page carries 24 buildings now and the whole gate runs about 26 min): 64/69.** Every apartments line that measures the generator is green (built, filtered, the rig lifted out, the font, the deck at the nadir, the sign count, floorsBetween, the gym hip's ridge at 31.31 m by raycast, 189 mesh vertices on the recess plane and none without, charcoal on 6 of 31 rays beside the framed panes, 89 per cent of the court skin's cells paired, one page shot twice 0 px, ON vs OFF 510,341 px, the restore exact). The five reds: (1) the runtime-off frame against a fresh ?apartments=0 load differs by 76,414 px (max channel Δ 51) against a 7,000 ceiling written for a page with one building — the diff's bounding box is rows 0-236, the horizon (labels and far facades of a page ten minutes old against a fresh one), and nothing on The Standard or below it; the ceiling wants re-measuring for a page with 24 buildings, which this entry leaves to the next pass rather than moving a number to make a line green. (2, 3) the two archive lines at The Standard's pose, 617,637 and 517,475 px: since 8b4b90c this branch carries the ground/props and heroes/entrances pieces (entries 218-219), which changed the roads, kerbs and doors in every frame; the same is true of (4) the shared ?slopes=0-against-main line (268,409 px at mall-cruise), which was 0 px in entry 217 before those pieces landed. (5) the shared SLOPES.on off-and-on line, 1,177 px at Δ 121 where the atlas residue allows Δ 16 — the slopes-roofs rebuild that puts San Jacinto's rig back on the switch is the likely source and is not chased here. The first full run of this gate on the converted data was 59/69; four of its reds were the block's own instrument (the in-place tests had left the camera between Union's towers for the OFF frame; the own clause was written for one id; the recess ray hit an authored neighbour before the bay; the weave line assumed no mod4 on the page) and are fixed in `86dc94d`, which also widens two shared lines by one token each — the roofs-pitched regex allows the wrapper the generator puts on that layer, and slopes-art is a group of the scene.
+
+**Not done, said plainly.** Step 6 (per-bay `plankTones`, an open trellis, a hole in a block, a storefront opening) was not started; 26 West Courtyard's and Sparq's per-bay tones, 21 Rio's fins on brackets, Skyloft's and 2706's light wells and Signature's garage mouth keep their todos. A recessed balcony pocket (the Villas' todo 2, the Block on Rio's open 4) is not a field yet. Regents West's cap reads as a thin edge from the oblique where the builder's 1.15 m upstand read as a wall; the Block on Rio's east band is 5.2 m deep where 3.6 was measured (one `d` per roof) and its membrane deck sits at the top of the band, 2.1 m above the plate the builder drew; on a cold load Jester West's precast poles can show for a second or two before the re-apply catches slopes-roofs' rewrite of the filter. The street-level poses I tried put the camera inside neighbours; the recesses were judged from the obliques and the court, not from the pavement. Every roof pitch is the builder's box stack read back, not a new measurement.
+
+**For the roofs lane (a request, not a change):** `scripts/bake_roofs.py`
+should skip every id in `data/apartments/index.json`, as `bake_roofscape.py`
+skips authored roofs, and `bake_roofscape.py` should read the same index —
+the generator hides both at runtime today, which is a workaround.
+
+Branch `acer/apts`; commits `6d4ead7`, `56a2d13`, `a347db2`, `a041f99`,
+`e23108c`, `0001377`, `5e8df75` the data, `950d950` the doc.
+
 ## 219. Sep 5 2026 — The street at eye level: curves stay curves, the keep-core is for a walk BESIDE a road, and furniture stands on pavement (`acer/apts`, the ground/props piece of the round)
 
 Three reported defects, one family: **a rule written for a camera in the air,
