@@ -67,8 +67,9 @@
   "deck": 17.9,
   "roof": 56.0,
   "parapet": 1.2,
-  "mechTop": 64.3,
-  "_deck_src": "The wing's roof - the amenity deck - is the sixth floor line, 5.20 + 4 x 3.175 = 17.90 m. Counted, not assumed: in S4's west elevation the wing carries a ground-floor storefront and FOUR window rows above it before its parapet (ref/bev_wing.png, the wing at 45 px a floor against the tower's 52 px in the same frame, which is the wing being about 15 per cent further from the camera). The same two photographs put the wing's parapet at 0.30 of the tower's height once that scale difference is taken out, and 17.90/56.00 = 0.32. S5's fill-extrusion pass put this wing at 30.5 m; that number is 0.47 of Overture's 64.30 and is not a measurement, so it is not used. Plus or minus one storey."
+  "mechTop": 62.6,
+  "_deck_src": "The wing's roof - the amenity deck - is the sixth floor line, 5.20 + 4 x 3.175 = 17.90 m. Counted, not assumed: in S4's west elevation the wing carries a ground-floor storefront and FOUR window rows above it before its parapet (ref/bev_wing.png, the wing at 45 px a floor against the tower's 52 px in the same frame, which is the wing being about 15 per cent further from the camera). The same two photographs put the wing's parapet at 0.30 of the tower's height once that scale difference is taken out, and 17.90/56.00 = 0.32. S5's fill-extrusion pass put this wing at 30.5 m; that number is 0.47 of Overture's 64.30 and is not a measurement, so it is not used. Plus or minus one storey.",
+  "_mechtop_src": "62.60 = the 56.00 roof slab plus the 6.60 m plant bulkhead measured off S6's south-west oblique (blocks.tower.roofItems). S2's Overture 64.30 is 1.7 m above it and is not corroborated by anything in the imagery; see levels._src for why the storeys, not the guess, set this building's height."
  },
  "colours": {
   "_src": "A day hex; golden and night follow js/westcampus.js's ramp() unless a trio is given. The two facade tones are S5's own measurements of this building - dark spandrel #616165 and white panel #e1dddc, sampled off a dusk photograph - carried into daylight. They are NOT multiplied by S5's 1.20 exposure lift: that lift exists to make ONE averaged hex (#a8a6a6) stand in for a wall that is 39 per cent charcoal, and a white panel lifted by it clips past white. This mesh draws the charcoal and the white separately, so it does not need the average. Area-weighted at S5's own 39/31/30 shares the tones below come to #818689 against S5's own dusk area-weight of #8c8b8e - the same wall, one step out of the dusk. The roof and deck tones are medians of named crops of the S6 nadir.",
@@ -223,24 +224,24 @@
     {
      "plan": [
       19.5,
-      30.5,
-      12.0,
-      25.5
+      27.0,
+      10.5,
+      18.5
      ],
-     "h": 2.6,
+     "h": 3.6,
      "tone": "mech",
-     "_src": "S7 p_roof: the pale rectangle in the middle of the tower roof, u 20.5-29, v 13.5-24, grown to the screen line around it. A mechanical screen; its height is derived."
+     "_src": "LOOK-FIX 5. S6's south-west oblique looks straight down on this roof (ref/sw_roof.png, the crop at 3x): there are TWO plant enclosures side by side near the north edge, not one screen with a bulkhead inside it. This is the wider, lower one, about 1.2 window rows tall against the facade below it, so 3.6 m."
     },
     {
      "plan": [
-      21.5,
-      27.5,
-      15.0,
-      21.5
+      20.5,
+      26.5,
+      18.0,
+      24.5
      ],
-     "h": 8.3,
+     "h": 6.6,
      "tone": "mech",
-     "_src": "the lift and stair bulkhead inside that screen. Its top is 56.00 + 8.30 = 64.30, which is S2's Overture height: this is where that number goes once seventeen storeys at a residential pitch are fitted under it (levels._src). Eight metres is two levels of overrun and plant, which is what the block's 8.5 x 10.5 m plan in S7 is big enough to be. Plus or minus 2 m."
+     "_src": "LOOK-FIX 5, and the second half of the height argument. This is the taller box, the one with the louvre grille on its south face, and against the window rows on the wall below it stands about two storeys above the roof - call it 6.6 m, so its top is 62.60. The first version made it 8.30 m purely so its top would land on S2's Overture 64.30; measured, it is 1.7 m shorter than that, and nothing in the imagery corroborates the last 1.7 m. The storeys are measured, the bulkhead is measured, and 64.30 is the one number here that is a guess - so it is the one that gives way. Plus or minus 1 m."
     },
     {
      "plan": [
