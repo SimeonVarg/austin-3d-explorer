@@ -26,7 +26,8 @@
     "jester-west-hall.json",
     "jester-east-hall.json",
     "dobie-twenty21.json",
-    "moody-center.json"
+    "moody-center.json",
+    "villas-on-rio.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -54,7 +55,8 @@
     "165236c4-c518-419b-a55a-87d5aedd45ce",
     "1161f877-68fe-4754-8c2b-3a52e2ecf2ed",
     "0e189df9-9783-442e-be10-5ad33510e9d9",
-    "d8b0698a-4208-4cb3-a233-8be9c247c5ee"
+    "d8b0698a-4208-4cb3-a233-8be9c247c5ee",
+    "e6abe8cf-5a15-4d11-9b04-f0a5c629d59a"
   ],
   "replacedNames": [
     "The Standard",
