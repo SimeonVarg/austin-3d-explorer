@@ -167,13 +167,13 @@
     },
     "coralFace": {
       "kind": "bays",
-      "bay": 2.4,
+      "bay": 4.6,
       "field": "coral",
       "window": { "w": 0.9, "h": 1.6, "sill": 1.0 },
       "glass": "balcGlass",
       "frame": "coral",
       "reveal": 0.2,
-      "_src": "the coral strip near the south end of the west elevation, which every Google Earth oblique (S7) shows running the full height with a column of narrow dark slots in it - a stair. The slot size is read off c_sw against the 3.1 m floor pitch and is uncertain by about 0.3 m; the strip is 4.6 m wide there, so it carries two slots a floor."
+      "_src": "the coral strip near the south end of the west elevation, which every Google Earth oblique (S7) shows running the full height with a column of narrow dark slots in it - a stair. The slot size is read off c_sw against the 3.1 m floor pitch and is uncertain by about 0.3 m; the bay is the strip's own width, so it carries ONE slot a floor: c_nw counts four slots in a single column up each tower, and a 2.4 m bay put two side by side, which is a different building."
     },
     "plainWall": {
       "kind": "flat",
