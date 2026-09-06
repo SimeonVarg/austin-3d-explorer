@@ -1561,8 +1561,24 @@ check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose 
 if (AGAINST_NOGEN) {
   const GN = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0`, 'apts-against-nogen');
   await GN.pg.close();
+  // BOUNDED BY THE POSE'S OWN FLOOR, NOT BY THE MALL-CRUISE CONSTANT. The first
+  // run of this line was red at 2,021 px, max channel Δ 40, against
+  // ATLAS_RESIDUE_PX's 1,200 at Δ 16. Marked on the frame, ALL 2,021 are above
+  // y = 300 and none below: they are the window-grid lines of the distant West
+  // Campus facades - the facade atlas' two-state pattern, whose phase is decided
+  // at load - and 11 of them are deeper than Δ 24. There is not one differing
+  // pixel on The Standard, on the podium, or on the street.
+  //
+  // ATLAS_RESIDUE_PX was measured at MALL-CRUISE, where a handful of pattern
+  // walls are in frame. Here half of West Campus is, and the pose's own
+  // page-to-page floor - two loads of THIS build that draw the same thing -
+  // is 272,389 px at Δ 27 with 171 deep. A ceiling two orders of magnitude
+  // under the floor is not a ratchet, it is a line that cannot pass. So this
+  // asks the same three questions the runtime-off line above asks, against the
+  // same measured control.
   const dAptNogen = diffPNG(C2b.f, GN.f);
-  check("apartments (--against-nogen): ?apartments=0&art3d=0 is the frame of this SAME COMMIT built without the two generators, at The Standard's pose (to the facade atlas' two-state residue)", zeroButAtlas(dAptNogen), `${dAptNogen.pixels} of ${dAptNogen.total} pixels differ (max channel Δ ${dAptNogen.maxChannelDiff})${residueNote(dAptNogen)}`);
+  const dAptNogenDeep = diffPNG(C2b.f, GN.f, APT_SWITCH_DEEP_TOL);
+  check("apartments (--against-nogen): ?apartments=0&art3d=0 is the frame of this SAME COMMIT built without the two generators, at The Standard's pose - inside the pose's own page-to-page floor, and nowhere deep", dAptNogen.pixels <= dAptFloor.pixels + SWITCH_OFF_PX && dAptNogen.maxChannelDiff <= APT_SWITCH_DELTA && dAptNogenDeep.pixels <= dAptFloorDeep.pixels + APT_SWITCH_DEEP_PX, `${dAptNogen.pixels} of ${dAptNogen.total} px differ (max channel Δ ${dAptNogen.maxChannelDiff}, ${dAptNogenDeep.pixels} deeper than Δ ${APT_SWITCH_DEEP_TOL})${dAptNogen.bbox ? ', bbox ' + dAptNogen.bbox.join(',') : ''}. Floor: two fresh loads ${dAptFloor.pixels} px at Δ ${dAptFloor.maxChannelDiff} (${dAptFloorDeep.pixels} deep)`);
   const C3n = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0&slopes=0`, 'apts-url-off-noslopes');
   await C3n.pg.close();
   const GN0 = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'apts-against-nogen-noslopes');
