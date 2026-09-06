@@ -1225,6 +1225,8 @@ const APT_LIVE_PX = 10000;           // pixels that change at the pose when the 
 // fresh one - the sun over a few minutes (Δ 17, measured) and the facade
 // atlas' two-state phase (Δ 12, ATLAS_RESIDUE_DELTA) - come nowhere near it.
 const APT_SWITCH_DELTA = 60;         // measured 51, all of it in one place label
+const APT_SWITCH_DEEP_TOL = 24;      // a channel that moved more than this is "deep" (doorstack.mjs' own threshold)
+const APT_SWITCH_DEEP_PX = 2000;     // deep pixels over the control's own: measured 89 against a floor of 171
 // the generator's own clause: one literal of every replaced id (24 on 2026-09-06), read off the page's data
 const ownClause = ids => JSON.stringify(['!', ['in', ['get', 'id'], ['literal', ids]]]);
 const countOf = (str, sub) => str.split(sub).length - 1;
@@ -1476,6 +1478,19 @@ await AP.pg.close();
 const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); });
 const urlA = await aptState(C2.pg);
 await C2.pg.close();
+
+// A SECOND FRESH ?apartments=0 LOAD, and it is a CONTROL, not an extra frame.
+// Everything below that compares a frame to C2's needs to know how far two
+// pages that draw the same thing land from each other at this pose, and at
+// this pose that is not small: 25 buildings and half of West Campus on the
+// horizon, whose window grids are the facade atlas' two-state pattern, and
+// whose phase is decided at load. `art3d=0` rides along because the
+// --against-nogen archive carries no data/art3d; the two sculptures are 750 m
+// behind this camera and out of frame, so it does not change what is measured.
+const C2b = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0`, 'apts-url-off-noart');
+await C2b.pg.close();
+const dAptFloor = diffPNG(C2.f, C2b.f);
+const dAptFloorDeep = diffPNG(C2.f, C2b.f, APT_SWITCH_DEEP_TOL);
 check('apartments: on the ?apartments=0 page the roofscape deck over Regents West is back at b 25.9 — the clause hid it, not the data',
   regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
@@ -1491,50 +1506,45 @@ check('apartments: APARTMENTS.on = false removes the group and restores every fi
   && (offA.rigKeys === null || offA.rigKeys.length === 1) && offA.hidden && offA.hidden.rigs.length === 0
   && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
   `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
-// A runtime-off page against a LOAD is the same comparison the switch
-// section makes at mall-cruise - the residue is the page's own history, not
-// the generator's. Measured on the first run of this block, when the two
-// frames were seconds apart: 933 px, maxΔ 51, against a 7,000 ceiling.
+// A runtime-off page against a LOAD is the same comparison the switch section
+// makes at mall-cruise. Measured on the first run of this block, when the two
+// frames were seconds apart and one building was drawn: 933 px, maxΔ 51,
+// against a 7,000 ceiling.
 //
 // THAT CEILING DIED THE MOMENT THE BLOCK GREW (2026-09-06). With 25 buildings
-// the gate takes about six minutes between the ON frame and the ?apartments=0
-// load, and the line went red at 76,190 px. It is not the switch, and the
-// control that says so costs no extra page: THIS page, at THIS camera, with
-// nothing touched but four minutes of wall clock, differs from ITSELF by
-// 50,461 px - `apts-on` at 04:30:56 against `apts-on-back` at 04:34:46 - at
-// max channel Δ 17 and ZERO pixels deeper than 24. The app's sun moves with
-// the clock. Of the 76,190, exactly 89 are deeper than Δ 24 and all 89 are one
+// the line read 76,190 px and went red, and it is not the switch. TWO CONTROLS
+// say so, both measured in this run rather than reasoned about:
+//
+//   the page against ITSELF, four minutes apart, nothing touched
+//       (`apts-on` vs `apts-on-back`)          50,461 px, maxΔ 17, 0 deep
+//   TWO FRESH ?apartments=0 LOADS at this pose
+//       (`apts-url-off` vs `apts-url-off-noart`) 272,389 px, maxΔ 27, 171 deep
+//
+// So two pages that draw exactly the same thing land 272,389 px apart here,
+// and the runtime-off frame is three and a half times CLOSER to a fresh load
+// than that. Marked on the frame, both controls are the same three things:
+// tree canopies at the pose, the facade atlas' two-state phase on the distant
+// West Campus walls (its phase is decided at load), and a handful of window
+// cells at Δ ≤ 17. Of the 76,190, exactly 89 exceed Δ 24 and all 89 are one
 // place label at the top right.
 //
-// So the line is written against that control rather than against a constant:
-// the switch may not put the frame further from a fresh load than the page's
-// own minutes already do, plus the switch section's dither allowance - and it
-// may not be DEEP anywhere. Depth is what separates the two failures. A
-// building that did not come back is a contiguous region at Δ 100+ (the mesh
-// is worth about 510,000 px at Δ 147 at this pose); the clock and the facade
-// atlas both cap out well under APT_SWITCH_DELTA.
+// (The first cut of this comment said "the app's sun moves with the wall
+// clock". It does not: `apts-on` is BYTE-IDENTICAL between two runs of this
+// gate 47 minutes apart. What moves is the page's own settling over minutes.
+// Written down because the wrong mechanism was committed once already.)
+//
+// So the line is written against those controls and against DEPTH, which is
+// what separates the two failures: a building that did not come back is a
+// contiguous region at Δ 100+ — the mesh is worth 510,341 px at Δ 147 at this
+// pose — while every page-to-page effect above caps out under Δ 30.
 const dAptAge = diffPNG(AP.f, fAptBack);
 const dAptSwitch = diffPNG(fAptOff, C2.f);
-check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose - no further from it than the page has drifted from ITSELF over the minutes in between (measured here, not assumed), and nowhere deep',
-  dAptSwitch.pixels <= dAptAge.pixels + SWITCH_OFF_PX && dAptSwitch.maxChannelDiff <= APT_SWITCH_DELTA,
-  `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff}); the same page against itself over the same minutes: ${dAptAge.pixels} px at Δ ${dAptAge.maxChannelDiff} - ceiling ${dAptAge.pixels} + ${SWITCH_OFF_PX} px and Δ ${APT_SWITCH_DELTA}`);
-// "With the switch off the picture is what main draws." Two archives can
-// stand in for main, and they answer different questions:
-//   --against-tip: the commit this branch was cut from, main WITH the slopes
-//     layer. Its roofs still wear the ridge and hip courses this branch
-//     switched off in its first commit (2cc1b29), and at this pose they are
-//     the campus roofs on the horizon, so the archive page is put in the
-//     same courses state before its frame — this line is about the
-//     apartments switch; the `courses` line above owns the courses. Then
-//     ours at ?apartments=0 must be that page to the atlas residue.
-//   --against: the pre-slopes main the bake-identity lines are written for
-//     (no layer at all — the first two --against runs of this block diffed
-//     ours against it and found 23,572 of 23,584 differing pixels in the
-//     top 300 rows: mesh roofs against slab roofs on the horizon, nothing on
-//     The Standard). Against it the honest question is the bake-identity
-//     one: ours at ?apartments=0&slopes=0 must be its frame at this pose —
-//     the data file, the index and the script tags changed nothing the
-//     slabs draw here.
+const dAptSwitchDeep = diffPNG(fAptOff, C2.f, APT_SWITCH_DEEP_TOL);
+check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose - no further from it than two fresh ?apartments=0 loads are from each other (measured here, not assumed), and nowhere deep',
+  dAptSwitch.pixels <= dAptFloor.pixels + SWITCH_OFF_PX
+  && dAptSwitch.maxChannelDiff <= APT_SWITCH_DELTA
+  && dAptSwitchDeep.pixels <= dAptFloorDeep.pixels + APT_SWITCH_DEEP_PX,
+  `${dAptSwitch.pixels} of ${dAptSwitch.total} px differ (max channel Δ ${dAptSwitch.maxChannelDiff}, ${dAptSwitchDeep.pixels} of them deeper than Δ ${APT_SWITCH_DEEP_TOL}). Controls: two fresh ?apartments=0 loads ${dAptFloor.pixels} px at Δ ${dAptFloor.maxChannelDiff} (${dAptFloorDeep.pixels} deep); this page against itself over the same minutes ${dAptAge.pixels} px at Δ ${dAptAge.maxChannelDiff}. Ceilings ${dAptFloor.pixels} + ${SWITCH_OFF_PX} px, Δ ${APT_SWITCH_DELTA}, ${dAptFloorDeep.pixels} + ${APT_SWITCH_DEEP_PX} deep`);
 // SINCE 2026-09-06 both of those lines run against --against-nogen instead
 // (its comment is at the top of this file). The two main archives measure the
 // WHOLE of this branch, and by the end of it that was four other pieces of
@@ -1551,8 +1561,6 @@ check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose 
 if (AGAINST_NOGEN) {
   const GN = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0`, 'apts-against-nogen');
   await GN.pg.close();
-  const C2b = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0`, 'apts-url-off-noart');
-  await C2b.pg.close();
   const dAptNogen = diffPNG(C2b.f, GN.f);
   check("apartments (--against-nogen): ?apartments=0&art3d=0 is the frame of this SAME COMMIT built without the two generators, at The Standard's pose (to the facade atlas' two-state residue)", zeroButAtlas(dAptNogen), `${dAptNogen.pixels} of ${dAptNogen.total} pixels differ (max channel Δ ${dAptNogen.maxChannelDiff})${residueNote(dAptNogen)}`);
   const C3n = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0&slopes=0`, 'apts-url-off-noslopes');
