@@ -10,7 +10,7 @@
     "S4": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a nadir at 520 m and obliques at 130-220 m from the N, E, W, NE, SE and SW. The Earth camera is solved analytically from the URL (@lat,lng,180a,<d>d,35y,<h>h,<t>t): look-at at that altitude, camera at distance d along heading h and tilt t, vertical field of view 35 deg. The solve was VERIFIED on the nadir - the snapshot polygon projected with it lands on the roof edges of the NORTHERN building of the pair, which is this one; the southern building it does not land on is snapshot feature 3b8f0f69-4456-4840-8eff-e23a39b1ac92, 2704 Rio Grande, 5 floors. Everything below was read off frames rectified with that solve, not off a raw oblique.",
     "S5": "The rectified NADIR PLAN (session scratchpad apts/build/apartments/2706-rio-grande/ref/_planclean.png, gridded in plan_grid.png): the nadir resampled into the building's own (u,v) frame at 10 px/m with a 5 m grid. The light well, the extent of the metal roof at the east end and the condenser rows were all read off it.",
     "S6": "The rectified ELEVATIONS (ref/el2_n.png, el3_w.png, el2_e.png, with rulers in ref/r_n.png, n_west4.png, n_east4.png, s_w.png, s_e.png): each oblique resampled on to the face's own plane at 9-10 px/m, so storey heights and bay pitch are read in metres. A constant error in Earth's look-at altitude translates the whole scene and does not change a measured DIFFERENCE, so every height here is a difference and the zero was set separately.",
-    "S7": "The north elevation on W 28th (S6, ref/n_west4.png, ref/r_n.png): the light grey-blue field, the terracotta bay that wraps the north-west corner, the white base band, the punched windows with white surrounds. The photogrammetry is soft - windows smear into their surrounds and the recessed balcony bays collapse into vertical smudges - so the window MODULE is a count of columns, not a measurement of one opening.",
+    "S7": "The north elevation on W 28th (S6, ref/n_west4.png, ref/r_n.png): the light grey-blue field, the terracotta bay that wraps the north-west corner, the white base band, the punched windows with white surrounds. The photogrammetry is soft - windows smear into their surrounds and the recessed balcony bays collapse into vertical smudges - so the window MODULE was measured with a luminance profile along three separate window rows rather than read off one opening.",
     "S8": "The west elevation on Salado (S6, ref/s_w.png) and the east elevation on Rio Grande (ref/s_e.png): the terracotta bay standing on the white base band, and at the east end a powder-blue wing under a grey standing-seam roof with hips, which is where S5's metal roof sits.",
     "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
   },
@@ -310,7 +310,7 @@
     "_src": "Four skins, one rule: the same punched grid with a different field colour. That is the null hypothesis and no frame contradicts it - the terracotta bay, the powder-blue east wing and the white base carry the SAME window rhythm as the grey field, and only the wall colour changes at the joint.",
     "grid": {
       "kind": "bays",
-      "bay": 3.85,
+      "bay": 3.21,
       "field": "shell",
       "window": {
         "w": 1.6,
@@ -319,12 +319,12 @@
       },
       "glass": "glass",
       "frame": "trim",
-      "reveal": 0.12,
-      "_src": "the light grey-blue field: the north elevation between u 17 and u 55, the south elevation, and the middle of both ends (S7). One window per bay per floor. The 3.85 m bay is a COUNT, not a measurement of one opening: nine window columns were counted across u 0-34 of the north elevation (S7) and the same rhythm runs the whole 77 m, so 77.06 / 20 = 3.85. The opening is entered at 1.6 x 1.5 m on a 1.0 m sill - a domestic double-hung pair, which is what every frame shows and what puts the window centres at floor + 1.75 m, the height the six rows in `levels` were fitted at."
+      "reveal": 0.16,
+      "_src": "the light grey-blue field: the north elevation between u 17 and u 55, the south elevation, and the middle of both ends (S7). One window per bay per floor, on a 3.21 m bay - 24 bays across 77.06 m. The module is a MEASUREMENT, not a guess: a luminance profile across the rectified north elevation (S7, ref/el2_n.png) at three window rows - z 1.5, 4.6 and 7.7 - puts dark run centres at u 11.0, 14.1 and 17.4 in every one of the three, spacings 3.1 and 3.3, and the same rhythm continues west into the terracotta bay with one column missing at about u 8 where a recessed bay sits. The first pass of this file used 3.85 m and the look put twenty widely spaced windows where the reference has twenty-four; that was the biggest gap in the first look and this is the fix. The opening is entered at 1.6 x 1.5 m on a 1.0 m sill, which is the width of the dark runs in the same profile (1.6 to 2.0 m, surround included) and puts window centres at floor + 1.75 m, the height the six rows in `levels` were fitted at."
     },
     "orange": {
       "kind": "bays",
-      "bay": 3.85,
+      "bay": 3.21,
       "field": "terracotta",
       "window": {
         "w": 1.6,
@@ -333,12 +333,12 @@
       },
       "glass": "glass",
       "frame": "trim",
-      "reveal": 0.12,
+      "reveal": 0.16,
       "_src": "the terracotta bay that wraps the north-west corner (S7, S8). Same grid, different field."
     },
     "blueGrid": {
       "kind": "bays",
-      "bay": 3.85,
+      "bay": 3.21,
       "field": "powder",
       "window": {
         "w": 1.6,
@@ -347,12 +347,12 @@
       },
       "glass": "glass",
       "frame": "trim",
-      "reveal": 0.12,
+      "reveal": 0.16,
       "_src": "the powder-blue east wing on Rio Grande (S8). Same grid, different field."
     },
     "base": {
       "kind": "bays",
-      "bay": 3.85,
+      "bay": 3.21,
       "field": "baseWhite",
       "window": {
         "w": 1.6,
@@ -361,7 +361,7 @@
       },
       "glass": "glass",
       "frame": "trim",
-      "reveal": 0.12,
+      "reveal": 0.16,
       "_src": "the white base band, the ground floor, right round the building (S7, S8). Same grid, different field: the ground floor's openings sit on the same columns as the flats above in every frame."
     }
   },
