@@ -102,8 +102,8 @@
    "_src": "the pale accent panels scattered through the charcoal field: 11.8% of the same S5 crop (380,400)-(760,1000)"
   },
   "panelCream": {
-   "hex": "#e4d8cd",
-   "_src": "the EIFS / fibre-cement field of the east face: 45.3% of an S8 es-5.jpg crop (100,200)-(620,900). The sunlit close-up in es.jpg reads #ecdece over the same material; the shaded read is #d6cbc0, and the day tone is the mid one of the three."
+   "hex": "#e9dfd4",
+   "_src": "the EIFS / fibre-cement field of the east face: 45.3% of an S8 es-5.jpg crop (100,200)-(620,900). The sunlit close-up in es.jpg reads #ecdece over the same material; the shaded read is #d6cbc0. The day tone was the mid of the three (#e4d8cd) and came out dusty under the golden ramp against S10 se2, where the field is near-white; it is moved one step toward the sunlit read."
   },
   "panelTan": {
    "hex": "#a58163",
@@ -130,8 +130,8 @@
    "_src": "the dark of the open parking deck seen through the screen: 18.0% the FIELD the mesh reads as at any distance: 42.5% #948c87 of the same S6 crop. The first cut used the dark behind the mesh (#46423c, the 18.0% + 14.3% clusters) as the field and the whole podium came out a black band, which S6 does not show - at 200 m the expanded aluminium is what you see, not the cars behind it."
   },
   "glass": {
-   "hex": "#aeb2a4",
-   "_src": "the mint unit glazing (Thermal Windows 4150, S4): 14.1% #b5b9a7 of the S5 crop and 7.8% #a3a599 of the S8 es-5 crop"
+   "hex": "#6e726c",
+   "_src": "the unit glazing (Thermal Windows 4150, S4). It is TWO reads, not one: the mint #a3a599 (7.8% of the S8 es-5 crop, 14.1% #b5b9a7 of the S5 crop) and the dark #393f43 (11.2% of the same es-5 crop), and S8 shows both in about equal numbers across one elevation. One tone has to serve, so it is the mid of the two. The first cut used the mint alone and the east face lost its grid: at the 200 m oblique a pane the same luminance as the panel beside it is not a window (S10 se2 reads the openings as clearly darker than the field)."
   },
   "glassDark": {
    "hex": "#3a3f43",
@@ -190,8 +190,8 @@
    "_src": "the balcony box's front and side panels: the measured #dcd8d3 taken one step up, so the box reads apart from its own soffit at the oblique camera. In S8 the panels catch the sun and the soffit does not; drawn in one tone the whole box read as a flat plate."
   },
   "railGuard": {
-   "hex": "#8e9296",
-   "_src": "the deck guard along the San Antonio edge, seen in S9's nadir and S8's pool photograph as a thin dark-grey rail; unknown as a measurement, a plausible grey"
+   "hex": "#a5a9ad",
+   "_src": "the deck guard along the San Antonio edge, seen in S9's nadir and S8's pool photograph as a thin grey rail; unknown as a measurement, a plausible grey. The first cut at #8e9296 read as a black picket fence along San Antonio at the 200 m oblique."
   },
   "sign": {
    "hex": "#3a4176",
@@ -216,19 +216,19 @@
     "panelTan"
    ],
    "weights": [
-    82,
-    18
+    87,
+    13
    ],
    "bay": 2.9,
    "window": {
-    "w": 1.15,
-    "h": 2.0,
-    "sill": 0.6
+    "w": 1.3,
+    "h": 2.1,
+    "sill": 0.55
    },
    "glass": "glass",
    "frame": "frame",
    "reveal": 0.1,
-   "_src": "the east face. S8's close-up gives the grid: a horizontal panel joint at every floor, and per floor a run of portrait openings on a constant pitch - 7 openings across 500 px against a 75 px floor, so a 2.9 m bay to the 2.9375 m storey, with one window 1.15 x 2.0 m in each. The tan accent is NOT a vertical strip: it is a single panel the size of one opening, scattered. So the field is a pixel skin whose course IS the floor (zBase 11.0 puts the courses on the floor lines) and whose plank is half a bay, each 1.45 x 2.94 m panel taking its tone from the hash. 18% tan is the measurement: the tan cluster is 12.8% of the S8 es-5 crop against 58.8% cream, and 12.8/71.6 = 18% of the wall that is not glass or balcony metal. bond 0 because the joints line up floor to floor in S8; runMax 1 and macro [1,1] because every panel in the photograph is decided on its own - there are no runs."
+   "_src": "the east face. S8's close-up gives the grid: a horizontal panel joint at every floor, and per floor a run of portrait openings on a constant pitch - 7 openings across 500 px against a 75 px floor, so a 2.9 m bay to the 2.9375 m storey, with one window in each: 1.3 x 2.1 m, between es.jpg's own 1.2 m read and the wider opening S10's Earth mesh resolves. The tan accent is NOT a vertical strip: it is a single panel the size of one opening, scattered. So the field is a pixel skin whose course IS the floor (zBase 11.0 puts the courses on the floor lines) and whose plank is half a bay, each 1.45 x 2.94 m panel taking its tone from the hash. 13% tan: the raw arithmetic on the S8 es-5 crop is 12.8/71.6 = 18% of the non-glass wall, but that crop is centred on a balcony and S8 shows the terracotta lining the balcony reveals as well as scattering through the field, so the field share is the lower end. S10 se2, which sees a whole elevation at once, reads the strong terracotta at the balconies and a thinner scatter between them. bond 0 because the joints line up floor to floor in S8; runMax 1 and macro [1,1] because every panel in the photograph is decided on its own - there are no runs."
   },
   "charcoal": {
    "kind": "pixel",
@@ -251,9 +251,9 @@
    ],
    "bay": 2.9,
    "window": {
-    "w": 1.15,
-    "h": 2.0,
-    "sill": 0.6
+    "w": 1.3,
+    "h": 2.1,
+    "sill": 0.55
    },
    "glass": "glass",
    "frame": "frame",
@@ -346,8 +346,8 @@
      "region": [
       0.0,
       0.0,
-      19.3,
-      26.8
+      18.0,
+      27.5
      ],
      "bands": [
       {
@@ -356,7 +356,7 @@
        "skin": "curtain"
       }
      ],
-     "_src": "the glazed volume runs to the pavement on the south face (S6): the podium wears curtain wall over that 7.5 m, and the glassBay block above it starts at 11.0 so the two never share a plane"
+     "_src": "the glazed volume runs to the pavement on the south face (S6): the podium wears curtain wall over that 9.5 m, and the glassBay block above it starts at 11.0 so the two never share a plane"
     }
    ],
    "roofTone": "deck",
@@ -705,12 +705,12 @@
   },
   {
    "id": "glassBay",
-   "_src": "the full-height glazed volume on the south face, east of the core (S5, S6, S7). It projects about 2 m in front of the tower's south wall and folds round its own two corners, which is what S7 shows. Its 7.5 m width is read off S6 against the core; the two narrow charcoal returns either side of it are the tower's own south face showing.",
+   "_src": "the full-height glazed volume on the south face, east of the core (S5, S6, S7). It projects about 2 m in front of the tower's south wall and folds round its own two corners, which is what S7 shows. Its 9.5 m width is read off S6 against the core, and S10 se2 - which sees the volume whole and curved - is what widened it from the 7.5 m the first cut took off S7 alone; the two narrow charcoal returns either side of it are the tower's own south face showing.",
    "plan": [
     0.0,
     4.0,
-    19.3,
-    26.8
+    18.0,
+    27.5
    ],
    "z0": 11.0,
    "z1": 58.5,
