@@ -83,57 +83,69 @@
     "parapetTop": 20.7,
     "towerWall": 21.45,
     "towerFascia": 22.75,
-    "hipApex": 24.95,
-    "_heights_src": "roof 20.05 is the membrane, the top of the sixth storey. parapetTop 20.7 is S2's height tag exactly, which is the number a surface model would take off this building's highest continuous edge. The towers stand above it: towerWall 21.45 is the top of the brick, towerFascia 22.75 the top of the dark eave band, and hipApex 24.95 the top of the tile - all three from S4's tower crop as ratios to the 155 px floor pitch in that part of the frame (eave band 70 px = 1.4 m, tile 110 px = 2.2 m), which puts the tower's apex 4.25 m over the parapet. S4 shows about a storey and a half, so they agree. Uncertainty plus or minus 0.5 m."
+    "hipApex": 26.15,
+    "_heights_src": "roof 20.05 is the membrane, the top of the sixth storey. parapetTop 20.7 is S2's height tag exactly, which is the number a surface model would take off this building's highest continuous edge. The towers stand above it: towerWall 21.45 is the top of the brick, towerFascia 22.75 the top of the dark eave band, and hipApex 26.15 the top of the tile - all three from S4's tower crop as ratios to the 155 px floor pitch in that part of the frame (eave band 70 px = 1.4 m, tile 110 px = 2.2 m), which puts the tower's apex 4.25 m over the parapet. S4 shows about a storey and a half, so they agree. Uncertainty plus or minus 0.5 m."
   },
   "colours": {
     "_src": "Day hex; golden and night follow js/westcampus.js's ramp(), the same relationship the fill-extrusion bands next door use. Every hex is a k-means cluster centre of a NAMED crop of a named source, entered a step down from a sunlit reading because the generator lights the face itself.",
     "stucco": {
-      "hex": "#d4b673",
-      "_src": "The butter-yellow stucco field, the building's own colour. S4 crop (140,375)-(215,425) on the sunlit west wing clusters to #e0bd69 at 48 %, and crop (925,465)-(985,520) on the south wing to #f2be56 at 49 %; that frame is a graded golden-hour drone still (its sky clusters to a cyan #00b3d9) so its yellow is pushed. S6's south-west oblique reads the same sunlit wall at #dad1bd, which is the opposite bias - a 12/2023 winter sun through a photogrammetric blend, which desaturates. Entered halfway between the two and then a step back from warm, because 2819 Rio Grande's look-fix 2 measured that THIS APP'S DAYLIGHT WARMS A FACE and every pale surface entered warm there came back warmer than the reference."
+      "hex": "#ddc79b",
+      "_src": "The butter-yellow stucco field, the building's own colour. S4 crop (140,375)-(215,425) on the sunlit west wing clusters to #e0bd69 at 48 %, and crop (925,465)-(985,520) on the south wing to #f2be56 at 49 %; that frame is a graded golden-hour drone still (its sky clusters to a cyan #00b3d9) so its yellow is pushed. S6's south-west oblique reads the same sunlit wall at #dad1bd, which is the opposite bias - a 12/2023 winter sun through a photogrammetric blend, which desaturates. Entered halfway between the two and then a step back from warm, because 2819 Rio Grande's look-fix 2 measured that THIS APP'S DAYLIGHT WARMS A FACE and every pale surface entered warm there came back warmer than the reference. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): the reference's sunlit south wall reads #decfb5 and ours read #e3b16f - right in lightness, half again too much chroma and too orange. Moved from #d4b673 halfway to the reference's neutrality; the whole way would have taken the yellow out altogether, and S4 - the operator's own photograph - shows a building that is plainly yellow, while S6 is a winter photogrammetric blend that desaturates everything in it."
     },
     "stuccoPale": {
-      "hex": "#d9d3c4",
-      "_src": "The pale cream stucco of the top storey and the trim bands. S4 crop (865,320)-(1000,360) clusters to #e1d3c5 at 50 %, crop (195,325)-(300,352) to #d8d5ce at 58 %; S6 reads the band at #e1dcd0. All three agree within a few points. Entered a step down and neutral of them."
+      "hex": "#e0dccf",
+      "_src": "The pale cream stucco of the top storey and the trim bands. S4 crop (865,320)-(1000,360) clusters to #e1d3c5 at 50 %, crop (195,325)-(300,352) to #d8d5ce at 58 %; S6 reads the band at #e1dcd0. All three agree within a few points. Entered a step down and neutral of them. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): lifted with the field it sits over."
     },
     "brick": {
-      "hex": "#cfb891",
-      "_src": "The buff Austin brick of the base, the piers and the two corner towers. S5 - a ground-level photograph in flat daylight, ungraded - crop (20,420)-(180,700) on the sunlit left return clusters to #e0ccb2 at 63 %, and the same brick in dappled shade at (820,180)-(1010,330) to #958171. S4 reads the tower's brick at #dfb16d (its 40 % cluster, the one not blown by the sun) and S6 at #d3bfac sunlit / #856e62 shaded. Entered a step down from S5's sunlit read, which is the least graded frame of the four."
+      "hex": "#cbb08a",
+      "_src": "The buff Austin brick of the base, the piers and the two corner towers. S5 - a ground-level photograph in flat daylight, ungraded - crop (20,420)-(180,700) on the sunlit left return clusters to #e0ccb2 at 63 %, and the same brick in dappled shade at (820,180)-(1010,330) to #958171. S4 reads the tower's brick at #dfb16d (its 40 % cluster, the one not blown by the sun) and S6 at #d3bfac sunlit / #856e62 shaded. Entered a step down from S5's sunlit read, which is the least graded frame of the four. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): cooled with the stucco, for the same reason and by the same amount. LOOK-FIX 3, at the walking camera (zoom 19.3, pitch 62, bearing 30): and then moved BACK toward the brick's own hue, because at #d2c0a2 it had become the same colour as the stucco beside it and the brick base and both towers had stopped reading as brick at all - a six-storey building of one cream. In every source the brick is pinker and a step darker than the stucco: S5 reads it #e0ccb2 sunlit against S4's #e0bd69 stucco, and S6 reads #d3bfac against #dad1bd. The difference is small in a photograph and it is the whole material boundary in a render."
     },
     "brickWarm": {
-      "hex": "#c8ad83",
+      "hex": "#c3a67f",
       "_src": "one brick a step warm, for the pier rhythm; derived from `brick`, not sampled."
     },
     "tile": {
-      "hex": "#c06a3e",
-      "_src": "The terracotta barrel tile of the two corner hips. S4 crop (700,250)-(800,290) clusters to #f08931 at 73 % and #b66013 at 19 %, but that frame's grade pushes orange hard; S6 reads the same SW hip at #bf8e79 and the SE hip at #b48370, which is the same grade's opposite bias. Entered between S4's dark cluster and S6's read."
+      "hex": [
+        "#a97a68",
+        "#a58f8c",
+        "#241d1e"
+      ],
+      "_src": "The terracotta barrel tile of the two corner hips. S4 crop (700,250)-(800,290) clusters to #f08931 at 73 % and #b66013 at 19 %, but that frame's grade pushes orange hard; S6 reads the same SW hip at #bf8e79 and the SE hip at #b48370, which is the same grade's opposite bias. Entered between S4's dark cluster and S6's read. LOOK-FIX 1, on the matched frame: THE BIGGEST SINGLE MISS OF THE FIRST LOOK. The reference's SW hip reads #997264 and #c19682, a dusty clay; ours read #e17e42, a traffic cone, and the two caps were the loudest thing in the frame. Entered at the reference's own two clusters, which is also where S6's SE hip (#b48370) sits, and the stepped cap went from six steps to nine so the slope reads as a slope. LOOK-FIX 2, same matched frame (cmp2.png): still #c8794a against the reference's #997264 / #c19682, for the reason written on `membrane` - the golden slot is what draws. Given its own trio with a cooler golden, and the cap raised from a 2.2 m rise to 3.4 m: a 12 m hip that rises 2.2 m is a plateau, and in the reference both caps are plainly pyramids."
     },
     "tileRidge": {
-      "hex": "#c9764a",
+      "hex": "#b48575",
       "_src": "the hip's upper courses, one step above the field so the cap's steps read at the oblique camera; derived."
     },
     "bronze": {
-      "hex": "#3a3833",
-      "_src": "The dark bronze of the deep eave band under both hips, the cornice, the window frames and the balcony rails. S4 crop (615,308)-(760,330) on the tower's eave band clusters to #393c40 at 46 %; S5's storefront frame crop (380,640)-(560,760) clusters to #181d20 at 63 %, which is the same colour in shadow."
+      "hex": "#3d3c37",
+      "_src": "The dark bronze of the deep eave band under both hips, the cornice, the window frames and the balcony rails. S4 crop (615,308)-(760,330) on the tower's eave band clusters to #393c40 at 46 %; S5's storefront frame crop (380,640)-(560,760) clusters to #181d20 at 63 %, which is the same colour in shadow. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): taken off its warm cast and one step up. The reference's balcony band clusters to #5a534d, #2f2c2c and #888178 - a grey-brown texture - where ours clustered to #967f42, #c1a27c and #e4b77c, an orange lattice. The lattice was the wall's chroma coming through the rails, so the rail goes neutral with it."
     },
     "glass": {
       "hex": "#4a5a4e",
       "_src": "The green-tinted glazing. S4 crop (1015,440)-(1050,478), one whole window on the sunlit south wing, clusters to #4f5c20 at 52 % - a green pane with the frame's grade in it - and its 40 % cluster is the wall beside it. Entered at the 52 % cluster with the grade's yellow taken back out."
     },
     "trim": {
-      "hex": "#ddd8ca",
+      "hex": "#e3e0d6",
       "_src": "The white balcony slabs, window surrounds and parapet copings. S4 crop (120,300)-(430,318) on the west wing's coping clusters to #dbd5cc at 46 %; the balcony slab crop (470,505)-(545,522) is in its own shadow."
     },
     "membrane": {
-      "hex": "#dbdfdd",
-      "_src": "The white TPO roof, which is most of what the app's oblique camera sees of this building. S6's nadir and its south-west oblique both read it blown, at #e2e3de (83 % of a 150x70 crop). Entered a step down and cool, for the reason recorded on `stucco`."
+      "hex": [
+        "#dae8f0",
+        "#dcf0ff",
+        "#1e2129"
+      ],
+      "_src": "The white TPO roof, which is most of what the app's oblique camera sees of this building. S6's nadir and its south-west oblique both read it blown, at #e2e3de (83 % of a 150x70 crop). Entered a step down and cool, for the reason recorded on `stucco`. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): the reference's roof reads #dfdfdb, a flat neutral white, and ours read #efcc99 - a warm cream, because this app's daylight puts about ninety points of red-over-blue into a top face. A neutral hex cannot come back neutral through that, so the membrane is entered as a FULL TRIO with a cool day value, which is what data/apartments/2819-rio-grande.json had to do with its own membrane for the same reason."
     },
     "mech": {
-      "hex": "#a7aca9",
-      "_src": "The rooftop condensers. S6 nadir crop (200,118)-(400,178) over the north run clusters to #b1b4b3 at 11 % against the membrane's #e1e2dd at 70 %; S4 shows the same units teal-grey over the west wing."
+      "hex": [
+        "#6f7a7d",
+        "#6b7378",
+        "#161a22"
+      ],
+      "_src": "The rooftop condensers. S6 nadir crop (200,118)-(400,178) over the north run clusters to #b1b4b3 at 11 % against the membrane's #e1e2dd at 70 %; S4 shows the same units teal-grey over the west wing. LOOK-FIX 1, measured on the matched frame (ours at zoom 18.48 / pitch 55 / bearing 45 / p=0.35 beside S6's south-west oblique cropped to the same rect, cmp1b.png): darkened hard. In the reference the condenser runs read #9a9e9e and #5d6061 against a #dfe0da roof - they are the roof's pattern. Ours came back at #efcd9c against a #efcc99 roof, which is to say invisible: the whole run vanished into the membrane."
     },
     "awning": {
-      "hex": "#b8463f",
+      "hex": "#a8574c",
       "_src": "The restaurant awnings on West 26th Street and over the corner patio. S4 crop (905,620)-(1050,660) clusters to #dd373b at 39 %, crop (1055,565)-(1160,605) on the orange one to #f0631e; S6 reads the same awnings at #af6c61. Entered between S4's red and S6's read - the two awnings are red and orange and this is one tone for both, which is a simplification."
     },
     "storeGlass": {
@@ -438,57 +450,57 @@
       "roofItems": [
         {
           "plan": [
-            8.0,
-            12.2,
-            22.0,
-            44.5
+            7.6,
+            12.4,
+            21.0,
+            45.5
           ],
           "grid": [
-            2,
-            11
+            3,
+            15
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech",
           "_src": "S6 nadir, rectified into this frame: the densest run on the roof lies just inside the north parapet, two rows about 22 m long."
         },
         {
           "plan": [
-            13.0,
+            12.5,
             19.5,
-            9.5,
-            14.0
+            9.0,
+            14.2
           ],
           "grid": [
-            3,
-            2
+            4,
+            3
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech"
         },
         {
           "plan": [
-            13.0,
+            12.5,
             19.5,
-            46.5,
-            53.5
+            46.0,
+            53.8
           ],
           "grid": [
-            3,
-            2
+            4,
+            3
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech"
         }
       ]
@@ -586,18 +598,18 @@
           "plan": [
             21.0,
             50.5,
-            9.5,
-            14.0
+            9.0,
+            14.2
           ],
           "grid": [
-            10,
-            2
+            14,
+            3
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech",
           "_src": "S6 nadir: a run of pairs down the middle of the west range."
         }
@@ -696,18 +708,18 @@
           "plan": [
             21.0,
             50.5,
-            46.5,
-            53.5
+            46.0,
+            53.8
           ],
           "grid": [
-            10,
-            2
+            14,
+            3
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech",
           "_src": "S6 nadir: the matching run down the east range."
         }
@@ -718,7 +730,7 @@
       "plan": [
         51.8,
         64.0,
-        11.0,
+        10.0,
         59.57
       ],
       "z0": 0.0,
@@ -735,32 +747,36 @@
           "skin": "wall",
           "balconies": [
             {
-              "s0": 5.94,
-              "s1": 8.34
+              "s0": 5.68,
+              "s1": 8.08
             },
             {
-              "s0": 11.66,
-              "s1": 14.06
+              "s0": 11.19,
+              "s1": 13.59
             },
             {
-              "s0": 17.37,
-              "s1": 19.77
+              "s0": 16.7,
+              "s1": 19.1
             },
             {
-              "s0": 23.09,
-              "s1": 25.48
+              "s0": 22.21,
+              "s1": 24.61
             },
             {
-              "s0": 28.8,
-              "s1": 31.2
+              "s0": 27.72,
+              "s1": 30.12
             },
             {
-              "s0": 34.51,
-              "s1": 36.91
+              "s0": 33.22,
+              "s1": 35.62
             },
             {
-              "s0": 40.23,
-              "s1": 42.63
+              "s0": 38.73,
+              "s1": 41.13
+            },
+            {
+              "s0": 44.24,
+              "s1": 46.64
             }
           ]
         },
@@ -770,32 +786,36 @@
           "skin": "wallPale",
           "balconies": [
             {
-              "s0": 5.94,
-              "s1": 8.34
+              "s0": 5.68,
+              "s1": 8.08
             },
             {
-              "s0": 11.66,
-              "s1": 14.06
+              "s0": 11.19,
+              "s1": 13.59
             },
             {
-              "s0": 17.37,
-              "s1": 19.77
+              "s0": 16.7,
+              "s1": 19.1
             },
             {
-              "s0": 23.09,
-              "s1": 25.48
+              "s0": 22.21,
+              "s1": 24.61
             },
             {
-              "s0": 28.8,
-              "s1": 31.2
+              "s0": 27.72,
+              "s1": 30.12
             },
             {
-              "s0": 34.51,
-              "s1": 36.91
+              "s0": 33.22,
+              "s1": 35.62
             },
             {
-              "s0": 40.23,
-              "s1": 42.63
+              "s0": 38.73,
+              "s1": 41.13
+            },
+            {
+              "s0": 44.24,
+              "s1": 46.64
             }
           ]
         },
@@ -831,7 +851,7 @@
             }
           ]
         },
-        "_src": "v0 (v = 11.0) stands against the south-west tower. u0 is the courtyard's south wall over v 19.4..39.7 and back to back with the west and east ranges elsewhere. u1 (u = 64.0) is exposed only over v 11.0..16.2, where it is the return wall on to the corner patio; the rest of it stands back to back with the deeper south strip and the south-east tower."
+        "_src": "v0 (v = 10.0) stands against the south-west tower. u0 is the courtyard's south wall over v 19.4..39.7 and back to back with the west and east ranges elsewhere. u1 (u = 64.0) is exposed only over v 10.0..16.2, where it is the return wall on to the corner patio; the rest of it stands back to back with the deeper south strip and the south-east tower."
       },
       "roofTone": "membrane",
       "parapet": 0.65,
@@ -844,18 +864,18 @@
           "plan": [
             53.0,
             62.5,
-            46.5,
-            53.5
+            46.0,
+            53.8
           ],
           "grid": [
-            3,
-            2
+            4,
+            3
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech"
         }
       ]
@@ -1015,20 +1035,20 @@
       "roofItems": [
         {
           "plan": [
-            64.8,
-            68.5,
-            26.5,
-            42.5
+            64.6,
+            68.8,
+            25.0,
+            43.5
           ],
           "grid": [
-            2,
-            8
+            3,
+            11
           ],
           "size": [
-            1.0,
-            1.4
+            0.85,
+            1.15
           ],
-          "h": 0.75,
+          "h": 0.65,
           "tone": "mech",
           "_src": "S6 nadir: a run just inside the 26th Street parapet."
         }
@@ -1040,7 +1060,7 @@
         51.8,
         64.0,
         0.0,
-        11.0
+        10.0
       ],
       "z0": 0.0,
       "z1": 22.75,
@@ -1080,63 +1100,93 @@
       "roofItems": [
         {
           "plan": [
-            51.55,
-            64.25,
-            -0.3,
-            11.3
+            51.74,
+            64.06,
+            -0.15,
+            10.15
           ],
-          "h": 0.37,
+          "h": 0.38,
           "tone": "tile",
-          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - six concentric boxes rising 2.2 m, the lowest standing 0.8 m proud of the wall as the eave S4 shows does. See `todo`."
+          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - nine concentric boxes rising 3.4 m, the lowest standing 0.6 m proud of the wall as the eave S4 shows does. See `todo`."
         },
         {
           "plan": [
-            52.61,
-            63.19,
-            0.67,
-            10.33
+            52.42,
+            63.38,
+            0.42,
+            9.58
           ],
-          "h": 0.73,
+          "h": 0.76,
           "tone": "tile"
         },
         {
           "plan": [
-            53.67,
-            62.13,
-            1.64,
-            9.36
+            53.11,
+            62.69,
+            0.99,
+            9.01
           ],
-          "h": 1.1,
+          "h": 1.13,
           "tone": "tile"
         },
         {
           "plan": [
-            54.73,
-            61.07,
-            2.6,
-            8.4
+            53.79,
+            62.01,
+            1.57,
+            8.43
           ],
-          "h": 1.47,
+          "h": 1.51,
           "tone": "tile"
         },
         {
           "plan": [
-            55.78,
-            60.02,
-            3.57,
-            7.43
+            54.48,
+            61.32,
+            2.14,
+            7.86
           ],
-          "h": 1.83,
+          "h": 1.89,
           "tone": "tile"
         },
         {
           "plan": [
-            56.84,
-            58.96,
-            4.53,
-            6.47
+            55.16,
+            60.64,
+            2.71,
+            7.29
           ],
-          "h": 2.2,
+          "h": 2.27,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            55.85,
+            59.95,
+            3.28,
+            6.72
+          ],
+          "h": 2.64,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            56.53,
+            59.27,
+            3.86,
+            6.14
+          ],
+          "h": 3.02,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            57.22,
+            58.58,
+            4.43,
+            5.57
+          ],
+          "h": 3.4,
           "tone": "tileRidge"
         }
       ]
@@ -1187,63 +1237,93 @@
       "roofItems": [
         {
           "plan": [
-            63.58,
-            72.42,
-            48.3,
-            59.87
+            63.77,
+            72.23,
+            48.49,
+            59.68
           ],
-          "h": 0.37,
+          "h": 0.38,
           "tone": "tile",
-          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - six concentric boxes rising 2.2 m, the lowest standing 0.8 m proud of the wall as the eave S4 shows does. See `todo`."
+          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - nine concentric boxes rising 3.4 m, the lowest standing 0.6 m proud of the wall as the eave S4 shows does. See `todo`."
         },
         {
           "plan": [
-            64.32,
-            71.68,
-            49.27,
-            58.9
+            64.24,
+            71.76,
+            49.11,
+            59.06
           ],
-          "h": 0.73,
+          "h": 0.76,
           "tone": "tile"
         },
         {
           "plan": [
-            65.06,
-            70.94,
-            50.23,
-            57.94
+            64.71,
+            71.29,
+            49.73,
+            58.44
           ],
-          "h": 1.1,
+          "h": 1.13,
           "tone": "tile"
         },
         {
           "plan": [
-            65.79,
-            70.21,
-            51.19,
-            56.98
+            65.18,
+            70.82,
+            50.35,
+            57.82
           ],
-          "h": 1.47,
+          "h": 1.51,
           "tone": "tile"
         },
         {
           "plan": [
-            66.53,
-            69.47,
-            52.16,
-            56.01
+            65.65,
+            70.35,
+            50.97,
+            57.2
           ],
-          "h": 1.83,
+          "h": 1.89,
           "tone": "tile"
         },
         {
           "plan": [
-            67.26,
-            68.74,
-            53.12,
-            55.05
+            66.12,
+            69.88,
+            51.6,
+            56.57
           ],
-          "h": 2.2,
+          "h": 2.27,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            66.59,
+            69.41,
+            52.22,
+            55.95
+          ],
+          "h": 2.64,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            67.06,
+            68.94,
+            52.84,
+            55.33
+          ],
+          "h": 3.02,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            67.53,
+            68.47,
+            53.46,
+            54.71
+          ],
+          "h": 3.4,
           "tone": "tileRidge"
         }
       ]
@@ -1291,20 +1371,20 @@
       },
       {
         "plan": [
-          66.5,
-          72.5,
-          2.0,
-          11.0
+          64.0,
+          67.6,
+          1.5,
+          9.6
         ],
         "z0": 3.6,
         "h": 0.25,
         "tone": "awning",
-        "_src": "The second awning, over the corner patio in the notch. S6's nadir reads it at u 71.7, v 7.5."
+        "_src": "The second awning, over the corner patio in the notch. S6's nadir reads the patio at u 71.7, v 7.5. LOOK-FIX 3: it was drawn out there, at u 66.5-72.5, and with nothing under it and no wall behind it a 6 x 9 m red slab three metres up reads as a rug lying in the plaza. Moved back against the south-west tower's own south face at u = 64.0, which is where a canopy can be seen to be attached to something. The patio it covers is further out than this."
       }
     ]
   },
   "todo": [
-    "THE HIPPED TILE ROOFS ARE STEPPED BOXES. The generator has no pitched-roof primitive a data file can reach - js/slopes-apartments.js's taste block names a block `roof` and the boot log counts `roofs`, but the block loop does not read it - so each corner hip is six concentric roofItems, the way 2819 Rio Grande's tower cap is built. What is missing: a block `roof` that takes a pitch or a rise and hips the block's own plan.",
+    "THE HIPPED TILE ROOFS ARE STEPPED BOXES. The generator has no pitched-roof primitive a data file can reach - js/slopes-apartments.js's taste block names a block `roof` and the boot log counts `roofs`, but the block loop does not read it - so each corner hip is nine concentric roofItems, the way 2819 Rio Grande's tower cap is built. What is missing: a block `roof` that takes a pitch or a rise and hips the block's own plan.",
     "THE AWNINGS ARE DECK ITEMS. There is no awning or canopy primitive, so the two awnings are boxes in `deck` at 3.85 m and 3.60 m, standing against the wall. What is missing: a band fixture like `balconies` that hangs a canopy on a face over an s-range.",
     "THE COURTYARD IS A RECTANGLE. S1's inner ring is an H - 453 m2 net, with the ends pinched to about 7 m and square pockets at the four corners - and the four ranges here leave a plain 31.5 x 20.3 m well of 639 m2. Closing the gap needs either two more blocks a side or a plan that can carry a ring with a hole.",
     "THE COURTYARD WALLS CARRY NO BALCONIES. S6's north-east oblique looks into the well and shows balconies on all four of its walls; they are left off rather than guessed at a camera that can barely see them.",
