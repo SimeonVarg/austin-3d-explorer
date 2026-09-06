@@ -122,16 +122,16 @@
       "_src": "one stone a step cool; derived from `stone`, not sampled."
     },
     "brickRed": {
-      "hex": "#a1766a",
-      "_src": "S4 crop (488,430)-(530,560), the sunlit brick-red stucco, clusters to #b99288 at 83 %, and crop (800,230)-(866,420) on the same wall to #b88f85 at 72 %; the shaded return of the same volume reads #2e2321. Entered four fifths of the way from the shade to the sunlit read. The 2008 JPEG's sunlit red is desaturated (saturation 0.27); S6's 2023 mesh reads the same wall at #a4896a, warmer, and the entered value sits between the two hues."
+      "hex": "#a06a56",
+      "_src": "S4 crop (488,430)-(530,560), the sunlit brick-red stucco, clusters to #b99288 at 83 %, and crop (800,230)-(866,420) on the same wall to #b88f85 at 72 %; the shaded return of the same volume reads #2e2321. Entered four fifths of the way from the shade to the sunlit read. The 2008 JPEG's sunlit red is desaturated (saturation 0.27); S6's 2023 mesh reads the same wall at #a4896a, warmer, and the entered value sits between the two hues. LOOK-FIX 1 moved it one step redder, from #a1766a: beside the buff it was reading brown."
     },
     "buff": {
-      "hex": "#c9bb9f",
-      "_src": "S4 crop (390,200)-(450,320), the corner tower's stucco in sun, clusters to #ddcfb6 at 82 %. Entered a step down. S6's w oblique reads the same tower at #9c744f, stronger and more orange; the entered value keeps S4's own hue because S4 is a photograph and S6 is a mesh."
+      "hex": "#c2a878",
+      "_src": "LOOK-FIX 1. S4 crop (390,200)-(450,320), the corner tower's stucco in sun, clusters to #ddcfb6 at 82 %. Entered a step down. S6's w oblique reads the same tower at #9c744f, stronger and more orange, and so does its east elevation (#a28d73) and its south (#a4896a) - three views agreeing. The first look entered S4's pale #c9bb9f and the tower vanished into the cream beside it, which the reference never does: in every Earth view the tower is THE orange accent on Rio Grande. Entered between the two, nearer S6, because S6 is 2023 and S4 is the year the building opened - it has been repainted or S4's sun has washed it, and either way the current building is the one to draw."
     },
     "cream": {
-      "hex": "#dcd6c8",
-      "_src": "the pale stucco blocks. S6 reads them at #c7cdd1 on the sunlit east elevation and #d0d1cf on the south; S4's white trim clusters to #dfe3e7. Entered between the trim white and the stone, warm - it is the same stucco as the buff, one step lighter."
+      "hex": "#d8d6cd",
+      "_src": "the pale stucco blocks. S6 reads them at #c7cdd1 on the sunlit east elevation and #d0d1cf on the south; S4's white trim clusters to #dfe3e7. Entered between the trim white and the stone - it is the same stucco as the buff, one step lighter. LOOK-FIX 1 cooled it: S6 reads every pale wall on this building cool (#7f8e9d on the shaded west face, #c7cdd1 on the sunlit east), and a warm cream made the whole elevation one beige."
     },
     "khaki": {
       "hex": "#a09679",
@@ -150,11 +150,11 @@
       "_src": "S4 crop (640,505)-(760,530), one balcony rail, clusters to #3c3b36 at 56 %. Dark bronze, which is what S4 and S5 both show."
     },
     "membrane": [
-      "#dcdedb",
-      "#dfd6c4",
+      "#d8dee2",
+      "#dbd4c6",
       "#1d2029"
     ],
-    "_membrane_src": "S6 nadir, median of the roof at (760,360)-(820,390) = #eef5f7, which is blown; entered a step down. Golden and night entered the way S8 enters a top face.",
+    "_membrane_src": "S6 nadir, median of the roof at (760,360)-(820,390) = #eef5f7, which is blown; entered a step down, and cooled at LOOK-FIX 1 to S6's own read of it in the west oblique, #e2e8eb - the first look's neutral value came back pink under this app's daylight. Golden and night entered the way S8 enters a top face.",
     "shingle": {
       "hex": "#6e6c66",
       "_src": "the grey shingle roof band that rings the membrane. S6 nadir reads it at #8b8986 on the east slope and #989590 on the south, both in sun, and #261f1b on the north slope, which never gets any. Entered between the sunlit and the shaded read."
@@ -164,7 +164,7 @@
       "_src": "the ridge course, entered one step above the field so the cap's top edge reads at the oblique camera. Not separately sampled."
     },
     "hip": {
-      "hex": "#9aa2a8",
+      "hex": "#8e969c",
       "_src": "the tower's hipped roof. S6 nadir reads it at #b6c0ce in sun - a pale grey-blue, which is what a standing-seam metal hip looks like from above; entered a step down."
     },
     "hipRidge": {
@@ -172,8 +172,8 @@
       "_src": "the tower hip's ridge, one step above it."
     },
     "wingRoof": {
-      "hex": "#9298a0",
-      "_src": "the Rio Grande wing's pitched roof. S6 nadir reads it at #a4acb4; entered a step down."
+      "hex": "#98a1aa",
+      "_src": "the Rio Grande wing's pitched roof. S6 nadir reads it at #a4acb4 and its west oblique at #9aa5b0; entered at the oblique's read, which is the camera this building is judged from."
     },
     "wingRidge": {
       "hex": "#a0a6ad",
@@ -386,50 +386,80 @@
       "roofItems": [
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             -0.7,
             5.2
           ],
-          "h": 0.58,
+          "h": 0.36,
           "tone": "shingle",
           "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
         },
         {
           "plan": [
-            -1.4,
-            48.4,
-            0.48,
+            -0.7,
+            47.7,
+            0.04,
             5.2
           ],
-          "h": 1.16,
+          "h": 0.72,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
-            1.66,
+            -0.7,
+            47.7,
+            0.78,
             5.2
           ],
-          "h": 1.74,
+          "h": 1.09,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
-            2.84,
+            -0.7,
+            47.7,
+            1.51,
             5.2
           ],
-          "h": 2.32,
+          "h": 1.45,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
-            4.02,
+            -0.7,
+            47.7,
+            2.25,
+            5.2
+          ],
+          "h": 1.81,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            2.99,
+            5.2
+          ],
+          "h": 2.17,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            3.73,
+            5.2
+          ],
+          "h": 2.54,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            4.46,
             5.2
           ],
           "h": 2.9,
@@ -439,17 +469,27 @@
           "plan": [
             -0.7,
             3.6,
-            -1.4,
+            -0.7,
             15.9
           ],
-          "h": 0.5,
+          "h": 0.33,
           "tone": "shingle"
         },
         {
           "plan": [
-            0.38,
+            0.02,
             3.6,
-            -1.4,
+            -0.7,
+            15.9
+          ],
+          "h": 0.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            0.73,
+            3.6,
+            -0.7,
             15.9
           ],
           "h": 1.0,
@@ -459,17 +499,27 @@
           "plan": [
             1.45,
             3.6,
-            -1.4,
+            -0.7,
             15.9
           ],
-          "h": 1.5,
+          "h": 1.33,
           "tone": "shingle"
         },
         {
           "plan": [
-            2.52,
+            2.17,
             3.6,
-            -1.4,
+            -0.7,
+            15.9
+          ],
+          "h": 1.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.88,
+            3.6,
+            -0.7,
             15.9
           ],
           "h": 2.0,
@@ -569,13 +619,23 @@
             14.5,
             27.1
           ],
-          "h": 0.5,
+          "h": 0.33,
           "tone": "shingle",
           "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
         },
         {
           "plan": [
-            0.38,
+            0.02,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 0.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            0.73,
             3.6,
             14.5,
             27.1
@@ -590,12 +650,22 @@
             14.5,
             27.1
           ],
-          "h": 1.5,
+          "h": 1.33,
           "tone": "shingle"
         },
         {
           "plan": [
-            2.52,
+            2.17,
+            3.6,
+            14.5,
+            27.1
+          ],
+          "h": 1.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.88,
             3.6,
             14.5,
             27.1
@@ -713,51 +783,81 @@
       "roofItems": [
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             39.5,
             45.4
           ],
-          "h": 0.58,
+          "h": 0.36,
           "tone": "shingle",
           "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
         },
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             39.5,
-            44.22
+            44.66
           ],
-          "h": 1.16,
+          "h": 0.72,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             39.5,
-            43.04
+            43.93
           ],
-          "h": 1.74,
+          "h": 1.09,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             39.5,
-            41.86
+            43.19
           ],
-          "h": 2.32,
+          "h": 1.45,
           "tone": "shingle"
         },
         {
           "plan": [
-            -1.4,
-            48.4,
+            -0.7,
+            47.7,
             39.5,
-            40.68
+            42.45
+          ],
+          "h": 1.81,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            39.5,
+            41.71
+          ],
+          "h": 2.17,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            39.5,
+            40.98
+          ],
+          "h": 2.54,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            -0.7,
+            47.7,
+            39.5,
+            40.24
           ],
           "h": 2.9,
           "tone": "shingleRidge"
@@ -767,17 +867,27 @@
             -0.7,
             3.6,
             25.7,
-            46.1
+            45.4
           ],
-          "h": 0.5,
+          "h": 0.33,
           "tone": "shingle"
         },
         {
           "plan": [
-            0.38,
+            0.02,
             3.6,
             25.7,
-            46.1
+            45.4
+          ],
+          "h": 0.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            0.73,
+            3.6,
+            25.7,
+            45.4
           ],
           "h": 1.0,
           "tone": "shingle"
@@ -787,17 +897,27 @@
             1.45,
             3.6,
             25.7,
-            46.1
+            45.4
           ],
-          "h": 1.5,
+          "h": 1.33,
           "tone": "shingle"
         },
         {
           "plan": [
-            2.52,
+            2.17,
             3.6,
             25.7,
-            46.1
+            45.4
+          ],
+          "h": 1.67,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            2.88,
+            3.6,
+            25.7,
+            45.4
           ],
           "h": 2.0,
           "tone": "shingleRidge"
@@ -918,49 +1038,79 @@
         {
           "plan": [
             46.3,
-            58.3,
+            57.6,
             -0.7,
             5.2
           ],
-          "h": 0.58,
+          "h": 0.36,
           "tone": "shingle",
           "_src": "the north shingle cap carried across the set-back corner (S6 nadir)"
         },
         {
           "plan": [
             46.3,
-            58.3,
-            0.48,
+            57.6,
+            0.04,
             5.2
           ],
-          "h": 1.16,
+          "h": 0.72,
           "tone": "shingle"
         },
         {
           "plan": [
             46.3,
-            58.3,
-            1.66,
+            57.6,
+            0.78,
             5.2
           ],
-          "h": 1.74,
+          "h": 1.09,
           "tone": "shingle"
         },
         {
           "plan": [
             46.3,
-            58.3,
-            2.84,
+            57.6,
+            1.51,
             5.2
           ],
-          "h": 2.32,
+          "h": 1.45,
           "tone": "shingle"
         },
         {
           "plan": [
             46.3,
-            58.3,
-            4.02,
+            57.6,
+            2.25,
+            5.2
+          ],
+          "h": 1.81,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            57.6,
+            2.99,
+            5.2
+          ],
+          "h": 2.17,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            57.6,
+            3.73,
+            5.2
+          ],
+          "h": 2.54,
+          "tone": "shingle"
+        },
+        {
+          "plan": [
+            46.3,
+            57.6,
+            4.46,
             5.2
           ],
           "h": 2.9,
@@ -1055,51 +1205,71 @@
       "roofItems": [
         {
           "plan": [
-            46.1,
-            61.8,
-            9.3,
-            19.2
+            45.6,
+            62.3,
+            8.8,
+            19.7
           ],
-          "h": 0.92,
-          "tone": "hip",
-          "_src": "The hipped cap. Its apex lands at 27.40 m, which is exactly S1/S2's height for the whole building - a surface-model high point that belongs to this roof and not to the parapet, which is why the snapshot's 27.4 m prism is 7 m too tall everywhere else. Rise 4.60 m and a 0.90 m oversail are read off S4's silhouette against the brick-red parapet beside it, plus or minus 0.8 m."
+          "h": 0.66,
+          "tone": "trim",
+          "_src": "The hipped cap. Its apex lands at 27.40 m, which is exactly S1/S2's height for the whole building - a surface-model high point that belongs to this roof and not to the parapet, which is why the snapshot's 27.4 m prism is 7 m too tall everywhere else. Rise 4.60 m and a 1.40 m oversail are read off S4's silhouette against the brick-red parapet beside it, plus or minus 0.8 m."
         },
         {
           "plan": [
-            47.54,
-            60.36,
-            10.21,
-            18.29
+            46.7,
+            61.2,
+            9.52,
+            18.98
           ],
-          "h": 1.84,
+          "h": 1.31,
           "tone": "hip"
         },
         {
           "plan": [
-            48.99,
-            58.91,
-            11.12,
-            17.38
+            47.79,
+            60.11,
+            10.23,
+            18.27
           ],
-          "h": 2.76,
+          "h": 1.97,
           "tone": "hip"
         },
         {
           "plan": [
-            50.43,
-            57.47,
-            12.03,
-            16.47
+            48.89,
+            59.01,
+            10.95,
+            17.55
           ],
-          "h": 3.68,
+          "h": 2.63,
           "tone": "hip"
         },
         {
           "plan": [
-            51.88,
-            56.02,
-            12.94,
-            15.56
+            49.99,
+            57.91,
+            11.67,
+            16.83
+          ],
+          "h": 3.29,
+          "tone": "hip"
+        },
+        {
+          "plan": [
+            51.09,
+            56.81,
+            12.38,
+            16.12
+          ],
+          "h": 3.94,
+          "tone": "hip"
+        },
+        {
+          "plan": [
+            52.18,
+            55.72,
+            13.1,
+            15.4
           ],
           "h": 4.6,
           "tone": "hipRidge"
@@ -1150,18 +1320,13 @@
               "skin": "wall",
               "balconies": [
                 {
-                  "s0": 3.0,
-                  "s1": 6.2,
+                  "s0": 2.6,
+                  "s1": 5.8,
                   "lift": 0.0
                 },
                 {
-                  "s0": 10.0,
-                  "s1": 13.2,
-                  "lift": 0.0
-                },
-                {
-                  "s0": 17.0,
-                  "s1": 20.2,
+                  "s0": 9.4,
+                  "s1": 12.6,
                   "lift": 0.0
                 }
               ]
@@ -1212,53 +1377,43 @@
         }
       ],
       "roofTone": "wingRoof",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "brickRed",
       "parapetSides": [
         "u1",
         "v1"
       ],
-      "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 0.90 m is a look, sized to the cap band S4 shows.",
+      "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 1.15 m is a look: at 0.90 m the first look lost it behind the wing's own roof, and the terracotta parapet is the roof feature every Earth view names this building by.",
       "roofItems": [
         {
           "plan": [
-            48.2,
-            58.5,
-            19.5,
-            43.5
+            49.0,
+            57.7,
+            20.5,
+            42.5
           ],
-          "h": 0.6,
+          "h": 0.5,
           "tone": "wingRoof",
-          "_src": "the wing's pitched roof, inset 1.2 m so it stands behind its own parapet; rise 2.40 m is a shallow pitch that matches the ridge shadows in S6's nadir, plus or minus 1 m"
+          "_src": "the wing's pitched roof, inset 1.2 m so it stands behind its own parapet; rise 1.50 m is a shallow pitch that matches the ridge shadows in S6's nadir, plus or minus 1 m"
         },
         {
           "plan": [
-            49.38,
-            57.32,
-            22.26,
-            40.74
+            50.33,
+            56.37,
+            23.87,
+            39.13
           ],
-          "h": 1.2,
+          "h": 1.0,
           "tone": "wingRoof"
         },
         {
           "plan": [
-            50.57,
-            56.13,
-            25.02,
-            37.98
+            51.67,
+            55.03,
+            27.25,
+            35.75
           ],
-          "h": 1.8,
-          "tone": "wingRoof"
-        },
-        {
-          "plan": [
-            51.75,
-            54.95,
-            27.78,
-            35.22
-          ],
-          "h": 2.4,
+          "h": 1.5,
           "tone": "wingRidge"
         }
       ]
