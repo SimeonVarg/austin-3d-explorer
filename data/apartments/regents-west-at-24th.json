@@ -89,8 +89,8 @@
       "_src": "the same cap's fascia from below, the band S6 shows between the top windows and the sky. S6 raw #3a3221, lifted; entered as the wall's top band so the eave line reads from a walking camera as well as from above."
     },
     "membrane": {
-      "hex": "#ccd0c8",
-      "_src": "the white roof inside the cap. S7 nadir, cluster in c_sw (700,150)-(950,300) = #cfd4d4 at 37 %; S8's mean roof colour for the whole plane is (210, 211, 195) = #d2d3c3, measured independently by the roof bake. The two agree, so the entered value is between them."
+      "hex": "#d1d4cb",
+      "_src": "the white roof inside the cap. S7 nadir, cluster in c_sw (700,150)-(950,300) = #cfd4d4 at 37 %; S8's mean roof colour for the whole plane is (210, 211, 195) = #d2d3c3, measured independently by the roof bake. The two agree, so the entered value is between them - literally, at #d1d4cb. It went in at #ccd0c8 first, below BOTH measurements, and at the second look the roof read as the same tan as the walls where every nadir has it markedly paler and cooler than them. Entering the number that was actually measured fixed it; the step down had no source."
     },
     "deckTone": ["#a9a8a1", "#b3aa99", "#1c1f27"],
     "_deckTone_src": "the rooftop terrace paving at the south end. S7, cluster of the deck in c_south_roof (300,500)-(900,570): #a7a69f at 45 % and #adaca4 at 41 % - weathered concrete pavers, not membrane. Golden and night entered the way S9 enters a deck.",
