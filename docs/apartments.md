@@ -73,6 +73,32 @@ page load: `?apartments=0` — what `main` draws, `js/westcampus.js`'s bands
 with two slab towers standing on what the nadir shows to be the two light
 wells — and the generator on.*
 
+## Round 2 (Sep 6 2026): what the builders could not draw, drawn
+
+Twenty-two buildings were authored after The Standard, and their files
+wrote down what the generator could not draw. These frames are ours after
+the fields below landed (hardware GL, `page.screenshot`, the builders' own
+poses; every one is a real hip, recess, frame or weave, not a box stack):
+
+![San Jacinto Hall from the north-west: five barrel-tile hips through the roofs emitter](shots/apartments-round2-sanjacinto-hips.jpg)
+![The Villas on Guadalupe from the south-west: 33° slate hips on every wing, the turrets' pyramids](shots/apartments-round2-villas-hips.jpg)
+![The Block on Rio from the west: the tower's hip, the wing's roof behind its parapet, the shingle band round the membrane on three sides](shots/apartments-round2-blockonrio-band.jpg)
+![Union on 24th from the south-west, close: the mod-4 weave on the wings, the ground floor on columns under the screen, the L6 loggia on its columns in the court](shots/apartments-round2-union-weave.jpg)
+![Signature 1909 from the west, close: the 0.4 m white frame round every opening](shots/apartments-round2-signature-frames.jpg)
+![Jester East and West from the south-west: the wings' tile hips, the tower's precast surrounds as frames](shots/apartments-round2-jester-hips.jpg)
+
+*Two instrument lessons from this round, both learned the hard way. A
+`queryRenderedFeatures` on a fill-extrusion answers for the whole extruded
+volume along the view ray: at pitch 55 the "deck still there" over Regents
+West's courtyard was a neighbour's deck at 17 m sitting on the ray — ask at
+a nadir. And a row of "poles" over Jester West's tower was not ours: a
+bisection of the apartments mesh (build one building alone, count vertices
+above 54 m, drop blocks and skin parts one at a time) found nothing, and one
+`queryRenderedFeatures` on one pole named `roofs-pitched` — the tiled-roof
+bake's kept `f: band` features, the tower's precast strips baked on the
+snapshot. They are hidden by geometry now, against the footprint itself,
+because they stand on the wall line.*
+
 ## What is in the frame, and where it came from
 
 The building has one outline in OSM (way 380916747: `building=apartments`,
