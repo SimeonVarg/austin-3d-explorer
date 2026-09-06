@@ -121,9 +121,11 @@
     // end's corners lean in over the rise so the rig's strip on that edge
     // stands just behind the gable wall this file draws in wall tone.
     roof: { pitch: 25, lipH: 0.25, gableLean: 0.30 },
-    // Recesses (a band's `inset`): the soffit over a recess is drawn, and the
-    // floor of one that starts above the block's foot; columns where given.
+    // Recesses (a band's `inset`): the soffit over a recess and the floor of
+    // one that starts above the block's foot are drawn; `insetReturns` draws
+    // the side walls where a recess ends against a face that is not recessed.
     insetSoffit: true,
+    insetReturns: true,
   };
   window.APARTMENTS = APTS;
 
@@ -994,6 +996,7 @@
   function drawWall(B, F, W, s0, s1, bands, spec, P, key, opts) {
     const len = s1 - s0;
     if (len < 0.05) return;
+    opts = opts || {};
     // a sub-frame starting at s0 so skins see s from 0
     const sub = { at: (s, d, z) => W.at(s0 + s, d, z), T: W.T, N: W.N, L: len, a: W.a, b: W.b, dir: W.dir, n: W.n };
     for (const band of bands) {
@@ -1002,6 +1005,8 @@
       const sk = spec.skins[band.skin];
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
       const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
+      const d = insetOf(band);
+      if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, opts, fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
       const skin = SKINS[sk.kind](sk, ctx, P, ctx.key);
       tileFace(B, { W: sub, len, z0, z1 }, skin, P);
@@ -1010,6 +1015,96 @@
     // piece: an override region's own. A face's default bands' fixtures are
     // drawn by wallFixtures on the whole wall instead, never per piece.
     if (!opts || opts.fixtures !== false) wallFixtures(B, sub, bands, spec, P, key);
+  }
+
+  // ── recesses ─────────────────────────────────────────────────────────
+  //
+  // A band's `inset` (metres; or `{ d, tone, columns }`) puts that band's
+  // wall behind the face plane by the measured distance: a ground floor set
+  // back under an oversailing podium on columns (Union on 24th, 2.4 m; The
+  // Castilian, about 2 m; 21 Rio), a loggia (Union's L6 court glazing, 3.3 m
+  // behind the tower face), a recessed balcony run (The Block on Rio, the
+  // Villas). The wall is tiled by the band's own skin as usual, just on a
+  // frame `d` behind the plane, and what closes the recess is drawn round
+  // it: the SOFFIT at the band's top (facing down), the FLOOR at its foot
+  // when that is above the block's own foot (a loggia's slab), and at each
+  // end either a RETURN — a wall across the recess, on the neighbouring
+  // face's plane, where that neighbour is not recessed at the same band —
+  // or nothing, where it is: two faces recessed by the same depth over the
+  // same band meet at the mitre of their offset lines, the recessed walls
+  // shortened to it, so an open corner on columns is open round the corner.
+  // A neighbour recessed by a different depth meets at the two offset
+  // lines' intersection; along one wall (an override piece next to the
+  // face's own bands) the step between depths is a jog return. `columns`
+  // stand on the face line under the soffit: `{ pitch | at: [s...], w, d,
+  // tone }`, one box each from floor to soffit.
+  //
+  // The corner arithmetic, for wall i leaving corner O with direction di
+  // and outward normal ni after wall p (dp, np), both recessed (d, dN): the
+  // point on i's offset line that lies on p's is s along the wall with
+  //     s = (d (ni . np) - dN) / (di . np)
+  // (a right angle: s = dN; a straight run: di . np = 0, no shortening),
+  // and by symmetry the wall ends t = (dN - d (ni . nn)) / (di . nn) short
+  // of its far corner. With dN = 0 the wall runs to the neighbour's plane
+  // and the return closes it there.
+  const insetOf = band => band && band.inset != null ? (typeof band.inset === 'number' ? band.inset : (band.inset.d || 0)) : 0;
+  const insetSpec = band => (band && typeof band.inset === 'object') ? band.inset : {};
+  const sameBand = (a, b) => Math.abs(a.z0 - b.z0) < 1e-3 && Math.abs(a.z1 - b.z1) < 1e-3;
+  /** how far the recessed wall's end sits from this end of the piece, and whether a return closes it there */
+  function recessEnd(end, band, d, high) {
+    if (!end || !end.bands) return { s: 0, ret: true, from: 0 };
+    const nb = end.bands.find(b => sameBand(b, band) && insetOf(b) > 0);
+    const dN = nb ? insetOf(nb) : 0;
+    if (end.kind === 'straight' || Math.abs(end.dot) < 1e-6) {
+      return Math.abs(dN - d) < 1e-3 ? { s: 0, ret: false, from: dN } : { s: 0, ret: true, from: dN };
+    }
+    // a corner: end.dot = di . n_other, end.nn = ni . n_other (the walls' outward normals)
+    const sh = high ? (dN - d * end.nn) / end.dot : (d * end.nn - dN) / end.dot;
+    return { s: sh, ret: dN <= 1e-3, from: 0 };
+  }
+  function recess(B, W, len, band, d, sk, spec, P, key, opts, fl) {
+    const z0 = band.z0, z1 = band.z1;
+    const IS = insetSpec(band);
+    const tone = P[IS.tone || band.insetTone || sk.field || 'wall'] || P.wall;
+    const lo = recessEnd(opts.lo, band, d, false), hi = recessEnd(opts.hi, band, d, true);
+    const sLo = Math.max(0, lo.s), sHi = Math.min(len, len - hi.s);
+    const T = W.T, nT = [-T[0], -T[1], 0];
+    // the wall, on a frame d behind the plane and starting at sLo
+    if (sHi - sLo > 0.05) {
+      const subR = { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n };
+      const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
+      const skin = SKINS[sk.kind](sk, ctx, P, ctx.key);
+      tileFace(B, { W: subR, len: sHi - sLo, z0, z1 }, skin, P);
+    }
+    // the returns: a wall across the recess at either end, where nothing recessed meets it
+    if (APTS.insetReturns) {
+      if (lo.ret) B.quad(W.at(0, -lo.from, z0), W.at(lo.s, -d, z0), W.at(lo.s, -d, z1), W.at(0, -lo.from, z1), tone, T);
+      if (hi.ret) B.quad(W.at(len, -hi.from, z0), W.at(len - hi.s, -d, z0), W.at(len - hi.s, -d, z1), W.at(len, -hi.from, z1), tone, nT);
+    }
+    // the soffit at the top, the floor at the foot when the band starts above the block's foot
+    if (APTS.insetSoffit) {
+      const ring = zz => [W.at(0, 0, zz), W.at(len, 0, zz), W.at(len - hi.s, -d, zz), W.at(lo.s, -d, zz)];
+      B.polygon(ring(z1), tone, [0, 0, -1], 'xy');
+      if (opts.blockZ0 == null || z0 > opts.blockZ0 + 0.01) B.polygon(ring(z0), tone, [0, 0, 1], 'xy');
+    }
+    // the columns, on the face line
+    const C = IS.columns || band.columns;
+    if (C) {
+      const w = C.w || 0.5, cd = C.d || w, ctone = P[C.tone || IS.tone || 'wall'] || tone;
+      let at = C.at;
+      if (!at) {
+        // `pitch` metres apart: on the bay centres, or with `on: 'joints'` on
+        // the bay lines including both ends (Union's L6 loggia: a square
+        // column on every bay line of the court face)
+        const pitch = C.pitch || 5.0, from = C.from || 0, to = C.to != null ? C.to : len;
+        const n = Math.max(1, Math.round((to - from) / pitch)), mod = (to - from) / n;
+        at = [];
+        if (C.on === 'joints') for (let i = 0; i <= n; i++) at.push(from + i * mod);
+        else for (let i = 0; i < n; i++) at.push(from + (i + 0.5) * mod);
+      }
+      for (const c of at) box(B, W, c - w / 2, c + w / 2, -cd, 0, z0, z1, ctone, { top: true, bottom: true });
+    }
+    count.insets++;
   }
 
   /**
@@ -1027,8 +1122,10 @@
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = APTS.signs && band.signs && band.signs.length;
       if (!hasB && !hasS) continue;
       const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
-      if (hasB) for (const bs of band.balconies) balconyStack(B, W, Object.assign({}, spec.balcony || {}, bs), floors, P);
-      if (hasS) for (const sg of band.signs) sign(B, W, sg, P);
+      const d = insetOf(band);
+      const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
+      if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P);
+      if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
     }
   }
 
@@ -1056,12 +1153,15 @@
       const planUV = blk.plan === 'footprint' ? ringUV : (isRect ? rectRing(blk.plan) : blk.plan);
       const walls = ringWalls(F, planUV);
       const keys = isRect ? RECT_SIDES : walls.map((_, i) => String(i));
-      for (let i = 0; i < walls.length; i++) {
-        const W = walls[i];
+      // pass 1: what every wall wears — its bands and the override pieces along it
+      const plan = walls.map((W, i) => {
         const face = blk.faces ? (keys[i] in blk.faces ? blk.faces[keys[i]] : blk.faces['*']) : undefined;
-        if (face === null) continue;                       // a face against another block: not drawn
+        if (face === null) return null;                    // a face against another block: not drawn
         let bd = (face && face.bands) || bands;
         if (face && face.z0 != null) bd = bd.map(b => Object.assign({}, b, { z0: Math.max(b.z0, face.z0) }));
+        // a face's or the block's own `inset` recesses every band of it that has none of its own
+        const fin = face && face.inset != null ? face.inset : blk.inset;
+        if (fin != null) bd = bd.map(b => b.inset != null ? b : Object.assign({}, b, { inset: fin }));
         // overrides: a region of the plan whose walls wear other bands (the corner bay, a wall another block hides)
         const pieces = [[0, W.L, bd]];
         for (const ov of blk.overrides || []) {
@@ -1077,8 +1177,25 @@
           }
           pieces.splice(0, pieces.length, ...next);
         }
+        return { bd, pieces };
+      });
+      // pass 2: draw, telling each piece what meets it at either end (a recess needs to know)
+      const nW = walls.length;
+      const corner = (Wi, Wo, high) => ({ kind: 'corner', dot: Wi.dir[0] * Wo.n[0] + Wi.dir[1] * Wo.n[1], nn: Wi.n[0] * Wo.n[0] + Wi.n[1] * Wo.n[1], bands: null });
+      for (let i = 0; i < nW; i++) {
+        if (!plan[i]) continue;
+        const W = walls[i], { bd, pieces } = plan[i];
         const wkey = key + '|' + blk.id + '|' + keys[i];
-        for (const [a, b, pb] of pieces) drawWall(B, F, W, a, b, pb, spec, P, wkey, { fixtures: pb !== bd });
+        const prev = plan[(i - 1 + nW) % nW], next = plan[(i + 1) % nW];
+        for (let k = 0; k < pieces.length; k++) {
+          const [a, b, pb] = pieces[k];
+          let lo, hi;
+          if (k > 0) lo = { kind: 'straight', bands: pieces[k - 1][2] };
+          else { lo = corner(W, walls[(i - 1 + nW) % nW], false); lo.bands = prev && nW > 1 ? prev.pieces[prev.pieces.length - 1][2] : null; }
+          if (k < pieces.length - 1) hi = { kind: 'straight', bands: pieces[k + 1][2] };
+          else { hi = corner(W, walls[(i + 1) % nW], true); hi.bands = next && nW > 1 ? next.pieces[0][2] : null; }
+          drawWall(B, F, W, a, b, pb, spec, P, wkey, { fixtures: pb !== bd, lo, hi, blockZ0: blk.z0 });
+        }
         // the face's own balconies and signs: once, on the whole wall, `s` along the face
         wallFixtures(B, W, bd, spec, P, wkey);
       }
