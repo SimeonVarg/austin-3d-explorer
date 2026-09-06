@@ -219,76 +219,76 @@
       "field": "brick",
       "bay": 3.26,
       "window": {
-        "w": 2.35,
-        "h": 1.55,
-        "sill": 0.95
+        "w": 2.5,
+        "h": 1.75,
+        "sill": 0.85
       },
       "bands": [
         {
-          "z0": 0.72,
-          "z1": 0.95,
+          "z0": 0.62,
+          "z1": 0.85,
           "tone": "stone"
         },
         {
-          "z0": 2.5,
-          "z1": 2.68,
+          "z0": 2.6,
+          "z1": 2.78,
           "tone": "stone"
         },
         {
-          "z0": 4.07,
-          "z1": 4.3,
+          "z0": 3.97,
+          "z1": 4.2,
           "tone": "stone"
         },
         {
-          "z0": 5.85,
-          "z1": 6.03,
+          "z0": 5.95,
+          "z1": 6.13,
           "tone": "stone"
         },
         {
-          "z0": 7.12,
-          "z1": 7.35,
+          "z0": 7.02,
+          "z1": 7.25,
           "tone": "stone"
         },
         {
-          "z0": 8.9,
-          "z1": 9.08,
+          "z0": 9.0,
+          "z1": 9.18,
           "tone": "stone"
         },
         {
-          "z0": 10.17,
-          "z1": 10.4,
+          "z0": 10.07,
+          "z1": 10.3,
           "tone": "stone"
         },
         {
-          "z0": 11.95,
-          "z1": 12.13,
+          "z0": 12.05,
+          "z1": 12.23,
           "tone": "stone"
         },
         {
-          "z0": 13.22,
-          "z1": 13.45,
+          "z0": 13.12,
+          "z1": 13.35,
           "tone": "stone"
         },
         {
-          "z0": 15.0,
-          "z1": 15.18,
+          "z0": 15.1,
+          "z1": 15.28,
           "tone": "stone"
         },
         {
-          "z0": 16.27,
-          "z1": 16.5,
+          "z0": 16.17,
+          "z1": 16.4,
           "tone": "stone"
         },
         {
-          "z0": 18.05,
-          "z1": 18.23,
+          "z0": 18.15,
+          "z1": 18.33,
           "tone": "stone"
         }
       ],
       "_bands_src": "S4 crop (1300,150)-(2000,350): every window sits on a painted sill band that runs CONTINUOUS across the piers between the windows, and carries a painted head band above it. Those two lines, not the openings, are what gives this building its horizontal read at any distance - LOOK 1 had the openings right and the wall still read as plain brick without them. 0.23 m under the sill and 0.18 m over the head, at every floor line.",
       "glass": "glass",
       "frame": "stone",
-      "_src": "S6/S4: the bay is 3.26 m - 2.13 floor heights, from the 96 px structural bay against the 45 px floor in S4's right-hand wing - one room, one wide two-light window per bay per floor. The window is 2.35 x 1.55 m with its sill 0.95 m above the floor: the same photographs put the opening at just over half the floor height and about 0.72 of the bay, with a painted sill band under it."
+      "_src": "S4's right-hand wing, measured head-on in the crop (1300,150)-(2000,350): the floor pitch is 45 px, the window pitch 49 px and each window is two lights (the 24 px autocorrelation lag) - so the bay is 49/45 = 1.09 floor heights = 3.32 m, taken here as 3.26 m, one room and one two-light window per bay per floor. The opening in the same crop is 38 px wide by 26 px tall = 0.78 of the bay by 0.58 of the floor = 2.50 x 1.75 m, sill 0.85 m above the floor. LOOK 3 had it 2.35 x 1.55 and the wall read as brick with holes in it where the reference reads as a window ribbon with narrow piers."
     },
     "brickBase": {
       "kind": "bays",
