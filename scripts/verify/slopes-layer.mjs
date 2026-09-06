@@ -1169,7 +1169,7 @@ const countOf = (str, sub) => str.split(sub).length - 1;
 // moment the layer draws; ours waits for the build to finish.
 const settledApts = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
   && (!window.slopesApartments || window.slopesApartments.count.done), null, { timeout: 120000 });
-const aptState = pg => pg.evaluate(([id, name]) => {
+const aptState = pg => pg.evaluate(([id, name, SJ_ID]) => {
   const m = window.__map, A = window.slopesApartments, R = window.slopesRoofs;
   const filt = k => JSON.stringify(m.getFilter(k) || null);
   const st = window.slopes ? window.slopes.stats().groups.find(g => g.name === 'slopes-apartments') : null;
@@ -1182,7 +1182,7 @@ const aptState = pg => pg.evaluate(([id, name]) => {
            b3d: filt('buildings-3d'), roof: filt('buildings-roof'), wc: filt('wc-wall'), wcCap: filt('wc-wall-cap'), wcSolid: filt('wc-solid'), wcDetail: filt('wc-detail'),
            storeys: m.getLayer('campus-storeys') ? filt('campus-storeys') : null, rdeck: m.getLayer('roofscape-deck') ? filt('roofscape-deck') : null,
            groups: window.slopes ? window.slopes.root.children.map(g => g.name) : [], tris: st ? st.triangles : 0, visible: st ? st.visible : false };
-}, [APT_ID, APT_NAME]);
+}, [APT_ID, APT_NAME, SJ_ID]);
 // The roofscape deck baked over Regents West at Overture's height (b 25.9,
 // h 26.15 in data/roofscape.geojson; the building's own roof is at 18.4 m)
 // is queried at a NADIR: queryRenderedFeatures on a fill-extrusion answers
@@ -1273,6 +1273,127 @@ check('apartments: floorsBetween keeps the storey a band starts in when it start
   floorTest.kept.floorBelow === 3 && floorTest.kept.floors.join() === '6,9' && floorTest.dropped.floorBelow === null && floorTest.dropped.floors.join() === '6,9'
   && floorTest.warned.length === 2 && /kept/.test(floorTest.warned[0]) && /DROPPED/.test(floorTest.warned[1]),
   `z0 3.5 over floors [0,3,6,9]: floorBelow ${floorTest.kept.floorBelow}, floors [${floorTest.kept.floors}]; z0 5.0: floorBelow ${floorTest.dropped.floorBelow}; ${floorTest.warned.length} warnings: ${floorTest.warned.map(w => w.slice(0, 60)).join(' | ')}`);
+// Four more in-place tests, each a one-field patch to The Standard's own
+// data, a rebuild, a measurement on the real mesh, and the field taken
+// back out — so the gate proves the generator's new fields on a building
+// whose numbers it knows, whatever the data files carry today.
+//   roof:   a 30° hip on the gym (15 x 8 m at z1 29.0): the ridge is
+//           29 + tan 30° x 4 = 31.31 m, and a raycast from a nadir over the
+//           gym's centre must land on it.
+//   inset:  the corner bay's storefront band (z 0-6) set 2.0 m back on its
+//           north face: a raycast from 23rd St at the recessed wall's
+//           middle must hit 2.0 m inside the face plane.
+//   frame:  the podium's punched windows given a charcoal frame: a raycast
+//           at the frame's own strip, beside the pane, must return the
+//           frame's day colour where it returned the wall's before.
+//   mod4:   the court skin switched to the weave: its cells pair off, at
+//           least 85 % of them into dominoes (only the edge orphans stand).
+const STD_UV = { gymCentre: [49.5, 15.0], cornerBayFace: [88.0, 0.0], podiumWindow: [45.0, 0.0] };
+const nadirOver = async (pg, ll, zoom) => { await pose(pg, ll, zoom || 19.5, 0, 0); await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500)); };
+const roofTest = await (async () => {
+  const pg = AP.pg;
+  const ll = await pg.evaluate(([name, uv]) => window.slopesApartments.uvToLngLat(name, uv[0], uv[1]), [APT_NAME, STD_UV.gymCentre]);
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), gym = b.blocks.find(k => k.id === 'gym');
+    const before = A.count.roofs;
+    gym.roof = { kind: 'hip', pitch: 30, tone: 'roof' };
+    A.rebuild();
+    const rec = (A.built.find(x => x.name === name) || {}).roofs || [];
+    return { before, after: A.count.roofs, rec: rec[0] || null };
+  }, APT_NAME);
+  await nadirOver(pg, ll, 19.6);
+  const hit = await pg.evaluate(ll => { const m = window.__map, p = m.project(ll); const h = window.slopes.raycast(p.x, p.y); return h ? { z: h.point.z, name: h.object && h.object.name } : null; }, ll);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), gym = b.blocks.find(k => k.id === 'gym'); delete gym.roof; A.rebuild(); return A.count.roofs; }, APT_NAME);
+  return Object.assign(r, { hit, restored, want: 29.0 + Math.tan(30 * Math.PI / 180) * 4.0 });
+})();
+check('apartments: a block\'s `roof` is a real hip through slopes-roofs\' emitter — a 30° hip on The Standard\'s gym puts its ridge at 31.31 m and a nadir raycast over the gym lands on it',
+  roofTest.after === roofTest.before + 1 && roofTest.rec && Math.abs(roofTest.rec.ridgeZ - roofTest.want) < 0.05 && roofTest.hit && Math.abs(roofTest.hit.z - roofTest.want) < 0.25 && roofTest.restored === roofTest.before,
+  `roofs ${roofTest.before} -> ${roofTest.after} -> ${roofTest.restored}; the record says ridge ${roofTest.rec ? roofTest.rec.ridgeZ.toFixed(2) : '-'} m (want ${roofTest.want.toFixed(2)}); the raycast from the nadir hit ${roofTest.hit ? roofTest.hit.z.toFixed(2) + ' m on ' + roofTest.hit.name : 'NOTHING'}`);
+const insetTest = await (async () => {
+  const pg = AP.pg;
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), cb = b.blocks.find(k => k.id === 'cornerBay');
+    const before = A.count.insets;
+    cb.faces.v0.bands[0].inset = 2.0;
+    A.rebuild();
+    return { before, after: A.count.insets };
+  }, APT_NAME);
+  // the camera on 23rd St, north of the bay, looking south into the recess at its middle
+  const wallLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, 2.0), [APT_NAME, STD_UV.cornerBayFace[0]]);
+  const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -12.0), [APT_NAME, STD_UV.cornerBayFace[0]]);
+  await pose(pg, faceLL, 20.3, 78, 184.7);   // looking along +v (south, into the recess): the frame's +u is at bearing 274.7°, +v at 184.7°
+  await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  const hit = await pg.evaluate(([ll, name]) => {
+    const A = window.slopesApartments, S = window.slopes;
+    // the recessed wall's middle at z 3: project the 3-D point, raycast there, read the hit back into the frame
+    const l = S.toLocal(ll[0], ll[1], 0), p = S.project(l.x, l.y, 3.0);
+    if (!p) return null;
+    const h = S.raycast(p.x, p.y);
+    if (!h) return null;
+    const uv = A.lngLatToUV(name, h.lngLat.lng != null ? h.lngLat.lng : h.lngLat[0], h.lngLat.lat != null ? h.lngLat.lat : h.lngLat[1]);
+    return { z: h.point.z, u: uv[0], v: uv[1] };
+  }, [wallLL, APT_NAME]);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].inset; A.rebuild(); return A.count.insets; }, APT_NAME);
+  return Object.assign(r, { hit, restored });
+})();
+check('apartments: a band\'s `inset` stands its wall behind the face plane by the metres given — The Standard\'s corner-bay storefront set 2.0 m back is hit 2.0 m inside the face by a ray from 23rd St',
+  insetTest.after === insetTest.before + 1 && insetTest.hit && insetTest.hit.v > 1.75 && insetTest.hit.v < 2.25 && insetTest.restored === insetTest.before,
+  `recesses ${insetTest.before} -> ${insetTest.after} -> ${insetTest.restored}; the ray hit ${insetTest.hit ? 'v ' + insetTest.hit.v.toFixed(2) + ' m (face plane v 0, recess 2.0), u ' + insetTest.hit.u.toFixed(1) + ', z ' + insetTest.hit.z.toFixed(2) : 'NOTHING'}`);
+const frameTest = await (async () => {
+  const pg = AP.pg;
+  // the podium's north face at u 45, one bay of the `podium` skin (bay 3.1, window 1.4 wide, sill 0.9, 1.9 tall, on the 9.1 m floor line):
+  // sample the wall's colour on a horizontal line through the window's middle, before and after the frame
+  const sampler = async () => pg.evaluate(([name, u0]) => {
+    const A = window.slopesApartments, m = window.__map, S = window.slopes;
+    const out = [];
+    for (let i = 0; i <= 30; i++) {
+      const u = u0 + i * 0.1;                            // 3 m of wall, 10 cm apart
+      const ll = A.uvToLngLat(name, u, 0.0);
+      // the wall point at z 10.95 (window middle on the 9.1 floor: sill 0.9 + 1.9 / 2): project the 3-D point
+      const l = S.toLocal(ll[0], ll[1], 0), q = S.project(l.x, l.y, 10.95);
+      const h = q ? S.raycast(q.x, q.y) : null;
+      if (!h || !h.object || !h.object.geometry) { out.push(null); continue; }
+      const g = h.object.geometry, cd = g.getAttribute('cDay'), a = h.face.a;
+      out.push([cd.getX(a), cd.getY(a), cd.getZ(a)].map(v => Math.round(v * 255)).join(','));
+    }
+    return out;
+  }, [APT_NAME, STD_UV.podiumWindow[0]]);
+  const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -14.0), [APT_NAME, STD_UV.podiumWindow[0] + 1.5]);
+  await pose(pg, faceLL, 20.5, 72, 184.7);
+  await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  const before = await sampler();
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    const f0 = A.count.frames;
+    b.skins.podium.window.frame = { w: 0.3, tone: 'charcoal' };
+    A.rebuild();
+    return { frames0: f0, frames1: A.count.frames };
+  }, APT_NAME);
+  await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
+  const after = await sampler();
+  const charcoal = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.charcoal.hex || b.colours.charcoal[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); delete b.skins.podium.window.frame; A.rebuild(); return A.count.frames; }, APT_NAME);
+  return Object.assign(r, { before, after, charcoal, restored });
+})();
+const nCharBefore = frameTest.before.filter(c => c === frameTest.charcoal).length, nCharAfter = frameTest.after.filter(c => c === frameTest.charcoal).length;
+check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows given a 0.3 m charcoal frame return charcoal on rays beside the pane where the wall returned white',
+  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.frames0,
+  `framed windows ${frameTest.frames0} -> ${frameTest.frames1} -> ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
+const mod4Test = await AP.pg.evaluate(name => {
+  const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+  const c0 = A.count.dominoes, m0 = A.count.mod4Cells;
+  const keep = b.skins.court;
+  b.skins.court = { kind: 'mod4', cell: 3.0, field: 'charcoal', frameTone: 'coping', stripTone: 'white', glass: 'glass', frame: 'white', reveal: 0.12 };
+  A.rebuild();
+  const r = { before: c0, cells: A.count.mod4Cells, dominoes: A.count.dominoes, windows: A.count.windows };
+  b.skins.court = keep;
+  A.rebuild();
+  r.restored = A.count.dominoes;
+  return r;
+}, APT_NAME);
+check('apartments: the `mod4` skin pairs its cells into dominoes by k = (c - r) mod 4 — on The Standard\'s court faces at least 85 % of the cells pair off, and none do once the skin is taken back',
+  mod4Test.before === 0 && mod4Test.cells > 100 && mod4Test.dominoes * 2 >= 0.85 * mod4Test.cells && mod4Test.dominoes * 2 <= mod4Test.cells && mod4Test.restored === 0,
+  `${mod4Test.cells} cells, ${mod4Test.dominoes} dominoes (${(200 * mod4Test.dominoes / Math.max(1, mod4Test.cells)).toFixed(0)} % of the cells paired); ${mod4Test.before} before, ${mod4Test.restored} restored`);
 await AP.pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); window.__map.triggerRepaint(); });
 await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(3000));
 const fAptOff = await snap(AP.pg, 'apts-live-off');

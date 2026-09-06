@@ -133,8 +133,8 @@
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
   const _origFilters = {};          // layer id -> the filter it had before this file touched it
-  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
-  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames'];
+  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
+  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
   /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
   const warned = new Set();
@@ -703,7 +703,105 @@
     return { rows: () => [], cols: () => [], tone: () => P[spec.field || 'wall'], windows: windowsFromBays(spec, ctx, P, key), glass: spec.glass, frame: spec.frame, reveal: spec.reveal };
   }
 
-  const SKINS = { pixel: skinPixel, bays: skinBays, storefront: skinStorefront, flat: skinFlat };
+  /**
+   * `mod4`: Union on 24th's outer wall. A square cell per bay per floor —
+   * every cell a dark-glass window in a light frame with a light strip above
+   * and below it, on the dark ribbed cladding — and the cells merged into
+   * two-cell dominoes by the rule k = (c − r) mod `period`, `pairs[k]` = 'h'
+   * pairing a cell with the one to its RIGHT, 'v' with the one BELOW, any
+   * other k a single: a diagonal weave in which half the vertical reveals
+   * and half the horizontal ones vanish. The owner's own model of the
+   * building, utx-diorama's union.js, is the source and this is its rule
+   * ported: r = 0 is the TOP row, c runs left to right along the face and
+   * is CONTINUED round the corners by `colOffset`, so the diagonals wrap on
+   * to the end caps; a pair straddling a corner is two halves whose frames
+   * and strips run to the edge (`wrap: [lo, hi]`). The cell's fractions are
+   * union.js's own, corrected against the building (glass 0.49 of the cell,
+   * not the SVG's 0.578): `fi` 0.105 the dark margin, `wi` 0.15 the frame
+   * beside the glass, `ws` 0.49 the glass, `st` 0.15 each strip — they sum
+   * to 1 in both axes. A pair shares one continuous frame: an H-pair's
+   * inner seam is frame, its strips only as wide as its glass; a V-pair's
+   * inner seam is the light strip, its strips the frame's full width.
+   *   { kind: 'mod4', cell: 3.26, floor?: 3.26, field: 'clad', fieldH?: (the
+   *     ribbed cladding behind H-pairs), frameTone: 'frameBase', stripTone:
+   *     'strip', glass: 'glassU', frame: (reveal tone; stripTone), reveal,
+   *     period: 4, pairs: { 0: 'h', 3: 'v' }, colOffset: 0, rowOffset: 0,
+   *     wrap: [false, false], fractions: { fi, wi, ws, st } }
+   */
+  function skinMod4(spec, ctx, P, key) {
+    const cell = spec.cell || spec.bay || 3.26;
+    const n = Math.max(1, Math.round(ctx.len / cell)), mod = ctx.len / n;
+    const floors = ctx.floors;
+    const rows = floors.length;
+    const FLOOR = spec.floor || (rows > 1 ? floors[1] - floors[0] : cell);
+    const fr = Object.assign({ fi: 0.105, wi: 0.15, ws: 0.49, st: 0.15 }, spec.fractions || {});
+    const FI = fr.fi, WI = fr.wi, WS = fr.ws, ST = fr.st;
+    const period = spec.period || 4, pairs = spec.pairs || { 0: 'h', 3: 'v' };
+    const colOff = spec.colOffset || 0, rowOff = spec.rowOffset || 0;
+    const wrapLo = !!(spec.wrap && spec.wrap[0]), wrapHi = !!(spec.wrap && spec.wrap[1]);
+    const field = P[spec.field || 'wall'], fieldH = P[spec.fieldH || spec.field || 'wall'];
+    const frameCol = P[spec.frameTone || 'frame'] || P.frame, stripCol = P[spec.stripTone || spec.frame || 'strip'] || frameCol;
+    const K = (c, r) => (((c - r) % period) + period) % period;
+    // the roles, decided the way union.js decides them: rows from the top,
+    // columns left to right, a cell claimed by the first pair that reaches it
+    const role = [];           // role[fi][j]: 'single' | 'hL' | 'hR' | 'vT' | 'vB'
+    for (let fi = 0; fi < rows; fi++) { role.push([]); for (let j = 0; j < n; j++) role[fi].push(null); }
+    let dominoes = 0;
+    for (let r = 0; r < rows; r++) {
+      const fi = rows - 1 - r;                      // r = 0 is the top row
+      for (let j = 0; j < n; j++) {
+        if (role[fi][j]) continue;
+        const k = K(colOff + j, r + rowOff), pk = pairs[k];
+        if (pk === 'h' && j + 1 < n && !role[fi][j + 1]) { role[fi][j] = 'hL'; role[fi][j + 1] = 'hR'; dominoes++; }
+        else if (pk === 'h' && j + 1 === n && wrapHi) { role[fi][j] = 'hLw'; }
+        else if (pk === 'v' && fi - 1 >= 0 && !role[fi - 1][j]) { role[fi][j] = 'vT'; role[fi - 1][j] = 'vB'; dominoes++; }
+        else if (j === 0 && wrapLo && pairs[K(colOff - 1, r + rowOff)] === 'h') { role[fi][j] = 'hRw'; }
+        else role[fi][j] = 'single';
+      }
+    }
+    count.mod4Cells += rows * n; count.dominoes += dominoes;
+    const cellOf = zm => { for (let fi = rows - 1; fi >= 0; fi--) if (zm >= floors[fi]) return zm < floors[fi] + FLOOR ? fi : -1; return -1; };
+    const windows = [];
+    for (let fi = 0; fi < rows; fi++) for (let j = 0; j < n; j++) {
+      const s0 = j * mod + mod * (FI + WI), z0 = floors[fi] + FLOOR * (FI + ST);
+      if (z0 + FLOOR * WS > ctx.z1 + 1e-6) continue;
+      windows.push({ s0, s1: s0 + mod * WS, z0, z1: z0 + FLOOR * WS, lit: h01(key, 'lit', fi, j) < APTS.nightLit });
+    }
+    return {
+      rows: (z0, z1) => { const out = []; for (const f of floors) for (const q of [0, FI, FI + ST, FI + ST + WS, 1 - FI]) { const z = f + FLOOR * q; if (z > z0 && z < z1) out.push(z); } return out; },
+      cols: () => { const out = []; for (let j = 0; j < n; j++) for (const q of [0, FI, FI + WI, FI + WI + WS, 1 - FI]) { const s = j * mod + mod * q; if (s > 0 && s < ctx.len) out.push(s); } return out; },
+      tone: (zm, sm) => {
+        const fi = cellOf(zm); if (fi < 0) return field;
+        const j = Math.min(n - 1, Math.max(0, Math.floor(sm / mod)));
+        const fx = (sm - j * mod) / mod, fz = (zm - floors[fi]) / FLOOR;
+        const ro = role[fi][j] || 'single';
+        const H = ro === 'hL' || ro === 'hR' || ro === 'hLw' || ro === 'hRw';
+        const dark = H ? fieldH : field;
+        const inFrameZ = fz >= FI && fz <= 1 - FI;
+        // the vertical margins: dark, except an H-pair's shared seam and a wrapped half's edge, which the frame and strips run through
+        const openR = ro === 'hL' || ro === 'hLw', openL = ro === 'hR' || ro === 'hRw';
+        if (fx < FI || fx > 1 - FI) {
+          const seam = (fx > 1 - FI && openR) || (fx < FI && openL);
+          if (!seam || !inFrameZ) return dark;
+          const strip = (fz >= FI && fz <= FI + ST) || (fz >= FI + ST + WS && fz <= 1 - FI);
+          return strip && (ro === 'hLw' || ro === 'hRw') ? stripCol : frameCol;
+        }
+        // the horizontal margins: dark, except a V-pair's seam, the light strip across the frame's width
+        if (fz < FI || fz > 1 - FI) {
+          const seam = (fz < FI && ro === 'vT') || (fz > 1 - FI && ro === 'vB');
+          return seam ? stripCol : dark;
+        }
+        // inside the frame: the two strips (full width for singles and V members, glass width for H members), the glass, the frame beside it
+        const strip = (fz >= FI && fz <= FI + ST) || (fz >= FI + ST + WS && fz <= 1 - FI);
+        const inGlassX = fx >= FI + WI && fx <= FI + WI + WS;
+        if (strip) { if (!H) return stripCol; return (inGlassX || (openR && fx > FI + WI) || (openL && fx < FI + WI + WS)) ? stripCol : frameCol; }
+        return inGlassX ? P[spec.glass || 'glass'] : frameCol;
+      },
+      windows, glass: spec.glass, frame: spec.frame || spec.stripTone, reveal: spec.reveal,
+    };
+  }
+
+  const SKINS = { pixel: skinPixel, bays: skinBays, storefront: skinStorefront, flat: skinFlat, mod4: skinMod4 };
 
   /**
    * The floor lines of a band between z0 and z1, from the building's levels,
@@ -1528,7 +1626,7 @@
       window.applySlopesSettings = wrapped;
     }
     window.applySlopesApartments(map);
-    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
+    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses,', count.frames, 'framed windows,', count.dominoes, 'dominoes in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
     // a layer that boots after this file (campus-storeys comes with the
     // facades pass, on its own clock) gets its clause when it appears: a
     // light poll for a minute, then the next applySlopesApartments() does it

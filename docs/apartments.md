@@ -177,7 +177,7 @@ what the block extents were read from.
   "skins":   { "<skin>": { "kind": "pixel" | "bays" | "storefront" | "flat", ... } },
   "balcony": { "proj", "slabT", "railH", "railT" },   // the building's balcony module
   "blocks":  [ { "id", "plan", "z0", "z1", "bands", "faces", "overrides",
-                 "roofTone", "parapet", "parapetSides", "roofItems" } ],
+                 "roofTone", "parapet", "parapetSides", "roofItems", "roof", "inset" } ],
   "deck":    { "z", "items": [ { "plan", "z0", "h" | "z1", "tone" } ] }
 }
 ```
@@ -205,9 +205,36 @@ count from a module, never a hard-coded count.
   `mullionW`, a `transom` line at that fraction of the height, a `fascia`
   band on top in `fasciaTone`, panes set `reveal` behind the fascia line.
 - `flat`: one tone, with optional `window` bays.
+- `mod4`: Union on 24th's outer wall — a square `cell` per bay per floor,
+  every cell a window in a light frame (`frameTone`) with a light strip
+  (`stripTone`) above and below it on the dark `field`, and the cells merged
+  into two-cell dominoes by k = (c − r) mod `period`: `pairs[k]` = `"h"`
+  pairs a cell with the one to its right, `"v"` with the one below, any
+  other k stands alone. The rule, the fractions (`fractions: { fi, wi, ws,
+  st }`, the dark margin, the frame beside the glass, the glass and each
+  strip as shares of the cell) and the seams (an H-pair's is frame, a
+  V-pair's the light strip) are the owner's own `utx-diorama/workbench/js/
+  union.js`, ported. r = 0 is the top row; `colOffset` continues the column
+  index round a corner so the diagonals wrap on to the end caps, and `wrap:
+  [lo, hi]` lets a pair straddle the corner as two halves whose frames run
+  to the edge.
 
 Every skin takes `glass`, `frame` (the reveal strips' tone) and `reveal`
 (metres a pane sits behind the wall plane; `APARTMENTS.reveal` otherwise).
+
+A `window` spec (on `pixel`, `bays`, `flat`) also takes:
+
+- `frame: { w, h?, tone }` — a picture frame round the opening, `w` wide at
+  the jambs and `h` (default `w`) at the head and sill, in `tone`
+  (Signature 1909's white precast surround; Jester West's 1.31 × 2.31 m
+  precast round a 0.72 × 1.76 window is `{ w: 0.295, h: 0.275 }`). It is
+  cut into the wall's own cells, so it is coplanar with nothing and exactly
+  as wide as the number says.
+- `offsets: [[off, w], ...]` — several openings per bay, each `off` metres
+  from the bay centre and `w` wide: a mirrored pair about a party wall
+  (Jester West's and San Jacinto's wings: `[[-1.5, 0.72], [1.5, 0.72]]`), a
+  wide light with two narrow ones beside it (Skyloft). Without it, one
+  window of `w` at the bay centre.
 
 **blocks** — each one is walls plus a roof plus parapets:
 
@@ -234,7 +261,47 @@ Every skin takes `glass`, `frame` (the reveal strips' tone) and `reveal`
 - `roofTone`, `parapet` (m), `parapetTone`, `parapetSides` (which edges get
   one — never an edge another block of the same height stands on),
   `roofItems`: `{ plan, h, tone }` boxes, or `{ plan, grid: [nu, nv], size:
-  [w, d], h, tone }` for a cluster of them (condensers).
+  [w, d], h, tone }` for a cluster of them (condensers), or `{ plan, h,
+  tone, roof }` — a box `h` tall (0 for none) with a pitched roof on it
+  (2706 Rio Grande's two hipped masses on the wing's plate, 26 West's
+  turret caps, the Villas' bay caps).
+- `roof`: a pitched roof over the block, in place of the flat cap — nine
+  buildings came in with theirs as stacks of five to twenty-three inset
+  boxes. `{ kind: "hip" | "gable", pitch }` in degrees; `over` metres of
+  eave overhang beyond the wall (0), `lipH` the fascia's height there
+  (`APARTMENTS.roof.lipH` when `over` > 0), `tone` and `lipTone` (the
+  roof's and the fascia's; `roofTone` and `coping` otherwise); `deck: tone`
+  with `d` metres stops the slope `d` in from the eave and fills the middle
+  with a flat deck of that tone (Regents West's mitred cap round a membrane
+  roof); `inset` metres stands the eave inside the wall (a roof behind a
+  parapet — The Block on Rio's wing), keeping the flat cap under it; `base`
+  is the eave height (the block's `z1`); `sides: [face keys]` makes only
+  those edges slope — the rest STAND: a gable end on a full hip, the deck's
+  own vertical edge on a deck roof (a shingle band round three sides of a
+  membrane roof); `gable: [face keys]` names a gable's standing ends (a
+  rectangle's two short edges when omitted) and `gableTone` colours the
+  wall drawn up to the ridge there. The eave profile is solved by the same
+  straight-skeleton arithmetic `scripts/bake_roofs.py` uses (ported into
+  the generator), packed into that bake's rig schema and drawn by
+  `js/slopes-roofs.js`'s emitter, the way the Capitol's wings are: a
+  rectangle gets a ridge, a square a point, an L two ridges over a valley,
+  and every strip is shaded as the campus roofs are. The boot log counts
+  the roofs; `slopesApartments.built[i].roofs` lists each with its ridge
+  height for a raycast to check.
+- `inset` on a band (or on a face, or on the block, for every band of it):
+  metres the band's wall stands behind the face plane — a ground floor set
+  back under an oversailing podium (Union on 24th, 2.4 m; The Castilian,
+  2 m), a loggia (Union's L6 court glazing, 3.3 m). A number, or `{ d, tone,
+  columns: { pitch | at: [s...], w, d, tone } }`. The wall is tiled by the
+  band's skin on a frame `d` behind the plane, and the generator closes the
+  recess: the soffit at the band's top, the floor at its foot when that is
+  above the block's own foot, columns on the face line from floor to
+  soffit (`pitch` apart on the bay centres, or on the bay lines with `on:
+  "joints"`, or at the `at` list of s), and at each end either a return wall (where the neighbouring
+  face or piece is not recessed at the same band) or nothing — two faces
+  recessed by the same depth over the same band meet at the mitre of their
+  offset lines, so an open corner on columns is open round the corner. The
+  corner arithmetic is in the file's `recess` comment.
 
 **deck** — boxes on a roof at `z`: `plan` rectangle, `z0` and `h` (or `z1`)
 above the deck, `tone`. The Standard's pool, spa, turf, cabana, jumbotron
@@ -282,6 +349,8 @@ and guard rail.
 | `floorSlack` | `1.0` | a band that starts within this of the floor line below it keeps that storey's windows, clipped to the band; beyond it the storey is dropped — either way the boot log names the band |
 | `hideRoofscape`, `roofscapeInset` | `true`, `1.0` | hide the roofscape pass over every authored footprint (inset this many metres so a neighbour's own deck, which shares the boundary, stays) |
 | `hideStoreys` | `true` | hide the campus-storeys courses whose `host` is a replaced id |
+| `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
+| `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
 
 Everything that is a measurement is in the building's file, not here.
 
