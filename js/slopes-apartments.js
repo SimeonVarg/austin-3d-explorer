@@ -112,9 +112,33 @@
     //     metres — a feature that overlaps the inset outline goes, one that
     //     only touches the boundary (a neighbour's own deck) stays.
     //   storeys — js/facades.js's campus-storeys courses, keyed by `host`.
+    //   walls — the tiled-roof bake's `f: band` strips (roofs-pitched), baked
+    //     on the SNAPSHOT prism too. See wallMargin.
+    //   parts — data/parts.geojson's building:part prisms (parts-3d,
+    //     parts-roof), which carry an osm_id and no snapshot id, so they are
+    //     hidden by geometry on the same inset outline as the roofscape:
+    //     way/516187626 stands to 94 m over Dobie Twenty21, authored at 81.2.
     hideRoofscape: true,
     roofscapeInset: 1.0,
     hideStoreys: true,
+    hideParts: true,
+    // HOW FAR OUTSIDE ITS FOOTPRINT A BAKED WALL DETAIL MAY STAND AND STILL
+    // BE OURS TO REMOVE. This is the number Simeon's "scaffolding" was: the
+    // tiled-roof bake draws the snapshot prism's precast strips PROUD of the
+    // wall, so 27 of Jester West Hall's 44 tower strips (b 19 -> h 50.55, on
+    // a building whose courtyard wings stop at 18.6 m) sat 0.08-0.11 m
+    // OUTSIDE the ring — and `['>', ['distance', ring], 0]`, which hides only
+    // what overlaps, kept every one of them: 31 m poles standing in the air
+    // over the five-storey wings, with nothing behind them.
+    //
+    // Measured over data/roofs.geojson on 2026-09-06, minimum distance from
+    // each feature to the nearest authored footprint: 902 at 0 m, 179 in
+    // (0, 0.11], 3 at 0.4, then NOTHING until 1.8 m — a neighbour's own band
+    // on the party wall. So the gap this number lives in is wide, and 0.6
+    // takes every stray with 1.2 m of clearance to the first feature that is
+    // not ours. Raise it and a neighbour's wall detail on a shared boundary
+    // starts to go; drop it below 0.5 and the poles come back.
+    wallMargin: 0.6,
     // Pitched roofs (a block's `roof`, drawn through js/slopes-roofs.js's
     // rig emitter): the pitch a file that gives none gets, the eave lip's
     // fascia height where the roof oversails its wall, and how far a gable
@@ -1484,8 +1508,17 @@
   // one of the "poles" answered roofs-pitched, b 19, h 50.55).
   // Those bands stand ON the wall line, outside the inset that spares a
   // neighbour's deck, so roofs-pitched is hidden against the footprint
-  // itself (`walls`), the roofscape pass against the inset one.
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'] };
+  // itself (`walls`) — and, since 2026-09-06, against the footprint plus
+  // APTS.wallMargin, because a precast strip is drawn PROUD of the wall and
+  // "overlaps the ring" was not true of most of them. That is the defect
+  // Simeon reported on the live site: "the parts with 5 floors still have a
+  // scaffolding for the rest of the floors". The strips over Jester West's
+  // 18.6 m wings run to 50.55 m, over Jester East's to 39.35 m, and 27 of
+  // the 44 on the West tower alone stood 0.08-0.11 m clear of the ring, so
+  // the `> 0` clause kept them with no wall behind them. The roofscape pass
+  // is hidden against the INSET one, which is a different question (a
+  // neighbour's deck shares the boundary and must stay).
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'] };
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -1530,7 +1563,8 @@
     const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
     const geoW = APTS.hideRoofscape && hideGeometry(0);
-    if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], 0]]);
+    if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
+    if (geo && APTS.hideParts) for (const id of HIDE_LAYERS.parts) plan.push([id, ['>', ['distance', geo], 0]]);
     return plan;
   }
   /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */

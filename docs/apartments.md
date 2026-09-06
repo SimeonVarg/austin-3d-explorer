@@ -33,6 +33,22 @@ What it hides while it draws, and puts back when it does not:
   at a NADIR: `queryRenderedFeatures` on a fill-extrusion answers for the
   whole volume along the view ray, and from an oblique a neighbour's lower
   deck lands on the ray to your courtyard;
+- the tiled-roof bake's WALL STRIPS (`roofs-pitched`'s `f: band` features),
+  by GEOMETRY against every authored footprint GROWN BY
+  `APARTMENTS.wallMargin` — not against the footprint itself. A precast
+  strip is drawn PROUD of the wall, so most of them do not overlap the ring
+  at all: 27 of the 44 over Jester West Hall stood 0.08-0.11 m outside it,
+  and a `distance > 0` clause kept every one — 31 m poles (b 19 -> h 50.55,
+  baked on the snapshot prism) standing in the air over courtyard wings that
+  stop at 18.6 m. That is the "scaffolding" Simeon reported on 2026-09-06.
+  Measured over the whole of `data/roofs.geojson`: 902 features at distance
+  0, 179 in (0, 0.11], 3 at 0.4, then nothing until 1.8 m, which is a
+  neighbour's own band on a party wall — so 0.6 m clears every stray with
+  1.2 m of headroom;
+- `data/parts.geojson`'s `building:part` prisms (`parts-3d`, `parts-roof`),
+  by geometry on the same inset outline as the roofscape. They carry an
+  `osm_id` and no snapshot id, and way/516187626 stands to 94 m over Dobie
+  Twenty21, which this file authors at 81.2;
 - the tiled-roof rig `js/slopes-roofs.js` draws over San Jacinto Hall from
   `data/roofs.geojson` (a hip on Overture's 28.1 m, six metres over the roof
   this file draws): its entries keyed by a replaced id are lifted out of
@@ -98,6 +114,12 @@ above 54 m, drop blocks and skin parts one at a time) found nothing, and one
 bake's kept `f: band` features, the tower's precast strips baked on the
 snapshot. They are hidden by geometry now, against the footprint itself,
 because they stand on the wall line.*
+
+*(And that last sentence was half a fix, which is why Simeon was still
+looking at poles a day later. "Against the footprint itself" hid what
+OVERLAPS the ring, and a strip drawn proud of the wall does not: the clause
+took 17 of Jester West's 44 and left 27. `APARTMENTS.wallMargin` is the
+number that finishes it — see the hide list above.)*
 
 ## What is in the frame, and where it came from
 
@@ -375,6 +397,8 @@ and guard rail.
 | `floorSlack` | `1.0` | a band that starts within this of the floor line below it keeps that storey's windows, clipped to the band; beyond it the storey is dropped — either way the boot log names the band |
 | `hideRoofscape`, `roofscapeInset` | `true`, `1.0` | hide the roofscape pass over every authored footprint (inset this many metres so a neighbour's own deck, which shares the boundary, stays) |
 | `hideStoreys` | `true` | hide the campus-storeys courses whose `host` is a replaced id |
+| `hideParts` | `true` | hide `data/parts.geojson`'s `building:part` prisms standing on an authored footprint (same inset as the roofscape) |
+| `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
 | `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
 

@@ -1268,6 +1268,40 @@ async function regentsDecks(pg) {
 }
 const regentsDeckIn = decks => decks.some(d => d.layer === 'roofscape-deck' && Math.abs(d.b - REGENTS_DECK_B) < 0.3);
 const fmtDecks = decks => decks.length ? decks.map(d => `${d.layer} ${d.k} b ${d.b}`).join(', ') : 'none';
+// THE SCAFFOLDING LINE (2026-09-06). Simeon, looking at the live site: "the
+// parts with 5 floors still have a scaffolding for the rest of the floors
+// that need to be removed (also present in rest of building)". Jester West
+// Hall's courtyard wings stop at 18.6 m; the tiled-roof bake's `f: band`
+// strips over them were baked on the snapshot prism and run to 50.55 m, and
+// 27 of the 44 on the tower stood 0.08-0.11 m OUTSIDE the footprint ring, so
+// the clause that hid what OVERLAPS the ring kept them — 31 m poles in the
+// air with no wall behind them. APARTMENTS.wallMargin is the fix.
+//
+// The assertion is a NADIR over the south wing (an oblique query answers for
+// the whole extruded volume along the view ray, so it would find the tower's
+// own strips from the wing and prove nothing) with a BOX, not a point: a
+// 0.35 m strip is one pixel wide at this zoom. Nothing roofs-pitched draws
+// may stand above the wing's own roof there.
+const JESTER = { centre: [-97.736659, 30.2817558], zoom: 18.4,
+                 wing: [[-97.7371294, 30.2817503], [-97.7361966, 30.2816802], [-97.7361886, 30.2817613], [-97.7371213, 30.2818315]],
+                 roofTop: 18.6 };
+async function jesterWingBands(pg) {
+  await pose(pg, JESTER.centre, JESTER.zoom, 0, 0);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(J => {
+    const m = window.__map;
+    if (!m.getLayer('roofs-pitched')) return null;
+    const xs = J.wing.map(c => m.project(c));
+    const box = [[Math.min(...xs.map(p => p.x)), Math.min(...xs.map(p => p.y))],
+                 [Math.max(...xs.map(p => p.x)), Math.max(...xs.map(p => p.y))]];
+    return m.queryRenderedFeatures(box, { layers: ['roofs-pitched'] })
+            .map(f => ({ f: f.properties.f, b: f.properties.b, h: f.properties.h }));
+  }, JESTER);
+}
+// what is standing ABOVE the wing's roof, which is the whole complaint
+const overWing = bands => (bands || []).filter(d => d.h > JESTER.roofTop + 0.5);
+const fmtBands = bands => bands === null ? 'roofs-pitched not on the page'
+  : (bands.length ? bands.slice(0, 6).map(d => `${d.f || '-'} b ${d.b} h ${d.h}`).join(', ') + (bands.length > 6 ? ` (+${bands.length - 6})` : '') : 'none');
 async function standardFrame(url, name, before) {
   const pg = await open(url);
   await settledApts(pg).catch(() => {});
@@ -1277,6 +1311,7 @@ async function standardFrame(url, name, before) {
   return { pg, f: await snap(pg, name) };
 }
 let regentsOn = [], regentsOff = [];
+let jesterOn = null, jesterOff = null;
 const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
   if (BREAK) {
     await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
@@ -1284,6 +1319,7 @@ const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on'
     console.log('--break: APARTMENTS.on = false — The Standard is the flat prism and the westcampus bands again');
   }
   regentsOn = await regentsDecks(pg);
+  jesterOn = await jesterWingBands(pg);
 });
 const apts = await aptState(AP.pg);
 const c = apts.count || {};
@@ -1308,6 +1344,9 @@ check('apartments: the dot font sets the whole alphabet and the digits — MOONT
 check('apartments: the roofscape deck baked over Regents West at Overture\'s height is hidden while the generator draws (a nadir query at the courtyard finds no deck at b 25.9)',
   BREAK ? regentsDeckIn(regentsOn) : !regentsDeckIn(regentsOn),
   `at the nadir over Regents West: ${fmtDecks(regentsOn)}`);
+check('apartments: NOTHING FLOATS OVER AN AUTHORED ROOF — over Jester West Hall\'s five-storey south wing, a nadir box query returns no roofs-pitched feature standing above the wing\'s own 18.6 m roof (the snapshot\'s precast strips ran to 50.55 m and stood clear of the ring, so `distance > 0` kept them; APARTMENTS.wallMargin takes them)',
+  jesterOn === null ? false : (BREAK ? overWing(jesterOn).length > 0 : overWing(jesterOn).length === 0),
+  `at the nadir over the south wing: ${overWing(jesterOn).length} of ${jesterOn === null ? '-' : jesterOn.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOn))}`);
 const fAptAgain = await snap(AP.pg, 'apts-on-again');
 // Two tests that rebuild the mesh in place and put it back: a sign on a face
 // is drawn once per face, whatever cuts the wall into pieces (THE MARK was
@@ -1475,7 +1514,7 @@ await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(300
 const fAptOff = await snap(AP.pg, 'apts-live-off');
 const offA = await aptState(AP.pg);
 await AP.pg.close();
-const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); });
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); jesterOff = await jesterWingBands(pg); });
 const urlA = await aptState(C2.pg);
 await C2.pg.close();
 
@@ -1493,6 +1532,9 @@ const dAptFloor = diffPNG(C2.f, C2b.f);
 const dAptFloorDeep = diffPNG(C2.f, C2b.f, APT_SWITCH_DEEP_TOL);
 check('apartments: on the ?apartments=0 page the roofscape deck over Regents West is back at b 25.9 — the clause hid it, not the data',
   regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
+check('apartments: on the ?apartments=0 page the strips over Jester West\'s wing are back above 18.6 m — the margin hid them, not the data, and the city keeps its own bake when the generator is off',
+  jesterOff !== null && overWing(jesterOff).length > 0,
+  `at the nadir over the south wing: ${overWing(jesterOff).length} of ${jesterOff === null ? '-' : jesterOff.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOff))}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
 check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
 const dAptLive = diffPNG(fAptBack, fAptOff);
