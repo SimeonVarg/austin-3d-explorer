@@ -72,11 +72,12 @@
     "_src": "FLOOR = 3.26 m (S5, S2's first constant). 0 is grade and 4.40 is the top of the recessed ground floor (S2 H1 = 4.4, 'ground floor-to-soffit'). The podium screen above it carries no floor lines - S2 measures its four 3.75 m bands as a facade rhythm, 'NOT floor lines'. The 23 residential lines start at the podium roof, 19.40 m (S2 H_POD = 5 * FLOOR * 1.19, five podium levels each about 1.19x a residential floor), and run to 91.12; the 24th line is the roof at 94.38 (S2 H_TOP, ROWS = 23). 5 podium levels + 23 residential + the L29 pavilion = the 29 floors S1 and S3 both carry.",
     "ground": 4.4,
     "podiumRoof": 19.4,
-    "loggiaTop": 22.66,
+    "loggiaTop": 25.92,
     "roof": 94.38,
     "crownTop": 96.38,
     "pavilionTop": 98.93,
-    "_heights_src": "S2: H_POD 19.40 + 23 x 3.26 = 94.38 to the roof, plus a 2.0 m solid dark crown band (S2 CROWN, drawn here as the parapet) = 96.38; the L29 grill pavilion stands on the central bar to 98.93 (S2 PAV_H 4.0 + PAV_SLAB 0.55). S1's 97.5 m is Overture's guess and it is OVERRIDDEN: it falls between our parapet at 96.4 and the pavilion roof at 98.9, which is exactly where a LiDAR-style high point for this building should fall, so it is consistent rather than contradictory. S3 already overrides the same 97.5 to 94.4."
+    "_heights_src": "S2: H_POD 19.40 + 23 x 3.26 = 94.38 to the roof, plus a 2.0 m solid dark crown band (S2 CROWN, drawn here as the parapet) = 96.38; the L29 grill pavilion stands on the central bar to 98.93 (S2 PAV_H 4.0 + PAV_SLAB 0.55). S1's 97.5 m is Overture's guess and it is OVERRIDDEN: it falls between our parapet at 96.4 and the pavilion roof at 98.9, which is exactly where a LiDAR-style high point for this building should fall, so it is consistent rather than contradictory. S3 already overrides the same 97.5 to 94.4.",
+    "_loggia_src": "loggiaTop 25.92 (two residential storeys above the podium roof), not S2's one level at 22.66: measured 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06 - at the foot of the bar face the last dark run before the court floor is 29-33 px (column profiles x=830, 860) plus 13-22 px of half-tone, against a 36.5 px floor pitch, and the camera looks 35 deg down into a 3.3 m recess so the top 2.3 m of the recessed wall is hidden behind its own lip: 2.3 + 2.9..4.9 m of opening is two storeys (6.52), not one (3.26). The judge read it as a two-storey loggia and the pixels agree."
   },
   "colours": {
     "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex is a material albedo from S2, which sampled them off the owner's own reference photographs and traced SVG; the S2 constant is named beside each one.",
@@ -97,16 +98,16 @@
       "_src": "S2 MAT.glassU: 'window glass - matte olive per swatch, low reflection so it doesn't go teal under sky'"
     },
     "courtPanel": {
-      "hex": "#a0a3a6",
-      "_src": "S2 TEX.courtPanel / audit 4.5: 'Panel albedo ~#a0a3a6. An earlier read said #c3c4c9 - that was anchored on a CLIPPED 255 pixel'. The court's bar faces."
+      "hex": "#6a7077",
+      "_src": "SAMPLED 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: the bar face's light piers, 34 px on the row profile y0=260 (lum > 95), mean #6c7176; GE pixel -> day albedo by the two-point fit through the weave itself (GE light frames #a5a8ad <-> our frameBase/strip blend #b1b4b8, GE dark field #3a3c40 <-> clad #2c2b30: albedo = 1.243 x GE - 28 per channel) -> #6a7077. Was S2's #a0a3a6, which under this app's warm daylight read as a TAN block beside the silver flank - the judge saw three buildings at the back of the court. The reference pier is a MID grey, about the flute's mean, not a pale one."
     },
     "courtFlute": {
-      "hex": "#b9bcc0",
-      "_src": "S2 TEX.courtFlute: 'the wing inner faces are a DEEPLY FLUTED silver metal'"
+      "hex": "#8f9293",
+      "_src": "SAMPLED 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: the flank's LIT flute faces, 35 px on the row profile y0=400 (lum > 125), mean #8a8c8d; GE pixel -> day albedo by the two-point fit through the weave itself (GE light frames #a5a8ad <-> our frameBase/strip blend #b1b4b8, GE dark field #3a3c40 <-> clad #2c2b30: albedo = 1.243 x GE - 28 per channel) -> #8f9293. Was S2's #b9bcc0."
     },
     "courtGlass": {
-      "hex": "#3b4a5a",
-      "_src": "S2 MAT.courtGlass"
+      "hex": "#1a2028",
+      "_src": "SAMPLED 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: the bar face's windows, 50 px on the row profile y0=260 (lum < 50), mean #22272d; the fit gives #0e141c and this is a step above it because a window in the reference is glass IN its reveal's shadow and here the pane sits 0.1 m back. Was S2's #3b4a5a navy, which made the ribbon flank a navy block."
     },
     "courtFrame": {
       "hex": "#22262b",
@@ -217,6 +218,10 @@
     "cladH": {
       "hex": "#302f34",
       "_src": "S2 MAT.cladUh: the same cladding rotated, horizontal ribs behind every H-pair - a hair lighter than the vertical field so the pair's zone reads at the walk-up."
+    },
+    "courtFluteShade": {
+      "hex": "#4a4c4c",
+      "_src": "SAMPLED 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: the flank's SHADED flute faces, 27 px on the same profile (lum < 95), mean #525454; GE pixel -> day albedo by the two-point fit through the weave itself (GE light frames #a5a8ad <-> our frameBase/strip blend #b1b4b8, GE dark field #3a3c40 <-> clad #2c2b30: albedo = 1.243 x GE - 28 per channel) -> #4a4c4c. The flank's vertical-stripe reading is these two tones alternating at the flute pitch."
     }
   },
   "skins": {
@@ -250,26 +255,23 @@
       "glass": "courtGlass",
       "frame": "courtFrame",
       "reveal": 0.1,
-      "_src": "The two court back walls - the central bar's north and south faces. S2 audit 4.5, after three of its own refutations: 'Uniform primitive, one centred punched window per bay per floor, no pairing, no boxed surround', bay/floor = 0.941 'measured in-plane so it is perspective-immune', window 0.514 of the bay by 0.534 of the floor. 3.07 m bay across a 31.41 m wall gives 10 columns."
+      "_src": "The two court back walls - the central bar's north and south faces. S2 audit 4.5, after three of its own refutations: 'Uniform primitive, one centred punched window per bay per floor, no pairing, no boxed surround', bay/floor = 0.941 'measured in-plane so it is perspective-immune', window 0.514 of the bay by 0.534 of the floor. 3.07 m bay across a 31.41 m wall gives 10 columns. Window fractions re-checked 2026-09-06 against the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: column profiles at x=830 and x=890 give dark 17-20 px in a 36.5 px floor pitch (0.51), the row profile at y0=260 dark 13-16 px in a ~30 px bay (0.45-0.5) - S2's 0.514 x 0.534 stands, so w and h are unchanged; what changed is the tone (`courtPanel`, `courtGlass`) and the loggia below it (two storeys)."
     },
     "flank": {
       "kind": "bays",
-      "bay": 7.82,
+      "bay": 0.68,
       "field": "courtFlute",
-      "window": {
-        "w": 6.81,
-        "h": 2.12,
-        "sill": 0.57
+      "strip": {
+        "w": 0.34,
+        "tone": "courtFluteShade",
+        "at": "joints"
       },
-      "glass": "courtGlass",
-      "frame": "courtFrame",
-      "reveal": 0.1,
-      "_src": "The wings' inner flanks, the long walls of both courts. S2 audit 4.5 'SETTLED Jul 29': not the bar's punched grid but 'a UNIFORM WIDE 4-LIGHT RIBBON, 2.09 x FLOOR wide by 0.65 x FLOOR tall (6.8 x 2.1 m) - about 30% taller than the bar face's window, so it is a genuinely different system', repeating at 2.40 x FLOOR. The four lights inside one ribbon are not drawn - three mullions at 1.7 m spacing are under a pixel at this app's oblique camera. The deep silver fluting is drawn flat for the reason the Castilian file's fin screen is: a 0.5 m rib at this camera is a moire barcode, not a material."
+      "_src": "The wings' inner flanks, outboard of the corner stacks: the DEEPLY FLUTED silver metal S2 names, drawn as its flutes now. Measured 2026-09-06 off the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06: along the flank the luminance is periodic at 6.5-7 px (row profiles y0=300 and 400) where the bar's 3.07 m bay is 30 px on the equally foreshortened south face (both faces are 45 deg to the view at bearing 45), so one flute is 0.68 m, half of it lit and half in its own shade - `courtFlute` and `courtFluteShade`, alternating at 0.34 m. At the judge's camera that is 3-4 px a stripe, well above the 0.105 m fins this file leaves undrawn on the podium. No windows: in the reference the flute face carries none - the flank's glazing is the two-bay stack at each re-entrant corner (`courtStack`), and S2's 'uniform wide 4-light ribbon' over the whole flank is not in the frame. (Was: a 6.81 x 2.12 m ribbon per 7.82 m bay in navy court glass, which read as a navy block with horizontal slits beside the tan bar - the judge's gap.)"
     },
     "flankBlank": {
       "kind": "flat",
       "field": "courtFlute",
-      "_src": "The blank fluted return at each re-entrant corner, where the flank meets the bar - S2: 'a BLANK fluted return of 1-2 bays at each re-entrant corner'. 6.14 m = 2 bar-bays - the low end of S2's own range, because at the corrected 13.0 m north court a 2.8-bay return leaves less than one ribbon's width of wall."
+      "_src": "UNUSED since 2026-09-06 - the corner return is `courtStack` now (see it); kept so an older reference to the name still resolves. The blank fluted return at each re-entrant corner, where the flank meets the bar - S2: 'a BLANK fluted return of 1-2 bays at each re-entrant corner'. 6.14 m = 2 bar-bays - the low end of S2's own range, because at the corrected 13.0 m north court a 2.8-bay return leaves less than one ribbon's width of wall."
     },
     "loggia": {
       "kind": "storefront",
@@ -414,6 +416,20 @@
         true
       ],
       "_src": "the long outer wall: c = 0..15, both corners wrapped (S2 wwW/ewE)."
+    },
+    "courtStack": {
+      "kind": "bays",
+      "bay": 3.07,
+      "field": "courtPanel",
+      "window": {
+        "w": 2.4,
+        "h": 2.45,
+        "sill": 0.2
+      },
+      "glass": "courtGlass",
+      "frame": "courtFrame",
+      "reveal": 0.1,
+      "_src": "The balconied glazing stack at each re-entrant corner, on the flank's first two bays (6.14 m = 2 bar bays) - where this file used to put a BLANK fluted return. the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06 (corner_zoom, 3x of x 880-1130): at the corner between the bar's grid and the flute face there is a stack of floor-to-floor glazing behind projecting slabs, and the fluting starts OUTBOARD of it. Glazing 0.75 of the floor by the zoomed profile (slab band ~25 px of a 100 px pitch at 3x) -> h 2.45 with the slab band 0.81 (sill 0.2 under a 0.61 slab drawn by `balconies`); w 2.4 of the 3.07 bay is a pier of 0.67 read at the corner and NOT measured - the flank runs away from this camera. The bay is the bar's 3.07 so the stack continues the bar's module round the corner and the connector reads as one wing."
     }
   },
   "blocks": [
@@ -485,7 +501,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -499,7 +515,7 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
               "skin": "flank"
             }
@@ -545,7 +561,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -559,12 +575,22 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
-              "skin": "flankBlank"
+              "skin": "courtStack",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 2.72
+                },
+                {
+                  "s0": 3.42,
+                  "s1": 5.79
+                }
+              ]
             }
           ],
-          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2)"
+          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2) - since 2026-09-06 this region is the corner's balconied glazing stack (`courtStack`, two 3.07 bays with a slab each floor), not a blank return: see skins.courtStack."
         },
         {
           "region": [
@@ -576,7 +602,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -590,12 +616,22 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
-              "skin": "flankBlank"
+              "skin": "courtStack",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 2.72
+                },
+                {
+                  "s0": 3.42,
+                  "s1": 5.79
+                }
+              ]
             }
           ],
-          "_src": "the same return at the south court's re-entrant corner"
+          "_src": "the same return at the south court's re-entrant corner - since 2026-09-06 this region is the corner's balconied glazing stack (`courtStack`, two 3.07 bays with a slab each floor), not a blank return: see skins.courtStack."
         }
       ],
       "roofTone": "roof",
@@ -733,7 +769,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -747,7 +783,7 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
               "skin": "flank"
             }
@@ -793,7 +829,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -807,12 +843,22 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
-              "skin": "flankBlank"
+              "skin": "courtStack",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 2.72
+                },
+                {
+                  "s0": 3.42,
+                  "s1": 5.79
+                }
+              ]
             }
           ],
-          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2)"
+          "_src": "the blank fluted return at the north court's re-entrant corner, 6.14 m = 2 bar-bays (S2) - since 2026-09-06 this region is the corner's balconied glazing stack (`courtStack`, two 3.07 bays with a slab each floor), not a blank return: see skins.courtStack."
         },
         {
           "region": [
@@ -824,7 +870,7 @@
           "bands": [
             {
               "z0": 19.4,
-              "z1": 22.66,
+              "z1": 25.92,
               "skin": "loggia",
               "inset": {
                 "d": 3.3,
@@ -838,12 +884,22 @@
               }
             },
             {
-              "z0": 22.66,
+              "z0": 25.92,
               "z1": 94.38,
-              "skin": "flankBlank"
+              "skin": "courtStack",
+              "balconies": [
+                {
+                  "s0": 0.35,
+                  "s1": 2.72
+                },
+                {
+                  "s0": 3.42,
+                  "s1": 5.79
+                }
+              ]
             }
           ],
-          "_src": "the same return at the south court's re-entrant corner"
+          "_src": "the same return at the south court's re-entrant corner - since 2026-09-06 this region is the corner's balconied glazing stack (`courtStack`, two 3.07 bays with a slab each floor), not a blank return: see skins.courtStack."
         }
       ],
       "roofTone": "roof",
@@ -976,7 +1032,7 @@
       "bands": [
         {
           "z0": 19.4,
-          "z1": 22.66,
+          "z1": 25.92,
           "skin": "loggia",
           "inset": {
             "d": 3.3,
@@ -990,7 +1046,7 @@
           }
         },
         {
-          "z0": 22.66,
+          "z0": 25.92,
           "z1": 94.38,
           "skin": "court"
         }
@@ -998,7 +1054,7 @@
       "faces": {
         "u0": null,
         "u1": null,
-        "_src": "u0 and u1 stand against the two wings - never drawn (docs/apartments.md: a face that stands against another block). v0 faces north into the north court and v1 south into the south court; both are the punched grid over the L6 loggia."
+        "_src": "u0 and u1 stand against the two wings - never drawn (docs/apartments.md: a face that stands against another block). v0 faces north into the north court and v1 south into the south court; both are the punched grid over the two-storey L6-L7 loggia (levels._loggia_src)."
       },
       "roofTone": "roof",
       "parapet": 2.0,
@@ -1179,7 +1235,7 @@
   ],
   "deck": {
     "z": 19.4,
-    "_src": "The podium roof at 19.40 is the L6 amenity level, and what stands on it is the two court terraces - S2's 'COURT TERRACE on the podium roof, south court' and 'north court: quieter planted terrace'.",
+    "_src": "The podium roof at 19.40 is the L6 amenity level, and what stands on it is the two court terraces - S2's 'COURT TERRACE on the podium roof, south court' and 'north court: quieter planted terrace'. REMOVED 2026-09-06 on the judge's reference frame (A_court.png, the same pose): the south court floor is a flat pale roof with plant on it and no lawn, pool, mast or screen - S2's lawn, twin spas, mast and jumbotron are gone from this file (the pavers, the wood strip and the guard bands stay). If they exist they are on the tower roof, out of that frame.",
     "items": [
       {
         "plan": [
@@ -1195,18 +1251,6 @@
       },
       {
         "plan": [
-          32.0,
-          46.0,
-          36.5,
-          46.0
-        ],
-        "z0": 0.06,
-        "h": 0.14,
-        "tone": "lawn",
-        "_src": "S2: the organic lawn in the middle of the south court, drawn as its rectangle"
-      },
-      {
-        "plan": [
           51.8,
           55.2,
           33.0,
@@ -1216,78 +1260,6 @@
         "h": 0.09,
         "tone": "deckWood",
         "_src": "S2: plane(MAT.deckWood) - the wood strip down the west side of the court"
-      },
-      {
-        "plan": [
-          26.5,
-          29.0,
-          38.5,
-          41.0
-        ],
-        "z0": 0.06,
-        "h": 0.5,
-        "tone": "loungeWhite",
-        "_src": "S2: the first of the twin spas, its white surround"
-      },
-      {
-        "plan": [
-          27.0,
-          28.5,
-          39.0,
-          40.5
-        ],
-        "z0": 0.5,
-        "h": 0.12,
-        "tone": "water",
-        "_src": "the water in it"
-      },
-      {
-        "plan": [
-          26.5,
-          29.0,
-          42.7,
-          45.2
-        ],
-        "z0": 0.06,
-        "h": 0.5,
-        "tone": "loungeWhite",
-        "_src": "S2: the second spa"
-      },
-      {
-        "plan": [
-          27.0,
-          28.5,
-          43.2,
-          44.7
-        ],
-        "z0": 0.5,
-        "h": 0.12,
-        "tone": "water",
-        "_src": "the water in it"
-      },
-      {
-        "plan": [
-          50.6,
-          51.0,
-          39.0,
-          43.6
-        ],
-        "z0": 0.06,
-        "h": 5.2,
-        "tone": "crown",
-        "_src": "S2: the dark mast carrying the jumbotron over the turf ('turf courtyard with jumbotron', the leasing site)"
-      },
-      {
-        "plan": [
-          50.2,
-          50.6,
-          39.5,
-          43.1
-        ],
-        "z0": 2.6,
-        "h": 2.2,
-        "tone": "jumbo",
-        "_src": "S2: the jumbotron screen itself, emissive so it reads at night"
       },
       {
         "plan": [
@@ -1364,6 +1336,7 @@
     ]
   },
   "open": [
+    "DONE 2026-09-06 (the judge's gap: the back of the court read as a tan punched block, a tan slab and a navy slit block - three buildings): the court's tones are sampled off the reference frame through the weave's own calibration (courtPanel #6a7077, courtFlute #8f9293 + courtFluteShade #4a4c4c, courtGlass #1a2028), the flank is the 0.68 m fluting with no windows, the corner return is the balconied glazing stack (courtStack) on the bar's 3.07 bay, the loggia is two storeys (25.92), and the lawn/spas/mast leave the court floor. NOT done: the judge's secondary weave notes (all-vertical domino pairs, twice the frame size) contradict S2's mod-4 rule that the owner corrected over ten rounds - a taste question for him, not a number to move.",
     "DONE 2026-09-05: the mod4 skin draws the k = (c - r) mod 4 weave with the column index continued round the corners (was: The k=(c-r) mod 4 PAIRING is not drawn. S2's outer wall merges every cell into a two-cell domino - k0 with the cell to its right (horizontal ...)",
     "The N-S split is S8's 4 + 5 + 7 and not S2's 6 + 5 + 5, so the north court is 13.0 m deep here where S2 makes it 19.6. The nadir is unambiguous about which court is the deep one, and S2 cites nothing for its split; but S2 is the better-measured source everywhere else, and a dimensioned plan would be worth having before this is treated as settled. The court is 31.41 m wide here and 36.45 m in S2, because the traced footprint is 5 m narrower E-W than S2's photograph chain (see _massing_src). The visible cost is the court back wall: 10 bays where S2 counted 12 in its reference photographs. A dimensioned plan, or a nadir rectified the way The Standard's was, would settle which is right.",
     "DONE 2026-09-05: the ground floor band is inset 2.4 m with round-column stand-ins 7.5 m apart on the screen line (was: The ground floor is drawn in the podium plane. In S2 it is recessed 2.4 m behind the screen line, on round exposed-concrete columns that car ...)",
@@ -1372,5 +1345,14 @@
     "S2's roof and deck kit is drawn as boxes: the pool is one rectangle rather than its reverse-L with the sun shelf, the planters are long bars rather than S2's L, hook and lightning-Z vocabulary, and the furniture, pots, trees, ceiling fans, grill islands and breeze-block screen are not there. Everything above 94 m is seen from a long way off in this app.",
     "No balconies and no sign. S2's audit header says of this building's decks: 'NO SIGN', and the mod-4 wall is flush - there is no balcony module anywhere in S2.",
     "The east and west wings are drawn identical, as S2 draws them ('mirrored onto the east wing, Simeon-confirmed'). Nothing here has checked that against a photograph of the Rio Grande elevation."
-  ]
+  ],
+  "balcony": {
+    "proj": 1.2,
+    "slabT": 0.61,
+    "railH": 0.35,
+    "railT": 0.06,
+    "slabTone": "courtFlute",
+    "railTone": "courtFrame",
+    "_src": "The corner stacks' slabs: the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06 corner_zoom shows each floor's slab as a light band about a quarter of the floor pitch tall (0.61 of 3.26 - the slab and its solid upstand read as one light mass, as 21 Rio's do) with a thin dark rail on top; the projection 1.2 m is a read at the corner, not a measurement (the stack is edge-on to this camera)."
+  }
 }
