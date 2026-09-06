@@ -240,7 +240,7 @@
       "fasciaTone": "canopy",
       "frame": "coping",
       "glass": "groundGlass",
-      "reveal": 0.3,
+      "reveal": 0.12,
       "_src": "level 1: leasing office, retail and the Castilian Cafe (S3, S10) behind a storefront that sits back under the podium overhang, with a white canopy fascia (S4, S5). Mullion 1.6 m read off S5 at its own scale. The recess itself is not modelled - the wall is in the podium plane; see `open`."
     },
     "endPier": {
@@ -271,7 +271,12 @@
         {
           "z0": 0,
           "z1": 4.6,
-          "skin": "ground"
+          "skin": "ground",
+          "inset": {
+            "d": 2.0,
+            "tone": "canopy"
+          },
+          "_inset_src": "open 0: the ground floor sits about 2 m under the fin screen's overhang in S4 and S5; the band is inset 2.0 m now, the soffit in the canopy tone. No columns were photographed."
         },
         {
           "z0": 4.6,
@@ -311,7 +316,11 @@
             {
               "z0": 0,
               "z1": 4.6,
-              "skin": "ground"
+              "skin": "ground",
+              "inset": {
+                "d": 2.0,
+                "tone": "canopy"
+              }
             },
             {
               "z0": 4.6,
@@ -332,7 +341,11 @@
             {
               "z0": 0,
               "z1": 4.6,
-              "skin": "ground"
+              "skin": "ground",
+              "inset": {
+                "d": 2.0,
+                "tone": "canopy"
+              }
             },
             {
               "z0": 4.6,
@@ -536,7 +549,7 @@
     }
   ],
   "open": [
-    "The ground floor sits in the podium plane; in the photographs it is recessed about 2 m under the fin screen's overhang (S4, S5). The generator has no per-band inset, so it is drawn flush - a todo for the generator, or a second thin block.",
+    "DONE 2026-09-05: the ground band is inset 2.0 m under the screen (was: The ground floor sits in the podium plane; in the photographs it is recessed about 2 m under the fin screen's overhang (S4, S5). The generat ...)",
     "The garage deck count is six, derived from the measured 16.4 m; the sources say nine LEVELS (S3), and a split-level ramp garage numbers half decks. A section or a garage plan would settle it.",
     "The tower's setback at the two ends (about 5 m each) is the weakest number here: the nadir's parallax correction is the only evidence, and it disagreed with itself by 3 m between the two ends.",
     "The fin screen is drawn as flat light and dark stripes, not as fins standing proud of the wall. At the oblique camera 0.57 m is about two pixels, and our frame shows moire arcs across the band that the reference does not have - any regular stripe at that pitch will. Lowering the dark share from 0.28 to 0.20 m softened it; only a coarser pitch or a texture would remove it, and both would be a worse answer than the measured one.",

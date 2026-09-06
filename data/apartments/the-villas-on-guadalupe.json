@@ -1,5458 +1,2405 @@
 {
- "_readme": "The Villas on Guadalupe, 2810 Hemphill Park -- a 2003 garden-apartment block on the north Drag: four storeys of stucco round three courtyards, grey hipped roofs, and a three-level parking deck at the north end. Schema: docs/apartments.md. Frame: the footprint's obb -- u=0 the south end, +u north at bearing 5.4 degrees, v=0 the east lot line, +v west.",
- "id": "84a96de1-f96c-453d-9b87-b49b0579af73",
- "name": "The Villas on Guadalupe",
- "address": "2810 Hemphill Park, Austin, TX 78705",
- "sources": {
-  "S1": "apartments.com / apartmentfinder / housing.offcampus.utexas.edu listings for Villas on Guadalupe, 2810 Hemphill Park (read 2026-09-05): built 2003, 4 stories, 144 units, one to five bedroom plans, a resort-style pool with a poolside projection screen and grilling station, a fitness centre, a clubhouse and a retail tenancy on site.",
-  "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 84a96de1-f96c-453d-9b87-b49b0579af73: a 59-vertex outer ring plus THREE inner rings (155, 116 and 299 m2) -- the three courtyards. final_height 26.3 is source_height 'overture', a guess for a building OSM never tagged, and is not used here. Its obb is L=179.8, W=46.9, +u at bearing 5.4 degrees.",
-  "S3": "Google Earth 3D (imagery 12/3/2023), nadir at @30.293832,-97.741324,180a,430d,35y,0h,0t, captured with scripts/verify/chrome.mjs on hardware GL and page.screenshot. Scale bar 179 px = 50 m -> 0.2793 m/px; the snapshot ring projected on to it at that scale lands on the roof edges. RECTIFIED into the (u,v) frame at 10 px/m -- every plan number below that cites 'rectified nadir' was read off that gridded plan in metres. Roof features in it lean outward by h.r/H (H = 430 m); reads near the ends are corrected for that and say so.",
-  "S4": "Google Earth obliques at 400 m, headings 45/135/225/315, tilt 55: the grey hipped roofs over cream stucco, the tan parking deck at the north end, the three courtyards, the pool.",
-  "S5": "Google Earth @30.2932,-97.74145,180a,190d,35y,75h,72t -- the west elevation and the south entry: the octagonal turret with a light-blue standing-seam pyramid, the limestone base, the projecting gabled bays, the recessed balcony stacks.",
-  "S6": "Google Earth @30.293669,-97.741578,193a,160d,35y,95.4h,80t -- the west facade near-frontal, look-at ON the wall. Scale bar 121 px = 10 m -> 0.0826 m/px. Four window rows; grade to eave 455 px at 3.4x = 11.05 m over four floors -> 2.74 m floor-to-floor (9 ft, the standard for this wood-frame type). Eave to the near ridge 170 px at 3.4x = 4.13 m -> RISE 4.0 m. Gable centres 530 px at 3.4x = 12.9 m -> the bay module.",
-  "S7": "the same capture cropped 3x on the south end: the entry turret, the two smaller pyramids behind it, the rubble-limestone base band on the ground floor, the white fascia and soffit under every eave.",
-  "S8": "Google Earth @30.294262,-97.741078,190a,150d,35y,275.4h,80t -- the east elevation: the limestone water table on the ground floor and the tan deck seen edge-on behind the roofs.",
-  "S9": "Google Earth @30.294356,-97.741311,193a,190d,35y,185.4h,78t -- the north elevation: the garage openings at grade (0.8 of a residential floor tall), the residential storeys above them, and the deck.",
-  "S10": "data/hero_designs.json 'Villas on Guadalupe' (confidence: inferred): wall #ccb793, trim #dccaab, roof #91573c, night window #eed094. The WALL hue is kept; the ROOF is wrong -- the roofs are grey composition shingle in S3, S4, S5 and S8, not terracotta -- and is replaced with the measured grey. The snapshot's wd/rd carry the same inferred pair.",
-  "S11": "data/roads.geojson: Guadalupe Street runs north-north-west past the west side of the block and West 29th Street runs north-west along its north boundary -- which is the diagonal the ring turns at (163.9,11.3)-(176.1,39.0)."
- },
- "footprint": {
-  "ring": [
-   [
-    -97.7411019,
-    30.2936607
-   ],
-   [
-    -97.7410959,
-    30.2937157
-   ],
-   [
-    -97.7410889,
-    30.2937157
-   ],
-   [
-    -97.7410839,
-    30.2937567
-   ],
-   [
-    -97.7410879,
-    30.2937577
-   ],
-   [
-    -97.7410559,
-    30.2940407
-   ],
-   [
-    -97.7410669,
-    30.2940417
-   ],
-   [
-    -97.7410639,
-    30.2940687
-   ],
-   [
-    -97.7410679,
-    30.2940697
-   ],
-   [
-    -97.7410579,
-    30.2941547
-   ],
-   [
-    -97.7410249,
-    30.2944367
-   ],
-   [
-    -97.7410589,
-    30.2944537
-   ],
-   [
-    -97.7410529,
-    30.2944617
-   ],
-   [
-    -97.7411169,
-    30.2944937
-   ],
-   [
-    -97.7411229,
-    30.2944847
-   ],
-   [
-    -97.7413979,
-    30.2946187
-   ],
-   [
-    -97.7413889,
-    30.2946317
-   ],
-   [
-    -97.7414389,
-    30.2946557
-   ],
-   [
-    -97.7414679,
-    30.2946117
-   ],
-   [
-    -97.7414629,
-    30.2946097
-   ],
-   [
-    -97.7414829,
-    30.2945787
-   ],
-   [
-    -97.7414919,
-    30.2945057
-   ],
-   [
-    -97.7414809,
-    30.2945047
-   ],
-   [
-    -97.7415259,
-    30.2941077
-   ],
-   [
-    -97.7414709,
-    30.2941027
-   ],
-   [
-    -97.7414749,
-    30.2940707
-   ],
-   [
-    -97.7413929,
-    30.2940637
-   ],
-   [
-    -97.7413939,
-    30.2940567
-   ],
-   [
-    -97.7414109,
-    30.2940577
-   ],
-   [
-    -97.7414129,
-    30.2940407
-   ],
-   [
-    -97.7415319,
-    30.2940517
-   ],
-   [
-    -97.7416239,
-    30.2932547
-   ],
-   [
-    -97.7415309,
-    30.2932467
-   ],
-   [
-    -97.7415369,
-    30.2931917
-   ],
-   [
-    -97.7415029,
-    30.2931887
-   ],
-   [
-    -97.7415099,
-    30.2931297
-   ],
-   [
-    -97.7414699,
-    30.2930517
-   ],
-   [
-    -97.7414709,
-    30.2930407
-   ],
-   [
-    -97.7414619,
-    30.2930287
-   ],
-   [
-    -97.7413959,
-    30.2930227
-   ],
-   [
-    -97.7413969,
-    30.2930187
-   ],
-   [
-    -97.7412819,
-    30.2930087
-   ],
-   [
-    -97.7412819,
-    30.2930157
-   ],
-   [
-    -97.7412039,
-    30.2930087
-   ],
-   [
-    -97.7412029,
-    30.2930147
-   ],
-   [
-    -97.7411879,
-    30.2930137
-   ],
-   [
-    -97.7411749,
-    30.2931247
-   ],
-   [
-    -97.7411609,
-    30.2931237
-   ],
-   [
-    -97.7411339,
-    30.2933607
-   ],
-   [
-    -97.7411299,
-    30.2933607
-   ],
-   [
-    -97.7411249,
-    30.2933987
-   ],
-   [
-    -97.7411339,
-    30.2933997
-   ],
-   [
-    -97.7411269,
-    30.2934617
-   ],
-   [
-    -97.7411219,
-    30.2934617
-   ],
-   [
-    -97.7411149,
-    30.2935237
-   ],
-   [
-    -97.7411189,
-    30.2935237
-   ],
-   [
-    -97.7411169,
-    30.2935447
-   ],
-   [
-    -97.7411119,
-    30.2935447
-   ],
-   [
-    -97.7410989,
-    30.2936607
-   ],
-   [
-    -97.7411019,
-    30.2936607
-   ]
-  ],
-  "_src": "S2, verbatim. The snapshot's three inner rings are not carried: the generator's blocks draw the courtyards as the space between the wings."
- },
- "frame": {
-  "obb": {
-   "o": [
-    -97.74116653805918,
-    30.2929991844575
-   ],
-   "ax": 0.0944353440501454,
-   "ay": 0.9955309969027236,
-   "mx": 96119.31774675232,
-   "my": 110540.0,
-   "L": 179.8207,
-   "W": 46.8601
-  }
- },
- "_frame_src": "S2's own obb, PINNED rather than left to obbOf. obbOf keeps the FIRST edge that beats the running-best area, and this ring has parallel edges within floating point of the same area: the generator's own read came out +u at 185.4 degrees, 180 from the 5.4 every number below was measured in, and the first render put the building back to front. Pinned: L=179.8 W=46.9, +u at bearing 5.4 degrees -- u=0 is the SOUTH end and +u runs north; v=0 is the EAST lot line and +v runs west (S11 fixes which is which). The schema allows this (docs/apartments.md: frame may be {obb:{...}} to pin one by hand).",
- "levels": {
-  "floors": [
-   0.0,
-   2.74,
-   5.48,
-   8.22
-  ],
-  "_src": "four storeys (S1) at 2.74 m floor-to-floor (S6: grade to eave 11.05 m over four floors, = 9 ft). The wall tops out at 10.96 m and the ridge at 14.96 m; the garage deck sits on the third floor line at 8.22 m."
- },
- "colours": {
-  "_src": "day hex; golden and night come from js/westcampus.js's ramp(). Every tone below is the mean of a named crop in a named capture, warmed back toward the snapshot's own wall hue where the 12/2023 mesh reads cool -- the correction is stated per tone.",
-  "wall": {
-   "hex": "#cdcac4",
-   "_src": "S6's sunlit wall crop (840,530)-(880,560) reads #8d97a8 -- the December mesh renders this face cool and dark. Its VALUE is kept and its hue pulled a third of the way to S10's inferred #ccb793 stucco and no further: the first render beside S4 read tan-khaki where the reference reads a pale neutral cream, so #cdcac4 (look-fix 1 and 2)."
+  "_readme": "The Villas on Guadalupe, 2810 Hemphill Park -- a 2003 garden-apartment block on the north Drag: four storeys of stucco round three courtyards, grey hipped roofs, and a three-level parking deck at the north end. Schema: docs/apartments.md. Frame: the footprint's obb -- u=0 the south end, +u north at bearing 5.4 degrees, v=0 the east lot line, +v west.",
+  "id": "84a96de1-f96c-453d-9b87-b49b0579af73",
+  "name": "The Villas on Guadalupe",
+  "address": "2810 Hemphill Park, Austin, TX 78705",
+  "sources": {
+    "S1": "apartments.com / apartmentfinder / housing.offcampus.utexas.edu listings for Villas on Guadalupe, 2810 Hemphill Park (read 2026-09-05): built 2003, 4 stories, 144 units, one to five bedroom plans, a resort-style pool with a poolside projection screen and grilling station, a fitness centre, a clubhouse and a retail tenancy on site.",
+    "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 84a96de1-f96c-453d-9b87-b49b0579af73: a 59-vertex outer ring plus THREE inner rings (155, 116 and 299 m2) -- the three courtyards. final_height 26.3 is source_height 'overture', a guess for a building OSM never tagged, and is not used here. Its obb is L=179.8, W=46.9, +u at bearing 5.4 degrees.",
+    "S3": "Google Earth 3D (imagery 12/3/2023), nadir at @30.293832,-97.741324,180a,430d,35y,0h,0t, captured with scripts/verify/chrome.mjs on hardware GL and page.screenshot. Scale bar 179 px = 50 m -> 0.2793 m/px; the snapshot ring projected on to it at that scale lands on the roof edges. RECTIFIED into the (u,v) frame at 10 px/m -- every plan number below that cites 'rectified nadir' was read off that gridded plan in metres. Roof features in it lean outward by h.r/H (H = 430 m); reads near the ends are corrected for that and say so.",
+    "S4": "Google Earth obliques at 400 m, headings 45/135/225/315, tilt 55: the grey hipped roofs over cream stucco, the tan parking deck at the north end, the three courtyards, the pool.",
+    "S5": "Google Earth @30.2932,-97.74145,180a,190d,35y,75h,72t -- the west elevation and the south entry: the octagonal turret with a light-blue standing-seam pyramid, the limestone base, the projecting gabled bays, the recessed balcony stacks.",
+    "S6": "Google Earth @30.293669,-97.741578,193a,160d,35y,95.4h,80t -- the west facade near-frontal, look-at ON the wall. Scale bar 121 px = 10 m -> 0.0826 m/px. Four window rows; grade to eave 455 px at 3.4x = 11.05 m over four floors -> 2.74 m floor-to-floor (9 ft, the standard for this wood-frame type). Eave to the near ridge 170 px at 3.4x = 4.13 m -> RISE 4.0 m. Gable centres 530 px at 3.4x = 12.9 m -> the bay module.",
+    "S7": "the same capture cropped 3x on the south end: the entry turret, the two smaller pyramids behind it, the rubble-limestone base band on the ground floor, the white fascia and soffit under every eave.",
+    "S8": "Google Earth @30.294262,-97.741078,190a,150d,35y,275.4h,80t -- the east elevation: the limestone water table on the ground floor and the tan deck seen edge-on behind the roofs.",
+    "S9": "Google Earth @30.294356,-97.741311,193a,190d,35y,185.4h,78t -- the north elevation: the garage openings at grade (0.8 of a residential floor tall), the residential storeys above them, and the deck.",
+    "S10": "data/hero_designs.json 'Villas on Guadalupe' (confidence: inferred): wall #ccb793, trim #dccaab, roof #91573c, night window #eed094. The WALL hue is kept; the ROOF is wrong -- the roofs are grey composition shingle in S3, S4, S5 and S8, not terracotta -- and is replaced with the measured grey. The snapshot's wd/rd carry the same inferred pair.",
+    "S11": "data/roads.geojson: Guadalupe Street runs north-north-west past the west side of the block and West 29th Street runs north-west along its north boundary -- which is the diagonal the ring turns at (163.9,11.3)-(176.1,39.0)."
   },
-  "trim": {
-   "hex": "#e3ded2",
-   "_src": "S7: the fascia, soffit and window surrounds read a clear step lighter than the wall; S10's trim #dccaab desaturated the same way as the wall."
-  },
-  "roof": {
-   "hex": "#838a92",
-   "_src": "S3's sunlit roof planes and S4's south-east oblique crop (600,430)-(700,455) both read #8a9098 to #909598: grey composition shingle, and S4's sunlit planes read #8f9295 and its shaded ones #767a81. The first two renders used the sunlit number for the whole roof and, with the app lighting a horizontal face fully, our roof came out near white from above where the reference is mid grey. #838a92 sits between the nadir median #767a81 and the sunlit #8f9295, which is where our roof matches at both the oblique and the street (look-fix 2 and 4). This REPLACES S10's and the snapshot's inferred terracotta #91573c."
-  },
-  "roofFlat": {
-   "hex": "#a9aeb0",
-   "_src": "S3's nadir: the membrane middles read pale grey against the shingle -- crop (640,430)-(670,455) #a9b3b8."
-  },
-  "roofRidge": {
-   "hex": "#8f959b",
-   "_src": "S3's nadir: the ridge and hip courses read a step lighter than either slope. The stepped hip has no sloping surface to catch a different light, so the top 1 steps take this tone -- the same answer the slopes roofs pass gives for a hip seen from the air."
-  },
-  "roofDark": {
-   "hex": "#6e747c",
-   "_src": "S3's nadir crop (700,600)-(760,640) #767a81 -- the shaded slope of the same shingle."
-  },
-  "stone": {
-   "hex": "#a2988a",
-   "_src": "S5's stone base crop (730,437)-(800,455) #a09a97, warmed by the same amount as the wall: the rubble-limestone water table."
-  },
-  "turret": {
-   "hex": "#9fb4c4",
-   "_src": "S5's turret crop (650,333)-(688,352) #94acbf: the light-blue standing-seam pyramid."
-  },
-  "deck": {
-   "hex": "#c2b7a3",
-   "_src": "S3's nadir crop (700,250)-(780,320) #cbbba5: the parking deck's bare concrete."
-  },
-  "deckRail": {
-   "hex": "#b3aa9c",
-   "_src": "derived: the deck's guard wall is the deck concrete a step darker."
-  },
-  "recess": {
-   "hex": "#6f6a63",
-   "_src": "S6: the shaded wall inside a balcony reveal reads about 55 percent of the sunlit stucco; #6f6a63 is the wall tone at that value."
-  },
-  "rail": {
-   "hex": "#3d4658",
-   "_src": "S6: the balcony rails read near-black navy against the stucco; the crop mean was #3d333d, taken as a dark navy so it does not read as a hole."
-  },
-  "slab": {
-   "hex": "#cdcac4",
-   "_src": "the balcony slab is the wall's own stucco (S6)."
-  },
-  "glass": {
-   "hex": "#7d8894",
-   "_src": "S5's window crop (350,400)-(365,412) #8e9aa9, one step down: at the app's day exposure the sampled value read as white panes where the reference reads dark teal-grey (look-fix 4)."
+  "footprint": {
+    "ring": [
+      [
+        -97.7411019,
+        30.2936607
+      ],
+      [
+        -97.7410959,
+        30.2937157
+      ],
+      [
+        -97.7410889,
+        30.2937157
+      ],
+      [
+        -97.7410839,
+        30.2937567
+      ],
+      [
+        -97.7410879,
+        30.2937577
+      ],
+      [
+        -97.7410559,
+        30.2940407
+      ],
+      [
+        -97.7410669,
+        30.2940417
+      ],
+      [
+        -97.7410639,
+        30.2940687
+      ],
+      [
+        -97.7410679,
+        30.2940697
+      ],
+      [
+        -97.7410579,
+        30.2941547
+      ],
+      [
+        -97.7410249,
+        30.2944367
+      ],
+      [
+        -97.7410589,
+        30.2944537
+      ],
+      [
+        -97.7410529,
+        30.2944617
+      ],
+      [
+        -97.7411169,
+        30.2944937
+      ],
+      [
+        -97.7411229,
+        30.2944847
+      ],
+      [
+        -97.7413979,
+        30.2946187
+      ],
+      [
+        -97.7413889,
+        30.2946317
+      ],
+      [
+        -97.7414389,
+        30.2946557
+      ],
+      [
+        -97.7414679,
+        30.2946117
+      ],
+      [
+        -97.7414629,
+        30.2946097
+      ],
+      [
+        -97.7414829,
+        30.2945787
+      ],
+      [
+        -97.7414919,
+        30.2945057
+      ],
+      [
+        -97.7414809,
+        30.2945047
+      ],
+      [
+        -97.7415259,
+        30.2941077
+      ],
+      [
+        -97.7414709,
+        30.2941027
+      ],
+      [
+        -97.7414749,
+        30.2940707
+      ],
+      [
+        -97.7413929,
+        30.2940637
+      ],
+      [
+        -97.7413939,
+        30.2940567
+      ],
+      [
+        -97.7414109,
+        30.2940577
+      ],
+      [
+        -97.7414129,
+        30.2940407
+      ],
+      [
+        -97.7415319,
+        30.2940517
+      ],
+      [
+        -97.7416239,
+        30.2932547
+      ],
+      [
+        -97.7415309,
+        30.2932467
+      ],
+      [
+        -97.7415369,
+        30.2931917
+      ],
+      [
+        -97.7415029,
+        30.2931887
+      ],
+      [
+        -97.7415099,
+        30.2931297
+      ],
+      [
+        -97.7414699,
+        30.2930517
+      ],
+      [
+        -97.7414709,
+        30.2930407
+      ],
+      [
+        -97.7414619,
+        30.2930287
+      ],
+      [
+        -97.7413959,
+        30.2930227
+      ],
+      [
+        -97.7413969,
+        30.2930187
+      ],
+      [
+        -97.7412819,
+        30.2930087
+      ],
+      [
+        -97.7412819,
+        30.2930157
+      ],
+      [
+        -97.7412039,
+        30.2930087
+      ],
+      [
+        -97.7412029,
+        30.2930147
+      ],
+      [
+        -97.7411879,
+        30.2930137
+      ],
+      [
+        -97.7411749,
+        30.2931247
+      ],
+      [
+        -97.7411609,
+        30.2931237
+      ],
+      [
+        -97.7411339,
+        30.2933607
+      ],
+      [
+        -97.7411299,
+        30.2933607
+      ],
+      [
+        -97.7411249,
+        30.2933987
+      ],
+      [
+        -97.7411339,
+        30.2933997
+      ],
+      [
+        -97.7411269,
+        30.2934617
+      ],
+      [
+        -97.7411219,
+        30.2934617
+      ],
+      [
+        -97.7411149,
+        30.2935237
+      ],
+      [
+        -97.7411189,
+        30.2935237
+      ],
+      [
+        -97.7411169,
+        30.2935447
+      ],
+      [
+        -97.7411119,
+        30.2935447
+      ],
+      [
+        -97.7410989,
+        30.2936607
+      ],
+      [
+        -97.7411019,
+        30.2936607
+      ]
+    ],
+    "_src": "S2, verbatim. The snapshot's three inner rings are not carried: the generator's blocks draw the courtyards as the space between the wings."
   },
   "frame": {
-   "hex": "#e3ded2",
-   "_src": "the window reveals take the trim (S7)."
-  },
-  "mech": {
-   "hex": "#9aa0a4",
-   "_src": "derived: the condenser rows in S3's rectified nadir are pale galvanised boxes."
-  },
-  "garageDark": {
-   "hex": "#63605a",
-   "_src": "derived: the shaded openings between the garage's screen slats."
-  },
-  "water": {
-   "hex": "#236b7e",
-   "_src": "S3's nadir pool crop (700,490)-(720,520) #28687b, lifted out of the courtyard's shade."
-  },
-  "poolDeck": {
-   "hex": "#9c8d76",
-   "_src": "S3's rectified nadir: the tan paving round the pool."
-  },
-  "turf": {
-   "hex": "#7c8f5e",
-   "_src": "derived: the courtyard planting between the pool deck and the wings."
-  },
-  "screen": {
-   "hex": "#33383c",
-   "_src": "S1 names a poolside projection screen; S3 shows a dark panel at the pool court's south end."
-  }
- },
- "skins": {
-  "_src": "one rule per face treatment; every column count comes from a module, never a count.",
-  "wall": {
-   "kind": "bays",
-   "bay": 3.2,
-   "field": "wall",
-   "window": {
-    "w": 1.7,
-    "h": 1.45,
-    "sill": 0.85
-   },
-   "glass": "glass",
-   "frame": "frame",
-   "_src": "S6: a flat stucco field with one punched window per bay per floor. bay 3.20 = four windows across the 12.90 m gable module, which is what S6 counts on the wall panel between two balcony stacks (window centres 70 px at 3.4x = 1.70 m apart in a group, four groups to the module); the window is 1.70 x 1.45 with an 0.85 m sill, the double unit S6 resolves at 0.0826 m/px. The first two renders used bay 4.30 and read far sparser than the reference (look-fix 3)."
-  },
-  "base": {
-   "kind": "bays",
-   "bay": 3.2,
-   "field": "stone",
-   "window": {
-    "w": 1.7,
-    "h": 1.45,
-    "sill": 0.85
-   },
-   "glass": "glass",
-   "frame": "frame",
-   "bands": [
-    {
-     "z0": 2.52,
-     "z1": 2.74,
-     "tone": "trim"
+    "obb": {
+      "o": [
+        -97.74116653805918,
+        30.2929991844575
+      ],
+      "ax": 0.0944353440501454,
+      "ay": 0.9955309969027236,
+      "mx": 96119.31774675232,
+      "my": 110540.0,
+      "L": 179.8207,
+      "W": 46.8601
     }
-   ],
-   "_src": "the same window module over the rubble-limestone base (S7, S8), capped by the trim course the photographs show at the top of the ground floor."
   },
-  "turretWall": {
-   "kind": "bays",
-   "bay": 2.5,
-   "field": "wall",
-   "window": {
-    "w": 1.05,
-    "h": 1.6,
-    "sill": 0.75
-   },
-   "glass": "glass",
-   "frame": "frame",
-   "_src": "S7: the turret is glazed on every facet -- a narrower bay and a taller, thinner window than the wall's."
-  },
-  "recess": {
-   "kind": "flat",
-   "field": "recess",
-   "_src": "S6: a balcony stack sits in a reveal that runs the full four storeys, so the wall behind it reads as one dark column, not four separate slots. The generator cannot inset a wall (todo 2), so the stack's own strip of wall wears this tone and the projecting slabs and rails stand on it."
-  },
-  "garage": {
-   "kind": "bays",
-   "bay": 8.2,
-   "field": "wall",
-   "louvre": {
-    "pitch": 2.74,
-    "w": 0.45,
-    "tone": "garageDark",
-    "start": 1.15
-   },
-   "_src": "S9: the parking structure's open sides read as a horizontal slot at every level. The slats are one per floor-to-floor (2.74 m), 0.62 m of open shadow each, starting 1.15 m up; bay 8.20 is the structural bay two stalls wide. 0.62 m of slot read as heavy black banding beside S9, where the structure is barely legible (look-fix 5)."
-  }
- },
- "balcony": {
-  "proj": 0.55,
-  "slabT": 0.24,
-  "railH": 0.98,
-  "railT": 0.06,
-  "slabTone": "slab",
-  "railTone": "rail",
-  "_src": "S6: the balconies are INSET in the reference, which the generator cannot draw; a 0.55 m projection with the same slab, rail height and navy rail puts the identical dark horizontal line at every floor of every stack at the cameras this app is judged from (todo 2). Width 3.40 m and the 12.90 m rhythm are S6's."
- },
- "blocks": [
-  {
-   "id": "south-1e",
-   "_src": "S2 ring points 42-48: the east range of the south end, v 1.0 to 14.5 -- the same depth as the east wing, so its roof ridges the same way. The south end is double-loaded like the rest of the block and S3's nadir shows two parallel ridges over it, not one lid. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
-   "plan": [
-    0.0,
-    30.0,
-    1.0,
-    14.5
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      -0.45,
-      30.0,
-      0.55,
-      14.5
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      0.45,
-      29.55,
-      1.45,
-      14.05
-     ],
-     "h": 0.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      0.89,
-      29.11,
-      1.89,
-      13.61
-     ],
-     "h": 0.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      1.34,
-      28.66,
-      2.34,
-      13.16
-     ],
-     "h": 0.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      1.79,
-      28.21,
-      2.79,
-      12.71
-     ],
-     "h": 1.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      2.23,
-      27.77,
-      3.23,
-      12.27
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      2.68,
-      27.32,
-      3.68,
-      11.82
-     ],
-     "h": 1.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.13,
-      26.87,
-      4.13,
-      11.37
-     ],
-     "h": 2.0,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.57,
-      26.43,
-      4.57,
-      10.93
-     ],
-     "h": 2.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.02,
-      25.98,
-      5.02,
-      10.48
-     ],
-     "h": 2.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.47,
-      25.53,
-      5.47,
-      10.03
-     ],
-     "h": 2.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.91,
-      25.09,
-      5.91,
-      9.59
-     ],
-     "h": 3.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.36,
-      24.64,
-      6.36,
-      9.14
-     ],
-     "h": 3.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.81,
-      24.19,
-      6.81,
-      8.69
-     ],
-     "h": 3.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      6.25,
-      23.75,
-      7.25,
-      8.25
-     ],
-     "h": 4.0,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "south-1w",
-   "_src": "S2 ring points 38-41: the west range of the south end, v 14.5 to 28.6. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
-   "plan": [
-    0.0,
-    30.0,
-    14.5,
-    28.6
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      -0.45,
-      30.0,
-      14.5,
-      28.6
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      0.45,
-      29.55,
-      14.95,
-      28.15
-     ],
-     "h": 0.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      0.89,
-      29.11,
-      15.39,
-      27.71
-     ],
-     "h": 0.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      1.34,
-      28.66,
-      15.84,
-      27.26
-     ],
-     "h": 0.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      1.79,
-      28.21,
-      16.29,
-      26.81
-     ],
-     "h": 1.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      2.23,
-      27.77,
-      16.73,
-      26.37
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      2.68,
-      27.32,
-      17.18,
-      25.92
-     ],
-     "h": 1.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.13,
-      26.87,
-      17.63,
-      25.47
-     ],
-     "h": 2.0,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.57,
-      26.43,
-      18.07,
-      25.03
-     ],
-     "h": 2.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.02,
-      25.98,
-      18.52,
-      24.58
-     ],
-     "h": 2.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.47,
-      25.53,
-      18.97,
-      24.13
-     ],
-     "h": 2.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.91,
-      25.09,
-      19.41,
-      23.69
-     ],
-     "h": 3.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.36,
-      24.64,
-      19.86,
-      23.24
-     ],
-     "h": 3.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.81,
-      24.19,
-      20.31,
-      22.79
-     ],
-     "h": 3.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      6.25,
-      23.75,
-      20.75,
-      22.35
-     ],
-     "h": 4.0,
-     "tone": "roofRidge"
-    },
-    {
-     "plan": [
-      3.5,
-      14.5,
-      17.0,
-      26.0
-     ],
-     "h": 4.0,
-     "tone": "roofFlat",
-     "_src": "S3's rectified nadir: the membrane roof with condenser rows over the south end's west range at u 2-15, v 21-31, lean-corrected."
-    },
-    {
-     "plan": [
-      5.1,
-      12.9,
-      18.4,
-      24.6
-     ],
-     "grid": [
-      4,
-      3
-     ],
-     "size": [
-      1.1,
-      2.0
-     ],
-     "h": 4.85,
-     "tone": "mech",
-     "_src": "S3's rectified nadir: the condenser rows on that membrane."
-    }
-   ]
-  },
-  {
-   "id": "south-2",
-   "_src": "S2 ring points 35-37: the first step west, from u=3.0 where the ring's diagonal reaches v=29.6. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
-   "plan": [
-    3.0,
-    30.0,
-    28.6,
-    34.2
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      2.55,
-      30.0,
-      28.6,
-      34.2
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      3.17,
-      29.83,
-      28.77,
-      34.03
-     ],
-     "h": 0.11,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.34,
-      29.66,
-      28.94,
-      33.86
-     ],
-     "h": 0.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.51,
-      29.49,
-      29.11,
-      33.69
-     ],
-     "h": 0.33,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.69,
-      29.31,
-      29.29,
-      33.51
-     ],
-     "h": 0.44,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      3.86,
-      29.14,
-      29.46,
-      33.34
-     ],
-     "h": 0.55,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.03,
-      28.97,
-      29.63,
-      33.17
-     ],
-     "h": 0.66,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.2,
-      28.8,
-      29.8,
-      33.0
-     ],
-     "h": 0.77,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.37,
-      28.63,
-      29.97,
-      32.83
-     ],
-     "h": 0.88,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.54,
-      28.46,
-      30.14,
-      32.66
-     ],
-     "h": 0.99,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.71,
-      28.29,
-      30.31,
-      32.49
-     ],
-     "h": 1.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      4.89,
-      28.11,
-      30.49,
-      32.31
-     ],
-     "h": 1.21,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.06,
-      27.94,
-      30.66,
-      32.14
-     ],
-     "h": 1.32,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.23,
-      27.77,
-      30.83,
-      31.97
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      5.4,
-      27.6,
-      31.0,
-      31.8
-     ],
-     "h": 1.53,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "south-3",
-   "_src": "S2 ring points 33-34: the second step, from u=17.8 at v=34.16-37.45. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
-   "plan": [
-    17.8,
-    30.0,
-    34.2,
-    37.45
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      17.35,
-      30.0,
-      34.2,
-      37.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      17.89,
-      29.91,
-      34.29,
-      37.36
-     ],
-     "h": 0.06,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      17.98,
-      29.82,
-      34.38,
-      37.28
-     ],
-     "h": 0.11,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.06,
-      29.74,
-      34.46,
-      37.19
-     ],
-     "h": 0.17,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.15,
-      29.65,
-      34.55,
-      37.1
-     ],
-     "h": 0.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.24,
-      29.56,
-      34.64,
-      37.01
-     ],
-     "h": 0.28,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.32,
-      29.48,
-      34.73,
-      36.93
-     ],
-     "h": 0.34,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.41,
-      29.39,
-      34.81,
-      36.84
-     ],
-     "h": 0.39,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.5,
-      29.3,
-      34.9,
-      36.75
-     ],
-     "h": 0.45,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.59,
-      29.21,
-      34.99,
-      36.66
-     ],
-     "h": 0.5,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.68,
-      29.12,
-      35.08,
-      36.58
-     ],
-     "h": 0.56,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.76,
-      29.04,
-      35.16,
-      36.49
-     ],
-     "h": 0.62,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.85,
-      28.95,
-      35.25,
-      36.4
-     ],
-     "h": 0.67,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      18.94,
-      28.86,
-      35.34,
-      36.31
-     ],
-     "h": 0.73,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      19.03,
-      28.77,
-      35.43,
-      36.23
-     ],
-     "h": 0.78,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "south-4",
-   "_src": "S2 ring points 31-32: the last step, the south end of the west range's own plane. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
-   "plan": [
-    23.97,
-    30.0,
-    37.45,
-    46.4
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      23.52,
-      30.0,
-      37.45,
-      46.85
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      24.16,
-      29.81,
-      37.64,
-      46.21
-     ],
-     "h": 0.12,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      24.34,
-      29.63,
-      37.82,
-      46.03
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      24.53,
-      29.44,
-      38.01,
-      45.84
-     ],
-     "h": 0.36,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      24.72,
-      29.25,
-      38.2,
-      45.65
-     ],
-     "h": 0.48,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      24.9,
-      29.07,
-      38.38,
-      45.47
-     ],
-     "h": 0.6,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      25.09,
-      28.88,
-      38.57,
-      45.28
-     ],
-     "h": 0.72,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      25.28,
-      28.69,
-      38.76,
-      45.09
-     ],
-     "h": 0.84,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      25.46,
-      28.51,
-      38.94,
-      44.91
-     ],
-     "h": 0.96,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      25.65,
-      28.32,
-      39.13,
-      44.72
-     ],
-     "h": 1.08,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      25.84,
-      28.13,
-      39.32,
-      44.53
-     ],
-     "h": 1.19,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      26.02,
-      27.95,
-      39.5,
-      44.35
-     ],
-     "h": 1.31,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      26.21,
-      27.76,
-      39.69,
-      44.16
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      26.4,
-      27.57,
-      39.88,
-      43.97
-     ],
-     "h": 1.55,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      26.59,
-      27.38,
-      40.07,
-      43.78
-     ],
-     "h": 1.67,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-wing",
-   "_src": "S2's ring: the east range between the lot line (v=1.0) and the courtyards' east wall (v=14.5), from the south end to the diagonal north boundary the ring turns at (159.5,1.45)-(164.9,10.85). Four storeys over a stone base (S8: the east face's limestone water table).",
-   "plan": [
-    [
-     159.5,
-     1.0
+  "_frame_src": "S2's own obb, PINNED rather than left to obbOf. obbOf keeps the FIRST edge that beats the running-best area, and this ring has parallel edges within floating point of the same area: the generator's own read came out +u at 185.4 degrees, 180 from the 5.4 every number below was measured in, and the first render put the building back to front. Pinned: L=179.8 W=46.9, +u at bearing 5.4 degrees -- u=0 is the SOUTH end and +u runs north; v=0 is the EAST lot line and +v runs west (S11 fixes which is which). The schema allows this (docs/apartments.md: frame may be {obb:{...}} to pin one by hand).",
+  "levels": {
+    "floors": [
+      0.0,
+      2.74,
+      5.48,
+      8.22
     ],
-    [
-     30.0,
-     1.0
-    ],
-    [
-     30.0,
-     14.5
-    ],
-    [
-     165.3,
-     14.5
-    ],
-    [
-     161.5,
-     4.5
+    "_src": "four storeys (S1) at 2.74 m floor-to-floor (S6: grade to eave 11.05 m over four floors, = 9 ft). The wall tops out at 10.96 m and the ridge at 14.96 m; the garage deck sits on the third floor line at 8.22 m."
+  },
+  "colours": {
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp(). Every tone below is the mean of a named crop in a named capture, warmed back toward the snapshot's own wall hue where the 12/2023 mesh reads cool -- the correction is stated per tone.",
+    "wall": {
+      "hex": "#cdcac4",
+      "_src": "S6's sunlit wall crop (840,530)-(880,560) reads #8d97a8 -- the December mesh renders this face cool and dark. Its VALUE is kept and its hue pulled a third of the way to S10's inferred #ccb793 stucco and no further: the first render beside S4 read tan-khaki where the reference reads a pale neutral cream, so #cdcac4 (look-fix 1 and 2)."
+    },
+    "trim": {
+      "hex": "#e3ded2",
+      "_src": "S7: the fascia, soffit and window surrounds read a clear step lighter than the wall; S10's trim #dccaab desaturated the same way as the wall."
+    },
+    "roof": {
+      "hex": "#838a92",
+      "_src": "S3's sunlit roof planes and S4's south-east oblique crop (600,430)-(700,455) both read #8a9098 to #909598: grey composition shingle, and S4's sunlit planes read #8f9295 and its shaded ones #767a81. The first two renders used the sunlit number for the whole roof and, with the app lighting a horizontal face fully, our roof came out near white from above where the reference is mid grey. #838a92 sits between the nadir median #767a81 and the sunlit #8f9295, which is where our roof matches at both the oblique and the street (look-fix 2 and 4). This REPLACES S10's and the snapshot's inferred terracotta #91573c."
+    },
+    "roofFlat": {
+      "hex": "#a9aeb0",
+      "_src": "S3's nadir: the membrane middles read pale grey against the shingle -- crop (640,430)-(670,455) #a9b3b8."
+    },
+    "roofRidge": {
+      "hex": "#8f959b",
+      "_src": "S3's nadir: the ridge and hip courses read a step lighter than either slope. The stepped hip has no sloping surface to catch a different light, so the top 1 steps take this tone -- the same answer the slopes roofs pass gives for a hip seen from the air."
+    },
+    "roofDark": {
+      "hex": "#6e747c",
+      "_src": "S3's nadir crop (700,600)-(760,640) #767a81 -- the shaded slope of the same shingle."
+    },
+    "stone": {
+      "hex": "#a2988a",
+      "_src": "S5's stone base crop (730,437)-(800,455) #a09a97, warmed by the same amount as the wall: the rubble-limestone water table."
+    },
+    "turret": {
+      "hex": "#9fb4c4",
+      "_src": "S5's turret crop (650,333)-(688,352) #94acbf: the light-blue standing-seam pyramid."
+    },
+    "deck": {
+      "hex": "#c2b7a3",
+      "_src": "S3's nadir crop (700,250)-(780,320) #cbbba5: the parking deck's bare concrete."
+    },
+    "deckRail": {
+      "hex": "#b3aa9c",
+      "_src": "derived: the deck's guard wall is the deck concrete a step darker."
+    },
+    "recess": {
+      "hex": "#6f6a63",
+      "_src": "S6: the shaded wall inside a balcony reveal reads about 55 percent of the sunlit stucco; #6f6a63 is the wall tone at that value."
+    },
+    "rail": {
+      "hex": "#3d4658",
+      "_src": "S6: the balcony rails read near-black navy against the stucco; the crop mean was #3d333d, taken as a dark navy so it does not read as a hole."
+    },
+    "slab": {
+      "hex": "#cdcac4",
+      "_src": "the balcony slab is the wall's own stucco (S6)."
+    },
+    "glass": {
+      "hex": "#7d8894",
+      "_src": "S5's window crop (350,400)-(365,412) #8e9aa9, one step down: at the app's day exposure the sampled value read as white panes where the reference reads dark teal-grey (look-fix 4)."
+    },
+    "frame": {
+      "hex": "#e3ded2",
+      "_src": "the window reveals take the trim (S7)."
+    },
+    "mech": {
+      "hex": "#9aa0a4",
+      "_src": "derived: the condenser rows in S3's rectified nadir are pale galvanised boxes."
+    },
+    "garageDark": {
+      "hex": "#63605a",
+      "_src": "derived: the shaded openings between the garage's screen slats."
+    },
+    "water": {
+      "hex": "#236b7e",
+      "_src": "S3's nadir pool crop (700,490)-(720,520) #28687b, lifted out of the courtyard's shade."
+    },
+    "poolDeck": {
+      "hex": "#9c8d76",
+      "_src": "S3's rectified nadir: the tan paving round the pool."
+    },
+    "turf": {
+      "hex": "#7c8f5e",
+      "_src": "derived: the courtyard planting between the pool deck and the wings."
+    },
+    "screen": {
+      "hex": "#33383c",
+      "_src": "S1 names a poolside projection screen; S3 shows a dark panel at the pool court's south end."
+    }
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every column count comes from a module, never a count.",
+    "wall": {
+      "kind": "bays",
+      "bay": 3.2,
+      "field": "wall",
+      "window": {
+        "w": 1.7,
+        "h": 1.45,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "S6: a flat stucco field with one punched window per bay per floor. bay 3.20 = four windows across the 12.90 m gable module, which is what S6 counts on the wall panel between two balcony stacks (window centres 70 px at 3.4x = 1.70 m apart in a group, four groups to the module); the window is 1.70 x 1.45 with an 0.85 m sill, the double unit S6 resolves at 0.0826 m/px. The first two renders used bay 4.30 and read far sparser than the reference (look-fix 3)."
+    },
+    "base": {
+      "kind": "bays",
+      "bay": 3.2,
+      "field": "stone",
+      "window": {
+        "w": 1.7,
+        "h": 1.45,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "bands": [
+        {
+          "z0": 2.52,
+          "z1": 2.74,
+          "tone": "trim"
+        }
+      ],
+      "_src": "the same window module over the rubble-limestone base (S7, S8), capped by the trim course the photographs show at the top of the ground floor."
+    },
+    "turretWall": {
+      "kind": "bays",
+      "bay": 2.5,
+      "field": "wall",
+      "window": {
+        "w": 1.05,
+        "h": 1.6,
+        "sill": 0.75
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "_src": "S7: the turret is glazed on every facet -- a narrower bay and a taller, thinner window than the wall's."
+    },
+    "recess": {
+      "kind": "flat",
+      "field": "recess",
+      "_src": "S6: a balcony stack sits in a reveal that runs the full four storeys, so the wall behind it reads as one dark column, not four separate slots. The generator cannot inset a wall (todo 2), so the stack's own strip of wall wears this tone and the projecting slabs and rails stand on it."
+    },
+    "garage": {
+      "kind": "bays",
+      "bay": 8.2,
+      "field": "wall",
+      "louvre": {
+        "pitch": 2.74,
+        "w": 0.45,
+        "tone": "garageDark",
+        "start": 1.15
+      },
+      "_src": "S9: the parking structure's open sides read as a horizontal slot at every level. The slats are one per floor-to-floor (2.74 m), 0.62 m of open shadow each, starting 1.15 m up; bay 8.20 is the structural bay two stalls wide. 0.62 m of slot read as heavy black banding beside S9, where the structure is barely legible (look-fix 5)."
+    }
+  },
+  "balcony": {
+    "proj": 0.55,
+    "slabT": 0.24,
+    "railH": 0.98,
+    "railT": 0.06,
+    "slabTone": "slab",
+    "railTone": "rail",
+    "_src": "S6: the balconies are INSET in the reference, which the generator cannot draw; a 0.55 m projection with the same slab, rail height and navy rail puts the identical dark horizontal line at every floor of every stack at the cameras this app is judged from (todo 2). Width 3.40 m and the 12.90 m rhythm are S6's."
+  },
+  "blocks": [
+    {
+      "id": "south-1e",
+      "_src": "S2 ring points 42-48: the east range of the south end, v 1.0 to 14.5 -- the same depth as the east wing, so its roof ridges the same way. The south end is double-loaded like the rest of the block and S3's nadir shows two parallel ridges over it, not one lid. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
+      "plan": [
+        0.0,
+        30.0,
+        1.0,
+        14.5
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "south-1w",
+      "_src": "S2 ring points 38-41: the west range of the south end, v 14.5 to 28.6. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
+      "plan": [
+        0.0,
+        30.0,
+        14.5,
+        28.6
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            3.5,
+            14.5,
+            17.0,
+            26.0
+          ],
+          "h": 4.0,
+          "tone": "roofFlat",
+          "_src": "S3's rectified nadir: the membrane roof with condenser rows over the south end's west range at u 2-15, v 21-31, lean-corrected."
+        },
+        {
+          "plan": [
+            5.1,
+            12.9,
+            18.4,
+            24.6
+          ],
+          "grid": [
+            4,
+            3
+          ],
+          "size": [
+            1.1,
+            2.0
+          ],
+          "h": 4.85,
+          "tone": "mech",
+          "_src": "S3's rectified nadir: the condenser rows on that membrane."
+        }
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "south-2",
+      "_src": "S2 ring points 35-37: the first step west, from u=3.0 where the ring's diagonal reaches v=29.6. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
+      "plan": [
+        3.0,
+        30.0,
+        28.6,
+        34.2
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "south-3",
+      "_src": "S2 ring points 33-34: the second step, from u=17.8 at v=34.16-37.45. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
+      "plan": [
+        17.8,
+        30.0,
+        34.2,
+        37.45
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "south-4",
+      "_src": "S2 ring points 31-32: the last step, the south end of the west range's own plane. Four storeys of stucco over a stone base; the entry, the leasing office and the storefront tenancy are on this end (S1, S5, S7).",
+      "plan": [
+        23.97,
+        30.0,
+        37.45,
+        46.4
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-wing",
+      "_src": "S2's ring: the east range between the lot line (v=1.0) and the courtyards' east wall (v=14.5), from the south end to the diagonal north boundary the ring turns at (159.5,1.45)-(164.9,10.85). Four storeys over a stone base (S8: the east face's limestone water table).",
+      "plan": [
+        [
+          159.5,
+          1.0
+        ],
+        [
+          30.0,
+          1.0
+        ],
+        [
+          30.0,
+          14.5
+        ],
+        [
+          165.3,
+          14.5
+        ],
+        [
+          161.5,
+          4.5
+        ]
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "overrides": [
+        {
+          "region": [
+            36.4,
+            39.8,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            49.3,
+            52.7,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            62.2,
+            65.6,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            75.1,
+            78.5,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            88.0,
+            91.4,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            100.9,
+            104.3,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            113.8,
+            117.2,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            126.7,
+            130.1,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            139.6,
+            143.0,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            152.5,
+            155.9,
+            0.6,
+            1.4
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 2.74,
+              "skin": "base"
+            },
+            {
+              "z0": 2.74,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "_overrides_src": "S8: the same balcony reveals on the east elevation, over the stone base. Only edge 0 (v=1.0) lies in these regions.",
+      "faces": {
+        "1": null,
+        "_src": "edge 0 (v=1.0, the east elevation, s measured from its u=159.5 end) carries the balcony stacks; edge 1 (u=30) stands against the south end. Edge 2 (v=14.5) is the courtyards' east wall and edges 3-4 are the diagonal north corner; both are drawn in the plain wall and are unphotographed (todo 7)."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            100.0,
+            113.0,
+            3.4,
+            12.6
+          ],
+          "h": 4.0,
+          "tone": "roofFlat",
+          "_src": "S3's rectified nadir: the light membrane with condenser rows on the east range at u 100-116, v 4-13, lean-corrected."
+        },
+        {
+          "plan": [
+            101.6,
+            111.4,
+            4.8,
+            11.2
+          ],
+          "grid": [
+            5,
+            2
+          ],
+          "size": [
+            1.1,
+            2.0
+          ],
+          "h": 4.85,
+          "tone": "mech",
+          "_src": "S3's rectified nadir: the condenser rows on that membrane."
+        }
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-wing",
+      "_src": "S2's ring: the west range between the courtyards' west wall (v=31.3) and the west lot line (v=46.4), from the south end to the garage. This is the elevation S6 measures -- four storeys of stucco to grade, no stone base on this side.",
+      "plan": [
+        30.0,
+        118.7,
+        31.3,
+        46.4
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "overrides": [
+        {
+          "region": [
+            36.4,
+            39.8,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            49.3,
+            52.7,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            62.2,
+            65.6,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            75.1,
+            78.5,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            88.0,
+            91.4,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "region": [
+            100.9,
+            104.3,
+            46.0,
+            46.8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 10.96,
+              "skin": "recess",
+              "balconies": [
+                {
+                  "s0": 0.05,
+                  "s1": 3.35
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "_overrides_src": "S6: the strip of west wall behind each balcony stack is a four-storey reveal -- it wears the recess tone and carries the stack. Only the v1 face (v=46.4) lies in these regions.",
+      "faces": {
+        "u0": null,
+        "_src": "u0 (u=30) stands against the south end. v0 (the courtyard wall) and u1 (the garage end) wear the plain wall and are unphotographed (todo 7)."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            72.0,
+            82.0,
+            33.5,
+            44.0
+          ],
+          "h": 4.0,
+          "tone": "roofFlat",
+          "_src": "S3's rectified nadir: the membrane with condenser rows on the west range at u 70-79, v 32-42, lean-corrected."
+        },
+        {
+          "plan": [
+            73.6,
+            80.4,
+            34.9,
+            42.6
+          ],
+          "grid": [
+            4,
+            2
+          ],
+          "size": [
+            1.1,
+            2.0
+          ],
+          "h": 4.85,
+          "tone": "mech",
+          "_src": "S3's rectified nadir: the condenser rows on that membrane."
+        },
+        {
+          "plan": [
+            101.0,
+            110.0,
+            33.5,
+            44.0
+          ],
+          "h": 4.0,
+          "tone": "roofFlat",
+          "_src": "S3's rectified nadir: the second such membrane at u 99-107."
+        },
+        {
+          "plan": [
+            102.6,
+            108.4,
+            34.9,
+            42.6
+          ],
+          "grid": [
+            4,
+            2
+          ],
+          "size": [
+            1.1,
+            2.0
+          ],
+          "h": 4.85,
+          "tone": "mech",
+          "_src": "S3's rectified nadir: the condenser rows on that membrane."
+        }
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "link-1",
+      "_src": "S2's holes: the cross range between courtyard 1 and 2. Four storeys, the same wall as the wings.",
+      "plan": [
+        42.2,
+        61.5,
+        14.5,
+        31.3
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "v1": null,
+        "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "link-2",
+      "_src": "S2's holes: the cross range between courtyard 2 and 3. Four storeys, the same wall as the wings.",
+      "plan": [
+        75.9,
+        79.4,
+        14.5,
+        31.3
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "v1": null,
+        "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "link-3",
+      "_src": "S2's holes: the cross range between courtyard 3 and the garage. Four storeys, the same wall as the wings.",
+      "plan": [
+        115.1,
+        118.7,
+        14.5,
+        31.3
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "v1": null,
+        "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "north-1",
+      "_src": "S9: the residential range on the north boundary, step 1 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+      "plan": [
+        158.2,
+        171.4,
+        14.5,
+        25.0
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "north-2",
+      "_src": "S9: the residential range on the north boundary, step 2 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+      "plan": [
+        162.9,
+        176.1,
+        25.0,
+        35.0
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "north-3",
+      "_src": "S9: the residential range on the north boundary, step 3 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
+      "plan": [
+        167.6,
+        180.8,
+        35.0,
+        45.5
+      ],
+      "z0": 0,
+      "z1": 10.96,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 10.96,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "_src": "u0 is the step's south-west side, inside the garage deck's volume."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "roof: the hip the fascia board and fourteen inset steps stood in for (todo 1): pitch 33 degrees, a 4.00 m rise on the 6.25 m run the steps were drawn to, the 0.45 m oversail and the 0.34 m trim fascia of the outermost box, all from S6 as the roofItems recorded them. Drawn through js/slopes-roofs.js's rig emitter as two planes and a ridge."
+      },
+      "_roof_src": "the 15 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "garage",
+      "_src": "S2's ring north of u=118.7 and west of the east wing: the parking structure whose top deck is the tan plane in S3's nadir and S4's obliques. Three levels at the residential floor-to-floor puts the deck at 8.22 m -- the openings in S9's north face are 0.8 of a residential floor, and three decks of about 2100 m2 are the ~200 stalls 144 units need (todo 3: plus or minus one level).",
+      "plan": [
+        [
+          153.4,
+          14.5
+        ],
+        [
+          118.7,
+          14.5
+        ],
+        [
+          118.7,
+          45.96
+        ],
+        [
+          162.82,
+          45.96
+        ],
+        [
+          167.8,
+          46.0
+        ]
+      ],
+      "z0": 0,
+      "z1": 8.22,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 8.22,
+          "skin": "garage"
+        }
+      ],
+      "faces": {
+        "0": null,
+        "1": null,
+        "4": null,
+        "_src": "edge 0 (v=14.5) stands against the east wing, edge 1 (u=118.7) against link-3 and the west wing, and edge 4 (the diagonal) against the north range. Only edge 2, the west wall, is open, and it is unphotographed (todo 7)."
+      },
+      "roofTone": "deck",
+      "parapet": 1.05,
+      "parapetTone": "deckRail",
+      "parapetSides": [
+        "2",
+        "3"
+      ],
+      "_parapet_src": "a 1.05 m guard wall on the deck's own open edges; edges 0, 1 and 4 are the walls the wings and the north range already stand on.",
+      "roofItems": [
+        {
+          "plan": [
+            130.5,
+            132.3,
+            24.0,
+            38.0
+          ],
+          "h": 1.1,
+          "tone": "deckRail",
+          "_src": "S3's rectified nadir: the ramp's spine wall at u 130.5-132.3, v 24-38."
+        },
+        {
+          "plan": [
+            121.0,
+            126.0,
+            39.0,
+            45.0
+          ],
+          "h": 3.0,
+          "tone": "wall",
+          "_src": "S3's rectified nadir: the stair and lift head at the deck's south-west corner."
+        }
+      ]
+    },
+    {
+      "id": "west-bay-0",
+      "_src": "S6: the projecting gabled bays on the west elevation -- 4.50 m wide, 0.90 m proud, on the 12.90 m module the gable centres measure, with the balcony stacks between them.",
+      "plan": [
+        32.0,
+        36.5,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-1",
+      "_src": "the same bay, 1 modules along.",
+      "plan": [
+        44.9,
+        49.4,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-2",
+      "_src": "the same bay, 2 modules along.",
+      "plan": [
+        57.8,
+        62.3,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-3",
+      "_src": "the same bay, 3 modules along.",
+      "plan": [
+        70.7,
+        75.2,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-4",
+      "_src": "the same bay, 4 modules along.",
+      "plan": [
+        83.6,
+        88.1,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-5",
+      "_src": "the same bay, 5 modules along.",
+      "plan": [
+        96.5,
+        101.0,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "west-bay-6",
+      "_src": "the same bay, 6 modules along.",
+      "plan": [
+        109.4,
+        113.9,
+        46.4,
+        47.3
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-0",
+      "_src": "S8: the same bay rhythm on the east elevation.",
+      "plan": [
+        32.0,
+        36.5,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-1",
+      "_src": "the same bay, 1 modules along.",
+      "plan": [
+        44.9,
+        49.4,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-2",
+      "_src": "the same bay, 2 modules along.",
+      "plan": [
+        57.8,
+        62.3,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-3",
+      "_src": "the same bay, 3 modules along.",
+      "plan": [
+        70.7,
+        75.2,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-4",
+      "_src": "the same bay, 4 modules along.",
+      "plan": [
+        83.6,
+        88.1,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-5",
+      "_src": "the same bay, 5 modules along.",
+      "plan": [
+        96.5,
+        101.0,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-6",
+      "_src": "the same bay, 6 modules along.",
+      "plan": [
+        109.4,
+        113.9,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-7",
+      "_src": "the same bay, 7 modules along.",
+      "plan": [
+        122.3,
+        126.8,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-8",
+      "_src": "the same bay, 8 modules along.",
+      "plan": [
+        135.2,
+        139.7,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "east-bay-9",
+      "_src": "the same bay, 9 modules along.",
+      "plan": [
+        148.1,
+        152.6,
+        0.1,
+        1.0
+      ],
+      "z0": 0,
+      "z1": 11.51,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 2.74,
+          "skin": "base"
+        },
+        {
+          "z0": 2.74,
+          "z1": 11.51,
+          "skin": "wall"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 is the wall plane the bay stands on."
+      },
+      "roofTone": "roof",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 33,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "roof",
+        "_src": "the bay's own hipped cap (todo 1), the six steps' 0.29 m rise on the 0.45 m run: the same 33 degree pitch as the main roof, the same trim fascia."
+      },
+      "_roof_src": "the 7 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "turret-west",
+      "_src": "S3's rectified nadir, the light-blue pyramid read at u 10-15, v 34-42 and corrected for the mesh's outward lean (h.r/H, H=430 m): the entry turret on the chamfered south-west corner, the one S5 and S7 show octagonal over a stone base. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
+      "plan": [
+        12.2,
+        18.8,
+        28.6,
+        34.2
+      ],
+      "z0": 9.76,
+      "z1": 15.26,
+      "bands": [
+        {
+          "z0": 9.76,
+          "z1": 15.26,
+          "skin": "turretWall"
+        }
+      ],
+      "roofTone": "turret",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 49.5,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "turret",
+        "_src": "the turret's pyramid cap (todo 1): the four steps rose 3.28 m over the 2.8 m half-span of the 5.6 m side, 49.5 degrees, closing to a point; the 0.45 m trim fascia is the outermost box."
+      },
+      "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "turret-east",
+      "_src": "S3's rectified nadir, the pyramid read at u 14-20, v 3.5-8.5, lean-corrected. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
+      "plan": [
+        14.0,
+        19.0,
+        0.9,
+        5.9
+      ],
+      "z0": 9.76,
+      "z1": 15.26,
+      "bands": [
+        {
+          "z0": 9.76,
+          "z1": 15.26,
+          "skin": "turretWall"
+        }
+      ],
+      "roofTone": "turret",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 49.5,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "turret",
+        "_src": "the turret's pyramid cap (todo 1): the four steps rose 3.28 m over the 2.8 m half-span of the 5.6 m side, 49.5 degrees, closing to a point; the 0.45 m trim fascia is the outermost box."
+      },
+      "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    },
+    {
+      "id": "turret-south",
+      "_src": "S3's rectified nadir, the pyramid read at u 0-3, v 22-26, lean-corrected. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
+      "plan": [
+        0.4,
+        5.0,
+        22.3,
+        27.0
+      ],
+      "z0": 9.76,
+      "z1": 15.26,
+      "bands": [
+        {
+          "z0": 9.76,
+          "z1": 15.26,
+          "skin": "turretWall"
+        }
+      ],
+      "roofTone": "turret",
+      "parapet": 0,
+      "roof": {
+        "kind": "hip",
+        "pitch": 49.5,
+        "over": 0.45,
+        "lipH": 0.34,
+        "lipTone": "trim",
+        "tone": "turret",
+        "_src": "the turret's pyramid cap (todo 1): the four steps rose 3.28 m over the 2.8 m half-span of the 5.6 m side, 49.5 degrees, closing to a point; the 0.45 m trim fascia is the outermost box."
+      },
+      "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05; the roof carries their numbers."
+    }
+  ],
+  "deck": {
+    "z": 0.0,
+    "_src": "the courtyard floor, not a roof: the pool court (S2's hole 3) is at grade between the wings. Plan extents from S3's rectified nadir, lean-corrected; the pool's own outline is a freeform lagoon in the imagery and is drawn as its bounding rectangle (todo 4).",
+    "items": [
+      {
+        "plan": [
+          76.5,
+          112.0,
+          15.0,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "poolDeck",
+        "_src": "S3 rectified: the paved pool court between the links."
+      },
+      {
+        "plan": [
+          79.0,
+          102.5,
+          15.9,
+          24.5
+        ],
+        "z0": 0.06,
+        "h": 0.1,
+        "tone": "water",
+        "_src": "S3 rectified: the pool reads u 78.5-102.6, v 15.9-24.5 (23.6 x 8.6 m), lean-corrected to u 79.0-102.5."
+      },
+      {
+        "plan": [
+          103.5,
+          111.5,
+          16.0,
+          29.5
+        ],
+        "z0": 0.06,
+        "h": 0.12,
+        "tone": "turf",
+        "_src": "S3 rectified: the green court at the pool's north end."
+      },
+      {
+        "plan": [
+          76.8,
+          77.6,
+          17.0,
+          23.0
+        ],
+        "z0": 0.06,
+        "h": 2.6,
+        "tone": "screen",
+        "_src": "S1 names a poolside projection screen; S3 shows a dark panel on the court's south wall."
+      },
+      {
+        "plan": [
+          31.0,
+          41.5,
+          15.5,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "S2 hole 1 / S3: courtyard 1 is planted, not paved."
+      },
+      {
+        "plan": [
+          62.5,
+          75.0,
+          15.5,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "S2 hole 2 / S3: courtyard 2 is planted."
+      }
     ]
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "overrides": [
-    {
-     "region": [
-      36.4,
-      39.8,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      49.3,
-      52.7,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      62.2,
-      65.6,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      75.1,
-      78.5,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      88.0,
-      91.4,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      100.9,
-      104.3,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      113.8,
-      117.2,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      126.7,
-      130.1,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      139.6,
-      143.0,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      152.5,
-      155.9,
-      0.6,
-      1.4
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 2.74,
-       "skin": "base"
-      },
-      {
-       "z0": 2.74,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    }
-   ],
-   "_overrides_src": "S8: the same balcony reveals on the east elevation, over the stone base. Only edge 0 (v=1.0) lies in these regions.",
-   "faces": {
-    "1": null,
-    "_src": "edge 0 (v=1.0, the east elevation, s measured from its u=159.5 end) carries the balcony stacks; edge 1 (u=30) stands against the south end. Edge 2 (v=14.5) is the courtyards' east wall and edges 3-4 are the diagonal north corner; both are drawn in the plain wall and are unphotographed (todo 7)."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      30.0,
-      165.75,
-      0.55,
-      14.5
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      30.45,
-      164.85,
-      1.45,
-      14.05
-     ],
-     "h": 0.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      30.89,
-      164.41,
-      1.89,
-      13.61
-     ],
-     "h": 0.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      31.34,
-      163.96,
-      2.34,
-      13.16
-     ],
-     "h": 0.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      31.79,
-      163.51,
-      2.79,
-      12.71
-     ],
-     "h": 1.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.23,
-      163.07,
-      3.23,
-      12.27
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.68,
-      162.62,
-      3.68,
-      11.82
-     ],
-     "h": 1.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      33.13,
-      162.17,
-      4.13,
-      11.37
-     ],
-     "h": 2.0,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      33.57,
-      161.73,
-      4.57,
-      10.93
-     ],
-     "h": 2.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.02,
-      161.28,
-      5.02,
-      10.48
-     ],
-     "h": 2.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.47,
-      160.83,
-      5.47,
-      10.03
-     ],
-     "h": 2.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.91,
-      160.39,
-      5.91,
-      9.59
-     ],
-     "h": 3.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      35.36,
-      159.94,
-      6.36,
-      9.14
-     ],
-     "h": 3.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      35.81,
-      159.49,
-      6.81,
-      8.69
-     ],
-     "h": 3.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      36.25,
-      159.05,
-      7.25,
-      8.25
-     ],
-     "h": 4.0,
-     "tone": "roofRidge"
-    },
-    {
-     "plan": [
-      100.0,
-      113.0,
-      3.4,
-      12.6
-     ],
-     "h": 4.0,
-     "tone": "roofFlat",
-     "_src": "S3's rectified nadir: the light membrane with condenser rows on the east range at u 100-116, v 4-13, lean-corrected."
-    },
-    {
-     "plan": [
-      101.6,
-      111.4,
-      4.8,
-      11.2
-     ],
-     "grid": [
-      5,
-      2
-     ],
-     "size": [
-      1.1,
-      2.0
-     ],
-     "h": 4.85,
-     "tone": "mech",
-     "_src": "S3's rectified nadir: the condenser rows on that membrane."
-    }
-   ]
   },
-  {
-   "id": "west-wing",
-   "_src": "S2's ring: the west range between the courtyards' west wall (v=31.3) and the west lot line (v=46.4), from the south end to the garage. This is the elevation S6 measures -- four storeys of stucco to grade, no stone base on this side.",
-   "plan": [
-    30.0,
-    118.7,
-    31.3,
-    46.4
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "overrides": [
-    {
-     "region": [
-      36.4,
-      39.8,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      49.3,
-      52.7,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      62.2,
-      65.6,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      75.1,
-      78.5,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      88.0,
-      91.4,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "region": [
-      100.9,
-      104.3,
-      46.0,
-      46.8
-     ],
-     "bands": [
-      {
-       "z0": 0,
-       "z1": 10.96,
-       "skin": "recess",
-       "balconies": [
-        {
-         "s0": 0.05,
-         "s1": 3.35
-        }
-       ]
-      }
-     ]
-    }
-   ],
-   "_overrides_src": "S6: the strip of west wall behind each balcony stack is a four-storey reveal -- it wears the recess tone and carries the stack. Only the v1 face (v=46.4) lies in these regions.",
-   "faces": {
-    "u0": null,
-    "_src": "u0 (u=30) stands against the south end. v0 (the courtyard wall) and u1 (the garage end) wear the plain wall and are unphotographed (todo 7)."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      30.0,
-      119.15,
-      30.85,
-      46.85
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      30.45,
-      118.25,
-      31.75,
-      45.95
-     ],
-     "h": 0.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      30.89,
-      117.81,
-      32.19,
-      45.51
-     ],
-     "h": 0.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      31.34,
-      117.36,
-      32.64,
-      45.06
-     ],
-     "h": 0.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      31.79,
-      116.91,
-      33.09,
-      44.61
-     ],
-     "h": 1.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.23,
-      116.47,
-      33.53,
-      44.17
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.68,
-      116.02,
-      33.98,
-      43.72
-     ],
-     "h": 1.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      33.13,
-      115.57,
-      34.43,
-      43.27
-     ],
-     "h": 2.0,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      33.57,
-      115.13,
-      34.87,
-      42.83
-     ],
-     "h": 2.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.02,
-      114.68,
-      35.32,
-      42.38
-     ],
-     "h": 2.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.47,
-      114.23,
-      35.77,
-      41.93
-     ],
-     "h": 2.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      34.91,
-      113.79,
-      36.21,
-      41.49
-     ],
-     "h": 3.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      35.36,
-      113.34,
-      36.66,
-      41.04
-     ],
-     "h": 3.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      35.81,
-      112.89,
-      37.11,
-      40.59
-     ],
-     "h": 3.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      36.25,
-      112.45,
-      37.55,
-      40.15
-     ],
-     "h": 4.0,
-     "tone": "roofRidge"
-    },
-    {
-     "plan": [
-      72.0,
-      82.0,
-      33.5,
-      44.0
-     ],
-     "h": 4.0,
-     "tone": "roofFlat",
-     "_src": "S3's rectified nadir: the membrane with condenser rows on the west range at u 70-79, v 32-42, lean-corrected."
-    },
-    {
-     "plan": [
-      73.6,
-      80.4,
-      34.9,
-      42.6
-     ],
-     "grid": [
-      4,
-      2
-     ],
-     "size": [
-      1.1,
-      2.0
-     ],
-     "h": 4.85,
-     "tone": "mech",
-     "_src": "S3's rectified nadir: the condenser rows on that membrane."
-    },
-    {
-     "plan": [
-      101.0,
-      110.0,
-      33.5,
-      44.0
-     ],
-     "h": 4.0,
-     "tone": "roofFlat",
-     "_src": "S3's rectified nadir: the second such membrane at u 99-107."
-    },
-    {
-     "plan": [
-      102.6,
-      108.4,
-      34.9,
-      42.6
-     ],
-     "grid": [
-      4,
-      2
-     ],
-     "size": [
-      1.1,
-      2.0
-     ],
-     "h": 4.85,
-     "tone": "mech",
-     "_src": "S3's rectified nadir: the condenser rows on that membrane."
-    }
-   ]
-  },
-  {
-   "id": "link-1",
-   "_src": "S2's holes: the cross range between courtyard 1 and 2. Four storeys, the same wall as the wings.",
-   "plan": [
-    42.2,
-    61.5,
-    14.5,
-    31.3
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "v1": null,
-    "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      41.75,
-      61.95,
-      14.5,
-      31.3
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      42.65,
-      61.05,
-      14.95,
-      30.85
-     ],
-     "h": 0.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      43.09,
-      60.61,
-      15.39,
-      30.41
-     ],
-     "h": 0.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      43.54,
-      60.16,
-      15.84,
-      29.96
-     ],
-     "h": 0.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      43.99,
-      59.71,
-      16.29,
-      29.51
-     ],
-     "h": 1.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      44.43,
-      59.27,
-      16.73,
-      29.07
-     ],
-     "h": 1.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      44.88,
-      58.82,
-      17.18,
-      28.62
-     ],
-     "h": 1.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.33,
-      58.37,
-      17.63,
-      28.17
-     ],
-     "h": 2.0,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.77,
-      57.93,
-      18.07,
-      27.73
-     ],
-     "h": 2.29,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      46.22,
-      57.48,
-      18.52,
-      27.28
-     ],
-     "h": 2.57,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      46.67,
-      57.03,
-      18.97,
-      26.83
-     ],
-     "h": 2.86,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      47.11,
-      56.59,
-      19.41,
-      26.39
-     ],
-     "h": 3.14,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      47.56,
-      56.14,
-      19.86,
-      25.94
-     ],
-     "h": 3.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      48.01,
-      55.69,
-      20.31,
-      25.49
-     ],
-     "h": 3.71,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      48.45,
-      55.25,
-      20.75,
-      25.05
-     ],
-     "h": 4.0,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "link-2",
-   "_src": "S2's holes: the cross range between courtyard 2 and 3. Four storeys, the same wall as the wings.",
-   "plan": [
-    75.9,
-    79.4,
-    14.5,
-    31.3
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "v1": null,
-    "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      75.45,
-      79.85,
-      14.5,
-      31.3
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      76.0,
-      79.3,
-      14.6,
-      31.2
-     ],
-     "h": 0.06,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.09,
-      79.21,
-      14.69,
-      31.11
-     ],
-     "h": 0.12,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.19,
-      79.11,
-      14.79,
-      31.01
-     ],
-     "h": 0.19,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.29,
-      79.01,
-      14.89,
-      30.91
-     ],
-     "h": 0.25,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.38,
-      78.92,
-      14.98,
-      30.82
-     ],
-     "h": 0.31,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.48,
-      78.82,
-      15.08,
-      30.72
-     ],
-     "h": 0.37,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.58,
-      78.73,
-      15.18,
-      30.62
-     ],
-     "h": 0.43,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.67,
-      78.63,
-      15.27,
-      30.53
-     ],
-     "h": 0.49,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.77,
-      78.53,
-      15.37,
-      30.43
-     ],
-     "h": 0.56,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.86,
-      78.44,
-      15.46,
-      30.34
-     ],
-     "h": 0.62,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      76.96,
-      78.34,
-      15.56,
-      30.24
-     ],
-     "h": 0.68,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      77.06,
-      78.24,
-      15.66,
-      30.14
-     ],
-     "h": 0.74,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      77.15,
-      78.15,
-      15.75,
-      30.05
-     ],
-     "h": 0.8,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      77.25,
-      78.05,
-      15.85,
-      29.95
-     ],
-     "h": 0.86,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "link-3",
-   "_src": "S2's holes: the cross range between courtyard 3 and the garage. Four storeys, the same wall as the wings.",
-   "plan": [
-    115.1,
-    118.7,
-    14.5,
-    31.3
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "v1": null,
-    "_src": "v0 (v=14.5) and v1 (v=31.3) are coplanar with the east and west wings' courtyard faces: not drawn twice."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      114.65,
-      119.15,
-      14.5,
-      31.3
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      115.2,
-      118.6,
-      14.6,
-      31.2
-     ],
-     "h": 0.06,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.3,
-      118.5,
-      14.7,
-      31.1
-     ],
-     "h": 0.13,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.4,
-      118.4,
-      14.8,
-      31.0
-     ],
-     "h": 0.19,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.5,
-      118.3,
-      14.9,
-      30.9
-     ],
-     "h": 0.26,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.6,
-      118.2,
-      15.0,
-      30.8
-     ],
-     "h": 0.32,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.7,
-      118.1,
-      15.1,
-      30.7
-     ],
-     "h": 0.38,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.8,
-      118.0,
-      15.2,
-      30.6
-     ],
-     "h": 0.45,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      115.9,
-      117.9,
-      15.3,
-      30.5
-     ],
-     "h": 0.51,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.0,
-      117.8,
-      15.4,
-      30.4
-     ],
-     "h": 0.58,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.1,
-      117.7,
-      15.5,
-      30.3
-     ],
-     "h": 0.64,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.2,
-      117.6,
-      15.6,
-      30.2
-     ],
-     "h": 0.7,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.3,
-      117.5,
-      15.7,
-      30.1
-     ],
-     "h": 0.77,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.4,
-      117.4,
-      15.8,
-      30.0
-     ],
-     "h": 0.83,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      116.5,
-      117.3,
-      15.9,
-      29.9
-     ],
-     "h": 0.9,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "north-1",
-   "_src": "S9: the residential range on the north boundary, step 1 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
-   "plan": [
-    158.2,
-    171.4,
-    14.5,
-    25.0
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "u0": null,
-    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      158.2,
-      171.85,
-      14.05,
-      25.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      158.55,
-      171.05,
-      14.85,
-      24.65
-     ],
-     "h": 0.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      158.89,
-      170.71,
-      15.19,
-      24.31
-     ],
-     "h": 0.44,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      159.24,
-      170.36,
-      15.54,
-      23.96
-     ],
-     "h": 0.66,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      159.59,
-      170.01,
-      15.89,
-      23.61
-     ],
-     "h": 0.89,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      159.93,
-      169.67,
-      16.23,
-      23.27
-     ],
-     "h": 1.11,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      160.28,
-      169.32,
-      16.58,
-      22.92
-     ],
-     "h": 1.33,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      160.63,
-      168.98,
-      16.93,
-      22.57
-     ],
-     "h": 1.55,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      160.97,
-      168.63,
-      17.27,
-      22.23
-     ],
-     "h": 1.77,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      161.32,
-      168.28,
-      17.62,
-      21.88
-     ],
-     "h": 1.99,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      161.66,
-      167.94,
-      17.96,
-      21.54
-     ],
-     "h": 2.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      162.01,
-      167.59,
-      18.31,
-      21.19
-     ],
-     "h": 2.44,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      162.36,
-      167.24,
-      18.66,
-      20.84
-     ],
-     "h": 2.66,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      162.7,
-      166.9,
-      19.0,
-      20.5
-     ],
-     "h": 2.88,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      163.05,
-      166.55,
-      19.35,
-      20.15
-     ],
-     "h": 3.1,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "north-2",
-   "_src": "S9: the residential range on the north boundary, step 2 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
-   "plan": [
-    162.9,
-    176.1,
-    25.0,
-    35.0
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "u0": null,
-    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      162.9,
-      176.55,
-      24.55,
-      35.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      163.23,
-      175.77,
-      25.33,
-      34.67
-     ],
-     "h": 0.21,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      163.56,
-      175.44,
-      25.66,
-      34.34
-     ],
-     "h": 0.42,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      163.89,
-      175.11,
-      25.99,
-      34.01
-     ],
-     "h": 0.63,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      164.21,
-      174.79,
-      26.31,
-      33.69
-     ],
-     "h": 0.84,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      164.54,
-      174.46,
-      26.64,
-      33.36
-     ],
-     "h": 1.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      164.87,
-      174.13,
-      26.97,
-      33.03
-     ],
-     "h": 1.26,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      165.2,
-      173.8,
-      27.3,
-      32.7
-     ],
-     "h": 1.47,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      165.53,
-      173.47,
-      27.63,
-      32.37
-     ],
-     "h": 1.68,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      165.86,
-      173.14,
-      27.96,
-      32.04
-     ],
-     "h": 1.89,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      166.19,
-      172.81,
-      28.29,
-      31.71
-     ],
-     "h": 2.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      166.51,
-      172.49,
-      28.61,
-      31.39
-     ],
-     "h": 2.31,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      166.84,
-      172.16,
-      28.94,
-      31.06
-     ],
-     "h": 2.52,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      167.17,
-      171.83,
-      29.27,
-      30.73
-     ],
-     "h": 2.73,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      167.5,
-      171.5,
-      29.6,
-      30.4
-     ],
-     "h": 2.94,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "north-3",
-   "_src": "S9: the residential range on the north boundary, step 3 of three along the ring's diagonal. Four storeys of stucco over a stone base, hipped like the wings; the deck is behind it.",
-   "plan": [
-    167.6,
-    180.8,
-    35.0,
-    45.5
-   ],
-   "z0": 0,
-   "z1": 10.96,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 10.96,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "u0": null,
-    "_src": "u0 is the step's south-west side, inside the garage deck's volume."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      167.6,
-      181.25,
-      34.55,
-      45.95
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "The hip roof as a fascia board plus 14 inset steps, because the generator draws flat roofs only (todo 1): step i insets i/14 of the 6.25 m run for i/14 of the 4.00 m rise, so the silhouette leans at the roof's own 33 degree pitch instead of reading as a lid. Rise and pitch from S6."
-    },
-    {
-     "plan": [
-      167.95,
-      180.45,
-      35.35,
-      45.15
-     ],
-     "h": 0.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      168.29,
-      180.11,
-      35.69,
-      44.81
-     ],
-     "h": 0.44,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      168.64,
-      179.76,
-      36.04,
-      44.46
-     ],
-     "h": 0.66,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      168.99,
-      179.41,
-      36.39,
-      44.11
-     ],
-     "h": 0.89,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      169.33,
-      179.07,
-      36.73,
-      43.77
-     ],
-     "h": 1.11,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      169.68,
-      178.72,
-      37.08,
-      43.42
-     ],
-     "h": 1.33,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      170.02,
-      178.37,
-      37.42,
-      43.08
-     ],
-     "h": 1.55,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      170.37,
-      178.03,
-      37.77,
-      42.73
-     ],
-     "h": 1.77,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      170.72,
-      177.68,
-      38.12,
-      42.38
-     ],
-     "h": 1.99,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      171.06,
-      177.34,
-      38.46,
-      42.04
-     ],
-     "h": 2.22,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      171.41,
-      176.99,
-      38.81,
-      41.69
-     ],
-     "h": 2.44,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      171.76,
-      176.64,
-      39.16,
-      41.34
-     ],
-     "h": 2.66,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      172.1,
-      176.3,
-      39.5,
-      41.0
-     ],
-     "h": 2.88,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      172.45,
-      175.95,
-      39.85,
-      40.65
-     ],
-     "h": 3.1,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "garage",
-   "_src": "S2's ring north of u=118.7 and west of the east wing: the parking structure whose top deck is the tan plane in S3's nadir and S4's obliques. Three levels at the residential floor-to-floor puts the deck at 8.22 m -- the openings in S9's north face are 0.8 of a residential floor, and three decks of about 2100 m2 are the ~200 stalls 144 units need (todo 3: plus or minus one level).",
-   "plan": [
-    [
-     153.4,
-     14.5
-    ],
-    [
-     118.7,
-     14.5
-    ],
-    [
-     118.7,
-     45.96
-    ],
-    [
-     162.82,
-     45.96
-    ],
-    [
-     167.8,
-     46.0
-    ]
-   ],
-   "z0": 0,
-   "z1": 8.22,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 8.22,
-     "skin": "garage"
-    }
-   ],
-   "faces": {
-    "0": null,
-    "1": null,
-    "4": null,
-    "_src": "edge 0 (v=14.5) stands against the east wing, edge 1 (u=118.7) against link-3 and the west wing, and edge 4 (the diagonal) against the north range. Only edge 2, the west wall, is open, and it is unphotographed (todo 7)."
-   },
-   "roofTone": "deck",
-   "parapet": 1.05,
-   "parapetTone": "deckRail",
-   "parapetSides": [
-    "2",
-    "3"
-   ],
-   "_parapet_src": "a 1.05 m guard wall on the deck's own open edges; edges 0, 1 and 4 are the walls the wings and the north range already stand on.",
-   "roofItems": [
-    {
-     "plan": [
-      130.5,
-      132.3,
-      24.0,
-      38.0
-     ],
-     "h": 1.1,
-     "tone": "deckRail",
-     "_src": "S3's rectified nadir: the ramp's spine wall at u 130.5-132.3, v 24-38."
-    },
-    {
-     "plan": [
-      121.0,
-      126.0,
-      39.0,
-      45.0
-     ],
-     "h": 3.0,
-     "tone": "wall",
-     "_src": "S3's rectified nadir: the stair and lift head at the deck's south-west corner."
-    }
-   ]
-  },
-  {
-   "id": "west-bay-0",
-   "_src": "S6: the projecting gabled bays on the west elevation -- 4.50 m wide, 0.90 m proud, on the 12.90 m module the gable centres measure, with the balcony stacks between them.",
-   "plan": [
-    32.0,
-    36.5,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      31.55,
-      36.95,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      32.04,
-      36.46,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.08,
-      36.42,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.12,
-      36.38,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.17,
-      36.33,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.21,
-      36.29,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.25,
-      36.25,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-1",
-   "_src": "the same bay, 1 modules along.",
-   "plan": [
-    44.9,
-    49.4,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      44.45,
-      49.85,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      44.94,
-      49.36,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      44.98,
-      49.32,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.02,
-      49.27,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.07,
-      49.23,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.11,
-      49.19,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.15,
-      49.15,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-2",
-   "_src": "the same bay, 2 modules along.",
-   "plan": [
-    57.8,
-    62.3,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      57.35,
-      62.75,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      57.84,
-      62.26,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.88,
-      62.22,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.92,
-      62.17,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.97,
-      62.13,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      58.01,
-      62.09,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      58.05,
-      62.05,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-3",
-   "_src": "the same bay, 3 modules along.",
-   "plan": [
-    70.7,
-    75.2,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      70.25,
-      75.65,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      70.74,
-      75.16,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.78,
-      75.12,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.83,
-      75.08,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.87,
-      75.03,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.91,
-      74.99,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.95,
-      74.95,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-4",
-   "_src": "the same bay, 4 modules along.",
-   "plan": [
-    83.6,
-    88.1,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      83.15,
-      88.55,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      83.64,
-      88.06,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.68,
-      88.02,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.73,
-      87.98,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.77,
-      87.93,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.81,
-      87.89,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.85,
-      87.85,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-5",
-   "_src": "the same bay, 5 modules along.",
-   "plan": [
-    96.5,
-    101.0,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      96.05,
-      101.45,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      96.54,
-      100.96,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.58,
-      100.92,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.63,
-      100.88,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.67,
-      100.83,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.71,
-      100.79,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.75,
-      100.75,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "west-bay-6",
-   "_src": "the same bay, 6 modules along.",
-   "plan": [
-    109.4,
-    113.9,
-    46.4,
-    47.3
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v0": null,
-    "_src": "v0 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      108.95,
-      114.35,
-      45.95,
-      47.75
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      109.44,
-      113.86,
-      46.44,
-      47.26
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.48,
-      113.82,
-      46.48,
-      47.22
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.53,
-      113.78,
-      46.52,
-      47.17
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.57,
-      113.73,
-      46.57,
-      47.13
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.61,
-      113.69,
-      46.61,
-      47.09
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.65,
-      113.65,
-      46.65,
-      47.05
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-0",
-   "_src": "S8: the same bay rhythm on the east elevation.",
-   "plan": [
-    32.0,
-    36.5,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      31.55,
-      36.95,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      32.04,
-      36.46,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.08,
-      36.42,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.12,
-      36.38,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.17,
-      36.33,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.21,
-      36.29,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      32.25,
-      36.25,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-1",
-   "_src": "the same bay, 1 modules along.",
-   "plan": [
-    44.9,
-    49.4,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      44.45,
-      49.85,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      44.94,
-      49.36,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      44.98,
-      49.32,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.02,
-      49.27,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.07,
-      49.23,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.11,
-      49.19,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      45.15,
-      49.15,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-2",
-   "_src": "the same bay, 2 modules along.",
-   "plan": [
-    57.8,
-    62.3,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      57.35,
-      62.75,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      57.84,
-      62.26,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.88,
-      62.22,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.92,
-      62.17,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      57.97,
-      62.13,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      58.01,
-      62.09,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      58.05,
-      62.05,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-3",
-   "_src": "the same bay, 3 modules along.",
-   "plan": [
-    70.7,
-    75.2,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      70.25,
-      75.65,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      70.74,
-      75.16,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.78,
-      75.12,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.83,
-      75.08,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.87,
-      75.03,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.91,
-      74.99,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      70.95,
-      74.95,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-4",
-   "_src": "the same bay, 4 modules along.",
-   "plan": [
-    83.6,
-    88.1,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      83.15,
-      88.55,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      83.64,
-      88.06,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.68,
-      88.02,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.73,
-      87.98,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.77,
-      87.93,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.81,
-      87.89,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      83.85,
-      87.85,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-5",
-   "_src": "the same bay, 5 modules along.",
-   "plan": [
-    96.5,
-    101.0,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      96.05,
-      101.45,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      96.54,
-      100.96,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.58,
-      100.92,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.63,
-      100.88,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.67,
-      100.83,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.71,
-      100.79,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      96.75,
-      100.75,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-6",
-   "_src": "the same bay, 6 modules along.",
-   "plan": [
-    109.4,
-    113.9,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      108.95,
-      114.35,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      109.44,
-      113.86,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.48,
-      113.82,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.53,
-      113.78,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.57,
-      113.73,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.61,
-      113.69,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      109.65,
-      113.65,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-7",
-   "_src": "the same bay, 7 modules along.",
-   "plan": [
-    122.3,
-    126.8,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      121.85,
-      127.25,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      122.34,
-      126.76,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      122.38,
-      126.72,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      122.43,
-      126.68,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      122.47,
-      126.63,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      122.51,
-      126.59,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      122.55,
-      126.55,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-8",
-   "_src": "the same bay, 8 modules along.",
-   "plan": [
-    135.2,
-    139.7,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      134.75,
-      140.15,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      135.24,
-      139.66,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      135.28,
-      139.62,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      135.33,
-      139.58,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      135.37,
-      139.53,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      135.41,
-      139.49,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      135.45,
-      139.45,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "east-bay-9",
-   "_src": "the same bay, 9 modules along.",
-   "plan": [
-    148.1,
-    152.6,
-    0.1,
-    1.0
-   ],
-   "z0": 0,
-   "z1": 11.51,
-   "bands": [
-    {
-     "z0": 0,
-     "z1": 2.74,
-     "skin": "base"
-    },
-    {
-     "z0": 2.74,
-     "z1": 11.51,
-     "skin": "wall"
-    }
-   ],
-   "faces": {
-    "v1": null,
-    "_src": "v1 is the wall plane the bay stands on."
-   },
-   "roofTone": "roof",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      147.65,
-      153.05,
-      -0.35,
-      1.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the bay's own hipped cap, six steps (todo 1); it breaks the main eave, which is what S6's west elevation reads as a rhythm rather than a wall."
-    },
-    {
-     "plan": [
-      148.14,
-      152.56,
-      0.14,
-      0.96
-     ],
-     "h": 0.05,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      148.18,
-      152.52,
-      0.18,
-      0.92
-     ],
-     "h": 0.1,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      148.23,
-      152.48,
-      0.22,
-      0.88
-     ],
-     "h": 0.15,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      148.27,
-      152.43,
-      0.27,
-      0.83
-     ],
-     "h": 0.2,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      148.31,
-      152.39,
-      0.31,
-      0.79
-     ],
-     "h": 0.24,
-     "tone": "roof"
-    },
-    {
-     "plan": [
-      148.35,
-      152.35,
-      0.35,
-      0.75
-     ],
-     "h": 0.29,
-     "tone": "roofRidge"
-    }
-   ]
-  },
-  {
-   "id": "turret-west",
-   "_src": "S3's rectified nadir, the light-blue pyramid read at u 10-15, v 34-42 and corrected for the mesh's outward lean (h.r/H, H=430 m): the entry turret on the chamfered south-west corner, the one S5 and S7 show octagonal over a stone base. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
-   "plan": [
-    12.2,
-    18.8,
-    28.6,
-    34.2
-   ],
-   "z0": 9.76,
-   "z1": 15.26,
-   "bands": [
-    {
-     "z0": 9.76,
-     "z1": 15.26,
-     "skin": "turretWall"
-    }
-   ],
-   "roofTone": "turret",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      11.75,
-      19.25,
-      28.15,
-      34.65
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the turret's pyramid cap as four inset steps (todo 1); it closes to a point, so the run is the half-span."
-    },
-    {
-     "plan": [
-      12.84,
-      18.16,
-      29.24,
-      33.56
-     ],
-     "h": 0.82,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      13.47,
-      17.52,
-      29.88,
-      32.93
-     ],
-     "h": 1.64,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      14.11,
-      16.89,
-      30.51,
-      32.29
-     ],
-     "h": 2.46,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      14.75,
-      16.25,
-      31.15,
-      31.65
-     ],
-     "h": 3.28,
-     "tone": "turret"
-    }
-   ]
-  },
-  {
-   "id": "turret-east",
-   "_src": "S3's rectified nadir, the pyramid read at u 14-20, v 3.5-8.5, lean-corrected. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
-   "plan": [
-    14.0,
-    19.0,
-    0.9,
-    5.9
-   ],
-   "z0": 9.76,
-   "z1": 15.26,
-   "bands": [
-    {
-     "z0": 9.76,
-     "z1": 15.26,
-     "skin": "turretWall"
-    }
-   ],
-   "roofTone": "turret",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      13.55,
-      19.45,
-      0.45,
-      6.35
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the turret's pyramid cap as four inset steps (todo 1); it closes to a point, so the run is the half-span."
-    },
-    {
-     "plan": [
-      14.56,
-      18.44,
-      1.46,
-      5.34
-     ],
-     "h": 0.81,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      15.12,
-      17.88,
-      2.02,
-      4.78
-     ],
-     "h": 1.62,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      15.69,
-      17.31,
-      2.59,
-      4.21
-     ],
-     "h": 2.43,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      16.25,
-      16.75,
-      3.15,
-      3.65
-     ],
-     "h": 3.24,
-     "tone": "turret"
-    }
-   ]
-  },
-  {
-   "id": "turret-south",
-   "_src": "S3's rectified nadir, the pyramid read at u 0-3, v 22-26, lean-corrected. Only the collar above the hip roof is drawn: below 9.76 m the turret is inside the south end's own volume.",
-   "plan": [
-    0.4,
-    5.0,
-    22.3,
-    27.0
-   ],
-   "z0": 9.76,
-   "z1": 15.26,
-   "bands": [
-    {
-     "z0": 9.76,
-     "z1": 15.26,
-     "skin": "turretWall"
-    }
-   ],
-   "roofTone": "turret",
-   "parapet": 0,
-   "roofItems": [
-    {
-     "plan": [
-      -0.05,
-      5.45,
-      21.85,
-      27.45
-     ],
-     "h": 0.34,
-     "tone": "trim",
-     "_src": "the turret's pyramid cap as four inset steps (todo 1); it closes to a point, so the run is the half-span."
-    },
-    {
-     "plan": [
-      0.91,
-      4.49,
-      22.81,
-      26.49
-     ],
-     "h": 0.8,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      1.42,
-      3.98,
-      23.32,
-      25.98
-     ],
-     "h": 1.6,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      1.94,
-      3.46,
-      23.84,
-      25.46
-     ],
-     "h": 2.41,
-     "tone": "turret"
-    },
-    {
-     "plan": [
-      2.45,
-      2.95,
-      24.35,
-      24.95
-     ],
-     "h": 3.21,
-     "tone": "turret"
-    }
-   ]
-  }
- ],
- "deck": {
-  "z": 0.0,
-  "_src": "the courtyard floor, not a roof: the pool court (S2's hole 3) is at grade between the wings. Plan extents from S3's rectified nadir, lean-corrected; the pool's own outline is a freeform lagoon in the imagery and is drawn as its bounding rectangle (todo 4).",
-  "items": [
-   {
-    "plan": [
-     76.5,
-     112.0,
-     15.0,
-     30.5
-    ],
-    "z0": 0.0,
-    "h": 0.06,
-    "tone": "poolDeck",
-    "_src": "S3 rectified: the paved pool court between the links."
-   },
-   {
-    "plan": [
-     79.0,
-     102.5,
-     15.9,
-     24.5
-    ],
-    "z0": 0.06,
-    "h": 0.1,
-    "tone": "water",
-    "_src": "S3 rectified: the pool reads u 78.5-102.6, v 15.9-24.5 (23.6 x 8.6 m), lean-corrected to u 79.0-102.5."
-   },
-   {
-    "plan": [
-     103.5,
-     111.5,
-     16.0,
-     29.5
-    ],
-    "z0": 0.06,
-    "h": 0.12,
-    "tone": "turf",
-    "_src": "S3 rectified: the green court at the pool's north end."
-   },
-   {
-    "plan": [
-     76.8,
-     77.6,
-     17.0,
-     23.0
-    ],
-    "z0": 0.06,
-    "h": 2.6,
-    "tone": "screen",
-    "_src": "S1 names a poolside projection screen; S3 shows a dark panel on the court's south wall."
-   },
-   {
-    "plan": [
-     31.0,
-     41.5,
-     15.5,
-     30.5
-    ],
-    "z0": 0.0,
-    "h": 0.06,
-    "tone": "turf",
-    "_src": "S2 hole 1 / S3: courtyard 1 is planted, not paved."
-   },
-   {
-    "plan": [
-     62.5,
-     75.0,
-     15.5,
-     30.5
-    ],
-    "z0": 0.0,
-    "h": 0.06,
-    "tone": "turf",
-    "_src": "S2 hole 2 / S3: courtyard 2 is planted."
-   }
+  "todo": [
+    "DONE 2026-09-05: every hip is a `roof` on its block now (pitch 33, the bays 33, the turrets 49.5), two planes and a ridge through the roofs emitter, in place of about 120 boxes (was: 1. The generator has no pitched-roof block. Every hip here is a fascia board plus four or five concentric roofItem boxes standing on a flat  ...)",
+    "2. Balconies can only project. This building's are INSET in the wall plane; they are drawn projecting 0.55 m so the dark line lands where the photograph puts it. An inset flag on the balcony module would draw the reveal instead.",
+    "3. The garage deck is at 8.22 m -- three levels at the residential floor-to-floor. S9 shows the openings but not how many levels; plus or minus one level (2.74 m). A drawing, or a photograph of the garage's west wall, would settle it.",
+    "4. The pool is a freeform lagoon in S3 and is drawn as a rectangle: deck.items takes rectangles only. A polygon plan there would draw its real edge.",
+    "5. The FONT in js/slopes-apartments.js has no V, so the west face's VILLAS wordmark (S6, at the south end of the west wall) is not drawn. Adding V, G, P, B, F, W and Y would let it in.",
+    "6. The three turrets' plans are read off S3's rectified nadir with the mesh-lean correction and are plus or minus 3 m in u; a ground photograph of the entry would pin them.",
+    "DONE 2026-09-05: the north range's three rectangles each carry a real hip now; a hip on the diagonal outline itself still needs a polygon plan for the range (was: 6b. The north range follows a DIAGONAL boundary and is drawn as three rectangles stepping along it, because roofItems are rectangles and a d ...)",
+    "7. Faces nobody photographed: the four courtyard walls, the links' end walls, and the garage's west wall. They wear the plainest rule the building has -- the wall skin and the garage screen -- and are named here as unphotographed.",
+    "8. Listed in data/apartments/index.json as the fifth building, with 84a96de1-f96c-453d-9b87-b49b0579af73 under replacedBuildingIds and \"The Villas on Guadalupe\" under replacedNames -- the only line this piece wrote outside its own file.",
+    "9. THE ONE THING THAT BREAKS THE PICTURE, and it is not in a file this piece owns. The roofscape pass baked its deck, plant, unit, duct and pool on to this building at Overture's 26.3 m: eight features in data/roofscape.geojson whose centroids fall in this footprint sit at b 27.3-27.6 and h 27.6-29.3, and one of them is a deck that covers the whole roof. Our real ridge is 14.96 m, so with roofscape on a grey lid floats 12.6 m above the building and hides all of it -- queryRenderedFeatures at the centre returns roofscape-deck. setFilters in js/slopes-apartments.js hides buildings-3d, buildings-roof and the four wc-* layers but knows nothing about roofscape-deck / -major / -minor, and the roofscape features carry no id or name to filter on, only k/b/h -- so the fix is either a bid on the roofscape bake's features or a geometric clause. Every frame this piece was judged from was taken with those three layers hidden. It will bite any replaced building whose Overture height is far from its real one."
   ]
- },
- "todo": [
-  "1. The generator has no pitched-roof block. Every hip here is a fascia board plus four or five concentric roofItem boxes standing on a flat roof; the silhouette leans at the right pitch but the slopes are stepped, and a walking-height camera sees the steps. A roof:{kind:'hip', pitch, overhang, ridgeAxis} on a block would replace about 120 boxes with one mesh and give a real ridge.",
-  "2. Balconies can only project. This building's are INSET in the wall plane; they are drawn projecting 0.55 m so the dark line lands where the photograph puts it. An inset flag on the balcony module would draw the reveal instead.",
-  "3. The garage deck is at 8.22 m -- three levels at the residential floor-to-floor. S9 shows the openings but not how many levels; plus or minus one level (2.74 m). A drawing, or a photograph of the garage's west wall, would settle it.",
-  "4. The pool is a freeform lagoon in S3 and is drawn as a rectangle: deck.items takes rectangles only. A polygon plan there would draw its real edge.",
-  "5. The FONT in js/slopes-apartments.js has no V, so the west face's VILLAS wordmark (S6, at the south end of the west wall) is not drawn. Adding V, G, P, B, F, W and Y would let it in.",
-  "6. The three turrets' plans are read off S3's rectified nadir with the mesh-lean correction and are plus or minus 3 m in u; a ground photograph of the entry would pin them.",
-  "6b. The north range follows a DIAGONAL boundary and is drawn as three rectangles stepping along it, because roofItems are rectangles and a diagonal hip cannot be built from them. The steps show as 2-3 m jogs in plan; a hip on a polygon block would draw it straight.",
-  "7. Faces nobody photographed: the four courtyard walls, the links' end walls, and the garage's west wall. They wear the plainest rule the building has -- the wall skin and the garage screen -- and are named here as unphotographed.",
-  "8. Listed in data/apartments/index.json as the fifth building, with 84a96de1-f96c-453d-9b87-b49b0579af73 under replacedBuildingIds and \"The Villas on Guadalupe\" under replacedNames -- the only line this piece wrote outside its own file.",
-  "9. THE ONE THING THAT BREAKS THE PICTURE, and it is not in a file this piece owns. The roofscape pass baked its deck, plant, unit, duct and pool on to this building at Overture's 26.3 m: eight features in data/roofscape.geojson whose centroids fall in this footprint sit at b 27.3-27.6 and h 27.6-29.3, and one of them is a deck that covers the whole roof. Our real ridge is 14.96 m, so with roofscape on a grey lid floats 12.6 m above the building and hides all of it -- queryRenderedFeatures at the centre returns roofscape-deck. setFilters in js/slopes-apartments.js hides buildings-3d, buildings-roof and the four wc-* layers but knows nothing about roofscape-deck / -major / -minor, and the roofscape features carry no id or name to filter on, only k/b/h -- so the fix is either a bid on the roofscape bake's features or a geometric clause. Every frame this piece was judged from was taken with those three layers hidden. It will bite any replaced building whose Overture height is far from its real one."
- ]
 }

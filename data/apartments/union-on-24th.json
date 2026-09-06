@@ -209,32 +209,34 @@
       "#22345c",
       "#2244aa"
     ],
-    "_jumbo_src": "S2's jumbotron material (colour 0x1a2a4a with emissive 0x2244aa); the night value is the emissive, so the screen stays lit after dark"
+    "_jumbo_src": "S2's jumbotron material (colour 0x1a2a4a with emissive 0x2244aa); the night value is the emissive, so the screen stays lit after dark",
+    "frameBase": {
+      "hex": "#94999d",
+      "_src": "S2 MAT.frameBase: the light boxed surround's base gray, 0.147 of the cell; the mod-4 skin draws it as itself now, so the blended `panel` tone is no longer needed on the outer wall."
+    },
+    "cladH": {
+      "hex": "#302f34",
+      "_src": "S2 MAT.cladUh: the same cladding rotated, horizontal ribs behind every H-pair - a hair lighter than the vertical field so the pair's zone reads at the walk-up."
+    }
   },
   "skins": {
     "_src": "one rule per face treatment; every count comes from a module, never a hard-coded number",
     "mod4": {
-      "kind": "bays",
-      "bay": 3.26,
+      "kind": "mod4",
+      "cell": 3.26,
       "field": "clad",
-      "strip": {
-        "w": 2.58,
-        "tone": "panel",
-        "at": "centres"
-      },
-      "floorLine": {
-        "h": 0.68,
-        "tone": "clad"
-      },
-      "window": {
-        "w": 1.6,
-        "h": 1.6,
-        "sill": 1.17
-      },
+      "fieldH": "cladH",
+      "frameTone": "frameBase",
+      "stripTone": "strip",
       "glass": "glassU",
       "frame": "strip",
       "reveal": 0.12,
-      "_src": "The outer facade, all four sides of both wings. S2's 'mod-4' wall: a SQUARE 3.26 m cell on the dark clad field, each cell carrying a light boxed surround 0.79 of the cell wide and tall, two light strips, and a 0.49-cell window - 'Light box 0.79 of cell, glass 0.49, light strip 0.15, edge inset ~0.105; these sum to 1.0 exactly.' Here the box is a 2.58 m bay strip and the 0.68 m dark reveal shows on all four sides of it: the vertical reveal from the bay module, the horizontal one from `floorLine`. The window is 1.60 x 1.60 with its light `strip` reveal, sill 1.17 above the floor line so the cell is centred. The bay divides the faces into S2's own frozen counts with nothing rounded: the 52.01 m long faces give 16 columns and the 22.82 m end caps give 7, which are 'Simeon's counts - VERIFIED CORRECT, do not change'. What is NOT reproduced is the k=(c-r) mod 4 pairing that merges half the cells into horizontal and half into vertical two-cell dominoes; see `open`."
+      "period": 4,
+      "pairs": {
+        "0": "h",
+        "3": "v"
+      },
+      "_src": "The outer facade, all four sides of both wings, as S2 draws it and this file could not until 2026-09-05: a SQUARE 3.26 m cell per bay per floor, every cell a 0.49-cell window in a light box 0.79 of the cell with two light strips, on the dark ribbed clad, and the cells merged into dominoes by k = (c - r) mod 4 (k0 pairs with the cell to its right, k3 with the cell below; S2's _gen_pattern.py rule, audit 4.1). The 52.01 m long faces give 16 columns and the 22.82 m caps 7, S2's frozen counts. The column index is CONTINUED round the corners as S2 does it (audit 4.4): the south caps continue c = 16.. from the corner, the north caps count c = -1.. inward from theirs, so the diagonals wrap on to the caps and an edge cell pairs with the cap's."
     },
     "court": {
       "kind": "bays",
@@ -272,15 +274,16 @@
     "loggia": {
       "kind": "storefront",
       "mullion": 3.07,
-      "mullionW": 0.56,
+      "mullionW": 0.1,
       "fascia": 0.34,
       "plinth": 0.0,
       "transom": 0.78,
       "fasciaTone": "pavConc",
       "frame": "pavConc",
       "glass": "courtGlass",
-      "reveal": 0.45,
-      "_src": "Level 6, the bottom of the court: S2 audit 4.5 (C) - 'the court has 22 rows to the outer faces' 23, because L6 is a full-height GLAZED LOGGIA recessed ~1 bay behind the tower face, on square columns. That recess IS the change on the way down.' Square columns 0.56 m at the 3.07 m bay on the face line, the soffit band 0.34 m, dark court glass behind. The 3.3 m recess itself is not modelled - see `open`; the 0.45 m reveal is as far back as this generator sets a pane."
+      "reveal": 0.12,
+      "_src": "Level 6, the bottom of the court: S2 audit 4.5 (C) - 'the court has 22 rows to the outer faces' 23, because L6 is a full-height GLAZED LOGGIA recessed ~1 bay behind the tower face, on square columns. That recess IS the change on the way down.' Square columns 0.56 m at the 3.07 m bay on the face line, the soffit band 0.34 m, dark court glass behind. The 3.3 m recess itself is not modelled - see `open`; the 0.45 m reveal is as far back as this generator sets a pane.",
+      "_recess_src": "the 3.3 m recess is the band's inset now (S2 audit 4.5 C); the 0.56 m mullions that stood in for the columns are 0.1 m glazing mullions, and the columns are the inset's own, 0.56 m square on every 3.07 m bay line of the face."
     },
     "screen": {
       "kind": "bays",
@@ -325,8 +328,9 @@
       "fasciaTone": "podFin",
       "frame": "sfFrame",
       "glass": "sfGlass",
-      "reveal": 0.5,
-      "_src": "The ground floor: S2 audit 6 - 'dark bronze storefront on 1.56 m mullion bays with a transom at 0.76 of its height, set back INSET behind the screen line'. INSET is 2.4 m in S2; this generator has no per-band inset, so the wall is in the podium plane with the panes 0.5 m back - the deepest reveal that does not turn the reveal strips into walls. See `open`. The round exposed-concrete columns on the screen line are not drawn."
+      "reveal": 0.12,
+      "_src": "The ground floor: S2 audit 6 - 'dark bronze storefront on 1.56 m mullion bays with a transom at 0.76 of its height, set back INSET behind the screen line'. INSET is 2.4 m in S2; this generator has no per-band inset, so the wall is in the podium plane with the panes 0.5 m back - the deepest reveal that does not turn the reveal strips into walls. See `open`. The round exposed-concrete columns on the screen line are not drawn.",
+      "_reveal_src": "was 0.5 while the wall stood in the podium plane; the recess is the band's inset now and the panes sit an ordinary 0.12 behind the recessed wall."
     },
     "colonnade": {
       "kind": "storefront",
@@ -345,6 +349,71 @@
       "kind": "flat",
       "field": "pavConc",
       "_src": "The pavilion's enclosed core - S2: 'Everything NORTH of it is the enclosed core/back-of-house, a SOLID volume up to the plant deck'"
+    },
+    "mod4S": {
+      "kind": "mod4",
+      "cell": 3.26,
+      "field": "clad",
+      "fieldH": "cladH",
+      "frameTone": "frameBase",
+      "stripTone": "strip",
+      "glass": "glassU",
+      "frame": "strip",
+      "reveal": 0.12,
+      "period": 4,
+      "pairs": {
+        "0": "h",
+        "3": "v"
+      },
+      "colOffset": 16,
+      "wrap": [
+        true,
+        false
+      ],
+      "_src": "the south end caps: the long wall's column index continued past 16 from the corner (S2 wwS/ewS: colOffset 16, wrapLow)."
+    },
+    "mod4N": {
+      "kind": "mod4",
+      "cell": 3.26,
+      "field": "clad",
+      "fieldH": "cladH",
+      "frameTone": "frameBase",
+      "stripTone": "strip",
+      "glass": "glassU",
+      "frame": "strip",
+      "reveal": 0.12,
+      "period": 4,
+      "pairs": {
+        "0": "h",
+        "3": "v"
+      },
+      "colOffset": -7,
+      "wrap": [
+        false,
+        true
+      ],
+      "_src": "the north end caps: c = -7..-1 counting inward to the corner (S2 wwN/ewN: colOffset -CAP, wrapHigh)."
+    },
+    "mod4W": {
+      "kind": "mod4",
+      "cell": 3.26,
+      "field": "clad",
+      "fieldH": "cladH",
+      "frameTone": "frameBase",
+      "stripTone": "strip",
+      "glass": "glassU",
+      "frame": "strip",
+      "reveal": 0.12,
+      "period": 4,
+      "pairs": {
+        "0": "h",
+        "3": "v"
+      },
+      "wrap": [
+        true,
+        true
+      ],
+      "_src": "the long outer wall: c = 0..15, both corners wrapped (S2 wwW/ewE)."
     }
   },
   "blocks": [
@@ -364,7 +433,17 @@
         {
           "z0": 0,
           "z1": 4.4,
-          "skin": "ground"
+          "skin": "ground",
+          "inset": {
+            "d": 2.4,
+            "tone": "podFin",
+            "columns": {
+              "pitch": 7.5,
+              "w": 0.9,
+              "tone": "pavConc"
+            }
+          },
+          "_inset_src": "S2 audit 6: the ground floor is INSET 2.4 m behind the screen line, on round exposed-concrete columns about 7.5 m apart on the screen line (union.js: CylinderGeometry r 0.45 every len/7.5); drawn square, 0.9 m, in the pavilion concrete. The soffit is the screen's underside in the fin tone."
         },
         {
           "z0": 4.4,
@@ -407,7 +486,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -416,7 +505,34 @@
             }
           ]
         },
-        "_src": "the one face of this wing that looks into the courts wears the loggia and the ribbon flank; the other three are the outer mod-4 wall. u0 is the east-facing flank of the WEST wing."
+        "_src": "the one face of this wing that looks into the courts wears the loggia and the ribbon flank; the other three are the outer mod-4 wall. u0 is the east-facing flank of the WEST wing.",
+        "u1": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4W"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4N"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4S"
+            }
+          ]
+        }
       },
       "overrides": [
         {
@@ -430,7 +546,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -451,7 +577,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -571,7 +707,8 @@
           "tone": "planterDark",
           "_src": "S2 condenser(): a dark chassis 1.15 x 2.0 x 0.78 with a brighter fan deck; S2 puts DENSE GRIDS of them on the wing roofs north of the bar and on the pavilion's plant deck"
         }
-      ]
+      ],
+      "_faces_mod4_src": "the three outer faces wear the weave with the column index continued round the corners: the long wall mod4W, the north cap mod4N, the south cap mod4S (S2 audit 4.4). Which end is north: v0 is the north (W 24th St) edge in this frame."
     },
     {
       "id": "east-wing",
@@ -597,7 +734,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -606,7 +753,34 @@
             }
           ]
         },
-        "_src": "the one face of this wing that looks into the courts wears the loggia and the ribbon flank; the other three are the outer mod-4 wall. u1 is the west-facing flank of the EAST wing."
+        "_src": "the one face of this wing that looks into the courts wears the loggia and the ribbon flank; the other three are the outer mod-4 wall. u1 is the west-facing flank of the EAST wing.",
+        "u0": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4W"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4N"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 19.4,
+              "z1": 94.38,
+              "skin": "mod4S"
+            }
+          ]
+        }
       },
       "overrides": [
         {
@@ -620,7 +794,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -641,7 +825,17 @@
             {
               "z0": 19.4,
               "z1": 22.66,
-              "skin": "loggia"
+              "skin": "loggia",
+              "inset": {
+                "d": 3.3,
+                "tone": "pavConc",
+                "columns": {
+                  "pitch": 3.07,
+                  "w": 0.56,
+                  "tone": "pavConc",
+                  "on": "joints"
+                }
+              }
             },
             {
               "z0": 22.66,
@@ -764,7 +958,8 @@
           "tone": "planterDark",
           "_src": "S2 condenser(): a dark chassis 1.15 x 2.0 x 0.78 with a brighter fan deck; S2 puts DENSE GRIDS of them on the wing roofs north of the bar and on the pavilion's plant deck"
         }
-      ]
+      ],
+      "_faces_mod4_src": "the three outer faces wear the weave with the column index continued round the corners: the long wall mod4W, the north cap mod4N, the south cap mod4S (S2 audit 4.4). Which end is north: v0 is the north (W 24th St) edge in this frame."
     },
     {
       "id": "bar",
@@ -782,7 +977,17 @@
         {
           "z0": 19.4,
           "z1": 22.66,
-          "skin": "loggia"
+          "skin": "loggia",
+          "inset": {
+            "d": 3.3,
+            "tone": "pavConc",
+            "columns": {
+              "pitch": 3.07,
+              "w": 0.56,
+              "tone": "pavConc",
+              "on": "joints"
+            }
+          }
         },
         {
           "z0": 22.66,
@@ -1159,10 +1364,10 @@
     ]
   },
   "open": [
-    "The k=(c-r) mod 4 PAIRING is not drawn. S2's outer wall merges every cell into a two-cell domino - k0 with the cell to its right (horizontal, with horizontally-ribbed cladding behind it), k3 with the cell below (vertical) - so half the vertical reveals and half the horizontal ones vanish in a diagonal weave, and the pattern index is continued around the corners so the diagonals wrap on to the end caps. This generator has no per-cell rule, so every cell here is a single: the module, the counts, the window size and the tone statistics are S2's, the weave is not. Adding it would be a fifth skin kind ('mod4') in js/slopes-apartments.js taking a period and a pairing table. TODO for the generator.",
+    "DONE 2026-09-05: the mod4 skin draws the k = (c - r) mod 4 weave with the column index continued round the corners (was: The k=(c-r) mod 4 PAIRING is not drawn. S2's outer wall merges every cell into a two-cell domino - k0 with the cell to its right (horizontal ...)",
     "The N-S split is S8's 4 + 5 + 7 and not S2's 6 + 5 + 5, so the north court is 13.0 m deep here where S2 makes it 19.6. The nadir is unambiguous about which court is the deep one, and S2 cites nothing for its split; but S2 is the better-measured source everywhere else, and a dimensioned plan would be worth having before this is treated as settled. The court is 31.41 m wide here and 36.45 m in S2, because the traced footprint is 5 m narrower E-W than S2's photograph chain (see _massing_src). The visible cost is the court back wall: 10 bays where S2 counted 12 in its reference photographs. A dimensioned plan, or a nadir rectified the way The Standard's was, would settle which is right.",
-    "The ground floor is drawn in the podium plane. In S2 it is recessed 2.4 m behind the screen line, on round exposed-concrete columns that carry the oversail; the generator has no per-band inset, so the panes sit 0.5 m back and the columns are not drawn. Same todo as The Castilian's ground floor.",
-    "The L6 court loggia is likewise flush: S2 recesses its glazing 3.3 m behind the tower face, which is the single move that makes the court 'change on the way down'. Here it is the colonnade skin in the wall plane.",
+    "DONE 2026-09-05: the ground floor band is inset 2.4 m with round-column stand-ins 7.5 m apart on the screen line (was: The ground floor is drawn in the podium plane. In S2 it is recessed 2.4 m behind the screen line, on round exposed-concrete columns that car ...)",
+    "DONE 2026-09-05: the L6 loggia band is inset 3.3 m with 0.56 m square columns on every bay line (was: The L6 court loggia is likewise flush: S2 recesses its glazing 3.3 m behind the tower face, which is the single move that makes the court 'c ...)",
     "The podium's vertical fins (0.105 m pitch) and the court flanks' deep fluting (about 0.5 m) are drawn as flat tone. Both are at or under a pixel at this app's cameras, and the Castilian file records what a regular sub-pixel stripe does to a wall: moire arcs the reference does not have.",
     "S2's roof and deck kit is drawn as boxes: the pool is one rectangle rather than its reverse-L with the sun shelf, the planters are long bars rather than S2's L, hook and lightning-Z vocabulary, and the furniture, pots, trees, ceiling fans, grill islands and breeze-block screen are not there. Everything above 94 m is seen from a long way off in this app.",
     "No balconies and no sign. S2's audit header says of this building's decks: 'NO SIGN', and the mod-4 wall is flush - there is no balcony module anywhere in S2.",

@@ -22,7 +22,9 @@
     "2623-salado-street-apartments.json",
     "kinsolving-dormitory.json",
     "grandmarc-austin.json",
-    "2400-nueces.json"
+    "2400-nueces.json",
+    "jester-west-hall.json",
+    "jester-east-hall.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -46,7 +48,9 @@
     "3b8f0f69-4456-4840-8eff-e23a39b1ac92",
     "71504854-4c08-49db-9cca-f888f8114174",
     "41f43559-0029-4257-8501-01b682e916aa",
-    "01b885c4-03ff-45d4-b394-707735cb6958"
+    "01b885c4-03ff-45d4-b394-707735cb6958",
+    "165236c4-c518-419b-a55a-87d5aedd45ce",
+    "1161f877-68fe-4754-8c2b-3a52e2ecf2ed"
   ],
   "replacedNames": [
     "The Standard",

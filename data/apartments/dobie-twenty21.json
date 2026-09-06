@@ -19,21 +19,66 @@
   },
   "footprint": {
     "ring": [
-      [-97.7408989, 30.2836342],
-      [-97.7417326, 30.2836985],
-      [-97.7417918, 30.2831318],
-      [-97.7415779, 30.2831154],
-      [-97.7413435, 30.2830967],
-      [-97.7409595, 30.2830671],
-      [-97.740926, 30.2833914],
-      [-97.7410415, 30.2834002],
-      [-97.7410875, 30.2834523],
-      [-97.7410646, 30.2834673],
-      [-97.7410257, 30.2834232],
-      [-97.7409947, 30.2834196],
-      [-97.7410134, 30.2834759],
-      [-97.7409161, 30.2834684],
-      [-97.7408989, 30.2836342]
+      [
+        -97.7408989,
+        30.2836342
+      ],
+      [
+        -97.7417326,
+        30.2836985
+      ],
+      [
+        -97.7417918,
+        30.2831318
+      ],
+      [
+        -97.7415779,
+        30.2831154
+      ],
+      [
+        -97.7413435,
+        30.2830967
+      ],
+      [
+        -97.7409595,
+        30.2830671
+      ],
+      [
+        -97.740926,
+        30.2833914
+      ],
+      [
+        -97.7410415,
+        30.2834002
+      ],
+      [
+        -97.7410875,
+        30.2834523
+      ],
+      [
+        -97.7410646,
+        30.2834673
+      ],
+      [
+        -97.7410257,
+        30.2834232
+      ],
+      [
+        -97.7409947,
+        30.2834196
+      ],
+      [
+        -97.7410134,
+        30.2834759
+      ],
+      [
+        -97.7409161,
+        30.2834684
+      ],
+      [
+        -97.7408989,
+        30.2836342
+      ]
     ],
     "_src": "S2 verbatim; in (u,v) it is (0,0) (80.46,0.09) (80.52,62.99) (59.88,62.96) (37.25,63.00) (0.19,62.96) (0.19,26.96) (11.34,26.99) (16.26,21.65) (14.21,19.80) (10.05,24.32) (7.05,24.45) (9.40,18.41) (0.01,18.40).",
     "_not_the_building": "THIS RING IS THE PARCEL, NOT THE BUILT ENVELOPE, and no block below stands on it. Overlaid on the rectified nadir (S7) its north edge lies in West 21st Street, its east edge in a surface car park, its south edge on a service yard and its west edge in the Guadalupe sidewalk; the roofs stop at about u 8.5..72.5, v 6.5..57.5. The roads overlay rules out a georeferencing offset — the road centrelines land on their own roadways in the same projection. So the ring is kept verbatim (it is what defines the frame, and it is the polygon the generator filters out) and every block's plan is a (u,v) polygon measured off the imagery instead. The v-shaped notch at u 7..16, v 18..27 IS real: the nadir shows the garage entry court there."
@@ -41,7 +86,35 @@
   "frame": "obb",
   "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=80.52, W=63.00, +u bearing 275.1° (west along West 21st St). u=0 is the east edge, v=0 the north (21st St) edge.",
   "levels": {
-    "floors": [0, 6.6, 15.8, 18.43, 21.06, 23.69, 26.32, 28.95, 31.58, 34.21, 36.84, 39.47, 42.1, 44.73, 47.36, 49.99, 52.62, 55.25, 57.88, 60.51, 63.14, 65.77, 68.4, 71.03, 73.66, 76.29, 78.92],
+    "floors": [
+      0,
+      6.6,
+      15.8,
+      18.43,
+      21.06,
+      23.69,
+      26.32,
+      28.95,
+      31.58,
+      34.21,
+      36.84,
+      39.47,
+      42.1,
+      44.73,
+      47.36,
+      49.99,
+      52.62,
+      55.25,
+      57.88,
+      60.51,
+      63.14,
+      65.77,
+      68.4,
+      71.03,
+      73.66,
+      76.29,
+      78.92
+    ],
     "_src": "27 floor lines for 27 storeys (S5): the ground floor at 0 (Dobie Market, Target, the garage openings), the mall floor at 6.6 — the mall is the two-storey one (S5) and these are its two levels — and 25 residential floors from the podium deck at 15.8 up at 2.63 m each (S6m). Ground and mall heights derived from the total: 15.8 split 6.6 / 9.2, the taller half being the double-height glazed mall volume S6 shows.",
     "ground": 6.6,
     "deck": 15.8,
@@ -85,35 +158,93 @@
       "hex": "#adb3b7",
       "_src": "parapet coping aluminium; the same value The Standard uses (STD_CAP), not separately sampled."
     },
-    "glass": ["#1e262c", "#2f363a", "#12171c"],
+    "glass": [
+      "#1e262c",
+      "#2f363a",
+      "#12171c"
+    ],
     "_glass_src": "the punched openings in the painted brick — the ground floor's tall slots read near-black in S6, darker than the brick beside them; night is the unlit pane, lit panes take APARTMENTS.nightLitTone.",
-    "mallGlass": ["#4d5a62", "#5b5c59", "#c9a86a"],
-    "mallMullion": {"hex": "#6b6a62"},
+    "mallGlass": [
+      "#4d5a62",
+      "#5b5c59",
+      "#c9a86a"
+    ],
+    "mallMullion": {
+      "hex": "#6b6a62"
+    },
     "_mallMullion_src": "the mall's mullion grid as it reads from an aerial: S7's oblique shows the corner box's frame as a mid grey against its glass, not the near-black S6 measures from the pavement in its own shadow. Entered mid so the grid reads at 300 m; the near-black #2e3036 is kept as mallFrame for the fascia.",
     "_mallGlass_src": "the mall's glazing: dark by day in S6, and the one part of this building that glows warm after dark — a food court behind a two-storey window wall. The night value is S10's own bronze-gold reading (#a2865a lifted), which is where that hero colour actually belongs.",
-    "voidDark": ["#141619", "#1c1d1e", "#0e1013"],
+    "voidDark": [
+      "#141619",
+      "#1c1d1e",
+      "#0e1013"
+    ],
     "_voidDark_src": "the square garage openings on the north and east ground floor in S6: an unglazed hole into a dark deck, so it stays dark at night; entered flat, not sampled.",
-    "roof": ["#949c9b", "#9d9b93", "#1b1e26"],
+    "roof": [
+      "#949c9b",
+      "#9d9b93",
+      "#1b1e26"
+    ],
     "_roof_src": "the white membrane roofs in the nadir (S7), entered cool the way S9 enters top faces; the level set by S7's own oblique, whose mall roofs cluster at #868b87 (49%) and #cecec7 (24%).",
-    "roofGrey": ["#6f7d84", "#7c8079", "#181b23"],
+    "roofGrey": [
+      "#6f7d84",
+      "#7c8079",
+      "#181b23"
+    ],
     "_roofGrey_src": "the tower's roof deck and the mall's high-bay ridges: S7's oblique reads the tower roof as #979a9b against a #2a2b2f plant shadow, and the ridges as #868b87. Entered well BELOW those and cool, for the reason js/westcampus.js's SOLID block gives: a top face takes the sun tint, and it measured a neutral #c9bdaa coming back on screen at R/B 1.85. Shot at p=0.12 against S7, #9aa0a2 came back as a pale cream lid — the roof of an 82 m tower is the largest surface this file adds and every camera in this app looks down on it.",
-    "deck": ["#86909a", "#918e8b", "#1b1e26"],
+    "deck": [
+      "#86909a",
+      "#918e8b",
+      "#1b1e26"
+    ],
     "_deck_src": "S9 deck (concrete pool-deck paving), taken down to S7's own reading of this deck (#999ba0) and then cooled again for the top-face sun tint, the same correction roofGrey carries",
-    "pool": ["#2f86ad", "#4a8096", "#1d4a63"],
+    "pool": [
+      "#2f86ad",
+      "#4a8096",
+      "#1d4a63"
+    ],
     "_pool_src": "S9 pool",
-    "turf": ["#4e7d46", "#6b7d49", "#141f19"],
+    "turf": [
+      "#4e7d46",
+      "#6b7d49",
+      "#141f19"
+    ],
     "_turf_src": "S9 turf — the table names it '(Dobie)'",
-    "court": ["#a0552f", "#ad5f38", "#241a18"],
+    "court": [
+      "#a0552f",
+      "#ad5f38",
+      "#241a18"
+    ],
     "_court_src": "S9 court — the table names it '(Dobie)'; the nadir (S7) shows the red court at u 10..20, v 41..49",
-    "shade": ["#7e858c", "#8a8781", "#181b23"],
+    "shade": [
+      "#7e858c",
+      "#8a8781",
+      "#181b23"
+    ],
     "_shade_src": "S9 shade (trellis / canopy plate)",
-    "furn": ["#8d867e", "#988b7a", "#171921"],
+    "furn": [
+      "#8d867e",
+      "#988b7a",
+      "#171921"
+    ],
     "_furn_src": "S9 furn — the lawn's wooden loungers and cornhole boards in the nadir (S7)",
-    "rail": ["#2e3136", "#3a3733", "#131519"],
+    "rail": [
+      "#2e3136",
+      "#3a3733",
+      "#131519"
+    ],
     "_rail_src": "S9 rail. NOTE the terrace rail in S6 is a WHITE pipe rail, not black steel; drawn here in S9's `raill` value instead — see railWhite.",
-    "railWhite": ["#c6c3bb", "#cdc2ae", "#1e2029"],
+    "railWhite": [
+      "#c6c3bb",
+      "#cdc2ae",
+      "#1e2029"
+    ],
     "_railWhite_src": "S9 raill (precast / white metal parapet): the white pipe rail along the terrace in S6",
-    "mech": ["#9ca1a6", "#a8a191", "#1a1d26"],
+    "mech": [
+      "#9ca1a6",
+      "#a8a191",
+      "#1a1d26"
+    ],
     "_mech_src": "S9 mech (mechanical penthouse screen); the two large round fan units at u 11..18, v 50..57 and the bulkheads on the tower roof in the nadir (S7)"
   },
   "skins": {
@@ -243,7 +374,12 @@
     {
       "id": "base",
       "_src": "the ground floor: painted brick to the back of the sidewalk on both streets, 0 to 6.6. Plan measured off the rectified nadir (S7) — the built envelope, NOT the parcel ring (see footprint._not_the_building). Its roof at 6.6 is the terrace the mall stands back behind, with the white pipe rail and planters S6 shows.",
-      "plan": [7.0, 74.0, 5.0, 58.5],
+      "plan": [
+        7.0,
+        74.0,
+        5.0,
+        58.5
+      ],
       "z0": 0,
       "z1": 6.6,
       "bands": [
@@ -294,7 +430,12 @@
       },
       "overrides": [
         {
-          "region": [66.0, 74.0, 5.0, 5.0],
+          "region": [
+            66.0,
+            74.0,
+            5.0,
+            5.0
+          ],
           "bands": [
             {
               "z0": 0,
@@ -305,7 +446,12 @@
           "_src": "the shopfront stretch on 21st St west of the Dobie Market door (S6)"
         },
         {
-          "region": [74.0, 74.0, 5.0, 22.0],
+          "region": [
+            74.0,
+            74.0,
+            5.0,
+            22.0
+          ],
           "bands": [
             {
               "z0": 0,
@@ -319,25 +465,49 @@
       "roofTone": "deck",
       "parapet": 0.4,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "u1"],
+      "parapetSides": [
+        "v0",
+        "u1"
+      ],
       "_parapet_src": "a low upstand round the terrace on the two street sides; the guard is the white pipe rail in roofItems (S6). Height 0.4 is a look.",
       "roofItems": [
         {
-          "plan": [7.4, 73.6, 5.4, 5.62],
+          "plan": [
+            7.4,
+            73.6,
+            5.4,
+            5.62
+          ],
           "h": 1.05,
           "tone": "railWhite",
           "_src": "S6: the white pipe rail along the 21st St terrace, on the ground floor's roof in front of the mall's glass"
         },
         {
-          "plan": [73.38, 73.6, 5.6, 58.1],
+          "plan": [
+            73.38,
+            73.6,
+            5.6,
+            58.1
+          ],
           "h": 1.05,
           "tone": "railWhite",
           "_src": "S6: the same rail turning the corner and running down the Guadalupe terrace"
         },
         {
-          "plan": [12.0, 68.0, 6.3, 7.3],
-          "grid": [6, 1],
-          "size": [1.3, 1.0],
+          "plan": [
+            12.0,
+            68.0,
+            6.3,
+            7.3
+          ],
+          "grid": [
+            6,
+            1
+          ],
+          "size": [
+            1.3,
+            1.0
+          ],
           "h": 0.7,
           "tone": "turf",
           "_src": "S6: the planters of bougainvillea spaced along the 21st St terrace behind the rail"
@@ -347,7 +517,12 @@
     {
       "id": "mall",
       "_src": "the two-storey glazed mall volume (S5), set back from the ground floor's face so the terrace runs in front of it: 4.0 m back on 21st St and 1.5 m on the other three sides, read off the rectified nadir (S7). 6.6 to 15.8; its roof is the amenity deck.",
-      "plan": [8.5, 72.5, 9.0, 57.5],
+      "plan": [
+        8.5,
+        72.5,
+        9.0,
+        57.5
+      ],
       "z0": 6.6,
       "z1": 15.8,
       "bands": [
@@ -398,7 +573,12 @@
       },
       "overrides": [
         {
-          "region": [44.0, 72.5, 9.0, 9.0],
+          "region": [
+            44.0,
+            72.5,
+            9.0,
+            9.0
+          ],
           "bands": [
             {
               "z0": 6.6,
@@ -409,7 +589,12 @@
           "_src": "S6: the two-storey glazed mall box on the West 21st Street front, running about 28 m east from the Guadalupe corner — the extent it reaches in the photograph before the wall turns back to painted brick with garage openings"
         },
         {
-          "region": [72.5, 72.5, 9.0, 27.0],
+          "region": [
+            72.5,
+            72.5,
+            9.0,
+            27.0
+          ],
           "bands": [
             {
               "z0": 6.6,
@@ -426,17 +611,39 @@
       "_parapet_src": "the deck's own upstand, on every edge — the nadir (S7) shows a light parapet line round the whole podium roof. 0.9 is a look.",
       "roofItems": [
         {
-          "plan": [10.7, 18.6, 50.0, 57.0],
-          "grid": [2, 2],
-          "size": [3.2, 3.0],
+          "plan": [
+            10.7,
+            18.6,
+            50.0,
+            57.0
+          ],
+          "grid": [
+            2,
+            2
+          ],
+          "size": [
+            3.2,
+            3.0
+          ],
           "h": 2.2,
           "tone": "mech",
           "_src": "S7 nadir: the two large round fan units and their housings at u 11..19, v 50..57"
         },
         {
-          "plan": [12.0, 20.0, 33.0, 39.0],
-          "grid": [3, 2],
-          "size": [1.2, 2.0],
+          "plan": [
+            12.0,
+            20.0,
+            33.0,
+            39.0
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.2,
+            2.0
+          ],
           "h": 1.0,
           "tone": "mech",
           "_src": "S7 nadir: a condenser row on the east deck between the court and the lawn"
@@ -446,7 +653,12 @@
     {
       "id": "mallHigh",
       "_src": "the west and south half of the mall roof stands about 2.6 m above the pool deck and carries a run of parallel ridged monitor roofs — the nadir (S7) reads them as grey-green standing-seam ridges at u 50..72, v 25..50 with a white flat roof and mechanical plant at u 47..72, v 49..58. Height derived: they sit a storey below the deck's own parapet in the NW oblique (S7).",
-      "plan": [46.0, 72.5, 24.0, 57.5],
+      "plan": [
+        46.0,
+        72.5,
+        24.0,
+        57.5
+      ],
       "z0": 15.8,
       "z1": 17.4,
       "bands": [
@@ -464,23 +676,116 @@
       "roofTone": "roofGrey",
       "parapet": 0.4,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "u0", "v1", "u1"],
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ],
       "roofItems": [
         {
-          "plan": [50.0, 72.0, 25.0, 49.0],
-          "grid": [5, 1],
-          "size": [3.2, 23.0],
-          "h": 0.9,
-          "tone": "roofGrey",
-          "_src": "S7 nadir: five parallel ridged monitor roofs running north-south over the mall's high bay. Drawn as low boxes, not as pitched ridges — the generator has no pitched-roof rule and this file adds none."
-        },
-        {
-          "plan": [50.0, 70.0, 50.0, 56.5],
-          "grid": [6, 2],
-          "size": [1.4, 2.2],
+          "plan": [
+            50.0,
+            70.0,
+            50.0,
+            56.5
+          ],
+          "grid": [
+            6,
+            2
+          ],
+          "size": [
+            1.4,
+            2.2
+          ],
           "h": 1.0,
           "tone": "mech",
           "_src": "S7 nadir: the mechanical field on the white flat roof at the south-west"
+        },
+        {
+          "plan": [
+            50.0,
+            53.2,
+            25.0,
+            49.0
+          ],
+          "h": 0.3,
+          "tone": "roofGrey",
+          "roof": {
+            "kind": "gable",
+            "pitch": 40,
+            "tone": "roofGrey",
+            "gableTone": "roofGrey"
+          },
+          "_src": "S7 nadir: one of the five parallel ridged monitor roofs over the mall's high bay (_open 5), 3.2 m wide running north-south, a gable on a 0.3 m curb; the pitch is not measured (40 degrees puts the ridge 1.6 m over the curb, where the 0.9 m boxes were)."
+        },
+        {
+          "plan": [
+            54.7,
+            57.9,
+            25.0,
+            49.0
+          ],
+          "h": 0.3,
+          "tone": "roofGrey",
+          "roof": {
+            "kind": "gable",
+            "pitch": 40,
+            "tone": "roofGrey",
+            "gableTone": "roofGrey"
+          },
+          "_src": "S7 nadir: one of the five parallel ridged monitor roofs over the mall's high bay (_open 5), 3.2 m wide running north-south, a gable on a 0.3 m curb; the pitch is not measured (40 degrees puts the ridge 1.6 m over the curb, where the 0.9 m boxes were)."
+        },
+        {
+          "plan": [
+            59.4,
+            62.6,
+            25.0,
+            49.0
+          ],
+          "h": 0.3,
+          "tone": "roofGrey",
+          "roof": {
+            "kind": "gable",
+            "pitch": 40,
+            "tone": "roofGrey",
+            "gableTone": "roofGrey"
+          },
+          "_src": "S7 nadir: one of the five parallel ridged monitor roofs over the mall's high bay (_open 5), 3.2 m wide running north-south, a gable on a 0.3 m curb; the pitch is not measured (40 degrees puts the ridge 1.6 m over the curb, where the 0.9 m boxes were)."
+        },
+        {
+          "plan": [
+            64.1,
+            67.3,
+            25.0,
+            49.0
+          ],
+          "h": 0.3,
+          "tone": "roofGrey",
+          "roof": {
+            "kind": "gable",
+            "pitch": 40,
+            "tone": "roofGrey",
+            "gableTone": "roofGrey"
+          },
+          "_src": "S7 nadir: one of the five parallel ridged monitor roofs over the mall's high bay (_open 5), 3.2 m wide running north-south, a gable on a 0.3 m curb; the pitch is not measured (40 degrees puts the ridge 1.6 m over the curb, where the 0.9 m boxes were)."
+        },
+        {
+          "plan": [
+            68.8,
+            72.0,
+            25.0,
+            49.0
+          ],
+          "h": 0.3,
+          "tone": "roofGrey",
+          "roof": {
+            "kind": "gable",
+            "pitch": 40,
+            "tone": "roofGrey",
+            "gableTone": "roofGrey"
+          },
+          "_src": "S7 nadir: one of the five parallel ridged monitor roofs over the mall's high bay (_open 5), 3.2 m wide running north-south, a gable on a 0.3 m curb; the pitch is not measured (40 degrees puts the ridge 1.6 m over the curb, where the 0.9 m boxes were)."
         }
       ]
     },
@@ -488,10 +793,86 @@
       "id": "tower",
       "_src": "the 25-storey residential tower (S5: 27 storeys less the two mall levels), 15.8 to 80.22. Plan is OSM way 516187626 (S3) verbatim in this frame — a 31.1 x 31.1 m square turned 44.7 deg off the block grid with a 10.2 m wide, 1.9 m deep recess in the middle of each side, area 861 m2, centroid (30.83, 31.81). It lands on the tower roof in the rectified nadir (S7), and S8's own reading of the same way (31.15 x 31.50 m, diagonal 44.3 m, 867 m2, edges at 39.3 deg) agrees. The recess is the re-entrant fold that reads as a chevron down the middle of every face in S6.",
       "plan": [
-        [52.58, 31.15], [46.13, 25.6], [43.98, 25.66], [36.68, 18.5], [37.14, 16.1],
-        [30.5, 10.14], [24.54, 16.71], [24.45, 18.74], [17.82, 25.62], [15.64, 25.79],
-        [9.17, 32.03], [14.82, 37.8], [17.57, 37.94], [24.57, 44.81], [24.56, 47.58],
-        [30.6, 53.52], [36.69, 47.42], [36.89, 44.99], [43.47, 37.9], [46.42, 38.23]
+        [
+          52.58,
+          31.15
+        ],
+        [
+          46.13,
+          25.6
+        ],
+        [
+          43.98,
+          25.66
+        ],
+        [
+          36.68,
+          18.5
+        ],
+        [
+          37.14,
+          16.1
+        ],
+        [
+          30.5,
+          10.14
+        ],
+        [
+          24.54,
+          16.71
+        ],
+        [
+          24.45,
+          18.74
+        ],
+        [
+          17.82,
+          25.62
+        ],
+        [
+          15.64,
+          25.79
+        ],
+        [
+          9.17,
+          32.03
+        ],
+        [
+          14.82,
+          37.8
+        ],
+        [
+          17.57,
+          37.94
+        ],
+        [
+          24.57,
+          44.81
+        ],
+        [
+          24.56,
+          47.58
+        ],
+        [
+          30.6,
+          53.52
+        ],
+        [
+          36.69,
+          47.42
+        ],
+        [
+          36.89,
+          44.99
+        ],
+        [
+          43.47,
+          37.9
+        ],
+        [
+          46.42,
+          38.23
+        ]
       ],
       "z0": 15.8,
       "z1": 80.22,
@@ -509,10 +890,86 @@
       "id": "crown",
       "_src": "the notched cap (S8's crown band, CROWN_TEAL): 80.22 to 82.0 on the tower's own plan. In S6 the parapet steps up in stages toward a peak over the middle of each face; drawn here as one flush dark band at the height of the low step. The step pattern is unmeasured.",
       "plan": [
-        [52.58, 31.15], [46.13, 25.6], [43.98, 25.66], [36.68, 18.5], [37.14, 16.1],
-        [30.5, 10.14], [24.54, 16.71], [24.45, 18.74], [17.82, 25.62], [15.64, 25.79],
-        [9.17, 32.03], [14.82, 37.8], [17.57, 37.94], [24.57, 44.81], [24.56, 47.58],
-        [30.6, 53.52], [36.69, 47.42], [36.89, 44.99], [43.47, 37.9], [46.42, 38.23]
+        [
+          52.58,
+          31.15
+        ],
+        [
+          46.13,
+          25.6
+        ],
+        [
+          43.98,
+          25.66
+        ],
+        [
+          36.68,
+          18.5
+        ],
+        [
+          37.14,
+          16.1
+        ],
+        [
+          30.5,
+          10.14
+        ],
+        [
+          24.54,
+          16.71
+        ],
+        [
+          24.45,
+          18.74
+        ],
+        [
+          17.82,
+          25.62
+        ],
+        [
+          15.64,
+          25.79
+        ],
+        [
+          9.17,
+          32.03
+        ],
+        [
+          14.82,
+          37.8
+        ],
+        [
+          17.57,
+          37.94
+        ],
+        [
+          24.57,
+          44.81
+        ],
+        [
+          24.56,
+          47.58
+        ],
+        [
+          30.6,
+          53.52
+        ],
+        [
+          36.69,
+          47.42
+        ],
+        [
+          36.89,
+          44.99
+        ],
+        [
+          43.47,
+          37.9
+        ],
+        [
+          46.42,
+          38.23
+        ]
       ],
       "z0": 80.22,
       "z1": 81.2,
@@ -526,9 +983,20 @@
       "roofTone": "roofGrey",
       "roofItems": [
         {
-          "plan": [20.0, 42.0, 22.0, 42.0],
-          "grid": [2, 2],
-          "size": [6.0, 7.0],
+          "plan": [
+            20.0,
+            42.0,
+            22.0,
+            42.0
+          ],
+          "grid": [
+            2,
+            2
+          ],
+          "size": [
+            6.0,
+            7.0
+          ],
           "h": 0.8,
           "tone": "mech",
           "_src": "S7 nadir: the bulkheads and plant enclosures round the lift core on the tower roof. Held to 0.8 m so their tops land at 82.0 and nothing stands above the snapshot's final_height — the rule scripts/verify/westcampus-probe.mjs enforces."
@@ -542,7 +1010,12 @@
     "items": [
       {
         "id": "pool",
-        "plan": [52.7, 58.7, 12.7, 23.0],
+        "plan": [
+          52.7,
+          58.7,
+          12.7,
+          23.0
+        ],
         "z0": 0.0,
         "h": 0.12,
         "tone": "pool",
@@ -550,7 +1023,12 @@
       },
       {
         "id": "spa",
-        "plan": [59.4, 61.4, 14.4, 16.4],
+        "plan": [
+          59.4,
+          61.4,
+          14.4,
+          16.4
+        ],
         "z0": 0.0,
         "h": 0.5,
         "tone": "pool",
@@ -558,7 +1036,12 @@
       },
       {
         "id": "lawnA",
-        "plan": [10.0, 20.0, 7.0, 20.0],
+        "plan": [
+          10.0,
+          20.0,
+          7.0,
+          20.0
+        ],
         "z0": 0.0,
         "h": 0.1,
         "tone": "turf",
@@ -566,7 +1049,12 @@
       },
       {
         "id": "lawnB",
-        "plan": [20.0, 28.0, 7.0, 12.5],
+        "plan": [
+          20.0,
+          28.0,
+          7.0,
+          12.5
+        ],
         "z0": 0.0,
         "h": 0.1,
         "tone": "turf",
@@ -574,7 +1062,12 @@
       },
       {
         "id": "lawnC",
-        "plan": [28.0, 36.0, 7.0, 10.0],
+        "plan": [
+          28.0,
+          36.0,
+          7.0,
+          10.0
+        ],
         "z0": 0.0,
         "h": 0.1,
         "tone": "turf",
@@ -582,7 +1075,12 @@
       },
       {
         "id": "lawnFurnA",
-        "plan": [11.0, 19.0, 9.0, 18.0],
+        "plan": [
+          11.0,
+          19.0,
+          9.0,
+          18.0
+        ],
         "z0": 0.1,
         "z1": 0.8,
         "tone": "furn",
@@ -590,7 +1088,12 @@
       },
       {
         "id": "court",
-        "plan": [10.3, 20.3, 41.0, 49.0],
+        "plan": [
+          10.3,
+          20.3,
+          41.0,
+          49.0
+        ],
         "z0": 0.0,
         "h": 0.08,
         "tone": "court",
@@ -598,7 +1101,12 @@
       },
       {
         "id": "courtStruct",
-        "plan": [13.5, 17.0, 43.5, 46.5],
+        "plan": [
+          13.5,
+          17.0,
+          43.5,
+          46.5
+        ],
         "z0": 0.08,
         "z1": 1.2,
         "tone": "mech",
@@ -606,7 +1114,12 @@
       },
       {
         "id": "courtTurf",
-        "plan": [9.0, 22.0, 33.0, 41.0],
+        "plan": [
+          9.0,
+          22.0,
+          33.0,
+          41.0
+        ],
         "z0": 0.0,
         "h": 0.08,
         "tone": "turf",
@@ -614,7 +1127,12 @@
       },
       {
         "id": "trellisNorth",
-        "plan": [9.0, 72.0, 6.4, 9.4],
+        "plan": [
+          9.0,
+          72.0,
+          6.4,
+          9.4
+        ],
         "z0": -0.9,
         "z1": -0.55,
         "tone": "shade",
@@ -622,7 +1140,12 @@
       },
       {
         "id": "trellisWest",
-        "plan": [71.5, 74.5, 9.4, 30.0],
+        "plan": [
+          71.5,
+          74.5,
+          9.4,
+          30.0
+        ],
         "z0": -0.9,
         "z1": -0.55,
         "tone": "shade",
@@ -637,7 +1160,7 @@
     "The mall's glazed box is canted across the Guadalupe/21st corner in S6; drawn here as a square corner.",
     "The tenant sign band along the base of the mall glazing (S6) is not drawn; nor is the Dobie Market canopy and neon.",
     "The ground floor's plan is a rectangle. The real envelope has a garage entry court on the east (the notch in the parcel ring, u 7..16 v 18..27) and a landscaped south-west corner on Guadalupe, both visible in S7 and both flattened here.",
-    "The mall's high-bay monitors are drawn as flat boxes; they are pitched ridges in S7.",
+    "DONE 2026-09-05: the five monitors are gable roof items now (pitch unmeasured, 40 degrees) (was: The mall's high-bay monitors are drawn as flat boxes; they are pitched ridges in S7.)",
     "Google Earth's mesh (S7) reads this tower about 8 m lower than 82.0 at what looked like a matched camera. It was NOT possible to settle that inside this pass: the app's own field of view is 58 deg against Google Earth's 35, so the two frames are only comparable after a scale about the principal point, and the rescale did not come out self-consistent against the pool as a check feature. What IS settled is that this file draws the height the app already carries — at the same pose, our mesh's top and `?apartments=0`'s prism top are the same line. If the 82.0 is wrong the fix belongs in scripts/hero_overrides.json, which this file does not own.",
     "The tenant planters on the terrace are six boxes on a 56 m run; S6 shows them at a closer spacing."
   ]

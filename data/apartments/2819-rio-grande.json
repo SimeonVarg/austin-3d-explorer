@@ -390,147 +390,6 @@
       "roofItems": [
         {
           "plan": [
-            -0.7,
-            47.7,
-            -0.7,
-            5.2
-          ],
-          "h": 0.26,
-          "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            0.04,
-            5.2
-          ],
-          "h": 0.53,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            0.78,
-            5.2
-          ],
-          "h": 0.79,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            1.51,
-            5.2
-          ],
-          "h": 1.05,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            2.25,
-            5.2
-          ],
-          "h": 1.31,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            2.99,
-            5.2
-          ],
-          "h": 1.58,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            3.73,
-            5.2
-          ],
-          "h": 1.84,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            4.46,
-            5.2
-          ],
-          "h": 2.1,
-          "tone": "shingleRidge"
-        },
-        {
-          "plan": [
-            -0.7,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 0.25,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            0.02,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 0.5,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            0.73,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 0.75,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            1.45,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 1.0,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.17,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 1.25,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.88,
-            3.6,
-            -0.7,
-            15.9
-          ],
-          "h": 1.5,
-          "tone": "shingleRidge"
-        },
-        {
-          "plan": [
             4.0,
             44.0,
             6.0,
@@ -548,7 +407,20 @@
           "tone": "mech",
           "_src": "S6 nadir: two loose rows of condensers run the length of the north range"
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 22,
+        "d": 5.2,
+        "deck": "membrane",
+        "over": 0.7,
+        "tone": "shingle",
+        "sides": [
+          "v0",
+          "u0"
+        ],
+        "_src": "the grey shingle band round the flat membrane (open 1): a deck roof whose slope stops 5.2 m in from the eave at 22 degrees (the 2.1 m rise LOOK-FIX 3 settled on), the membrane deck at the top of the band, the 0.70 m oversail S4 shows; only the outer edges slope (`sides`), the edges the other ring blocks stand on and the courtyard edges stand. The 14 boxes are dropped."
+      }
     },
     {
       "id": "main-e",
@@ -618,67 +490,6 @@
       "roofItems": [
         {
           "plan": [
-            -0.7,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 0.25,
-          "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
-        },
-        {
-          "plan": [
-            0.02,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 0.5,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            0.73,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 0.75,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            1.45,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 1.0,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.17,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 1.25,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.88,
-            3.6,
-            14.5,
-            27.1
-          ],
-          "h": 1.5,
-          "tone": "shingleRidge"
-        },
-        {
-          "plan": [
             3.5,
             15.0,
             17.0,
@@ -696,7 +507,19 @@
           "tone": "mech",
           "_src": "S6 nadir: a short cluster on the east range"
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 22,
+        "d": 3.6,
+        "deck": "membrane",
+        "over": 0.7,
+        "tone": "shingle",
+        "sides": [
+          "u0"
+        ],
+        "_src": "the grey shingle band round the flat membrane (open 1): a deck roof whose slope stops 3.6 m in from the eave at 22 degrees (the 2.1 m rise LOOK-FIX 3 settled on), the membrane deck at the top of the band, the 0.70 m oversail S4 shows; only the outer edges slope (`sides`), the edges the other ring blocks stand on and the courtyard edges stand. The 6 boxes are dropped."
+      }
     },
     {
       "id": "main-s",
@@ -843,147 +666,6 @@
       "roofItems": [
         {
           "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            45.4
-          ],
-          "h": 0.26,
-          "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            44.66
-          ],
-          "h": 0.53,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            43.93
-          ],
-          "h": 0.79,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            43.19
-          ],
-          "h": 1.05,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            42.45
-          ],
-          "h": 1.31,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            41.71
-          ],
-          "h": 1.58,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            40.98
-          ],
-          "h": 1.84,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            -0.7,
-            47.7,
-            39.5,
-            40.24
-          ],
-          "h": 2.1,
-          "tone": "shingleRidge"
-        },
-        {
-          "plan": [
-            -0.7,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 0.25,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            0.02,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 0.5,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            0.73,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 0.75,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            1.45,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 1.0,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.17,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 1.25,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            2.88,
-            3.6,
-            25.7,
-            45.4
-          ],
-          "h": 1.5,
-          "tone": "shingleRidge"
-        },
-        {
-          "plan": [
             4.0,
             42.0,
             29.0,
@@ -1000,8 +682,37 @@
           "h": 0.7,
           "tone": "mech",
           "_src": "S6 nadir: the densest run of condensers on the roof is along the south range"
+        },
+        {
+          "plan": [
+            0.0,
+            6.0,
+            38.0,
+            44.7
+          ],
+          "h": 0.0,
+          "tone": "hip",
+          "roof": {
+            "kind": "hip",
+            "pitch": 30,
+            "tone": "hip"
+          },
+          "_src": "open 5: the pale hipped roof S6's nadir shows at the south-east corner, u 0-6, v 38-45; its pitch is not measured (30 degrees, the tower's tone)."
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 22,
+        "d": 5.2,
+        "deck": "membrane",
+        "over": 0.7,
+        "tone": "shingle",
+        "sides": [
+          "v1",
+          "u0"
+        ],
+        "_src": "the grey shingle band round the flat membrane (open 1): a deck roof whose slope stops 5.2 m in from the eave at 22 degrees (the 2.1 m rise LOOK-FIX 3 settled on), the membrane deck at the top of the band, the 0.70 m oversail S4 shows; only the outer edges slope (`sides`), the edges the other ring blocks stand on and the courtyard edges stand. The 14 boxes are dropped."
+      }
     },
     {
       "id": "main-w",
@@ -1094,89 +805,18 @@
       },
       "roofTone": "membrane",
       "parapet": 0,
-      "roofItems": [
-        {
-          "plan": [
-            46.3,
-            57.6,
-            -0.7,
-            5.2
-          ],
-          "h": 0.26,
-          "tone": "shingle",
-          "_src": "the north shingle cap carried across the set-back corner (S6 nadir)"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            0.04,
-            5.2
-          ],
-          "h": 0.53,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            0.78,
-            5.2
-          ],
-          "h": 0.79,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            1.51,
-            5.2
-          ],
-          "h": 1.05,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            2.25,
-            5.2
-          ],
-          "h": 1.31,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            2.99,
-            5.2
-          ],
-          "h": 1.58,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            3.73,
-            5.2
-          ],
-          "h": 1.84,
-          "tone": "shingle"
-        },
-        {
-          "plan": [
-            46.3,
-            57.6,
-            4.46,
-            5.2
-          ],
-          "h": 2.1,
-          "tone": "shingleRidge"
-        }
-      ]
+      "roof": {
+        "kind": "hip",
+        "pitch": 22,
+        "d": 5.2,
+        "deck": "membrane",
+        "over": 0.7,
+        "tone": "shingle",
+        "sides": [
+          "v0"
+        ],
+        "_src": "the grey shingle band round the flat membrane (open 1): a deck roof whose slope stops 5.2 m in from the eave at 22 degrees (the 2.1 m rise LOOK-FIX 3 settled on), the membrane deck at the top of the band, the 0.70 m oversail S4 shows; only the outer edges slope (`sides`), the edges the other ring blocks stand on and the courtyard edges stand. The 8 boxes are dropped."
+      }
     },
     {
       "id": "tower",
@@ -1262,79 +902,15 @@
       },
       "roofTone": "hip",
       "parapet": 0,
-      "roofItems": [
-        {
-          "plan": [
-            45.6,
-            62.3,
-            8.8,
-            19.7
-          ],
-          "h": 0.66,
-          "tone": "trim",
-          "_src": "The hipped cap. Its apex lands at 27.40 m, which is exactly S1/S2's height for the whole building - a surface-model high point that belongs to this roof and not to the parapet, which is why the snapshot's 27.4 m prism is 7 m too tall everywhere else. Rise 4.60 m and a 1.40 m oversail are read off S4's silhouette against the brick-red parapet beside it, plus or minus 0.8 m."
-        },
-        {
-          "plan": [
-            46.7,
-            61.2,
-            9.52,
-            18.98
-          ],
-          "h": 1.31,
-          "tone": "hip"
-        },
-        {
-          "plan": [
-            47.79,
-            60.11,
-            10.23,
-            18.27
-          ],
-          "h": 1.97,
-          "tone": "hip"
-        },
-        {
-          "plan": [
-            48.89,
-            59.01,
-            10.95,
-            17.55
-          ],
-          "h": 2.63,
-          "tone": "hip"
-        },
-        {
-          "plan": [
-            49.99,
-            57.91,
-            11.67,
-            16.83
-          ],
-          "h": 3.29,
-          "tone": "hip"
-        },
-        {
-          "plan": [
-            51.09,
-            56.81,
-            12.38,
-            16.12
-          ],
-          "h": 3.94,
-          "tone": "hip"
-        },
-        {
-          "plan": [
-            52.18,
-            55.72,
-            13.1,
-            15.4
-          ],
-          "h": 4.6,
-          "tone": "hipRidge"
-        }
-      ]
+      "roof": {
+        "kind": "hip",
+        "pitch": 44,
+        "over": 1.4,
+        "lipH": 0.66,
+        "lipTone": "trim",
+        "tone": "hip",
+        "_src": "the hipped cap (open 1): apex at 27.4 m, S1/S2's own height for the building - 22.8 eave + 0.66 trim fascia + 3.94 m rise over the 4.05 m half-span of the 8.1 m plan, 44 degrees; the 1.40 m oversail and the fascia are S4's silhouette as the boxes recorded them. Seven boxes dropped."
+      }
     },
     {
       "id": "west-s",
@@ -1444,48 +1020,22 @@
         "v1"
       ],
       "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 1.30 m is a look: at 0.90 m the first look lost it behind the wing's own roof, and the terracotta parapet is the roof feature every Earth view names this building by.",
-      "roofItems": [
-        {
-          "plan": [
-            49.0,
-            57.7,
-            20.5,
-            42.5
-          ],
-          "h": 0.5,
-          "tone": "wingRoof",
-          "_src": "the wing's pitched roof, inset 1.2 m so it stands behind its own parapet; rise 1.50 m is a shallow pitch that matches the ridge shadows in S6's nadir, plus or minus 1 m"
-        },
-        {
-          "plan": [
-            50.33,
-            56.37,
-            23.87,
-            39.13
-          ],
-          "h": 1.0,
-          "tone": "wingRoof"
-        },
-        {
-          "plan": [
-            51.67,
-            55.03,
-            27.25,
-            35.75
-          ],
-          "h": 1.5,
-          "tone": "wingRidge"
-        }
-      ]
+      "roof": {
+        "kind": "hip",
+        "pitch": 19,
+        "inset": 2.0,
+        "tone": "wingRoof",
+        "_src": "the wing's pitched roof behind its own parapet (open 1): the eave 2.0 m inside the wall, a 1.5 m rise over the 4.35 m half-span, 19 degrees, the flat cap kept under it. Three boxes dropped."
+      }
     }
   ],
   "open": [
     "MEASURED AGAINST THE REFERENCE at the matched camera (the west oblique, ours solved to 313.0 px of outline against the reference's 312.7): after two look-fixes the orange tower reads #967648 against #9b704c, the tower's hip #b6b5ae against #b5bfcd and the wing's roof #a6a6a3 against #9aa5b0. The white membrane is the one surface still off - #cbbdba against #e2e8eb - and it stays off, because this app's daylight warms a top face and the value is already near the top of its headroom. Chasing Earth's white balance further would make this one building the odd one out in its own street.",
-    "The sloped roofs are stacks of inset boxes and at this camera the risers are still visible - the tower's hip reads as a seven-step terrace rather than a pyramid. A real sloped roof in the generator is the fix; more steps only trades the terracing for triangles.",
+    "DONE 2026-09-05: the tower's hip, the wing's roof and the shingle band are real slopes through the roofs emitter (`roof` on each block) (was: The sloped roofs are stacks of inset boxes and at this camera the risers are still visible - the tower's hip reads as a seven-step terrace r ...)",
     "The two-storey limestone base does not read as a base from the oblique: the stone and the cream stucco above it are within a few points of each other, which is true of the building (S4) but leaves the elevation reading as one wall from 300 m. It will matter at the walking camera, where the base's own coursing does the work.",
     "The colour blocks are placed by the skin's hash, not by the reference, except the brick-red block on Rio Grande and the buff tower, which are pinned. So the cream/brick-red/buff rhythm is right and the position of any one other block is not.",
     "The recessed loggia balconies - the deep dark openings at the top of the brick-red volume in S4 and S5 - are drawn as projecting balconies like the rest, because the generator has no recess. A per-band inset would fix it (the same todo the-castilian.json has for its ground floor).",
-    "The pale hipped roof S6's nadir shows at the SOUTH-EAST corner (u 0 to 6, v 38 to 45) is not drawn; the south and east shingle caps cross there instead. It is one more hip like the tower's and would be five more boxes.",
+    "DONE 2026-09-05: drawn: a hip roof item at u 0-6, v 38-44.7 on main-s, pitch unmeasured (was: The pale hipped roof S6's nadir shows at the SOUTH-EAST corner (u 0 to 6, v 38 to 45) is not drawn; the south and east shingle caps cross th ...)",
     "The ground floor's big recessed openings - a garage mouth and what S4 shows as a leasing frontage under the overhang on the Rio Grande corner - are drawn as ordinary punched windows in the stone. The entrance canopy S4 shows is not drawn.",
     "The courtyard's four walls wear the same skins as the outside. Nothing in any source shows them, and the pool the listing photographs (ALN d9577ed2) is not placed - it is probably in this courtyard but the nadir cannot tell a pool from a shadow at that depth.",
     "The east elevation's base may be one storey rather than two: S6's e oblique shows the tan stucco running lower on that side than the photographs show on the west. Entered as two storeys all round because that is what S4 measures.",

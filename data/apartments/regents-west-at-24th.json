@@ -18,20 +18,47 @@
   },
   "footprint": {
     "ring": [
-      [-97.7477199, 30.2882585],
-      [-97.7472678, 30.2882265],
-      [-97.7472464, 30.2884518],
-      [-97.7472939, 30.2884552],
-      [-97.7472625, 30.2887859],
-      [-97.7476671, 30.2888146],
-      [-97.7477199, 30.2882585]
+      [
+        -97.7477199,
+        30.2882585
+      ],
+      [
+        -97.7472678,
+        30.2882265
+      ],
+      [
+        -97.7472464,
+        30.2884518
+      ],
+      [
+        -97.7472939,
+        30.2884552
+      ],
+      [
+        -97.7472625,
+        30.2887859
+      ],
+      [
+        -97.7476671,
+        30.2888146
+      ],
+      [
+        -97.7477199,
+        30.2882585
+      ]
     ],
     "_src": "S1's OUTER ring verbatim. In (u, v) the six corners are (61.68, 0.00) (61.67, 43.60) (36.68, 43.63) (36.68, 39.05) (0.00, 39.08) (0.00, 0.06): a 61.68 x 39.08 m rectangle with a 25.0 x 4.55 m projection on the WEST side of its southern third. S1's INNER ring - the courtyard - is (39.86,27.78) (42.45,27.76) (42.39,19.32) (19.31,19.49) (19.34,25.50) (39.84,25.35), an L of 145 m2; the generator's `plan` takes no holes, so the courtyard is left as the gap between the five blocks below instead. Net area 2376 m2 against S8's measured roof area of 2539 m2 (S8 measures the roof, which oversails)."
   },
   "frame": "obb",
   "_frame_src": "obbOf(ring) as the generator computes it: L=61.68, W=43.63, +u at bearing 184.66 deg. +u runs SOUTH (u=0 is the north end, u=61.68 is the W 24th St end); +v is 90 deg counter-clockwise from +u in (east, north), i.e. WEST, so v=0 is the EAST edge facing the Pearl St side and v=43.63 is the far WEST edge on San Gabriel St. The obb sits within 0.03 m of the ring at every corner - the outline is very nearly axis-parallel in its own frame - so every block below is entered as a rectangle. Confirm against the boot console line `[slopes-apartments] Regents West at 24th: obb L=61.7 W=43.6, +u at bearing 184.7`.",
   "levels": {
-    "floors": [0.0, 4.9, 8.0, 11.1, 14.2],
+    "floors": [
+      0.0,
+      4.9,
+      8.0,
+      11.1,
+      14.2
+    ],
     "_src": "FIVE storeys, not the eight that S1's 24.9 m implies. Read off S6, which shows the whole elevation against sky: one storey of orange storefront and then exactly four rows of loggia rail, with the roof cap above the fourth. The floor-to-floor 3.1 m is measured from the same photograph by the ratio of a floor pitch to the rail beside it, which are at the same distance and so need no scale: the level-3/level-4 pitch is 109 px against a 38 px rail, and a code rail is 1.07 m, giving 3.07 m; the level-2/3 pitch gives 3.2 m the same way. The ground floor is 4.9 m: 171 px from the pavement to the soffit of the level-2 balcony slab against 71 px for the 2.13 m entry door in the same plane. Two independent checks agree. (1) S4 states 101,175 sq ft = 9,400 m2 for 93 units; four residential floors over a 2,376 m2 plate is 9,504 m2 gross, which lands on it, while eight floors would be double the stated area. (2) The east elevation in S7's c_fe crop shows five window rows, one more than the south's four, because the level that is retail on W 24th is residential round the back - not because the building is taller.",
     "ground": 4.9,
     "eave": 17.3,
@@ -92,15 +119,27 @@
       "hex": "#d1d4cb",
       "_src": "the white roof inside the cap. S7 nadir, cluster in c_sw (700,150)-(950,300) = #cfd4d4 at 37 %; S8's mean roof colour for the whole plane is (210, 211, 195) = #d2d3c3, measured independently by the roof bake. The two agree, so the entered value is between them - literally, at #d1d4cb. It went in at #ccd0c8 first, below BOTH measurements, and at the second look the roof read as the same tan as the walls where every nadir has it markedly paler and cooler than them. Entering the number that was actually measured fixed it; the step down had no source."
     },
-    "deckTone": ["#a9a8a1", "#b3aa99", "#1c1f27"],
+    "deckTone": [
+      "#a9a8a1",
+      "#b3aa99",
+      "#1c1f27"
+    ],
     "_deckTone_src": "the rooftop terrace paving at the south end. S7, cluster of the deck in c_south_roof (300,500)-(900,570): #a7a69f at 45 % and #adaca4 at 41 % - weathered concrete pavers, not membrane. Golden and night entered the way S9 enters a deck.",
     "railWhite": {
       "hex": "#d7d4cc",
       "_src": "the pale guard rail round the roof terrace, the row of light pickets across the south edge of the roof in S7's c_south_roof. Not separately sampled - entered as the deck's own tone lifted."
     },
-    "furniture": ["#4c4a46", "#5e5346", "#15171e"],
+    "furniture": [
+      "#4c4a46",
+      "#5e5346",
+      "#15171e"
+    ],
     "_furniture_src": "the dark loungers and tables on the terrace deck (S7, c_south_roof, where they are the only dark blobs on a pale plane). A SOLID trio in S9's manner.",
-    "condenser": ["#8f9398", "#9a958c", "#1a1d26"],
+    "condenser": [
+      "#8f9398",
+      "#9a958c",
+      "#1a1d26"
+    ],
     "_condenser_src": "S8 gives the six roof units' colours between (173,176,159) and (254,254,239) - mid grey to white galvanised. The trio is S9's mech tone, as The Standard's and The Castilian's files use it.",
     "penthouse": {
       "hex": "#c3bdae",
@@ -130,8 +169,15 @@
       "kind": "bays",
       "bay": 4.0,
       "field": "wall",
-      "floorLine": { "h": 0.34, "tone": "slab" },
-      "window": { "w": 2.8, "h": 1.95, "sill": 0.62 },
+      "floorLine": {
+        "h": 0.34,
+        "tone": "slab"
+      },
+      "window": {
+        "w": 2.8,
+        "h": 1.95,
+        "sill": 0.62
+      },
       "glass": "balcGlass",
       "frame": "trim",
       "reveal": 0.35,
@@ -141,7 +187,11 @@
       "kind": "bays",
       "bay": 2.1,
       "field": "wall",
-      "window": { "w": 1.25, "h": 1.45, "sill": 0.95 },
+      "window": {
+        "w": 1.25,
+        "h": 1.45,
+        "sill": 0.95
+      },
       "glass": "glass",
       "frame": "trim",
       "reveal": 0.14,
@@ -169,7 +219,11 @@
       "kind": "bays",
       "bay": 4.6,
       "field": "coral",
-      "window": { "w": 0.9, "h": 1.6, "sill": 1.0 },
+      "window": {
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.0
+      },
       "glass": "balcGlass",
       "frame": "coral",
       "reveal": 0.2,
@@ -190,141 +244,372 @@
     {
       "id": "north",
       "_src": "The north wing of the ring, u 0 to 19.3 across the full 39.08 m width. Its u1 face at u=19.3 is the courtyard's north wall; the parts of that face buried behind the east and west wings are left drawn because they are back-to-back with those wings' own faces, which the generator's header says is safe, and nulling them would take the courtyard wall with them.",
-      "plan": [0.0, 19.3, 0.0, 39.08],
+      "plan": [
+        0.0,
+        19.3,
+        0.0,
+        39.08
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
       "faces": {
         "v0": {
           "bands": [
-            { "z0": 0, "z1": 17.3, "skin": "loggia", "balconies": [{ "s0": 1.0, "s1": 18.3 }] },
-            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+            {
+              "z0": 0,
+              "z1": 17.3,
+              "skin": "loggia",
+              "balconies": [
+                {
+                  "s0": 1.0,
+                  "s1": 18.3
+                }
+              ]
+            },
+            {
+              "z0": 17.3,
+              "z1": 17.9,
+              "skin": "plainWall"
+            },
+            {
+              "z0": 17.9,
+              "z1": 18.4,
+              "skin": "crown"
+            }
           ],
           "_src": "the east elevation of the north wing, which S7's c_fe shows wearing the same loggia bands as the south face. The balcony run is the face's whole length less half a metre at each end."
         }
       },
       "overrides": [
         {
-          "region": [0.0, 4.8, 38.9, 39.2],
+          "region": [
+            0.0,
+            4.8,
+            38.9,
+            39.2
+          ],
           "bands": [
-            { "z0": 0, "z1": 17.3, "skin": "coralFace" },
-            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+            {
+              "z0": 0,
+              "z1": 17.3,
+              "skin": "coralFace"
+            },
+            {
+              "z0": 17.3,
+              "z1": 17.9,
+              "skin": "plainWall"
+            },
+            {
+              "z0": 17.9,
+              "z1": 18.4,
+              "skin": "crown"
+            }
           ],
           "_src": "the NORTH coral strip, the twin of the one on the projection. S7's c_nw shows a full-height coral plane hard against the north-west corner as well as the south-west one, each with its own column of stair slots. 4.8 m wide, read off c_nw against the 61.68 m length."
         }
       ],
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["u0", "v0", "v1"],
+      "parapetSides": [
+        "u0",
+        "v0",
+        "v1"
+      ],
       "_parapet_src": "the 1.15 m upstand stands in for the sloped cap that rings the roof: S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it. Not a parapet the building has - a cap the generator can draw. The courtyard edge (u1) gets none because the east and west wings stand on it at the same height.",
       "roofItems": [
         {
-          "plan": [3.0, 9.0, 14.0, 20.0],
+          "plan": [
+            3.0,
+            9.0,
+            14.0,
+            20.0
+          ],
           "h": 2.6,
           "tone": "penthouse",
           "_src": "S7 nadir (c_nadir_bldg, top centre): a small pale box with a warm cap standing on the north roof - the stair and lift head. Size read off the gridded nadir to about plus or minus 1.5 m."
         },
         {
-          "plan": [2.0, 17.0, 2.0, 10.0],
-          "grid": [4, 2],
-          "size": [1.1, 1.3],
+          "plan": [
+            2.0,
+            17.0,
+            2.0,
+            10.0
+          ],
+          "grid": [
+            4,
+            2
+          ],
+          "size": [
+            1.1,
+            1.3
+          ],
           "h": 0.7,
           "tone": "condenser",
           "_src": "S8's condenser blobs at centroid offsets (-13.8, -5.8), (-16.0, 6.8) and (-13.8, 26.1) fall on the north wing's roof; S7's nadir shows them in loose rows along the east side of it."
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "u0",
+          "v0",
+          "v1"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     },
     {
       "id": "east",
       "_src": "The east wing, u 19.3 to 42.4 and 19.4 m deep from the Pearl St side - a double-loaded range. Its v1 face is the courtyard's east wall. Its u0 and u1 faces are nulled because the north and south wings' own faces already close those ends. S7's c_fe reads the east elevation as loggia bands at the two ends with a plain punched bay in the middle; this middle wing is that punched bay, so it keeps the block's default skin.",
-      "plan": [19.3, 42.4, 0.0, 19.4],
+      "plan": [
+        19.3,
+        42.4,
+        0.0,
+        19.4
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
-      "faces": { "u0": null, "u1": null },
+      "faces": {
+        "u0": null,
+        "u1": null
+      },
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["v0", "v1"]
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "v0",
+          "v1"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     },
     {
       "id": "west",
       "_src": "The west wing north of the projection, u 19.3 to 36.68 and 13.7 m deep from the San Gabriel St side - a single-loaded range, which is why it is shallower than the east one. Its v0 face is the courtyard's west wall.",
-      "plan": [19.3, 36.68, 25.4, 39.08],
+      "plan": [
+        19.3,
+        36.68,
+        25.4,
+        39.08
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
-      "faces": { "u0": null, "u1": null },
+      "faces": {
+        "u0": null,
+        "u1": null
+      },
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["v0", "v1"],
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
       "roofItems": [
         {
-          "plan": [21.0, 35.0, 27.0, 38.0],
-          "grid": [4, 2],
-          "size": [1.1, 1.3],
+          "plan": [
+            21.0,
+            35.0,
+            27.0,
+            38.0
+          ],
+          "grid": [
+            4,
+            2
+          ],
+          "size": [
+            1.1,
+            1.3
+          ],
           "h": 0.7,
           "tone": "condenser",
           "_src": "S7 nadir: the west roof strip carries a run of units along its whole length, which S8's small 'cond' blobs corroborate."
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "v0",
+          "v1"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     },
     {
       "id": "westS",
       "_src": "The short piece of the west wing that the projection stands against, u 36.68 to 42.4. It exists as its own block only so that the projection can null a whole face instead of half of one - the generator can null a face but cannot null part of one, and two same-facing coplanar walls z-fight.",
-      "plan": [36.68, 42.4, 25.4, 39.08],
+      "plan": [
+        36.68,
+        42.4,
+        25.4,
+        39.08
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
-      "faces": { "u0": null, "u1": null, "v1": null },
+      "faces": {
+        "u0": null,
+        "u1": null,
+        "v1": null
+      },
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["v0"]
+      "parapetSides": [
+        "v0"
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "v0"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     },
     {
       "id": "south",
       "_src": "The south wing on W 24th St, u 42.4 to 61.68 across the 39.08 m width of the main rectangle. This is the elevation the whole neighbourhood sees and the only one with a source better than photogrammetry. Its u0 face is the courtyard's south wall; its v1 face is nulled because the projection stands against it.",
-      "plan": [42.4, 61.68, 0.0, 39.08],
+      "plan": [
+        42.4,
+        61.68,
+        0.0,
+        39.08
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
       "faces": {
         "v1": null,
         "u1": {
           "bands": [
-            { "z0": 0, "z1": 4.9, "skin": "store" },
+            {
+              "z0": 0,
+              "z1": 4.9,
+              "skin": "store"
+            },
             {
               "z0": 4.9,
               "z1": 17.3,
               "skin": "loggia",
               "balconies": [
-                { "s0": 1.4, "s1": 18.4 },
-                { "s0": 20.7, "s1": 37.7 }
+                {
+                  "s0": 1.4,
+                  "s1": 18.4
+                },
+                {
+                  "s0": 20.7,
+                  "s1": 37.7
+                }
               ],
               "signs": [
                 {
@@ -335,90 +620,321 @@
                   "dot": 0.09,
                   "gap": 0.09,
                   "tone": "sign",
-                  "back": { "w": 0.85, "tone": "signBack", "pad": 0.25 },
+                  "back": {
+                    "w": 0.85,
+                    "tone": "signBack",
+                    "pad": 0.25
+                  },
                   "_src": "the projecting blade over the 2401 door in S6, which reads REGENTS WEST AT 24 down a dark backing panel. Only the first word is set here: at 0.09 m a dot the seven letters are 5.0 m of sign, which is the blade's own height in the photograph against the 3.1 m floor pitch, and the whole legend would be three times that. It is centred on the face because the entry is within a metre of centre in S6 and the two balcony runs are placed to leave it clear."
                 }
               ]
             },
-            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+            {
+              "z0": 17.3,
+              "z1": 17.9,
+              "skin": "plainWall"
+            },
+            {
+              "z0": 17.9,
+              "z1": 18.4,
+              "skin": "crown"
+            }
           ],
           "_src": "S6, the whole stack: 4.9 m of orange shopfront, then four floors of loggia, then the shaded band under the cap. The two balcony runs stop 1.2 m short of the entry bay on each side, which is where S6's blade sign and the recessed door break the rail line."
         },
         "v0": {
           "bands": [
-            { "z0": 0, "z1": 4.9, "skin": "orangeFlat" },
-            { "z0": 4.9, "z1": 17.3, "skin": "loggia", "balconies": [{ "s0": 1.0, "s1": 18.3 }] },
-            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+            {
+              "z0": 0,
+              "z1": 4.9,
+              "skin": "orangeFlat"
+            },
+            {
+              "z0": 4.9,
+              "z1": 17.3,
+              "skin": "loggia",
+              "balconies": [
+                {
+                  "s0": 1.0,
+                  "s1": 18.3
+                }
+              ]
+            },
+            {
+              "z0": 17.3,
+              "z1": 17.9,
+              "skin": "plainWall"
+            },
+            {
+              "z0": 17.9,
+              "z1": 18.4,
+              "skin": "crown"
+            }
           ],
           "_src": "the east elevation of the south wing: S6 shows the orange returning round the south-east corner as a blank wall, and S7's c_fe shows loggia bands above it, the mirror of the north wing's east face."
         }
       },
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["u1", "v0"],
+      "parapetSides": [
+        "u1",
+        "v0"
+      ],
       "roofItems": [
         {
-          "plan": [43.5, 49.0, 4.0, 34.0],
-          "grid": [2, 6],
-          "size": [1.1, 1.3],
+          "plan": [
+            43.5,
+            49.0,
+            4.0,
+            34.0
+          ],
+          "grid": [
+            2,
+            6
+          ],
+          "size": [
+            1.1,
+            1.3
+          ],
           "h": 0.7,
           "tone": "condenser",
           "_src": "S7 nadir: a band of units across the roof just north of the terrace; S8's blob at centroid offset (10.1, -28.1) is in this run."
         }
-      ]
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "u1",
+          "v0"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     },
     {
       "id": "bump",
       "_src": "The 25.0 x 4.55 m projection on the west side of the southern third - the one thing in the outline that is not a plain rectangle (S1's outer ring). It is drawn full height, the same 18.4 m as the rest: S6 shows the wall at the west end of the south face running from the pavement to the cap with no step, and the outline is one building in one polygon with one height in S2. The alternative reading - a low wing, which S7's nadir hints at with a tan lower roof near this corner - is not taken, because that tan patch sits outside the red outline when the footprint is overlaid and is more likely the small building next door. Say so plainly; a Street View frame from San Gabriel St would settle it in one look.",
-      "plan": [36.68, 61.68, 39.08, 43.63],
+      "plan": [
+        36.68,
+        61.68,
+        39.08,
+        43.63
+      ],
       "z0": 0,
       "z1": 18.4,
       "bands": [
-        { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+        {
+          "z0": 0,
+          "z1": 17.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.3,
+          "z1": 17.9,
+          "skin": "plainWall"
+        },
+        {
+          "z0": 17.9,
+          "z1": 18.4,
+          "skin": "crown"
+        }
       ],
-      "faces": { "v0": null },
+      "faces": {
+        "v0": null
+      },
       "overrides": [
         {
-          "region": [56.9, 61.7, 38.9, 43.7],
+          "region": [
+            56.9,
+            61.7,
+            38.9,
+            43.7
+          ],
           "bands": [
-            { "z0": 0, "z1": 17.3, "skin": "coralFace" },
-            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
-            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+            {
+              "z0": 0,
+              "z1": 17.3,
+              "skin": "coralFace"
+            },
+            {
+              "z0": 17.3,
+              "z1": 17.9,
+              "skin": "plainWall"
+            },
+            {
+              "z0": 17.9,
+              "z1": 18.4,
+              "skin": "crown"
+            }
           ],
           "_src": "the SOUTH coral strip, one of TWO. S7's c_nw is the frame that settles them: looking down the whole west elevation from the north-west it shows a full-height coral plane hard against EACH corner, north and south, each with a column of four narrow slots in it - the two stair towers. This one sits in the last 4.8 m before W 24th St and wraps the corner on to the south face, which is what c_sw shows from the other side. The first pass put it two thirds of the way along and 4.6 m wide, in the middle of nothing; c_nw read properly puts it at the corner. The region catches only the projection's own west and south walls, so it cannot leak."
         }
       ],
       "roofTone": "membrane",
-      "parapet": 1.15,
+      "parapet": 0,
       "parapetTone": "cap",
-      "parapetSides": ["v1", "u0", "u1"]
+      "parapetSides": [
+        "v1",
+        "u0",
+        "u1"
+      ],
+      "roof": {
+        "kind": "hip",
+        "pitch": 45,
+        "d": 1.0,
+        "deck": "membrane",
+        "tone": "cap",
+        "sides": [
+          "v1",
+          "u0",
+          "u1"
+        ],
+        "_src": "the sloped cap that rings the roof (the 1.15 m upstand stood in for it): S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it - a deck roof whose slope stops 1.0 m in and whose deck is the membrane; 45 degrees is a look sized to the upstand it replaces. It slopes on the edges the upstand stood on (`sides`); the edges the other blocks stand on stand."
+      },
+      "_parapet_replaced": "the 1.15 m `cap` upstand was replaced by the roof above on 2026-09-05; parapet 0."
     }
   ],
   "deck": {
     "z": 18.4,
     "_src": "The rooftop terrace S5 advertises and S7's c_south_roof photographs from above: a paved deck across the south end of the roof, a pale guard rail along its south edge, and clusters of dark loungers and tables on it. Everything below is read off that one frame against the 39.08 m width, to about plus or minus 1.5 m.",
     "items": [
-      { "plan": [52.0, 61.0, 5.0, 34.0], "z0": 0, "h": 0.14, "tone": "deckTone", "_src": "the paving: concrete pavers, not membrane - S7 measures it #a7a69f against the roof's #cfd4d4" },
-      { "plan": [52.0, 61.0, 5.0, 5.16], "z0": 0.14, "h": 1.05, "tone": "railWhite", "_src": "the pale guard rail along the deck's east edge in c_south_roof" },
-      { "plan": [52.0, 61.0, 33.84, 34.0], "z0": 0.14, "h": 1.05, "tone": "railWhite", "_src": "the same rail returning along the west edge" },
-      { "plan": [51.9, 52.06, 5.0, 34.0], "z0": 0.14, "h": 1.05, "tone": "railWhite", "_src": "the rail across the deck's north edge, the line of light pickets that separates the terrace from the plant deck in c_south_roof" },
-      { "plan": [54.0, 56.2, 7.5, 8.4], "z0": 0.14, "h": 0.62, "tone": "furniture", "_src": "a lounger; S7 shows six or seven of them in two loose rows along the deck" },
-      { "plan": [54.0, 56.2, 10.5, 11.4], "z0": 0.14, "h": 0.62, "tone": "furniture" },
-      { "plan": [54.0, 56.2, 13.5, 14.4], "z0": 0.14, "h": 0.62, "tone": "furniture" },
-      { "plan": [54.0, 56.2, 25.0, 25.9], "z0": 0.14, "h": 0.62, "tone": "furniture" },
-      { "plan": [54.0, 56.2, 28.0, 28.9], "z0": 0.14, "h": 0.62, "tone": "furniture" },
-      { "plan": [58.2, 60.0, 16.0, 18.2], "z0": 0.14, "h": 0.78, "tone": "furniture", "_src": "the table and chair cluster at the south end of the deck" },
-      { "plan": [58.2, 60.0, 21.0, 23.2], "z0": 0.14, "h": 0.78, "tone": "furniture" }
+      {
+        "plan": [
+          52.0,
+          61.0,
+          5.0,
+          34.0
+        ],
+        "z0": 0,
+        "h": 0.14,
+        "tone": "deckTone",
+        "_src": "the paving: concrete pavers, not membrane - S7 measures it #a7a69f against the roof's #cfd4d4"
+      },
+      {
+        "plan": [
+          52.0,
+          61.0,
+          5.0,
+          5.16
+        ],
+        "z0": 0.14,
+        "h": 1.05,
+        "tone": "railWhite",
+        "_src": "the pale guard rail along the deck's east edge in c_south_roof"
+      },
+      {
+        "plan": [
+          52.0,
+          61.0,
+          33.84,
+          34.0
+        ],
+        "z0": 0.14,
+        "h": 1.05,
+        "tone": "railWhite",
+        "_src": "the same rail returning along the west edge"
+      },
+      {
+        "plan": [
+          51.9,
+          52.06,
+          5.0,
+          34.0
+        ],
+        "z0": 0.14,
+        "h": 1.05,
+        "tone": "railWhite",
+        "_src": "the rail across the deck's north edge, the line of light pickets that separates the terrace from the plant deck in c_south_roof"
+      },
+      {
+        "plan": [
+          54.0,
+          56.2,
+          7.5,
+          8.4
+        ],
+        "z0": 0.14,
+        "h": 0.62,
+        "tone": "furniture",
+        "_src": "a lounger; S7 shows six or seven of them in two loose rows along the deck"
+      },
+      {
+        "plan": [
+          54.0,
+          56.2,
+          10.5,
+          11.4
+        ],
+        "z0": 0.14,
+        "h": 0.62,
+        "tone": "furniture"
+      },
+      {
+        "plan": [
+          54.0,
+          56.2,
+          13.5,
+          14.4
+        ],
+        "z0": 0.14,
+        "h": 0.62,
+        "tone": "furniture"
+      },
+      {
+        "plan": [
+          54.0,
+          56.2,
+          25.0,
+          25.9
+        ],
+        "z0": 0.14,
+        "h": 0.62,
+        "tone": "furniture"
+      },
+      {
+        "plan": [
+          54.0,
+          56.2,
+          28.0,
+          28.9
+        ],
+        "z0": 0.14,
+        "h": 0.62,
+        "tone": "furniture"
+      },
+      {
+        "plan": [
+          58.2,
+          60.0,
+          16.0,
+          18.2
+        ],
+        "z0": 0.14,
+        "h": 0.78,
+        "tone": "furniture",
+        "_src": "the table and chair cluster at the south end of the deck"
+      },
+      {
+        "plan": [
+          58.2,
+          60.0,
+          21.0,
+          23.2
+        ],
+        "z0": 0.14,
+        "h": 0.78,
+        "tone": "furniture"
+      }
     ]
   },
   "todo": [
-    "GENERATOR GAP, and it is visible in the frame: js/slopes-apartments.js's setFilters() hides the replaced prisms in `buildings-3d` and `buildings-roof` and the westcampus bands in `wc-*`, but NOT the roofscape pass. js/roofs.js draws `roofscape-deck` as one flat polygon per building whose `fill-extrusion-base` is the baked `b` - the SNAPSHOT height. This building's snapshot height is 24.9 m and its real height is 19.3 m, so the deck now floats as a 41 x 44 m slab six and a half metres above the roof, over the courtyard and everything on it. It is the first thing the eye lands on from any oblique. The fix is one clause: extend that layer list to roofscape-deck, roofscape-major and roofscape-minor, keyed the same way on `id`. Every apartment file that overrides the snapshot height DOWNWARD has this, not just this one - it is invisible only where the authored height happens to match the guess. I do not edit the .js, so this is written here instead.",
-    "Lower priority, same place: with that filter in, this file draws its own roof furniture (the condenser grids and the terrace) and the roofscape pass's units for the same building would be drawn twice if only the deck were hidden. Hide all three roofscape layers for a replaced id, not just the deck."
+    "DONE 2026-09-05: js/slopes-apartments.js hides the three roofscape layers over every authored footprint by a distance clause (the features carry no id), restored on switch-off (was: GENERATOR GAP, and it is visible in the frame: js/slopes-apartments.js's setFilters() hides the replaced prisms in `buildings-3d` and `build ...)",
+    "DONE 2026-09-05: all three roofscape layers are hidden, not just the deck (was: Lower priority, same place: with that filter in, this file draws its own roof furniture (the condenser grids and the terrace) and the roofsc ...)"
   ],
   "_open": [
     "The projection's height is the one real risk: full height on the strength of S6 and the OSM polygon, against a hint in S7's nadir that the roof is lower at that corner. A Street View frame from San Gabriel St looking east settles it, and nobody has taken one - the attempt in this pass returned a 14 kB blank.",

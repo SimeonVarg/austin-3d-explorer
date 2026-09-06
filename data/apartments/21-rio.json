@@ -169,7 +169,7 @@
       "fasciaTone": "bronze",
       "frame": "stonePale",
       "glass": "storeGlass",
-      "reveal": 0.35,
+      "reveal": 0.12,
       "_src": "Level 1: about 4,000 sf of retail (S2) plus the leasing entrance, behind a storefront recessed under the podium (S4). The bronze fascia is the canopy that runs along the top of the ground floor in S4; 1.7 m mullion spacing is a plausible module read off S4's own storefront, not dimensioned. reveal 0.35 stands in for the recess the generator has no inset for."
     },
     "garageStone": {
@@ -261,7 +261,17 @@
         {
           "z0": 0.0,
           "z1": 6.2,
-          "skin": "ground"
+          "skin": "ground",
+          "inset": {
+            "d": 1.5,
+            "tone": "stonePale",
+            "columns": {
+              "pitch": 4.3,
+              "w": 0.5,
+              "tone": "stonePale"
+            }
+          },
+          "_inset_src": "open 4: the ground floor is recessed under the podium in S4; the depth was not measured - 1.5 m is a look, with stone piers on the 4.3 m fin module standing in for whatever carries the podium. The 0.35 m reveal that stood in for it is an ordinary 0.12 now."
         },
         {
           "z0": 6.2,
@@ -327,7 +337,16 @@
             {
               "z0": 0.0,
               "z1": 6.2,
-              "skin": "ground"
+              "skin": "ground",
+              "inset": {
+                "d": 1.5,
+                "tone": "stonePale",
+                "columns": {
+                  "pitch": 4.3,
+                  "w": 0.5,
+                  "tone": "stonePale"
+                }
+              }
             },
             {
               "z0": 6.2,
@@ -746,7 +765,7 @@
     "The tower's setback from the podium (2.6-4.0 m on three sides) is read off a nadir that is close to orthographic, where a 3 m step reads much like a parapet. The S6 oblique confirms the step exists on the west and the south; the east is inferred from a shadow line and the north from the roof running to the edge. Plus or minus 1.5 m per side, and the north could be set back too.",
     "The bronze fins stand proud of the podium wall on brackets in S4 and are drawn flush, because the generator has no per-strip projection. The same goes for the trellis frames on the roof: they are open pipe frames in the photographs and are drawn as solid bronze fins on the parapet line - the silhouette is right, the transparency is not.",
     "The north and east elevations were never photographed. They wear the same rule as the two that were, with one fewer balcony stack on the east where an alley runs; where each stack sits along its face is read to about a metre off one oblique.",
-    "The ground floor is recessed under the podium in S4 and is drawn in the podium plane with a 0.35 m reveal standing in for it. The garage entry, which has to be on one of these four faces, is not drawn and no source says which.",
+    "DONE 2026-09-05: the ground band is inset (1.5 m, a look) with piers on the fin module; the garage entry is still not drawn (was: The ground floor is recessed under the podium in S4 and is drawn in the podium plane with a 0.35 m reveal standing in for it. The garage ent ...)",
     "S7's balcony spec for this building is ('long', 2, 19) - nineteen floors on two elevations. That is generative and it is wrong: the balconies belong to the tower's fifteen floors, on all four elevations, because the six floors below them are a retail floor and five parking decks."
   ]
 }

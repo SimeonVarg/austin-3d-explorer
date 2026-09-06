@@ -452,9 +452,15 @@
             14.0,
             31.0
           ],
-          "h": 2.6,
+          "z0": 0.4,
+          "h": 0.0,
           "tone": "metalRoof",
-          "_src": "The taller hipped mass over the north half of the east wing. On the rectified east elevation (S8, ref/s_e.png) a hip peaks about 3.5 m above the eave at v 13-22; entered at 2.6 m above the plate, plus or minus 1 m, and as a box, because a ridge line drawn at this scale is a worse answer than a mass."
+          "roof": {
+            "kind": "hip",
+            "pitch": 30,
+            "tone": "metalRoof"
+          },
+          "_src": "open 1: the taller hipped mass over the north half of the east wing - S8 has the hip about 3.5 m over the eave at v 13-22: a 30 degree hip on the 12 m plan rises 3.46 m from the plate. Standing on the 0.4 m plate."
         },
         {
           "plan": [
@@ -463,9 +469,15 @@
             2.5,
             12.5
           ],
-          "h": 2.0,
+          "z0": 0.4,
+          "h": 0.0,
           "tone": "metalRoof",
-          "_src": "S5: the second, smaller hip, at the south-east corner of the wing."
+          "roof": {
+            "kind": "hip",
+            "pitch": 22,
+            "tone": "metalRoof"
+          },
+          "_src": "open 1: the smaller hip at the south-east corner of the wing: 22 degrees on the 10 m plan rises 2.0 m, the box's own height. Standing on the 0.4 m plate."
         },
         {
           "plan": [
@@ -527,11 +539,11 @@
   },
   "open": [
     "The light well is a dark plate on the roof, not a hole: a block's plan is one ring. Cutting it needs either an inner-ring plan or four blocks round the well - a request for the generator, not something this file can do.",
-    "The east wing's roof is a grey standing-seam roof with two hips (S5, S8) and is drawn as one low grey plate with two boxes on it, because there is no pitched-roof primitive. Its eave also sits about 1 m below the main parapet in the frames, and here it does not.",
+    "DONE 2026-09-05: the two hipped masses are roof items with a `roof` each (30 and 22 degrees) on the wing's plate, real slopes through the roofs emitter (was: The east wing's roof is a grey standing-seam roof with two hips (S5, S8) and is drawn as one low grey plate with two boxes on it, because th ...)",
     "The recessed balcony bays are in the PLAN - they are the jogs in the ring - but not in the elevation: the recess is drawn as a 1.0-1.5 m step in the wall carrying the same punched grid, where the frames show a dark opening with a rail. The photogrammetry smears them into vertical smudges, so their heads and sills could not be read; one street photograph would settle them.",
     "The south elevation was never photographed. 2704 Rio Grande stands about 13 m away across the property line and blocks every oblique from the south, so the south face wears the north's grid and is stated here to be unphotographed.",
     "No leasing site, operator or marketing name could be tied to 2706 Rio Grande: OSM has no name tag and the 2704 address next door belongs to the larger complex south of it. Every colour therefore comes off the photogrammetry mesh, in shade, with the lift described in colours._src - one authored swatch or one street photograph would beat all of it.",
     "The ground floor's garage or service opening on W 28th (the dark recess at u 6-14 in ref/n_west4.png) is not drawn; the base band carries the ordinary window grid across it.",
-    "TODO for the roofscape bake, and it is visible: data/roofscape.geojson carries three features over this building - a deck plate at b 30.7 / h 30.95 and a penthouse and units above it - baked from the snapshot's 29.7 m. This file draws the roof at 20.0 m, so that plate floats TEN METRES above the real roof and, from any camera looking down, hides everything on it: the grey plate over the east wing, both hips, all 46 condensers and the light well. scripts/bake_roofscape.py already knows how to skip an authored roof - it collects `authoredRoofIds` from every data/*.geojson and `replacedBuildingIds` from stadium.geojson - but it never reads data/apartments/index.json, so NO building this generator draws is excluded, and this one shows it worst because its authored height is the one that disagrees with the snapshot. The fix is one line in that bake's exclusion list plus a re-run; the bake and its output file belong to another lane, so it is written here rather than made. Everything on the roof below is authored and correct in the mesh - it is covered, not missing."
+    "DONE 2026-09-05: js/slopes-apartments.js hides the roofscape pass over every authored footprint by a distance clause; the bake still needs the skip (HANDOFF) (was: TODO for the roofscape bake, and it is visible: data/roofscape.geojson carries three features over this building - a deck plate at b 30.7 /  ...)"
   ]
 }
