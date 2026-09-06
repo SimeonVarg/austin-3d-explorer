@@ -252,12 +252,10 @@
       "hex": "#cac8c3",
       "_src": "S6 south elevation, crop (600,490)-(900,545), brightest 10% #e2ded6, normalised. The courtyard wings' spandrel bands."
     },
-    "tile": [
-      "#bc6143",
-      "#d87e52",
-      "#11111c"
-    ],
-    "_tile_src": "The app's own roof bake, data/roofs.geojson, for the campus tile roofs within 260 m of this building - Brackenridge, Roberts, Prather, Moore-Hill: 208 facets carry exactly this trio and another 463 carry one within two per cent of it. Jester's wings wear the same barrel tile as its neighbours, so it wears their measured tone and ages through the same ramp. (An earlier sample off S6's south elevation, normalised, gave #a0685c; rendered beside those neighbours it read pink and twenty per cent too dark, which is the imagery's exposure, not the tile.)",
+    "tile": {
+      "hex": "#9c4b3c"
+    },
+    "_tile_src": "Muted terracotta barrel tile, one day hex through the file's own ramp. CHANGED 2026-09-06 from the roof bake's campus trio (#bc6143 / #d87e52 / #11111c) after the fair-comparison package judge/jester/ put ours beside Google Earth 3D at the recorded south pose. Two numbers, both off that package: the real building's sunlit south roof slope in B_wings.png, crop x 500..900 y 345..375, clusters at #b76c5d; ours in the same frame rendered #fe8041 - the RED CHANNEL AT 254 OF 255, i.e. clipped, which is the mechanism behind the critic's 'a single continuous flat bright-orange slab with no planes and no ridge': a facet whose red saturates cannot shade differently from the facet beside it, so the hip planes, the ridge and the hip ends all resolve to one value. The campus roofs baked into data/roofs.geojson clip at the same hex in the same frame (sampled x 1020..1200 y 395..425: #fe8041), so the trio is the outlier, not this building. This tone is also what the two independent reads of the real roof already said: this file's own earlier S6 south-elevation sample (#a0685c) and Earth's #b76c5d, and the critic named #9c4b3c. Neighbour-match loses to the photograph.",
     "membrane": {
       "hex": "#a2a8aa",
       "_src": "S6 nadir, crop (700,430)-(980,460), mid cluster #b6baba, normalised. The bar's roof."
@@ -584,7 +582,10 @@
         "kind": "hip",
         "pitch": 30,
         "tone": "tile",
-        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 30 degrees; no oversail was measured."
+        "over": 0.55,
+        "lipH": 0.3,
+        "lipTone": "coping",
+        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 30 degrees; no oversail was measured. EAVES 2026-09-06: over 0.55 m with a 0.30 m fascia in `coping`. It was 0 - 'no oversail was measured' - and a roof that meets its wall on a coincident line draws no eave, which is half of why the critic read the whole wing run as one flat slab. The reference frame judge/jester/B_wings.png shows the overhang plainly: a pale fascia band with its own shadow under it, running the length of every wing, about 0.5 px per 1 px of the 3.2 m ridge rise at that scale, i.e. of the order of half a metre. 0.55 is that read, +/- 0.2 m."
       },
       "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05."
     },
@@ -616,7 +617,10 @@
         "kind": "hip",
         "pitch": 30,
         "tone": "tile",
-        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 30 degrees; no oversail was measured."
+        "over": 0.55,
+        "lipH": 0.3,
+        "lipTone": "coping",
+        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 30 degrees; no oversail was measured. EAVES 2026-09-06: over 0.55 m with a 0.30 m fascia in `coping`. It was 0 - 'no oversail was measured' - and a roof that meets its wall on a coincident line draws no eave, which is half of why the critic read the whole wing run as one flat slab. The reference frame judge/jester/B_wings.png shows the overhang plainly: a pale fascia band with its own shadow under it, running the length of every wing, about 0.5 px per 1 px of the 3.2 m ridge rise at that scale, i.e. of the order of half a metre. 0.55 is that read, +/- 0.2 m."
       },
       "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05."
     },
@@ -648,7 +652,10 @@
         "kind": "hip",
         "pitch": 29,
         "tone": "tile",
-        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 29 degrees; no oversail was measured."
+        "over": 0.55,
+        "lipH": 0.3,
+        "lipTone": "coping",
+        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 29 degrees; no oversail was measured. EAVES 2026-09-06: over 0.55 m with a 0.30 m fascia in `coping`. It was 0 - 'no oversail was measured' - and a roof that meets its wall on a coincident line draws no eave, which is half of why the critic read the whole wing run as one flat slab. The reference frame judge/jester/B_wings.png shows the overhang plainly: a pale fascia band with its own shadow under it, running the length of every wing, about 0.5 px per 1 px of the 3.2 m ridge rise at that scale, i.e. of the order of half a metre. 0.55 is that read, +/- 0.2 m."
       },
       "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05."
     },
@@ -794,7 +801,10 @@
         "kind": "hip",
         "pitch": 21,
         "tone": "tile",
-        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 21 degrees; no oversail was measured."
+        "over": 0.55,
+        "lipH": 0.3,
+        "lipTone": "coping",
+        "_src": "the hipped barrel-tile roof the four inset steps stood in for (todo 2): the ridge 3.20 m over the eave (S8's ruler) on this wing's depth, 21 degrees; no oversail was measured. EAVES 2026-09-06: over 0.55 m with a 0.30 m fascia in `coping`. It was 0 - 'no oversail was measured' - and a roof that meets its wall on a coincident line draws no eave, which is half of why the critic read the whole wing run as one flat slab. The reference frame judge/jester/B_wings.png shows the overhang plainly: a pale fascia band with its own shadow under it, running the length of every wing, about 0.5 px per 1 px of the 3.2 m ridge rise at that scale, i.e. of the order of half a metre. 0.55 is that read, +/- 0.2 m."
       },
       "_roof_src": "the 5 inset boxes this roof replaces were dropped on 2026-09-05."
     }
@@ -805,6 +815,8 @@
     "DONE 2026-09-05: window.frame draws the 1.31 x 2.31 precast surround as itself (was: 3. The light precast surround around each tower window (1.31 x 2.31 m, S4) is drawn as the window's reveal strips rather than as wall tone,  ...)",
     "DONE 2026-09-05: added to data/apartments/index.json with its id on 2026-09-05 (was: 4. data/apartments/index.json is not this file's to write. To turn this building on, add 'jester-west-hall.json' to `buildings` and '165236c ...)",
     "DONE 2026-09-05: setFilters hides campus-storeys by host for every replaced id (was: 6. The layer campus-storeys (js/facades.js) is not one of the four the apartments generator filters, so main's twelve horizontal courses for ...)",
+    "6. NOT A DEFECT, checked 2026-09-06. The 2026-09-06 critique asked to \"delete the stray small brown hipped block currently sitting on top of the slab in the courtyard\". It is `wing-east` - the real wing between the courtyard and Jester East, u 89.25..100.59, v 11.19..40.20 (S2) - seen end-on from the recorded south pose, so its south hip plane reads as a lump standing on the south wing's roof. Projected at that pose it lands at screen x 817..858, which is exactly where the \"stray block\" is. It stays. What made it read as a lump was the tile colour clipping (see colours._tile_src): its two hip planes rendered the same #fe8041 as the flat slab in front of it, so nothing separated them. At #9c4b3c they shade apart - #dc5e3a lit, #6f4d3d in shade.",
+    "7. Two of the 2026-09-06 secondary notes are still open and are NOT this file's alone to close: the tower's windows read as dark pips on tan where the real facade reads as light-framed vertical rectangles in buff brick (the value relation is inverted), and the tower is one window row tall (15 rows above the wing eaves against the reference's 14). The pilaster-stripe note is a misread of towerWall's 4.30 m bay reveals at this zoom, not a band in the data.",
     "5. Not photographed, and wearing the plainest rule the building has: the courtyard-facing walls of all three wings, the north-mid block's own north and west faces, and the whole of north-west-low. The tower's east end (u=100.81) stands six metres from Jester East and was never seen from the ground."
   ]
 }
