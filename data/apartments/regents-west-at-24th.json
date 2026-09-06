@@ -36,7 +36,7 @@
     "ground": 4.9,
     "eave": 17.3,
     "capTop": 18.4,
-    "_heights_src": "eave 17.3 = 4.9 + 4 x 3.1, the top of the fourth residential floor and the head of the plain stucco band S6 shows above the top loggia. capTop 18.4 is the roof plane inside the sloped cap; the cap itself stands about 0.9 m above it (the parapet below), so the building's high point is 19.3 m. THAT NUMBER IS MEASURED INDEPENDENTLY: S10 fits the footprint's own outline to the roof edge in the nadir and peaks at 19.5 m, 0.2 m from the 19.3 m this file builds to, with Overture's 24.9 m scoring less than half as well. So three sources agree and one disagrees - S6 counts five storeys, S4's floor area allows four residential ones, S10 measures the roof edge at 19.5 m, and only S1's Overture guess says 24.9. Uncertainty about plus or minus 0.6 m, one third of a storey."
+    "_heights_src": "eave 17.3 = 4.9 + 4 x 3.1, the top of the fourth residential floor and the head of the plain stucco band S6 shows above the top loggia. capTop 18.4 is the roof plane inside the sloped cap; the cap itself stands 1.15 m above it (the parapet below), so the building's high point is 19.55 m. THAT NUMBER IS MEASURED INDEPENDENTLY: S10 fits the footprint's own outline to the roof edge in the nadir and peaks at 19.5 m, 0.05 m from the 19.55 m this file builds to, with Overture's 24.9 m scoring less than half as well. So three sources agree and one disagrees - S6 counts five storeys, S4's floor area allows four residential ones, S10 measures the roof edge at 19.5 m, and only S1's Overture guess says 24.9. Uncertainty about plus or minus 0.6 m, one third of a storey."
   },
   "colours": {
     "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Keys starting _ are notes. S6 is a mid-day Street View frame that reads about a quarter dark - its own concrete pavement medians #988c6c where a lit pavement is near #c8c4bc - so every hex sampled from it is named with its raw median and entered lifted by that much, and the lift is stated each time.",
@@ -175,10 +175,15 @@
       "reveal": 0.2,
       "_src": "the coral strip near the south end of the west elevation, which every Google Earth oblique (S7) shows running the full height with a column of narrow dark slots in it - a stair. The slot size is read off c_sw against the 3.1 m floor pitch and is uncertain by about 0.3 m; the strip is 4.6 m wide there, so it carries two slots a floor."
     },
+    "plainWall": {
+      "kind": "flat",
+      "field": "wall",
+      "_src": "the plain stucco band S6 shows between the head of the top-floor windows and the eave - pale, not shaded. It was folded into `crown` on the first pass, which put a 1.1 m dark line round the whole building where the reference has 0.6 m of pale wall and then 0.5 m of shaded fascia."
+    },
     "crown": {
       "kind": "flat",
       "field": "capShade",
-      "_src": "the band between the head of the top windows and the eave: plain stucco in S6, and in shade under the cap's overhang in every ground-level view. It stands in for the underside of the sloped cap, which the generator has no primitive for; the cap's own lit face is carried by the parapet above, in `cap`."
+      "_src": "the shaded fascia of the sloped cap where it oversails the wall - the 0.5 m of dark S6 shows immediately under the eave, above the pale band. It stands in for the underside of the cap, which the generator has no primitive for; the cap's own lit face is carried by the parapet above, in `cap`."
     }
   },
   "blocks": [
@@ -190,22 +195,35 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": {
         "v0": {
           "bands": [
             { "z0": 0, "z1": 17.3, "skin": "loggia", "balconies": [{ "s0": 1.0, "s1": 18.3 }] },
-            { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
           ],
           "_src": "the east elevation of the north wing, which S7's c_fe shows wearing the same loggia bands as the south face. The balcony run is the face's whole length less half a metre at each end."
         }
       },
+      "overrides": [
+        {
+          "region": [0.0, 4.8, 38.9, 39.2],
+          "bands": [
+            { "z0": 0, "z1": 17.3, "skin": "coralFace" },
+            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
+          ],
+          "_src": "the NORTH coral strip, the twin of the one on the projection. S7's c_nw shows a full-height coral plane hard against the north-west corner as well as the south-west one, each with its own column of stair slots. 4.8 m wide, read off c_nw against the 61.68 m length."
+        }
+      ],
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["u0", "v0", "v1"],
-      "_parapet_src": "the 0.9 m upstand stands in for the sloped cap that rings the roof: S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it. Not a parapet the building has - a cap the generator can draw. The courtyard edge (u1) gets none because the east and west wings stand on it at the same height.",
+      "_parapet_src": "the 1.15 m upstand stands in for the sloped cap that rings the roof: S7's nadir shows a pale grey-green band about a metre wide inside every roof edge, mitred at the corners, with the white membrane inside it. Not a parapet the building has - a cap the generator can draw. The courtyard edge (u1) gets none because the east and west wings stand on it at the same height.",
       "roofItems": [
         {
           "plan": [3.0, 9.0, 14.0, 20.0],
@@ -231,11 +249,12 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": { "u0": null, "u1": null },
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["v0", "v1"]
     },
@@ -247,11 +266,12 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": { "u0": null, "u1": null },
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["v0", "v1"],
       "roofItems": [
@@ -273,11 +293,12 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": { "u0": null, "u1": null, "v1": null },
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["v0"]
     },
@@ -289,7 +310,8 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": {
         "v1": null,
@@ -318,7 +340,8 @@
                 }
               ]
             },
-            { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
           ],
           "_src": "S6, the whole stack: 4.9 m of orange shopfront, then four floors of loggia, then the shaded band under the cap. The two balcony runs stop 1.2 m short of the entry bay on each side, which is where S6's blade sign and the recessed door break the rail line."
         },
@@ -326,13 +349,14 @@
           "bands": [
             { "z0": 0, "z1": 4.9, "skin": "orangeFlat" },
             { "z0": 4.9, "z1": 17.3, "skin": "loggia", "balconies": [{ "s0": 1.0, "s1": 18.3 }] },
-            { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
           ],
           "_src": "the east elevation of the south wing: S6 shows the orange returning round the south-east corner as a blank wall, and S7's c_fe shows loggia bands above it, the mirror of the north wing's east face."
         }
       },
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["u1", "v0"],
       "roofItems": [
@@ -354,21 +378,23 @@
       "z1": 18.4,
       "bands": [
         { "z0": 0, "z1": 17.3, "skin": "punched" },
-        { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+        { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
       ],
       "faces": { "v0": null },
       "overrides": [
         {
-          "region": [54.0, 58.6, 39.0, 43.7],
+          "region": [56.9, 61.7, 38.9, 43.7],
           "bands": [
             { "z0": 0, "z1": 17.3, "skin": "coralFace" },
-            { "z0": 17.3, "z1": 18.4, "skin": "crown" }
+            { "z0": 17.3, "z1": 17.9, "skin": "plainWall" },
+            { "z0": 17.9, "z1": 18.4, "skin": "crown" }
           ],
-          "_src": "the coral strip: a 4.6 m wide full-height plane near the south end of the west elevation, with a column of narrow slots in it. S7 puts it two thirds of the way along the west side towards W 24th St in the SW, SE and NE obliques alike; the u range here is read off c_sw against the 61.68 m length and is uncertain by about 2 m. The region contains only this stretch of the projection's own v1 wall, so it cannot leak on to another face."
+          "_src": "the SOUTH coral strip, one of TWO. S7's c_nw is the frame that settles them: looking down the whole west elevation from the north-west it shows a full-height coral plane hard against EACH corner, north and south, each with a column of four narrow slots in it - the two stair towers. This one sits in the last 4.8 m before W 24th St and wraps the corner on to the south face, which is what c_sw shows from the other side. The first pass put it two thirds of the way along and 4.6 m wide, in the middle of nothing; c_nw read properly puts it at the corner. The region catches only the projection's own west and south walls, so it cannot leak."
         }
       ],
       "roofTone": "membrane",
-      "parapet": 0.9,
+      "parapet": 1.15,
       "parapetTone": "cap",
       "parapetSides": ["v1", "u0", "u1"]
     }
