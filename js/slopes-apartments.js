@@ -483,11 +483,25 @@
     const { W, len, z0, z1 } = face;
     const reveal = APTS.reveals ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit }));
-    // z cuts: the skin's row lines and every window's top and bottom
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame }));
+    // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
+    // the opening — Signature 1909's white precast surround on every panel
+    // tower's punched window, Jester West's 1.31 x 2.31 m precast round a
+    // 0.72 x 1.76 window. It is not a strip laid on the wall (that would sit
+    // in the wall's own plane and fight it): its four edges are cut into the
+    // wall's cells like a row or column line, and a cell whose centre falls
+    // in the ring takes the frame's tone. Nothing overlaps, the frame is
+    // exactly as wide as the file says, and it costs the cells it makes.
+    const framed = windows.filter(w => w.frame && w.frame.w > 0).map(w => {
+      const fw = w.frame.w, fh = w.frame.h != null ? w.frame.h : w.frame.w;
+      return { s0: Math.max(0, w.s0 - fw), s1: Math.min(len, w.s1 + fw), z0: Math.max(z0, w.z0 - fh), z1: Math.min(z1, w.z1 + fh), col: P[w.frame.tone] || P.frame || P.wall, w };
+    });
+    count.frames += framed.length;
+    // z cuts: the skin's row lines, every window's top and bottom, every frame's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
     for (const w of windows) { if (w.z0 > z0 && w.z0 < z1) zc.add(+w.z0.toFixed(4)); if (w.z1 > z0 && w.z1 < z1) zc.add(+w.z1.toFixed(4)); }
+    for (const f of framed) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
     const zs = [...zc].sort((a, b) => a - b);
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
@@ -496,11 +510,13 @@
       if (zb - za < 1e-4) continue;
       const zm = (za + zb) / 2;
       // s cuts for this band: the skin's column lines for this row, plus the
-      // edges of every window that spans this band
+      // edges of every window and every frame that spans this band
       const sc = new Set([0, len]);
       for (const s of skin.cols(zm, len)) if (s > 0 && s < len) sc.add(+s.toFixed(4));
       const inBand = windows.filter(w => w.z0 <= za + 1e-6 && w.z1 >= zb - 1e-6);
       for (const w of inBand) { if (w.s0 > 0 && w.s0 < len) sc.add(+w.s0.toFixed(4)); if (w.s1 > 0 && w.s1 < len) sc.add(+w.s1.toFixed(4)); }
+      const frBand = framed.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
+      for (const f of frBand) { if (f.s0 > 0 && f.s0 < len) sc.add(+f.s0.toFixed(4)); if (f.s1 > 0 && f.s1 < len) sc.add(+f.s1.toFixed(4)); }
       const ss = [...sc].sort((a, b) => a - b);
       for (let c = 0; c < ss.length - 1; c++) {
         const sa = ss[c], sb = ss[c + 1];
@@ -512,7 +528,8 @@
           const col = win.lit ? [glass[0], glass[1], APTS.nightLitTone] : glass;
           faceQuad(B, W, sa, sb, za, zb, -reveal, col);
         } else {
-          faceQuad(B, W, sa, sb, za, zb, 0, skin.tone(zm, sm, r, c) || P.wall);
+          const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
+          faceQuad(B, W, sa, sb, za, zb, 0, fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall));
         }
       }
     }
@@ -560,16 +577,24 @@
       for (let i = 0; i < n; i++) centres.push((i + 0.5) * mod);
     }
     const skipS = spec.windowSkip || [];   // s ranges with no window (a sign, a balcony door handled elsewhere)
+    // `offsets`: several openings per bay, each [offset from the bay centre, width]
+    // in metres — a mirrored pair about a party wall (Jester West, San Jacinto:
+    // [[-1.5, 0.72], [1.5, 0.72]]), a wide light with two narrow ones beside
+    // it (Skyloft). Without it, one window of `w` at the bay centre.
+    const parts = Array.isArray(win.offsets) && win.offsets.length ? win.offsets : [[0, win.w || 1.5]];
+    const frame = win.frame && win.frame.w > 0 ? win.frame : null;
     for (let fi = 0; fi < floors.length; fi++) {
       const fz = floors[fi];
       const zb = fz + (win.sill != null ? win.sill : 0.8), zt = zb + (win.h || 2.0);
       if (zt > ctx.z1 + 1e-6) continue;
       for (let ci = 0; ci < centres.length; ci++) {
-        const cx = centres[ci];
-        const s0 = cx - (win.w || 1.5) / 2, s1 = cx + (win.w || 1.5) / 2;
-        if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
-        if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
-        out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci) < APTS.nightLit });
+        for (let pi = 0; pi < parts.length; pi++) {
+          const cx = centres[ci] + parts[pi][0], ww = parts[pi][1];
+          const s0 = cx - ww / 2, s1 = cx + ww / 2;
+          if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
+          if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
+          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame });
+        }
       }
     }
     return out;
