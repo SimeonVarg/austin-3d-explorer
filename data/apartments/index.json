@@ -20,7 +20,9 @@
     "the-mark-austin.json",
     "ion-austin.json",
     "2623-salado-street-apartments.json",
-    "kinsolving-dormitory.json"
+    "kinsolving-dormitory.json",
+    "grandmarc-austin.json",
+    "2400-nueces.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -42,7 +44,9 @@
     "6dfb0958-b416-416a-868d-e45f2bd4e703",
     "dd38bf46-46cc-4ea9-b1ac-138fc2a56019",
     "3b8f0f69-4456-4840-8eff-e23a39b1ac92",
-    "71504854-4c08-49db-9cca-f888f8114174"
+    "71504854-4c08-49db-9cca-f888f8114174",
+    "41f43559-0029-4257-8501-01b682e916aa",
+    "01b885c4-03ff-45d4-b394-707735cb6958"
   ],
   "replacedNames": [
     "The Standard",
@@ -62,6 +66,7 @@
     "The Mark Austin",
     "Ion Austin",
     "Sparq on Rio",
-    "Kinsolving Dormitory"
+    "Kinsolving Dormitory",
+    "2400 Nueces"
   ]
 }
