@@ -180,11 +180,15 @@
  * line: see HANDOFF §213 for the pair.
  *
  * Usage (from scripts/verify, README's way):
- *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL] [--against-tip URL]
+ *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break]
+ *        [--against URL] [--against-tip URL] [--against-nogen URL]
  *
  *   --shots DIR     save the proof frames (never into the repo; the scratchpad)
  *   --against URL   a second server (e.g. a pristine main export) whose
  *                   mall-cruise frame the ?slopes=0 frame must equal
+ *   --against-nogen URL  THIS COMMIT with both new generators taken out; the
+ *                   archive the three switch-against-main lines run against
+ *                   since 2026-09-06. See its own comment below.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -203,6 +207,34 @@ const AGAINST = arg('--against');
 // --against stays the pre-slopes main the bake-identity lines are written
 // for (its `?slopes=0` contract needs a build with no layer at all).
 const AGAINST_TIP = arg('--against-tip');
+// --against-nogen URL: an archive of THIS COMMIT with the two generators this
+// branch adds taken OUT of it — js/slopes-apartments.js and js/slopes-art.js
+// emptied, data/apartments/ and data/art3d/ deleted:
+//     git archive HEAD | tar -x -C DIR
+//     rm -rf DIR/data/apartments DIR/data/art3d
+//     : > DIR/js/slopes-apartments.js ; : > DIR/js/slopes-art.js
+//     python scripts/serve.py 8618 DIR
+// It carries this branch's OWN re-baked data (heroes and entrances, entry 218;
+// ground and props, 219; GDC, 224; the kerb, 225) and every other lane's js, so
+// a frame-to-frame comparison against it varies EXACTLY ONE THING: whether
+// these two generators exist.
+//
+// WHY IT HAD TO EXIST (2026-09-06). The three lines below used to point at main
+// — --against-tip 8b4b90c and --against e232953 — and by the end of this branch
+// all three were RED at six-figure pixel counts. NONE of those numbers was
+// about a switch. This branch re-baked the doors, the ground, the kerbs and
+// GDC's own walls before either generator ever drew, so "with the switch off
+// the picture is main's" had quietly stopped being a statement about the switch
+// and become a statement about the rest of the branch. A switch line must vary
+// one thing; against main this one varied five. art-slopes.mjs's header reached
+// the same conclusion a day earlier, from the same cause, and built the same
+// kind of archive — this is that idea applied to the other two lines.
+//
+// The main archives are still served and still MEASURED when they are given;
+// their numbers print as context beside the gate line instead of being asserted,
+// because what they measure is the rest of the branch and there are other gates
+// for that (wallplane-off.mjs, kerbmeter.py, ground-probe.mjs).
+const AGAINST_NOGEN = arg('--against-nogen');
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
 const W = 1440, H = 900;
@@ -1043,7 +1075,20 @@ const inert = await A.pg.evaluate(async () => {
 });
 const fInert = await snap(A.pg, 'switch-off-render-stopped');
 await A.pg.evaluate(() => { window.__map.setLayoutProperty('slopes-mesh', 'visibility', 'visible'); window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+// AND WAIT FOR THE SAME CONDITION THE FIRST FRAME WAITED FOR (2026-09-06).
+// This line used to shoot 1,500 ms after the switch, and it was RED at 8,965
+// px, max channel Δ 121, with the deep pixels lying on the Main Building's
+// three hips beside the Tower. It was not a restore failure and it was not a
+// colour: 6,115 of those 6,126 deep pixels were EXACTLY the OFF frame's, pixel
+// for pixel. The Main Building's hips come from the tower bake's rig, which
+// js/slopes-roofs.js builds on its OWN POLL - `extras.every(x => x.ready)`,
+// the condition `settled()` above already waits for before the first frame -
+// and a poll does not finish inside 1.5 s. So the gate was comparing a settled
+// page against a half-built one and calling the difference a broken switch.
+// Same settle on both sides, or the comparison is not one.
 await A.pg.evaluate(() => { window.SLOPES.on = true; window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+await settled(A.pg).catch(() => {});
+await A.pg.waitForTimeout(2500); await A.pg.evaluate(() => window.__settle(4000));
 const fOn2 = await snap(A.pg, 'switch-live-on2');
 await A.pg.close();
 
@@ -1117,13 +1162,24 @@ check('...and NONE of that is the mesh: stopping the layer\'s render() altogethe
 // the layer switched off at LOAD has to be main. Serve `git archive main` on a
 // second port and pass it as --against; 0 px is the contract, and it holds
 // because neither page carries the custom layer.
-if (AGAINST) {
+if (AGAINST_NOGEN) {
+  const D = await mallFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'against-nogen');
+  await D.pg.close();
+  const d3 = diffPNG(C.f, D.f);
+  check('?slopes=0 is the SAME COMMIT built without the two generators this branch adds (--against-nogen) — the two script tags and their data change nothing while the layer is off', zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+  if (AGAINST) {
+    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+    await D2.pg.close();
+    const d4 = diffPNG(C.f, D2.f);
+    console.log(`   (context, not a gate line) ?slopes=0 against the pre-slopes main archive: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — this branch re-baked heroes, entrances, ground and props, so this is those bakes and not the slopes layer.`);
+  }
+} else if (AGAINST) {
   const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check(`?slopes=0 is the build at ${AGAINST}, to the pixel or the atlas residue (the bake changed nothing the slabs draw)`, zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
 } else {
-  console.log('   (no --against: the bake-identity line was not run)');
+  console.log('   (no --against and no --against-nogen: the bake-identity line was not run)');
 }
 if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
 
@@ -1163,6 +1219,12 @@ const APT_NAME = 'The Standard';
 const SJ_ID = '93cc2567-aa16-4909-ace6-fa13ff385bde';   // San Jacinto Hall: the one authored building data/roofs.geojson carries a rig for
 const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced preset)
 const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
+// How deep the runtime-off frame may differ from a ?apartments=0 load. The
+// mesh's own ON-vs-OFF delta at this pose reaches Δ 147 over half a million
+// pixels; the two things that legitimately move between an aged page and a
+// fresh one - the sun over a few minutes (Δ 17, measured) and the facade
+// atlas' two-state phase (Δ 12, ATLAS_RESIDUE_DELTA) - come nowhere near it.
+const APT_SWITCH_DELTA = 60;         // measured 51, all of it in one place label
 // the generator's own clause: one literal of every replaced id (24 on 2026-09-06), read off the page's data
 const ownClause = ids => JSON.stringify(['!', ['in', ['get', 'id'], ['literal', ids]]]);
 const countOf = (str, sub) => str.split(sub).length - 1;
@@ -1430,11 +1492,32 @@ check('apartments: APARTMENTS.on = false removes the group and restores every fi
   && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
   `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
 // A runtime-off page against a LOAD is the same comparison the switch
-// section makes at mall-cruise (OFF vs a ?slopes=0 load: 6,134 px, maxΔ 78,
-// ceiling SWITCH_OFF_PX) — the residue is the page's own two-state history,
-// not the generator's. Measured here on the first run: 933 px, maxΔ 51.
+// section makes at mall-cruise - the residue is the page's own history, not
+// the generator's. Measured on the first run of this block, when the two
+// frames were seconds apart: 933 px, maxΔ 51, against a 7,000 ceiling.
+//
+// THAT CEILING DIED THE MOMENT THE BLOCK GREW (2026-09-06). With 25 buildings
+// the gate takes about six minutes between the ON frame and the ?apartments=0
+// load, and the line went red at 76,190 px. It is not the switch, and the
+// control that says so costs no extra page: THIS page, at THIS camera, with
+// nothing touched but four minutes of wall clock, differs from ITSELF by
+// 50,461 px - `apts-on` at 04:30:56 against `apts-on-back` at 04:34:46 - at
+// max channel Δ 17 and ZERO pixels deeper than 24. The app's sun moves with
+// the clock. Of the 76,190, exactly 89 are deeper than Δ 24 and all 89 are one
+// place label at the top right.
+//
+// So the line is written against that control rather than against a constant:
+// the switch may not put the frame further from a fresh load than the page's
+// own minutes already do, plus the switch section's dither allowance - and it
+// may not be DEEP anywhere. Depth is what separates the two failures. A
+// building that did not come back is a contiguous region at Δ 100+ (the mesh
+// is worth about 510,000 px at Δ 147 at this pose); the clock and the facade
+// atlas both cap out well under APT_SWITCH_DELTA.
+const dAptAge = diffPNG(AP.f, fAptBack);
 const dAptSwitch = diffPNG(fAptOff, C2.f);
-check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose, within the switch section\'s own OFF-vs-load ceiling', dAptSwitch.pixels <= SWITCH_OFF_PX, `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff}) — ceiling ${SWITCH_OFF_PX}, measured 933 on 2026-09-05`);
+check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose - no further from it than the page has drifted from ITSELF over the minutes in between (measured here, not assumed), and nowhere deep',
+  dAptSwitch.pixels <= dAptAge.pixels + SWITCH_OFF_PX && dAptSwitch.maxChannelDiff <= APT_SWITCH_DELTA,
+  `${dAptSwitch.pixels} of ${dAptSwitch.total} pixels differ (max channel Δ ${dAptSwitch.maxChannelDiff}); the same page against itself over the same minutes: ${dAptAge.pixels} px at Δ ${dAptAge.maxChannelDiff} - ceiling ${dAptAge.pixels} + ${SWITCH_OFF_PX} px and Δ ${APT_SWITCH_DELTA}`);
 // "With the switch off the picture is what main draws." Two archives can
 // stand in for main, and they answer different questions:
 //   --against-tip: the commit this branch was cut from, main WITH the slopes
@@ -1452,24 +1535,66 @@ check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose,
 //     one: ours at ?apartments=0&slopes=0 must be its frame at this pose —
 //     the data file, the index and the script tags changed nothing the
 //     slabs draw here.
-if (AGAINST_TIP) {
-  const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
-    await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
-    await pg.waitForTimeout(800);
-  });
-  await G.pg.close();
-  const dAptTip = diffPNG(C2.f, G.f);
-  check('apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose, with that page\'s courses switched off as this branch\'s are (to the facade atlas\' two-state residue)', zeroButAtlas(dAptTip), `${dAptTip.pixels} of ${dAptTip.total} pixels differ (max channel Δ ${dAptTip.maxChannelDiff})${residueNote(dAptTip)}`);
+// SINCE 2026-09-06 both of those lines run against --against-nogen instead
+// (its comment is at the top of this file). The two main archives measure the
+// WHOLE of this branch, and by the end of it that was four other pieces of
+// work: heroes and entrances re-baked (entry 218), ground and props (219),
+// GDC (224), the kerb (225). Looked at rather than reasoned about: the diff of
+// the --against line at this pose is kerbs, road edges, crossings, sidewalks
+// and one tree, and there is not one differing pixel on The Standard, which
+// both pages draw as slabs. So their numbers print here as context and the
+// gate line asks the question a switch line is allowed to ask - ours with the
+// switches off against the same commit built without these generators.
+// `art3d=0` rides along because --against-nogen has no data/art3d either; at
+// this pose the two sculptures are 750 m behind the camera and out of frame,
+// so it is belt and braces, not a correction.
+if (AGAINST_NOGEN) {
+  const GN = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0`, 'apts-against-nogen');
+  await GN.pg.close();
+  const C2b = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0`, 'apts-url-off-noart');
+  await C2b.pg.close();
+  const dAptNogen = diffPNG(C2b.f, GN.f);
+  check("apartments (--against-nogen): ?apartments=0&art3d=0 is the frame of this SAME COMMIT built without the two generators, at The Standard's pose (to the facade atlas' two-state residue)", zeroButAtlas(dAptNogen), `${dAptNogen.pixels} of ${dAptNogen.total} pixels differ (max channel Δ ${dAptNogen.maxChannelDiff})${residueNote(dAptNogen)}`);
+  const C3n = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0&slopes=0`, 'apts-url-off-noslopes');
+  await C3n.pg.close();
+  const GN0 = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'apts-against-nogen-noslopes');
+  await GN0.pg.close();
+  const dAptNogen0 = diffPNG(C3n.f, GN0.f);
+  check("apartments (--against-nogen): with the whole layer off too, ?slopes=0 is that build's ?slopes=0 at the pose - the data files, the index and the two script tags change nothing the slabs draw here", zeroButAtlas(dAptNogen0), `${dAptNogen0.pixels} of ${dAptNogen0.total} pixels differ (max channel Δ ${dAptNogen0.maxChannelDiff})${residueNote(dAptNogen0)}`);
+  if (AGAINST_TIP) {
+    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
+      await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
+      await pg.waitForTimeout(800);
+    });
+    await G.pg.close();
+    const dAptTip = diffPNG(C2.f, G.f);
+    console.log(`   (context, not a gate line) ?apartments=0 against main 8b4b90c at this pose: ${dAptTip.pixels} of ${dAptTip.total} px, max channel Δ ${dAptTip.maxChannelDiff} - the other four pieces on this branch, not the switch.`);
+  }
+  if (AGAINST) {
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    await G0.pg.close();
+    const dAptMain = diffPNG(C3n.f, G0.f);
+    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the pre-slopes main archive at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
+  }
+} else {
+  if (AGAINST_TIP) {
+    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
+      await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
+      await pg.waitForTimeout(800);
+    });
+    await G.pg.close();
+    const dAptTip = diffPNG(C2.f, G.f);
+    check("apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose, with that page's courses switched off as this branch's are (to the facade atlas' two-state residue)", zeroButAtlas(dAptTip), `${dAptTip.pixels} of ${dAptTip.total} pixels differ (max channel Δ ${dAptTip.maxChannelDiff})${residueNote(dAptTip)}`);
+  }
+  if (AGAINST) {
+    const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
+    await C3.pg.close();
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    await G0.pg.close();
+    const dAptMain = diffPNG(C3.f, G0.f);
+    check("apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive's frame at the pose (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+  }
 }
-if (AGAINST) {
-  const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
-  await C3.pg.close();
-  const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
-  await G0.pg.close();
-  const dAptMain = diffPNG(C3.f, G0.f);
-  check('apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive\'s frame at the pose (to the facade atlas\' two-state residue) — the data, the index and the tags changed nothing the slabs draw here', zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
-}
-
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
 report();
 
