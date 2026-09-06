@@ -1,0 +1,831 @@
+{
+ "_readme": "Ion Austin (opened 2016 as University House Austin), 2100 San Antonio St, as js/slopes-apartments.js draws it. Every number cites a key from `sources` in a sibling `_src`; a value with no source says so. Metres, in the footprint's oriented bounding box (js/westcampus.js obbOf): L=62.28, W=36.86, +u runs NORTH at bearing 4.6 deg, so u=0 is the SOUTH end and u=62.28 the north end; +v runs WEST at bearing 274.6 deg, so v=0 is the EAST (San Antonio Street) edge and v=36.86 the west edge. Read docs/apartments.md for the schema.",
+ "id": "dd38bf46-46cc-4ea9-b1ac-138fc2a56019",
+ "name": "Ion Austin",
+ "address": "2100 San Antonio St, Austin, TX 78705",
+ "sources": {
+  "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature dd38bf46-46cc-4ea9-b1ac-138fc2a56019: name 'Ion Austin', num_floors 19, final_height 59.1 (source_height 'overture'), measured wall tones wd #54555b / wg #6f645d / wn #191b22 and roof rd #45464b. One outer ring, no holes, 2260.6 m2. The outline is the snapshot's, verbatim; no OSM way id is quoted because Overpass was not queried in this pass.",
+  "S2": "scripts/bake_westcampus.py, TIER ONE entry 'Ion Austin' and its header: '19 storeys, LEED Silver. Light panel with scattered terracotta and blue-grey accent panels and a full-height glazed stair core at the north corner; two-level glazed base. The pool sits on a setback terrace at the SOUTH end, several floors below the roof (nadir).' Its values: base 7.0 m of BASE_GLASS, tower #b0aeaa, crown 3.8 m, mech 3.5, step (0.26,'s',21.0), pool (0.0,-4.0,5.0,13.0). Read and DEPARTED FROM in two places, both recorded under `open`: the glazed core is at the SOUTH corner, not the north (S5, S6, S7, S10), and the light panel is the EAST face only - the west face is the charcoal the same file's TIER TWO note names (#54555b, 'Ion Austin's charcoal is painted terracotta' by the city palette election). The pool IS at the south end, but on the garage podium roof, not on a high setback terrace (S9, S10).",
+  "S3": "Rhode Partners, rhodepartners.com/student-housing-university-house (the architect's own project page): UNIVERSITY HOUSE, Austin TX, 232,000 sf, 19 floors, 188 units, 502 beds, LEED Silver, scope architecture. Photograph credit Casey Dunn ('University House Austin - SE Corner').",
+  "S4": "The Architect's Newspaper, 'Austin student housing tower bends into shape', John Stoughton, 14 July 2017 (archpaper.com/2017/07/university-house-austin). Structure: cast-in-place concrete frame, completed 2016. 'A soft curvature along the exterior envelope of the tower organizes the residential portion of the building along an asymmetrical linear grid, while custom-designed clothespin-shaped columns help transfer the load of the tower structure down into a parking garage below.' 'Below the tower sits a THREE-STORY parking garage podium that was clad with expanded aluminum sheet panels ... attached to horizontal tensioned cables.' Rainscreen of metal, fibre cement and high-density laminate; EIFS 'employed in the curved sections of the primary facade'. Balconies: 'a cantilevered steel frame wrapped in perforated metal panels', fibreglass grating floors, 'translucent figural shapes that project beyond the facade'. Facade manufacturers: Fabral 1/2-inch corrugated metal wall panels; American Fiber Cement Minerit HD; AMICO Apex 01 garage screening; Thermal Windows 4150 series unit windows; Oldcastle Reliance curtain wall. Brett Rhode: 'We wanted to avoid the common L-shaped building scenario, so we developed a way to make a prominent widening of the footprint'.",
+  "S5": "educationsnapshots.com/projects/13100/university-house-austin (Casey Dunn photographs, downloaded 2026-09-05 to the session scratchpad as ref/es*.jpg). es-1.jpg (1200x1435): the WEST elevation from the south-west - a charcoal panel field the full length with scattered pale accent panels and mint/dark glass, the bare board-formed concrete lift-and-stair core standing at the SOUTH end with the black 'U' logo near its top, and a full-height glazed volume beyond the core. The garage's expanded-metal screen runs along the base.",
+  "S6": "es-3.jpg (1200x1516): the south-west corner in full sun. Left to right: the concrete core, a narrow charcoal panel return carrying one column of slot windows, the full-height glazed volume, a second narrow charcoal return, then the cream panel field of the east face curving away north. At the base: the three-storey garage behind white expanded-aluminium screening, and a lobby with a wood soffit at the pavement.",
+  "S7": "es-9.jpg (1200x868): the same corner from below against blue sky - the cleanest read of the south-end sequence and of the neutral tones. THIS IS THE COLOUR SOURCE for the concrete core and the charcoal panel.",
+  "S8": "es.jpg (1200x1570) and es-5.jpg (1200x1662): close-ups of the EAST (cream) face. es.jpg is the module source - a regular grid of portrait openings, each bay carrying one window (mint, teal or dark glass) beside a panel that is cream or a tan/terracotta accent, with a horizontal panel joint at every floor and four projecting white perforated-metal balcony boxes in frame. es-5.jpg is the pool: the tower's cream face lifted on splayed ('clothespin', S4) concrete columns above the pool deck, one balcony box, the pool, its pale paving and a dark timber walk.",
+  "S9": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot (imagery 12/3/2023). Nadir frames earth/nadir2.png (centred on the polygon's vertex mean) and earth/nadirS.png (centred 20 m south of it), both at camera 330 m, tilt 0. RECTIFIED into this (u,v) frame at 10 px/m with mpp 0.0688 at the roof plane; the two independent captures agree on every edge below to 0.5 m. Registration: at the ROOF scale the snapshot polygon's west edge and north-west corner land on the roof's own west edge and north-west corner (62.1, 37.3 read against 62.28, 36.63), which is the check. Ground scale is 0.0838 m/px, fitted by overlaying the twenty-two neighbouring snapshot footprints within 130 m on the same frame.",
+  "S10": "Google Earth obliques from the same session: earth/se2.png (heading 315, tilt 50, camera 279 m) - the whole east face, cream with terracotta accents, curving, the pool on the deck at its foot; earth/sw2.png (heading 45, tilt 50) - the whole west face, charcoal the full length, with the light concrete core carrying the blue 'ion' wordmark at the south end; earth/nw3.png (heading 145, imagery 1/1/2021) - the roof and the north end.",
+  "S11": "data/roads.geojson: the nearest point of San Antonio Street is 27.3 m from the polygon's vertex mean, on its EAST side, and West 21st Street 54.5 m to the south. So San Antonio runs along the east edge (v=0) and the address 2100 San Antonio St is the south-east corner. This is what fixes cream=east and charcoal=west.",
+  "S12": "parallel-co.com/uh-austin (the developer's project page): delivered for Fall 2016 occupancy. Listing pages give the current name and address (2100 San Antonio St, Austin TX 78705); the building was renamed from University House to Ion.",
+  "derived": "a number computed from the sources above and marked so; 'unknown' stays unknown."
+ },
+ "footprint": {
+  "ring": [
+   [
+    -97.7434493,
+    30.2843858
+   ],
+   [
+    -97.7434776,
+    30.2840094
+   ],
+   [
+    -97.7431024,
+    30.2839809
+   ],
+   [
+    -97.7430513,
+    30.2845287
+   ],
+   [
+    -97.743155,
+    30.284537
+   ],
+   [
+    -97.7431551,
+    30.2845443
+   ],
+   [
+    -97.7432338,
+    30.2845494
+   ],
+   [
+    -97.7434302,
+    30.284565
+   ],
+   [
+    -97.7434493,
+    30.2843858
+   ]
+  ],
+  "_src": "S1's ring verbatim. In (u,v) its eight vertices are (42.25,36.86) (0.27,36.21) (0.00,0.00) (61.18,0.00) (61.30,10.01) (62.11,10.09) (62.07,17.67) (62.28,36.63): a 62.28 x 36.86 m rectangle to within 1.0 m everywhere, with a 0.8 m step in the north-east corner. Every block below is a rectangle or a (u,v) polygon rather than plan:'footprint', because clipWall cannot split a wall that is a fraction of a degree off axis and the podium needs an override on its south face."
+ },
+ "frame": "obb",
+ "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=62.28, W=36.86, +u at bearing 4.6 deg, +v at 274.6 deg; confirmed against the console line the generator prints at boot. S11 says which street is on which side.",
+ "levels": {
+  "floors": [
+   0.0,
+   5.0,
+   8.0,
+   11.0,
+   13.94,
+   16.88,
+   19.81,
+   22.75,
+   25.69,
+   28.62,
+   31.56,
+   34.5,
+   37.44,
+   40.38,
+   43.31,
+   46.25,
+   49.19,
+   52.12,
+   55.06
+  ],
+  "_src": "19 storeys (S1 num_floors, S3 '19 floors') to 58.00 m of roof slab with a 1.10 m parapet on it = 59.10 m, which is S1's final_height. The split is DERIVED from one sourced fact: S4 says the tower stands on a THREE-STOREY parking garage podium, so levels 1-3 are the podium and levels 4-19 are the sixteen residential floors. Ground floor 5.00 m (the lobby/retail/garage-entry storey, S6), two garage decks at 3.00 m, podium top at 11.00 m; the sixteen residential floors then come out at (58.00-11.00)/16 = 2.9375 m, a normal student-housing floor-to-floor. Only the storey count and the total are sourced.",
+  "ground": 5.0,
+  "podiumTop": 11.0,
+  "floorToFloor": 2.9375,
+  "roof": 58.0,
+  "parapet": 1.1,
+  "_height_src": "59.10 m is S1's final_height and it is Overture's, normally a guess for a building OSM never tagged. It is KEPT here because 59.10/19 = 3.11 m per storey, which is a residential floor-to-floor with a tall ground floor in it, and because a second reading is consistent with it: Google Earth's scale bar on the nadir (S9) is computed at the mesh under the screen centre - Ion's roof - and reads 0.0667 m/px against a fitted ground scale of 0.0838 m/px at camera 330 m, which puts the mesh top at 67 m give or take 8 m for a 3 per cent error in the ground fit. That is corroboration of the order, not a measurement; no stated height in feet was found (SkyscraperPage and Emporis have no page for this building)."
+ },
+ "colours": {
+  "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Every hex below is a k-means cluster of a named crop, or the snapshot's own measured tone.",
+  "panelDark": {
+   "hex": "#5a595b",
+   "_src": "the charcoal rainscreen of the west, north and south faces. Two independent reads, averaged: S1's own measured wall tone #54555b (the aerial read, and the bake's example of a colour the city-palette election repainted terracotta), and 48.3% of a 130x500 crop of the south-end charcoal return in S7 (430,300)-(560,800) at #5f5d5a. es-1's warm #645b4e (S5, 59.2% of (380,400)-(760,1000)) is the same panel in late-afternoon sun and was not used."
+  },
+  "panelPale": {
+   "hex": "#d6d1c5",
+   "_src": "the pale accent panels scattered through the charcoal field: 11.8% of the same S5 crop (380,400)-(760,1000)"
+  },
+  "panelCream": {
+   "hex": "#e9dfd4",
+   "_src": "the EIFS / fibre-cement field of the east face: 45.3% of an S8 es-5.jpg crop (100,200)-(620,900). The sunlit close-up in es.jpg reads #ecdece over the same material; the shaded read is #d6cbc0. The day tone was the mid of the three (#e4d8cd) and came out dusty under the golden ramp against S10 se2, where the field is near-white; it is moved one step toward the sunlit read."
+  },
+  "panelTan": {
+   "hex": "#a58163",
+   "_src": "the tan/terracotta accent panel: 12.8% of the same S8 es-5 crop; es.jpg's sunlit read of it is #d3baa2"
+  },
+  "panelJoint": {
+   "hex": "#cdc1b4",
+   "_src": "the horizontal panel joint at every floor on the cream face - derived, panelCream taken down one step; S8 shows it as a shadow line, not a different material"
+  },
+  "panelDarkJoint": {
+   "hex": "#4d4c4e",
+   "_src": "derived, panelDark taken down one step (S5 shows a shadow line at every floor on the charcoal face)"
+  },
+  "concrete": {
+   "hex": "#c3c2bf",
+   "_src": "the board-formed concrete core: 49.8% of an S7 crop (200,250)-(400,800) at #d1d0ce in sun and 40.0% at #7b7976 in shade; the day tone sits between them, nearer the sunlit read"
+  },
+  "screen": {
+   "hex": "#c0b9b3",
+   "_src": "the expanded-aluminium garage screening (AMICO Apex 01, S4): 25.2% #b6ada9 and 42.5% #948c87 of an S6 crop (620,1120)-(830,1260) - the lit slat and the mesh field; the slat is the lit read taken one step up so the horizontal grain survives the golden ramp"
+  },
+  "screenBack": {
+   "hex": "#948c87",
+   "_src": "the dark of the open parking deck seen through the screen: 18.0% the FIELD the mesh reads as at any distance: 42.5% #948c87 of the same S6 crop. The first cut used the dark behind the mesh (#46423c, the 18.0% + 14.3% clusters) as the field and the whole podium came out a black band, which S6 does not show - at 200 m the expanded aluminium is what you see, not the cars behind it."
+  },
+  "glass": {
+   "hex": "#6e726c",
+   "_src": "the unit glazing (Thermal Windows 4150, S4). It is TWO reads, not one: the mint #a3a599 (7.8% of the S8 es-5 crop, 14.1% #b5b9a7 of the S5 crop) and the dark #393f43 (11.2% of the same es-5 crop), and S8 shows both in about equal numbers across one elevation. One tone has to serve, so it is the mid of the two. The first cut used the mint alone and the east face lost its grid: at the 200 m oblique a pane the same luminance as the panel beside it is not a window (S10 se2 reads the openings as clearly darker than the field)."
+  },
+  "glassDark": {
+   "hex": "#3a3f43",
+   "_src": "the dark half of the unit glazing: 11.2% #393f43 of the S8 es-5 crop. Not yet used by a skin - kept because it is the measurement."
+  },
+  "cwGlass": {
+   "hex": "#5b8c9a",
+   "_src": "the Oldcastle Reliance curtain wall of the glazed south volume (S4): 35.4% #76a6b4 and 28.3% #3f6f83 of an S7 crop (570,250)-(780,800), averaged"
+  },
+  "storeGlass": {
+   "hex": "#3f4a4e",
+   "_src": "the ground-floor storefront - derived from cwGlass darkened, because in S6 the lobby glazing reads as a dark hole under the wood soffit and no clean crop of it is free of reflections"
+  },
+  "frame": {
+   "hex": "#b9b6b0",
+   "_src": "the window frames and mullions read as light grey aluminium in S8's close-up; derived from the panel tones, not separately clustered"
+  },
+  "coping": {
+   "hex": "#b6b4ae",
+   "_src": "the parapet coping: the pale grey edge round the roof in S9's nadir; derived from the roof read below"
+  },
+  "roof": {
+   "hex": "#cdcdc8",
+   "_src": "the white roof membrane: 49.4% of an S9 nadirS crop (520,300)-(660,420) at #d4d6d2, taken down slightly for the shaded half at #71767b"
+  },
+  "condenser": {
+   "hex": "#7c8085",
+   "_src": "the condenser field: the #71767b half of the same S9 crop is the units and their shadows"
+  },
+  "bulkhead": {
+   "hex": "#c2c2bc",
+   "_src": "the roof bulkhead reads as the same membrane-clad box as the roof in S9's nadir; derived"
+  },
+  "deck": {
+   "hex": "#eadbca",
+   "_src": "the pool deck's pale paving: 71.3% of an S8 es-5.jpg crop (620,1380)-(1000,1500)"
+  },
+  "wood": {
+   "hex": "#68422e",
+   "_src": "the dark timber walk beside the pool: 12.0% of the same crop"
+  },
+  "pool": {
+   "hex": "#4c818a",
+   "_src": "77.6% of an S9 nadirS crop (800,545)-(845,650) - the water in the 12/2023 nadir; es-5 reads it at #56a4b2 in direct sun"
+  },
+  "slab": {
+   "hex": "#dcd8d3",
+   "_src": "the balcony boxes' perforated metal (S4: 'a cantilevered steel frame wrapped in perforated metal panels'): 64.4% of an S8 es-5 crop (380,470)-(560,900)"
+  },
+  "rail": {
+   "hex": "#dcd8d3",
+   "_src": "the same perforated metal - the deck guards and any default rail"
+  },
+  "boxFace": {
+   "hex": "#efece8",
+   "_src": "the balcony box's front and side panels: the measured #dcd8d3 taken one step up, so the box reads apart from its own soffit at the oblique camera. In S8 the panels catch the sun and the soffit does not; drawn in one tone the whole box read as a flat plate."
+  },
+  "railGuard": {
+   "hex": "#a5a9ad",
+   "_src": "the deck guard along the San Antonio edge, seen in S9's nadir and S8's pool photograph as a thin grey rail; unknown as a measurement, a plausible grey. The first cut at #8e9296 read as a black picket fence along San Antonio at the 200 m oblique."
+  },
+  "sign": {
+   "hex": "#3a4176",
+   "_src": "the blue 'ion' wordmark on the core: 11.1% of an S10 sw2.png crop (960,205)-(1040,250) at #3c4272. The 2016 photographs (S5, S6) carry a black 'U' in the same place; the building was renamed (S12) and the current wordmark is what is drawn."
+  }
+ },
+ "skins": {
+  "_src": "each skin is a rule; its numbers are below with their source",
+  "cream": {
+   "kind": "pixel",
+   "course": 2.9375,
+   "plank": 1.45,
+   "bond": 0.0,
+   "runMax": 1,
+   "macro": [
+    1,
+    1
+   ],
+   "zBase": 11.0,
+   "tones": [
+    "panelCream",
+    "panelTan"
+   ],
+   "weights": [
+    87,
+    13
+   ],
+   "bay": 2.9,
+   "window": {
+    "w": 1.3,
+    "h": 2.1,
+    "sill": 0.55
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "reveal": 0.1,
+   "_src": "the east face. S8's close-up gives the grid: a horizontal panel joint at every floor, and per floor a run of portrait openings on a constant pitch - 7 openings across 500 px against a 75 px floor, so a 2.9 m bay to the 2.9375 m storey, with one window in each: 1.3 x 2.1 m, between es.jpg's own 1.2 m read and the wider opening S10's Earth mesh resolves. The tan accent is NOT a vertical strip: it is a single panel the size of one opening, scattered. So the field is a pixel skin whose course IS the floor (zBase 11.0 puts the courses on the floor lines) and whose plank is half a bay, each 1.45 x 2.94 m panel taking its tone from the hash. 13% tan: the raw arithmetic on the S8 es-5 crop is 12.8/71.6 = 18% of the non-glass wall, but that crop is centred on a balcony and S8 shows the terracotta lining the balcony reveals as well as scattering through the field, so the field share is the lower end. S10 se2, which sees a whole elevation at once, reads the strong terracotta at the balconies and a thinner scatter between them. bond 0 because the joints line up floor to floor in S8; runMax 1 and macro [1,1] because every panel in the photograph is decided on its own - there are no runs."
+  },
+  "charcoal": {
+   "kind": "pixel",
+   "course": 2.9375,
+   "plank": 1.45,
+   "bond": 0.0,
+   "runMax": 1,
+   "macro": [
+    1,
+    1
+   ],
+   "zBase": 11.0,
+   "tones": [
+    "panelDark",
+    "panelPale"
+   ],
+   "weights": [
+    84,
+    16
+   ],
+   "bay": 2.9,
+   "window": {
+    "w": 1.3,
+    "h": 2.1,
+    "sill": 0.55
+   },
+   "glass": "glass",
+   "frame": "frame",
+   "reveal": 0.1,
+   "_src": "the west, north and south faces: the same grid and the same scatter as the cream face (S5 and S8 show one module in two colourways), with a pale accent panel instead of a tan one. 16% is the same arithmetic on S5's crop of the west face: 11.8% pale against 59.2% charcoal, and 11.8/71.0 = 17% of the non-glass wall, taken to 16."
+  },
+  "charcoalBlank": {
+   "kind": "flat",
+   "field": "panelDark",
+   "_src": "kept for a face that should carry no window column; S7 shows the narrow south returns with at most one slot window and no frame here resolves where it sits."
+  },
+  "garage": {
+   "kind": "bays",
+   "field": "screenBack",
+   "louvre": {
+    "pitch": 0.42,
+    "w": 0.26,
+    "tone": "screen",
+    "start": 0.25
+   },
+   "_src": "the two parking decks above the ground floor: expanded aluminium sheet on horizontal tensioned cables (S4), which reads as a horizontal grain over an open deck. Pitch 0.42 m and slat 0.26 m are a plausible module for the mesh's shadow banding in S6 - the individual panels are not resolvable, so this is a look, not a measurement."
+  },
+  "storefront": {
+   "kind": "storefront",
+   "mullion": 1.6,
+   "mullionW": 0.12,
+   "fascia": 0.7,
+   "plinth": 0.15,
+   "transom": 0.74,
+   "fasciaTone": "panelDark",
+   "frame": "frame",
+   "glass": "storeGlass",
+   "reveal": 0.25,
+   "_src": "the ground floor: lobby and retail glazing under a dark fascia (S6). Mullion 1.6 m is the storefront rhythm in S6; the transom fraction is a look."
+  },
+  "curtain": {
+   "kind": "storefront",
+   "mullion": 1.55,
+   "mullionW": 0.09,
+   "fascia": 0.22,
+   "plinth": 0.0,
+   "transom": 0.5,
+   "fasciaTone": "panelDark",
+   "frame": "frame",
+   "glass": "cwGlass",
+   "reveal": 0.06,
+   "_src": "the full-height glazed volume at the south end (Oldcastle Reliance, S4). S7 resolves the grid: about five mullion bays across the 7.5 m face and a transom near mid-height of each floor, so mullion 1.55 m and transom 0.5."
+  },
+  "concreteSkin": {
+   "kind": "flat",
+   "field": "concrete",
+   "_src": "the board-formed concrete core, blank on every face (S5, S6, S7)"
+  }
+ },
+ "balcony": {
+  "proj": 1.6,
+  "slabT": 0.3,
+  "railH": 2.35,
+  "railT": 0.1,
+  "slabTone": "slab",
+  "railTone": "boxFace",
+  "_src": "S4 calls them 'a cantilevered steel frame wrapped in perforated metal panels ... translucent figural shapes that project beyond the facade', and S8 shows them as one-floor-tall BOXES, not open balconies. So the rail is drawn to 2.35 m - a 0.30 m slab plus 2.35 m of front and side makes 2.65 m of the 2.9375 m floor, which is the box - in the perforated metal's own tone. Projection 1.6 m and width 3.2 m are read off es.jpg against the 3.0 m bay: the box is a little wider than one bay and projects about half its width."
+ },
+ "blocks": [
+  {
+   "id": "podium",
+   "_src": "the three-storey parking garage podium (S4), the full site: a ground floor of lobby / retail / garage entry under two open parking decks behind expanded-aluminium screening (S4, S5, S6). Its plan is the snapshot rectangle rather than the ring itself so that the south face can carry the glazed volume's override (see footprint._src).",
+   "plan": [
+    0.0,
+    62.28,
+    0.0,
+    36.86
+   ],
+   "z0": 0.0,
+   "z1": 11.0,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 5.0,
+     "skin": "storefront"
+    },
+    {
+     "z0": 5.0,
+     "z1": 11.0,
+     "skin": "garage"
+    }
+   ],
+   "overrides": [
+    {
+     "region": [
+      0.0,
+      0.0,
+      18.0,
+      27.5
+     ],
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 11.0,
+       "skin": "curtain"
+      }
+     ],
+     "_src": "the glazed volume runs to the pavement on the south face (S6): the podium wears curtain wall over that 9.5 m, and the glassBay block above it starts at 11.0 so the two never share a plane"
+    }
+   ],
+   "roofTone": "deck",
+   "parapet": 0.9,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "u0",
+    "v0"
+   ],
+   "_parapet_src": "only the south and east edges are exposed; the tower stands on the west and north edges (S9)"
+  },
+  {
+   "id": "tower",
+   "_src": "the sixteen residential floors. The plan is S9's rectified roof read: the west wall is on the property line at v=36.86 for the whole length; the east wall is at v=16.5 at the south end, comes out to v=10.6-10.8 between u=20 and u=46, and falls back to v=14.5 at u=58 and v=16.8 at the north wall (drawn at u=61.8, the L the generator itself prints) - which is S4's 'soft curvature' and its 'prominent widening of the footprint', and the reason the tower is 26 m deep in the middle and 20 m at the ends. Five straight segments stand in for the curve; the two nadirs agree on every one of those v values to 0.5 m.",
+   "plan": [
+    [
+     4.0,
+     16.5
+    ],
+    [
+     14.0,
+     14.0
+    ],
+    [
+     30.0,
+     10.6
+    ],
+    [
+     46.0,
+     10.8
+    ],
+    [
+     58.0,
+     14.5
+    ],
+    [
+     62.1,
+     16.8
+    ],
+    [
+     62.1,
+     36.86
+    ],
+    [
+     4.0,
+     36.86
+    ]
+   ],
+   "z0": 11.0,
+   "z1": 58.0,
+   "bands": [
+    {
+     "z0": 11.0,
+     "z1": 58.0,
+     "skin": "charcoal"
+    }
+   ],
+   "faces": {
+    "0": {
+     "bands": [
+      {
+       "z0": 11.0,
+       "z1": 58.0,
+       "skin": "cream"
+      }
+     ],
+     "_src": "east face, south segment (u 4.0-14.0)"
+    },
+    "1": {
+     "bands": [
+      {
+       "z0": 11.0,
+       "z1": 25.69,
+       "skin": "cream"
+      },
+      {
+       "z0": 25.69,
+       "z1": 28.63,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 3.0,
+         "s1": 6.2
+        }
+       ]
+      },
+      {
+       "z0": 28.63,
+       "z1": 43.31,
+       "skin": "cream"
+      },
+      {
+       "z0": 43.31,
+       "z1": 46.25,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 9.5,
+         "s1": 12.7
+        }
+       ]
+      },
+      {
+       "z0": 46.25,
+       "z1": 58.0,
+       "skin": "cream"
+      }
+     ],
+     "_src": "east face (u 14-30), two balcony boxes"
+    },
+    "2": {
+     "bands": [
+      {
+       "z0": 11.0,
+       "z1": 19.81,
+       "skin": "cream"
+      },
+      {
+       "z0": 19.81,
+       "z1": 22.75,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 2.0,
+         "s1": 5.2
+        }
+       ]
+      },
+      {
+       "z0": 22.75,
+       "z1": 34.5,
+       "skin": "cream"
+      },
+      {
+       "z0": 34.5,
+       "z1": 37.44,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 8.0,
+         "s1": 11.2
+        }
+       ]
+      },
+      {
+       "z0": 37.44,
+       "z1": 49.19,
+       "skin": "cream"
+      },
+      {
+       "z0": 49.19,
+       "z1": 52.13,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 3.5,
+         "s1": 6.7
+        }
+       ]
+      },
+      {
+       "z0": 52.13,
+       "z1": 58.0,
+       "skin": "cream"
+      }
+     ],
+     "_src": "east face (u 30-46), three balcony boxes"
+    },
+    "3": {
+     "bands": [
+      {
+       "z0": 11.0,
+       "z1": 31.56,
+       "skin": "cream"
+      },
+      {
+       "z0": 31.56,
+       "z1": 34.5,
+       "skin": "cream",
+       "balconies": [
+        {
+         "s0": 4.0,
+         "s1": 7.2
+        }
+       ]
+      },
+      {
+       "z0": 34.5,
+       "z1": 58.0,
+       "skin": "cream"
+      }
+     ],
+     "_src": "east face (u 46-58), one balcony box"
+    },
+    "4": {
+     "bands": [
+      {
+       "z0": 11.0,
+       "z1": 58.0,
+       "skin": "cream"
+      }
+     ],
+     "_src": "the north-east chamfer (u 58-62.1); the cream carries round it in S10's se2"
+    },
+    "_src": "faces 0-4 are the east elevation and wear the cream skin (S8, S10 se2); faces 5 (north), 6 (west) and 7 (south) are not listed and fall through to the block's charcoal bands (S5, S10 sw2). No face is skipped: the tower stands clear of every other block on all four sides."
+   },
+   "roofTone": "roof",
+   "parapet": 1.1,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "roofItems": [
+    {
+     "plan": [
+      12.0,
+      60.0,
+      26.0,
+      34.0
+     ],
+     "grid": [
+      11,
+      2
+     ],
+     "size": [
+      1.3,
+      1.7
+     ],
+     "h": 1.0,
+     "tone": "condenser",
+     "_src": "S9: the western of the two long condenser rows, read off the rectified nadir at u 12-60, v 26-34"
+    },
+    {
+     "plan": [
+      14.0,
+      60.0,
+      17.5,
+      24.5
+     ],
+     "grid": [
+      11,
+      2
+     ],
+     "size": [
+      1.3,
+      1.7
+     ],
+     "h": 1.0,
+     "tone": "condenser",
+     "_src": "S9: the eastern row, u 14-60, v 17.5-24.5. Unit size 1.3 x 1.7 m and height 1.0 m are a plausible condenser, not measured - at 0.0688 m/px one unit is 20 px across."
+    },
+    {
+     "plan": [
+      38.5,
+      47.0,
+      14.8,
+      25.5
+     ],
+     "h": 2.8,
+     "tone": "bulkhead",
+     "_src": "S9: the raised bulkhead with the curved duct on it, corners read at (46.8,25.6) and (38.4,14.5). Height 2.8 m is a lift overrun, not measured; it is set under the core's 62.9 so no two tops are coplanar."
+    },
+    {
+     "plan": [
+      59.4,
+      61.6,
+      16.9,
+      24.9
+     ],
+     "h": 1.6,
+     "tone": "bulkhead",
+     "_src": "S9: the smaller raised box at the north end, corners read at (61.9,24.9) and (59.6,16.6)"
+    }
+   ]
+  },
+  {
+   "id": "core",
+   "_src": "the board-formed concrete lift-and-stair core at the SOUTH-WEST corner, standing proud of the west wall and of the south wall and carrying on above the roof (S5, S6, S7, S10 sw2). Width 9.8 m and depth 8.3 m are read off S6 against the glazed volume beside it, which splits the south elevation about evenly with it; both are +/-1.5 m. It runs to the pavement in S5, so z0 is 0.",
+   "plan": [
+    2.8,
+    12.6,
+    29.4,
+    37.7
+   ],
+   "z0": 0.0,
+   "z1": 62.9,
+   "bands": [
+    {
+     "z0": 0,
+     "z1": 62.9,
+     "skin": "concreteSkin"
+    }
+   ],
+   "faces": {
+    "v1": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 62.9,
+       "skin": "concreteSkin",
+       "signs": [
+        {
+         "text": "ION",
+         "s0": 2.4,
+         "z0": 56.6,
+         "dot": 0.3,
+         "gap": 0.3,
+         "tone": "sign"
+        }
+       ]
+      }
+     ],
+     "_src": "the west face, with the blue wordmark near the top (S10 sw2). Dot 0.30 m makes a 1.5 m letter and a 5.1 m word on a 9.8 m face; the 2016 photographs carry a black 'U' in the same place (S5)."
+    },
+    "u0": {
+     "bands": [
+      {
+       "z0": 0,
+       "z1": 62.9,
+       "skin": "concreteSkin"
+      }
+     ],
+     "_src": "the south face (S6)"
+    },
+    "v0": null,
+    "u1": null,
+    "_src": "the east and north faces stand inside the tower and the podium: not drawn"
+   },
+   "roofTone": "concrete",
+   "parapet": 0.5,
+   "parapetTone": "concrete",
+   "parapetSides": [
+    "v1",
+    "u0",
+    "v0",
+    "u1"
+   ],
+   "_height_src": "the core's top is 3.8 m above the tower's 59.1 m parapet. S5 puts it about 1 m above the parapet beside it and S6 about 5 m; both are ground-level shots in which the core is much the nearer object, so the true clear is between them. 62.9 is the midpoint and is uncertain by +/-2 m."
+  },
+  {
+   "id": "glassBay",
+   "_src": "the full-height glazed volume on the south face, east of the core (S5, S6, S7). It projects about 2 m in front of the tower's south wall and folds round its own two corners, which is what S7 shows. Its 9.5 m width is read off S6 against the core, and S10 se2 - which sees the volume whole and curved - is what widened it from the 7.5 m the first cut took off S7 alone; the two narrow charcoal returns either side of it are the tower's own south face showing.",
+   "plan": [
+    0.0,
+    4.0,
+    18.0,
+    27.5
+   ],
+   "z0": 11.0,
+   "z1": 58.5,
+   "bands": [
+    {
+     "z0": 11.0,
+     "z1": 58.5,
+     "skin": "curtain"
+    }
+   ],
+   "faces": {
+    "u1": null,
+    "_src": "the north face is against the tower's south wall: not drawn"
+   },
+   "roofTone": "coping",
+   "parapet": 0.4,
+   "parapetTone": "coping",
+   "parapetSides": [
+    "u0",
+    "v0",
+    "v1"
+   ]
+  }
+ ],
+ "deck": {
+  "z": 11.0,
+  "_src": "the amenity deck on the podium roof at the south-east, between the tower's east wall and San Antonio Street (S9's nadir; S8's es-5 is the same deck from the water). Every rectangle is read off the rectified nadir at deck scale, 0.0809 m/px.",
+  "items": [
+   {
+    "id": "paving",
+    "plan": [
+     4.0,
+     32.0,
+     0.8,
+     10.4
+    ],
+    "z0": 0.0,
+    "h": 0.06,
+    "tone": "deck",
+    "_src": "the paved terrace, from the podium's south parapet to u 32 where the nadir shows it end"
+   },
+   {
+    "id": "pool",
+    "plan": [
+     9.5,
+     19.5,
+     5.8,
+     10.4
+    ],
+    "z0": 0.02,
+    "h": 0.1,
+    "tone": "pool",
+    "_src": "S9: the water reads at u 8.8-19.9, v 5.0-11.2 including its coping; the water itself is the inner 10.0 x 4.6 m of that"
+   },
+   {
+    "id": "walk",
+    "plan": [
+     8.0,
+     21.0,
+     1.4,
+     3.4
+    ],
+    "z0": 0.02,
+    "h": 0.08,
+    "tone": "wood",
+    "_src": "the dark timber walk on the street side of the pool (S8 es-5, foreground)"
+   },
+   {
+    "id": "shade",
+    "plan": [
+     21.5,
+     27.5,
+     5.6,
+     10.2
+    ],
+    "z0": 2.5,
+    "z1": 2.8,
+    "tone": "screen",
+    "_src": "S9: the awning north of the pool, drawn as a shade plate at 2.5 m"
+   },
+   {
+    "id": "deckRail",
+    "plan": [
+     4.0,
+     33.0,
+     0.55,
+     0.7
+    ],
+    "z0": 0.0,
+    "h": 1.15,
+    "tone": "railGuard",
+    "_src": "the guard along the San Antonio edge of the deck (S9; S8 es-5 shows a rail behind the loungers)"
+   },
+   {
+    "id": "southRail",
+    "plan": [
+     4.2,
+     4.4,
+     0.7,
+     10.4
+    ],
+    "z0": 0.0,
+    "h": 1.15,
+    "tone": "railGuard",
+    "_src": "the return of the same guard along the tower's foot; derived from deckRail, not separately read"
+   }
+  ]
+ },
+ "open": [
+  "The bake's TIER ONE entry (S2) puts the glazed core at the NORTH corner and the light panel on the whole tower. Both are corrected here off the photographs and Google Earth (S5-S7, S10): the core and the glazed volume are at the SOUTH end, the light panel is the east face only, and the west face is the charcoal the same file's own TIER TWO note measured at #54555b. A request to fix scripts/bake_westcampus.py belongs in HANDOFF.md; this pass owns no .py.",
+  "The core's clear above the roof (3.8 m) is bracketed by two ground-level photographs at about 1 m and about 5 m and is uncertain by +/-2 m. A rectified elevation or a drawing would settle it.",
+  "The six balcony boxes are placed on a DERIVED rule, not read: S8 and S10 show them scattered about one to every four or five floors, stepping sideways as they climb, and the positions here reproduce that density and drift. No frame resolves the whole east elevation at once, so no individual box is sourced.",
+  "The north face and the north-east chamfer were not photographed at legible resolution; they wear the plainest skin the building has (charcoal on the north, the cream carrying round the chamfer as S10's se2 shows at the top).",
+  "The garage screen's slat pitch (0.42 m) is a look. The expanded-aluminium mesh is not resolvable in any frame here.",
+  "The ground floor's tenancies, the porte-cochere and the garage entry positions are not drawn: the storefront runs the whole ground floor.",
+  "The 'clothespin' transfer columns (S4) that lift the tower over the pool deck are not drawn; the tower's east wall simply stops at the deck."
+ ]
+}

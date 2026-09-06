@@ -1,0 +1,10 @@
+[
+ {"name":"standard-sw",  "center":[-97.74578,30.28699],   "zoom":18.66,"pitch":55,"bearing":45,"tod":null},
+ {"name":"union-sw",     "center":[-97.74525,30.287604],  "zoom":18.10,"pitch":55,"bearing":45,"tod":null},
+ {"name":"jester-west-s","center":[-97.736805,30.282142], "zoom":17.5, "pitch":72,"bearing":0, "tod":null},
+ {"name":"monochrome",   "center":[-97.7370979,30.2874649],"zoom":19.6,"pitch":55,"bearing":0, "tod":0.30},
+ {"name":"circle",       "center":[-97.7369445,30.2862735],"zoom":20.0,"pitch":0, "bearing":0, "tod":0.30},
+ {"name":"gdc-se",       "center":[-97.7368,30.28615],    "zoom":17.6, "pitch":60,"bearing":135,"tod":null},
+ {"name":"waggener",     "center":[-97.73835,30.28535],   "zoom":19.2, "pitch":70,"bearing":250,"tod":null},
+ {"name":"guadalupe",    "center":[-97.7422,30.2903],     "zoom":18.0, "pitch":65,"bearing":0, "tod":null}
+]

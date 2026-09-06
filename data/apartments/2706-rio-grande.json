@@ -1,0 +1,549 @@
+{
+  "_readme": "2706 Rio Grande Street, as js/slopes-apartments.js draws it. Six storeys filling the whole block from Salado Street to Rio Grande Street on the south side of West 28th, wrapped round a long interior light well. OSM gives it no name and no operator is on record, so it is titled by its address. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=77.06, W=34.65, +u at bearing 94.9 deg - u=0 is the WEST (Salado) end and +u runs EAST to Rio Grande; v=0 is the SOUTH edge and +v runs NORTH to W 28th. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "ec1b4af2-ca22-449a-a9a2-a3bcb1efe198",
+  "name": "2706 Rio Grande Street Apartments",
+  "address": "2706 Rio Grande St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature ec1b4af2-ca22-449a-a9a2-a3bcb1efe198: no name, building_class 'apartments', num_floors 6, final_height 29.7, source_height 'overture'. The outer ring is 54 vertices, 2550 m2, and it carries a 166 m2 inner ring - a long light well at u 18.2-56.4, v 9.1-15.5. The height is OVERRIDDEN below; see _heights_src.",
+    "S2": "OpenStreetMap relation 5685764 (multipolygon), queried through Overpass 2026-09-05: addr:housenumber 2706, addr:street Rio Grande Street, addr:postcode 78705, building=apartments, building:levels=6, height=29.7. There is NO name tag and no operator, so the building is titled by its address here. That 29.7 and Overture's 29.7 in S1 are the same number; 29.7 m over the 6 levels OSM itself tags is 4.95 m a floor, which no West Campus apartment has, and the measurement in _heights_src says 20.0 m.",
+    "S3": "data/roads.geojson: Rio Grande Street runs north-south 46 m EAST of the footprint centroid, Salado Street 47 m WEST, and West 28th Street runs east-west immediately NORTH of it. So the building fills its block from Salado to Rio Grande and fronts W 28th; u=0 is the Salado (west) end, u=77 the Rio Grande (east) end, v=0 the south edge and v=34.6 the W 28th edge.",
+    "S4": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a nadir at 520 m and obliques at 130-220 m from the N, E, W, NE, SE and SW. The Earth camera is solved analytically from the URL (@lat,lng,180a,<d>d,35y,<h>h,<t>t): look-at at that altitude, camera at distance d along heading h and tilt t, vertical field of view 35 deg. The solve was VERIFIED on the nadir - the snapshot polygon projected with it lands on the roof edges of the NORTHERN building of the pair, which is this one; the southern building it does not land on is snapshot feature 3b8f0f69-4456-4840-8eff-e23a39b1ac92, 2704 Rio Grande, 5 floors. Everything below was read off frames rectified with that solve, not off a raw oblique.",
+    "S5": "The rectified NADIR PLAN (session scratchpad apts/build/apartments/2706-rio-grande/ref/_planclean.png, gridded in plan_grid.png): the nadir resampled into the building's own (u,v) frame at 10 px/m with a 5 m grid. The light well, the extent of the metal roof at the east end and the condenser rows were all read off it.",
+    "S6": "The rectified ELEVATIONS (ref/el2_n.png, el3_w.png, el2_e.png, with rulers in ref/r_n.png, n_west4.png, n_east4.png, s_w.png, s_e.png): each oblique resampled on to the face's own plane at 9-10 px/m, so storey heights and bay pitch are read in metres. A constant error in Earth's look-at altitude translates the whole scene and does not change a measured DIFFERENCE, so every height here is a difference and the zero was set separately.",
+    "S7": "The north elevation on W 28th (S6, ref/n_west4.png, ref/r_n.png): the light grey-blue field, the terracotta bay that wraps the north-west corner, the white base band, the punched windows with white surrounds. The photogrammetry is soft - windows smear into their surrounds and the recessed balcony bays collapse into vertical smudges - so the window MODULE was measured with a luminance profile along three separate window rows rather than read off one opening.",
+    "S8": "The west elevation on Salado (S6, ref/s_w.png) and the east elevation on Rio Grande (ref/s_e.png): the terracotta bay standing on the white base band, and at the east end a powder-blue wing under a grey standing-seam roof with hips, which is where S5's metal roof sits.",
+    "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.744268,
+        30.293208
+      ],
+      [
+        -97.744275,
+        30.293209
+      ],
+      [
+        -97.744273,
+        30.293227
+      ],
+      [
+        -97.744248,
+        30.293225
+      ],
+      [
+        -97.744241,
+        30.293298
+      ],
+      [
+        -97.744255,
+        30.293299
+      ],
+      [
+        -97.744277,
+        30.293301
+      ],
+      [
+        -97.744275,
+        30.293314
+      ],
+      [
+        -97.744354,
+        30.29332
+      ],
+      [
+        -97.744355,
+        30.293311
+      ],
+      [
+        -97.744389,
+        30.293314
+      ],
+      [
+        -97.744389,
+        30.293319
+      ],
+      [
+        -97.744471,
+        30.293325
+      ],
+      [
+        -97.744472,
+        30.293321
+      ],
+      [
+        -97.744561,
+        30.293328
+      ],
+      [
+        -97.744561,
+        30.293337
+      ],
+      [
+        -97.744717,
+        30.293349
+      ],
+      [
+        -97.744718,
+        30.29334
+      ],
+      [
+        -97.744763,
+        30.293343
+      ],
+      [
+        -97.744762,
+        30.293354
+      ],
+      [
+        -97.744862,
+        30.293361
+      ],
+      [
+        -97.744864,
+        30.293347
+      ],
+      [
+        -97.744887,
+        30.293349
+      ],
+      [
+        -97.744887,
+        30.293357
+      ],
+      [
+        -97.744949,
+        30.293362
+      ],
+      [
+        -97.74495,
+        30.293357
+      ],
+      [
+        -97.744983,
+        30.293359
+      ],
+      [
+        -97.744982,
+        30.293365
+      ],
+      [
+        -97.745036,
+        30.293369
+      ],
+      [
+        -97.745036,
+        30.293363
+      ],
+      [
+        -97.745039,
+        30.293364
+      ],
+      [
+        -97.74505,
+        30.293252
+      ],
+      [
+        -97.745038,
+        30.293251
+      ],
+      [
+        -97.74504,
+        30.293233
+      ],
+      [
+        -97.745051,
+        30.293233
+      ],
+      [
+        -97.745062,
+        30.293121
+      ],
+      [
+        -97.74505,
+        30.29312
+      ],
+      [
+        -97.745052,
+        30.293098
+      ],
+      [
+        -97.745029,
+        30.293097
+      ],
+      [
+        -97.745031,
+        30.293074
+      ],
+      [
+        -97.744971,
+        30.293069
+      ],
+      [
+        -97.744972,
+        30.293055
+      ],
+      [
+        -97.744366,
+        30.29301
+      ],
+      [
+        -97.744364,
+        30.293031
+      ],
+      [
+        -97.744286,
+        30.293025
+      ],
+      [
+        -97.744279,
+        30.293099
+      ],
+      [
+        -97.744265,
+        30.293098
+      ],
+      [
+        -97.744262,
+        30.293129
+      ],
+      [
+        -97.744275,
+        30.29313
+      ],
+      [
+        -97.744271,
+        30.293165
+      ],
+      [
+        -97.74426,
+        30.293164
+      ],
+      [
+        -97.744256,
+        30.293198
+      ],
+      [
+        -97.744269,
+        30.293199
+      ],
+      [
+        -97.744268,
+        30.293208
+      ]
+    ],
+    "_src": "S1 verbatim, the OUTER ring only. The snapshot's inner ring (the light well) is not carried here because the generator's `plan` takes one ring; the well is drawn as a dark plate on the roof instead - see `deck` - and the missing hole is written down in `open`. The outer ring is worth keeping vertex for vertex: its eleven 1.0-1.5 m jogs along the north edge ARE the recessed balcony bays, and drawing the ring gets them for free."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it (M_LAT 110540): L=77.06, W=34.65, +u at bearing 94.88 deg. +v is 90 deg counter-clockwise from +u in (east, north), i.e. NORTH, so v=0 is the south edge. Which end is which street is S3, not a guess: Rio Grande is 46 m east of the centroid and Salado 47 m west.",
+  "levels": {
+    "floors": [
+      0.0,
+      3.1,
+      6.2,
+      9.3,
+      12.4,
+      15.5
+    ],
+    "_src": "SIX floors at 3.10 m, fitted to the window rows. On the rectified north elevation (S6, ref/n_west4.png) the rows of window CENTRES sit at -4.7, -1.6, 1.5, 4.6, 7.7 and 10.8 in that frame's own zero - six rows, pitch 3.10 m, residual under 0.1 m. The west elevation (ref/s_w.png) gives the same pitch on the terracotta bay independently, which is why the count is six and not the five you get if the lowest row is left under the street trees. The floor lines here are that fit re-zeroed on grade; window centres therefore land at floor + 1.75 m. Uncertainty plus or minus 0.15 m a floor. Six agrees with OSM's building:levels=6 (S2), which is the one number in that tag set worth keeping.",
+    "baseTop": 3.1,
+    "roofDeck": 18.8,
+    "_heights_src": "Grade is the zero: on the rectified north elevation the base of the wall is visible at u 6-14 down to -6.3 in that frame's own coordinates, and the W 28th road surface reads -7.8 while standing about 12 m out from the wall, which at tilt 72 deg is 12/tan(72) = 3.9 m of apparent drop - so the street carried back to the wall plane is -3.9 and the wall base is -6.3, and the building sits in a cut of about 2 m below the pavement. Roof deck 18.8 = the sixth floor line 15.5 plus one 3.10 m storey, rounded 0.2 m up to the measured eave. Parapet 1.2, so the top is 20.0 m; measured, the parapet top is 14.0 to 14.3 above that frame's zero against a grade of -6.3, i.e. 20.3 to 20.6 m, so 20.0 is 0.3-0.6 m under the measurement and inside its uncertainty. THIS OVERRIDES the 29.7 m that BOTH the snapshot (S1) and the OSM relation (S2) carry, for the reason in S2."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp(). EVERY sample here came off a Google Earth mesh photographed on 12/3/2023 at midday, when the sun is in the south: the north, west and east faces are ALL in shade and read 20-25 % dark and blue-cast. Each value below is the measured crop divided by a WHITE crop in the same light (the shaded base band, #b6bcc5) and multiplied by white in sun (the roof membrane, #eaf0f1) - that removes the exposure and the sky cast together, because a white surface in the same light IS the illuminant. Where the lift disagreed with what the frame plainly looks like, the note says so.",
+    "shell": {
+      "hex": "#c6ccd2",
+      "_src": "S7, median of the field between windows at u 16-20 z 6-7 (#798497) and u 24-28 z 9.4-10.2 (#8492a6), both shaded. The white-ratio lift gives #a8b7c8; entered pulled back toward neutral, because that lift keeps a blue cast the frames only carry where sky is reflected. A light warm grey with a blue lean, which is what the sunlit corners of the mesh show."
+    },
+    "terracotta": {
+      "hex": "#bd6a4c",
+      "_src": "S7/S8, and the two faces disagree: the north bay measures #ad7f5e (that crop catches white surrounds and lightens) and the west bay #a34e3f and #ad5743, redder. Entered between them, a burnt orange - which is what both frames read as at a glance."
+    },
+    "powder": {
+      "hex": "#9fb4cb",
+      "_src": "S8, the east wing: medians #5e7a9f (u 58-64, z 5-6), #5f7b9f (u 58-66, z 9-10) and #576c88 (u 66-72, z 9.6-10.6), all shaded. The white-ratio lift gives #7898c0; entered a step toward grey, because this is the face most likely to be reading sky bounce - it never sees the sun in this imagery."
+    },
+    "baseWhite": {
+      "hex": "#e0e3e4",
+      "_src": "S7, median of the base band at u 4-14, z -0.6..0.6 (#b3b9c2) and z 1.8-2.6 (#b9bfc8) - the cleanest shaded white on the building, and the reference every other lift above is divided by."
+    },
+    "trim": {
+      "hex": "#eceeed",
+      "_src": "the white window surrounds and the sill and head bands. They read brighter than the base band in every frame and are entered as the white they are; not separately sampled, because at this mesh resolution a 0.15 m surround is one pixel."
+    },
+    "glass": {
+      "hex": "#4a5a6b",
+      "_src": "S7: the openings measure #8c9eb4 (u 20-22) and #909cac (u 11-13), but those crops are half white surround, which is why they come out pale. Entered as a dark grey-blue: in every frame the glass is the darkest thing on the wall, and a double-hung unit in a stucco wall reads that way."
+    },
+    "coping": {
+      "hex": "#dcdedd",
+      "_src": "the parapet capping, and the band above the terracotta bay (#ae9c9b shaded, which is white coping catching the orange below it). Entered as the base white."
+    },
+    "roof": [
+      "#dee3e6",
+      "#e2dcca",
+      "#1d2029"
+    ],
+    "_roof_src": "S5 nadir, median of the white membrane at u 10-16 v 25-31 (#d8dfe3) and u 30-40 v 18-23 (#eaf0f1) - the second crop is in full sun, the first partly shaded by the condenser rows. Golden and night are entered the way The Standard's file enters a top face.",
+    "metalRoof": [
+      "#93a3b3",
+      "#a09a8c",
+      "#1a1d26"
+    ],
+    "_metalRoof_src": "S5 nadir, median of the standing-seam roof over the east wing at u 64-72 v 22-31 (#8e9eaf); the hipped part at u 66-74 v 4-10 reads #b0c3d6 because one slope faces the sun. Entered at the shaded value, so the wing does not become the brightest thing on the roof.",
+    "condenser": [
+      "#c9d0d3",
+      "#c8c1b2",
+      "#1a1d26"
+    ],
+    "_condenser_src": "S5 nadir: the units read #eff6f7 where the sun hits their tops and dark in their own shadow; entered between, the way The Standard's file enters a mech tone.",
+    "wellDark": [
+      "#33303a",
+      "#302a30",
+      "#14161c"
+    ],
+    "_wellDark_src": "S5 nadir, median inside the light well at u 30-45 v 11-14 (#2b272c) - a six-storey slot 6 m wide is black from above at every hour."
+  },
+  "skins": {
+    "_src": "Four skins, one rule: the same punched grid with a different field colour. That is the null hypothesis and no frame contradicts it - the terracotta bay, the powder-blue east wing and the white base carry the SAME window rhythm as the grey field, and only the wall colour changes at the joint.",
+    "grid": {
+      "kind": "bays",
+      "bay": 3.21,
+      "field": "shell",
+      "window": {
+        "w": 1.6,
+        "h": 1.5,
+        "sill": 1.0
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.16,
+      "_src": "the light grey-blue field: the north elevation between u 17 and u 55, the south elevation, and the middle of both ends (S7). One window per bay per floor, on a 3.21 m bay - 24 bays across 77.06 m. The module is a MEASUREMENT, not a guess: a luminance profile across the rectified north elevation (S7, ref/el2_n.png) at three window rows - z 1.5, 4.6 and 7.7 - puts dark run centres at u 11.0, 14.1 and 17.4 in every one of the three, spacings 3.1 and 3.3, and the same rhythm continues west into the terracotta bay with one column missing at about u 8 where a recessed bay sits. The first pass of this file used 3.85 m and the look put twenty widely spaced windows where the reference has twenty-four; that was the biggest gap in the first look and this is the fix. The opening is entered at 1.6 x 1.5 m on a 1.0 m sill, which is the width of the dark runs in the same profile (1.6 to 2.0 m, surround included) and puts window centres at floor + 1.75 m, the height the six rows in `levels` were fitted at."
+    },
+    "orange": {
+      "kind": "bays",
+      "bay": 3.21,
+      "field": "terracotta",
+      "window": {
+        "w": 1.6,
+        "h": 1.5,
+        "sill": 1.0
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.16,
+      "_src": "the terracotta bay that wraps the north-west corner (S7, S8). Same grid, different field."
+    },
+    "blueGrid": {
+      "kind": "bays",
+      "bay": 3.21,
+      "field": "powder",
+      "window": {
+        "w": 1.6,
+        "h": 1.5,
+        "sill": 1.0
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.16,
+      "_src": "the powder-blue east wing on Rio Grande (S8). Same grid, different field."
+    },
+    "base": {
+      "kind": "bays",
+      "bay": 3.21,
+      "field": "baseWhite",
+      "window": {
+        "w": 1.6,
+        "h": 1.5,
+        "sill": 1.0
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.16,
+      "_src": "the white base band, the ground floor, right round the building (S7, S8). Same grid, different field: the ground floor's openings sit on the same columns as the flats above in every frame."
+    }
+  },
+  "blocks": [
+    {
+      "id": "block",
+      "_src": "The whole building as one prism: it is one mass of one height from Salado to Rio Grande and every frame agrees (S4). The plan is the footprint RING rather than the obb rectangle so the eleven jogs along W 28th - the recessed balcony bays, 1.0 to 1.5 m deep - are drawn as they are.",
+      "plan": "footprint",
+      "z0": 0,
+      "z1": 18.8,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 3.1,
+          "skin": "base"
+        },
+        {
+          "z0": 3.1,
+          "z1": 18.8,
+          "skin": "grid"
+        }
+      ],
+      "_bands_src": "White base band to 3.1 (the first floor line), the punched grid above (S7). The base band's top lands on a floor line in every frame - it is a storey, not a plinth.",
+      "roofTone": "roof",
+      "parapet": 1.2,
+      "parapetTone": "coping",
+      "_parapet_src": "1.2 m of white upstand right round; the frames show a clean white lip above the wall on all four sides and no roof furniture standing on the edge.",
+      "overrides": [
+        {
+          "region": [
+            0,
+            17.0,
+            18.0,
+            36.0
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 3.1,
+              "skin": "base"
+            },
+            {
+              "z0": 3.1,
+              "z1": 18.8,
+              "skin": "orange"
+            }
+          ],
+          "_src": "The terracotta bay, which wraps the north-WEST corner. On the north elevation it runs from the west corner to about u 16 (S7, ref/n_west4.png - the joint with the grey field is unmistakable at u 15-17); on the west elevation it covers v 20 to the north corner (S8, ref/s_w.png), standing on the same white base band. The region is given generously in v so it catches the west wall's northern half; clipWall's midpoint test then ends the bay at the ring vertex u=16.9, which is where the frames put it."
+        },
+        {
+          "region": [
+            57.0,
+            78.0,
+            -1.0,
+            36.0
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 3.1,
+              "skin": "base"
+            },
+            {
+              "z0": 3.1,
+              "z1": 18.8,
+              "skin": "blueGrid"
+            }
+          ],
+          "_src": "The powder-blue east wing on Rio Grande. The nadir (S5) puts the change of roof - white membrane to grey standing seam - at u 58, and the north elevation (S8, ref/n_east4.png) shows the wall turning blue within a couple of metres of the same place. The region starts at 57 so the ring segment whose midpoint is 58.75 is caught; the joint then lands at u 54.8, about 3 m west of the measurement, which is the price of clipping a jagged ring and is less than one bay."
+        }
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            57.6,
+            76.6,
+            0.9,
+            34.0
+          ],
+          "h": 0.4,
+          "tone": "metalRoof",
+          "_src": "The grey standing-seam roof over the east wing, drawn as one low plate rather than as slopes: S5's nadir shows seams running north-south over u 58-76 with two hipped masses inside them, and the generator has no pitched-roof primitive. The plate carries the metal tone so the east third reads grey against the white membrane, which is what the nadir shows and what an oblique camera can see."
+        },
+        {
+          "plan": [
+            62.5,
+            74.5,
+            14.0,
+            31.0
+          ],
+          "z0": 0.4,
+          "h": 0.0,
+          "tone": "metalRoof",
+          "roof": {
+            "kind": "hip",
+            "pitch": 30,
+            "tone": "metalRoof"
+          },
+          "_src": "open 1: the taller hipped mass over the north half of the east wing - S8 has the hip about 3.5 m over the eave at v 13-22: a 30 degree hip on the 12 m plan rises 3.46 m from the plate. Standing on the 0.4 m plate."
+        },
+        {
+          "plan": [
+            64.0,
+            75.0,
+            2.5,
+            12.5
+          ],
+          "z0": 0.4,
+          "h": 0.0,
+          "tone": "metalRoof",
+          "roof": {
+            "kind": "hip",
+            "pitch": 22,
+            "tone": "metalRoof"
+          },
+          "_src": "open 1: the smaller hip at the south-east corner of the wing: 22 degrees on the 10 m plan rises 2.0 m, the box's own height. Standing on the 0.4 m plate."
+        },
+        {
+          "plan": [
+            6.0,
+            54.0,
+            22.0,
+            31.5
+          ],
+          "grid": [
+            10,
+            3
+          ],
+          "size": [
+            1.1,
+            1.1
+          ],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S5 nadir: the north wing's roof carries split-system condensers in tight rows the whole length of it, one or two a flat. Ten by three is a count of the visible clusters, not of the units."
+        },
+        {
+          "plan": [
+            8.0,
+            52.0,
+            2.5,
+            7.5
+          ],
+          "grid": [
+            8,
+            2
+          ],
+          "size": [
+            1.1,
+            1.1
+          ],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S5 nadir: the same rows on the south wing, fewer and looser."
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 18.8,
+    "items": [
+      {
+        "plan": [
+          18.2,
+          56.4,
+          9.1,
+          15.5
+        ],
+        "z0": -0.06,
+        "h": 0.05,
+        "tone": "wellDark",
+        "_src": "The light well, drawn as a dark plate set into the roof. The snapshot's inner ring (S1) gives it exactly - 38.2 by 6.4 m, 166 m2 - and the nadir (S5) reads #2b272c inside it. The generator's block plan takes one ring so the hole cannot be cut; from every camera this app uses, a 6 m slot six storeys deep is a black rectangle in the roof, and that is what this draws. See `open`."
+      }
+    ]
+  },
+  "open": [
+    "The light well is a dark plate on the roof, not a hole: a block's plan is one ring. Cutting it needs either an inner-ring plan or four blocks round the well - a request for the generator, not something this file can do.",
+    "DONE 2026-09-05: the two hipped masses are roof items with a `roof` each (30 and 22 degrees) on the wing's plate, real slopes through the roofs emitter (was: The east wing's roof is a grey standing-seam roof with two hips (S5, S8) and is drawn as one low grey plate with two boxes on it, because th ...)",
+    "The recessed balcony bays are in the PLAN - they are the jogs in the ring - but not in the elevation: the recess is drawn as a 1.0-1.5 m step in the wall carrying the same punched grid, where the frames show a dark opening with a rail. The photogrammetry smears them into vertical smudges, so their heads and sills could not be read; one street photograph would settle them.",
+    "The south elevation was never photographed. 2704 Rio Grande stands about 13 m away across the property line and blocks every oblique from the south, so the south face wears the north's grid and is stated here to be unphotographed.",
+    "No leasing site, operator or marketing name could be tied to 2706 Rio Grande: OSM has no name tag and the 2704 address next door belongs to the larger complex south of it. Every colour therefore comes off the photogrammetry mesh, in shade, with the lift described in colours._src - one authored swatch or one street photograph would beat all of it.",
+    "The ground floor's garage or service opening on W 28th (the dark recess at u 6-14 in ref/n_west4.png) is not drawn; the base band carries the ordinary window grid across it.",
+    "DONE 2026-09-05: js/slopes-apartments.js hides the roofscape pass over every authored footprint by a distance clause; the bake still needs the skip (HANDOFF) (was: TODO for the roofscape bake, and it is visible: data/roofscape.geojson carries three features over this building - a deck plate at b 30.7 /  ...)"
+  ]
+}

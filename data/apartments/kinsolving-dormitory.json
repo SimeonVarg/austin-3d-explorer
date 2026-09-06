@@ -1,0 +1,1205 @@
+{
+  "_readme": "Kinsolving Residence Hall, 2605 Whitis Ave, as js/slopes-apartments.js draws it. A 1958 UT women's residence hall: six storeys of buff brick in ranges round three courts, a two-storey dining and kitchen block with its ductwork on the roof, a sun deck on the podium between them, and a single-storey lounge pavilion on the Whitis Avenue front. Metres in the footprint's own oriented bounding box (js/westcampus.js obbOf): L=111.0, W=72.8, +u at bearing 184.5 deg, so u=0 is the NORTH end and +u runs south; v=0 is the WEST (Whitis Avenue) edge and +v runs east toward University Avenue. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "71504854-4c08-49db-9cca-f888f8114174",
+  "name": "Kinsolving Dormitory",
+  "address": "2605 Whitis Ave, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 71504854-4c08-49db-9cca-f888f8114174: name 'Kinsolving Dormitory', num_floors 6, building_class dormitory, final_height 25.1 with source_height 'overture' - a guess, not a measurement, and not used for the height here (see levels). The polygon has THREE rings: a 31-vertex outer ring and two interior rings, which the nadir (S5) shows to be the north court (u 21-38, v 18-42) and the south court (u 80-95, v 16-42). A third court - the sun deck between them - is NOT cut out of the snapshot polygon; it is open in the imagery and is left unbuilt here.",
+    "S2": "UT Direct building record KIN (0346), utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/utm/kin/: KINSOLVING RESIDENCE HALL, built 1958, SIX floors, 233,937 gross square feet, 2605 Whitis Ave. This is the storey count used.",
+    "S3": "housing.utexas.edu/housing/residence-halls/residence-hall-locations/kinsolving-hall (University Housing and Dining): a south tower whose renovation is finished and a remainder still in progress; two ground-floor study lounges, a multipurpose room, in-building dining and market, and a SUN DECK - which is what the pale paved court in the middle of the plan is.",
+    "S4": "UHD_Hero_KinsolvingResHallLocations_2022_2250x900.jpg (University Housing and Dining's own 2022 hero photograph of the building, kept in the session scratchpad as photos/kin-d87698.jpg): the north-east corner - buff brick in a running bond, six window rows, wide two-light windows with painted sills and heads, a projecting stair pier carrying a full-height column of narrow windows, a brick bulkhead with louvres standing above the roof, and the two-storey service block on the right with white ductwork on its roof.",
+    "S5": "Esri World Imagery z20 tiles (server.arcgisonline.com World_Imagery, the source scripts/fetch_reference_imagery.py already uses), stitched and RECTIFIED into this (u,v) frame at 6 px/m by the session's nadir.py: the snapshot polygon overlaid on it lands on the roof edges. Every plan extent below was read off that rectified nadir on a 5 m grid. Sun elevation in it is about 55 deg from two shadows that agree (13.2 m of shadow north of the north range's 18.6 m wall; 8 m north of the wall at u=78 on to the low roof at u 70-77).",
+    "S6": "Kinsolving_Galleries-1.jpg (University Housing and Dining, kept as photos/kin-e4cbd7.jpg): a corner of one range in full sun with the UT Tower behind it - the blank brick end wall with its single vertical stair-window strip and a door at the bottom, and the long face beside it. THE MODULE SOURCE together with S4: on the wing in S4 at x 1350-1900 the window columns repeat every 24 px and the floors every 45 px, four window columns to each 96 px structural bay, so the bay is 2.13 floor heights = 3.26 m and each room's window is two lights wide.",
+    "S7": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot: @30.29039,-97.73962 at 260 m with heading 315 (south-east) and 135 (north-west), both at tilt 60, plus wider obliques at 420 m. Imagery date 12/3/2023. These settle what is tall and what is low: the six-storey ranges, the two-storey dining block with its ducts, the sun deck standing on a podium beside it at about a third of the ranges' height, and the single-storey lounge pavilion with its ribbon window and colonnade on Whitis.",
+    "S8": "data/hero_designs.json 'Kinsolving' (confidence 'known'): wall #d5c6a6, trim #e2d6ba, roof #8d8373, night_window #f2da9c, and the note 'Mid-century pale tan brick women's residence hall with limestone banding'. The snapshot's own wd/wg/wn come from this entry. It is quoted here as the existing measurement; the brick tone actually used is sampled off the photographs (S4/S6), which read a step warmer and darker than it.",
+    "S9": "data/roofscape.detail.geojson over this footprint: nine 'unit' boxes and about forty 'cond' boxes. Their PLAN POSITIONS are detections - scripts/bake_roofscape.py subtracts a local median from an aerial, thresholds it and labels the blobs, with vegetation and water vetoed - so they are a real read of what stands on these roofs. Their heights are NOT: b=26.1 there is the snapshot's 25.1 plus a 1.0 lift, so only the positions are used.",
+    "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7397568,
+        30.2908873
+      ],
+      [
+        -97.7398928,
+        30.2908967
+      ],
+      [
+        -97.7399172,
+        30.290633
+      ],
+      [
+        -97.7399657,
+        30.2906363
+      ],
+      [
+        -97.7400117,
+        30.2901397
+      ],
+      [
+        -97.7399691,
+        30.2901368
+      ],
+      [
+        -97.7399914,
+        30.289896
+      ],
+      [
+        -97.7398837,
+        30.2898886
+      ],
+      [
+        -97.7398794,
+        30.2899359
+      ],
+      [
+        -97.7395838,
+        30.2899155
+      ],
+      [
+        -97.7395876,
+        30.2898738
+      ],
+      [
+        -97.7394758,
+        30.2898661
+      ],
+      [
+        -97.7394723,
+        30.289903
+      ],
+      [
+        -97.739275,
+        30.2898894
+      ],
+      [
+        -97.7392699,
+        30.2899436
+      ],
+      [
+        -97.7392696,
+        30.2899468
+      ],
+      [
+        -97.7392954,
+        30.2899486
+      ],
+      [
+        -97.7392918,
+        30.2899869
+      ],
+      [
+        -97.7394566,
+        30.2899983
+      ],
+      [
+        -97.7394403,
+        30.2901747
+      ],
+      [
+        -97.7393052,
+        30.2901654
+      ],
+      [
+        -97.7392747,
+        30.2904938
+      ],
+      [
+        -97.7393962,
+        30.2905022
+      ],
+      [
+        -97.7393811,
+        30.2906654
+      ],
+      [
+        -97.7392203,
+        30.2906543
+      ],
+      [
+        -97.7392096,
+        30.2907701
+      ],
+      [
+        -97.7393756,
+        30.2907815
+      ],
+      [
+        -97.7393684,
+        30.2908598
+      ],
+      [
+        -97.7394995,
+        30.2908689
+      ],
+      [
+        -97.7395063,
+        30.2907953
+      ],
+      [
+        -97.7397637,
+        30.2908131
+      ],
+      [
+        -97.7397568,
+        30.2908873
+      ]
+    ],
+    "_src": "S1, the outer ring verbatim. In (u,v) its corners are (0,18) (0,4.9) (29.2,4.8) (29.2,0.1) (84.3,0) (84.3,4.1) (111,4) (111,14.4) (105.8,14.4) (105.8,42.9) (110.4,42.9) (110.4,53.7) (106.4,53.7) (106.4,72.8) (100,72.8) (100,70.3) (95.8,70.3) (95.7,54.4) (76.2,54.5) (76.2,67.5) (39.8,67.6) (39.8,55.9) (21.7,55.9) (21.7,71.4) (8.8,71.4) (8.8,55.4) (0.1,55.4) (0.1,42.8) (8.3,42.8) (8.2,18) - every edge axis-parallel in the frame.",
+    "_holes_src": "S1: north court (21.1,17.8)-(37.8,42.6); south court (80.1,15.6)-(95.5,42.4) with a notch at its north-west corner. The generator takes the outer ring only, so a court is left open by NOT putting a block on it, never by a hole in a plan."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=111.03, W=72.78, +u at bearing 184.47 deg. Confirm at boot from the console line [slopes-apartments] Kinsolving Dormitory: obb L=.. W=.., +u at bearing ..",
+  "levels": {
+    "floors": [
+      0,
+      3.35,
+      6.4,
+      9.45,
+      12.5,
+      15.55
+    ],
+    "_src": "SIX floors (S2). The floor-to-floor is DERIVED, not measured: 3.05 m for the upper five and 3.35 m for the ground floor, the standard for a 1958 double-loaded dormitory, which puts the roof slab at 18.60 m and the top of the parapet at 19.65 m. The snapshot's 25.1 m (S1) is Overture's guess - 4.18 m a storey - and is not used. Uncertainty about +-0.15 m a floor, i.e. +-0.9 m at the roof; the matched-camera look against S7 is what would move it.",
+    "roof": 18.6,
+    "parapet": 1.05,
+    "lowRoof": 7.0,
+    "deck": 7.9,
+    "pavilionRoof": 5.6,
+    "_low_src": "S7: against the six-storey ranges the dining block reads about two storeys and the sun deck stands ABOVE it - in the south-east oblique the deck's paving is a clear step up from the tan duct roof, with a parapet between them, and LOOK 2 had them level, which flattened the whole middle of the complex into one plane. So: dining roof 7.0 with a tall 1.10 parapet (its parapet reads as deep as a storey in S7), deck at 7.90, and the Whitis lounge pavilion one tall storey at 5.60. S5's shadows agree on the order of magnitude: the 8 m of shadow thrown north on to the low roof at u 70-77 by the wall at u=78 is 11.3 m of height difference at the measured sun elevation, which puts that low roof at about 8 m. All three are derived from those two reads to +-1.5 m."
+  },
+  "colours": {
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given.",
+    "brick": {
+      "hex": "#d5c6a6",
+      "_src": "S8's stored wall, kept after LOOK 1 put all three candidates through the app's own shader at the matched camera. The photographs give #bd9d86 (S6 crop (255,210)-(345,560), the sunlit end wall, 70th-95th percentile) and #d1ad94 (S4 crop (1660,200)-(1740,300), the blank sunlit brick between two windows); #bd9d86 came out of the app at #af8964 against the Earth mesh's #cbac86 on the same wall in the same frame - 15 per cent dark and a step red. #d5c6a6 lands on it."
+    },
+    "brickShade": {
+      "hex": "#c0ae91",
+      "_src": "derived: the brick a step down, in the ratio S6's 15th-35th percentile (#a98770) bears to its 70th-95th (#bd9d86). Worn by the stair piers, which stand in their own shade in S4."
+    },
+    "stone": {
+      "hex": "#e2d6ba",
+      "_src": "S8's stored trim. S6's own sill-band crop (560,455)-(650,470) means #ada3a3 in sun; the painted sills, heads, copings and the pavilion fascia are one family, and S8's value is the one that renders as a painted band rather than as grey concrete."
+    },
+    "glass": [
+      "#a8aeb2",
+      "#b0aca2",
+      "#171b22"
+    ],
+    "_glass_src": "S6 crop (700,300)-(760,330), a window in sun: p70-95 #b6acac. These windows are venetian blinds behind glass, so by day they read as a light blue-grey, not as a dark pane; the night value is the dark unlit pane and lit ones take APARTMENTS.nightLitTone (S8's night_window #f2da9c is the same idea).",
+    "roof": {
+      "hex": "#9fb0bb",
+      "_src": "S5, the tall ranges' membrane: median #b7b9b2 over the north range (u 9-19, v 60-70) and #a3a69e over the west range (u 45-60, v 8-16). ENTERED COOL, the way js/westcampus.js's SOLID enters a top face: LOOK 1 measured this app's day shader lifting an up-facing quad by about (1.33, 1.13, 0.85) per channel, which turned the measured grey into cream at #f0ca90 on the roofs of the first render. #9fb0bb is that measurement divided back out."
+    },
+    "deck": {
+      "hex": "#c6c8c2",
+      "_src": "S5, the sun deck's paving (u 42-72, v 20-26): median #cfc7b3 - a warm pale concrete from straight above. Entered COOL and level for the top-face lift measured in LOOK 1: at #bdbaad the deck came out brown in LOOK 2 and the whole middle of the complex read as one tan plane, where S7 has a pale concrete deck against a tan duct roof."
+    },
+    "deckPanel": {
+      "hex": "#b7d6e2",
+      "_src": "S5, the two pale panels on the deck: medians #d0e2e7 and #d5e7ee, entered down for the top-face lift measured in LOOK 1. They are the only blue-reading surfaces in the plan; whether they are a pool or painted deck coating is UNKNOWN at 0.17 m/px - they carry no coping, ladder or water edge, and S3 calls this a sun deck, so they are drawn flat."
+    },
+    "ductRoof": {
+      "hex": "#948a7a",
+      "_src": "S5, the dining block's built-up roof (u 48-64, v 56-66): median #ab9a81, entered down for the top-face lift measured in LOOK 1."
+    },
+    "duct": {
+      "hex": "#c4c2ba",
+      "_src": "S5, same patch, 80th-98th percentile #e2dbc8 - the ductwork itself; entered down for the same lift, since a duct is read from above."
+    },
+    "court": {
+      "hex": "#9b886f",
+      "_src": "S5, the north court's paving (u 24-34, v 24-30): median #9b886f. Not drawn as geometry - the courts are left open - but kept as the measurement."
+    }
+  },
+  "skins": {
+    "brick": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 3.26,
+      "window": {
+        "w": 2.5,
+        "h": 1.75,
+        "sill": 0.85
+      },
+      "bands": [
+        {
+          "z0": 0.62,
+          "z1": 0.85,
+          "tone": "stone"
+        },
+        {
+          "z0": 2.6,
+          "z1": 2.78,
+          "tone": "stone"
+        },
+        {
+          "z0": 3.97,
+          "z1": 4.2,
+          "tone": "stone"
+        },
+        {
+          "z0": 5.95,
+          "z1": 6.13,
+          "tone": "stone"
+        },
+        {
+          "z0": 7.02,
+          "z1": 7.25,
+          "tone": "stone"
+        },
+        {
+          "z0": 9.0,
+          "z1": 9.18,
+          "tone": "stone"
+        },
+        {
+          "z0": 10.07,
+          "z1": 10.3,
+          "tone": "stone"
+        },
+        {
+          "z0": 12.05,
+          "z1": 12.23,
+          "tone": "stone"
+        },
+        {
+          "z0": 13.12,
+          "z1": 13.35,
+          "tone": "stone"
+        },
+        {
+          "z0": 15.1,
+          "z1": 15.28,
+          "tone": "stone"
+        },
+        {
+          "z0": 16.17,
+          "z1": 16.4,
+          "tone": "stone"
+        },
+        {
+          "z0": 18.15,
+          "z1": 18.33,
+          "tone": "stone"
+        }
+      ],
+      "_bands_src": "S4 crop (1300,150)-(2000,350): every window sits on a painted sill band that runs CONTINUOUS across the piers between the windows, and carries a painted head band above it. Those two lines, not the openings, are what gives this building its horizontal read at any distance - LOOK 1 had the openings right and the wall still read as plain brick without them. 0.23 m under the sill and 0.18 m over the head, at every floor line.",
+      "glass": "glass",
+      "frame": "stone",
+      "_src": "S4's right-hand wing, measured head-on in the crop (1300,150)-(2000,350): the floor pitch is 45 px, the window pitch 49 px and each window is two lights (the 24 px autocorrelation lag) - so the bay is 49/45 = 1.09 floor heights = 3.32 m, taken here as 3.26 m, one room and one two-light window per bay per floor. The opening in the same crop is 38 px wide by 26 px tall = 0.78 of the bay by 0.58 of the floor = 2.50 x 1.75 m, sill 0.85 m above the floor. LOOK 3 had it 2.35 x 1.55 and the wall read as brick with holes in it where the reference reads as a window ribbon with narrow piers."
+    },
+    "brickBase": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 3.26,
+      "window": {
+        "w": 1.2,
+        "h": 1.0,
+        "sill": 1.7
+      },
+      "glass": "glass",
+      "frame": "stone",
+      "_src": "S7: the dining and service walls carry a sparser row of small high windows, not the dormitory opening. Sizes read off the south-east oblique against that block's own two storeys; +-0.3 m."
+    },
+    "brickBlank": {
+      "kind": "flat",
+      "field": "brick",
+      "_src": "S6: the blank brick end wall, no openings - what a range end wears."
+    },
+    "stair": {
+      "kind": "bays",
+      "field": "brickShade",
+      "bay": 3.0,
+      "window": {
+        "w": 1.05,
+        "h": 2.3,
+        "sill": 0.3
+      },
+      "glass": "glass",
+      "frame": "stone",
+      "_src": "S4/S6: a stair pier carries one narrow full-height window a floor, from just above the floor line to just under the one above."
+    },
+    "pavilion": {
+      "kind": "storefront",
+      "mullion": 1.8,
+      "mullionW": 0.1,
+      "transom": 0.62,
+      "fascia": 1.1,
+      "fasciaTone": "stone",
+      "glass": "glass",
+      "frame": "stone",
+      "_src": "S7 (north-west oblique) and the 12/2023 west close capture: the Whitis lounge is one tall storey of continuous glazing under a painted fascia, standing on a colonnade. Mullion spacing derived from the count of lights across its front; +-0.3 m."
+    }
+  },
+  "blocks": [
+    {
+      "id": "north-range",
+      "plan": [
+        8.5,
+        20.5,
+        4.5,
+        71.4
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u0": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            10.6,
+            14.3,
+            58.4,
+            61.8
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            10.5,
+            11.9,
+            21.7,
+            22.9
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            12.5,
+            13.2,
+            20.7,
+            22.8
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            14.6,
+            15.2,
+            52.5,
+            53.6
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S5: a 12 m deep range across the whole width at the north end, its roof one grey plane; the parking lot north of it in the same frame is what a first read mistook for its shadow. Its north face is not drawn - the two north wings stand against it. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "nw-wing",
+      "plan": [
+        0,
+        8.5,
+        4.9,
+        18.0
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u1": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            4.2,
+            7.5,
+            6.3,
+            9.8
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            1.0,
+            2.5,
+            5.9,
+            7.1
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            3.6,
+            5.1,
+            6.0,
+            7.1
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S1/S5: the north-west wing projects to u=0 between v 4.9 and 18. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u0",
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "n-wing",
+      "plan": [
+        0,
+        8.5,
+        42.8,
+        55.4
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u1": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            1.4,
+            2.5,
+            46.8,
+            47.7
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            1.6,
+            2.5,
+            52.6,
+            53.6
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S1/S5: the second north wing, between v 42.8 and 55.4; the gap between the two wings is the parking court. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u0",
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "west-range",
+      "plan": [
+        20.5,
+        96.0,
+        4.5,
+        18.0
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "u1": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            20.6,
+            24.6,
+            6.1,
+            9.9
+          ],
+          "h": 2.8,
+          "tone": "brick"
+        },
+        {
+          "plan": [
+            21.2,
+            24.1,
+            12.8,
+            15.7
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            26.6,
+            30.0,
+            5.8,
+            6.8
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            80.5,
+            85.5,
+            6.7,
+            8.3
+          ],
+          "h": 2.8,
+          "tone": "brick"
+        },
+        {
+          "plan": [
+            86.8,
+            88.2,
+            11.2,
+            12.3
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            88.8,
+            90.8,
+            11.4,
+            12.4
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            83.5,
+            85.0,
+            5.1,
+            6.5
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S5: the long range on Whitis, 13.5 m deep, running the whole length between the north range and the south range; both its end faces stand against those and are not drawn. The two 2.8 m brick boxes on the roof are the largest of S9's detections, drawn as the brick stair bulkhead S4 photographs above the roofline; the 1.7 and 1.0 m boxes are S9's units and condensers.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "west-bulge-n",
+      "plan": [
+        29.2,
+        62.0,
+        0,
+        4.5
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "v1": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            41.3,
+            44.8,
+            1.1,
+            2.1
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S1: between u 29.2 and 84.3 the west wall of the building stands 4.5 m further west, on the street. S5 and S7 show that projection is six storeys north of u=62 and one storey - the lounge pavilion - south of it. Its east face is not drawn: it is inside the west range.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "u1"
+      ]
+    },
+    {
+      "id": "west-bulge-s",
+      "plan": [
+        78.0,
+        84.3,
+        0,
+        4.5
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "v1": null
+      },
+      "_src": "S5: the same projection resumes at six storeys south of the pavilion - it is the wall at u=78 whose 8 m shadow on to the pavilion roof measures the height difference.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "u1"
+      ]
+    },
+    {
+      "id": "mid-range-n",
+      "plan": [
+        20.5,
+        36.0,
+        42.0,
+        55.9
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u0": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            22.3,
+            23.8,
+            53.5,
+            54.6
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S5: the range on the far side of the north court, between the north range and the sun deck. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ]
+    },
+    {
+      "id": "east-range-s",
+      "plan": [
+        76.2,
+        96.0,
+        42.0,
+        54.4
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u1": null
+      },
+      "_src": "S1/S5: the range on the far side of the south court, from the dining block down to the south range.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0"
+      ]
+    },
+    {
+      "id": "south-range",
+      "plan": [
+        96.0,
+        105.8,
+        4.5,
+        72.5
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            101.2,
+            102.4,
+            19.4,
+            23.5
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            97.6,
+            99.1,
+            24.9,
+            27.0
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            96.2,
+            96.9,
+            33.8,
+            36.7
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            103.3,
+            104.6,
+            19.4,
+            21.0
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            102.2,
+            103.2,
+            9.2,
+            10.4
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            101.6,
+            102.3,
+            16.8,
+            18.5
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        },
+        {
+          "plan": [
+            104.3,
+            105.7,
+            10.0,
+            11.7
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S5: the range across the south end, on Dean Keeton; the one S7's south-east oblique shows end-on. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0",
+        "u1"
+      ]
+    },
+    {
+      "id": "sw-wing",
+      "plan": [
+        105.8,
+        111.0,
+        4.0,
+        14.4
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u0": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            105.9,
+            109.4,
+            5.0,
+            6.5
+          ],
+          "h": 1.7,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S1: the south-west wing projects to u=111 on the Whitis / Dean Keeton corner. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u1",
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "s-wing",
+      "plan": [
+        105.8,
+        110.4,
+        42.9,
+        53.7
+      ],
+      "z0": 0,
+      "z1": 18.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "brick"
+        }
+      ],
+      "faces": {
+        "u0": null
+      },
+      "roofItems": [
+        {
+          "plan": [
+            108.2,
+            109.5,
+            43.9,
+            45.3
+          ],
+          "h": 1.0,
+          "tone": "stone"
+        }
+      ],
+      "_src": "S1: the second south projection. roofItems: S9.",
+      "roofTone": "roof",
+      "parapet": 1.05,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u1",
+        "v0",
+        "v1"
+      ]
+    },
+    {
+      "id": "dining-w",
+      "plan": [
+        36.0,
+        76.2,
+        47.0,
+        55.9
+      ],
+      "z0": 0,
+      "z1": 7.0,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 7.0,
+          "skin": "brickBase"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "v1": null
+      },
+      "roofTone": "ductRoof",
+      "parapet": 1.1,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u0",
+        "u1"
+      ],
+      "_src": "S5/S7: the two-storey dining and kitchen block, its roof a tan built-up surface. Its west face stands against the sun-deck podium and its east face against the other half of the same block."
+    },
+    {
+      "id": "dining-e",
+      "plan": [
+        39.8,
+        76.2,
+        55.9,
+        67.5
+      ],
+      "z0": 0,
+      "z1": 7.0,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 7.0,
+          "skin": "brickBase"
+        }
+      ],
+      "faces": {
+        "v0": null
+      },
+      "roofTone": "ductRoof",
+      "parapet": 1.1,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "v1",
+        "u0",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            42.6,
+            45.0,
+            56.5,
+            66.0
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            46.8,
+            49.2,
+            57.0,
+            66.5
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            50.8,
+            53.2,
+            56.0,
+            64.0
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            55.3,
+            57.7,
+            56.5,
+            66.5
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            59.8,
+            62.2,
+            57.0,
+            65.0
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            63.8,
+            66.2,
+            56.5,
+            63.0
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            42.6,
+            66.2,
+            65.6,
+            67.2
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        },
+        {
+          "plan": [
+            46.0,
+            64.0,
+            50.5,
+            52.0
+          ],
+          "h": 1.7,
+          "tone": "duct"
+        }
+      ],
+      "_src": "S1/S5: the block reaches its furthest east (v 67.5) between u 39.8 and 76.2. The eight duct runs are the white ductwork the rectified nadir shows crossing this roof and S4 photographs from the street - six branches, a header along the east edge and the spine along v 51 - read off S5 to about +-1 m in u and drawn 2.4 m wide and 1.7 m proud, which is what they read against the block's own parapet in S7. LOOK 2 had them 2.0 x 1.3 and at that size they disappeared into the roof plane."
+    },
+    {
+      "id": "deck-podium",
+      "plan": [
+        36.0,
+        76.2,
+        18.0,
+        47.0
+      ],
+      "z0": 0,
+      "z1": 7.9,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 7.9,
+          "skin": "brickBase"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "v1": null
+      },
+      "roofTone": "deck",
+      "parapet": 1.0,
+      "parapetTone": "brick",
+      "parapetSides": [
+        "u0",
+        "u1"
+      ],
+      "_src": "S5/S7: the sun deck stands on a podium between the west range and the dining block, at about a third of the ranges' height. Its west face is inside the west range and its east face inside the dining block; the two that show are the ones on the north and south courts."
+    },
+    {
+      "id": "pavilion",
+      "plan": [
+        62.0,
+        78.0,
+        0,
+        4.5
+      ],
+      "z0": 0,
+      "z1": 5.6,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 5.6,
+          "skin": "pavilion"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "u0": null,
+        "u1": null
+      },
+      "roofTone": "roof",
+      "parapet": 0.7,
+      "parapetTone": "stone",
+      "parapetSides": [
+        "v0"
+      ],
+      "_src": "S7: the single-storey lounge pavilion on Whitis, a ribbon of glazing under a painted fascia standing on a colonnade, between the two six-storey stretches of the projecting west wall. Only its street face is drawn."
+    }
+  ],
+  "deck": {
+    "z": 7.9,
+    "_src": "S5: the two pale panels on the sun deck, read off the rectified nadir on a 2 m grid - the only blue-reading surfaces inside the building. 0.06 m proud so they read as a surface, not a box.",
+    "items": [
+      {
+        "plan": [
+          45.5,
+          55.5,
+          27.5,
+          33.5
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckPanel"
+      },
+      {
+        "plan": [
+          55.5,
+          67.5,
+          33.5,
+          39.5
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckPanel"
+      }
+    ]
+  },
+  "balcony": {
+    "_src": "none: there is no balcony anywhere on this building in S4, S6 or S7."
+  },
+  "todo": [
+    {
+      "what": "campus-storeys draws four flat cream plates through this building",
+      "detail": "js/facades.js's campus-storeys pass extrudes one 'course' polygon per storey line from data/campus_storeys.geojson, keyed by `host`. This building's host id has four of them, at dbase 8.34, 12.50, 16.66 and 20.82, each 0.24 m tall and each on the WHOLE footprint polygon - so they cross the open courts, and the top one at 20.82 stands above the authored roof at 19.65 and reads as a cream lid over the entire complex (LOOK 2's first frame). Those heights are the snapshot's 25.1 m divided into six, so they are Overture's guess restated, not a measurement. setFilters() in js/slopes-apartments.js should hide campus-storeys for a replaced id the way it hides buildings-3d - the clause is ['!', ['in', ['get','host'], [literal, gone]]], since the feature carries the replaced building's id in `host` rather than in `id`.",
+      "owner": "js/slopes-apartments.js (or js/facades.js) - not editable from a data-only lane"
+    },
+    {
+      "what": "roofscape-deck draws a lid over this building",
+      "detail": "js/roofs.js draws one flat 'deck' polygon per building from data/roofscape.geojson between b and h. This building's is b=26.1 (S9: the snapshot's 25.1 plus a 1.0 lift), 6.5 m ABOVE the authored roof at 19.65, so it hangs over the whole complex as a grey plane and hides every roof, parapet and rooftop item in this file - see the first frame of LOOK 1. js/slopes-apartments.js's setFilters() hides buildings-3d, buildings-roof and the four wc-* layers for a replaced id; it does not hide roofscape-deck / roofscape-major / roofscape-minor. The same clause on those three layers, or a re-seat of the deck on to the authored top, would fix it. It bites any building whose authored height comes in under Overture's guess: of the files in data/apartments today, this one, the-villas-on-guadalupe (deck at 27.3) and 2706-rio-grande (30.7) have a deck above their own roof.",
+      "owner": "js/slopes-apartments.js (or js/roofs.js) - not editable from a data-only lane"
+    }
+  ],
+  "_open": [
+    "The floor-to-floor is derived, not measured; a drawing or a head-on elevation with a scale would settle it.",
+    "The sun deck's two pale panels may be a pool; at 0.17 m/px the nadir cannot tell, and S3 only says sun deck.",
+    "The court faces, the inside faces of the podium and the dining block's south wall were not photographed and wear the plainest skin the building has.",
+    "The stair piers are drawn as part of the brick field, not as projecting piers with their own narrow window column, because their positions along each range have not been read off the nadir yet; the `stair` skin is written and unused."
+  ]
+}

@@ -1,0 +1,771 @@
+{
+  "_readme": "21 Rio, 2101 Rio Grande St, as js/slopes-apartments.js draws it. One 2009 tower on a full-site base: a retail ground floor, five levels of parking garage behind a cast-stone frame with bronze louvre screens and full-height bronze fins, and a 15-storey white-panel residential tower standing back from it on three sides, balconies on every floor with bronze pipe rails, a glazed bay wrapping the south-west corner, and bronze trellis frames standing above the parapet over each balcony stack. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): the ring is a clean rectangle 40.22 x 36.62 m. u=0 is the SOUTH end and +u runs north; v=0 is the WEST (Rio Grande St) edge and +v runs east - see _frame_src. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5",
+  "name": "21 Rio",
+  "address": "2101 Rio Grande St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5: name '21 Rio', num_floors 21, final_height 73.5, source_height 'overture' - a GUESS for a building OSM never tagged with a height, and the only height number any source here carries. The footprint is a clean 4-vertex rectangle, 40.22 x 36.62 m corner to corner (1,472.7 m2), long axis at bearing 5.64 deg. Baked wall trio wd #c2b6a2 / wg #ccb599 / wn #333233, roof rd #82796b.",
+    "S2": "andresconstruction.com/portfolio/portfolio-21-rio.html (Andres Construction, the general contractor): 21 storeys, completed JULY 2009, architect MERRIMAN ASSOCIATES, owner Cobalt Land Development; one-, two- and three-bedroom units plus 'approximately 4,000 square feet of ground-floor retail space'; the tallest building in West Campus when it was built.",
+    "S3": "Listing record, agreeing across yardimatrix.com property 30994, apartments.com, amberstudent.com and umovefree.com: built 2009, 21 stories, 158 units, 301 beds, 173,197 sf rentable and about 287,661 sf gross. The gap between the two areas - about 114,000 sf, seven full plates - is the structured parking, which is what the photographs show in the base.",
+    "S4": "ALN Data photograph, the hero image on umovefree.com's 21 Rio listing (ref/aln_hero.jpg in the session scratchpad, 1280 x 1442, clear midday sun, sky #78a4ea): a ground-level up-shot from the street corner carrying the WHOLE elevation - the coursed cast-stone garage podium with its horizontal bronze louvre screens and the full-height bronze fins standing proud of them, the recessed retail storefront and its bronze canopy, the tower's white panel wall, its paired punched windows, three balcony stacks with white slabs and bronze pipe rails, the glazed corner bay, and the bronze trellis frames standing above the roof. Every colour below that says S4 is a k-means of a named crop of this photograph.",
+    "S5": "Uptown Realty Austin gallery, s3.amazonaws.com/propertybase-clients/.../'21 Rio 11.jpg' (ref/uptown_11.jpg): the whole building from the street corner in flat overcast light - it settles that the podium runs past the tower at BOTH ends of that corner, so the tower is set back. Its sky reads #fdfdfd, i.e. the photograph is blown, so no colour was taken from it. '21 Rio 10.jpg' is the pool - a rectangular pool under a deep soffit behind a full-height glass wall with a planted terrace and a city horizon beyond, i.e. a pool on a deck, not on the roof - and '21 Rio 7/8/9.jpg' the fitness centre beside it, the pool visible through its window.",
+    "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() (toDataURL is black on Earth): a nadir at camera 495 m whose scale bar measures 177 px for 30 m, i.e. 0.16949 m/px, and a south-west oblique at camera 316 m. The nadir was rectified into the building's own (u,v) frame at 10 px/m with a 5 m grid, and the ground footprint overlaid on it lands on the roof edges, so the plan numbers below were read off a gridded plan. NOTE for the next builder: Earth's camera lands up to 60 m off the URL on an oblique, and a second goto to the SAME url is a no-op in its SPA - go to about:blank in between, and check the on-screen readout before trusting a frame.",
+    "S7": "scripts/bake_westcampus.py MIDRISE['21 Rio'] and docs/PASS_WESTCAMPUS.md: 73.5 m, 21 storeys, base band 6.2 m glazed, tower family `tr` (punched window grid) in PANEL_WARM #b8b1a5 at 22 % window, crown 4.0 m, mech 4.0 m, deck on the roof, 'private balconies on every unit and a rooftop pool are both in the leasing material', 'the nadir shows one roof plane with a central mechanical penthouse and no podium setback'. Its wall colour measured off imagery is #ebe5d1. Its balcony spec is ('long', 2, 19) - nineteen floors on two elevations - and PASS_WESTCAMPUS records that the balcony DIMENSIONS there are generative.",
+    "S8": "data/roof_survey.json feature 73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5: roof area 1482.7 m2 (the footprint's own area, so not an independent read of the tower plan), roof colour rgb(239,232,213) = #efe8d5, texture 0.2517, theta 1.47307 rad (84.4 deg from east = bearing 5.6 deg, the building's own long axis), and eight small blobs classed 'cond' and 'pool', each 0.6-2.2 m2, with their centres in metres from the roof centroid.",
+    "S9": "js/westcampus.js SOLID trios, as data/apartments/the-standard.json and the-castilian.json use them: the day/golden/night relationship for a pool, deck paving, planting, a steel rail and a mechanical unit.",
+    "S10": "data/roads.geojson: Rio Grande Street's nearest node is 47 m from the building centroid at (-31.2, -35.2) m, i.e. it runs along the building's WEST edge about 11 m clear of it; West 21st Street and Nueces Street meet 74 m away to the south-east, so 21st runs about 16 m south of the south face. With the address 2101 Rio Grande St (S2/S3), the retail front is the WEST elevation and the second street elevation is the SOUTH.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7445531,
+        30.2840871
+      ],
+      [
+        -97.744512,
+        30.2844491
+      ],
+      [
+        -97.7448911,
+        30.2844812
+      ],
+      [
+        -97.7449322,
+        30.2841192
+      ],
+      [
+        -97.7445531,
+        30.2840871
+      ]
+    ],
+    "_src": "S1 verbatim. In (u,v) the four corners are (0.05,36.62) (40.27,36.62) (40.22,0.00) (0.00,0.00) - the polygon IS its own oriented bounding box to within 5 cm, so every edge is axis-parallel in the frame."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it, CHECKED against the boot console line rather than predicted from the ring: `[slopes-apartments] 21 Rio: obb L=40.3 W=36.6, +u at bearing 185.6`. So +u runs SOUTH (u=0 is the NORTH edge, u=L=40.26 the south edge on West 21st Street) and +v runs EAST (v=0 the west edge on Rio Grande, v=W=36.61 the east). Reproduced exactly in python only after using the generator's own constants - M_LAT is 110540, not 111320; with 111320 the minimum-area edge changes and the answer comes out 180 deg away at L=40.49, which is precisely the trap. THIS FILE FIRST HAD IT BACKWARDS: it asserted +u NORTH and said it had been confirmed against the console when it had not been, and every u in it - the tower's 4 m setback, the corner pier, the glazed corner bay, the pool, the terrace rail, the parapet the tower stands on - was mirrored end for end, putting the street-corner features on the back of the building. The whole file was mirrored u' = 40.26 - u on 2026-09-05, the u0/u1 face keys swapped and every balcony s reversed. The physical reading was never in doubt and is unchanged: the nadir (S6) shows the wide terrace on the SOUTH, a narrow one west and east, and the roof running to the edge on the NORTH.",
+  "levels": {
+    "floors": [
+      0.0,
+      6.2,
+      9.44,
+      12.68,
+      15.92,
+      19.16,
+      22.4,
+      25.44,
+      28.48,
+      31.52,
+      34.56,
+      37.6,
+      40.64,
+      43.68,
+      46.72,
+      49.76,
+      52.8,
+      55.84,
+      58.88,
+      61.92,
+      64.96
+    ],
+    "_src": "21 floor lines for the 21 storeys every source states (S1, S2, S3). The SPLIT between podium and tower is counted, not assumed: a luminance profile down one column of the podium in S4 (x 560-600, y 620-1340) finds six dark bands - the bronze canopy over the retail entrance and FIVE louvred garage openings above it - so the base is a retail floor plus five garage decks, and the tower is the remaining fifteen. The ground floor is 6.2 m, S7's own base band for this building. The podium's share of the height is measured off the S6 oblique at the south-west arris, where roof, podium top and pavement are all visible in one column: 220 px, 530 px, 670 px -> podium 140 of 450 px = 31.1 %; entered at 22.4 of 69.3 m to the parapet = 32.3 %, the difference being that an oblique magnifies the top of a building slightly. That leaves 3.24 m per garage deck and 3.04 m per residential floor, both derived. S1's 73.5 m is Overture's guess and it is used here as the top of the MECHANICAL PENTHOUSE, not the roof - see _heights_src.",
+    "ground": 6.2,
+    "podium": 22.4,
+    "roof": 68.0,
+    "_heights_src": "Main roof 68.0 + parapet 1.3 = 69.3. The mechanical penthouse on top of it reaches 73.5, which is exactly S1's final_height: a LiDAR or photogrammetric high point on this building lands on the two cooling towers the nadir (S6) shows in the middle of the roof, not on the parapet. Reading 73.5 as the parapet instead would force 3.5 m of floor-to-floor across 21 storeys, which no residential building of this type has. Uncertainty on the roof line is about plus or minus 2 m and it is the weakest number in this file."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex is a k-means cluster of a NAMED CROP of a NAMED photograph, listed with its share. S4 is direct midday sun, so where a crop is a sunlit face the cluster is stepped down by the stated factor to get the material rather than the lighting; that factor is written out every time it is used and is the one judgement call in this block.",
+    "stonePale": {
+      "hex": "#d9c7a1",
+      "_src": "S4, crop (880,1180)-(980,1260) of the cast-stone base beside the entrance: 44 % #fdefcb and 38 % #ebca9b, area-weighted #f7e2b7. That is a face in full sun; entered at 0.88 of it. This is the podium's whole material - piers, spandrels, the blank corner pier and the ground-floor surround are one coursed cast stone in every photograph."
+    },
+    "stoneDark": {
+      "hex": "#c0a883",
+      "_src": "S4, the darker cluster of the same crop (#ebca9b, 38 %) at 0.82 - the shaded course lines and the recessed spandrel panel between garage openings."
+    },
+    "bronze": {
+      "hex": "#c07840",
+      "_src": "S4, crop (500,1332)-(760,1358) of the entrance canopy: 42 % #eb934d in sun, 38 % #180f0a (its own shadow line), entered at 0.82 of the sunlit cluster. One anodised copper-bronze runs through the whole building - the canopy fascia, the vertical podium fins, the balcony pipe rails and the roof trellises are the same metal in S4 and S5."
+    },
+    "louvreLit": {
+      "hex": "#8a7754",
+      "_src": "S4, crop (600,930)-(700,975) across one garage opening - the file's own crop, remeasured: its area mean is #7c6754 (124,103,84), and that is a face in DIRECT MIDDAY SUN, so at this file's 0.88 convention for a sunlit cluster the screen should read #6d5b4a in the app. The lit slat is solved back out of that: with louvreDark #3a2a1c covering 0.08 of the 0.22 m pitch (36 %), 0.64*lit + 0.36*dark = #6d5b4a gives lit = #8a7754. The value this file first carried, #8a6c50, was one cluster of the crop rather than the whole screen and blended to #6d543d - visibly darker and browner than the photograph, and at the app's oblique the podium read as a near-black barcode instead of the bronze screen. Same lightness, less saturation."
+    },
+    "louvreDark": {
+      "hex": "#3a2a1c",
+      "_src": "S4, same crop, the 44 % cluster #27190f - the shadow gap between slats and the unlit garage deck behind them. Area-weighted with louvreLit at the pitch below, the band reads #604a37 against the crop's own #574333 once its stone contamination is taken out."
+    },
+    "storeGlass": {
+      "hex": "#1a1d18",
+      "_src": "S4, crop (620,1395)-(750,1435) of the ground-floor storefront: 47 % #161812, 35 % #0d0a07 - a deep-recessed shopfront under the podium overhang, nearly black at this exposure."
+    },
+    "panel": {
+      "hex": "#dcd9d5",
+      "_src": "S4, crop (800,300)-(840,420) of the tower's wall in sun: 70 % #dedbd8, entered at 0.99 of it because that face is bright but not blown. The Google Earth mesh reads the same wall at #ecefec (S6, 71 % of a 30x90 crop), which is the same white one step brighter. S7's imagery-measured #ebe5d1 is warmer than either because it is an average over the WHOLE building, cream podium included."
+    },
+    "slab": {
+      "hex": "#dedbd8",
+      "_src": "the balcony slabs and their soffits: the same white concrete as the wall in S4 and S5, not separately sampled."
+    },
+    "winGlass": {
+      "hex": "#a3b9c0",
+      "_src": "S4, crop (618,478)-(644,505) of one punched window: the 27 % cluster #a3b9c0 is the vision glass, the 41 % #eff1f3 its white surround. The S6 mesh gives the same glass a green cast (#8ea3a0, 11 % of the tower_white crop); the value entered is the photograph's."
+    },
+    "cwGlass": {
+      "hex": "#6d838a",
+      "_src": "the glazed bay that wraps the south-west corner. S4 crops it at (880,150)-(940,290) where it is reflecting open sky (48 % #dbe6ef) so the photograph cannot give the material; the S6 mesh reads the same bay in shade at (668,300)-(690,460) - 39 % #252b37, 29 % #536c78. Entered between the two readings, a dark blue-green glass, and so derived from two lighting extremes rather than sampled once."
+    },
+    "frame": {
+      "hex": "#e8e6e2",
+      "_src": "the white surround a punched window sits in (S4, the 41 % cluster #eff1f3 of the window crop, one step down)."
+    },
+    "roof": [
+      "#efe8d5",
+      "#f0e2c4",
+      "#1e2029"
+    ],
+    "_roof_src": "S8, the roof survey's own colour for this feature, rgb(239,232,213); golden and night entered the way S9 enters a top face.",
+    "deckTone": [
+      "#b9b5ad",
+      "#c2b6a2",
+      "#1c1f27"
+    ],
+    "_deckTone_src": "the podium roof terrace: S6's oblique shows it as a grey concrete strip in the tower's shadow. The day value is entered as a weathered paving grey; golden is S1's own baked wg for this building. Not separately sampled - the strip is three pixels wide in the oblique.",
+    "penthouse": {
+      "hex": "#c8c6c0",
+      "_src": "the mechanical penthouse and the cooling-tower housing: S6's nadir shows them as the palest grey on the roof, a step under the membrane. Not separately sampled."
+    },
+    "condenser": [
+      "#8f9398",
+      "#9a958c",
+      "#1a1d26"
+    ],
+    "_condenser_src": "S9's mech trio, as the-standard.json and the-castilian.json use it; S8 gives the individual roof units at rgb(187,172,142) down to rgb(128,132,128), i.e. mid grey, which is what this trio is.",
+    "pool": [
+      "#3f88a8",
+      "#4a86a0",
+      "#2a4a63"
+    ],
+    "_pool_src": "S9's pool trio.",
+    "turf": [
+      "#6d7f52",
+      "#7c8552",
+      "#1d2a24"
+    ],
+    "_turf_src": "S9's planting trio - the green patch S6 shows on the west terrace.",
+    "rail": {
+      "hex": "#c07840",
+      "_src": "the terrace guard rail: the same bronze as everything else metal here (S4)."
+    }
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every count comes from a module, never a hard-coded number.",
+    "ground": {
+      "kind": "storefront",
+      "mullion": 1.7,
+      "mullionW": 0.11,
+      "fascia": 0.55,
+      "transom": 0.78,
+      "fasciaTone": "bronze",
+      "frame": "stonePale",
+      "glass": "storeGlass",
+      "reveal": 0.12,
+      "_src": "Level 1: about 4,000 sf of retail (S2) plus the leasing entrance, behind a storefront recessed under the podium (S4). The bronze fascia is the canopy that runs along the top of the ground floor in S4; 1.7 m mullion spacing is a plausible module read off S4's own storefront, not dimensioned. reveal 0.35 stands in for the recess the generator has no inset for."
+    },
+    "garageStone": {
+      "kind": "bays",
+      "bay": 4.3,
+      "field": "stonePale",
+      "strip": {
+        "w": 0.3,
+        "tone": "bronze",
+        "at": "centres"
+      },
+      "_src": "The cast-stone spandrel between garage openings, carrying the vertical bronze fins. Bay 4.3 m: five fins are visible across the photographed stretch of the west elevation in S4 (x 400, 500, 590, 680, 760 at the podium's mid height) and the same rhythm returns round the corner in S5; 4.3 m is that count taken across the 36.6 m elevation. The fin is 0.30 m wide, read off S4 against the bay - it stands proud of the wall on brackets, which the generator cannot do, so it is drawn flush and said so in `open`."
+    },
+    "garageLouvre": {
+      "kind": "bays",
+      "bay": 4.3,
+      "field": "louvreLit",
+      "strip": {
+        "w": 0.3,
+        "tone": "bronze",
+        "at": "centres"
+      },
+      "louvre": {
+        "pitch": 0.22,
+        "w": 0.08,
+        "tone": "louvreDark",
+        "start": 0.05
+      },
+      "_src": "The louvre screen filling each garage opening. Pitch 0.22 m is measured: the opening at y 1050-1104 in S4 is 54 px where one level pitch is 143 px for 3.24 m, and it carries six slat lines. The dark share is entered at 0.08 of 0.22 (36 %) rather than the measured near-half, for the reason the-castilian.json's fin screen records: at this app's oblique camera the pitch is about one pixel, and a half-dark share turns the band into a moire barcode instead of the bronze screen the photographs show. The fins from garageStone run on through it so they read as one continuous vertical member up the whole podium, which is what S4 shows."
+    },
+    "stoneBlank": {
+      "kind": "flat",
+      "field": "stonePale",
+      "_src": "the blank coursed cast-stone corner pier: in S4 and S5 the street corner is a wide unpierced stone wall running the full height with no louvres and no fins on either return."
+    },
+    "panel": {
+      "kind": "bays",
+      "bay": 4.6,
+      "field": "panel",
+      "window": {
+        "w": 2.3,
+        "h": 1.95,
+        "sill": 0.85
+      },
+      "glass": "winGlass",
+      "frame": "frame",
+      "reveal": 0.14,
+      "_src": "The tower's default wall: white panel with one paired punched window per bay per floor. Bay 4.6 m: on the south elevation in the S6 oblique the face reads as six elements - a glazed corner bay, three balcony stacks and two window columns - across 31.2 m, and the two windows in one gap sit about 5 m apart; 4.6 m is that pitch taken across both elevations, plus or minus 0.6 m. Window 2.3 x 1.95 on a 0.85 m sill: in S4 each opening is a single wide light split by one mullion and runs about two thirds of the floor pitch, and 1.95 of 3.04 m is 64 %."
+    },
+    "curtain": {
+      "kind": "storefront",
+      "mullion": 1.55,
+      "mullionW": 0.09,
+      "fascia": 0.28,
+      "transom": 0.72,
+      "fasciaTone": "panel",
+      "frame": "frame",
+      "glass": "cwGlass",
+      "reveal": 0.06,
+      "_src": "The glazed bay that wraps the south-west corner, floor to roof for the tower's whole height: in S4 it is the tall glazed grid at the end of the near elevation and in S6 it is the dark green-glass column standing at the near arris, on both returns. Mullion 1.55 m is a plausible module read off S4's own grid, not dimensioned. The thin `fascia` is the white spandrel line at each floor."
+    },
+    "blank": {
+      "kind": "flat",
+      "field": "panel",
+      "_src": "the tower's unpierced wall - the stair and lift core strip in S4, which is the SAME white as the rest of the panel there and only reads grey in the S6 mesh because that face is in shade. It gets its own skin so it can lose the window grid, not a second colour."
+    }
+  },
+  "balcony": {
+    "proj": 1.5,
+    "slabT": 1.15,
+    "railH": 0.35,
+    "railT": 0.06,
+    "_src": "Projection 1.5 m read off S4 against the 4.6 m bay - the slabs are deep enough to sit a chair sideways and they overlap in the up-shot. The FRONT IS NOT A RAIL: S4 (crop (180,380)-(560,700), the west elevation's stacks at full resolution) shows a solid WHITE concrete parapet carrying a slim bronze pipe rail along its top, and that is what these two numbers are - 1.15 m of white parapet (drawn as the slab box, because from outside the slab and the upstand are one white mass) and 0.35 m of bronze above it. The file first gave the whole 1.05 m to the bronze `rail` tone, which painted every balcony on all four elevations solid orange and was the loudest thing about the building at any camera; the photograph is unambiguous that it is white. Rail 0.06 m thick, three thin bars, as the generator draws it."
+  },
+  "blocks": [
+    {
+      "id": "podium",
+      "_src": "The full site from the pavement to the roof terrace: retail at level 1, five parking decks above it behind a cast-stone frame with bronze louvre screens. All four faces wear the same stack; only the west (Rio Grande) and south (21st) faces are photographed, and both S4 and S5 show the screen returning round the corner, so the north and east take the same rule - they are unphotographed and this file says so.",
+      "plan": [
+        0.0,
+        40.26,
+        0.0,
+        36.61
+      ],
+      "_plan_src": "the obb rectangle, not the ring. The footprint IS a rectangle (S1), and it has to be entered as [u0,u1,v0,v1] rather than as `footprint` for the reason the-castilian.json records: clipWall will only split a wall it can prove is axis-parallel, and a ring carries a fraction of a degree of numerical tilt, which makes the corner-pier override below claim a whole face.",
+      "z0": 0,
+      "z1": 22.4,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 6.2,
+          "skin": "ground",
+          "inset": {
+            "d": 1.5,
+            "tone": "stonePale",
+            "columns": {
+              "pitch": 4.3,
+              "w": 0.5,
+              "tone": "stonePale"
+            }
+          },
+          "_inset_src": "open 4: the ground floor is recessed under the podium in S4; the depth was not measured - 1.5 m is a look, with stone piers on the 4.3 m fin module standing in for whatever carries the podium. The 0.35 m reveal that stood in for it is an ordinary 0.12 now."
+        },
+        {
+          "z0": 6.2,
+          "z1": 7.5,
+          "skin": "garageStone"
+        },
+        {
+          "z0": 7.5,
+          "z1": 9.44,
+          "skin": "garageLouvre"
+        },
+        {
+          "z0": 9.44,
+          "z1": 10.74,
+          "skin": "garageStone"
+        },
+        {
+          "z0": 10.74,
+          "z1": 12.68,
+          "skin": "garageLouvre"
+        },
+        {
+          "z0": 12.68,
+          "z1": 13.98,
+          "skin": "garageStone"
+        },
+        {
+          "z0": 13.98,
+          "z1": 15.92,
+          "skin": "garageLouvre"
+        },
+        {
+          "z0": 15.92,
+          "z1": 17.22,
+          "skin": "garageStone"
+        },
+        {
+          "z0": 17.22,
+          "z1": 19.16,
+          "skin": "garageLouvre"
+        },
+        {
+          "z0": 19.16,
+          "z1": 20.46,
+          "skin": "garageStone"
+        },
+        {
+          "z0": 20.46,
+          "z1": 22.4,
+          "skin": "garageLouvre"
+        }
+      ],
+      "_bands_src": "one pair of bands per garage deck: 1.30 m of cast-stone spandrel then a 1.94 m louvred opening, repeated on the 3.24 m deck pitch. The split is the ratio S4 gives between the stone and the opening in one bay (the opening runs a little under two thirds of the level), and the five decks are counted, not assumed - see levels._src.",
+      "overrides": [
+        {
+          "region": [
+            33.76,
+            40.26,
+            0.0,
+            6.5
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 6.2,
+              "skin": "ground",
+              "inset": {
+                "d": 1.5,
+                "tone": "stonePale",
+                "columns": {
+                  "pitch": 4.3,
+                  "w": 0.5,
+                  "tone": "stonePale"
+                }
+              }
+            },
+            {
+              "z0": 6.2,
+              "z1": 22.4,
+              "skin": "stoneBlank"
+            }
+          ],
+          "_src": "the south-west corner pier: in S4 and S5 the street corner is a blank coursed stone wall running from the canopy to the terrace with no louvre and no fin on either return. 6.5 m each way is read off S5, plus or minus 1.5 m. CORRECTED 2026-09-05: the region is written in the frame the generator actually builds (+u SOUTH), so the south-west corner is the HIGH-u end."
+        }
+      ],
+      "roofTone": "deckTone",
+      "parapet": 1.0,
+      "parapetTone": "stonePale",
+      "parapetSides": [
+        "v0",
+        "u1",
+        "v1"
+      ],
+      "_parapet_src": "the stone upstand round the terrace in S6's oblique. u0 (north) gets none: the tower stands on that edge (see the tower's plan), and docs/apartments.md forbids a parapet on an edge another block of the same height sits on."
+    },
+    {
+      "id": "tower",
+      "_src": "The 15 residential storeys. It stands BACK from the podium on three sides - S5 shows the podium running past the tower at both ends of one corner, S6's oblique shows a grey terrace strip west and south of it with a planted patch on the west and a dark rectangle on the south, and the rectified nadir (S6) shows a raised parapet band inboard of the east edge with the roof dropping away beyond it. On the NORTH the roof runs to the footprint edge in the same plan, so the tower is flush there.",
+      "plan": [
+        0.0,
+        36.26,
+        2.6,
+        33.8
+      ],
+      "_plan_src": "read off the rectified plan at 10 px/m (S6). South terrace 4.0 m, west 2.6, east 2.8, north flush. This is the weakest plan number in the file: the nadir is close to orthographic here - the ground footprint overlaid on it lands on the roof edges - which is exactly what makes a 3 m step at 68 m hard to separate from a parapet. Uncertainty plus or minus 1.5 m per side.",
+      "z0": 22.4,
+      "z1": 68.0,
+      "bands": [
+        {
+          "z0": 22.4,
+          "z1": 68.0,
+          "skin": "panel"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "panel",
+              "balconies": [
+                {
+                  "s0": 7.36,
+                  "s1": 10.26
+                },
+                {
+                  "s0": 16.96,
+                  "s1": 19.86
+                },
+                {
+                  "s0": 26.56,
+                  "s1": 29.46
+                }
+              ]
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "panel",
+              "balconies": [
+                {
+                  "s0": 4.7,
+                  "s1": 7.6
+                },
+                {
+                  "s0": 12.3,
+                  "s1": 15.2
+                },
+                {
+                  "s0": 19.9,
+                  "s1": 22.8
+                }
+              ]
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "panel",
+              "balconies": [
+                {
+                  "s0": 7.36,
+                  "s1": 10.26
+                },
+                {
+                  "s0": 25.36,
+                  "s1": 28.26
+                }
+              ]
+            }
+          ]
+        },
+        "u0": {
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "panel",
+              "balconies": [
+                {
+                  "s0": 4.7,
+                  "s1": 7.6
+                },
+                {
+                  "s0": 14.2,
+                  "s1": 17.1
+                },
+                {
+                  "s0": 23.7,
+                  "s1": 26.6
+                }
+              ]
+            }
+          ]
+        },
+        "_src": "v0 is the WEST face on Rio Grande, u1 the SOUTH face on 21st - the two the photographs carry; v1 (east, an alley) and u0 (north) are UNPHOTOGRAPHED and wear the same rule with one fewer stack on the east. Eleven balcony stacks in all, which is the count the sources force: 158 units over 15 residential floors is 10.5 balconies a floor and the leasing material says every unit has one (S7). Three per long face is also what the S6 oblique shows on the south. Where each stack sits along its face is read off S6 to about a metre and is the thing most likely to want moving after a look. CORRECTED 2026-09-05: every s here is measured in the frame the generator builds (+u SOUTH, console `21 Rio: obb L=40.3 W=36.6, +u at bearing 185.6`), not the +u NORTH this file first assumed. The physical composition is unchanged - the same three stacks on the same four elevations - but the south face is key u1, the north is u0, and s on every face runs the other way."
+      },
+      "_balconies_note": "the band starts at 22.4 so floorsBetween takes the fourteen lines ABOVE it - levels 8 to 21. Level 7, the first tower floor, opens straight on to the terrace instead, which is what S5's pool photograph shows behind its glass wall.",
+      "overrides": [
+        {
+          "region": [
+            29.66,
+            36.26,
+            2.6,
+            9.2
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "curtain"
+            }
+          ],
+          "_src": "the glazed bay wrapping the SOUTH-WEST corner, floor to roof: in S4 it is the tall glazed grid at the end of the near elevation and in S6 it is the dark green-glass column standing exactly at the near arris, on both returns. 6.6 m along each face, read off S6 against the bay module, plus or minus 1 m. CORRECTED 2026-09-05: mirrored into the true frame, so the bay is at the HIGH-u (south) end of the west elevation - the street corner of 21st and Rio Grande."
+        },
+        {
+          "region": [
+            20.0,
+            25.5,
+            2.6,
+            3.0
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "blank"
+            }
+          ],
+          "_src": "the stair and lift core: an unpierced strip on the west elevation, 5.5 m wide, which S4 shows as a blank white band with only small vents between the second balcony stack and the corner bay. PLACED, not dimensioned: it is put in the 6.7 m gap the west elevation actually has between the second stack (u 16.4-19.3) and the stack next to the corner bay (u 26.0-28.9). The number this file carried before landed on top of a balcony stack once the frame was corrected, which is how the collision was found."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.3,
+      "parapetTone": "panel",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            12.26,
+            22.76,
+            9.5,
+            20.5
+          ],
+          "h": 1.6,
+          "tone": "penthouse",
+          "_src": "the screen wall round the mechanical well: in the rectified nadir (S6) it is a recessed grey enclosure from u 17.5 to 28.0 and v 9.5 to 20.5, dead centre of the roof."
+        },
+        {
+          "plan": [
+            14.46,
+            19.46,
+            13.2,
+            17.8
+          ],
+          "h": 5.5,
+          "tone": "penthouse",
+          "_src": "the cooling-tower housing inside that well - the nadir shows two round fans about 3 m across side by side. Drawn to 73.5 m, which is S1's final_height: this is the high point a photogrammetric or LiDAR pass measures on this roof, and reading 73.5 as the parapet instead is what would force an impossible floor-to-floor (see levels._heights_src)."
+        },
+        {
+          "plan": [
+            30.26,
+            34.26,
+            29.5,
+            32.5
+          ],
+          "grid": [
+            2,
+            2
+          ],
+          "size": [
+            1.1,
+            1.4
+          ],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S8: blobs at (x -11.83, y 15.39), (-8.94, -3.84), (8.50, -19.67) and five more put small units round the roof's edges. S8's frame shares this file's axes - its theta 1.47307 rad is bearing 5.6 deg, the building's own long axis - so its x maps to u and its y to v about the roof centre at (20.1, 18.3). The SIGN of that mapping is an assumption, so the units are placed as two clusters where the nadir also shows them rather than one blob at a time."
+        },
+        {
+          "plan": [
+            4.26,
+            10.26,
+            5.0,
+            9.0
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.0,
+            1.3
+          ],
+          "h": 0.6,
+          "tone": "condenser",
+          "_src": "S6 nadir: a second scatter of small units on the north-west quarter of the roof."
+        },
+        {
+          "plan": [
+            26.0,
+            28.9,
+            2.6,
+            2.95
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 7.36-10.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            16.4,
+            19.3,
+            2.6,
+            2.95
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 16.96-19.86. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            6.8,
+            9.7,
+            2.6,
+            2.95
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 26.56-29.46. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            35.91,
+            36.26,
+            26.2,
+            29.1
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 4.70-7.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            35.91,
+            36.26,
+            18.6,
+            21.5
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 12.30-15.20. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            35.91,
+            36.26,
+            11.0,
+            13.9
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 19.90-22.80. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            7.36,
+            10.26,
+            33.45,
+            33.8
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the east elevation's balcony stack at s 7.36-10.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            25.36,
+            28.26,
+            33.45,
+            33.8
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the east elevation's balcony stack at s 25.36-28.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            0.0,
+            0.35,
+            7.3,
+            10.2
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 4.70-7.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            0.0,
+            0.35,
+            16.8,
+            19.7
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 14.20-17.10. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        },
+        {
+          "plan": [
+            0.0,
+            0.35,
+            26.3,
+            29.2
+          ],
+          "h": 2.2,
+          "tone": "bronze",
+          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 23.70-26.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 22.4,
+    "_src": "the podium roof terrace, the strip the tower stands back from. S7 calls the pool a rooftop pool and S5 photographs it: a rectangular pool under a deep soffit behind a full-height glass wall, with a planted terrace and the city beyond - a pool on a DECK under the tower's overhang, not one on the roof, which is also why the nadir has no pool on it. S6's oblique puts a dark rectangle on the south strip and a green patch on the west strip, which is where these two go. Sizes are generative within the strip's own width. CORRECTED 2026-09-05: mirrored into the true frame - the pool and the guard rail are on the HIGH-u (south) terrace, which is the wide one.",
+    "items": [
+      {
+        "plan": [
+          36.96,
+          39.36,
+          12.0,
+          22.0
+        ],
+        "z0": 0.05,
+        "h": 0.12,
+        "tone": "pool",
+        "_src": "the lap pool: the dark rectangle on the south terrace in S6, 2.4 x 10 m to fit the 4.0 m strip. Dimensions generative."
+      },
+      {
+        "plan": [
+          18.26,
+          26.26,
+          0.5,
+          2.2
+        ],
+        "z0": 0.03,
+        "h": 0.06,
+        "tone": "turf",
+        "_src": "the planted patch S6's oblique shows on the west terrace, green against the grey paving."
+      },
+      {
+        "plan": [
+          39.91,
+          40.11,
+          0.5,
+          36.1
+        ],
+        "z0": 0.0,
+        "h": 1.05,
+        "tone": "rail",
+        "_src": "the terrace guard rail along the south edge (S6); 1.05 m is the guard-rail minimum, generative."
+      },
+      {
+        "plan": [
+          36.41,
+          39.76,
+          0.15,
+          0.35
+        ],
+        "z0": 0.0,
+        "h": 1.05,
+        "tone": "rail",
+        "_src": "the same rail returning up the west edge."
+      }
+    ]
+  },
+  "open": [
+    "The roof line is 68.0 m and it is derived, not sourced. No source states this building's height: S1's 73.5 is Overture's guess for a building OSM never tagged, and it is used here for the top of the mechanical penthouse because that is the only reading that leaves a believable floor-to-floor. A drawing, a permit or a SkyscraperPage entry would settle it and would move every level in this file.",
+    "The tower's setback from the podium (2.6-4.0 m on three sides) is read off a nadir that is close to orthographic, where a 3 m step reads much like a parapet. The S6 oblique confirms the step exists on the west and the south; the east is inferred from a shadow line and the north from the roof running to the edge. Plus or minus 1.5 m per side, and the north could be set back too.",
+    "The bronze fins stand proud of the podium wall on brackets in S4 and are drawn flush, because the generator has no per-strip projection. The same goes for the trellis frames on the roof: they are open pipe frames in the photographs and are drawn as solid bronze fins on the parapet line - the silhouette is right, the transparency is not.",
+    "The north and east elevations were never photographed. They wear the same rule as the two that were, with one fewer balcony stack on the east where an alley runs; where each stack sits along its face is read to about a metre off one oblique.",
+    "DONE 2026-09-05: the ground band is inset (1.5 m, a look) with piers on the fin module; the garage entry is still not drawn (was: The ground floor is recessed under the podium in S4 and is drawn in the podium plane with a 0.35 m reveal standing in for it. The garage ent ...)",
+    "S7's balcony spec for this building is ('long', 2, 19) - nineteen floors on two elevations. That is generative and it is wrong: the balconies belong to the tower's fifteen floors, on all four elevations, because the six floors below them are a retail floor and five parking decks."
+  ]
+}

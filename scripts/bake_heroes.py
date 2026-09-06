@@ -247,9 +247,112 @@ GDC_H = 29.5
 # 2.0-2.5 m inset all round.
 GDC_OVERSAIL = 2.5
 # The seven-storey glass atrium is the link between the two bars, u 10.6..32.5,
-# v -1.0..11.7 in the frame -- the ring's own vertices. It is emitted at inset 0
-# so it stands 2.5 m proud of the brick, which is exactly what it does.
+# v -1.0..11.7 in the frame -- the ring's own vertices, i.e. the NOTCH the ring
+# cuts between the two bars.
 GDC_ATRIUM = (10.60, 32.50, -1.00, 11.70)
+# THE ATRIUM'S PLANE. Until 2026-09-05 the atrium was emitted at inset 0 while
+# every brick band around it was inset GDC_OVERSAIL, and the comment on that
+# line called it deliberate: "it stands 2.5 m proud of the brick, which is
+# exactly what it does." It is not what it does. Two nadir mosaics resampled
+# into this frame at 0.06 m/px disagree with it, and so does Google Earth's
+# mesh from the west (the Speedway side, which is +u here -- bearing 175.116
+# puts +u at 175 degrees anticlockwise from east, i.e. very nearly due west):
+#
+#   Esri World Imagery z20   the notch mouth is in the south bar's shadow and
+#                            the only edge it offers slopes 0.35 m of u per
+#                            metre of v -- a shadow line, not a wall. Unusable,
+#                            and the first read off it (a 3.4 m recess) was
+#                            this shadow being measured three times.
+#   Google z20               the same frame, a different overpass, no shadow in
+#                            the notch: the atrium's own roof runs from the
+#                            link out to u 26.9, a lighter strip follows, and a
+#                            hard dark line stands at u 29.00 across the full
+#                            width of the notch. Both providers put the bars'
+#                            roof canopy end at u 34.0 +/- 0.1, so the two
+#                            frames agree in u to a tenth of a metre.
+#   Google Earth 3D          from 30.28629,-97.73657 at 190 m, heading 90,
+#                            tilt 72: the two brick ends stand FORWARD and the
+#                            slot between them recedes. Nothing stands proud.
+#
+# The brick end wall this bake draws is at 32.50 - GDC_OVERSAIL = 30.00 (the
+# ring's own two end vertices are 32.37 and 32.57). The line the shadow-free
+# frame puts at 29.00 is therefore 0.90 m behind the brick.
+GDC_ATRIUM_RECESS = 0.90  # m the glass sits behind the brick end wall
+# IN v THE ATRIUM KEEPS THE RING'S OWN NOTCH, and that is a decision, not an
+# omission. The oversail moves each bar's notch-facing brick 2.5 m further out,
+# so glass left at the ring's notch width sits 2.5 m INSIDE the brick on both
+# flanks -- a deep reveal, which is what Google Earth's mesh shows from the west
+# (the slot recedes; nothing stands forward). Growing it to meet those flanks
+# was tried and rejected on two counts: the shadow-free Google nadir reads the
+# atrium's roof NARROWER than the ring notch, not wider, so the growth has no
+# measurement behind it; and a 17.7 m-wide glass slab swallows the door on the
+# south flank, which is GDC's Speedway entrance -- it came out of the bake
+# 29 m away on the courtyard wall. One measured change, in u.
+#
+# ── THE SLOT (2026-09-06). The recess above was right and still did not read.
+# A judge put Google Earth's 260 m oblique next to ours and picked the real
+# building: ours was "one continuous tan roof over an L-shaped block" whose
+# atrium was "a dark glass strip filling the corner where two brick faces meet
+# ... a glass corner infill, not a slot between two bars". Both halves of that
+# are true of what the bake emitted, and both come from the same cause -- GDC
+# was built by `build_ring`, ONE polygon, ONE band stack, so:
+#
+#   1. the roof band traced the whole ring at one height, which welds the two
+#      bars and the link between them into a single roof plane; and
+#   2. the atrium was a SOLID GLASS PRISM occupying the entire notch, u
+#      10.6..29.1 x 12.7 m x 28.7 m tall. That is not a wall in a slot, it is a
+#      third mass filling the slot, and the file already knew better: the EER
+#      block twenty lines up says "filling the canyon solid with glass would
+#      read as a third bar from every angle except straight down." GDC made
+#      exactly that mistake.
+#
+# What the reference frames show (judge's capture, Google Earth web
+# @30.2863,-97.7367 200d 120h 65t, kept at scratchpad .../judge/gdc/A.png and
+# A_atrium.png): two brick bars, EACH under its own white flat roof with its own
+# parapet; between them an open canyon that runs all the way down to paving at
+# grade; and the atrium's glass a dark plane set back inside it, with the bars'
+# oversailing roofs standing forward of it as two prows.
+#
+# So GDC stops being a ring and becomes three authored pieces in its own frame,
+# the way EER already is. The rectangles below are the ring's own vertices
+# rounded: the ring is rectilinear in this frame to 0.35 m (its worst departure
+# is the south bar's west end, 32.02 at v -24.84 vs 32.37 at v -1.2), and the
+# three rectangles reproduce 3,779 m2 against the ring's 3,886 m2, i.e. 97%.
+# Both west ends are the NOTCH's own end, 32.50, and not each bar's mean: the
+# recess above is measured against the brick end wall at 32.50 - 2.5 = 30.00, so
+# a bar that ends anywhere else quietly changes the one number this building was
+# corrected on. The cost is 0.48 m of extra length at the south bar's south-west
+# corner, where the ring's two west vertices are 32.02 and 32.37.
+GDC_SBAR = (-57.00, 32.50, -24.80, -0.70)   # 89.5 x 24.1 m
+GDC_NBAR = (-27.08, 32.50,  11.40, 34.60)   # 59.6 x 23.2 m
+GDC_LINK_U = (-9.50, 10.70)                 # the built link between them
+# BOTH BARS ARE 7 STOREYS. The judge read the reference as "left bar taller by
+# two storeys" and that is the camera, not the building. Google Earth's pose is
+# 120h/65t, so screen-up on the ground is azimuth 120 and screen-right is 210:
+# the south bar is 35 m further south, which is 35*cos(30) = 17.5 m further
+# along screen-up, and at 65 degrees from vertical a metre of ground along that
+# axis lifts sin(25)=0.42 of a screen-metre while a metre of HEIGHT lifts
+# cos(25)=0.91. 17.5 * 0.42 / 0.91 = 8.1 m of apparent height -- 2.0 storeys at
+# the 4.10 m floor above. The step the judge measured is exactly the step
+# perspective predicts from two equal roofs, so the roofs stay equal. Split into
+# two names anyway: if a real measurement ever separates them it is one line.
+GDC_SBAR_H = GDC_H
+GDC_NBAR_H = GDC_H
+# THE LINK'S ROOF IS LOWER, and that is what makes two bars read as two bars.
+# In A_atrium.png the deck between the bars at the far end sits a clear step
+# below both parapets while the bars' own parapets are level with each other.
+# One storey: 6 x 4.10 = 24.6 of wall plus the same 0.8 m roof plane.
+GDC_LINK_H = 25.40
+GDC_LINK_WALL_TOP = 24.60
+# The atrium roof carries on west from the link at the link's own height, out to
+# the glass wall, so the canyon above it (25.40 -> 29.50, one storey, 12.7 m
+# wide, 22 m deep) is the open slot between the two prows.
+GDC_ATRIUM_ROOF = True
+# The glass is a WALL now, 0.80 m thick, standing on the plane the recess above
+# measured -- its outer face is still 32.50 - 2.5 - 0.90 = 29.10, unchanged to
+# the centimetre, so every door the entrances bake seats on that plane seats on
+# it still, and v is still the ring's own notch for the same reason.
+GDC_GLASS_T = 0.80
 
 # ── NHB ───────────────────────────────────────────────────────────────
 # 7 storeys (CO Architects / Architizer; UT's record says 9 floors and NHB is
@@ -282,10 +385,16 @@ BANDS = {
         ("body",    0.0,        EER_H - 3.15, 0.0, "eer_stone", LIME,  0),
         ("parapet", EER_H - 3.15, EER_H,      0.0, "eer_stone", SOLID, 1),
     ],
+    # Kept as the BAR stack. Both bars wear it; the link wears gdc_link, whose
+    # only difference is that it stops a storey lower.
     "gdc": [
         ("ground",  0.0,  4.60,   GDC_OVERSAIL, "gdc_recess", SOLID, 0),
         ("body",    4.60, 28.70,  GDC_OVERSAIL, "gdc_brick",  BRICK, 0),
         ("roof",    28.70, GDC_H, 0.0,          "gdc_soffit", SOLID, 1),
+    ],
+    "gdc_link": [
+        ("ground",  0.0,  4.60,               GDC_OVERSAIL, "gdc_recess", SOLID, 0),
+        ("body",    4.60, GDC_LINK_WALL_TOP,  GDC_OVERSAIL, "gdc_brick",  BRICK, 0),
     ],
     "nhb": [
         ("base",    0.0,   NHB_BASE_H, NHB_OVERSAIL, "nhb_stone", SOLID, 0),
@@ -297,10 +406,12 @@ BANDS = {
 
 # id8 -> (slug, stack) for the buildings whose bands come from the RING.
 RING_TARGETS = {
-    "44e418d6": ("gdc", "gdc"),   # Bill and Melinda Gates Computer Science Complex
     "f8a072d5": ("nhb", "nhb"),   # Norman Hackerman Building
 }
 EER_ID8 = "8f0abac0"
+# GDC left RING_TARGETS on 2026-09-06 -- it is authored in its own frame now,
+# like EER, because one ring can only carry one roof. See the GDC block.
+GDC_ID8 = "44e418d6"
 
 # A cap is a ROOF surface and a top face barely dims in this renderer: measured
 # on a frame of this pass, #dadbdb went in at luma 218 and came out at 207 while
@@ -451,6 +562,64 @@ def build_eer(out, stats):
     HERO_HEIGHTS["eer"] = EER_H
 
 
+def build_gdc(out, stats):
+    """Two brick bars, each under its own roof, and a canyon between them.
+
+    Every rectangle is in GDC's own frame (FRAMES['gdc']); +u is very nearly due
+    west, so u 32 is the Speedway end and the notch at u 10.7..32.5 is the slot
+    that opens onto Speedway. See the GDC constants block for where each number
+    comes from and for why this stopped being a ring.
+    """
+    su0, su1, sv0, sv1 = GDC_SBAR
+    nu0, nu1, nv0, nv1 = GDC_NBAR
+    lu0, lu1 = GDC_LINK_U
+    P = GDC_OVERSAIL
+    # The two bars' INNER wall faces. The link's brick has to span between these
+    # two planes, not inset from them, or the link reads as a thin separate
+    # block floating in the slot instead of as the thing that joins the bars.
+    inner_s, inner_n = sv1 - P, nv0 + P
+
+    for tag, (u0, u1, v0, v1), H in (("sbar", GDC_SBAR, GDC_SBAR_H),
+                                     ("nbar", GDC_NBAR, GDC_NBAR_H)):
+        for name, b, h, inset, mat, layer, cap in BANDS["gdc"]:
+            top = H if cap else h
+            r = frame_rect("gdc", u0 + inset, u1 - inset, v0 + inset, v1 - inset)
+            out.append(feat(r, band_props("gdc", tag + "_" + name, mat, layer, b, top, cap)))
+            stats["gdc_bands"] += 1
+
+    # The link. Inset in u only (it has two end walls of its own); in v it runs
+    # wall-face to wall-face between the bars.
+    for name, b, h, inset, mat, layer, cap in BANDS["gdc_link"]:
+        r = frame_rect("gdc", lu0 + inset, lu1 - inset, inner_s, inner_n)
+        out.append(feat(r, band_props("gdc", "link_" + name, mat, layer, b, h, cap)))
+        stats["gdc_bands"] += 1
+
+    # The atrium's glass WALL -- 0.80 m thick on the measured plane, not a prism
+    # filling the notch. v is still the ring's own notch (see GDC_ATRIUM), which
+    # is what keeps the Speedway door on the wall it was baked onto.
+    au0, au1, av0, av1 = GDC_ATRIUM
+    gx1 = au1 - GDC_OVERSAIL - GDC_ATRIUM_RECESS      # 29.10, the outer face
+    gx0 = gx1 - GDC_GLASS_T
+    pr = band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, GDC_LINK_WALL_TOP, 0)
+    # ?wallplane=0 puts the atrium back where main draws it: the same 0.80 m
+    # wall, standing on the ring's own end instead of 3.40 m behind it.
+    pr["wp0"] = frame_rect("gdc", au1 - GDC_GLASS_T, au1, av0, av1)
+    o = frame_rect("gdc", 0.0, GDC_OVERSAIL + GDC_ATRIUM_RECESS, 0.0, 0.01)
+    pr["wpd"] = [round(o[1][0] - o[0][0], 7), round(o[1][1] - o[0][1], 7)]
+    out.append(feat(frame_rect("gdc", gx0, gx1, av0, av1), pr))
+    stats["gdc_bands"] += 1
+
+    # The atrium roof: the link's roof plane, carried west over the atrium to the
+    # glass wall. Below it is the atrium; above it, between the bars' own roofs,
+    # is the open slot. This is the one band that makes the two bars read as two.
+    if GDC_ATRIUM_ROOF:
+        out.append(feat(frame_rect("gdc", lu0, gx1, inner_s, inner_n),
+                        band_props("gdc", "atrium_roof", "gdc_soffit", SOLID,
+                                   GDC_LINK_WALL_TOP, GDC_LINK_H, 1)))
+        stats["gdc_bands"] += 1
+    HERO_HEIGHTS["gdc"] = max(GDC_SBAR_H, GDC_NBAR_H)
+
+
 def build_ring(f, slug, stack, out, stats):
     p = f["properties"]
     g = f["geometry"]
@@ -475,14 +644,6 @@ def build_ring(f, slug, stack, out, stats):
         out.append(feat(ring, band_props(slug, name, mat, layer, b, h, cap)))
         stats[slug + "_bands"] += 1
 
-    if slug == "gdc":
-        # The atrium at inset 0: it stands GDC_OVERSAIL proud of the brick, which
-        # is what a glass link between two brick bars looks like.
-        u0, u1, v0, v1 = GDC_ATRIUM
-        out.append(feat(frame_rect("gdc", u0, u1, v0, v1),
-                        band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, 28.70, 0)))
-        stats["gdc_bands"] += 1
-        HERO_HEIGHTS["gdc"] = GDC_H
     if slug == "nhb":
         lu0, lu1 = NHB_LOUVRE
         # The louvre plane needs clipping to the ring in u. On this building the
@@ -521,6 +682,17 @@ def main():
           % ("eer", f["properties"]["name"][:46], f["properties"]["final_height"],
              EER_H, stats["eer_bands"]))
 
+    f = byid.get(GDC_ID8)
+    if not f:
+        raise SystemExit("GDC not in snapshot")
+    n0 = len(out)
+    build_gdc(out, stats)
+    replaced.append(f["properties"]["id"])
+    heights[f["properties"]["id"]] = HERO_HEIGHTS["gdc"]
+    print("  %-5s %-46s %5.1f -> %5.1f m, %d features"
+          % ("gdc", (f["properties"].get("name") or "?")[:46],
+             f["properties"]["final_height"], HERO_HEIGHTS["gdc"], len(out) - n0))
+
     for i8, (slug, stack) in RING_TARGETS.items():
         f = byid.get(i8)
         if not f:
@@ -555,9 +727,9 @@ def main():
         "counts": dict(sorted(stats.items())),
         "heights_m": {k[:8]: v for k, v in heights.items()},
         "provenance": {
-            "plans": "FACTUAL - EER from its own snapshot ring read in the "
-                     "building's frame (the ring is rectilinear there to 0.5 m); "
-                     "GDC and NHB from the ring itself, inset only",
+            "plans": "FACTUAL - EER and GDC from their own snapshot rings read "
+                     "in the building's frame (rectilinear there to 0.5 m and "
+                     "0.35 m); NHB from the ring itself, inset only",
             "heights": "SOURCED - floor counts from UT's building records and the "
                        "architects' published descriptions; EER's 40.5 m measured "
                        "off a dated photograph through a fitted projective scale "

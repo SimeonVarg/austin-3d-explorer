@@ -1,0 +1,985 @@
+{
+  "_readme": "The Callaway House Austin, 505 W 22nd St, as js/slopes-apartments.js draws it. Every number cites a source key from `sources` in a sibling `_src` field; a value with no source says so. Metres, in the footprint's own oriented bounding box (js/westcampus.js obbOf): +u runs EAST along W 22nd St (bearing 94.8 deg), +v runs NORTH; u=0 is the west (Nueces St) edge, v=0 the south edge, v=71.1 the north (W 22nd St) edge, L=80.17, W=71.12. Read docs/apartments.md for the schema.",
+  "id": "11b2bb80-d577-4da7-8b10-d27385f80c4b",
+  "name": "The Callaway House Austin",
+  "address": "505 W 22nd St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 11b2bb80-d577-4da7-8b10-d27385f80c4b: the 38-vertex footprint (area 4,200 m2), num_floors 17, final_height 62.5, source_height 'overture'. The 62.5 is NOT independent of S3 - it is 205 ft, S3's top-of-mechanical - but it arrives here as an Overture guess and is only used because S3 states the same number from a stated measurement.",
+    "S2": "OSM: the outline is a single building=apartments relation/way at 22nd & Nueces with no height and no building:part; nothing about the massing is in it.",
+    "S3": "SkyscraperPage forum thread t-193755, 'AUSTIN | Callaway House | 205 FT | 17 FLOORS': 205 ft (62.48 m) to the top of the MECHANICAL penthouse and 179 ft (54.56 m) to the MAIN ROOF, 17 floors, American Campus Communities, completed fall 2013.",
+    "S4": "Harvey Cleary (general contractor) project page, harveycleary.com/projects/the-callaway-house: '586,000 SF, 17-story, cast-in-place concrete student housing project totaling 219 residential units ... a ground-floor lobby and full-service dining facility, six levels of elevated parking, a seventh-floor amenity area complete with a pool and fitness center, and 11 floors of student residences'. Architect STG Design; interiors Sixth River Architects. 'The exterior of the building is a combination of brick, stucco, curtainwall and decorative metal panels.'",
+    "S5": "educationsnapshots.com/projects/6744 - Patrick Y Wong / AtelierWong's 2013 photographs of the finished building. Used here: the pool deck looking east with the UT Tower behind (the lap pool with its tanning ledge and steps, the ORANGE PERFORATED-METAL guard screen between galvanised posts, the rust-orange steel pergola on square concrete columns, the sand-toned concrete paving), and the roof terrace with the same orange screen and a wood deck.",
+    "S6": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() at 1440x900, seven poses about the snapshot centroid 30.28478,-97.74352: nadir (190a,260d,0h,0t), obliques at 220 m/55 deg from the NW (135h) and SW (45h), and 300 m/60 deg from the N (180h), E (270h), S (0h) and W (90h). Imagery date 12/3/2023. The nadir was rectified into this (u,v) frame at 0.1571 m/px (scale bar 191 px = 30 m; view centre taken at the canvas middle 720,492 - the toolbar takes the top 85 px - and the snapshot polygon overlaid lands on the roof edges) and resampled at 8 px/m with a 5 m grid; every plan extent below was read off that gridded plan.",
+    "S7": "data/roads.geojson: West 22nd Street runs along this building's NORTH edge (v = +79 in this frame, 8 m north of the footprint), Nueces Street along its WEST edge (u = -10), San Antonio Street 9 m east of its EAST edge. So the pool deck read at high v is the 22nd Street side.",
+    "S8": "scripts/bake_westcampus.py MIDRISE['The Callaway House Austin']: base=(5.4,'sp','#8f6552'), tower=('tr','#a2614b'), crown=(3.8,'sf'), mech=3.5, deck='roof', pool=(-6,-4,5,11). The two colours are this repo's own earlier measurement of the same building and are reused here; the 5.4 m base height is reused as the ground-floor height. The band scheme itself is not (it is one stack of colour bands over the whole footprint).",
+    "S9": "js/westcampus.js SOLID: the West Campus pass's day/golden/night trios for pool water, deck paving, shade plate, furniture, black steel rail and the mechanical screen. Used unchanged wherever this file needs one of those, the way data/apartments/the-standard.json uses them.",
+    "S10": "Colour crops taken from S6's frames with a 3-5 way k-means, quoted with the crop rectangle. Google Earth's 12/2023 aerial texture is a photograph of this building, colour-graded; every tone taken from it says so, and the two that an earlier repo measurement already covers (S8) use the repo's value with the crop as corroboration.",
+    "S11": "earth-north.png with a percentage scale drawn across the north face (its 79 m run from the east end at 0% to the west end at 100%, 13.9 px/m at 3x). Every brick element on the 22nd Street elevation was read off it: piers at 3%, 7.5%, 25.5% and 41.5% about 2.3 m wide; a WIDE BRICK BAY from 52% to 70% (= u 23.7-37.9); a taller, darker BRICK CORE from 70% to 82% (= u 14.2-23.7) that carries on above the roofline; and the stretch from 82% to 100% (= u 0-14.2) stepping forward toward the street in the ordinary white field. This is the measurement the massing and the skin module are now written from - the frame sees this face head-on, so nothing on it needs a foreshortening correction.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.743851,
+        30.284893
+      ],
+      [
+        -97.7438877,
+        30.2844203
+      ],
+      [
+        -97.743607,
+        30.2844
+      ],
+      [
+        -97.7435079,
+        30.284394
+      ],
+      [
+        -97.7435019,
+        30.2844852
+      ],
+      [
+        -97.7434821,
+        30.2844835
+      ],
+      [
+        -97.743469,
+        30.284555
+      ],
+      [
+        -97.7435905,
+        30.2845647
+      ],
+      [
+        -97.7435906,
+        30.2845587
+      ],
+      [
+        -97.7436104,
+        30.2845602
+      ],
+      [
+        -97.7436317,
+        30.2845814
+      ],
+      [
+        -97.7436307,
+        30.2845964
+      ],
+      [
+        -97.743624,
+        30.2845967
+      ],
+      [
+        -97.7436159,
+        30.2846911
+      ],
+      [
+        -97.7436248,
+        30.2846917
+      ],
+      [
+        -97.7436242,
+        30.284704
+      ],
+      [
+        -97.7435965,
+        30.2847265
+      ],
+      [
+        -97.7435866,
+        30.2847268
+      ],
+      [
+        -97.7435878,
+        30.2847166
+      ],
+      [
+        -97.7434125,
+        30.2847089
+      ],
+      [
+        -97.7434129,
+        30.2846964
+      ],
+      [
+        -97.7433378,
+        30.284693
+      ],
+      [
+        -97.7433388,
+        30.2847034
+      ],
+      [
+        -97.7432257,
+        30.2846942
+      ],
+      [
+        -97.7432268,
+        30.2847029
+      ],
+      [
+        -97.7432133,
+        30.2847011
+      ],
+      [
+        -97.7431962,
+        30.28468
+      ],
+      [
+        -97.7431959,
+        30.2846694
+      ],
+      [
+        -97.743226,
+        30.28467
+      ],
+      [
+        -97.7432338,
+        30.2845494
+      ],
+      [
+        -97.7431551,
+        30.2845443
+      ],
+      [
+        -97.743155,
+        30.284537
+      ],
+      [
+        -97.7430513,
+        30.2845287
+      ],
+      [
+        -97.743037,
+        30.2846544
+      ],
+      [
+        -97.743049,
+        30.284656
+      ],
+      [
+        -97.743014,
+        30.285001
+      ],
+      [
+        -97.7434232,
+        30.2850314
+      ],
+      [
+        -97.743834,
+        30.285062
+      ],
+      [
+        -97.743851,
+        30.284893
+      ]
+    ],
+    "_src": "S1 verbatim. In (u,v) the 38 vertices are (0,52.4) (0.8,0) (27.9,0) (37.4,0.1) (37.2,10.2) (39.1,10.2) (39.7,18.2) (28.0,18.3) (28.0,17.6) (26.1,17.6) (23.9,19.8) (23.8,21.5) (24.5,21.5) (24.4,32.0) (23.5,32.0) (23.5,33.4) (25.9,36.1) (26.9,36.2) (26.8,35.0) (43.7,35.6) (43.8,34.2) (51.0,34.4) (50.8,35.6) (61.7,35.5) (61.5,36.4) (62.9,36.3) (64.7,34.1) (64.8,33.0) (61.9,32.8) (62.3,19.4) (69.9,19.5) (69.9,18.7) (80.0,18.6) (80.2,32.6) (79.0,32.7) (79.2,70.9) (39.7,71.0) (0.1,71.1) - a block that runs the full 79 m along 22nd Street and wraps a COURTYARD at u 24-62, v 18-35.5 that opens south on to the neighbouring lot. Edge i runs from vertex i to vertex i+1: 0 and 37 are the Nueces (west) elevation, 1/2/31 the south, 32 and 34 the San Antonio (east) elevation, 35 and 36 the 22nd Street (north) elevation, 6-30 the courtyard walls."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=80.17, W=71.12, +u at bearing 94.8 deg (east). Read the console line `[slopes-apartments] The Callaway House Austin: obb L=.. W=.., +u at bearing ..` to confirm.",
+  "levels": {
+    "floors": [
+      0,
+      5.4,
+      8.26,
+      11.12,
+      13.98,
+      16.84,
+      19.7,
+      22.78,
+      25.85,
+      28.93,
+      32.0,
+      35.08,
+      38.15,
+      41.23,
+      44.3,
+      47.38,
+      50.45
+    ],
+    "_src": "17 floor lines for S4's 17 storeys, solved to S3's 179 ft (54.56 m) main roof, with the SPLIT COUNTED OFF THE ELEVATION. earth-north.png and earth-east.png both show ELEVEN window rows above the amenity deck, counted independently on the two faces at 5x, so the residential part is 11 floors and the podium is 6: level 1 the lobby and dining hall at 5.4 m (S8's own base read of this building), levels 2-6 five levels of elevated parking at 2.86 m, the amenity deck at 19.70, then levels 7-17 at 3.075 m to the roof slab at 53.5 and a 1.06 m parapet to 54.56 = 179 ft. LOOK-FIX 2: the first version read S4's 'six levels of elevated parking' as six levels ABOVE the ground floor and gave the building ten residential floors and a deck at 19.70 - one storey of podium too many and one of tower too few. S4's six is taken to include the ground level, because the photograph's row count is a measurement and that sentence is not. The two floor-to-floors are derived: what solves 5.4 + 5g + 11r + parapet = 54.56 with a garage level shorter than a residential one.",
+    "ground": 5.4,
+    "deck": 19.7,
+    "roof": 53.5,
+    "parapet": 1.06,
+    "mechTop": 62.48,
+    "_heights_src": "roof 53.5 + 1.06 = 54.56 m = 179 ft to the main roof, and mechTop 62.48 = 205 ft to the top of the mechanical penthouse (S3). S1's 62.5 is the same 205 ft arriving as an Overture guess, so the SNAPSHOT HEIGHT IS THE PENTHOUSE, not the roof: every wing here tops out at 54.56 and only the brick core bulkhead reaches 62.48. No LiDAR anchor: data/roofscape.geojson and roofscape.detail.geojson have no feature inside this footprint (checked 2026-09-05), so nothing corroborates 19.70 for the deck except the storey split, which is itself counted off the elevation."
+  },
+  "colours": {
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone.",
+    "panel": {
+      "hex": "#d2d4d4",
+      "_src": "S10, earth-east.png crop (625,380)-(700,490), the sunlit residential field on the San Antonio elevation: 37.7% #b7b5b1 and 36.1% #d1cec8 - one stucco/panel material read in sun and in its own floor-line shadow - entered as their share-weighted mean (#c3c1bd) and then entered as #d2d4d4 - lifted and given a slight cool cast, the way js/westcampus.js's SOLID enters a top face. HOW FAR THAT LIFT GOES, AND WHY IT STOPS: measured at the matched north camera, our wall renders #a99e92 where the reference's is #a1a0a2, because this app's day light multiplies a wall by about (0.79, 0.73, 0.67). Cancelling that exactly would want #ccdbf2 entered here - a blue hex - and Callaway would then be the one cool-white building in a West Campus whose every neighbour wears the same warm light. That is Google Earth's white balance, not a fact about this brick and stucco, so the lift stops at a plausible light stucco. LOOK-FIX 1 and 3 got here; LOOK-FIX 4 wrote down where it stops. This is S4's stucco-and-metal-panel field."
+    },
+    "panelShade": {
+      "hex": "#b8bbbb",
+      "_src": "derived: one step down from `panel`, and neutral with it, for the recessed horizontal joint at every floor line (a continuous shadow line per floor in every S6 oblique). LOOK-FIX 4 took the warm cast off it when `panel` lost its own - a tan line under a neutral wall read as a stain."
+    },
+    "brick": {
+      "hex": "#a2614b",
+      "_src": "S8's own measurement of this building's brick, corroborated by S10: earth-east.png crop (577,380)-(600,505) over a sunlit tower pier reads 54.0% #9f6050 + 27.3% #ad6c5b = #a36453, within 3 luma of the repo value. The repo value is kept so the mesh pier and the fill-extrusion band next door age through the same ramp."
+    },
+    "brickDark": {
+      "hex": "#8d5652",
+      "_src": "S10, earth-east.png crop (625,545)-(750,595) over the garage podium: 44.0% #8d5652 is the sunlit brick pier and 51.7% #723c3a the same brick inside the openings' shadow. The podium brick reads darker and redder than the tower pier above it."
+    },
+    "brickBase": {
+      "hex": "#8f6552",
+      "_src": "S8's base colour for this building (the ground-floor band under the garage)."
+    },
+    "garageVoid": {
+      "hex": "#553231",
+      "_src": "the same crop's own shadow cluster #723c3a, one step down: the horizontal garage openings are a hole with a lit deck behind, so they are darker than the brick but NOT black - in earth-north.png the podium still reads as a red-brown mass at this camera. LOOK-FIX 1 lifted this from #3a2422, which made the podium a stack of black stripes."
+    },
+    "glass": [
+      "#5b6d69",
+      "#6b7570",
+      "#171d1f"
+    ],
+    "_glass_src": "S10: the teal-biased pixels (G and B both above R) of earth-east.png (600,370)-(720,500) average #687572 and of earth-north.png (520,250)-(780,440) average #758184. At 0.16 m/px a 1.5 m window is 9 px and that mean is a blend with the panel around it, so the day value is entered one step darker and greener than the blend; golden follows it, night is the dark unlit pane and lit panes take APARTMENTS.nightLitTone.",
+    "storeGlass": [
+      "#4a5a62",
+      "#5c6068",
+      "#e9c27a"
+    ],
+    "_storeGlass_src": "the ground-floor lobby and dining-hall glazing, amber-lit at night. Taken from data/apartments/the-standard.json's storefront trio unchanged - no photograph of this building's ground floor at night was found.",
+    "coping": {
+      "hex": "#adb3b7",
+      "_src": "parapet coping and window reveals, aluminium: The Standard's STD_CAP taken unchanged, not separately sampled."
+    },
+    "frame": {
+      "hex": "#adb3b7",
+      "_src": "window reveal strips: the coping's aluminium; not separately sampled."
+    },
+    "rust": {
+      "hex": "#8c3f2c",
+      "_src": "S5/S10: the orange perforated-metal deck screen in es-3p crop (60,560)-(330,860) reads 27.4% #7f3123, and the pergola in es-2p crop (0,60)-(200,260) reads 32.7% #722925 in shade. Both are the paint seen THROUGH its own perforations, so the entered value is a step brighter than either: our screen is a solid quad and has to read as the perforated one does at 30 m."
+    },
+    "deckPave": {
+      "hex": "#b09079",
+      "_src": "S5, es-2p crop (100,700)-(200,1000): 50.0% #af856a sunlit sand-toned concrete, 27.8% #c8bab3 the cooler coping band. Corroborated by S10's earth-east.png deck crop (770,460)-(845,525), whose pale cluster is #ad988d."
+    },
+    "deckRed": {
+      "hex": "#8f584c",
+      "_src": "S10, the same earth-east.png deck crop: 23.6% #81504c is the red paving band each side of the pool, lifted one step out of the 2023 texture's haze."
+    },
+    "roof": [
+      "#c9cdd1",
+      "#cdcbc6",
+      "#1b1e26"
+    ],
+    "_roof_src": "white membrane roofs, unmistakable in the S6 nadir; taken from The Standard's trio unchanged (entered cool the way S9 enters top faces).",
+    "pool": [
+      "#2f86ad",
+      "#4a8096",
+      "#1d4a63"
+    ],
+    "_pool_src": "S9 pool. S5's own photograph of the water reads #4e8dba/#6ea8d0 at ground level, which brackets it; the shared trio is used so this pool and West Campus's other pools age together.",
+    "shade": [
+      "#7e858c",
+      "#8a8781",
+      "#181b23"
+    ],
+    "_shade_src": "S9 shade",
+    "furn": [
+      "#8d867e",
+      "#988b7a",
+      "#171921"
+    ],
+    "_furn_src": "S9 furn",
+    "rail": [
+      "#2e3136",
+      "#3a3733",
+      "#131519"
+    ],
+    "_rail_src": "S9 rail (black steel)",
+    "condenser": [
+      "#8f9398",
+      "#9a958c",
+      "#1a1d26"
+    ],
+    "_condenser_src": "the rooftop condenser rows, mid grey in the S6 nadir; entered like S9's mech tone, night as the deck. Same value The Standard uses."
+  },
+  "skins": {
+    "_src": "each skin is a rule; its numbers are below with their source",
+    "tower": {
+      "kind": "bays",
+      "bay": 3.6,
+      "field": "panel",
+      "strip": {
+        "w": 2.3,
+        "tone": "brick",
+        "at": "centres",
+        "every": 4
+      },
+      "window": {
+        "w": 1.35,
+        "h": 1.45,
+        "sill": 0.95
+      },
+      "floorLine": {
+        "h": 0.3,
+        "tone": "panelShade"
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.14,
+      "_src": "the residential elevation as S6's obliques show it: a near-white stucco field cut by BRICK PIERS about one window wide, one punched teal window per bay per floor, and a continuous recessed joint at every floor line. Module read off earth-north.png, which sees the 79 m north elevation nearly head-on and so needs no foreshortening correction: 10 residential floors span 320 px at 0.096 m/px, the brick piers fall every 68 px = 14.8 m at 0.217 m/px, and three window columns sit between two of them, so the window pitch is 3.6 m and the pier lands on every FOURTH BAY CENTRE (14.4 m). The pier is 2.3 m of the 3.6 m bay and carries its own window, which is why `at` is `centres` and not `joints`: at 5x the reference's piers are brick BAYS with a narrow pair of lights in them, not strips between bays. The 2.3 is S11's, measured on the scaled elevation; LOOK-FIX 3 had it at 3.4, a whole bay, which put half again as much brick on the wall as the building has. Window 1.35 x 1.45 with a 0.95 m sill, read at the same scale.",
+      "_bay_note": "the generator puts ONE window per bay, so `bay` is the WINDOW pitch (3.6) and `every: 4` puts a brick bay every 14.4 m. Two corrections got here. LOOK-FIX 1: the first version read the module off the SW oblique and got 6.7 m - that frame sees this wall at a steep angle and the foreshortening halved it, which put twice as many piers on the building as it has. LOOK-FIX 2: the piers were thin strips ON the bay joints; at 5x the reference's are a whole brick bay wide with their own window, so they moved to the bay CENTRES and widened to 3.4."
+    },
+    "towerBrick": {
+      "kind": "bays",
+      "bay": 3.6,
+      "field": "brick",
+      "window": {
+        "w": 1.1,
+        "h": 1.45,
+        "sill": 0.95
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.14,
+      "_src": "the END of every residential bar is wrapped in the same brick, with a narrower window per bay and no field panel: the SW oblique shows both visible bar ends as solid brick corners running the full height, and so do the N, E and W obliques."
+    },
+    "court": {
+      "kind": "bays",
+      "bay": 3.6,
+      "field": "panel",
+      "window": {
+        "w": 1.35,
+        "h": 1.45,
+        "sill": 0.95
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.14,
+      "_src": "the four walls facing the courtyard. UNPHOTOGRAPHED - no S5 or S6 frame sees into the court above deck level - so they wear the plainest rule the building has: the same field and window, no brick piers."
+    },
+    "garage": {
+      "kind": "bays",
+      "field": "brickDark",
+      "louvre": {
+        "pitch": 2.86,
+        "w": 1.15,
+        "tone": "garageVoid",
+        "start": 1.55
+      },
+      "_src": "S4's elevated parking, as the E and NW obliques show it: dark red brick with one continuous horizontal OPENING per parking level. Pitch 2.86 is the garage floor-to-floor from `levels`; the opening is 1.15 m of the 2.86 m level, measured against the spandrel in earth-north.png's podium - LOOK-FIX 1 took it down from 1.45, which read as half the wall - and `start` 1.55 puts each opening's head just under the slab above. No brick piers are drawn across the openings - at every camera here the slots read as continuous, and the generator's bands would run over a strip anyway."
+    },
+    "podiumBrick": {
+      "kind": "flat",
+      "field": "brickDark",
+      "_src": "the ground floor where it is not the lobby or the dining hall: solid dark brick, as the W and S obliques show along Nueces and the south lot line."
+    },
+    "storefront": {
+      "kind": "storefront",
+      "mullion": 1.6,
+      "mullionW": 0.12,
+      "fascia": 0.8,
+      "plinth": 0.15,
+      "transom": 0.7,
+      "fasciaTone": "brickBase",
+      "frame": "frame",
+      "glass": "storeGlass",
+      "reveal": 0.25,
+      "_src": "S4's ground-floor lobby and full-service dining facility, which face W 22nd Street: full-height glazing on about 1.6 m mullions under a brick band. The mullion pitch is not dimensioned in any frame found - it is the plainest module that matches the N oblique's glazing rhythm and is marked unknown."
+    },
+    "coreBrick": {
+      "kind": "bays",
+      "bay": 3.6,
+      "field": "brick",
+      "window": {
+        "w": 0.75,
+        "h": 1.3,
+        "sill": 1.1
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.14,
+      "_src": "the stair-and-lift core's own wall: the same brick, but in earth-north.png that stretch reads nearly blank - one narrow slot per bay per floor where the ordinary wall has a 1.35 m window. LOOK-FIX 3."
+    },
+    "mechBrick": {
+      "kind": "flat",
+      "field": "brick",
+      "_src": "the mechanical/lift-core bulkhead: brick to the top in the NW, SW and W obliques, where it stands clear above every white roof."
+    }
+  },
+  "_balcony_note": "THIS BUILDING HAS NO BALCONIES. Every S6 oblique shows a flat punched-window elevation with nothing projecting from it, so there is no `balcony` module and no `balconies` on any band. Nor any exterior signage: the CALLAWAY HOUSE lettering in S5 is on the lobby's interior stone wall, and no S6 frame shows a wall or roof sign, so there are no `signs` either.",
+  "blocks": [
+    {
+      "id": "podium",
+      "_src": "levels 1-6 on the whole footprint: the ground-floor lobby and dining hall under five levels of elevated parking (S4), 0 to the amenity deck at 19.70. The courtyard is a hole in the footprint and so is a hole in this block.",
+      "plan": "footprint",
+      "z0": 0,
+      "z1": 19.7,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 5.4,
+          "skin": "podiumBrick"
+        },
+        {
+          "z0": 5.4,
+          "z1": 19.7,
+          "skin": "garage"
+        }
+      ],
+      "faces": {
+        "35": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 5.4,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.4,
+              "z1": 19.7,
+              "skin": "garage"
+            }
+          ]
+        },
+        "36": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 5.4,
+              "skin": "storefront"
+            },
+            {
+              "z0": 5.4,
+              "z1": 19.7,
+              "skin": "garage"
+            }
+          ]
+        },
+        "_src": "edges 35 and 36 are the W 22nd Street elevation (S7) and carry S4's lobby and dining hall at the ground floor; every other edge keeps the default brick base. The courtyard edges 6-30 keep the garage above the base too - the court is open to the parking decks in the S6 nadir."
+      },
+      "roofTone": "deckPave",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37"
+      ],
+      "_parapet_src": "the outer edges only. The courtyard edges 6-30 get none: the court wall runs on up past this level. Height 1.0 is a look (the deck's own guard is the perforated screen in `deck.items`, S5)."
+    },
+    {
+      "id": "northBar",
+      "_src": "the residential bar along W 22nd Street, u 1.5-77.5 x v 36-58.5, 10 floors to the 53.5 roof. The north face stands 12.5 m BACK from the street line: the rectified nadir (S6) puts the white membrane roof's north edge at v 58.5, and the N oblique shows the amenity deck, its orange screen and the parking canopy in front of and below the wall. The south face is at the courtyard's north wall (v 35.5-36).",
+      "plan": [
+        1.5,
+        77.5,
+        36.0,
+        58.5
+      ],
+      "z0": 19.7,
+      "z1": 53.5,
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 53.5,
+          "skin": "tower"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "v0 faces the courtyard and the podium roof over it, so it wears the plain court rule. u0 and u1, this bar's 22.5 m ends, keep the ordinary `tower` rule: LOOK-FIX 2 took `towerBrick` off them, because at the east camera a 22.5 m solid brick end wall made the whole building read brick, and the reference's returns are the same white field with the same brick bays in it."
+      },
+      "overrides": [
+        {
+          "region": [
+            14.2,
+            23.7,
+            36.0,
+            58.5
+          ],
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "coreBrick"
+            }
+          ],
+          "_src": "THE BRICK STAIR-AND-LIFT CORE: S11's 70-82% stretch = u 14.2-23.7, nearly blank brick from the podium to above the roof, one slot window per bay per floor. It stands in the MAIN north wall plane - in earth-north.png the canopy shed passes in front of its base, and the stretch that steps out to the street is the 82-100% one west of it (`nwWing`). LOOK-FIX 4; LOOK-FIX 3 had made the core a projecting block and put the white wing's windows on it."
+        },
+        {
+          "region": [
+            23.7,
+            38.0,
+            36.0,
+            58.5
+          ],
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "towerBrick"
+            }
+          ],
+          "_src": "the WIDE BRICK BAY half way along the north elevation: S11 puts it between 52% and 70% of the face from its east end = u 23.7-38, 14.3 m of nearly blank brick carrying the painted crane mural. LOOK-FIX 1 added it, LOOK-FIX 3 moved it, LOOK-FIX 4 put it where the scaled elevation says."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 1.06,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            8.0,
+            72.0,
+            44.0,
+            50.0
+          ],
+          "grid": [
+            16,
+            2
+          ],
+          "size": [
+            1.2,
+            2.0
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S6 nadir and the NW/N obliques: two long rows of condenser units down the middle of this roof."
+        }
+      ]
+    },
+    {
+      "id": "westBar",
+      "_src": "the residential bar down the Nueces (west) side, u 1.5-24 x v 2-36, 10 floors. Its east face is the courtyard's west wall (u 23.5-24.5 in the footprint); its west face is the Nueces elevation the W oblique shows head-on.",
+      "plan": [
+        1.5,
+        24.0,
+        2.0,
+        36.0
+      ],
+      "z0": 19.7,
+      "z1": 53.5,
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 53.5,
+          "skin": "tower"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "u1": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "court"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "towerBrick"
+            }
+          ]
+        },
+        "_src": "v1 stands against northBar; u1 faces the courtyard; v0 is this bar's south end, brick."
+      },
+      "roofTone": "roof",
+      "parapet": 1.06,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "u0",
+        "u1",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            4.5,
+            21.0,
+            8.0,
+            32.0
+          ],
+          "grid": [
+            3,
+            7
+          ],
+          "size": [
+            1.2,
+            2.0
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S6 nadir: units in a grid down this roof."
+        }
+      ]
+    },
+    {
+      "id": "southBar",
+      "_src": "the residential bar along the south side of the courtyard, u 24-37 x v 2-18.2, 10 floors. Its north face is the courtyard's south wall (v 18.2 in the footprint); its south face stands 2 m in from the south lot line, which is why the S oblique shows a lower pale roof in front of it.",
+      "plan": [
+        24.0,
+        37.0,
+        2.0,
+        18.2
+      ],
+      "z0": 19.7,
+      "z1": 53.5,
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 53.5,
+          "skin": "tower"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v1": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "court"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "towerBrick"
+            }
+          ]
+        },
+        "_src": "u0 stands against westBar; v1 faces the courtyard; u1 is this bar's east end, brick."
+      },
+      "roofTone": "roof",
+      "parapet": 1.06,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u1"
+      ]
+    },
+    {
+      "id": "eastBar",
+      "_src": "the residential bar down the San Antonio (east) side, u 62-77.5 x v 20-36, 10 floors. Its west face is the courtyard's east wall (u 62 in the footprint); its east face is the elevation the E oblique shows head-on, with the pool deck to its north.",
+      "plan": [
+        62.0,
+        77.5,
+        20.0,
+        36.0
+      ],
+      "z0": 19.7,
+      "z1": 53.5,
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 53.5,
+          "skin": "tower"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "u0": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "court"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 19.7,
+              "z1": 53.5,
+              "skin": "towerBrick"
+            }
+          ]
+        },
+        "_src": "v1 stands against northBar; u0 faces the courtyard; v0 is this bar's south end, brick."
+      },
+      "roofTone": "roof",
+      "parapet": 1.06,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "u0",
+        "u1",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            64.0,
+            75.5,
+            22.0,
+            34.0
+          ],
+          "grid": [
+            3,
+            4
+          ],
+          "size": [
+            1.2,
+            2.0
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S6 nadir: a cluster on this roof."
+        }
+      ]
+    },
+    {
+      "id": "nwWing",
+      "_src": "the west end of the 22nd Street elevation, u 0.5-14.2, stepping forward to the street: S11's 82-100% stretch, which shows a return face and windows nearer the camera than the wall beside it, in the ordinary white field. LOOK-FIX 4 - LOOK-FIX 3 had made this whole rectangle the brick core, and S11's scale says the core is the NEXT 9.5 m east of it.",
+      "plan": [
+        0.5,
+        14.2,
+        58.5,
+        69.5
+      ],
+      "z0": 19.7,
+      "z1": 53.5,
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 53.5,
+          "skin": "tower"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "_src": "v0 stands against northBar."
+      },
+      "roofTone": "roof",
+      "parapet": 1.06,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v1",
+        "u0",
+        "u1"
+      ]
+    },
+    {
+      "id": "coreBulkhead",
+      "_src": "the brick core carried above the roof to S3's 205 ft: the tall brick element that stands clear above every white roof in the NW, SW and W obliques. LOOK-FIX 3 moved it on to the wing it belongs to and LOOK-FIX 4 on to S11's scale: the part of the elevation that continues above the roofline is the same 70-82% stretch that is blank brick all the way down, so the bulkhead sits on the north bar's roof over that stretch, u 15-22.8, v 45-57.",
+      "plan": [
+        15.0,
+        22.8,
+        45.0,
+        57.0
+      ],
+      "z0": 53.5,
+      "z1": 62.48,
+      "bands": [
+        {
+          "z0": 53.5,
+          "z1": 62.48,
+          "skin": "mechBrick"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.6,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0",
+        "u1"
+      ]
+    },
+    {
+      "id": "eastBulkhead",
+      "_src": "the second, lower bulkhead over the east bar's core, brick to match. Height 58.5 (5 m over the roof) is derived - only the tall core is measured, by S3's 205 ft.",
+      "plan": [
+        66.0,
+        72.0,
+        26.0,
+        33.0
+      ],
+      "z0": 53.5,
+      "z1": 58.5,
+      "bands": [
+        {
+          "z0": 53.5,
+          "z1": 58.5,
+          "skin": "mechBrick"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.6,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0",
+        "u1"
+      ]
+    }
+  ],
+  "deck": {
+    "z": 19.7,
+    "_src": "S4's seventh-floor amenity area on the podium roof, along W 22nd Street. Every rectangle is read off the S6 nadir rectified into this frame; the pool's extent was found by thresholding the blue pixels of that rectified plan rather than by eye (u 50.5-64, v 62.3-68.6). The materials are S5's photographs of this deck.",
+    "items": [
+      {
+        "id": "pool",
+        "plan": [
+          50.5,
+          64.0,
+          62.3,
+          68.6
+        ],
+        "z0": 0.0,
+        "h": 0.12,
+        "tone": "pool",
+        "_src": "S6 rectified nadir, blue-pixel threshold; 13.5 x 6.3 m, which is the lap pool with the sun ledge S5 shows."
+      },
+      {
+        "id": "spa",
+        "plan": [
+          48.4,
+          50.6,
+          63.6,
+          66.6
+        ],
+        "z0": 0.0,
+        "h": 0.45,
+        "tone": "pool",
+        "_src": "S6: the small notch off the pool's west end in the rectified plan - S5's tanning-ledge steps."
+      },
+      {
+        "id": "deckRedWest",
+        "plan": [
+          46.8,
+          50.4,
+          60.6,
+          70.0
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckRed",
+        "_src": "S6 rectified nadir: the red paving band west of the pool, dark with loungers on it. TWO READS OVERLAPPED HERE AND ARE RECONCILED: the rectified nadir puts the red lounger paving at u 43-50 and the scaled elevation (S11) puts the canopy's east end at u 48.7, so five metres were claimed twice. The canopy is pulled back to u 46.5 and the paving starts at 46.8 - both inside their own reads' precision, and nothing is drawn in two places."
+      },
+      {
+        "id": "deckRedEast",
+        "plan": [
+          64.2,
+          73.0,
+          60.6,
+          70.0
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckRed",
+        "_src": "S6 rectified nadir: the matching band east of the pool."
+      },
+      {
+        "id": "loungers",
+        "plan": [
+          47.0,
+          50.2,
+          62.2,
+          67.8
+        ],
+        "z0": 0.0,
+        "h": 0.5,
+        "tone": "furn",
+        "_src": "S6 nadir: the row of dark objects on the west band; S5 shows them as black-mesh loungers."
+      },
+      {
+        "id": "pergola",
+        "plan": [
+          64.5,
+          72.5,
+          61.5,
+          69.0
+        ],
+        "z0": 2.65,
+        "z1": 3.05,
+        "tone": "rust",
+        "_src": "S5's rust-orange steel pergola on square concrete columns beside the pool, drawn as its plate. Height 2.65 is derived from the photograph's column-to-person ratio, not measured."
+      },
+      {
+        "id": "canopyDeck",
+        "plan": [
+          17.5,
+          46.2,
+          61.2,
+          70.0
+        ],
+        "z0": 0.35,
+        "z1": 2.55,
+        "tone": "garageVoid",
+        "_src": "the open TOP PARKING LEVEL under the canopy: in earth-north.png the band under that roof is a dark slot with cars in it, the same read as the six levels below. LOOK-FIX 2 - without it the canopy floated over bare paving and the strongest thing on this elevation from 22nd Street was missing."
+      },
+      {
+        "id": "canopy",
+        "plan": [
+          17.0,
+          46.5,
+          60.8,
+          70.3
+        ],
+        "z0": 2.55,
+        "z1": 3.25,
+        "tone": "roof",
+        "_src": "the CANOPY OVER THAT PARKING LEVEL, not an amenity building: the N and NW obliques show a long pale curved roof along 22nd Street with cars parked under it, and the rectified nadir has it as one smooth plane. Extent from earth-north.png, where it runs between x 370 and 680 of the north face's 100-830 = u 17-50 in this frame (LOOK-FIX 2 widened it from 23.5-49 and dropped it from 3.6-4.2 m over the deck to 2.55-3.25, one parking level, which is where the N oblique puts it). Drawn as a flat plate - the curve is under a pixel at the cameras this app is judged from. TWO READS OVERLAPPED HERE AND ARE RECONCILED: the rectified nadir puts the red lounger paving at u 43-50 and the scaled elevation (S11) puts the canopy's east end at u 48.7, so five metres were claimed twice. The canopy is pulled back to u 46.5 and the paving starts at 46.8 - both inside their own reads' precision, and nothing is drawn in two places."
+      },
+      {
+        "id": "deckScreen",
+        "plan": [
+          39.0,
+          76.0,
+          70.05,
+          70.28
+        ],
+        "z0": 0.0,
+        "h": 1.15,
+        "tone": "rust",
+        "_src": "S5: the orange perforated-metal guard screen along the pool deck's 22nd Street edge, between galvanised posts. It runs only where the deck does: LOOK-FIX 2 cut it back from the full 79 m to u 39-76, because west of the canopy the 22nd Street edge in earth-north.png is the podium's own parapet, not this screen. Drawn solid; the perforation is under a pixel here and the tone (`rust`) is already the perforated read."
+      }
+    ]
+  },
+  "_open": [
+    "The tower's setbacks from the podium (north 12.5 m, south 2 m, east and west 1.5-2.6 m) come off the rectified nadir's white-roof mask, which the mesh's lean displaces by a few metres at 53.5 m; they are +/- 2 m and no drawing was found.",
+    "The four courtyard walls above deck level are unphotographed and wear the plainest rule the building has.",
+    "The storefront mullion pitch is unknown; 1.6 m is the plainest module that matches the N oblique.",
+    "The curved standing-seam profile of the parking canopy is drawn as a flat plate.",
+    "The dining hall's own glazing on the west (Nueces) end of the ground floor is not separated from the brick base - no frame found shows it.",
+    "The brick pier module, the two brick regions and the west wing all come off S11, one head-on elevation. The south and west elevations were only checked against it, not measured off their own scales.",
+    "A pixel test comparing warm-pixel SHARE between our frame and Google Earth's was tried and dropped: at R - B > 40 the reference reads 15.8% brick and ours 35.1%, but the two renderers disagree about a brick in shadow, so the share is not comparable across them. The module is measured on the elevation instead.",
+    "The reference frames, the rectified plan, the white-roof mask and every ours-beside-reference pair are in the session scratchpad under apts/build/apartments/the-callaway-house-austin/; none is cited by a doc, so none is committed."
+  ]
+}

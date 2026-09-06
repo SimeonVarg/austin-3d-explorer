@@ -1,5 +1,810 @@
 # Austin 3D Explorer — Full Handoff
 
+## 227. Sep 6 2026 — the apartments pass shipped: Dobie indexed, the layer gate at 69/69 with all five reds proved to be instruments, the cited frames, the PR and the live site checked with our own eyes (`acer/apts` → `main`)
+
+**Look first: `docs/apartments-pass.md`** — the whole pass in plain words with
+fourteen cited frames in `shots/apartments/`: eight before/after pairs (main
+`8b4b90c` served from a `git archive` on a second port, same camera, same order,
+same machine) and the six A/B pairs the critics actually judged.
+
+**What shipped.** 25 apartment buildings as real geometry from
+`data/apartments/*.json` (`?apartments=0`), two campus sculptures
+(`?art3d=0`), GDC's slot and the door-on-wall rule in the heroes and entrances
+bakes, and the ground curves, kerb ring, sidewalk clipping and furniture
+snapping in the ground and props bakes. **The last four have no switch** — they
+are data and they change the live look on purpose; the PR says so.
+
+**Dobie Twenty21 was complete and unindexed, so it is indexed.** Its own three
+look-fix passes are in the file's `_looked`. Indexing wanted three lines rather
+than one — the filename, its `buildings-3d` id and the `js/westcampus.js` name
+whose bands it replaces — and which one was probed in the running page first:
+`wc-wall`/`wc-solid` at Dobie's centre came back "Dobie Twenty21" and
+`buildings-3d` came back empty, so the bands were what had to go. After: 25
+buildings, both empty at that point, and the tower draws as a teal curtain wall
+on a white mall podium.
+
+**THE FIVE GATE REDS WERE FIVE INSTRUMENTS AND NO DEFECT, and this is the part
+worth carrying forward.** Every one was diffed to an image and the pixels read
+before anything was changed.
+
+1. **`SLOPES.on` off-and-on, 8,965 px at max channel Δ 121**, the deep pixels
+   on the Main Building's three hips beside the Tower. Not a broken switch:
+   **6,115 of the 6,126 deep pixels were EXACTLY the OFF frame's, pixel for
+   pixel.** Those hips come from the tower bake's rig, which `js/slopes-roofs.js`
+   builds on its own poll — `extras.every(x => x.ready)`, the condition the
+   gate's own `settled()` already waits for before the FIRST frame — and a poll
+   does not finish inside the 1,500 ms this line waited. Same settle on both
+   sides now: **972 px at Δ 12**, which is the facade atlas' documented residue.
+2. **The runtime-off ceiling, 76,190 px against 7,000.** The 7,000 was written
+   for a page with ONE building and two frames seconds apart; the block now
+   takes six minutes between them and carries 25. Two controls, both measured
+   in the run rather than assumed: the page against ITSELF four minutes apart is
+   50,461 px at Δ 17 with zero pixels deeper than 24, and **two fresh
+   `?apartments=0` LOADS of the same build are 273,197 px apart at Δ 40**. The
+   ceiling sat two orders of magnitude under its own floor. Rewritten against
+   the load-to-load control and against DEPTH, which is the discriminator that
+   matters: a building that did not come back is 512,101 px at Δ 207, while
+   every page-to-page effect here caps out under Δ 40.
+3-5. **The three "is it main?" lines, 127,075 / 305,679 / 34,596 px.** Marked on
+   the frame they are kerbs, road edges, crossings, sidewalks, doors on Welch
+   and the horizon — entries 218, 219, 224 and 225 — with **not one differing
+   pixel on The Standard**, which both pages draw as slabs. This branch re-baked
+   four other things before either generator drew, so "with the switch off the
+   picture is main's" had stopped being a statement about the switch. New flag
+   **`--against-nogen`**: a `git archive` of THIS COMMIT with both generators
+   taken out (`data/apartments`, `data/art3d` deleted, the two js files
+   emptied), which varies exactly one thing. The main archives are still served
+   and still measured; their numbers print as context beside the gate line
+   instead of being asserted.
+
+**A wrong mechanism was committed once and is written down rather than quietly
+replaced.** The first fix for (2) said "the app's sun moves with the wall
+clock". It does not — `apts-on` is BYTE-IDENTICAL between two runs of this gate
+47 minutes apart. What moves over the minutes a page is open is its own
+settling: tree canopies at the pose, the facade atlas' two-state phase on the
+distant West Campus walls, a strip of window cells at Δ ≤ 17.
+
+**And one red was my own noise.** Run two came back 68/69 with the graphics
+preset line red (`balanced → 48 segments, was 24`, i.e. the page was already on
+`performance`). That was a SECOND headless browser I had running against the
+archives at the same moment. One Chrome at a time; with the machine quiet it
+passes again. Four full runs of this gate, ~37 minutes each.
+
+**GATES, all hardware, all on this branch's tree.**
+`slopes-layer.mjs` **69/69 exit 0** (three archives served: `--against`
+e232953, `--against-tip` 8b4b90c, `--against-nogen` this commit without the
+generators; `VERIFY_MAX_MS=4200000`). 25 of 25 built, The Standard's top 58.2 m,
+every planned clause in place, San Jacinto's rig lifted and restored, the gym
+hip found by raycast at 31.31 m, 189 mesh vertices on the recess plane and 0
+without, 89 % of the woven cells paired, one settled page shot twice 0 of
+1,296,000 px, ON vs OFF 512,101 px, and against the no-generator archive
+**0 px** at The Standard's pose and **0 px** at `?slopes=0`.
+`art-slopes.mjs` **9/9**. `westcampus-probe.mjs` **20/21 — and the red is not
+ours**: it asks that all three `wc-` layers be visible and `js/lod.js` hides
+`wc-wall-cap` at that altitude; run against a `git archive` of main it prints
+the identical line and the identical 20/21. `facadegrid.mjs` **0 failing**.
+`walkmeter.mjs` **PASS** (drift 0, 0 route errors, live-mouse UI gate both
+ways). `ground-probe.mjs` **crashes, and it crashed before us** — it calls
+`setPaintProperty('ground-paths', 'line-color', …)` on a layer that has been a
+`fill-extrusion` since 2026-08-02; rather than cite that, it was run on BOTH
+main archives this pass and throws the same `TypeError` at the same line on
+each. `doorstack.mjs` at walking height on the HRC's west wall: eid 186 alone
+3,834 px in a box at x 622-659, eid 187 alone 25,475 px at x 698-848 — disjoint
+boxes, two doors, not one drawn twice.
+
+**PERF: ON vs OFF on ONE page**, generators toggled at runtime, interleaved
+A/B/B/A, 200 frames a rep, 3 reps after 2 discarded warm-ups, minimum of the
+per-rep medians, headed on the RTX 3050 Ti with vsync and the occlusion
+throttles off. Every rep prints its own triangle count so a null result cannot
+be a null toggle — **766,955 triangles on, 0 off, in all twelve**. The
+Standard's oblique **+0.20 ms at p50** (12.50 / 12.30), +0.40 at p90; mall
+cruise **+0.10 ms at p50** (14.10 / 14.00), +0.50 at p90. Three quarters of a
+million triangles for a fifth of a millisecond, because it is one draw call.
+
+**NOT DONE, and the doc lists it properly.** 147 open items across the 25 files
+(30 more marked DONE): 31 about an unsourced height or storey count, 17 about
+signage and storefronts, 16 about a tone read off an oblique rather than
+sampled, 15 about balconies (a recessed pocket is not a field yet), 15 about
+trellises and fins drawn solid, 14 about garage entries, 11 about a facade
+nobody photographed. The generator's step 6 was never started. Circle with
+Towers keeps all three of its critic's secondary notes, and the tree canopy
+standing on it is the props bake, not this lane's file.
+
+**FOLLOW-UPS.** `bake_roofs.py` and `bake_roofscape.py` should skip every id in
+`data/apartments/index.json` (the generator hides both at runtime today, which
+is a workaround). Eighty more residential candidates within 1,500 m of the
+Tower are unauthored — 35 of them in the major/minor tiers, the tallest being
+Inspire on 22nd at 56 m; the list with OSM ids is in the round's scratchpad.
+And the Earth-capture lessons are in the doc so the next comparison round does
+not re-pay for them.
+
+**Token split for the record:** research 0.77M, build 16.4M, check and ship
+this pass ~0.5M.
+
+Branch `acer/apts`, merged to `main` as <<MERGE>>. PR <<PR>>.
+
+## 226. Sep 6 2026 — Rubins' boats are boats: the needle spikes are hulls with a beam and a squared stern, on a column with air under them (`acer/apts`, one gap closed on the sculpture critic's verdict)
+
+**Look first: `docs/shots/art-monochrome-hulls.jpg`** — before and after at the
+sculpture critic's own camera (`jumpTo` center −97.7370979, 30.2874649, z 19.6,
+pitch 55, bearing 0, `?intro=0&drift=0`, graphics auto-detect cancelled,
+tod 0.30, second of two shots).
+
+The critic put our Monochrome for Austin beside Google Earth's photogrammetry
+and picked the real thing on both sculptures. The named gap was the primitive:
+ours read as *"roughly forty identical needle-thin spikes (length-to-width about
+15:1), every one a perfect radial from a single point-sized hub, every tip
+curling upward like a leaf, filling a full sphere so the lower spikes reach the
+ground ... an agave or sea urchin"*, against a reference that is *"a lumpy,
+asymmetric silver mass with a dozen-odd blunt lobes of about 5:1 ... clearly a
+pile of hulls."* Six decisions, each defensible alone, drew that agave, and all
+six are now in `data/art3d/monochrome-for-austin.json` with their source:
+
+- **The beam was foreshortened, not measured.** 0.82 m came from reading 35–42
+  px across hulls in an *elevation* photograph, where a hull points at the lens.
+  1.05 m against 4.5–5.5 m of length is 4.8:1, which is the reference's own
+  proportion and is also what a canoe actually is.
+- **Both ends came to a point and both curled up.** `rocker` and `sheer` lifted
+  each end ~0.45 m; seventy of those radiating from a point is a rosette of leaf
+  tips. Both are 0 now — straight keel, straight gunwale — and the plan is
+  asymmetric: one pointed bow, one squared `transom` at 0.62 of the beam, capped.
+- **The hub was a pixel.** Sterns now sit inside a 0.55 m ball, so seventy flat
+  transoms overlap into the ~1 m armature knot the reference has.
+- **A Fibonacci lattice over the full sphere is the definition of a sea urchin.**
+  Directions are dealt round three clump bearings, each with its own rake, thrown
+  ±40° in plan and ±44° in rake and jittered ±15° with ±15° of roll, over a
+  hemisphere clamped to −30°…+84°.
+- **The cloud stood on the ground.** The core moved 8.8 → 9.4 m and the floor
+  2.2 → 5.0 m, and the mast went 0.42 × 3.6 m → 0.50 × 4.9 m, so ~5 m of
+  stainless column stands in open air under the boats and the top still lands on
+  the published 15.24 m.
+- **It was brown.** Every judge frame is shot at tod 0.30 and the golden triple
+  was `#968d84`; brown plus radiating points is an agave whatever the geometry
+  does. The golden tones are neutral greys now — day and night untouched.
+
+Two things needed a second look rather than one, and both are written into the
+data. Three clumps at ±36° of rake is a **flat fan**, and three flat fans on a
+pole is a dragonfly, so the rake spread went to ±44°. And seventy sterns inside
+one 0.55 m ball **diverge like a sparkler** — the outer half of the cloud was
+more air than aluminium — so 55 per cent of the hulls are displaced up to 2.1 m
+in a random direction: Rubins bolts boats to each other, not seventy of them to
+one knot.
+
+Count stays at the published **70** ("70 aluminum canoes and small boats",
+Landmarks), not the ~25 the brief suggested: the reference frame is a dense
+lumpy mass, and 70 wide hulls in clumps is what makes it dense. `count` is one
+line in the data if the next lane disagrees, and so is every number above.
+
+**Gate: `scripts/verify/art-slopes.mjs`, hardware GL, own server on :8213 — 7/7
+passed.** 70 hulls / 8 towers / 64 fingers / 14,126 tris in 91 ms; one settled
+page shot twice 0 px; ON vs OFF 89,172 px at Monochrome and 6,975 at Circle
+against a 2,000 floor; runtime-off equals `?art3d=0` at both poses, 0 px; no
+page errors.
+
+**Not done, and left for whoever picks this up.** The critic's three secondary
+items on **Circle with Towers** are all untouched: the ring wall still draws as
+108 separate radial fingers and stipples to a dotted line at zoom 20 (it wants
+one closed extruded ring behind the fingers, ≥0.2 m thick), the two tree
+canopies still stand on the court and hide the piece from every oblique (that is
+props/trees, not this lane's file), and tower height against wall height still
+cannot be judged until that canopy moves. Nothing on Monochrome's own cloud was
+re-judged against the reference after the second adjustment beyond the one
+before/after look above — the column reads long against the cloud from a low
+oblique, and `cloud.centreZ` / `mast.h` are the two lines that change it.
+
+## 225. Sep 6 2026 — the carriageway has a kerb now, so the road stops at an edge instead of dissolving into the plaza (`acer/apts`, one gap closed on the street critic's verdict)
+
+**Look first: `docs/shots/street-kerb-garrison-stub.jpg`** — the road stub in
+front of Garrison Hall, before and after, at the street critic's own Waggener
+camera (`jumpTo` center −97.73835, 30.28535, z 19.2, pitch 70, bearing 250,
+`?intro=0&drift=0`, graphics auto-detect cancelled, second of two shots).
+
+The critic put our frame beside Google Earth's and picked the real thing: *"B's
+shapes are soft but correct; A has a wrong shape (road terminating in a plaza),
+and wrong loses to soft-correct."* The named gap was that the grey carriageway
+runs south from the Garrison/Calhoun block and *"simply stops in the middle of
+the West Mall plaza, at the same level as the paving"*, and at Guadalupe that
+road and pavement are *"separated by a colour change only."*
+
+Both are one missing piece of geometry. `k:'roadarea'` is a flat `fill` at z=0
+and its only edge is `ground-road-case`, a two-pixel screen-space stroke. A
+pixel stroke IS a colour change: it cannot be stepped over, it does not
+depth-test against the 0.22 m sidewalk deck beside it, and where the mall cut
+ends a carriageway it draws a blunt seam rather than a terminus. The plaza and
+the asphalt genuinely were one plane, so the critic read them as one plane.
+
+So `widen_roads` now bakes the kerb the critic asked for — a 0.30 m ring taken
+off each carriageway polygon's own boundary, interior rings included, which is
+what puts a raised edge around the hole the mall cut and turns the stub's blunt
+end into a hard terminus. It rides `k:'bank'` / `m:'coping'`, which is not a new
+layer and not a new material: Turtle Pond's rim is already baked exactly this
+way, so it inherits the channel extrusion's per-feature `b`/`h` and its dressed
+limestone for free. Three numbers, all sourced: **0.30 m** is the critic's own
+figure and comes out of `KERB_M`, the kerb-and-gutter allowance `road_width`
+already adds; **0.24 m** is `GROUND.pathRaise` plus one lift, not the critic's
+0.15 m, because js/ground.js already refused 150 mm for this same object ("the
+riser is a third of a pixel from any altitude this app flies") and because the
+resolver lets a sidewalk overhang the outer 0.8 m of the drawn road, so two
+tops at exactly 0.22 m would be the A2 depth tie; **DETAIL_BB** clips the ring
+for the same reason it already clips driveways — unclipped this is 197k
+coordinates and +4.5 MB on a file that downloads whole, clipped it is 24k and
++645 KB (6,725 → 7,370 KB, measured both ways). 737 rings ship, 18 of them in
+the Waggener frame.
+
+GATES. `kerbmeter.py` PASS on all three of its rules — pavement on a
+carriageway 27,221 m² of a 29,000 ceiling, 1,099 m² of it deep against 1,400;
+worst move off the OSM way 0.66 m of 0.75; mean turn on a curved run 12.62° of
+16.00 over 3,931 runs; furniture wrongly in a road 124 of 160. `walkmeter.mjs`
+PASS (drift 0 over limit, 0 route errors, live UI gate pass). `ground-probe.mjs`
+is RED and was already red: it calls `setPaintProperty('ground-paths',
+'line-color', …)` on a layer that has been a `fill-extrusion` since 2026-08-02,
+and it fails identically on the pre-change `data/ground.geojson` — checked by
+running it on both files, not assumed. `data/roads.geojson` is byte-identical.
+
+NOT DONE, and it was in the critic's secondary list rather than the named gap:
+the dropped-kerb ramp. The ring steps back around the crossing aprons the
+carriageway cut already leaves, so a crossing is not kerbed over, but there is
+no modelled ramp. Corner radii, sidewalk tone and the plaza's grass edging are
+all still open.
+
+Branch `acer/apts`. Files: `scripts/bake_ground.py`, `data/ground.geojson`,
+`docs/shots/street-kerb-garrison-stub.jpg`.
+
+## 224. Sep 6 2026 — GDC is two brick bars with a canyon between them, not one roof with a glass corner (`acer/apts`, one gap closed on the critic's verdict)
+
+**Look first: `docs/shots/gdc-slot-before-after.jpg`** — Google Earth's 260 m
+oblique, ours after at a camera matched to it, and ours before and after at the
+judge's own camera (`jumpTo` center −97.7368, 30.28615, z 17.6, pitch 60,
+bearing 135). The critic put our frame beside Earth's and picked the real
+building: ours was "one continuous tan roof over an L-shaped block" whose atrium
+was "a dark glass strip filling the corner where two brick faces meet ... a
+glass corner infill, not a slot between two bars", standing at the face instead
+of behind it, with a dark cut-out in the roof behind it.
+
+Both halves came from one cause: GDC was built by `build_ring` — ONE polygon,
+ONE band stack — so the roof band traced the whole ring at one height and welded
+the two bars and the link into a single plane, and the atrium was emitted as a
+SOLID GLASS PRISM filling the entire notch, 18.5 × 12.7 m and 28.7 m tall. The
+file already knew better twenty lines up, in the EER block: *"filling the canyon
+solid with glass would read as a third bar from every angle except straight
+down."* GDC made exactly that mistake.
+
+So GDC leaves `RING_TARGETS` and is authored in its own frame the way EER is:
+south bar u −57.00..32.50 × v −24.80..−0.70, north bar u −27.08..32.50 ×
+v 11.40..34.60, and the link between them at u −9.50..10.70 spanning wall-face
+to wall-face so the brick stays continuous. The ring is rectilinear in this
+frame to 0.35 m and the three rectangles reproduce 3,779 m² against its
+3,886 m², 97%. Each bar gets its own roof cap at 29.50; the link's roof stops a
+storey lower at 25.40 and carries on west over the atrium, so the canyon above
+it — one storey, 12.7 m wide, 22 m deep — is the open slot between the two
+prows. The glass becomes a 0.80 m WALL on the plane the 2026-09-05 recess
+measured, not a prism: its outer face is still 32.50 − 2.5 − 0.90 = 29.10 to the
+centimetre and its v is still the ring's own notch, which is why every door
+seated on that plane stayed seated. Both bars stay 7 storeys: the critic read
+the reference as "left bar taller by two storeys" and that is the camera, not
+the building — Earth's pose is 120h/65t, the south bar is 17.5 m further along
+screen-up, and at 65° from vertical that lifts it 17.5·sin25/cos25 = 8.1 m of
+apparent height, which is 2.0 storeys at the 4.10 m floor. Split into
+`GDC_SBAR_H`/`GDC_NBAR_H` anyway so a real measurement is one line.
+
+**On the way, a gate line that had gone silent.** `scripts/verify/wallplane.mjs`
+finds GDC's brick with `band === 'body'`; the split renamed that band, so the
+whole atrium measurement stopped running while the script still printed "all
+green". It now matches `/(^|_)body$/`, and its axis pick takes the SHORT edge
+when the atrium is thin — the old "longest edge" rule would have measured the
+notch's width and called it the recess.
+
+**Not done, on purpose:** the critic's secondary notes — the stepped/chamfered
+prows where each floor's spandrel band projects past the bar end, and the door
+cut into the ground bay rather than standing as a slab in front of it. One gap,
+one fix; the prows are facade work in a file this lane does not own.
+
+Gate `scripts/verify/wallplane.mjs` (no browser, it measures the files the
+renderer reads): **all green, exit 0** — float band 12 of a 12 ceiling (main
+34), orphans 7 (main 7), buried leaves 2 (main 2) with 0 seated, EER untouched,
+23 of 23 seated entrances restored by `?wallplane=0`, and the line that was dark
+now reads *"GDC atrium: its outer face is 0.87 m BEHIND the brick body's"* —
+the 0.90 m the recess was measured at, to 3 cm. Shots on the RTX 3050 Ti,
+hardware GL, `scripts/serve.py` on :8791, `?intro=0&drift=0`,
+`cancelGraphicsAutoDetect()` first, each pose shot twice keeping the second.
+Branch `acer/apts`.
+
+## 223. Sep 6 2026 — Union on 24th's connector is one grey wing now, not three buildings (`acer/apts`, one gap closed on the critic's verdict)
+
+**Look first: `docs/shots/apartments-union-connector-ref-before-after.jpg`** — Google Earth, ours before, ours after, all at the builder's `sw` pose (center −97.74525, 30.287604, z 18.10, pitch 55, bearing 45). The critic put our frame beside Earth's and named the gap: the back of the south court was "a flat tan block with tiny square punched windows plus a navy block with horizontal slit windows", so the H "breaks into three unrelated neighbours"; it should be one pale-grey wing between the two weave wings, a regular stack of glazing with light balcony bands, a dark two-storey loggia cut into its base. Data only, `data/apartments/union-on-24th.json`, every number off the critic's reference frame (`scratchpad apts/judge/union/A_tower.png`) and written beside the value: the court tones are re-sampled and put through a two-point fit anchored on the weave's own frames and field (GE → albedo = 1.243·GE − 28): `courtPanel` #a0a3a6 → #6a7077 (the piers were a MID grey the warm daylight had been turning tan), `courtFlute` #b9bcc0 → #8f9293 with a new `courtFluteShade` #4a4c4c, `courtGlass` #3b4a5a → #1a2028. The flank was S2's 6.81 × 2.12 m navy ribbon per bay — in the frame the flute face carries no windows at all, and the flank's glazing is a two-bay balconied stack AT each re-entrant corner, exactly where this file used to draw a blank return; so the `flank` skin is the fluting itself (0.68 m a flute off the 6.5–7 px period, lit and shade alternating at 0.34 m, no windows) and the four corner overrides are `courtStack` (the bar's 3.07 bay continued round the corner, glazing 0.75 of the floor, a 0.61 m slab each floor through `balconies`). The loggia is two storeys, 19.40–25.92: the dark run at the foot of the bar face is 29–33 px plus half-tone against a 36.5 px floor pitch, and a 35° look into a 3.3 m recess hides 2.3 m behind the lip — 5–7 m of opening, not 3.26. The bar face's window fractions were re-measured (0.51 × 0.51) and S2's 0.514 × 0.534 stands. On the way, the court floor: the lawn, the twin spas, the mast and the jumbotron are gone (the pavers, the wood strip and the guard bands stay) — the reference floor is flat and pale with plant on it. **Not done, on purpose:** the critic's secondary weave notes (all-vertical domino pairs at twice the size) contradict the mod-4 rule the owner corrected over ten rounds in union.js; that is his taste call, not a number to move, and it is written in the file's `open`. Gate `scripts/verify/slopes-layer.mjs`, RTX 3050 Ti, hardware GL, both archives served (`--against` e232953, `--against-tip` 8b4b90c): **64/69, exit 1 — the same five reds entry 220 names and no new one (the SLOPES.on off-and-on residue 8,962 px Δ 121; ?slopes=0 against the pre-slopes archive 115,468 px; the runtime-off frame 76,414 px against the 7,000 ceiling written for one building; the two ?apartments=0 archive lines 301,320 and 28,622 px — all five are frames with the mesh OFF or the shared switch, which this data cannot touch), and every apartments line that measures the generator green: 24 of 24 built, the recess plane 189 vertices, the frames charcoal, the weave 89 per cent paired with Union's 642 dominoes in 1,380 cells unchanged, one page shot twice 0 px**. Branch `acer/apts`, commit `7528039 (data + the frame), this entry docs-only`.
+
+## 222. Sep 6 2026 — Jester West's wing roofs read as roofs because the tile stopped clipping (`acer/apts`, one gap closed on the critic's verdict)
+
+**Look first: `docs/shots/jester-wing-roofs-before-after-ref.jpg`** — before, after and Google Earth 3D, all three at the builder's recorded south pose (`jumpTo` center −97.736805, 30.282142, z 17.5, pitch 72, bearing 0). The critic set our frame beside Earth's and named one gap: our courtyard wings were "a single continuous flat bright-orange slab poured across every wing with no planes and no ridge", where the real building has four separate hipped blocks with visible ridges, hip ends and eaves.
+
+**Half of that report was a misread and the half that was real had a colour cause, not a geometry cause.** Checked before touching anything: the four wings already carry real `roof: {kind:'hip'}` entries and the emitter already builds them (`wing-south` 30°, `wing-west` 30°, `wing-east` 29°, `north-west-low` 21°, ridges 21.7–21.8 m over an 18.6 m eave), and the footprint's own south edge (S2, in the frame's u,v: v = 0 from u = 4.12 to u = 121.94, unbroken) says the south wing really is one 118 m run — so splitting it into sub-blocks would have invented structure the source does not carry. What made three hip planes, two ridges and four hip ends resolve to ONE value was the **red channel clipping**: the tile came from the roof bake's campus trio (`#bc6143` / `#d87e52` / `#11111c`) and rendered **`#fe8041` — 254 of 255 in red** at this hour, so no facet could shade differently from the facet beside it. The campus roofs baked into `data/roofs.geojson` clip at exactly the same hex in the same frame (sampled x 1020..1200, y 395..425), so the trio is the outlier and this building was only inheriting it.
+
+**The fix, data only, `data/apartments/jester-west-hall.json`.** `colours.tile` becomes one day hex `#9c4b3c` through the file's own ramp — the critic's named number, and the same muted terracotta two independent reads of the real roof already gave: this file's own earlier S6 south-elevation sample (`#a0685c`, which a previous round rejected for neighbour-match) and Earth's own sunlit south slope in the critic's `B_wings.png` (crop x 500..900, y 345..375, clustering at **`#b76c5d`**). Neighbour-match loses to the photograph. It now renders `#dc5e3a` lit and `#6f4d3d` in shade — two values where there was one, which is the ridge and the hip ends becoming visible. Alongside it every hipped wing gets the eaves the reference plainly shows and the data did not have (`"no oversail was measured"`, `over: 0`): `over: 0.55`, `lipH: 0.30`, `lipTone: coping`, so the roof no longer meets its wall on a coincident line. Ridges move 18.6 → 22.13 / 22.10 / 22.04 / 22.09 m.
+
+**The "stray small brown hipped block in the courtyard" is `wing-east` and it stays** — the real wing between the courtyard and Jester East (u 89.25..100.59, v 11.19..40.20, S2), seen end-on from a pose 18° above the horizon, projecting to screen x 817..858, which is exactly where the "stray block" is. Written into the file's `todo` as note 6 so the next critic does not re-file it. Left alone on purpose, and written into `todo` as note 7: the tower's windows (dark pips on tan where the reference reads light-framed vertical rectangles on buff brick — an inverted value relation, not a one-line change), and the bar being one window row tall. One gap, one fix.
+
+**Two lines for the other lanes.** (1) `scripts/bake_roofs.py` / the roofs lane: the campus tile trio clips its red channel at this hour — every barrel-tile roof within 260 m of Jester renders the same flat `#fe8041` with no plane separation, which is a campus-wide flatness, not a Jester one. (2) The pitched-roof emitter's eave lip is 0.30 m: at the 340 m judging pose that is 0.2 px and invisible; it earns its place at walking height and in the oblique frame, not in the verdict crop.
+
+**Gate.** `scripts/verify/slopes-layer.mjs` on the RTX 3050 Ti, hardware GL, no archives served (`VERIFY_URL=http://127.0.0.1:8871`, `VERIFY_MAX_MS=2400000`): **64/66**, and both reds are entry 220's own, named there and unchanged by this pass. (a) `the runtime-off frame is the ?apartments=0 frame` — **76,414 px, max channel Δ 51**, which is 220's red (1) to the digit (same pixel count, same Δ): a 7,000-px ceiling written for a page with one building, against a 24-building page, with the diff's bbox on the horizon and nothing on the buildings. (b) the shared `SLOPES.on off-and-on` line — 1,180 px at Δ 121 where the atlas residue allows Δ 16, which is 220's red (5) at 1,177 px and the same Δ 121. Three px apart, and it is the slopes-roofs rebuild on the switch, not a colour. 66 lines here rather than 69 because no archive was served (`--against` needs a second export; the three archive reds 220 lists are those lines and they did not run). Everything that measures the generator is green: 24 of 24 buildings, 207 blocks, 71 pitched roofs, 28,003 windows, no uncaught page errors, one settled page shot twice 0 of 1,296,000 px. Log: `<scratchpad>/jw/`, frames `<scratchpad>/jw/gate/`.
+
+## 221. Sep 6 2026 — The Standard's base is one storey of flat charcoal and the white/rust bays come down to it (`acer/apts`, one gap closed on the critic's verdict)
+
+**Look first: `docs/shots/apartments-standard-base-fix.jpg`** — before, after, Google Earth, all three at the judge's south-west camera (`jumpTo` center −97.74578, 30.28699, z 18.66, pitch 55, bearing 45). The judge set our frame beside Earth's and named one gap: the lower six storeys of the south face were the `garage` skin (charcoal with 0.5 m louvres, 0-21.5 m), which from 220 m reads as a parking-garage band with pixel noise on it; Earth shows the south bar's white/rust bays running straight down to a ONE-storey dark base (twelve window rows above the neighbouring garage's roof, ours had nine). Data only, `data/apartments/the-standard.json`: podium faces 4-6 wear flat charcoal (`charcoalBlank`) 0-6.0 — the 6.0 m ground floor of `levels`, the two residential storeys Earth shows under the tower at the SW corner — and the `bays` skin 6.0-21.5; edge 4, the notch off Pearl where Earth shows the cafe's glazing, gets the storefront instead of blank charcoal; an override cuts the south face at u=25 so the piece under the south bar is the bar's own length and every rust strip lands on the line of the one above it at 21.5; the Pearl strip's notch face drops its garage override for the strip's own bands; the garage skin stays in the file marked NOT WORN, with why; the judge's package is source S13. Left alone, on purpose: the podium's coping lip at 21.5 shows as a thin light line on the south face where Earth has a plain floor line; and every secondary in the verdict (the tall pixel tower at the west corner, white not beige, rust on alternate bays, the left stub) — one gap, one fix. `scripts/verify/slopes-layer.mjs` on the RTX 3050 Ti, hardware GL, no archives served: launched on this data (`VERIFY_MAX_MS=3600000 node slopes-layer.mjs --shots <scratchpad>/apts-fix-gate-shots`, log `<scratchpad>/apts-fix-gate.log`) and STILL RUNNING when this lane was closed — no score is quoted here because none was read; the next pass reads that log or re-runs the gate (entry 220 was 64/69 on the same generator, and this change touches only data the apartments block's Standard lines draw).
+
+## 220. Sep 6 2026 — The generator learns what twenty-two builders could not draw: hips, recesses, window frames and Union's weave, after its five bugs (`acer/apts`, the apartments generator's second round)
+
+Twenty-two builders authored a building each from sources this round and
+wrote down, in every file's `todo`/`open`, what `js/slopes-apartments.js`
+could not draw — with the numbers already measured. This entry is the
+generator's answer: five bugs fixed, four new fields, and the data files
+converted to use them. **Look first:** the frames under
+`docs/shots/apartments-round2-*.jpg` (listed at the end) — San Jacinto's
+five tile hips, the Villas' grey slate roofs and turrets, Union on 24th's
+weave over its colonnade.
+
+**The five bugs (`6d4ead7`, then `0001377`).** (a) The 5×7 dot font had the
+fourteen letters THE STANDARD needed, so MOONTOWER rendered as MOONTO ER —
+the alphabet, the digits and the marks a wordmark carries are in it now,
+and the boot log counts any character a sign still asks for that it lacks.
+(b) An override cut a wall into pieces and every piece redrew the face's
+bands, signs included: THE MARK five times across one block. A face's own
+fixtures are drawn once per wall (`wallFixtures`); an override region's are
+its own. (c) `floorsBetween` dropped the floor line just below a band's z0
+silently (26 West's todo 8): within `APARTMENTS.floorSlack` (1 m) the
+storey's windows are kept and clipped to the band, beyond it dropped, and
+the boot log names the band either way, once per building. (d) The switch
+hid the prism and the wc- bands but not `js/roofs.js`'s roofscape pass,
+whose deck plates were baked at the SNAPSHOT height and floated over every
+building authored lower (Regents West's 41 × 44 m slab 6.5 m up, the
+Villas' 12.6). Those features carry no id or name, so they are hidden by
+geometry — `['>', ['distance', <every footprint inset 1 m>], 0]`, which
+MapLibre answers 0 for an overlap — as is `roofs-pitched`, whose kept
+`f: band` features over Jester West's tower are its precast strips baked on
+the snapshot (against the footprint itself: they stand ON the wall line);
+`campus-storeys` by `host`; and the rig `js/slopes-roofs.js` draws over San
+Jacinto Hall from `data/roofs.geojson` (a hip on Overture's 28.1 m, six
+metres over the authored roof) is lifted out of that generator's data while
+we draw and put back after. The restore strips our clause out of whatever
+filter a layer carries now, wherever another pass has wrapped it since —
+slopes-roofs and westcampus both save and restore the same layers on their
+own clocks, so a snapshot could only put back the wrong state. (e)
+`docs/apartments.md` states the two constants a ring becomes metres by
+(110,540 per degree of latitude, 111,320 · cos lat per degree of longitude)
+so no builder mis-scales a plan again.
+
+**Two instrument lessons from (d), both in the doc.** A `queryRenderedFeatures`
+on a fill-extrusion answers for the whole extruded volume along the view
+ray: at pitch 55 the "deck still there" over Regents West's courtyard was a
+neighbour's deck at 17 m sitting on the ray. Ask at a NADIR. And a bisection
+of our own mesh (build one building alone, count vertices above 54 m, drop
+blocks and skin parts one at a time) found nothing for Jester West's
+"poles" — they were another layer's, which one probe on one pole then named.
+
+**Hipped roofs (`56a2d13`).** Nine buildings came in with their hips as five
+to twenty-three inset boxes each. A block's `roof: { kind, pitch, over,
+lipH, tone, lipTone, deck, d, inset, sides, gable, gableTone }` is the real
+thing: the eave profile solved by the straight-skeleton arithmetic ported
+from `scripts/bake_roofs.py` (mitre rays, caps, edge events, the wall
+profile), packed into that bake's rig schema in longitude/latitude with
+`dpm [1, 1]`, and handed to `slopesRoofs.emit()` the way the dome draws the
+Capitol's wings — a rectangle gets a ridge, a square a point, an L two ridges
+over a valley, every strip a facet shaded as the campus roofs are. `deck`
+with `d` is a band-and-plate (Regents West's mitred cap round its membrane,
+the Block on Rio's shingle band on three sides with `sides`), `inset` a roof
+behind a parapet (the Block on Rio's wing), a standing edge a gable end
+(Dobie's five monitor ridges) or the deck's own vertical edge. A `roofItem`
+may carry a `roof` (2706 Rio Grande's two hipped masses, 26 West's turret
+caps, the Villas' bay caps). A point on a straight run of a polygon (San
+Jacinto's south wing, where the courtyard notches meet the long wall) no
+longer fails the mitre.
+
+**Recesses (`a347db2`).** `inset` on a band (a number, or `{ d, tone,
+columns }`; on a face or a block for every band of it) tiles the band's wall
+by its own skin `d` behind the face plane, and the generator closes the
+recess: the soffit, the floor when the band starts above the block's foot,
+columns on the face line (`pitch` on the bay centres or `on: "joints"`, or
+an `at` list), and at each end a return wall where the neighbour is not
+recessed at the same band, or nothing where it is — two faces recessed by
+the same depth meet at the mitre of their offset lines, so Union's colonnade
+is open round the corner. The corner arithmetic is in the file's `recess`
+comment. Union's ground floor (2.4 m, round columns 7.5 m apart per
+union.js), its L6 loggia (3.3 m, square columns on every bay line), The
+Castilian's ground floor (2 m), 21 Rio's (1.5 m, a look).
+
+**Window frames and pairs (`a041f99`).** `frame: { w, h, tone }` on a window
+spec is a picture frame cut into the wall's own cells — coplanar with
+nothing, exactly as wide as the number — for Signature 1909's 0.4 m white
+surrounds and Jester West's and East's 1.31 × 2.31 m precast; `offsets:
+[[off, w], ...]` draws the mirrored pairs about a party wall that Jester's
+and San Jacinto's wings asked for.
+
+**Union's weave (`e23108c`).** The `mod4` skin pairs cells into dominoes by
+k = (c − r) mod `period` with a `pairs` table, the fractions, the seams,
+`colOffset` and `wrap` ported from the owner's own `utx-diorama/workbench/js/
+union.js`; the column index is continued round the corners (`mod4W`, `mod4N`,
+`mod4S` in the file) so the diagonals wrap on to the end caps. On the page:
+1,380 cells, 642 dominoes, 93 per cent paired, the rest edge orphans.
+
+**The data files (`5e8df75` the data, `950d950` the doc).** Fourteen files converted, every number the builder's own and every answered todo rewritten to say so: the Villas (33 blocks get a `roof`, about 120 boxes go), San Jacinto (five hips, the wall windows in pairs), Jester West and East (the wings' hips, the precast surround as a frame, the wing pairs, and both files in `index.json` with their ids as their todos asked), 26 West (twelve turret pyramids as roof items), the Block on Rio (the tower's hip to S1/S2's 27.4 m apex, the wing's roof behind its parapet, the shingle band as a deck roof on three sides, the south-east hip), 2706 Rio Grande (the two hipped masses), Dobie (five monitor gables; still not in the index, its builder never asked), Regents West (the upstand becomes the mitred cap), Union (the weave on the long walls and both caps with the column index continued round the corners, the ground floor and the loggia inset on columns), The Castilian and 21 Rio (the ground floor inset), Signature 1909 (0.4 m frames). On the page after the conversion: 24 buildings, 71 pitched roofs, 30 recesses, 1,933 framed windows, 642 dominoes, no errors.
+
+**The gate.** `scripts/verify/slopes-layer.mjs`'s apartments block asks for
+every indexed building built; every planned clause in place (roofscape by
+distance, storeys by host, roofs-pitched by footprint, the San Jacinto rig
+lifted out); the font complete and no sign short a glyph; the Regents West
+deck absent at a nadir query on the ON page and present on the
+`?apartments=0` page; a sign count that does not move when THE STANDARD's
+signed face is cut in three; `floorsBetween` keeping, dropping and warning;
+and four in-place tests that patch one field into The Standard's own data,
+rebuild, measure the real mesh and take the field out — a 30° hip on the gym
+whose ridge a nadir raycast must find at 31.31 m, the corner bay's
+storefront 2.0 m back that a ray from 23rd St must hit 2.0 m inside the face,
+a charcoal frame the podium's windows return on rays beside the pane, and
+the court skin's dominoes by count. **Score, RTX 3050 Ti, hardware GL, both archives served, the watchdog raised to 60 min through VERIFY_MAX_MS (the page carries 24 buildings now and the whole gate runs about 26 min): 64/69.** Every apartments line that measures the generator is green (built, filtered, the rig lifted out, the font, the deck at the nadir, the sign count, floorsBetween, the gym hip's ridge at 31.31 m by raycast, 189 mesh vertices on the recess plane and none without, charcoal on 6 of 31 rays beside the framed panes, 89 per cent of the court skin's cells paired, one page shot twice 0 px, ON vs OFF 510,341 px, the restore exact). The five reds: (1) the runtime-off frame against a fresh ?apartments=0 load differs by 76,414 px (max channel Δ 51) against a 7,000 ceiling written for a page with one building — the diff's bounding box is rows 0-236, the horizon (labels and far facades of a page ten minutes old against a fresh one), and nothing on The Standard or below it; the ceiling wants re-measuring for a page with 24 buildings, which this entry leaves to the next pass rather than moving a number to make a line green. (2, 3) the two archive lines at The Standard's pose, 617,637 and 517,475 px: since 8b4b90c this branch carries the ground/props and heroes/entrances pieces (entries 218-219), which changed the roads, kerbs and doors in every frame; the same is true of (4) the shared ?slopes=0-against-main line (268,409 px at mall-cruise), which was 0 px in entry 217 before those pieces landed. (5) the shared SLOPES.on off-and-on line, 1,177 px at Δ 121 where the atlas residue allows Δ 16 — the slopes-roofs rebuild that puts San Jacinto's rig back on the switch is the likely source and is not chased here. The first full run of this gate on the converted data was 59/69; four of its reds were the block's own instrument (the in-place tests had left the camera between Union's towers for the OFF frame; the own clause was written for one id; the recess ray hit an authored neighbour before the bay; the weave line assumed no mod4 on the page) and are fixed in `86dc94d`, which also widens two shared lines by one token each — the roofs-pitched regex allows the wrapper the generator puts on that layer, and slopes-art is a group of the scene.
+
+**Not done, said plainly.** Step 6 (per-bay `plankTones`, an open trellis, a hole in a block, a storefront opening) was not started; 26 West Courtyard's and Sparq's per-bay tones, 21 Rio's fins on brackets, Skyloft's and 2706's light wells and Signature's garage mouth keep their todos. A recessed balcony pocket (the Villas' todo 2, the Block on Rio's open 4) is not a field yet. Regents West's cap reads as a thin edge from the oblique where the builder's 1.15 m upstand read as a wall; the Block on Rio's east band is 5.2 m deep where 3.6 was measured (one `d` per roof) and its membrane deck sits at the top of the band, 2.1 m above the plate the builder drew; on a cold load Jester West's precast poles can show for a second or two before the re-apply catches slopes-roofs' rewrite of the filter. The street-level poses I tried put the camera inside neighbours; the recesses were judged from the obliques and the court, not from the pavement. Every roof pitch is the builder's box stack read back, not a new measurement.
+
+**For the roofs lane (a request, not a change):** `scripts/bake_roofs.py`
+should skip every id in `data/apartments/index.json`, as `bake_roofscape.py`
+skips authored roofs, and `bake_roofscape.py` should read the same index —
+the generator hides both at runtime today, which is a workaround.
+
+Branch `acer/apts`; commits `6d4ead7`, `56a2d13`, `a347db2`, `a041f99`,
+`e23108c`, `0001377`, `5e8df75` the data, `950d950` the doc.
+
+## 219. Sep 5 2026 — The street at eye level: curves stay curves, the keep-core is for a walk BESIDE a road, and furniture stands on pavement (`acer/apts`, the ground/props piece of the round)
+
+Three reported defects, one family: **a rule written for a camera in the air,
+still running under a camera at walking height.** Full write-up with the two
+before/after pictures: `docs/ground-curves-and-kerbs.md`.
+
+**Curves.** `simplify()` ran RDP at 1.2 m on every road and cycleway centreline
+and its own docstring justified the number by "the zoom the camera flies at".
+Measured on `data/osm_cache/roads.json`: 12,124 ways, 70,236 raw vertices, and
+1.2 m threw away 30,676 of them — 44 % of every curve a mapper drew; 0.25 m
+costs 9,882 back. That is only half of it, because a curve in OSM is a chain of
+8–15 m chords whatever the tolerance, so the runs that are CURVED are then
+Chaikin-smoothed. A turn sharper than `CURVE_CORNER_DEG` (40°) is a corner and
+stays sharp; gentler than `CURVE_MIN_DEG` (4°) is straight and is left alone; a
+run that would move more than `CURVE_MAX_DEV_M` (0.60 m) is left unsmoothed and
+COUNTED (1,022 road runs, 37 walk runs, against 4,036 and 1,010 smoothed).
+Sidewalks were never RDP'd at all, so smoothing is the only thing that could
+have fixed them. Mean turn on a curved run: **24.2° → 12.6°.**
+
+**The branches.** `SIDEWALK_KEEP_HALF_M` exempts a surveyed walk's core from the
+carriageway cut — right for the 8.24 km of real pavement the DERIVED carriageway
+was eating, and applied to every metre of every walk including the metres that
+run INTO the street. That is the pale bars shooting into Inner Campus Drive: a
+1.8 m hole punched in the cutter at every kerb ramp OSM tags `footway=sidewalk`
+instead of `footway=crossing`. 29 footways put >3 m² on a carriageway inside one
+380 m box near Waggener. The rule is one sentence — **the keep-core is for a walk
+BESIDE a road, never one ACROSS it** — tested PER SEGMENT against the nearest
+road centreline's bearing, because way 1245334958 is 419 m that runs beside the
+street and turns into it at the end. Drawn pavement standing more than 2.5 m
+inside a carriageway: **3,147 m² → 1,099 m².**
+
+**The stray objects on Guadalupe.** Sweetgreen is OSM way 366244320,
+**30.285757 −97.742110** — the research pass was posed 500 m north of it. 805 of
+4,357 furniture features stood in a carriageway on no pavement. `PROP_IN_ROAD` is
+a table, not a blanket rule: a signal, a gate and a bollard BELONG in a
+carriageway; a pole is snapped-or-left; everything else is snapped-or-dropped. It
+is footprint-aware — snapping the anchor still left nine of a fifteen-dock
+bike-share station's docks in the Drag, and the frame said so — so anything at
+least `PROP_ALIGN_LEN_M` long is laid ALONG the pavement's own edge. Wrong
+objects in a road: **664 → 124.**
+
+**A stale input, found on the way, and worth more than the headline.**
+`bake_props.py` read ground.geojson for `k=='path'` LineStrings and `k=='area'`
+Polygons. Neither survives there — `widen_paths` makes polygons and
+`PEDESTRIAN_AREA_IS_A_WALK` moved the 53 malls to `patharea/pedestrian`. So
+`RoadTest`, whose only job is "nothing we place may stand in a traffic lane", was
+handed an empty list and answered False to everything, and re-baking the shipped
+file produced **117 plaza planters where it holds 1,314**. Repaired, and it warns
+now instead of failing silently.
+
+**Switches, checked by SHA-256 rather than claimed.**
+`CURVES=0 KEEPANG=90 KEEPDEPTH=0 python scripts/bake_ground.py` reproduces
+`data/ground.geojson` (e9a6a0de…) and `data/roads.geojson` (b5b454af…) exactly as
+main has them. `PROPSNAP=0 python scripts/bake_props.py` reproduces all 3,555 of
+main's non-planter features feature-for-feature. This piece is data-only, so its
+switch is a bake flag and not a URL param: `js/ground.js` and `js/props.js` are
+another lane's files and have no URL-param mechanism to hang one on.
+
+**Gates.** `scripts/verify/kerbmeter.py` (new) scores the three rules city-wide;
+every ceiling sits between this branch and main, and `--against DIR` shows it go
+red on main on all four assertions. `scripts/verify/kerbshot.mjs` (new) is the
+picture half: the two scenes changed by 3.16 % and 0.57 % of frame, and at a
+control 300–900 m away 3.07 % changed with **0.006 % of it not ground** — no
+building, tree, roof or label moved. `walkmeter.mjs` PASS (drift 0.00 m, 0 route
+errors, UI gate pass); `plazawalk.mjs` PASS (3/3, pcl-unb 949 m, gre-mai 578 m,
+wag-mez 295 m).
+
+**One instrument bug, kept because it cost the time.** kerbshot first reported
+9,622 non-ground pixels at Waggener. The picture showed why: the door canopies on
+Waggener Hall's east wall were missing from the `before` frame and present in the
+`after` one, and nothing in the data moved them — the entrance layer had not
+finished loading when the shutter opened. `shoot()` now keeps shooting until two
+consecutive frames agree to within 0.02 % of the viewport. 9,622 → 18. The
+tree-antialiasing theory was wrong; looking at the frame is what found it.
+
+**⚠ FOR WHOEVER HAS TIPPECANOE.** `data/tiles/roads.pmtiles` and
+`data/tiles/props.pmtiles` still hold the OLD geometry and the OLD prop
+positions. `scripts/tile.sh` must be re-run or the deployed site shows none of
+this. Every frame in the doc was shot with `?tiles=0`. **This is the one thing
+between this pass and the live site.**
+
+Also queued: the walk-ridden procedural rules in `bake_props.py` (several hundred
+street lamps, benches and racks) are off by an accident of schema. Turning them
+on is a taste call, not a bake fix.
+
+## 218. Sep 5 2026 — A wall is where the renderer draws it: GDC's atrium off the roof line, and every door seated on the wall its building actually draws (`acer/apts`, the heroes/entrances piece of the round)
+
+Two defects, one cause, one switch. Six passes here re-draw whole buildings
+from authored geometry, and wherever that geometry is INSET from the
+footprint ring, anything placed against the ring floats in front of the
+building.
+
+**The atrium.** `bake_heroes.py` insets every GDC band by `GDC_OVERSAIL =
+2.5 m` (the Overture ring traces Pelli's roof CANOPY, not the wall) and
+emitted the glass atrium at inset 0, with a comment calling that deliberate.
+It is not what the building does. The Esri z20 nadir cannot settle it — the
+notch mouth is in the south bar's shadow and the only edge it offers slopes
+0.35 m of u per metre of v, which is a shadow and not a wall; the 3.4 m
+recess first read off it was that shadow measured three times. Google's z20
+of the same frame, a different overpass with no shadow in the notch, puts a
+hard line at u 29.00 against a brick end wall at 30.00, and both providers
+agree on the bars' roof-canopy end to 0.1 m. Google Earth's 3D mesh from the
+west (Speedway) shows the brick ends standing forward of a receding slot.
+So `GDC_ATRIUM_RECESS = 0.90 m`. In v the atrium KEEPS the ring's own notch:
+growing it to the bars' inset flanks has no measurement behind it and
+swallows GDC's Speedway door (tried — it came out 29 m away on the
+courtyard wall).
+
+**The doors, as a rule.** GDC 166-171 and NHB 581-586 measured **2.63 m**
+outboard of the brick the hero bake draws (2.50 oversail + the 0.13 m the
+bank stands proud of its own reference). EER measured 0.13-0.17 m — its
+bands are at inset 0, and it is the regression control.
+`seat_on_drawn_wall()` marches each candidate inward along its own normal
+onto the first surface ITS OWN host draws; GDC and NHB come out at exactly
+2.50 m, which is the rule reproducing a constant it never reads. It runs
+AFTER `clear_buried()` (seating first moved the burial test's input and threw
+four doors 15-57 m), its floor is 0.80 m (at 0.15 m it buried Block on 25th
+East's leaf 0.64 m inside a neighbour), and a seat that would bury a leaf in
+any drawn mass is refused outright. **22 seated, 4 refused, 561 of 591
+entrances byte-identical to main.**
+
+**The switch.** `?wallplane=0` / `window.WALLPLANE.on`. Entrance pieces carry
+`wp` (the vector back to the ring), the atrium carries `wp0` (its whole
+pre-fix ring — its shape changed too), and a door relocated onto a wall that
+moved this round adopts that wall's `wpd`. Off, the frame is main's: 0 px at
+both GDC poses, 104 px at a zoom-19.2 NHB door close-up, which is the 1.47 cm
+of 7-decimal-place coordinate rounding and nothing else.
+
+**Files (this piece only):** `scripts/bake_heroes.py`, `data/heroes.geojson`,
+`scripts/bake_entrances.py`, `data/entrances.geojson`, the switch block in
+`js/heroes.js` and `js/entrances.js`, `scripts/verify/wallplane.mjs`,
+`scripts/verify/wallplane-off.mjs`, `docs/wall-plane.md` and three cited
+JPEGs in `docs/shots/`.
+
+**Gates.** `wallplane.mjs` all green (float band 34 -> 12, orphans 7 -> 7,
+buried 2 -> 2 none seated). `wallplane-off.mjs` green. `walkmeter.mjs` PASS
+(20 pairs, 0 errors, self-check drift 0, live-mouse UI gate both ways).
+`doorstack.mjs` on HRC 186/187, the tightest pair the seat created: two
+doorways side by side, not one drawn twice. Both bakes re-run byte-identical.
+
+**Two things left for someone else, on purpose.** `data/walk_graph.json`
+still carries the pre-seat anchors for the 23 entrances that moved — that is
+the walk lane's bake, walkmeter passes as it stands, and it wants a re-bake
+before anyone quotes route lengths to the centimetre. And a seated door is up
+to 2.5 m FURTHER from UT's published coordinate, because UT's survey point
+sits on the ring and the ring on these buildings is the canopy; the count
+within 10 m is unchanged at 77 of 591.
+
+
+## 217. Sep 5 2026 — The Standard is a building now: the apartments generator, its data file, the gate block, and what the nadir said about the westcampus slabs (`acer/apts`, the apartments piece of the round)
+
+The app is apartments → distance → classes, and the first apartment building
+the owner named is now real geometry instead of three boxes. This entry is
+the apartments piece of the `acer/apts` round: `js/slopes-apartments.js`, the
+fourth generator in the slopes layer, and `data/apartments/the-standard.json`,
+the first building authored from sources. The other builders' pieces
+(`js/slopes-art.js` and the rest) are theirs; only their script tags are in
+this lane's first commit, per the brief.
+
+**Look first: `docs/apartments.md`** carries four frames — ours beside Google
+Earth from the south-west (the brief's pose) and from the north-west — and
+the whole method. What you see from 220 m: the charcoal corner bay at 23rd
+and Pearl with THE STANDARD on both faces, five storeys of light panel with
+rust strips along 23rd, the storefront ground floor, the pool on the deck
+behind the corner bay, tower B's north face of balconies over it and its
+pixel west face with the vertical sign, tower A's pixel L wrapping the east
+end two storeys above the bars, the two light wells, the double-volume gym
+between the towers, the condenser clusters on every roof, the garden roof on
+the lower east wing. 9 blocks, 55 faces, 11,665 cells, 1,584 windows, 26
+balconies, 4 signs, 46,483 triangles in one draw call, 235 ms to build.
+
+**The first commit (`2cc1b29`, within the brief's twenty minutes):** the pale
+ridge and hip courses are off (`SLOPES_ROOFS.lines.on = false`, every sub-key
+kept), the gate asserts their absence the same way it asserted their presence
+— zero counted, a raycast at every plain hip's ridge lands on the bare ridge
+and never above it, the ridge column does not carry the courses' signature —
+and `--break` now turns them back ON to prove that line goes red. The two
+script tags in `index.html` and `_harness.html`; `harness-drift.mjs` 38/38.
+
+**Which corner is which cost the research pass its compass, and
+`data/roads.geojson` settled it in one query:** West 23rd Street's western
+segment runs along this building's NORTH edge, Pearl ends at it at the
+north-west corner, Rio Grande is 58 m east of the east edge. So the corner
+photograph with the street sign is the north-west corner, the dusk aerial
+looks south from the Union on 24th's site, and "tower A is nearer Rio
+Grande" in `measured.json` was the towers' order read with north and south
+swapped. Every plan number in the data file is in the footprint's own
+oriented bounding box (`js/westcampus.js`'s `obbOf`, ported unchanged): +u
+west along 23rd, +v south.
+
+**The nadir, rectified, said TIER4's two "tower slabs" are the two light
+wells.** Google Earth at tilt 0, 260 m up, captured with `chrome.mjs` and
+`page.screenshot()` (the canvas is black through `toDataURL`, as the research
+pass found the hard way), scale from the scale bar (183 px = 30 m), the
+snapshot polygon projected on to it with the canvas centre as the view centre
+— it lands on the roof edges — then resampled into the (u,v) frame at 10 px/m
+with a 10 m grid. Overlaid on it, `TIER4.STD.slabs` `[23.5-41, 57.2-74.3] ×
+[17-31.4]` sit exactly on the two dark rectangles, and those rectangles have
+parking stripes at the bottom: they are wells down to the garage. The deck
+features from the same block — pool, spa, turf, cabana, jumbotron, rail —
+land on the imagery's own features and were kept with their source. The
+towers are the bars round the wells: tower A's north bar u 17-42 × v 8-19,
+tower B u 75-91 × v 11-34 set 4 m behind the Pearl face (the step is a line
+in the plan), the mid bar u 42-57, the south bar v 34-46.45. Which of them is
+the 17-storey element took three more captures (south, east, north at 300 m)
+and the photographs: from the south the pixel face rises two storeys above
+the continuous 9-row elevation at the EAST end, so tower A is the tall one
+and its L wraps the east end; from the north-west "A's roof higher than B's"
+had been a perspective effect (A is 35 m further away), so B and the bars
+are 15 storeys, ±1 off the mesh — written down as ±1 in the file.
+
+**Every number carries its source** (`sources` S1-S12 in the file, a `_src`
+beside every value): OSM's single outline with no height and no parts, the
+snapshot's 20.5 m (Overture's guess, 2.8× short), SkyscraperPage's 191 ft /
+17 floors, the architect's page, Humphreys' photographs in `research/`, the
+roads file, the Earth captures, the westcampus bake's crops and TIER4's
+nadir reads, Rambler's review, the West Campus SOLID trios. Derived numbers
+say derived (the per-floor heights); unknowns say unknown (the garage louvre
+pitch; four unphotographed faces wear the plainest skin and say so).
+
+**Why quads and no texture plumbing.** The brief allowed a canvas-texture
+path in the shared shader. Measured against the cameras this app is judged
+from — the oblique at ~0.3 m/px and the walking height at ~0.05 m/px —
+every feature the photographs show is at least 0.5 m on its short side (a
+2.2 × 0.56 m panel, a 0.9 m slit, a 0.5 m rust strip, a 0.18 m sign dot),
+all legible as geometry; brick coursing at 7 cm is under a pixel at every
+camera here. So `slopes.js` is untouched: a cell tiler cuts each face at
+every course, bay, mullion and window edge and emits one quad per cell,
+windows recessed with four reveal strips, nothing coplanar with anything.
+
+**Three look-fix cycles, ours beside Earth.** (1) The name read backwards on
+both faces of the corner bay: letters advanced along the wall's +T, which
+for a clockwise plan is the viewer's leftward direction; text now runs along
+(−N) × up whichever way the wall winds. (2) The pixel field decided one
+0.56 m plank at a time read as noise from 220 m; the photographs' dark runs
+are two courses by two-to-four planks, so the tone is decided per 2×2 macro
+cell (`skin.macro`) with the plank joints inside it still drawn for the
+walk-up, and the weights re-read for daylight — the bake's blue-hour
+clusters had split the white field into pale and warm by lighting, not
+material. The slit windows had the dark plank's luma and vanished into it:
+glass is #262e34 now. (3) Condenser clusters on every roof where the nadir
+has them (`roofItems` with a `grid`), the most-seen surface from the app's
+own camera.
+
+**The switch and what it hides.** `?apartments=0` at load or
+`window.APARTMENTS.on = false` at runtime. The flat prism goes by an id
+filter on `buildings-3d` and `buildings-roof` (heroes.js's pattern, with
+slopes-roofs.js's save-and-restore), the westcampus bands by a name filter
+on `wc-wall`, `wc-wall-cap`, `wc-solid`, `wc-detail`; both are restored when
+the switch goes off, and the generator waits for the westcampus pass to
+have booted before it filters (40 s, then it stops waiting — `?westcampus=0`
+never boots it). The flight collision is rebuilt with the 58.2 m top,
+carrying westcampus's own corrected heights so Rambler's does not drop.
+
+**The gate, `scripts/verify/slopes-layer.mjs` section 2b:** built (blocks,
+faces, windows, balconies, signs, ≥20,000 triangles, a group of its own,
+the top between 58 and 59 m), the filters in place while it draws, one page
+shot twice is one frame, ON vs OFF differs at the pose, `APARTMENTS.on =
+false` removes the group and restores every filter it touched (compared by
+content — buildings-3d's filter is also edited by the stadium and westcampus
+passes whose clause order is a race, so the generator's one-id clause must be
+gone and the id must appear exactly as often as on the `?apartments=0` page;
+wc-wall's filter, which has no race, byte-identical), the runtime-off frame
+equals the `?apartments=0` frame to the atlas residue, and with `--against`
+the `?apartments=0` frame equals the main archive's at the pose. `--break`
+gains a sixth sabotage (`APARTMENTS.on = false` before the ON frame) and its
+count goes from 12 to 14.
+
+**The gate on hardware (RTX 3050 Ti, `VERIFY_GL=hardware`), first run:
+53/56.** Every apartments line green but one: built (9 blocks, 55 faces,
+1,584 windows, 26 balconies, 4 signs, 46,483 triangles, top 58.2), filters in
+place, one page shot twice 0 px, ON vs OFF 308,875 of 1,296,000 px (max Δ
+207), the restore exact (group gone, one-id clause gone, the id ×1 vs ×1,
+wc-wall identical). The red one held the runtime-off frame against the
+`?apartments=0` load to the atlas residue (≤ 1,200 px, Δ ≤ 16) and measured
+933 px at Δ 51 — the wrong contract for a runtime-off page against a load,
+which the switch section itself measures at mall-cruise at 6,134 px / Δ 78
+and holds to a 7,000 px ceiling; the line uses that ceiling now (`ded2267`
+→ the fix commit) and quotes its 933. The other two reds: the shared scene
+line asked for four groups and found five (the apartments group is now in
+`WANT_GROUPS`), and the 404 for `js/slopes-art.js` on every page load — the
+other builder's file, whose tag this lane committed per the brief. **Second run, `--against` a `git archive main` served on a second port:
+56/58**, every apartments line green — built, filtered, one page shot twice
+0 px, ON vs OFF 308,875 px, the restore exact, the runtime-off frame 933 px
+under the 7,000 ceiling — except the archive comparison itself:
+`?apartments=0` against the archive's frame at the pose was 23,584 px at
+Δ 115. Diffed with a bounding box: 23,572 of them in the top 300 rows and 12
+elsewhere — the horizon, nothing on The Standard. First read as the ridge
+courses main still draws; a third run with the archive page's courses
+switched off reproduced the identical 23,584, which is what showed the
+archive had no `SLOPES_ROOFS` at all: this worktree's local `main` ref is
+`e232953`, the PRE-slopes main — the very build the gate's own bake-identity
+lines are written against (`?slopes=0` must equal it, so it must carry no
+layer) — and the horizon difference is mesh roofs against slab roofs. The
+branch was cut from `8b4b90c`, main with the slopes layer and the courses
+on. So the block asks two questions now (`9d5a56c`, then the flag commit):
+`--against-tip URL` is a `git archive 8b4b90c`, whose page gets its courses
+switched off before its frame (this line is about the apartments switch;
+the `courses` line owns the courses), and ours at `?apartments=0` must be it
+to the atlas residue; against the pre-slopes `--against` archive the honest
+question is the bake-identity one, ours at `?apartments=0&slopes=0` equal to
+it at this pose. **Fourth run, both archives served (`--against http://127.0.0.1:8462`
+the pre-slopes `e232953`, `--against-tip http://127.0.0.1:8463` the branch
+base `8b4b90c`): 58/59.** Every apartments line green; both archive lines 0
+of 1,296,000 pixels, max channel Δ 0 — with the switch off the picture is
+what main draws, to the pixel, and with the layer off too the data, the
+index and the tags changed nothing the slabs draw at this pose. The one red
+is the 404 below. Runs: 53/56, 56/58, 56/58, 58/59 — RTX 3050 Ti, hardware
+GL, the pose loaded fresh for every frame.The other red on every run is the 404 for
+`js/slopes-art.js`, the other builder's file, whose tag the brief asked this
+lane to commit first; it goes green the moment that file lands.
+
+**`westcampus-probe.mjs` on hardware: 19/21.** The two reds are not this
+lane's: `all three layers visible` fails because `js/lod.js` line 91 tiers
+`wc-wall-cap` and the probe's pose (zoom 16.1) is above that tier's altitude
+— the probe run against a `git archive main` (e232953) served on a second port gives the same red, 20/21 — and `no console errors` is the 404 for `js/slopes-art.js`,
+the other builder's file, whose tag the brief asked this lane to commit
+first. The probe's own height line (`nothing stands above final_height`)
+passes: the generator changes neither the westcampus file nor the buildings
+source.
+
+**Next buildings**, from the round's ranked list (`scratchpad apts/list`):
+the twelve after The Standard, biggest first, mixing the 24 TIER-authored
+West Campus towers (their `bake_westcampus.py` entries are a sourced head
+start for the deck and the palette, and a warning about the massing) with
+the big unauthored ones — Jester West, The Villas on Guadalupe, San Jacinto
+Hall, Kinsolving, Jester East, GrandMarc, The Mark. The method is in
+`docs/apartments.md` ("Authoring a building when OSM has one outline"): one
+outline in, the frame line off the console, a stated storey count, a
+rectified nadir for the plan, two obliques and the photographs for the
+faces, inherited numbers kept only where they land on the imagery, tones
+from existing crops before new samples, the podium split where its height
+changes and shared faces skipped, two looks beside the reference.
+
+**Not done, said plainly.** No street-level Google Earth pose (the research
+pass found it stalls at this block; the corner photograph stood in). Tower
+B's and the bars' heights are ±1 storey off the mesh. The corner bay's
+glazed corner stack, the deck's furniture and palms, and the courtyard
+paving are not drawn. The `byPreset` density is reserved, not wired: the
+generator rebuilds on a preset change but draws the same geometry.
+`applyWestcampusSettings()` (the perf A/B, nothing on the site) rewrites
+buildings-3d's filter from its own snapshot and would drop this generator's
+clause until the next `applySlopesApartments()`.
+
+Branch `acer/apts`; commits `2cc1b29` (tags + courses off), `66ce475` (the
+generator and the data), `e170560` (the second and third look, the doc, the
+frames), `ded2267` (the gate block), `5866e0a` (the against page settling
+at once — its message claims two more edits that a failed patch did not
+apply, and the shell ate two backticked phrases in it; `45918c7` is those
+two edits, said plainly), `312fe80` (the doc's before/after pair from the
+gate's own frames), `9d5a56c` (the against page in this branch's courses
+state). Working frames stayed in the scratchpad; the six the doc cites are
+in `docs/shots/` as JPEGs under 170 KB each.
+
 ## 216. Sep 4 2026 — the real-slopes pass shipped: `docs/real-slopes.md`, the cited frames, the PR, and the live site checked with our own eyes (`acer/slopes` → `main`)
 
 Nothing in `js/`, `data/`, `index.html` or `scripts/` changed in this entry.

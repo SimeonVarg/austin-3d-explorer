@@ -142,14 +142,16 @@
  *             a raycast at each flat entry's centroid does not land on the
  *             mesh at the plate's exact height, and the cap wrapper carries
  *             a deck branch.
- *   courses   (round 6, 2026-09-03) every roof carries its ridge, hip and
- *             valley courses (SLOPES_ROOFS.lines — the pale lines a barrel-
- *             tile roof shows from the air, which are what makes a hip read
- *             as a hip at mall-cruise, where a far slope is four pixels).
- *             Measured at mall-cruise on the plain four-corner hips in
- *             frame: a raycast at the ridge lands on the mesh `h` above the
- *             ridge, and the ridge's pixel column is lighter than both
- *             slopes 4 m either side; the generators report the count.
+ *   courses   (round 6, 2026-09-03; INVERTED 2026-09-05) no roof carries a
+ *             ridge, hip or valley course. Round 6 drew them (SLOPES_ROOFS
+ *             .lines — the pale lines a barrel-tile roof shows from the air);
+ *             seen on the city they read as lines drawn on the roofs, and
+ *             the owner rejected them. So the line now asserts their ABSENCE:
+ *             lines.on is false, the generators count zero, a raycast at
+ *             every plain hip's ridge in the mall-cruise frame lands ON the
+ *             bare ridge (never above it), and the ridge column does not
+ *             carry the courses' signature (lighter than both slopes on
+ *             three quarters of the hips in view).
  *
  * --break sabotages the page — inside the page only, no file on disk changes —
  * in the five ways this gate exists to catch, and TWELVE lines must go red:
@@ -161,11 +163,16 @@
  *      this gate already got wrong once, so they are the ones worth watching.
  *   3. SLOPES_ROOFS.flatRoofs = false on the switch page, so every flat roof
  *      wears its band and plate again: the `flat roofs` line (1).
- *   4. SLOPES_ROOFS.lines.on = false on the same page, so no roof carries a
- *      course: the `courses` line (1).
+ *   4. SLOPES_ROOFS.lines.on = true on the same page, so every roof carries
+ *      its courses again: the `courses` line (1).
  *   5. data/entrances.geojson is fetched a second time from the page, which is
  *      exactly what js/slopes-arches.js did until 2026-09-04: the `one fetch`
  *      line (1).
+ *   6. APARTMENTS.on = false on the apartments page before its ON frame, so
+ *      The Standard is the flat prism and the westcampus bands again while
+ *      the gate expects the mesh: the `apartments:` build, filter and
+ *      ON-vs-OFF lines (3). (Added 2026-09-05 with section 2b; the count
+ *      below is 15 with it.)
  * Use it before trusting a green. Measured 2026-09-02, hardware GL:
  * 38/47 with --break (no --against) against 48/48 without; 2026-09-03 with
  * the flat line: 38/48 with --break (the ten intended reds and nothing
@@ -173,11 +180,15 @@
  * line: see HANDOFF §213 for the pair.
  *
  * Usage (from scripts/verify, README's way):
- *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break] [--against URL]
+ *   VERIFY_URL=http://127.0.0.1:8442 node slopes-layer.mjs [--shots DIR] [--break]
+ *        [--against URL] [--against-tip URL] [--against-nogen URL]
  *
  *   --shots DIR     save the proof frames (never into the repo; the scratchpad)
  *   --against URL   a second server (e.g. a pristine main export) whose
  *                   mall-cruise frame the ?slopes=0 frame must equal
+ *   --against-nogen URL  THIS COMMIT with both new generators taken out; the
+ *                   archive the three switch-against-main lines run against
+ *                   since 2026-09-06. See its own comment below.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -190,6 +201,40 @@ const arg = k => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : null
 const BREAK = argv.includes('--break');
 const SHOTS = arg('--shots');
 const AGAINST = arg('--against');
+// --against-tip URL: a `git archive` of the commit this branch was cut from
+// (8b4b90c on 2026-09-05 — main WITH the slopes layer), for the apartments
+// line that asks "with the switch off, is the picture what main draws?".
+// --against stays the pre-slopes main the bake-identity lines are written
+// for (its `?slopes=0` contract needs a build with no layer at all).
+const AGAINST_TIP = arg('--against-tip');
+// --against-nogen URL: an archive of THIS COMMIT with the two generators this
+// branch adds taken OUT of it — js/slopes-apartments.js and js/slopes-art.js
+// emptied, data/apartments/ and data/art3d/ deleted:
+//     git archive HEAD | tar -x -C DIR
+//     rm -rf DIR/data/apartments DIR/data/art3d
+//     : > DIR/js/slopes-apartments.js ; : > DIR/js/slopes-art.js
+//     python scripts/serve.py 8618 DIR
+// It carries this branch's OWN re-baked data (heroes and entrances, entry 218;
+// ground and props, 219; GDC, 224; the kerb, 225) and every other lane's js, so
+// a frame-to-frame comparison against it varies EXACTLY ONE THING: whether
+// these two generators exist.
+//
+// WHY IT HAD TO EXIST (2026-09-06). The three lines below used to point at main
+// — --against-tip 8b4b90c and --against e232953 — and by the end of this branch
+// all three were RED at six-figure pixel counts. NONE of those numbers was
+// about a switch. This branch re-baked the doors, the ground, the kerbs and
+// GDC's own walls before either generator ever drew, so "with the switch off
+// the picture is main's" had quietly stopped being a statement about the switch
+// and become a statement about the rest of the branch. A switch line must vary
+// one thing; against main this one varied five. art-slopes.mjs's header reached
+// the same conclusion a day earlier, from the same cause, and built the same
+// kind of archive — this is that idea applied to the other two lines.
+//
+// The main archives are still served and still MEASURED when they are given;
+// their numbers print as context beside the gate line instead of being asserted,
+// because what they measure is the rest of the branch and there are other gates
+// for that (wallplane-off.mjs, kerbmeter.py, ground-probe.mjs).
+const AGAINST_NOGEN = arg('--against-nogen');
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
 const W = 1440, H = 900;
@@ -213,7 +258,7 @@ const zoomFor = (alt, pitch, lat) => {
 // was red on 2026-09-02 against a filter that was right. A regex that cannot
 // match is a guard that cannot pass, which is the same defect as one that
 // cannot fail (README: "every gate must be watchable failing").
-const ROOFS_FILTER_RE = /^\["match",\["get","f"\],\[/;
+const ROOFS_FILTER_RE = /^(\["all",)?\["match",\["get","f"\],\[/;   // js/slopes-apartments.js wraps it in ['all', keep, its distance clause] while it draws (2026-09-06)
 
 // THE ARCH IS A CURVE — and the stand-in it replaces is not a five-sided
 // polygon, it is a STAIRCASE. scripts/bake_entrances.py draws an arched head
@@ -298,20 +343,19 @@ const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' tw
 // The generator groups the scene must hold on a plain page: the campus
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
-const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower'];
-// THE COURSES (round 6, 2026-09-03). "Almost every red roof reads as a flat
-// plateau with a bevelled rim (a truncated pyramid), not two slopes meeting
-// at a ridge" — on a mesh whose roofs already ran to their ridges. From the
-// mall-cruise camera a far slope is four pixels and nothing marked the
-// ridge; a barrel-tile roof marks it with a ridge course and hip courses,
-// pale from the air (Google's Garrison at the same pose). SLOPES_ROOFS.lines
-// draws them as boxes standing `h` proud of the ridge, so at every plain
-// hip in frame a raycast at the ridge lands on the mesh `h` ABOVE the ridge
-// (not on the ridge itself), and the ridge's pixel column reads lighter
-// than both slopes 4 m either side. Measured on the first run: 1,780 courses
-// on the campus rig, 22 on the Main Building; the ridge column 114-135 luma
-// over slopes of 60-114. --break switches the courses off.
-const COURSES_MIN = 1000;         // campus courses, measured 1,780
+const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower', 'slopes-apartments', 'slopes-art'];   // + the apartments generator, 2026-09-05; + the art lane's group, 2026-09-06
+// THE COURSES (round 6, 2026-09-03; OFF since 2026-09-05). Round 6 drew a
+// ridge course and hip courses on every roof (SLOPES_ROOFS.lines: boxes
+// standing `h` proud of the ridge, pale), because from mall-cruise a far
+// slope is four pixels and nothing marked the ridge. Seen on the city they
+// read as pale lines drawn on the roofs, not as tile, and the owner rejected
+// them: lines.on is false by default now. The same measurement runs in the
+// other direction — at every plain hip in frame a raycast at the ridge lands
+// ON the bare ridge (nothing stands proud of it), the generators count zero
+// courses, and the ridge column does not carry the courses' signature
+// (lighter than both slopes on ≥ COURSE_FRAC of the hips in view — 114-135
+// luma over 60-114 when they were on). --break switches the courses back ON,
+// which must turn this line red.
 const COURSE_Z_TOL = 0.06;        // m; a raycast at the ridge may land at most this much above ridge + h
 const COURSE_LUMA = 10;           // /255; the ridge column must beat the brighter slope sample by this
 const COURSE_FRAC = 0.75;         // ...on this share of the plain hips in frame (a 1-px course lands on one row or the next)
@@ -632,12 +676,13 @@ const gen = await page.evaluate(() => {
 // Auditorium, Seay, the three Jesters) and writes their parts as roofs of
 // their own (count.parts, 11) — so `roofs` counts the entries DRAWN (115:
 // 112 + 11 parts − 8 flat) and `full` the ones to a ridge (104).
-// Since round 6 (same day) every roof also carries its ridge, hip and valley
-// COURSES (count.lines — 1,780 on the shipped rig, 22 more on the Main
-// Building's three arms; SLOPES_ROOFS.lines).
-check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts, all of them with their courses), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
-  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.lines >= COURSES_MIN && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
-  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines >= 12
+// Round 6 (same day) gave every roof its ridge, hip and valley COURSES
+// (count.lines — 1,780 on the shipped rig, 22 more on the Main Building's
+// three arms); since 2026-09-05 they are OFF (SLOPES_ROOFS.lines.on = false,
+// rejected on sight) and both counts must be zero.
+check('the generators built: roofs + gable (most of them to a ridge, the flat ones as their parts, none of them with a course), 24 arches, 3 dome parts, the three hips of the Main Building, each a group in the scene',
+  gen.roofs.roofs >= 100 && gen.roofs.full >= 80 && gen.roofs.flat >= 4 && gen.roofs.parts >= 6 && gen.roofs.lines === 0 && gen.roofs.gables === 1 && gen.arches.arches === 24 && gen.dome.parts === 3
+  && gen.roofs.extra && gen.roofs.extra['slopes-tower'] && gen.roofs.extra['slopes-tower'].roofs === 3 && gen.roofs.extra['slopes-tower'].lines === 0
   && WANT_GROUPS.every(n => gen.names.includes(n)),
   `${gen.roofs.roofs} roofs (${gen.roofs.full} to their ridge; ${gen.roofs.flat} flat, drawn as ${gen.roofs.parts} parts; ${gen.roofs.lines} courses) + ${gen.roofs.gables} gable (${gen.roofs.triangles} tris, ${gen.roofs.ms} ms), ${gen.arches.arches} arches (${gen.arches.triangles} tris), ${gen.dome.parts} dome parts (${gen.dome.triangles} tris), tower ${JSON.stringify(gen.roofs.extra && gen.roofs.extra['slopes-tower'])}; groups ${gen.names.join(', ')}`);
 // ONE FETCH. data/entrances.geojson is 6.4 MB on the wire and TWO passes want
@@ -892,11 +937,12 @@ const A = await mallFrame(`${SERVER}/index.html?intro=0&drift=0`, 'switch-on', a
   if (BREAK) {
     // the round-5 sabotage: the band-and-plate back on every flat roof, so
     // the `flat roofs` line below must go red (the plate is back at its height)
-    // ...and the round-6 sabotage: no courses, so the `courses` line below
-    // must go red (the raycast lands on the bare ridge, nothing pale there)
-    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); });
+    // ...and the round-6 sabotage, flipped on 2026-09-05 with the default:
+    // the courses back ON, so the `courses` line below must go red (the
+    // raycast lands above the ridge again, and the ridge column is pale)
+    await pg.evaluate(() => { window.SLOPES_ROOFS.flatRoofs = false; window.SLOPES_ROOFS.lines.on = true; window.slopesRoofs.rebuild(); });
     await pg.waitForTimeout(800);
-    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again; SLOPES_ROOFS.lines.on = false — no ridge or hip courses');
+    console.log('--break: SLOPES_ROOFS.flatRoofs = false — the flat roofs wear their band and plate again; SLOPES_ROOFS.lines.on = true — the ridge and hip courses turned back on');
   }
 });
 const fNoise = await snap(A.pg, 'switch-on-again');
@@ -937,9 +983,10 @@ const plated = flat.out.filter(f => f.hit && f.hit.o === 'roofs' && Math.abs(f.h
 check('flat roofs (round 5): the bake tagged some, their parts draw as hips, no flat roof in frame wears a plate at the top of a band, and the cap wrapper paints their caps the flat roof\'s colour',
   flat.count.flat >= 4 && flat.count.parts >= 6 && flat.out.length >= 2 && plated.length === 0 && flat.deckBranches >= 1,
   `${flat.count.flat} flat roofs, ${flat.count.parts} parts drawn; in frame: ${flat.out.map(f => `${f.name} @${f.px.join(',')} plate ${f.plate} -> ${f.hit ? f.hit.o + '@' + f.hit.z : 'nothing'}`).join('; ')}; ${plated.length} plated; cap wrapper deck branches ${flat.deckBranches}`);
-// THE COURSES (round 6): on every plain hip in the mall-cruise frame (four
-// corners, drawn to its ridge), the longest ridge's midpoint and a point 4 m
-// down each slope, from the rig's own `full` profile. See COURSES_MIN above.
+// THE COURSES (round 6, now OFF): on every plain hip in the mall-cruise
+// frame (four corners, drawn to its ridge), the longest ridge's midpoint and
+// a point 4 m down each slope, from the rig's own `full` profile. See the
+// COURSE_* constants above: the assertion now runs the other way.
 const courses = await A.pg.evaluate(RIDGE_PX => {
   const S = window.slopes, R = window.slopesRoofs.data, meta = R.meta, cv = window.__map.getCanvas();
   const LN = window.SLOPES_ROOFS.lines;
@@ -993,8 +1040,12 @@ const courses = await A.pg.evaluate(RIDGE_PX => {
   });
   const seen = rows.filter(r => !r.occluded && r.slopes != null);
   const nLit = seen.filter(r => r.lit).length, nProud = seen.filter(r => r.proud).length;
-  check('courses (round 6): the plain hips in frame carry a ridge course — a raycast at the ridge lands on the mesh above the ridge (no more than h above it), and the ridge column reads lighter than the slopes',
-    courses.count >= COURSES_MIN && seen.length >= 4 && nProud >= Math.ceil(seen.length * COURSE_FRAC) && nLit >= Math.ceil(seen.length * COURSE_FRAC),
+  // With the courses off, h is 0 and `proud` means "the raycast landed ABOVE
+  // the bare ridge" — impossible on a hip with nothing standing on it. `lit`
+  // on three quarters of the hips is the courses' own signature; below that
+  // is aliasing and whatever stands behind a foreshortened far slope.
+  check('courses (round 6, now OFF): no roof carries a ridge or hip course — lines.on is false, the generators count zero, the raycast at every named ridge lands on the bare hip, never above it, and the ridge column does not read lighter than the slopes the way a course did',
+    courses.count === 0 && courses.on === false && seen.length >= 4 && nProud === 0 && nLit < Math.ceil(seen.length * COURSE_FRAC),
     `${courses.count} courses (lines.on ${courses.on}, h ${courses.h}); ${rows.length} plain hips in frame with a ridge ≥ ${COURSE_RIDGE_PX} px, ${seen.length} with the ridge in view, ${nProud} with the ridge proud, ${nLit} lighter at the ridge: ` + rows.map(r => `${r.name} @${r.px[0].join(',')} (${r.ridgePx} px) ridge ${r.zRidge} -> ${r.hit ? r.hit.o + '@' + r.hit.z : 'nothing'} (want ≤ ${r.zWant})${r.occluded ? ' OCCLUDED' : ''}, luma ridge ${r.ridge.toFixed(0)} vs slopes ${r.slopes == null ? 'n/a' : r.slopes.toFixed(0)}`).join('; '));
 }
 // THE OLD CONTRACT WAS `root.children === 0` — written the day the layer was
@@ -1002,7 +1053,7 @@ const courses = await A.pg.evaluate(RIDGE_PX => {
 // page the scene is the three generator groups and nothing else (the debug
 // scene only exists under ?slopesdebug=1).
 // (WANT_GROUPS is declared with the gate's constants at the top of the file)
-check('by default the layer is installed and the three generators are the whole of its scene',
+check('by default the layer is installed and the generators\' groups are the whole of its scene',
   onState.layer && onState.frames > 0 && onState.renderer
   && onState.groups.length === WANT_GROUPS.length && WANT_GROUPS.every(n => onState.groups.includes(n)),
   `layer ${onState.layer}, frames ${onState.frames}, renderer ${onState.renderer}, groups [${onState.groups.join(', ')}]`);
@@ -1024,7 +1075,20 @@ const inert = await A.pg.evaluate(async () => {
 });
 const fInert = await snap(A.pg, 'switch-off-render-stopped');
 await A.pg.evaluate(() => { window.__map.setLayoutProperty('slopes-mesh', 'visibility', 'visible'); window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+// AND WAIT FOR THE SAME CONDITION THE FIRST FRAME WAITED FOR (2026-09-06).
+// This line used to shoot 1,500 ms after the switch, and it was RED at 8,965
+// px, max channel Δ 121, with the deep pixels lying on the Main Building's
+// three hips beside the Tower. It was not a restore failure and it was not a
+// colour: 6,115 of those 6,126 deep pixels were EXACTLY the OFF frame's, pixel
+// for pixel. The Main Building's hips come from the tower bake's rig, which
+// js/slopes-roofs.js builds on its OWN POLL - `extras.every(x => x.ready)`,
+// the condition `settled()` above already waits for before the first frame -
+// and a poll does not finish inside 1.5 s. So the gate was comparing a settled
+// page against a half-built one and calling the difference a broken switch.
+// Same settle on both sides, or the comparison is not one.
 await A.pg.evaluate(() => { window.SLOPES.on = true; window.__map.triggerRepaint(); }); await A.pg.waitForTimeout(1500);
+await settled(A.pg).catch(() => {});
+await A.pg.waitForTimeout(2500); await A.pg.evaluate(() => window.__settle(4000));
 const fOn2 = await snap(A.pg, 'switch-live-on2');
 await A.pg.close();
 
@@ -1098,23 +1162,470 @@ check('...and NONE of that is the mesh: stopping the layer\'s render() altogethe
 // the layer switched off at LOAD has to be main. Serve `git archive main` on a
 // second port and pass it as --against; 0 px is the contract, and it holds
 // because neither page carries the custom layer.
-if (AGAINST) {
+if (AGAINST_NOGEN) {
+  const D = await mallFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'against-nogen');
+  await D.pg.close();
+  const d3 = diffPNG(C.f, D.f);
+  check('?slopes=0 is the SAME COMMIT built without the two generators this branch adds (--against-nogen) — the two script tags and their data change nothing while the layer is off', zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
+  if (AGAINST) {
+    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+    await D2.pg.close();
+    const d4 = diffPNG(C.f, D2.f);
+    console.log(`   (context, not a gate line) ?slopes=0 against the pre-slopes main archive: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — this branch re-baked heroes, entrances, ground and props, so this is those bakes and not the slopes layer.`);
+  }
+} else if (AGAINST) {
   const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check(`?slopes=0 is the build at ${AGAINST}, to the pixel or the atlas residue (the bake changed nothing the slabs draw)`, zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
 } else {
-  console.log('   (no --against: the bake-identity line was not run)');
+  console.log('   (no --against and no --against-nogen: the bake-identity line was not run)');
 }
 if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
 
+
+// ═══════════════════════════════════════════════════════════════════════
+// 2b. The apartments generator (js/slopes-apartments.js): The Standard.
+// ═══════════════════════════════════════════════════════════════════════
+// The first building authored from sources rather than baked from a tag
+// (data/apartments/the-standard.json, docs/apartments.md). Measured at the
+// brief's Google Earth pose, @30.28699,-97.74578,190a,220d,35y,45h,55t —
+// the oblique from the south-west, 220 m out at 55° — carried to MapLibre
+// as zoom 18.66 (camera distance 1.5·900 px · 67,580/2^z m, the same
+// height→zoom arithmetic the mall-cruise pose was matched with).
+//
+// What is asserted: the generator built the building (its blocks, faces,
+// windows, balconies and signs, in a group of its own), the flat prism's id
+// is filtered out of buildings-3d and buildings-roof and the westcampus
+// bands out of the four wc- layers while it draws; ON and OFF differ at the
+// pose (so it is drawing something big); APARTMENTS.on = false at runtime
+// removes the group and restores every filter it touched to what a page
+// loaded with ?apartments=0 carries; and, with --against, ?apartments=0
+// equals the main archive's frame at the pose to the atlas residue — the
+// bake-identity contract, for this generator.
+//
+// The filters are compared by CONTENT, not byte-for-byte: buildings-3d's
+// filter is also edited by the stadium and westcampus passes, whose clauses
+// land in whichever order their fetches resolve (js/westcampus.js records
+// the race), so two page loads can legitimately carry the same clauses in a
+// different order. The generator's own clause is a one-id literal; the
+// westcampus clause holds the same id among 24. Off, the one-id literal must
+// be gone and the id must appear exactly as often as on the ?apartments=0
+// page (once: westcampus's); wc-wall's filter has no such race and is
+// compared exactly.
+const STANDARD = { center: [-97.74578, 30.28699], zoom: 18.66, pitch: 55, bearing: 45 };
+const APT_ID = '36365d18-2eb6-43c5-b042-6197e7767e17';
+const APT_NAME = 'The Standard';
+const SJ_ID = '93cc2567-aa16-4909-ace6-fa13ff385bde';   // San Jacinto Hall: the one authored building data/roofs.geojson carries a rig for
+const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced preset)
+const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
+// How deep the runtime-off frame may differ from a ?apartments=0 load. The
+// mesh's own ON-vs-OFF delta at this pose reaches Δ 147 over half a million
+// pixels; the two things that legitimately move between an aged page and a
+// fresh one - the sun over a few minutes (Δ 17, measured) and the facade
+// atlas' two-state phase (Δ 12, ATLAS_RESIDUE_DELTA) - come nowhere near it.
+const APT_SWITCH_DELTA = 60;         // measured 51, all of it in one place label
+const APT_SWITCH_DEEP_TOL = 24;      // a channel that moved more than this is "deep" (doorstack.mjs' own threshold)
+const APT_SWITCH_DEEP_PX = 2000;     // deep pixels over the control's own: measured 89 against a floor of 171
+// the generator's own clause: one literal of every replaced id (24 on 2026-09-06), read off the page's data
+const ownClause = ids => JSON.stringify(['!', ['in', ['get', 'id'], ['literal', ids]]]);
+const countOf = (str, sub) => str.split(sub).length - 1;
+// A page that never loaded the generator (the --against archive) settles the
+// moment the layer draws; ours waits for the build to finish.
+const settledApts = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
+  && (!window.slopesApartments || window.slopesApartments.count.done), null, { timeout: 120000 });
+const aptState = pg => pg.evaluate(([id, name, SJ_ID]) => {
+  const m = window.__map, A = window.slopesApartments, R = window.slopesRoofs;
+  const filt = k => JSON.stringify(m.getFilter(k) || null);
+  const st = window.slopes ? window.slopes.stats().groups.find(g => g.name === 'slopes-apartments') : null;
+  return { count: A ? A.count : null, built: A ? A.built : [], filtered: A ? A.filtered : null,
+           on: !!(window.APARTMENTS && window.APARTMENTS.on),
+           indexed: A && A.data ? A.data.buildings.length : 0,
+           ids: A && A.data ? A.data.replacedBuildingIds : [],
+           hidden: A ? A.hidden : null, glyphs: A ? A.glyphs : [],
+           // the rig entries js/slopes-roofs.js holds for San Jacinto Hall (null: that generator has not booted)
+           rigKeys: R && R.data && R.data.roofs ? Object.keys(R.data.roofs).filter(k => k.indexOf(SJ_ID) === 0) : null,
+           b3d: filt('buildings-3d'), roof: filt('buildings-roof'), wc: filt('wc-wall'), wcCap: filt('wc-wall-cap'), wcSolid: filt('wc-solid'), wcDetail: filt('wc-detail'),
+           storeys: m.getLayer('campus-storeys') ? filt('campus-storeys') : null, rdeck: m.getLayer('roofscape-deck') ? filt('roofscape-deck') : null,
+           groups: window.slopes ? window.slopes.root.children.map(g => g.name) : [], tris: st ? st.triangles : 0, visible: st ? st.visible : false };
+}, [APT_ID, APT_NAME, SJ_ID]);
+// The roofscape deck baked over Regents West at Overture's height (b 25.9,
+// h 26.15 in data/roofscape.geojson; the building's own roof is at 18.4 m)
+// is queried at a NADIR: queryRenderedFeatures on a fill-extrusion answers
+// for the whole extruded volume along the view ray, and at pitch 55 a
+// neighbour's deck at 17 m sits on the ray to this courtyard — the first
+// probe of this line, on 2026-09-05, was reading that one.
+const REGENTS = { center: [-97.7474096, 30.2884988], zoom: 18.6, pitch: 0, bearing: 0 };
+const REGENTS_DECK_B = 25.9;
+async function regentsDecks(pg) {
+  await pose(pg, REGENTS.center, REGENTS.zoom, REGENTS.pitch, REGENTS.bearing);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(c => {
+    const m = window.__map, p = m.project(c);
+    const q = m.queryRenderedFeatures(p, { layers: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'].filter(l => m.getLayer(l)) });
+    return q.map(f => ({ layer: f.layer.id, k: f.properties.k, b: f.properties.b }));
+  }, REGENTS.center);
+}
+const regentsDeckIn = decks => decks.some(d => d.layer === 'roofscape-deck' && Math.abs(d.b - REGENTS_DECK_B) < 0.3);
+const fmtDecks = decks => decks.length ? decks.map(d => `${d.layer} ${d.k} b ${d.b}`).join(', ') : 'none';
+async function standardFrame(url, name, before) {
+  const pg = await open(url);
+  await settledApts(pg).catch(() => {});
+  if (before) await before(pg);
+  await pose(pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);
+  await pg.waitForTimeout(3000); await pg.evaluate(() => window.__settle(4000));
+  return { pg, f: await snap(pg, name) };
+}
+let regentsOn = [], regentsOff = [];
+const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
+  if (BREAK) {
+    await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
+    await pg.waitForTimeout(800);
+    console.log('--break: APARTMENTS.on = false — The Standard is the flat prism and the westcampus bands again');
+  }
+  regentsOn = await regentsDecks(pg);
+});
+const apts = await aptState(AP.pg);
+const c = apts.count || {};
+check('apartments: every building in the index is built — The Standard among them, its blocks, faces, windows, balconies and signs, in a group of its own that is drawing',
+  c.done && c.buildings === apts.indexed && apts.indexed >= 1 && c.blocks >= 8 && c.faces >= 40 && c.windows >= 1000 && c.balconies >= 20 && c.signs >= 4 && c.triangles >= APT_TRIS_MIN
+  && apts.groups.includes('slopes-apartments') && apts.tris >= APT_TRIS_MIN && apts.visible && apts.built.some(b => b.name === APT_NAME && b.top > 58 && b.top < 59),
+  `${c.buildings} of ${apts.indexed} indexed building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.roofs} pitched roofs, ${c.insets} recesses, ${c.frames} framed windows, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); The Standard top ${JSON.stringify((apts.built.find(b => b.name === APT_NAME) || {}).top)}`);
+check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, the westcampus bands out of the four wc- layers by name, campus-storeys by host, and the roofscape pass by geometry — every planned clause in place',
+  apts.filtered === true && apts.b3d.includes(ownClause(apts.ids)) && apts.roof.includes(ownClause(apts.ids))
+  && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME))
+  && apts.hidden && apts.hidden.plan.includes('roofscape-deck') && apts.hidden.missing.length === 0
+  && (apts.storeys === null || apts.storeys.includes(APT_ID)) && !!apts.rdeck && apts.rdeck.includes('distance'),
+  `filtered ${apts.filtered}; own clause (${apts.ids.length} ids) in buildings-3d ${apts.b3d.includes(ownClause(apts.ids))}, buildings-roof ${apts.roof.includes(ownClause(apts.ids))}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}; campus-storeys ${apts.storeys === null ? 'not on the page' : (apts.storeys.includes(APT_ID) ? 'carries the host clause' : 'MISSING the host clause')}; roofscape-deck ${apts.rdeck ? (apts.rdeck.includes('distance') ? 'carries the distance clause' : 'MISSING the distance clause') : 'not on the page'}; planned ${apts.hidden ? apts.hidden.plan.join(' ') : '-'}; missing ${apts.hidden ? (apts.hidden.missing.join(' ') || 'none') : '-'}`);
+check('apartments: the tiled roof data/roofs.geojson baked over San Jacinto Hall on Overture\'s 28.1 m is lifted out of slopes-roofs while the generator draws',
+  apts.rigKeys !== null && apts.rigKeys.length === 0 && apts.hidden && apts.hidden.rigs.some(k => k.indexOf(SJ_ID) === 0) && apts.hidden.rigsMissing.length === 0,
+  `slopes-roofs ${apts.rigKeys === null ? 'has no data (not booted)' : 'holds ' + apts.rigKeys.length + ' San Jacinto entries'}; lifted out: ${apts.hidden ? apts.hidden.rigs.join(' ') || 'none' : '-'}; still to lift: ${apts.hidden ? apts.hidden.rigsMissing.join(' ') || 'none' : '-'}`);
+const wantGlyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
+const lackGlyphs = wantGlyphs.filter(g => !apts.glyphs.includes(g));
+check('apartments: the dot font sets the whole alphabet and the digits — MOONTOWER has its W — and no sign asked for a character it lacks',
+  lackGlyphs.length === 0 && c.signMissing === 0,
+  `${apts.glyphs.length} glyphs, lacking ${lackGlyphs.join('') || 'nothing'}; ${c.signMissing} characters missed by the signs drawn`);
+check('apartments: the roofscape deck baked over Regents West at Overture\'s height is hidden while the generator draws (a nadir query at the courtyard finds no deck at b 25.9)',
+  BREAK ? regentsDeckIn(regentsOn) : !regentsDeckIn(regentsOn),
+  `at the nadir over Regents West: ${fmtDecks(regentsOn)}`);
+const fAptAgain = await snap(AP.pg, 'apts-on-again');
+// Two tests that rebuild the mesh in place and put it back: a sign on a face
+// is drawn once per face, whatever cuts the wall into pieces (THE MARK was
+// five times across one block, once per override piece, until 2026-09-05),
+// and floorsBetween keeps or drops the storey a band starts in and says so.
+const signTest = await AP.pg.evaluate(name => {
+  const A = window.slopesApartments;
+  const b = A.data.buildings.find(b => b.name === name), blk = b && b.blocks.find(k => k.id === 'cornerBay');
+  if (!blk) return null;
+  const before = A.count.signs;
+  const had = blk.overrides;
+  blk.overrides = (had || []).concat([{ region: [84, 88, 0, 11], bands: [{ z0: 0, z1: 21.5, skin: 'charcoalBlank' }] }]);
+  A.rebuild();
+  const after = A.count.signs;
+  if (had) blk.overrides = had; else delete blk.overrides;
+  A.rebuild();
+  return { before, after, restored: A.count.signs };
+}, APT_NAME);
+check('apartments: a sign on a face is drawn once per face, not once per wall piece — an override that cuts THE STANDARD\'s signed corner-bay face into three leaves the sign count where it was',
+  !!signTest && signTest.after === signTest.before && signTest.restored === signTest.before,
+  signTest ? `${signTest.before} signs, ${signTest.after} with the face cut in three, ${signTest.restored} restored` : 'no cornerBay block to cut');
+const floorTest = await AP.pg.evaluate(() => {
+  const A = window.slopesApartments, n0 = A.count.warnings.length;
+  const kept = A.floorsBetween([0, 3, 6, 9], 3.5, 12, 'gate-kept|x');
+  const dropped = A.floorsBetween([0, 3, 6, 9], 5.0, 12, 'gate-dropped|x');
+  return { kept, dropped, warned: A.count.warnings.slice(n0) };
+});
+check('apartments: floorsBetween keeps the storey a band starts in when it starts within APARTMENTS.floorSlack of its floor line, drops it beyond that, and warns either way',
+  floorTest.kept.floorBelow === 3 && floorTest.kept.floors.join() === '6,9' && floorTest.dropped.floorBelow === null && floorTest.dropped.floors.join() === '6,9'
+  && floorTest.warned.length === 2 && /kept/.test(floorTest.warned[0]) && /DROPPED/.test(floorTest.warned[1]),
+  `z0 3.5 over floors [0,3,6,9]: floorBelow ${floorTest.kept.floorBelow}, floors [${floorTest.kept.floors}]; z0 5.0: floorBelow ${floorTest.dropped.floorBelow}; ${floorTest.warned.length} warnings: ${floorTest.warned.map(w => w.slice(0, 60)).join(' | ')}`);
+// Four more in-place tests, each a one-field patch to The Standard's own
+// data, a rebuild, a measurement on the real mesh, and the field taken
+// back out — so the gate proves the generator's new fields on a building
+// whose numbers it knows, whatever the data files carry today.
+//   roof:   a 30° hip on the gym (15 x 8 m at z1 29.0): the ridge is
+//           29 + tan 30° x 4 = 31.31 m, and a raycast from a nadir over the
+//           gym's centre must land on it.
+//   inset:  the corner bay's storefront band (z 0-6) set 2.0 m back on its
+//           north face: a raycast from 23rd St at the recessed wall's
+//           middle must hit 2.0 m inside the face plane.
+//   frame:  the podium's punched windows given a charcoal frame: a raycast
+//           at the frame's own strip, beside the pane, must return the
+//           frame's day colour where it returned the wall's before.
+//   mod4:   the court skin switched to the weave: its cells pair off, at
+//           least 85 % of them into dominoes (only the edge orphans stand).
+const STD_UV = { gymCentre: [49.5, 15.0], cornerBayFace: [88.0, 0.0], podiumWindow: [45.0, 0.0] };
+const nadirOver = async (pg, ll, zoom) => { await pose(pg, ll, zoom || 19.5, 0, 0); await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500)); };
+const roofTest = await (async () => {
+  const pg = AP.pg;
+  const ll = await pg.evaluate(([name, uv]) => window.slopesApartments.uvToLngLat(name, uv[0], uv[1]), [APT_NAME, STD_UV.gymCentre]);
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), gym = b.blocks.find(k => k.id === 'gym');
+    const before = A.count.roofs;
+    gym.roof = { kind: 'hip', pitch: 30, tone: 'roof' };
+    A.rebuild();
+    const rec = (A.built.find(x => x.name === name) || {}).roofs || [];
+    return { before, after: A.count.roofs, rec: rec[0] || null };
+  }, APT_NAME);
+  await nadirOver(pg, ll, 19.6);
+  const hit = await pg.evaluate(ll => { const m = window.__map, p = m.project(ll); const h = window.slopes.raycast(p.x, p.y); return h ? { z: h.point.z, name: h.object && h.object.name } : null; }, ll);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), gym = b.blocks.find(k => k.id === 'gym'); delete gym.roof; A.rebuild(); return A.count.roofs; }, APT_NAME);
+  return Object.assign(r, { hit, restored, want: 29.0 + Math.tan(30 * Math.PI / 180) * 4.0 });
+})();
+check('apartments: a block\'s `roof` is a real hip through slopes-roofs\' emitter — a 30° hip on The Standard\'s gym puts its ridge at 31.31 m and a nadir raycast over the gym lands on it',
+  roofTest.after === roofTest.before + 1 && roofTest.rec && Math.abs(roofTest.rec.ridgeZ - roofTest.want) < 0.05 && roofTest.hit && Math.abs(roofTest.hit.z - roofTest.want) < 0.25 && roofTest.restored === roofTest.before,
+  `roofs ${roofTest.before} -> ${roofTest.after} -> ${roofTest.restored}; the record says ridge ${roofTest.rec ? roofTest.rec.ridgeZ.toFixed(2) : '-'} m (want ${roofTest.want.toFixed(2)}); the raycast from the nadir hit ${roofTest.hit ? roofTest.hit.z.toFixed(2) + ' m on ' + roofTest.hit.name : 'NOTHING'}`);
+const insetTest = await (async () => {
+  const pg = AP.pg;
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), cb = b.blocks.find(k => k.id === 'cornerBay');
+    const before = A.count.insets;
+    cb.faces.v0.bands[0].inset = 2.0;
+    A.rebuild();
+    return { before, after: A.count.insets };
+  }, APT_NAME);
+  // the mesh itself, read back into the building's frame: the corner bay's north face runs along v 0 from u 81.6 to
+  // 94.88, so with the band set back the storefront's cells stand at v 2.0 between z 0 and 6 — and nothing stood
+  // there before (a ray from the street could not do this: a camera far enough back to see the recess had other
+  // authored buildings between it and the bay on 2026-09-06)
+  const census = (name, u0, u1, z0, z1, v, tol) => pg.evaluate(([name, u0, u1, z0, z1, v, tol]) => {
+    const A = window.slopesApartments, S = window.slopes;
+    const g = A.group.children[0].geometry, p = g.getAttribute('position');
+    let n = 0;
+    for (let i = 0; i < p.count; i++) {
+      const z = p.getZ(i);
+      if (z < z0 || z > z1) continue;
+      const ll = S.toLngLat(p.getX(i), p.getY(i), z);
+      const uv = A.lngLatToUV(name, ll.lng != null ? ll.lng : ll[0], ll.lat != null ? ll.lat : ll[1]);
+      if (uv[0] < u0 || uv[0] > u1) continue;
+      if (Math.abs(uv[1] - v) < tol) n++;
+    }
+    return n;
+  }, [name, u0, u1, z0, z1, v, tol]);
+  const atRecess = await census(APT_NAME, 83, 93, 0.5, 5.5, 2.0, 0.05);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].inset; A.rebuild(); return A.count.insets; }, APT_NAME);
+  const atRecessBefore = await census(APT_NAME, 83, 93, 0.5, 5.5, 2.0, 0.05);
+  return Object.assign(r, { atRecess, atRecessBefore, restored });
+})();
+check('apartments: a band\'s `inset` stands its wall behind the face plane by the metres given — The Standard\'s corner-bay storefront set 2.0 m back has its cells at v 2.0 in the mesh, where the flush wall has none',
+  insetTest.after === insetTest.before + 1 && insetTest.atRecess >= 50 && insetTest.atRecessBefore === 0 && insetTest.restored === insetTest.before,
+  `recesses ${insetTest.before} -> ${insetTest.after} -> ${insetTest.restored}; mesh vertices on the v 2.0 plane between z 0.5 and 5.5 of the bay: ${insetTest.atRecess} with the inset, ${insetTest.atRecessBefore} without`);
+const frameTest = await (async () => {
+  const pg = AP.pg;
+  // the podium's north face at u 45, one bay of the `podium` skin (bay 3.1, window 1.4 wide, sill 0.9, 1.9 tall, on the 9.1 m floor line):
+  // sample the wall's colour on a horizontal line through the window's middle, before and after the frame
+  const sampler = async () => pg.evaluate(([name, u0]) => {
+    const A = window.slopesApartments, m = window.__map, S = window.slopes;
+    const out = [];
+    for (let i = 0; i <= 30; i++) {
+      const u = u0 + i * 0.1;                            // 3 m of wall, 10 cm apart
+      const ll = A.uvToLngLat(name, u, 0.0);
+      // the wall point at z 10.95 (window middle on the 9.1 floor: sill 0.9 + 1.9 / 2): project the 3-D point
+      const l = S.toLocal(ll[0], ll[1], 0), q = S.project(l.x, l.y, 10.95);
+      const h = q ? S.raycast(q.x, q.y) : null;
+      if (!h || !h.object || !h.object.geometry) { out.push(null); continue; }
+      const g = h.object.geometry, cd = g.getAttribute('cDay'), a = h.face.a;
+      out.push([cd.getX(a), cd.getY(a), cd.getZ(a)].map(v => Math.round(v * 255)).join(','));
+    }
+    return out;
+  }, [APT_NAME, STD_UV.podiumWindow[0]]);
+  const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -14.0), [APT_NAME, STD_UV.podiumWindow[0] + 1.5]);
+  await pose(pg, faceLL, 20.5, 72, 184.7);
+  await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  const before = await sampler();
+  const r = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    const f0 = A.count.frames;
+    b.skins.podium.window.frame = { w: 0.3, tone: 'charcoal' };
+    A.rebuild();
+    return { frames0: f0, frames1: A.count.frames };
+  }, APT_NAME);
+  await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
+  const after = await sampler();
+  const charcoal = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.charcoal.hex || b.colours.charcoal[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
+  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); delete b.skins.podium.window.frame; A.rebuild(); return A.count.frames; }, APT_NAME);
+  return Object.assign(r, { before, after, charcoal, restored });
+})();
+const nCharBefore = frameTest.before.filter(c => c === frameTest.charcoal).length, nCharAfter = frameTest.after.filter(c => c === frameTest.charcoal).length;
+check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows given a 0.3 m charcoal frame return charcoal on rays beside the pane where the wall returned white',
+  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.frames0,
+  `framed windows ${frameTest.frames0} -> ${frameTest.frames1} -> ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
+const mod4Test = await AP.pg.evaluate(name => {
+  const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+  const c0 = A.count.dominoes, m0 = A.count.mod4Cells;
+  const keep = b.skins.court;
+  b.skins.court = { kind: 'mod4', cell: 3.0, field: 'charcoal', frameTone: 'coping', stripTone: 'white', glass: 'glass', frame: 'white', reveal: 0.12 };
+  A.rebuild();
+  const r = { before: c0, cellsBefore: m0, cells: A.count.mod4Cells - m0, dominoes: A.count.dominoes - c0, windows: A.count.windows };
+  b.skins.court = keep;
+  A.rebuild();
+  r.restored = A.count.dominoes;
+  return r;
+}, APT_NAME);
+check('apartments: the `mod4` skin pairs its cells into dominoes by k = (c - r) mod 4 — on The Standard\'s court faces at least 85 % of the cells it adds pair off, and the count returns once the skin is taken back',
+  mod4Test.cells > 100 && mod4Test.dominoes * 2 >= 0.85 * mod4Test.cells && mod4Test.dominoes * 2 <= mod4Test.cells && mod4Test.restored === mod4Test.before,
+  `${mod4Test.cells} cells added, ${mod4Test.dominoes} dominoes added (${(200 * mod4Test.dominoes / Math.max(1, mod4Test.cells)).toFixed(0)} % of them paired); the page already carried ${mod4Test.before} dominoes in ${mod4Test.cellsBefore} cells (Union on 24th), ${mod4Test.restored} restored`);
+// the in-place tests moved the camera (a nadir over the gym, the street outside the podium): back to the pose
+// before the OFF frame, and a settled ON frame there first so the OFF comparison is against the same picture
+await pose(AP.pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);
+await AP.pg.waitForTimeout(2000); await AP.pg.evaluate(() => window.__settle(4000));
+const fAptBack = await snap(AP.pg, 'apts-on-back');
+await AP.pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); window.__map.triggerRepaint(); });
+await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(3000));
+const fAptOff = await snap(AP.pg, 'apts-live-off');
+const offA = await aptState(AP.pg);
+await AP.pg.close();
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); });
+const urlA = await aptState(C2.pg);
+await C2.pg.close();
+
+// A SECOND FRESH ?apartments=0 LOAD, and it is a CONTROL, not an extra frame.
+// Everything below that compares a frame to C2's needs to know how far two
+// pages that draw the same thing land from each other at this pose, and at
+// this pose that is not small: 25 buildings and half of West Campus on the
+// horizon, whose window grids are the facade atlas' two-state pattern, and
+// whose phase is decided at load. `art3d=0` rides along because the
+// --against-nogen archive carries no data/art3d; the two sculptures are 750 m
+// behind this camera and out of frame, so it does not change what is measured.
+const C2b = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0`, 'apts-url-off-noart');
+await C2b.pg.close();
+const dAptFloor = diffPNG(C2.f, C2b.f);
+const dAptFloorDeep = diffPNG(C2.f, C2b.f, APT_SWITCH_DEEP_TOL);
+check('apartments: on the ?apartments=0 page the roofscape deck over Regents West is back at b 25.9 — the clause hid it, not the data',
+  regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
+const dAptN = diffPNG(AP.f, fAptAgain);
+check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
+const dAptLive = diffPNG(fAptBack, fAptOff);
+check('apartments: ON and OFF differ at the pose — the mesh is drawing The Standard', dAptLive.pixels > APT_LIVE_PX, `${dAptLive.pixels} of ${dAptLive.total} pixels change when APARTMENTS.on goes false (max channel Δ ${dAptLive.maxChannelDiff})`);
+check('apartments: APARTMENTS.on = false removes the group and restores every filter it touched — the one-id clause is gone from buildings-3d and buildings-roof, the id is left exactly as often as the ?apartments=0 page carries it, wc-wall\'s filter is byte-identical to that page\'s, the roofscape and storeys clauses are gone, and San Jacinto\'s rig is back in slopes-roofs',
+  !offA.groups.includes('slopes-apartments') && offA.filtered === false
+  && !offA.b3d.includes(ownClause(apts.ids)) && !offA.roof.includes(ownClause(apts.ids))
+  && countOf(offA.b3d, APT_ID) === countOf(urlA.b3d, APT_ID) && countOf(offA.roof, APT_ID) === countOf(urlA.roof, APT_ID)
+  && offA.wc === urlA.wc && offA.wcSolid === urlA.wcSolid
+  && (offA.rdeck === null || !offA.rdeck.includes('distance')) && (offA.storeys === null || !offA.storeys.includes(APT_ID))
+  && (offA.rigKeys === null || offA.rigKeys.length === 1) && offA.hidden && offA.hidden.rigs.length === 0
+  && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
+  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
+// A runtime-off page against a LOAD is the same comparison the switch section
+// makes at mall-cruise. Measured on the first run of this block, when the two
+// frames were seconds apart and one building was drawn: 933 px, maxΔ 51,
+// against a 7,000 ceiling.
+//
+// THAT CEILING DIED THE MOMENT THE BLOCK GREW (2026-09-06). With 25 buildings
+// the line read 76,190 px and went red, and it is not the switch. TWO CONTROLS
+// say so, both measured in this run rather than reasoned about:
+//
+//   the page against ITSELF, four minutes apart, nothing touched
+//       (`apts-on` vs `apts-on-back`)          50,461 px, maxΔ 17, 0 deep
+//   TWO FRESH ?apartments=0 LOADS at this pose
+//       (`apts-url-off` vs `apts-url-off-noart`) 272,389 px, maxΔ 27, 171 deep
+//
+// So two pages that draw exactly the same thing land 272,389 px apart here,
+// and the runtime-off frame is three and a half times CLOSER to a fresh load
+// than that. Marked on the frame, both controls are the same three things:
+// tree canopies at the pose, the facade atlas' two-state phase on the distant
+// West Campus walls (its phase is decided at load), and a handful of window
+// cells at Δ ≤ 17. Of the 76,190, exactly 89 exceed Δ 24 and all 89 are one
+// place label at the top right.
+//
+// (The first cut of this comment said "the app's sun moves with the wall
+// clock". It does not: `apts-on` is BYTE-IDENTICAL between two runs of this
+// gate 47 minutes apart. What moves is the page's own settling over minutes.
+// Written down because the wrong mechanism was committed once already.)
+//
+// So the line is written against those controls and against DEPTH, which is
+// what separates the two failures: a building that did not come back is a
+// contiguous region at Δ 100+ — the mesh is worth 510,341 px at Δ 147 at this
+// pose — while every page-to-page effect above caps out under Δ 30.
+const dAptAge = diffPNG(AP.f, fAptBack);
+const dAptSwitch = diffPNG(fAptOff, C2.f);
+const dAptSwitchDeep = diffPNG(fAptOff, C2.f, APT_SWITCH_DEEP_TOL);
+check('apartments: the runtime-off frame is the ?apartments=0 frame at the pose - no further from it than two fresh ?apartments=0 loads are from each other (measured here, not assumed), and nowhere deep',
+  dAptSwitch.pixels <= dAptFloor.pixels + SWITCH_OFF_PX
+  && dAptSwitch.maxChannelDiff <= APT_SWITCH_DELTA
+  && dAptSwitchDeep.pixels <= dAptFloorDeep.pixels + APT_SWITCH_DEEP_PX,
+  `${dAptSwitch.pixels} of ${dAptSwitch.total} px differ (max channel Δ ${dAptSwitch.maxChannelDiff}, ${dAptSwitchDeep.pixels} of them deeper than Δ ${APT_SWITCH_DEEP_TOL}). Controls: two fresh ?apartments=0 loads ${dAptFloor.pixels} px at Δ ${dAptFloor.maxChannelDiff} (${dAptFloorDeep.pixels} deep); this page against itself over the same minutes ${dAptAge.pixels} px at Δ ${dAptAge.maxChannelDiff}. Ceilings ${dAptFloor.pixels} + ${SWITCH_OFF_PX} px, Δ ${APT_SWITCH_DELTA}, ${dAptFloorDeep.pixels} + ${APT_SWITCH_DEEP_PX} deep`);
+// SINCE 2026-09-06 both of those lines run against --against-nogen instead
+// (its comment is at the top of this file). The two main archives measure the
+// WHOLE of this branch, and by the end of it that was four other pieces of
+// work: heroes and entrances re-baked (entry 218), ground and props (219),
+// GDC (224), the kerb (225). Looked at rather than reasoned about: the diff of
+// the --against line at this pose is kerbs, road edges, crossings, sidewalks
+// and one tree, and there is not one differing pixel on The Standard, which
+// both pages draw as slabs. So their numbers print here as context and the
+// gate line asks the question a switch line is allowed to ask - ours with the
+// switches off against the same commit built without these generators.
+// `art3d=0` rides along because --against-nogen has no data/art3d either; at
+// this pose the two sculptures are 750 m behind the camera and out of frame,
+// so it is belt and braces, not a correction.
+if (AGAINST_NOGEN) {
+  const GN = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0`, 'apts-against-nogen');
+  await GN.pg.close();
+  // BOUNDED BY THE POSE'S OWN FLOOR, NOT BY THE MALL-CRUISE CONSTANT. The first
+  // run of this line was red at 2,021 px, max channel Δ 40, against
+  // ATLAS_RESIDUE_PX's 1,200 at Δ 16. Marked on the frame, ALL 2,021 are above
+  // y = 300 and none below: they are the window-grid lines of the distant West
+  // Campus facades - the facade atlas' two-state pattern, whose phase is decided
+  // at load - and 11 of them are deeper than Δ 24. There is not one differing
+  // pixel on The Standard, on the podium, or on the street.
+  //
+  // ATLAS_RESIDUE_PX was measured at MALL-CRUISE, where a handful of pattern
+  // walls are in frame. Here half of West Campus is, and the pose's own
+  // page-to-page floor - two loads of THIS build that draw the same thing -
+  // is 272,389 px at Δ 27 with 171 deep. A ceiling two orders of magnitude
+  // under the floor is not a ratchet, it is a line that cannot pass. So this
+  // asks the same three questions the runtime-off line above asks, against the
+  // same measured control.
+  const dAptNogen = diffPNG(C2b.f, GN.f);
+  const dAptNogenDeep = diffPNG(C2b.f, GN.f, APT_SWITCH_DEEP_TOL);
+  check("apartments (--against-nogen): ?apartments=0&art3d=0 is the frame of this SAME COMMIT built without the two generators, at The Standard's pose - inside the pose's own page-to-page floor, and nowhere deep", dAptNogen.pixels <= dAptFloor.pixels + SWITCH_OFF_PX && dAptNogen.maxChannelDiff <= APT_SWITCH_DELTA && dAptNogenDeep.pixels <= dAptFloorDeep.pixels + APT_SWITCH_DEEP_PX, `${dAptNogen.pixels} of ${dAptNogen.total} px differ (max channel Δ ${dAptNogen.maxChannelDiff}, ${dAptNogenDeep.pixels} deeper than Δ ${APT_SWITCH_DEEP_TOL})${dAptNogen.bbox ? ', bbox ' + dAptNogen.bbox.join(',') : ''}. Floor: two fresh loads ${dAptFloor.pixels} px at Δ ${dAptFloor.maxChannelDiff} (${dAptFloorDeep.pixels} deep)`);
+  const C3n = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&art3d=0&slopes=0`, 'apts-url-off-noslopes');
+  await C3n.pg.close();
+  const GN0 = await standardFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'apts-against-nogen-noslopes');
+  await GN0.pg.close();
+  const dAptNogen0 = diffPNG(C3n.f, GN0.f);
+  check("apartments (--against-nogen): with the whole layer off too, ?slopes=0 is that build's ?slopes=0 at the pose - the data files, the index and the two script tags change nothing the slabs draw here", zeroButAtlas(dAptNogen0), `${dAptNogen0.pixels} of ${dAptNogen0.total} pixels differ (max channel Δ ${dAptNogen0.maxChannelDiff})${residueNote(dAptNogen0)}`);
+  if (AGAINST_TIP) {
+    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
+      await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
+      await pg.waitForTimeout(800);
+    });
+    await G.pg.close();
+    const dAptTip = diffPNG(C2.f, G.f);
+    console.log(`   (context, not a gate line) ?apartments=0 against main 8b4b90c at this pose: ${dAptTip.pixels} of ${dAptTip.total} px, max channel Δ ${dAptTip.maxChannelDiff} - the other four pieces on this branch, not the switch.`);
+  }
+  if (AGAINST) {
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    await G0.pg.close();
+    const dAptMain = diffPNG(C3n.f, G0.f);
+    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the pre-slopes main archive at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
+  }
+} else {
+  if (AGAINST_TIP) {
+    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
+      await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
+      await pg.waitForTimeout(800);
+    });
+    await G.pg.close();
+    const dAptTip = diffPNG(C2.f, G.f);
+    check("apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose, with that page's courses switched off as this branch's are (to the facade atlas' two-state residue)", zeroButAtlas(dAptTip), `${dAptTip.pixels} of ${dAptTip.total} pixels differ (max channel Δ ${dAptTip.maxChannelDiff})${residueNote(dAptTip)}`);
+  }
+  if (AGAINST) {
+    const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
+    await C3.pg.close();
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    await G0.pg.close();
+    const dAptMain = diffPNG(C3.f, G0.f);
+    check("apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive's frame at the pose (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+  }
+}
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
 report();
 
 function report() {
   let bad = 0;
   for (const r of results) { console.log(`${r.pass ? ' PASS ' : '*FAIL '} ${r.name}\n         ${r.detail}`); if (!r.pass) bad++; }
-  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof, courses and one-fetch lines are meant to be red — 12 of them)' : ''}`);
+  console.log(`\n${results.length - bad}/${results.length} passed${BREAK ? '  (--break: the stack, haze, arch, flat-roof, courses, one-fetch and the three apartments lines are meant to be red — 15 of them)' : ''}`);
   browser.__done();
   process.exit(bad ? 1 : 0);
 }

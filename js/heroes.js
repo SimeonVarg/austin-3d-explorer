@@ -101,6 +101,14 @@
 
   const q = new URLSearchParams(window.location.search);
 
+  // ── ?wallplane=0 — the doors and the GDC atrium back on the footprint ring.
+  //    ONE flag for two layers (js/entrances.js declares the same object, first
+  //    loader wins), because they are two halves of one change: an entrance
+  //    sits on the wall plane its building DRAWS, and GDC's atrium is on that
+  //    plane too instead of 2.5 m out at the roof canopy. With it off, both
+  //    layers hand back exactly the geometry main ships.
+  window.WALLPLANE = window.WALLPLANE || { on: q.get('wallplane') !== '0' };
+
   const HEROES = {
     // ?heroes=0 removes the pass at load, so a before/after can be measured on
     // ONE build instead of on two checkouts — the shape js/outer.js established.
@@ -678,6 +686,23 @@
     }
   }
 
+  /**
+   * ?wallplane=0. Every feature the bake moved carries `wp0` — its whole
+   * pre-fix ring, not an offset, because the atrium changed SHAPE as well as
+   * position (it grew in v to reach the brick flanks the oversail pushed
+   * apart). Swapping the ring back is therefore exact.
+   */
+  function restoreWallPlane(gj) {
+    let n = 0;
+    for (const f of gj.features || []) {
+      const r = f.properties && f.properties.wp0;
+      if (!r || !f.geometry || f.geometry.type !== 'Polygon') continue;
+      f.geometry.coordinates = [r];
+      n++;
+    }
+    return n;
+  }
+
   async function getJSON(url) {
     const r = await fetch(url);
     if (!r.ok) throw new Error(url + ': ' + r.status);
@@ -890,6 +915,8 @@
       console.warn('[heroes]', e.message, '- buildings left as baked');
       return;
     }
+
+    if (!window.WALLPLANE.on) restoreWallPlane(gj);
 
     // Compose BEFORE the source is added — MapLibre copies the data in, so an
     // edit after addSource needs a setData round trip and a tile rebuild.

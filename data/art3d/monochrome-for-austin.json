@@ -1,0 +1,102 @@
+{
+  "_": "Nancy Rubins, 'Monochrome for Austin', 2015 — the largest work in the Landmarks collection, at the north-west corner of 24th and Speedway. Seventy aluminium canoes and small boats cantilevered off a stainless armature. EVERY number below carries the pixel or the publication it came from. See docs/real-art.md for the working.",
+  "name": "Monochrome for Austin",
+  "artist": "Nancy Rubins",
+  "year": 2015,
+  "at": [
+    -97.737132,
+    30.287462
+  ],
+  "atSource": "landmarks.utexas.edu/artwork/monochrome-austin, 'GPS: 30.287462, -97.737132'. data/art.geojson's parts centre on -97.7370979, 30.2874649 (a buffered OSM node) — 3.4 m away. `atFromData` keeps the piece where its label and footprint already are.",
+  "atFromData": true,
+  "dims": {
+    "h": 15.24,
+    "w": 16.31,
+    "d": 12.5,
+    "source": "'600 x 642 x 492 inches' — landmarks.utexas.edu/artwork/monochrome-austin. 600 in = 15.24 m, 642 in = 16.31 m, 492 in = 12.50 m. scripts/bake_art.py's DIMS has the width at 15.85 m from a secondary source; 642 in off Landmarks' own object label is 16.31 m and is what this file uses."
+  },
+  "hulls": {
+    "count": 70,
+    "countSource": "'a monumental sculpture consisting of 70 aluminum canoes and small boats' — landmarks.utexas.edu/artwork/monochrome-austin.",
+    "lenMin": 4.5,
+    "lenMax": 5.5,
+    "lenJitter": 0.15,
+    "beam": 1.05,
+    "depth": 0.4,
+    "transom": 0.62,
+    "dimSource": "MEASURED against the published height in Landmarks' elevation photograph (photo Paul Bardagjy, gallery image '29_rubins_monochromeforaustin'): the frame runs 750 px from the plinth's base to the topmost hull tip for the published 15.24 m, i.e. 49.2 px/m, and individual hulls measure 215-275 px long = 4.4-5.6 m. 4.5-5.5 m is that band, with lenJitter +-15 per cent inside it so no two neighbours are the same stick. BEAM RAISED 0.82 -> 1.05, and this is the fix of 2026-09-06. The 0.82 came from reading 35-42 px across hulls in the SAME elevation frame, but a hull photographed from the side shows its foreshortened beam, not its beam: 5.0 / 0.82 is 6.1:1 on paper and the render came out nearer 15:1 once the end taper ate the ends. The critic's paired frames (judge/sculptures/monochrome/A.png ours against B.png, Google Earth photogrammetry at 30.2874649,-97.7370979) read OURS as 'forty identical needle-thin spikes, length-to-width about 15:1 ... an agave or sea urchin' and the REFERENCE as 'blunt lobes of about 5:1 ... clearly a pile of hulls'. 5.0/1.05 = 4.8:1, which is the reference's proportion, and it is also the beam of a real canoe (0.85-0.95 m) and of the 'small boats' the object label also lists (to 1.2 m). Depth 0.46 -> 0.40 for the same frame's freeboard.",
+    "transomSource": "NEW. A canoe has two pointed ends; Rubins' cluster does not read that way and neither does a small boat, and the brief asks for 'one pointed bow and one squared-off transom stern'. `transom` is the fraction of full beam still standing at the INNER end (u = -1, the end bolted to the core), so the outer end comes to a point and the inner end is a flat cut. 0.62 is the transom-to-beam ratio of a small aluminium jon boat. It is also what stops seventy hulls converging on a point: seventy flat 0.65 m sterns overlapping IS the ~1 m knot the reference has at its centre.",
+    "rocker": 0.0,
+    "sheer": 0.0,
+    "profileSource": "STRAIGHT, as of 2026-09-06, and this was the other half of the needle read. Both `rocker` (keel rise at the ends) and `sheer` (gunwale rise) ran at 0.05 and 0.09 of length on |u|^kickPow, which lifted BOTH ends of every hull by about 0.45 m over its last sixth. Seventy of those radiating from one point is a rosette of curled leaf tips - the critic's frame reads 'every tip curling upward like a leaf ... an agave'. The brief: 'straight along its length - no upturned tip'. At 0 the keel is a straight line and the gunwale is a straight line, and the only movement left is the plan taper into the bow, which is what a boat looks like from 20 m up. Kept as parameters rather than deleted: a one-line edit puts the sheer back."
+  },
+  "cloud": {
+    "centreZ": 9.4,
+    "semiX": 6.5,
+    "semiY": 6.5,
+    "semiZ": 5.7,
+    "envelopeSource": "RE-CUT 2026-09-06 to the lofted cloud the reference shows. The top stays at the published 15.24 m ('600 in', Landmarks). Width ~13.0 m: data/art.geojson's own footprint for this piece is 12.86 x 12.89 m and the brief asks for 'cloud width ~13 m', so semiX = semiY = 6.5. The core sits at 9.4 m, which is where a 5.5 m hull raked 84 degrees up puts its bow at about 15.1 m and one raked 26 degrees down puts its bow at about 7.0 m - i.e. the underside of the cloud is ~7 m of open air above the plaza, above the brief's '4-5 m clear' floor. The old envelope had the core at 8.8 m with hulls sampled over a FULL sphere, so the lower hulls swept to the pavement and the piece read as a plant growing out of the ground with no column at all (judge frame monochrome/A.png).",
+    "coreR": 0.55,
+    "coreSource": "The armature knot. Every hull's inner end is placed inside a ball of this radius about the core, so the sterns overlap into a visible ~1.1 m tangle instead of converging on one pixel. The brief: 'the real core is a visible ~1 m knot of overlapping sterns'. The old innerMin/innerMax of 0.35-2.7 m spread the inner ends over a 5.4 m ball, which is why the middle read as a point hub with a halo rather than a knot.",
+    "sternShare": 0.7,
+    "sternSource": "Seven hulls in ten are bolted BY THE STERN (centre at coreR + L/2); the rest are bolted nearer mid-length (centre at coreR + 0.30 L) so their transom pushes out the far side of the knot by about a fifth of their length. 'Anchor them by stern or mid-length to a ~1 m core' - the brief. All stern-anchored and the knot is a clean sunburst; all mid-anchored and every hull is a needle through the middle.",
+    "clumps": 3,
+    "clumpEl": [
+      52,
+      10,
+      32
+    ],
+    "clumpSpreadAz": 40,
+    "clumpSpreadEl": 44,
+    "elMin": -30,
+    "elMax": 84,
+    "clumpSource": "Degrees. THE SILHOUETTE RULE, and it replaces the Fibonacci lattice. A lattice over the sphere is an EVEN fan, which is the sea urchin the critic named; the reference is 'a lumpy, asymmetric silver mass ... in two or three clumps'. So the hulls are dealt round `clumps` anchor bearings, evenly spaced in plan, each with its own elevation from `clumpEl`, and each hull is thrown +-clumpSpreadAz / +-clumpSpreadEl off its clump's anchor. Elevations clamp to elMin..elMax: mostly between horizontal and 84 degrees up, with the low clump reaching -26, which is the brief's 'most between horizontal and 60 degrees up, only a handful dipping below horizontal, none reaching the ground'. SPREADS RE-CUT after the first re-shoot: at 48 az / 36 el each clump was a FLAT FAN — every hull in it within 36 degrees of one rake — and three flat fans on a pole read as a dragonfly, which is not better than an agave. 40/44 makes each clump a blob.",
+    "floorZ": 5.0,
+    "floorSource": "No hull comes below this - the hard clamp behind the elevation rule. 5.0 m is the bottom of the brief's '4-5 m clear of the plaza'. It was 2.2 m, read off an elevation photograph whose lowest hull sits just clear of the plinth head, and at 2.2 m with a full-sphere fan the lower hulls stood ON the pavement in our own render, which is the defect this pass fixes.",
+    "jitter": 0.26,
+    "jitterSource": "Radians = +-15 degrees, the brief's number, applied to each hull's heading AFTER its clump throw. `roll` is the same 15 degrees about the hull's own long axis, so no two hulls present the same face.",
+    "roll": 0.26,
+    "rank2Share": 0.55,
+    "rank2R": 2.1,
+    "rank2Source": "Rubins does not bolt seventy boats to one knot; she bolts them to EACH OTHER. Every hull whose hash falls under rank2Share is displaced by up to rank2R metres in a random direction after it is placed, so its stern sits on the pile rather than in the armature knot. This is the density fix, and the first re-shoot needed it: with all seventy sterns inside a 0.55 m ball the hulls diverge like a sparkler and the outer half of the cloud is more air than aluminium, while the reference (judge/sculptures/monochrome/B.png) is a SOLID lumpy mass. A random displacement fills the middle without widening the silhouette, because it points sideways as often as outward."
+  },
+  "plinth": {
+    "w": 0.85,
+    "d": 0.85,
+    "h": 2.34,
+    "source": "MEASURED in the elevation photograph at 49.2 px/m: the concrete pier is 40 px wide (0.81 m) and runs 115 px from grade to its head (2.34 m). It is strikingly small under a 16 m mass, and that contrast is most of why the work reads as cantilevered."
+  },
+  "mast": {
+    "h": 4.9,
+    "w": 0.5,
+    "source": "THE COLUMN, and it has to be seen. 0.42 x 3.6 m put its head at 5.94 m inside a cloud that reached the ground, so none of it was visible and the critic reports 'there is no visible column and no gap between cloud and plaza ... the small tan mast stub is only visible under the label'. 0.50 m square from the plinth head at 2.34 m to 7.24 m carries the stainless armature into the underside of the cloud at about 7 m, with roughly 5 m of it standing in open air. Landmarks: the work 'draws its support from a steel armature and intertwining cables'."
+  },
+  "cables": {
+    "count": 26,
+    "w": 0.07,
+    "source": "'intertwining cables' — Landmarks. A stainless cable on this piece is about 20 mm and would be sub-pixel at every zoom this app flies at, so it is DRAWN at 0.09 m: the same deliberate over-width as bake_tower.py's clock dial (3.05 m drawn for a true 3.66 m) and SLOPES_ROOFS.lines.ridge (1.0 m drawn for a true 0.4 m). The count is the number that reads against the sky in the elevation photograph, not a survey.",
+    "maxM": 8.0,
+    "maxSource": "A tie longer than this is not drawn. The cables in the photographs are short ties inside the tangle; a long straight run across the mass reads as a suspension bridge, which is what the first pass here drew."
+  },
+  "material": {
+    "day": "#8a8e94",
+    "golden": "#a8a9a7",
+    "night": "#22252b",
+    "brightDay": "#bcc2c8",
+    "brightGolden": "#c6c8c6",
+    "brightNight": "#2a2e36",
+    "brightEvery": 3,
+    "insideDay": "#6a6e74",
+    "insideGolden": "#8e908c",
+    "insideNight": "#1c1f25",
+    "source": "SAMPLED, and it corrects a real error. Median RGB of hull faces in Landmarks' photographs: lit #5e6166 and #77716f, shaded #423c3b, against a concrete plinth in the same frame at #cac2bc. The boats read at about HALF the luminance of concrete — weathered aluminium against a bright sky, not mill finish. scripts/bake_art.py painted them 'alum' #b9bec6 and 'mirror' #cdd8e0, which is a cloud of silver foil. Day is the diffuse reading brought onto the app's own concrete reference (js/props.js ARTMAT 'limest' #ded7c6 at 222 luma x 0.5). One hull in four takes the brighter tone, because the light-and-dark scatter across the mass is what makes seventy overlapping shells read as seventy objects rather than one. LOOK-FIX 1: day lifted one step from #7c8086 to #8a8e94 and the bright share from one in four to one in three. Against a bright pavement in the app the sampled tone read as dark as the tree trunks beside it; the photographs' hulls are dark against SKY, which is a different contrast problem from the one this scene has. LOOK-FIX 2: the bright tone lifted again to #bcc2c8 — the reference's sunlit hulls against blue sky are near-white, and the piece's whole read is the scatter between those and the shaded ones. LOOK-FIX 4: the cockpit tone lifted from #4a4e54 to #6a6e74. A canoe's interior in daylight is a mid-grey with light down one side of it, not a black slot, and at the old value every hull seen from above was a dark gash — the exact opposite of the reference nadir, where the cluster is a burst of BRIGHT pointed shapes (Esri World Imagery z21, 0.0645 m/px, over Landmarks' published 30.287462,-97.737132). LOOK-FIX 5 (2026-09-06): the GOLDEN triple was #968d84 / #c8bba6 / #726b63, a warm brown, and every judge frame of this piece is shot at tod=0.30 - so the piece the critic saw was brown, and brown plus radiating points is an agave. 'The real piece is bare aluminium, not brown; a flat silver-grey would remove the agave reading on its own' - the brief. The golden triple is now the day triple's own neutral carried to golden-hour luminance (#9b9c9a / #c6c8c6 / #787a78): still lit by the golden hour, no longer tinted by it. Day and night are untouched. And lifted again after the first re-shoot at tod=0.30: at #9b9c9a / #787a78 the cluster read DARKER than the pavement it stands on, and the reference's whole read is bright aluminium against a dull plaza. #a8a9a7 with the deck recess at #8e908c keeps the recess a tone rather than the dark gash LOOK-FIX 4 already had to fix once at day.",
+    "plinthDay": "#cac2bc",
+    "plinthGolden": "#d4c1a4",
+    "plinthNight": "#262830",
+    "plinthSource": "SAMPLED off the plinth in the same photograph: (202,194,188).",
+    "steelDay": "#8d9198",
+    "steelGolden": "#8f9092",
+    "steelNight": "#1b1e26",
+    "steelSource": "js/props.js ARTMAT 'steel' for day and night; the GOLDEN value is this piece's own, #8a7a68 -> #8f9092. The column is the thing the critic asked to be able to see ('there is no visible column'), and at the golden hour the shared steel tone is a mid-brown - so the first re-shoot of this fix put a brown pole under a silver cloud, next to real tree trunks drawn in the same brown, and the piece read as a palm. Stainless at the golden hour is a warm grey, not a brown."
+  }
+}

@@ -1,0 +1,807 @@
+{
+  "_readme": "Signature 1909, 1909 Rio Grande St - the 2018 seventeen-storey West Campus tower with a five-storey north wing carrying the pool deck, as data for js/slopes-apartments.js (schema: docs/apartments.md). Metres in the footprint's oriented bounding box: L=49.40 W=34.44, +u at bearing 184.1 deg, so u=0 is the NORTH edge on West 21st Street and +u runs south; v=0 is the WEST edge on Rio Grande Street and +v runs east. Every number carries a _src naming a key in `sources`, or says derived or unknown.",
+  "id": "4d0b4ea1-f597-4bc0-9a75-0c7aeb9ed328",
+  "name": "Signature 1909",
+  "address": "1909 Rio Grande Street, Austin TX 78705",
+  "sources": {
+    "S1": "OSM way 1049463502 (api.openstreetmap.org, read 2026-09-05): building=apartments, name 'Signature 1909', addr 1909 Rio Grande Street 78705. Five nodes - a plain rectangle. NO height, NO building:levels, and an Overpass query for building:part within 60 m returns none, so OSM says nothing at all about this height.",
+    "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 4d0b4ea1-f597-4bc0-9a75-0c7aeb9ed328: name 'Signature 1909', building_class apartments, num_floors null, final_height 64.3 with source_height 'overture' - a guess, since S1 shows OSM never tagged one. The four-vertex ring is this file's footprint.ring verbatim. The facade bake's tones for this feature are wd #ac9776 / wg #b99b74 / wn #2e2b29, which are a tan and are not this building: see S5, which measured it.",
+    "S3": "preiss.com press release, 27 Sep 2018, 'The Preiss Company/TH Real Estate Joint Venture Acquires Signature 1909, 464-Bed Student Housing Complex': 'Located at 1909 Rio Grande St ... the 17-story high-rise community', 'Completed in fall 2018', 464 beds, 'rooftop pool with infinity spillover pool and ample lounge seating', 'four-and-a-half story UNDERGROUND parking garage' - so there is no above-grade garage to express.",
+    "S4": "signature1909.com (the operator's leasing site, read 2026-09-05): 'premium placement (floors 9-17)', which is the floor count stated a second time and independently. Its 2025 photograph set, downloaded at full size: Building-Exterior (dusk drone, the corner), Birds-Eye-View-Building-Exterior (dusk, a near head-on elevation of the west front with the pool wing at the left), Birds-Eye-View-Rooftop-Pool (the pool deck from above with the tower behind), Aerial-View-Community-Building-and-Austin-Skyline (the building from above with downtown behind), Rooftop-Pool-and-Lounge, Monument-Sign-Night.",
+    "S5": "scripts/bake_westcampus.py BUILDINGS['Signature 1909'] and docs/PASS_WESTCAMPUS.md, which hand-measured this building for the fill-extrusion pass: 64.3 m / 17 floors / f2f 3.3, 'white panel with a dark spandrel at every floor', family `sb`, base 5.2 m glazed (`sg`), crown 3.6 m, 'lower wing roof @30.5 m + shade trellis', no balconies; and the doc's sampled colours - 'Signature - dark spandrel #616165 (39%), white panel #e1dddc (31%) -> area-weighted #8c8b8e at dusk, lifted to #a8a6a6'. The 39/31/30 area shares and those two component hexes are measurements and are used here; the 30.5 m wing top and the 3.3 m f2f are that pass's arithmetic off Overture's 64.3 and are NOT (see levels._src).",
+    "S6": "Google Earth 3D, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot() (canvas.toDataURL is black on Earth). The plan comes from the nadir ref/ge_nadir4.png, imagery 12/3/2023, camera 30-17-01.53 N 97-44-41.22 W at 468 m with a 30 m = 187 px scale bar (0.1604 m/px). Obliques ref/e_sw.png (230 m, heading 45, tilt 55) and ref/e_ne.png (heading 225), imagery 1/1/2021.",
+    "S7": "The S6 nadir rectified into this (u,v) frame (ref/p_roof.png, ref/p_deck.png at 22 px/m). Registration: the footprint projected with the camera's own lat/lon and the scale bar lands on the roof edges with no fitted offset (ref/ovl_nadir.png). Roof parallax is taken out radially about the camera's nadir point with a camera height of 530 m above ground, which was CALIBRATED in the same frame on 21 Rio next door - OSM way 380922474 carries height=73.5 with source='City of Austin', and its roof edge sits at k = 1.15-1.18 of its own footprint, giving 480-560 m. Every plan number below was read off the rectified image at the height it belongs to: p_roof at 58 m for the tower, p_deck at 18 m for the wing.",
+    "S8": "S4's Birds-Eye-View-Building-Exterior, the near head-on west elevation, read by a luminance profile: at x=1200 the white floor bands sit at y = 80, 135, 190, 244, 297, 350, 402, 454, 506, 558, 608, 660, 716, 765, 816, 864, 912 - seventeen lines at an even 52 px, with the ground floor 95 px (1.83 lines) below the lowest of them. That is the storey rhythm this file's levels are built on: sixteen equal floors over a ground floor about 1.8 times as tall.",
+    "derived": "a number computed from the numbers above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.744624,
+        30.283454
+      ],
+      [
+        -97.7445869,
+        30.2838995
+      ],
+      [
+        -97.7449443,
+        30.2839216
+      ],
+      [
+        -97.7449813,
+        30.2834762
+      ],
+      [
+        -97.744624,
+        30.283454
+      ]
+    ],
+    "_src": "S2 verbatim. A clean rectangle: in (u,v) the corners are (0.04,0.00) (0.00,34.44) (49.37,34.43) (49.40,0.00), so the polygon IS its own oriented bounding box and every edge is axis-parallel in the frame."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as js/slopes-apartments.js computes it, reproduced in python: L=49.40, W=34.44, +u at bearing 184.13 deg. +u runs SOUTH so u=0 is the north end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west edge. Checked against the ring's own coordinates: the vertex that is both the westmost (lon -97.744944) and the northmost (lat 30.283922) is the one that lands at u=0, v=0. data/roads.geojson and an Overpass query for named highways within 90 m put West 21st Street along the north edge and Rio Grande Street along the west edge, so u0 and v0 are the two street elevations and u1/v1 face the neighbours (Torre Student Living east, 1907 Rio Grande south).",
+  "levels": {
+    "floors": [
+      0.0,
+      5.2,
+      8.375,
+      11.55,
+      14.725,
+      17.9,
+      21.075,
+      24.25,
+      27.425,
+      30.6,
+      33.775,
+      36.95,
+      40.125,
+      43.3,
+      46.475,
+      49.65,
+      52.825
+    ],
+    "_src": "SEVENTEEN storeys, stated twice and independently (S3 '17-story high-rise'; S4 'floors 9-17'). Ground floor 5.20 m is S5's own measured base band for this building. The other sixteen are 3.175 m, which is what S8's profile says: sixteen equal floor bands above a ground floor 1.83 times as tall, solved to a 56.00 m roof slab. WHY NOT 64.30. S2's 64.30 is Overture's guess for a building OSM never tagged, and 64.30 over 17 storeys is 3.78 m a floor, which no student-housing floor is. The two 17- and 18-storey neighbours already authored in this folder settle it: The Callaway House Austin is 17 storeys with a sourced 179 ft (54.56 m) main roof under an Overture 62.5 that turned out to be its PENTHOUSE, and Skyloft Austin is 18 storeys at 3.015 m. 3.175 m sits between them. It also reads right against 21 Rio next door, whose height comes from the City of Austin rather than Overture: 57.20/73.50 = 0.78 against 17/21 = 0.81 floors, where 64.30 would have made this building the taller of the two per storey. So the roof slab is 56.00, the parapet 1.20, and the 64.30 is carried by the mechanical bulkhead the nadir shows on the roof (blocks.tower.roofItems). The split between the ground floor and the rest is derived; the count is sourced and the rhythm is measured.",
+    "ground": 5.2,
+    "floorToFloor": 3.175,
+    "deck": 17.9,
+    "roof": 56.0,
+    "parapet": 1.2,
+    "mechTop": 62.6,
+    "_deck_src": "The wing's roof - the amenity deck - is the sixth floor line, 5.20 + 4 x 3.175 = 17.90 m. Counted, not assumed: in S4's west elevation the wing carries a ground-floor storefront and FOUR window rows above it before its parapet (ref/bev_wing.png, the wing at 45 px a floor against the tower's 52 px in the same frame, which is the wing being about 15 per cent further from the camera). The same two photographs put the wing's parapet at 0.30 of the tower's height once that scale difference is taken out, and 17.90/56.00 = 0.32. S5's fill-extrusion pass put this wing at 30.5 m; that number is 0.47 of Overture's 64.30 and is not a measurement, so it is not used. Plus or minus one storey.",
+    "_mechtop_src": "62.60 = the 56.00 roof slab plus the 6.60 m plant bulkhead measured off S6's south-west oblique (blocks.tower.roofItems). S2's Overture 64.30 is 1.7 m above it and is not corroborated by anything in the imagery; see levels._src for why the storeys, not the guess, set this building's height."
+  },
+  "colours": {
+    "_src": "A day hex; golden and night follow js/westcampus.js's ramp() unless a trio is given. The two facade tones are S5's own measurements of this building - dark spandrel #616165 and white panel #e1dddc, sampled off a dusk photograph - carried into daylight. They are NOT multiplied by S5's 1.20 exposure lift: that lift exists to make ONE averaged hex (#a8a6a6) stand in for a wall that is 39 per cent charcoal, and a white panel lifted by it clips past white. This mesh draws the charcoal and the white separately, so it does not need the average. Area-weighted at S5's own 39/31/30 shares the tones below come to #818689 against S5's own dusk area-weight of #8c8b8e - the same wall, one step out of the dusk. The roof and deck tones are medians of named crops of the S6 nadir.",
+    "panel": {
+      "hex": "#e2ded9",
+      "_src": "S5's white panel #e1dddc, warmed a shade for daylight. Cross-checked independently: medians of two white bands in S4's west elevation, (1150,650)-(1240,665) = #e7e2e3 and (900,300)-(980,314) = #dbd5d5, mean #e1dedc - the same value S5 reports, from a different photograph."
+    },
+    "charcoal": {
+      "hex": "#4c4f54",
+      "_src": "S5's dark spandrel #616165. Entered a step darker because S5 sampled it at dusk with the sky in it: the median of the same panel in S4's west elevation at (1180,690)-(1230,715) is #515259 and at (920,330)-(970,355) #756b6d where the pink sky reflects. #4c4f54 is the material."
+    },
+    "glass": {
+      "hex": "#5f7079",
+      "_src": "S4 west elevation, medians of two vision panes at (1100,700)-(1140,730) = #56525a and (860,180)-(900,215) = #58565e; both are dusk and are carrying the sky, so the value entered is those readings taken to the blue-grey the same glass shows in S6's daylight oblique."
+    },
+    "storeGlass": {
+      "hex": "#34424a",
+      "_src": "S4 west elevation, the ground-floor storefront at (900,930)-(1000,975) reads #3e311f because the lobby lights are on behind it at dusk; entered as the dark grey-blue the same glazing is in S6's daylight oblique."
+    },
+    "baseFrame": {
+      "hex": "#55585c",
+      "_src": "derived: the storefront mullions and the recessed soffit read as the charcoal panel one step lighter in every frame; not sampled on its own."
+    },
+    "membrane": {
+      "hex": "#c8cccd",
+      "_src": "S6 nadir, median of the tower roof at (760,520)-(860,600); its two clusters are #dbdedd (61%) and #848c92 (39%, the shaded gaps between the condenser rows)."
+    },
+    "coping": {
+      "hex": "#d6d4cf",
+      "_src": "derived from `panel`: the parapet copings are the same precast as the wall and are read one step down for the shadow under the cap. Not sampled - at 0.1604 m/px the nadir cannot resolve a 0.25 m coping."
+    },
+    "deck": {
+      "hex": "#4a4d55",
+      "_src": "S6 nadir, median of the pool deck paving at (830,470)-(880,500); the dominant cluster is #42474e (76%)."
+    },
+    "pool": {
+      "hex": "#4fa3ad",
+      "_src": "S6 nadir, the water at (830,425)-(880,450) clusters at #548895 (90%); entered a step more saturated because S4's Rooftop-Pool photograph shows a lit turquoise pool and the nadir is reading it through a low December sun."
+    },
+    "turf": {
+      "hex": "#6f8b52",
+      "_src": "S4 Rooftop-Pool: the artificial turf strip along the pool's west end. Sampled from the photograph's own green, which is at dusk, and entered as a daylight turf."
+    },
+    "furn": {
+      "hex": "#454c53",
+      "_src": "S7 p_deck, median of the composite decking south of the pool, #4e575f, one step down for the loungers on it. LOOK-FIX 6 - it was #3b3e44, derived rather than measured, and read as a hole in the deck."
+    },
+    "shade": {
+      "hex": "#e6e4df",
+      "_src": "S4 Rooftop-Pool: the white steel shade trellis over the lounge, and S7's rectified plan, where its lattice is the white grid at u 1.5-10, v 12.5-17.5."
+    },
+    "condenser": {
+      "hex": "#9aa3a6",
+      "_src": "LOOK-FIX 6, measured on the rectified plan rather than on a crop of the raw nadir. Medians inside the condenser fields of S7's p_roof: the south-west field #b4bbbe, the south-east #d3d7d4, the north-east cluster #939da0, and their 20th percentile - which is the units rather than the membrane showing between them - #7c878d. Bare membrane in the same image is #c9cdce. The first value here was #c3c7c6, sampled off a crop of the raw nadir that turned out to be mostly membrane, so on our roof the plant vanished into the roof it stands on. #9aa3a6 is the unit."
+    },
+    "mech": {
+      "hex": "#e0e2de",
+      "_src": "LOOK-FIX 6. The two plant enclosures are the BRIGHTEST thing on this roof, not the darkest: the median inside them in S7's p_roof is #e5e7e3 against the membrane's #c9cdce. They were entered at #b9bdbd, derived from the wrong condenser value, which had them reading as a shadow."
+    },
+    "sign": {
+      "hex": "#ecebe9",
+      "_src": "S4 Rooftop-Pool: the 'signature 1909' wordmark is white on a black panel."
+    },
+    "planter": {
+      "hex": "#4a5a3e",
+      "_src": "S4 Rooftop-Pool: the planted boxes along the pool's edges."
+    }
+  },
+  "skins": {
+    "panel": {
+      "kind": "bays",
+      "field": "charcoal",
+      "bay": 4.2,
+      "strip": {
+        "w": 0.3,
+        "tone": "panel",
+        "at": "joints"
+      },
+      "floorLine": {
+        "h": 0.82,
+        "tone": "panel"
+      },
+      "window": {
+        "w": 2.6,
+        "h": 1.75,
+        "sill": 1.05,
+        "frame": {
+          "w": 0.4,
+          "tone": "panel"
+        }
+      },
+      "glass": "glass",
+      "frame": "panel",
+      "reveal": 0.08,
+      "_src": "The whole building above the ground floor wears one rule, which is what S4's photographs show on every face that was photographed: a charcoal panel field, a continuous white precast band at every floor line, a thin white pier on the bay joints, and one wide window per bay. BAY 4.2 m: window centres in ref/el_strip.png (S4's west elevation at 3x, two floors) repeat every 200-240 crop px against a floor pitch of 160, i.e. 1.25-1.50 floors, and a floor is 3.175 m - so 4.0-4.8 m, and 4.2 puts eight bays on the 34.44 m end and eight on the 31.85 m tower flank. WINDOW 2.60 x 1.75: in the same crop the wide opening is about 150 crop px by 85, i.e. 0.94 of a bay by 0.53 of a floor - the openings on this building are wider than they are tall. The white's share is set to S5's measurement rather than guessed: 4.2 x 0.82 for the floor band plus 0.30 x 2.355 for the pier is 4.15 m2 of a 13.34 m2 cell, 31 per cent, which is S5's white-panel share exactly; the window comes to 34 per cent against S5's implied 30 and the charcoal 35 against 39. WHAT IS SIMPLIFIED: in the photograph the white is a picture frame around each window, about 0.4 m on all four sides, and the openings come in two widths in an irregular rhythm. A `bays` skin can say the floor band and the pier but not the frame's own returns, so the frame is carried by the band below and the band above (0.82 plus 0.23 of charcoal under the sill, and 0.375 of charcoal over the head) and by the pier. At the oblique this app is judged from, 0.3 m is a pixel.",
+      "_lookfix4": "LOOK-FIX 4. At 0.14 m the four reveal strips are drawn in `frame`, which on this building is the white panel, so every window wore a bright outline and the wall read a good ten per cent whiter than the 31 per cent S5 measured. 0.08 keeps the reveal reading as a reveal at the walking camera and stops it adding to the white at the oblique.",
+      "_frame_src": "todo 3, S4: the white is a picture frame about 0.4 m on all four sides of every opening; window.frame draws it as itself, cut into the wall's cells, in the same panel white as the floor band and the pier it meets."
+    },
+    "base": {
+      "kind": "storefront",
+      "mullion": 2.0,
+      "mullionW": 0.14,
+      "fascia": 1.0,
+      "plinth": 0.15,
+      "transom": 0.7,
+      "fasciaTone": "panel",
+      "frame": "baseFrame",
+      "glass": "storeGlass",
+      "reveal": 0.22,
+      "_src": "S5's base band for this building is 5.20 m of glazing (family `sg`), and S4's two street photographs show it: a full-height storefront set back behind a projecting soffit, the leasing office and retail behind it, a white fascia under the second floor, the garage mouth cut into it near the south end of the west front. Mullion 2.0 m and the transom at 0.70 of the height are read off Birds-Eye-View-Building-Exterior; the reveal is the setback under the soffit, which the photograph shows to be about a metre and which is entered at 0.22 because a deeper one would z-fight the soffit this file does not draw."
+    },
+    "panelSign": {
+      "kind": "bays",
+      "field": "charcoal",
+      "bay": 4.2,
+      "strip": {
+        "w": 0.3,
+        "tone": "panel",
+        "at": "joints"
+      },
+      "floorLine": {
+        "h": 0.82,
+        "tone": "panel"
+      },
+      "window": {
+        "w": 2.6,
+        "h": 1.75,
+        "sill": 1.05,
+        "frame": {
+          "w": 0.4,
+          "tone": "panel"
+        }
+      },
+      "glass": "glass",
+      "frame": "panel",
+      "reveal": 0.08,
+      "_src": "LOOK-FIX 7. The same rule as `panel`, with no window in the 10 m the wordmark covers. In the first render the letters were drawn straight over the top row of windows on the wing's north front and read as noise; S4's photograph shows a solid panel there with the facade behind it stopped. The skip is the sign's own extent plus a quarter of a metre each side.",
+      "_lookfix4": "LOOK-FIX 4. At 0.14 m the four reveal strips are drawn in `frame`, which on this building is the white panel, so every window wore a bright outline and the wall read a good ten per cent whiter than the 31 per cent S5 measured. 0.08 keeps the reveal reading as a reveal at the walking camera and stops it adding to the white at the oblique.",
+      "windowSkip": [
+        [
+          12.2,
+          22.2
+        ]
+      ],
+      "_frame_src": "todo 3, S4: the white is a picture frame about 0.4 m on all four sides of every opening; window.frame draws it as itself, cut into the wall's cells, in the same panel white as the floor band and the pier it meets."
+    }
+  },
+  "balcony": {
+    "proj": 0.0,
+    "_src": "There are none. S5 records balc=None for this building and no photograph in S4 shows a balcony on any face; the elevations are flush panel and window from the second floor to the parapet."
+  },
+  "blocks": [
+    {
+      "id": "tower",
+      "_src": "The seventeen-storey mass, u 17.55 to the south edge, full width. The step line is S7: in the rectified nadir the bright white membrane roof begins at u = 17.4-17.5 and runs unbroken to u = 47.5, and north of it the surface is the dark paving and mech yard of the deck. The tower's own roof reads 1.5-2 m inside the footprint on every side, which is the parapet's inner face plus the residual of S7's parallax calibration, so the walls are taken out to the footprint.",
+      "plan": [
+        17.55,
+        49.4,
+        0.0,
+        34.44
+      ],
+      "z0": 0,
+      "z1": 56.0,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.2,
+          "skin": "base"
+        },
+        {
+          "z0": 5.2,
+          "z1": 56.0,
+          "skin": "panel"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "z0": 17.9
+        },
+        "_src": "the north face stands against the wing up to the deck at 17.90 and shows only above it, where S4's Rooftop-Pool photograph looks straight at it"
+      },
+      "roofTone": "membrane",
+      "parapet": 1.2,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            19.5,
+            27.0,
+            10.5,
+            18.5
+          ],
+          "h": 3.6,
+          "tone": "mech",
+          "_src": "LOOK-FIX 5. S6's south-west oblique looks straight down on this roof (ref/sw_roof.png, the crop at 3x): there are TWO plant enclosures side by side near the north edge, not one screen with a bulkhead inside it. This is the wider, lower one, about 1.2 window rows tall against the facade below it, so 3.6 m."
+        },
+        {
+          "plan": [
+            20.5,
+            26.5,
+            18.0,
+            24.5
+          ],
+          "h": 6.6,
+          "tone": "mech",
+          "_src": "LOOK-FIX 5, and the second half of the height argument. This is the taller box, the one with the louvre grille on its south face, and against the window rows on the wall below it stands about two storeys above the roof - call it 6.6 m, so its top is 62.60. The first version made it 8.30 m purely so its top would land on S2's Overture 64.30; measured, it is 1.7 m shorter than that, and nothing in the imagery corroborates the last 1.7 m. The storeys are measured, the bulkhead is measured, and 64.30 is the one number here that is a guess - so it is the one that gives way. Plus or minus 1 m."
+        },
+        {
+          "plan": [
+            18.5,
+            26.0,
+            25.5,
+            32.5
+          ],
+          "grid": [
+            4,
+            4
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the north-east block"
+        },
+        {
+          "plan": [
+            18.5,
+            26.0,
+            1.5,
+            9.0
+          ],
+          "grid": [
+            4,
+            4
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the north-west block"
+        },
+        {
+          "plan": [
+            27.0,
+            34.5,
+            25.0,
+            32.5
+          ],
+          "grid": [
+            4,
+            4
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the east block"
+        },
+        {
+          "plan": [
+            27.5,
+            34.5,
+            1.5,
+            8.5
+          ],
+          "grid": [
+            4,
+            4
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the west block"
+        },
+        {
+          "plan": [
+            29.5,
+            34.5,
+            10.0,
+            14.5
+          ],
+          "grid": [
+            3,
+            3
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the small block south of the screen"
+        },
+        {
+          "plan": [
+            35.5,
+            46.5,
+            1.5,
+            10.5
+          ],
+          "grid": [
+            6,
+            5
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the south-west field"
+        },
+        {
+          "plan": [
+            35.5,
+            46.5,
+            12.0,
+            20.5
+          ],
+          "grid": [
+            6,
+            5
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the south-centre field"
+        },
+        {
+          "plan": [
+            35.5,
+            46.5,
+            22.0,
+            32.0
+          ],
+          "grid": [
+            6,
+            5
+          ],
+          "size": [
+            1.05,
+            1.85
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_roof: the south-east field"
+        }
+      ],
+      "_lookfix1": "LOOK-FIX 1. Five clusters left most of the roof empty cream, and beside the reference nadir that is the loudest thing wrong at the top-down camera: S7's p_roof shows per-apartment condensers over most of the membrane - two blocks flanking the screen at the north end and three full-width fields across the southern third. Eight blocks now, read off that image."
+    },
+    {
+      "id": "northWing",
+      "_src": "The five-storey north wing, u 0 to 17.55, full width, its roof the amenity deck at 17.90. S7's rectified plan is what says it is there: north of u=17.5 the nadir shows open deck, a pool, a shade lattice and a mech yard, not a roof of the tower's membrane. S3 calls the pool a rooftop pool and it is - the roof of this wing.",
+      "plan": [
+        0.0,
+        17.55,
+        0.0,
+        34.44
+      ],
+      "z0": 0,
+      "z1": 17.9,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 5.2,
+          "skin": "base"
+        },
+        {
+          "z0": 5.2,
+          "z1": 17.9,
+          "skin": "panel"
+        }
+      ],
+      "faces": {
+        "u1": null,
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 5.2,
+              "skin": "base"
+            },
+            {
+              "z0": 5.2,
+              "z1": 14.725,
+              "skin": "panel"
+            },
+            {
+              "z0": 14.725,
+              "z1": 17.9,
+              "skin": "panelSign",
+              "signs": [
+                {
+                  "text": "SIGNATURE",
+                  "s0": 12.7,
+                  "z0": 16.0,
+                  "dot": 0.17,
+                  "gap": 0.17,
+                  "tone": "sign",
+                  "_src": "LOOK-FIX 2. It was at z 15.35 with a 0.14 dot, which put the letters straddling the white floor band at 14.725-15.545 - white on white, and in the first render the wordmark was not there at all. 16.00 puts all 1.19 m of it inside the charcoal field between that band and the deck, and the bigger dot makes the block 9.0 m of the 34.44 m face, which is the share S4's photograph shows."
+                }
+              ]
+            }
+          ]
+        },
+        "_src": "u1 stands against the tower and is not drawn. u0 is the West 21st Street elevation and carries the sign: S4's Rooftop-Pool photograph shows a black panel with a white 'signature 1909' wordmark on the wing's outer parapet, on the side the pool's long axis runs along, which in S7's plan is the north edge. Nine letters at a 0.14 m dot are 7.42 m of the 34.44 m face and 0.98 m tall, centred; the photograph's panel is about 6-7 m. WHAT IS NOT DRAWN: the black backing panel - a horizontal sign in this generator has none, so the letters stand on the charcoal band, which is the tone the panel is anyway."
+      },
+      "roofTone": "deck",
+      "parapet": 1.1,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            1.0,
+            12.5,
+            0.5,
+            12.0
+          ],
+          "grid": [
+            5,
+            4
+          ],
+          "size": [
+            1.1,
+            1.9
+          ],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S7 p_deck: the mech yard on the deck's west half, a dense field of per-apartment condensers behind the trellis - the units S4's west elevation shows standing above the wing's parapet"
+        },
+        {
+          "plan": [
+            13.0,
+            17.2,
+            1.0,
+            33.0
+          ],
+          "grid": [
+            2,
+            9
+          ],
+          "size": [
+            1.6,
+            2.0
+          ],
+          "h": 1.1,
+          "tone": "condenser",
+          "_src": "S7 p_deck: the row of units along the tower's foot, spanning the deck's full width at u 13-17.5"
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 17.9,
+    "_src": "the amenity deck on the north wing's roof (levels._deck_src). Every rectangle is read off S7's p_deck, the nadir rectified into this frame at the deck's own height, and checked against S4's Rooftop-Pool photograph, which shows the same five things in the same order: trellis, chairs, turf, pool, decking.",
+    "items": [
+      {
+        "id": "pool",
+        "plan": [
+          3.5,
+          7.5,
+          19.5,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.12,
+        "tone": "pool",
+        "_src": "S7 p_deck: the water, 11.0 x 4.0 m, its long axis east-west. S3's 'infinity spillover' end is the east one; the spillover itself is not drawn."
+      },
+      {
+        "id": "turf",
+        "plan": [
+          3.2,
+          7.6,
+          17.4,
+          19.4
+        ],
+        "z0": 0.0,
+        "h": 0.1,
+        "tone": "turf",
+        "_src": "S4 Rooftop-Pool: the turf strip between the loungers and the pool's west end"
+      },
+      {
+        "id": "trellisBeam0",
+        "plan": [
+          1.5,
+          10.0,
+          12.5,
+          12.85
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam1",
+        "plan": [
+          1.5,
+          10.0,
+          13.28,
+          13.62
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam2",
+        "plan": [
+          1.5,
+          10.0,
+          14.05,
+          14.4
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam3",
+        "plan": [
+          1.5,
+          10.0,
+          14.82,
+          15.17
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam4",
+        "plan": [
+          1.5,
+          10.0,
+          15.6,
+          15.95
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam5",
+        "plan": [
+          1.5,
+          10.0,
+          16.38,
+          16.73
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisBeam6",
+        "plan": [
+          1.5,
+          10.0,
+          17.15,
+          17.5
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S7 p_deck / S4 Rooftop-Pool: the shade trellis is an open lattice with sky between its beams, not a plate. LOOK-FIX 3 - drawn as seven 0.35 m beams on an 0.83 m pitch across u 1.5-10.0, which is the grid the photograph shows."
+      },
+      {
+        "id": "trellisEdge0",
+        "plan": [
+          1.5,
+          1.8,
+          12.5,
+          17.5
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the trellis's own two edge beams, which the photograph shows carrying the cross beams"
+      },
+      {
+        "id": "trellisEdge1",
+        "plan": [
+          9.7,
+          10.0,
+          12.5,
+          17.5
+        ],
+        "z0": 2.7,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the trellis's own two edge beams, which the photograph shows carrying the cross beams"
+      },
+      {
+        "id": "trellisPost",
+        "plan": [
+          1.6,
+          2.05,
+          12.6,
+          13.05
+        ],
+        "z0": 0.0,
+        "h": 2.7,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+      },
+      {
+        "id": "trellisPost",
+        "plan": [
+          1.6,
+          2.05,
+          16.95,
+          17.4
+        ],
+        "z0": 0.0,
+        "h": 2.7,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+      },
+      {
+        "id": "trellisPost",
+        "plan": [
+          9.45,
+          9.9,
+          12.6,
+          13.05
+        ],
+        "z0": 0.0,
+        "h": 2.7,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+      },
+      {
+        "id": "trellisPost",
+        "plan": [
+          9.45,
+          9.9,
+          16.95,
+          17.4
+        ],
+        "z0": 0.0,
+        "h": 2.7,
+        "tone": "shade",
+        "_src": "LOOK-FIX 3: the four white posts the trellis stands on (S4 Rooftop-Pool)"
+      },
+      {
+        "id": "lounge",
+        "plan": [
+          8.2,
+          10.6,
+          20.5,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.55,
+        "tone": "furn",
+        "_src": "S7 p_deck: the dark decking south of the pool, which S4 shows carrying the loungers"
+      },
+      {
+        "id": "bulkhead",
+        "plan": [
+          10.4,
+          12.8,
+          22.0,
+          28.0
+        ],
+        "z0": 0.0,
+        "h": 3.0,
+        "tone": "coping",
+        "_src": "S7 p_deck: the white box at the deck's south-east, the stair head out on to the deck; S4 shows it as a rendered enclosure beside the grills. Its height is derived."
+      },
+      {
+        "id": "planterN",
+        "plan": [
+          2.6,
+          3.4,
+          19.5,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.75,
+        "tone": "planter",
+        "_src": "S4 Rooftop-Pool: the planted boxes along the pool's north edge"
+      },
+      {
+        "id": "planterS",
+        "plan": [
+          7.6,
+          8.2,
+          21.0,
+          30.5
+        ],
+        "z0": 0.0,
+        "h": 0.75,
+        "tone": "planter",
+        "_src": "S4 Rooftop-Pool: the planted boxes on the pool's south edge"
+      }
+    ]
+  },
+  "todo": [
+    "The tower's top: S4's Birds-Eye-View-Building-Exterior shows a step near the tower's north end where the last three or four storeys sit back, and S7's nadir shows one unbroken membrane roof there. The nadir wins for now and the tower is drawn straight to the parapet; a photograph of the north-west corner from the street would settle it.",
+    "The 64.30 m bulkhead is 8.3 m tall because that is what S2's Overture height leaves above a measured seventeen storeys. If a stated height in feet ever turns up for this building, the bulkhead is the thing to re-cut, not the floors.",
+    "The garage mouth on the west front (S4 shows it lit, near the south end of the ground floor) is not cut into the storefront: this generator's `storefront` skin has no opening and `overrides` would need a second skin for one band of one face. Written down rather than faked.",
+    "DONE 2026-09-05: window.frame { w: 0.4, tone: panel } on the panel skins (was: GENERATOR: a `bays` skin cannot put a frame around its window - only a floor band and a pier. This building's white is a picture frame on al ...)"
+  ]
+}

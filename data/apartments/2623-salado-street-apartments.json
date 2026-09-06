@@ -1,0 +1,1284 @@
+{
+  "_readme": "2704 Rio Grande St - the apartment block OSM relation 5685766 tags as 2623 Salado Street - as js/slopes-apartments.js draws it. A 2006 seven-storey student block filling the whole block face from Salado to Rio Grande between W 27th and W 28th, wrapped round a pool court with a four-deck open parking structure inside it. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=70.9, W=56.1. u=0 is the WEST (Salado) end and +u runs EAST at bearing 94.3 deg; v=0 is the SOUTH edge and +v runs NORTH. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "3b8f0f69-4456-4840-8eff-e23a39b1ac92",
+  "name": "Sparq on Rio",
+  "_name_src": "S3. The OSM element has no name tag and the snapshot none either, and js/westcampus.js has no band set for this building, so the `replacedNames` entry in index.json hides nothing and the name is only the label. The building has been marketed as Rio West Student Living and as Sparq on Rio (Preiss) at 2704 Rio Grande St.",
+  "address": "2623 Salado Street, Austin, TX 78705",
+  "_address_src": "S2 verbatim - the OSM addr tags. S3 shows the leasing address is 2704 Rio Grande St; both are kept, because the id and not the address is what this file replaces.",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 3b8f0f69-4456-4840-8eff-e23a39b1ac92: no name, num_floors 5, final_height 24.1, source_height 'overture'. The ring is a 27-vertex outline with four holes (one 444 m2 courtyard and three 8-17 m2 roof shafts); outer area 3,458 m2.",
+    "S2": "OpenStreetMap relation 5685766 (type=multipolygon, building=apartments, building:levels=5, height=24.1, addr:housenumber=2623, addr:street=Salado Street), read from Overpass 2026-09-05. Overture's height and levels ARE these tags, so S1 and S2 are one source, not two. The five outer ways are 382153808/09/15/17/19.",
+    "S3": "Nominatim forward geocode of '2704 Rio Grande Street, Austin, TX 78705' (2026-09-05) lands INSIDE this footprint, 15 m east and 23 m north of its obb centre; '2700 Salado Street' and '2622 Salado Street' land 70 m and 180 m away, outside it. 2704 Rio Grande St is the leasing address of Sparq on Rio (Preiss), earlier marketed as Rio West Student Living: apartments.com and forrent.com list it at 2704 Rio Grande St, built 2006, 2/3/4-bedroom student flats of 878-1,698 sq ft, covered parking garage, resort-style pool. So the OSM addr tag (2623 Salado St) names a lot the building no longer matches; the file keeps the OSM tag as `address` and uses the leasing name.",
+    "S4": "data/roads.geojson, projected into this footprint's frame: Salado Street runs N-S about 9 m west of u=0, Rio Grande Street about 50 m east of u=70.9, West 28th Street about 44 m north of v=56.1 and West 27th Street about 48 m south of v=0. So u=0 is the Salado elevation and u=70.9 the Rio Grande elevation, and the building fills the block between them.",
+    "S5": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a nadir at camera 590 m, a second nadir at camera 398 m, four obliques at 300 m distance and 55 deg tilt from the SW, NW, NE and SE, and a 150 m / 45 deg view down into the courtyard. Frames in the session scratchpad, apts/build/apartments/2623-salado-street-apartments/ref/.",
+    "S6": "The 398 m nadir rectified into this building's own (u,v) frame at 0.11318 m per source pixel with the view centre at pixel (720, 500) - fitted by putting the S1 ring on the roof edges, which then also puts all four holes on their features: the courtyard boundary, the 2.8 m light slot at u 39-42, and the three louvred roof shafts at u 54-58. Every plan number below was read off that gridded plan at 14 px/m.",
+    "S7": "The NW oblique (S5) blended 50/50 with our own render of the same footprint as a 24.1 m prism at the matched camera (zoom from d, pitch 55, bearing 135): the two rooflines coincide along the north edge, the west edge and the near corner. That is the check that 24.1 m is the roof and not a LiDAR spike above it.",
+    "S8": "Storey count and floor pitch, measured twice on the photogrammetry: at the north-west corner in the NW oblique the wall runs 24.1 m over 118 source pixels and the window rows repeat every 16.2 px -> 3.3 m; at the south-west corner in the SW oblique it runs over 105 px with rows every 15 px -> 3.4 m. Six rows are unobstructed in both and the seventh sits behind a street tree. Seven storeys at 3.25 m over a 3.6 m ground floor reaches 23.1 m, which is the roof. S2's building:levels=5 does not fit that wall and is not used; see `todo`.",
+    "S9": "js/westcampus.js SOLID trios, as data/apartments/the-standard.json uses them: the day/golden/night relationship for a roof, a deck and a mechanical unit.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7447149,
+        30.2926089
+      ],
+      [
+        -97.7446959,
+        30.2925861
+      ],
+      [
+        -97.7447045,
+        30.2925023
+      ],
+      [
+        -97.7443635,
+        30.2924785
+      ],
+      [
+        -97.7443292,
+        30.2928585
+      ],
+      [
+        -97.7443492,
+        30.2928594
+      ],
+      [
+        -97.7443483,
+        30.2928851
+      ],
+      [
+        -97.7443321,
+        30.2928851
+      ],
+      [
+        -97.7443283,
+        30.2929327
+      ],
+      [
+        -97.7443473,
+        30.2929346
+      ],
+      [
+        -97.7443416,
+        30.2929861
+      ],
+      [
+        -97.7443454,
+        30.2929861
+      ],
+      [
+        -97.7443721,
+        30.292988
+      ],
+      [
+        -97.744373,
+        30.2929794
+      ],
+      [
+        -97.7449445,
+        30.2930223
+      ],
+      [
+        -97.7449445,
+        30.2930242
+      ],
+      [
+        -97.7449921,
+        30.293028
+      ],
+      [
+        -97.744993,
+        30.2930251
+      ],
+      [
+        -97.745054,
+        30.2930299
+      ],
+      [
+        -97.7450607,
+        30.292947
+      ],
+      [
+        -97.7450311,
+        30.2929461
+      ],
+      [
+        -97.745033,
+        30.2929213
+      ],
+      [
+        -97.7450616,
+        30.2929223
+      ],
+      [
+        -97.7450864,
+        30.2926261
+      ],
+      [
+        -97.7449902,
+        30.2926204
+      ],
+      [
+        -97.7449902,
+        30.292627
+      ],
+      [
+        -97.7447149,
+        30.2926089
+      ]
+    ],
+    "_src": "S1's OUTER ring verbatim. The four inner rings are NOT passed through - the generator's footprint takes one ring - so the courtyard, the light slot and the three roof shafts are cut by the block layout instead: no block covers them."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(outer ring). L=70.90, W=56.11, +u at bearing 94.32 deg; confirm against the boot console line `[slopes-apartments] Sparq on Rio: obb L=70.9 W=56.1, +u at bearing 94.3 deg`. +v is 90 deg counter-clockwise from +u, i.e. very nearly north, so v=0 is the south edge (S4).",
+  "levels": {
+    "floors": [
+      0.0,
+      3.6,
+      6.85,
+      10.1,
+      13.35,
+      16.6,
+      19.85
+    ],
+    "_src": "S8. Seven storeys: a 3.6 m ground floor and six residential floors at 3.25 m, the pitch measured on two different corners in two different obliques. The top floor's ceiling lands at 23.1 m, which is the roof (23.2), and the parapet takes it to S1's 24.1. Uncertainty is plus or minus one storey, and plus or minus 0.2 m on the pitch.",
+    "roof": 23.2,
+    "top": 24.1,
+    "garageRoof": 13.6,
+    "_heights_src": "roof 23.2 + parapet 0.9 = 24.1 = S1/S2's height, and S7 is the check that 24.1 is the parapet and not a spike above it: our 24.1 m prism and Google Earth's mesh share a roofline at the matched camera."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex names the crop it was measured on. The 12/3/2023 imagery has the sun high and southerly: the white roof membrane measures #e3e4de, #e6e8e6 and #e0e1dc in three separate frames, while the SAME frames measure the stucco walls around #9d - so a wall crop reads about 0.65 of its own lit value, and every wall tone below is its measured median divided by that. The lift is stated once here rather than repeated per tone.",
+    "cream": {
+      "hex": "#dedad1",
+      "_src": "S5 SW oblique, median of the cream stucco field at (520,427)-(528,433) = #9e9b96, lifted; the same field reads #e4e5e2 where the sun catches it at (560,430)-(580,470)"
+    },
+    "terracotta": {
+      "hex": "#b1573c",
+      "_src": "S5 SW oblique (537,447)-(542,457) = #8e6452, and the NW oblique's orange band at (533,572)-(543,588), which reads about #a4472f where lit: the burnt-orange stucco of the bays that carry the loggias"
+    },
+    "bluegrey": {
+      "hex": "#b8c2c8",
+      "_src": "S5 SW oblique, median of the LIT blue-grey stucco on the east wing at (830,390)-(860,420) = #bac3c6 - measured lit, so entered as measured, no lift"
+    },
+    "teal": {
+      "hex": "#2f6d8a",
+      "_src": "S5 SW oblique and the courtyard view: the saturated blue-teal accent panels beside the stair cores, the darkest blue run inside the (830,390)-(860,420) crop"
+    },
+    "ochre": {
+      "hex": "#c3b37e",
+      "_src": "S5 SW oblique, median of the khaki-ochre end panel at the south-west corner, (445,378)-(462,410) = #9c906b, lifted"
+    },
+    "trim": {
+      "hex": "#e9e8e3",
+      "_src": "S5 SW oblique, median of a white window-surround strip at (546,440)-(550,452) = #9d9e99, lifted; the same white reads #e4e5e2 where lit"
+    },
+    "glass": {
+      "hex": "#3c444a",
+      "_src": "unknown as a direct measurement - every window crop at this scale mixes glass, reveal and surround (#888387 at (525,443)-(531,449)). Entered as the dark value the openings read at both obliques, the way the-castilian.json enters its vision glass."
+    },
+    "recess": {
+      "hex": "#5a4136",
+      "_src": "S5 west-elevation capture: on the terracotta bays the loggia is the darkest run inside a bay, about #716254 in shade; entered a step darker because a recess keeps its shade at every sun angle"
+    },
+    "base": {
+      "hex": "#7e4038",
+      "_src": "S5 SW oblique, median of the dark brick-red ground-floor base at (448,440)-(456,452) = #5d4243, lifted"
+    },
+    "mural": {
+      "hex": "#9c5a63",
+      "_src": "S5 SE oblique: the ground floor on the Rio Grande frontage carries a painted mural in pinks, reds and blues, (836,513)-(876,533) median #5d524d in shade. One tone stands for the whole painting - see `todo`."
+    },
+    "roof": [
+      "#e5e6e1",
+      "#e8dcc6",
+      "#1c1f27"
+    ],
+    "_roof_src": "S5/S6 nadir, median of the roof membrane at (600,300)-(700,380) = #e3e4de and (850,550)-(950,650) = #e7e7e1; golden and night entered the way S9 enters a top face",
+    "coping": {
+      "hex": "#ccd4d8",
+      "_src": "S6 nadir, median of the parapet capping at (430,360)-(445,420) = #e9ebe7; entered a step down because that edge is the brightest sunlit line in the frame"
+    },
+    "deckTone": [
+      "#8d7c66",
+      "#9c8465",
+      "#1c1f27"
+    ],
+    "_deckTone_src": "S6 nadir: the courtyard paving around the pool is a warm brown, sampled between the pool and the pergola",
+    "pool": [
+      "#2e7a72",
+      "#2f7a6c",
+      "#12303a"
+    ],
+    "_pool_src": "S6 nadir, median of the pool water at (625,470)-(660,495) = #31756e",
+    "garageDeck": {
+      "hex": "#a8aeb0",
+      "_src": "S5 SW oblique, the open parking structure at (610,400)-(760,500): pale concrete deck slabs and piers against dark open bays"
+    },
+    "garageDark": {
+      "hex": "#2f3336",
+      "_src": "the same crop: the open bays between the decks read as near-black at every sun angle"
+    },
+    "garageRoof": [
+      "#8f7d78",
+      "#9c8071",
+      "#1a1d26"
+    ],
+    "_garageRoof_src": "S6 nadir, median of the brown roof strip south of the courtyard at (520,600)-(600,615) = #8f7d78 - a mineral-surfaced roof, not the white membrane the rest of the building wears, which is one of the two reasons it is drawn lower",
+    "penthouse": {
+      "hex": "#dcdedb",
+      "_src": "S5 SW oblique: the stair penthouse on the north roof is the brightest white box up there; entered between the membrane and the coping, not separately sampled"
+    },
+    "shaft": {
+      "hex": "#c6cbc9",
+      "_src": "S6 nadir: the three roof shafts at u 54-58 read as pale louvred grilles; entered as a light grey, not sampled through the grille"
+    },
+    "condenser": [
+      "#8f9398",
+      "#9a958c",
+      "#1a1d26"
+    ],
+    "_condenser_src": "S6 nadir: about sixty paired condensers, mid grey; the trio is S9's mech tone, as the-standard.json uses it"
+  },
+  "skins": {
+    "_src": "one rule per face treatment. The building is one module wearing four stucco colours, so every residential skin below is the same `bays` rule with a different field - the null hypothesis, checked on all four obliques.",
+    "cream": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "cream",
+      "strip": {
+        "w": 2.7,
+        "tone": "trim",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.2,
+        "h": 1.8,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.13,
+      "_src": "The residential wall everywhere: a stucco field cut into 4.0 m bays, each carrying a white-trimmed window column 2.7 m wide carrying one 2.20 x 1.80 m window per floor on a 0.85 m sill. The opening is 55 percent of the bay and 55 percent of the 3.25 m floor, which is what a bay measures in the head-on west-elevation capture; the first two passes had it at 39 and 45 percent and the wall read as a grid of dots rather than as flats. 4.0 m is read off the SW oblique's south elevation, where the field/trim alternation repeats every 55 px in a 6x crop whose own scale is 0.229 m per source pixel - 4.0 m, plus or minus 0.5 m. The window is 39 percent of the bay and 43 percent of the 3.25 m floor, which is what the head-on west-elevation capture shows. Only the FIELD tone changes from face to face; the module does not. Field cream: the west (Salado) elevation, the north elevation and the courtyard walls."
+    },
+    "terra": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "terracotta",
+      "strip": {
+        "w": 2.7,
+        "tone": "trim",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.2,
+        "h": 1.8,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.13,
+      "_src": "The residential wall everywhere: a stucco field cut into 4.0 m bays, each carrying a white-trimmed window column 2.7 m wide carrying one 2.20 x 1.80 m window per floor on a 0.85 m sill. The opening is 55 percent of the bay and 55 percent of the 3.25 m floor, which is what a bay measures in the head-on west-elevation capture; the first two passes had it at 39 and 45 percent and the wall read as a grid of dots rather than as flats. 4.0 m is read off the SW oblique's south elevation, where the field/trim alternation repeats every 55 px in a 6x crop whose own scale is 0.229 m per source pixel - 4.0 m, plus or minus 0.5 m. The window is 39 percent of the bay and 43 percent of the 3.25 m floor, which is what the head-on west-elevation capture shows. Only the FIELD tone changes from face to face; the module does not. Field terracotta: the south elevation of the west block."
+    },
+    "blue": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "bluegrey",
+      "strip": {
+        "w": 2.7,
+        "tone": "trim",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.2,
+        "h": 1.8,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.13,
+      "_src": "The residential wall everywhere: a stucco field cut into 4.0 m bays, each carrying a white-trimmed window column 2.7 m wide carrying one 2.20 x 1.80 m window per floor on a 0.85 m sill. The opening is 55 percent of the bay and 55 percent of the 3.25 m floor, which is what a bay measures in the head-on west-elevation capture; the first two passes had it at 39 and 45 percent and the wall read as a grid of dots rather than as flats. 4.0 m is read off the SW oblique's south elevation, where the field/trim alternation repeats every 55 px in a 6x crop whose own scale is 0.229 m per source pixel - 4.0 m, plus or minus 0.5 m. The window is 39 percent of the bay and 43 percent of the 3.25 m floor, which is what the head-on west-elevation capture shows. Only the FIELD tone changes from face to face; the module does not. Field blue-grey: the east (Rio Grande) elevation and the south face of the south-east wing, which the SE oblique shows as a pale blue-grey wall with white window columns."
+    },
+    "teal": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "teal",
+      "strip": {
+        "w": 2.7,
+        "tone": "trim",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.2,
+        "h": 1.8,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.13,
+      "_src": "The residential wall everywhere: a stucco field cut into 4.0 m bays, each carrying a white-trimmed window column 2.7 m wide carrying one 2.20 x 1.80 m window per floor on a 0.85 m sill. The opening is 55 percent of the bay and 55 percent of the 3.25 m floor, which is what a bay measures in the head-on west-elevation capture; the first two passes had it at 39 and 45 percent and the wall read as a grid of dots rather than as flats. 4.0 m is read off the SW oblique's south elevation, where the field/trim alternation repeats every 55 px in a 6x crop whose own scale is 0.229 m per source pixel - 4.0 m, plus or minus 0.5 m. The window is 39 percent of the bay and 43 percent of the 3.25 m floor, which is what the head-on west-elevation capture shows. Only the FIELD tone changes from face to face; the module does not. Field teal: the accent panels beside the stair cores, which every oblique shows as a saturated blue strip about two bays wide."
+    },
+    "balcony": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "terracotta",
+      "strip": {
+        "w": 2.4,
+        "tone": "recess",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.05,
+        "h": 1.55,
+        "sill": 0.9
+      },
+      "glass": "glass",
+      "frame": "recess",
+      "reveal": 0.3,
+      "_src": "The loggia bays. The head-on west-elevation capture (S5) shows, on the terracotta bays only, a stack of dark rectangles about 2.4 m wide - one per floor, the full depth of the bay. They are RECESSED loggias, not projecting balconies, so they are drawn as a dark 2.4 m strip with a deep-set opening rather than with the building's `balcony` module: a projecting slab and rail would put geometry where the photograph has a hole."
+    },
+    "ochre": {
+      "kind": "flat",
+      "field": "ochre",
+      "_src": "The blank khaki-ochre end panels. The SW oblique shows one at the south-west corner running the full height with only a white trim ladder on it and no windows, and the NW oblique shows the same treatment at the north-west; they mark the ends of the residential bars."
+    },
+    "ground": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "base",
+      "strip": {
+        "w": 2.6,
+        "tone": "glass",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.3,
+        "h": 2.3,
+        "sill": 0.55
+      },
+      "glass": "glass",
+      "frame": "base",
+      "reveal": 0.22,
+      "_src": "The ground floor: a dark brick-red base with wide glazed openings - leasing office, amenity rooms and unit doors. Tone measured (S5); the 2.3 m opening is the width the SW oblique's ground floor shows between piers, plus or minus 0.4 m."
+    },
+    "mural": {
+      "kind": "bays",
+      "bay": 4.0,
+      "field": "mural",
+      "strip": {
+        "w": 2.6,
+        "tone": "glass",
+        "at": "centres"
+      },
+      "window": {
+        "w": 2.3,
+        "h": 2.3,
+        "sill": 0.55
+      },
+      "glass": "glass",
+      "frame": "mural",
+      "reveal": 0.22,
+      "_src": "The Rio Grande ground floor, which the SE oblique shows carrying a painted mural in pinks, reds and blues across the whole frontage. One flat tone stands in for the painting; the generator draws quads, not textures."
+    },
+    "garage": {
+      "kind": "bays",
+      "bay": 5.4,
+      "field": "garageDark",
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 0.45,
+          "tone": "garageDeck"
+        },
+        {
+          "z0": 3.25,
+          "z1": 3.7,
+          "tone": "garageDeck"
+        },
+        {
+          "z0": 6.6,
+          "z1": 7.05,
+          "tone": "garageDeck"
+        },
+        {
+          "z0": 9.95,
+          "z1": 10.4,
+          "tone": "garageDeck"
+        },
+        {
+          "z0": 13.1,
+          "z1": 13.6,
+          "tone": "garageDeck"
+        }
+      ],
+      "strip": {
+        "w": 0.5,
+        "tone": "garageDeck",
+        "at": "joints"
+      },
+      "_src": "The open parking structure inside the block. The SW oblique looks straight into it through the gap between the south wing and the east wing (frame crop 610,400-760,500): four open levels of pale concrete deck slabs on slender piers, black between them, no cladding. The deck lines are set at the building's own floor lines; the 5.4 m pier spacing is a plausible parking module and is not dimensioned."
+    }
+  },
+  "balcony": {
+    "proj": 1.15,
+    "slabT": 0.22,
+    "railH": 1.05,
+    "railT": 0.06,
+    "_src": "unused by any band in this file - the loggias are recesses, not projections (see the `balcony` skin). Kept so a later pass can hang a rail in the one or two places the SW oblique shows one."
+  },
+  "blocks": [
+    {
+      "id": "north",
+      "_src": "The north bar, 11.3 m deep, running the whole block width from Salado to Rio Grande. Extents off the rectified plan (S6): its south face at v=44.8 is the courtyard's own north boundary, which is where the light slot at u 39-42 stops.",
+      "plan": [
+        0.0,
+        70.9,
+        44.8,
+        56.11
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "ground"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "cream"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "ochre"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "mural"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "blue"
+            }
+          ]
+        },
+        "_src": "v0 (the south face at v=44.8) stands against `west`, `northmid` and `east` for all but the 2.8 m of light slot at u 39-42, so it is skipped rather than drawn coplanar with them; the slot loses its north end wall - see `todo`. u0 is the north-west end, which the NW oblique shows as a blank ochre panel like the south-west one; u1 is the north end of the Rio Grande elevation and wears that elevation's blue-grey over the mural."
+      },
+      "overrides": [
+        {
+          "region": [
+            4.0,
+            16.0,
+            54.5,
+            56.11
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. North elevation: the western terracotta run."
+        },
+        {
+          "region": [
+            20.0,
+            30.0,
+            54.5,
+            56.11
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. North elevation: the terracotta run left of the stair core in the NW oblique."
+        },
+        {
+          "region": [
+            40.0,
+            52.0,
+            54.5,
+            56.11
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. North elevation: the run east of the stair core."
+        },
+        {
+          "region": [
+            56.0,
+            64.0,
+            54.5,
+            56.11
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "blue"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. North elevation: the blue-grey run where the north bar meets the Rio Grande elevation, which carries that elevation's colour round the corner."
+        },
+        {
+          "region": [
+            31.0,
+            37.0,
+            54.5,
+            56.11
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "teal"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. North elevation: the teal accent panel over the stair core, which both north-side obliques show."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v1",
+        "u0",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            6.0,
+            64.0,
+            47.5,
+            53.0
+          ],
+          "grid": [
+            7,
+            2
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        },
+        {
+          "plan": [
+            30.0,
+            38.0,
+            47.5,
+            52.5
+          ],
+          "h": 3.2,
+          "tone": "penthouse",
+          "_src": "S5 SW oblique: a white stair and lift penthouse stands on the north roof, about 8 x 5 m and one storey tall, plus or minus 2 m in each"
+        }
+      ]
+    },
+    {
+      "id": "west",
+      "_src": "The Salado bar, 11.2 m deep; u=0 is the Salado elevation (S4). The rectified plan puts its inner face at u=11.2, where the courtyard's west arm begins.",
+      "plan": [
+        0.0,
+        11.2,
+        11.0,
+        44.8
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "ground"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "cream"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "u1": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ]
+        },
+        "_src": "v1 stands against `north`; u1 stands against `westin` and `northmid` except for the 3.5 m courtyard arm at v 32.3-35.8, which loses its west end. v0 is the south elevation, which the SW oblique shows as terracotta where the Salado elevation is cream."
+      },
+      "overrides": [
+        {
+          "region": [
+            0.0,
+            11.2,
+            15.0,
+            23.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Salado elevation: the southern terracotta run."
+        },
+        {
+          "region": [
+            0.0,
+            11.2,
+            27.0,
+            35.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Salado elevation: the northern terracotta run."
+        },
+        {
+          "region": [
+            0.0,
+            11.2,
+            39.0,
+            44.8
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Salado elevation: the run at the north end, which the west-elevation capture shows meeting the north bar."
+        },
+        {
+          "region": [
+            0.0,
+            4.2,
+            11.0,
+            15.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "ochre"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. The south-west corner panel: the SW oblique shows the corner wearing a blank khaki-ochre panel the full height with a white trim ladder and no windows, about one bay wide. It is entered LAST so that it wins over the terracotta run beside it. The FIRST pass gave this override the whole depth of the block (v 11 to 44.8) and painted the entire 34 m Salado elevation ochre: a region that contains a wall contains all of it, and the u0 wall runs the block's whole v range."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "u0",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            2.5,
+            9.0,
+            16.0,
+            42.0
+          ],
+          "grid": [
+            2,
+            5
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        }
+      ]
+    },
+    {
+      "id": "westin",
+      "_src": "The extra depth of the Salado bar south of the courtyard arm: the plan (S6) shows the west wing 8.1 m wider between v 11.4 and v 32.3, which is what makes the pool court an L.",
+      "plan": [
+        11.2,
+        19.3,
+        11.4,
+        32.3
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "ground"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "cream"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ]
+        },
+        "_src": "u0 stands against `west`. u1 (u=19.3) is the courtyard's west wall, v1 (32.3) is the arm's south wall and v0 (11.4) is on the south elevation - all three are real walls, and v0 carries the same terracotta as `west`'s south face because it is the same elevation."
+      },
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "u1",
+        "v1",
+        "v0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            13.0,
+            18.0,
+            16.0,
+            30.0
+          ],
+          "grid": [
+            2,
+            4
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        }
+      ]
+    },
+    {
+      "id": "northmid",
+      "_src": "The 9 m deep slab between the courtyard's north arm and the north bar. Its south face at v=35.8 is the arm's north wall; the arm itself (v 32.3-35.8) is open sky in the plan.",
+      "plan": [
+        11.2,
+        39.2,
+        35.8,
+        44.8
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "ground"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "cream"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "u0": null,
+        "_src": "v1 stands against `north`, u0 against `west`. v0 (35.8) faces the courtyard arm and u1 (39.2) faces the light slot."
+      },
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            14.0,
+            37.0,
+            38.0,
+            43.0
+          ],
+          "grid": [
+            4,
+            2
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        }
+      ]
+    },
+    {
+      "id": "east",
+      "_src": "The Rio Grande bar, 28.9 m deep and the deepest piece of the building - it carries the three louvred roof shafts (S1's small holes) down its middle at u 54-58. Its west face at u=42.0 is the light slot's east wall.",
+      "plan": [
+        42.0,
+        70.9,
+        0.0,
+        44.8
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "mural"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "blue"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 stands against `north` and is skipped. u1 is the Rio Grande elevation, v0 the south elevation, u0 the light slot's east wall."
+      },
+      "overrides": [
+        {
+          "region": [
+            66.5,
+            70.9,
+            4.0,
+            13.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Rio Grande elevation: the southern terracotta run, the orange corner the NE oblique shows."
+        },
+        {
+          "region": [
+            66.5,
+            70.9,
+            28.0,
+            36.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Rio Grande elevation: the northern terracotta run."
+        },
+        {
+          "region": [
+            44.0,
+            55.0,
+            0.0,
+            1.5
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "terra"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. The south elevation of the Rio Grande bar, whose western half the SE oblique shows in terracotta over the mural."
+        },
+        {
+          "region": [
+            66.5,
+            70.9,
+            20.0,
+            25.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.6,
+              "skin": "ground"
+            },
+            {
+              "z0": 3.6,
+              "z1": 23.2,
+              "skin": "teal"
+            }
+          ],
+          "_src": "S5: the elevations are NOT one colour. Every oblique shows cream, terracotta, blue-grey and one ochre bay alternating along each face in runs a few bays wide. The `bays` skin carries one field tone per band, so the alternation is drawn as a handful of `overrides` regions instead: the run positions are read off the obliques to about half a bay, and the run widths are the reference's own two-to-three-bay rhythm. Rio Grande elevation: the teal accent over the middle stair core."
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "u1",
+        "v0",
+        "u0"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            44.5,
+            51.5,
+            4.0,
+            42.0
+          ],
+          "grid": [
+            2,
+            6
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        },
+        {
+          "plan": [
+            60.0,
+            68.5,
+            4.0,
+            42.0
+          ],
+          "grid": [
+            2,
+            6
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        },
+        {
+          "plan": [
+            53.9,
+            57.6,
+            11.5,
+            13.9
+          ],
+          "h": 1.0,
+          "tone": "shaft",
+          "_src": "S1 hole 1, on the plan at S6: a louvred roof shaft, 3.7 x 2.4 m"
+        },
+        {
+          "plan": [
+            53.9,
+            57.6,
+            25.4,
+            30.2
+          ],
+          "h": 1.0,
+          "tone": "shaft",
+          "_src": "S1 hole 2, on the plan at S6: a louvred roof shaft, 3.6 x 4.8 m"
+        },
+        {
+          "plan": [
+            54.0,
+            57.7,
+            41.9,
+            44.4
+          ],
+          "h": 1.0,
+          "tone": "shaft",
+          "_src": "S1 hole 4, on the plan at S6: a louvred roof shaft, 3.6 x 2.4 m"
+        }
+      ]
+    },
+    {
+      "id": "southeast",
+      "_src": "The 4.1 m return that closes the south end of the light slot and carries the building's south-west shoulder on the Rio Grande half. Read off the S1 ring, whose south edge steps from v=11.8 to v=0 at u=37.9.",
+      "plan": [
+        37.9,
+        42.0,
+        0.0,
+        11.8
+      ],
+      "z0": 0.0,
+      "z1": 23.2,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.6,
+          "skin": "mural"
+        },
+        {
+          "z0": 3.6,
+          "z1": 23.2,
+          "skin": "blue"
+        }
+      ],
+      "faces": {
+        "u1": null,
+        "_src": "u1 is coplanar with `east`'s u0 over v 0-11.8, so it is skipped and `east` draws that plane. v1 (11.8) is the light slot's south end wall."
+      },
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1"
+      ]
+    },
+    {
+      "id": "garage",
+      "_src": "The open parking structure, four decks and 13.6 m tall, standing inside the block south of the pool. Two things say it is lower than the wings: in the S6 nadir its roof is a separate brown mineral-surfaced plane, inboard of the white membrane by exactly the parallax a low roof would hide behind a tall wall; and in the SW oblique you look straight into four open decks through the gap between the south wing and the east wing. Plan off the rectified nadir; height plus or minus 3 m.",
+      "plan": [
+        23.7,
+        39.2,
+        11.4,
+        22.9
+      ],
+      "z0": 0.0,
+      "z1": 13.6,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 13.6,
+          "skin": "garage"
+        }
+      ],
+      "faces": {
+        "_src": "all four faces are open deck: u0 and v1 face the courtyard, u1 faces the light slot, v0 is on the south elevation."
+      },
+      "roofTone": "garageRoof",
+      "parapet": 0.5,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "u1",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            26.0,
+            37.0,
+            14.0,
+            21.5
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            0.95,
+            0.95
+          ],
+          "h": 0.65,
+          "tone": "condenser",
+          "_src": "S6 nadir: paired condensers, laid on the gridded plan at 14 px/m. The first pass put eleven pairs across the north bar where the nadir shows seven, and at the oblique camera that read as a gravel field rather than as plant; the counts here are the nadir own counts, and the box is 0.95 m because that is what one pair measures across."
+        }
+      ]
+    },
+    {
+      "id": "southlink",
+      "_src": "The 4.4 m wide link that carries the parking structure west to the Salado bar. The S1 ring keeps the courtyard open north of it (v 14.5-21.9), which is the pool court's south-west leg, so the link is exactly as wide as the ring says and no wider.",
+      "plan": [
+        19.3,
+        23.7,
+        11.4,
+        14.5
+      ],
+      "z0": 0.0,
+      "z1": 13.6,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 13.6,
+          "skin": "garage"
+        }
+      ],
+      "faces": {
+        "u1": null,
+        "_src": "u1 stands against `garage`. u0 stands against `westin`, which is a 23.2 m wall and hides it, so it is left drawn - see `todo`."
+      },
+      "roofTone": "garageRoof",
+      "parapet": 0.5,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
+    }
+  ],
+  "deck": {
+    "z": 0.35,
+    "_src": "The pool court at ground level, read off the rectified nadir (S6). The courtyard floor is the ground, not a podium: the S5 courtyard view looks down seven storeys of wall to the deck.",
+    "items": [
+      {
+        "plan": [
+          19.7,
+          39.2,
+          14.5,
+          35.8
+        ],
+        "z0": -0.35,
+        "h": 0.35,
+        "tone": "deckTone",
+        "_src": "the paved court itself, brown pavers, filling the S1 courtyard hole"
+      },
+      {
+        "plan": [
+          23.0,
+          31.3,
+          26.8,
+          31.3
+        ],
+        "z0": -0.3,
+        "h": 0.28,
+        "tone": "pool",
+        "_src": "the pool: 8.3 x 4.5 m, read off the gridded plan at 14 px/m (S6)"
+      },
+      {
+        "plan": [
+          33.5,
+          37.9,
+          26.8,
+          31.2
+        ],
+        "z0": 2.6,
+        "h": 0.25,
+        "tone": "trim",
+        "_src": "the white pergola east of the pool, 4.4 x 4.4 m in the plan (S6); its lid is drawn at 2.6 m, the height a shade structure stands at - not measured"
+      }
+    ]
+  },
+  "todo": [
+    "OSM and Overture say building:levels=5, and every wall measurement here says seven. The file follows the wall (S8). A permit record or a leasing floor plan would settle it; if it is six, `levels.floors` and the band tops are the only numbers that move.",
+    "Face colour is per face, not per bay. The photographs show cream, terracotta, blue-grey and ochre bays ALTERNATING along each elevation; the `bays` skin carries one field tone per band, so each face wears the tone that dominates it and the alternation is lost. A `fields` list on the bays skin - a tone per bay, cycled - is the change that would fix it, and it belongs in js/slopes-apartments.js, which this file may not edit.",
+    "The Rio Grande ground floor is a painted mural. It is drawn as one flat rose tone; a second THREE.Mesh with a canvas texture is the place for it, as docs/apartments.md's closing section already allows.",
+    "The 2.8 m light slot at u 39-42 has no north end wall: `north`'s v0 face is skipped whole so it will not z-fight the three blocks it stands against, and the slot's end goes with it. An `overrides` region re-adding only u 39.2-42.0 would put it back.",
+    "The parking structure's height (13.6 m, four decks) is read from one oblique through a gap between two wings; it is the least certain number in the file, plus or minus 3 m.",
+    "The courtyard's furniture - loungers, the planting beds, the white grill station east of the pergola that the nadir shows as a grid - is not drawn.",
+    "The elev-east capture never finished loading in Google Earth, so the Rio Grande elevation is read from the NE and SE obliques only."
+  ]
+}

@@ -133,6 +133,10 @@
 
   const q = new URLSearchParams(window.location.search);
 
+  // ── ?wallplane=0 — see the same block in js/heroes.js. Whichever of the two
+  //    files loads first declares it; both read it.
+  window.WALLPLANE = window.WALLPLANE || { on: q.get('wallplane') !== '0' };
+
   // ══════════════════════════════════════════════════════════════════════
   //  TASTE BLOCK — CLAUDE.md rule 11. Every aesthetic value in this file is
   //  here. Nothing aesthetic is buried in a function body.
@@ -1046,6 +1050,26 @@
     // waiter gets the file even if something below throws. Waiters that also
     // need the LAYERS (js/slopes-arches.js filters `arc` out of them) check for
     // the layers themselves — see its boot().
+    // ?wallplane=0, BEFORE publish: a waiter (js/slopes-arches.js, wayfind)
+    // must see the same coordinates the source gets. `wp` is the vector back
+    // to the footprint ring in degrees, and it rides every piece of a door
+    // that scripts/bake_entrances.py seated on an inset wall.
+    if (!window.WALLPLANE.on) {
+      let moved = 0;
+      for (const f of gj.features || []) {
+        const wp = f.properties && f.properties.wp;
+        if (!wp || !f.geometry || f.geometry.type !== 'Polygon') continue;
+        for (const ring of f.geometry.coordinates) {
+          for (const c of ring) { c[0] += wp[0]; c[1] += wp[1]; }
+        }
+        moved++;
+      }
+      for (const k of Object.keys(gj.arches || {})) {
+        const a = gj.arches[k];
+        if (a && a.wp && a.o) { a.o[0] += a.wp[0]; a.o[1] += a.wp[1]; }
+      }
+      if (moved) console.info('[entrances] ?wallplane=0 —', moved, 'pieces back on the footprint ring');
+    }
     publishGeoJSON(gj);
     // Read the band tones off the real file (see portalColor).
     for (const f of gj.features) {

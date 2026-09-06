@@ -1,0 +1,914 @@
+{
+  "_readme": "The Standard at Austin, 715 W 23rd St, as js/slopes-apartments.js draws it. Every number cites a source key from `sources` in a sibling `_src` field; a value with no source says so. Metres, in the footprint's own oriented bounding box (js/westcampus.js obbOf): +u runs WEST along 23rd St (bearing 274.7°), +v runs SOUTH; u=0 is the east end, v=0 the north (23rd St) edge, L=94.9 m, W=46.5 m. Read docs/apartments.md for the schema.",
+  "id": "36365d18-2eb6-43c5-b042-6197e7767e17",
+  "name": "The Standard",
+  "address": "715 W 23rd St, Austin, TX 78705",
+  "sources": {
+    "S1": "OSM way 380916747 (Overpass, 2026-09-05): building=apartments, addr 715 West 23rd Street; no height, no building:levels; no building:part in the bbox.",
+    "S2": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 36365d18-2eb6-43c5-b042-6197e7767e17: the 18-vertex footprint, final_height 20.5 (overture — wrong by 2.8x, see S3).",
+    "S3": "SkyscraperPage forum thread t=236383: 'AUSTIN | The Standard at Austin | 191 FT | 17 FLOORS | T.O.' — 58.2 m to top of structure, 17 storeys; the storey count is also on Humphreys & Partners' page (S4) and apartments.com.",
+    "S4": "Humphreys & Partners, humphreys.com/project/the-standard-at-austin: 17-story Type IA, 287 units, 640 spaces, 4,116 sq ft retail, '33,000 sq ft on 7th floor including pool deck ... double-volume gym, yoga room, sky deck lounge, and courtyard', completed Fall 2021.",
+    "S5": "research/union24th-area/imagery/web/the-standard-at-austin/humphreys_00.jpg (= Humphreys' StandardAustin_Ext_14, blue hour, from the 23rd/Pearl intersection — the street sign in frame reads W 23rd St 700 / Pearl St 2300): the charcoal corner bay with THE STANDARD on both faces, the two-storey-tall storefront ground floor, the light-panel podium with punched windows and small balconies along Pearl (4 rows above the ground floor), the pixel-panel tower with the vertical sign, the balcony tower with rust strips, the charcoal strip at its corner.",
+    "S6": "humphreys_01.jpg (dusk aerial from the north, over the Union on 24th's site): the whole north elevation — the lower east wing with a garden roof, 5 window rows on the podium east of the corner bay, the pool deck with the jumbotron between the towers, tower A (pixel, vertical sign at the east end of its north face), tower B (white with rust strips and two columns of balconies on its north face; pixel with a vertical sign on its west face), the double-volume glazed gym between them at deck level.",
+    "S7": "humphreys_05.jpg (pool deck looking south-west): the lap pool with the jumbotron wall at its east end and the balcony tower's north face behind; one balcony per bay, black tube rails, on every floor above the deck.",
+    "S8": "Google Earth 3D, captured 2026-09-05 via scripts/verify/chrome.mjs (page.screenshot): nadir @30.28699,-97.74578,190a,260d,35y,0h,0t, rectified into this (u,v) frame at 0.164 m/px (scale bar 183 px = 30 m; the footprint polygon overlaid lands on the roof edges); obliques at 220 m/55° from the SW (45h) and NW (135h); 300 m/60° from the N (180h), E (270h) and S (0h). Imagery date 12/2023.",
+    "S9": "js/westcampus.js TIER4.STD and scripts/bake_westcampus.py MIDRISE['The Standard']: the deck features read off the rectified z20 nadir in this same frame (pool, spa, turf, cabana, screen, rail), the balcony module read off Ext_01, the liner height 21.5 corroborated by the roofscape LiDAR deck (b=21.50), the ground floor 7.0/6.0, the corner bay 13.3 m wide, the panel tones measured off Ext_14 (STD_CREAM/PALE/WARM, BASE_STD, STD_RUST, STD_CAP). TIER4's two 'slabs' [23.5-41, 57.2-74.3] x [17-31.4] are NOT the towers: overlaid on the nadir (S8) they land exactly on the two light wells.",
+    "S10": "data/roads.geojson: West 23rd Street's western segment runs along this building's NORTH edge (lat 30.28721-30.28745) and Pearl Street ends at it at the building's NW corner (-97.746318, 30.287326); Rio Grande is 58 m east of the east edge. So S5's corner is the north-west corner.",
+    "S11": "Rambler ATX review (rambleratx.com/resources/apartment-review-standard-austin): first floor is leasing office + Luxer package room + retail; pool deck has a jumbotron, two hot tubs, an outdoor kitchen.",
+    "S13": "The judge's fair-comparison package (scratchpad apts/judge/standard/, 2026-09-06): B.png = the S8 south-west oblique (Earth @30.28699,-97.74578,190a,220d,35y,45h,55t, imagery 12/2023) cropped to the building beside ours at the same camera. On the south face the white/rust bays run from the roof straight down to a ONE-storey dark base — twelve window rows show above the neighbouring garage's roof, where ours had nine over six storeys of charcoal screen; at the SW corner the dark base under the tower is two residential storeys (~6 m) with the cafe's glazing in it.",
+    "S12": "js/westcampus.js SOLID: the West Campus pass's day/golden/night trios for a pool, deck paving, turf, shade, furniture, black steel rail, balcony slab, the jumbotron screen and the white sign letters — entered cool for top faces, dark at night, the pool lit.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [-97.7462389, 30.2871858],
+      [-97.7462534, 30.2871868],
+      [-97.7462847, 30.2868579],
+      [-97.7462439, 30.286855],
+      [-97.7462484, 30.2868082],
+      [-97.7454802, 30.2867537],
+      [-97.7454762, 30.2867961],
+      [-97.7454325, 30.286793],
+      [-97.7454249, 30.2868722],
+      [-97.7452941, 30.286863],
+      [-97.7452817, 30.2869931],
+      [-97.7454088, 30.2870021],
+      [-97.7454013, 30.2870809],
+      [-97.7453126, 30.2870746],
+      [-97.7453086, 30.2871166],
+      [-97.7454429, 30.2871262],
+      [-97.7454385, 30.2871723],
+      [-97.7462348, 30.2872288],
+      [-97.7462389, 30.2871858]
+    ],
+    "_src": "S2 verbatim; in (u,v) it is (93.4,4.8) (94.8,4.8) (94.9,41.3) (90.9,41.3) (91.0,46.5) (16.9,46.4) (16.9,41.7) (12.7,41.7) (12.6,33.0) (0,33.0) (0,18.5) (12.3,18.5) (12.3,9.8) (3.7,9.8) (3.7,5.1) (16.6,5.1) (16.6,0) (93.4,0) — every edge axis-parallel in the frame."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as js/westcampus.js computes it: L=94.88, W=46.45, +u bearing 274.7° (west). Same numbers the westcampus bake's (u,v) measurements were made in (S9).",
+  "levels": {
+    "floors": [0, 6.0, 9.1, 12.2, 15.3, 18.4, 21.5, 25.5, 28.67, 31.84, 35.01, 38.18, 41.35, 44.52, 47.69, 50.86, 54.03],
+    "_src": "17 storeys to 58.2 m T.O. (S3). Ground floor 6.0: the storefront band is 1.9x a residential floor in S5 (the bake's base read 7.0 from the same photo, S9); podium levels 2-6 at 3.1 to 21.5 = the LiDAR deck (S9) = the 7th-floor amenity deck (S4); level 7 is 4.0 tall (the double-volume gym and sky lounge sit at it, S4/S6); levels 8-17 at 3.17 reach the roof slab at 57.2 with a 1.0 parapet to 58.2. Per-floor heights are derived, not measured.",
+    "ground": 6.0,
+    "podiumTop": 21.5,
+    "roofA": 57.2,
+    "roofBars": 50.86,
+    "parapet": 1.0,
+    "_heights_src": "roofA 57.2 + 1.0 parapet = 58.2 T.O. (S3): tower A is the 17-storey element — from the NW oblique (S8) its roof stands clearly above tower B's, and from the S (S8) a pixel-clad top rises above the continuous 9-row south elevation. Everything else (tower B, the bars round the light wells) is two storeys lower: 9 window rows above the ~20 m garage roof from the south (S8) = level 15's ceiling at 50.86. ±1 storey: read off the photogrammetry mesh, no drawing found."
+  },
+  "colours": {
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone.",
+    "pixDark": {
+      "hex": "#515552",
+      "_src": "S9's Ext_14 tower-field crop: 20.6% #4c504a, the cluster the bake called glass — it is the dark PLANK (the two 0.9 m slit windows per 19 m face are under 5% of the field); lifted out of blue hour by the cream cluster's ratio (#d9d5be -> #e8e2d2), the same lift STD_RUST had."
+    },
+    "pixPale": {
+      "hex": "#bab9b0",
+      "_src": "STD_PALE (S9)"
+    },
+    "pixCream": {
+      "hex": "#e7dec7",
+      "_src": "STD_CREAM (S9)"
+    },
+    "pixWarm": {
+      "hex": "#aea38f",
+      "_src": "STD_WARM (S9)"
+    },
+    "white": {
+      "hex": "#e7dec7",
+      "_src": "tower B's white panel field and the podium's light panel are the cream of the same Ext_14 palette (S5/S6); STD_CREAM (S9)"
+    },
+    "podiumPanel": {
+      "hex": "#bab9b0",
+      "_src": "the podium's light grey panel reads a step darker than the tower white in S5/S6; STD_PALE (S9) — the same panel family, not separately sampled"
+    },
+    "rust": {
+      "hex": "#a56938",
+      "_src": "STD_RUST (S9): the terracotta accent, measured off the Ext_14 pier at crop (1216,1664)-(1500,1830) and lifted out of blue hour"
+    },
+    "charcoal": {
+      "hex": "#3f4348",
+      "_src": "BASE_STD (S9): 'The Standard's charcoal panel corner bay'; S5 shows the storefront fascia and the corner volume as one charcoal panel"
+    },
+    "coping": {
+      "hex": "#adb3b7",
+      "_src": "STD_CAP (S9)"
+    },
+    "frame": {
+      "hex": "#adb3b7",
+      "_src": "storefront mullions and window reveals: taken as the coping's aluminium (STD_CAP); not separately sampled"
+    },
+    "glass": ["#262e34", "#3a3f42", "#141a20"],
+    "_glass_src": "punched-window glass: near-black by day, darker than the charcoal plank beside it, which is how the slit windows read in the daylight mesh (S8) and the dusk photographs (S5/S6); the night value is the dark unlit pane; lit panes take APARTMENTS.nightLitTone",
+    "storeGlass": ["#4a5a62", "#5c6068", "#e9c27a"],
+    "_storeGlass_src": "storefront glazing, amber-lit at night in S5/S6",
+    "gymGlass": ["#3b4a56", "#4e5662", "#c9b283"],
+    "_gymGlass_src": "the double-volume gym's glass wall, lit at night in S6",
+    "roof": ["#c9cdd1", "#cdcbc6", "#1b1e26"],
+    "_roof_src": "white membrane roofs in the nadir (S8), entered cool the way S12 enters top faces; night as S12's deck",
+    "deck": ["#b0b6bd", "#bcbbb6", "#1b1e26"],
+    "_deck_src": "S12 deck",
+    "pool": ["#2f86ad", "#4a8096", "#1d4a63"],
+    "_pool_src": "S12 pool",
+    "turf": ["#4e7d46", "#6b7d49", "#141f19"],
+    "_turf_src": "S12 turf",
+    "shade": ["#7e858c", "#8a8781", "#181b23"],
+    "_shade_src": "S12 shade",
+    "furn": ["#8d867e", "#988b7a", "#171921"],
+    "_furn_src": "S12 furn",
+    "rail": ["#2e3136", "#3a3733", "#131519"],
+    "_rail_src": "S12 rail (black steel)",
+    "slab": ["#b8b3a9", "#c2b5a1", "#1c1e26"],
+    "_slab_src": "S12 balc (balcony slab edge)",
+    "screen": ["#22252b", "#2b2c31", "#7f97b8"],
+    "_screen_src": "S12 screen (the jumbotron: near-black by day, lit at night)",
+    "sign": ["#e6e5e0", "#efe6d6", "#cdd6e4"],
+    "_sign_src": "S12 signw (the white letters, backlit at night)",
+    "condenser": ["#8f9398", "#9a958c", "#1a1d26"],
+    "_condenser_src": "the rooftop condenser units: mid grey in the nadir (S8), entered like S12's mech tone; night as the deck"
+  },
+  "skins": {
+    "_src": "each skin is a rule; its numbers are below with their source",
+    "pixel": {
+      "kind": "pixel",
+      "course": 0.556,
+      "plank": 2.2,
+      "bond": 0.5,
+      "runMax": 3,
+      "tones": ["pixDark", "pixPale", "pixCream", "pixWarm"],
+      "weights": [20, 18, 52, 10],
+      "window": {
+        "cols": [0.45, 0.85],
+        "w": 0.9,
+        "h": 2.2,
+        "sill": 0.6
+      },
+      "_src": "planks ~4x as long as tall, 6 courses per 3.3 m floor, in a running bond with dark runs 1-3 planks long (S5 close-up of tower B's west face; S6); the four tones in the bake's own crop proportions (S9); two narrow slit-window columns per face at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's north face and B's west face)",
+      "_weights_src": "in daylight (S8 NW zoom, S6) the field reads as a WHITE field with about one dark plank in five and a few mid-grey; the bake's four clusters (S9: 27.7% pale, 20.5% cream, 19.6% warm, 20.6% dark) were read at blue hour, where white panels in shadow and reflection split into pale/warm by LIGHTING, not material. Dark 20 is the bake's own; the rest re-weighted to daylight.",
+      "macro": [2, 2],
+      "_macro_src": "the dark runs are two courses tall and two to four planks long in S5's close-up of tower B's west face and in S6; the tone is decided per 2x2 macro cell so the pattern reads at the oblique camera, while the plank joints inside it are still drawn"
+    },
+    "pixelA": {
+      "kind": "pixel",
+      "course": 0.556,
+      "plank": 2.2,
+      "bond": 0.5,
+      "runMax": 3,
+      "tones": ["pixDark", "pixPale", "pixCream", "pixWarm"],
+      "weights": [20, 18, 52, 10],
+      "window": {
+        "cols": [0.28, 0.55, 0.82],
+        "w": 0.9,
+        "h": 2.2,
+        "sill": 0.6
+      },
+      "_src": "tower A's north face: three slit columns west of the vertical sign (S6)",
+      "_weights_src": "in daylight (S8 NW zoom, S6) the field reads as a WHITE field with about one dark plank in five and a few mid-grey; the bake's four clusters (S9: 27.7% pale, 20.5% cream, 19.6% warm, 20.6% dark) were read at blue hour, where white panels in shadow and reflection split into pale/warm by LIGHTING, not material. Dark 20 is the bake's own; the rest re-weighted to daylight.",
+      "macro": [2, 2],
+      "_macro_src": "the dark runs are two courses tall and two to four planks long in S5's close-up of tower B's west face and in S6; the tone is decided per 2x2 macro cell so the pattern reads at the oblique camera, while the plank joints inside it are still drawn"
+    },
+    "bays": {
+      "kind": "bays",
+      "bay": 3.0,
+      "field": "white",
+      "strip": {
+        "w": 0.5,
+        "tone": "rust",
+        "at": "joints"
+      },
+      "window": {
+        "w": 1.7,
+        "h": 2.3,
+        "sill": 0.6
+      },
+      "_src": "tower B's north face and the south elevation: a white field with a rust strip at every bay joint and one tall window per bay per floor (S5, S6, S8-south); bay 3.0 = 5 bays across B's 15.95 m north face (S6)"
+    },
+    "court": {
+      "kind": "bays",
+      "bay": 3.0,
+      "field": "white",
+      "window": {
+        "w": 1.6,
+        "h": 2.2,
+        "sill": 0.6
+      },
+      "_src": "the faces round the light wells and the gym's flanks: white with one window per bay (the NW oblique, S8, shows the west well's far wall so); no rust strips seen"
+    },
+    "podium": {
+      "kind": "bays",
+      "bay": 3.1,
+      "field": "podiumPanel",
+      "strip": {
+        "w": 0.4,
+        "tone": "rust",
+        "at": "joints",
+        "every": 3
+      },
+      "window": {
+        "w": 1.4,
+        "h": 1.9,
+        "sill": 0.9
+      },
+      "_src": "the podium's light panel with punched windows in pairs and a rust strip every few bays (S5 Pearl face, S6 north face); bay 3.1 = the floor-to-floor, the module the photograph's window pairs sit in"
+    },
+    "storefront": {
+      "kind": "storefront",
+      "mullion": 1.5,
+      "mullionW": 0.12,
+      "fascia": 0.9,
+      "plinth": 0.15,
+      "transom": 0.72,
+      "fasciaTone": "charcoal",
+      "frame": "frame",
+      "glass": "storeGlass",
+      "reveal": 0.25,
+      "_src": "full-height storefront glazing on ~1.5 m mullions with a transom at about 3/4 height and a charcoal fascia under the floor above (S5); the panes sit 0.25 m behind the fascia line"
+    },
+    "charcoal": {
+      "kind": "bays",
+      "bay": 3.1,
+      "field": "charcoal",
+      "window": {
+        "w": 1.4,
+        "h": 1.9,
+        "sill": 0.9
+      },
+      "_src": "the corner bay: charcoal panel with punched windows (S5, S6)"
+    },
+    "charcoalBlank": {
+      "kind": "flat",
+      "field": "charcoal",
+      "_src": "the corner bay's faces that show only above the podium"
+    },
+    "garage": {
+      "kind": "bays",
+      "field": "charcoal",
+      "louvre": {
+        "pitch": 0.5,
+        "w": 0.22,
+        "tone": "coping",
+        "start": 0.4
+      },
+      "_src": "NOT WORN since 2026-09-06 (kept for the record): the first read had the south and east podium faces as the 640-space garage's screening (S4; the garage abuts the south face in the nadir, S8) — charcoal with horizontal aluminium louvres at a plausible 0.5 m. The judge's frame (S13) shows the units WRAP the garage: the bays skin runs down the south face to a one-storey dark base, and from 220 m the louvres read as pixel noise on a six-storey charcoal band. Faces 4-6 and the Pearl strip's notch face wear the bays over a flat charcoal ground floor now."
+    },
+    "gym": {
+      "kind": "storefront",
+      "mullion": 2.4,
+      "mullionW": 0.14,
+      "fascia": 0.5,
+      "plinth": 0.1,
+      "transom": 0.55,
+      "fasciaTone": "charcoal",
+      "frame": "frame",
+      "glass": "gymGlass",
+      "reveal": 0.2,
+      "_src": "the double-volume glazed gym box between the towers at deck level (S4, S6)"
+    },
+    "roofWhite": {
+      "kind": "flat",
+      "field": "roof",
+      "_src": "a bulkhead"
+    }
+  },
+  "balcony": {
+    "proj": 1.15,
+    "slabT": 0.28,
+    "railH": 0.95,
+    "railT": 0.06,
+    "_src": "S9 (TIER4: BW 2.8, BP 1.15, BT 0.28, BR 0.95, BX 0.12 read off Ext_01 against the panel module); the rail drawn 0.06 thick as three thin boxes, the photograph's tube rail (S7)"
+  },
+  "blocks": [
+    {
+      "id": "podium",
+      "_src": "the footprint east of the corner bay and the Pearl strip, 0 to the level-7 deck (S2, levels); the north face is retail storefront under five storeys of light panel (S5/S6); the south and east faces are garage screen (S4/S8)",
+      "plan": [[16.6, 0], [81.6, 0], [81.6, 11.0], [90.95, 11.0], [90.95, 41.25], [90.95, 46.45], [16.9, 46.45], [16.9, 41.7], [16.6, 41.7]],
+      "z0": 0,
+      "z1": 21.5,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.0,
+          "skin": "storefront"
+        },
+        {
+          "z0": 6.0,
+          "z1": 21.5,
+          "skin": "podium"
+        }
+      ],
+      "faces": {
+        "1": null,
+        "2": null,
+        "3": {
+          "bands": [
+            {
+              "z0": 18.4,
+              "z1": 21.5,
+              "skin": "pixel"
+            }
+          ]
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "storefront"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "bays"
+            }
+          ]
+        },
+        "5": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "bays"
+            }
+          ]
+        },
+        "6": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "bays"
+            }
+          ]
+        },
+        "_src": "edge 1 (u=81.6, v 0-11) and 2 (v=11, u 81.6-91) stand against the corner bay: not drawn. Edge 3 (u=90.95, v 11-41.25) is tower B's west face plane: below 18.4 it is inside the Pearl strip, between 18.4 and 21.5 it shows as the tower's base in the tower's pixel skin (S5). Edges 4-6 (the notch's east wall, the south face, the SE step): the white/rust bays of the south bar run straight down to the ground floor (S13 — twelve rows over the neighbouring garage's roof, the same rhythm top to bottom), on a ONE-storey dark base: flat charcoal on the south face and the SE step, which stand against the garage (S8) and show nothing, and the storefront on edge 4, which faces the notch off Pearl where S13 shows the cafe's glazing. The base is the 6.0 m ground floor of `levels` (S5), the two residential storeys S13 shows under the tower at the SW corner. Was: garage screen 0-21.5 on all three, which read from 220 m as a six-storey charcoal band with pixel noise on it."
+      },
+      "overrides": [
+        {
+          "region": [25.0, 90.95, 46.45, 46.45],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "bays"
+            }
+          ],
+          "_src": "the same bands as face 5, cut at u=25 so the piece under the south bar (u 25-90.95) is exactly the bar's length: the bays skin sets its module from the wall's length (round(len/3.0)), and one piece 65.95 m long puts every rust strip on the line of the one above it at 21.5; the 8.1 m east of it sits under tower A's leg"
+        },
+        {
+          "region": [16.6, 16.6, 5.1, 41.7],
+          "bands": [
+            {
+              "z0": 15.3,
+              "z1": 21.5,
+              "skin": "podium"
+            }
+          ],
+          "_src": "the east face above the lower east wing (z1 15.3); below it is inside the wing"
+        }
+      ],
+      "roofTone": "deck",
+      "parapet": 0.5,
+      "parapetTone": "coping",
+      "parapetSides": ["0", "3", "4", "5", "6", "7", "8"],
+      "_parapet_src": "a low upstand round the deck; the deck's own guard is the glass rail in `deck.items` (S5/S6). Height 0.5 is a look."
+    },
+    {
+      "id": "cornerBay",
+      "_src": "the charcoal corner volume at 23rd and Pearl carrying THE STANDARD on both faces: 13.3 m along 23rd (S9, from Ext_14), ~11 m along Pearl (S5: three window bays), full podium height; its roof is the pool deck (S6/S8: the lap pool runs over it) with the deck's glass rail on top (S5)",
+      "plan": [81.6, 94.88, 0, 11.0],
+      "z0": 0,
+      "z1": 21.5,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.0,
+          "skin": "storefront"
+        },
+        {
+          "z0": 6.0,
+          "z1": 21.5,
+          "skin": "charcoal"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "storefront"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "charcoal",
+              "signs": [
+                {
+                  "text": "THE STANDARD",
+                  "s0": 1.2,
+                  "z0": 18.6,
+                  "dot": 0.15,
+                  "gap": 0.15,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "storefront"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "charcoal",
+              "signs": [
+                {
+                  "text": "THE STANDARD",
+                  "s0": 0.5,
+                  "z0": 18.6,
+                  "dot": 0.14,
+                  "gap": 0.14,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ]
+        },
+        "u0": null,
+        "v1": {
+          "z0": 18.4,
+          "bands": [
+            {
+              "z0": 18.4,
+              "z1": 21.5,
+              "skin": "charcoalBlank"
+            }
+          ]
+        },
+        "_src": "signs: white channel letters in the top storey band of both street faces (S5/S6); the north sign spans ~10.8 of the 13.3 m (dot 0.15 x 5x7 font x 12 characters); the Pearl sign a touch smaller to fit 11 m. u0 stands against the podium; v1 shows only above the Pearl strip's 18.4 roof."
+      },
+      "roofTone": "deck",
+      "parapet": 0.5,
+      "parapetTone": "coping",
+      "parapetSides": ["v0", "u1"]
+    },
+    {
+      "id": "pearlStrip",
+      "_src": "the 4-storey strip along Pearl between the corner bay and the SW notch: 4 window rows above the ground floor with balconies (S5), parapet at 18.4 + 1.1; tower B stands 4 m behind its face (S5 setback; the nadir S8 shows the step at u≈91)",
+      "plan": [90.95, 94.88, 11.0, 41.25],
+      "z0": 0,
+      "z1": 18.4,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.0,
+          "skin": "storefront"
+        },
+        {
+          "z0": 6.0,
+          "z1": 18.4,
+          "skin": "podium",
+          "balconies": [
+            {
+              "s0": 7.8,
+              "s1": 10.6,
+              "lift": 0.0
+            },
+            {
+              "s0": 18.4,
+              "s1": 21.2,
+              "lift": 0.0
+            }
+          ]
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v0": null,
+        "_src": "u0 and v0 stand against the podium and the corner bay; v1 faces the SW notch off Pearl and wears the strip's own bands (storefront, then the podium panel) — S13 shows the cafe's glazing and light panel there, not a garage screen (was: garage 0-18.4)"
+      },
+      "_balconies_src": "two balcony stacks on the Pearl face at levels 3-5 (S5); positions along the face are read by eye off S5 (the stacks sit about a third and two thirds along) — not dimensioned",
+      "roofTone": "roof",
+      "parapet": 1.1,
+      "parapetTone": "coping",
+      "parapetSides": ["u1", "v1"]
+    },
+    {
+      "id": "eastWing",
+      "_src": "the lower wing at the east end: 4 storeys under a garden roof (S6: its roof is two storeys below the podium parapet and green); the plan is the footprint's east part west to the north-face step at u=16.6 (S2)",
+      "plan": [[16.6, 5.1], [16.6, 41.7], [12.6, 41.7], [12.6, 33.0], [0.0, 33.0], [0.0, 18.5], [12.3, 18.5], [12.3, 9.8], [3.7, 9.8], [3.7, 5.1]],
+      "z0": 0,
+      "z1": 15.3,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 6.0,
+          "skin": "storefront"
+        },
+        {
+          "z0": 6.0,
+          "z1": 15.3,
+          "skin": "podium"
+        }
+      ],
+      "faces": {
+        "0": null,
+        "_src": "edge 0 is the wing's west side, against the podium"
+      },
+      "roofTone": "turf",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+      "roofItems": [
+        {
+          "plan": [2.0, 11.0, 11.0, 17.0],
+          "grid": [4, 3],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: the east wing's roof carries units at its north end; S6 shows a garden over the rest"
+        }
+      ]
+    },
+    {
+      "id": "towerA",
+      "_src": "the 17-storey pixel tower at the north-east of the upper building, an L: the north bar u 17-42 x v 8-19 (S8 nadir: the condenser roof north of the east light well; S6: set 8 m behind 23rd St with the deck in front) and the east leg u 17-25 down the east end (S8 south view: the pixel face shows FULL HEIGHT at the east end of the south elevation, ~8 m wide). Pixel on the north, east, west and south-end faces with the vertical sign near the east end of the north face (S5/S6); the faces on the east light well are the plain white of the well walls.",
+      "plan": [[17.0, 8.0], [42.0, 8.0], [42.0, 19.0], [25.0, 19.0], [25.0, 46.45], [17.0, 46.45]],
+      "z0": 21.5,
+      "z1": 57.2,
+      "bands": [
+        {
+          "z0": 21.5,
+          "z1": 57.2,
+          "skin": "pixel"
+        }
+      ],
+      "faces": {
+        "0": {
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 57.2,
+              "skin": "pixelA",
+              "signs": [
+                {
+                  "text": "THE STANDARD",
+                  "vertical": true,
+                  "s": 1.6,
+                  "zTop": 50.0,
+                  "dot": 0.18,
+                  "gap": 0.2,
+                  "tone": "sign",
+                  "back": {
+                    "w": 1.5,
+                    "tone": "charcoal",
+                    "pad": 0.5
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "2": {
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 57.2,
+              "skin": "court"
+            }
+          ]
+        },
+        "3": {
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 57.2,
+              "skin": "court"
+            }
+          ]
+        },
+        "_src": "edge 0 = the north face (s runs east to west from (17,8): the sign 1.6 m from the east end, on a charcoal backing strip as in S5/S6, from level 15 down to level 9); edges 2 and 3 face the east light well (edge 3's south half stands inside the south bar); edges 1, 4, 5 = the west face above the gym, the south end, the east face: pixel"
+      },
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["0", "1", "2", "3", "4", "5"],
+      "roofItems": [
+        {
+          "plan": [19.0, 40.0, 10.0, 17.0],
+          "grid": [8, 3],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: the row of units along the north bar's roof"
+        },
+        {
+          "plan": [18.5, 23.5, 22.0, 44.0],
+          "grid": [2, 8],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: the east leg's roof"
+        }
+      ]
+    },
+    {
+      "id": "midBar",
+      "_src": "the bar between the two light wells, u 42-57 (S8 nadir), 15 storeys: its north face is the tall set-back face between the towers in S6 (plain, lit windows, its top two storeys below tower A's), its west face the far wall of the slot seen from the NW (S8)",
+      "plan": [42.0, 57.0, 19.0, 34.0],
+      "z0": 21.5,
+      "z1": 50.86,
+      "bands": [
+        {
+          "z0": 21.5,
+          "z1": 50.86,
+          "skin": "court"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 against the south bar; v0 shows above the gym"
+      },
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["u0", "u1", "v0"],
+      "roofItems": [
+        {
+          "plan": [44.0, 55.0, 21.0, 32.0],
+          "grid": [4, 5],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: the block between the wells carries a 4 x 5 cluster"
+        }
+      ]
+    },
+    {
+      "id": "gym",
+      "_src": "the double-volume gym (S4) — the glazed box between the towers at deck level in S6, in front of the mid bar; height: two levels (21.5 to 29.0, derived)",
+      "plan": [42.0, 57.0, 11.0, 19.0],
+      "z0": 21.5,
+      "z1": 29.0,
+      "bands": [
+        {
+          "z0": 21.5,
+          "z1": 29.0,
+          "skin": "gym"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "v1 against the mid bar"
+      },
+      "roofTone": "roof",
+      "parapet": 0.6,
+      "parapetTone": "coping",
+      "parapetSides": ["v0", "u0", "u1"]
+    },
+    {
+      "id": "southBar",
+      "_src": "the south bar, u 25-91 x v 34-46.45 (S8 nadir and south view: one continuous 9-row white/rust elevation above the garage, with tower A's pixel leg closing its east end), 15 storeys; its north faces are the two light wells' south walls and tower B's south side",
+      "plan": [25.0, 90.95, 34.0, 46.45],
+      "z0": 21.5,
+      "z1": 50.86,
+      "bands": [
+        {
+          "z0": 21.5,
+          "z1": 50.86,
+          "skin": "bays"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 50.86,
+              "skin": "court"
+            }
+          ]
+        },
+        "u0": null,
+        "_src": "v0 faces the wells (hidden where the mid bar and tower B stand against it); u0 stands against tower A's east leg"
+      },
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["v1", "u1"],
+      "roofItems": [
+        {
+          "plan": [30.0, 40.0, 36.0, 44.5],
+          "grid": [4, 4],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: cluster at u 30-40, v 36-44"
+        },
+        {
+          "plan": [46.0, 60.0, 36.0, 44.5],
+          "grid": [6, 4],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: cluster at u 46-60"
+        },
+        {
+          "plan": [64.0, 74.0, 36.0, 44.5],
+          "grid": [4, 4],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: cluster at u 64-74"
+        },
+        {
+          "plan": [78.0, 88.0, 36.0, 44.5],
+          "grid": [4, 4],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: cluster at u 78-88"
+        }
+      ]
+    },
+    {
+      "id": "towerB",
+      "_src": "the west tower: 15 storeys (S8), balconies and rust strips on its north face over the pool deck (S6/S7), pixel with the vertical sign on its west face (S5/S6), set back from Pearl (S5; the step at u≈91 in the nadir); it starts at the Pearl strip's roof (18.4) so its west face is one plane from there up",
+      "plan": [75.0, 90.95, 11.0, 34.0],
+      "z0": 18.4,
+      "z1": 50.86,
+      "bands": [
+        {
+          "z0": 18.4,
+          "z1": 50.86,
+          "skin": "pixel"
+        }
+      ],
+      "faces": {
+        "v0": {
+          "z0": 21.5,
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 50.86,
+              "skin": "bays",
+              "balconies": [
+                {
+                  "s0": 12.4,
+                  "s1": 15.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 2.6,
+                  "s1": 5.4,
+                  "lift": 0.0
+                }
+              ]
+            }
+          ]
+        },
+        "u0": {
+          "z0": 21.5,
+          "bands": [
+            {
+              "z0": 21.5,
+              "z1": 50.86,
+              "skin": "court"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 18.4,
+              "z1": 50.86,
+              "skin": "pixel",
+              "signs": [
+                {
+                  "text": "THE STANDARD",
+                  "vertical": true,
+                  "s": 11.5,
+                  "zTop": 48.0,
+                  "dot": 0.18,
+                  "gap": 0.2,
+                  "tone": "sign",
+                  "back": {
+                    "w": 1.5,
+                    "tone": "charcoal",
+                    "pad": 0.5
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "v1": null,
+        "_src": "v0 = the north face over the deck (s runs west to east across 15.95 m): balcony stacks at 0.05-0.2 and 0.68-0.82 of the width from the east edge (S6), 2.8 m wide (S9); u0 faces the west light well and the deck; u1 = the west face with the sign; v1 stands against the south bar"
+      },
+      "_balconies_note": "the balcony band starts at 25.0 so the stacks begin at level 8 (25.5): the deck-level floor opens onto the deck, not a balcony (S7)",
+      "roofTone": "roof",
+      "parapet": 1.0,
+      "parapetTone": "coping",
+      "parapetSides": ["v0", "u0", "u1"],
+      "roofItems": [
+        {
+          "plan": [77.0, 89.0, 14.0, 22.0],
+          "grid": [5, 4],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: cluster on the west tower's roof, north half"
+        },
+        {
+          "plan": [77.0, 89.0, 25.0, 32.0],
+          "grid": [5, 3],
+          "size": [1.1, 1.9],
+          "h": 1.0,
+          "tone": "condenser",
+          "_src": "S8 nadir: south half"
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 21.5,
+    "_src": "the level-7 amenity deck (S4) at the podium roof; every rectangle below is S9's read of the rectified z20 nadir in this frame, checked here against the 2023 nadir (S8): the overlay lands the pool, spa, turf, cabana and screen on the imagery's own features",
+    "items": [
+      {
+        "id": "pool",
+        "plan": [63.0, 90.0, 1.2, 5.2],
+        "z0": 0.0,
+        "h": 0.12,
+        "tone": "pool",
+        "_src": "S9 pool"
+      },
+      {
+        "id": "spa",
+        "plan": [90.4, 93.4, 1.2, 5.2],
+        "z0": 0.0,
+        "h": 0.5,
+        "tone": "pool",
+        "_src": "S9 spa (S11: two hot tubs)"
+      },
+      {
+        "id": "turf",
+        "plan": [63.0, 75.0, 6.2, 11.0],
+        "z0": 0.0,
+        "h": 0.1,
+        "tone": "turf",
+        "_src": "S9 turf, trimmed at u 75 where tower B stands"
+      },
+      {
+        "id": "cabanaShade",
+        "plan": [79.0, 85.0, 6.5, 10.5],
+        "z0": 2.6,
+        "z1": 3.0,
+        "tone": "shade",
+        "_src": "S9 cabana: a shade plate"
+      },
+      {
+        "id": "cabana",
+        "plan": [79.0, 85.0, 6.5, 10.5],
+        "z0": 0.0,
+        "h": 0.8,
+        "tone": "furn",
+        "_src": "S9 cabana: the furniture under it"
+      },
+      {
+        "id": "screen",
+        "plan": [60.0, 71.0, 11.4, 12.1],
+        "z0": 0.9,
+        "z1": 5.1,
+        "tone": "screen",
+        "_src": "S9 screen: the jumbotron, 4.2 m tall, facing north (S7)"
+      },
+      {
+        "id": "deckRail",
+        "plan": [58.0, 94.0, 0.35, 0.48],
+        "z0": 0.0,
+        "h": 1.15,
+        "tone": "rail",
+        "_src": "S9 deckRail: the guard along the north edge over 23rd St (S5/S6)"
+      }
+    ]
+  }
+}
