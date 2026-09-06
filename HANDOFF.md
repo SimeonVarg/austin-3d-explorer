@@ -121,7 +121,44 @@ not re-pay for them.
 **Token split for the record:** research 0.77M, build 16.4M, check and ship
 this pass ~0.5M.
 
-Branch `acer/apts`, merged to `main` as <<MERGE>>. PR <<PR>>.
+**Merged.** PR
+[#235](https://github.com/SimeonVarg/austin-3d-explorer/pull/235), merge commit
+`e7d78b7`. `gh pr merge --delete-branch` printed the usual local-checkout error
+("'main' is already used by worktree at austin-3d-facades") — that is not a
+failed merge, `gh pr view` says MERGED, and the branch was deleted through the
+API instead.
+
+**AND THE DATA BOT DID EXACTLY WHAT THE MEMORY SAYS IT DOES, so here it is with
+the hashes.** This branch touches `scripts/**`, which is `build-data.yml`'s push
+trigger, so the bot ran on `acer/apts` when it was pushed AND on `main` when it
+was merged, and each run commits a dated snapshot back to the branch that
+triggered it. Ten minutes later: `main` had moved from the merge commit
+`e7d78b7` to `c14f2bd` ("Add 2026-09-06 snapshot of Austin building data"), and
+**`acer/apts` had been RE-CREATED at `390961a`** — my `6b83bc5` plus the same
+snapshot — after I had already deleted it. Checked that the merge is still an
+ancestor of `origin/main` (it is), then deleted the branch a second time. If you
+delete a branch that touched `scripts/`, check again ten minutes later.
+
+**LIVE, looked at rather than assumed.** `js/slopes-apartments.js`,
+`js/slopes-art.js`, `data/apartments/index.json` (2,802 bytes, 25 buildings) and
+`data/art3d/monochrome-for-austin.json` all 200 on
+https://flyover-utx.vercel.app, and the live `index.html` carries both new
+script tags. `index.json` was a 404 on the first poll and a 200 a minute later —
+propagation, not a missing file, and worth knowing before anyone panics.
+Headless on hardware at the live URL: The Standard at the judge's south-west
+oblique is the building, Union on 24th is the dark woven H with its grey
+connector wing, and a wider frame from the north shows **The Standard as two
+towers on a shared podium** with The Mark's rust bands beside it and the kerbed
+street across the foreground. `?apartments=0&art3d=0` at the same camera puts
+the old West Campus band prisms back — The Standard a short banded slab, Union
+two pale boxes. Frames in `<scratchpad>/apts/live/`.
+
+**One live frame I did not get.** GDC's Speedway doors: three cameras were
+tried and each landed either behind a tree canopy or inside the street canyon
+between GDC and E. P. Schoch. GDC itself is proven live in two of the frames —
+the glazed atrium slot between the two brick bars reads from the plaza — and the
+doors themselves are covered by `doorstack.mjs` and the two wallplane gates
+locally. Saying so rather than cropping something else and calling it the doors.
 
 ## 226. Sep 6 2026 — Rubins' boats are boats: the needle spikes are hulls with a beam and a squared stern, on a column with air under them (`acer/apts`, one gap closed on the sculpture critic's verdict)
 
