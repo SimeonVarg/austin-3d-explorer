@@ -1,0 +1,1315 @@
+{
+  "_readme": "GrandMarc Austin, 510 West 26th Street - as js/slopes-apartments.js draws it. A 2012 six-storey student-housing block that fills its whole city block between Nueces and San Antonio: buff Austin brick at the pavement and on two corner towers under terracotta hipped tile caps, butter-yellow stucco with punched windows and projecting balconies above it, a pale top storey under a dark bronze eave, a parking structure behind bronze louvre at the south-west, restaurant awnings on West 26th, and a flat white membrane roof ringed by rows of condensers round a courtyard with a pool in it. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=72.63, W=59.57. u=0 is the NORTH edge and +u runs SOUTH; v=0 is the WEST edge on Nueces Street and +v runs EAST - see _frame_src. The footprint is a MULTIPOLYGON with a courtyard hole and a notch bitten out of its south-west corner; the generator's plans take one ring, so the building is built as four ranges round the courtyard, a deeper strip on West 26th, and the two towers. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "41f43559-0029-4257-8501-01b682e916aa",
+  "name": "GrandMarc Austin",
+  "address": "510 W 26th St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 41f43559-0029-4257-8501-01b682e916aa: name 'GrandMarc Austin', num_floors 7, final_height 20.7, source_height 'overture', building_class 'apartments'. The geometry is a POLYGON WITH A HOLE - an outer ring of 11 vertices, 4160 m2, and an inner ring of 42, 453 m2. Net 3707 m2.",
+    "S2": "OSM relation 5685651, type=multipolygon, building=apartments, building:levels=7, height=20.7, name='GrandMarc Austin', addr:housenumber=510, addr:street=West 26th Street, addr:postcode=78705. Queried from Overpass 2026-09-05. The snapshot's 20.7 m is this tag, not an independent read, and its num_floors 7 is this tag too. THE LEVEL COUNT IS WRONG - see `levels`. The neighbour standing in the notch is OSM way 382131882, addr 404 West 26th Street, height 6.4.",
+    "S3": "The operator's site, grandmarcaustin.com (Asset Living), and two listing sites that state the same figures independently of each other: apartmenthomeliving.com/apartment-finder/GrandMarc-Austin-Austin-TX-78705-1923018 and apartmentfinder.com/Texas/Austin-Apartments/Grandmarc-Austin-Apartments both say 138 UNITS, 6 STORIES, BUILT IN 2012. realtor.com's listing for 510 W 26th St gives the year built as 2012 as well. Scraped 2026-09-05.",
+    "S4": "The operator's own drone photograph, grandmarcaustin.com gallery asset DJI_0347-2.avif (1600 x 899, ref/dji.jpg in the session scratchpad): a golden-hour aerial from over West 26th Street just south of the south-west corner, looking north. It shows, in one frame, the corner tower's brick and its terracotta hip over a dark bronze eave band; the west wing's stucco, balconies and green glass; the louvre bays of the parking structure east of the tower; the red and orange awnings at the pavement; and the rows of condensers on the roof behind. THE STOREY RHYTHM, THE BAY AND THE PALETTE come from this frame. It is a graded still - its sky clusters to a cyan #00b3d9 - so every colour taken from it is checked against S5 or S6.",
+    "S5": "The operator's leasing-entrance photograph, gallery asset IMG_0281.avif (1600 x 1066, ref/img0281.jpg): the door at ground level in flat daylight, ungraded, with '510 WEST 26TH STREET' on the glass. It is the best read of the brick and of the shopfront frame in the file, and it is what confirms the address. The gallery's d10.webp shows the monument sign, the retaining wall and the steps up to the courtyard.",
+    "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-05 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a nadir at 320 m and obliques at 240 m from the south-west, south-east, north-east and north-west. THE NADIR IS THE PLAN SOURCE: the footprint's own outline fitted to the roof edges gives 9.97 px per metre in that frame, and every block extent, the courtyard, the two hips, the pool and the condenser runs were read in metres off it. A SECOND nadir - Esri World Imagery z20, stitched and RESAMPLED into this building's (u,v) frame at 10 px per metre with a 5 m grid (nadir-uv-grid.jpg in the session scratchpad) - carries the snapshot's outer and inner rings overlaid, and they land on the roof edges and on the courtyard, so the two nadirs agree.",
+    "S7": "data/roads.geojson: Nueces Street runs about 9 m west of the west wall and San Antonio Street about 7 m east of the east wall, so the building fills its block; West 26th Street runs along the SOUTH edge, which is the address elevation, and West 27th is 140 m north. This is what fixes which end of the frame is which.",
+    "S8": "js/westcampus.js ramp() and its SOLID trios, as data/apartments/the-standard.json and data/apartments/2819-rio-grande.json use them: a day hex gets its golden and night values from the same relationship the fill-extrusion bands next door use.",
+    "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.742585,
+        30.29061
+      ],
+      [
+        -97.742262,
+        30.290588
+      ],
+      [
+        -97.742263,
+        30.290581
+      ],
+      [
+        -97.742136,
+        30.290572
+      ],
+      [
+        -97.742077,
+        30.291227
+      ],
+      [
+        -97.74269,
+        30.29127
+      ],
+      [
+        -97.742693,
+        30.29127
+      ],
+      [
+        -97.742747,
+        30.290688
+      ],
+      [
+        -97.742625,
+        30.290679
+      ],
+      [
+        -97.742624,
+        30.290692
+      ],
+      [
+        -97.742578,
+        30.290689
+      ],
+      [
+        -97.742585,
+        30.29061
+      ]
+    ],
+    "_src": "S1's OUTER ring verbatim. The inner ring - the courtyard - is not carried here because the generator's `footprint` plan takes one ring; it is built as the hole between the four ranges instead. The outer ring's own notch at the south-west (u > 64.0, v < 16.2) is the corner patio and the neighbour at 404 West 26th, and the blocks below leave it empty."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it: L = 72.63, W = 59.57, +u at bearing 184.6 deg. +u runs SOUTH, so u = 0 is the north end and u = 72.63 is West 26th Street; +v is 90 deg from +u in (east, north), i.e. EAST, so v = 0 is the Nueces Street edge and v = 59.57 the San Antonio edge. Cross-checked against S6's north-up nadir and S7.",
+  "levels": {
+    "floors": [
+      0.0,
+      4.55,
+      7.65,
+      10.75,
+      13.85,
+      16.95
+    ],
+    "_src": "SIX storeys, not S1/S2's seven. S3 states six twice, from two listing sites that carry the same figure independently; S4 counts six - a tall brick ground floor and five above it - on the west wing, on the south wing and on the corner tower, and S6's south-west and north-east obliques count six on all four elevations. The floor-to-floor 3.10 m is measured off S4 without any scale: on the west wing a balcony rail is 60 px and the floor pitch beside it 175 px in the same plane, and a code rail is 1.07 m, which gives 3.12 m. The ground floor is then the residual against S2's own 20.7 m height tag: 20.70 - 5 x 3.10 - 0.65 m of parapet = 4.55 m, which is what a storey of shopfront and lobby is and what S4's tower shows. Uncertainty about plus or minus 0.15 m a storey.",
+    "roof": 20.05,
+    "parapetTop": 20.7,
+    "towerWall": 21.45,
+    "towerFascia": 22.75,
+    "hipApex": 24.95,
+    "_heights_src": "roof 20.05 is the membrane, the top of the sixth storey. parapetTop 20.7 is S2's height tag exactly, which is the number a surface model would take off this building's highest continuous edge. The towers stand above it: towerWall 21.45 is the top of the brick, towerFascia 22.75 the top of the dark eave band, and hipApex 24.95 the top of the tile - all three from S4's tower crop as ratios to the 155 px floor pitch in that part of the frame (eave band 70 px = 1.4 m, tile 110 px = 2.2 m), which puts the tower's apex 4.25 m over the parapet. S4 shows about a storey and a half, so they agree. Uncertainty plus or minus 0.5 m."
+  },
+  "colours": {
+    "_src": "Day hex; golden and night follow js/westcampus.js's ramp(), the same relationship the fill-extrusion bands next door use. Every hex is a k-means cluster centre of a NAMED crop of a named source, entered a step down from a sunlit reading because the generator lights the face itself.",
+    "stucco": {
+      "hex": "#d4b673",
+      "_src": "The butter-yellow stucco field, the building's own colour. S4 crop (140,375)-(215,425) on the sunlit west wing clusters to #e0bd69 at 48 %, and crop (925,465)-(985,520) on the south wing to #f2be56 at 49 %; that frame is a graded golden-hour drone still (its sky clusters to a cyan #00b3d9) so its yellow is pushed. S6's south-west oblique reads the same sunlit wall at #dad1bd, which is the opposite bias - a 12/2023 winter sun through a photogrammetric blend, which desaturates. Entered halfway between the two and then a step back from warm, because 2819 Rio Grande's look-fix 2 measured that THIS APP'S DAYLIGHT WARMS A FACE and every pale surface entered warm there came back warmer than the reference."
+    },
+    "stuccoPale": {
+      "hex": "#d9d3c4",
+      "_src": "The pale cream stucco of the top storey and the trim bands. S4 crop (865,320)-(1000,360) clusters to #e1d3c5 at 50 %, crop (195,325)-(300,352) to #d8d5ce at 58 %; S6 reads the band at #e1dcd0. All three agree within a few points. Entered a step down and neutral of them."
+    },
+    "brick": {
+      "hex": "#cfb891",
+      "_src": "The buff Austin brick of the base, the piers and the two corner towers. S5 - a ground-level photograph in flat daylight, ungraded - crop (20,420)-(180,700) on the sunlit left return clusters to #e0ccb2 at 63 %, and the same brick in dappled shade at (820,180)-(1010,330) to #958171. S4 reads the tower's brick at #dfb16d (its 40 % cluster, the one not blown by the sun) and S6 at #d3bfac sunlit / #856e62 shaded. Entered a step down from S5's sunlit read, which is the least graded frame of the four."
+    },
+    "brickWarm": {
+      "hex": "#c8ad83",
+      "_src": "one brick a step warm, for the pier rhythm; derived from `brick`, not sampled."
+    },
+    "tile": {
+      "hex": "#c06a3e",
+      "_src": "The terracotta barrel tile of the two corner hips. S4 crop (700,250)-(800,290) clusters to #f08931 at 73 % and #b66013 at 19 %, but that frame's grade pushes orange hard; S6 reads the same SW hip at #bf8e79 and the SE hip at #b48370, which is the same grade's opposite bias. Entered between S4's dark cluster and S6's read."
+    },
+    "tileRidge": {
+      "hex": "#c9764a",
+      "_src": "the hip's upper courses, one step above the field so the cap's steps read at the oblique camera; derived."
+    },
+    "bronze": {
+      "hex": "#3a3833",
+      "_src": "The dark bronze of the deep eave band under both hips, the cornice, the window frames and the balcony rails. S4 crop (615,308)-(760,330) on the tower's eave band clusters to #393c40 at 46 %; S5's storefront frame crop (380,640)-(560,760) clusters to #181d20 at 63 %, which is the same colour in shadow."
+    },
+    "glass": {
+      "hex": "#4a5a4e",
+      "_src": "The green-tinted glazing. S4 crop (1015,440)-(1050,478), one whole window on the sunlit south wing, clusters to #4f5c20 at 52 % - a green pane with the frame's grade in it - and its 40 % cluster is the wall beside it. Entered at the 52 % cluster with the grade's yellow taken back out."
+    },
+    "trim": {
+      "hex": "#ddd8ca",
+      "_src": "The white balcony slabs, window surrounds and parapet copings. S4 crop (120,300)-(430,318) on the west wing's coping clusters to #dbd5cc at 46 %; the balcony slab crop (470,505)-(545,522) is in its own shadow."
+    },
+    "membrane": {
+      "hex": "#dbdfdd",
+      "_src": "The white TPO roof, which is most of what the app's oblique camera sees of this building. S6's nadir and its south-west oblique both read it blown, at #e2e3de (83 % of a 150x70 crop). Entered a step down and cool, for the reason recorded on `stucco`."
+    },
+    "mech": {
+      "hex": "#a7aca9",
+      "_src": "The rooftop condensers. S6 nadir crop (200,118)-(400,178) over the north run clusters to #b1b4b3 at 11 % against the membrane's #e1e2dd at 70 %; S4 shows the same units teal-grey over the west wing."
+    },
+    "awning": {
+      "hex": "#b8463f",
+      "_src": "The restaurant awnings on West 26th Street and over the corner patio. S4 crop (905,620)-(1050,660) clusters to #dd373b at 39 %, crop (1055,565)-(1160,605) on the orange one to #f0631e; S6 reads the same awnings at #af6c61. Entered between S4's red and S6's read - the two awnings are red and orange and this is one tone for both, which is a simplification."
+    },
+    "storeGlass": {
+      "hex": "#33393a",
+      "_src": "The ground-floor shopfront glazing. S5's own storefront crop (380,640)-(560,760) clusters to #2f3c41 at 31 % beside the frame's #181d20."
+    },
+    "deckPave": {
+      "hex": "#b78355",
+      "_src": "The terracotta paving of the courtyard pool deck. S6's nadir reads the courtyard floor as a broad orange-tan field round a pale centre; median of (350,400)-(430,520) in that frame. The tone is read off a 0.15 m/px nadir and is the least certain colour in the file."
+    },
+    "poolTone": {
+      "hex": "#8fb0b6",
+      "_src": "The pool. S6's nadir shows a pale rectangle in the middle of the deck, blown out by the sun; entered as pool water rather than sampled, and marked as such."
+    }
+  },
+  "balcony": {
+    "proj": 1.0,
+    "slabT": 0.24,
+    "railH": 1.07,
+    "railT": 0.05,
+    "slabTone": "trim",
+    "railTone": "bronze",
+    "_src": "S4: a white slab about a metre deep with a dark bronze rail of horizontal bars. The 1.07 m rail is code and is the SCALE the whole file is measured against (see `levels`); proj 1.00 and slabT 0.24 are measured against the 3.10 m floor pitch in the same frame, plus or minus 0.15 m."
+  },
+  "skins": {
+    "_src": "One rule per face treatment; every column count comes from the 2.80 m bay, never a hard-coded number. THE BAY: S4's south wing shows one bay of the elevation nearly head-on - two windows on a face 117 px wide against a 66.5 px floor pitch in the same plane, and the floor pitch is 3.10 m (see `levels`), so the face is 5.44 m and the bay 2.72 m. S6's east elevation is the check: thirteen balcony stacks along a wall the footprint says is 72.63 m, and the photographs show a balcony every other bay, which is 2.79 m. Entered at 2.80 m - 26 bays on the long wall. Window 1.10 x 1.90: the same S4 bay reads 23 px x 47 px against the 66.5 px pitch, which is 1.07 x 2.19 m, and S4's west wing reads 1.06 m wide head-on; entered at 1.10 wide and shorter than 2.19 because the taller read includes the balcony doors.",
+    "base": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 2.8,
+      "strip": {
+        "w": 0.55,
+        "tone": "brickWarm",
+        "at": "joints",
+        "every": 4
+      },
+      "window": {
+        "w": 1.1,
+        "h": 2.1,
+        "sill": 1.1
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.14,
+      "_src": "The brick ground floor, S5 and S4. The pier strip every fourth bay is the brick's own pilaster rhythm in S4's tower crop; its 0.55 m width is derived, not measured."
+    },
+    "wall": {
+      "kind": "bays",
+      "field": "stucco",
+      "bay": 2.8,
+      "window": {
+        "w": 1.1,
+        "h": 1.9,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.14,
+      "_src": "The stucco field of storeys 2-5, S4 and S6."
+    },
+    "wallPale": {
+      "kind": "bays",
+      "field": "stuccoPale",
+      "bay": 2.8,
+      "window": {
+        "w": 1.1,
+        "h": 1.75,
+        "sill": 0.8
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.14,
+      "_src": "The top storey. S4 shows the wall going pale under the eave on every elevation it sees - the west wing at (195,325)-(300,352) and the south wing at (865,320)-(1000,360)."
+    },
+    "brickWall": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 2.8,
+      "strip": {
+        "w": 0.7,
+        "tone": "brickWarm",
+        "at": "joints",
+        "every": 3
+      },
+      "window": {
+        "w": 1.1,
+        "h": 1.9,
+        "sill": 0.85
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.16,
+      "_src": "The two corner towers, which are brick from the pavement to the eave band - S4's tower crop is the whole rule."
+    },
+    "brickBlank": {
+      "kind": "flat",
+      "field": "brick",
+      "_src": "The towers' brick above the main roof line, where S4 shows no openings."
+    },
+    "cornice": {
+      "kind": "flat",
+      "field": "bronze",
+      "_src": "The dark eave band. S4 measures it at 70 px against a 155 px floor pitch on the tower, which is 1.4 m there; on the main wall it is shallower and 0.50 m is entered."
+    },
+    "towerFascia": {
+      "kind": "flat",
+      "field": "bronze",
+      "_src": "The towers' own eave band, 1.30 m, S4 crop (615,308)-(760,330)."
+    },
+    "garage": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 2.8,
+      "strip": {
+        "w": 0.9,
+        "tone": "brickWarm",
+        "at": "joints",
+        "every": 2
+      },
+      "louvre": {
+        "pitch": 0.42,
+        "w": 0.16,
+        "tone": "bronze",
+        "start": 0.35
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "_src": "The parking structure's screen. S4 and S6 both show it in the same place - the bays of bronze louvre between brick piers that begin immediately east of the south-west tower and run about 14 m along West 26th before the stucco and the balconies take over. The extent is read to about plus or minus 3 m. The 0.42 m slat pitch is a PLAUSIBLE NUMBER, not a measurement - S4 resolves the slats but not their spacing at that distance."
+    },
+    "store": {
+      "kind": "storefront",
+      "mullion": 1.7,
+      "mullionW": 0.12,
+      "transom": 0.7,
+      "fascia": 0.9,
+      "fasciaTone": "bronze",
+      "glass": "storeGlass",
+      "frame": "bronze",
+      "plinth": 0.15,
+      "reveal": 0.22,
+      "_src": "The restaurant and leasing frontage on West 26th. S5 is one bay of it at arm's length - a dark bronze frame, a transom at about seven tenths, glass to the pavement."
+    },
+    "court": {
+      "kind": "bays",
+      "field": "stucco",
+      "bay": 2.8,
+      "window": {
+        "w": 1.1,
+        "h": 1.75,
+        "sill": 0.8
+      },
+      "glass": "glass",
+      "frame": "trim",
+      "reveal": 0.12,
+      "_src": "The four walls of the courtyard light well. S6's north-east oblique looks straight into it and shows the same stucco and the same window rhythm as the street elevations, with balconies; the walls are drawn without them - see `todo`."
+    }
+  },
+  "blocks": [
+    {
+      "id": "north",
+      "plan": [
+        0.0,
+        20.3,
+        0.0,
+        59.57
+      ],
+      "z0": 0.0,
+      "z1": 20.05,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 16.95,
+          "skin": "wall",
+          "balconies": [
+            {
+              "s0": 5.89,
+              "s1": 8.29
+            },
+            {
+              "s0": 11.57,
+              "s1": 13.96
+            },
+            {
+              "s0": 17.24,
+              "s1": 19.64
+            },
+            {
+              "s0": 22.91,
+              "s1": 25.31
+            },
+            {
+              "s0": 28.59,
+              "s1": 30.99
+            },
+            {
+              "s0": 34.26,
+              "s1": 36.66
+            },
+            {
+              "s0": 39.93,
+              "s1": 42.33
+            },
+            {
+              "s0": 45.61,
+              "s1": 48.01
+            },
+            {
+              "s0": 51.28,
+              "s1": 53.68
+            }
+          ]
+        },
+        {
+          "z0": 16.95,
+          "z1": 19.55,
+          "skin": "wallPale",
+          "balconies": [
+            {
+              "s0": 5.89,
+              "s1": 8.29
+            },
+            {
+              "s0": 11.57,
+              "s1": 13.96
+            },
+            {
+              "s0": 17.24,
+              "s1": 19.64
+            },
+            {
+              "s0": 22.91,
+              "s1": 25.31
+            },
+            {
+              "s0": 28.59,
+              "s1": 30.99
+            },
+            {
+              "s0": 34.26,
+              "s1": 36.66
+            },
+            {
+              "s0": 39.93,
+              "s1": 42.33
+            },
+            {
+              "s0": 45.61,
+              "s1": 48.01
+            },
+            {
+              "s0": 51.28,
+              "s1": 53.68
+            }
+          ]
+        },
+        {
+          "z0": 19.55,
+          "z1": 20.05,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "base"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "court"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ]
+        },
+        "_src": "u0 is the north wall, v0 the Nueces Street wall and v1 the east wall. u1 is the courtyard's north wall over v 19.4..39.7 and stands back to back with the west and east ranges elsewhere, which the schema allows."
+      },
+      "roofTone": "membrane",
+      "parapet": 0.65,
+      "parapetTone": "trim",
+      "parapetSides": [
+        "u0",
+        "v0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            8.0,
+            12.2,
+            22.0,
+            44.5
+          ],
+          "grid": [
+            2,
+            11
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech",
+          "_src": "S6 nadir, rectified into this frame: the densest run on the roof lies just inside the north parapet, two rows about 22 m long."
+        },
+        {
+          "plan": [
+            13.0,
+            19.5,
+            9.5,
+            14.0
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech"
+        },
+        {
+          "plan": [
+            13.0,
+            19.5,
+            46.5,
+            53.5
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech"
+        }
+      ]
+    },
+    {
+      "id": "west",
+      "plan": [
+        20.3,
+        51.8,
+        0.0,
+        19.4
+      ],
+      "z0": 0.0,
+      "z1": 20.05,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 16.95,
+          "skin": "wall",
+          "balconies": [
+            {
+              "s0": 5.73,
+              "s1": 8.13
+            },
+            {
+              "s0": 11.27,
+              "s1": 13.67
+            }
+          ]
+        },
+        {
+          "z0": 16.95,
+          "z1": 19.55,
+          "skin": "wallPale",
+          "balconies": [
+            {
+              "s0": 5.73,
+              "s1": 8.13
+            },
+            {
+              "s0": 11.27,
+              "s1": 13.67
+            }
+          ]
+        },
+        {
+          "z0": 19.55,
+          "z1": 20.05,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "u1": null,
+        "v1": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "base"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "court"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ]
+        },
+        "_src": "u0 stands against the north range and u1 against the south range. v0 is the Nueces Street wall, v1 the courtyard's west wall."
+      },
+      "roofTone": "membrane",
+      "parapet": 0.65,
+      "parapetTone": "trim",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            21.0,
+            50.5,
+            9.5,
+            14.0
+          ],
+          "grid": [
+            10,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech",
+          "_src": "S6 nadir: a run of pairs down the middle of the west range."
+        }
+      ]
+    },
+    {
+      "id": "east",
+      "plan": [
+        20.3,
+        51.8,
+        39.7,
+        59.57
+      ],
+      "z0": 0.0,
+      "z1": 20.05,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 16.95,
+          "skin": "wall",
+          "balconies": [
+            {
+              "s0": 5.9,
+              "s1": 8.3
+            },
+            {
+              "s0": 11.57,
+              "s1": 13.97
+            }
+          ]
+        },
+        {
+          "z0": 16.95,
+          "z1": 19.55,
+          "skin": "wallPale",
+          "balconies": [
+            {
+              "s0": 5.9,
+              "s1": 8.3
+            },
+            {
+              "s0": 11.57,
+              "s1": 13.97
+            }
+          ]
+        },
+        {
+          "z0": 19.55,
+          "z1": 20.05,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "u1": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "base"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "court"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ]
+        },
+        "_src": "u0 stands against the north range and u1 against the south range. v0 is the courtyard's east wall, v1 the east wall on to the parking lot."
+      },
+      "roofTone": "membrane",
+      "parapet": 0.65,
+      "parapetTone": "trim",
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            21.0,
+            50.5,
+            46.5,
+            53.5
+          ],
+          "grid": [
+            10,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech",
+          "_src": "S6 nadir: the matching run down the east range."
+        }
+      ]
+    },
+    {
+      "id": "south",
+      "plan": [
+        51.8,
+        64.0,
+        11.0,
+        59.57
+      ],
+      "z0": 0.0,
+      "z1": 20.05,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 16.95,
+          "skin": "wall",
+          "balconies": [
+            {
+              "s0": 5.94,
+              "s1": 8.34
+            },
+            {
+              "s0": 11.66,
+              "s1": 14.06
+            },
+            {
+              "s0": 17.37,
+              "s1": 19.77
+            },
+            {
+              "s0": 23.09,
+              "s1": 25.48
+            },
+            {
+              "s0": 28.8,
+              "s1": 31.2
+            },
+            {
+              "s0": 34.51,
+              "s1": 36.91
+            },
+            {
+              "s0": 40.23,
+              "s1": 42.63
+            }
+          ]
+        },
+        {
+          "z0": 16.95,
+          "z1": 19.55,
+          "skin": "wallPale",
+          "balconies": [
+            {
+              "s0": 5.94,
+              "s1": 8.34
+            },
+            {
+              "s0": 11.66,
+              "s1": 14.06
+            },
+            {
+              "s0": 17.37,
+              "s1": 19.77
+            },
+            {
+              "s0": 23.09,
+              "s1": 25.48
+            },
+            {
+              "s0": 28.8,
+              "s1": 31.2
+            },
+            {
+              "s0": 34.51,
+              "s1": 36.91
+            },
+            {
+              "s0": 40.23,
+              "s1": 42.63
+            }
+          ]
+        },
+        {
+          "z0": 19.55,
+          "z1": 20.05,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "v0": null,
+        "u0": {
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "base"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "court"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ]
+        },
+        "_src": "v0 (v = 11.0) stands against the south-west tower. u0 is the courtyard's south wall over v 19.4..39.7 and back to back with the west and east ranges elsewhere. u1 (u = 64.0) is exposed only over v 11.0..16.2, where it is the return wall on to the corner patio; the rest of it stands back to back with the deeper south strip and the south-east tower."
+      },
+      "roofTone": "membrane",
+      "parapet": 0.65,
+      "parapetTone": "trim",
+      "parapetSides": [
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            53.0,
+            62.5,
+            46.5,
+            53.5
+          ],
+          "grid": [
+            3,
+            2
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech"
+        }
+      ]
+    },
+    {
+      "id": "southS",
+      "plan": [
+        64.0,
+        72.0,
+        16.2,
+        48.6
+      ],
+      "z0": 0.0,
+      "z1": 20.05,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 16.95,
+          "skin": "wall",
+          "balconies": [
+            {
+              "s0": 5.55,
+              "s1": 7.95
+            },
+            {
+              "s0": 10.95,
+              "s1": 13.35
+            },
+            {
+              "s0": 16.35,
+              "s1": 18.75
+            },
+            {
+              "s0": 21.75,
+              "s1": 24.15
+            },
+            {
+              "s0": 27.15,
+              "s1": 29.55
+            }
+          ]
+        },
+        {
+          "z0": 16.95,
+          "z1": 19.55,
+          "skin": "wallPale",
+          "balconies": [
+            {
+              "s0": 5.55,
+              "s1": 7.95
+            },
+            {
+              "s0": 10.95,
+              "s1": 13.35
+            },
+            {
+              "s0": 16.35,
+              "s1": 18.75
+            },
+            {
+              "s0": 21.75,
+              "s1": 24.15
+            },
+            {
+              "s0": 27.15,
+              "s1": 29.55
+            }
+          ]
+        },
+        {
+          "z0": 19.55,
+          "z1": 20.05,
+          "skin": "cornice"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "_src": "u0 stands against the south range. u1 (u = 72.0) is the West 26th Street wall - the address elevation, 510 West 26th - and v0 is the return on to the corner patio."
+      },
+      "overrides": [
+        {
+          "region": [
+            64.0,
+            72.0,
+            16.2,
+            30.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "base"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "garage"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "The parking structure. S4 and S6 both show it in the same place - the bays of bronze louvre between brick piers that begin immediately east of the south-west tower and run about 14 m along West 26th before the stucco and the balconies take over. Plus or minus 3 m."
+        },
+        {
+          "region": [
+            64.0,
+            72.0,
+            24.0,
+            46.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 4.55,
+              "skin": "store"
+            },
+            {
+              "z0": 4.55,
+              "z1": 16.95,
+              "skin": "wall"
+            },
+            {
+              "z0": 16.95,
+              "z1": 19.55,
+              "skin": "wallPale"
+            },
+            {
+              "z0": 19.55,
+              "z1": 20.05,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "The ground-floor shopfront under the awnings. S6's south-west oblique puts the awning run between the two towers and nearer the east one; S4 shows the shopfront glass behind it."
+        }
+      ],
+      "roofTone": "membrane",
+      "parapet": 0.65,
+      "parapetTone": "trim",
+      "parapetSides": [
+        "u1",
+        "v0",
+        "v1"
+      ],
+      "roofItems": [
+        {
+          "plan": [
+            64.8,
+            68.5,
+            26.5,
+            42.5
+          ],
+          "grid": [
+            2,
+            8
+          ],
+          "size": [
+            1.0,
+            1.4
+          ],
+          "h": 0.75,
+          "tone": "mech",
+          "_src": "S6 nadir: a run just inside the 26th Street parapet."
+        }
+      ]
+    },
+    {
+      "id": "swTower",
+      "plan": [
+        51.8,
+        64.0,
+        0.0,
+        11.0
+      ],
+      "z0": 0.0,
+      "z1": 22.75,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 19.55,
+          "skin": "brickWall"
+        },
+        {
+          "z0": 19.55,
+          "z1": 21.45,
+          "skin": "brickBlank"
+        },
+        {
+          "z0": 21.45,
+          "z1": 22.75,
+          "skin": "towerFascia"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "z0": 20.05
+        },
+        "v1": {
+          "z0": 20.05
+        },
+        "_src": "u0 stands against the west range and v1 against the south range, both to the main roof at 20.05 m, above which the tower is free. v0 is the Nueces Street face and u1 the face on to the corner patio, which carries the leasing entrance (510 West 26th, S5)."
+      },
+      "roofTone": "tile",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            51.55,
+            64.25,
+            -0.3,
+            11.3
+          ],
+          "h": 0.37,
+          "tone": "tile",
+          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - six concentric boxes rising 2.2 m, the lowest standing 0.8 m proud of the wall as the eave S4 shows does. See `todo`."
+        },
+        {
+          "plan": [
+            52.61,
+            63.19,
+            0.67,
+            10.33
+          ],
+          "h": 0.73,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            53.67,
+            62.13,
+            1.64,
+            9.36
+          ],
+          "h": 1.1,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            54.73,
+            61.07,
+            2.6,
+            8.4
+          ],
+          "h": 1.47,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            55.78,
+            60.02,
+            3.57,
+            7.43
+          ],
+          "h": 1.83,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            56.84,
+            58.96,
+            4.53,
+            6.47
+          ],
+          "h": 2.2,
+          "tone": "tileRidge"
+        }
+      ]
+    },
+    {
+      "id": "seTower",
+      "plan": [
+        64.0,
+        72.0,
+        48.6,
+        59.57
+      ],
+      "z0": 0.0,
+      "z1": 22.75,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 4.55,
+          "skin": "base"
+        },
+        {
+          "z0": 4.55,
+          "z1": 19.55,
+          "skin": "brickWall"
+        },
+        {
+          "z0": 19.55,
+          "z1": 21.45,
+          "skin": "brickBlank"
+        },
+        {
+          "z0": 21.45,
+          "z1": 22.75,
+          "skin": "towerFascia"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "z0": 20.05
+        },
+        "v0": {
+          "z0": 20.05
+        },
+        "_src": "u0 stands against the south range and v0 against the deeper south strip, both to the main roof. u1 is the West 26th Street face and v1 the east face."
+      },
+      "roofTone": "tile",
+      "parapet": 0,
+      "roofItems": [
+        {
+          "plan": [
+            63.58,
+            72.42,
+            48.3,
+            59.87
+          ],
+          "h": 0.37,
+          "tone": "tile",
+          "_src": "The hipped clay-tile cap. The generator has no pitched-roof primitive a data file can reach, so this is the stepped stack of roofItems data/apartments/2819-rio-grande.json's corner tower uses - six concentric boxes rising 2.2 m, the lowest standing 0.8 m proud of the wall as the eave S4 shows does. See `todo`."
+        },
+        {
+          "plan": [
+            64.32,
+            71.68,
+            49.27,
+            58.9
+          ],
+          "h": 0.73,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            65.06,
+            70.94,
+            50.23,
+            57.94
+          ],
+          "h": 1.1,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            65.79,
+            70.21,
+            51.19,
+            56.98
+          ],
+          "h": 1.47,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            66.53,
+            69.47,
+            52.16,
+            56.01
+          ],
+          "h": 1.83,
+          "tone": "tile"
+        },
+        {
+          "plan": [
+            67.26,
+            68.74,
+            53.12,
+            55.05
+          ],
+          "h": 2.2,
+          "tone": "tileRidge"
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 0.0,
+    "_src": "Everything the app can see below the roof line that is not a wall. The courtyard floor's height is the least certain number in the file: S6 cannot see the bottom of a 20 m light well and S5's monument-sign frame shows steps up from the pavement, so 0.90 m is entered and marked unknown.",
+    "items": [
+      {
+        "plan": [
+          21.5,
+          50.5,
+          20.5,
+          38.5
+        ],
+        "z0": 0.9,
+        "h": 0.2,
+        "tone": "deckPave",
+        "_src": "S6 nadir: the courtyard floor is a broad orange-tan paved deck filling the well."
+      },
+      {
+        "plan": [
+          34.5,
+          45.5,
+          26.5,
+          34.5
+        ],
+        "z0": 1.05,
+        "h": 0.06,
+        "tone": "poolTone",
+        "_src": "S6 nadir: a pale rectangle in the middle of the deck, 11 m along u by 8 m along v, measured against the same frame's fit of the footprint (9.97 px per metre)."
+      },
+      {
+        "plan": [
+          72.0,
+          74.1,
+          24.0,
+          46.0
+        ],
+        "z0": 3.85,
+        "h": 0.28,
+        "tone": "awning",
+        "_src": "The restaurant awning on West 26th, S4 and S6. Drawn as a deck item because the generator has no awning primitive - a 2.1 m slab at 3.85 m against the shopfront, which is what both frames show. See `todo`."
+      },
+      {
+        "plan": [
+          66.5,
+          72.5,
+          2.0,
+          11.0
+        ],
+        "z0": 3.6,
+        "h": 0.25,
+        "tone": "awning",
+        "_src": "The second awning, over the corner patio in the notch. S6's nadir reads it at u 71.7, v 7.5."
+      }
+    ]
+  },
+  "todo": [
+    "THE HIPPED TILE ROOFS ARE STEPPED BOXES. The generator has no pitched-roof primitive a data file can reach - js/slopes-apartments.js's taste block names a block `roof` and the boot log counts `roofs`, but the block loop does not read it - so each corner hip is six concentric roofItems, the way 2819 Rio Grande's tower cap is built. What is missing: a block `roof` that takes a pitch or a rise and hips the block's own plan.",
+    "THE AWNINGS ARE DECK ITEMS. There is no awning or canopy primitive, so the two awnings are boxes in `deck` at 3.85 m and 3.60 m, standing against the wall. What is missing: a band fixture like `balconies` that hangs a canopy on a face over an s-range.",
+    "THE COURTYARD IS A RECTANGLE. S1's inner ring is an H - 453 m2 net, with the ends pinched to about 7 m and square pockets at the four corners - and the four ranges here leave a plain 31.5 x 20.3 m well of 639 m2. Closing the gap needs either two more blocks a side or a plan that can carry a ring with a hole.",
+    "THE COURTYARD WALLS CARRY NO BALCONIES. S6's north-east oblique looks into the well and shows balconies on all four of its walls; they are left off rather than guessed at a camera that can barely see them.",
+    "THE COURTYARD FLOOR IS AT 0.90 m AND THAT IS A GUESS. Nothing in any source sees the bottom of the well.",
+    "NO SIGN. The building's name appears on a ground-level monument and in vinyl on the leasing door, not on a wall, so no `signs` entry is drawn.",
+    "THE GARAGE EXTENT IS PLUS OR MINUS 3 m and its louvre pitch, 0.42 m, is a plausible number rather than a measurement."
+  ]
+}
