@@ -110,15 +110,15 @@
   "colours": {
     "_src": "Day hex; golden and night follow S8's ramp(). Every hex is a k-means cluster centre of a named crop of S4 or a median of a named crop of S6, entered a step down from a sunlit reading because the generator lights the face itself.",
     "stone": {
-      "hex": "#d3cdbe",
-      "_src": "S4 crop (455,880)-(530,1000), the rough limestone base in sun, clusters to #f1f0ec at 57 % (blown by the sun) and #999f9e at 29 % (the raked joints); the shaded stone on the same building reads #646055. Entered between the blown sunlit read and the joint grey, warm, which is what Lueders limestone is."
+      "hex": "#cfcfc8",
+      "_src": "S4 crop (455,880)-(530,1000), the rough limestone base in sun, clusters to #f1f0ec at 57 % (blown by the sun) and #999f9e at 29 % (the raked joints); the shaded stone on the same building reads #646055. Entered between the blown sunlit read and the joint grey, warm, which is what Lueders limestone is. LOOK-FIX 2 cooled it. Measured on the matched frame, the reference's pale surfaces are all COOL - membrane #e2e8eb, the tower's hip #b5bfcd, the wing's roof #9aa5b0, the shaded walls #546781 and #7f8e9d - and every pale surface of ours came back warm (#cbbdba, #9d9588, #aba398, #ae9780), because this app's daylight warms a face. The orange and the red matched to within a few points on the same frame (buff ref #9b704c ours #977648), so it is the pale end of the palette that was wrong, and a warm pale end is what made the whole elevation read as one beige. Entered blue of the target by about as much as the lighting is warm of it."
     },
     "stoneWarm": {
-      "hex": "#dcd4c2",
+      "hex": "#d6d3c6",
       "_src": "one stone a step warm, for the base's variation; derived from `stone`, not sampled."
     },
     "stoneCool": {
-      "hex": "#c8c5bc",
+      "hex": "#c4c9ca",
       "_src": "one stone a step cool; derived from `stone`, not sampled."
     },
     "brickRed": {
@@ -130,7 +130,7 @@
       "_src": "LOOK-FIX 1. S4 crop (390,200)-(450,320), the corner tower's stucco in sun, clusters to #ddcfb6 at 82 %. Entered a step down. S6's w oblique reads the same tower at #9c744f, stronger and more orange, and so does its east elevation (#a28d73) and its south (#a4896a) - three views agreeing. The first look entered S4's pale #c9bb9f and the tower vanished into the cream beside it, which the reference never does: in every Earth view the tower is THE orange accent on Rio Grande. Entered between the two, nearer S6, because S6 is 2023 and S4 is the year the building opened - it has been repainted or S4's sun has washed it, and either way the current building is the one to draw."
     },
     "cream": {
-      "hex": "#d8d6cd",
+      "hex": "#d2d5d4",
       "_src": "the pale stucco blocks. S6 reads them at #c7cdd1 on the sunlit east elevation and #d0d1cf on the south; S4's white trim clusters to #dfe3e7. Entered between the trim white and the stone - it is the same stucco as the buff, one step lighter. LOOK-FIX 1 cooled it: S6 reads every pale wall on this building cool (#7f8e9d on the shaded west face, #c7cdd1 on the sunlit east), and a warm cream made the whole elevation one beige."
     },
     "khaki": {
@@ -138,7 +138,7 @@
       "_src": "the olive-tan wing S4 shows to the right of the brick-red corner. Its wall is in shade in that frame and clusters to #595750; S6's east oblique reads the sunlit tan-gold wall at #a28d73. Entered at the S6 value with S4's greener hue. The least certain tone in the file."
     },
     "trim": {
-      "hex": "#e8e4d9",
+      "hex": "#e4e6e4",
       "_src": "the white window surrounds, the balcony slabs, the cornice band and the parapet caps. S4 crop (500,555)-(610,585) clusters to #dfe3e7 at 26 % (the surround itself; the rest of that crop is sky and wall), and the entrance canopy on the same frame to #d8d2d3. Entered above both because both crops are in the corner's shade."
     },
     "glass": {
@@ -150,37 +150,41 @@
       "_src": "S4 crop (640,505)-(760,530), one balcony rail, clusters to #3c3b36 at 56 %. Dark bronze, which is what S4 and S5 both show."
     },
     "membrane": [
-      "#d8dee2",
-      "#dbd4c6",
+      "#dde7ef",
+      "#ded7c9",
       "#1d2029"
     ],
     "_membrane_src": "S6 nadir, median of the roof at (760,360)-(820,390) = #eef5f7, which is blown; entered a step down, and cooled at LOOK-FIX 1 to S6's own read of it in the west oblique, #e2e8eb - the first look's neutral value came back pink under this app's daylight. Golden and night entered the way S8 enters a top face.",
     "shingle": {
-      "hex": "#6e6c66",
-      "_src": "the grey shingle roof band that rings the membrane. S6 nadir reads it at #8b8986 on the east slope and #989590 on the south, both in sun, and #261f1b on the north slope, which never gets any. Entered between the sunlit and the shaded read."
+      "hex": "#6a6f74",
+      "_src": "the grey shingle roof band that rings the membrane. S6 nadir reads it at #8b8986 on the east slope and #989590 on the south, both in sun, and #261f1b on the north slope, which never gets any. Entered between the sunlit and the shaded read, and cooled at LOOK-FIX 2 with the rest of the pale palette."
     },
     "shingleRidge": {
-      "hex": "#7c7a73",
+      "hex": "#797f84",
       "_src": "the ridge course, entered one step above the field so the cap's top edge reads at the oblique camera. Not separately sampled."
     },
     "hip": {
-      "hex": "#8e969c",
-      "_src": "the tower's hipped roof. S6 nadir reads it at #b6c0ce in sun - a pale grey-blue, which is what a standing-seam metal hip looks like from above; entered a step down."
+      "hex": "#a4b7c8",
+      "_src": "the tower's hipped roof. S6 nadir reads it at #b6c0ce in sun and the west oblique at #b5bfcd - a pale grey-blue, which is what a standing-seam metal hip looks like. The first look entered it dark and the hip disappeared into the shingle beside it; at LOOK-FIX 2 it goes in at the reference's own value, cool, so the tower's cap reads against the white membrane behind it."
     },
     "hipRidge": {
-      "hex": "#a7aeb3",
+      "hex": "#b0c2d2",
       "_src": "the tower hip's ridge, one step above it."
     },
     "wingRoof": {
-      "hex": "#98a1aa",
+      "hex": "#93a4b6",
       "_src": "the Rio Grande wing's pitched roof. S6 nadir reads it at #a4acb4 and its west oblique at #9aa5b0; entered at the oblique's read, which is the camera this building is judged from."
     },
     "wingRidge": {
-      "hex": "#a0a6ad",
+      "hex": "#9aacbd",
       "_src": "its ridge, one step above the field."
     },
+    "parapetRed": {
+      "hex": "#b07f6d",
+      "_src": "the terracotta parapet on the Rio Grande wing. S6's west oblique reads it at #997979 against the same shaded wall at #785a53 - a step LIGHTER than the wall it caps, which is a coping catching the sky. LOOK-FIX 2 gave it its own tone for that reason; before, it was the wall's own brickRed and the cap line vanished."
+    },
     "mech": {
-      "hex": "#8b8f92",
+      "hex": "#868d94",
       "_src": "S6 nadir: the roof condensers are a mid grey a shade darker than the hips. Not separately sampled - the units are two pixels across in that frame."
     }
   },
@@ -1377,13 +1381,13 @@
         }
       ],
       "roofTone": "wingRoof",
-      "parapet": 1.15,
-      "parapetTone": "brickRed",
+      "parapet": 1.3,
+      "parapetTone": "parapetRed",
       "parapetSides": [
         "u1",
         "v1"
       ],
-      "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 1.15 m is a look: at 0.90 m the first look lost it behind the wing's own roof, and the terracotta parapet is the roof feature every Earth view names this building by.",
+      "_parapet_src": "S4 and S6's nadir both show a parapet on the Rio Grande and south edges of this wing in the wall's own brick-red, with the pitched roof behind it. 1.30 m is a look: at 0.90 m the first look lost it behind the wing's own roof, and the terracotta parapet is the roof feature every Earth view names this building by.",
       "roofItems": [
         {
           "plan": [
