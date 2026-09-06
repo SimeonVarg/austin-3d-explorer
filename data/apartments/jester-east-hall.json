@@ -709,15 +709,46 @@
    ],
    "roofTone": "tile",
    "parapet": 0,
+   "_roof_src": "A hipped barrel-tile roof, ridge along the wing at u=12.25, 3.20 m over the 18.60 m eave (S3) - drawn as HIP_STEPS inset tile-toned boxes because the generator draws flat roofs only. Ten steps, not the sibling file's five: at five the wing read as five orange terraces beside S5's near315, where the slope is smooth. The roof is hipped on its two long sides and on its open north end and runs FLAT off its south end, where the wing dies into the ten-storey bar - a hip closing against a wall is a shape no roof has. Under all of it an eave course EAVE_OUT proud of the wall: S5's near315 shows the tile oversailing every wing with a shadow line under it, and without it the wall and the roof read as one block.",
    "roofItems": [
+    {
+     "plan": [
+      5.45,
+      19.05,
+      -0.55,
+      54.4
+     ],
+     "h": 0.2,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      6.62,
+      17.88,
+      0.62,
+      54.4
+     ],
+     "h": 0.52,
+     "tone": "tile"
+    },
     {
      "plan": [
       7.25,
       17.25,
       1.25,
-      53.15
+      54.4
      ],
-     "h": 0.64,
+     "h": 0.84,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      7.88,
+      16.62,
+      1.88,
+      54.4
+     ],
+     "h": 1.16,
      "tone": "tile"
     },
     {
@@ -725,9 +756,19 @@
       8.5,
       16.0,
       2.5,
-      51.9
+      54.4
      ],
-     "h": 1.28,
+     "h": 1.48,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      9.12,
+      15.38,
+      3.12,
+      54.4
+     ],
+     "h": 1.8,
      "tone": "tile"
     },
     {
@@ -735,9 +776,19 @@
       9.75,
       14.75,
       3.75,
-      50.65
+      54.4
      ],
-     "h": 1.92,
+     "h": 2.12,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      10.38,
+      14.12,
+      4.38,
+      54.4
+     ],
+     "h": 2.44,
      "tone": "tile"
     },
     {
@@ -745,9 +796,9 @@
       11.0,
       13.5,
       5.0,
-      49.4
+      54.4
      ],
-     "h": 2.56,
+     "h": 2.76,
      "tone": "tile"
     },
     {
@@ -755,9 +806,19 @@
       11.62,
       12.88,
       5.62,
-      48.77
+      54.4
      ],
-     "h": 3.2,
+     "h": 3.08,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      11.75,
+      12.75,
+      5.75,
+      54.4
+     ],
+     "h": 3.4,
      "tone": "tile"
     }
    ]
@@ -822,7 +883,28 @@
    "_faces_src": "Edge 1 (v=82.6, u 20.38..32.33) is under the south arm and is skipped.",
    "roofTone": "tile",
    "parapet": 0,
+   "_roof_src": "A hipped barrel-tile roof over the whole range, ridge along it at v=88.45. Measured: a brightness profile across the S6 h=21 plan, averaged over u 3..18 and again over u 34..50, steps from 79 to 123 at v=88.0 in both halves - the shaded north slope meeting the sunlit south one, i.e. the ridge, 0.7 m from the centre of the 11.8 m band, which is inside this instrument. Hipped on all four sides (every end is open) with the same eave course as the east wing.",
    "roofItems": [
+    {
+     "plan": [
+      -0.55,
+      54.05,
+      82.0,
+      94.9
+     ],
+     "h": 0.2,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      0.59,
+      52.91,
+      83.14,
+      93.76
+     ],
+     "h": 0.52,
+     "tone": "tile"
+    },
     {
      "plan": [
       1.18,
@@ -830,7 +912,17 @@
       83.73,
       93.17
      ],
-     "h": 0.64,
+     "h": 0.84,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      1.77,
+      51.73,
+      84.32,
+      92.58
+     ],
+     "h": 1.16,
      "tone": "tile"
     },
     {
@@ -840,7 +932,17 @@
       84.91,
       91.99
      ],
-     "h": 1.28,
+     "h": 1.48,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      2.95,
+      50.55,
+      85.5,
+      91.4
+     ],
+     "h": 1.8,
      "tone": "tile"
     },
     {
@@ -850,7 +952,17 @@
       86.09,
       90.81
      ],
-     "h": 1.92,
+     "h": 2.12,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      4.13,
+      49.37,
+      86.68,
+      90.22
+     ],
+     "h": 2.44,
      "tone": "tile"
     },
     {
@@ -860,7 +972,7 @@
       87.27,
       89.63
      ],
-     "h": 2.56,
+     "h": 2.76,
      "tone": "tile"
     },
     {
@@ -870,7 +982,17 @@
       87.86,
       89.04
      ],
-     "h": 3.2,
+     "h": 3.08,
+     "tone": "tile"
+    },
+    {
+     "plan": [
+      5.43,
+      48.07,
+      87.98,
+      88.92
+     ],
+     "h": 3.4,
      "tone": "tile"
     },
     {
