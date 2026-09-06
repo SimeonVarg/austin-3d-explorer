@@ -114,20 +114,20 @@
    "_src": "S4 Rooftop-Pool: the artificial turf strip along the pool's west end. Sampled from the photograph's own green, which is at dusk, and entered as a daylight turf."
   },
   "furn": {
-   "hex": "#3b3e44",
-   "_src": "derived: the dark lounge decking south of the pool in the rectified plan (S7), which S4's photograph shows as a composite deck with loungers on it."
+   "hex": "#454c53",
+   "_src": "S7 p_deck, median of the composite decking south of the pool, #4e575f, one step down for the loungers on it. LOOK-FIX 6 - it was #3b3e44, derived rather than measured, and read as a hole in the deck."
   },
   "shade": {
    "hex": "#e6e4df",
    "_src": "S4 Rooftop-Pool: the white steel shade trellis over the lounge, and S7's rectified plan, where its lattice is the white grid at u 1.5-10, v 12.5-17.5."
   },
   "condenser": {
-   "hex": "#c3c7c6",
-   "_src": "S6 nadir, a condenser cluster at (720,600)-(780,660): clusters #e2e4e2 (72%, the sunlit tops) and #8a9296 (28%, the sides). The value is between them."
+   "hex": "#9aa3a6",
+   "_src": "LOOK-FIX 6, measured on the rectified plan rather than on a crop of the raw nadir. Medians inside the condenser fields of S7's p_roof: the south-west field #b4bbbe, the south-east #d3d7d4, the north-east cluster #939da0, and their 20th percentile - which is the units rather than the membrane showing between them - #7c878d. Bare membrane in the same image is #c9cdce. The first value here was #c3c7c6, sampled off a crop of the raw nadir that turned out to be mostly membrane, so on our roof the plant vanished into the roof it stands on. #9aa3a6 is the unit."
   },
   "mech": {
-   "hex": "#b9bdbd",
-   "_src": "derived from `condenser`: the penthouse and the screen around it are the same painted metal, read flat."
+   "hex": "#e0e2de",
+   "_src": "LOOK-FIX 6. The two plant enclosures are the BRIGHTEST thing on this roof, not the darkest: the median inside them in S7's p_roof is #e5e7e3 against the membrane's #c9cdce. They were entered at #b9bdbd, derived from the wrong condenser value, which had them reading as a shadow."
   },
   "sign": {
    "hex": "#ecebe9",
@@ -175,6 +175,36 @@
    "glass": "storeGlass",
    "reveal": 0.22,
    "_src": "S5's base band for this building is 5.20 m of glazing (family `sg`), and S4's two street photographs show it: a full-height storefront set back behind a projecting soffit, the leasing office and retail behind it, a white fascia under the second floor, the garage mouth cut into it near the south end of the west front. Mullion 2.0 m and the transom at 0.70 of the height are read off Birds-Eye-View-Building-Exterior; the reveal is the setback under the soffit, which the photograph shows to be about a metre and which is entered at 0.22 because a deeper one would z-fight the soffit this file does not draw."
+  },
+  "panelSign": {
+   "kind": "bays",
+   "field": "charcoal",
+   "bay": 4.2,
+   "strip": {
+    "w": 0.3,
+    "tone": "panel",
+    "at": "joints"
+   },
+   "floorLine": {
+    "h": 0.82,
+    "tone": "panel"
+   },
+   "window": {
+    "w": 2.6,
+    "h": 1.75,
+    "sill": 1.05
+   },
+   "glass": "glass",
+   "frame": "panel",
+   "reveal": 0.08,
+   "_src": "LOOK-FIX 7. The same rule as `panel`, with no window in the 10 m the wordmark covers. In the first render the letters were drawn straight over the top row of windows on the wing's north front and read as noise; S4's photograph shows a solid panel there with the facade behind it stopped. The skip is the sign's own extent plus a quarter of a metre each side.",
+   "_lookfix4": "LOOK-FIX 4. At 0.14 m the four reveal strips are drawn in `frame`, which on this building is the white panel, so every window wore a bright outline and the wall read a good ten per cent whiter than the 31 per cent S5 measured. 0.08 keeps the reveal reading as a reveal at the walking camera and stops it adding to the white at the oblique.",
+   "windowSkip": [
+    [
+     12.2,
+     22.2
+    ]
+   ]
   }
  },
  "balcony": {
@@ -432,8 +462,13 @@
       },
       {
        "z0": 5.2,
+       "z1": 14.725,
+       "skin": "panel"
+      },
+      {
+       "z0": 14.725,
        "z1": 17.9,
-       "skin": "panel",
+       "skin": "panelSign",
        "signs": [
         {
          "text": "SIGNATURE",
