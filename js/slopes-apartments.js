@@ -1665,24 +1665,37 @@
       try { _data = await _fetching; } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
     }
     S.onSwitch(() => window.applySlopesApartments(map));
-    const orig = window.applySlopesSettings;
-    if (typeof orig === 'function' && !orig.__aptsHooked) {
-      const wrapped = function (m) { const r = orig.apply(this, arguments); try { window.applySlopesApartments(m); } catch (e) {} return r; };
+    // after any pass that rewrites a layer we filter — the slopes settings,
+    // js/slopes-roofs.js's own apply (it sets roofs-pitched's filter from
+    // the snapshot it took at ITS boot, which drops ours if we came first)
+    // and js/westcampus.js's (buildings-3d from its own snapshot) — ours
+    // re-applies; setFilters skips a layer that already carries the clause
+    const hook = name => {
+      const orig = window[name];
+      if (typeof orig !== 'function' || orig.__aptsHooked) return;
+      const wrapped = function (m) { const r = orig.apply(this, arguments); try { window.applySlopesApartments(m && m.getLayer ? m : undefined); } catch (e) {} return r; };
       wrapped.__aptsHooked = true;
-      window.applySlopesSettings = wrapped;
-    }
+      window[name] = wrapped;
+    };
+    for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings']) hook(name);
     window.applySlopesApartments(map);
     console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses,', count.frames, 'framed windows,', count.dominoes, 'dominoes in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
     // a layer that boots after this file (campus-storeys comes with the
-    // facades pass, on its own clock) gets its clause when it appears: a
-    // light poll for a minute, then the next applySlopesApartments() does it
+    // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
+    // fetch) gets its clause when it appears, and a pass that has not been
+    // hooked above (it booted after us) has its rewrite undone: a light poll,
+    // every 150 ms for the first minute, then every second for five
     (function late() {
       let n = 0;
-      const t = setInterval(() => {
-        if (++n > 400) return clearInterval(t);
+      const tick = () => {
+        n++;
+        if (n > 400 + 240) return;
+        setTimeout(tick, n < 400 ? 150 : 1000);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
+        for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
         if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
-      }, 150);
+      };
+      tick();
     })();
     count.done = true;
     return true;
