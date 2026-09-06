@@ -130,7 +130,7 @@
   "_heights_src": "base 7.10 is the level-3 floor line, where the two-storey brick stops. S5 puts the string course just above the second-storey window heads at about 43 per cent of a wall whose top is 15.8 m, which is 6.8 m, inside the plus or minus 0.8 m spread S8 gives for the same line on the street elevations. roof 15.80 and parapet top 16.60 are S8's; S7 shows this ring's parapet level with the perimeter's at every junction."
  },
  "colours": {
-  "_src": "Day hex; golden and night follow js/westcampus.js ramp(). THE PALETTE DECISION: the nine tones this ring shares with the perimeter L are taken from S8 verbatim rather than re-measured off S5. S5 is a marketing photograph and reads hotter than the imagery every neighbouring building in this scene is calibrated against - k-means on its own crops gives terracotta #d19e77 against S8's #d9b898 and blue #8993a2 against #b1c5d3 - and a colour seam running down the middle of ONE complex is a worse defect than a palette a step cool. Where S5 and S8 agree (brick: S5 crop (255,215)-(330,250) clusters 56.8 per cent #98857c against S8's #a98d7d) that is said. The four tones that exist only here - the balcony rail, the canopy, the pavilion and the water - are sampled from S5, S9 and S6 and say so.",
+  "_src": "Day hex; golden and night follow js/westcampus.js ramp(). THE PALETTE DECISION: the nine tones this ring shares with the perimeter L are taken from S8 verbatim rather than re-measured off S5. S5 is a marketing photograph and reads hotter than the imagery every neighbouring building in this scene is calibrated against - k-means on its own crops gives terracotta #d19e77 against S8's #d9b898 and blue #8993a2 against #b1c5d3 - and a colour seam running down the middle of ONE complex is a worse defect than a palette a step cool. Where S5 and S8 agree (brick: S5 crop (255,215)-(330,250) clusters 56.8 per cent #98857c against S8's #a98d7d) that is said. The four tones that exist only here - the balcony rail, the canopy, the pavilion and the water - are sampled from S5, S9 and S6 and say so. LOOK-FIX 1. The first pass took the nine shared tones from S8 verbatim and the render came back a uniform beige mass beside a reference that is plainly rust, slate and white - the colour blocks did not read at all at the oblique. The cause is measurable and is not the app's light: what matters is each wall tone's VALUE AS A FRACTION OF THE ROOF MEMBRANE IN THE SAME FRAME, which is independent of how the day is lit. Measured in S7 (earth-sw, the sunlit view) over the courtyard walls at (760,420)-(1180,700), keeping only pixels in each block's hue band above a saturation floor: membrane V 0.89 S 0.02 (#e2e1da), terracotta V 0.82 S 0.40 (#c29673), blue V 0.73 S 0.17 (#93a4b3), and the same three read again on the perimeter's own W 26th St elevation in the same frame at (760,700)-(1250,900) as #a98770, #9cafbf, #cdc0ad. So in the reference terracotta is 0.92 of the membrane, blue 0.82 and cream about 0.93. S8's entries put them at 0.99, 0.96 and 1.06 - its cream is BRIGHTER than the roof, which the reference never is - and its terracotta carries a third less chroma than the measurement (0.30 against 0.40). The three tones below are re-entered at the measured ratio and the measured saturation, anchored on this file's own roof hex. This is now the one place where this file and 26-west.json disagree about a shared material; see the todo.",
   "brick": {
    "hex": "#a98d7d",
    "_src": "S8's brick, a k-means cluster of two storeys of base on the 26th St elevation. Checked here: S5 crop (255,215)-(330,250), the base under the cream block across the pool, clusters 56.8 per cent #98857c and 26.9 per cent #66574e - the sunlit and shaded halves of the same variegated brick, straddling this value."
@@ -140,16 +140,16 @@
    "_src": "S8's pale rusticated stone. In the court it appears only as the occasional full-height pier - S5 shows one at the right-hand edge of the frame and one at the left - not as the long stretches the street elevations have, which is what the weights below say."
   },
   "cream": {
-   "hex": "#e9e6da",
-   "_src": "S8's ivory stucco block. S5 crop (330,90)-(395,170) reads 66.1 per cent #e2dbc7, a step warmer and darker, which is this photograph, not this wall."
+   "hex": "#d5cec1",
+   "_src": "S7 earth-sw: the ivory blocks read #cdc0ad on the perimeter elevation and #d8c0a6 in the courtyard crop (that one runs warm because the hue window also catches the terracotta's lit edge and the pool deck). Entered between them and desaturated to the S 0.11 the blocks actually carry: #d5cec1, which is 0.93 of the membrane - the roof stays the brightest surface in the frame, as it is in every reference here. S8's #e9e6da is 1.06 of it."
   },
   "terracotta": {
-   "hex": "#d9b898",
-   "_src": "S8's peach stucco block. S5 reads it at #d19e77, a saturated apricot; see the palette note above for why S8 wins."
+   "hex": "#ca9c78",
+   "_src": "S7 earth-sw, the courtyard walls: the sunlit orange blocks read #c29673 at V 0.82 S 0.41 hue 27 deg, against a membrane at V 0.89 in the same crop. Entered at that ratio against this file's roof hex, which lifts it to V 0.79 of 255 and keeps the chroma: #ca9c78. S5, the ACC photograph, independently reads #d19e77 at S 0.43 - within a step of this, and both are a third more saturated than S8's #d9b898. LOOK-FIX 1. The first pass took the nine shared tones from S8 verbatim and the render came back a uniform beige mass beside a reference that is plainly rust, slate and white - the colour blocks did not read at all at the oblique. The cause is measurable and is not the app's light: what matters is each wall tone's VALUE AS A FRACTION OF THE ROOF MEMBRANE IN THE SAME FRAME, which is independent of how the day is lit. Measured in S7 (earth-sw, the sunlit view) over the courtyard walls at (760,420)-(1180,700), keeping only pixels in each block's hue band above a saturation floor: membrane V 0.89 S 0.02 (#e2e1da), terracotta V 0.82 S 0.40 (#c29673), blue V 0.73 S 0.17 (#93a4b3), and the same three read again on the perimeter's own W 26th St elevation in the same frame at (760,700)-(1250,900) as #a98770, #9cafbf, #cdc0ad. So in the reference terracotta is 0.92 of the membrane, blue 0.82 and cream about 0.93. S8's entries put them at 0.99, 0.96 and 1.06 - its cream is BRIGHTER than the roof, which the reference never is - and its terracotta carries a third less chroma than the measurement (0.30 against 0.40). The three tones below are re-entered at the measured ratio and the measured saturation, anchored on this file's own roof hex. This is now the one place where this file and 26-west.json disagree about a shared material; see the todo."
   },
   "blue": {
-   "hex": "#b1c5d3",
-   "_src": "S8's pale blue stucco block. S5 reads it at #8993a2 in the court's own shade; see the palette note."
+   "hex": "#93a4b3",
+   "_src": "S7 earth-sw, the courtyard walls: the sunlit blue blocks read #93a4b3 at V 0.73 S 0.18 hue 210 deg; the same blocks on the W 26th St elevation in the same frame read #9cafbf. Entered at the measurement. S8's #b1c5d3 is 0.96 of the membrane and disappears into the roof beside it."
   },
   "trim": {
    "hex": "#eae7de",
@@ -239,9 +239,9 @@
     "blue"
    ],
    "weights": [
-    0.36,
-    0.34,
-    0.3
+    0.44,
+    0.24,
+    0.32
    ],
    "runMax": 2,
    "bay": 3.0,
@@ -253,7 +253,7 @@
    "glass": "glass",
    "frame": "trim",
    "reveal": 0.22,
-   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module - S8 measured that block width on the street elevations at 7.6 and 9.6 m across two adjacent blocks, and S5 shows the same rhythm in the court: three window bays to a block, one balcony stack in the middle of each. course 2.90 with macro [3,1] makes exactly the three storeys of this band, so a tone runs a block's full height, which is what every frame shows. The band starts at 7.10, not above the string course, so floorsBetween() keeps all three floor lines and the third storey gets its window row. The WEIGHTS are counted on the court walls, not the streets: S5 gives terracotta, cream, blue, terracotta across the elevation it photographs and S7 gives a near-even mix round both courts, so 0.36 / 0.34 / 0.30 rather than S8's street count of 11 cream to 8 terracotta to 6 blue. Window 1.25 x 1.75 on a 0.75 m sill is S8's re-measured opening, and S5 shows the same portrait proportion here."
+   "_src": "The three stucco storeys. THE RULE: full-height vertical colour blocks, one tone each, on a 9.0 m module - S8 measured that block width on the street elevations at 7.6 and 9.6 m across two adjacent blocks, and S5 shows the same rhythm in the court: three window bays to a block, one balcony stack in the middle of each. course 2.90 with macro [3,1] makes exactly the three storeys of this band, so a tone runs a block's full height, which is what every frame shows. The band starts at 7.10, not above the string course, so floorsBetween() keeps all three floor lines and the third storey gets its window row. The WEIGHTS are counted on the court walls, not the streets: S5 gives terracotta, cream, blue, terracotta across the elevation it photographs and S7 gives a near-even mix round both courts, so 0.36 / 0.34 / 0.30 rather than S8's street count of 11 cream to 8 terracotta to 6 blue. Window 1.25 x 1.75 on a 0.75 m sill is S8's re-measured opening, and S5 shows the same portrait proportion here. LOOK-FIX 2. The first pass estimated the weights at 0.36 terracotta / 0.34 cream / 0.30 blue and the render came back reading as a cream building with two accents, where the reference reads as a rust building with blue and cream in it. Counted properly instead, block by block along the courtyard wall in S7 earth-nw crop (600,520)-(1160,680) enlarged 3x - the one frame that shows a dozen consecutive blocks of this ring square on: blue, cream, terracotta, terracotta, cream, blue, terracotta, terracotta, blue, cream, terracotta, blue, terracotta. Thirteen blocks: six terracotta, four blue, three cream, so 0.44 / 0.24 / 0.32. runMax stays 2 because that run shows two adjacent terracotta blocks twice and never three."
   },
   "cornice": {
    "kind": "flat",
@@ -559,16 +559,16 @@
       17
      ],
      "grid": [
-      8,
+      11,
       2
      ],
      "size": [
-      1.3,
-      3.0
+      1.1,
+      2.4
      ],
-     "h": 0.7,
+     "h": 0.6,
      "tone": "mech",
-     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the east leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the east leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs. LOOK-FIX 1b: the first pass drew 1.3 x 3.0 m boxes at an 8 m pitch and the roof read as a few large blobs beside a reference whose roofs are busy with small paired units. Counted again on S7 earth-nw, where the units are resolved: 1.1 x 2.4 m at about a 5.5 m pitch, roughly forty of them a leg. Counts raised and the box shrunk to that."
     },
     {
      "plan": [
@@ -578,16 +578,16 @@
       66
      ],
      "grid": [
-      6,
+      9,
       2
      ],
      "size": [
-      1.3,
-      3.0
+      1.1,
+      2.4
      ],
-     "h": 0.7,
+     "h": 0.6,
      "tone": "mech",
-     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the west leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the west leg carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs. LOOK-FIX 1b: the first pass drew 1.3 x 3.0 m boxes at an 8 m pitch and the roof read as a few large blobs beside a reference whose roofs are busy with small paired units. Counted again on S7 earth-nw, where the units are resolved: 1.1 x 2.4 m at about a 5.5 m pitch, roughly forty of them a leg. Counts raised and the box shrunk to that."
     },
     {
      "plan": [
@@ -598,15 +598,15 @@
      ],
      "grid": [
       2,
-      3
+      4
      ],
      "size": [
-      1.3,
-      3.0
+      1.1,
+      2.4
      ],
-     "h": 0.7,
+     "h": 0.6,
      "tone": "mech",
-     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the cross bar, between the two legs' own rows carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the cross bar, between the two legs' own rows carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs. LOOK-FIX 1b: the first pass drew 1.3 x 3.0 m boxes at an 8 m pitch and the roof read as a few large blobs beside a reference whose roofs are busy with small paired units. Counted again on S7 earth-nw, where the units are resolved: 1.1 x 2.4 m at about a 5.5 m pitch, roughly forty of them a leg. Counts raised and the box shrunk to that."
     },
     {
      "plan": [
@@ -616,16 +616,16 @@
       64
      ],
      "grid": [
-      6,
+      9,
       1
      ],
      "size": [
-      1.3,
-      3.0
+      1.1,
+      2.4
      ],
-     "h": 0.7,
+     "h": 0.6,
      "tone": "mech",
-     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north leg - one row, it is only 11 m wide carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north leg - one row, it is only 11 m wide carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs. LOOK-FIX 1b: the first pass drew 1.3 x 3.0 m boxes at an 8 m pitch and the roof read as a few large blobs beside a reference whose roofs are busy with small paired units. Counted again on S7 earth-nw, where the units are resolved: 1.1 x 2.4 m at about a 5.5 m pitch, roughly forty of them a leg. Counts raised and the box shrunk to that."
     },
     {
      "plan": [
@@ -636,15 +636,15 @@
      ],
      "grid": [
       1,
-      4
+      5
      ],
      "size": [
-      1.3,
-      3.0
+      1.1,
+      2.4
      ],
-     "h": 0.7,
+     "h": 0.6,
      "tone": "mech",
-     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north cross bar carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs."
+     "_src": "S6 rectified into (u,v) at 4 px per metre (ref/rect-uv.png): the north cross bar carries dark grey units on the white membrane at roughly an 8 m pitch, each blob 5 to 7 m long by 2 to 3 m across - a group of units reading as one at 0.27 m per pixel. Entered as the generator's grid of 1.3 x 3.0 m boxes, the module 26-west.json read on the perimeter roofs. LOOK-FIX 1b: the first pass drew 1.3 x 3.0 m boxes at an 8 m pitch and the roof read as a few large blobs beside a reference whose roofs are busy with small paired units. Counted again on S7 earth-nw, where the units are resolved: 1.1 x 2.4 m at about a 5.5 m pitch, roughly forty of them a leg. Counts raised and the box shrunk to that."
     }
    ]
   },
@@ -871,6 +871,7 @@
   "The balcony projection is plus or minus 0.2 m: no frame here shows a court balcony side-on. A street-level photograph from inside the court, or a Google Earth capture at 60 m and 80 deg tilt looking along one court wall, would settle it.",
   "Which colour block gets which tone is a hash, not a survey. S5 fixes four blocks on one wall (terracotta, cream, blue, terracotta) and the generator cannot be told about a specific block - only about the module and the weights. A `plankTones` override, a list of tones per plank index for one named face, would let a photographed elevation be reproduced exactly.",
   "The ground floor behind the canopies is drawn as ordinary brick with punched windows. S5 shows it as a dark storefront - full-height glazed bays between brick piers - all round the pool court. It is invisible behind the canopy from above and from the app's obliques, so it is left as masonry; a walking-height camera in the court would want the `storefront` skin over the 0.00..4.20 band on faces 4, 6, 7 and 8.",
-  "The north leg's roof runs about 3 m wider west than this ring does in S6, and the ring is about 3 m east of the roof edge there. Both are the same parallax: the nadir displaces a 15.8 m roof outward by h/H of its radius, and the OSM way was traced off a different roof-parallaxed image. Nothing here can fix an outline that is 3 m wrong - it would need the way re-traced against a rectified orthophoto."
+  "The north leg's roof runs about 3 m wider west than this ring does in S6, and the ring is about 3 m east of the roof edge there. Both are the same parallax: the nadir displaces a 15.8 m roof outward by h/H of its radius, and the OSM way was traced off a different roof-parallaxed image. Nothing here can fix an outline that is 3 m wrong - it would need the way re-traced against a rectified orthophoto.",
+  "This file and data/apartments/26-west.json - the two halves of one complex - now disagree about terracotta, blue and cream. The disagreement is measured, not a matter of taste: in S7 those blocks are 0.92, 0.82 and 0.93 of the roof membrane's value in the same frame, and 26-west.json has them at 0.99, 0.96 and 1.06, so its walls render as bright as its roof and the colour blocks vanish. The fix over there is three hex values; the measurement and the crop boxes are written out in this file's colours._src so that lane does not have to redo them."
  ]
 }
