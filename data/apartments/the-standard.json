@@ -15,6 +15,7 @@
     "S9": "js/westcampus.js TIER4.STD and scripts/bake_westcampus.py MIDRISE['The Standard']: the deck features read off the rectified z20 nadir in this same frame (pool, spa, turf, cabana, screen, rail), the balcony module read off Ext_01, the liner height 21.5 corroborated by the roofscape LiDAR deck (b=21.50), the ground floor 7.0/6.0, the corner bay 13.3 m wide, the panel tones measured off Ext_14 (STD_CREAM/PALE/WARM, BASE_STD, STD_RUST, STD_CAP). TIER4's two 'slabs' [23.5-41, 57.2-74.3] x [17-31.4] are NOT the towers: overlaid on the nadir (S8) they land exactly on the two light wells.",
     "S10": "data/roads.geojson: West 23rd Street's western segment runs along this building's NORTH edge (lat 30.28721-30.28745) and Pearl Street ends at it at the building's NW corner (-97.746318, 30.287326); Rio Grande is 58 m east of the east edge. So S5's corner is the north-west corner.",
     "S11": "Rambler ATX review (rambleratx.com/resources/apartment-review-standard-austin): first floor is leasing office + Luxer package room + retail; pool deck has a jumbotron, two hot tubs, an outdoor kitchen.",
+    "S13": "The judge's fair-comparison package (scratchpad apts/judge/standard/, 2026-09-06): B.png = the S8 south-west oblique (Earth @30.28699,-97.74578,190a,220d,35y,45h,55t, imagery 12/2023) cropped to the building beside ours at the same camera. On the south face the white/rust bays run from the roof straight down to a ONE-storey dark base — twelve window rows show above the neighbouring garage's roof, where ours had nine over six storeys of charcoal screen; at the SW corner the dark base under the tower is two residential storeys (~6 m) with the cafe's glazing in it.",
     "S12": "js/westcampus.js SOLID: the West Campus pass's day/golden/night trios for a pool, deck paving, turf, shade, furniture, black steel rail, balcony slab, the jumbotron screen and the white sign letters — entered cool for top faces, dark at night, the pool lit.",
     "derived": "a number computed from the above and marked so; 'unknown' stays unknown."
   },
@@ -247,7 +248,7 @@
         "tone": "coping",
         "start": 0.4
       },
-      "_src": "the south and east podium faces are the 640-space garage's screening (S4; the garage abuts the south face in the nadir, S8): charcoal with horizontal aluminium louvres. Louvre pitch is a plausible 0.5 m — not measured (unknown)."
+      "_src": "NOT WORN since 2026-09-06 (kept for the record): the first read had the south and east podium faces as the 640-space garage's screening (S4; the garage abuts the south face in the nadir, S8) — charcoal with horizontal aluminium louvres at a plausible 0.5 m. The judge's frame (S13) shows the units WRAP the garage: the bays skin runs down the south face to a one-storey dark base, and from 220 m the louvres read as pixel noise on a six-storey charcoal band. Faces 4-6 and the Pearl strip's notch face wear the bays over a flat charcoal ground floor now."
     },
     "gym": {
       "kind": "storefront",
@@ -310,8 +311,13 @@
           "bands": [
             {
               "z0": 0,
+              "z1": 6.0,
+              "skin": "storefront"
+            },
+            {
+              "z0": 6.0,
               "z1": 21.5,
-              "skin": "garage"
+              "skin": "bays"
             }
           ]
         },
@@ -319,8 +325,13 @@
           "bands": [
             {
               "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
               "z1": 21.5,
-              "skin": "garage"
+              "skin": "bays"
             }
           ]
         },
@@ -328,14 +339,35 @@
           "bands": [
             {
               "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
               "z1": 21.5,
-              "skin": "garage"
+              "skin": "bays"
             }
           ]
         },
-        "_src": "edge 1 (u=81.6, v 0-11) and 2 (v=11, u 81.6-91) stand against the corner bay: not drawn. Edge 3 (u=90.95, v 11-41.25) is tower B's west face plane: below 18.4 it is inside the Pearl strip, between 18.4 and 21.5 it shows as the tower's base in the tower's pixel skin (S5). Edges 4-6: the south face and the SE step, garage screen."
+        "_src": "edge 1 (u=81.6, v 0-11) and 2 (v=11, u 81.6-91) stand against the corner bay: not drawn. Edge 3 (u=90.95, v 11-41.25) is tower B's west face plane: below 18.4 it is inside the Pearl strip, between 18.4 and 21.5 it shows as the tower's base in the tower's pixel skin (S5). Edges 4-6 (the notch's east wall, the south face, the SE step): the white/rust bays of the south bar run straight down to the ground floor (S13 — twelve rows over the neighbouring garage's roof, the same rhythm top to bottom), on a ONE-storey dark base: flat charcoal on the south face and the SE step, which stand against the garage (S8) and show nothing, and the storefront on edge 4, which faces the notch off Pearl where S13 shows the cafe's glazing. The base is the 6.0 m ground floor of `levels` (S5), the two residential storeys S13 shows under the tower at the SW corner. Was: garage screen 0-21.5 on all three, which read from 220 m as a six-storey charcoal band with pixel noise on it."
       },
       "overrides": [
+        {
+          "region": [25.0, 90.95, 46.45, 46.45],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.0,
+              "skin": "charcoalBlank"
+            },
+            {
+              "z0": 6.0,
+              "z1": 21.5,
+              "skin": "bays"
+            }
+          ],
+          "_src": "the same bands as face 5, cut at u=25 so the piece under the south bar (u 25-90.95) is exactly the bar's length: the bays skin sets its module from the wall's length (round(len/3.0)), and one piece 65.95 m long puts every rust strip on the line of the one above it at 21.5; the 8.1 m east of it sits under tower A's leg"
+        },
         {
           "region": [16.6, 16.6, 5.1, 41.7],
           "bands": [
@@ -472,16 +504,7 @@
       "faces": {
         "u0": null,
         "v0": null,
-        "v1": {
-          "bands": [
-            {
-              "z0": 0,
-              "z1": 18.4,
-              "skin": "garage"
-            }
-          ]
-        },
-        "_src": "u0 and v0 stand against the podium and the corner bay; v1 faces the SW notch (garage)"
+        "_src": "u0 and v0 stand against the podium and the corner bay; v1 faces the SW notch off Pearl and wears the strip's own bands (storefront, then the podium panel) — S13 shows the cafe's glazing and light panel there, not a garage screen (was: garage 0-18.4)"
       },
       "_balconies_src": "two balcony stacks on the Pearl face at levels 3-5 (S5); positions along the face are read by eye off S5 (the stacks sit about a third and two thirds along) — not dimensioned",
       "roofTone": "roof",
