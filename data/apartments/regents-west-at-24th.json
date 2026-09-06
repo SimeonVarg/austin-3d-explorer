@@ -57,8 +57,8 @@
       "_src": "the loggia interior in its own shade. S6, median of the level-4 balcony soffit (560,180)-(900,200) = #4e4325 raw; entered near the raw value because this surface really is in shade in every photograph, including the Google Earth mesh (S7), where the balcony bands are the darkest thing on the building."
     },
     "balcGlass": {
-      "hex": "#46443a",
-      "_src": "the sliding door and side light at the back of a loggia. S6, median of (795,270)-(845,315) = #3a3828 raw, lifted; darker than the punched windows because it sits behind the balcony's own shadow."
+      "hex": "#6a6455",
+      "_src": "the sliding door and side light at the back of a loggia, plus the loggia's own shaded return - one tone doing both, because at this camera a loggia is one dark rectangle. S6 medians it at (795,270)-(845,315) = #3a3828 raw, and that value went in first and was WRONG: at the first look the south elevation read as a near-black car park where every reference reads as a pale building with dark slots. The entered value is the Google Earth mesh's own reading of the same bands instead - c_fe clusters the loggia rows at #6d6656 - which is the tone with the bounce off the balcony floor in it, and that is what a viewer sees."
     },
     "glass": {
       "hex": "#6b776c",
@@ -131,11 +131,11 @@
       "bay": 4.0,
       "field": "wall",
       "floorLine": { "h": 0.34, "tone": "slab" },
-      "window": { "w": 3.1, "h": 2.25, "sill": 0.5 },
+      "window": { "w": 2.8, "h": 1.95, "sill": 0.62 },
       "glass": "balcGlass",
       "frame": "trim",
       "reveal": 0.35,
-      "_src": "The loggia elevations - the south face on W 24th St and the east faces of the two end wings (S6, and S7's c_fe where the same dark bands run). One loggia per unit; the 4.0 m bay is the unit width read off S6 by counting the privacy divider positions across the south face, ten of them in 39.1 m. The opening is 3.1 x 2.25 m on a 0.5 m upstand - the glazed slider plus its side light, which S6 shows filling almost the whole bay between dividers - set 0.35 m back, so the loggia reads as a hole rather than a window. The 0.34 m slab line at every floor is the projecting edge S6 draws as the strongest horizontal on the building."
+      "_src": "The loggia elevations - the south face on W 24th St and the east faces of the two end wings (S6, and S7's c_fe where the same dark bands run). One loggia per unit; the 4.0 m bay is the unit width read off S6 by counting the privacy divider positions across the south face, ten of them in 39.1 m. The opening is 2.8 x 1.95 m on a 0.62 m upstand - the glazed slider plus its side light, which S6 shows filling almost the whole bay between dividers - set 0.35 m back, so the loggia reads as a hole rather than a window. It was 3.1 x 2.25 on a 0.5 m upstand at the first look and that left only 0.5 m of pale wall between one dark row and the next; S6 has about a third of each floor pale, so the opening lost 0.3 m of height and gained it as sill and spandrel. The 0.34 m slab line at every floor is the projecting edge S6 draws as the strongest horizontal on the building."
     },
     "punched": {
       "kind": "bays",
@@ -390,6 +390,10 @@
       { "plan": [58.2, 60.0, 21.0, 23.2], "z0": 0.14, "h": 0.78, "tone": "furniture" }
     ]
   },
+  "todo": [
+    "GENERATOR GAP, and it is visible in the frame: js/slopes-apartments.js's setFilters() hides the replaced prisms in `buildings-3d` and `buildings-roof` and the westcampus bands in `wc-*`, but NOT the roofscape pass. js/roofs.js draws `roofscape-deck` as one flat polygon per building whose `fill-extrusion-base` is the baked `b` - the SNAPSHOT height. This building's snapshot height is 24.9 m and its real height is 19.3 m, so the deck now floats as a 41 x 44 m slab six and a half metres above the roof, over the courtyard and everything on it. It is the first thing the eye lands on from any oblique. The fix is one clause: extend that layer list to roofscape-deck, roofscape-major and roofscape-minor, keyed the same way on `id`. Every apartment file that overrides the snapshot height DOWNWARD has this, not just this one - it is invisible only where the authored height happens to match the guess. I do not edit the .js, so this is written here instead.",
+    "Lower priority, same place: with that filter in, this file draws its own roof furniture (the condenser grids and the terrace) and the roofscape pass's units for the same building would be drawn twice if only the deck were hidden. Hide all three roofscape layers for a replaced id, not just the deck."
+  ],
   "_open": [
     "The bump's height is the one real risk: full height on the strength of S6 and the OSM polygon, against a hint in S7's nadir that the roof is lower at that corner. A Street View frame from San Gabriel St looking east settles it.",
     "The courtyard is entered as the gap between the five blocks at 23.1 x 6.0 m, from S1's inner ring. S7's nadir reads the dark slot wider than that, nearer 9 m, but the extra is the sloping courtyard wall catching light rather than the opening, and the traced ring is the better number.",
