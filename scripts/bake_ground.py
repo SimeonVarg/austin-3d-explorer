@@ -3026,6 +3026,116 @@ ROADAREA = {
 }
 
 
+# ------------------------------------------------------------- the kerb ----
+#
+# "A has a wrong shape (road terminating in a plaza), and wrong loses to soft-
+#  correct."  -- the street critic, comparing our Waggener frame with Google
+#  Earth's, scratchpad .../apts/judge/street/ (A.png top half, key.txt).
+#
+# THE DEFECT, IN ITS OWN WORDS: "the grey carriageway runs south from the
+# Garrison/Calhoun block and simply stops in the middle of the West Mall plaza,
+# at the same level as the paving, with the diagonal plaza paths merging flush
+# onto it ... road and pavement are separated by a colour change only."
+#
+# Both halves of that are ONE missing piece of geometry. `k:'roadarea'` is a
+# flat `fill` at z=0 (js/ground.js addRoadLayers) and its only edge is
+# `ground-road-case`, a screen-space `line` a couple of pixels wide. A pixel
+# stroke is a colour change. It cannot be stepped over, it does not depth-test
+# against the 0.22 m sidewalk deck standing beside it, and where the mall cut
+# ends a carriageway it draws a blunt tan/grey seam rather than a terminus. So
+# the plaza and the asphalt genuinely are one plane in our scene, and the
+# critic read them as one plane.
+#
+# THE FIX: bake the kerb, as the critic asked -- an offset ring taken off the
+# carriageway's own boundary, so the road/pavement boundary is a geometric step
+# and not a colour. It rides `k:'bank'` with `m:'coping'`, which is not a new
+# layer and not a new material: Turtle Pond's rim is already baked exactly this
+# way (`pond_coping`, a 1.2 m ring at 0.38 m, `m:'coping'`), so this is the
+# same construction at street scale and it inherits the CHANNEL extrusion's
+# per-feature `b`/`h` and its dressed-limestone colour for free.
+#
+# THE THREE NUMBERS.
+#   w_m 0.30   the critic's own figure, "a 0.3 m offset ring". It comes out of
+#              the width the road already has rather than being added to it:
+#              `road_width` is lanes*LANE_M + KERB_M and the 1.6 m KERB_M IS
+#              the kerb-and-gutter allowance, so the ring is carved from the
+#              allowance that was always nominally there.
+#   h_m 0.24   NOT the critic's 0.15. A real kerb is 150 mm and js/ground.js
+#              already refused that number for the same object -- "at 150 mm
+#              the riser is a third of a pixel from any altitude this app
+#              flies" -- and stands the sidewalk deck at GROUND.pathRaise 0.22
+#              instead. The kerb top has to sit WITH the pavement it edges or
+#              the step lands in the wrong place, so it takes the app's
+#              declared over-scale rather than inventing a second one -- plus
+#              20 mm. That 20 mm is not taste, it is the A2 tie: the resolver's
+#              carriageway copy is inset by CARRIAGEWAY_INSET_M (0.8 m), so a
+#              sidewalk is allowed to overhang the outer 0.8 m of the drawn
+#              road and therefore to overlap this ring, and two extrusion tops
+#              at exactly 0.22 m is the undefined depth order this file has
+#              already paid for twice. It is the same lift, for the same
+#              reason, as GROUND.pathTexLift.
+#   DETAIL_BB  the same argument that bbox already makes for driveways: a
+#              0.22 m step is not resolvable from the far field, and unclipped
+#              this ring is 197k coordinates / +4.5 MB on a 6.9 MB file that
+#              downloads whole. Clipped it is 24k / +0.55 MB. MEASURED, both.
+#              The RING is clipped, never the road -- clipping the road first
+#              would run a kerb stripe across the carriageway at the bbox edge.
+KERB = {
+    "on": True,
+    "w_m": 0.30,            # the ring's width, off the carriageway edge inwards
+    "h_m": 0.24,            # GROUND.pathRaise + one lift; see the note above
+    "detail_only": True,    # clip to DETAIL_BB; see the note above
+    "simplify_m": 0.15,     # same tolerance as the carriageway it is cut from
+    "min_area_m2": 0.4,     # a ring 0.3 m wide is 0.4 m2 by 1.3 m of kerb
+    "coord_dp": 6,
+}
+
+
+def kerb_rings(gm, stats):
+    """The outer KERB['w_m'] of one carriageway polygon, as ring geometries.
+
+    Metric in, metric out. Interior rings get a kerb too, and that is the half
+    of this that answers the named defect: where the mall cut a hole in the
+    asphalt, the hole's rim is where the road ends, and it is now a raised edge
+    the plaza paths stop at instead of a seam they run over.
+    """
+    if not KERB["on"]:
+        return []
+    from shapely.geometry import Polygon, box as _box
+    try:
+        inner = gm.buffer(-KERB["w_m"], join_style=2, mitre_limit=2.0)
+    except Exception:
+        stats["kerb_inset_failed"] += 1
+        return []
+    # A carriageway narrower than two kerbs has no room for one. It keeps its
+    # whole width rather than being drawn as a solid 0.22 m bar of limestone.
+    if inner.is_empty:
+        stats["kerb_too_narrow"] += 1
+        return []
+    try:
+        ring = gm.difference(inner)
+    except Exception:
+        stats["kerb_difference_failed"] += 1
+        return []
+    if KERB["detail_only"]:
+        w, s, e, n = DETAIL_BB
+        ring = ring.intersection(_box(w * _KX, s * M_LAT, e * _KX, n * M_LAT))
+    if ring.is_empty:
+        return []
+    if KERB["simplify_m"]:
+        ring = ring.simplify(KERB["simplify_m"])
+    parts = ring.geoms if hasattr(ring, "geoms") else [ring]
+    out = []
+    for q in parts:
+        if not isinstance(q, Polygon) or q.is_empty:
+            continue
+        if q.area < KERB["min_area_m2"]:
+            stats["kerb_sliver_dropped"] += 1
+            continue
+        out.append(q)
+    return out
+
+
 # ------------------------------------------------ a mall is not a road ------
 #
 # "some asphalt roads bleed into speedway"
@@ -3169,6 +3279,19 @@ def widen_roads(road_feats, stats, warnings, keep_out=None):
                         "geometry": {"type": "Polygon", "coordinates": rings},
                         "properties": props})
             stats["roadarea_out_" + k + "_" + str(cls or surf)] += 1
+            # THE KERB, off this polygon's own boundary. Carriageways only:
+            # `cyclearea` is a painted or bollarded track and giving it a
+            # 0.22 m limestone rim would draw a wall down both sides of the
+            # Shoal Creek trail.
+            if k == "roadarea":
+                for q in kerb_rings(gm, stats):
+                    out.append({"type": "Feature",
+                                "geometry": {"type": "Polygon",
+                                             "coordinates": _rings_ll(q)},
+                                "properties": {"k": "bank", "u": "kerb",
+                                               "m": "coping", "b": 0.0,
+                                               "h": KERB["h_m"]}})
+                    stats["kerb_out"] += 1
     return out
 
 

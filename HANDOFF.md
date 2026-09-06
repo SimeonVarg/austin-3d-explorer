@@ -1,5 +1,63 @@
 # Austin 3D Explorer — Full Handoff
 
+## 225. Sep 6 2026 — the carriageway has a kerb now, so the road stops at an edge instead of dissolving into the plaza (`acer/apts`, one gap closed on the street critic's verdict)
+
+**Look first: `docs/shots/street-kerb-garrison-stub.jpg`** — the road stub in
+front of Garrison Hall, before and after, at the street critic's own Waggener
+camera (`jumpTo` center −97.73835, 30.28535, z 19.2, pitch 70, bearing 250,
+`?intro=0&drift=0`, graphics auto-detect cancelled, second of two shots).
+
+The critic put our frame beside Google Earth's and picked the real thing: *"B's
+shapes are soft but correct; A has a wrong shape (road terminating in a plaza),
+and wrong loses to soft-correct."* The named gap was that the grey carriageway
+runs south from the Garrison/Calhoun block and *"simply stops in the middle of
+the West Mall plaza, at the same level as the paving"*, and at Guadalupe that
+road and pavement are *"separated by a colour change only."*
+
+Both are one missing piece of geometry. `k:'roadarea'` is a flat `fill` at z=0
+and its only edge is `ground-road-case`, a two-pixel screen-space stroke. A
+pixel stroke IS a colour change: it cannot be stepped over, it does not
+depth-test against the 0.22 m sidewalk deck beside it, and where the mall cut
+ends a carriageway it draws a blunt seam rather than a terminus. The plaza and
+the asphalt genuinely were one plane, so the critic read them as one plane.
+
+So `widen_roads` now bakes the kerb the critic asked for — a 0.30 m ring taken
+off each carriageway polygon's own boundary, interior rings included, which is
+what puts a raised edge around the hole the mall cut and turns the stub's blunt
+end into a hard terminus. It rides `k:'bank'` / `m:'coping'`, which is not a new
+layer and not a new material: Turtle Pond's rim is already baked exactly this
+way, so it inherits the channel extrusion's per-feature `b`/`h` and its dressed
+limestone for free. Three numbers, all sourced: **0.30 m** is the critic's own
+figure and comes out of `KERB_M`, the kerb-and-gutter allowance `road_width`
+already adds; **0.24 m** is `GROUND.pathRaise` plus one lift, not the critic's
+0.15 m, because js/ground.js already refused 150 mm for this same object ("the
+riser is a third of a pixel from any altitude this app flies") and because the
+resolver lets a sidewalk overhang the outer 0.8 m of the drawn road, so two
+tops at exactly 0.22 m would be the A2 depth tie; **DETAIL_BB** clips the ring
+for the same reason it already clips driveways — unclipped this is 197k
+coordinates and +4.5 MB on a file that downloads whole, clipped it is 24k and
++645 KB (6,725 → 7,370 KB, measured both ways). 737 rings ship, 18 of them in
+the Waggener frame.
+
+GATES. `kerbmeter.py` PASS on all three of its rules — pavement on a
+carriageway 27,221 m² of a 29,000 ceiling, 1,099 m² of it deep against 1,400;
+worst move off the OSM way 0.66 m of 0.75; mean turn on a curved run 12.62° of
+16.00 over 3,931 runs; furniture wrongly in a road 124 of 160. `walkmeter.mjs`
+PASS (drift 0 over limit, 0 route errors, live UI gate pass). `ground-probe.mjs`
+is RED and was already red: it calls `setPaintProperty('ground-paths',
+'line-color', …)` on a layer that has been a `fill-extrusion` since 2026-08-02,
+and it fails identically on the pre-change `data/ground.geojson` — checked by
+running it on both files, not assumed. `data/roads.geojson` is byte-identical.
+
+NOT DONE, and it was in the critic's secondary list rather than the named gap:
+the dropped-kerb ramp. The ring steps back around the crossing aprons the
+carriageway cut already leaves, so a crossing is not kerbed over, but there is
+no modelled ramp. Corner radii, sidewalk tone and the plaza's grass edging are
+all still open.
+
+Branch `acer/apts`. Files: `scripts/bake_ground.py`, `data/ground.geojson`,
+`docs/shots/street-kerb-garrison-stub.jpg`.
+
 ## 224. Sep 6 2026 — GDC is two brick bars with a canyon between them, not one roof with a glass corner (`acer/apts`, one gap closed on the critic's verdict)
 
 **Look first: `docs/shots/gdc-slot-before-after.jpg`** — Google Earth's 260 m
