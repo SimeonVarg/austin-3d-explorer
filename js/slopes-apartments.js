@@ -132,7 +132,7 @@
   // ── state ────────────────────────────────────────────────────────────
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
-  const _origFilters = {};          // layer id -> the filter it had before this file touched it
+  const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
   const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
   const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
@@ -1429,9 +1429,12 @@
    * The inset is what keeps a neighbour's own deck, which shares the
    * boundary, on the positive side.
    */
-  let _hideGeo = null;
-  function hideGeometry() {
-    if (_hideGeo) return _hideGeo;
+  const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
+  function hideGeometry(inset) {
+    // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
+    inset = inset == null ? APTS.roofscapeInset : inset;
+    const key = inset + '|' + ((_data && _data.buildings) || []).map(b => b.name).join('|');
+    if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
     for (const b of (_data && _data.buildings) || []) {
       const ring = b.footprint && b.footprint.ring;
@@ -1440,13 +1443,13 @@
       const lat0 = pts.reduce((a, p) => a + p[1], 0) / pts.length, lng0 = pts[0][0];
       const mx = mLon(lat0), my = M_LAT;
       const m = pts.map(p => [(p[0] - lng0) * mx, (p[1] - lat0) * my]);
-      const off = offsetRing(m, APTS.roofscapeInset) || ccw(m);
+      const off = inset > 0 ? (offsetRing(m, inset) || ccw(m)) : ccw(m);
       const ll = off.map(q => [+(lng0 + q[0] / mx).toFixed(7), +(lat0 + q[1] / my).toFixed(7)]);
       ll.push(ll[0]);
       polys.push([ll]);
     }
-    _hideGeo = polys.length ? { type: 'MultiPolygon', coordinates: polys } : null;
-    return _hideGeo;
+    _hideGeo[key] = polys.length ? { type: 'MultiPolygon', coordinates: polys } : null;
+    return _hideGeo[key];
   }
 
   /**
@@ -1460,7 +1463,17 @@
    * its roof, 2706 Rio Grande's ten metres up, the Villas' 12.6 — and hid
    * everything the file draws on the roof.
    */
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'] };
+  // `roofscape` here is every layer hidden by GEOMETRY: the roofscape pass,
+  // and roofs-pitched — the tiled-roof bake keeps its `f: band` features
+  // drawn as fill-extrusions while js/slopes-roofs.js draws the rest as a
+  // mesh, and over Jester West Hall's tower those bands are the precast
+  // strips from 19 m to the roof, baked on the snapshot, standing through
+  // the mesh this file draws (measured 2026-09-05: queryRenderedFeatures on
+  // one of the "poles" answered roofs-pitched, b 19, h 50.55).
+  // Those bands stand ON the wall line, outside the inset that spares a
+  // neighbour's deck, so roofs-pitched is hidden against the footprint
+  // itself (`walls`), the roofscape pass against the inset one.
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'] };
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -1502,14 +1515,33 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
-    const geo = APTS.hideRoofscape && hideGeometry();
+    const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
+    const geoW = APTS.hideRoofscape && hideGeometry(0);
+    if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], 0]]);
     return plan;
   }
   /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */
   function filtersMissing() {
     if (!_map || !_data) return [];
     return filterPlan().filter(([id, clause]) => _map.getLayer(id) && JSON.stringify(_map.getFilter(id) || null).indexOf(JSON.stringify(clause)) < 0).map(p => p[0]);
+  }
+  /**
+   * Our clause taken back out of a filter, wherever another pass has since
+   * wrapped it: ['all', X, ours] becomes X, a bare ours becomes null. This is
+   * how the switch-off restores — not from a snapshot. js/slopes-roofs.js
+   * saves and restores roofs-pitched's filter on the same SLOPES switch, and
+   * js/westcampus.js rewrites buildings-3d's from its own snapshot; a
+   * snapshot taken between them can only put back the wrong state.
+   */
+  const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  function stripClause(f, clause) {
+    if (!Array.isArray(f)) return f;
+    if (sameJSON(f, clause)) return null;
+    if (f[0] === 'all' && f.length === 3 && sameJSON(f[2], clause)) return stripClause(f[1], clause);
+    const out = f.map(x => Array.isArray(x) ? stripClause(x, clause) : x);
+    if (out[0] === 'all') { const rest = out.slice(1).filter(x => x !== null); return rest.length === 0 ? null : (rest.length === 1 ? rest[0] : ['all'].concat(rest)); }
+    return out;
   }
   function setFilters(on) {
     const map = _map;
@@ -1518,18 +1550,20 @@
     if (on) {
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
-        const f = map.getFilter(id) || null;
-        if (JSON.stringify(f).indexOf(JSON.stringify(clause)) >= 0) continue;   // already ours (a re-apply)
-        if (!(id in _origFilters)) _origFilters[id] = f;
-        try { map.setFilter(id, f ? ['all', f, clause] : clause); } catch (e) { console.warn('[slopes-apartments] filter', id, e); }
+        let f = map.getFilter(id) || null;
+        if (JSON.stringify(f).indexOf(JSON.stringify(clause)) >= 0) { _clauses[id] = clause; continue; }   // already ours (a re-apply)
+        if (_clauses[id]) f = stripClause(f, _clauses[id]);                              // a clause of ours that has since changed (a building added at runtime)
+        try { map.setFilter(id, f ? ['all', f, clause] : clause); _clauses[id] = clause; } catch (e) { console.warn('[slopes-apartments] filter', id, e); }
       }
       stashRigs(true);
       _filtered = true;
     } else if (_filtered) {
-      for (const id of Object.keys(_origFilters)) {
-        if (!map.getLayer(id)) continue;
-        try { map.setFilter(id, _origFilters[id]); } catch (e) {}
-        delete _origFilters[id];
+      for (const id of Object.keys(_clauses)) {
+        if (map.getLayer(id)) {
+          const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
+          if (!sameJSON(f, g)) { try { map.setFilter(id, g); } catch (e) {} }
+        }
+        delete _clauses[id];
       }
       stashRigs(false);
       _filtered = false;
