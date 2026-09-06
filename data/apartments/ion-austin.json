@@ -122,12 +122,12 @@
    "_src": "the board-formed concrete core: 49.8% of an S7 crop (200,250)-(400,800) at #d1d0ce in sun and 40.0% at #7b7976 in shade; the day tone sits between them, nearer the sunlit read"
   },
   "screen": {
-   "hex": "#a9a39c",
-   "_src": "the expanded-aluminium garage screening (AMICO Apex 01, S4): 25.2% #b6ada9 and 42.5% #948c87 of an S6 crop (620,1120)-(830,1260) - the slat and the shadowed mesh; the slat tone is the mid of the two"
+   "hex": "#c0b9b3",
+   "_src": "the expanded-aluminium garage screening (AMICO Apex 01, S4): 25.2% #b6ada9 and 42.5% #948c87 of an S6 crop (620,1120)-(830,1260) - the lit slat and the mesh field; the slat is the lit read taken one step up so the horizontal grain survives the golden ramp"
   },
   "screenBack": {
-   "hex": "#46423c",
-   "_src": "the dark of the open parking deck seen through the screen: 18.0% #655e54 and 14.3% #2e281f of the same S6 crop, averaged"
+   "hex": "#948c87",
+   "_src": "the dark of the open parking deck seen through the screen: 18.0% the FIELD the mesh reads as at any distance: 42.5% #948c87 of the same S6 crop. The first cut used the dark behind the mesh (#46423c, the 18.0% + 14.3% clusters) as the field and the whole podium came out a black band, which S6 does not show - at 200 m the expanded aluminium is what you see, not the cars behind it."
   },
   "glass": {
    "hex": "#aeb2a4",
@@ -183,7 +183,11 @@
   },
   "rail": {
    "hex": "#dcd8d3",
-   "_src": "the same perforated metal - the box has no separate rail, so slab and rail are one material here"
+   "_src": "the same perforated metal - the deck guards and any default rail"
+  },
+  "boxFace": {
+   "hex": "#efece8",
+   "_src": "the balcony box's front and side panels: the measured #dcd8d3 taken one step up, so the box reads apart from its own soffit at the oblique camera. In S8 the panels catch the sun and the soffit does not; drawn in one tone the whole box read as a flat plate."
   },
   "railGuard": {
    "hex": "#8e9296",
@@ -197,52 +201,64 @@
  "skins": {
   "_src": "each skin is a rule; its numbers are below with their source",
   "cream": {
-   "kind": "bays",
-   "bay": 3.0,
-   "field": "panelCream",
-   "strip": {
-    "w": 1.15,
-    "tone": "panelTan",
-    "at": "joints",
-    "every": 3
-   },
+   "kind": "pixel",
+   "course": 2.9375,
+   "plank": 1.45,
+   "bond": 0.0,
+   "runMax": 1,
+   "macro": [
+    1,
+    1
+   ],
+   "zBase": 11.0,
+   "tones": [
+    "panelCream",
+    "panelTan"
+   ],
+   "weights": [
+    82,
+    18
+   ],
+   "bay": 2.9,
    "window": {
     "w": 1.15,
     "h": 2.0,
     "sill": 0.6
    },
-   "floorLine": {
-    "h": 0.14,
-    "tone": "panelJoint"
-   },
    "glass": "glass",
    "frame": "frame",
    "reveal": 0.1,
-   "_src": "the east face. S8's close-up: a horizontal panel joint at every floor, and per floor a run of portrait openings on a constant pitch, each bay carrying one window beside one panel. Bay 3.0 m and window 1.15 x 2.0 m are read off es.jpg against the 2.9375 m floor (window 55 px of a 75 px floor, opening pitch 72 px on the least foreshortened columns); the tan panel falls on every third bay joint, which is the density in the photograph - roughly one opening in three has a tan panel beside it."
+   "_src": "the east face. S8's close-up gives the grid: a horizontal panel joint at every floor, and per floor a run of portrait openings on a constant pitch - 7 openings across 500 px against a 75 px floor, so a 2.9 m bay to the 2.9375 m storey, with one window 1.15 x 2.0 m in each. The tan accent is NOT a vertical strip: it is a single panel the size of one opening, scattered. So the field is a pixel skin whose course IS the floor (zBase 11.0 puts the courses on the floor lines) and whose plank is half a bay, each 1.45 x 2.94 m panel taking its tone from the hash. 18% tan is the measurement: the tan cluster is 12.8% of the S8 es-5 crop against 58.8% cream, and 12.8/71.6 = 18% of the wall that is not glass or balcony metal. bond 0 because the joints line up floor to floor in S8; runMax 1 and macro [1,1] because every panel in the photograph is decided on its own - there are no runs."
   },
   "charcoal": {
-   "kind": "bays",
-   "bay": 3.0,
-   "field": "panelDark",
-   "strip": {
-    "w": 1.15,
-    "tone": "panelPale",
-    "at": "joints",
-    "every": 4
-   },
+   "kind": "pixel",
+   "course": 2.9375,
+   "plank": 1.45,
+   "bond": 0.0,
+   "runMax": 1,
+   "macro": [
+    1,
+    1
+   ],
+   "zBase": 11.0,
+   "tones": [
+    "panelDark",
+    "panelPale"
+   ],
+   "weights": [
+    84,
+    16
+   ],
+   "bay": 2.9,
    "window": {
     "w": 1.15,
     "h": 2.0,
     "sill": 0.6
    },
-   "floorLine": {
-    "h": 0.12,
-    "tone": "panelDarkJoint"
-   },
    "glass": "glass",
    "frame": "frame",
    "reveal": 0.1,
-   "_src": "the west, north and south faces: the same module as the cream face (S5 and S8 show one grid in two colourways), with a pale accent panel instead of a tan one and a quarter as often - the pale cluster is 11.8% of the charcoal field in S5 against the tan's 12.8% of a field with a 3-bay period, so every fourth joint."
+   "_src": "the west, north and south faces: the same grid and the same scatter as the cream face (S5 and S8 show one module in two colourways), with a pale accent panel instead of a tan one. 16% is the same arithmetic on S5's crop of the west face: 11.8% pale against 59.2% charcoal, and 11.8/71.0 = 17% of the non-glass wall, taken to 16."
   },
   "charcoalBlank": {
    "kind": "flat",
@@ -297,6 +313,8 @@
   "slabT": 0.3,
   "railH": 2.35,
   "railT": 0.1,
+  "slabTone": "slab",
+  "railTone": "boxFace",
   "_src": "S4 calls them 'a cantilevered steel frame wrapped in perforated metal panels ... translucent figural shapes that project beyond the facade', and S8 shows them as one-floor-tall BOXES, not open balconies. So the rail is drawn to 2.35 m - a 0.30 m slab plus 2.35 m of front and side makes 2.65 m of the 2.9375 m floor, which is the box - in the perforated metal's own tone. Projection 1.6 m and width 3.2 m are read off es.jpg against the 3.0 m bay: the box is a little wider than one bay and projects about half its width."
  },
  "blocks": [
@@ -352,7 +370,7 @@
   },
   {
    "id": "tower",
-   "_src": "the sixteen residential floors. The plan is S9's rectified roof read: the west wall is on the property line at v=36.86 for the whole length; the east wall is at v=16.5 at the south end, comes out to v=10.6-10.8 between u=20 and u=46, and falls back to v=14.5 at u=58 and v=16.8 at the north wall - which is S4's 'soft curvature' and its 'prominent widening of the footprint', and the reason the tower is 26 m deep in the middle and 20 m at the ends. Five straight segments stand in for the curve; the two nadirs agree on every one of those v values to 0.5 m.",
+   "_src": "the sixteen residential floors. The plan is S9's rectified roof read: the west wall is on the property line at v=36.86 for the whole length; the east wall is at v=16.5 at the south end, comes out to v=10.6-10.8 between u=20 and u=46, and falls back to v=14.5 at u=58 and v=16.8 at the north wall (drawn at u=61.8, the L the generator itself prints) - which is S4's 'soft curvature' and its 'prominent widening of the footprint', and the reason the tower is 26 m deep in the middle and 20 m at the ends. Five straight segments stand in for the curve; the two nadirs agree on every one of those v values to 0.5 m.",
    "plan": [
     [
      4.0,
@@ -610,9 +628,9 @@
     },
     {
      "plan": [
-      59.6,
-      61.9,
-      16.8,
+      59.4,
+      61.6,
+      16.9,
       24.9
      ],
      "h": 1.6,
@@ -623,12 +641,12 @@
   },
   {
    "id": "core",
-   "_src": "the board-formed concrete lift-and-stair core at the SOUTH-WEST corner, standing proud of the west wall and of the south wall and carrying on above the roof (S5, S6, S7, S10 sw2). Width 9.8 m and depth 10.0 m are read off S6 against the glazed volume beside it, which splits the south elevation about evenly with it; both are +/-1.5 m. It runs to the pavement in S5, so z0 is 0.",
+   "_src": "the board-formed concrete lift-and-stair core at the SOUTH-WEST corner, standing proud of the west wall and of the south wall and carrying on above the roof (S5, S6, S7, S10 sw2). Width 9.8 m and depth 8.3 m are read off S6 against the glazed volume beside it, which splits the south elevation about evenly with it; both are +/-1.5 m. It runs to the pavement in S5, so z0 is 0.",
    "plan": [
     2.8,
     12.6,
-    27.8,
-    37.8
+    29.4,
+    37.7
    ],
    "z0": 0.0,
    "z1": 62.9,
