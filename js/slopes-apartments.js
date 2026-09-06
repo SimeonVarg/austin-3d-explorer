@@ -115,10 +115,12 @@
     hideRoofscape: true,
     roofscapeInset: 1.0,
     hideStoreys: true,
-    // Pitched roofs (a block's `roof`): the eave lip's fascia height, and how
-    // far a non-sloping edge's corners lean in over the rise so the rig's
-    // vertical strip there sits behind the gable wall drawn in wall tone.
-    roof: { lipH: 0.25, gableLean: 0.30 },
+    // Pitched roofs (a block's `roof`, drawn through js/slopes-roofs.js's
+    // rig emitter): the pitch a file that gives none gets, the eave lip's
+    // fascia height where the roof oversails its wall, and how far a gable
+    // end's corners lean in over the rise so the rig's strip on that edge
+    // stands just behind the gable wall this file draws in wall tone.
+    roof: { pitch: 25, lipH: 0.25, gableLean: 0.30 },
     // Recesses (a band's `inset`): the soffit over a recess is drawn, and the
     // floor of one that starts above the block's foot; columns where given.
     insetSoffit: true,
@@ -268,7 +270,16 @@
     for (let i = 0; i < n; i++) {
       const [ax, ay, adx, ady] = lines[(i - 1 + n) % n], [bx, by, bdx, bdy] = lines[i];
       const den = adx * bdy - ady * bdx;
-      if (Math.abs(den) < 1e-9) return null;
+      if (Math.abs(den) < 1e-9) {
+        // parallel edges: a point on a straight run (San Jacinto's south wing
+        // has several where the courtyard notches meet the long wall) travels
+        // along the inward normal like a sample point; a spike (the edges
+        // doubling back) is degenerate
+        if (adx * bdx + ady * bdy <= 0) return null;
+        const L = Math.hypot(bdx, bdy);
+        u.push([-bdy / L, bdx / L]);
+        continue;
+      }
       const t = ((bx - ax) * bdy - (by - ay) * bdx) / den;
       u.push([ax + adx * t - poly[i][0], ay + ady * t - poly[i][1]]);
     }
@@ -313,7 +324,7 @@
    * points along any wall whose middle can outrun its own corners (the bake's
    * wall_profile, DENSIFY_* as there). Returns { pts, rays, caps, spans }.
    */
-  function wallProfile(poly, dFinal) {
+  function wallProfile(poly, dFinal, densify) {
     const DENSIFY_GAIN_M = 0.75, DENSIFY_MAX_PTS = 8, DENSIFY_MARGIN_M = 0.25;
     const n = poly.length, mrays = mitreRays(poly);
     if (!mrays) return null;
@@ -326,7 +337,7 @@
       pts.push(poly[i]); rays.push(mrays[i]); pcaps.push(caps[i]);
       const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % n];
       const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
-      if (L > 1e-9) {
+      if (L > 1e-9 && densify !== false) {
         const u = [-dy / L, dx / L], mid = [x0 + dx / 2, y0 + dy / 2], jn = (i + 1) % n;
         const got = 0.5 * (Math.min(dFinal, caps[i]) + Math.min(dFinal, caps[jn]));
         const gain = Math.min(dFinal, capAlong(mid, u, poly, dmax)) - got;
@@ -767,6 +778,161 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════
+  //  PITCHED ROOFS — a rig for js/slopes-roofs.js's emitter
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Nine buildings came in with their hips as stacks of inset boxes — five
+  // to twenty-three steps each, a ziggurat that reads as a slope from 220 m
+  // and as stairs from the street (the Villas: "about 120 boxes"; San
+  // Jacinto: "23 inset boxes plus a ridge course"). A block's `roof` is the
+  // real thing: the eave profile is solved by the same straight-skeleton
+  // port the roofs bake uses (wallProfile above), packed into that bake's
+  // own rig schema, and handed to slopesRoofs.emit() — the way
+  // js/slopes-dome.js draws the Capitol's wings — so a hip is two planes and
+  // a ridge, a pyramid four planes and a point, an L two ridges meeting over
+  // a valley, and every strip is a `facet` shaded the way the campus roofs
+  // are. Nothing here is typed for a building: the pitch, the overhang, the
+  // fascia and the tones are the file's.
+  //
+  //   roof: { kind: 'hip' | 'gable',
+  //           pitch: degrees (APARTMENTS.roof.pitch),
+  //           over: m of eave overhang beyond the wall (0),
+  //           lipH: m of fascia at the eave (APARTMENTS.roof.lipH when over > 0),
+  //           tone, lipTone: the roof's and the fascia's colours (roofTone / lipTone or 'coping'),
+  //           deck: tone — the slope stops `d` metres in from the eave and a
+  //                 flat deck of this tone fills the middle (Regents West's
+  //                 mitred cap round a membrane roof); d: that depth,
+  //           inset: m the eave stands inside the wall (a roof behind a parapet),
+  //           base: the eave height (the block's z1),
+  //           gable: [face keys] — for 'gable', the edges that rise as walls
+  //                  (a rectangle's two short edges when omitted); gableTone,
+  //           sides: [face keys] — only these edges slope; the others STAND:
+  //                  on a full hip a standing edge is a gable end, on a deck
+  //                  roof it is the deck's own vertical edge (a shingle band
+  //                  round three sides of a membrane roof, the fourth facing
+  //                  a courtyard) }
+  //
+  // A roofItem may carry a `roof` too — `{ plan, h, tone, roof }` is a box
+  // `h` tall with that roof on it (2706 Rio Grande's two hipped masses on
+  // the wing's plate, the Villas' bay caps, 26 West's turret caps) — drawn
+  // by the same rig with the item's plan and the box's top as the eave.
+  //
+  // The rig: pts and rays in longitude/latitude (dpm [1, 1], so the emitter's
+  // toLocal lands each point where frameFor puts the walls), caps and d in
+  // metres, rise = tan(pitch) * d. A full hip's d is the deepest cap, so the
+  // ridge is as high as the roof is wide at that place and every point stops
+  // at its own — the emitter's own rule for a rig with no deck. A gable end's
+  // two corners slide along the long walls instead of the mitre (the roofs
+  // file's gableEnd, done here on the rays), leaning APARTMENTS.roof.gableLean
+  // in over the rise so the strip the emitter still draws on that edge stands
+  // behind the gable wall this file draws in wall tone.
+
+  /** the two shortest edges of a ring: a rectangle's gable ends */
+  function shortestEdges(poly, n) {
+    const L = poly.map((p, i) => { const q = poly[(i + 1) % poly.length]; return [Math.hypot(q[0] - p[0], q[1] - p[1]), i]; });
+    return L.sort((a, b) => a[0] - b[0]).slice(0, n).map(x => x[1]);
+  }
+
+  /**
+   * Build one block's roof rig and emit it. `planUV` is the block's plan in
+   * the frame, `keys` its face keys in plan order, `F` the building frame.
+   * Returns the record the boot log and the gate read, or null.
+   */
+  function roofOf(B, spec, blk, F, planUV, keys, P, zTop) {
+    const R = blk.roof;
+    const Roofs = window.slopesRoofs;
+    if (!R || !Roofs || !Roofs.emit) { if (R) warnOnce('roof|' + spec.name, spec.name + ' ' + blk.id + ': a roof needs js/slopes-roofs.js on the page'); return null; }
+    const kind = R.kind || 'hip';
+    const pitch = (R.pitch != null ? R.pitch : APTS.roof.pitch) * Math.PI / 180;
+    // the ring, interior to the left, with each edge's face key carried through the reversal
+    let ring = planUV.map(p => [p[0], p[1]]), ekeys = keys.slice();
+    if (R.inset > 0) { const off = offsetRing(ring, R.inset); if (off) { if (ringArea(ring) < 0) ekeys = ekeys.map((_, i, a) => a[(a.length - 2 - i + a.length) % a.length]); ring = off; } }
+    else if (ringArea(ring) < 0) { ring = ring.slice().reverse(); ekeys = ekeys.map((_, i, a) => a[(a.length - 2 - i + a.length) % a.length]); }
+    // consecutive duplicate points (a footprint traced with a closing repeat) break the mitre
+    ring = ring.filter((p, i) => Math.hypot(p[0] - ring[(i + 1) % ring.length][0], p[1] - ring[(i + 1) % ring.length][1]) > 0.02);
+    if (ring.length < 3) return null;
+    const n = ring.length;
+    // the standing edges: a gable's ends, or everything `sides` leaves out
+    const gableEdges = new Set();
+    if (R.sides) { const want = new Set(R.sides.map(String)); ekeys.forEach((k, i) => { if (!want.has(String(k))) gableEdges.add(i); }); }
+    else if (kind === 'gable') {
+      const want = R.gable ? new Set(R.gable.map(String)) : null;
+      if (want) ekeys.forEach((k, i) => { if (want.has(String(k))) gableEdges.add(i); });
+      else for (const i of shortestEdges(ring, 2)) gableEdges.add(i);
+    }
+    if (gableEdges.size >= n) { warnOnce('roof|' + spec.name + '|' + blk.id, spec.name + ' ' + blk.id + ': every edge stands; no roof'); return null; }
+    const prof = wallProfile(ring, 60, kind !== 'gable');
+    if (!prof) { warnOnce('roof|' + spec.name + '|' + blk.id, spec.name + ' ' + blk.id + ': the plan has a degenerate corner; no roof'); return null; }
+    const rays = prof.rays.map(v => v.slice()), caps = prof.caps.slice();
+    // a gable end: its two corners travel along the neighbouring walls' inward normals, leaning in a little
+    const inward = i => { const a = ring[i], b = ring[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; return [-dy / L, dx / L]; };
+    if (gableEdges.size) {
+      const dmax = Math.max(60, prof.maxCap * 2);
+      // a corner on a standing edge slides along that edge, driven by the
+      // sloping neighbour's offset; between two standing edges it stays put
+      for (const i of gableEdges) {
+        const j = (i + 1) % n, prev = (i - 1 + n) % n;
+        const kA = prof.spans[i][0], kB = prof.spans[j][0];
+        const nPrev = inward(prev), nNext = inward(j);
+        rays[kA] = gableEdges.has(prev) ? [0, 0] : [nPrev[0], nPrev[1]];
+        rays[kB] = gableEdges.has(j) ? [0, 0] : [nNext[0], nNext[1]];
+        caps[kA] = Math.hypot(rays[kA][0], rays[kA][1]) > 0 ? capAlong(ring[i], rays[kA], ring, dmax) : 0;
+        caps[kB] = Math.hypot(rays[kB][0], rays[kB][1]) > 0 ? capAlong(ring[j], rays[kB], ring, dmax) : 0;
+      }
+      // a gable end (no deck) leans APARTMENTS.roof.gableLean inward by the
+      // time its corners reach their caps, so the emitter's strip on that
+      // edge stands behind the wall drawn below; a deck roof's standing edge
+      // is the deck's own vertical face and stays plumb
+      if (!R.deck) for (const i of gableEdges) {
+        const j = (i + 1) % n, nIn = inward(i);
+        for (const k of [prof.spans[i][0], prof.spans[j][0]]) {
+          if (caps[k] <= 0) continue;
+          const lean = APTS.roof.gableLean / caps[k];
+          rays[k] = [rays[k][0] + nIn[0] * lean, rays[k][1] + nIn[1] * lean];
+        }
+      }
+    }
+    const dUse = R.deck ? Math.max(0.05, R.d || 1.0) : Math.max(...caps.map((c, k) => Math.min(c, 1e6)));
+    const rise = Math.tan(pitch) * dUse;
+    const base = R.base != null ? R.base : zTop;
+    const over = R.over || 0;
+    const lipH = over > 0 || R.lipH ? (R.lipH != null ? R.lipH : APTS.roof.lipH) : 0;
+    const roofCol = P[R.tone || blk.roofTone || 'roof'] || P.roof || P.wall;
+    const lipCol = over > 0 || R.lipH ? (P[R.lipTone || 'coping'] || roofCol) : null;
+    // longitude/latitude for the emitter (its dpm is [1, 1]); a ray is the frame's linear map of a metre vector
+    const ll = (u, v) => F.ll(u, v);
+    const o = ll(0, 0);
+    const rayLL = r => { const q = ll(r[0], r[1]); return [q[0] - o[0], q[1] - o[1]]; };
+    const entry = {
+      name: spec.name + ' ' + blk.id, dpm: [1, 1],
+      pts: prof.pts.map(p => ll(p[0], p[1])), rays: rays.map(rayLL), caps, spans: prof.spans,
+      d: dUse, run: dUse, rise, base, steps: 0, col: roofCol, lip: lipCol, deck: R.deck ? (P[R.deck] || roofCol) : null,
+    };
+    const interior = [...gableEdges];
+    const before = B.triangles;
+    Roofs.emit(B, { meta: { lip: lipH, over, pitch: Math.tan(pitch) }, roofs: { [blk.id]: entry } }, { lines: false, interior });
+    // the gable walls: the wall's top edge, then the roof's profile along it, in wall tone (a deck roof's standing edge is the rig's own fin)
+    const gableCol = P[R.gableTone || 'wall'] || P.wall;
+    for (const i of (R.deck ? [] : gableEdges)) {
+      const j = (i + 1) % n, kA = prof.spans[i][0], kB = prof.spans[j][0];
+      const a = ring[i], b = ring[j];
+      const zLip = base + lipH;
+      const capA = Math.min(caps[kA], dUse), capB = Math.min(caps[kB], dUse);
+      const topA = [a[0] + prof.rays[kA][0] * 0 + (b[0] - a[0]) / Math.hypot(b[0] - a[0], b[1] - a[1]) * capA, a[1] + (b[1] - a[1]) / Math.hypot(b[0] - a[0], b[1] - a[1]) * capA];
+      const topB = [b[0] - (b[0] - a[0]) / Math.hypot(b[0] - a[0], b[1] - a[1]) * capB, b[1] - (b[1] - a[1]) / Math.hypot(b[0] - a[0], b[1] - a[1]) * capB];
+      const nOut = inward(i).map(v => -v);
+      const pts = [F.at(a[0], a[1], base - 0.01), F.at(b[0], b[1], base - 0.01), F.at(topB[0], topB[1], zLip + Math.tan(pitch) * capB), F.at(topA[0], topA[1], zLip + Math.tan(pitch) * capA)];
+      const T = [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1], 0], LT = Math.hypot(T[0], T[1]) || 1;
+      const want = [-T[1] / LT, T[0] / LT, 0];
+      const o3 = F.at(a[0] + nOut[0], a[1] + nOut[1], 0), o0 = F.at(a[0], a[1], 0);
+      const wantOut = [o3[0] - o0[0], o3[1] - o0[1], 0];
+      B.polygon(pts, gableCol, wantOut, 'xy');
+    }
+    count.roofs++;
+    return { block: blk.id, kind, pitch: R.pitch != null ? R.pitch : APTS.roof.pitch, eave: base, ridgeZ: base + lipH + rise, rise, d: dUse, over, deck: !!R.deck, triangles: B.triangles - before };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
   //  ONE BUILDING
   // ══════════════════════════════════════════════════════════════════════
 
@@ -916,9 +1082,16 @@
         // the face's own balconies and signs: once, on the whole wall, `s` along the face
         wallFixtures(B, W, bd, spec, P, wkey);
       }
-      // the roof: the plan at z1 (earcut through slopes.build().polygon), then the parapet on the named edges
-      const cap = planUV.map(p => F.at(p[0], p[1], zTop));
-      B.polygon(cap, P[blk.roofTone || 'roof'], [0, 0, 1], 'xy');
+      // the roof: the plan at z1 (earcut through slopes.build().polygon), or
+      // the pitched roof the block asks for (roofOf); a roof standing inside
+      // its wall (`inset`, behind a parapet) keeps the flat cap under it
+      let roofRec = null;
+      if (blk.roof) { try { roofRec = roofOf(B, spec, blk, F, planUV, keys, P, zTop); } catch (e) { console.warn('[slopes-apartments] roof', spec.name, blk.id, e); } }
+      if (roofRec) { roofs.push(roofRec); top = Math.max(top, roofRec.ridgeZ); }
+      if (!roofRec || blk.roof.inset > 0) {
+        const cap = planUV.map(p => F.at(p[0], p[1], zTop));
+        B.polygon(cap, P[blk.roofTone || 'roof'], [0, 0, 1], 'xy');
+      }
       if (blk.parapet) {
         const sides = blk.parapetSides || keys;
         for (let i = 0; i < walls.length; i++) if (sides.includes(keys[i])) box(B, walls[i], 0, walls[i].L, -APTS.parapetT, 0, zTop, zTop + blk.parapet, P[blk.parapetTone || 'coping'], { bottom: true });
@@ -932,7 +1105,23 @@
         const c = rectRing(plan).map(p => F.at(p[0], p[1], zTop + h));
         B.polygon(c, P[tone || 'coping'], [0, 0, 1], 'xy');
       };
-      for (const it of blk.roofItems || []) {
+      for (let ii = 0; ii < (blk.roofItems || []).length; ii++) {
+        const it = blk.roofItems[ii];
+        if (it.roof) {
+          // a box `h` tall with a pitched roof on it (h may be 0: the roof stands on the deck)
+          const isR = Array.isArray(it.plan) && it.plan.length === 4 && typeof it.plan[0] === 'number';
+          const z0i = zTop + (it.z0 || 0), z1i = z0i + (it.h || 0);
+          if (it.h > 0) {
+            if (isR) { const RW = rectWalls(F, it.plan); for (const k of RECT_SIDES) box(B, RW[k], 0, RW[k].L, -0.0001, 0, z0i, z1i, P[it.tone || 'coping'], { bottom: true, back: true, s0: true, s1: true, top: true }); }
+            else for (const Wi of ringWalls(F, it.plan)) box(B, Wi, 0, Wi.L, -0.0001, 0, z0i, z1i, P[it.tone || 'coofing'] || P[it.tone || 'coping'], { bottom: true, back: true, s0: true, s1: true, top: true });
+          }
+          const pseudo = { id: blk.id + '/' + (it.id || 'item' + ii), roof: it.roof, roofTone: it.tone || blk.roofTone };
+          let rec = null;
+          try { rec = roofOf(B, spec, pseudo, F, isR ? rectRing(it.plan) : it.plan, isR ? RECT_SIDES : it.plan.map((_, i) => String(i)), P, z1i); } catch (e) { console.warn('[slopes-apartments] roof item', spec.name, pseudo.id, e); }
+          if (rec) { roofs.push(rec); top = Math.max(top, rec.ridgeZ); }
+          else { const c = (isR ? rectRing(it.plan) : it.plan).map(p => F.at(p[0], p[1], z1i)); B.polygon(c, P[it.tone || 'coping'], [0, 0, 1], 'xy'); }
+          continue;
+        }
         if (!it.grid) { roofBox(it.plan, it.h, it.tone); continue; }
         const [u0, u1, v0, v1] = it.plan, [nu, nv] = it.grid, [w, d] = it.size || [1.0, 2.0];
         const du = nu > 1 ? (u1 - u0 - w) / (nu - 1) : 0, dv = nv > 1 ? (v1 - v0 - d) / (nv - 1) : 0;
@@ -1158,6 +1347,9 @@
     get hidden() { return { plan: _data ? filterPlan().map(p => p[0]) : [], missing: filtersMissing(), rigs: Object.keys(_rigStash), rigsMissing: rigsMissing() }; },
     /** every character the dot font can set */
     get glyphs() { return Object.keys(FONT); },
+    /** a built building's frame: (u, v) metres to [lng, lat], and back */
+    uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
+    lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
     obbOf, h01, floorsBetween, offsetRing, hideGeometry,
   };
 
