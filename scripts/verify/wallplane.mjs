@@ -199,7 +199,11 @@ say(restored === seated.length,
 
 // ── the atrium, measured along the notch's own outward direction ───────
 const atrium = heroes.features.find(f => f.properties.b === 'gdc' && f.properties.band === 'atrium');
-const brick = heroes.features.find(f => f.properties.b === 'gdc' && f.properties.band === 'body');
+// 2026-09-06: GDC stopped being one ring, so its brick body is now three bands
+// (sbar_body / nbar_body / link_body) and the old exact-match `=== 'body'` found
+// NOTHING — this whole measurement went silent while still printing "all green".
+// The south bar is the notch's south cheek and is the right reference.
+const brick = heroes.features.find(f => f.properties.b === 'gdc' && /(^|_)body$/.test(f.properties.band));
 if (atrium && brick) {
   const a = ringM(atrium.geometry), b = ringM(brick.geometry);
   // The direction to measure along is the notch's own axis, which is the
@@ -209,12 +213,20 @@ if (atrium && brick) {
   const cen = r => r.slice(0, -1).reduce((s, q, _, arr) =>
     [s[0] + q[0] / arr.length, s[1] + q[1] / arr.length], [0, 0]);
   const ca = cen(a), cb = cen(b);
-  let n = [1, 0], bestLen = -1;
+  // The atrium used to be a PRISM filling the notch, so its long edge ran down
+  // the notch and was the axis to measure along. Since 2026-09-06 it is a 0.80 m
+  // WALL, whose long edge runs ACROSS the notch — the axis is now its SHORT
+  // edge, i.e. the wall's own normal. Taking the longest edge here would have
+  // measured the notch's width and called it the recess.
+  const edges = [];
   for (let i = 0; i < a.length - 1; i++) {
     const dx = a[i + 1][0] - a[i][0], dy = a[i + 1][1] - a[i][1];
     const L = Math.hypot(dx, dy);
-    if (L > bestLen) { bestLen = L; n = [dx / L, dy / L]; }
+    if (L > 1e-6) edges.push([L, [dx / L, dy / L]]);
   }
+  edges.sort((p, q) => p[0] - q[0]);
+  const thin = edges[0][0] < edges[edges.length - 1][0] * 0.25;
+  let n = (thin ? edges[0] : edges[edges.length - 1])[1];
   if ((ca[0] - cb[0]) * n[0] + (ca[1] - cb[1]) * n[1] < 0) n = [-n[0], -n[1]];
   const proj = (r, v) => Math.max(...r.map(q => q[0] * v[0] + q[1] * v[1]));
   const gap = proj(a, n) - proj(b, n);

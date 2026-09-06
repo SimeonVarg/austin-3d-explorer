@@ -1,5 +1,64 @@
 # Austin 3D Explorer — Full Handoff
 
+## 224. Sep 6 2026 — GDC is two brick bars with a canyon between them, not one roof with a glass corner (`acer/apts`, one gap closed on the critic's verdict)
+
+**Look first: `docs/shots/gdc-slot-before-after.jpg`** — Google Earth's 260 m
+oblique, ours after at a camera matched to it, and ours before and after at the
+judge's own camera (`jumpTo` center −97.7368, 30.28615, z 17.6, pitch 60,
+bearing 135). The critic put our frame beside Earth's and picked the real
+building: ours was "one continuous tan roof over an L-shaped block" whose atrium
+was "a dark glass strip filling the corner where two brick faces meet ... a
+glass corner infill, not a slot between two bars", standing at the face instead
+of behind it, with a dark cut-out in the roof behind it.
+
+Both halves came from one cause: GDC was built by `build_ring` — ONE polygon,
+ONE band stack — so the roof band traced the whole ring at one height and welded
+the two bars and the link into a single plane, and the atrium was emitted as a
+SOLID GLASS PRISM filling the entire notch, 18.5 × 12.7 m and 28.7 m tall. The
+file already knew better twenty lines up, in the EER block: *"filling the canyon
+solid with glass would read as a third bar from every angle except straight
+down."* GDC made exactly that mistake.
+
+So GDC leaves `RING_TARGETS` and is authored in its own frame the way EER is:
+south bar u −57.00..32.50 × v −24.80..−0.70, north bar u −27.08..32.50 ×
+v 11.40..34.60, and the link between them at u −9.50..10.70 spanning wall-face
+to wall-face so the brick stays continuous. The ring is rectilinear in this
+frame to 0.35 m and the three rectangles reproduce 3,779 m² against its
+3,886 m², 97%. Each bar gets its own roof cap at 29.50; the link's roof stops a
+storey lower at 25.40 and carries on west over the atrium, so the canyon above
+it — one storey, 12.7 m wide, 22 m deep — is the open slot between the two
+prows. The glass becomes a 0.80 m WALL on the plane the 2026-09-05 recess
+measured, not a prism: its outer face is still 32.50 − 2.5 − 0.90 = 29.10 to the
+centimetre and its v is still the ring's own notch, which is why every door
+seated on that plane stayed seated. Both bars stay 7 storeys: the critic read
+the reference as "left bar taller by two storeys" and that is the camera, not
+the building — Earth's pose is 120h/65t, the south bar is 17.5 m further along
+screen-up, and at 65° from vertical that lifts it 17.5·sin25/cos25 = 8.1 m of
+apparent height, which is 2.0 storeys at the 4.10 m floor. Split into
+`GDC_SBAR_H`/`GDC_NBAR_H` anyway so a real measurement is one line.
+
+**On the way, a gate line that had gone silent.** `scripts/verify/wallplane.mjs`
+finds GDC's brick with `band === 'body'`; the split renamed that band, so the
+whole atrium measurement stopped running while the script still printed "all
+green". It now matches `/(^|_)body$/`, and its axis pick takes the SHORT edge
+when the atrium is thin — the old "longest edge" rule would have measured the
+notch's width and called it the recess.
+
+**Not done, on purpose:** the critic's secondary notes — the stepped/chamfered
+prows where each floor's spandrel band projects past the bar end, and the door
+cut into the ground bay rather than standing as a slab in front of it. One gap,
+one fix; the prows are facade work in a file this lane does not own.
+
+Gate `scripts/verify/wallplane.mjs` (no browser, it measures the files the
+renderer reads): **all green, exit 0** — float band 12 of a 12 ceiling (main
+34), orphans 7 (main 7), buried leaves 2 (main 2) with 0 seated, EER untouched,
+23 of 23 seated entrances restored by `?wallplane=0`, and the line that was dark
+now reads *"GDC atrium: its outer face is 0.87 m BEHIND the brick body's"* —
+the 0.90 m the recess was measured at, to 3 cm. Shots on the RTX 3050 Ti,
+hardware GL, `scripts/serve.py` on :8791, `?intro=0&drift=0`,
+`cancelGraphicsAutoDetect()` first, each pose shot twice keeping the second.
+Branch `acer/apts`.
+
 ## 223. Sep 6 2026 — Union on 24th's connector is one grey wing now, not three buildings (`acer/apts`, one gap closed on the critic's verdict)
 
 **Look first: `docs/shots/apartments-union-connector-ref-before-after.jpg`** — Google Earth, ours before, ours after, all at the builder's `sw` pose (center −97.74525, 30.287604, z 18.10, pitch 55, bearing 45). The critic put our frame beside Earth's and named the gap: the back of the south court was "a flat tan block with tiny square punched windows plus a navy block with horizontal slit windows", so the H "breaks into three unrelated neighbours"; it should be one pale-grey wing between the two weave wings, a regular stack of glazing with light balcony bands, a dark two-storey loggia cut into its base. Data only, `data/apartments/union-on-24th.json`, every number off the critic's reference frame (`scratchpad apts/judge/union/A_tower.png`) and written beside the value: the court tones are re-sampled and put through a two-point fit anchored on the weave's own frames and field (GE → albedo = 1.243·GE − 28): `courtPanel` #a0a3a6 → #6a7077 (the piers were a MID grey the warm daylight had been turning tan), `courtFlute` #b9bcc0 → #8f9293 with a new `courtFluteShade` #4a4c4c, `courtGlass` #3b4a5a → #1a2028. The flank was S2's 6.81 × 2.12 m navy ribbon per bay — in the frame the flute face carries no windows at all, and the flank's glazing is a two-bay balconied stack AT each re-entrant corner, exactly where this file used to draw a blank return; so the `flank` skin is the fluting itself (0.68 m a flute off the 6.5–7 px period, lit and shade alternating at 0.34 m, no windows) and the four corner overrides are `courtStack` (the bar's 3.07 bay continued round the corner, glazing 0.75 of the floor, a 0.61 m slab each floor through `balconies`). The loggia is two storeys, 19.40–25.92: the dark run at the foot of the bar face is 29–33 px plus half-tone against a 36.5 px floor pitch, and a 35° look into a 3.3 m recess hides 2.3 m behind the lip — 5–7 m of opening, not 3.26. The bar face's window fractions were re-measured (0.51 × 0.51) and S2's 0.514 × 0.534 stands. On the way, the court floor: the lawn, the twin spas, the mast and the jumbotron are gone (the pavers, the wood strip and the guard bands stay) — the reference floor is flat and pale with plant on it. **Not done, on purpose:** the critic's secondary weave notes (all-vertical domino pairs at twice the size) contradict the mod-4 rule the owner corrected over ten rounds in union.js; that is his taste call, not a number to move, and it is written in the file's `open`. Gate `scripts/verify/slopes-layer.mjs`, RTX 3050 Ti, hardware GL, both archives served (`--against` e232953, `--against-tip` 8b4b90c): **64/69, exit 1 — the same five reds entry 220 names and no new one (the SLOPES.on off-and-on residue 8,962 px Δ 121; ?slopes=0 against the pre-slopes archive 115,468 px; the runtime-off frame 76,414 px against the 7,000 ceiling written for one building; the two ?apartments=0 archive lines 301,320 and 28,622 px — all five are frames with the mesh OFF or the shared switch, which this data cannot touch), and every apartments line that measures the generator green: 24 of 24 built, the recess plane 189 vertices, the frames charcoal, the weave 89 per cent paired with Union's 642 dominoes in 1,380 cells unchanged, one page shot twice 0 px**. Branch `acer/apts`, commit `7528039 (data + the frame), this entry docs-only`.
