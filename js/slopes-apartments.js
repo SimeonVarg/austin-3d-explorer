@@ -393,6 +393,18 @@
     }
     return out;
   }
+  /**
+   * The first of these tone keys the palette carries, else `wall`, `roof`,
+   * `coping`, else the palette's first colour: a name a file does not define
+   * (The Standard has no `wall`; a recess on its storefront asked for one)
+   * must never reach the builder as undefined and stop the whole building.
+   */
+  function toneOf(P) {
+    for (let i = 1; i < arguments.length; i++) { const k = arguments[i]; if (k && P[k]) return P[k]; }
+    for (const k of ['wall', 'roof', 'coping', 'frame']) if (P[k]) return P[k];
+    for (const k of Object.keys(P)) return P[k];
+    return ['#888888', '#a08c78', '#101418'];
+  }
 
   // ── the 5x7 dot font ─────────────────────────────────────────────────
   // The whole alphabet, the digits and the marks a wordmark can carry. It
@@ -1022,7 +1034,7 @@
     const base = R.base != null ? R.base : zTop;
     const over = R.over || 0;
     const lipH = over > 0 || R.lipH ? (R.lipH != null ? R.lipH : APTS.roof.lipH) : 0;
-    const roofCol = P[R.tone || blk.roofTone || 'roof'] || P.roof || P.wall;
+    const roofCol = toneOf(P, R.tone, blk.roofTone, 'roof');
     const lipCol = over > 0 || R.lipH ? (P[R.lipTone || 'coping'] || roofCol) : null;
     // longitude/latitude for the emitter (its dpm is [1, 1]); a ray is the frame's linear map of a metre vector
     const ll = (u, v) => F.ll(u, v);
@@ -1037,7 +1049,7 @@
     const before = B.triangles;
     Roofs.emit(B, { meta: { lip: lipH, over, pitch: Math.tan(pitch) }, roofs: { [blk.id]: entry } }, { lines: false, interior });
     // the gable walls: the wall's top edge, then the roof's profile along it, in wall tone (a deck roof's standing edge is the rig's own fin)
-    const gableCol = P[R.gableTone || 'wall'] || P.wall;
+    const gableCol = toneOf(P, R.gableTone, 'wall');
     for (const i of (R.deck ? [] : gableEdges)) {
       const j = (i + 1) % n, kA = prof.spans[i][0], kB = prof.spans[j][0];
       const a = ring[i], b = ring[j];
@@ -1188,7 +1200,7 @@
   function recess(B, W, len, band, d, sk, spec, P, key, opts, fl) {
     const z0 = band.z0, z1 = band.z1;
     const IS = insetSpec(band);
-    const tone = P[IS.tone || band.insetTone || sk.field || 'wall'] || P.wall;
+    const tone = toneOf(P, IS.tone, band.insetTone, sk.field, sk.fasciaTone, 'wall');
     const lo = recessEnd(opts.lo, band, d, false), hi = recessEnd(opts.hi, band, d, true);
     const sLo = Math.max(0, lo.s), sHi = Math.min(len, len - hi.s);
     const T = W.T, nT = [-T[0], -T[1], 0];
@@ -1213,7 +1225,7 @@
     // the columns, on the face line
     const C = IS.columns || band.columns;
     if (C) {
-      const w = C.w || 0.5, cd = C.d || w, ctone = P[C.tone || IS.tone || 'wall'] || tone;
+      const w = C.w || 0.5, cd = C.d || w, ctone = toneOf(P, C.tone, IS.tone) || tone;
       let at = C.at;
       if (!at) {
         // `pitch` metres apart: on the bay centres, or with `on: 'joints'` on
