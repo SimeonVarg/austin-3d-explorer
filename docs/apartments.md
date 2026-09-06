@@ -14,6 +14,37 @@ westcampus bands come back, because the generator hides them by *filter* and
 puts the filters back. `?slopes=0` (the whole three.js layer) takes this with
 it.
 
+What it hides while it draws, and puts back when it does not:
+
+- the replaced prism, by id, in `buildings-3d` and `buildings-roof`;
+- the westcampus bands, by name, in `wc-wall`, `wc-wall-cap`, `wc-solid`,
+  `wc-detail`;
+- the campus-storeys courses (`js/facades.js`), by `host` — Kinsolving's
+  four cream plates were the snapshot's 25.1 m divided into six, crossing
+  the courts and standing above the authored roof;
+- the roofscape pass (`roofscape-deck`, `-major`, `-minor`), by GEOMETRY:
+  those features carry no id or name, only `k/b/h`, and they were baked from
+  the SNAPSHOT height, so over a building authored lower than Overture's
+  guess the deck plate floated (Regents West's 41 × 44 m slab 6.5 m over the
+  roof, 2706 Rio Grande's ten metres up, the Villas' 12.6) and hid the roof.
+  The clause is `['>', ['distance', <every footprint inset 1 m>], 0]`, which
+  MapLibre answers 0 for a feature that overlaps the inset outline and
+  positive for a neighbour's deck that only touches the boundary. Check it
+  at a NADIR: `queryRenderedFeatures` on a fill-extrusion answers for the
+  whole volume along the view ray, and from an oblique a neighbour's lower
+  deck lands on the ray to your courtyard;
+- the tiled-roof rig `js/slopes-roofs.js` draws over San Jacinto Hall from
+  `data/roofs.geojson` (a hip on Overture's 28.1 m, six metres over the roof
+  this file draws): its entries keyed by a replaced id are lifted out of
+  that generator's data and it is rebuilt; off, they go back. That
+  generator has no skip list; the right fix is in `scripts/bake_roofs.py`
+  (skip every id in `data/apartments/index.json`) and is asked for in
+  `HANDOFF.md`.
+
+`window.slopesApartments.hidden` lists the plan, any layer whose clause is
+missing (a layer that booted after the generator gets it within a minute),
+and the rigs lifted out.
+
 Gate: `scripts/verify/slopes-layer.mjs`, section 2b (`apartments:` lines).
 Two archives can stand in for `main` there and answer different questions:
 `--against-tip URL` is a `git archive` of the commit the branch was cut from
@@ -95,6 +126,33 @@ A block's plan is one of:
 - `[[u, v], ...]` — a polygon in the frame, for a podium you have split
   (The Standard's is three pieces at three heights) or an L-shaped tower;
 - `[u0, u1, v0, v1]` — a rectangle, for a tower, a corner bay, a wing.
+
+### The metre, and the two constants that make it
+
+A ring's longitude/latitude becomes metres with **two different scales**, and
+the generator, `js/westcampus.js` and the westcampus bake all use the same
+two: **110,540 m per degree of latitude** (`M_LAT`) and **111,320 · cos(lat)
+m per degree of longitude** (`mLon`; 96,118 m at UT's 30.29°). A builder who
+converts a ring with 111,320 on both axes, or with the longitude factor on
+the latitude axis, lands a plan 0.7 % long on one axis and 16 % short on the
+other, and the numbers read off it disagree with the frame the generator
+builds by that ratio — the file's `L`, `W` and every `(u, v)` are in the
+generator's metres. So:
+
+```python
+M_LAT = 110540
+m_lon = 111320 * math.cos(math.radians(lat0))      # lat0: the ring's mean latitude
+x = (lng - lng0) * m_lon                            # metres east
+y = (lat - lat0) * M_LAT                            # metres north
+```
+
+Those are true ground metres to 0.03 %, so a scale bar on a rectified nadir
+agrees with them. `slopes.toLocal` (Web Mercator, scaled by cos lat) is what
+places a vertex on the pixel MapLibre puts it on, and `frameFor` builds the
+frame through it at three points, so the `(u, v)` metres above land on the
+map's own metres to 1e-6 over a building. Do not mix the two: convert the
+ring with the constants above, author in that frame, and let the generator
+carry it to the map.
 
 To read a plan off a nadir: capture it at tilt 0 with `chrome.mjs`
 (`page.screenshot`, wait 35 s), find the metres-per-pixel from the scale
@@ -221,6 +279,9 @@ and guard rail.
 | `nightLit`, `nightLitTone` | `0.45`, `#d9b46a` | the share of windows lit after dark, and their tone |
 | `signDot`, `signProud` | `0.18`, `0.06` | the dot font's stroke, and how proud of the wall the letters stand |
 | `parapetT` | `0.25` | parapet thickness |
+| `floorSlack` | `1.0` | a band that starts within this of the floor line below it keeps that storey's windows, clipped to the band; beyond it the storey is dropped — either way the boot log names the band |
+| `hideRoofscape`, `roofscapeInset` | `true`, `1.0` | hide the roofscape pass over every authored footprint (inset this many metres so a neighbour's own deck, which shares the boundary, stays) |
+| `hideStoreys` | `true` | hide the campus-storeys courses whose `host` is a replaced id |
 
 Everything that is a measurement is in the building's file, not here.
 

@@ -96,6 +96,32 @@
     signProud: 0.06,
     // Parapets: a thin wall standing on every roof edge, this thick.
     parapetT: 0.25,
+    // A band whose z0 sits between two floor lines still gets the windows of
+    // the storey it starts in, when it starts within this of that storey's
+    // floor line (the window is clipped to the band). Further up than this
+    // the storey is dropped, and either way the boot log says so. Balconies
+    // never take the floor below a band: a slab inside the band beneath is
+    // worse than a missing one.
+    floorSlack: 1.0,
+    // What is hidden while a building draws, beyond its own prism and bands:
+    //   roofscape — js/roofs.js's deck plates, penthouses and units were baked
+    //     from the SNAPSHOT height, so over a building authored lower they
+    //     float (Regents West: a 41 x 44 m slab 6.5 m over the roof). Those
+    //     features carry no id or name, only k/b/h, so they are hidden by a
+    //     `distance` clause against every authored footprint inset this many
+    //     metres — a feature that overlaps the inset outline goes, one that
+    //     only touches the boundary (a neighbour's own deck) stays.
+    //   storeys — js/facades.js's campus-storeys courses, keyed by `host`.
+    hideRoofscape: true,
+    roofscapeInset: 1.0,
+    hideStoreys: true,
+    // Pitched roofs (a block's `roof`): the eave lip's fascia height, and how
+    // far a non-sloping edge's corners lean in over the rise so the rig's
+    // vertical strip there sits behind the gable wall drawn in wall tone.
+    roof: { lipH: 0.25, gableLean: 0.30 },
+    // Recesses (a band's `inset`): the soffit over a recess is drawn, and the
+    // floor of one that starts above the block's foot; columns where given.
+    insetSoffit: true,
   };
   window.APARTMENTS = APTS;
 
@@ -103,7 +129,12 @@
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
   const _origFilters = {};          // layer id -> the filter it had before this file touched it
-  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, triangles: 0, ms: 0, done: false, names: [] };
+  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
+  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames'];
+  const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
+  /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
+  const warned = new Set();
+  function warnOnce(key, msg) { if (warned.has(key)) return; warned.add(key); count.warnings.push(msg); console.warn('[slopes-apartments] ' + msg); }
 
   // ── small helpers ────────────────────────────────────────────────────
   const hx3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -196,6 +227,136 @@
     return { at, T, N, L, a, b, dir, n };
   }
 
+  // ── plan geometry: the straight-skeleton profile, as scripts/bake_roofs.py solves it ──
+  //
+  // A ring offset inward by d, vertex by vertex, is what a hip roof's eave
+  // becomes as it climbs, what a recessed band's wall stands on, and what a
+  // footprint becomes when its roofscape must be hidden without catching a
+  // neighbour's. scripts/bake_roofs.py's mitre_rays / cap_along /
+  // edge_event_caps / wall_profile are ported here as they are (the bake's
+  // own comments say why each exists; the short version: a corner travels
+  // along its bisector, stops at the medial axis — the ridge — and a wall
+  // exists only until its two corners meet). Rings are [[x, y], ...] in
+  // metres, interior to the LEFT of each edge (counter-clockwise); ccw()
+  // makes them so.
+  const ringArea = r => { let A = 0; for (let i = 0; i < r.length; i++) { const p = r[i], q = r[(i + 1) % r.length]; A += p[0] * q[1] - q[0] * p[1]; } return A / 2; };
+  const ccw = r => ringArea(r) < 0 ? r.slice().reverse() : r.slice();
+  function pointInRing(x, y, r) {
+    let inside = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  function segDist(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
+    const t = L2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2)) : 0;
+    return Math.hypot(p[0] - (a[0] + dx * t), p[1] - (a[1] + dy * t));
+  }
+  const clearance = (p, r) => { let m = Infinity; for (let i = 0; i < r.length; i++) m = Math.min(m, segDist(p, r[i], r[(i + 1) % r.length])); return m; };
+  /** per-vertex direction (and speed) the mitred inward offset travels, per metre of offset; null if a corner is degenerate */
+  function mitreRays(poly) {
+    const n = poly.length, lines = [];
+    for (let i = 0; i < n; i++) {
+      const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % n];
+      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+      if (L < 1e-9) return null;
+      lines.push([x0 - dy / L, y0 + dx / L, dx, dy]);      // the offset line at d = 1, inward = left
+    }
+    const u = [];
+    for (let i = 0; i < n; i++) {
+      const [ax, ay, adx, ady] = lines[(i - 1 + n) % n], [bx, by, bdx, bdy] = lines[i];
+      const den = adx * bdy - ady * bdx;
+      if (Math.abs(den) < 1e-9) return null;
+      const t = ((bx - ax) * bdy - (by - ay) * bdx) / den;
+      u.push([ax + adx * t - poly[i][0], ay + ady * t - poly[i][1]]);
+    }
+    return u;
+  }
+  const OFFSET_SLACK_M = 0.05;
+  /** how far p may travel along ray u and still be an inward offset (bisection; monotone) */
+  function capAlong(p, u, poly, dmax) {
+    let lo = 0, hi = dmax || 60;
+    for (let k = 0; k < 18; k++) {
+      const mid = (lo + hi) / 2, q = [p[0] + u[0] * mid, p[1] + u[1] * mid];
+      if (pointInRing(q[0], q[1], poly) && clearance(q, poly) >= mid - OFFSET_SLACK_M) lo = mid; else hi = mid;
+    }
+    return lo;
+  }
+  /** the caps, further limited so no wall's two mitres can cross (the bake's edge events) */
+  function edgeEventCaps(poly, u, caps, dmax) {
+    const n = poly.length, out = caps.slice();
+    const firstGapClose = (L, ai, aj, ci, cj) => {
+      const gap = d => L + Math.min(d, cj) * aj - Math.min(d, ci) * ai;
+      let lo = 0;
+      for (const hi of [...new Set([Math.min(ci, cj), Math.max(ci, cj), dmax])].sort((a, b) => a - b)) {
+        if (hi <= lo) continue;
+        const g0 = gap(lo), g1 = gap(hi);
+        if (g1 > 1e-9) { lo = hi; continue; }
+        if (g0 <= 1e-9) return lo;
+        return lo + (hi - lo) * g0 / (g0 - g1);
+      }
+      return dmax;
+    };
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, dx = poly[j][0] - poly[i][0], dy = poly[j][1] - poly[i][1], L = Math.hypot(dx, dy);
+      if (L < 1e-9) continue;
+      const tx = dx / L, ty = dy / L;
+      const dEv = firstGapClose(L, u[i][0] * tx + u[i][1] * ty, u[j][0] * tx + u[j][1] * ty, caps[i], caps[j]);
+      out[i] = Math.min(out[i], dEv); out[j] = Math.min(out[j], dEv);
+    }
+    return out;
+  }
+  /**
+   * The full profile: every vertex with its mitre ray and cap, plus sample
+   * points along any wall whose middle can outrun its own corners (the bake's
+   * wall_profile, DENSIFY_* as there). Returns { pts, rays, caps, spans }.
+   */
+  function wallProfile(poly, dFinal) {
+    const DENSIFY_GAIN_M = 0.75, DENSIFY_MAX_PTS = 8, DENSIFY_MARGIN_M = 0.25;
+    const n = poly.length, mrays = mitreRays(poly);
+    if (!mrays) return null;
+    const dmax = Math.max(60, dFinal * 2);
+    let caps = poly.map((p, j) => capAlong(p, mrays[j], poly, dmax));
+    caps = edgeEventCaps(poly, mrays, caps, dmax);
+    const pts = [], rays = [], pcaps = [], spans = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts.length;
+      pts.push(poly[i]); rays.push(mrays[i]); pcaps.push(caps[i]);
+      const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % n];
+      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+      if (L > 1e-9) {
+        const u = [-dy / L, dx / L], mid = [x0 + dx / 2, y0 + dy / 2], jn = (i + 1) % n;
+        const got = 0.5 * (Math.min(dFinal, caps[i]) + Math.min(dFinal, caps[jn]));
+        const gain = Math.min(dFinal, capAlong(mid, u, poly, dmax)) - got;
+        if (gain > DENSIFY_GAIN_M) {
+          const di = Math.min(dFinal, caps[i]), dj = Math.min(dFinal, caps[jn]), tx = dx / L, ty = dy / L;
+          let sLo = mrays[i][0] * di * tx + mrays[i][1] * di * ty, sHi = L + mrays[jn][0] * dj * tx + mrays[jn][1] * dj * ty;
+          sLo = Math.max(0, sLo) + DENSIFY_MARGIN_M; sHi = Math.min(L, sHi) - DENSIFY_MARGIN_M;
+          const span = sHi - sLo;
+          if (span > DENSIFY_MARGIN_M) {
+            const k = Math.max(1, Math.min(DENSIFY_MAX_PTS, Math.floor(span / 2)));
+            for (let s = 1; s <= k; s++) {
+              const t = (sLo + span * s / (k + 1)) / L, q = [x0 + dx * t, y0 + dy * t];
+              pts.push(q); rays.push(u); pcaps.push(capAlong(q, u, poly, dmax));
+            }
+          }
+        }
+      }
+      spans.push([a, pts.length]);
+    }
+    return { pts, rays, caps: pcaps, spans, maxCap: Math.max(...caps) };
+  }
+  /** the ring offset inward by d (each corner along its mitre, capped) — a recessed wall's plan, an inset footprint */
+  function offsetRing(ring, d) {
+    const poly = ccw(ring);
+    const u = mitreRays(poly);
+    if (!u) return null;
+    const caps = poly.map((p, j) => capAlong(p, u[j], poly, Math.max(60, d * 2)));
+    return poly.map((p, j) => { const c = Math.min(d, caps[j]); return [p[0] + u[j][0] * c, p[1] + u[j][1] * c]; });
+  }
+
   // ── colours ──────────────────────────────────────────────────────────
   /**
    * A colour is a [day, golden, night] triple. The building's `colours`
@@ -220,24 +381,58 @@
     return out;
   }
 
-  // ── the 5x7 dot font (uppercase, the letters the signs need) ─────────
+  // ── the 5x7 dot font ─────────────────────────────────────────────────
+  // The whole alphabet, the digits and the marks a wordmark can carry. It
+  // began as the fourteen letters THE STANDARD's signs needed, and the next
+  // building found the gap at once: MOONTOWER rendered as MOONTO ER with a
+  // hole where the W was, on the one feature that building is known by.
+  // Rows top to bottom, five columns, '1' is a dot. An unknown character is
+  // a space, and `signMissing` counts them so the boot log can say so.
   const FONT = {
-    T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
-    H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
-    E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
-    S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
     A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
-    N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+    B: ['11110', '10001', '10001', '11110', '10001', '10001', '11110'],
+    C: ['01110', '10001', '10000', '10000', '10000', '10001', '01110'],
     D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
-    R: ['11110', '10001', '10001', '11110', '10100', '10010', '10001'],
-    O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+    E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+    F: ['11111', '10000', '10000', '11110', '10000', '10000', '10000'],
+    G: ['01110', '10001', '10000', '10111', '10001', '10001', '01111'],
+    H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
     I: ['11111', '00100', '00100', '00100', '00100', '00100', '11111'],
+    J: ['00111', '00010', '00010', '00010', '00010', '10010', '01100'],
+    K: ['10001', '10010', '10100', '11000', '10100', '10010', '10001'],
     L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
     M: ['10001', '11011', '10101', '10101', '10001', '10001', '10001'],
-    C: ['01110', '10001', '10000', '10000', '10000', '10001', '01110'],
+    N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+    O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+    P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+    Q: ['01110', '10001', '10001', '10001', '10101', '10010', '01101'],
+    R: ['11110', '10001', '10001', '11110', '10100', '10010', '10001'],
+    S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+    T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
     U: ['10001', '10001', '10001', '10001', '10001', '10001', '01110'],
+    V: ['10001', '10001', '10001', '10001', '10001', '01010', '00100'],
+    W: ['10001', '10001', '10001', '10101', '10101', '11011', '10001'],
+    X: ['10001', '10001', '01010', '00100', '01010', '10001', '10001'],
+    Y: ['10001', '10001', '01010', '00100', '00100', '00100', '00100'],
+    Z: ['11111', '00001', '00010', '00100', '01000', '10000', '11111'],
+    0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
+    1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+    2: ['01110', '10001', '00001', '00010', '00100', '01000', '11111'],
+    3: ['11111', '00010', '00100', '00010', '00001', '10001', '01110'],
+    4: ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
+    5: ['11111', '10000', '11110', '00001', '00001', '10001', '01110'],
+    6: ['00110', '01000', '10000', '11110', '10001', '10001', '01110'],
+    7: ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+    8: ['01110', '10001', '10001', '01110', '10001', '10001', '01110'],
+    9: ['01110', '10001', '10001', '01111', '00001', '00010', '01100'],
     ' ': ['00000', '00000', '00000', '00000', '00000', '00000', '00000'],
+    '-': ['00000', '00000', '00000', '11111', '00000', '00000', '00000'],
+    '.': ['00000', '00000', '00000', '00000', '00000', '01100', '01100'],
+    '&': ['01100', '10010', '10100', '01000', '10101', '10010', '01101'],
+    "'": ['01100', '00100', '01000', '00000', '00000', '00000', '00000'],
+    '/': ['00001', '00010', '00010', '00100', '01000', '01000', '10000'],
   };
+  const glyph = ch => { const g = FONT[ch]; if (!g) count.signMissing++; return g || FONT[' ']; };
 
   // ══════════════════════════════════════════════════════════════════════
   //  GEOMETRY
@@ -339,7 +534,10 @@
     const out = [];
     const win = spec.window;
     if (!win) return out;
-    const floors = ctx.floors;
+    // the band's floor lines, plus the one just below it when the band starts
+    // within APTS.floorSlack of it (floorsBetween): that storey's windows
+    // are drawn and clipped to the band by tileFace
+    const floors = ctx.floorBelow != null ? [ctx.floorBelow].concat(ctx.floors) : ctx.floors;
     let centres = [];
     if (win.cols) centres = win.cols.map(f => f * ctx.len);
     else {
@@ -469,11 +667,33 @@
 
   const SKINS = { pixel: skinPixel, bays: skinBays, storefront: skinStorefront, flat: skinFlat };
 
-  /** the floor lines of a block between z0 and z1, from the building's levels */
-  function floorsBetween(levels, z0, z1) {
+  /**
+   * The floor lines of a band between z0 and z1, from the building's levels,
+   * and — separately — the floor line just BELOW z0 when the band starts
+   * within APTS.floorSlack of it. A band that starts between two floor lines
+   * used to lose that storey's windows silently: `floorsBetween` dropped the
+   * line and `windowsFromBays` never heard of it (26 West's todo 8, a
+   * look-fix to find). Now the storey's windows are kept when the band
+   * starts within the slack (the window is clipped to the band), dropped
+   * beyond it, and the boot log names the band either way.
+   */
+  function floorsBetween(levels, z0, z1, where) {
     const out = [];
-    for (const z of levels) if (z >= z0 - 1e-6 && z < z1 - 0.5) out.push(z);
-    return out;
+    let below = null;
+    for (const z of levels) {
+      if (z >= z0 - 1e-6 && z < z1 - 0.5) out.push(z);
+      else if (z < z0 && (below == null || z > below)) below = z;
+    }
+    let floorBelow = null;
+    if (below != null && z0 - below > 1e-3 && levels.some(z => z > z0 + 1e-3)) {
+      const kept = z0 - below <= APTS.floorSlack;
+      if (kept) floorBelow = below;
+      // one line per building and band start, not one per face: a band that
+      // starts between floor lines does so on every face it is on
+      warnOnce('floor|' + String(where).split('|')[0] + '|' + z0, where + ': band z0 ' + z0 + ' sits ' + (z0 - below).toFixed(2) + ' m above the floor line at ' + below
+        + (kept ? ' — that storey\'s windows are kept and clipped to the band (APARTMENTS.floorSlack ' + APTS.floorSlack + ')' : ' — that storey\'s windows are DROPPED; start the band at the floor line or within APARTMENTS.floorSlack of it'));
+    }
+    return { floors: out, floorBelow };
   }
 
   // ── balconies ────────────────────────────────────────────────────────
@@ -519,7 +739,7 @@
       if (spec.back) box(B, W, sc - spec.back.w / 2, sc + spec.back.w / 2, 0, proud * 0.4, spec.zTop - text.length * (letterH + gap) + gap - spec.back.pad, spec.zTop + spec.back.pad, P[spec.back.tone], { back: true });
       let z = spec.zTop;
       for (const ch of text) {
-        const g = FONT[ch] || FONT[' '];
+        const g = glyph(ch);
         for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) {
           if (g[r][c] !== '1') continue;
           const s0 = sc + rd * (-letterW / 2 + c * dot), z1 = z - r * dot;
@@ -533,7 +753,7 @@
       const width = text.length * (letterW + gap) - gap;
       let s = rd > 0 ? spec.s0 : spec.s0 + width;
       for (const ch of text) {
-        const g = FONT[ch] || FONT[' '];
+        const g = glyph(ch);
         for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) {
           if (g[r][c] !== '1') continue;
           const s0 = s + rd * c * dot, z1 = zb + letterH - r * dot;
@@ -605,7 +825,7 @@
    * Draw one wall from z0 to z1 with a list of bands (each a skin over a z
    * range), for the part s0..s1 of it.
    */
-  function drawWall(B, F, W, s0, s1, bands, spec, P, key) {
+  function drawWall(B, F, W, s0, s1, bands, spec, P, key, opts) {
     const len = s1 - s0;
     if (len < 0.05) return;
     // a sub-frame starting at s0 so skins see s from 0
@@ -614,15 +834,35 @@
       const z0 = band.z0, z1 = band.z1;
       if (z1 - z0 < 0.05) continue;
       const sk = spec.skins[band.skin];
-      if (!sk) { console.warn('[slopes-apartments] no skin', band.skin); continue; }
-      const ctx = { len, z0, z1, floors: floorsBetween(spec.levels.floors, z0, z1), key: key + '|' + band.skin };
+      if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
+      const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
+      const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
       const skin = SKINS[sk.kind](sk, ctx, P, ctx.key);
       tileFace(B, { W: sub, len, z0, z1 }, skin, P);
-      // balconies riding this band: each is a stack on the sub-frame
-      if (APTS.balconies && band.balconies) {
-        for (const bs of band.balconies) balconyStack(B, sub, Object.assign({}, spec.balcony || {}, bs), ctx.floors, P);
-      }
-      if (APTS.signs && band.signs) for (const sg of band.signs) sign(B, sub, sg, P);
+    }
+    // the fixtures — balconies and signs — positioned by `s` along THIS
+    // piece: an override region's own. A face's default bands' fixtures are
+    // drawn by wallFixtures on the whole wall instead, never per piece.
+    if (!opts || opts.fixtures !== false) wallFixtures(B, sub, bands, spec, P, key);
+  }
+
+  /**
+   * The balconies and signs riding a list of bands, on frame W with `s`
+   * measured along it. Called ONCE per wall for the face's own bands — an
+   * override cuts a wall into pieces and every piece redraws the face's
+   * bands, so a sign drawn inside drawWall was drawn once per piece: THE
+   * MARK five times across one block, overlapping into gibberish (The Mark's
+   * look-fix 1 moved its signs into regions of their own to dodge it). A
+   * balcony stack had the same defect and the same fix.
+   */
+  function wallFixtures(B, W, bands, spec, P, key) {
+    for (const band of bands) {
+      if (band.z1 - band.z0 < 0.05) continue;
+      const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = APTS.signs && band.signs && band.signs.length;
+      if (!hasB && !hasS) continue;
+      const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
+      if (hasB) for (const bs of band.balconies) balconyStack(B, W, Object.assign({}, spec.balcony || {}, bs), floors, P);
+      if (hasS) for (const sg of band.signs) sign(B, W, sg, P);
     }
   }
 
@@ -637,6 +877,8 @@
     const key = spec.id || spec.name;
     const levels = spec.levels;
     let top = 0;
+    const roofs = [];                 // the pitched roofs built: { block, kind, ridgeZ, rise, dUse }
+    const signs0 = count.signs, insets0 = count.insets;
 
     for (const blk of spec.blocks || []) {
       count.blocks++;
@@ -669,7 +911,10 @@
           }
           pieces.splice(0, pieces.length, ...next);
         }
-        for (const [a, b, pb] of pieces) drawWall(B, F, W, a, b, pb, spec, P, key + '|' + blk.id + '|' + keys[i]);
+        const wkey = key + '|' + blk.id + '|' + keys[i];
+        for (const [a, b, pb] of pieces) drawWall(B, F, W, a, b, pb, spec, P, wkey, { fixtures: pb !== bd });
+        // the face's own balconies and signs: once, on the whole wall, `s` along the face
+        wallFixtures(B, W, bd, spec, P, wkey);
       }
       // the roof: the plan at z1 (earcut through slopes.build().polygon), then the parapet on the named edges
       const cap = planUV.map(p => F.at(p[0], p[1], zTop));
@@ -712,7 +957,7 @@
     }
     count.buildings++;
     count.names.push(spec.name);
-    return { name: spec.name, top, frame: F };
+    return { name: spec.name, id: spec.id || null, top, frame: F, roofs, signs: count.signs - signs0, insets: count.insets - insets0 };
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -722,7 +967,7 @@
   function build() {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
-    count.buildings = 0; count.blocks = 0; count.faces = 0; count.cells = 0; count.windows = 0; count.balconies = 0; count.signs = 0; count.names = [];
+    resetCount();
     const B = S.build();
     _built = [];
     for (const spec of _data.buildings) {
@@ -743,17 +988,104 @@
     return g;
   }
 
-  /** hide the replaced prisms and the westcampus bands while the mesh draws; put them back when it does not */
+  /**
+   * Every authored footprint, inset APTS.roofscapeInset metres, as one
+   * GeoJSON MultiPolygon for the roofscape clause. The roofscape features
+   * carry no id and no name (k/src/t/d/b/h and three colours — nothing a
+   * property filter can name), so they are hidden by GEOMETRY: MapLibre's
+   * `distance` expression is 0 for a feature that overlaps the input and
+   * positive for one that stands clear of it, and 5.24.0 evaluates it for
+   * polygon features (measured on the page before this was written: the
+   * deck under The Standard's centre goes, a neighbour's 100 m east stays).
+   * The inset is what keeps a neighbour's own deck, which shares the
+   * boundary, on the positive side.
+   */
+  let _hideGeo = null;
+  function hideGeometry() {
+    if (_hideGeo) return _hideGeo;
+    const polys = [];
+    for (const b of (_data && _data.buildings) || []) {
+      const ring = b.footprint && b.footprint.ring;
+      if (!ring || ring.length < 4) continue;
+      const pts = ring.slice(0, ring.length - 1);
+      const lat0 = pts.reduce((a, p) => a + p[1], 0) / pts.length, lng0 = pts[0][0];
+      const mx = mLon(lat0), my = M_LAT;
+      const m = pts.map(p => [(p[0] - lng0) * mx, (p[1] - lat0) * my]);
+      const off = offsetRing(m, APTS.roofscapeInset) || ccw(m);
+      const ll = off.map(q => [+(lng0 + q[0] / mx).toFixed(7), +(lat0 + q[1] / my).toFixed(7)]);
+      ll.push(ll[0]);
+      polys.push([ll]);
+    }
+    _hideGeo = polys.length ? { type: 'MultiPolygon', coordinates: polys } : null;
+    return _hideGeo;
+  }
+
+  /**
+   * Hide what the mesh replaces while it draws; put it all back when it does
+   * not. The replaced prism by id (buildings-3d, buildings-roof), the
+   * westcampus bands by name (the four wc- layers), the campus-storeys
+   * courses by `host` (js/facades.js keys them by the building's id there),
+   * and the roofscape pass by geometry (above): its deck plates, penthouses
+   * and units were baked at the SNAPSHOT height, so over a building
+   * authored lower they floated — Regents West's 41 x 44 m deck 6.5 m above
+   * its roof, 2706 Rio Grande's ten metres up, the Villas' 12.6 — and hid
+   * everything the file draws on the roof.
+   */
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'] };
+  /**
+   * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
+   * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
+   * Overture's 28.1 m and floats six metres over the roof this file draws
+   * (its builder's todo 2b: "this building's tile roof is drawn TWICE and
+   * mine loses"). That generator has no skip list, so while we draw, its rig
+   * entries keyed by a replaced building's id are lifted out of its data and
+   * it is rebuilt; when the switch goes off they are put back and it is
+   * rebuilt again. The right fix is in scripts/bake_roofs.py (skip every id
+   * in data/apartments/index.json, as bake_roofscape.py skips authored
+   * roofs) and is written into HANDOFF.md for the roofs lane.
+   */
+  const _rigStash = {};
+  function stashRigs(on) {
+    const R = window.slopesRoofs;
+    const roofs = R && R.data && R.data.roofs;
+    if (!roofs) return 0;
+    let n = 0;
+    if (on) {
+      const ids = new Set(_data.replacedBuildingIds || []);
+      for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0])) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
+    } else {
+      for (const k of Object.keys(_rigStash)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
+    }
+    if (n) { try { R.rebuild(); } catch (e) { console.warn('[slopes-apartments] roofs rebuild', e); } }
+    return n;
+  }
+  /** the rig keys still in js/slopes-roofs.js's data that should have been lifted out (it booted after us) */
+  function rigsMissing() {
+    const R = window.slopesRoofs, roofs = R && R.data && R.data.roofs;
+    if (!roofs || !_data) return [];
+    const ids = new Set(_data.replacedBuildingIds || []);
+    return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]));
+  }
+  function filterPlan() {
+    const gone = _data.replacedBuildingIds || [];
+    const names = _data.replacedNames || [];
+    const plan = [];
+    if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
+    if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
+    if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
+    const geo = APTS.hideRoofscape && hideGeometry();
+    if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
+    return plan;
+  }
+  /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */
+  function filtersMissing() {
+    if (!_map || !_data) return [];
+    return filterPlan().filter(([id, clause]) => _map.getLayer(id) && JSON.stringify(_map.getFilter(id) || null).indexOf(JSON.stringify(clause)) < 0).map(p => p[0]);
+  }
   function setFilters(on) {
     const map = _map;
     if (!map) return;
-    const gone = _data.replacedBuildingIds || [];
-    const names = _data.replacedNames || [];
-    const notReplaced = ['!', ['in', ['get', 'id'], ['literal', gone]]];
-    const notNamed = ['!', ['in', ['get', 'name'], ['literal', names]]];
-    const plan = [];
-    if (gone.length) for (const id of ['buildings-3d', 'buildings-roof']) plan.push([id, notReplaced]);
-    if (names.length) for (const id of ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail']) plan.push([id, notNamed]);
+    const plan = filterPlan();
     if (on) {
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
@@ -762,6 +1094,7 @@
         if (!(id in _origFilters)) _origFilters[id] = f;
         try { map.setFilter(id, f ? ['all', f, clause] : clause); } catch (e) { console.warn('[slopes-apartments] filter', id, e); }
       }
+      stashRigs(true);
       _filtered = true;
     } else if (_filtered) {
       for (const id of Object.keys(_origFilters)) {
@@ -769,6 +1102,7 @@
         try { map.setFilter(id, _origFilters[id]); } catch (e) {}
         delete _origFilters[id];
       }
+      stashRigs(false);
       _filtered = false;
     }
   }
@@ -787,10 +1121,13 @@
     if (!buildings) return 'no buildings source';
     const parts = pick('austin-parts');
     const heights = Object.assign({}, (window.__wc4 && window.__wc4.heights) || {});
-    for (const b of _built) heights[b.name] = b.top;
+    const byId = {};
+    for (const b of _built) { if (b.name) heights[b.name] = b.top; if (b.id) byId[b.id] = b.top; }
     const extra = [];
     for (const f of buildings.features) {
-      const h = heights[f.properties && f.properties.name];
+      const p = f.properties || {};
+      // by id first: a snapshot row's name can be null (26 West Courtyard's is), and then a name match keeps the prism's height
+      const h = byId[p.id] || heights[p.name];
       if (h) extra.push({ type: 'Feature', geometry: f.geometry, properties: { h } });
     }
     if (!extra.length) return 'no matching footprints';
@@ -816,8 +1153,12 @@
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },
-    get built() { return _built.map(b => ({ name: b.name, top: b.top })); },
-    obbOf, h01,
+    get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, signs: b.signs, insets: b.insets })); },
+    /** the filter plan as applied, the layers whose clause is missing, the rigs lifted out of js/slopes-roofs.js */
+    get hidden() { return { plan: _data ? filterPlan().map(p => p[0]) : [], missing: filtersMissing(), rigs: Object.keys(_rigStash), rigsMissing: rigsMissing() }; },
+    /** every character the dot font can set */
+    get glyphs() { return Object.keys(FONT); },
+    obbOf, h01, floorsBetween, offsetRing, hideGeometry,
   };
 
   // ── boot ─────────────────────────────────────────────────────────────
@@ -853,7 +1194,18 @@
       window.applySlopesSettings = wrapped;
     }
     window.applySlopesApartments(map);
-    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map));
+    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
+    // a layer that boots after this file (campus-storeys comes with the
+    // facades pass, on its own clock) gets its clause when it appears: a
+    // light poll for a minute, then the next applySlopesApartments() does it
+    (function late() {
+      let n = 0;
+      const t = setInterval(() => {
+        if (++n > 400) return clearInterval(t);
+        if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
+        if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
+      }, 150);
+    })();
     count.done = true;
     return true;
   }

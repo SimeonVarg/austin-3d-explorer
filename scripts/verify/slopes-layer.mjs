@@ -1160,6 +1160,7 @@ if (!SHOTS) { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e
 const STANDARD = { center: [-97.74578, 30.28699], zoom: 18.66, pitch: 55, bearing: 45 };
 const APT_ID = '36365d18-2eb6-43c5-b042-6197e7767e17';
 const APT_NAME = 'The Standard';
+const SJ_ID = '93cc2567-aa16-4909-ace6-fa13ff385bde';   // San Jacinto Hall: the one authored building data/roofs.geojson carries a rig for
 const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced preset)
 const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
 const APT_OWN_CLAUSE = JSON.stringify(['!', ['in', ['get', 'id'], ['literal', [APT_ID]]]]);
@@ -1169,14 +1170,38 @@ const countOf = (str, sub) => str.split(sub).length - 1;
 const settledApts = pg => pg.waitForFunction(() => window.slopes && window.slopes.frames > 0
   && (!window.slopesApartments || window.slopesApartments.count.done), null, { timeout: 120000 });
 const aptState = pg => pg.evaluate(([id, name]) => {
-  const m = window.__map, A = window.slopesApartments;
+  const m = window.__map, A = window.slopesApartments, R = window.slopesRoofs;
   const filt = k => JSON.stringify(m.getFilter(k) || null);
   const st = window.slopes ? window.slopes.stats().groups.find(g => g.name === 'slopes-apartments') : null;
   return { count: A ? A.count : null, built: A ? A.built : [], filtered: A ? A.filtered : null,
            on: !!(window.APARTMENTS && window.APARTMENTS.on),
+           indexed: A && A.data ? A.data.buildings.length : 0,
+           hidden: A ? A.hidden : null, glyphs: A ? A.glyphs : [],
+           // the rig entries js/slopes-roofs.js holds for San Jacinto Hall (null: that generator has not booted)
+           rigKeys: R && R.data && R.data.roofs ? Object.keys(R.data.roofs).filter(k => k.indexOf(SJ_ID) === 0) : null,
            b3d: filt('buildings-3d'), roof: filt('buildings-roof'), wc: filt('wc-wall'), wcCap: filt('wc-wall-cap'), wcSolid: filt('wc-solid'), wcDetail: filt('wc-detail'),
+           storeys: m.getLayer('campus-storeys') ? filt('campus-storeys') : null, rdeck: m.getLayer('roofscape-deck') ? filt('roofscape-deck') : null,
            groups: window.slopes ? window.slopes.root.children.map(g => g.name) : [], tris: st ? st.triangles : 0, visible: st ? st.visible : false };
 }, [APT_ID, APT_NAME]);
+// The roofscape deck baked over Regents West at Overture's height (b 25.9,
+// h 26.15 in data/roofscape.geojson; the building's own roof is at 18.4 m)
+// is queried at a NADIR: queryRenderedFeatures on a fill-extrusion answers
+// for the whole extruded volume along the view ray, and at pitch 55 a
+// neighbour's deck at 17 m sits on the ray to this courtyard — the first
+// probe of this line, on 2026-09-05, was reading that one.
+const REGENTS = { center: [-97.7474096, 30.2884988], zoom: 18.6, pitch: 0, bearing: 0 };
+const REGENTS_DECK_B = 25.9;
+async function regentsDecks(pg) {
+  await pose(pg, REGENTS.center, REGENTS.zoom, REGENTS.pitch, REGENTS.bearing);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(c => {
+    const m = window.__map, p = m.project(c);
+    const q = m.queryRenderedFeatures(p, { layers: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'].filter(l => m.getLayer(l)) });
+    return q.map(f => ({ layer: f.layer.id, k: f.properties.k, b: f.properties.b }));
+  }, REGENTS.center);
+}
+const regentsDeckIn = decks => decks.some(d => d.layer === 'roofscape-deck' && Math.abs(d.b - REGENTS_DECK_B) < 0.3);
+const fmtDecks = decks => decks.length ? decks.map(d => `${d.layer} ${d.k} b ${d.b}`).join(', ') : 'none';
 async function standardFrame(url, name, before) {
   const pg = await open(url);
   await settledApts(pg).catch(() => {});
@@ -1185,43 +1210,92 @@ async function standardFrame(url, name, before) {
   await pg.waitForTimeout(3000); await pg.evaluate(() => window.__settle(4000));
   return { pg, f: await snap(pg, name) };
 }
+let regentsOn = [], regentsOff = [];
 const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
   if (BREAK) {
     await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
     await pg.waitForTimeout(800);
     console.log('--break: APARTMENTS.on = false — The Standard is the flat prism and the westcampus bands again');
   }
+  regentsOn = await regentsDecks(pg);
 });
 const apts = await aptState(AP.pg);
 const c = apts.count || {};
-check('apartments: The Standard is built — one building of blocks, faces, windows, balconies and signs, in a group of its own that is drawing',
-  c.done && c.buildings === 1 && c.blocks >= 8 && c.faces >= 40 && c.windows >= 1000 && c.balconies >= 20 && c.signs === 4 && c.triangles >= APT_TRIS_MIN
+check('apartments: every building in the index is built — The Standard among them, its blocks, faces, windows, balconies and signs, in a group of its own that is drawing',
+  c.done && c.buildings === apts.indexed && apts.indexed >= 1 && c.blocks >= 8 && c.faces >= 40 && c.windows >= 1000 && c.balconies >= 20 && c.signs >= 4 && c.triangles >= APT_TRIS_MIN
   && apts.groups.includes('slopes-apartments') && apts.tris >= APT_TRIS_MIN && apts.visible && apts.built.some(b => b.name === APT_NAME && b.top > 58 && b.top < 59),
-  `${c.buildings} building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); tops ${JSON.stringify(apts.built)}`);
-check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, and the westcampus bands out of the four wc- layers by name',
+  `${c.buildings} of ${apts.indexed} indexed building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.roofs} pitched roofs, ${c.insets} recesses, ${c.frames} framed windows, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); The Standard top ${JSON.stringify((apts.built.find(b => b.name === APT_NAME) || {}).top)}`);
+check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, the westcampus bands out of the four wc- layers by name, campus-storeys by host, and the roofscape pass by geometry — every planned clause in place',
   apts.filtered === true && apts.b3d.includes(APT_OWN_CLAUSE) && apts.roof.includes(APT_OWN_CLAUSE)
-  && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME)),
-  `filtered ${apts.filtered}; own clause in buildings-3d ${apts.b3d.includes(APT_OWN_CLAUSE)}, buildings-roof ${apts.roof.includes(APT_OWN_CLAUSE)}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}`);
+  && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME))
+  && apts.hidden && apts.hidden.plan.includes('roofscape-deck') && apts.hidden.missing.length === 0
+  && (apts.storeys === null || apts.storeys.includes(APT_ID)) && !!apts.rdeck && apts.rdeck.includes('distance'),
+  `filtered ${apts.filtered}; own clause in buildings-3d ${apts.b3d.includes(APT_OWN_CLAUSE)}, buildings-roof ${apts.roof.includes(APT_OWN_CLAUSE)}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}; campus-storeys ${apts.storeys === null ? 'not on the page' : (apts.storeys.includes(APT_ID) ? 'carries the host clause' : 'MISSING the host clause')}; roofscape-deck ${apts.rdeck ? (apts.rdeck.includes('distance') ? 'carries the distance clause' : 'MISSING the distance clause') : 'not on the page'}; planned ${apts.hidden ? apts.hidden.plan.join(' ') : '-'}; missing ${apts.hidden ? (apts.hidden.missing.join(' ') || 'none') : '-'}`);
+check('apartments: the tiled roof data/roofs.geojson baked over San Jacinto Hall on Overture\'s 28.1 m is lifted out of slopes-roofs while the generator draws',
+  apts.rigKeys !== null && apts.rigKeys.length === 0 && apts.hidden && apts.hidden.rigs.some(k => k.indexOf(SJ_ID) === 0) && apts.hidden.rigsMissing.length === 0,
+  `slopes-roofs ${apts.rigKeys === null ? 'has no data (not booted)' : 'holds ' + apts.rigKeys.length + ' San Jacinto entries'}; lifted out: ${apts.hidden ? apts.hidden.rigs.join(' ') || 'none' : '-'}; still to lift: ${apts.hidden ? apts.hidden.rigsMissing.join(' ') || 'none' : '-'}`);
+const wantGlyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
+const lackGlyphs = wantGlyphs.filter(g => !apts.glyphs.includes(g));
+check('apartments: the dot font sets the whole alphabet and the digits — MOONTOWER has its W — and no sign asked for a character it lacks',
+  lackGlyphs.length === 0 && c.signMissing === 0,
+  `${apts.glyphs.length} glyphs, lacking ${lackGlyphs.join('') || 'nothing'}; ${c.signMissing} characters missed by the signs drawn`);
+check('apartments: the roofscape deck baked over Regents West at Overture\'s height is hidden while the generator draws (a nadir query at the courtyard finds no deck at b 25.9)',
+  BREAK ? regentsDeckIn(regentsOn) : !regentsDeckIn(regentsOn),
+  `at the nadir over Regents West: ${fmtDecks(regentsOn)}`);
 const fAptAgain = await snap(AP.pg, 'apts-on-again');
+// Two tests that rebuild the mesh in place and put it back: a sign on a face
+// is drawn once per face, whatever cuts the wall into pieces (THE MARK was
+// five times across one block, once per override piece, until 2026-09-05),
+// and floorsBetween keeps or drops the storey a band starts in and says so.
+const signTest = await AP.pg.evaluate(name => {
+  const A = window.slopesApartments;
+  const b = A.data.buildings.find(b => b.name === name), blk = b && b.blocks.find(k => k.id === 'cornerBay');
+  if (!blk) return null;
+  const before = A.count.signs;
+  const had = blk.overrides;
+  blk.overrides = (had || []).concat([{ region: [84, 88, 0, 11], bands: [{ z0: 0, z1: 21.5, skin: 'charcoalBlank' }] }]);
+  A.rebuild();
+  const after = A.count.signs;
+  if (had) blk.overrides = had; else delete blk.overrides;
+  A.rebuild();
+  return { before, after, restored: A.count.signs };
+}, APT_NAME);
+check('apartments: a sign on a face is drawn once per face, not once per wall piece — an override that cuts THE STANDARD\'s signed corner-bay face into three leaves the sign count where it was',
+  !!signTest && signTest.after === signTest.before && signTest.restored === signTest.before,
+  signTest ? `${signTest.before} signs, ${signTest.after} with the face cut in three, ${signTest.restored} restored` : 'no cornerBay block to cut');
+const floorTest = await AP.pg.evaluate(() => {
+  const A = window.slopesApartments, n0 = A.count.warnings.length;
+  const kept = A.floorsBetween([0, 3, 6, 9], 3.5, 12, 'gate-kept|x');
+  const dropped = A.floorsBetween([0, 3, 6, 9], 5.0, 12, 'gate-dropped|x');
+  return { kept, dropped, warned: A.count.warnings.slice(n0) };
+});
+check('apartments: floorsBetween keeps the storey a band starts in when it starts within APARTMENTS.floorSlack of its floor line, drops it beyond that, and warns either way',
+  floorTest.kept.floorBelow === 3 && floorTest.kept.floors.join() === '6,9' && floorTest.dropped.floorBelow === null && floorTest.dropped.floors.join() === '6,9'
+  && floorTest.warned.length === 2 && /kept/.test(floorTest.warned[0]) && /DROPPED/.test(floorTest.warned[1]),
+  `z0 3.5 over floors [0,3,6,9]: floorBelow ${floorTest.kept.floorBelow}, floors [${floorTest.kept.floors}]; z0 5.0: floorBelow ${floorTest.dropped.floorBelow}; ${floorTest.warned.length} warnings: ${floorTest.warned.map(w => w.slice(0, 60)).join(' | ')}`);
 await AP.pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); window.__map.triggerRepaint(); });
 await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(3000));
 const fAptOff = await snap(AP.pg, 'apts-live-off');
 const offA = await aptState(AP.pg);
 await AP.pg.close();
-const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off');
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); });
 const urlA = await aptState(C2.pg);
 await C2.pg.close();
+check('apartments: on the ?apartments=0 page the roofscape deck over Regents West is back at b 25.9 — the clause hid it, not the data',
+  regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
 check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
 const dAptLive = diffPNG(AP.f, fAptOff);
 check('apartments: ON and OFF differ at the pose — the mesh is drawing The Standard', dAptLive.pixels > APT_LIVE_PX, `${dAptLive.pixels} of ${dAptLive.total} pixels change when APARTMENTS.on goes false (max channel Δ ${dAptLive.maxChannelDiff})`);
-check('apartments: APARTMENTS.on = false removes the group and restores every filter it touched — the one-id clause is gone from buildings-3d and buildings-roof, the id is left exactly as often as the ?apartments=0 page carries it, and wc-wall\'s filter is byte-identical to that page\'s',
+check('apartments: APARTMENTS.on = false removes the group and restores every filter it touched — the one-id clause is gone from buildings-3d and buildings-roof, the id is left exactly as often as the ?apartments=0 page carries it, wc-wall\'s filter is byte-identical to that page\'s, the roofscape and storeys clauses are gone, and San Jacinto\'s rig is back in slopes-roofs',
   !offA.groups.includes('slopes-apartments') && offA.filtered === false
   && !offA.b3d.includes(APT_OWN_CLAUSE) && !offA.roof.includes(APT_OWN_CLAUSE)
   && countOf(offA.b3d, APT_ID) === countOf(urlA.b3d, APT_ID) && countOf(offA.roof, APT_ID) === countOf(urlA.roof, APT_ID)
   && offA.wc === urlA.wc && offA.wcSolid === urlA.wcSolid
+  && (offA.rdeck === null || !offA.rdeck.includes('distance')) && (offA.storeys === null || !offA.storeys.includes(APT_ID))
+  && (offA.rigKeys === null || offA.rigKeys.length === 1) && offA.hidden && offA.hidden.rigs.length === 0
   && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
-  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(APT_OWN_CLAUSE) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
+  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(APT_OWN_CLAUSE) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
 // A runtime-off page against a LOAD is the same comparison the switch
 // section makes at mall-cruise (OFF vs a ?slopes=0 load: 6,134 px, maxΔ 78,
 // ceiling SWITCH_OFF_PX) — the residue is the page's own two-state history,
