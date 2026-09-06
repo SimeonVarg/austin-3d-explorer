@@ -1,5 +1,128 @@
 # Austin 3D Explorer — Full Handoff
 
+## 227. Sep 6 2026 — the apartments pass shipped: Dobie indexed, the layer gate at 69/69 with all five reds proved to be instruments, the cited frames, the PR and the live site checked with our own eyes (`acer/apts` → `main`)
+
+**Look first: `docs/apartments-pass.md`** — the whole pass in plain words with
+fourteen cited frames in `shots/apartments/`: eight before/after pairs (main
+`8b4b90c` served from a `git archive` on a second port, same camera, same order,
+same machine) and the six A/B pairs the critics actually judged.
+
+**What shipped.** 25 apartment buildings as real geometry from
+`data/apartments/*.json` (`?apartments=0`), two campus sculptures
+(`?art3d=0`), GDC's slot and the door-on-wall rule in the heroes and entrances
+bakes, and the ground curves, kerb ring, sidewalk clipping and furniture
+snapping in the ground and props bakes. **The last four have no switch** — they
+are data and they change the live look on purpose; the PR says so.
+
+**Dobie Twenty21 was complete and unindexed, so it is indexed.** Its own three
+look-fix passes are in the file's `_looked`. Indexing wanted three lines rather
+than one — the filename, its `buildings-3d` id and the `js/westcampus.js` name
+whose bands it replaces — and which one was probed in the running page first:
+`wc-wall`/`wc-solid` at Dobie's centre came back "Dobie Twenty21" and
+`buildings-3d` came back empty, so the bands were what had to go. After: 25
+buildings, both empty at that point, and the tower draws as a teal curtain wall
+on a white mall podium.
+
+**THE FIVE GATE REDS WERE FIVE INSTRUMENTS AND NO DEFECT, and this is the part
+worth carrying forward.** Every one was diffed to an image and the pixels read
+before anything was changed.
+
+1. **`SLOPES.on` off-and-on, 8,965 px at max channel Δ 121**, the deep pixels
+   on the Main Building's three hips beside the Tower. Not a broken switch:
+   **6,115 of the 6,126 deep pixels were EXACTLY the OFF frame's, pixel for
+   pixel.** Those hips come from the tower bake's rig, which `js/slopes-roofs.js`
+   builds on its own poll — `extras.every(x => x.ready)`, the condition the
+   gate's own `settled()` already waits for before the FIRST frame — and a poll
+   does not finish inside the 1,500 ms this line waited. Same settle on both
+   sides now: **972 px at Δ 12**, which is the facade atlas' documented residue.
+2. **The runtime-off ceiling, 76,190 px against 7,000.** The 7,000 was written
+   for a page with ONE building and two frames seconds apart; the block now
+   takes six minutes between them and carries 25. Two controls, both measured
+   in the run rather than assumed: the page against ITSELF four minutes apart is
+   50,461 px at Δ 17 with zero pixels deeper than 24, and **two fresh
+   `?apartments=0` LOADS of the same build are 273,197 px apart at Δ 40**. The
+   ceiling sat two orders of magnitude under its own floor. Rewritten against
+   the load-to-load control and against DEPTH, which is the discriminator that
+   matters: a building that did not come back is 512,101 px at Δ 207, while
+   every page-to-page effect here caps out under Δ 40.
+3-5. **The three "is it main?" lines, 127,075 / 305,679 / 34,596 px.** Marked on
+   the frame they are kerbs, road edges, crossings, sidewalks, doors on Welch
+   and the horizon — entries 218, 219, 224 and 225 — with **not one differing
+   pixel on The Standard**, which both pages draw as slabs. This branch re-baked
+   four other things before either generator drew, so "with the switch off the
+   picture is main's" had stopped being a statement about the switch. New flag
+   **`--against-nogen`**: a `git archive` of THIS COMMIT with both generators
+   taken out (`data/apartments`, `data/art3d` deleted, the two js files
+   emptied), which varies exactly one thing. The main archives are still served
+   and still measured; their numbers print as context beside the gate line
+   instead of being asserted.
+
+**A wrong mechanism was committed once and is written down rather than quietly
+replaced.** The first fix for (2) said "the app's sun moves with the wall
+clock". It does not — `apts-on` is BYTE-IDENTICAL between two runs of this gate
+47 minutes apart. What moves over the minutes a page is open is its own
+settling: tree canopies at the pose, the facade atlas' two-state phase on the
+distant West Campus walls, a strip of window cells at Δ ≤ 17.
+
+**And one red was my own noise.** Run two came back 68/69 with the graphics
+preset line red (`balanced → 48 segments, was 24`, i.e. the page was already on
+`performance`). That was a SECOND headless browser I had running against the
+archives at the same moment. One Chrome at a time; with the machine quiet it
+passes again. Four full runs of this gate, ~37 minutes each.
+
+**GATES, all hardware, all on this branch's tree.**
+`slopes-layer.mjs` **69/69 exit 0** (three archives served: `--against`
+e232953, `--against-tip` 8b4b90c, `--against-nogen` this commit without the
+generators; `VERIFY_MAX_MS=4200000`). 25 of 25 built, The Standard's top 58.2 m,
+every planned clause in place, San Jacinto's rig lifted and restored, the gym
+hip found by raycast at 31.31 m, 189 mesh vertices on the recess plane and 0
+without, 89 % of the woven cells paired, one settled page shot twice 0 of
+1,296,000 px, ON vs OFF 512,101 px, and against the no-generator archive
+**0 px** at The Standard's pose and **0 px** at `?slopes=0`.
+`art-slopes.mjs` **9/9**. `westcampus-probe.mjs` **20/21 — and the red is not
+ours**: it asks that all three `wc-` layers be visible and `js/lod.js` hides
+`wc-wall-cap` at that altitude; run against a `git archive` of main it prints
+the identical line and the identical 20/21. `facadegrid.mjs` **0 failing**.
+`walkmeter.mjs` **PASS** (drift 0, 0 route errors, live-mouse UI gate both
+ways). `ground-probe.mjs` **crashes, and it crashed before us** — it calls
+`setPaintProperty('ground-paths', 'line-color', …)` on a layer that has been a
+`fill-extrusion` since 2026-08-02; rather than cite that, it was run on BOTH
+main archives this pass and throws the same `TypeError` at the same line on
+each. `doorstack.mjs` at walking height on the HRC's west wall: eid 186 alone
+3,834 px in a box at x 622-659, eid 187 alone 25,475 px at x 698-848 — disjoint
+boxes, two doors, not one drawn twice.
+
+**PERF: ON vs OFF on ONE page**, generators toggled at runtime, interleaved
+A/B/B/A, 200 frames a rep, 3 reps after 2 discarded warm-ups, minimum of the
+per-rep medians, headed on the RTX 3050 Ti with vsync and the occlusion
+throttles off. Every rep prints its own triangle count so a null result cannot
+be a null toggle — **766,955 triangles on, 0 off, in all twelve**. The
+Standard's oblique **+0.20 ms at p50** (12.50 / 12.30), +0.40 at p90; mall
+cruise **+0.10 ms at p50** (14.10 / 14.00), +0.50 at p90. Three quarters of a
+million triangles for a fifth of a millisecond, because it is one draw call.
+
+**NOT DONE, and the doc lists it properly.** 147 open items across the 25 files
+(30 more marked DONE): 31 about an unsourced height or storey count, 17 about
+signage and storefronts, 16 about a tone read off an oblique rather than
+sampled, 15 about balconies (a recessed pocket is not a field yet), 15 about
+trellises and fins drawn solid, 14 about garage entries, 11 about a facade
+nobody photographed. The generator's step 6 was never started. Circle with
+Towers keeps all three of its critic's secondary notes, and the tree canopy
+standing on it is the props bake, not this lane's file.
+
+**FOLLOW-UPS.** `bake_roofs.py` and `bake_roofscape.py` should skip every id in
+`data/apartments/index.json` (the generator hides both at runtime today, which
+is a workaround). Eighty more residential candidates within 1,500 m of the
+Tower are unauthored — 35 of them in the major/minor tiers, the tallest being
+Inspire on 22nd at 56 m; the list with OSM ids is in the round's scratchpad.
+And the Earth-capture lessons are in the doc so the next comparison round does
+not re-pay for them.
+
+**Token split for the record:** research 0.77M, build 16.4M, check and ship
+this pass ~0.5M.
+
+Branch `acer/apts`, merged to `main` as <<MERGE>>. PR <<PR>>.
+
 ## 226. Sep 6 2026 — Rubins' boats are boats: the needle spikes are hulls with a beam and a squared stern, on a column with air under them (`acer/apts`, one gap closed on the sculpture critic's verdict)
 
 **Look first: `docs/shots/art-monochrome-hulls.jpg`** — before and after at the
