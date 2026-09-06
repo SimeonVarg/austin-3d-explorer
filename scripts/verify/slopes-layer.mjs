@@ -226,7 +226,7 @@ const zoomFor = (alt, pitch, lat) => {
 // was red on 2026-09-02 against a filter that was right. A regex that cannot
 // match is a guard that cannot pass, which is the same defect as one that
 // cannot fail (README: "every gate must be watchable failing").
-const ROOFS_FILTER_RE = /^\["match",\["get","f"\],\[/;
+const ROOFS_FILTER_RE = /^(\["all",)?\["match",\["get","f"\],\[/;   // js/slopes-apartments.js wraps it in ['all', keep, its distance clause] while it draws (2026-09-06)
 
 // THE ARCH IS A CURVE — and the stand-in it replaces is not a five-sided
 // polygon, it is a STAIRCASE. scripts/bake_entrances.py draws an arched head
@@ -311,7 +311,7 @@ const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' tw
 // The generator groups the scene must hold on a plain page: the campus
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
-const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower', 'slopes-apartments'];   // + the apartments generator, 2026-09-05
+const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower', 'slopes-apartments', 'slopes-art'];   // + the apartments generator, 2026-09-05; + the art lane's group, 2026-09-06
 // THE COURSES (round 6, 2026-09-03; OFF since 2026-09-05). Round 6 drew a
 // ridge course and hip courses on every roof (SLOPES_ROOFS.lines: boxes
 // standing `h` proud of the ridge, pale), because from mall-cruise a far
@@ -1163,7 +1163,8 @@ const APT_NAME = 'The Standard';
 const SJ_ID = '93cc2567-aa16-4909-ace6-fa13ff385bde';   // San Jacinto Hall: the one authored building data/roofs.geojson carries a rig for
 const APT_TRIS_MIN = 20000;          // measured 44,721 (2026-09-05, balanced preset)
 const APT_LIVE_PX = 10000;           // pixels that change at the pose when the mesh goes: measured ~2.4e5 of 1.3e6
-const APT_OWN_CLAUSE = JSON.stringify(['!', ['in', ['get', 'id'], ['literal', [APT_ID]]]]);
+// the generator's own clause: one literal of every replaced id (24 on 2026-09-06), read off the page's data
+const ownClause = ids => JSON.stringify(['!', ['in', ['get', 'id'], ['literal', ids]]]);
 const countOf = (str, sub) => str.split(sub).length - 1;
 // A page that never loaded the generator (the --against archive) settles the
 // moment the layer draws; ours waits for the build to finish.
@@ -1176,6 +1177,7 @@ const aptState = pg => pg.evaluate(([id, name, SJ_ID]) => {
   return { count: A ? A.count : null, built: A ? A.built : [], filtered: A ? A.filtered : null,
            on: !!(window.APARTMENTS && window.APARTMENTS.on),
            indexed: A && A.data ? A.data.buildings.length : 0,
+           ids: A && A.data ? A.data.replacedBuildingIds : [],
            hidden: A ? A.hidden : null, glyphs: A ? A.glyphs : [],
            // the rig entries js/slopes-roofs.js holds for San Jacinto Hall (null: that generator has not booted)
            rigKeys: R && R.data && R.data.roofs ? Object.keys(R.data.roofs).filter(k => k.indexOf(SJ_ID) === 0) : null,
@@ -1226,11 +1228,11 @@ check('apartments: every building in the index is built — The Standard among t
   && apts.groups.includes('slopes-apartments') && apts.tris >= APT_TRIS_MIN && apts.visible && apts.built.some(b => b.name === APT_NAME && b.top > 58 && b.top < 59),
   `${c.buildings} of ${apts.indexed} indexed building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.roofs} pitched roofs, ${c.insets} recesses, ${c.frames} framed windows, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); The Standard top ${JSON.stringify((apts.built.find(b => b.name === APT_NAME) || {}).top)}`);
 check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, the westcampus bands out of the four wc- layers by name, campus-storeys by host, and the roofscape pass by geometry — every planned clause in place',
-  apts.filtered === true && apts.b3d.includes(APT_OWN_CLAUSE) && apts.roof.includes(APT_OWN_CLAUSE)
+  apts.filtered === true && apts.b3d.includes(ownClause(apts.ids)) && apts.roof.includes(ownClause(apts.ids))
   && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME))
   && apts.hidden && apts.hidden.plan.includes('roofscape-deck') && apts.hidden.missing.length === 0
   && (apts.storeys === null || apts.storeys.includes(APT_ID)) && !!apts.rdeck && apts.rdeck.includes('distance'),
-  `filtered ${apts.filtered}; own clause in buildings-3d ${apts.b3d.includes(APT_OWN_CLAUSE)}, buildings-roof ${apts.roof.includes(APT_OWN_CLAUSE)}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}; campus-storeys ${apts.storeys === null ? 'not on the page' : (apts.storeys.includes(APT_ID) ? 'carries the host clause' : 'MISSING the host clause')}; roofscape-deck ${apts.rdeck ? (apts.rdeck.includes('distance') ? 'carries the distance clause' : 'MISSING the distance clause') : 'not on the page'}; planned ${apts.hidden ? apts.hidden.plan.join(' ') : '-'}; missing ${apts.hidden ? (apts.hidden.missing.join(' ') || 'none') : '-'}`);
+  `filtered ${apts.filtered}; own clause (${apts.ids.length} ids) in buildings-3d ${apts.b3d.includes(ownClause(apts.ids))}, buildings-roof ${apts.roof.includes(ownClause(apts.ids))}; name in wc-wall ${apts.wc.includes(APT_NAME)}, wc-wall-cap ${apts.wcCap.includes(APT_NAME)}, wc-solid ${apts.wcSolid.includes(APT_NAME)}, wc-detail ${apts.wcDetail.includes(APT_NAME)}; campus-storeys ${apts.storeys === null ? 'not on the page' : (apts.storeys.includes(APT_ID) ? 'carries the host clause' : 'MISSING the host clause')}; roofscape-deck ${apts.rdeck ? (apts.rdeck.includes('distance') ? 'carries the distance clause' : 'MISSING the distance clause') : 'not on the page'}; planned ${apts.hidden ? apts.hidden.plan.join(' ') : '-'}; missing ${apts.hidden ? (apts.hidden.missing.join(' ') || 'none') : '-'}`);
 check('apartments: the tiled roof data/roofs.geojson baked over San Jacinto Hall on Overture\'s 28.1 m is lifted out of slopes-roofs while the generator draws',
   apts.rigKeys !== null && apts.rigKeys.length === 0 && apts.hidden && apts.hidden.rigs.some(k => k.indexOf(SJ_ID) === 0) && apts.hidden.rigsMissing.length === 0,
   `slopes-roofs ${apts.rigKeys === null ? 'has no data (not booted)' : 'holds ' + apts.rigKeys.length + ' San Jacinto entries'}; lifted out: ${apts.hidden ? apts.hidden.rigs.join(' ') || 'none' : '-'}; still to lift: ${apts.hidden ? apts.hidden.rigsMissing.join(' ') || 'none' : '-'}`);
@@ -1318,27 +1320,32 @@ const insetTest = await (async () => {
     A.rebuild();
     return { before, after: A.count.insets };
   }, APT_NAME);
-  // the camera on 23rd St, north of the bay, looking south into the recess at its middle
-  const wallLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, 2.0), [APT_NAME, STD_UV.cornerBayFace[0]]);
-  const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -12.0), [APT_NAME, STD_UV.cornerBayFace[0]]);
-  await pose(pg, faceLL, 20.3, 78, 184.7);   // looking along +v (south, into the recess): the frame's +u is at bearing 274.7°, +v at 184.7°
-  await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
-  const hit = await pg.evaluate(([ll, name]) => {
+  // the mesh itself, read back into the building's frame: the corner bay's north face runs along v 0 from u 81.6 to
+  // 94.88, so with the band set back the storefront's cells stand at v 2.0 between z 0 and 6 — and nothing stood
+  // there before (a ray from the street could not do this: a camera far enough back to see the recess had other
+  // authored buildings between it and the bay on 2026-09-06)
+  const census = (name, u0, u1, z0, z1, v, tol) => pg.evaluate(([name, u0, u1, z0, z1, v, tol]) => {
     const A = window.slopesApartments, S = window.slopes;
-    // the recessed wall's middle at z 3: project the 3-D point, raycast there, read the hit back into the frame
-    const l = S.toLocal(ll[0], ll[1], 0), p = S.project(l.x, l.y, 3.0);
-    if (!p) return null;
-    const h = S.raycast(p.x, p.y);
-    if (!h) return null;
-    const uv = A.lngLatToUV(name, h.lngLat.lng != null ? h.lngLat.lng : h.lngLat[0], h.lngLat.lat != null ? h.lngLat.lat : h.lngLat[1]);
-    return { z: h.point.z, u: uv[0], v: uv[1] };
-  }, [wallLL, APT_NAME]);
+    const g = A.group.children[0].geometry, p = g.getAttribute('position');
+    let n = 0;
+    for (let i = 0; i < p.count; i++) {
+      const z = p.getZ(i);
+      if (z < z0 || z > z1) continue;
+      const ll = S.toLngLat(p.getX(i), p.getY(i), z);
+      const uv = A.lngLatToUV(name, ll.lng != null ? ll.lng : ll[0], ll.lat != null ? ll.lat : ll[1]);
+      if (uv[0] < u0 || uv[0] > u1) continue;
+      if (Math.abs(uv[1] - v) < tol) n++;
+    }
+    return n;
+  }, [name, u0, u1, z0, z1, v, tol]);
+  const atRecess = await census(APT_NAME, 83, 93, 0.5, 5.5, 2.0, 0.05);
   const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name), cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].inset; A.rebuild(); return A.count.insets; }, APT_NAME);
-  return Object.assign(r, { hit, restored });
+  const atRecessBefore = await census(APT_NAME, 83, 93, 0.5, 5.5, 2.0, 0.05);
+  return Object.assign(r, { atRecess, atRecessBefore, restored });
 })();
-check('apartments: a band\'s `inset` stands its wall behind the face plane by the metres given — The Standard\'s corner-bay storefront set 2.0 m back is hit 2.0 m inside the face by a ray from 23rd St',
-  insetTest.after === insetTest.before + 1 && insetTest.hit && insetTest.hit.v > 1.75 && insetTest.hit.v < 2.25 && insetTest.restored === insetTest.before,
-  `recesses ${insetTest.before} -> ${insetTest.after} -> ${insetTest.restored}; the ray hit ${insetTest.hit ? 'v ' + insetTest.hit.v.toFixed(2) + ' m (face plane v 0, recess 2.0), u ' + insetTest.hit.u.toFixed(1) + ', z ' + insetTest.hit.z.toFixed(2) : 'NOTHING'}`);
+check('apartments: a band\'s `inset` stands its wall behind the face plane by the metres given — The Standard\'s corner-bay storefront set 2.0 m back has its cells at v 2.0 in the mesh, where the flush wall has none',
+  insetTest.after === insetTest.before + 1 && insetTest.atRecess >= 50 && insetTest.atRecessBefore === 0 && insetTest.restored === insetTest.before,
+  `recesses ${insetTest.before} -> ${insetTest.after} -> ${insetTest.restored}; mesh vertices on the v 2.0 plane between z 0.5 and 5.5 of the bay: ${insetTest.atRecess} with the inset, ${insetTest.atRecessBefore} without`);
 const frameTest = await (async () => {
   const pg = AP.pg;
   // the podium's north face at u 45, one bay of the `podium` skin (bay 3.1, window 1.4 wide, sill 0.9, 1.9 tall, on the 9.1 m floor line):
@@ -1385,15 +1392,20 @@ const mod4Test = await AP.pg.evaluate(name => {
   const keep = b.skins.court;
   b.skins.court = { kind: 'mod4', cell: 3.0, field: 'charcoal', frameTone: 'coping', stripTone: 'white', glass: 'glass', frame: 'white', reveal: 0.12 };
   A.rebuild();
-  const r = { before: c0, cells: A.count.mod4Cells, dominoes: A.count.dominoes, windows: A.count.windows };
+  const r = { before: c0, cellsBefore: m0, cells: A.count.mod4Cells - m0, dominoes: A.count.dominoes - c0, windows: A.count.windows };
   b.skins.court = keep;
   A.rebuild();
   r.restored = A.count.dominoes;
   return r;
 }, APT_NAME);
-check('apartments: the `mod4` skin pairs its cells into dominoes by k = (c - r) mod 4 — on The Standard\'s court faces at least 85 % of the cells pair off, and none do once the skin is taken back',
-  mod4Test.before === 0 && mod4Test.cells > 100 && mod4Test.dominoes * 2 >= 0.85 * mod4Test.cells && mod4Test.dominoes * 2 <= mod4Test.cells && mod4Test.restored === 0,
-  `${mod4Test.cells} cells, ${mod4Test.dominoes} dominoes (${(200 * mod4Test.dominoes / Math.max(1, mod4Test.cells)).toFixed(0)} % of the cells paired); ${mod4Test.before} before, ${mod4Test.restored} restored`);
+check('apartments: the `mod4` skin pairs its cells into dominoes by k = (c - r) mod 4 — on The Standard\'s court faces at least 85 % of the cells it adds pair off, and the count returns once the skin is taken back',
+  mod4Test.cells > 100 && mod4Test.dominoes * 2 >= 0.85 * mod4Test.cells && mod4Test.dominoes * 2 <= mod4Test.cells && mod4Test.restored === mod4Test.before,
+  `${mod4Test.cells} cells added, ${mod4Test.dominoes} dominoes added (${(200 * mod4Test.dominoes / Math.max(1, mod4Test.cells)).toFixed(0)} % of them paired); the page already carried ${mod4Test.before} dominoes in ${mod4Test.cellsBefore} cells (Union on 24th), ${mod4Test.restored} restored`);
+// the in-place tests moved the camera (a nadir over the gym, the street outside the podium): back to the pose
+// before the OFF frame, and a settled ON frame there first so the OFF comparison is against the same picture
+await pose(AP.pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);
+await AP.pg.waitForTimeout(2000); await AP.pg.evaluate(() => window.__settle(4000));
+const fAptBack = await snap(AP.pg, 'apts-on-back');
 await AP.pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); window.__map.triggerRepaint(); });
 await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(3000));
 const fAptOff = await snap(AP.pg, 'apts-live-off');
@@ -1406,17 +1418,17 @@ check('apartments: on the ?apartments=0 page the roofscape deck over Regents Wes
   regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
 check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
-const dAptLive = diffPNG(AP.f, fAptOff);
+const dAptLive = diffPNG(fAptBack, fAptOff);
 check('apartments: ON and OFF differ at the pose — the mesh is drawing The Standard', dAptLive.pixels > APT_LIVE_PX, `${dAptLive.pixels} of ${dAptLive.total} pixels change when APARTMENTS.on goes false (max channel Δ ${dAptLive.maxChannelDiff})`);
 check('apartments: APARTMENTS.on = false removes the group and restores every filter it touched — the one-id clause is gone from buildings-3d and buildings-roof, the id is left exactly as often as the ?apartments=0 page carries it, wc-wall\'s filter is byte-identical to that page\'s, the roofscape and storeys clauses are gone, and San Jacinto\'s rig is back in slopes-roofs',
   !offA.groups.includes('slopes-apartments') && offA.filtered === false
-  && !offA.b3d.includes(APT_OWN_CLAUSE) && !offA.roof.includes(APT_OWN_CLAUSE)
+  && !offA.b3d.includes(ownClause(apts.ids)) && !offA.roof.includes(ownClause(apts.ids))
   && countOf(offA.b3d, APT_ID) === countOf(urlA.b3d, APT_ID) && countOf(offA.roof, APT_ID) === countOf(urlA.roof, APT_ID)
   && offA.wc === urlA.wc && offA.wcSolid === urlA.wcSolid
   && (offA.rdeck === null || !offA.rdeck.includes('distance')) && (offA.storeys === null || !offA.storeys.includes(APT_ID))
   && (offA.rigKeys === null || offA.rigKeys.length === 1) && offA.hidden && offA.hidden.rigs.length === 0
   && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
-  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(APT_OWN_CLAUSE) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
+  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
 // A runtime-off page against a LOAD is the same comparison the switch
 // section makes at mall-cruise (OFF vs a ?slopes=0 load: 6,134 px, maxΔ 78,
 // ceiling SWITCH_OFF_PX) — the residue is the page's own two-state history,
