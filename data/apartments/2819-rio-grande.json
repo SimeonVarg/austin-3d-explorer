@@ -395,9 +395,9 @@
             -0.7,
             5.2
           ],
-          "h": 0.36,
+          "h": 0.26,
           "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
         },
         {
           "plan": [
@@ -406,7 +406,7 @@
             0.04,
             5.2
           ],
-          "h": 0.72,
+          "h": 0.53,
           "tone": "shingle"
         },
         {
@@ -416,7 +416,7 @@
             0.78,
             5.2
           ],
-          "h": 1.09,
+          "h": 0.79,
           "tone": "shingle"
         },
         {
@@ -426,7 +426,7 @@
             1.51,
             5.2
           ],
-          "h": 1.45,
+          "h": 1.05,
           "tone": "shingle"
         },
         {
@@ -436,7 +436,7 @@
             2.25,
             5.2
           ],
-          "h": 1.81,
+          "h": 1.31,
           "tone": "shingle"
         },
         {
@@ -446,7 +446,7 @@
             2.99,
             5.2
           ],
-          "h": 2.17,
+          "h": 1.58,
           "tone": "shingle"
         },
         {
@@ -456,7 +456,7 @@
             3.73,
             5.2
           ],
-          "h": 2.54,
+          "h": 1.84,
           "tone": "shingle"
         },
         {
@@ -466,7 +466,7 @@
             4.46,
             5.2
           ],
-          "h": 2.9,
+          "h": 2.1,
           "tone": "shingleRidge"
         },
         {
@@ -476,7 +476,7 @@
             -0.7,
             15.9
           ],
-          "h": 0.33,
+          "h": 0.25,
           "tone": "shingle"
         },
         {
@@ -486,7 +486,7 @@
             -0.7,
             15.9
           ],
-          "h": 0.67,
+          "h": 0.5,
           "tone": "shingle"
         },
         {
@@ -496,7 +496,7 @@
             -0.7,
             15.9
           ],
-          "h": 1.0,
+          "h": 0.75,
           "tone": "shingle"
         },
         {
@@ -506,7 +506,7 @@
             -0.7,
             15.9
           ],
-          "h": 1.33,
+          "h": 1.0,
           "tone": "shingle"
         },
         {
@@ -516,7 +516,7 @@
             -0.7,
             15.9
           ],
-          "h": 1.67,
+          "h": 1.25,
           "tone": "shingle"
         },
         {
@@ -526,7 +526,7 @@
             -0.7,
             15.9
           ],
-          "h": 2.0,
+          "h": 1.5,
           "tone": "shingleRidge"
         },
         {
@@ -623,9 +623,9 @@
             14.5,
             27.1
           ],
-          "h": 0.33,
+          "h": 0.25,
           "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
         },
         {
           "plan": [
@@ -634,7 +634,7 @@
             14.5,
             27.1
           ],
-          "h": 0.67,
+          "h": 0.5,
           "tone": "shingle"
         },
         {
@@ -644,7 +644,7 @@
             14.5,
             27.1
           ],
-          "h": 1.0,
+          "h": 0.75,
           "tone": "shingle"
         },
         {
@@ -654,7 +654,7 @@
             14.5,
             27.1
           ],
-          "h": 1.33,
+          "h": 1.0,
           "tone": "shingle"
         },
         {
@@ -664,7 +664,7 @@
             14.5,
             27.1
           ],
-          "h": 1.67,
+          "h": 1.25,
           "tone": "shingle"
         },
         {
@@ -674,7 +674,7 @@
             14.5,
             27.1
           ],
-          "h": 2.0,
+          "h": 1.5,
           "tone": "shingleRidge"
         },
         {
@@ -737,6 +737,79 @@
             {
               "z0": 6.88,
               "z1": 19.05,
+              "skin": "wall"
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "the south elevation, S6's s oblique: cream at the west end, a brick-red block in the middle, pale at the east end, rails at every floor. The balconies ride the two overrides below rather than this face, because a balcony stack's s is measured on the PIECE of wall it is drawn on and a list written for the whole 47 m face is redrawn on every short piece an override leaves - which puts balconies out past the corner."
+        },
+        "u1": null,
+        "_src": "u1 (u = 47.0) stands against west-s. v0 (v = 26.4) is the courtyard's south wall."
+      },
+      "overrides": [
+        {
+          "region": [
+            26.9,
+            43.4,
+            30.0,
+            44.7
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
+              "skin": "redWall",
+              "balconies": [
+                {
+                  "s0": 2.0,
+                  "s1": 5.2,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 8.5,
+                  "s1": 11.7,
+                  "lift": 0.0
+                },
+                {
+                  "s0": 13.0,
+                  "s1": 16.2,
+                  "lift": 0.0
+                }
+              ]
+            },
+            {
+              "z0": 19.05,
+              "z1": 19.6,
+              "skin": "cornice"
+            }
+          ],
+          "_src": "LOOK-FIX 3. THE BRICK-RED BLOCK ON THE SOUTH ELEVATION. S6's s oblique puts it 17.5 to 34.0 m from the WEST end of that 60.9 m wall, which is u 26.9 to 43.4; measured on that frame against the wall's own ends at 6.3 px per metre. The second look found the colour-block skin's hash had put buff and cream there instead - the rhythm was right and the one block the reference names that elevation by was not - so it is pinned, the way the Rio Grande block already was."
+        },
+        {
+          "region": [
+            0.0,
+            26.9,
+            30.0,
+            44.7
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.88,
+              "skin": "base"
+            },
+            {
+              "z0": 6.88,
+              "z1": 19.05,
               "skin": "wall",
               "balconies": [
                 {
@@ -753,21 +826,6 @@
                   "s0": 19.0,
                   "s1": 22.2,
                   "lift": 0.0
-                },
-                {
-                  "s0": 26.0,
-                  "s1": 29.2,
-                  "lift": 0.0
-                },
-                {
-                  "s0": 33.0,
-                  "s1": 36.2,
-                  "lift": 0.0
-                },
-                {
-                  "s0": 40.0,
-                  "s1": 43.2,
-                  "lift": 0.0
                 }
               ]
             },
@@ -777,11 +835,9 @@
               "skin": "cornice"
             }
           ],
-          "_src": "the south elevation, S6's s oblique: cream at the west end, a brick-red block in the middle, pale at the east end, rails at every floor"
-        },
-        "u1": null,
-        "_src": "u1 (u = 47.0) stands against west-s. v0 (v = 26.4) is the courtyard's south wall."
-      },
+          "_src": "the east half of the south elevation keeps the colour-block skin and carries its own balcony stacks. It is an override only so that the stacks belong to a piece of known length."
+        }
+      ],
       "roofTone": "membrane",
       "parapet": 0,
       "roofItems": [
@@ -792,9 +848,9 @@
             39.5,
             45.4
           ],
-          "h": 0.36,
+          "h": 0.26,
           "tone": "shingle",
-          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows."
+          "_src": "S6 nadir, rectified: a band of grey shingle roof rings the flat membrane on the north, east and south edges, 5.2 m deep on the long sides and 3.6 m on the east, and it is the strongest thing the reference has that a flat prism does not. Drawn as inset boxes because the generator draws flat roofs only (the method the-villas-on-guadalupe.json uses); the outermost box oversails 0.70 m, which is the eave overhang S4 shows. LOOK-FIX 3 dropped the rise from 2.90 m to 2.10 m on the long edges and 2.00 to 1.50 on the east: at eight boxes a 2.90 m slope the risers were 0.36 m and the south roof edge read as a flight of grey stripes across the whole elevation, where the reference has one mottled grey band."
         },
         {
           "plan": [
@@ -803,7 +859,7 @@
             39.5,
             44.66
           ],
-          "h": 0.72,
+          "h": 0.53,
           "tone": "shingle"
         },
         {
@@ -813,7 +869,7 @@
             39.5,
             43.93
           ],
-          "h": 1.09,
+          "h": 0.79,
           "tone": "shingle"
         },
         {
@@ -823,7 +879,7 @@
             39.5,
             43.19
           ],
-          "h": 1.45,
+          "h": 1.05,
           "tone": "shingle"
         },
         {
@@ -833,7 +889,7 @@
             39.5,
             42.45
           ],
-          "h": 1.81,
+          "h": 1.31,
           "tone": "shingle"
         },
         {
@@ -843,7 +899,7 @@
             39.5,
             41.71
           ],
-          "h": 2.17,
+          "h": 1.58,
           "tone": "shingle"
         },
         {
@@ -853,7 +909,7 @@
             39.5,
             40.98
           ],
-          "h": 2.54,
+          "h": 1.84,
           "tone": "shingle"
         },
         {
@@ -863,7 +919,7 @@
             39.5,
             40.24
           ],
-          "h": 2.9,
+          "h": 2.1,
           "tone": "shingleRidge"
         },
         {
@@ -873,7 +929,7 @@
             25.7,
             45.4
           ],
-          "h": 0.33,
+          "h": 0.25,
           "tone": "shingle"
         },
         {
@@ -883,7 +939,7 @@
             25.7,
             45.4
           ],
-          "h": 0.67,
+          "h": 0.5,
           "tone": "shingle"
         },
         {
@@ -893,7 +949,7 @@
             25.7,
             45.4
           ],
-          "h": 1.0,
+          "h": 0.75,
           "tone": "shingle"
         },
         {
@@ -903,7 +959,7 @@
             25.7,
             45.4
           ],
-          "h": 1.33,
+          "h": 1.0,
           "tone": "shingle"
         },
         {
@@ -913,7 +969,7 @@
             25.7,
             45.4
           ],
-          "h": 1.67,
+          "h": 1.25,
           "tone": "shingle"
         },
         {
@@ -923,7 +979,7 @@
             25.7,
             45.4
           ],
-          "h": 2.0,
+          "h": 1.5,
           "tone": "shingleRidge"
         },
         {
@@ -1046,7 +1102,7 @@
             -0.7,
             5.2
           ],
-          "h": 0.36,
+          "h": 0.26,
           "tone": "shingle",
           "_src": "the north shingle cap carried across the set-back corner (S6 nadir)"
         },
@@ -1057,7 +1113,7 @@
             0.04,
             5.2
           ],
-          "h": 0.72,
+          "h": 0.53,
           "tone": "shingle"
         },
         {
@@ -1067,7 +1123,7 @@
             0.78,
             5.2
           ],
-          "h": 1.09,
+          "h": 0.79,
           "tone": "shingle"
         },
         {
@@ -1077,7 +1133,7 @@
             1.51,
             5.2
           ],
-          "h": 1.45,
+          "h": 1.05,
           "tone": "shingle"
         },
         {
@@ -1087,7 +1143,7 @@
             2.25,
             5.2
           ],
-          "h": 1.81,
+          "h": 1.31,
           "tone": "shingle"
         },
         {
@@ -1097,7 +1153,7 @@
             2.99,
             5.2
           ],
-          "h": 2.17,
+          "h": 1.58,
           "tone": "shingle"
         },
         {
@@ -1107,7 +1163,7 @@
             3.73,
             5.2
           ],
-          "h": 2.54,
+          "h": 1.84,
           "tone": "shingle"
         },
         {
@@ -1117,7 +1173,7 @@
             4.46,
             5.2
           ],
-          "h": 2.9,
+          "h": 2.1,
           "tone": "shingleRidge"
         }
       ]
