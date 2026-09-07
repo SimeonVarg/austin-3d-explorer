@@ -118,10 +118,21 @@
     //     parts-roof), which carry an osm_id and no snapshot id, so they are
     //     hidden by geometry on the same inset outline as the roofscape:
     //     way/516187626 stands to 94 m over Dobie Twenty21, authored at 81.2.
+    //   precinct — js/moody.js's own arena, from data/moody.geojson
+    //     (moody-wall / moody-roof / moody-plant / moody-cap). That pass was
+    //     written when the arena was nobody's authored building; it is one
+    //     now (data/apartments/moody-center.json), and its own drum walls
+    //     stand to 28.7 m over a building this file authors at 17.4 m to the
+    //     eave and 22.6 m to the membrane — a second arena, six metres of it
+    //     in the air. The same file draws two precinct NEIGHBOURS we do not
+    //     author (its `replacedBuildingIds` names three ids, only one of
+    //     which is ours), so this is hidden by geometry on the authored
+    //     footprint rather than by turning the pass off.
     hideRoofscape: true,
     roofscapeInset: 1.0,
     hideStoreys: true,
     hideParts: true,
+    hidePrecinct: true,
     // HOW FAR OUTSIDE ITS FOOTPRINT A BAKED WALL DETAIL MAY STAND AND STILL
     // BE OURS TO REMOVE. This is the number Simeon's "scaffolding" was: the
     // tiled-roof bake draws the snapshot prism's precast strips PROUD of the
@@ -1539,7 +1550,17 @@
   // the `> 0` clause kept them with no wall behind them. The roofscape pass
   // is hidden against the INSET one, which is a different question (a
   // neighbour's deck shares the boundary and must stay).
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'] };
+  //
+  // EVERY LAYER THAT DRAWS A BUILDING VOLUME BELONGS IN HERE. That is the
+  // rule the two 2026-09-06 defects were both a miss of: a pass that draws
+  // walls or roofs from its own bake, over ground this file has authored, is
+  // a second building standing inside or above the first. Ground, roads,
+  // props, trees and art are NOT in here on purpose — they sit at grade
+  // inside a footprint quite legitimately, and hiding them would cut a hole
+  // in the ground. `_aptfloat` (scripts/verify/aptfloat.mjs) is the sweep
+  // that finds a new one: a nadir over every authored footprint, every
+  // fill-extrusion layer queried, anything that answers named.
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'] };
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -1586,6 +1607,7 @@
     const geoW = APTS.hideRoofscape && hideGeometry(0);
     if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
     if (geo && APTS.hideParts) for (const id of HIDE_LAYERS.parts) plan.push([id, ['>', ['distance', geo], 0]]);
+    if (geo && APTS.hidePrecinct) for (const id of HIDE_LAYERS.precinct) plan.push([id, ['>', ['distance', geo], 0]]);
     return plan;
   }
   /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */

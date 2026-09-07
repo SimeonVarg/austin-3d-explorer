@@ -45,6 +45,16 @@ What it hides while it draws, and puts back when it does not:
   0, 179 in (0, 0.11], 3 at 0.4, then nothing until 1.8 m, which is a
   neighbour's own band on a party wall — so 0.6 m clears every stray with
   1.2 m of headroom;
+- `js/moody.js`'s OWN ARENA (`moody-wall`, `moody-roof`, `moody-plant`,
+  `moody-cap`), by geometry on the same inset outline as the roofscape. That
+  pass was written when the arena was nobody's authored building. It is one
+  now — `data/apartments/moody-center.json` — and its drum walls stand to
+  28.7 m over a building this file authors at 17.4 m to the eave and 22.6 m
+  to the membrane: a second arena, six metres of it in the air. It is hidden
+  by GEOMETRY rather than by turning the pass off, because
+  `data/moody.geojson`'s own `replacedBuildingIds` names three buildings and
+  only one of them is ours; the other two are precinct neighbours that must
+  keep being drawn;
 - `data/parts.geojson`'s `building:part` prisms (`parts-3d`, `parts-roof`),
   by geometry on the same inset outline as the roofscape. They carry an
   `osm_id` and no snapshot id, and way/516187626 stands to 94 m over Dobie
@@ -407,6 +417,7 @@ and guard rail.
 | `hideRoofscape`, `roofscapeInset` | `true`, `1.0` | hide the roofscape pass over every authored footprint (inset this many metres so a neighbour's own deck, which shares the boundary, stays) |
 | `hideStoreys` | `true` | hide the campus-storeys courses whose `host` is a replaced id |
 | `hideParts` | `true` | hide `data/parts.geojson`'s `building:part` prisms standing on an authored footprint (same inset as the roofscape) |
+| `hidePrecinct` | `true` | hide `js/moody.js`'s own arena (`moody-wall`, `moody-roof`, `moody-plant`, `moody-cap`) where it stands on an authored footprint — by geometry, because the same pass draws two precinct neighbours we do not author |
 | `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
 | `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |

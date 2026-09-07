@@ -1302,6 +1302,63 @@ async function jesterWingBands(pg) {
 const overWing = bands => (bands || []).filter(d => d.h > JESTER.roofTop + 0.5);
 const fmtBands = bands => bands === null ? 'roofs-pitched not on the page'
   : (bands.length ? bands.slice(0, 6).map(d => `${d.f || '-'} b ${d.b} h ${d.h}`).join(', ') + (bands.length > 6 ? ` (+${bands.length - 6})` : '') : 'none');
+// THE CLASS LINE (2026-09-06). The Jester line above catches ONE layer over
+// ONE wing. The defect Simeon reported is a class: any pass that draws a
+// building VOLUME from its own bake, over ground this file has authored, is
+// a second building standing inside or above the first, and the generator's
+// hide plan is only the list of the passes somebody remembered. Moody Center
+// is the one that proved the list was short — js/moody.js draws the arena's
+// own drum to 28.7 m over a building the generator authors at 17.4 m to the
+// eave and 22.6 m to the membrane, and moody-wall was in no plan at all
+// until APARTMENTS.hidePrecinct.
+//
+// So this asks a different question from the Jester line. Not "is anything
+// TALL standing there" but "is anything from the replaced city standing
+// there AT ALL" — over an authored footprint the answer has to be nothing,
+// because the building is replaced whole, and a NEW pass that nobody hides
+// fails this line without anyone having to edit it.
+//
+// NADIR POINTS, each at least 6 m inside the ring. Nadir because an oblique
+// query answers along the view ray. Points rather than a box because a box
+// takes the ring's bounding RECTANGLE and every neighbour that falls in it
+// answers — the first cut of this sweep read Prather Hall, Torchy's Tacos
+// and The Venue on Guadalupe as defects on three different buildings. Six
+// metres in because a party wall cannot reach that far into our plan.
+const MOODY = {
+  centre: [-97.7306524, 30.2809753], zoom: 18.5,
+  pts: [[-97.7312893, 30.2809753], [-97.7309708, 30.2806991], [-97.7309708, 30.2809753], [-97.7309708, 30.2812514],
+        [-97.7306524, 30.2804229], [-97.7306524, 30.2806991], [-97.7306524, 30.2809753], [-97.7306524, 30.2812514],
+        [-97.7306524, 30.2815276], [-97.730334, 30.2806991], [-97.730334, 30.2809753], [-97.730334, 30.2812514],
+        [-97.7300155, 30.2809753]],
+};
+// Every layer js/slopes-apartments.js plans to hide, by its own HIDE_LAYERS
+// groups. Restated here rather than read off the page on purpose: a bug that
+// drops a layer OUT of the plan has to fail this test, and a list read from
+// the thing under test would shrink with it.
+const HIDE_PLAN = ['buildings-3d', 'buildings-roof', 'wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail',
+                   'campus-storeys', 'roofscape-deck', 'roofscape-major', 'roofscape-minor',
+                   'roofs-pitched', 'parts-3d', 'parts-roof', 'moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'];
+async function hidePlanOver(pg, place) {
+  await pose(pg, place.centre, place.zoom, 0, 0);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(({ pts, plan }) => {
+    const m = window.__map, out = {};
+    for (const c of pts) {
+      const p = m.project(c);
+      if (p.x < 0 || p.y < 0 || p.x > m.getCanvas().clientWidth || p.y > m.getCanvas().clientHeight) continue;
+      for (const f of m.queryRenderedFeatures([p.x, p.y])) {
+        const id = f.layer && f.layer.id;
+        if (plan.indexOf(id) < 0) continue;
+        const q = f.properties || {}, h = +(q.h ?? q.height ?? q.final_height ?? NaN);
+        if (!out[id]) out[id] = { n: 0, maxH: null };
+        out[id].n++;
+        if (!Number.isNaN(h) && (out[id].maxH === null || h > out[id].maxH)) out[id].maxH = h;
+      }
+    }
+    return out;
+  }, { pts: place.pts, plan: HIDE_PLAN });
+}
+const fmtPlan = hit => { const k = Object.keys(hit || {}); return k.length ? k.map(id => `${id} x${hit[id].n} to ${hit[id].maxH} m`).join(', ') : 'nothing'; };
 async function standardFrame(url, name, before) {
   const pg = await open(url);
   await settledApts(pg).catch(() => {});
@@ -1312,6 +1369,7 @@ async function standardFrame(url, name, before) {
 }
 let regentsOn = [], regentsOff = [];
 let jesterOn = null, jesterOff = null;
+let moodyOn = null, moodyOff = null;
 const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
   if (BREAK) {
     await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
@@ -1320,6 +1378,7 @@ const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on'
   }
   regentsOn = await regentsDecks(pg);
   jesterOn = await jesterWingBands(pg);
+  moodyOn = await hidePlanOver(pg, MOODY);
 });
 const apts = await aptState(AP.pg);
 const c = apts.count || {};
@@ -1347,6 +1406,9 @@ check('apartments: the roofscape deck baked over Regents West at Overture\'s hei
 check('apartments: NOTHING FLOATS OVER AN AUTHORED ROOF — over Jester West Hall\'s five-storey south wing, a nadir box query returns no roofs-pitched feature standing above the wing\'s own 18.6 m roof (the snapshot\'s precast strips ran to 50.55 m and stood clear of the ring, so `distance > 0` kept them; APARTMENTS.wallMargin takes them)',
   jesterOn === null ? false : (BREAK ? overWing(jesterOn).length > 0 : overWing(jesterOn).length === 0),
   `at the nadir over the south wing: ${overWing(jesterOn).length} of ${jesterOn === null ? '-' : jesterOn.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOn))}`);
+check('apartments: NOTHING THE GENERATOR REPLACED IS STILL DRAWN — at thirteen nadir points at least 6 m inside Moody Center\'s authored ring, not one layer in the hide plan answers (js/moody.js drew the arena\'s own drum to 28.7 m over a building authored at 17.4 m to the eave, and moody-wall was in no plan at all until APARTMENTS.hidePrecinct)',
+  BREAK ? Object.keys(moodyOn || {}).length > 0 : Object.keys(moodyOn || {}).length === 0,
+  `at the nadir inside Moody Center: ${fmtPlan(moodyOn)}`);
 const fAptAgain = await snap(AP.pg, 'apts-on-again');
 // Two tests that rebuild the mesh in place and put it back: a sign on a face
 // is drawn once per face, whatever cuts the wall into pieces (THE MARK was
@@ -1514,7 +1576,7 @@ await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(300
 const fAptOff = await snap(AP.pg, 'apts-live-off');
 const offA = await aptState(AP.pg);
 await AP.pg.close();
-const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); jesterOff = await jesterWingBands(pg); });
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); jesterOff = await jesterWingBands(pg); moodyOff = await hidePlanOver(pg, MOODY); });
 const urlA = await aptState(C2.pg);
 await C2.pg.close();
 
@@ -1535,6 +1597,9 @@ check('apartments: on the ?apartments=0 page the roofscape deck over Regents Wes
 check('apartments: on the ?apartments=0 page the strips over Jester West\'s wing are back above 18.6 m — the margin hid them, not the data, and the city keeps its own bake when the generator is off',
   jesterOff !== null && overWing(jesterOff).length > 0,
   `at the nadir over the south wing: ${overWing(jesterOff).length} of ${jesterOff === null ? '-' : jesterOff.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOff))}`);
+check('apartments: on the ?apartments=0 page the replaced city is back inside Moody Center\'s ring — the arena drum and the rest answer again, so the clauses hid them and the bakes still carry them',
+  Object.keys(moodyOff || {}).length > 0 && (moodyOff['moody-wall'] || moodyOff['moody-roof'] || moodyOff['moody-cap'] || moodyOff['moody-plant']) != null,
+  `at the nadir inside Moody Center with the generator off: ${fmtPlan(moodyOff)}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
 check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
 const dAptLive = diffPNG(fAptBack, fAptOff);
