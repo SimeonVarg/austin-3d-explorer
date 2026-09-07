@@ -13,7 +13,9 @@
     "S7": "USGS 3DEP point query (epqs.nationalmap.gov, 2026-09-06) at seven points round the footprint: 166.74 m at the west wall (u=0,v=60), 177.71 at the east (u=152,v=60), 173.59 north, 172.26 south, 168.39 north-west, 176.10 south-east. The site falls 11 m west-to-east across the building, which is S3's 40 ft drop; the low (west) grade is 166.74 m.",
     "S8": "The S6 frames projected through the perspective camera Earth's own URL states (target lat/lng at the stated altitude, d metres, 35 deg vertical fov, heading, tilt). The footprint drawn back at z=0 lands on the wall's base in the 200d/75t west frame, which is what says the snapshot ring is the WALL line and not the roof's. A metre ruler projected on the north-west wall at (u=4, v=58) in that frame reads the wall's top at 12.0 on a target plane at 170 m ASL, i.e. 182.0 m ASL - 15.3 m above S7's west grade, +/- 1.5 m for the roof edge that stands in front of the junction.",
     "S9": "The two OSM `building=roof` ways drawn back into the S6 nadir at the roof height. Way 1052351566 (layer 1) lands ON the roof plate's outer edge all the way round; way 968961472 (layer 2) lands over the paving and the grass outside it at both the east and the north-west corners, so it is NOT this roof and is not used. Layer 1 sits 0 m outside the footprint along the whole west and south-west run and 8 m outside it on the east, of which about 4.7 m is the nadir's own parallax between a wall at z=0 and a roof at z=22 seen from 441 m: the real oversail is small, and what reads as a huge cantilever in S5 is the WALL stepping back under a roof edge that stands on the building line.",
-    "S10": "docs/PASS_MOODY.md and scripts/bake_moody.py in this repo: the 2026 pass that gave this building its fill-extrusion bands. Its sampled day tones (k-means over pure elevation in manufacturer and press photographs) are reused here so a mesh panel and the rest of the app age through the same ramp: moody-plinth #5a5147, moody-fins #493c34, moody-glass #8fa3ad, moody-fascia #4a423a, and js/moody.js's sampled SOFFIT_TINT (129,75,37) for the wood."
+    "S10": "docs/PASS_MOODY.md and scripts/bake_moody.py in this repo: the 2026 pass that gave this building its fill-extrusion bands. Its sampled day tones (k-means over pure elevation in manufacturer and press photographs) are reused here so a mesh panel and the rest of the app age through the same ramp: moody-plinth #5a5147, moody-fins #493c34, moody-glass #8fa3ad, moody-fascia #4a423a, and js/moody.js's sampled SOFFIT_TINT (129,75,37) for the wood.",
+    "S11": "data/snapshots/2026-09-06/buildings.detailed.geojson, the two NAMELESS `building_class: roof` features that stand on this arena and that nothing in the app was hiding: 2b0f20a0-f207-4584-8423-c8c5e3441b96 (21 nodes, final_height 21.3 from overture) and ba9c090c-59c5-46dd-ad4b-fef4ad849866 (23 nodes, 8.0 from class_default). They are S1's two `building=roof` ways carried into the snapshot as prisms of their own. Each vertex's distance from THIS file's wall ring, measured: ba9c090c min 0.0 / median 1.6 / max 8.0 m - drawn at 189 m ASL on the S6 nadir it lands on the roof plate's outer edge all the way round, so it IS the plate and 1.6 m is this roof's oversail; 2b0f20a0 min 0.6 / median 9.2 / q3 20.9 / max 26.4 m - drawn at the same height it runs over the paving, the path and the grass on the south and east, so it is a larger OSM roof polygon and NOT this plate. Both ids are listed beside this building's own in data/apartments/index.json.",
+    "S12": "The S5 photograph re-measured for this round (k-means over pure elevation, four clusters per crop, sky clusters discarded and named): the wood soffit in full sun (500,290)-(1000,410) -> #984c18 48.0% + #6e300c 27.2%, area-weighted #894214, which is the value already in `soffit` to one unit; one fin and the glass beside it (455,565)-(505,625) -> #070810 37.8% (the shaded flank) + #373745 28.4% (the lit flank) + #5b627a 28.2% (the glass between); the concourse glazing through the screen (900,525)-(1250,556) -> #69a1d9 22.7% + #485c7b 20.8%, area-weighted #5980ac; the lower canopy's sunlit soffit (650,612)-(830,648) -> #958e8f 21.0% + #bdb4b0 16.8%, area-weighted #a79f9e; the ground-floor storefront (900,660)-(1250,760) -> #96b2c8 28.4% + #64717c 26.5% + #d2e0e8 17.2%, area-weighted #92a5b4, its mullions the fourth cluster at #27303c; the roof fascia (120,200)-(430,232) -> #434d6a 57.8% and (1500,470)-(1800,500) -> #40363d 8.6%, the first being the second plus the sky it reflects."
   },
   "footprint": {
     "ring": [
@@ -184,24 +186,24 @@
       "_src": "S10 WALL_DAY['moody-plinth'] - ALPOLIC/fr dark bronze MCM, sunlit albedo, sampled from the manufacturer's photographs; two of them agree to 10 luma."
     },
     "fin": {
-      "hex": "#493c34",
-      "_src": "S10 WALL_DAY['moody-fins'] - the fin screen, area-weighted over the three clusters of the fin band (77% dark / 18% lit). Used here for the fins' own faces; the generator's shader shades the two flanks apart from the front by their normals, which is what the area weighting was standing in for."
+      "hex": "#2c2b34",
+      "_src": "S12: the two flank reads of one fin, #373745 lit and #070810 shaded, meaned - which is the albedo the generator's shader then splits back into a lit and a shaded flank by normal. REPLACES S10's #493c34 (WALL_DAY 'moody-fins'), a warm brown, where the photograph's screen is cool and much darker: the whole fin band area-weighted is #38363f and the darkest read in it is #08070e. Dark Bronze anodised aluminium photographs as a cool near-black at this distance, not as bronze."
     },
     "glass": {
-      "hex": "#8fa3ad",
-      "_src": "S10 WALL_DAY['moody-glass'] - Vitro Solarban 70 clear, reflecting sky. The concourse ribbon behind the fins."
+      "hex": "#5980ac",
+      "_src": "S12: the concourse ribbon seen between the fins, #69a1d9 (sky straight off the pane) and #485c7b (the same glass away from that angle), area-weighted. REPLACES S10's #8fa3ad, which is pale enough to make the whole screen read light: behind a near-black fin the glass has to be BRIGHTER and bluer than the fin for the fins to read as fins at all, and the photograph says it is. Vitro Solarban 70 clear (S4)."
     },
     "storeGlass": {
-      "hex": "#6f7f86",
-      "_src": "The ground-floor storefront, which stands 5 m back under a canopy and never sees the sun: `glass` at 0.78, the same shade step S10's ATTIC_SHADE uses. Derived, not sampled."
+      "hex": "#92a5b4",
+      "_src": "S12: the ground-floor storefront, the three glass clusters of that crop area-weighted (the fourth is the mullion). REPLACES the derived `glass` x 0.78. The storefront is under a canopy and never in direct sun, but it is a clear curtain wall reflecting a bright sky and reading THROUGH to the plaza behind, and measured it is lighter than the concourse glazing above it, not darker."
     },
     "mullion": {
-      "hex": "#3b352f",
-      "_src": "The storefront's mullions and the fins' reveals: `mcm` at 0.65. Derived; S5 shows them as the darkest thing on the building after the fascia."
+      "hex": "#27303c",
+      "_src": "S12: the darkest cluster of the storefront crop, which is the mullion grid itself. REPLACES the derived `mcm` x 0.65. Also the fins' reveal jambs."
     },
     "fascia": {
-      "hex": "#4a423a",
-      "_src": "S10 WALL_DAY['moody-fascia'] - the roof edge, authored there between the MCM's sunlit and shaded values. S5's own read of the fascia against sky is #5a5564, which is that value plus the sky it is reflecting."
+      "hex": "#454049",
+      "_src": "S12: the roof edge, cooled off its S10 value #4a423a (WALL_DAY 'moody-fascia') toward the photograph's own two reads - #434d6a where it faces the sky and #40363d where it does not - on the same argument S10 made, that the blue in the first is the sky the metal reflects and not the metal. Warm bronze was nine units too far to the red."
     },
     "soffit": {
       "hex": "#884420",
@@ -218,6 +220,10 @@
     "column": {
       "hex": "#514840",
       "_src": "S5: the slender columns under the lower canopy are the same dark bronze family as the wall, a little in their own shade: `mcm` at 0.90. Derived."
+    },
+    "canopy": {
+      "hex": "#a79f9e",
+      "_src": "S12: the lower canopy's soffit where the sun bounces up on to it, the two pale clusters of that crop area-weighted (the two dark ones are the fins standing in front of it). The lower canopy's underside is a PALE grey-white plane in S5 - it is the one light surface on the lower half of this building - and the ground band's recess was wearing `mcm`, the dark bronze wall panel, for it."
     }
   },
   "skins": {
@@ -261,8 +267,8 @@
           "z1": 6.4,
           "skin": "store",
           "inset": {
-            "d": 5.0,
-            "tone": "mcm",
+            "d": 11.0,
+            "tone": "canopy",
             "columns": {
               "pitch": 9.0,
               "w": 0.5,
@@ -270,39 +276,39 @@
               "tone": "column"
             }
           },
-          "_src": "S5: the ground floor stands well back from the building line under a canopy carried on slender round columns, and that canopy's soffit is dark metal, not the wood of the roof above. 5.0 m is the plainest rule: the entry plazas are recessed much more than that and the service faces much less, and S6 cannot resolve the difference face by face at 0.25 m/px. The 9.0 m column pitch is read off S5's own colonnade against the 2.4 m storefront module behind it. +/- 2 m on the depth."
+          "_src": "S5: the ground floor stands well back from the building line under a canopy carried on slender round columns, and that canopy's soffit is the pale plane S12 measured - not the wood of the roof above and not the dark bronze of the wall. 11.0 m of recess (was 5.0) is what puts the storefront 3 m BEHIND the fin screen above it, which is the order S5 shows: roof edge furthest out, the lower canopy's edge just inside it, the fin screen well behind that, the storefront behind again. It leaves the canopy projecting 8 m past the fin wall on its columns. One number serves the whole ring - the entry plazas are recessed more and the service faces much less, and S6 cannot resolve the difference face by face at 0.25 m/px. The 9.0 m column pitch is read off S5's own colonnade against the 2.4 m storefront module behind it. +/- 3 m on the depth."
         },
         {
           "z0": 6.4,
           "z1": 17.4,
           "skin": "fins",
           "inset": {
-            "d": 2.0,
+            "d": 8.0,
             "tone": "soffit"
           },
-          "_src": "The fin screen, one band from the lower canopy to the roof plate. It stands 2.0 m back from the building line, which is what leaves the wood soffit S3/S4/S5 make the building's signature visible under the roof edge: 2.0 m of it here plus the 1.2 m the fascia oversails. ONE band, not two, because the generator closes every inset band with a soffit at its own top and a second band would hang a false 2 m shelf through the middle of the wall - the two glazed ribbons are the band's two window rows instead. +/- 1 m."
+          "_src": "The fin screen, one band from the lower canopy to the roof plate, standing 8.0 m BACK from the building line (was 2.0). This is the biggest single thing the first massing got wrong. S11 settles that the roof plate is barely bigger than the wall ring - ba9c090c is 1.6 m outside it at the median - so the vast cantilevered plane that is the whole subject of S5 cannot be the roof reaching out; it has to be the WALL stepping back, and the 70,000 sq ft of Parlex Prodema wood soffit (S3, S4) is the underside of that step. At 2.0 m the wood was a stripe under the eave; at 8.0 m it is the plane the photograph makes this building's signature. 8.0 m is read off S5's own proportions - at the centre of that frame the soffit's foreshortened depth is about the fin band's own 11.0 m height, of which 1.6 m is the roof's oversail - and it leaves a 130 x 103 m drum inside a 148 x 121 m footprint, which is the right size for a 15,000-seat bowl and its concourse (S3). +/- 2 m, and one number for every face where the truth runs from near zero on the back-of-house side to something like 20 m over the two entry plazas (S11's spread on 2b0f20a0 is the shape of that asymmetry, even though that polygon is not this roof). ONE band, not two, because the generator closes every inset band with a soffit at its own top and a second band would hang a false shelf through the middle of the wall - the two glazed ribbons are the band's two window rows instead."
         }
       ],
       "roofTone": "apron",
       "roof": {
         "kind": "hip",
         "pitch": 9.1,
-        "over": 1.2,
-        "lipH": 2.8,
+        "over": 1.6,
+        "lipH": 2.0,
         "tone": "apron",
         "lipTone": "fascia",
         "deck": "membrane",
         "d": 15.0
       },
-      "_roof_src": "The roof plate. The eave lip stands 1.2 m outside the wall (S9: the OSM layer-1 roof ring lands on the plate's outer edge and sits within a metre or two of the footprint once the nadir's own parallax is taken off) and is 2.8 m deep, which is the dark metal fascia in S5 and the band that reads about 0.28 of the wall's height in S6's 150d/70t frame. Its underside and its top are drawn in the same tone as the fascia because the emitter has one colour for all three - the wood soffit is a todo. Inside the eave the surface rises at 9.1 degrees for 15.0 m (a 2.40 m rise) to the flat white membrane at 22.60 m: that is the grey walk-on apron ring round the white TPO plate that S6's nadir shows, and it is a slope rather than a step because S6's 120d frame from directly above the edge shows the ring rising into the membrane rather than meeting it at a face."
+      "_roof_src": "The roof plate. The eave lip stands 1.6 m outside the wall, which is S11's measured median distance from this file's wall ring to ba9c090c, the snapshot prism whose 23 nodes land on the plate's outer edge all the way round when they are drawn at Earth's own 189 m ASL on the S6 nadir (the spread is 0.0 to 8.0 m, biggest on the south-east). The fascia is 2.0 m deep, not the 2.8 first authored: measured on S5 against the fin band's known 11.0 m, the dark band on the roof edge is 20 px where the band is 105 px at the centre of the frame and 20 px where it is 115 at the right, i.e. 2.1 and 1.9 m. Its underside and its top are drawn in the same tone as the fascia because the emitter has one colour for all three - the wood soffit is a todo, and the 8.0 m the fin band is now inset carries it instead. Inside the eave the surface rises at 9.1 degrees for 15.0 m (a 2.40 m rise) to the flat white membrane at 22.60 m: that is the grey walk-on apron ring round the white TPO plate that S6's nadir shows, and it is a slope rather than a step because S6's frame from directly above the edge shows the ring rising into the membrane rather than meeting it at a face."
     }
   ],
   "todo": [
-    "1. THE OTHER LAYER STILL DRAWS THIS BUILDING. js/moody.js paints seven fill-extrusion bands for d8b0698a- from data/moody.geojson (plinth 0-8.31, fins 8.31-17.73, glass 17.73-22.16, fascia 22.16-26.04, apron, membrane, cap to 28.70), all of them fractions of S2's Overture 27.7 m. The apartments generator hides buildings-3d, buildings-roof, the four wc- layers, campus-storeys, the roofscape pass and roofs-pitched - it does NOT know about moody-wall, moody-roof, moody-plant or moody-cap, so those bands stand on the same ring as this mesh, 6.1 m taller than it, and fight it. Neither js/slopes-apartments.js's HIDE_LAYERS nor data/moody.geojson is this file's to write. The fix is one line in HIDE_LAYERS (add `moody: ['moody-wall','moody-roof','moody-plant','moody-cap']`, hidden by the same `bid` in filterPlan the prisms use - every moody.geojson feature already carries `bid`), or the same skip scripts/bake_roofs.py was asked for: bake_moody.py drops every id in data/apartments/index.json.",
-    "2. The wood soffit cannot have its own colour. js/slopes-roofs.js draws the eave lip's top, its fascia and its soffit all in `r.lip`, so the roof plate's underside is the fascia's dark bronze here and not the 70,000 sq ft of Parlex Prodema wood veneer (S3, S4) that is the single most photographed thing about this building. The tone is measured and sitting in `colours.soffit` (#884420, S5) waiting for a `soffitTone` beside `lipTone` in the roof spec. The 2.0 m the fin band is inset does get it, so a strip of wood shows under the roof edge; the 1.2 m of oversail does not.",
+    "1. THE SNAPSHOT'S TWO NAMELESS ROOF PRISMS WERE STANDING ON THIS BUILDING, AND THIS ROUND'S FIRST LOOK IS WHAT FOUND THEM. `queryRenderedFeatures` at three pixels of what looked like our own wall named `buildings-3d/2b0f20a0-f207-4584-8423-c8c5e3441b96` and four `campus-storeys/detail` features painted on it - a 21.3 m tan prism wearing this arena's plan, with the app's own window grid on it, swallowing a 22.6 m mesh whole. With it, ba9c090c-59c5-46dd-ad4b-fef4ad849866 at 8.0 m. Neither carries a name, so `replacedNames` could never have caught them; neither is this file's own id, so `replacedBuildingIds` did not either. Both are in data/apartments/index.json now (S11). NOTE FOR THE NEXT LANE: this was INVISIBLE until js/slopes-apartments.js gained its `precinct` hide list for js/moody.js's bands - those bands stood at 28.7 m and covered the 21.3 m prism, so hiding them uncovered it. Any other authored building whose OSM entry has a `building=roof` way over it has the same prism waiting, and the general fix is for the snapshot's nameless `building_class: roof` features to be hidden by geometry the way parts-3d already is. That is not this file's to write.",
+    "2. The wood soffit cannot have its own colour. js/slopes-roofs.js draws the eave lip's top, its fascia and its soffit all in `r.lip`, so the 1.6 m of roof oversail is the fascia's dark bronze rather than the Parlex Prodema wood veneer. The tone is measured and sitting in `colours.soffit` (#884420, cross-checked at #894214 in S12) waiting for a `soffitTone` beside `lipTone` in the roof spec. The 8.0 m the fin band is inset DOES get it, so the wood now reads as the plane it is and only the last 1.6 m of overhang is wrong.",
     "3. The fins are drawn inside out - the wall between them is recessed 0.30 m rather than the blade standing 0.30 m proud - because there is no primitive for a strip standing off a wall. Everything measured about them (0.394 m pitch, 0.089 m blade, 0.305 m of wall between, 0.30 m of relief) is in the data and would carry over unchanged to a `ribs: { pitch, w, proj, tone }` on a skin.",
-    "4. The oversail is one number. S9 puts it near zero along the west and south-west run and about 3 m on the east once the nadir's parallax is taken off, and S5 shows the roof reaching much further over the entry plazas than that. `roof.over` is a scalar, so 1.2 m serves the whole ring; a per-face `over` would carry the two entry cantilevers.",
-    "5. Not modelled, and each is a real feature: the two entry plazas' deeper colonnades (the ground band is recessed 5.0 m everywhere), the solid MCM gate portals and the loading dock among the ground-floor storefront, the 'MOODY CENTER' roof graphic S6's nadir shows, and the arena's own night lighting - APARTMENTS.nightLit scatters lit windows across the fin band's recesses, which for a concourse lit as one continuous room is the wrong model (js/moody.js's GLASS_NIGHT comment makes the same point).",
+    "4. The oversail is one number and so is each recess. `roof.over` is a scalar and `inset.d` is a scalar per band, and both S11's spread on 2b0f20a0 (0.6 to 26.4 m) and S5's own plaza views say the real building is strongly asymmetric: the two entry plazas are cantilevered over far more than the service faces. A per-face `over`, and per-face `inset` on the 35 edges of this ring, would carry it; today the plaza number is applied all the way round.",
+    "5. Not modelled, and each is a real feature: the solid MCM gate portals and the loading dock among the ground-floor storefront, the 'MOODY CENTER' roof graphic S6's nadir shows, the Longhorn and BOX OFFICE signs S5 has on the plaza elevation, and the arena's own night lighting - APARTMENTS.nightLit scatters lit windows across the fin band's recesses, which for a concourse lit as one continuous room is the wrong model (js/moody.js's GLASS_NIGHT comment makes the same point).",
     "6. The east face is up to 11 m too tall and the west face is right, because the app has no terrain and the site falls 11 m across the building (S7). See levels._height_src."
   ]
 }
