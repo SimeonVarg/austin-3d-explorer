@@ -195,10 +195,10 @@
     "_src": "Two wall rules and two glass rules. The white tower and the wedge wear `panel`; the seven-storey wing wears `taupeGrid`; the ground floor wears `store`; the wedge's north end and the glazed north-west corner wear `curtain`. Nothing else was photographed differently.",
     "panel": {
       "kind": "bays",
-      "bay": 3.2,
+      "bay": 1.575,
       "field": "recess",
       "strip": {
-        "w": 1.05,
+        "w": 0.62,
         "tone": "precast",
         "at": "joints"
       },
@@ -209,27 +209,21 @@
         "start": 1.5
       },
       "window": {
-        "w": 0.95,
-        "h": 1.2,
-        "sill": 0.18,
-        "offsets": [
-          [
-            0.55,
-            0.95
-          ]
-        ]
+        "w": 0.5,
+        "h": 0.9,
+        "sill": 0.18
       },
       "glass": "glassPale",
       "frame": "precast",
       "reveal": 0.14,
-      "_src": "S2's 'custom-formed exterior panels', as S5 src_07 and src_00 show them: a square white panel per bay per floor, folded so its face creases diagonally, carrying ONE opening made of two parts side by side - a dark rectangle about 2.15 x 1.50 m and a portrait glass slot about 0.95 m wide at one edge of it. Built here as the INVERSE of a punched wall, which is the only way this generator can put two tones in one opening: the field is the DARK tone, a 1.05 m white `strip` on every bay line is the pier, a 1.30 m white `louvre` band every floor is the spandrel, and what is left over is the dark rectangle. The glass slot is the `window`, 0.95 m wide at 0.55 m off the bay centre, so it sits inside the dark rectangle's right-hand edge. The 3.20 m bay is a proportion measured off S5 src_07's face-on panels - the opening is about 80 % of the panel wide and the panel is about as wide as the floor is tall, and the floor is 2.80 m - not a count; the tower's 24.8 m west face then carries eight bays, which is what src_00 shows. See `todo`: the slot's handedness alternates on the real building and does not here, and the diagonal creases are not drawn."
+      "_src": "S2's 'custom-formed exterior panels', as S5 src_07 and src_00 show them and as the west elevation MEASURES. The bay is 1.575 m, COUNTED and not proportioned: a luminance profile across two storeys of the tower's west face in S6b's settled Google Earth oblique (ref/earth2/w.png, rows y 292-306 and y 345-358, x 690-1045, the face spanning 24.76 m in 338 px = 13.65 px/m) puts the openings' centre-to-centre gaps at 20.5, 21.0, 21.5, 22.0, 23.5 px with the occasional 44 and 48 where a column skips a window - one module of 21.5 px = 1.575 m, doubled where the field is scattered. The previous reading here was 3.20 m from a proportion ('the panel is about as wide as the floor is tall') and it was exactly twice the truth, which is why the tower read as a regular grid of wide grey rectangles instead of a white wall with a small punch in every bay. Built as the INVERSE of a punched wall, which is the only way this generator can put two tones in one opening: the field is the DARK tone, a 0.62 m white `strip` on every bay line is the pier, a 1.30 m white `louvre` band every floor is the spandrel, and what is left is a 0.955 x 1.50 m dark rectangle - 28 % of the wall, against the 19 % the src_00 patch clusters dark - with a 0.50 m mint glass slot in it. See `todo`: the slot's handedness alternates on the real building and does not here, and the diagonal creases are not drawn."
     },
     "taupeGrid": {
       "kind": "bays",
-      "bay": 2.3,
+      "bay": 1.43,
       "field": "taupe",
       "window": {
-        "w": 1.05,
+        "w": 0.95,
         "h": 1.6,
         "sill": 0.85,
         "frame": {
@@ -240,7 +234,7 @@
       "glass": "glassPale",
       "frame": "trimWhite",
       "reveal": 0.12,
-      "_src": "S5 src_00 (the crop ref/c00_taupe3.jpg): the seven-storey wing is a warm grey precast wall with single portrait windows on a tight module, each in a crisp white surround about 0.14 m wide - a different rule from the tower's panels, and the surrounds are the thing that reads at any distance. Six window rows above the storefront were counted on that crop, which is where the wing's seven storeys come from. The bay is 2.30 m: about seventeen columns across the wing's west face, which the same crop shows."
+      "_src": "S5 src_00 (the crop ref/c00_taupe3.jpg): the seven-storey wing is a warm grey precast wall with single portrait windows on a tight module, each in a crisp white surround about 0.14 m wide - a different rule from the tower's panels, and the surrounds are the thing that reads at any distance. Six window rows above the storefront were counted on that crop, which is where the wing's seven storeys come from. The bay is 1.43 m: the SEVENTEEN columns that same crop shows across the wing's 24.35 m west face, which is what 24.35/17 comes to. It was entered as 2.30 m before - a number that contradicts its own count, and would have put ten columns there - and a luminance profile of the wing in ref/earth2/w.png (rows y 530-542) gives gaps of 18.5-22.5 px against 13.65 px/m, i.e. 1.4-1.6 m, which is the same module."
     },
     "curtain": {
       "kind": "bays",
@@ -298,7 +292,7 @@
       "bay": 1.037,
       "field": "recess",
       "strip": {
-        "w": 0.34,
+        "w": 0.408,
         "tone": "precast",
         "at": "joints"
       },
@@ -309,21 +303,21 @@
         "start": 1.5
       },
       "window": {
-        "w": 0.45,
-        "h": 1.2,
+        "w": 0.35,
+        "h": 0.9,
         "sill": 0.18
       },
       "glass": "glassPale",
       "frame": "precast",
       "reveal": 0.14,
-      "_src": "`panel`, scaled to one stair step. A step's flank is 1.037 m wide, and skinBays rounds a wall shorter than a bay to ONE bay - so `panel`'s 1.05 m pier would paint the whole sliver white and the flanks of the rake, about 320 m2 a side, would go blank. This keeps `panel`'s proportions instead (pier 33 % of the bay, 1.30 m spandrel every 2.80 m, the same recess/precast tones, so the dark share is `panel`'s 36 %) at the step's own width. See `todo`: the openings come every 1.037 m here where the building's are every 3.20 m."
+      "_src": "`panel`, scaled to one stair step. A step's flank is 1.037 m wide, and skinBays rounds a wall shorter than a bay to ONE bay - so `panel`'s 1.05 m pier would paint the whole sliver white and the flanks of the rake, about 320 m2 a side, would go blank. This keeps `panel`'s proportions instead (pier 39 % of the bay, the same share as panel (0.62 of 1.575), 1.30 m spandrel every 2.80 m, the same recess/precast tones, so the dark share is panel's 28 %) at the step's own width. See `todo`: the openings come every 1.037 m here where the building's are every 3.20 m."
     },
     "panelSliverBlank": {
       "kind": "bays",
       "bay": 1.037,
       "field": "recess",
       "strip": {
-        "w": 0.34,
+        "w": 0.408,
         "tone": "precast",
         "at": "joints"
       },
