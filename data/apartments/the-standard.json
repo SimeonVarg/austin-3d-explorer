@@ -22,7 +22,10 @@
     "S15": "humphreys_00.jpg (= Ext_14, S5) read again at 3x crops on 2026-09-06 for the skins: the corner bay is charcoal for its FULL height above the storefront on both street faces with a four-storey glazed corner stack (floor-to-ceiling glass per floor, thin spandrels) at the corner and small black balconies beside it on the 23rd St face; its top storey (18.4-21.5) is windowless and carries the horizontal signs (letters ~0.85 m tall, the text block ~9 m long starting ~0.5 m from the corner on 23rd and ~1 m from it on Pearl); the podium beside it is light grey panel, one tall window per ~3.1 m bay with a storey-tall rust strip immediately LEFT of the window on every third bay and a juliet balcony (black rail, ~1.7 m wide, ~0.35 m deep) on those bays; tower B's west face is the pixel field at its north end with THE STANDARD vertical about three quarters of the way along the field from the north corner, then white bays with rust strips and tall windows, then — at the building's south-west corner — a stacked balcony column whose slabs and rails read from the north as a dark vertical stripe with two lit window columns (the 'dark charcoal panel' of S14 photo 1; it is balconies, not panel: the Earth mesh S8 shows the slabs projecting west); the pixel field also reaches the ground in a ~4 m strip on the Pearl podium under the tower's field, light podium either side of it.",
     "S16": "humphreys_01.jpg (S6) at 3-4x crops, 2026-09-06: tower A's north face is 25 m of pixel with ONE lit slit column at 0.29 of the width from the east end and THE STANDARD vertical at 0.68 from the east end (7-8 m from the west corner), the letters from ~2.8 m below the roof to ~15.5 m below it (12.7 m for twelve characters), on a plain white column clear of dark marks; the dark marks are ~1.3 m tall (two panel courses) and 2.4-7 m long, about 26 % of the field by k-means (#4c5153 dark / #9fa4a8 light at dusk), the field WHITE with a few mid-grey planks; tower B's north face has SIX bays of ~2.66 m over 15.95 m — a balcony column flush at the east corner, four window bays each with a rust strip immediately left of its window, a balcony column 2.1 m in from the west corner; the podium's north face has five window rows above the storefront, juliets on every third bay, and two one-storey dark louvre panels in the top storey just east of the corner bay.",
     "S17": "Google Earth 3D at the two recorded obliques (S8: SW @45h and NW @135h, imagery 12/2023), read at 4-6x crops on 2026-09-06 — daylight colour and the west face's composition: the south face is white-grey panel (k-means #d6dcda lit / #afb0a6 shaded) with rust strips (#a8553a-class) on ALTERNATE bay lines, about every 5 m over the 66 m bar — two tall dark windows between strips — over a one-storey dark base; tower B's west face is pixel on its north ~11 m with one slit column at its middle, white bays with dark window columns on the rest, the pixel strip reaching the street under the field's south end; a stacked balcony column projects west at the building's SW corner with a light bulkhead on the roof above it; tower A's north and west faces are pixel; the deck in plan: the pool along the 23rd St edge with a row of loungers on its south side, turf and teal chairs west of them, a dark-canopied cabana south of the turf, a small blue spa at the pool's west end.",
-    "S18": "humphreys_05.jpg (S7), 2026-09-06: a second spa at the pool's EAST end sharing its coping (S11's 'two hot tubs'), 3 FT 0 IN on the coping, blue mosaic on the raised sides; palms in square blue-mosaic planters ~1.8 m square at the pool's far (west) end; blue loungers in a row on the turf side; string lights; the jumbotron wall at the deck's east end with tower B's balcony face behind it."
+    "S18": "humphreys_05.jpg (S7), 2026-09-06: a second spa at the pool's EAST end sharing its coping (S11's 'two hot tubs'), 3 FT 0 IN on the coping, blue mosaic on the raised sides; palms in square blue-mosaic planters ~1.8 m square at the pool's far (west) end; blue loungers in a row on the turf side; string lights; the jumbotron wall at the deck's east end with tower B's balcony face behind it.",
+    "S19": "Humphreys' own photographs at full resolution (humphreys.com, 2026-09-07: StandardAustin_Ext_01/14/41 at 2560 px, = S6/S5/S7), read at 2-3x crops. The WINDOW SYSTEM, the same on the podium (Ext_14, the Pearl face from the street), on tower B's north face (Ext_41 from the deck, Ext_14 from the corner) and on its west face: every window is a tall light in a thin CHARCOAL frame (~0.1 m), and on the bays that carry rust the rust is a wood-look SPANDREL PANEL of the window's own width directly under the sill, ~0.6-0.7 m tall, inside the same frame — not a strip beside the window; the light band between one unit's rust and the next storey's head is ~0.3-0.4 m. On the podium the bays alternate strictly: a window-with-rust bay, then a JULIET bay (a recessed door ~1.6 m wide behind a black rail), then a window-with-rust — a module of two ~3.1 m bays; on the Pearl face the rust window is the bay nearest the corner bay. On tower B's north face two window columns in three carry the rust. Tower A's north face (Ext_01 at 2x, 37 px per metre): the storey is 117 px, a dark mark 22 px = 0.60 m = ONE 0.634 m course tall, a minority two, never a clump — 2.4-7 m long; the field is two tones (light, charcoal) with a few mid-grey planks and no rust. Tower B's field (Ext_14, right edge) carries occasional RUST planks besides. The podium's top storey next to the corner bay carries THREE one-window-wide louvre panels (Ext_14: three; Ext_01 profile: dark runs ~1.05 m wide at 1.5, 4.0 and 9.2 m from the corner bay) where the windows would be, with a juliet between the second and third.",
+    "S20": "The judge's Earth south-west oblique (S8/S13) clustered (k-means, k=4) over the upper south face on 2026-09-07: white panel #dce2e1 45 %, shaded panel #aeb5b5 29 %, sunlit window #7e8688 18 %, window depths #41494b 8 % — rust under 5 %. Ours at the same camera before this round: near-black #1e2121 32 %, rust #8f4521 11 %, field #b5a997 54 %. The app's daylight multiplies a wall hex by about (0.80, 0.745, 0.68) at that camera (#e2e3df drew as #b5a997; the roof's #c9cdd1 as #948e85), so Earth's absolute white is out of reach and the fields are set as high as the family allows; the dark share is the glass, set to the sunlit read.",
+    "S21": "The leasing site (thestandardaustin.com, 2026-09-07): its hero is Ext_01 again; three deck slices — the deck's north-end pergola is PALE (white posts, a light slatted roof) in front of a CHARCOAL slatted fence, the chairs on the turf teal, the planters lime green boxes and blue-mosaic squares, the spa coping 3 FT 0 IN. Landmark's own page carries only stock interiors and an Atlanta skyline."
   },
   "footprint": {
     "ring": [
@@ -138,8 +141,8 @@
   "colours": {
     "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone. The 2026-09-06 pass re-sampled the wall tones in DAYLIGHT off the Earth obliques (S17) and cross-checked them against the owner's eyeball values (S14) — the previous tones were measured at blue hour (S9) and lifted, and read tan/cream beside Earth at the judge's camera.",
     "pixWhite": {
-      "hex": "#e4e5e1",
-      "_src": "the pixel field's off-white: S14 ~#e9e9e7; S17 sunlit face #d6dcda (Earth's texture is a muted average) — entered between them, neutral, so the sunlit face lands near Earth's and the shaded one near S9's pale"
+      "hex": "#ecedea",
+      "_src": "the pixel field's off-white: Earth's sunlit panel #dce2e1 (S20), the owner's ~#e9e9e7 (S14); set at the top of the family because the app's daylight draws #e2e3df as #b5a997 (S20) — was #e4e5e1"
     },
     "pixPale": {
       "hex": "#b9bab5",
@@ -150,12 +153,12 @@
       "_src": "the dark plank: S14 ~#4a4e54; S16 k-means #4c5153 at dusk; S17 #3c4653 in Earth's shade — the middle value"
     },
     "white": {
-      "hex": "#e2e3df",
-      "_src": "the white bays' field (tower B's faces, the south bar): S17 #d6dcda lit / S16 #9fa4a8 dusk; a hair under pixWhite so the two skins read as one family, as they do in S6"
+      "hex": "#eaece8",
+      "_src": "the white bays' field (tower B, the south bar): Earth #dce2e1 sunlit / #aeb5b5 shaded (S20); a hair under pixWhite so the two skins read as one family — was #e2e3df, which drew beige (S20)"
     },
     "podiumPanel": {
-      "hex": "#cfd0cb",
-      "_src": "the podium's light grey panel: a step darker than the tower white in S5/S6/S14 ('white and pale-grey panel'); S17 NW podium north face #d7d9d7 lit — entered a step under white"
+      "hex": "#dedcd4",
+      "_src": "the podium's panel: a step warmer and darker than the tower white — Ext_14 from the street at blue hour #d8d5cc against the tower's #dcdcd6 (S19); was #cfd0cb, which drew as mud under the app's daylight (S20)"
     },
     "rust": {
       "hex": "#b5623a",
@@ -174,19 +177,19 @@
       "_src": "storefront mullions and window reveals: taken as the coping's aluminium (STD_CAP); not separately sampled"
     },
     "glass": [
-      "#2c3439",
-      "#3a3f42",
+      "#8fa3b0",
+      "#6a707a",
       "#141a20"
     ],
-    "_glass_src": "punched-window glass: dark blue-grey by day (S14 ~#3a4650 unlit; S17 windows #414544), darker than the charcoal plank beside it; the night value is the dark unlit pane; lit panes take APARTMENTS.nightLitTone",
+    "_glass_src": "punched-window glass: by day the SUNLIT read — Earth's window cluster #7e8688 (18 % of the south face, S20) is sky reflected in the pane, and through the app's daylight multiplier (S20) #8fa3b0 lands near it; golden a grey-blue; night the dark unlit pane (lit panes take APARTMENTS.nightLitTone). Was #2c3439 by day, which put 32 % of the south face at near-black against Earth's 8 % (S20).",
     "storeGlass": [
-      "#4a5a62",
+      "#5f7078",
       "#5c6068",
       "#e9c27a"
     ],
     "_storeGlass_src": "storefront glazing, amber-lit at night in S5/S6",
     "stackGlass": [
-      "#6f8a99",
+      "#8fa9b8",
       "#8a8f90",
       "#e6c27c"
     ],
@@ -310,7 +313,19 @@
       "#9a958c",
       "#1a1d26"
     ],
-    "_condenser_src": "the rooftop condenser units: mid grey in the nadir (S8), entered like S12's mech tone; night as the deck"
+    "_condenser_src": "the rooftop condenser units: mid grey in the nadir (S8), entered like S12's mech tone; night as the deck",
+    "railOpen": [
+      "#767b81",
+      "#6e6a66",
+      "#171921"
+    ],
+    "_railOpen_src": "the tube rail of a projecting balcony stack, drawn as a solid box by the generator but mostly air in the photographs (S7, S19): a mid average of black bars and the light wall and sky behind them, so the stack reads as light slabs with a darker rail (Earth SW at the corner, S17) and not as a column of grey boxes — round 4's #5d6268 still read as boxes at the judge's camera; the juliets keep the black `rail`",
+    "louvre": [
+      "#4a4f54",
+      "#4e4b48",
+      "#1b1e26"
+    ],
+    "_louvre_src": "the podium's louvre panels (S16, S19): a dark grey a step lighter than the charcoal"
   },
   "skins": {
     "_src": "each skin is a rule; its numbers are below with their source",
@@ -321,7 +336,7 @@
       "bond": 0.5,
       "runMax": 3,
       "macro": [
-        2,
+        1,
         1
       ],
       "tones": [
@@ -330,9 +345,9 @@
         "pixWhite"
       ],
       "weights": [
-        26,
+        24,
         10,
-        64
+        66
       ],
       "window": {
         "cols": [
@@ -343,7 +358,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "panel courses of ~0.63 m (five per 3.17 m storey: S16, tower A's north face at 4x, the marks two courses tall against the storey lines) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of TWO courses by ONE plank so every mark is ~1.3 m tall, and runs of one to three macro planks make marks 2.4, 4.8 and 7.2 m long — the 'two or three distinct sizes' of S14 photo 3 and the 2.4-7 m read of S16; dark 26 % (S16 k-means 26 %; S14 '~30 %'), a few mid-grey planks (S15), the rest white. Was: 0.556 courses, 2x2 macro cells and runs to 13 m, 20 % dark on a cream field. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8)."
+      "_src": "panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8)."
     },
     "pixelA": {
       "kind": "pixel",
@@ -352,7 +367,7 @@
       "bond": 0.5,
       "runMax": 3,
       "macro": [
-        2,
+        1,
         1
       ],
       "tones": [
@@ -361,9 +376,9 @@
         "pixWhite"
       ],
       "weights": [
-        26,
+        24,
         10,
-        64
+        66
       ],
       "window": {
         "cols": [
@@ -374,7 +389,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of ~0.63 m (five per 3.17 m storey: S16, tower A's north face at 4x, the marks two courses tall against the storey lines) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of TWO courses by ONE plank so every mark is ~1.3 m tall, and runs of one to three macro planks make marks 2.4, 4.8 and 7.2 m long — the 'two or three distinct sizes' of S14 photo 3 and the 2.4-7 m read of S16; dark 26 % (S16 k-means 26 %; S14 '~30 %'), a few mid-grey planks (S15), the rest white. Was: 0.556 courses, 2x2 macro cells and runs to 13 m, 20 % dark on a cream field."
+      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white."
     },
     "pixelB": {
       "kind": "pixel",
@@ -383,17 +398,19 @@
       "bond": 0.5,
       "runMax": 3,
       "macro": [
-        2,
+        1,
         1
       ],
       "tones": [
         "pixDark",
         "pixPale",
+        "rust",
         "pixWhite"
       ],
       "weights": [
-        26,
+        22,
         10,
+        4,
         64
       ],
       "window": {
@@ -404,7 +421,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x: one lit column half way across the pixel). panel courses of ~0.63 m (five per 3.17 m storey: S16, tower A's north face at 4x, the marks two courses tall against the storey lines) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of TWO courses by ONE plank so every mark is ~1.3 m tall, and runs of one to three macro planks make marks 2.4, 4.8 and 7.2 m long — the 'two or three distinct sizes' of S14 photo 3 and the 2.4-7 m read of S16; dark 26 % (S16 k-means 26 %; S14 '~30 %'), a few mid-grey planks (S15), the rest white. Was: 0.556 courses, 2x2 macro cells and runs to 13 m, 20 % dark on a cream field."
+      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x). panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. This field, and the strip of it that reaches the street, carries occasional RUST planks (S19: Ext_14's right edge) — 4 %."
     },
     "pixelPlain": {
       "kind": "pixel",
@@ -413,63 +430,90 @@
       "bond": 0.5,
       "runMax": 3,
       "macro": [
-        2,
+        1,
         1
       ],
       "tones": [
         "pixDark",
         "pixPale",
+        "rust",
         "pixWhite"
       ],
       "weights": [
-        26,
+        22,
         10,
+        4,
         64
       ],
-      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower"
+      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower; with tower B's rust planks (S19)"
     },
     "bays": {
       "kind": "bays",
-      "bay": 2.5,
+      "bay": 5.0,
       "field": "white",
-      "strip": {
-        "w": 0.55,
-        "tone": "rust",
-        "at": "joints",
-        "every": 2
-      },
       "window": {
-        "w": 1.25,
-        "h": 2.3,
-        "sill": 0.6
-      },
-      "_src": "the south elevation and tower B's west face south of the pixel: a white field with a rust strip on ALTERNATE bay lines — about every 5 m over the 66 m bar in Earth (S17), two tall dark windows between strips — and one 1.25 x 2.3 m window per 2.5 m bay. Was: 3.0 m bays with a strip at EVERY joint, which doubled the rust the judge's Earth frame shows."
-    },
-    "baysB": {
-      "kind": "bays",
-      "bay": 2.66,
-      "field": "white",
-      "strip": {
-        "w": 0.7,
-        "tone": "rust",
-        "at": "centres"
-      },
-      "floorLine": {
-        "h": 0.5,
-        "tone": "white"
-      },
-      "window": {
-        "w": 1.2,
-        "h": 2.4,
-        "sill": 0.5,
+        "w": 1.1,
+        "h": 1.95,
+        "sill": 1.0,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        },
         "offsets": [
           [
-            0.75,
-            1.2
+            -1.25,
+            1.1,
+            {
+              "h": 0.62,
+              "tone": "rust"
+            }
+          ],
+          [
+            1.25,
+            1.1,
+            null
           ]
         ]
       },
-      "_src": "tower B's north face over the deck: six bays of 2.66 m across 15.95 m (S16 at 4x), each with a tall window and a rust strip the window's own height immediately LEFT of it (viewer's left = lower s), the light spandrel running through between storeys — drawn as a 0.7 m strip on the bay centre with the window shifted 0.75 m to its right so 0.5 m of rust shows beside the glass, and a 0.5 m band of the field at every floor line (the sill height) so the strips read as storey dashes, not stripes (round 2: they ran as continuous stripes); the two balcony columns are on the face"
+      "_src": "the south elevation and tower B's west face south of the pixel: two 1.1 m windows per 5 m module (S17: rust every ~5 m over the 66 m bar in Earth, two tall dark windows between), the rust under the LEFT window of each module (lower s) and none under the right. the window unit (S19): a tall light in a 0.1 m charcoal frame, sill 1.0 above the floor line, the rust spandrel 0.62 m tall under the frame's sill strip (0.28-0.9 above the floor) on the bays that carry it, the light band below it. The south bar was never photographed close and Earth's texture at 220 m cannot separate a column of spandrels from a strip — the rule is the one every photographed face of the same window system follows (S19), and its rust share (4 %) is what Earth's cluster shows (S20). Was: 2.5 m bays, a 0.55 m rust STRIP on alternate bay lines full height (11 % rust), 1.25 x 2.3 windows in near-black glass."
+    },
+    "baysB": {
+      "kind": "bays",
+      "bay": 7.98,
+      "field": "white",
+      "window": {
+        "w": 1.3,
+        "h": 2.0,
+        "sill": 0.95,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        },
+        "offsets": [
+          [
+            -2.66,
+            1.3,
+            {
+              "h": 0.62,
+              "tone": "rust"
+            }
+          ],
+          [
+            0,
+            1.3,
+            {
+              "h": 0.62,
+              "tone": "rust"
+            }
+          ],
+          [
+            2.66,
+            1.3,
+            null
+          ]
+        ]
+      },
+      "_src": "tower B's north face over the deck: six windows of 1.3 m at 2.66 m centres across 15.95 m (S16 at 4x), grouped in threes so two columns in three carry the rust spandrel (S19: Ext_41 from the deck — the double column at the middle has light spandrels, the columns either side rust). the window unit (S19): a tall light in a 0.1 m charcoal frame, sill 1.0 above the floor line, the rust spandrel 0.62 m tall under the frame's sill strip (0.28-0.9 above the floor) on the bays that carry it, the light band below it. The two balcony columns are on the face, each in front of a window. Was: a 0.7 m rust strip beside every window with a floorLine break (round 2)."
     },
     "court": {
       "kind": "bays",
@@ -478,36 +522,43 @@
       "window": {
         "w": 1.6,
         "h": 2.2,
-        "sill": 0.6
+        "sill": 0.6,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        }
       },
-      "_src": "the faces round the light wells and the gym's flanks: white with one window per bay (the NW oblique, S8, shows the west well's far wall so; designenvironments_00.jpg, the courtyard from above); no rust strips seen"
+      "_src": "the faces round the light wells and the gym's flanks: white with one window per bay in the charcoal frame of the window unit (S19) — the NW oblique (S8) shows the west well's far wall so; designenvironments_00.jpg, the courtyard from above; no rust seen"
     },
     "podium": {
       "kind": "bays",
-      "bay": 3.1,
+      "bay": 6.2,
       "field": "podiumPanel",
-      "strip": {
-        "w": 0.8,
-        "tone": "rust",
-        "at": "centres",
-        "every": 3
-      },
-      "floorLine": {
-        "h": 0.5,
-        "tone": "podiumPanel"
-      },
       "window": {
         "w": 1.3,
-        "h": 2.4,
-        "sill": 0.5,
+        "h": 1.95,
+        "sill": 1.0,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        },
         "offsets": [
           [
-            0.8,
-            1.3
+            -1.55,
+            1.3,
+            {
+              "h": 0.62,
+              "tone": "rust"
+            }
+          ],
+          [
+            1.55,
+            1.6,
+            null
           ]
         ]
       },
-      "_src": "the podium's light panel (S5/S6/S14): one tall 1.3 x 2.4 m window per 3.1 m bay (the floor-to-floor module the photograph's windows sit in), with a rust strip the window's height immediately left of the window on every THIRD bay (S15, S16: 'maybe one bay in three' in S14 photo 2), the light spandrel running through between storeys — the 0.8 m strip on those bays' centres with every window shifted 0.8 m right of centre so 0.55 m of rust shows beside the glass, and a 0.5 m band of the field at every floor line (the sill height) so the strips are storey dashes, not stripes (round 2); the juliet balconies on those same bays are the faces' `balconies`. Was: grey field, strips on every third JOINT, 1.4 x 1.9 m windows, no juliets."
+      "_src": "the podium's light panel (S5/S6/S14/S19): bays alternate strictly — a window bay with the rust spandrel, then a juliet-door bay (a 1.6 m opening behind the black rail, no rust) — a module of 6.2 m (two ~3.1 m bays; Ext_01's juliets at ~6 m centres, Ext_14's window/juliet/window from the street), drawn as one 6.2 m bay with two openings: the rust window 1.3 m wide 1.55 m below the bay centre (lower s) and the door 1.6 m wide 1.55 m above it. the window unit (S19): a tall light in a 0.1 m charcoal frame, sill 1.0 above the floor line, the rust spandrel 0.62 m tall under the frame's sill strip (0.28-0.9 above the floor) on the bays that carry it, the light band below it. The juliets on the door bays are the faces' `balconies`, at the door positions the face's own module gives (each wall piece sets its module from its length: n = round(len / 6.2)). Was: 3.1 m bays, a 0.8 m rust STRIP beside the window on every third bay with a floorLine break, juliets on those same bays."
     },
     "storefront": {
       "kind": "storefront",
@@ -529,9 +580,13 @@
       "window": {
         "w": 1.3,
         "h": 2.2,
-        "sill": 0.5
+        "sill": 0.5,
+        "frame": {
+          "w": 0.1,
+          "tone": "frame"
+        }
       },
-      "_src": "the corner bay's charcoal panel with two columns of tall punched windows per street face beside the glazed stack (S15: two per floor on each face) — 4.0 m bays over the ~8 m of each face outside the stack"
+      "_src": "the corner bay's charcoal panel with two columns of tall punched windows per street face beside the glazed stack (S15: two per floor on each face) — 4.0 m bays over the ~8 m of each face outside the stack; the windows in the light aluminium frame the photograph shows on the charcoal (S19)"
     },
     "charcoalBlank": {
       "kind": "flat",
@@ -578,6 +633,56 @@
       "kind": "flat",
       "field": "roof",
       "_src": "a bulkhead"
+    },
+    "podiumR": {
+      "kind": "bays",
+      "bay": 6.2,
+      "field": "podiumPanel",
+      "window": {
+        "w": 1.3,
+        "h": 1.95,
+        "sill": 1.0,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        },
+        "offsets": [
+          [
+            -1.55,
+            1.6,
+            null
+          ],
+          [
+            1.55,
+            1.3,
+            {
+              "h": 0.62,
+              "tone": "rust"
+            }
+          ]
+        ]
+      },
+      "_src": "the podium skin mirrored — the door at the lower s of each module and the rust window at the higher — for the Pearl face, whose s runs from the south end and whose bay nearest the corner bay is a rust window (S19: Ext_14 from the street)"
+    },
+    "louvreTop": {
+      "kind": "flat",
+      "field": "podiumPanel",
+      "glass": "louvre",
+      "window": {
+        "cols": [
+          0.099,
+          0.594,
+          0.901
+        ],
+        "w": 1.1,
+        "h": 2.4,
+        "sill": 0.4,
+        "frame": {
+          "w": 0.1,
+          "tone": "charcoal"
+        }
+      },
+      "_src": "the podium's top storey on the 10.1 m next to the corner bay (u 71.5-81.6): three one-window-wide dark louvre panels where the windows would be (S19: Ext_14 shows three, Ext_01's profile puts them ~1.5, 4.0 and 9.2 m from the corner bay), drawn as 1.1 x 2.4 m openings in the louvre tone at the piece's window positions. A louvre may be 'lit' after dark like any opening (APARTMENTS.nightLit) — one of three, most nights; accepted."
     }
   },
   "balcony": {
@@ -585,7 +690,7 @@
     "slabT": 0.28,
     "railH": 0.95,
     "railT": 0.06,
-    "_src": "S9 (TIER4: BW 2.8, BP 1.15, BT 0.28, BR 0.95, BX 0.12 read off Ext_01 against the panel module); the rail drawn 0.06 thick as three thin boxes, the photograph's tube rail (S7). A juliet stack overrides proj/slabT/railH on itself (S15: ~0.35 m deep, a 1.05 m black rail)."
+    "_src": "S9 (TIER4: BW 2.8, BP 1.15, BT 0.28, BR 0.95, BX 0.12 read off Ext_01 against the panel module); the rail drawn 0.06 thick as three thin boxes, the photograph's tube rail (S7), in `railOpen` on the projecting stacks (a solid box standing for bars and air). A juliet stack overrides proj/slabT/railH on itself (S15: ~0.35 m deep, a 1.05 m black rail) and keeps the black `rail`."
   },
   "blocks": [
     {
@@ -661,63 +766,81 @@
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 1.5,
-                  "s1": 3.2,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 3.8,
+                  "s1": 5.4
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 10.78,
-                  "s1": 12.48,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 9.9,
+                  "s1": 11.5
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 20.07,
-                  "s1": 21.77,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 16.0,
+                  "s1": 17.6
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 29.35,
-                  "s1": 31.05,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 22.1,
+                  "s1": 23.7
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 38.64,
-                  "s1": 40.34,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 28.2,
+                  "s1": 29.8
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 47.93,
-                  "s1": 49.63,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 34.3,
+                  "s1": 35.9
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 57.21,
-                  "s1": 58.91,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 40.4,
+                  "s1": 42.0
+                },
+                {
+                  "proj": 0.35,
+                  "slabT": 0.12,
+                  "railH": 1.05,
+                  "railT": 0.05,
+                  "lift": 0.0,
+                  "s0": 46.5,
+                  "s1": 48.1
+                },
+                {
+                  "proj": 0.35,
+                  "slabT": 0.12,
+                  "railH": 1.05,
+                  "railT": 0.05,
+                  "lift": 0.0,
+                  "s0": 52.6,
+                  "s1": 54.2
                 }
               ]
             }
@@ -776,7 +899,7 @@
             }
           ]
         },
-        "_src": "edge 0 = the 23rd St face (s runs east to west from u=16.6): storefront, then the podium skin with a juliet on every third bay — the strip bays — 21 bays of 3.095 m (S15/S16). Edges 1 and 2 stand against the corner bay: not drawn. Edge 3 (u=90.95, v 11-41.25) is tower B's west face plane: below 18.4 it is inside the Pearl strip, between 18.4 and 21.5 it shows as the tower's base — the bays skin, and the pixel under the tower's field by the override below (S15). Edges 4-6 (the notch's west wall, the south face, the SE step): the white/rust bays of the south bar run straight down to the ground floor (S13/S17 — twelve rows over the neighbouring garage's roof, the same rhythm top to bottom), on a ONE-storey dark base: flat charcoal on the south face and the SE step, which stand against the garage (S8) and show nothing, and the storefront on edge 4, which faces the notch off Pearl where S13 shows the cafe's glazing."
+        "_src": "edge 0 = the 23rd St face (s runs east to west from u=16.6): storefront, then the podium skin — the juliet on every door bay of the face's own module over s 0-54.9 (nine modules of 6.1 m; the 10.1 m next to the corner bay is the louvre override's own piece with its own juliet). Edges 1 and 2 stand against the corner bay: not drawn. Edge 3 (u=90.95, v 11-41.25) is tower B's west face plane: below 18.4 it is inside the Pearl strip, between 18.4 and 21.5 it shows as the tower's base — the bays skin, and the pixel under the tower's field by the override below (S15). Edges 4-6 (the notch's west wall, the south face, the SE step): the white/rust bays of the south bar run straight down to the ground floor (S13/S17 — twelve rows over the neighbouring garage's roof, the same rhythm top to bottom), on a ONE-storey dark base: flat charcoal on the south face and the SE step, which stand against the garage (S8) and show nothing, and the storefront on edge 4, which faces the notch off Pearl where S13 shows the cafe's glazing."
       },
       "overrides": [
         {
@@ -834,8 +957,8 @@
         },
         {
           "region": [
-            73.6,
-            76.0,
+            71.5,
+            81.6,
             0,
             0
           ],
@@ -848,41 +971,26 @@
             {
               "z0": 6.0,
               "z1": 18.4,
-              "skin": "podium"
+              "skin": "podium",
+              "balconies": [
+                {
+                  "proj": 0.35,
+                  "slabT": 0.12,
+                  "railH": 1.05,
+                  "railT": 0.05,
+                  "lift": 0.0,
+                  "s0": 3.3,
+                  "s1": 4.9
+                }
+              ]
             },
             {
               "z0": 18.4,
               "z1": 21.5,
-              "skin": "charcoalBlank"
+              "skin": "louvreTop"
             }
           ],
-          "_src": "the first of two one-storey dark louvre panels in the podium's top storey just east of the corner bay on 23rd St (S16, h01-podium-north; S5 shows them as louvred grilles): ~2.4 m wide, positions read by eye off S6 — not dimensioned"
-        },
-        {
-          "region": [
-            77.6,
-            80.0,
-            0,
-            0
-          ],
-          "bands": [
-            {
-              "z0": 0,
-              "z1": 6.0,
-              "skin": "storefront"
-            },
-            {
-              "z0": 6.0,
-              "z1": 18.4,
-              "skin": "podium"
-            },
-            {
-              "z0": 18.4,
-              "z1": 21.5,
-              "skin": "charcoalBlank"
-            }
-          ],
-          "_src": "the second louvre panel (S16)"
+          "_src": "the 10.1 m of the 23rd St face next to the corner bay (u 71.5-81.6), one piece so its module is its own: two 5.05 m modules put the rust windows at u 72.5 and 77.5 and the doors at 75.6 and 80.6; the juliet on the first door only (S19: Ext_01 has a rail ~6.8 m from the corner bay and thin frame lines at ~1.5 m), and the top storey is the three louvre panels (louvreTop) at the piece's window positions. Round 3 had two 2.4 m override pieces here, each of which restarted the bays module on a strip bay, so three rust strips crowded the corner bay."
         }
       ],
       "roofTone": "deck",
@@ -1006,7 +1114,8 @@
                   "s0": 5.3,
                   "s1": 6.9,
                   "lift": 0.0,
-                  "proj": 1.0
+                  "proj": 1.0,
+                  "railTone": "railOpen"
                 }
               ]
             },
@@ -1151,7 +1260,7 @@
         {
           "z0": 6.0,
           "z1": 18.4,
-          "skin": "podium"
+          "skin": "podiumR"
         }
       ],
       "faces": {
@@ -1167,31 +1276,49 @@
             {
               "z0": 6.0,
               "z1": 18.4,
-              "skin": "podium",
+              "skin": "podiumR",
               "balconies": [
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 28.15,
-                  "s1": 29.85,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 0.76,
+                  "s1": 2.36
                 },
                 {
                   "proj": 0.35,
                   "slabT": 0.12,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "s0": 10.05,
-                  "s1": 11.75,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "s0": 6.97,
+                  "s1": 8.57
+                },
+                {
+                  "proj": 0.35,
+                  "slabT": 0.12,
+                  "railH": 1.05,
+                  "railT": 0.05,
+                  "lift": 0.0,
+                  "s0": 13.19,
+                  "s1": 14.79
+                },
+                {
+                  "proj": 0.35,
+                  "slabT": 0.12,
+                  "railH": 1.05,
+                  "railT": 0.05,
+                  "lift": 0.0,
+                  "s0": 24.1,
+                  "s1": 25.7
                 }
               ]
             }
           ]
         },
-        "_src": "u0 and v0 stand against the podium and the corner bay; v1 faces the SW notch off Pearl and wears the strip's own bands (storefront, then the podium panel) — S13 shows the cafe's glazing and light panel there. u1 = the Pearl face (s from the south end): the podium skin's strip bays are 0, 3, 6, 9 of ten 3.025 m bays; the juliets stand on bay 9 (beside the corner bay) and bay 3 (S15: two stacks, one against the corner bay and one about two thirds along); bay 6 is under the pixel strip."
+        "_src": "u0 and v0 stand against the podium and the corner bay; v1 faces the SW notch off Pearl and wears the strip's own bands (storefront, then the mirrored podium panel) — S13 shows the cafe's glazing and light panel there. u1 = the Pearl face (s from the south end): the pixel strip at v 18.6-22.6 cuts it into a south piece (s 0-18.65, three 6.2 m modules) and a north piece (s 22.65-30.25, one module), each with the mirrored podium skin so the bay nearest the corner bay is a rust window (S19); the juliets stand on the door bays of those modules — three on the south piece, one on the north (Ext_14 from the street: window, juliet, window, juliet along Pearl)."
       },
       "overrides": [
         {
@@ -1599,7 +1726,8 @@
                 {
                   "s0": 0.9,
                   "s1": 4.1,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "railTone": "railOpen"
                 }
               ]
             }
@@ -1739,12 +1867,14 @@
                 {
                   "s0": 13.0,
                   "s1": 15.8,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "railTone": "railOpen"
                 },
                 {
                   "s0": 2.3,
                   "s1": 5.1,
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "railTone": "railOpen"
                 }
               ]
             }
@@ -1772,7 +1902,7 @@
         "v1": null,
         "_src": "v0 = the north face over the deck (s runs west to east across 15.95 m): six 2.66 m bays (S16), balcony columns 2.8 m wide flush at the east corner (s 13.0-15.8) and 2.3 m in from the west corner (s 2.3-5.1) from level 8 up — the deck-level floor opens onto the deck, not a balcony (S7); u0 faces the west light well and the deck; u1 = the west face (s = 34 - v): the white/rust bays by default, and the pixel with the sign on v 11-22 by the override; v1 stands against the south bar"
       },
-      "_balconies_note": "the balcony band starts at 25.0 so the stacks begin at level 8 (25.5): the deck-level floor opens onto the deck, not a balcony (S7)",
+      "_balconies_note": "the balcony band starts at 25.0 so the stacks begin at level 8 (25.5): the deck-level floor opens onto the deck, not a balcony (S7); the rails wear railOpen, the mid-dark average of a tube rail and what shows through it (S19)",
       "roofTone": "roof",
       "parapet": 1.0,
       "parapetTone": "coping",
