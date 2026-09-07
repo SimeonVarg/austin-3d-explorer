@@ -46,27 +46,48 @@ const rows = [];
 for (const b of PTS) {
   const c = [b.pts.reduce((s, p) => s + p[0], 0) / b.pts.length, b.pts.reduce((s, p) => s + p[1], 0) / b.pts.length];
   await pg.evaluate(o => window.__map.jumpTo(o), { center: c, zoom: 18.5, pitch: 0, bearing: 0 });
-  await pg.waitForTimeout(2200);
-  await pg.evaluate(() => new Promise(r => { const m = window.__map; const t = setTimeout(r, 8000); m.once('idle', () => { clearTimeout(t); r(); }); }));
+  await pg.waitForTimeout(1500);
+  await pg.evaluate(() => new Promise(r => { const m = window.__map; const t = setTimeout(r, 4500); m.once('idle', () => { clearTimeout(t); r(); }); }));
   const hit = await pg.evaluate(({ pts, ours, top }) => {
     const m = window.__map, mine = {}, other = {};
+    // THE ASSERTION, at every interior point, restricted to the layers it is
+    // about. An unrestricted query asks every layer in the style at every
+    // pixel: that is 45 s per building, and the first run of this sweep never
+    // finished inside the browser's own cap.
+    const live = ours.filter(id => m.getLayer(id));
     for (const c of pts) {
       const p = m.project(c);
       if (p.x < 0 || p.y < 0 || p.x > m.getCanvas().clientWidth || p.y > m.getCanvas().clientHeight) continue;
-      for (const f of m.queryRenderedFeatures([p.x, p.y])) {
+      for (const f of m.queryRenderedFeatures([p.x, p.y], { layers: live })) {
         const id = f.layer && f.layer.id;
-        if (!id || (f.layer.type !== 'fill-extrusion')) continue;
+        if (!id) continue;
         const q = f.properties || {}, h = +(q.h ?? q.height ?? q.final_height ?? NaN);
-        const bag = ours.indexOf(id) >= 0 ? mine : other;
-        if (!bag[id]) bag[id] = { n: 0, maxH: null, eg: null };
-        bag[id].n++;
-        if (!Number.isNaN(h) && (bag[id].maxH === null || h > bag[id].maxH)) {
-          bag[id].maxH = h;
-          bag[id].eg = { b: q.b, h, name: q.name, id: q.id, host: q.host, f: q.f, kind: q.kind };
+        if (!mine[id]) mine[id] = { n: 0, maxH: null, eg: null };
+        mine[id].n++;
+        if (!Number.isNaN(h) && (mine[id].maxH === null || h > mine[id].maxH)) {
+          mine[id].maxH = h;
+          mine[id].eg = { b: q.b, h, name: q.name, id: q.id, host: q.host, f: q.f, kind: q.kind };
         }
       }
     }
-    // everything not in the hide plan that stands ABOVE this building's own top
+    // DISCOVERY, at a handful of points only. The bucket above is restricted
+    // to the hide plan; this one is how a pass NOBODY hides gets found in the
+    // first place (it is how moody-wall was), so it has to ask every layer —
+    // which is expensive, so it asks at eight points rather than eighty.
+    const step = Math.max(1, Math.ceil(pts.length / 8));
+    for (let i = 0; i < pts.length; i += step) {
+      const p = m.project(pts[i]);
+      if (p.x < 0 || p.y < 0 || p.x > m.getCanvas().clientWidth || p.y > m.getCanvas().clientHeight) continue;
+      for (const f of m.queryRenderedFeatures([p.x, p.y])) {
+        const id = f.layer && f.layer.id;
+        if (!id || f.layer.type !== 'fill-extrusion' || ours.indexOf(id) >= 0) continue;
+        const q = f.properties || {}, h = +(q.h ?? q.height ?? q.final_height ?? NaN);
+        if (!other[id]) other[id] = { n: 0, maxH: null, eg: null };
+        other[id].n++;
+        if (!Number.isNaN(h) && (other[id].maxH === null || h > other[id].maxH)) { other[id].maxH = h; other[id].eg = { b: q.b, h, name: q.name, id: q.id, kind: q.kind }; }
+      }
+    }
+    // what stands ABOVE this building's own top and is nobody's hide plan yet
     const above = {};
     if (top != null) for (const [id, v] of Object.entries(other)) if (v.maxH != null && v.maxH > top + 0.5) above[id] = v;
     return { mine, other: above };
