@@ -303,11 +303,11 @@
     ],
     "_sign_src": "S12 signw (the white channel letters of the horizontal signs, backlit at night)",
     "signVert": [
-      "#cbcdca",
-      "#d3ccbf",
+      "#aeb2b0",
+      "#c4bdb0",
       "#dfe6f0"
     ],
-    "_signVert_src": "the vertical letters stand on a white column of the pixel field (S16): white on white does not read from 220 m, so the day tone is the letters' shadowed metal, a step under the field; lit white at night (S6)",
+    "_signVert_src": "the vertical letters stand on a white column of the pixel field (S16): by day they read as the letters' SHADED metal — Ext_01 at 2x (S19) shows THE STANDARD on tower A as grey-silver capitals whose outline is their shadow on the light panel — so the day tone is two steps under the field (round 5 had it one step under, #cbcdca, and the letters vanished at the judge's camera once the field went to #ecedea); lit white at night (S6, S14 photo 1)",
     "condenser": [
       "#8f9398",
       "#9a958c",
