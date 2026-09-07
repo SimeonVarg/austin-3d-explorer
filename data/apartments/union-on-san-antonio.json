@@ -93,11 +93,11 @@
   "colours": {
     "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex is a median over a named box on S4's g33 unless it says otherwise; the boxes and the marked-up frames are in the scratchpad (ref/samples_podium.jpg, ref/samples_tower2.jpg).",
     "rib": {
-      "hex": "#8e98a6",
-      "_src": "The tower's vertical standing-seam metal, the whole outer wall. g33 gives the SAME panel twice under two lights - the sunlit north face #8997ae (box 1060,1240-1105,1275) and the self-shaded west face #827d85 (680,1130-716,1180) - and this is their mean, which is the albedo the app's own daylight is then applied to."
+      "hex": "#8a9cb8",
+      "_src": "The tower's vertical standing-seam metal, the whole outer wall. g33 gives the SAME panel twice under two lights - the sunlit north face #8997ae (box 1060,1240-1105,1275) and the self-shaded west face #827d85 (680,1130-716,1180) - and this is their mean, which is the albedo the app's own daylight is then applied to. LOOK-FIX 1: the mean of those two reads, #8e98a6, came through this app's warm afternoon shader as a BROWN grey - the tower read like brick beside the real thing - so it is carried to #8a9cb8, the same value with the blue the reference has and this light takes back out."
     },
     "ribGroove": {
-      "hex": "#79828f",
+      "hex": "#74869f",
       "_src": "DERIVED: the seam shadow between ribs, one step down from `rib` on the same ratio js/westcampus.js's ramp() uses between a wall and its shaded reveal."
     },
     "towerGlass": {
@@ -129,11 +129,11 @@
       "_src": "The dark bronze band over the plinth, median #2a2212 over 1000,2020-1120,2060."
     },
     "stone": {
-      "hex": "#c3b69c",
-      "_src": "The limestone ashlar plinth. The box at 1000,2100-1100,2160 reads #a18f76 in the podium's own shade; this is that read taken to the sunlit value the same course has further south."
+      "hex": "#ccc6b7",
+      "_src": "The limestone ashlar plinth. The box at 1000,2100-1100,2160 reads #a18f76 in the podium's own shade; this is that read taken to the sunlit value the same course has further south. LOOK-FIX 1: and cooler again, because at #c3b69c the plinth and the brick above it read as one tan block where the reference has a plainly paler, greyer base."
     },
     "podRib": {
-      "hex": "#8496a8",
+      "hex": "#8296b0",
       "_src": "The blue-grey ribbed metal band that caps the podium, median #829eba over 470,1510-560,1550. It is the tower's cladding brought down to close the podium."
     },
     "podRibDark": {
@@ -141,20 +141,20 @@
       "_src": "DERIVED: the rib shadow in the podium band, one step down."
     },
     "garageFin": {
-      "hex": "#c9c8c2",
-      "_src": "The garage screen's pale vertical fins, median #cecdc7 over 1448,1848-1502,1900."
+      "hex": "#b4b2a9",
+      "_src": "The garage screen's pale vertical fins, median #cecdc7 over 1448,1848-1502,1900, a SUNLIT read. LOOK-FIX 1: at that value 62 m of screen read as a white corduroy wall across the whole west elevation, so it is carried down to the shaded mean of the same panel."
     },
     "garageDark": {
       "hex": "#6a6a64",
       "_src": "DERIVED: what is seen between the fins - the open parking deck in shadow."
     },
     "orange": {
-      "hex": "#e79a12",
+      "hex": "#d9930f",
       "_src": "The tall orange mark on San Antonio Street with the Union 'U' on it, median #ec9f02 over 1288,1598-1322,1652. It is the most saturated thing on the building and the owner's 'really cool design' is largely this and the ribbon balconies."
     },
     "wood": {
-      "hex": "#a5602c",
-      "_src": "The cedar slat soffit over the podium's corner loggia, median #87481d on S4's g32 at 1080,1590-1330,1680 under a warm evening sun, taken to its daylight albedo."
+      "hex": "#8a5a30",
+      "_src": "The cedar slat soffit over the podium's corner loggia, median #87481d on S4's g32 at 1080,1590-1330,1680 under a warm evening sun, taken to its daylight albedo. LOOK-FIX 1: at #a5602c the loggia was a traffic-cone orange box on the corner - the same failure the GrandMarc caps had - so it is a deeper, less saturated cedar now."
     },
     "coping": {
       "hex": "#b8b3a8",
@@ -187,6 +187,14 @@
     "equip": {
       "hex": "#77787a",
       "_src": "DERIVED: roof plant; the same value union-on-24th.json carries."
+    },
+    "railGlass": {
+      "hex": "#6d6f70",
+      "_src": "DERIVED, LOOK-FIX 1: a balcony guard is glass in a slim dark frame and at this app's cameras it reads as a mid grey with the wall showing through, not the near-black #3c3c3e the first render drew across every balcony on the building."
+    },
+    "loggiaGlass": {
+      "hex": "#3e3a33",
+      "_src": "DERIVED, LOOK-FIX 1: the recessed wall at the back of the podium's corner loggia. S4's g33 shows dark glazing there, not more wood; the wood is the soffit only."
     }
   },
   "skins": {
@@ -301,19 +309,19 @@
       "reveal": 0.1,
       "_src": "The double-height glass amenity pavilion standing on the L5 deck, S4's g15: a clear glass box on a 1.6 m mullion grid with one transom at mid height."
     },
-    "loggiaWood": {
+    "loggiaGlassSkin": {
       "kind": "flat",
-      "field": "wood",
-      "_src": "The cedar slat soffit and back wall of the podium's corner loggia (S4's g32)."
+      "field": "loggiaGlass",
+      "_src": "The recessed wall at the back of the podium's corner loggia. LOOK-FIX 1: it was `wood` on every surface, which made the corner a bright orange box - S4's g32 shows the WOOD is the soffit (the recess's own `tone`) and the wall behind it is dark glazing."
     }
   },
   "balcony": {
     "proj": 1.75,
-    "slabT": 0.3,
-    "railH": 1.02,
+    "slabT": 0.42,
+    "railH": 0.82,
     "railT": 0.05,
     "slabTone": "slab",
-    "railTone": "rail",
+    "railTone": "railGlass",
     "_src": "S6: on g33's north face a balcony is a little under one 3.16 m bay wide and about as deep as it is wide at the near corner, with a thin dark guard on a pale precast slab. The ribbon balconies override `proj` to 0.95 - they are a ledge, not a room."
   },
   "blocks": [
@@ -388,7 +396,7 @@
             {
               "z0": 16.6,
               "z1": 21.3,
-              "skin": "loggiaWood",
+              "skin": "loggiaGlassSkin",
               "inset": {
                 "d": 2.6,
                 "tone": "wood",
@@ -539,11 +547,11 @@
     },
     {
       "id": "mark",
-      "_src": "The orange pylon on San Antonio Street with the Union 'U' on it, standing proud of the garage's west wall from grade to the podium's parapet. S4's g33 (ref/t_south.jpg) shows it as one continuous full-height panel at the joint between the brick box and the garage, and it is the building's one saturated colour.",
+      "_src": "The orange pylon on San Antonio Street with the Union 'U' on it, standing proud of the garage's west wall from grade to the podium's parapet. S4's g33 (ref/t_south.jpg) shows it as one continuous full-height panel at the joint between the brick box and the garage, and it is the building's one saturated colour. LOOK-FIX 1: 3.4 m wide read as a bright blade rather than a panel, so it is 4.6 m, and the hex is one step off full.",
       "plan": [
-        41.8,
-        45.2,
-        -0.45,
+        41.6,
+        46.2,
+        -0.5,
         0.9
       ],
       "z0": 0,
@@ -580,9 +588,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -595,11 +604,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -610,9 +620,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -625,11 +636,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -640,9 +652,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -655,11 +668,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -670,9 +684,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -685,11 +700,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -700,9 +716,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -715,11 +732,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -730,9 +748,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -745,11 +764,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -760,9 +780,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -775,11 +796,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -790,9 +812,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -805,11 +828,12 @@
           "balconies": [
             {
               "proj": 0.95,
-              "slabT": 0.36,
-              "railH": 1.02,
-              "railT": 0.05,
+              "slabT": 0.58,
+              "railH": 0.48,
+              "railT": 0.06,
+              "railTone": "slab",
               "s0": 0.6,
-              "s1": 30.799999999999997
+              "s1": 30.8
             }
           ]
         },
@@ -820,9 +844,10 @@
           "balconies": [
             {
               "proj": 1.75,
-              "slabT": 0.3,
-              "railH": 1.02,
+              "slabT": 0.42,
+              "railH": 0.82,
               "railT": 0.05,
+              "railTone": "railGlass",
               "s0": 0.6,
               "s1": 3.2
             }
@@ -844,25 +869,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -875,9 +903,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -890,25 +919,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -921,9 +953,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -936,25 +969,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -967,9 +1003,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -982,25 +1019,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1013,9 +1053,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -1028,25 +1069,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1059,9 +1103,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -1074,25 +1119,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1105,9 +1153,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -1120,25 +1169,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1151,9 +1203,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -1166,25 +1219,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1197,9 +1253,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.5,
                   "s1": 11.6
                 }
@@ -1212,25 +1269,28 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.9,
                   "s1": 15.5
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 19.2,
                   "s1": 21.8
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 25.5,
                   "s1": 28.1
                 }
@@ -1264,17 +1324,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1287,9 +1349,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1302,17 +1365,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1325,9 +1390,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1340,17 +1406,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1363,9 +1431,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1378,17 +1447,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1401,9 +1472,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1416,17 +1488,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1439,9 +1513,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1454,17 +1529,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1477,9 +1554,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1492,17 +1570,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1515,9 +1595,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1530,17 +1611,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1553,9 +1636,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 11.0
                 }
@@ -1568,17 +1652,19 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 12.6,
                   "s1": 15.2
                 },
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
+                  "railTone": "railGlass",
                   "s0": 18.9,
                   "s1": 21.5
                 }
@@ -1601,10 +1687,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1616,9 +1703,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1631,10 +1719,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1646,9 +1735,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1661,10 +1751,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1676,9 +1767,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1691,10 +1783,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1706,9 +1799,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1721,10 +1815,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1736,9 +1831,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1751,10 +1847,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1766,9 +1863,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1781,10 +1879,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1796,9 +1895,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1811,10 +1911,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
@@ -1826,9 +1927,10 @@
               "balconies": [
                 {
                   "proj": 0.95,
-                  "slabT": 0.36,
-                  "railH": 1.02,
-                  "railT": 0.05,
+                  "slabT": 0.58,
+                  "railH": 0.48,
+                  "railT": 0.06,
+                  "railTone": "slab",
                   "s0": 0.6,
                   "s1": 31.0
                 }
@@ -1841,10 +1943,11 @@
               "balconies": [
                 {
                   "proj": 1.75,
-                  "slabT": 0.3,
-                  "railH": 1.02,
+                  "slabT": 0.42,
+                  "railH": 0.82,
                   "railT": 0.05,
-                  "s0": 28.400000000000002,
+                  "railTone": "railGlass",
+                  "s0": 28.4,
                   "s1": 31.0
                 }
               ]
