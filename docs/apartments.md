@@ -450,8 +450,12 @@ The whole slopes layer was ~74,000 triangles before it.
   a street photograph of the south face would settle them.
 - The faces on the light wells, tower B's south and east faces and tower
   A's west face were not photographed and wear the plainest skin.
-- The corner glazing stack on the charcoal bay and the deck's furniture
-  (loungers, palms, hammocks) are not drawn.
+- The deck's furniture is the owner's photographs placed by eye against the
+  rectified nadir's pool, spas, turf and cabana (HANDOFF 228); the z20 nadir
+  shows a blue-canopied structure at the pool's EAST end where the file's
+  cabana is at the west, and at that resolution a canopy and an umbrella are
+  the same thing, so it stays. The juliets are drawn as 0.35 m projecting
+  rails where the photographs show a ~1.2 m recess with the rail at the face.
 - `applyWestcampusSettings()` (the westcampus perf A/B, nothing on the site)
   rewrites buildings-3d's filter from its own snapshot and would drop this
   generator's clause; the next `applySlopesApartments()` puts it back.

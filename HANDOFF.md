@@ -1,5 +1,128 @@
 # Austin 3D Explorer — Full Handoff
 
+## 228. Sep 7 2026 — The Standard's window system off the photographs at full resolution: the rust is a panel under the window, the podium alternates window and juliet, the pixel marks are one course tall, the glass is sunlit (`acer/apts2`, The Standard's piece of the apartments round)
+
+**Look first: `docs/shots/apartments-standard-r6-sw-before-after.jpg`** — the
+previous attempt's committed state beside this one at the judge's south-west
+camera — then **`docs/shots/apartments-standard-r6-sw-vs-earth.jpg`** (ours
+beside Google Earth, the judge's own crop boxes) and
+**`docs/shots/apartments-standard-r6-street.jpg`** (the 23rd & Pearl corner at
+eye level, and the podium from across 23rd).
+
+**Where this continued from.** The previous attempt of this round died with
+the app; its commit `600a9ce` (the light podium with rust strips and juliets,
+the deliberate pixel marks, all four signs, the furnished deck) survived, and
+one of its edits did not: a `floorLine` on two skins so the rust strips read as
+storey dashes. That edit was complete and renders as described, so it is
+committed as it was (`1e9138e`). Everything below is on top of it.
+
+**What the photographs say, read again at 2560 px.** Humphreys' own three
+exteriors (Ext_01, 14, 41 — the ones on disk are the same frames at 2000 px)
+were fetched at full size from humphreys.com and read at 2–3× crops
+(`S19` in the file). The window system is the same on every light face, and
+it is not what any version of the file drew:
+
+- **The rust is not a strip beside the window. It is a spandrel panel of the
+  window's own width, 0.6–0.7 m tall, directly under the sill, inside the
+  window's thin charcoal frame** — on the podium (Ext_14 from the street), on
+  tower B's north face (Ext_41 from the deck), on its west face. A column of
+  them, from 220 m, is the "interrupted rust strip" of the owner's
+  transcription. The generator had no way to put a panel under an opening, so
+  it has one now: `spandrel: { h, tone }` on a window spec, cut into the wall's
+  cells the way `frame` is, settable per opening as an `offsets` entry's third
+  element (`dc92965`, doc bullet in `docs/apartments.md`). Inert for every
+  file that does not name it.
+- **The podium's bays alternate strictly**: a window-with-rust bay, then a
+  juliet-door bay (a 1.6 m opening behind the black rail, no rust), on a
+  ~6.2 m module — Ext_01's juliets are at ~6 m centres, Ext_14 reads window /
+  juliet / window along Pearl with the rust window nearest the corner bay. The
+  file had rust on every third bay and the juliets on those same bays.
+- **The pixel marks are ONE course tall.** Ext_01 at 2× puts a storey at
+  117 px and a mark at 22 px = 0.60 m of a 0.634 m course; a minority are two
+  courses, none clump. The file decided tones per two courses (`macro [2,1]`),
+  which at the north-west camera stacked into T- and L-shaped blobs 2.5–3.8 m
+  tall. `macro [1,1]`, 24 % dark. Tower B's field also carries occasional RUST
+  planks (Ext_14's right edge) — 4 %; tower A's does not.
+- **Three louvre panels**, one window wide each, in the podium's top storey
+  next to the corner bay (Ext_14 shows three; Ext_01's column profile puts
+  them 1.5, 4.0 and 9.2 m from the corner bay). The file had two 2.4 m
+  override pieces there, and each piece restarts the bays module on a strip
+  bay — so three rust strips crowded the corner bay in every street frame.
+  One 10.1 m piece now, with its own module and the louvres as 1.1 m openings
+  in a louvre tone (`louvreTop`).
+
+**What Earth says, clustered.** The judge's south-west frame, k-means over the
+upper south face (`S20`): white panel 45 %, shaded panel 29 %, sunlit window
+#7e8688 18 %, window depths 8 % — rust under 5 %. Ours before this round at
+the same box: near-black 32 %, rust 11 %, field 54 %. The near-black was the
+day glass (#2c3439); a sunlit pane reflects the sky and reads mid grey, so the
+day tone is #8fa3b0 now, which through the app's daylight lands near Earth's
+cluster. After: 61 % light, 25 % mid, 14 % dark against Earth's 74 / 18 / 8.
+The app's daylight multiplies a wall hex by about (0.80, 0.745, 0.68) at that
+camera (#e2e3df drew as #b5a997; the roof's #c9cdd1 as #948e85), so Earth's
+absolute white is out of reach and the fields are set as high as the family
+allows; every building in West Campus wears the same cast.
+
+**The projecting balcony stacks** wore the juliets' black rail as a solid box
+0.95 m tall, a column of black cubes at the south-west corner where Earth shows
+light slabs with a dark line. A `railOpen` tone (the average of bars and the
+wall and sky behind them) on the three projecting stacks; the juliets keep the
+black. **The vertical signs** read as the letters' shaded metal by day, two
+steps under the field (they vanished at one step once the field went white),
+lit at night.
+
+**References found and used.** Humphreys' five exteriors at 2560 px
+(humphreys.com); the leasing site (thestandardaustin.com — its hero is Ext_01,
+its three deck slices settle the north-end pergola as PALE posts and roof in
+front of a charcoal slatted fence, teal chairs, lime and blue-mosaic
+planters, `S21`); Landmark's own page carries only stock interiors and an
+Atlanta skyline; the Earth captures the previous attempt saved (SW and NW
+zooms) and the judge's frame; the z20 nadir in `research/`. apartments.com is
+behind a WAF, Street View needs a key, and the previous session's north/south
+Earth frames were never kept — a capture script for them is in
+`scripts/verify/_std_earth.mjs` (untracked) and was not run: four builders'
+Chromes were sharing the one GPU and a render pose was taking two minutes.
+
+**Look-fix cycles, at the matched camera and at the street.** Round 3 (the
+previous attempt's state, in daylight — its own comparisons were shot a
+quarter of the way to golden hour, which is why they read tan): the south face
+a dark grid, the pixel in blobs, three rust strips at the corner. Round 4 (all
+of the above): the numbers in the paragraph above. Round 5: the rails lighter;
+the two close cameras the previous attempt left were inside neighbours (the
+Pearl one behind the building across Pearl, the north one on The Mark's
+block) and were rebuilt the way the working one is — on the road at the
+intersection with the map centre on the building's own kerb. Round 6: the sign
+tone, and the frames cited above. **The Mark Austin stands directly across
+23rd** (its footprint lat 30.28741–30.28796 against our north edge at
+30.28723) with its white-pier garage screen, so from every northern camera
+but the kerb it is what you see — the "The Standard" label the app floats on
+its face is the westcampus label at the snapshot centroid, not our geometry.
+
+**Cost.** Page-wide, round 4 added 7,000 cells and 15,000 triangles (1.8 %) —
+the 1,372 new framed windows are The Standard's — and no warning.
+
+**Gate.** `scripts/verify/slopes-layer.mjs` on hardware: launched at 04:33 CDT on 2026-09-07 with all three archives served (`--against-nogen` this commit minus both generators on :8162, `--against-tip` ba630ca on :8163, `--against` e232953 on :8164), VERIFY_MAX_MS 7,200,000, on a machine where four builders' Chromes share the one GPU; log at the session scratchpad `next/build/standard/gate/gate.log`. **The score is in the line below this one when it landed; if there is no such line, the lane was cut off before it did — read that log, or re-run.**
+
+**Open, on purpose.**
+- The south bar was never photographed close; it wears the same window unit
+  as the faces that were, and Earth's texture at 220 m cannot separate a
+  column of spandrels from a strip. Its rust share (4 %) is what Earth's
+  cluster shows.
+- A louvre panel is an opening to the generator and may be "lit" after dark
+  like any window (one of three, most nights).
+- The juliet is a recess in the photographs (a loggia ~1.2 m deep with the
+  rail at the face); the file draws it as a 0.35 m projecting rail, which
+  reads the same at every camera this app is judged from.
+- The deck is the previous pass's read of the rectified nadir (`S9`) with the
+  owner's furniture on it; the z20 nadir shows a blue-canopied structure at
+  the pool's EAST end where the file's cabana is at the west, and I could not
+  tell a canopy from an umbrella at that resolution, so it stays.
+- The app's daylight is warm; a cool white cannot be drawn under it.
+
+Branch `acer/apts2`, data commits `1e9138e`, `297df22`, `5e7b6d9`; generator
+`dc92965`. Frames in the session scratchpad `next/build/standard/r3..r6`, the
+three cited ones in `docs/shots/`.
+
 ## 227. Sep 6 2026 — the apartments pass shipped: Dobie indexed, the layer gate at 69/69 with all five reds proved to be instruments, the cited frames, the PR and the live site checked with our own eyes (`acer/apts` → `main`)
 
 **Look first: `docs/apartments-pass.md`** — the whole pass in plain words with
