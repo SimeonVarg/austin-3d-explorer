@@ -454,9 +454,13 @@
         "tone": "rust",
         "at": "centres"
       },
+      "floorLine": {
+        "h": 0.5,
+        "tone": "white"
+      },
       "window": {
         "w": 1.2,
-        "h": 2.3,
+        "h": 2.4,
         "sill": 0.5,
         "offsets": [
           [
@@ -465,7 +469,7 @@
           ]
         ]
       },
-      "_src": "tower B's north face over the deck: six bays of 2.66 m across 15.95 m (S16 at 4x), each with a tall window and a storey-tall rust strip immediately LEFT of it (viewer's left = lower s) — drawn as a 0.7 m strip on the bay centre with the window shifted 0.75 m to its right so 0.5 m of rust shows beside the glass; the two balcony columns are on the face"
+      "_src": "tower B's north face over the deck: six bays of 2.66 m across 15.95 m (S16 at 4x), each with a tall window and a rust strip the window's own height immediately LEFT of it (viewer's left = lower s), the light spandrel running through between storeys — drawn as a 0.7 m strip on the bay centre with the window shifted 0.75 m to its right so 0.5 m of rust shows beside the glass, and a 0.5 m band of the field at every floor line (the sill height) so the strips read as storey dashes, not stripes (round 2: they ran as continuous stripes); the two balcony columns are on the face"
     },
     "court": {
       "kind": "bays",
@@ -488,9 +492,13 @@
         "at": "centres",
         "every": 3
       },
+      "floorLine": {
+        "h": 0.5,
+        "tone": "podiumPanel"
+      },
       "window": {
         "w": 1.3,
-        "h": 2.2,
+        "h": 2.4,
         "sill": 0.5,
         "offsets": [
           [
@@ -499,7 +507,7 @@
           ]
         ]
       },
-      "_src": "the podium's light panel (S5/S6/S14): one tall 1.3 x 2.2 m window per 3.1 m bay (the floor-to-floor module the photograph's windows sit in), with a storey-tall rust strip immediately left of the window on every THIRD bay (S15, S16: 'maybe one bay in three' in S14 photo 2) — the 0.8 m strip on those bays' centres with every window shifted 0.8 m right of centre so 0.55 m of rust shows beside the glass; the juliet balconies on those same bays are the faces' `balconies`. Was: grey field, strips on every third JOINT, 1.4 x 1.9 m windows, no juliets."
+      "_src": "the podium's light panel (S5/S6/S14): one tall 1.3 x 2.4 m window per 3.1 m bay (the floor-to-floor module the photograph's windows sit in), with a rust strip the window's height immediately left of the window on every THIRD bay (S15, S16: 'maybe one bay in three' in S14 photo 2), the light spandrel running through between storeys — the 0.8 m strip on those bays' centres with every window shifted 0.8 m right of centre so 0.55 m of rust shows beside the glass, and a 0.5 m band of the field at every floor line (the sill height) so the strips are storey dashes, not stripes (round 2); the juliet balconies on those same bays are the faces' `balconies`. Was: grey field, strips on every third JOINT, 1.4 x 1.9 m windows, no juliets."
     },
     "storefront": {
       "kind": "storefront",
