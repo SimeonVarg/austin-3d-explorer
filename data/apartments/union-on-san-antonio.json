@@ -1,0 +1,2024 @@
+{
+  "_readme": "Union on San Antonio, 2011 San Antonio St, as js/slopes-apartments.js draws it. A 24-storey ribbed-metal tower standing on the north end of a whole West Campus block, over a four-level buff-brick podium, with a fin-screened parking garage filling the rest of the block behind an orange pylon. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=104.16, W=35.78. u=0 is the NORTH (W 21st St) end and +u runs SOUTH; v=0 is the WEST (San Antonio St) edge and +v runs EAST. The building's signature is a pale slab ribbon that runs the west face and wraps the north-west corner every third floor, over a wall of vertical standing-seam metal. Read docs/apartments.md for the schema.",
+  "id": "87f9cf87-79b7-46e5-803c-2936c8d98fbf",
+  "name": "Union on San Antonio",
+  "address": "2011 San Antonio Street, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 87f9cf87-79b7-46e5-803c-2936c8d98fbf: name 'Union on San Antonio', num_floors null, final_height 7.4, source_height 'overture', building_class 'apartments'. The footprint is a clean 4-vertex rectangle; in metres it is 104.16 x 35.78 m (3,724 m2), long axis at bearing 185.3 deg. The 7.4 m is Overture's guess for a building OSM never tagged with a height and it is absurd for a 29-storey tower: it is OVERRIDDEN here by S3.",
+    "S2": "OSM way 380922462: building=apartments, name 'Union on San Antonio', addr 2011 San Antonio Street, Austin, TX 78705, source 'City of Austin', check_date 2024-09-22. NO height, NO building:levels, NO building:part - queried through Overpass 2026-09-07. Nothing about this building's shape is in OSM.",
+    "S3": "SkyscraperPage building page b119740, 'Union on San Antonio, Austin', its numbers quoted as coming from building elevations: mechanical roof parapet 332 ft (101.19 m), roof 332 ft, top floor 292 ft (89.0 m), 29 storeys, residential with parking garage, construction 2022-2024. The 332 ft is what levels.roof + parapet is solved to exactly.",
+    "S4": "The operator's own photo gallery, uniononsanantonio.com/austin/union-on-san-antonio/photos/ (Entrata media library, 40 images, downloaded 2026-09-07). Three are exterior: g33 the whole building from the San Antonio St / W 21st St intersection with the 'San Antonio St 2100' block sign in frame, g32 a worm's-eye at the tower's north-west corner, g15 the L5 dog terrace with the tower, the glass amenity pavilion and the orange mark in it. Every tone and every facade rule below is measured on these.",
+    "S5": "Greystar's own listing and the Rambler apartment review: built 2023, 425 apartments, 991 beds, 29 stories, 'on the corner of San Antonio Street and W 21st Street'; amenities a pool deck, planting terrace, sky lounge, dog park, two-level fitness centre. Architect Page, general contractor Hensel Phelps, developer Greystar.",
+    "S6": "MEASURED ON S4's g33 (4096-px original, crops in the session scratchpad under next/build/union-sa/ref/). The corner in that photograph is the building's NORTH-WEST corner: the street sign in the lower left reads 'San Antonio St 2100', which is the block NORTH of W 21st, so the camera stands in the San Antonio x W 21st intersection - which forces the short face to run east (W 21st) and the long face south (San Antonio), and puts the tower at the NORTH end of the block. Read on it: the podium is a plinth, a dark band and two rows of tall bronze-framed windows in buff brick under a blue-grey ribbed band; a naive linear scale off two pedestrians (1.7 m = 60 px) puts the top of that ribbed band at 21.2 m, which is why the deck is 21.30. On the tower, the pale slab bands recur every 2.9 floor pitches on a column profile of the west face (band spacing 320 px against a floor pitch of 110 px), i.e. every 3rd floor, and eight of them are countable up the corner - which is exactly 24 residential floors / 3.",
+    "S7": "Google Earth 3D, Esri World Imagery (Nearmap 2023-10-08 per the layer's own identify endpoint), Google satellite and Bing aerial, all fetched 2026-09-07 and all rectified into this file's (u,v) frame (next/build/union-sa/plan_*.jpg). EVERY ONE of them is a CONSTRUCTION SITE over this block - crane, poured podium deck, open shafts - because the tower topped out in 2023 and none of the four has been re-flown here since. So no nadir measurement of this building exists in any source reachable without logging in, and the plan numbers below come from the photograph instead. They are named in `open`.",
+    "S8": "data/roads.geojson: West 21st Street runs east-west through (-97.743018, 30.283878) and (-97.741944, 30.283803), immediately north of the footprint's north edge, and San Antonio Street runs north-south along its west edge. That is what fixes which end of the obb is which, and it agrees with S5's 'the corner of San Antonio Street and W 21st Street'.",
+    "S9": "data/apartments/union-on-24th.json in this repo - the sibling Union, 701 W 24th St, same developer and same product. Its floor module is 3.26 m, ported from the owner's own three.js model. This file's 3.22 m is solved independently from S3's 332 ft and lands 4 cm from it, which is the check on the storey split."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7430465,
+        30.2828499
+      ],
+      [
+        -97.7426761,
+        30.2828204
+      ],
+      [
+        -97.7425758,
+        30.2837582
+      ],
+      [
+        -97.7429464,
+        30.2837878
+      ],
+      [
+        -97.7430465,
+        30.2828499
+      ]
+    ],
+    "_src": "S1 verbatim. In (u,v) the four corners are (104.16,0.00) (104.11,35.76) (0.00,35.78) (0.03,0.00) - the polygon IS its own oriented bounding box, so every edge is axis-parallel in the frame."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring): L=104.16, W=35.78, +u at bearing 185.3 deg, so +u runs SOUTH and u=0 is the north (W 21st St) end; +v is 90 deg counter-clockwise from +u in (east, north), i.e. EAST, so v=0 is the west (San Antonio St) edge. S8 is what names the two streets, and S6's street sign is what puts the tower at the u=0 end rather than the u=104 end.",
+  "levels": {
+    "floors": [
+      0.0,
+      5.4,
+      11.5,
+      16.6,
+      21.3,
+      24.52,
+      27.74,
+      30.96,
+      34.18,
+      37.4,
+      40.62,
+      43.84,
+      47.06,
+      50.28,
+      53.5,
+      56.72,
+      59.94,
+      63.16,
+      66.38,
+      69.6,
+      72.82,
+      76.04,
+      79.26,
+      82.48,
+      85.7,
+      88.92,
+      92.14,
+      95.36
+    ],
+    "_src": "FLOOR = 3.22 m, DERIVED, not quoted anywhere: S3 gives 332 ft (101.19 m) to the mechanical roof parapet, S6 measures the podium's ribbed cap at 21.2 m, and 24 residential floors between a 21.30 m deck and a 2.61 m parapet solve the 332 ft exactly. The result lands 4 cm from the 3.26 m module the sibling Union on 24th is built on (S9), which is the check. The four podium lines - 0, 5.40, 11.50, 16.60 - are the plinth-and-bronze ground floor and the two tall window rows measured on S6's linear scale off two pedestrians in g33 (6.4 and 13.0 m to the two sills). 4 podium levels + 24 residential = 28, against S5's 29; the 29th is the roof-level sky lounge and mechanical penthouse S5 lists, which this file draws as the parapet and the plant.",
+    "deck": 21.3,
+    "garageRoof": 17.4,
+    "roof": 98.58,
+    "top": 101.19,
+    "_heights_src": "deck 21.30 (S6), garage roof 17.40 (S6: g33 puts the garage parapet about 4 m below the podium's), roof slab 98.58, top of parapet 101.19 = S3's 332 ft. S1's 7.4 m is Overture's guess and is OVERRIDDEN by a factor of 13.7.",
+    "ribbonFloors": [
+      24.52,
+      34.18,
+      43.84,
+      53.5,
+      63.16,
+      72.82,
+      82.48,
+      92.14
+    ],
+    "_ribbon_src": "S6: the pale slab ribbons recur every 2.9 floor pitches on a column profile of g33's west face - i.e. every 3rd floor - and eight of them are countable up the corner, which is exactly 24 residential floors divided by 3. The first is one floor above the deck."
+  },
+  "colours": {
+    "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex is a median over a named box on S4's g33 unless it says otherwise; the boxes and the marked-up frames are in the scratchpad (ref/samples_podium.jpg, ref/samples_tower2.jpg).",
+    "rib": {
+      "hex": "#8e98a6",
+      "_src": "The tower's vertical standing-seam metal, the whole outer wall. g33 gives the SAME panel twice under two lights - the sunlit north face #8997ae (box 1060,1240-1105,1275) and the self-shaded west face #827d85 (680,1130-716,1180) - and this is their mean, which is the albedo the app's own daylight is then applied to."
+    },
+    "ribGroove": {
+      "hex": "#79828f",
+      "_src": "DERIVED: the seam shadow between ribs, one step down from `rib` on the same ratio js/westcampus.js's ramp() uses between a wall and its shaded reveal."
+    },
+    "towerGlass": {
+      "hex": "#6f7d8c",
+      "_src": "The tower's glazing. MEASURED it reads #889db7 on the north face (1012,1030-1058,1120), i.e. the same luminance as the panel beside it, because at that hour every pane is returning sky. Ion Austin's look-fix 2 in this folder is the precedent: at the camera this app is judged from, a pane the luminance of the panel beside it is not a window. This is the MID of the sky read and the dark reveal inside the same opening."
+    },
+    "winFrame": {
+      "hex": "#3a3f46",
+      "_src": "The dark aluminium mullions and window surrounds, off the same crop's frame lines."
+    },
+    "slab": {
+      "hex": "#c5bda9",
+      "_src": "The balcony slab edge and soffit - the pale precast that makes every ribbon band. Read off the sunlit fascia in g33; the slab's TOP surface is a warm deck (#8a6c39 at 940,1070) and is not this."
+    },
+    "rail": {
+      "hex": "#3c3c3e",
+      "_src": "The balcony guard: dark metal posts with glass, sampled #615147 at 908,1040 where the rail stands against a lit slab, taken to the neutral dark it is."
+    },
+    "brick": {
+      "hex": "#a89377",
+      "_src": "The podium's buff brick field, median #a18d75 over 500,1700-540,1740 on the sunlit north face, lifted one step for the shade the box sits in."
+    },
+    "podGlass": {
+      "hex": "#4a4335",
+      "_src": "The podium's bronze-framed glazing, median #584c2d over one whole opening (420,1820-440,1920). Much darker than the tower's glass because these are deep reveals in brick, not a flush curtain wall."
+    },
+    "bronze": {
+      "hex": "#33291c",
+      "_src": "The dark bronze band over the plinth, median #2a2212 over 1000,2020-1120,2060."
+    },
+    "stone": {
+      "hex": "#c3b69c",
+      "_src": "The limestone ashlar plinth. The box at 1000,2100-1100,2160 reads #a18f76 in the podium's own shade; this is that read taken to the sunlit value the same course has further south."
+    },
+    "podRib": {
+      "hex": "#8496a8",
+      "_src": "The blue-grey ribbed metal band that caps the podium, median #829eba over 470,1510-560,1550. It is the tower's cladding brought down to close the podium."
+    },
+    "podRibDark": {
+      "hex": "#6d7d8d",
+      "_src": "DERIVED: the rib shadow in the podium band, one step down."
+    },
+    "garageFin": {
+      "hex": "#c9c8c2",
+      "_src": "The garage screen's pale vertical fins, median #cecdc7 over 1448,1848-1502,1900."
+    },
+    "garageDark": {
+      "hex": "#6a6a64",
+      "_src": "DERIVED: what is seen between the fins - the open parking deck in shadow."
+    },
+    "orange": {
+      "hex": "#e79a12",
+      "_src": "The tall orange mark on San Antonio Street with the Union 'U' on it, median #ec9f02 over 1288,1598-1322,1652. It is the most saturated thing on the building and the owner's 'really cool design' is largely this and the ribbon balconies."
+    },
+    "wood": {
+      "hex": "#a5602c",
+      "_src": "The cedar slat soffit over the podium's corner loggia, median #87481d on S4's g32 at 1080,1590-1330,1680 under a warm evening sun, taken to its daylight albedo."
+    },
+    "coping": {
+      "hex": "#b8b3a8",
+      "_src": "DERIVED: precast copings and parapet caps, the neutral of `stone`."
+    },
+    "deckPave": {
+      "hex": "#b9b3a8",
+      "_src": "DERIVED: the amenity deck's pavers, from S4's g15 and g17."
+    },
+    "planter": {
+      "hex": "#3b3d3c",
+      "_src": "The near-black board-formed planter walls that ring the dog terrace, S4's g15."
+    },
+    "turf": {
+      "hex": "#5c8f3a",
+      "_src": "The dog terrace's artificial turf, S4's g15."
+    },
+    "water": {
+      "hex": "#2ba9cf",
+      "_src": "Pool water; the same value union-on-24th.json carries."
+    },
+    "plant": {
+      "hex": "#5f7f47",
+      "_src": "DERIVED: the clumped planting on the terraces, S4's g15 and g17."
+    },
+    "sign": {
+      "hex": "#eceff2",
+      "_src": "The white UNION lettering at the top of the tower's north face, S4's g33 (visible in ref/crown.jpg)."
+    },
+    "equip": {
+      "hex": "#77787a",
+      "_src": "DERIVED: roof plant; the same value union-on-24th.json carries."
+    }
+  },
+  "skins": {
+    "_src": "one rule per face treatment; every count comes from a module, never a hard-coded number.",
+    "tower": {
+      "kind": "bays",
+      "bay": 3.16,
+      "field": "rib",
+      "strip": {
+        "w": 0.3,
+        "tone": "ribGroove",
+        "at": "joints"
+      },
+      "window": {
+        "w": 1.95,
+        "h": 2.42,
+        "sill": 0.52
+      },
+      "glass": "towerGlass",
+      "frame": "winFrame",
+      "reveal": 0.1,
+      "_src": "The whole tower, all four faces. S6: the north face is 31.6 m and carries 10 window columns, so the bay is 3.16 m - within 2 percent of the 3.22 m floor, i.e. the same near-square module the sibling Union on 24th is built on (S9). The opening is 1.95 x 2.42 m: g33's glazing runs from just above the slab to the soffit and is a little over half the bay. `strip` is the standing seam read as one groove per bay joint, which is all that resolves at this app's cameras - the real seam pitch is about 0.3 m and is under a pixel at the oblique."
+    },
+    "towerBlank": {
+      "kind": "bays",
+      "bay": 3.16,
+      "field": "rib",
+      "strip": {
+        "w": 0.3,
+        "tone": "ribGroove",
+        "at": "joints"
+      },
+      "_src": "The crown, the top two storeys above the last ribbon: S4's g33 (ref/crown.jpg) shows blank ribbed panel on the west face there and the UNION lettering on the north."
+    },
+    "podBrick": {
+      "kind": "bays",
+      "bay": 2.35,
+      "field": "brick",
+      "window": {
+        "w": 1.15,
+        "h": 4.05,
+        "sill": 1.0
+      },
+      "glass": "podGlass",
+      "frame": "bronze",
+      "reveal": 0.22,
+      "_src": "The podium's brick box, levels 2 and 3. S6: on g33's north face fifteen tall narrow openings span the 35.78 m width, so the bay is 2.35 m; each opening is about half the bay and reaches from 1 m above the floor to just under the head, which on a 5.4 m and an 11.5 m floor line is 4.05 m. The 0.22 m reveal is what makes them read as holes in brick rather than a ribbon."
+    },
+    "podBrickBlank": {
+      "kind": "flat",
+      "field": "brick",
+      "_src": "The brick course above the top window head, 16.60 to 19.10 (S6: g33)."
+    },
+    "podStone": {
+      "kind": "bays",
+      "bay": 3.05,
+      "field": "stone",
+      "strip": {
+        "w": 0.06,
+        "tone": "coping",
+        "at": "joints"
+      },
+      "_src": "The limestone ashlar plinth, grade to 3.80. S6: g33 shows it blank apart from the entrances, with a fine vertical joint about every 3 m."
+    },
+    "podBronze": {
+      "kind": "flat",
+      "field": "bronze",
+      "_src": "The dark bronze band over the plinth, 3.80 to 5.40 (S6: g33)."
+    },
+    "podRibBand": {
+      "kind": "bays",
+      "bay": 0.52,
+      "field": "podRib",
+      "strip": {
+        "w": 0.2,
+        "tone": "podRibDark",
+        "at": "centres"
+      },
+      "_src": "The blue-grey ribbed band that caps the podium, 19.10 to 21.30. Its rib pitch is 0.52 m off g33, which is coarse enough to resolve at the walking camera."
+    },
+    "garage": {
+      "kind": "bays",
+      "bay": 0.58,
+      "field": "garageDark",
+      "strip": {
+        "w": 0.34,
+        "tone": "garageFin",
+        "at": "centres"
+      },
+      "_src": "The parking garage's vertical fin screen on San Antonio Street. S4's g33 (ref/t_south.jpg) shows pale precast fins in front of the open decks at about a 0.58 m pitch, the fin a little wider than the gap - so the field is what is seen BETWEEN the fins, in shadow, and the strip is the fin."
+    },
+    "garageCap": {
+      "kind": "flat",
+      "field": "coping",
+      "_src": "The pale band that closes the garage under its planted parapet (S4's g33)."
+    },
+    "orangeFlat": {
+      "kind": "flat",
+      "field": "orange",
+      "_src": "The orange mark, one flat panel on all four faces of the pylon (S4's g33)."
+    },
+    "pavilion": {
+      "kind": "storefront",
+      "mullion": 1.62,
+      "mullionW": 0.1,
+      "fascia": 0.45,
+      "plinth": 0.1,
+      "transom": 0.5,
+      "fasciaTone": "coping",
+      "frame": "winFrame",
+      "glass": "towerGlass",
+      "reveal": 0.1,
+      "_src": "The double-height glass amenity pavilion standing on the L5 deck, S4's g15: a clear glass box on a 1.6 m mullion grid with one transom at mid height."
+    },
+    "loggiaWood": {
+      "kind": "flat",
+      "field": "wood",
+      "_src": "The cedar slat soffit and back wall of the podium's corner loggia (S4's g32)."
+    }
+  },
+  "balcony": {
+    "proj": 1.75,
+    "slabT": 0.3,
+    "railH": 1.02,
+    "railT": 0.05,
+    "slabTone": "slab",
+    "railTone": "rail",
+    "_src": "S6: on g33's north face a balcony is a little under one 3.16 m bay wide and about as deep as it is wide at the near corner, with a thin dark guard on a pale precast slab. The ribbon balconies override `proj` to 0.95 - they are a ledge, not a room."
+  },
+  "blocks": [
+    {
+      "id": "podium",
+      "_src": "The brick box on the corner of San Antonio and W 21st, grade to the L5 amenity deck. S6: g33's whole lower half is this block - a limestone plinth, a dark bronze band, two rows of tall bronze windows in buff brick, a brick course and a blue-grey ribbed cap. Its south end at u 42.0 is where the brick stops and the garage screen begins in g33; see `open` for how well that is measured.",
+      "plan": [
+        0.0,
+        42.0,
+        0.0,
+        35.78
+      ],
+      "z0": 0,
+      "z1": 21.3,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.8,
+          "skin": "podStone"
+        },
+        {
+          "z0": 3.8,
+          "z1": 5.4,
+          "skin": "podBronze"
+        },
+        {
+          "z0": 5.4,
+          "z1": 16.6,
+          "skin": "podBrick"
+        },
+        {
+          "z0": 16.6,
+          "z1": 19.1,
+          "skin": "podBrickBlank"
+        },
+        {
+          "z0": 19.1,
+          "z1": 21.3,
+          "skin": "podRibBand"
+        }
+      ],
+      "faces": {
+        "u1": {
+          "z0": 17.4,
+          "_src": "the south wall stands against the garage and shows only above its roof"
+        }
+      },
+      "overrides": [
+        {
+          "region": [
+            0.0,
+            7.0,
+            -0.5,
+            7.0
+          ],
+          "bands": [
+            {
+              "z0": 0.0,
+              "z1": 3.8,
+              "skin": "podStone"
+            },
+            {
+              "z0": 3.8,
+              "z1": 5.4,
+              "skin": "podBronze"
+            },
+            {
+              "z0": 5.4,
+              "z1": 16.6,
+              "skin": "podBrick"
+            },
+            {
+              "z0": 16.6,
+              "z1": 21.3,
+              "skin": "loggiaWood",
+              "inset": {
+                "d": 2.6,
+                "tone": "wood",
+                "columns": {
+                  "pitch": 4.7,
+                  "w": 0.85,
+                  "d": 0.85,
+                  "tone": "stone"
+                }
+              }
+            }
+          ],
+          "_src": "The corner loggia. S4's g33 and g32 both show the top podium level cut back at the north-west corner into an open terrace with a cedar slat soffit on pale stone columns and a glass balustrade; the 2.6 m depth is the column face against the brick behind it in g32."
+        }
+      ],
+      "roofTone": "deckPave",
+      "parapet": 1.05,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1"
+      ],
+      "_parapet_src": "the deck's own guard; no parapet on u1, where the tower and the pavilion sit inboard of it."
+    },
+    {
+      "id": "garage",
+      "_src": "The parking garage that fills the rest of the block on San Antonio Street. S3 lists the building as 'residential with parking garage'. S4's g33 (ref/t_south.jpg) shows it stopping well below the brick box's parapet with planting on its roof, and wearing a pale vertical fin screen over open decks.",
+      "plan": [
+        42.0,
+        104.16,
+        0.0,
+        35.78
+      ],
+      "z0": 0,
+      "z1": 17.4,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 3.8,
+          "skin": "podStone"
+        },
+        {
+          "z0": 3.8,
+          "z1": 16.4,
+          "skin": "garage"
+        },
+        {
+          "z0": 16.4,
+          "z1": 17.4,
+          "skin": "garageCap"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "_src": "the north wall stands against the podium block and is not drawn"
+      },
+      "roofTone": "deckPave",
+      "parapet": 1.15,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "id": "pool",
+          "plan": [
+            50.0,
+            74.0,
+            6.0,
+            12.5
+          ],
+          "h": 0.1,
+          "tone": "water",
+          "_src": "the lap pool on the garage roof terrace, S4's g18 - a long single-lane pool with the downtown skyline behind it; its plan position is inferred, see `open`"
+        },
+        {
+          "id": "pool-coping",
+          "plan": [
+            48.6,
+            75.4,
+            4.6,
+            13.9
+          ],
+          "h": 0.06,
+          "tone": "coping",
+          "_src": "the pale coping and paving round the pool, S4's g18"
+        },
+        {
+          "id": "planter-w",
+          "plan": [
+            46.0,
+            78.0,
+            1.2,
+            3.4
+          ],
+          "h": 0.95,
+          "tone": "planter",
+          "_src": "the board-formed planter wall along the San Antonio edge of the pool terrace, S4's g17"
+        },
+        {
+          "id": "planting-w",
+          "plan": [
+            46.3,
+            77.7,
+            1.5,
+            3.1
+          ],
+          "h": 1.55,
+          "tone": "plant",
+          "_src": "what grows out of it, S4's g17"
+        },
+        {
+          "id": "grill-pergola",
+          "plan": [
+            80.0,
+            92.0,
+            5.0,
+            14.0
+          ],
+          "h": 2.6,
+          "tone": "coping",
+          "_src": "the grill pavilion's pergola south of the pool, S4's g17; inferred position, see `open`"
+        },
+        {
+          "id": "plant-cluster",
+          "plan": [
+            46.0,
+            100.0,
+            29.0,
+            34.6
+          ],
+          "grid": [
+            7,
+            1
+          ],
+          "size": [
+            6.0,
+            4.4
+          ],
+          "h": 1.35,
+          "tone": "plant",
+          "_src": "the planted strip along the garage's east edge, S4's g17"
+        }
+      ]
+    },
+    {
+      "id": "mark",
+      "_src": "The orange pylon on San Antonio Street with the Union 'U' on it, standing proud of the garage's west wall from grade to the podium's parapet. S4's g33 (ref/t_south.jpg) shows it as one continuous full-height panel at the joint between the brick box and the garage, and it is the building's one saturated colour.",
+      "plan": [
+        41.8,
+        45.2,
+        -0.45,
+        0.9
+      ],
+      "z0": 0,
+      "z1": 21.3,
+      "bands": [
+        {
+          "z0": 0.0,
+          "z1": 21.3,
+          "skin": "orangeFlat"
+        }
+      ],
+      "faces": {
+        "v1": null,
+        "_src": "the back of the pylon is against the building"
+      },
+      "roofTone": "orange"
+    },
+    {
+      "id": "tower",
+      "_src": "The 24-storey residential tower standing on the podium's north end. S3's 332 ft to the mechanical parapet is what its top is solved to: DECK 21.30 + 24 x 3.22 = 98.58 to the roof slab, and a 2.61 m parapet on top of that is 101.19 m = 332 ft exactly. S6 puts it at the north-west corner, set in from the podium's faces by about 1.7 m on the street sides. Its plan is the least certain number in this file - see `open`.",
+      "plan": [
+        1.6,
+        33.0,
+        1.9,
+        33.5
+      ],
+      "z0": 21.3,
+      "z1": 98.58,
+      "bands": [
+        {
+          "z0": 21.3,
+          "z1": 24.52,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 24.52,
+          "z1": 25.12,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 25.12,
+          "z1": 34.18,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 34.18,
+          "z1": 34.78,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 34.78,
+          "z1": 43.84,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 43.84,
+          "z1": 44.44,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 44.44,
+          "z1": 53.5,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 53.5,
+          "z1": 54.1,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 54.1,
+          "z1": 63.16,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 63.16,
+          "z1": 63.76,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 63.76,
+          "z1": 72.82,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 72.82,
+          "z1": 73.42,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 73.42,
+          "z1": 82.48,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 82.48,
+          "z1": 83.08,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 83.08,
+          "z1": 92.14,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 92.14,
+          "z1": 92.74,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 0.95,
+              "slabT": 0.36,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 30.799999999999997
+            }
+          ]
+        },
+        {
+          "z0": 92.74,
+          "z1": 95.36,
+          "skin": "tower",
+          "balconies": [
+            {
+              "proj": 1.75,
+              "slabT": 0.3,
+              "railH": 1.02,
+              "railT": 0.05,
+              "s0": 0.6,
+              "s1": 3.2
+            }
+          ]
+        },
+        {
+          "z0": 95.36,
+          "z1": 98.58,
+          "skin": "towerBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 25.12,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 25.12,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 34.78,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 34.78,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 44.44,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 44.44,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 54.1,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 54.1,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 63.76,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 63.76,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 73.42,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 73.42,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 83.08,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 83.08,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 92.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.5,
+                  "s1": 11.6
+                }
+              ]
+            },
+            {
+              "z0": 92.74,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.9,
+                  "s1": 15.5
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 19.2,
+                  "s1": 21.8
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 25.5,
+                  "s1": 28.1
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank",
+              "signs": [
+                {
+                  "text": "UNION",
+                  "s0": 3.2,
+                  "z0": 96.53,
+                  "dot": 0.235,
+                  "gap": 0.3,
+                  "tone": "sign",
+                  "_src": "S4's g33 (ref/crown.jpg): white sans letters across the top of the north face, about 1.6 m tall, starting a bay in from the corner"
+                }
+              ]
+            }
+          ],
+          "_src": "the north face on W 21st St: the ribbon wraps about a third of the way round the corner and three bays carry a balcony on every floor (S6: g33, ref/t_right.jpg)"
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 25.12,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 25.12,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 34.78,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 34.78,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 44.44,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 44.44,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 54.1,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 54.1,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 63.76,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 63.76,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 73.42,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 73.42,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 83.08,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 83.08,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 92.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 11.0
+                }
+              ]
+            },
+            {
+              "z0": 92.74,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 12.6,
+                  "s1": 15.2
+                },
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 18.9,
+                  "s1": 21.5
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ],
+          "_src": "the east face: S4's g31, shot from a high balcony looking at the UT Tower, shows the same ribbed wall with per-floor balcony stacks"
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 25.12,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 25.12,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 34.78,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 34.78,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 44.44,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 44.44,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 54.1,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 54.1,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 63.76,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 63.76,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 73.42,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 73.42,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 83.08,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 83.08,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 92.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 0.95,
+                  "slabT": 0.36,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 0.6,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 92.74,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "proj": 1.75,
+                  "slabT": 0.3,
+                  "railH": 1.02,
+                  "railT": 0.05,
+                  "s0": 28.400000000000002,
+                  "s1": 31.0
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ],
+          "_src": "the south face is not photographed in any source reached; it wears the west face's rule mirrored, and says so in `open`"
+        }
+      },
+      "roofTone": "coping",
+      "parapet": 2.61,
+      "parapetTone": "rib",
+      "parapetSides": [
+        "v0",
+        "u0",
+        "v1",
+        "u1"
+      ],
+      "roofItems": [
+        {
+          "id": "plant",
+          "plan": [
+            10.0,
+            24.0,
+            9.0,
+            24.0
+          ],
+          "grid": [
+            3,
+            3
+          ],
+          "size": [
+            3.2,
+            3.2
+          ],
+          "h": 1.6,
+          "tone": "equip",
+          "_src": "the roof plant a 29-storey residential tower carries; not photographed, drawn as the condenser field every other roof in this folder carries"
+        }
+      ]
+    },
+    {
+      "id": "pavilion",
+      "_src": "The double-height glass amenity pavilion on the L5 deck, immediately south of the tower. S4's g15 photographs it from the dog terrace: a clear glass box two storeys tall with the tower rising behind it. Its plan position is inferred from that frame and is in `open`.",
+      "plan": [
+        33.6,
+        41.2,
+        15.6,
+        30.2
+      ],
+      "z0": 21.3,
+      "z1": 28.3,
+      "bands": [
+        {
+          "z0": 21.3,
+          "z1": 28.3,
+          "skin": "pavilion"
+        }
+      ],
+      "roofTone": "coping",
+      "parapet": 0.55,
+      "parapetTone": "coping"
+    }
+  ],
+  "deck": {
+    "z": 21.3,
+    "_src": "The L5 amenity deck between the tower's south face and the garage: S4's g15 is the fenced dog run with its turf, its board-formed planter walls, a timber bench and the glass pavilion beside it. The items' extents are read off that frame's proportions against the 7.6 m the pavilion occupies; they are inferred, not measured on a plan.",
+    "items": [
+      {
+        "id": "turf",
+        "plan": [
+          33.9,
+          41.0,
+          2.4,
+          13.8
+        ],
+        "z0": 0.0,
+        "h": 0.08,
+        "tone": "turf",
+        "_src": "the dog run's artificial turf, S4's g15"
+      },
+      {
+        "id": "planter-n",
+        "plan": [
+          33.9,
+          41.0,
+          13.8,
+          15.3
+        ],
+        "z0": 0.0,
+        "h": 1.05,
+        "tone": "planter",
+        "_src": "the near-black board-formed planter wall the run is enclosed by, S4's g15"
+      },
+      {
+        "id": "planting-n",
+        "plan": [
+          34.2,
+          40.7,
+          14.0,
+          15.1
+        ],
+        "z0": 1.05,
+        "h": 1.1,
+        "tone": "plant",
+        "_src": "the grasses and yuccas on top of it, S4's g15"
+      },
+      {
+        "id": "planter-s",
+        "plan": [
+          41.0,
+          41.9,
+          2.4,
+          15.3
+        ],
+        "z0": 0.0,
+        "h": 1.05,
+        "tone": "planter",
+        "_src": "the same wall returning along the deck's south edge, S4's g15"
+      },
+      {
+        "id": "planting-s",
+        "plan": [
+          41.1,
+          41.8,
+          2.6,
+          15.1
+        ],
+        "z0": 1.05,
+        "h": 1.1,
+        "tone": "plant",
+        "_src": "and its planting"
+      },
+      {
+        "id": "terrace",
+        "plan": [
+          33.9,
+          41.9,
+          30.4,
+          35.0
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckPave",
+        "_src": "the paved planting terrace on the deck's east side, S5's 'planting terrace'"
+      },
+      {
+        "id": "terrace-plant",
+        "plan": [
+          34.4,
+          41.4,
+          31.2,
+          34.4
+        ],
+        "z0": 0.06,
+        "h": 1.25,
+        "tone": "plant",
+        "_src": "its planting"
+      }
+    ]
+  },
+  "open": [
+    "THE TOWER'S PLAN IS THE WEAKEST NUMBER HERE. 31.4 x 31.6 m at u 1.6-33.0, v 1.9-33.5 is read off the proportions of S4's g33 - ten window columns on the north face at the 3.16 m bay, and both faces reading nearly equal at the corner where they are equally foreshortened. No source reachable without logging in carries a nadir of the finished building: S7 records that Google Earth's 3D mesh, Esri's Nearmap, Google's satellite and Bing's aerial are all construction-site imagery over this block. One current nadir would settle the tower plan, the u=42.0 split between the brick box and the garage, and the deck layout in one pass.",
+    "The split at u 42.0 between the brick box and the garage is read off where the brick stops in g33, which is a glancing view of that face; it could be anywhere from about 35 to 48 m.",
+    "S3's 'top floor 292 ft' (89.0 m) lands on this file's 22nd tower floor line (88.92 m), not its 24th (95.36 m). Either the top two levels are the sky lounge and the mechanical penthouse S5 lists and SkyscraperPage's figure is the top APARTMENT floor, or the podium is one level taller than the 21.30 m S6 measures. The roof and the parapet are solved to their 332 ft either way, so the residual is two storeys inside the tower, not the height.",
+    "The tower's south face is not photographed in any source reached and wears the west face's rule mirrored - one full-width ribbon every third floor and one per-floor stack at its east corner.",
+    "The ribbon balconies are drawn as one continuous slab and rail per third floor. In S4's g33 the ribbon is continuous on the west face and steps back part-way along the north; the step is not drawn, because the schema's balcony stack is one rectangle per floor line.",
+    "The Union 'U' logo cut into the orange pylon is not drawn - the sign field draws a 5x7 dot font, and the mark is a two-pronged glyph, not a letter. Measured: it occupies about the top third of the pylon in g33.",
+    "The UNION lettering at the crown is drawn on the north face only. g33 shows it there; whether the west face carries it too is behind the corner in every frame reached.",
+    "The pool, the grill pergola and the dog run's extents are inferred from the amenity photographs' proportions, not measured on a plan. Their tones and their existence are sourced; their metres are not.",
+    "The podium's ground floor is drawn as blank ashlar. g33 shows entrance doors and a lobby glazing at the corner that this file does not draw."
+  ]
+}
