@@ -1,5 +1,100 @@
 # Austin 3D Explorer — Full Handoff
 
+## 229. Sep 7 2026 — the apartments round-two pass shipped: the scaffolding was a bake's wall strips 8 cm outside the ring, three new buildings, and three gate reds that were all the instrument (`acer/apts2` → `main`)
+
+**Look first: `docs/apartments-pass-2.md`** — the pass in plain words with five
+cited before/after pairs in `shots/apartments/` (main `ba630ca` served from a
+`git archive` on a second port, same camera, same order, same machine). The one
+to open first is
+`shots/apartments/apts2-jester-west-scaffolding-before-after.jpg`: the poles
+standing out of Jester West's wing roofs on the left, gone on the right.
+
+**What shipped.** The scaffolding fix (`ab6eab4`), Moody Center, Villas on Rio
+and Union on San Antonio (28 buildings in `data/apartments/index.json` now), six
+rounds of look-fixes on The Standard against the owner's three photographs read
+at full resolution, and a new generator field, `spandrel` — a panel of an
+opening's own width under it, cut into the wall's cells the way `frame` is.
+
+**THE SCAFFOLDING WAS NEVER SCAFFOLDING.** It is `scripts/bake_roofs.py`'s
+`f: band` precast wall strips, baked onto the SNAPSHOT prism our own mesh
+replaces — b 19 → h 50.55 over a building whose courtyard wings stop at 18.6 m.
+The generator already meant to hide them, with
+`['>', ['distance', <the ring>], 0]`. A precast strip is drawn PROUD of its
+wall, so 27 of the 44 on the West tower stand 0.08–0.11 m OUTSIDE the ring and
+that clause never matched them: it took 17 and left 27. `APARTMENTS.wallMargin`
+= 0.6 m now, and it is a measured number — over the whole of `data/roofs.geojson`
+the minimum distance from a feature to the nearest authored footprint is 902 at
+0 m, 179 in (0, 0.11], 3 at 0.4, then NOTHING until 1.8 m, which is a
+neighbour's own band on a party wall. Two new gate lines in section 2b watch it,
+and both prove the CLAUSE hid the strips and not the bake, by asking the
+`?apartments=0` page for them and getting 15 of 64 back above 18.6 m.
+
+**THREE GATE REDS, ALL THREE THE INSTRUMENT, and two of them are a trap the next
+lane will hit.** `slopes-layer.mjs --against` ran 69/72 on the first pass.
+
+1. and 2. **`--against` pointed at a main that HAS the slopes layer.** Both
+   "with the switch off, is this main's picture?" lines loaded the archive as a
+   PLAIN page — correct only when `--against` is a *pre-slopes* main (e232953),
+   which is what they were written for in §204d. Point them at today's main and
+   the archive draws 108 roofs, 24 arches, a dome and 25 apartment buildings
+   that our `?slopes=0` side does not: **268,525 px** at mall-cruise and
+   **519,734 px** at The Standard's pose — the second is the same order as this
+   pass's own ON-vs-OFF (510,407 px), which is the tell. Fixed: an `AGAINST_OFF`
+   constant appends `&slopes=0` to every archive URL, so the switch is off on
+   both sides and the line varies one thing again. A pre-slopes archive ignores
+   the parameter, so it is safe for either kind of main.
+3. **The `frame` line assumed a window that has a frame now.** It gives The
+   Standard's podium window a 0.3 m charcoal frame and reads the wall beside the
+   pane. Round 4 (`297df22`) put a thin charcoal frame on that window off
+   Humphreys' Ext_14, so the test's set became a REPLACE: count 3671 → 3671, two
+   rays already charcoal before it touched anything, and its `delete` restore
+   removed the building's real frame (3671 → 3462). Fixed: it strips the file's
+   own frame first to make a true zero, then adds, then restores the ORIGINAL
+   spec (not `delete`), and the restore assertion compares to the as-authored
+   count.
+
+**Gates on hardware, on the merged tree.** `slopes-layer.mjs --against` (archive of `ba630ca` on :8472,
+`VERIFY_MAX_MS=4200000`) **72/72, exit 0** — both bake-identity lines now
+**0 of 1,296,000 px, max channel Δ 0**, which is the first time either has been
+a true zero on this project; the `frame` line reads `as authored 3671, stripped
+3462 -> with a 0.3 m charcoal frame 3671 -> put back 3671`, 0 charcoal rays
+before and 6 after; a settled page shot twice 0 px at both poses; ON vs OFF
+510,407 px; 28 of 28 built, 873,242 tris in 3,097.7 ms; no page errors.
+`art-slopes.mjs` **7/7, exit 0** (runtime-off equals `?art3d=0` at **0 px** at
+both poses). `westcampus-probe.mjs` **21/21, exit 0** — up from 20/21; the old
+red was `wc-wall-cap` hidden by `js/lod.js` at the probe's altitude and it is
+green here. `walkmeter.mjs` **PASS, exit 0** including the real-mouse "Avoid
+stairs" gate (240 m -> 47 m and back). `facadegrid.mjs` **0 failing
+assertions, exit 0**; worst residual LOOK 1.30x (ratchet 1.4x), WALK 2.61x
+(ratchet 2.7x), both Battle Hall, both unchanged by this branch.
+
+**Perf.** ON vs OFF on one page, generators toggled at runtime, interleaved
+A/B/B/A, 200 frames a rep, 3 reps after 2 discarded warm-ups, MINIMUM of the
+per-rep medians, headed on `ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop
+GPU, Direct3D11)`, vsync and the occlusion throttles off, graphics preset
+balanced. **887,368 triangles on, 0 off, in all fifteen reps.** The Standard's
+SW oblique **−0.10 ms** at p50 (12.40 on, 12.50 off), +0.90 at p90; Moody
+Center's SW oblique **+0.10 ms** (11.30 / 11.20), +0.40 at p90; the mall cruise
+**+0.40 ms** (14.20 / 13.80), +0.70 at p90. The bar was +3 ms.
+
+**Housekeeping.** The eleven untracked `scripts/verify/_*.mjs` the builders left
+are deleted; one earned a real name — `scripts/verify/earth-reference.mjs`,
+Google Earth reference capture at a named centre, which had been written from
+scratch and lost twice (§228 says so). Tracked `_aptsweep.mjs` →
+`apts-sweep.mjs`. `apts-perf.mjs` gained a Moody Center pose, the heaviest
+single mesh the generator draws.
+
+**Open, on purpose.** 22 items across the three new files and 5 on The
+Standard, summarised in `docs/apartments-pass-2.md`. Two missing generator
+fields would close nine of them at once: `ribs` (a strip standing proud of a
+wall — Moody's fins and half a dozen files' screens and trellises) and a `shed`
+roof (Villas' rake, drawn as 20 steps today). And **the bake should skip every
+id in `data/apartments/index.json`** — the generator hides four bakes at runtime
+by id and by geometry, which works, and which is exactly why the scaffolding
+existed.
+
+Branch `acer/apts2`, 17 commits on `ba630ca`. PR PR_LINE
+
 ## 228. Sep 7 2026 — The Standard's window system off the photographs at full resolution: the rust is a panel under the window, the podium alternates window and juliet, the pixel marks are one course tall, the glass is sunlit (`acer/apts2`, The Standard's piece of the apartments round)
 
 **Look first: `docs/shots/apartments-standard-r6-sw-before-after.jpg`** — the
@@ -101,7 +196,7 @@ its face is the westcampus label at the snapshot centroid, not our geometry.
 **Cost.** Page-wide, round 4 added 7,000 cells and 15,000 triangles (1.8 %) —
 the 1,372 new framed windows are The Standard's — and no warning.
 
-**Gate.** `scripts/verify/slopes-layer.mjs` on hardware: launched at 04:33 CDT on 2026-09-07 with all three archives served (`--against-nogen` this commit minus both generators on :8162, `--against-tip` ba630ca on :8163, `--against` e232953 on :8164), VERIFY_MAX_MS 7,200,000, on a machine where four builders' Chromes share the one GPU; log at the session scratchpad `next/build/standard/gate/gate.log`. **The score is in the line below this one when it landed; if there is no such line, the lane was cut off before it did — read that log, or re-run.**
+**Gate.** `scripts/verify/slopes-layer.mjs` on hardware: launched at 04:33 CDT on 2026-09-07 with all three archives served (`--against-nogen` this commit minus both generators on :8162, `--against-tip` ba630ca on :8163, `--against` e232953 on :8164), VERIFY_MAX_MS 7,200,000, on a machine where four builders' Chromes share the one GPU; log at the session scratchpad `next/build/standard/gate/gate.log`. **That run never reported — the lane was cut off. It was re-run from scratch in the shipping pass (§229) on this same tree with one archive, `git archive ba630ca` on :8472: 69/72 first, then 72/72 exit 0 once the three reds were shown to be the instrument.**
 
 **Open, on purpose.**
 - The south bar was never photographed close; it wears the same window unit

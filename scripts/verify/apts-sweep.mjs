@@ -1,6 +1,6 @@
 /**
- * _aptsweep.mjs — one oblique per authored building, for the floating-detail sweep.
- *   OUT=<dir> TAG=<before|after> POSEFILE=<json> node _aptsweep.mjs [extraQuery]
+ * apts-sweep.mjs — one oblique per authored building, for the floating-detail sweep.
+ *   OUT=<dir> TAG=<before|after> POSEFILE=<json> node apts-sweep.mjs [extraQuery]
  */
 import fs from 'node:fs';
 import { chromium } from 'playwright-core';

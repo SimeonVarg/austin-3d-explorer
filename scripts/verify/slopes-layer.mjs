@@ -1162,19 +1162,32 @@ check('...and NONE of that is the mesh: stopping the layer\'s render() altogethe
 // the layer switched off at LOAD has to be main. Serve `git archive main` on a
 // second port and pass it as --against; 0 px is the contract, and it holds
 // because neither page carries the custom layer.
+//
+// `&slopes=0` ON THE ARCHIVE SIDE TOO, SINCE 2026-09-07. The line was written
+// when --against could only be a PRE-SLOPES main (e232953), a build with no
+// custom layer, so asking it for a plain page already gave a layer-free frame.
+// It is now normal to point --against at the CURRENT main, which does carry the
+// layer — and then a plain page draws 108 roofs, 24 arches, a dome and 25
+// apartment buildings, none of which our `?slopes=0` side draws. Measured on
+// this branch against `git archive ba630ca`: 268,525 px at mall-cruise and
+// 519,734 px at The Standard's pose, both the mesh itself and neither of them
+// about the bake. The switch has to be off on BOTH sides for the line to vary
+// one thing. On a pre-slopes archive the parameter is simply ignored, so this
+// is safe for either kind of main.
+const AGAINST_OFF = '&slopes=0';
 if (AGAINST_NOGEN) {
   const D = await mallFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'against-nogen');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check('?slopes=0 is the SAME COMMIT built without the two generators this branch adds (--against-nogen) — the two script tags and their data change nothing while the layer is off', zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
   if (AGAINST) {
-    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'against');
     await D2.pg.close();
     const d4 = diffPNG(C.f, D2.f);
-    console.log(`   (context, not a gate line) ?slopes=0 against the pre-slopes main archive: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — this branch re-baked heroes, entrances, ground and props, so this is those bakes and not the slopes layer.`);
+    console.log(`   (context, not a gate line) ?slopes=0 against the main archive, layer off on both sides: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — whatever else this branch re-baked, not the slopes layer.`);
   }
 } else if (AGAINST) {
-  const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+  const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'against');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check(`?slopes=0 is the build at ${AGAINST}, to the pixel or the atlas residue (the bake changed nothing the slabs draw)`, zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
@@ -1533,6 +1546,26 @@ const frameTest = await (async () => {
   const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -14.0), [APT_NAME, STD_UV.podiumWindow[0] + 1.5]);
   await pose(pg, faceLL, 20.5, 72, 184.7);
   await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  // THE FILE'S OWN FRAME IS TAKEN OFF FIRST, SINCE 2026-09-07. This line was
+  // written when the podium window carried NO frame, so setting one was a
+  // clean 0 -> n and `delete` put the file back. Round 4 of The Standard
+  // (2026-09-07) read Humphreys' exteriors at full resolution and found the
+  // rust is a spandrel panel INSIDE the window's own thin charcoal frame — so
+  // the podium window has a frame in the data now, and the old sequence
+  // measured nothing: the count went 3671 -> 3671 (a replace, not an add),
+  // two rays already returned charcoal before the test touched anything, and
+  // `delete` left 3462, i.e. it deleted the building's real frame instead of
+  // restoring it. The defect was the instrument's premise, not the file.
+  // So: strip the file's frame to make a true no-frame baseline, measure,
+  // add the 0.3 m charcoal frame, measure, then put the ORIGINAL spec back
+  // (whatever it was) and check the count returns to where it started.
+  const own = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    const kept = b.skins.podium.window.frame || null, framesAsAuthored = A.count.frames;
+    if (kept) { delete b.skins.podium.window.frame; A.rebuild(); }
+    return { kept, framesAsAuthored };
+  }, APT_NAME);
+  await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
   const before = await sampler();
   const r = await pg.evaluate(name => {
     const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
@@ -1544,13 +1577,18 @@ const frameTest = await (async () => {
   await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
   const after = await sampler();
   const charcoal = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.charcoal.hex || b.colours.charcoal[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
-  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); delete b.skins.podium.window.frame; A.rebuild(); return A.count.frames; }, APT_NAME);
-  return Object.assign(r, { before, after, charcoal, restored });
+  const restored = await pg.evaluate(([name, kept]) => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    if (kept) b.skins.podium.window.frame = kept; else delete b.skins.podium.window.frame;
+    A.rebuild();
+    return A.count.frames;
+  }, [APT_NAME, own.kept]);
+  return Object.assign(r, { before, after, charcoal, restored, ownFrame: !!own.kept, framesAsAuthored: own.framesAsAuthored });
 })();
 const nCharBefore = frameTest.before.filter(c => c === frameTest.charcoal).length, nCharAfter = frameTest.after.filter(c => c === frameTest.charcoal).length;
-check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows given a 0.3 m charcoal frame return charcoal on rays beside the pane where the wall returned white',
-  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.frames0,
-  `framed windows ${frameTest.frames0} -> ${frameTest.frames1} -> ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
+check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows, stripped of the frame the file authors and then given a 0.3 m charcoal one, return charcoal on rays beside the pane where the wall returned white',
+  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.framesAsAuthored,
+  `framed windows as authored ${frameTest.framesAsAuthored}${frameTest.ownFrame ? ' (the podium window carries its own frame)' : ' (no frame on the podium window)'}, stripped ${frameTest.frames0} -> with a 0.3 m charcoal frame ${frameTest.frames1} -> put back ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
 const mod4Test = await AP.pg.evaluate(name => {
   const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
   const c0 = A.count.dominoes, m0 = A.count.mod4Cells;
@@ -1702,10 +1740,10 @@ if (AGAINST_NOGEN) {
     console.log(`   (context, not a gate line) ?apartments=0 against main 8b4b90c at this pose: ${dAptTip.pixels} of ${dAptTip.total} px, max channel Δ ${dAptTip.maxChannelDiff} - the other four pieces on this branch, not the switch.`);
   }
   if (AGAINST) {
-    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'apts-against-main');
     await G0.pg.close();
     const dAptMain = diffPNG(C3n.f, G0.f);
-    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the pre-slopes main archive at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
+    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the main archive with its layer off too, at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
   }
 } else {
   if (AGAINST_TIP) {
@@ -1720,10 +1758,10 @@ if (AGAINST_NOGEN) {
   if (AGAINST) {
     const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
     await C3.pg.close();
-    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'apts-against-main');
     await G0.pg.close();
     const dAptMain = diffPNG(C3.f, G0.f);
-    check("apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive's frame at the pose (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+    check("apartments (--against): ?apartments=0&slopes=0 is the main archive's frame at the pose with ITS layer off too (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
   }
 }
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
