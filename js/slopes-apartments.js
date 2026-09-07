@@ -519,7 +519,7 @@
     const { W, len, z0, z1 } = face;
     const reveal = APTS.reveals ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame }));
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel }));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
     // tower's punched window, Jester West's 1.31 x 2.31 m precast round a
@@ -533,11 +533,28 @@
       return { s0: Math.max(0, w.s0 - fw), s1: Math.min(len, w.s1 + fw), z0: Math.max(z0, w.z0 - fh), z1: Math.min(z1, w.z1 + fh), col: P[w.frame.tone] || P.frame || P.wall, w };
     });
     count.frames += framed.length;
-    // z cuts: the skin's row lines, every window's top and bottom, every frame's
+    // THE SPANDREL. A window's `spandrel: { h, tone }` is a panel of the
+    // opening's own width standing directly under it — The Standard's rust
+    // panel beneath every window on the bays that carry one (Ext_14 and
+    // Ext_41 at full resolution: a wood-look panel under the sill, inside the
+    // window's charcoal frame, and a column of them reads from the oblique
+    // as the interrupted rust strip the owner's photographs describe). It is
+    // cut into the wall's cells the way the frame is, `h` tall downward from
+    // the frame's sill strip (or from the sill when there is no frame), and
+    // an `offsets` entry may carry its own as a third element (`null` there
+    // = none), so a window bay and the juliet-door bay beside it need not
+    // match. A window clipped at the band's foot gets none.
+    const spandrels = windows.filter(w => w.spandrel && w.spandrel.h > 0 && w.z0 > z0 + 1e-6).map(w => {
+      const fh = w.frame && w.frame.w > 0 ? (w.frame.h != null ? w.frame.h : w.frame.w) : 0;
+      const zt = w.z0 - fh;
+      return { s0: w.s0, s1: w.s1, z0: Math.max(z0, zt - w.spandrel.h), z1: zt, col: P[w.spandrel.tone] || P.frame || P.wall, w };
+    }).filter(r => r.z1 - r.z0 > 1e-4);
+    const regions = framed.concat(spandrels);   // frames first: where a ring and a panel meet, the ring wins
+    // z cuts: the skin's row lines, every window's top and bottom, every frame's and spandrel's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
     for (const w of windows) { if (w.z0 > z0 && w.z0 < z1) zc.add(+w.z0.toFixed(4)); if (w.z1 > z0 && w.z1 < z1) zc.add(+w.z1.toFixed(4)); }
-    for (const f of framed) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
+    for (const f of regions) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
     const zs = [...zc].sort((a, b) => a - b);
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
@@ -551,7 +568,7 @@
       for (const s of skin.cols(zm, len)) if (s > 0 && s < len) sc.add(+s.toFixed(4));
       const inBand = windows.filter(w => w.z0 <= za + 1e-6 && w.z1 >= zb - 1e-6);
       for (const w of inBand) { if (w.s0 > 0 && w.s0 < len) sc.add(+w.s0.toFixed(4)); if (w.s1 > 0 && w.s1 < len) sc.add(+w.s1.toFixed(4)); }
-      const frBand = framed.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
+      const frBand = regions.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
       for (const f of frBand) { if (f.s0 > 0 && f.s0 < len) sc.add(+f.s0.toFixed(4)); if (f.s1 > 0 && f.s1 < len) sc.add(+f.s1.toFixed(4)); }
       const ss = [...sc].sort((a, b) => a - b);
       for (let c = 0; c < ss.length - 1; c++) {
@@ -619,6 +636,9 @@
     // it (Skyloft). Without it, one window of `w` at the bay centre.
     const parts = Array.isArray(win.offsets) && win.offsets.length ? win.offsets : [[0, win.w || 1.5]];
     const frame = win.frame && win.frame.w > 0 ? win.frame : null;
+    // `spandrel: { h, tone }` under every opening, or per opening as an
+    // `offsets` entry's third element (`null` = none) — see tileFace
+    const spandrel = win.spandrel && win.spandrel.h > 0 ? win.spandrel : null;
     for (let fi = 0; fi < floors.length; fi++) {
       const fz = floors[fi];
       const zb = fz + (win.sill != null ? win.sill : 0.8), zt = zb + (win.h || 2.0);
@@ -629,7 +649,8 @@
           const s0 = cx - ww / 2, s1 = cx + ww / 2;
           if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
           if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
-          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame });
+          const sp = parts[pi].length > 2 ? (parts[pi][2] && parts[pi][2].h > 0 ? parts[pi][2] : null) : spandrel;
+          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp });
         }
       }
     }

@@ -283,6 +283,15 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
   (Jester West's and San Jacinto's wings: `[[-1.5, 0.72], [1.5, 0.72]]`), a
   wide light with two narrow ones beside it (Skyloft). Without it, one
   window of `w` at the bay centre.
+- `spandrel: { h, tone }` — a panel of the opening's own width directly
+  under it, `h` tall downward from the frame's sill strip (or the sill), in
+  `tone`, cut into the wall's cells like the frame (The Standard's rust
+  panel under every window on the bays that carry one: Ext_14 and Ext_41 at
+  full resolution show a wood-look panel under the sill inside the window's
+  charcoal frame, and a column of them reads from 220 m as the interrupted
+  rust strip). An `offsets` entry may carry its own as a third element
+  (`[off, w, { h, tone }]`, or `null` for none), so the window bay and the
+  juliet-door bay beside it differ.
 
 **blocks** — each one is walls plus a roof plus parapets:
 
