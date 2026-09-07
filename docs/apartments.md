@@ -33,6 +33,32 @@ What it hides while it draws, and puts back when it does not:
   at a NADIR: `queryRenderedFeatures` on a fill-extrusion answers for the
   whole volume along the view ray, and from an oblique a neighbour's lower
   deck lands on the ray to your courtyard;
+- the tiled-roof bake's WALL STRIPS (`roofs-pitched`'s `f: band` features),
+  by GEOMETRY against every authored footprint GROWN BY
+  `APARTMENTS.wallMargin` — not against the footprint itself. A precast
+  strip is drawn PROUD of the wall, so most of them do not overlap the ring
+  at all: 27 of the 44 over Jester West Hall stood 0.08-0.11 m outside it,
+  and a `distance > 0` clause kept every one — 31 m poles (b 19 -> h 50.55,
+  baked on the snapshot prism) standing in the air over courtyard wings that
+  stop at 18.6 m. That is the "scaffolding" Simeon reported on 2026-09-06.
+  Measured over the whole of `data/roofs.geojson`: 902 features at distance
+  0, 179 in (0, 0.11], 3 at 0.4, then nothing until 1.8 m, which is a
+  neighbour's own band on a party wall — so 0.6 m clears every stray with
+  1.2 m of headroom;
+- `js/moody.js`'s OWN ARENA (`moody-wall`, `moody-roof`, `moody-plant`,
+  `moody-cap`), by geometry on the same inset outline as the roofscape. That
+  pass was written when the arena was nobody's authored building. It is one
+  now — `data/apartments/moody-center.json` — and its drum walls stand to
+  28.7 m over a building this file authors at 17.4 m to the eave and 22.6 m
+  to the membrane: a second arena, six metres of it in the air. It is hidden
+  by GEOMETRY rather than by turning the pass off, because
+  `data/moody.geojson`'s own `replacedBuildingIds` names three buildings and
+  only one of them is ours; the other two are precinct neighbours that must
+  keep being drawn;
+- `data/parts.geojson`'s `building:part` prisms (`parts-3d`, `parts-roof`),
+  by geometry on the same inset outline as the roofscape. They carry an
+  `osm_id` and no snapshot id, and way/516187626 stands to 94 m over Dobie
+  Twenty21, which this file authors at 81.2;
 - the tiled-roof rig `js/slopes-roofs.js` draws over San Jacinto Hall from
   `data/roofs.geojson` (a hip on Overture's 28.1 m, six metres over the roof
   this file draws): its entries keyed by a replaced id are lifted out of
@@ -98,6 +124,12 @@ above 54 m, drop blocks and skin parts one at a time) found nothing, and one
 bake's kept `f: band` features, the tower's precast strips baked on the
 snapshot. They are hidden by geometry now, against the footprint itself,
 because they stand on the wall line.*
+
+*(And that last sentence was half a fix, which is why Simeon was still
+looking at poles a day later. "Against the footprint itself" hid what
+OVERLAPS the ring, and a strip drawn proud of the wall does not: the clause
+took 17 of Jester West's 44 and left 27. `APARTMENTS.wallMargin` is the
+number that finishes it — see the hide list above.)*
 
 ## What is in the frame, and where it came from
 
@@ -261,6 +293,15 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
   (Jester West's and San Jacinto's wings: `[[-1.5, 0.72], [1.5, 0.72]]`), a
   wide light with two narrow ones beside it (Skyloft). Without it, one
   window of `w` at the bay centre.
+- `spandrel: { h, tone }` — a panel of the opening's own width directly
+  under it, `h` tall downward from the frame's sill strip (or the sill), in
+  `tone`, cut into the wall's cells like the frame (The Standard's rust
+  panel under every window on the bays that carry one: Ext_14 and Ext_41 at
+  full resolution show a wood-look panel under the sill inside the window's
+  charcoal frame, and a column of them reads from 220 m as the interrupted
+  rust strip). An `offsets` entry may carry its own as a third element
+  (`[off, w, { h, tone }]`, or `null` for none), so the window bay and the
+  juliet-door bay beside it differ.
 
 **blocks** — each one is walls plus a roof plus parapets:
 
@@ -375,6 +416,9 @@ and guard rail.
 | `floorSlack` | `1.0` | a band that starts within this of the floor line below it keeps that storey's windows, clipped to the band; beyond it the storey is dropped — either way the boot log names the band |
 | `hideRoofscape`, `roofscapeInset` | `true`, `1.0` | hide the roofscape pass over every authored footprint (inset this many metres so a neighbour's own deck, which shares the boundary, stays) |
 | `hideStoreys` | `true` | hide the campus-storeys courses whose `host` is a replaced id |
+| `hideParts` | `true` | hide `data/parts.geojson`'s `building:part` prisms standing on an authored footprint (same inset as the roofscape) |
+| `hidePrecinct` | `true` | hide `js/moody.js`'s own arena (`moody-wall`, `moody-roof`, `moody-plant`, `moody-cap`) where it stands on an authored footprint — by geometry, because the same pass draws two precinct neighbours we do not author |
+| `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
 | `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
 
@@ -406,8 +450,12 @@ The whole slopes layer was ~74,000 triangles before it.
   a street photograph of the south face would settle them.
 - The faces on the light wells, tower B's south and east faces and tower
   A's west face were not photographed and wear the plainest skin.
-- The corner glazing stack on the charcoal bay and the deck's furniture
-  (loungers, palms, hammocks) are not drawn.
+- The deck's furniture is the owner's photographs placed by eye against the
+  rectified nadir's pool, spas, turf and cabana (HANDOFF 228); the z20 nadir
+  shows a blue-canopied structure at the pool's EAST end where the file's
+  cabana is at the west, and at that resolution a canopy and an umbrella are
+  the same thing, so it stays. The juliets are drawn as 0.35 m projecting
+  rails where the photographs show a ~1.2 m recess with the rail at the face.
 - `applyWestcampusSettings()` (the westcampus perf A/B, nothing on the site)
   rewrites buildings-3d's filter from its own snapshot and would drop this
   generator's clause; the next `applySlopesApartments()` puts it back.

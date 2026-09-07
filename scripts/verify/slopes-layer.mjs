@@ -1162,19 +1162,32 @@ check('...and NONE of that is the mesh: stopping the layer\'s render() altogethe
 // the layer switched off at LOAD has to be main. Serve `git archive main` on a
 // second port and pass it as --against; 0 px is the contract, and it holds
 // because neither page carries the custom layer.
+//
+// `&slopes=0` ON THE ARCHIVE SIDE TOO, SINCE 2026-09-07. The line was written
+// when --against could only be a PRE-SLOPES main (e232953), a build with no
+// custom layer, so asking it for a plain page already gave a layer-free frame.
+// It is now normal to point --against at the CURRENT main, which does carry the
+// layer — and then a plain page draws 108 roofs, 24 arches, a dome and 25
+// apartment buildings, none of which our `?slopes=0` side draws. Measured on
+// this branch against `git archive ba630ca`: 268,525 px at mall-cruise and
+// 519,734 px at The Standard's pose, both the mesh itself and neither of them
+// about the bake. The switch has to be off on BOTH sides for the line to vary
+// one thing. On a pre-slopes archive the parameter is simply ignored, so this
+// is safe for either kind of main.
+const AGAINST_OFF = '&slopes=0';
 if (AGAINST_NOGEN) {
   const D = await mallFrame(`${AGAINST_NOGEN}/index.html?intro=0&drift=0&slopes=0`, 'against-nogen');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check('?slopes=0 is the SAME COMMIT built without the two generators this branch adds (--against-nogen) — the two script tags and their data change nothing while the layer is off', zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
   if (AGAINST) {
-    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+    const D2 = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'against');
     await D2.pg.close();
     const d4 = diffPNG(C.f, D2.f);
-    console.log(`   (context, not a gate line) ?slopes=0 against the pre-slopes main archive: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — this branch re-baked heroes, entrances, ground and props, so this is those bakes and not the slopes layer.`);
+    console.log(`   (context, not a gate line) ?slopes=0 against the main archive, layer off on both sides: ${d4.pixels} of ${d4.total} px, max channel Δ ${d4.maxChannelDiff}${d4.bbox ? ', bbox ' + d4.bbox.join(',') : ''} — whatever else this branch re-baked, not the slopes layer.`);
   }
 } else if (AGAINST) {
-  const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'against');
+  const D = await mallFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'against');
   await D.pg.close();
   const d3 = diffPNG(C.f, D.f);
   check(`?slopes=0 is the build at ${AGAINST}, to the pixel or the atlas residue (the bake changed nothing the slabs draw)`, zeroButAtlas(d3), `${d3.pixels} of ${d3.total} pixels differ (max channel Δ ${d3.maxChannelDiff})${residueNote(d3)}${d3.bbox ? ', bbox ' + d3.bbox.join(',') : ''}`);
@@ -1268,6 +1281,97 @@ async function regentsDecks(pg) {
 }
 const regentsDeckIn = decks => decks.some(d => d.layer === 'roofscape-deck' && Math.abs(d.b - REGENTS_DECK_B) < 0.3);
 const fmtDecks = decks => decks.length ? decks.map(d => `${d.layer} ${d.k} b ${d.b}`).join(', ') : 'none';
+// THE SCAFFOLDING LINE (2026-09-06). Simeon, looking at the live site: "the
+// parts with 5 floors still have a scaffolding for the rest of the floors
+// that need to be removed (also present in rest of building)". Jester West
+// Hall's courtyard wings stop at 18.6 m; the tiled-roof bake's `f: band`
+// strips over them were baked on the snapshot prism and run to 50.55 m, and
+// 27 of the 44 on the tower stood 0.08-0.11 m OUTSIDE the footprint ring, so
+// the clause that hid what OVERLAPS the ring kept them — 31 m poles in the
+// air with no wall behind them. APARTMENTS.wallMargin is the fix.
+//
+// The assertion is a NADIR over the south wing (an oblique query answers for
+// the whole extruded volume along the view ray, so it would find the tower's
+// own strips from the wing and prove nothing) with a BOX, not a point: a
+// 0.35 m strip is one pixel wide at this zoom. Nothing roofs-pitched draws
+// may stand above the wing's own roof there.
+const JESTER = { centre: [-97.736659, 30.2817558], zoom: 18.4,
+                 wing: [[-97.7371294, 30.2817503], [-97.7361966, 30.2816802], [-97.7361886, 30.2817613], [-97.7371213, 30.2818315]],
+                 roofTop: 18.6 };
+async function jesterWingBands(pg) {
+  await pose(pg, JESTER.centre, JESTER.zoom, 0, 0);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(J => {
+    const m = window.__map;
+    if (!m.getLayer('roofs-pitched')) return null;
+    const xs = J.wing.map(c => m.project(c));
+    const box = [[Math.min(...xs.map(p => p.x)), Math.min(...xs.map(p => p.y))],
+                 [Math.max(...xs.map(p => p.x)), Math.max(...xs.map(p => p.y))]];
+    return m.queryRenderedFeatures(box, { layers: ['roofs-pitched'] })
+            .map(f => ({ f: f.properties.f, b: f.properties.b, h: f.properties.h }));
+  }, JESTER);
+}
+// what is standing ABOVE the wing's roof, which is the whole complaint
+const overWing = bands => (bands || []).filter(d => d.h > JESTER.roofTop + 0.5);
+const fmtBands = bands => bands === null ? 'roofs-pitched not on the page'
+  : (bands.length ? bands.slice(0, 6).map(d => `${d.f || '-'} b ${d.b} h ${d.h}`).join(', ') + (bands.length > 6 ? ` (+${bands.length - 6})` : '') : 'none');
+// THE CLASS LINE (2026-09-06). The Jester line above catches ONE layer over
+// ONE wing. The defect Simeon reported is a class: any pass that draws a
+// building VOLUME from its own bake, over ground this file has authored, is
+// a second building standing inside or above the first, and the generator's
+// hide plan is only the list of the passes somebody remembered. Moody Center
+// is the one that proved the list was short — js/moody.js draws the arena's
+// own drum to 28.7 m over a building the generator authors at 17.4 m to the
+// eave and 22.6 m to the membrane, and moody-wall was in no plan at all
+// until APARTMENTS.hidePrecinct.
+//
+// So this asks a different question from the Jester line. Not "is anything
+// TALL standing there" but "is anything from the replaced city standing
+// there AT ALL" — over an authored footprint the answer has to be nothing,
+// because the building is replaced whole, and a NEW pass that nobody hides
+// fails this line without anyone having to edit it.
+//
+// NADIR POINTS, each at least 6 m inside the ring. Nadir because an oblique
+// query answers along the view ray. Points rather than a box because a box
+// takes the ring's bounding RECTANGLE and every neighbour that falls in it
+// answers — the first cut of this sweep read Prather Hall, Torchy's Tacos
+// and The Venue on Guadalupe as defects on three different buildings. Six
+// metres in because a party wall cannot reach that far into our plan.
+const MOODY = {
+  centre: [-97.7306524, 30.2809753], zoom: 18.5,
+  pts: [[-97.7312893, 30.2809753], [-97.7309708, 30.2806991], [-97.7309708, 30.2809753], [-97.7309708, 30.2812514],
+        [-97.7306524, 30.2804229], [-97.7306524, 30.2806991], [-97.7306524, 30.2809753], [-97.7306524, 30.2812514],
+        [-97.7306524, 30.2815276], [-97.730334, 30.2806991], [-97.730334, 30.2809753], [-97.730334, 30.2812514],
+        [-97.7300155, 30.2809753]],
+};
+// Every layer js/slopes-apartments.js plans to hide, by its own HIDE_LAYERS
+// groups. Restated here rather than read off the page on purpose: a bug that
+// drops a layer OUT of the plan has to fail this test, and a list read from
+// the thing under test would shrink with it.
+const HIDE_PLAN = ['buildings-3d', 'buildings-roof', 'wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail',
+                   'campus-storeys', 'roofscape-deck', 'roofscape-major', 'roofscape-minor',
+                   'roofs-pitched', 'parts-3d', 'parts-roof', 'moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'];
+async function hidePlanOver(pg, place) {
+  await pose(pg, place.centre, place.zoom, 0, 0);
+  await pg.waitForTimeout(1500); await pg.evaluate(() => window.__settle(3000));
+  return pg.evaluate(({ pts, plan }) => {
+    const m = window.__map, out = {};
+    for (const c of pts) {
+      const p = m.project(c);
+      if (p.x < 0 || p.y < 0 || p.x > m.getCanvas().clientWidth || p.y > m.getCanvas().clientHeight) continue;
+      for (const f of m.queryRenderedFeatures([p.x, p.y])) {
+        const id = f.layer && f.layer.id;
+        if (plan.indexOf(id) < 0) continue;
+        const q = f.properties || {}, h = +(q.h ?? q.height ?? q.final_height ?? NaN);
+        if (!out[id]) out[id] = { n: 0, maxH: null };
+        out[id].n++;
+        if (!Number.isNaN(h) && (out[id].maxH === null || h > out[id].maxH)) out[id].maxH = h;
+      }
+    }
+    return out;
+  }, { pts: place.pts, plan: HIDE_PLAN });
+}
+const fmtPlan = hit => { const k = Object.keys(hit || {}); return k.length ? k.map(id => `${id} x${hit[id].n} to ${hit[id].maxH} m`).join(', ') : 'nothing'; };
 async function standardFrame(url, name, before) {
   const pg = await open(url);
   await settledApts(pg).catch(() => {});
@@ -1277,6 +1381,8 @@ async function standardFrame(url, name, before) {
   return { pg, f: await snap(pg, name) };
 }
 let regentsOn = [], regentsOff = [];
+let jesterOn = null, jesterOff = null;
+let moodyOn = null, moodyOff = null;
 const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on', async pg => {
   if (BREAK) {
     await pg.evaluate(() => { window.APARTMENTS.on = false; window.applySlopesApartments(window.__map); });
@@ -1284,6 +1390,8 @@ const AP = await standardFrame(`${SERVER}/index.html?intro=0&drift=0`, 'apts-on'
     console.log('--break: APARTMENTS.on = false — The Standard is the flat prism and the westcampus bands again');
   }
   regentsOn = await regentsDecks(pg);
+  jesterOn = await jesterWingBands(pg);
+  moodyOn = await hidePlanOver(pg, MOODY);
 });
 const apts = await aptState(AP.pg);
 const c = apts.count || {};
@@ -1308,6 +1416,12 @@ check('apartments: the dot font sets the whole alphabet and the digits — MOONT
 check('apartments: the roofscape deck baked over Regents West at Overture\'s height is hidden while the generator draws (a nadir query at the courtyard finds no deck at b 25.9)',
   BREAK ? regentsDeckIn(regentsOn) : !regentsDeckIn(regentsOn),
   `at the nadir over Regents West: ${fmtDecks(regentsOn)}`);
+check('apartments: NOTHING FLOATS OVER AN AUTHORED ROOF — over Jester West Hall\'s five-storey south wing, a nadir box query returns no roofs-pitched feature standing above the wing\'s own 18.6 m roof (the snapshot\'s precast strips ran to 50.55 m and stood clear of the ring, so `distance > 0` kept them; APARTMENTS.wallMargin takes them)',
+  jesterOn === null ? false : (BREAK ? overWing(jesterOn).length > 0 : overWing(jesterOn).length === 0),
+  `at the nadir over the south wing: ${overWing(jesterOn).length} of ${jesterOn === null ? '-' : jesterOn.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOn))}`);
+check('apartments: NOTHING THE GENERATOR REPLACED IS STILL DRAWN — at thirteen nadir points at least 6 m inside Moody Center\'s authored ring, not one layer in the hide plan answers (js/moody.js drew the arena\'s own drum to 28.7 m over a building authored at 17.4 m to the eave, and moody-wall was in no plan at all until APARTMENTS.hidePrecinct)',
+  BREAK ? Object.keys(moodyOn || {}).length > 0 : Object.keys(moodyOn || {}).length === 0,
+  `at the nadir inside Moody Center: ${fmtPlan(moodyOn)}`);
 const fAptAgain = await snap(AP.pg, 'apts-on-again');
 // Two tests that rebuild the mesh in place and put it back: a sign on a face
 // is drawn once per face, whatever cuts the wall into pieces (THE MARK was
@@ -1432,6 +1546,26 @@ const frameTest = await (async () => {
   const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -14.0), [APT_NAME, STD_UV.podiumWindow[0] + 1.5]);
   await pose(pg, faceLL, 20.5, 72, 184.7);
   await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  // THE FILE'S OWN FRAME IS TAKEN OFF FIRST, SINCE 2026-09-07. This line was
+  // written when the podium window carried NO frame, so setting one was a
+  // clean 0 -> n and `delete` put the file back. Round 4 of The Standard
+  // (2026-09-07) read Humphreys' exteriors at full resolution and found the
+  // rust is a spandrel panel INSIDE the window's own thin charcoal frame — so
+  // the podium window has a frame in the data now, and the old sequence
+  // measured nothing: the count went 3671 -> 3671 (a replace, not an add),
+  // two rays already returned charcoal before the test touched anything, and
+  // `delete` left 3462, i.e. it deleted the building's real frame instead of
+  // restoring it. The defect was the instrument's premise, not the file.
+  // So: strip the file's frame to make a true no-frame baseline, measure,
+  // add the 0.3 m charcoal frame, measure, then put the ORIGINAL spec back
+  // (whatever it was) and check the count returns to where it started.
+  const own = await pg.evaluate(name => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    const kept = b.skins.podium.window.frame || null, framesAsAuthored = A.count.frames;
+    if (kept) { delete b.skins.podium.window.frame; A.rebuild(); }
+    return { kept, framesAsAuthored };
+  }, APT_NAME);
+  await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
   const before = await sampler();
   const r = await pg.evaluate(name => {
     const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
@@ -1443,13 +1577,18 @@ const frameTest = await (async () => {
   await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
   const after = await sampler();
   const charcoal = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.charcoal.hex || b.colours.charcoal[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
-  const restored = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); delete b.skins.podium.window.frame; A.rebuild(); return A.count.frames; }, APT_NAME);
-  return Object.assign(r, { before, after, charcoal, restored });
+  const restored = await pg.evaluate(([name, kept]) => {
+    const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
+    if (kept) b.skins.podium.window.frame = kept; else delete b.skins.podium.window.frame;
+    A.rebuild();
+    return A.count.frames;
+  }, [APT_NAME, own.kept]);
+  return Object.assign(r, { before, after, charcoal, restored, ownFrame: !!own.kept, framesAsAuthored: own.framesAsAuthored });
 })();
 const nCharBefore = frameTest.before.filter(c => c === frameTest.charcoal).length, nCharAfter = frameTest.after.filter(c => c === frameTest.charcoal).length;
-check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows given a 0.3 m charcoal frame return charcoal on rays beside the pane where the wall returned white',
-  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.frames0,
-  `framed windows ${frameTest.frames0} -> ${frameTest.frames1} -> ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
+check('apartments: a window\'s `frame` is cut into the wall as cells of its own tone — The Standard\'s podium windows, stripped of the frame the file authors and then given a 0.3 m charcoal one, return charcoal on rays beside the pane where the wall returned white',
+  frameTest.frames1 > frameTest.frames0 && frameTest.frames1 >= 100 && nCharBefore === 0 && nCharAfter >= 3 && frameTest.restored === frameTest.framesAsAuthored,
+  `framed windows as authored ${frameTest.framesAsAuthored}${frameTest.ownFrame ? ' (the podium window carries its own frame)' : ' (no frame on the podium window)'}, stripped ${frameTest.frames0} -> with a 0.3 m charcoal frame ${frameTest.frames1} -> put back ${frameTest.restored}; of 31 rays along 3 m of the podium's north face at window height, ${nCharBefore} returned charcoal before and ${nCharAfter} after (${frameTest.after.filter(Boolean).length} hit the mesh)`);
 const mod4Test = await AP.pg.evaluate(name => {
   const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name);
   const c0 = A.count.dominoes, m0 = A.count.mod4Cells;
@@ -1475,7 +1614,7 @@ await AP.pg.waitForTimeout(1500); await AP.pg.evaluate(() => window.__settle(300
 const fAptOff = await snap(AP.pg, 'apts-live-off');
 const offA = await aptState(AP.pg);
 await AP.pg.close();
-const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); });
+const C2 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0`, 'apts-url-off', async pg => { regentsOff = await regentsDecks(pg); jesterOff = await jesterWingBands(pg); moodyOff = await hidePlanOver(pg, MOODY); });
 const urlA = await aptState(C2.pg);
 await C2.pg.close();
 
@@ -1493,6 +1632,12 @@ const dAptFloor = diffPNG(C2.f, C2b.f);
 const dAptFloorDeep = diffPNG(C2.f, C2b.f, APT_SWITCH_DEEP_TOL);
 check('apartments: on the ?apartments=0 page the roofscape deck over Regents West is back at b 25.9 — the clause hid it, not the data',
   regentsDeckIn(regentsOff), `at the nadir over Regents West: ${fmtDecks(regentsOff)}`);
+check('apartments: on the ?apartments=0 page the strips over Jester West\'s wing are back above 18.6 m — the margin hid them, not the data, and the city keeps its own bake when the generator is off',
+  jesterOff !== null && overWing(jesterOff).length > 0,
+  `at the nadir over the south wing: ${overWing(jesterOff).length} of ${jesterOff === null ? '-' : jesterOff.length} roofs-pitched features stand above ${JESTER.roofTop} m — ${fmtBands(overWing(jesterOff))}`);
+check('apartments: on the ?apartments=0 page the replaced city is back inside Moody Center\'s ring — the arena drum and the rest answer again, so the clauses hid them and the bakes still carry them',
+  Object.keys(moodyOff || {}).length > 0 && (moodyOff['moody-wall'] || moodyOff['moody-roof'] || moodyOff['moody-cap'] || moodyOff['moody-plant']) != null,
+  `at the nadir inside Moody Center with the generator off: ${fmtPlan(moodyOff)}`);
 const dAptN = diffPNG(AP.f, fAptAgain);
 check('apartments: one settled page shot twice at the pose is the same frame', dAptN.pixels === 0, `${dAptN.pixels} of ${dAptN.total} pixels differ (max channel Δ ${dAptN.maxChannelDiff})`);
 const dAptLive = diffPNG(fAptBack, fAptOff);
@@ -1595,10 +1740,10 @@ if (AGAINST_NOGEN) {
     console.log(`   (context, not a gate line) ?apartments=0 against main 8b4b90c at this pose: ${dAptTip.pixels} of ${dAptTip.total} px, max channel Δ ${dAptTip.maxChannelDiff} - the other four pieces on this branch, not the switch.`);
   }
   if (AGAINST) {
-    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'apts-against-main');
     await G0.pg.close();
     const dAptMain = diffPNG(C3n.f, G0.f);
-    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the pre-slopes main archive at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
+    console.log(`   (context, not a gate line) ?apartments=0&slopes=0 against the main archive with its layer off too, at this pose: ${dAptMain.pixels} of ${dAptMain.total} px, max channel Δ ${dAptMain.maxChannelDiff}.`);
   }
 } else {
   if (AGAINST_TIP) {
@@ -1613,10 +1758,10 @@ if (AGAINST_NOGEN) {
   if (AGAINST) {
     const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
     await C3.pg.close();
-    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0`, 'apts-against-main');
+    const G0 = await standardFrame(`${AGAINST}/index.html?intro=0&drift=0${AGAINST_OFF}`, 'apts-against-main');
     await G0.pg.close();
     const dAptMain = diffPNG(C3.f, G0.f);
-    check("apartments (--against): ?apartments=0&slopes=0 is the pre-slopes main archive's frame at the pose (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
+    check("apartments (--against): ?apartments=0&slopes=0 is the main archive's frame at the pose with ITS layer off too (to the facade atlas' two-state residue) - the data, the index and the tags changed nothing the slabs draw here", zeroButAtlas(dAptMain), `${dAptMain.pixels} of ${dAptMain.total} pixels differ (max channel Δ ${dAptMain.maxChannelDiff})${residueNote(dAptMain)}`);
   }
 }
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

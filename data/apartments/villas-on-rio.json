@@ -1,0 +1,1401 @@
+{
+  "_readme": "Villas on Rio, 2111 Rio Grande Street, as js/slopes-apartments.js draws it. Rhode Partners, 2021: a 19-storey, 284-unit student tower whose north arm is roofed by one raking glass plane, wrapped in an L round the historic Kenney House, with a seven-storey wing at the south end and the pool on the tower roof. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=69.85, W=38.26, +u at bearing 185.1 deg - u=0 is the NORTH end on West 22nd Street and +u runs SOUTH; v=0 is the WEST edge on Rio Grande Street and +v runs EAST. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "id": "e6abe8cf-5a15-4d11-9b04-f0a5c629d59a",
+  "name": "Villas on Rio",
+  "address": "2111 Rio Grande St, Austin, TX 78705",
+  "sources": {
+    "S1": "data/snapshots/2026-09-06/buildings.detailed.geojson feature e6abe8cf-5a15-4d11-9b04-f0a5c629d59a: name 'Villas on Rio', building_class 'apartments', num_floors null, final_height 9.6, source_height 'overture'. One ring, 13 vertices, 2087 m2, shaped like an L wrapped round a void at its north-west corner. The 9.6 m is OVERRIDDEN below and is wrong by 5.9x - see _heights_src; it is Overture's guess and predates the 2021 building.",
+    "S2": "Rhode Partners' own project page, rhodepartners.com/student-housing-villas-on-rio, read 2026-09-06: 'this 352,000-square-foot residential tower spans 19 floors containing 284 units housing 1,155 beds. The design thoughtfully integrates a historic Victorian structure on the property. The building features an ANGLED GLASS FACADE responding to local setback regulations, with CUSTOM-FORMED EXTERIOR PANELS that establish angular design motifs repeated throughout interior spaces.' Rhode Partners is the architect; completed 2021.",
+    "S3": "SkyscraperPage's Austin thread title for the building, 'Villas on Rio | 185 Feet | 19 Floors | COMPLETE' (skyscraperpage.com/forum/showthread.php?t=235408), with apartmentfinder and apartments.com listings agreeing on 19 stories, 2021, 2111 Rio Grande St. 185 ft = 56.39 m, which is the parapet height used here.",
+    "S4": "rambleratx.com's West Campus review of the building, read 2026-09-06: 19 storeys, 2021, 856 beds, 'wraps in an L-shape around the historic Kenney House', which is now a Starbucks, and a four-level parking garage under the main structure. The Kenney House is snapshot feature 4fe52d88-e63b-49d8-8032-350db80c3b50, 'Kenney Lomax House', 2 floors, 10.9 m, whose centroid lands at (u 11.5, v 13.5) in this file's frame - the void in the ring's north-west corner IS that house, and the ring is the L round it.",
+    "S5": "The architect's own photographs, downloaded 2026-09-06 from the S2 page and from villasonrio.com (the operator's site) into the session scratchpad next/build/villas-on-rio/ref/: src_00 and src_08 are aerials from the north-west looking south-east, src_07 a street-level dusk photograph of the north-west corner, src_09 a drone nadir of the roof pool, src_01 an interior against the raking glass, src_10 the roof deck at dusk. They are copyrighted and are NOT committed; every number read off them is written down here instead.",
+    "S6": "Google Earth 3D, imagery 12/3/2023, captured 2026-09-06 with scripts/verify/chrome.mjs on hardware GL and page.screenshot(): a NADIR at 420 m over the centroid. It was VERIFIED before anything was read off it - the snapshot ring projected on to it at the scale bar's 0.2353 m/px about the canvas centre lands on the roof edges on all four sides (ref/earth/nadir_overlay.png). The nadir was then resampled into this file's (u, v) frame at 10 px/m with a 5 m grid (ref/plan_grid.png), and every plan dimension below - the pool, the raking glass's extent, the roof step at u 45.5 - was read in metres off that gridded plan. The four Earth obliques taken in the same run were DISCARDED: the camera had not settled at the URL's look-at (its own readout put it 140 m off) and the mesh over this block is soft. S5's photographs are the elevation source instead.",
+    "S7": "data/roads.geojson: West 22nd Street runs east-west 43 m north of the centroid, Rio Grande Street north-south 28 m west of it, West 21st Street 83 m south, Nueces Street 69 m east. The footprint's u=0 edge is 37.7 m north of the centroid, so it stands on W 22nd; v=0 is 19 m west of it, so it fronts Rio Grande. That is what fixes which end is which: u=0 NORTH on W 22nd, +u runs SOUTH; v=0 WEST on Rio Grande, +v runs EAST. 21 Rio (snapshot 73c958f3, 21 floors, 73.5 m) stands 60 m due south and is the tower standing behind the building in S5's aerials, which is the second check on the same reading.",
+    "derived": "a number computed from the ones above and marked so; 'unknown' stays unknown."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.744864,
+        30.2849477
+      ],
+      [
+        -97.7449094,
+        30.2845052
+      ],
+      [
+        -97.7445129,
+        30.2844748
+      ],
+      [
+        -97.7444933,
+        30.2846656
+      ],
+      [
+        -97.7446842,
+        30.2846802
+      ],
+      [
+        -97.7446776,
+        30.2847447
+      ],
+      [
+        -97.7446246,
+        30.2847406
+      ],
+      [
+        -97.7446282,
+        30.2847055
+      ],
+      [
+        -97.7444989,
+        30.2846956
+      ],
+      [
+        -97.7444571,
+        30.2851045
+      ],
+      [
+        -97.7446116,
+        30.2851163
+      ],
+      [
+        -97.7446307,
+        30.2849298
+      ],
+      [
+        -97.744864,
+        30.2849477
+      ]
+    ],
+    "_src": "S1 verbatim. The ring is worth keeping vertex for vertex: the big void at its north-west corner is the Kenney House (S4), and the two notches at u 41.5-48.7 are a light well and a slot the building wraps at its south-east."
+  },
+  "frame": "obb",
+  "_frame_src": "obbOf(ring) as the generator computes it (M_LAT 110540, mLon 111320 cos lat): L=69.85, W=38.26, +u at bearing 185.10 deg, +v at 95.10. Which end is which street is S7, not a guess.",
+  "levels": {
+    "floors": [
+      0.0,
+      4.6,
+      7.4,
+      10.2,
+      13.0,
+      15.8,
+      18.6,
+      21.4,
+      24.2,
+      27.0,
+      29.8,
+      32.6,
+      35.4,
+      38.2,
+      41.0,
+      43.8,
+      46.6,
+      49.4,
+      52.2
+    ],
+    "_src": "DERIVED from two stated numbers and one proportion: 19 floors (S2, S3, S4) inside 185 ft = 56.39 m to the parapet (S3). The parapet is 1.4 m, so the roof deck is 55.0. The ground floor is 4.6 m - on S5 src_00's crop ref/c00_taupe3.jpg the storefront is about 1.6 times a residential floor - which leaves 50.4 m for the other 18, i.e. 2.80 m floor to floor. 2.80 is tight and it is meant to be: this is a 1,155-bed pod building on 284 units (S2). Uncertainty about 0.1 m a floor. The floor lines here are 0 and 4.6 + k x 2.8 for k = 0..17.",
+    "roofDeck": 55.0,
+    "wingDeck": 21.4,
+    "rakeEave": 24.2,
+    "_heights_src": "THIS OVERRIDES the snapshot's 9.6 m (S1), which is Overture's guess for a building it never saw - the tower was completed in 2021 and the guess is 5.9x short. 56.4 m comes from S3's 185 ft, which agrees with 19 floors at the pitch above. The wing's 21.4 m is 7 storeys counted on S5 src_00. The rake's 24.2 m eave is the ninth floor line, read off S5 src_00 against the wing's parapet in the same frame."
+  },
+  "colours": {
+    "_src": "Sampled from S5's src_00 by median-cut clustering of patches of one material, not by eye. src_00 is a clear-day aerial from the north-west at midday: the WEST face is in sun and the NORTH face in shade, so every value below cites the sunlit patch where one exists and says so where it does not. The day hex is entered; golden and night come from js/westcampus.js's ramp(), as every other file here does it.",
+    "precast": {
+      "hex": "#e8ebec",
+      "_src": "S5 src_00 (1560-1700, 640-760), a patch of the sunlit west face: the seven clusters are #edefef, #e6e9eb, #e0e4e6, #dae1e4, #d7dde0, #cad2d6 and #6b7a7f. The first five are one material under slightly different shading - the white glass-fibre-reinforced-concrete panel - and #e8ebec is their middle. The panels are faceted, which is why one material gives five clusters."
+    },
+    "recess": {
+      "hex": "#6b7a7f",
+      "_src": "S5 src_00, the same patch: the darkest cluster, 19 % of it, which is the dark rectangle in every panel. In shade (src_00 900-1150, 750-1000) the same rectangle reads #233439, so this is the sunlit value."
+    },
+    "glassPale": {
+      "hex": "#a9c3c0",
+      "_src": "S5 src_00, the pale mint units seen right across both faces; the #cad2d6 cluster in the tight patch is this glass in sun, entered a step greener because that cluster is half white surround. The windows range from mint to grey with the sky; one tone is entered."
+    },
+    "rakeGlass": {
+      "hex": "#2c5a70",
+      "_src": "S5 src_00 (760-900, 420-560) and (880-1000, 300-420), two patches of the raking glass plane: clusters #234b5e, #3d6578, #355e74 and #254d63. Entered between them. A deep teal-blue - a big plane of insulated vision glass seen against the sky, and the darkest thing on the building."
+    },
+    "taupe": {
+      "hex": "#b0aaa4",
+      "_src": "S5 src_00 (1500-1800, 1080-1300), the seven-storey wing: clusters #a6a19d, #afa9a4 and #b8b1aa are one material - a warm grey precast - and #b0aaa4 is their middle. #d1d5d3 in the same patch is the white window surround (trimWhite) and #383c38 the openings."
+    },
+    "trimWhite": {
+      "hex": "#e2e0dc",
+      "_src": "S5 src_00, the #d1d5d3 cluster from the taupe patch: the 0.14 m white surround round every opening in the wing, lifted a little because that cluster is half shadowed reveal."
+    },
+    "glassCurtain": {
+      "hex": "#3b6070",
+      "_src": "derived from rakeGlass: the curtain wall on the wedge's north end and at the glazed north-west corner is the same glass as the rake in S5 src_07, seen more nearly face-on, so it is entered one step lighter and greyer."
+    },
+    "mull": {
+      "hex": "#d7dbdc",
+      "_src": "S5 src_07: the curtain wall's mullions read as light anodised aluminium against the glass."
+    },
+    "storeGlass": {
+      "hex": "#4a5257",
+      "_src": "S5 src_00 (1450-1700, 1330-1420), the ground-floor storefront under the wing: clusters #29251b and #655b50 are the shop interiors in shadow behind the glass. Entered as a dark neutral - a deep shopfront in shade."
+    },
+    "baseDark": {
+      "hex": "#5b5750",
+      "_src": "S5 src_00, the same patch's #5e584c: the soffit and the recessed wall behind the ground-floor columns, and the service bay at the wing's south end."
+    },
+    "baseConc": {
+      "hex": "#b9b3aa",
+      "_src": "S5 src_00 (1330-1450, 1300-1400): the exposed concrete columns on the storefront line read #d5c8bd in sun and #968b7b in shade; entered between."
+    },
+    "coping": {
+      "hex": "#dfe2e3",
+      "_src": "derived: the parapet capping, entered as the precast a shade cooler, which is what the roof edges read as in S6's nadir."
+    },
+    "roofMem": [
+      "#d5d9d9",
+      "#dcd4c2",
+      "#1c1f27"
+    ],
+    "_roofMem_src": "S6's nadir: the membrane roof over the wing and the tower reads a light warm grey with the condenser fields dark on it. Golden and night entered the way the other files here enter a top face.",
+    "condenser": [
+      "#c6ccce",
+      "#c5bfb1",
+      "#1a1d26"
+    ],
+    "_condenser_src": "S6's nadir: split-system condensers in rows over both roofs; entered between their sunlit tops and their own shadow, as 2706 Rio Grande's file does.",
+    "poolWater": {
+      "hex": "#3fb3bd",
+      "_src": "S5 src_09, the drone nadir of the roof pool: the water is a strong tropical teal. Read off that photograph, not lifted."
+    },
+    "deckTile": {
+      "hex": "#c6b19a",
+      "_src": "S5 src_09: the warm sand-coloured tile deck round the pool and the timber platform at its west end."
+    },
+    "spaTile": {
+      "hex": "#8fb9c2",
+      "_src": "S5 src_09: the smaller square spa at the pool's west end, a lighter tile."
+    },
+    "railGlass": {
+      "hex": "#b9cbd2",
+      "_src": "S5 src_09 and src_10: the frameless glass balustrade round the roof deck."
+    },
+    "mech": {
+      "hex": "#b6bbbd",
+      "_src": "S6's nadir: the mechanical penthouse and stair overrun on the tower roof, a pale grey box."
+    },
+    "sign": {
+      "hex": "#2f3236",
+      "_src": "S5 src_00: VILLAS ON RIO on the wing's west wall is dark charcoal lettering on the taupe."
+    },
+    "pergola": {
+      "hex": "#e6e8e6",
+      "_src": "S5 src_00 and src_10: the white steel trellis over the roof deck's lounge."
+    }
+  },
+  "skins": {
+    "_src": "Two wall rules and two glass rules. The white tower and the wedge wear `panel`; the seven-storey wing wears `taupeGrid`; the ground floor wears `store`; the wedge's north end and the glazed north-west corner wear `curtain`. Nothing else was photographed differently.",
+    "panel": {
+      "kind": "bays",
+      "bay": 1.575,
+      "field": "recess",
+      "strip": {
+        "w": 0.62,
+        "tone": "precast",
+        "at": "joints"
+      },
+      "louvre": {
+        "pitch": 2.8,
+        "w": 1.3,
+        "tone": "precast",
+        "start": 1.5
+      },
+      "window": {
+        "w": 0.5,
+        "h": 0.9,
+        "sill": 0.18
+      },
+      "glass": "glassPale",
+      "frame": "precast",
+      "reveal": 0.14,
+      "_src": "S2's 'custom-formed exterior panels', as S5 src_07 and src_00 show them and as the west elevation MEASURES. The bay is 1.575 m, COUNTED and not proportioned: a luminance profile across two storeys of the tower's west face in S6b's settled Google Earth oblique (ref/earth2/w.png, rows y 292-306 and y 345-358, x 690-1045, the face spanning 24.76 m in 338 px = 13.65 px/m) puts the openings' centre-to-centre gaps at 20.5, 21.0, 21.5, 22.0, 23.5 px with the occasional 44 and 48 where a column skips a window - one module of 21.5 px = 1.575 m, doubled where the field is scattered. The previous reading here was 3.20 m from a proportion ('the panel is about as wide as the floor is tall') and it was exactly twice the truth, which is why the tower read as a regular grid of wide grey rectangles instead of a white wall with a small punch in every bay. Built as the INVERSE of a punched wall, which is the only way this generator can put two tones in one opening: the field is the DARK tone, a 0.62 m white `strip` on every bay line is the pier, a 1.30 m white `louvre` band every floor is the spandrel, and what is left is a 0.955 x 1.50 m dark rectangle - 28 % of the wall, against the 19 % the src_00 patch clusters dark - with a 0.50 m mint glass slot in it. See `todo`: the slot's handedness alternates on the real building and does not here, and the diagonal creases are not drawn."
+    },
+    "taupeGrid": {
+      "kind": "bays",
+      "bay": 1.43,
+      "field": "taupe",
+      "window": {
+        "w": 0.95,
+        "h": 1.6,
+        "sill": 0.85,
+        "frame": {
+          "w": 0.14,
+          "tone": "trimWhite"
+        }
+      },
+      "glass": "glassPale",
+      "frame": "trimWhite",
+      "reveal": 0.12,
+      "_src": "S5 src_00 (the crop ref/c00_taupe3.jpg): the seven-storey wing is a warm grey precast wall with single portrait windows on a tight module, each in a crisp white surround about 0.14 m wide - a different rule from the tower's panels, and the surrounds are the thing that reads at any distance. Six window rows above the storefront were counted on that crop, which is where the wing's seven storeys come from. The bay is 1.43 m: the SEVENTEEN columns that same crop shows across the wing's 24.35 m west face, which is what 24.35/17 comes to. It was entered as 2.30 m before - a number that contradicts its own count, and would have put ten columns there - and a luminance profile of the wing in ref/earth2/w.png (rows y 530-542) gives gaps of 18.5-22.5 px against 13.65 px/m, i.e. 1.4-1.6 m, which is the same module."
+    },
+    "curtain": {
+      "kind": "bays",
+      "bay": 1.55,
+      "field": "glassCurtain",
+      "strip": {
+        "w": 0.13,
+        "tone": "mull",
+        "at": "joints"
+      },
+      "louvre": {
+        "pitch": 2.8,
+        "w": 0.16,
+        "tone": "mull",
+        "start": 2.64
+      },
+      "glass": "glassCurtain",
+      "frame": "mull",
+      "reveal": 0.03,
+      "_src": "S5 src_07: a stick curtain wall on about a 1.5 m mullion module with a horizontal at every floor - the glazed north end of the wedge over the entrance at 2111, and the full-height glazed corner where the tower's north and west faces meet. No `window` key: the whole field is glass and the strips are the mullions."
+    },
+    "store": {
+      "kind": "storefront",
+      "mullion": 1.6,
+      "mullionW": 0.1,
+      "transom": 0.74,
+      "fascia": 0.55,
+      "fasciaTone": "baseDark",
+      "glass": "storeGlass",
+      "frame": "mull",
+      "reveal": 0.28,
+      "_src": "S5 src_00 (ref/c00_taupe3.jpg): the ground floor on Rio Grande is a continuous glazed storefront on about a 1.6 m mullion module with a transom high in the opening, set back under the wall above on square exposed-concrete columns. The 4.6 m ground floor is derived - it is plainly taller than a residential floor in that crop, about 1.6 times - and 4.6 is what closes 19 floors on to the 185 ft of S3."
+    },
+    "base": {
+      "kind": "flat",
+      "field": "baseDark",
+      "_src": "the unphotographed ground floor: the east and south sides face a surface car park and the neighbour, and wear the plainest thing the building has - the dark base the storefront's fascia is made of."
+    },
+    "rakeGlassSkin": {
+      "kind": "bays",
+      "bay": 1.55,
+      "field": "rakeGlass",
+      "strip": {
+        "w": 0.13,
+        "tone": "mull",
+        "at": "joints"
+      },
+      "glass": "rakeGlass",
+      "frame": "mull",
+      "reveal": 0.03,
+      "_src": "S5 src_00 and src_08: the raking plane is one field of deep teal insulated glass on a light mullion grid at about 1.55 m, the same module as the `curtain` skin's. It wears the risers of the stair; the treads are the block caps in the same tone. No `window` key - the whole field is glass."
+    },
+    "panelSliver": {
+      "kind": "bays",
+      "bay": 1.037,
+      "field": "recess",
+      "strip": {
+        "w": 0.408,
+        "tone": "precast",
+        "at": "joints"
+      },
+      "louvre": {
+        "pitch": 2.8,
+        "w": 1.3,
+        "tone": "precast",
+        "start": 1.5
+      },
+      "window": {
+        "w": 0.35,
+        "h": 0.9,
+        "sill": 0.18
+      },
+      "glass": "glassPale",
+      "frame": "precast",
+      "reveal": 0.14,
+      "_src": "`panel`, scaled to one stair step. A step's flank is 1.037 m wide, and skinBays rounds a wall shorter than a bay to ONE bay - so `panel`'s 1.05 m pier would paint the whole sliver white and the flanks of the rake, about 320 m2 a side, would go blank. This keeps `panel`'s proportions instead (pier 39 % of the bay, the same share as panel (0.62 of 1.575), 1.30 m spandrel every 2.80 m, the same recess/precast tones, so the dark share is panel's 28 %) at the step's own width. See `todo`: the openings come every 1.037 m here where the building's are every 3.20 m."
+    },
+    "panelSliverBlank": {
+      "kind": "bays",
+      "bay": 1.037,
+      "field": "recess",
+      "strip": {
+        "w": 0.408,
+        "tone": "precast",
+        "at": "joints"
+      },
+      "louvre": {
+        "pitch": 2.8,
+        "w": 1.3,
+        "tone": "precast",
+        "start": 1.5
+      },
+      "glass": "glassPale",
+      "frame": "precast",
+      "reveal": 0.14,
+      "_src": "`panelSliver` with no opening. Every other step wears it, so the rake's flanks carry a column of openings every 2.074 m rather than every 1.037 m - which is nearer the building's own 3.20 m bay than one per step would be, and it costs nothing."
+    }
+  },
+  "blocks": [
+    {
+      "id": "arm",
+      "_src": "The north arm on West 22nd Street below the rake's eave, in ONE block so its west and east elevations are one wall each on the 3.20 m bay rather than 20 slivers. u 0-20.74, v 22.51-37.42 off S6's rectified nadir (the arm is the part of the ring east of the Kenney House's void); its top at the eave, 24.2 m.",
+      "plan": [
+        0.0,
+        20.74,
+        22.51,
+        37.42
+      ],
+      "z0": 0,
+      "z1": 24.2,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.6,
+          "skin": "base"
+        },
+        {
+          "z0": 4.6,
+          "z1": 24.2,
+          "skin": "panel"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 24.2,
+              "skin": "curtain"
+            }
+          ],
+          "_src": "S5 src_07: the arm's north end on West 22nd Street is a full-height curtain wall, with the entrance, the address 2111 and the VILLAS ON RIO sign under it. It is where the raking glass comes down to the ground, and the two read as one glazed corner."
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake01",
+      "_src": "Step 1 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 25.74 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        0.0,
+        1.037,
+        22.51,
+        37.42
+      ],
+      "z0": 24.2,
+      "z1": 25.738,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 24.2,
+          "z1": 25.738,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 24.2,
+              "z1": 25.738,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake02",
+      "_src": "Step 2 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 27.27 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        1.037,
+        2.074,
+        22.51,
+        37.42
+      ],
+      "z0": 25.738,
+      "z1": 27.275,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 25.738,
+          "z1": 27.275,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 25.738,
+              "z1": 27.275,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake03",
+      "_src": "Step 3 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 28.81 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        2.074,
+        3.111,
+        22.51,
+        37.42
+      ],
+      "z0": 27.275,
+      "z1": 28.812,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 27.275,
+          "z1": 28.812,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 27.275,
+              "z1": 28.812,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake04",
+      "_src": "Step 4 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 30.35 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        3.111,
+        4.148,
+        22.51,
+        37.42
+      ],
+      "z0": 28.812,
+      "z1": 30.35,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 28.812,
+          "z1": 30.35,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 28.812,
+              "z1": 30.35,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake05",
+      "_src": "Step 5 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 31.89 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        4.148,
+        5.185,
+        22.51,
+        37.42
+      ],
+      "z0": 30.35,
+      "z1": 31.887,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 30.35,
+          "z1": 31.887,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 30.35,
+              "z1": 31.887,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake06",
+      "_src": "Step 6 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 33.42 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        5.185,
+        6.222,
+        22.51,
+        37.42
+      ],
+      "z0": 31.887,
+      "z1": 33.425,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 31.887,
+          "z1": 33.425,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 31.887,
+              "z1": 33.425,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake07",
+      "_src": "Step 7 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 34.96 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        6.222,
+        7.259,
+        22.51,
+        37.42
+      ],
+      "z0": 33.425,
+      "z1": 34.962,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 33.425,
+          "z1": 34.962,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 33.425,
+              "z1": 34.962,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake08",
+      "_src": "Step 8 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 36.50 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        7.259,
+        8.296,
+        22.51,
+        37.42
+      ],
+      "z0": 34.962,
+      "z1": 36.5,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 34.962,
+          "z1": 36.5,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 34.962,
+              "z1": 36.5,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake09",
+      "_src": "Step 9 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 38.04 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        8.296,
+        9.333,
+        22.51,
+        37.42
+      ],
+      "z0": 36.5,
+      "z1": 38.038,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 36.5,
+          "z1": 38.038,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 36.5,
+              "z1": 38.038,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake10",
+      "_src": "Step 10 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 39.58 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        9.333,
+        10.37,
+        22.51,
+        37.42
+      ],
+      "z0": 38.038,
+      "z1": 39.575,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 38.038,
+          "z1": 39.575,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 38.038,
+              "z1": 39.575,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake11",
+      "_src": "Step 11 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 41.11 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        10.37,
+        11.407,
+        22.51,
+        37.42
+      ],
+      "z0": 39.575,
+      "z1": 41.112,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 39.575,
+          "z1": 41.112,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 39.575,
+              "z1": 41.112,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake12",
+      "_src": "Step 12 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 42.65 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        11.407,
+        12.444,
+        22.51,
+        37.42
+      ],
+      "z0": 41.112,
+      "z1": 42.65,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 41.112,
+          "z1": 42.65,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 41.112,
+              "z1": 42.65,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake13",
+      "_src": "Step 13 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 44.19 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        12.444,
+        13.481,
+        22.51,
+        37.42
+      ],
+      "z0": 42.65,
+      "z1": 44.188,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 42.65,
+          "z1": 44.188,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 42.65,
+              "z1": 44.188,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake14",
+      "_src": "Step 14 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 45.73 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        13.481,
+        14.518,
+        22.51,
+        37.42
+      ],
+      "z0": 44.188,
+      "z1": 45.725,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 44.188,
+          "z1": 45.725,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 44.188,
+              "z1": 45.725,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake15",
+      "_src": "Step 15 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 47.26 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        14.518,
+        15.555,
+        22.51,
+        37.42
+      ],
+      "z0": 45.725,
+      "z1": 47.263,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 45.725,
+          "z1": 47.263,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 45.725,
+              "z1": 47.263,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake16",
+      "_src": "Step 16 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 48.80 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        15.555,
+        16.592,
+        22.51,
+        37.42
+      ],
+      "z0": 47.263,
+      "z1": 48.8,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 47.263,
+          "z1": 48.8,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 47.263,
+              "z1": 48.8,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake17",
+      "_src": "Step 17 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 50.34 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        16.592,
+        17.629,
+        22.51,
+        37.42
+      ],
+      "z0": 48.8,
+      "z1": 50.338,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 48.8,
+          "z1": 50.338,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 48.8,
+              "z1": 50.338,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake18",
+      "_src": "Step 18 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 51.88 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        17.629,
+        18.666,
+        22.51,
+        37.42
+      ],
+      "z0": 50.338,
+      "z1": 51.875,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 50.338,
+          "z1": 51.875,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 50.338,
+              "z1": 51.875,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake19",
+      "_src": "Step 19 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 53.41 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        18.666,
+        19.703,
+        22.51,
+        37.42
+      ],
+      "z0": 51.875,
+      "z1": 53.413,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 51.875,
+          "z1": 53.413,
+          "skin": "panelSliver"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 51.875,
+              "z1": 53.413,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "rake20",
+      "_src": "Step 20 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 54.95 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "plan": [
+        19.703,
+        20.74,
+        22.51,
+        37.42
+      ],
+      "z0": 53.413,
+      "z1": 54.95,
+      "roofTone": "rakeGlass",
+      "bands": [
+        {
+          "z0": 53.413,
+          "z1": 54.95,
+          "skin": "panelSliverBlank"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 53.413,
+              "z1": 54.95,
+              "skin": "rakeGlassSkin"
+            }
+          ]
+        },
+        "u1": null
+      }
+    },
+    {
+      "id": "tower",
+      "_src": "The 19-storey mass, S2 and S3. Its south end is at u 45.5: S6's nadir has a clean parapet line right across the plan there, with the pool and the tower's own roof north of it and a dense condenser field south of it, and S5's aerials show the taupe wing starting at that same point in the elevation. The west and east edges are the ring's own, v 0 and v 37.42.",
+      "plan": [
+        20.74,
+        45.5,
+        0.0,
+        37.42
+      ],
+      "z0": 0,
+      "z1": 55.0,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.6,
+          "skin": "store"
+        },
+        {
+          "z0": 4.6,
+          "z1": 55.0,
+          "skin": "panel"
+        }
+      ],
+      "faces": {
+        "u1": {
+          "z0": 21.4,
+          "_src": "the south face shows only above the seven-storey wing that stands against it."
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 55.0,
+              "skin": "panel"
+            }
+          ],
+          "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        }
+      },
+      "overrides": [
+        {
+          "region": [
+            20.0,
+            25.2,
+            -1.0,
+            4.6
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 55.0,
+              "skin": "curtain"
+            }
+          ],
+          "_src": "S5 src_00 (ref/sample_marks.jpg) and src_07: the building's north-west corner is glazed for its full height - a vertical glass slot about 4.5 m on each return, where the north face over the Kenney House meets the west face on Rio Grande. One region catches both walls, because an override takes the part of ANY axis-parallel wall inside it."
+        }
+      ],
+      "roofTone": "roofMem",
+      "parapet": 1.4,
+      "parapetTone": "coping",
+      "_parapet_src": "1.4 m of upstand right round the roof deck, which puts the top at 56.4 m = 185 ft (S3). S5 src_00 shows a clean lip above the wall on every side, with the pool deck's glass balustrade standing inside it.",
+      "roofItems": [
+        {
+          "plan": [
+            30.0,
+            44.0,
+            13.0,
+            30.0
+          ],
+          "h": 3.4,
+          "tone": "mech",
+          "_src": "S6's nadir: the mechanical penthouse and stair overrun fill the middle of the tower roof east of the pool deck; the height is derived from a plant room's usual storey."
+        },
+        {
+          "plan": [
+            22.0,
+            44.0,
+            31.0,
+            36.5
+          ],
+          "grid": [
+            7,
+            2
+          ],
+          "size": [
+            1.1,
+            1.1
+          ],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S6's nadir: condenser rows along the tower roof's east edge. Seven by two counts the visible clusters, not the units."
+        }
+      ]
+    },
+    {
+      "id": "wing",
+      "_src": "The seven-storey taupe wing at the south end, u 45.5 to the ring's 69.85, full plan depth. Six window rows above the storefront were counted on S5 src_00 (ref/c00_taupe3.jpg), so 7 storeys and a roof deck at 21.4 m, which IS the top of floor 7 on this file's floor lines.",
+      "plan": [
+        45.5,
+        69.85,
+        0.0,
+        38.26
+      ],
+      "z0": 0,
+      "z1": 21.4,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.6,
+          "skin": "store"
+        },
+        {
+          "z0": 4.6,
+          "z1": 21.4,
+          "skin": "taupeGrid"
+        }
+      ],
+      "faces": {
+        "u0": null,
+        "v0": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "store",
+              "inset": {
+                "d": 1.7,
+                "tone": "baseDark",
+                "columns": {
+                  "pitch": 6.6,
+                  "w": 0.72,
+                  "tone": "baseConc"
+                }
+              }
+            },
+            {
+              "z0": 4.6,
+              "z1": 21.4,
+              "skin": "taupeGrid",
+              "signs": [
+                {
+                  "text": "VILLAS ON RIO",
+                  "s0": 15.4,
+                  "z0": 19.3,
+                  "dot": 0.135,
+                  "gap": 0.14,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ],
+          "_src": "the west face on Rio Grande: S5 src_00's crop ref/c00_taupe3.jpg has the storefront set back about 1.7 m behind the wall above on square concrete columns roughly 6.6 m apart, and VILLAS ON RIO in dark letters high on the taupe at the north end of that face, above the entry. The letter size is read off the same crop against the 2.8 m floor."
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 21.4,
+              "skin": "taupeGrid"
+            }
+          ],
+          "_src": "the east face on the car park, unphotographed: the same wall rule with the plain dark base."
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 21.4,
+              "skin": "taupeGrid"
+            }
+          ],
+          "_src": "the south face stands about 8 m from the neighbour and no photograph reaches it; the same rule again."
+        }
+      },
+      "roofTone": "roofMem",
+      "parapet": 1.1,
+      "parapetTone": "coping",
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u1"
+      ],
+      "_parapet_src": "S5 src_00: a clean lip round the wing's roof on the three free sides; none on the north edge, where the tower stands on it.",
+      "roofItems": [
+        {
+          "plan": [
+            47.5,
+            68.0,
+            2.5,
+            35.5
+          ],
+          "grid": [
+            9,
+            4
+          ],
+          "size": [
+            1.15,
+            1.15
+          ],
+          "h": 0.7,
+          "tone": "condenser",
+          "_src": "S6's nadir: the wing's roof is the densest condenser field on the site - one or two units a flat, right across it. Nine by four counts the visible clusters."
+        },
+        {
+          "plan": [
+            56.0,
+            62.0,
+            14.0,
+            20.0
+          ],
+          "h": 2.6,
+          "tone": "mech",
+          "_src": "S6's nadir: the stair and lift overrun standing above the wing's roof, near its middle."
+        }
+      ]
+    }
+  ],
+  "deck": {
+    "z": 55.0,
+    "_src": "The roof pool deck at the tower's north-west corner, read off S6's rectified nadir (ref/plan_grid.png) and checked against S5 src_09, a drone nadir of the same deck: a long pool with a square spa at its west end, a tile deck round it, and a frameless glass balustrade on the Rio Grande edge with a white steel trellis over the lounge. S4 and the operator's site both call it a rooftop pool with hot tub and cabanas.",
+    "items": [
+      {
+        "id": "tile",
+        "plan": [
+          22.4,
+          42.2,
+          1.9,
+          11.6
+        ],
+        "z0": 0.0,
+        "h": 0.06,
+        "tone": "deckTile",
+        "_src": "the tile deck, u 22.4-42.2 v 1.9-11.6 off the gridded plan"
+      },
+      {
+        "id": "pool",
+        "plan": [
+          27.0,
+          39.0,
+          3.6,
+          8.6
+        ],
+        "z0": 0.06,
+        "h": 0.1,
+        "tone": "poolWater",
+        "_src": "the main pool, 12.0 x 5.0 m off the gridded plan; src_09 shows depth markings along its long side"
+      },
+      {
+        "id": "spa",
+        "plan": [
+          23.9,
+          26.7,
+          4.9,
+          8.6
+        ],
+        "z0": 0.06,
+        "h": 0.45,
+        "tone": "spaTile",
+        "_src": "the square spa at the pool's west end, raised on its own coping (src_09)"
+      },
+      {
+        "id": "spaWater",
+        "plan": [
+          24.2,
+          26.4,
+          5.2,
+          8.3
+        ],
+        "z0": 0.51,
+        "h": 0.05,
+        "tone": "poolWater",
+        "_src": "the water in it"
+      },
+      {
+        "id": "rail",
+        "plan": [
+          22.4,
+          42.2,
+          1.9,
+          2.0
+        ],
+        "z0": 0.06,
+        "h": 1.15,
+        "tone": "railGlass",
+        "_src": "the frameless glass balustrade on the Rio Grande edge of the deck (src_09, src_10)"
+      },
+      {
+        "id": "trellis",
+        "plan": [
+          22.6,
+          28.0,
+          1.9,
+          11.5
+        ],
+        "z0": 2.6,
+        "h": 0.2,
+        "tone": "pergola",
+        "_src": "the white steel trellis over the lounge at the deck's north end (src_00, src_10); a trellis of rafters is beyond the generator, so this is its top plate on four posts"
+      },
+      {
+        "id": "trellisLeg1",
+        "plan": [
+          22.6,
+          22.9,
+          1.9,
+          2.2
+        ],
+        "z0": 0.06,
+        "h": 2.6,
+        "tone": "pergola",
+        "_src": "a corner post of it"
+      },
+      {
+        "id": "trellisLeg2",
+        "plan": [
+          27.7,
+          28.0,
+          1.9,
+          2.2
+        ],
+        "z0": 0.06,
+        "h": 2.6,
+        "tone": "pergola",
+        "_src": "a corner post of it"
+      },
+      {
+        "id": "trellisLeg3",
+        "plan": [
+          22.6,
+          22.9,
+          11.2,
+          11.5
+        ],
+        "z0": 0.06,
+        "h": 2.6,
+        "tone": "pergola",
+        "_src": "a corner post of it"
+      },
+      {
+        "id": "trellisLeg4",
+        "plan": [
+          27.7,
+          28.0,
+          11.2,
+          11.5
+        ],
+        "z0": 0.06,
+        "h": 2.6,
+        "tone": "pergola",
+        "_src": "a corner post of it"
+      }
+    ]
+  },
+  "todo": [
+    "The panel's glass slot sits on the SAME side of every dark rectangle here. On the building it alternates, in a diagonal weave much like Union on 24th's - S5 src_07 shows the handedness flipping bay to bay and row to row. The `bays` skin has no mod rule, and `mod4` is the wrong shape (it puts a light frame round dark glass on a dark field, not a dark panel on a white one). A `flip` field on a `bays` window - swap the sign of the offsets when (c - r) mod 2 is 1 - would draw it and nothing else in this file would change. Measured: bay 3.20 m, slot 0.95 m at +/- 0.55 m off the bay centre.",
+    "The custom-formed panels crease diagonally - that is S2's 'angular design motifs' and it is the first thing you see in S5 src_07. Every crease is a fold of about 20-40 mm across a 3.2 x 2.8 m panel, so it is under a pixel at the oblique camera and about half a pixel at walking height; it is not drawn, and this file does not pretend it is. If it is ever wanted it is one diagonal quad per panel, not a skin change.",
+    "The rake is a stair of 20 steps of one pitch rather than one plane, because the generator cannot draw one plane here: a `gable` roof with `sides` stands every other edge up as a wall, and a standing edge's corner travels ALONG that edge where capAlong's clearance is zero, so d comes back at OFFSET_SLACK_M (0.05 m) and the rise at 0.074 m instead of 30.75 - measured on the four blocks this replaced. The 20 treads are collinear at 56.0 deg so the silhouette is the right line, with a 1.54 m sawtooth on it. A `roof` kind `shed` - one eave edge, the opposite edge standing at the full rise, the flanks tiled by the block's own bands - would collapse this to one block and one plane. Measured: eave 24.2 m at u 0, top 54.95 m at u 20.74, run 20.74, pitch 56.0 deg.",
+    "The rake's flanks carry an opening every 2.07 m where the building's are every 3.20 m. A step is 1.037 m wide and skinBays rounds any wall shorter than a bay to ONE bay, so a step cannot hold the 3.20 m bay: `panelSliver` keeps `panel`'s proportions at the step's own width and every other step is blank, which lands the openings at 2.07 m. The fix is the same `shed` roof above - one block, one wall, the real bay.",
+    "The two notches in the ring at u 41.5-48.7 (a 3.9 x 5.1 m light well and a 3.3 x 18.4 m slot open to the east) are in the footprint but not in the massing: the tower and the wing are given as rectangles that meet at u 45.5, so the notches are filled. They are about 3 m wide and face a car park; a plan polygon per block would draw them.",
+    "The wedge's east flank (v 37.42) and the tower's and the wing's east and south faces were never photographed - the car park side and the neighbour's wall block every angle - and they wear the same rule as the faces that were.",
+    "The four-level parking garage under the building (S4) is not drawn: no photograph reaches its screen and S6's nadir cannot see it. The ground floor is a storefront right round the west side instead, which is what S5 src_00 shows there."
+  ],
+  "_rake": {
+    "steps": 20,
+    "run": 1.037,
+    "rise": 1.5375,
+    "pitch": 56.0,
+    "eave": 24.2,
+    "top": 54.95,
+    "_src": "The raking glass plane, drawn as an arm to its eave plus 20 steps of 1.037 m run and 1.538 m rise (pitch 56.0 deg, the same line the four `wedge` blocks carried). It is a STAIR and not one plane because the generator cannot draw one: a block `roof` of kind `gable` with `sides` puts every other edge up as a standing wall, and a standing edge's corner can only travel ALONG that edge, where capAlong's clearance is zero - so the cap comes back at OFFSET_SLACK_M and the roof rises 0.074 m instead of 30.75 (measured: the four wedges reported d=0.0499, rise=0.0739, 3 triangles each, and roofOf having returned a record no flat cap was drawn either, so the whole north arm had no top at all). Each step's cap is the glass tread, each step's u0 face the glass riser, and the 20 collinear treads are the plane."
+  }
+}

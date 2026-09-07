@@ -112,9 +112,44 @@
     //     metres — a feature that overlaps the inset outline goes, one that
     //     only touches the boundary (a neighbour's own deck) stays.
     //   storeys — js/facades.js's campus-storeys courses, keyed by `host`.
+    //   walls — the tiled-roof bake's `f: band` strips (roofs-pitched), baked
+    //     on the SNAPSHOT prism too. See wallMargin.
+    //   parts — data/parts.geojson's building:part prisms (parts-3d,
+    //     parts-roof), which carry an osm_id and no snapshot id, so they are
+    //     hidden by geometry on the same inset outline as the roofscape:
+    //     way/516187626 stands to 94 m over Dobie Twenty21, authored at 81.2.
+    //   precinct — js/moody.js's own arena, from data/moody.geojson
+    //     (moody-wall / moody-roof / moody-plant / moody-cap). That pass was
+    //     written when the arena was nobody's authored building; it is one
+    //     now (data/apartments/moody-center.json), and its own drum walls
+    //     stand to 28.7 m over a building this file authors at 17.4 m to the
+    //     eave and 22.6 m to the membrane — a second arena, six metres of it
+    //     in the air. The same file draws two precinct NEIGHBOURS we do not
+    //     author (its `replacedBuildingIds` names three ids, only one of
+    //     which is ours), so this is hidden by geometry on the authored
+    //     footprint rather than by turning the pass off.
     hideRoofscape: true,
     roofscapeInset: 1.0,
     hideStoreys: true,
+    hideParts: true,
+    hidePrecinct: true,
+    // HOW FAR OUTSIDE ITS FOOTPRINT A BAKED WALL DETAIL MAY STAND AND STILL
+    // BE OURS TO REMOVE. This is the number Simeon's "scaffolding" was: the
+    // tiled-roof bake draws the snapshot prism's precast strips PROUD of the
+    // wall, so 27 of Jester West Hall's 44 tower strips (b 19 -> h 50.55, on
+    // a building whose courtyard wings stop at 18.6 m) sat 0.08-0.11 m
+    // OUTSIDE the ring — and `['>', ['distance', ring], 0]`, which hides only
+    // what overlaps, kept every one of them: 31 m poles standing in the air
+    // over the five-storey wings, with nothing behind them.
+    //
+    // Measured over data/roofs.geojson on 2026-09-06, minimum distance from
+    // each feature to the nearest authored footprint: 902 at 0 m, 179 in
+    // (0, 0.11], 3 at 0.4, then NOTHING until 1.8 m — a neighbour's own band
+    // on the party wall. So the gap this number lives in is wide, and 0.6
+    // takes every stray with 1.2 m of clearance to the first feature that is
+    // not ours. Raise it and a neighbour's wall detail on a shared boundary
+    // starts to go; drop it below 0.5 and the poles come back.
+    wallMargin: 0.6,
     // Pitched roofs (a block's `roof`, drawn through js/slopes-roofs.js's
     // rig emitter): the pitch a file that gives none gets, the eave lip's
     // fascia height where the roof oversails its wall, and how far a gable
@@ -495,7 +530,7 @@
     const { W, len, z0, z1 } = face;
     const reveal = APTS.reveals ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame }));
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel }));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
     // tower's punched window, Jester West's 1.31 x 2.31 m precast round a
@@ -509,11 +544,28 @@
       return { s0: Math.max(0, w.s0 - fw), s1: Math.min(len, w.s1 + fw), z0: Math.max(z0, w.z0 - fh), z1: Math.min(z1, w.z1 + fh), col: P[w.frame.tone] || P.frame || P.wall, w };
     });
     count.frames += framed.length;
-    // z cuts: the skin's row lines, every window's top and bottom, every frame's
+    // THE SPANDREL. A window's `spandrel: { h, tone }` is a panel of the
+    // opening's own width standing directly under it — The Standard's rust
+    // panel beneath every window on the bays that carry one (Ext_14 and
+    // Ext_41 at full resolution: a wood-look panel under the sill, inside the
+    // window's charcoal frame, and a column of them reads from the oblique
+    // as the interrupted rust strip the owner's photographs describe). It is
+    // cut into the wall's cells the way the frame is, `h` tall downward from
+    // the frame's sill strip (or from the sill when there is no frame), and
+    // an `offsets` entry may carry its own as a third element (`null` there
+    // = none), so a window bay and the juliet-door bay beside it need not
+    // match. A window clipped at the band's foot gets none.
+    const spandrels = windows.filter(w => w.spandrel && w.spandrel.h > 0 && w.z0 > z0 + 1e-6).map(w => {
+      const fh = w.frame && w.frame.w > 0 ? (w.frame.h != null ? w.frame.h : w.frame.w) : 0;
+      const zt = w.z0 - fh;
+      return { s0: w.s0, s1: w.s1, z0: Math.max(z0, zt - w.spandrel.h), z1: zt, col: P[w.spandrel.tone] || P.frame || P.wall, w };
+    }).filter(r => r.z1 - r.z0 > 1e-4);
+    const regions = framed.concat(spandrels);   // frames first: where a ring and a panel meet, the ring wins
+    // z cuts: the skin's row lines, every window's top and bottom, every frame's and spandrel's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
     for (const w of windows) { if (w.z0 > z0 && w.z0 < z1) zc.add(+w.z0.toFixed(4)); if (w.z1 > z0 && w.z1 < z1) zc.add(+w.z1.toFixed(4)); }
-    for (const f of framed) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
+    for (const f of regions) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
     const zs = [...zc].sort((a, b) => a - b);
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
@@ -527,7 +579,7 @@
       for (const s of skin.cols(zm, len)) if (s > 0 && s < len) sc.add(+s.toFixed(4));
       const inBand = windows.filter(w => w.z0 <= za + 1e-6 && w.z1 >= zb - 1e-6);
       for (const w of inBand) { if (w.s0 > 0 && w.s0 < len) sc.add(+w.s0.toFixed(4)); if (w.s1 > 0 && w.s1 < len) sc.add(+w.s1.toFixed(4)); }
-      const frBand = framed.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
+      const frBand = regions.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
       for (const f of frBand) { if (f.s0 > 0 && f.s0 < len) sc.add(+f.s0.toFixed(4)); if (f.s1 > 0 && f.s1 < len) sc.add(+f.s1.toFixed(4)); }
       const ss = [...sc].sort((a, b) => a - b);
       for (let c = 0; c < ss.length - 1; c++) {
@@ -595,6 +647,9 @@
     // it (Skyloft). Without it, one window of `w` at the bay centre.
     const parts = Array.isArray(win.offsets) && win.offsets.length ? win.offsets : [[0, win.w || 1.5]];
     const frame = win.frame && win.frame.w > 0 ? win.frame : null;
+    // `spandrel: { h, tone }` under every opening, or per opening as an
+    // `offsets` entry's third element (`null` = none) — see tileFace
+    const spandrel = win.spandrel && win.spandrel.h > 0 ? win.spandrel : null;
     for (let fi = 0; fi < floors.length; fi++) {
       const fz = floors[fi];
       const zb = fz + (win.sill != null ? win.sill : 0.8), zt = zb + (win.h || 2.0);
@@ -605,7 +660,8 @@
           const s0 = cx - ww / 2, s1 = cx + ww / 2;
           if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
           if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
-          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame });
+          const sp = parts[pi].length > 2 ? (parts[pi][2] && parts[pi][2].h > 0 ? parts[pi][2] : null) : spandrel;
+          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp });
         }
       }
     }
@@ -1484,8 +1540,27 @@
   // one of the "poles" answered roofs-pitched, b 19, h 50.55).
   // Those bands stand ON the wall line, outside the inset that spares a
   // neighbour's deck, so roofs-pitched is hidden against the footprint
-  // itself (`walls`), the roofscape pass against the inset one.
-  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'] };
+  // itself (`walls`) — and, since 2026-09-06, against the footprint plus
+  // APTS.wallMargin, because a precast strip is drawn PROUD of the wall and
+  // "overlaps the ring" was not true of most of them. That is the defect
+  // Simeon reported on the live site: "the parts with 5 floors still have a
+  // scaffolding for the rest of the floors". The strips over Jester West's
+  // 18.6 m wings run to 50.55 m, over Jester East's to 39.35 m, and 27 of
+  // the 44 on the West tower alone stood 0.08-0.11 m clear of the ring, so
+  // the `> 0` clause kept them with no wall behind them. The roofscape pass
+  // is hidden against the INSET one, which is a different question (a
+  // neighbour's deck shares the boundary and must stay).
+  //
+  // EVERY LAYER THAT DRAWS A BUILDING VOLUME BELONGS IN HERE. That is the
+  // rule the two 2026-09-06 defects were both a miss of: a pass that draws
+  // walls or roofs from its own bake, over ground this file has authored, is
+  // a second building standing inside or above the first. Ground, roads,
+  // props, trees and art are NOT in here on purpose — they sit at grade
+  // inside a footprint quite legitimately, and hiding them would cut a hole
+  // in the ground. `_aptfloat` (scripts/verify/aptfloat.mjs) is the sweep
+  // that finds a new one: a nadir over every authored footprint, every
+  // fill-extrusion layer queried, anything that answers named.
+  const HIDE_LAYERS = { prism: ['buildings-3d', 'buildings-roof'], bands: ['wc-wall', 'wc-wall-cap', 'wc-solid', 'wc-detail'], storeys: ['campus-storeys'], roofscape: ['roofscape-deck', 'roofscape-major', 'roofscape-minor'], walls: ['roofs-pitched'], parts: ['parts-3d', 'parts-roof'], precinct: ['moody-wall', 'moody-roof', 'moody-plant', 'moody-cap'] };
   /**
    * The tiled roofs js/slopes-roofs.js draws from data/roofs.geojson's rig
    * were baked on the SNAPSHOT prism too: San Jacinto Hall's hip sits on
@@ -1530,7 +1605,9 @@
     const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
     const geoW = APTS.hideRoofscape && hideGeometry(0);
-    if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], 0]]);
+    if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
+    if (geo && APTS.hideParts) for (const id of HIDE_LAYERS.parts) plan.push([id, ['>', ['distance', geo], 0]]);
+    if (geo && APTS.hidePrecinct) for (const id of HIDE_LAYERS.precinct) plan.push([id, ['>', ['distance', geo], 0]]);
     return plan;
   }
   /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */

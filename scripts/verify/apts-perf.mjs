@@ -19,6 +19,11 @@ const WARMUP = 2;
 
 const POSES = {
   'standard-sw': { center: [-97.74578, 30.28699], zoom: 18.66, pitch: 55, bearing: 45 },
+  // Moody Center, the south-west oblique its look-fix rounds were judged at.
+  // It is here because it is the heaviest single mesh the apartments generator
+  // draws — a 153 m ring with a fin screen of 12 in blades on 4 ft centres —
+  // so if the generator ever costs a frame, this is the pose that shows it.
+  'moody-sw': { center: [-97.730616, 30.280913], zoom: 18.10, pitch: 62, bearing: 45 },
   'mall-cruise': { center: [-97.7393, 30.2856], zoom: 17.48, pitch: 55, bearing: 0 },
 };
 
