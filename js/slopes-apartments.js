@@ -1754,11 +1754,18 @@
     }
     return { ring, keys, n };
   }
-  /** ringWalls with a key per edge, the two lists kept in step where a short edge is dropped (`keys` null: keyed by kept-wall index, as a polygon plan always was) */
-  function ringWallsKeyed(F, ringUV, keys) {
+  /**
+   * ringWalls with a key per edge, the two lists kept in step where a short
+   * edge is dropped (`keys` null: keyed by kept-wall index, as a polygon plan
+   * always was). `inward` faces the walls INTO the ring's interior instead of
+   * away from it — a light well's walls face the well. (Reversing the ring
+   * does not do that: it flips the edge direction and the winding sign
+   * together, and the normal comes out the same.)
+   */
+  function ringWallsKeyed(F, ringUV, keys, inward) {
     let A = 0;
     for (let i = 0; i < ringUV.length; i++) { const p = ringUV[i], q = ringUV[(i + 1) % ringUV.length]; A += p[0] * q[1] - q[0] * p[1]; }
-    const outward = A > 0 ? -1 : 1;
+    const outward = (A > 0 ? -1 : 1) * (inward ? -1 : 1);
     const out = [];
     for (let i = 0; i < ringUV.length; i++) {
       const a = ringUV[i], b = ringUV[(i + 1) % ringUV.length];
@@ -1819,14 +1826,14 @@
       if (isRect && blk.chamfer) { const ch = chamferRect(planIn, blk.chamfer); planUV = ch.ring; keys0 = ch.keys; count.chamfers += ch.n; }
       const holesUV = planSpec ? (planSpec.holes || []).map(h => (Array.isArray(h) && h.length === 4 && typeof h[0] === 'number') ? rectRing(h) : h).filter(h => Array.isArray(h) && h.length >= 3) : [];
       count.holes += holesUV.length;
-      // the walls: the outer ring's, then each hole's (reversed, so they face into the well), each ring contiguous
+      // the walls: the outer ring's, then each hole's (facing into the well), each ring contiguous
       const walls = [], keys = [], prevOf = [], nextOf = [], ringLenOf = [];
-      const addRing = (rg, ks) => {
-        const ws = ringWallsKeyed(F, rg, ks), start = walls.length, n = ws.length;
+      const addRing = (rg, ks, into) => {
+        const ws = ringWallsKeyed(F, rg, ks, into), start = walls.length, n = ws.length;
         ws.forEach((w, j) => { walls.push(w.W); keys.push(w.key); prevOf.push(start + (j - 1 + n) % n); nextOf.push(start + (j + 1) % n); ringLenOf.push(n); });
       };
       addRing(planUV, keys0);
-      holesUV.forEach((h, hi) => { const n = h.length; addRing(h.slice().reverse(), h.map((_, k) => 'h' + hi + '.' + ((n - 2 - k + n) % n))); });
+      holesUV.forEach((h, hi) => addRing(h, h.map((_, k) => 'h' + hi + '.' + k), true));
       // the rake: one face leans (rakeOf above); every other wall is clipped to the wedge
       const RK = blk.rake ? rakeOf(spec, blk, planUV, keys, walls, F) : null;
       if (RK) rakes.push({ block: blk.id, face: RK.face, pitch: +RK.pitch.toFixed(2), run: +RK.run.toFixed(3), rise: +RK.rise.toFixed(3), len: +RK.len.toFixed(3), z0: blk.z0, z1: blk.z1 });
