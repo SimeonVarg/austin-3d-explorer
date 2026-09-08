@@ -203,6 +203,93 @@ the ranking list parked.
 
 ---
 
+## The gate found five tests that had never once been run
+
+The five new capability checks in `scripts/verify/slopes-layer.mjs` were written
+in the previous pass and the gate was never executed end to end, so nobody had
+ever seen them run. On the first full run this pass, all five came back red — and
+every one of them was the test, not the building.
+
+They failed the same way. Each measures "did cells appear on this exact plane",
+and each named a window that **excluded the only coordinates the geometry has**:
+
+- **fins** looked between z 6.1 and 18.3. A blade spans its band exactly, so
+  every vertex it owns sits on z 6.00 or z 18.40 — the two values a 0.1 m inset
+  at each end is guaranteed to miss. Patched on the page, the field adds 390
+  vertices, every one of them the right tone, 234 of them at v −0.30 exactly:
+  0.30 m proud of the wall, which is what the field claims to do.
+- **openings** looked between z 0.35 and 4.95; the back wall stands on z 0.30 and
+  5.00. Measured, the field puts 18 correctly-toned vertices on v 3.00.
+- **canopies** looked between v −1.99 and −0.01; a soffit quad's v values are
+  0.00 and −d exactly. Measured, a 2.2 m canopy puts its soffit on v −2.20.
+- **pier** had the same bug twice over. Its cleanup *deleted the building's own
+  piers* — it was written before The Standard's podium had any authored, and the
+  podium has carried real ones since the piers commit, so the patch was a no-op
+  (72 → 72) and the restore took the real ones away (→ 13). And its census window
+  was z 6.1–21.4 while a pier's vertices stand on the podium band's own z 6.00
+  and 21.50. Measured with no z window at all: **0 pool-toned vertices before,
+  270 with the piers, 0 restored.** The old window saw 20 of those 270.
+- **`--against-tip`** loaded our page with the generator off and the archive page
+  with it **on**, so the archive drew its own twenty-five apartment buildings and
+  the "identity" diff was 613,109 px — the switch's own on/off delta. The
+  neighbouring branch of that same block already demotes the identical comparison
+  to a note for exactly this reason.
+
+All are fixed, with the reason written into the file beside each one, and the
+numbers above are the evidence — measured on the page, not argued.
+
+**One sub-assertion was removed rather than repaired, and that should be said
+out loud.** The pier line also fired 71 rays along the podium and asked what
+colour came back. From that camera the rays never reach the wall: measured at six
+heights (7, 8, 10.95, 14, 18 and 20 m), all 71 hit something and every one came
+back `186,186,186` — which is not a colour of this building — identically before
+and after the patch. A ray that cannot see the wall cannot testify about what
+stands on it, so it is now reported and not asserted, with the measurement in the
+file. The vertex census is what carries that line.
+
+The lesson is the cheap one and worth writing down: **an assertion you have never
+run is not evidence of anything, and an assertion that samples a plane must
+include the plane.** Four separate checks got that wrong in the same direction,
+each inset just far enough to exclude the only coordinates the geometry has.
+
+---
+
+## Gates and cost
+
+Hardware WebGL throughout, ANGLE / NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11,
+this branch served on one port and a `git archive` of the main it was cut from
+(`a03d283`) on a second.
+
+| gate | result |
+|---|---|
+| `slopes-layer.mjs` (`--against-tip`, `VERIFY_MAX_MS=4200000`) | **78/78 passed** |
+| `art-slopes.mjs` | 7/7 passed |
+| `walkmeter.mjs` | pass — drift 0 over limit, 0 route errors, UI gate pass |
+| `facadegrid.mjs` | 0 failing assertions |
+| `westcampus-probe.mjs` | **20/21** — see below |
+
+The one red is not this branch's. `westcampus-probe.mjs`'s "all three layers
+visible" check wants `wc-wall`, `wc-wall-cap` and `wc-solid` and gets two of the
+three. Running the identical probe against main's own archive returns **the same
+20/21 and the same missing layer**, so it is a condition that already existed and
+this pass neither caused it nor fixed it.
+
+**Cost of drawing all of this: under a quarter of a millisecond.** One page, the
+generator toggled at runtime, interleaved on/off, 200 frames a rep, three reps
+after two discarded warm-ups, minimum of the per-rep medians, vsync and the
+occlusion throttles off, graphics preset `balanced`, 903,330 triangles when on:
+
+| pose | ON p50 | OFF p50 | delta |
+|---|---|---|---|
+| Villas on Rio | 11.90 ms | 11.70 ms | **+0.20 ms** |
+| The Standard | 12.30 ms | 12.10 ms | **+0.20 ms** |
+| Moody Center | 10.70 ms | 10.60 ms | **+0.10 ms** |
+
+The worst p90 cost is +1.90 ms at The Standard. The bar for calling this a defect
+was +3 ms over off; nothing comes near it.
+
+---
+
 ## Where the numbers come from
 
 Everything measured above was read off the built layer on the real page in
