@@ -1794,8 +1794,8 @@ const markTest = await (async () => {
   const lAfter = await uvCensus(pg, APT_NAME, lbox, 'charcoal');
   return { before, during, after, lDuring, lAfter, s0: r.before, s1: [r.count.signs, r.count.balconies], s2: [restored.count.signs, restored.count.balconies] };
 })();
-check('apartments: a sign may be a `bitmap` (a graphic mark, any size) and a balcony stack may be `inset` (a loggia cut into the wall) — a 22-dot mark on The Standard\'s corner bay stands 132 sign-toned vertices proud of the blank storey, and the bay\'s juliet stack made 1.2 m loggias puts charcoal cells on the v 1.2 plane behind the face',
-  markTest.s1[0] === markTest.s0[0] + 1 && markTest.before === 0 && markTest.during === 22 * 6 && markTest.after === 0 && markTest.s2[0] === markTest.s0[0]
+check('apartments: a sign may be a `bitmap` (a graphic mark, any size) and a balcony stack may be `inset` (a loggia cut into the wall) — a 22-dot mark on The Standard\'s corner bay stands at least its 132 front-face vertices sign-toned and proud of the blank storey (a dot is a box whose flanks reach the plane too), and the bay\'s juliet stack made 1.2 m loggias puts charcoal cells on the v 1.2 plane behind the face',
+  markTest.s1[0] === markTest.s0[0] + 1 && markTest.before === 0 && markTest.during >= 22 * 6 && markTest.during <= 22 * 30 && markTest.after === 0 && markTest.s2[0] === markTest.s0[0]
   && markTest.s1[1] === markTest.s0[1] && markTest.lDuring >= 4 * 6 && markTest.lAfter === 0,
   `signs ${markTest.s0[0]} -> ${markTest.s1[0]} -> ${markTest.s2[0]}; sign-toned vertices proud of the storey at the mark: ${markTest.before} / ${markTest.during} / ${markTest.after}; balconies ${markTest.s0[1]} -> ${markTest.s1[1]} (a loggia is still one balcony); charcoal cells on the loggias' back plane ${markTest.lDuring} with the inset, ${markTest.lAfter} restored`);
 // FIELDS. The south bar's `bays` skin given alternating fields white / pool
