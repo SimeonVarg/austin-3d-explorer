@@ -1348,8 +1348,33 @@
               "skin": "charcoalBlank",
               "signs": [
                 {
-                  "text": "THE STANDARD",
+                  "text": "TANDARD",
                   "s0": 0.6,
+                  "z0": 19.55,
+                  "dot": 0.12,
+                  "gap": 0.13,
+                  "tone": "sign"
+                },
+                {
+                  "bitmap": [
+                    "001111100",
+                    "010000010",
+                    "100111001",
+                    "101000001",
+                    "100111001",
+                    "100000101",
+                    "100111001",
+                    "010000010",
+                    "001111100"
+                  ],
+                  "s0": 5.71,
+                  "z0": 19.43,
+                  "dot": 0.12,
+                  "tone": "sign"
+                },
+                {
+                  "text": "THE",
+                  "s0": 6.92,
                   "z0": 19.55,
                   "dot": 0.12,
                   "gap": 0.13,
@@ -1377,8 +1402,33 @@
               "skin": "charcoalBlank",
               "signs": [
                 {
-                  "text": "THE STANDARD",
+                  "text": "TANDARD",
                   "s0": 1.3,
+                  "z0": 19.55,
+                  "dot": 0.115,
+                  "gap": 0.115,
+                  "tone": "sign"
+                },
+                {
+                  "bitmap": [
+                    "001111100",
+                    "010000010",
+                    "100111001",
+                    "101000001",
+                    "100111001",
+                    "100000101",
+                    "100111001",
+                    "010000010",
+                    "001111100"
+                  ],
+                  "s0": 6.13,
+                  "z0": 19.435,
+                  "dot": 0.115,
+                  "tone": "sign"
+                },
+                {
+                  "text": "THE",
+                  "s0": 7.28,
                   "z0": 19.55,
                   "dot": 0.115,
                   "gap": 0.115,
@@ -1399,7 +1449,7 @@
             }
           ]
         },
-        "_src": "signs: white channel letters ~0.85 m tall in the windowless top storey of both street faces (S5/S15): on 23rd (v0, s from the west corner) the text block starts ~0.6 m from the corner and runs ~9.2 m; on Pearl (u1, s from the south end) it starts 1.3 m from the south end and runs 8.2 m, ending ~1.5 m short of the corner. The loggia on the 23rd St face just east of the glazed stack (s 5.3-7.7, the four window storeys) is cut 1.2 m into the charcoal with light walls and a black rail at the face (S23); east of it the `charcoalEast` piece carries the two window columns. u0 stands against the podium; v1 shows only above the Pearl strip's 18.4 roof."
+        "_src": "signs: white channel letters ~0.85 m tall in the windowless top storey of both street faces (S5/S15): on 23rd (v0, s from the west corner) the text block starts ~0.6 m from the corner and runs ~9.2 m; on Pearl (u1, s from the south end) it starts 1.3 m from the south end and runs 8.2 m, ending ~1.5 m short of the corner. The loggia on the 23rd St face just east of the glazed stack (s 5.3-7.7, the four window storeys) is cut 1.2 m into the charcoal with light walls and a black rail at the face (S23); east of it the `charcoalEast` piece carries the two window columns. u0 stands against the podium; v1 shows only above the Pearl strip's 18.4 roof. The horizontal signs are THE, then the round logo — the S of STANDARD inside a ring 1.08 m across (a 9x9 bitmap at the letters' dot) — then TANDARD, as the Earth W frame (S22) and Ext_14 (S5) show the mark; the block is 8.4 m long, as the 12-letter text was."
       },
       "overrides": [
         {
@@ -2723,5 +2773,12 @@
         "_src": "its palm: the crown as a box (a look)"
       }
     ]
-  }
+  },
+  "todo": [
+    "A loggia's reveal and its back wall want two tones: Ext_14 at 4x (S23) shows light concrete jambs and soffit (~#c9c2b4 at dusk) round a dark glazed door, and the generator's `insetTone` paints all five surfaces in one. Drawn dark (`loggia`) so the void reads from the street.",
+    "The loggia rail is a black tube grille 1.05 m tall (S23); a stack's rail is drawn as one solid box of railT, so it stands as a dark panel. A `railOpen`-style mid tone would lighten it, a slat pitch would draw it.",
+    "The residential entrance on 23rd carries the round logo and '715' over the door (S23) and a louvre grille beside it; a sign on a `flat` ground band at dot 0.05 is expressible but was not placed — the door is at u 78.4-80.2.",
+    "Tower B's west face south of the pixel band: the Earth W frame (S22) shows two-light windows ~2.2 m wide at ~3.4 m centres with a rust spandrel under each; the `bays` skin keeps the 5 m / two 1.1 m windows read against the judge's frame (S20). A closer Earth capture of the south face would settle the unit for the whole 66 m bar.",
+    "The pixel band's place on the Pearl face is v 19.5-23.2 by three reads that disagree by ±2 m (S17 18.6-22.6 by eye; S23's profile puts its north edge ~9 m south of the corner bay; S22's frame ~10-11 m); tower B's field and the sign follow it."
+  ]
 }
