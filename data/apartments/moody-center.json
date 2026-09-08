@@ -173,9 +173,9 @@
   "levels": {
     "floors": [
       6.4,
-      12.0
+      11.7
     ],
-    "_src": "An arena has no storeys and S1/S2 give none; these are the two lines the fin screen's recessed glazing hangs from, not floors. 6.40 is the head of the recessed ground-floor storefront and the underside of the lower canopy; 12.00 is the metal rail between the two concourse ribbons (S4: 'alternating dark brown metal-clad levels with reflective glazed levels', two of them in S5 between the lower canopy and the roof). Both are derived from the wall's total height by the proportions S5 shows, +/- 1 m. Deliberately only two lines: the generator hangs one window row per floor line per band, and a third line would put a third row of glazing in a wall that has two.",
+    "_src": "An arena has no storeys and S1/S2 give none; these are the two lines the fin screen's recessed glazing hangs from, not floors. 6.40 is the head of the recessed ground-floor storefront and the underside of the lower canopy. 11.70 is the UNDERSIDE of the metal rail between the two concourse ribbons (S4: 'alternating dark brown metal-clad levels with reflective glazed levels'), the rail itself being 11.70-12.30 in the fin skin's own bands. It was 12.00, the rail's mid-line, until this round. The generator hangs one row of glazing per line at `window.sill` above it, so the line has to be a SILL DATUM and not a centre: at 11.70 with sill 0.60 and height 4.70 the two rows land on 7.00-11.70 and 12.30-17.00, which are exactly the two glazed ribbons the rails leave between them. At 12.00 the upper row was 0.30 m out and ran into the head rail. The same measured geometry, with the datum moved to the edge the generator actually measures from. Deliberately only two lines: the generator hangs one window row per floor line per band, and a third line would put a third row of glazing in a wall that has two.",
     "grade": 166.74,
     "roofASL": 189.0,
     "eave": 17.4,
@@ -192,9 +192,21 @@
       "hex": "#2c2b34",
       "_src": "S12: the two flank reads of one fin, #373745 lit and #070810 shaded, meaned - which is the albedo the generator's shader then splits back into a lit and a shaded flank by normal. REPLACES S10's #493c34 (WALL_DAY 'moody-fins'), a warm brown, where the photograph's screen is cool and much darker: the whole fin band area-weighted is #38363f and the darkest read in it is #08070e. Dark Bronze anodised aluminium photographs as a cool near-black at this distance, not as bronze."
     },
+    "finNose": {
+      "hex": "#373745",
+      "_src": "S12's LIT flank of the one fin it measured, 28.4% of that crop (the shaded flank, #070810, is the other read, and `fin` is the two meaned). It goes on the blade's outer face alone, through `frontTone` - todo 3's airfoil, as far as a box can carry it: an extruded tube's nose is a narrow rounded surface that returns sky where the flat flanks return the wall, so the front reads a step lighter than the sides and the blade stops being a flat plank. No new number: both values were already measured for `fin`."
+    },
     "glass": {
       "hex": "#5980ac",
       "_src": "S12: the concourse ribbon seen between the fins, #69a1d9 (sky straight off the pane) and #485c7b (the same glass away from that angle), area-weighted. REPLACES S10's #8fa3ad, which is pale enough to make the whole screen read light: behind a near-black fin the glass has to be BRIGHTER and bluer than the fin for the fins to read as fins at all, and the photograph says it is. Vitro Solarban 70 clear (S4)."
+    },
+    "glassSky": {
+      "hex": "#69a1d9",
+      "_src": "S12's BRIGHTER cluster of the concourse ribbon, 22.7% of that crop - the sky straight off the pane - restored as its own tone. `glass` (#5980ac) is this and `glassDeep` area-weighted together, and painting the whole ribbon that one mean is what made the upper wall read as a flat blue sheet: a pane of glass is never one value, it is the sky in one direction and the room behind it in another, and the photograph has both. This is the recessed pane; `glassDeep` is the plane it sits in."
+    },
+    "glassDeep": {
+      "hex": "#485c7b",
+      "_src": "S12's DARKER cluster of the same crop, 20.8% - 'the same glass away from that angle'. It is the field of the fin band: the margin between the panes and the glass that is not returning sky. Measured, not derived; it and `glassSky` area-weighted are `glass` to one unit."
     },
     "storeGlass": {
       "hex": "#92a5b4",
@@ -232,11 +244,16 @@
   "skins": {
     "fins": {
       "kind": "bays",
-      "field": "glass",
-      "bay": 1.219,
-      "glass": "glass",
-      "frame": "fin",
-      "reveal": 0,
+      "field": "glassDeep",
+      "bay": 2.438,
+      "window": {
+        "w": 1.9,
+        "h": 4.7,
+        "sill": 0.6
+      },
+      "glass": "glassSky",
+      "frame": "mullion",
+      "reveal": 0.1,
       "bands": [
         {
           "z0": 6.4,
@@ -254,7 +271,7 @@
           "tone": "mcm"
         }
       ],
-      "_src": "TURNED RIGHT SIDE OUT THIS ROUND. The screen is what it is in the photograph: the GLAZING is the field, three metal rails cross it, and the blades stand in front of it (`fins` on the band below, not on this skin, because a skin carries one run of blades and this wall wants two - see there). What stood here before was the same relief drawn inside out - 0.914 m of wall recessed 0.30 m between 0.305 m of standing fin - because no primitive could stand a strip off a wall; one can now. Every measured number carried over unchanged. The three rails are S4's 'alternating dark brown metal-clad levels with reflective glazed levels': 6.40-7.00 at the foot, 11.70-12.30 across the 12.00 floor line between the two concourse ribbons, 17.00-17.40 under the soffit, leaving two glazed ribbons of 4.70 m each. Their 0.60 / 0.60 / 0.40 m heights are read off S5 against the band's known 11.0 m, +/- 0.15 m. `bay` is the 1.219 m module the blades stand on and draws nothing itself.\nTHE PITCH IS MEASURED, NOT QUOTED. S4 says the fins are 12-inch-wide extruded aluminium airfoil TUBES, Dark Bronze anodised, plumb, all the way round the perimeter, and it says they are on '15-16 in centres'. The photograph says otherwise and the photograph wins: S13 autocorrelates three strips of the fin screen and gets 1.18, 1.20 and 1.30 m, with the blade at 0.29 m in the same measurement - i.e. a 12 in blade on 4 ft (1.219 m) centres, a quarter blade to three quarters gap, which is exactly the wide-gapped screen S5 shows you can see the concourse glazing straight through. At 15-16 in centres a 12 in blade leaves a three-inch gap and the screen would be very nearly solid; it is not. The first massing authored 0.394 m and was 3.1x too fine - 1,370 blades round the perimeter instead of 440, at 2 px a pitch at this app's oblique camera, which is a moire generator and not a screen.\nWHAT THE OLD DATUM COST, so nobody moves it back: with the relief cut INTO the wall the sun fell on the inside of a slot, so the screen went flat and dark at every camera and the blades read as a stripe pattern printed on the wall rather than as objects with air behind them. Standing them proud is the whole of this round's change on this face; the pitch (1.219), the blade (0.305) and the relief (0.30) are the same numbers the slot carried."
+      "_src": "THE GLAZING IS GLAZING NOW, NOT A PAINTED FIELD. What stood here was `field: 'glass'` on a 1.219 m bay with no window and no reveal - the whole 11 m ribbon flooded with one mean colour - and a blind reader shown the frame called it 'a flat mid-blue rectangle with evenly spaced brown posts over it, with no reflection, no depth, no interior', which is a fair description of what a single flat fill of #5980ac behind a run of boxes actually is. Nothing about the fins was wrong. There was nothing behind them.\nWHAT IT IS INSTEAD. A curtain wall drawn with primitives that already exist. The PANE is a window, 1.90 x 4.70 m, recessed 0.10 m, in `glassSky` (#69a1d9, S12's bright cluster - the sky straight off the pane). The PLANE it sits in is `glassDeep` (#485c7b, S12's dark cluster - the same glass away from that angle). The four reveal strips round every pane are `mullion` (#27303c, S12's measured storefront mullion, whose own _src already said it is 'also the fins' reveal jambs'). So a module reads bright pane, shadowed jamb, dark glass margin, bright pane: two measured tones, a real 0.10 m of depth with one lit edge and one shaded, and a grid on a different pitch from the blades in front of it. Every colour here was already measured for this building in S12; none is new and none is guessed.\nTHE MODULE, 2.438 m, IS THE ONE NUMBER HERE THAT IS NOT MEASURED, and it is written down as such: no frame on disk resolves the curtain wall's mullion spacing, only the fin pitch (S13, 1.219 m). 2.438 m is exactly TWO fin bays - 8 ft, a standard curtain-wall module - so a mullion falls in every second gap between blades and is therefore VISIBLE through the screen rather than hidden behind a blade, which is the whole point of drawing it. The generator rounds the module to a whole number of bays per face, so it runs 2.18-2.91 m round this 35-sided ring; the pane is 1.90 m so that even the narrowest face clears the generator's 0.05 m end margin and keeps its panes. If a frame ever measures the real spacing, this is the line to change and the pane width follows it.\nThe three metal rails are unchanged and still S4's 'alternating dark brown metal-clad levels': 6.40-7.00 at the foot, 11.70-12.30 across the rail between the two ribbons, 17.00-17.40 under the soffit, leaving two glazed ribbons of 4.70 m each. Their 0.60 / 0.60 / 0.40 m heights are read off S5 against the band's known 11.0 m, +/- 0.15 m. `bay` no longer means the blade pitch - the blades carry their own 1.219 m on the band below, where a list of runs can live - it is the glazing module, and the two are deliberately different numbers.\nCOST, WRITTEN DOWN: the ribbon is a row of windows again, so APARTMENTS.nightLit scatters lit panes across it after dark. Todo 5 argued the flat field was RIGHT for night, because a concourse is one lit room and not forty flats. Both cannot be had from one primitive, and the day frame is the one this round is judged on. If night reads as flats, the fix without a new primitive is a three-value `hex` on `glassSky` whose night entry sits close to APARTMENTS.nightLitTone, so lit and unlit panes are near enough that the ribbon reads as one band."
     },
     "store": {
       "kind": "storefront",
@@ -308,7 +325,8 @@
               "d": 0.3,
               "z0": 7.0,
               "z1": 11.7,
-              "tone": "fin"
+              "tone": "fin",
+              "frontTone": "finNose"
             },
             {
               "pitch": 1.219,
@@ -316,7 +334,8 @@
               "d": 0.3,
               "z0": 12.3,
               "z1": 17.0,
-              "tone": "fin"
+              "tone": "fin",
+              "frontTone": "finNose"
             }
           ],
           "_fins_src": "TWO RUNS, NOT ONE, AND S4 IS WHY: the blades are 'extruded aluminium airfoil tubes 10 to 16 ft long' - 3.0 to 4.9 m - not 11 m mullions. So one run of blades screens each concourse ribbon (7.00-11.70 and 12.30-17.00, 4.70 m each, inside S4's range) and the three metal rails of the skin below them are left bare, which is what S5 shows. They are on the BAND rather than on the skin for exactly that reason: a skin carries one run, a band carries a list. Blade 0.305 m (12 in, S4, and 0.29 m measured in S13's own strips), pitch 1.219 m (4 ft; S13 autocorrelates 1.179 / 1.200 / 1.300 m on three strips), standing 0.30 m proud. They hang on the recessed fin wall, so they project INTO the 3.0 m the band is inset and stop 2.7 m short of the building line - which is right: the screen is behind the roof edge, not in front of it. Each face restarts the pitch at its own s=0, so a blade does not always land on the corner; on a 35-sided ring at 1.219 m centres the worst a corner can be out is half a pitch, 0.61 m, and no camera in this app resolves that.",
@@ -356,7 +375,8 @@
                   "d": 0.3,
                   "z0": 7.0,
                   "z1": 11.7,
-                  "tone": "fin"
+                  "tone": "fin",
+                  "frontTone": "finNose"
                 },
                 {
                   "pitch": 1.219,
@@ -364,7 +384,8 @@
                   "d": 0.3,
                   "z0": 12.3,
                   "z1": 17.0,
-                  "tone": "fin"
+                  "tone": "fin",
+                  "frontTone": "finNose"
                 }
               ],
               "canopies": [
@@ -377,6 +398,15 @@
                   "d": 5.8,
                   "tone": "fascia",
                   "soffitTone": "soffit"
+                },
+                {
+                  "s0": 0,
+                  "s1": 11.42,
+                  "z": 19.45,
+                  "t": 0.1,
+                  "off": 4.35,
+                  "d": 5.45,
+                  "tone": "apron"
                 }
               ]
             }
@@ -414,7 +444,8 @@
                   "d": 0.3,
                   "z0": 7.0,
                   "z1": 11.7,
-                  "tone": "fin"
+                  "tone": "fin",
+                  "frontTone": "finNose"
                 },
                 {
                   "pitch": 1.219,
@@ -422,7 +453,8 @@
                   "d": 0.3,
                   "z0": 12.3,
                   "z1": 17.0,
-                  "tone": "fin"
+                  "tone": "fin",
+                  "frontTone": "finNose"
                 }
               ],
               "canopies": [
@@ -435,13 +467,22 @@
                   "d": 5.8,
                   "tone": "fascia",
                   "soffitTone": "soffit"
+                },
+                {
+                  "s0": 0,
+                  "s1": 16.22,
+                  "z": 19.45,
+                  "t": 0.1,
+                  "off": 4.35,
+                  "d": 5.45,
+                  "tone": "apron"
                 }
               ]
             }
           ]
         }
       },
-      "_faces_src": "THE DEEP CANTILEVER, WHICH USED TO BE MISSING BECAUSE `roof.over` IS ONE NUMBER. S14 measures the plate standing 8.05, 7.93 and 7.87 m outside the wall ring at three vertices, and projected back those three are the offsets of ring edges 17 and 18 - the SSE-facing corner over the south entry, 11.42 + 16.22 = 27.64 m of frontage. The eave itself carries 2.10 m of that (`roof.over`); the rest is drawn here as a slab on those two faces' own fin band, in the fascia's dark bronze with the wood soffit under it, as thick as the eave it continues (top 19.40 = the wall's 17.40 plus the 2.00 m fascia). `off` 4.20 = the 2.00 m the band is inset + the 2.10 m the eave already reaches + a 0.10 m gap, and that gap is the only number here that is not measured: it is there so the slab's back face and the eave's fascia are not coplanar, because two coplanar faces z-fight and 0.10 m is invisible at every camera in this app. `d` 5.80 carries the slab out to 8.00 m beyond the ring. The two slabs meet at the 20-degree kink between the two edges and leave a 2.8 m notch at their outer corners; looked at from the air that reads as a fold in the plate, which is what it is. These two faces carry a copy of the block's own bands because a face's `bands` REPLACE them; the two lists are the same but for the canopy.",
+      "_faces_src": "THE DEEP CANTILEVER, WHICH USED TO BE MISSING BECAUSE `roof.over` IS ONE NUMBER. S14 measures the plate standing 8.05, 7.93 and 7.87 m outside the wall ring at three vertices, and projected back those three are the offsets of ring edges 17 and 18 - the SSE-facing corner over the south entry, 11.42 + 16.22 = 27.64 m of frontage. The eave itself carries 2.10 m of that (`roof.over`); the rest is drawn here as a slab on those two faces' own fin band, in the fascia's dark bronze with the wood soffit under it, as thick as the eave it continues (top 19.40 = the wall's 17.40 plus the 2.00 m fascia). `off` 4.20 = the 2.00 m the band is inset + the 2.10 m the eave already reaches + a 0.10 m gap, and that gap is the only number here that is not measured: it is there so the slab's back face and the eave's fascia are not coplanar, because two coplanar faces z-fight and 0.10 m is invisible at every camera in this app. `d` 5.80 carries the slab out to 8.00 m beyond the ring. The two slabs meet at the 20-degree kink between the two edges and leave a 2.8 m notch at their outer corners; looked at from the air that reads as a fold in the plate, which is what it is. These two faces carry a copy of the block's own bands because a face's `bands` REPLACE them; the two lists are the same but for the canopy.\nTHE CANTILEVER IS THE ROOF PLATE, SO ITS TOP IS THE ROOF'S. It was one box in `fascia`, top included, standing 8 m out of a plate that is pale `apron` on top everywhere else - and from the air that read as a blank dark panel bitten out of the roof over the south entry, as though a bay had been boarded up. A canopy paints one tone on every face it has, so the plate is TWO slabs now: the 2.00 m fascia box unchanged (dark rim, wood soffit under it), and a 0.10 m cap in `apron` on top of it, held 0.15 m inside the rim so the dark vertical edge still wraps the outside, its top at 19.45 rather than 19.40 so the two are not coplanar. That is the same construction the eave itself has - `roof.tone` apron over `roof.lipTone` fascia - carried on to the piece of plate that is drawn here instead of by the roof. It is half of what todo 2 asks for; the eave's own lip still wears its fascia on its top, because a roof has no `topTone` and that is the generator's to add.",
       "roofTone": "apron",
       "roof": {
         "kind": "hip",
@@ -460,9 +501,9 @@
   "todo": [
     "1. THE SNAPSHOT'S TWO NAMELESS ROOF PRISMS WERE STANDING ON THIS BUILDING, AND THIS ROUND'S FIRST LOOK IS WHAT FOUND THEM. `queryRenderedFeatures` at three pixels of what looked like our own wall named `buildings-3d/2b0f20a0-f207-4584-8423-c8c5e3441b96` and four `campus-storeys/detail` features painted on it - a 21.3 m tan prism wearing this arena's plan, with the app's own window grid on it, swallowing a 22.6 m mesh whole. With it, ba9c090c-59c5-46dd-ad4b-fef4ad849866 at 8.0 m. Neither carries a name, so `replacedNames` could never have caught them; neither is this file's own id, so `replacedBuildingIds` did not either. Both are in data/apartments/index.json now (S11). NOTE FOR THE NEXT LANE: this was INVISIBLE until js/slopes-apartments.js gained its `precinct` hide list for js/moody.js's bands - those bands stood at 28.7 m and covered the 21.3 m prism, so hiding them uncovered it. Any other authored building whose OSM entry has a `building=roof` way over it has the same prism waiting, and the general fix is for the snapshot's nameless `building_class: roof` features to be hidden by geometry the way parts-3d already is. That is not this file's to write.",
     "2. DONE this round, and it moved the wood. `roof.soffitTone` puts `colours.soffit` (#884420) on the eave's 2.10 m underside while its top and its fascia stay dark bronze, so the Parlex wood-composite soffit is wood for the first time and is wood only where the plate actually is; the fin band's recess, which had been standing in for it, is back to the wall's own metal (see that band's `_src`). Still owed: the canopy over the storefront - the ground band's inset closes with one flat plate in `canopy`, where the real thing is a thin slab with its own fascia edge on the columns; and the eave lip's TOP, which wears `lipTone` with its fascia because those two share a tone, where S15 shows the plate white to its outer edge and only the vertical face dark. A `topTone` beside `lipTone` would end it; today the roof wears a dark crown from the air that it should not have.",
-    "3. DONE this round. The fins stand 0.30 m PROUD of the glazing now (`fins` on the fin band, two runs of 4.70 m for S4's 10-16 ft blades) instead of the wall being recessed 0.30 m between them. What is still owed is the airfoil: S4's blades are extruded TUBES with a nose, and these are square boxes. `frontTone` would colour the nose alone; the section itself has no primitive and probably should not have one at 1.2 m centres seen from 70 m.",
+    "3. DONE this round, as far as a box goes. The fins stand 0.30 m proud (`fins` on the fin band, two runs of 4.70 m for S4's 10-16 ft blades) and now carry `frontTone: 'finNose'`, so the outer face is S12's measured LIT flank (#373745) and the flanks stay the mean (#2c2b34): the nose a step lighter than the sides, which is the airfoil's section as far as a rectangular tube can state it. What is still owed is the section itself, and it probably should not be built at 1.219 m centres seen from 70 m. If the screen still reads heavy, the number to try is the blade's PROJECTION. 0.305 m on 1.219 m centres is a quarter blade to three quarters gap head-on, but at this app's oblique the 0.30 m of flank is added to it and the screen closes toward half and half. The width is measured twice (S4's 12 in, S13's 0.29 m); the 0.30 m projection is only the relief the old recess carried and was never measured, so `d` is the one to move, and only against a frame.",
     "4. The oversail is a scalar and the recess is a scalar per band. S14 measures the plate per vertex - 0.87 to 3.28 m round most of the ring (median 2.13, which `roof.over` now carries), 7.87-8.05 over the south corner (built, as a canopy on faces 17 and 18), one 7.48 spike off ring edge 28 at the north corner with 1.18 and 3.28 either side of it (NOT built: one vertex is not a pattern where three are, and a 6.6 m stub sticking 5.4 m out of the roofline would read as a defect - if a later round gets a frame of the north corner, that is the number to build), and seven vertices that are shared OSM nodes and say nothing. A per-face `over` on the 35 edges of this ring would end the whole item.",
-    "5. Not modelled, and each is a real feature: the solid MCM gate portals and the loading dock among the ground-floor storefront (round 3's `openings` is the primitive - it wants a frame that shows where they are, which nothing on disk does), the 'MOODY CENTER' roof graphic S6's nadir shows (a sign goes on a wall, not on a cap - no primitive), the Longhorn and BOX OFFICE signs S5 has on the plaza elevation (`signs.bitmap` is the primitive and the placement is the missing measurement), and the arena's own night lighting. The night model CHANGED this round and is now wrong in a different way: the fin band's glazing is a field rather than a row of windows, so APARTMENTS.nightLit no longer scatters lit windows across it - which is right, a concourse is one continuous lit room and not forty flats - but nothing lights it instead. An `openings` run with `glass` and `lit: true` per ribbon per face would, at the cost of 70 hand-placed openings.",
+    "5. Not modelled, and each is a real feature: the solid MCM gate portals and the loading dock among the ground-floor storefront (round 3's `openings` is the primitive - it wants a frame that shows where they are, which nothing on disk does), the 'MOODY CENTER' roof graphic S6's nadir shows (a sign goes on a wall, not on a cap - no primitive), the Longhorn and BOX OFFICE signs S5 has on the plaza elevation (`signs.bitmap` is the primitive and the placement is the missing measurement), and the arena's own night lighting. The night model moved again: the fin band's glazing is a row of windows once more (it had to be, for the day frame - see the `fins` skin's own _src), so APARTMENTS.nightLit scatters lit panes across it. A concourse is one continuous lit room and not forty flats, and the cheap fix without a new primitive is a three-value `hex` on `glassSky` whose night entry sits close to APARTMENTS.nightLitTone, so lit and unlit panes are near enough that the ribbon reads as one band.",
     "6. The east face is up to 11 m too tall and the west face is right, because the app has no terrain and the site falls 11 m across the building (S7). See levels._height_src.",
     "7. The mesh's own top is 20.84 m, not the 22.60 m `levels.membrane` states: 17.40 (wall) + 2.00 (fascia) + 9.0 m of apron at 9.1 degrees (1.44 m of rise) = 20.84. Three of those four numbers are measured (S8's wall, S5's fascia, S6's apron width) and the pitch is the one that never was, so the pitch is where the missing 1.76 m belongs: atan(3.2 / 9.0) = 19.6 degrees would land the deck on 22.60. Left alone this round because it changes the silhouette from every camera and this round's frames are about the wall, and because a 19.6-degree walk-on apron is a claim S6 has not been asked about yet.",
     "8. The floor of an inset band and its soffit are one tone, so the 2.0 m ring of deck at 6.40 m - the top of the lower canopy - is drawn in whatever the head of the recess above it is drawn in. It is the wall's dark bronze now, which is at least not a lie about the material, but it is a deck and it wants the pale grey `canopy` already holds. A `floorTone` beside `inset.tone` is the field."
