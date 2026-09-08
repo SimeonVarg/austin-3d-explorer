@@ -336,8 +336,8 @@
     ],
     "_loggia_src": "the inside of a loggia (back wall, jambs, soffit, floor in one tone): the recesses read as shadowed voids by day (S22, the Earth W frame) and dark with a warm interior at dusk (S23, S14 photo 1 'small black juliet balconies'); a shadow grey two steps under the charcoal's night, not black",
     "pier": {
-      "hex": "#e8e6de",
-      "_src": "the light piers on the bay lines and the junction pier (S23, S24): the podium panel a step lighter, so the rib reads without relying on its 0.12 m of shadow"
+      "hex": "#eeece5",
+      "_src": "the light piers on the module lines and the junction pier (S23, S24): the podium panel two steps lighter — at 0.5 m / 0.12 m proud they did not read from the street in the first render (2026-09-08 cycle 1), so 0.6 m and 0.18 m proud now; Ext_14 at 3x puts the junction pier at ~0.22 m, the module piers are shallower than it"
     },
     "stone": [
       "#c9c1b0",
@@ -560,8 +560,8 @@
       "bay": 4.5,
       "field": "podiumPanel",
       "pier": {
-        "w": 0.5,
-        "d": 0.12,
+        "w": 0.6,
+        "d": 0.18,
         "tone": "pier"
       },
       "window": {
@@ -583,7 +583,7 @@
           ]
         ]
       },
-      "_src": "the podium's light panel on the 23rd St face and the east wing (S23, S24): a 4.5 m module of ONE window bay and ONE loggia — [wall 0.5][window 1.05][wall 0.95][recess 1.5][wall 0.5] — the window at +1.225 from the module centre (toward the corner bay, +s = west) and the loggia at -1.0; the loggias are the faces' `balconies` with `inset` (computed from the piece's module by the builder's script); a light pier 0.5 m wide, 0.12 m proud on every module line, so the wall reads as bays grouped between piers (Ext_01 at 5x: light ribs between the bays, the junction pier proud). Was: a 6.2 m module of a rust window and a 1.6 m door, juliets as 0.35 m projecting rails, no piers. the window unit (S19, S23): a tall light in a 0.1 m charcoal frame, sill 0.95 above the floor line, the rust spandrel 0.62 m tall under the frame's sill strip on EVERY podium window (S23: every window on the Pearl face carries one)."
+      "_src": "the podium's light panel on the 23rd St face and the east wing (S23, S24): a 4.5 m module of ONE window bay and ONE loggia — [wall 0.5][window 1.05][wall 0.95][recess 1.5][wall 0.5] — the window at +1.225 from the module centre (toward the corner bay, +s = west) and the loggia at -1.0; the loggias are the faces' `balconies` with `inset` (computed from the piece's module by the builder's script); a light pier 0.6 m wide, 0.18 m proud on every module line, so the wall reads as bays grouped between piers (Ext_01 at 5x: light ribs between the bays, the junction pier proud). Was: a 6.2 m module of a rust window and a 1.6 m door, juliets as 0.35 m projecting rails, no piers. the window unit (S19, S23): a tall light in a 0.1 m charcoal frame, sill 0.95 above the floor line, the rust spandrel 0.62 m tall under the frame's sill strip on EVERY podium window (S23: every window on the Pearl face carries one)."
     },
     "storefront": {
       "kind": "storefront",
@@ -664,8 +664,8 @@
       "bay": 4.5,
       "field": "podiumPanel",
       "pier": {
-        "w": 0.5,
-        "d": 0.12,
+        "w": 0.6,
+        "d": 0.18,
         "tone": "pier"
       },
       "window": {
@@ -710,8 +710,8 @@
       "_src": "the podium's top storey on the 10.1 m next to the corner bay (u 71.5-81.6): three one-window-wide dark louvre panels where the windows would be (S19: Ext_14 shows three, Ext_01's profile puts them ~1.5, 4.0 and 9.2 m from the corner bay), drawn as 1.1 x 2.4 m openings in the louvre tone at the piece's window positions. A louvre may be 'lit' after dark like any opening (APARTMENTS.nightLit) — one of three, most nights; accepted. A bays skin now (its windows are still the fixed `cols`), so it carries the podium's piers on the same module lines as the storeys below it.",
       "bay": 4.5,
       "pier": {
-        "w": 0.5,
-        "d": 0.12,
+        "w": 0.6,
+        "d": 0.18,
         "tone": "pier"
       }
     },
