@@ -78,7 +78,15 @@ occlusion throttles off, ANGLE / RTX 3050 Ti Laptop / D3D11, preset
 The Standard **+0.20 ms** (12.30 vs 12.10), Moody Center **+0.10 ms** (10.70
 vs 10.60). Worst p90 +1.90 ms at The Standard. The defect bar was +3 ms.
 
-Branch `acer/gen`, twenty commits on `a03d283`. PR #234, merged.
+**The data bot recreated `acer/gen` after the merge, again.** Five minutes
+after `git push origin --delete acer/gen`, `git ls-remote` had it back at
+`26f5c83`, the daily snapshot pushed onto the branch that triggered the run —
+the behaviour `MEMORY.md` warns about. It carried nothing: every file in it is
+byte-identical to main's own `403b9ef` snapshot, checked blob by blob. Deleted a
+second time and confirmed gone. **Check `git ls-remote --heads origin <branch>`
+a few minutes after every merge, not just once.**
+
+Branch `acer/gen`, twenty commits on `a03d283`. PR #237, merged as `1c6551a`.
 
 ## 229. Sep 7 2026 — the apartments round-two pass shipped: the scaffolding was a bake's wall strips 8 cm outside the ring, three new buildings, and three gate reds that were all the instrument (`acer/apts2` → `main`)
 
