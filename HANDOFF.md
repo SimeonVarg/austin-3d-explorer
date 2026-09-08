@@ -1,5 +1,85 @@
 # Austin 3D Explorer — Full Handoff
 
+## 230. Sep 8 2026 — round three of the apartments generator: the ten things twenty-eight builders could not draw, three buildings rebuilt on them, and five gate lines that had never once been run (`acer/gen` → `main`)
+
+**Look first: `docs/generator-capabilities.md`** — the pass in plain words with six
+cited before/after pairs in `shots/apartments/`, same camera on both halves. The
+one to open is `shots/apartments/villas-on-rio-street.jpg`: twenty stacked glass
+slabs on the left, one leaning plane on the right.
+
+**What shipped.** All 199 `todo`/`open` notes across the twenty-seven builder
+files were read and ranked by (buildings that faked it) × (how visible the fake
+is). The top ten were built, and three buildings were rebuilt to use them —
+**Villas on Rio** (`rake`), **Moody Center** (`fins`, `soffitTone`, the corrected
+8 m oversail) and **The Standard** (`pier`, `openings`, `inset` balconies,
+`bitmap` signs, `fields`/`flip`, `chamfer`, `plan.holes`, `canopies`).
+
+Measured on the page, not argued: the Villas rake is one plane at 56.0°, run
+20.74 m against rise 30.75 m, three nadir rays landing on it to the millimetre
+and **0 of 17,774 block vertices above it**; Moody carries 358 blades at 1.219 m
+pitch standing 0.30 m proud, and its wood soffit (#884420) is drawn for the first
+time; The Standard's podium carries 54 piers at 0.6 × 0.18 m (0.5 / 0.12 was
+tried first and did not read from the street).
+
+**THE FIVE GATE LINES HAD NEVER BEEN RUN, AND ALL FIVE WERE THE INSTRUMENT.** The
+previous pass wrote them and the gate never got executed end to end, so nobody had
+seen them run. First honest run: **73/78**, and every red was the test.
+
+Four of them failed **the same way** — the census window was inset just far enough
+to exclude the only coordinates the geometry has:
+
+| line | window | where the vertices actually are |
+|---|---|---|
+| `fins` | z 6.1–18.3 | z 6.00 and 18.40 (the band's own ends) |
+| `openings` | z 0.35–4.95 | z 0.30 and 5.00 |
+| `canopies` | v −1.99 to −0.01 | v 0.00 and −d exactly |
+| `pier` | z 6.1–21.4 | z 6.00, 21.50 (saw 20 of 270) |
+
+The `pier` line also **deleted the building's own piers as its cleanup** (written
+before `c6286ab` authored them, so 72 → 72 → 13), and `--against-tip` loaded our
+page with the generator off against the archive with it **on**, so the archive drew
+its own twenty-five apartment buildings and the "identity" diff was 613,109 px —
+the switch's own delta. It also demanded ≤ 1200 px at a pose whose own
+page-to-page floor is 274,029; it is held to that measured floor now, exactly as
+the `--against-nogen` line six lines above it already was.
+
+**One sub-assertion was removed, not repaired, and it is written down as removed.**
+The pier line's 71-ray sampler never reaches the podium from its camera: measured
+at z 7 / 8 / 10.95 / 14 / 18 / 20, all 71 rays hit something and every one came
+back `186,186,186` — not a colour of this building — identically before and after
+the patch. It is reported and no longer asserted; the vertex census (0 → 270 → 0
+on the pier's own plane) is what carries the line.
+
+**The blind judge's miss is in the doc, in his own words.** On the true eye-level
+pose from Rio Grande Street: *"No. I only caught it because I was comparing the
+two; a casual viewer would look at this frame and see the same street."* That pose
+puts the tower 120 px tall behind trees; the near pose is shipped instead and the
+miss is named. His harshest note is also quoted and unfixed: *"at close range the
+random sizes and heights mean you cannot read floors, and a real apartment
+building always reads as floors."* Moody Center's and The Standard's blind-judge
+write-ups did not survive the handoff between passes and were not reconstructed —
+the doc says so and gives my own cold read instead, including that **Moody's
+aerial pair does not explain itself without a caption** (a roof lip's top and its
+fascia are one tone, so the dark fascia darkens 2.1 m of the plate).
+
+**Gates.** Hardware, this branch on one port and a `git archive` of `a03d283` on a
+second. `slopes-layer.mjs --against-tip` (`VERIFY_MAX_MS=4200000`) **78/78**;
+`art-slopes.mjs` 7/7; `walkmeter.mjs` pass (drift 0 over limit, 0 route
+errors, UI gate pass); `facadegrid.mjs` 0 failing assertions;
+`westcampus-probe.mjs` **20/21** — its "all three layers visible" check gets
+`wc-wall,wc-solid` and wants `wc-wall-cap` too. **That red is NOT this
+branch's**: the identical probe run against main's own archive on :8462
+returns the same 20/21 and the same missing layer. Pre-existing, unfixed.
+
+**Perf.** One page, generator toggled at runtime, interleaved, 200 frames a rep, three
+reps after two discarded warm-ups, MIN of the per-rep medians, vsync and the
+occlusion throttles off, ANGLE / RTX 3050 Ti Laptop / D3D11, preset
+`balanced`, 903,330 tris on. Villas on Rio **+0.20 ms** p50 (11.90 vs 11.70),
+The Standard **+0.20 ms** (12.30 vs 12.10), Moody Center **+0.10 ms** (10.70
+vs 10.60). Worst p90 +1.90 ms at The Standard. The defect bar was +3 ms.
+
+Branch `acer/gen`, twenty commits on `a03d283`. PR #234, merged.
+
 ## 229. Sep 7 2026 — the apartments round-two pass shipped: the scaffolding was a bake's wall strips 8 cm outside the ring, three new buildings, and three gate reds that were all the instrument (`acer/apts2` → `main`)
 
 **Look first: `docs/apartments-pass-2.md`** — the pass in plain words with five

@@ -118,6 +118,22 @@
       "hex": "#2c5a70",
       "_src": "S5 src_00 (760-900, 420-560) and (880-1000, 300-420), two patches of the raking glass plane: clusters #234b5e, #3d6578, #355e74 and #254d63. Entered between them. A deep teal-blue - a big plane of insulated vision glass seen against the sky, and the darkest thing on the building."
     },
+    "rakeGlassA": {
+      "hex": "#234b5e",
+      "_src": "the darkest of the four. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassB": {
+      "hex": "#3d6578",
+      "_src": "the lightest of the four. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassC": {
+      "hex": "#355e74",
+      "_src": "the third. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassD": {
+      "hex": "#254d63",
+      "_src": "the second-darkest. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
     "taupe": {
       "hex": "#b0aaa4",
       "_src": "S5 src_00 (1500-1800, 1080-1300), the seven-storey wing: clusters #a6a19d, #afa9a4 and #b8b1aa are one material - a warm grey precast - and #b0aaa4 is their middle. #d1d5d3 in the same patch is the white window surround (trimWhite) and #383c38 the openings."
@@ -197,6 +213,12 @@
       "kind": "bays",
       "bay": 1.575,
       "field": "recess",
+      "fields": [
+        "recess",
+        "precast"
+      ],
+      "fieldRule": "checker",
+      "_fields_src": "THE DIAGONAL WEAVE, and it is the first thing you see on this wall. Only every OTHER bay is punched, and the punched bay moves one module along at every storey, so the openings run in diagonal lines - S2's 'angular design motifs repeated throughout'. Measured 2026-09-08 by blending S6's Google Earth (imagery 12/3/2023) against this app's own render at a MATCHED camera - the same centre, zoom, pitch and bearing, so the same projection and the same pixels - over the tower's north-west corner: our openings and Earth's line up in the vertical, and Earth's fall on every SECOND one of ours, offset by one each row. The 1.575 m module in `bay` is right and stays; what was wrong is that this file punched every bay of it. `fields` is the inverse wall's way of saying so: the field is `recess` (dark) in the punched bay and `precast` (white) in the blank one, indexed by bay + storey. It also settles the dark share - every bay punched gave 28 % against the 19 % src_00's patch clusters dark; a checker gives about 16 %.",
       "strip": {
         "w": 0.62,
         "tone": "precast",
@@ -277,6 +299,14 @@
       "kind": "bays",
       "bay": 1.55,
       "field": "rakeGlass",
+      "fields": [
+        "rakeGlassA",
+        "rakeGlassB",
+        "rakeGlassC",
+        "rakeGlassD"
+      ],
+      "fieldRule": "checker",
+      "_fields_src": "the four glass clusters S5 src_00 gives for this plane, one per pane, indexed by bay + storey so the patchwork runs diagonally rather than in stripes. `field` stays their median for anything that asks for a single tone.",
       "strip": {
         "w": 0.13,
         "tone": "mull",
@@ -285,58 +315,18 @@
       "glass": "rakeGlass",
       "frame": "mull",
       "reveal": 0.03,
-      "_src": "S5 src_00 and src_08: the raking plane is one field of deep teal insulated glass on a light mullion grid at about 1.55 m, the same module as the `curtain` skin's. It wears the risers of the stair; the treads are the block caps in the same tone. No `window` key - the whole field is glass."
-    },
-    "panelSliver": {
-      "kind": "bays",
-      "bay": 1.037,
-      "field": "recess",
-      "strip": {
-        "w": 0.408,
-        "tone": "precast",
-        "at": "joints"
+      "floorLine": {
+        "h": 0.16,
+        "tone": "mull"
       },
-      "louvre": {
-        "pitch": 2.8,
-        "w": 1.3,
-        "tone": "precast",
-        "start": 1.5
-      },
-      "window": {
-        "w": 0.35,
-        "h": 0.9,
-        "sill": 0.18
-      },
-      "glass": "glassPale",
-      "frame": "precast",
-      "reveal": 0.14,
-      "_src": "`panel`, scaled to one stair step. A step's flank is 1.037 m wide, and skinBays rounds a wall shorter than a bay to ONE bay - so `panel`'s 1.05 m pier would paint the whole sliver white and the flanks of the rake, about 320 m2 a side, would go blank. This keeps `panel`'s proportions instead (pier 39 % of the bay, the same share as panel (0.62 of 1.575), 1.30 m spandrel every 2.80 m, the same recess/precast tones, so the dark share is panel's 28 %) at the step's own width. See `todo`: the openings come every 1.037 m here where the building's are every 3.20 m."
-    },
-    "panelSliverBlank": {
-      "kind": "bays",
-      "bay": 1.037,
-      "field": "recess",
-      "strip": {
-        "w": 0.408,
-        "tone": "precast",
-        "at": "joints"
-      },
-      "louvre": {
-        "pitch": 2.8,
-        "w": 1.3,
-        "tone": "precast",
-        "start": 1.5
-      },
-      "glass": "glassPale",
-      "frame": "precast",
-      "reveal": 0.14,
-      "_src": "`panelSliver` with no opening. Every other step wears it, so the rake's flanks carry a column of openings every 2.074 m rather than every 1.037 m - which is nearer the building's own 3.20 m bay than one per step would be, and it costs nothing."
+      "_floorLine_src": "S5 src_07: this is the same stick system as the `curtain` skin, which carries a 0.16 m horizontal at every floor. On a plumb wall that is a `louvre` at the 2.80 m storey pitch; on the plane the floor lines land where those heights CUT it - 3.38 m apart up the slope at 56.0 deg - so it is `floorLine`, which takes the building's own levels, and not a pitch that would have been wrong by 21 %.",
+      "_src": "S5 src_00 and src_08: the raking plane is one field of deep teal insulated glass on a light mullion grid at about 1.55 m, the same module as the `curtain` skin's. It is ONE plane now (see the `rake` block), so the 1.55 m module is 1.55 m measured on the glass and the reveal is normal to it; it used to wear the risers of a twenty-step stair. No `window` key - the whole field is glass."
     }
   },
   "blocks": [
     {
       "id": "arm",
-      "_src": "The north arm on West 22nd Street below the rake's eave, in ONE block so its west and east elevations are one wall each on the 3.20 m bay rather than 20 slivers. u 0-20.74, v 22.51-37.42 off S6's rectified nadir (the arm is the part of the ring east of the Kenney House's void); its top at the eave, 24.2 m.",
+      "_src": "The north arm on West 22nd Street below the rake's eave, in ONE block so its west and east elevations are one wall each on the panel rule's own 1.575 m bay. u 0-20.74, v 22.51-37.42 off S6's rectified nadir (the arm is the part of the ring east of the Kenney House's void); its top at the eave, 24.2 m.",
       "plan": [
         0.0,
         20.74,
@@ -373,22 +363,26 @@
       }
     },
     {
-      "id": "rake01",
-      "_src": "Step 1 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 25.74 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
+      "id": "rake",
+      "_src": "THE RAKING GLASS PLANE, one surface. S2 calls it the 'angled glass facade responding to local setback regulations' and it is the whole north end of the building. Its FOOT is the u0 edge (the north end on West 22nd Street) at the ninth floor line, 24.2 m, read off S5 src_00 against the wing's parapet in the same frame; its HEAD is that same edge 20.74 m south at 54.95 m, the roof deck. run 20.74, rise 30.75, pitch 56.0 deg. Both ends come off S6's rectified nadir (the arm's own depth) and S5 src_00's elevation, and they are the same two numbers the twenty stair-steps this replaces were cut from - 20 x 1.037 m of run and 20 x 1.538 m of rise. The generator drew a stair because it had no sloped wall; `rake` is that wall, so the treads and risers are gone and the silhouette is one straight line. The flanks are the building's own `panel` rule, clipped to the wedge, which is why `panelSliver` and `panelSliverBlank` are gone with them.",
       "plan": [
         0.0,
-        1.037,
+        20.74,
         22.51,
         37.42
       ],
       "z0": 24.2,
-      "z1": 25.738,
+      "z1": 54.95,
+      "rake": {
+        "face": "u0"
+      },
+      "_rake_src": "`face: u0` leans the north edge; `run` is omitted so it is the plan's whole depth behind that edge, 20.74 m - a pure wedge, which is what this building is. The plane's own numbers read back from slopesApartments.built[i].rakes.",
       "roofTone": "rakeGlass",
       "bands": [
         {
           "z0": 24.2,
-          "z1": 25.738,
-          "skin": "panelSliver"
+          "z1": 54.95,
+          "skin": "panel"
         }
       ],
       "faces": {
@@ -396,618 +390,11 @@
           "bands": [
             {
               "z0": 24.2,
-              "z1": 25.738,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake02",
-      "_src": "Step 2 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 27.27 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        1.037,
-        2.074,
-        22.51,
-        37.42
-      ],
-      "z0": 25.738,
-      "z1": 27.275,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 25.738,
-          "z1": 27.275,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 25.738,
-              "z1": 27.275,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake03",
-      "_src": "Step 3 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 28.81 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        2.074,
-        3.111,
-        22.51,
-        37.42
-      ],
-      "z0": 27.275,
-      "z1": 28.812,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 27.275,
-          "z1": 28.812,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 27.275,
-              "z1": 28.812,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake04",
-      "_src": "Step 4 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 30.35 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        3.111,
-        4.148,
-        22.51,
-        37.42
-      ],
-      "z0": 28.812,
-      "z1": 30.35,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 28.812,
-          "z1": 30.35,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 28.812,
-              "z1": 30.35,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake05",
-      "_src": "Step 5 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 31.89 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        4.148,
-        5.185,
-        22.51,
-        37.42
-      ],
-      "z0": 30.35,
-      "z1": 31.887,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 30.35,
-          "z1": 31.887,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 30.35,
-              "z1": 31.887,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake06",
-      "_src": "Step 6 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 33.42 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        5.185,
-        6.222,
-        22.51,
-        37.42
-      ],
-      "z0": 31.887,
-      "z1": 33.425,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 31.887,
-          "z1": 33.425,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 31.887,
-              "z1": 33.425,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake07",
-      "_src": "Step 7 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 34.96 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        6.222,
-        7.259,
-        22.51,
-        37.42
-      ],
-      "z0": 33.425,
-      "z1": 34.962,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 33.425,
-          "z1": 34.962,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 33.425,
-              "z1": 34.962,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake08",
-      "_src": "Step 8 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 36.50 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        7.259,
-        8.296,
-        22.51,
-        37.42
-      ],
-      "z0": 34.962,
-      "z1": 36.5,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 34.962,
-          "z1": 36.5,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 34.962,
-              "z1": 36.5,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake09",
-      "_src": "Step 9 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 38.04 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        8.296,
-        9.333,
-        22.51,
-        37.42
-      ],
-      "z0": 36.5,
-      "z1": 38.038,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 36.5,
-          "z1": 38.038,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 36.5,
-              "z1": 38.038,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake10",
-      "_src": "Step 10 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 39.58 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        9.333,
-        10.37,
-        22.51,
-        37.42
-      ],
-      "z0": 38.038,
-      "z1": 39.575,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 38.038,
-          "z1": 39.575,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 38.038,
-              "z1": 39.575,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake11",
-      "_src": "Step 11 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 41.11 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        10.37,
-        11.407,
-        22.51,
-        37.42
-      ],
-      "z0": 39.575,
-      "z1": 41.112,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 39.575,
-          "z1": 41.112,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 39.575,
-              "z1": 41.112,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake12",
-      "_src": "Step 12 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 42.65 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        11.407,
-        12.444,
-        22.51,
-        37.42
-      ],
-      "z0": 41.112,
-      "z1": 42.65,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 41.112,
-          "z1": 42.65,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 41.112,
-              "z1": 42.65,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake13",
-      "_src": "Step 13 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 44.19 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        12.444,
-        13.481,
-        22.51,
-        37.42
-      ],
-      "z0": 42.65,
-      "z1": 44.188,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 42.65,
-          "z1": 44.188,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 42.65,
-              "z1": 44.188,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake14",
-      "_src": "Step 14 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 45.73 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        13.481,
-        14.518,
-        22.51,
-        37.42
-      ],
-      "z0": 44.188,
-      "z1": 45.725,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 44.188,
-          "z1": 45.725,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 44.188,
-              "z1": 45.725,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake15",
-      "_src": "Step 15 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 47.26 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        14.518,
-        15.555,
-        22.51,
-        37.42
-      ],
-      "z0": 45.725,
-      "z1": 47.263,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 45.725,
-          "z1": 47.263,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 45.725,
-              "z1": 47.263,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake16",
-      "_src": "Step 16 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 48.80 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        15.555,
-        16.592,
-        22.51,
-        37.42
-      ],
-      "z0": 47.263,
-      "z1": 48.8,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 47.263,
-          "z1": 48.8,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 47.263,
-              "z1": 48.8,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake17",
-      "_src": "Step 17 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 50.34 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        16.592,
-        17.629,
-        22.51,
-        37.42
-      ],
-      "z0": 48.8,
-      "z1": 50.338,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 48.8,
-          "z1": 50.338,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 48.8,
-              "z1": 50.338,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake18",
-      "_src": "Step 18 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 51.88 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        17.629,
-        18.666,
-        22.51,
-        37.42
-      ],
-      "z0": 50.338,
-      "z1": 51.875,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 50.338,
-          "z1": 51.875,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 50.338,
-              "z1": 51.875,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake19",
-      "_src": "Step 19 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 53.41 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        18.666,
-        19.703,
-        22.51,
-        37.42
-      ],
-      "z0": 51.875,
-      "z1": 53.413,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 51.875,
-          "z1": 53.413,
-          "skin": "panelSliver"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 51.875,
-              "z1": 53.413,
-              "skin": "rakeGlassSkin"
-            }
-          ]
-        },
-        "u1": null
-      }
-    },
-    {
-      "id": "rake20",
-      "_src": "Step 20 of 20 up the raking glass: run 1.037 m, rise 1.538 m, tread at 54.95 m. Its cap is the glass tread, its u0 face the glass riser above the step below, its flanks the white panel wall the rake cuts through.",
-      "plan": [
-        19.703,
-        20.74,
-        22.51,
-        37.42
-      ],
-      "z0": 53.413,
-      "z1": 54.95,
-      "roofTone": "rakeGlass",
-      "bands": [
-        {
-          "z0": 53.413,
-          "z1": 54.95,
-          "skin": "panelSliverBlank"
-        }
-      ],
-      "faces": {
-        "u0": {
-          "bands": [
-            {
-              "z0": 53.413,
               "z1": 54.95,
               "skin": "rakeGlassSkin"
             }
-          ]
+          ],
+          "_src": "the leaning face itself: one field of deep teal glass on its 1.55 m mullion module, tiled in metres ALONG the slope, so the module is 1.55 m ON THE GLASS as it is on the building."
         },
         "u1": null
       }
@@ -1381,21 +768,20 @@
     ]
   },
   "todo": [
-    "The panel's glass slot sits on the SAME side of every dark rectangle here. On the building it alternates, in a diagonal weave much like Union on 24th's - S5 src_07 shows the handedness flipping bay to bay and row to row. The `bays` skin has no mod rule, and `mod4` is the wrong shape (it puts a light frame round dark glass on a dark field, not a dark panel on a white one). A `flip` field on a `bays` window - swap the sign of the offsets when (c - r) mod 2 is 1 - would draw it and nothing else in this file would change. Measured: bay 3.20 m, slot 0.95 m at +/- 0.55 m off the bay centre.",
+    "RETIRED, and kept because the measurement in it is the one that was wrong. The note used to ask for a `flip` on the panel's window - 'bay 3.20 m, slot 0.95 m at +/- 0.55 m off the bay centre', so the slot would change hands bay to bay the way S5 src_07 shows it. `flip` now exists. It cannot be used HERE, because the 3.20 m bay it was measured against was withdrawn: the luminance profile in `panel`'s _src counts the openings at 1.575 m centres with the occasional double, i.e. exactly half of 3.20, and on a 1.575 m bay the panel holds ONE centred 0.50 m slot, which has no hand to change. Mirroring a centred opening about its own centre draws the same wall. The weave the note was after IS drawn now, and by the other new field: `fields: [recess, precast]` with `fieldRule: checker` on `panel` blanks every other bay and moves the blank one along at every storey, which is the diagonal S5 src_07 shows. What is still not drawn is the handedness of the 0.50 m glass slot INSIDE a punched bay; on a 1.575 m bay that slot is centred and has no hand, so `flip` still has nothing to mirror here.",
+    "The 0.50 m glass slot is drawn in the BLANK bays too. `fields` blanks the field of every other bay but a `bays` skin's `window` is per bay and takes no field rule, so the white bays keep a 0.50 x 0.90 m pale slot where the building has plain panel. At the two cameras this app is judged at that is about 3 px of pale speckle, and it is also what lights this tower at night, which is why it is left in rather than deleted. A `window: null` entry in `fields`, or a `windowRule` beside `fieldRule`, would end it.",
     "The custom-formed panels crease diagonally - that is S2's 'angular design motifs' and it is the first thing you see in S5 src_07. Every crease is a fold of about 20-40 mm across a 3.2 x 2.8 m panel, so it is under a pixel at the oblique camera and about half a pixel at walking height; it is not drawn, and this file does not pretend it is. If it is ever wanted it is one diagonal quad per panel, not a skin change.",
-    "The rake is a stair of 20 steps of one pitch rather than one plane, because the generator cannot draw one plane here: a `gable` roof with `sides` stands every other edge up as a wall, and a standing edge's corner travels ALONG that edge where capAlong's clearance is zero, so d comes back at OFFSET_SLACK_M (0.05 m) and the rise at 0.074 m instead of 30.75 - measured on the four blocks this replaced. The 20 treads are collinear at 56.0 deg so the silhouette is the right line, with a 1.54 m sawtooth on it. A `roof` kind `shed` - one eave edge, the opposite edge standing at the full rise, the flanks tiled by the block's own bands - would collapse this to one block and one plane. Measured: eave 24.2 m at u 0, top 54.95 m at u 20.74, run 20.74, pitch 56.0 deg.",
-    "The rake's flanks carry an opening every 2.07 m where the building's are every 3.20 m. A step is 1.037 m wide and skinBays rounds any wall shorter than a bay to ONE bay, so a step cannot hold the 3.20 m bay: `panelSliver` keeps `panel`'s proportions at the step's own width and every other step is blank, which lands the openings at 2.07 m. The fix is the same `shed` roof above - one block, one wall, the real bay.",
     "The two notches in the ring at u 41.5-48.7 (a 3.9 x 5.1 m light well and a 3.3 x 18.4 m slot open to the east) are in the footprint but not in the massing: the tower and the wing are given as rectangles that meet at u 45.5, so the notches are filled. They are about 3 m wide and face a car park; a plan polygon per block would draw them.",
     "The wedge's east flank (v 37.42) and the tower's and the wing's east and south faces were never photographed - the car park side and the neighbour's wall block every angle - and they wear the same rule as the faces that were.",
     "The four-level parking garage under the building (S4) is not drawn: no photograph reaches its screen and S6's nadir cannot see it. The ground floor is a storefront right round the west side instead, which is what S5 src_00 shows there."
   ],
   "_rake": {
-    "steps": 20,
-    "run": 1.037,
-    "rise": 1.5375,
+    "run": 20.74,
+    "rise": 30.75,
     "pitch": 56.0,
     "eave": 24.2,
     "top": 54.95,
-    "_src": "The raking glass plane, drawn as an arm to its eave plus 20 steps of 1.037 m run and 1.538 m rise (pitch 56.0 deg, the same line the four `wedge` blocks carried). It is a STAIR and not one plane because the generator cannot draw one: a block `roof` of kind `gable` with `sides` puts every other edge up as a standing wall, and a standing edge's corner can only travel ALONG that edge, where capAlong's clearance is zero - so the cap comes back at OFFSET_SLACK_M and the roof rises 0.074 m instead of 30.75 (measured: the four wedges reported d=0.0499, rise=0.0739, 3 triangles each, and roofOf having returned a record no flat cap was drawn either, so the whole north arm had no top at all). Each step's cap is the glass tread, each step's u0 face the glass riser, and the 20 collinear treads are the plane."
+    "len": 37.091,
+    "_src": "The raking glass plane, ONE surface, as the `rake` block draws it: foot on the u0 edge at 24.2 m, head 20.74 m south at 54.95 m, so run 20.74, rise 30.75, pitch atan(30.75/20.74) = 56.0 deg and a slope length of 37.091 m. It was twenty blocks of 1.037 m run and 1.538 m rise until the generator gained a sloped wall; those steps stood ON this line, which is why the two silhouettes are the same line and only the sawtooth has gone. Read back at runtime from slopesApartments.built[i].rakes as { block: 'rake', face: 'u0', pitch, run, rise, len } - the numbers here are what that must report."
   }
 }

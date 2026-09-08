@@ -131,6 +131,235 @@ OVERLAPS the ring, and a strip drawn proud of the wall does not: the clause
 took 17 of Jester West's 44 and left 27. `APARTMENTS.wallMargin` is the
 number that finishes it — see the hide list above.)*
 
+## Round 3 (Sep 8 2026): the fields the generator lacked, from the builders' own notes
+
+Twenty-seven files wrote down what they could not draw, and a survey ranked
+the gaps by how many buildings faked the same thing and how visible the fake
+is from the two cameras this app is judged at. This round is those fields.
+Every one is proved on The Standard's own numbers by a gate line in
+`scripts/verify/slopes-layer.mjs` (a one-field patch, a rebuild, a measurement
+on the real mesh, the field taken back), and every frame below is the
+builder's own file patched at runtime with the builder's own measured numbers
+— nothing in `data/apartments/` changed in this round; the three builders
+convert their files next.
+
+![Villas on Rio's raking glass from West 22nd Street: twenty treads, then one plane](shots/apartments-round3-villas-rake-street.jpg)
+![The same rake from the air: the sawtooth on the silhouette, then the line](shots/apartments-round3-villas-rake-air.jpg)
+![Moody Center from its plaza: the fins as slots cut into the wall, then as blades standing 0.30 m off the glazing, under a wood soffit](shots/apartments-round3-moody-fins-plaza.jpg)
+![The Standard's podium from 23rd Street: windows scattered on a field, then bays grouped between piers](shots/apartments-round3-standard-piers-street.jpg)
+![The Standard's corner bay: a garage mouth cut 3 m into the storefront under a canopy with a rust soffit, a graphic mark beside the lettering, the juliets as loggias](shots/apartments-round3-standard-corner.jpg)
+
+*Above, left is the branch's own build before the field, right is after, same
+camera, same page, cameras placed by hand at the sidewalk and at the air
+(`H.eye` in the session's `run.mjs`: a camera at (u, v, h) looking along a
+bearing at a pitch, the target derived from it, the zoom from the distance).*
+
+### `rake` — a wall plane that leans (Villas on Rio)
+
+```jsonc
+{ "id": "rake", "plan": [0, 20.74, 22.51, 37.42], "z0": 24.2, "z1": 54.95,
+  "rake": { "face": "u0" },                       // run: the plan's depth behind that face (20.74) unless given
+  "bands": [{ "z0": 24.2, "z1": 54.95, "skin": "panel" }],                    // the flanks, clipped to the wedge
+  "faces": { "u0": { "bands": [{ "z0": 24.2, "z1": 54.95, "skin": "rakeGlassSkin" }] },   // the plane
+             "u1": null } }
+```
+
+`rake: { face, run? }` on a block leans the named face (a rectangle's `u0 |
+u1 | v0 | v1`, a polygon's edge index): its **foot** is that edge of the plan
+at `z0`, its **head** the same edge moved `run` metres into the block at
+`z1`, and the plane between them is ONE surface — Villas on Rio's twenty
+blocks of run 1.037 m and rise 1.538 m (`_rake` in its file: eave 24.2 m at
+u 0, top 54.95 m at u 20.74, pitch 56.0°) become the block above. The
+plane is tiled by the face's own bands as any wall is, in the plane's own
+metres: `s` along the foot, `t` up the slope, `d` out of it, so a 1.55 m
+mullion module is 1.55 m on the glass and the reveal is normal to the plane.
+A band's `z0`/`z1` are metres of height as everywhere else and land where
+those heights cut the plane; so do the building's floor lines (windows and
+`louvre` bands sit where the floors meet the glass; `APARTMENTS.rakeFloors:
+false` drops them). Every other wall of the block is tiled as usual and
+**clipped to the wedge** — the tiler cuts each cell at the plane and drops
+any opening the line would cross — so the flank is a trapezoid in one skin
+at the building's own 3.20 m bay, not twenty slivers rounded to one bay
+each. The cap covers only what lies beyond the head; a parapet stops at the
+head line. Overrides, balconies and canopies are not applied on the raked
+face; a `roof` on a raked block is ignored (the plane is its roof).
+`slopesApartments.built[i].rakes` lists each: `{ block, face, pitch, run,
+rise, len }`. Measured on the patched Villas: nadir raycasts at u 3, 10.37
+and 17 along the slope land at 28.65, 39.58 and 49.41 m — the plane's own
+numbers to the millimetre, where the treads had answered 28.81, 39.58 and
+50.34 — and no vertex of the block stands above the plane.
+
+### `fins` — blades standing OFF the wall, in their own tone (Moody Center, 21 Rio, The Castilian)
+
+```jsonc
+"fins": { "kind": "bays", "field": "glass", "bay": 1.219, "glass": "glass", "frame": "fin", "reveal": 0,
+          "bands": [{ "z0": 6.4, "z1": 7.0, "tone": "mcm" }, { "z0": 11.7, "z1": 12.3, "tone": "mcm" }, { "z0": 17.0, "z1": 17.4, "tone": "mcm" }],
+          "fins": { "pitch": 1.219, "w": 0.305, "d": 0.30, "tone": "fin" } }
+```
+
+`fins: { pitch | at: [s...], w, d, tone, off?, from?, to?, on?, z0?, z1?,
+frontTone?, horizontal?, every? }` — on a **skin** (drawn with every piece
+that wears it, the pitch from the piece's own start) or on a **band** (one run
+along the whole face, like its balconies; a list of them is allowed). Each fin
+is a box `w` along the wall, standing `d` proud of it from `off` (a bracket
+gap; 0 sits it on the wall, and then its back is left open so nothing shares
+a plane), the band's height or its own `z0`..`z1`, in `tone`; `frontTone`
+colours the outer face alone (an airfoil's nose); `horizontal: true` lays the
+blades across the wall at a vertical `pitch` (`start` from the band's foot),
+`w` their height — a sunshade, a trellis. Moody's file already carried every
+number: 12 in blades (0.305 m) on 4 ft centres (1.219 m, the luminance
+autocorrelation in S13), 0.30 m of relief, Dark Bronze; the example above is
+its `fins` skin turned right side out — the glazing is the field and the
+blades stand in front of it, instead of 0.91 m of wall recessed between 0.31
+m of fin. 21 Rio's are `{ pitch: 4.3, w: 0.30, d: 0.25, off: 0.1, tone:
+"bronze" }` on brackets; The Castilian's garage screen `{ pitch: 0.57, w:
+0.20, d: 0.15, tone: "finShade" }`.
+
+### `soffitTone` — the underside of an overhang in its own material (Moody Center)
+
+```jsonc
+"roof": { "kind": "hip", "pitch": 9.1, "over": 3.0, "lipH": 2.0, "tone": "apron", "lipTone": "fascia",
+          "soffitTone": "soffit", "deck": "membrane", "d": 9.0 }
+```
+
+`js/slopes-roofs.js` draws an eave lip's top, fascia and soffit in one tone.
+A roof with `soffitTone` gets no lip from the emitter and this file draws the
+three itself from the same profile — the top and the fascia in `lipTone`, the
+soffit in this one — so Moody's 70,000 sq ft of wood-composite soffit is wood
+(`#884420`, measured in its file and unused until now) under the dark bronze
+fascia. A canopy's `soffitTone` (below) is the same idea on a slab.
+
+### `pier` — a member on the bay lines that groups the bays (The Standard)
+
+```jsonc
+"podium": { "kind": "bays", "bay": 6.2, "field": "podiumPanel",
+            "pier": { "w": 0.6, "d": 0.22, "tone": "white" },       // every bay line; every: 2 for every second
+            "window": { "w": 1.3, "h": 1.95, "sill": 1.0, "frame": { "w": 0.1, "tone": "charcoal" },
+                        "offsets": [[-1.55, 1.3, { "h": 0.62, "tone": "rust" }], [1.55, 1.6, null]] } }
+```
+
+`pier: { w, d, tone, every?, at?: "joints" | "centres" | [s...], from?, to?,
+off?, frontTone?, z0?, z1? }` on a `bays` skin stands a box `w` wide and `d`
+proud of the wall on every bay line (or every `every`th, or on the bay
+centres), the band's full height, so the wall reads as bays GROUPED between
+piers and not as windows scattered on a field. It composes with everything
+the skin already does — `frame`, `spandrel`, `offsets`, `strip`, `louvre` —
+and with a recess (the piers stand proud of the recessed wall) and an
+override piece (each piece sets its module from its length, as its strips
+do). The numbers above are a look, not a measurement: The Standard's file has
+no pier width yet, and the first authored one is the builder's.
+
+### `openings` — a recess of its own depth and tone in a band (garage mouths, entry courts)
+
+```jsonc
+{ "z0": 0, "z1": 6.0, "skin": "storefront",
+  "openings": [{ "s0": 6.0, "s1": 14.0, "z0": 0.3, "z1": 5.0, "d": 3.0, "tone": "charcoal" }] }
+```
+
+`openings: [{ s0, s1 | w, z0?, z1?, d?, tone? | glass?, lit? }]` on a band —
+`s` along the face for the face's own bands, along the piece for an
+override's (as its balconies and signs are placed), `z0`/`z1` metres (the
+band's when omitted), `d` the depth (`APARTMENTS.openingD`, 2 m, when
+omitted). The tiler draws it as an opening with its OWN reveal depth and
+tone: the back wall `d` behind the plane, the sill (the floor), the head
+(the soffit) and the two jambs in `tone`; with `glass` a pane in that glass
+tone with the reveals in `tone` (the skin's frame tone otherwise), lit at
+night when `lit`. Any window of the skin under it goes. 2706 Rio Grande's
+service opening at u 6-14 on W 28th, Signature 1909's lit garage mouth, 2819
+Rio Grande's leasing frontage under the overhang.
+
+### `inset` on a balcony stack — a loggia, not a slab (The Villas on Guadalupe, 2819 Rio Grande)
+
+```jsonc
+"balconies": [{ "s0": 5.3, "s1": 6.9, "inset": 1.2, "insetTone": "wall", "railTone": "rail" }]
+```
+
+A stack with `inset: d` is cut INTO the wall once per floor line — an opening
+`d` deep from the floor line, `h` tall (the storey less `slabT` when
+omitted), in `insetTone` — and all that stands at the face is the rail (`railH`,
+`railT`, `railTone`) on the floor of the recess. Nothing projects, so the
+balcony reads as the shadowed void the photographs show and not as a lit
+slab edge; the Villas on Guadalupe's 0.55 m projection that "landed the dark
+line where the photograph puts it" is the real inset now.
+
+### `canopies` — a slab standing off a wall (GrandMarc's awnings, Skyloft's sky-lounge soffit)
+
+```jsonc
+"canopies": [{ "s0": 12.0, "s1": 15.85, "z": 3.6, "d": 1.4, "t": 0.15, "tone": "awning", "soffitTone": "awningSoffit",
+               "posts": { "pitch": 3.5, "w": 0.15, "tone": "awning" } }]
+```
+
+`canopies: [{ s0, s1 | w, z, d, t?, tone, soffitTone?, off?, posts? }]` on a
+band — a slab `d` out from the wall (from `off` when it does not touch it),
+`t` thick (`APARTMENTS.canopyT`, 0.2) with its top at `z`, in `tone`, its
+underside in `soffitTone` when given; `posts: { pitch | at, w, tone, z0? }`
+stand under its outer edge. GrandMarc's two awnings were boxes in `deck`
+standing against the wall; they hang on the face now.
+
+### `bitmap` on a sign — a graphic mark (Union's U, 2400 Nueces' panel)
+
+```jsonc
+{ "bitmap": ["0011100", "0100010", "1000001", "1000001", "1111111", "0100010", "0011100"],
+  "s0": 9.8, "z0": 19.4, "dot": 0.16, "tone": "sign" }
+```
+
+Rows top to bottom, any width, `1` a dot, drawn as one glyph at `dot` in
+place of `text` — `s0`/`z0` its low-s foot as for lettering, or `s`/`zTop`
+centred and hanging. The dot font already sets the whole alphabet and the
+digits (Moontower's W was round 2); this is for the marks no font has.
+
+### `fields` and `flip` — tone and handedness by bay and storey (2623 Salado, Villas on Rio)
+
+```jsonc
+"wall": { "kind": "bays", "bay": 4.0, "field": "cream", "fields": ["cream", "terracotta", "blueGrey", "ochre"], "fieldRule": "checker" }
+"panel": { "kind": "bays", "bay": 3.20, "window": { "offsets": [[-0.55, 0.95]], "flip": true, ... } }
+```
+
+`fields: [tone, ...]` on a `bays` skin cycles the field tone per bay, or per
+bay AND storey with `fieldRule: "checker"` (index = bay + storey), so an
+alternating elevation is one rule and not one face per tone. `flip: true` on
+a `window` mirrors its `offsets` about the bay centre where bay + storey is
+odd — the diagonal weave of a slot that changes hands bay to bay and row to
+row, which `mod4` (a light frame round dark glass on a dark field) was the
+wrong shape for.
+
+### `chamfer` — a 45° cut on a rectangle's corner (Dobie Twenty21, Skyloft, 26 West)
+
+```jsonc
+{ "id": "tower", "plan": [10, 50, 5, 35], "chamfer": { "u1v0": 2.5, "u1v1": 2.5 }, ... }
+```
+
+Metres — one number for all four corners or `{ u1v0, u0v0, u0v1, u1v1 }` by
+corner — cut at 45°, clamped to half the shorter side. The cut face is keyed
+by the corner's name (`faces.u1v0`, `parapetSides`, `roof.sides`) and the
+four sides keep theirs, so an override on the two returns still works and a
+face may wear its own bands. `count.chamfers` counts the corners cut.
+
+### `plan: { ring, holes }` — a block with light wells (Skyloft, 2706 Rio Grande, GrandMarc)
+
+```jsonc
+{ "id": "ring", "plan": { "ring": [[0, 0], [62.5, 0], [62.5, 35.8], [0, 35.8]],
+                          "holes": [[14, 24, 12, 24], [[38, 12], [48, 12], [48, 24], [38, 24]]] }, ... }
+```
+
+The outer ring is the plan as ever (a rectangle, a polygon, `"footprint"`);
+each hole is a (u, v) ring or a rectangle. A hole's walls face INTO the well
+and are keyed `h<i>.<j>` (hole i, edge j from the hole's point j to j + 1 as
+authored) for `faces`, `parapetSides` and overrides; the cap is triangulated
+round the wells; a hole's edges take a parapet like any other. A pitched
+`roof` on a holed block ignores the holes (and says so). Skyloft's six blocks
+round two wells are one block with two holes; GrandMarc's H-shaped court is
+one H-shaped hole.
+
+### Taste values added
+
+| key | default | what it is |
+|---|---|---|
+| `fins`, `piers`, `canopies`, `openings` | `true` | draw those features at all (like `balconies`) |
+| `openingD` | `2.0` | an opening's depth when its file gives none |
+| `canopyT` | `0.2` | a canopy slab's thickness when its file gives none |
+| `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
+
 ## What is in the frame, and where it came from
 
 The building has one outline in OSM (way 380916747: `building=apartments`,
@@ -232,10 +461,10 @@ what the block extents were read from.
   "frame": "obb",                      // or { "obb": {...} } to pin one by hand
   "levels": { "floors": [0, 6.0, 9.1, ...] },   // every floor line, metres; skins put windows on them
   "colours": { "<tone>": { "hex": "#day" } | ["#day", "#golden", "#night"] },
-  "skins":   { "<skin>": { "kind": "pixel" | "bays" | "storefront" | "flat", ... } },
+  "skins":   { "<skin>": { "kind": "pixel" | "bays" | "storefront" | "flat" | "mod4", ..., "fins", "pier" } },
   "balcony": { "proj", "slabT", "railH", "railT" },   // the building's balcony module
-  "blocks":  [ { "id", "plan", "z0", "z1", "bands", "faces", "overrides",
-                 "roofTone", "parapet", "parapetSides", "roofItems", "roof", "inset" } ],
+  "blocks":  [ { "id", "plan" | { "ring", "holes" }, "z0", "z1", "bands", "faces", "overrides",
+                 "roofTone", "parapet", "parapetSides", "roofItems", "roof", "inset", "rake", "chamfer" } ],
   "deck":    { "z", "items": [ { "plan", "z0", "h" | "z1", "tone" } ] }
 }
 ```
@@ -278,7 +507,10 @@ count from a module, never a hard-coded count.
   to the edge.
 
 Every skin takes `glass`, `frame` (the reveal strips' tone) and `reveal`
-(metres a pane sits behind the wall plane; `APARTMENTS.reveal` otherwise).
+(metres a pane sits behind the wall plane; `APARTMENTS.reveal` otherwise),
+and may carry `fins` (blades standing off the wall on their own pitch); a
+`bays` skin may carry `pier` (a member on its bay lines) and `fields` (a tone
+per bay). Round 3 above has each with a worked example.
 
 A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 
@@ -305,8 +537,8 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 
 **blocks** — each one is walls plus a roof plus parapets:
 
-- `bands`: `[{ z0, z1, skin, balconies?, signs? }]` up the wall, the default
-  for every face.
+- `bands`: `[{ z0, z1, skin, balconies?, signs?, fins?, canopies?, openings? }]`
+  up the wall, the default for every face.
 - `faces`: per face, keyed `v0 | u0 | v1 | u1` for a rectangle (the side
   each faces) or `"0", "1", ...` (edge index) for a polygon, and `"*"` for
   the rest. `null` skips a face that stands against another block (never
@@ -421,6 +653,9 @@ and guard rail.
 | `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
 | `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
+| `fins`, `piers`, `canopies`, `openings` | `true` | draw those fixtures at all (round 3) |
+| `openingD`, `canopyT` | `2.0`, `0.2` | an opening's depth and a canopy's thickness when the file gives none |
+| `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
 
 Everything that is a measurement is in the building's file, not here.
 
