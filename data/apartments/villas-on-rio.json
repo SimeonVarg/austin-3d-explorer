@@ -211,34 +211,23 @@
     "_src": "Two wall rules and two glass rules. The white tower and the wedge wear `panel`; the seven-storey wing wears `taupeGrid`; the ground floor wears `store`; the wedge's north end and the glazed north-west corner wear `curtain`. Nothing else was photographed differently.",
     "panel": {
       "kind": "bays",
-      "bay": 1.575,
-      "field": "recess",
-      "fields": [
-        "recess",
-        "precast"
-      ],
-      "fieldRule": "checker",
-      "_fields_src": "THE DIAGONAL WEAVE, and it is the first thing you see on this wall. Only every OTHER bay is punched, and the punched bay moves one module along at every storey, so the openings run in diagonal lines - S2's 'angular design motifs repeated throughout'. Measured 2026-09-08 by blending S6's Google Earth (imagery 12/3/2023) against this app's own render at a MATCHED camera - the same centre, zoom, pitch and bearing, so the same projection and the same pixels - over the tower's north-west corner: our openings and Earth's line up in the vertical, and Earth's fall on every SECOND one of ours, offset by one each row. The 1.575 m module in `bay` is right and stays; what was wrong is that this file punched every bay of it. `fields` is the inverse wall's way of saying so: the field is `recess` (dark) in the punched bay and `precast` (white) in the blank one, indexed by bay + storey. It also settles the dark share - every bay punched gave 28 % against the 19 % src_00's patch clusters dark; a checker gives about 16 %.",
-      "strip": {
-        "w": 0.62,
-        "tone": "precast",
-        "at": "joints"
-      },
-      "louvre": {
-        "pitch": 2.8,
-        "w": 1.3,
-        "tone": "precast",
-        "start": 1.5
-      },
+      "bay": 3.15,
+      "field": "precast",
       "window": {
-        "w": 0.5,
-        "h": 0.9,
-        "sill": 0.18
+        "w": 1.0,
+        "h": 1.65,
+        "sill": 0.7,
+        "frame": {
+          "w": 0.35,
+          "h": 0,
+          "tone": "glassPale"
+        }
       },
-      "glass": "glassPale",
+      "glass": "recess",
       "frame": "precast",
+      "revealTone": "recess",
       "reveal": 0.14,
-      "_src": "S2's 'custom-formed exterior panels', as S5 src_07 and src_00 show them and as the west elevation MEASURES. The bay is 1.575 m, COUNTED and not proportioned: a luminance profile across two storeys of the tower's west face in S6b's settled Google Earth oblique (ref/earth2/w.png, rows y 292-306 and y 345-358, x 690-1045, the face spanning 24.76 m in 338 px = 13.65 px/m) puts the openings' centre-to-centre gaps at 20.5, 21.0, 21.5, 22.0, 23.5 px with the occasional 44 and 48 where a column skips a window - one module of 21.5 px = 1.575 m, doubled where the field is scattered. The previous reading here was 3.20 m from a proportion ('the panel is about as wide as the floor is tall') and it was exactly twice the truth, which is why the tower read as a regular grid of wide grey rectangles instead of a white wall with a small punch in every bay. Built as the INVERSE of a punched wall, which is the only way this generator can put two tones in one opening: the field is the DARK tone, a 0.62 m white `strip` on every bay line is the pier, a 1.30 m white `louvre` band every floor is the spandrel, and what is left is a 0.955 x 1.50 m dark rectangle - 28 % of the wall, against the 19 % the src_00 patch clusters dark - with a 0.50 m mint glass slot in it. See `todo`: the slot's handedness alternates on the real building and does not here, and the diagonal creases are not drawn."
+      "_src": "S2's 'custom-formed exterior panels', COUNTED on S5 src_00 (ref/c00_white.jpg) 2026-09-08, on the sunlit west face, patch x 655-845 y 210-610. Twenty-five openings in seven rows were found by connected components under luminance 200. THE ROWS: tops at y 4, 64, 123, 182, 241, 299, 356, so the row pitch is (356-4)/6 = 58.7 px, and this file's storey is 2.80 m, which fixes the vertical scale at 20.95 px/m. THE COLUMNS: within a row the left edges are 24, 72, 120, 165 - centre to centre 47.5 px - and every second row is 24 px along, exactly half of that, seven rows running without a miss. THE OPENING: 34-36 px tall = 1.62-1.72 m, so 1.65; and a horizontal cut at each row's own mid-height puts the not-white run at 0.51-0.57 of the column pitch, so 1.70 m of the 3.15. Shares check it: 24.1 % of the patch is below luminance 200 and 26.4 % below 210, against the 31.8 % a 1.70 x 1.65 opening fills of a 3.15 x 2.80 cell - the difference is the glass that returns sky and reads brighter than 210 - and 69.3 % of the patch is above 240, which is the white panel itself. THE PITCH IS 3.15 m, not the 1.575 this file carried: the 1.575 came from a luminance profile of ref/earth2/w.png that summed TWO storey bands (rows y 292-306 AND y 345-358) which are offset half a pitch from each other, so the sum shows a centre every half pitch; that same note recorded 'the occasional 44 and 48 [px]' and called them a skipped column, and they are the true single-row pitch. The 3.20 m this file first had and then withdrew was right. THE OPENING'S PARTS: S5 src_07 (ref/c07_panels.jpg) shows each opening is a pale mint glass slot BESIDE a dark panel, and the hand changes bay to bay. This generator has no per-bay hand, so the DARK is kept whole and centred - the pane itself, 1.00 m of `recess` - and the mint is split to either side of it as a `frame` with h 0, two 0.35 m bars and nothing above or below, which is the exact average of the two hands. It has to be that way round and not the other: with the dark split into two bars round a mint centre the opening stops reading as one window and reads as a pair of slats, which is what the first render of this fix showed at the sidewalk camera. That gives 1.00 x 1.65 m of dark (18.7 % of the wall) and 0.70 x 1.65 m of mint (13.1 %), against the 15 % and 9-13 % the patch's own histogram puts in the recess and glassPale bands. The 0.70 m sill is derived: 1.15 m of white lies between one row's foot and the next row's head (58.7 - 35 px), and it is split 0.70 below the opening and 0.45 above, which is where a sill and a head sit on a 2.80 m floor. NO CHECKER. `fields: [recess, precast]` with `fieldRule: checker` was here and drew the row stagger, but in this generator the opening under that rule IS the leftover field rectangle, and a `bays` skin's `window` takes no field rule - so the glass slot was drawn in the blank bays as well, and the wall carried two different marks at once: a 0.955 x 1.50 m dark rectangle in half the bays and a 0.50 x 0.90 m pale slot in the other half, each moving a module every storey. A blind reader shown the frames named it twice unprompted - sizes vary from tall slots to tiny squares, they do not line up into floors, you cannot count storeys anywhere. One opening per bay on the measured 3.15 m pitch is drawn instead; the stagger is in `todo` with the one generator key that would bring it back."
     },
     "taupeGrid": {
       "kind": "bays",
@@ -768,8 +757,8 @@
     ]
   },
   "todo": [
-    "RETIRED, and kept because the measurement in it is the one that was wrong. The note used to ask for a `flip` on the panel's window - 'bay 3.20 m, slot 0.95 m at +/- 0.55 m off the bay centre', so the slot would change hands bay to bay the way S5 src_07 shows it. `flip` now exists. It cannot be used HERE, because the 3.20 m bay it was measured against was withdrawn: the luminance profile in `panel`'s _src counts the openings at 1.575 m centres with the occasional double, i.e. exactly half of 3.20, and on a 1.575 m bay the panel holds ONE centred 0.50 m slot, which has no hand to change. Mirroring a centred opening about its own centre draws the same wall. The weave the note was after IS drawn now, and by the other new field: `fields: [recess, precast]` with `fieldRule: checker` on `panel` blanks every other bay and moves the blank one along at every storey, which is the diagonal S5 src_07 shows. What is still not drawn is the handedness of the 0.50 m glass slot INSIDE a punched bay; on a 1.575 m bay that slot is centred and has no hand, so `flip` still has nothing to mirror here.",
-    "The 0.50 m glass slot is drawn in the BLANK bays too. `fields` blanks the field of every other bay but a `bays` skin's `window` is per bay and takes no field rule, so the white bays keep a 0.50 x 0.90 m pale slot where the building has plain panel. At the two cameras this app is judged at that is about 3 px of pale speckle, and it is also what lights this tower at night, which is why it is left in rather than deleted. A `window: null` entry in `fields`, or a `windowRule` beside `fieldRule`, would end it.",
+    "THE HALF-MODULE ROW STAGGER IS NOT DRAWN, and it is the only thing about this wall that is measured and missing. S5 src_00 is unambiguous: within a row the openings are 3.15 m centre to centre, and every second row is offset 1.575 m - exactly half - for seven rows without a miss, which is S2's 'angular design motifs'. This file draws the right pitch, the right opening and the right rows, in plumb columns. It cannot draw the offset: the stagger needs a rule that skips a bay by (bay + storey) parity, and a `bays` skin's `window` has no such rule. `fields` with `fieldRule: checker` HAS one, which is why the previous round used it, but under that rule the opening is the leftover field rectangle and the `window` is drawn on every bay regardless - see `panel`'s _src for what that looked like. One key ends it: `windowRule: 'checker'` beside `fieldRule` in windowsFromBays, skipping the window where (ci + storey) is odd. Then `bay` halves to 1.575, the opening stays 1.70 wide - wider than its own bay, which the tiler already allows - and nothing else in this file moves.",
+    "The window cannot be dropped in favour of a field rectangle, and this is why: it is the only thing on this building that lights at night. Every `bays` window carries a `lit` flag and a night tone; a field rectangle carries neither. Rendered at time-of-day 1.0 the tower is read entirely by its lit windows - remove them and nineteen storeys go black beside a lit Torre and a lit Signature 1909.",
     "The custom-formed panels crease diagonally - that is S2's 'angular design motifs' and it is the first thing you see in S5 src_07. Every crease is a fold of about 20-40 mm across a 3.2 x 2.8 m panel, so it is under a pixel at the oblique camera and about half a pixel at walking height; it is not drawn, and this file does not pretend it is. If it is ever wanted it is one diagonal quad per panel, not a skin change.",
     "The two notches in the ring at u 41.5-48.7 (a 3.9 x 5.1 m light well and a 3.3 x 18.4 m slot open to the east) are in the footprint but not in the massing: the tower and the wing are given as rectangles that meet at u 45.5, so the notches are filled. They are about 3 m wide and face a car park; a plan polygon per block would draw them.",
     "The wedge's east flank (v 37.42) and the tower's and the wing's east and south faces were never photographed - the car park side and the neighbour's wall block every angle - and they wear the same rule as the faces that were.",

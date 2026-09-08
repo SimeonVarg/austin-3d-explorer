@@ -1787,9 +1787,20 @@ const canopyTest = await (async () => {
   // page: a d 2.2 canopy puts its rust soffit on v -2.20 exactly.
   const box = { u: [81.5, 95.0], v: [-2.05, 0.05], z: [5.23, 5.27] };
   const before = await uvCensus(pg, APT_NAME, box, 'rust');
-  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = [A.count.canopies, A.count.soffits]; cb.faces.v0.bands[0].canopies = [{ s0: 6.0, s1: 11.0, z: 5.5, d: 2.0, t: 0.25, tone: 'charcoal', soffitTone: 'rust' }]; return { before };");
+  // 2026-09-08: THIS FIXTURE ASSUMED AN EMPTY SLOT AND THE SLOT STOPPED BEING EMPTY.
+  // It used to ASSIGN `canopies = [one]` and then DELETE the key. That reads as
+  // "add one, take it away again" only while the band carries none. Since the
+  // corner regression fix (0ebf930) this band carries the storefront fascia that
+  // projects under the oriel to give it a soffit, so assignment REPLACED the real
+  // canopy (6 -> 6, not 6 -> 7) and the delete removed it for good (-> 5), and the
+  // gym half below inherited the missing soffit (5 -> 4 instead of 6 -> 5). Four
+  // misses, one cause, and none of them about the mechanism: the two censuses this
+  // line exists for returned 0 / 6 / 0 and 0 / 6 / 0 exactly as written, in the same
+  // run. It pushes and restores now, so it measures "one more canopy" against
+  // whatever the data already says and stays honest as the data keeps moving.
+  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = [A.count.canopies, A.count.soffits]; const bd = cb.faces.v0.bands[0]; window.__canopySave = bd.canopies ? bd.canopies.slice() : null; bd.canopies = (bd.canopies || []).concat([{ s0: 6.0, s1: 11.0, z: 5.5, d: 2.0, t: 0.25, tone: 'charcoal', soffitTone: 'rust' }]); return { before };");
   const during = await uvCensus(pg, APT_NAME, box, 'rust');
-  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].canopies; return {};");
+  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const bd = cb.faces.v0.bands[0]; if (window.__canopySave) bd.canopies = window.__canopySave; else delete bd.canopies; return {};");
   const after = await uvCensus(pg, APT_NAME, box, 'rust');
   const rbox = { u: [40.9, 42.3], v: [10.9, 19.1], z: [28.98, 29.02] };
   const rBefore = await uvCensus(pg, APT_NAME, rbox, 'pool');
