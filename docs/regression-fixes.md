@@ -338,6 +338,35 @@ measured headless or at another preset. And its three poses are `standard-sw`,
 buildings whose geometry actually grew in this pass are, and Villas' change adds
 no geometry at all — it moves an existing window's pitch and size.
 
+## Live proof
+
+Merged as `1021ba1` (PR #238). The deployed site serves the merged file byte for
+byte — `md5(https://flyover-utx.vercel.app/data/apartments/the-standard.json)` is
+`c6782625fa372d6a73d39eb3530e54a6`, which is `git show
+origin/main:data/apartments/the-standard.json` exactly. Then the live site was
+driven in one hardware headless Chrome and each frame was looked at:
+
+- **The Standard, corner and street** — the sign reads `THE STANDARD` on both
+  faces and the corner is the glazed oriel. The page's own object confirms it:
+  the block list is `podium, cornerBay, oriel, pearlStrip, …` and the only sign
+  strings on the building are four copies of `"THE STANDARD"` — no ring-S split.
+- **Villas on Rio, street** — one dark pane a bay, on a grid, on the pale wall.
+- **Moody Center, street** — the concourse ribbon is glazing between mullions,
+  not a flat sheet behind pickets.
+
+No page errors on any of them.
+
+### Something on the live site still looks wrong, and it is not this pass
+
+Above and beside Moody Center's roof there are **flat tan slabs floating in the
+sky**, unsupported — clearly detached geometry, and obvious from the street.
+
+They are **not** from this change. The same slabs are in the "before" frames
+rendered from `main`'s data: that patch of sky holds 2,687 non-sky pixels in the
+before frame, and the before/after difference across the whole band is **3
+pixels**. Whatever puts them there predates this branch. It should be chased, and
+it is not this doc's fix to claim.
+
 ## What is still open
 
 1. **Villas' row stagger** — needs one key in `js/slopes-apartments.js`

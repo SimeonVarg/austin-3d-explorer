@@ -29919,3 +29919,13 @@ needs one key in `js/slopes-apartments.js` (`windowRule` beside `fieldRule` in
 data file's own `todo` with the exact change.
 
 Full write-up with every pair cited: `docs/regression-fixes.md`.
+
+**Live proof (same entry).** Merged as `1021ba1`; the deployed site serves the
+merged blob byte for byte (`c6782625fa372d6a73d39eb3530e54a6`). Driven in one
+hardware headless Chrome and looked at: the sign reads THE STANDARD on both
+faces, the corner is the oriel, Villas is one pane a bay, Moody's ribbon is
+glazing. No page errors. **One thing on the live site still looks wrong and it is
+NOT this pass:** flat tan slabs float unsupported in the sky above Moody Center's
+roof, obvious from the street. They are in main's own before-frames too — 2,687
+non-sky pixels in that band, and the before/after difference across the whole
+band is 3 pixels. Someone should chase it.
