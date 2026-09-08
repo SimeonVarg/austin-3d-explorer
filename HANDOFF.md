@@ -29866,3 +29866,56 @@ Jackson Geosciences) or the facade template problem — both are precisely
 diagnosed and cited here for whoever picks this up next. Did not extend
 ground truth to any of the other ~180 buildings. Did not verify production,
 since nothing render-affecting was deployed.
+
+## 185. Sep 8 2026 — the three regressions of round seven, undone and looked at (ship lane, branch `acer/fixgen`)
+
+Round seven shipped three things that were worse than what they replaced, all
+three behind a green gate, because no gate line in this repo asks whether a
+building looks right — they ask whether the switch still switches. A blind
+reader shown before/after pairs and told nothing named every one of them.
+
+**What was undone.** Three data files, no app code. The Standard's rooftop sign
+went back to plain channel letters (round seven had split it into `THE` + a 9x9
+ring-S bitmap + `TANDARD` on a misreading of the photograph, so it rendered
+`THE (S)TANDARD`), and the corner bay went from a flush cream-and-black stack to
+the projecting glass oriel over a glazed loggia the photograph actually shows.
+Villas on Rio's panel wall went from two different marks at once — the checker
+rule's leftover field rectangle AND a `window` that ignores field rules, so both
+were drawn — to one measured 1.70 x 1.65 m opening on the real 3.15 m bay. Moody
+Center's concourse ribbon went from a flat fill behind a picket screen to a
+curtain wall, and its night tone was pulled so the lit and unlit panes sit within
+a step of each other and the ribbon reads as one lit room instead of forty flats.
+
+**THE STANDARD'S AFTER-FRAMES HAD NEVER BEEN RENDERED.** The previous lane was
+closed mid-shoot and committed a data change verified by reading the generator.
+They exist now and the fix holds up at both cameras: 84,067 deep pixels at the
+21 m corner and 28,040 at 1.7 m, all of them on the corner bay.
+
+**Two poses thrown away, for whoever picks the cameras next.** The aerial pose
+`128, -40, 45` puts the camera INSIDE the tower next door and renders a ghosted
+mass over half the frame. A wide replacement at 85 m draws the corner forty
+pixels across, where the change is not readable. Neither is cited; the 21 m
+corner pose is the elevated view.
+
+**One red, and it was the gate's fixture.** `slopes-layer.mjs`'s canopy line
+patches `cornerBay.faces.v0.bands[0].canopies` by ASSIGNMENT and then DELETES the
+key — "add one, take it away again", which is only true while the band carries
+none. The corner fix put the storefront fascia there, so assignment replaced the
+real canopy (6 -> 6, not 6 -> 7), the delete removed it for good, and the gym
+half below inherited the missing soffit. Four misses, one cause, none of them
+about the mechanism: the two censuses the line exists for returned 0 / 6 / 0 and
+0 / 6 / 0 exactly as written, in the same run. It pushes and restores now, so it
+measures one more canopy against whatever the data says and stays honest as the
+data keeps moving.
+
+**Said plainly, because the point of this pass was to stop claiming wins.**
+Moody's west-front fix is real (17,913 deep pixels across the whole elevation)
+and is NOT visible at full frame — max channel delta 87, and side by side the two
+frames look the same until you zoom to the glazing band. Villas' air view is
+better and the blind judge's own words were "a person looking at the city would
+not notice". Villas' half-module row stagger is measured and still not drawn: it
+needs one key in `js/slopes-apartments.js` (`windowRule` beside `fieldRule` in
+`windowsFromBays`), which is not a data lane's file, and it is written into the
+data file's own `todo` with the exact change.
+
+Full write-up with every pair cited: `docs/regression-fixes.md`.
