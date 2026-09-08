@@ -765,6 +765,10 @@
     // [[-1.5, 0.72], [1.5, 0.72]]), a wide light with two narrow ones beside
     // it (Skyloft). Without it, one window of `w` at the bay centre.
     const parts = Array.isArray(win.offsets) && win.offsets.length ? win.offsets : [[0, win.w || 1.5]];
+    // `flip: true` mirrors the offsets about the bay centre where bay + storey
+    // is odd — the diagonal weave of a slot that changes hands bay to bay and
+    // row to row (Villas on Rio's glass slot at ±0.55 m off the bay centre)
+    const flip = !!win.flip;
     const frame = win.frame && win.frame.w > 0 ? win.frame : null;
     // `spandrel: { h, tone }` under every opening, or per opening as an
     // `offsets` entry's third element (`null` = none) — see tileFace
@@ -775,7 +779,7 @@
       if (zt > ctx.z1 + 1e-6) continue;
       for (let ci = 0; ci < centres.length; ci++) {
         for (let pi = 0; pi < parts.length; pi++) {
-          const cx = centres[ci] + parts[pi][0], ww = parts[pi][1];
+          const cx = centres[ci] + (flip && ((ci + fi) & 1) ? -parts[pi][0] : parts[pi][0]), ww = parts[pi][1];
           const s0 = cx - ww / 2, s1 = cx + ww / 2;
           if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
           if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
@@ -848,6 +852,18 @@
       for (let z = ctx.z0 + (lv.start || 0.3); z + lv.w < ctx.z1; z += lv.pitch) bands.push({ z0: z, z1: z + lv.w, tone: lv.tone });
     }
     const floorLines = spec.floorLine ? ctx.floors.map(z => [z, z + spec.floorLine.h, P[spec.floorLine.tone]]) : [];
+    // `fields: [tone, ...]` — the field tone cycles per bay (2623 Salado's
+    // cream / terracotta / blue-grey / ochre bays), or per bay AND storey
+    // with `fieldRule: 'checker'` (index = bay + storey), so an alternating
+    // elevation is one rule and not one face per tone
+    const fields = Array.isArray(spec.fields) && spec.fields.length ? spec.fields.map(t => P[t] || field) : null;
+    const storeyOf = zm => { let k = 0; for (const f of ctx.floors) if (zm >= f) k++; return k; };
+    const fieldAt = (zm, sm) => {
+      if (!fields) return field;
+      const j = Math.min(n - 1, Math.max(0, Math.floor(sm / mod)));
+      const k = spec.fieldRule === 'checker' ? j + storeyOf(zm) : j;
+      return fields[((k % fields.length) + fields.length) % fields.length];
+    };
     // THE PIER. `pier: { w, d, tone, every?, at?: 'joints' | 'centres', from?,
     // to? }` stands a box `w` wide and `d` proud of the wall on every bay
     // line (or every `every`th, or on the bay centres), the band's full
@@ -868,12 +884,12 @@
     }
     return {
       rows: (z0, z1) => { const out = []; for (const z of ctx.floors) if (z > z0 && z < z1) out.push(z); for (const b of bands) { out.push(b.z0, b.z1); } for (const f of floorLines) { out.push(f[0], f[1]); } return out; },
-      cols: () => { const out = []; for (const s of stripCols) { out.push(s[0], s[1]); } return out; },
+      cols: () => { const out = []; for (const s of stripCols) { out.push(s[0], s[1]); } if (fields) for (let i = 1; i < n; i++) out.push(i * mod); return out; },
       tone: (zm, sm) => {
         for (const f of floorLines) if (zm > f[0] && zm < f[1]) return f[2];
         for (const b of bands) if (zm > b.z0 && zm < b.z1) return P[b.tone];
         for (const s of stripCols) if (sm > s[0] && sm < s[1]) return P[strip.tone];
-        return field;
+        return fieldAt(zm, sm);
       },
       windows: windowsFromBays(spec, ctx, P, key),
       glass: spec.glass, frame: spec.frame, reveal: spec.reveal, piers,

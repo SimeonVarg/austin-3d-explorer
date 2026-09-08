@@ -1776,6 +1776,21 @@ check('apartments: a band\'s `canopies` hang a slab off the wall with its unders
   canopyTest.c1[0] === canopyTest.c0[0] + 1 && canopyTest.c1[1] === canopyTest.c0[1] + 1 && canopyTest.before === 0 && canopyTest.during >= 6 && canopyTest.after === 0 && canopyTest.c2[0] === canopyTest.c0[0]
   && canopyTest.rBefore === 0 && canopyTest.rDuring >= 6 && canopyTest.rAfter === 0 && canopyTest.rs[0] === canopyTest.c0[1] + 1 && canopyTest.rs[1] === canopyTest.c0[1],
   `canopies ${canopyTest.c0[0]} -> ${canopyTest.c1[0]} -> ${canopyTest.c2[0]}, soffits ${canopyTest.c0[1]} -> ${canopyTest.c1[1]} -> ${canopyTest.c2[1]} (roof: ${canopyTest.rs.join(' -> ')}); rust cells on the canopy's soffit plane ${canopyTest.before} / ${canopyTest.during} / ${canopyTest.after}; pool cells on the eave's soffit plane ${canopyTest.rBefore} / ${canopyTest.rDuring} / ${canopyTest.rAfter}`);
+// FIELDS. The south bar's `bays` skin given alternating fields white / pool
+// in a checker: pool-toned cells on the south face (v 46.45) fill, and go.
+const fieldsTest = await (async () => {
+  const pg = AP.pg;
+  const box = { u: [25.5, 90.5], v: [46.43, 46.47], z: [21.6, 50.8] };
+  const before = await uvCensus(pg, APT_NAME, box, 'pool');
+  await patchStd(pg, "b.skins.bays.fields = ['white', 'pool']; b.skins.bays.fieldRule = 'checker'; return {};");
+  const during = await uvCensus(pg, APT_NAME, box, 'pool'), white = await uvCensus(pg, APT_NAME, box, 'white');
+  await patchStd(pg, "delete b.skins.bays.fields; delete b.skins.bays.fieldRule; return {};");
+  const after = await uvCensus(pg, APT_NAME, box, 'pool');
+  return { before, during, white, after };
+})();
+check('apartments: a `bays` skin\'s `fields` cycle the field tone per bay (and per storey with `fieldRule: "checker"`) — The Standard\'s south bar in a white/pool checker has pool cells on a third to two thirds of its south face, and none before or after',
+  fieldsTest.before === 0 && fieldsTest.during > 200 && fieldsTest.white > 200 && fieldsTest.during > 0.33 * fieldsTest.white && fieldsTest.during < 3 * fieldsTest.white && fieldsTest.after === 0,
+  `pool-toned vertices on the south face: ${fieldsTest.before} before, ${fieldsTest.during} in the checker (against ${fieldsTest.white} white), ${fieldsTest.after} restored`);
 // the in-place tests moved the camera (a nadir over the gym, the street outside the podium): back to the pose
 // before the OFF frame, and a settled ON frame there first so the OFF comparison is against the same picture
 await pose(AP.pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);

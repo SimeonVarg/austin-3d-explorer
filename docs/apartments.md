@@ -296,6 +296,21 @@ underside in `soffitTone` when given; `posts: { pitch | at, w, tone, z0? }`
 stand under its outer edge. GrandMarc's two awnings were boxes in `deck`
 standing against the wall; they hang on the face now.
 
+### `fields` and `flip` — tone and handedness by bay and storey (2623 Salado, Villas on Rio)
+
+```jsonc
+"wall": { "kind": "bays", "bay": 4.0, "field": "cream", "fields": ["cream", "terracotta", "blueGrey", "ochre"], "fieldRule": "checker" }
+"panel": { "kind": "bays", "bay": 3.20, "window": { "offsets": [[-0.55, 0.95]], "flip": true, ... } }
+```
+
+`fields: [tone, ...]` on a `bays` skin cycles the field tone per bay, or per
+bay AND storey with `fieldRule: "checker"` (index = bay + storey), so an
+alternating elevation is one rule and not one face per tone. `flip: true` on
+a `window` mirrors its `offsets` about the bay centre where bay + storey is
+odd — the diagonal weave of a slot that changes hands bay to bay and row to
+row, which `mod4` (a light frame round dark glass on a dark field) was the
+wrong shape for.
+
 ### `chamfer` — a 45° cut on a rectangle's corner (Dobie Twenty21, Skyloft, 26 West)
 
 ```jsonc
