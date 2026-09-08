@@ -28,7 +28,8 @@
     "S21": "The leasing site (thestandardaustin.com, 2026-09-07): its hero is Ext_01 again; three deck slices — the deck's north-end pergola is PALE (white posts, a light slatted roof) in front of a CHARCOAL slatted fence, the chairs on the turf teal, the planters lime green boxes and blue-mosaic squares, the spa coping 3 FT 0 IN. Landmark's own page carries only stock interiors and an Atlanta skyline.",
     "S22": "Google Earth 3D close obliques captured 2026-09-08 (scripts/verify/chrome.mjs hardware GL, page.screenshot, imagery 12/2023): from the WEST at ~19 px/m (@30.287,-97.7463,212a,85d,35y,90h,68t — the target altitude must be the building's, not 180: the ray hits the ground short of it otherwise), from the NW (@30.28721,-97.74622,212a,70d,35y,135h,72t) and from the NNW over the deck (@30.28705,-97.7459,224a,150d,35y,165h,60t). The Pearl face straight on: the corner bay ~10-11 m, then 9-10 m of light podium (recess, window, recess, window), then a 3.5-3.9 m PIXEL BAND that runs from the street to tower B's roof in one width, then light podium to the notch; a light box two storeys tall on the strip's roof against the tower ~10 m south of the band; GARAGE ENTRY lettered over a lit garage mouth near the strip's south end; tower B's west face north of the band is pixel with the vertical sign at the band's north edge, south of it white bays with a rust spandrel under each window. Google Street View answered 'No Street View imagery available here' in headless Chrome at six viewpoints on 23rd and Pearl.",
     "S23": "humphreys_00.jpg (= Ext_14, S5) at 4x crops on 2026-09-08, the Pearl face next to the corner bay at ~46 px/m: every JULIET is a LOGGIA — a recess cut the full storey less the slab, a concrete soffit and slab edge, the black tube rail at the face, ~1.5 m between jambs, ~1 m deep (the soffit's height in the image at ~35 deg elevation; ±0.3); the rust is a SPANDREL under the window inside its charcoal frame (0.6 m tall, the window's width); the module going south from the corner bay is recess 1.5, wall ~0.9, window ~1.05, wall ~1.0 — two modules (9 m) before the pixel band (a luminance profile at y 1000-1040: the recess 1350-1410 px, the window 1450-1492, the second recess 1540-1590, the window 1620-1660, the band from ~1700), so the module is 4.5 m and not 6.2; a thin light strip (~0.3 m) between the charcoal and the first recess; the pixel band reaches the street; at the ground floor south of the band a LIMESTONE panel, a dark louvre grille and the lit garage mouth with a P sign. The 23rd St face at 3x: a light pier ~1 m wide standing ~0.22 m proud between the corner bay's charcoal and the podium, limestone at its foot; the residential entrance 2.5-4 m east of the corner bay (a dark recessed door, the round logo and 715 over it, a louvre grille beside it), storefront glazing east of that; the corner bay's balcony on 23rd is a LIGHT-lined recess ~2.4 m wide beside the glazed stack with two light-framed window columns east of it.",
-    "S24": "humphreys_01.jpg (= Ext_01, S6) at 5x crops on 2026-09-08, the 23rd St podium next to the corner bay at ~22 px/m: the juliet rails are 100 px apart = 4.5 m, each ~38 px = 1.7 m wide incl. jambs; in each module the WINDOW is nearer the corner bay and the recess east of it (on Pearl the recess is nearer — the same unit read left to right from either street); the ground floor: charcoal wall with light service doors on the east half, lit storefront glazing on the west half, the entrance just east of the corner bay's stone pier; the rust on the far east of the face reads as strips ~1.2 m wide beside windows at this resolution and is entered as the spandrel unit every photographed face carries (S19, S23)."
+    "S24": "humphreys_01.jpg (= Ext_01, S6) at 5x crops on 2026-09-08, the 23rd St podium next to the corner bay at ~22 px/m: the juliet rails are 100 px apart = 4.5 m, each ~38 px = 1.7 m wide incl. jambs; in each module the WINDOW is nearer the corner bay and the recess east of it (on Pearl the recess is nearer — the same unit read left to right from either street); the ground floor: charcoal wall with light service doors on the east half, lit storefront glazing on the west half, the entrance just east of the corner bay's stone pier; the rust on the far east of the face reads as strips ~1.2 m wide beside windows at this resolution and is entered as the spandrel unit every photographed face carries (S19, S23).",
+    "S25": "humphreys_00.jpg (= Ext_14, S5) at 4x on 2026-09-08, the fixgen pass, the corner bay alone at ~45 px/m: (a) the sign band carries THE STANDARD in plain white channel letters on both faces and NOTHING ELSE - no ring, no mark, the S is a letter like the others (the round-S logo is on the entrance door on 23rd, S23, and nowhere on the band; round 7's reading of 'the mark' on the band was wrong); (b) the corner glazing is a projecting glass ORIEL, not a flush stack: a box standing ~0.6 m proud of the charcoal wall on both faces (its return beside the loggia is ~25 px wide at ~45 px/m, foreshortened by ~0.87 at this angle: 0.6 m, +-0.15), four storeys, each storey a run of floor-to-ceiling glazing between light aluminium mullions (three lights on 23rd, two on Pearl, a transom at about two thirds height) under a charcoal spandrel band ~0.6 m tall at every floor line, a charcoal cap on top under the sign band, and it stands on the storefront's charcoal fascia, which projects with it so its underside is a soffit over the sidewalk; (c) the loggia beside it on 23rd is bounded by the oriel's return on the west: light concrete jambs and soffit, a light slab edge, a DARK glazed door at the back, a black tube rail at the face - two tones in one recess, so it is authored as a per-storey `opening` with `glass` behind light reveals, with a thin slab lip and the rail as a stack in front, not as one cream-toned inset."
   },
   "footprint": {
     "ring": [
@@ -628,7 +629,7 @@
         "h": 2.7,
         "sill": 0.25
       },
-      "_src": "the corner bay's four-storey glazed stack at 23rd and Pearl (S5/S15; S6): floor-to-ceiling glass per storey with a thin charcoal spandrel — one 2.3 x 2.7 m light per 2.6 m bay, the sill 0.25 above the floor; ~5 m of the 23rd St face and ~3 m of the Pearl face"
+      "_src": "NOT WORN since 2026-09-08 (kept for the record): the corner glazing was a flush four-storey stack in this skin on the corner bay's two faces; Ext_14 at 4x (S25) shows a projecting oriel, which is the `oriel` block now, and the two override pieces behind it wear `charcoalBlank`. the corner bay's four-storey glazed stack at 23rd and Pearl (S5/S15; S6): floor-to-ceiling glass per storey with a thin charcoal spandrel — one 2.3 x 2.7 m light per 2.6 m bay, the sill 0.25 above the floor; ~5 m of the 23rd St face and ~3 m of the Pearl face"
     },
     "garage": {
       "kind": "bays",
@@ -744,6 +745,24 @@
         }
       },
       "_src": "the corner bay's 23rd St face east of its light-lined loggia: two columns of light-framed windows in the 5.5 m between the loggia and the junction pier (S23 at 3x: two columns per storey) — 2.8 m bays on that piece alone"
+    },
+    "orielGlass": {
+      "kind": "storefront",
+      "mullion": 1.8,
+      "mullionW": 0.09,
+      "fascia": 0.6,
+      "plinth": 0.1,
+      "transom": 0.68,
+      "fasciaTone": "charcoal",
+      "frame": "pier",
+      "glass": "stackGlass",
+      "reveal": 0.06,
+      "_src": "one storey of the corner oriel (S25): floor-to-ceiling glazing between light mullions ~0.09 m wide on ~1.8 m centres (three lights across the 5.78 m 23rd St face, two across the 3.5 m Pearl face), a transom at 0.68 of the glass height, a 0.1 m sill strip, and the 0.6 m charcoal spandrel band at the top of every storey; the panes 0.06 behind the mullions (a curtain wall, near flush - the storefront's 0.25 is a shopfront's deep reveal); the mullions in the piers' near-white, which is what they read as against the sky-blue glass in Ext_14 (the punched windows' frames read silver, `frame`)"
+    },
+    "orielSide": {
+      "kind": "flat",
+      "field": "frame",
+      "_src": "the oriel's two returns where it stands proud of the charcoal (S25): 0.6 m of light aluminium panel beside the loggia on 23rd and beside the first punched column on Pearl; the rest of each return is inside the corner bay and never seen"
     }
   },
   "balcony": {
@@ -1291,7 +1310,7 @@
     },
     {
       "id": "cornerBay",
-      "_src": "the charcoal corner volume at 23rd and Pearl carrying THE STANDARD on both faces: 13.3 m along 23rd (S9, from Ext_14), ~11 m along Pearl (S5: three window bays), full podium height — charcoal from the storefront fascia to the parapet on both street faces (S15), NOT a one-storey band: the glazed stack at the corner and two columns of punched windows beside it for four storeys, then the windowless sign-band storey (18.4-21.5) with the letters; its roof is the pool deck (S6/S8) with the deck's glass rail on top (S5) 2026-09-08 (S23): the balcony beside the glazed stack on 23rd is a LIGHT-lined loggia ~2.4 m wide (its walls are the podium's light panel, the rail black), and east of it stand two light-framed window columns; on Pearl three.",
+      "_src": "the charcoal corner volume at 23rd and Pearl carrying THE STANDARD on both faces: 13.3 m along 23rd (S9, from Ext_14), ~11 m along Pearl (S5: three window bays), full podium height — charcoal from the storefront fascia to the parapet on both street faces (S15), NOT a one-storey band: the corner glazing (the `oriel` block, standing proud of these faces, S25) and two columns of punched windows beside it for four storeys, then the windowless sign-band storey (18.4-21.5) with the letters; its roof is the pool deck (S6/S8) with the deck's glass rail on top (S5) 2026-09-08 (S23): the balcony beside the glazed stack on 23rd is a LIGHT-lined loggia ~2.4 m wide (its walls are the podium's light panel, the rail black), and east of it stand two light-framed window columns; on Pearl three.",
       "plan": [
         81.6,
         94.88,
@@ -1323,7 +1342,19 @@
             {
               "z0": 0,
               "z1": 6.0,
-              "skin": "storefront"
+              "skin": "storefront",
+              "canopies": [
+                {
+                  "s0": 0.0,
+                  "s1": 5.18,
+                  "z": 6.0,
+                  "d": 0.6,
+                  "t": 0.9,
+                  "tone": "charcoal",
+                  "soffitTone": "charcoal"
+                }
+              ],
+              "_src": "the storefront's charcoal fascia (5.1-6.0) projects 0.6 m under the oriel, s 0-5.18 = the oriel's run on this face (S25); the canopy's underside is the soffit a walker sees from the sidewalk"
             },
             {
               "z0": 6.0,
@@ -1333,14 +1364,57 @@
                 {
                   "s0": 5.3,
                   "s1": 7.7,
-                  "inset": 1.2,
-                  "insetTone": "podiumPanel",
+                  "proj": 0.12,
+                  "slabT": 0.28,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "railTone": "rail",
+                  "railTone": "railOpen",
                   "lift": 0.0
                 }
-              ]
+              ],
+              "openings": [
+                {
+                  "s0": 5.3,
+                  "s1": 7.7,
+                  "z0": 6.28,
+                  "z1": 9.1,
+                  "d": 1.2,
+                  "glass": "glass",
+                  "tone": "podiumPanel",
+                  "lit": true
+                },
+                {
+                  "s0": 5.3,
+                  "s1": 7.7,
+                  "z0": 9.38,
+                  "z1": 12.2,
+                  "d": 1.2,
+                  "glass": "glass",
+                  "tone": "podiumPanel",
+                  "lit": true
+                },
+                {
+                  "s0": 5.3,
+                  "s1": 7.7,
+                  "z0": 12.48,
+                  "z1": 15.3,
+                  "d": 1.2,
+                  "glass": "glass",
+                  "tone": "podiumPanel",
+                  "lit": true
+                },
+                {
+                  "s0": 5.3,
+                  "s1": 7.7,
+                  "z0": 15.58,
+                  "z1": 18.4,
+                  "d": 1.2,
+                  "glass": "glass",
+                  "tone": "podiumPanel",
+                  "lit": true
+                }
+              ],
+              "_src": "the loggia east of the oriel (S23, S25), s 5.3-7.7 on the face, one per storey: an `opening` 1.2 m deep from the slab top (floor + 0.28) to the next floor line, its back wall the dark glazed door (`glass`, lit after dark) and its jambs, soffit and floor the light concrete (`podiumPanel`); in front of it the slab's own edge as a 0.12 m lip and the rail, in `railOpen` because the generator draws a rail as one solid box and the photograph's black tube grille is mostly the light wall and glass behind it. Was one `inset` balcony in `podiumPanel` (round 7), which painted all five surfaces AND stood a solid black rail on them: from the NW the column read as alternating cream and near-black rectangles with no glass in them - the blind judge's 'texture that failed to load'."
             },
             {
               "z0": 18.4,
@@ -1348,33 +1422,8 @@
               "skin": "charcoalBlank",
               "signs": [
                 {
-                  "text": "TANDARD",
+                  "text": "THE STANDARD",
                   "s0": 0.6,
-                  "z0": 19.55,
-                  "dot": 0.12,
-                  "gap": 0.13,
-                  "tone": "sign"
-                },
-                {
-                  "bitmap": [
-                    "001111100",
-                    "010000010",
-                    "100111001",
-                    "101000001",
-                    "100111001",
-                    "100000101",
-                    "100111001",
-                    "010000010",
-                    "001111100"
-                  ],
-                  "s0": 5.71,
-                  "z0": 19.43,
-                  "dot": 0.12,
-                  "tone": "sign"
-                },
-                {
-                  "text": "THE",
-                  "s0": 6.92,
                   "z0": 19.55,
                   "dot": 0.12,
                   "gap": 0.13,
@@ -1389,7 +1438,19 @@
             {
               "z0": 0,
               "z1": 6.0,
-              "skin": "storefront"
+              "skin": "storefront",
+              "canopies": [
+                {
+                  "s0": 8.1,
+                  "s1": 11.6,
+                  "z": 6.0,
+                  "d": 0.6,
+                  "t": 0.9,
+                  "tone": "charcoal",
+                  "soffitTone": "charcoal"
+                }
+              ],
+              "_src": "the fascia projecting under the oriel on Pearl, s 8.1-11.6: the oriel's 2.9 m return plus the 0.6 m it stands beyond the corner, so the two fascias meet on the corner bay's own corner line without overlapping (S25)"
             },
             {
               "z0": 6.0,
@@ -1402,33 +1463,8 @@
               "skin": "charcoalBlank",
               "signs": [
                 {
-                  "text": "TANDARD",
+                  "text": "THE STANDARD",
                   "s0": 1.3,
-                  "z0": 19.55,
-                  "dot": 0.115,
-                  "gap": 0.115,
-                  "tone": "sign"
-                },
-                {
-                  "bitmap": [
-                    "001111100",
-                    "010000010",
-                    "100111001",
-                    "101000001",
-                    "100111001",
-                    "100000101",
-                    "100111001",
-                    "010000010",
-                    "001111100"
-                  ],
-                  "s0": 6.13,
-                  "z0": 19.435,
-                  "dot": 0.115,
-                  "tone": "sign"
-                },
-                {
-                  "text": "THE",
-                  "s0": 7.28,
                   "z0": 19.55,
                   "dot": 0.115,
                   "gap": 0.115,
@@ -1449,7 +1485,7 @@
             }
           ]
         },
-        "_src": "signs: white channel letters ~0.85 m tall in the windowless top storey of both street faces (S5/S15): on 23rd (v0, s from the west corner) the text block starts ~0.6 m from the corner and runs ~9.2 m; on Pearl (u1, s from the south end) it starts 1.3 m from the south end and runs 8.2 m, ending ~1.5 m short of the corner. The loggia on the 23rd St face just east of the glazed stack (s 5.3-7.7, the four window storeys) is cut 1.2 m into the charcoal with light walls and a black rail at the face (S23); east of it the `charcoalEast` piece carries the two window columns. u0 stands against the podium; v1 shows only above the Pearl strip's 18.4 roof. The horizontal signs are THE, then the round logo — the S of STANDARD inside a ring 1.08 m across (a 9x9 bitmap at the letters' dot) — then TANDARD, as the Earth W frame (S22) and Ext_14 (S5) show the mark; the block is 8.4 m long, as the 12-letter text was."
+        "_src": "signs: white channel letters ~0.85 m tall in the windowless top storey of both street faces (S5/S15/S25): on 23rd (v0, s from the west corner) the text block starts ~0.6 m from the corner and runs ~8.6 m; on Pearl (u1, s from the south end) it starts 1.3 m from the south end and runs 8.2 m, ending ~1.5 m short of the corner. ONE text block per face - THE STANDARD in plain capitals, the S a letter: round 7 split each into THE, a ring-S bitmap and TANDARD on a reading of 'the mark' that Ext_14 at 4x does not bear out (S25), and the name read as THE (S)TANDARD on the building's most-read line. The loggia on the 23rd St face just east of the oriel (s 5.3-7.7, the four window storeys) is the band's `openings` (see the band); east of it the `charcoalEast` piece carries the two window columns. u0 stands against the podium; v1 shows only above the Pearl strip's 18.4 roof."
       },
       "overrides": [
         {
@@ -1468,7 +1504,7 @@
             {
               "z0": 6.0,
               "z1": 18.4,
-              "skin": "glassStack"
+              "skin": "charcoalBlank"
             },
             {
               "z0": 18.4,
@@ -1476,7 +1512,7 @@
               "skin": "charcoalBlank"
             }
           ],
-          "_src": "the glazed corner stack on the 23rd St face: the west ~5.2 m of the face (S15: two lights wide), four storeys, under the sign band"
+          "_src": "behind the oriel (S25): the west 5.18 m of the 23rd St face, which the `oriel` block stands 0.6 m in front of - flat charcoal, never seen; was the flush glassStack (S15: two lights wide)"
         },
         {
           "region": [
@@ -1494,7 +1530,7 @@
             {
               "z0": 6.0,
               "z1": 18.4,
-              "skin": "glassStack"
+              "skin": "charcoalBlank"
             },
             {
               "z0": 18.4,
@@ -1502,7 +1538,7 @@
               "skin": "charcoalBlank"
             }
           ],
-          "_src": "the glazed stack's return on the Pearl face: the north ~2.9 m (S15: one light wide)"
+          "_src": "behind the oriel (S25): the north 2.9 m of the Pearl face, which the `oriel` block stands 0.6 m in front of - flat charcoal, never seen; was the flush glassStack's return (S15: one light wide)"
         },
         {
           "region": [
@@ -1538,6 +1574,63 @@
         "v0",
         "u1"
       ]
+    },
+    {
+      "id": "oriel",
+      "_src": "the corner's projecting glass box (S25; S5/S15 saw it as a flush stack): 0.6 m proud of the corner bay's two street faces, from the top of the storefront fascia (6.0) to the foot of the sign band (18.4), over the 5.18 m of 23rd and the 2.9 m of Pearl the stack occupied (u 89.7-94.88, v 0-2.9), so its plan is that rectangle grown 0.6 m north and 0.6 m west; the storefront wraps the corner under it on the wall plane, and the fascia projects with it (the storefront bands' `canopies`) so the box has a soffit. One storey per band, each the `orielGlass` run with its charcoal spandrel on top; the two returns are `orielSide`; the roof is the charcoal cap the sign band stands over; no parapet. The block draws no underside (js/slopes-apartments.js draws walls and a cap), which is why the fascia canopies carry the soffit.",
+      "plan": [
+        89.7,
+        95.48,
+        -0.6,
+        2.9
+      ],
+      "z0": 6.0,
+      "z1": 18.4,
+      "bands": [
+        {
+          "z0": 6.0,
+          "z1": 9.1,
+          "skin": "orielGlass"
+        },
+        {
+          "z0": 9.1,
+          "z1": 12.2,
+          "skin": "orielGlass"
+        },
+        {
+          "z0": 12.2,
+          "z1": 15.3,
+          "skin": "orielGlass"
+        },
+        {
+          "z0": 15.3,
+          "z1": 18.4,
+          "skin": "orielGlass"
+        }
+      ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 6.0,
+              "z1": 18.4,
+              "skin": "orielSide"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 6.0,
+              "z1": 18.4,
+              "skin": "orielSide"
+            }
+          ]
+        },
+        "_src": "v0 (north) and u1 (west) wear the storey bands; u0 and v1 are the returns, 0.6 m of which shows beside the loggia and beside Pearl's first punched column"
+      },
+      "roofTone": "charcoal",
+      "parapet": 0
     },
     {
       "id": "pearlStrip",
@@ -2775,10 +2868,11 @@
     ]
   },
   "todo": [
-    "A loggia's reveal and its back wall want two tones: Ext_14 at 4x (S23) shows light concrete jambs and soffit (~#c9c2b4 at dusk) round a dark glazed door, and the generator's `insetTone` paints all five surfaces in one. Drawn dark (`loggia`) so the void reads from the street.",
-    "The loggia rail is a black tube grille 1.05 m tall (S23); a stack's rail is drawn as one solid box of railT, so it stands as a dark panel. A `railOpen`-style mid tone would lighten it, a slat pitch would draw it.",
+    "A loggia's reveal and its back wall want two tones: Ext_14 at 4x (S23) shows light concrete jambs and soffit (~#c9c2b4 at dusk) round a dark glazed door, and a balcony stack's `insetTone` paints all five surfaces in one. The corner bay's loggia is authored round that as per-storey `openings` with `glass` (2026-09-08, S25); the podium's loggias are still `inset` stacks drawn dark (`loggia`) so the void reads from the street - the same authoring would give them light jambs and a glazed back.",
+    "A loggia rail is a black tube grille 1.05 m tall (S23); a stack's rail is drawn as one solid box of railT, so it stands as a dark panel. The corner loggia's wears `railOpen` for that reason; a slat pitch on the rail would draw the grille.",
     "The residential entrance on 23rd carries the round logo and '715' over the door (S23) and a louvre grille beside it; a sign on a `flat` ground band at dot 0.05 is expressible but was not placed — the door is at u 78.4-80.2.",
     "Tower B's west face south of the pixel band: the Earth W frame (S22) shows two-light windows ~2.2 m wide at ~3.4 m centres with a rust spandrel under each; the `bays` skin keeps the 5 m / two 1.1 m windows read against the judge's frame (S20). A closer Earth capture of the south face would settle the unit for the whole 66 m bar.",
-    "The pixel band's place on the Pearl face is v 19.5-23.2 by three reads that disagree by ±2 m (S17 18.6-22.6 by eye; S23's profile puts its north edge ~9 m south of the corner bay; S22's frame ~10-11 m); tower B's field and the sign follow it."
+    "The pixel band's place on the Pearl face is v 19.5-23.2 by three reads that disagree by ±2 m (S17 18.6-22.6 by eye; S23's profile puts its north edge ~9 m south of the corner bay; S22's frame ~10-11 m); tower B's field and the sign follow it.",
+    "The oriel's spandrel caps carry a light slab edge on top (S25: a pale line over every charcoal band, the concrete slab's coping) and its storeys a transom at two thirds; the `storefront` skin draws the transom and the band but not the coping line, and every pane of a storefront is `lit` after dark where Ext_14 shows one storey lit and three reflecting the sky."
   ]
 }
