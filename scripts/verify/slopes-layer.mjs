@@ -1688,7 +1688,11 @@ check('apartments: a block\'s `rake` leans one face as ONE plane — The Standar
 // the face (v = -0.3) must fill with that tone and be empty before and after.
 const finsTest = await (async () => {
   const pg = AP.pg;
-  const box = { u: [81.7, 94.8], v: [-0.32, -0.28], z: [6.1, 18.3] };
+  // 2026-09-08: this window was z [6.1, 18.3] and could never fill. A blade spans
+  // its band exactly, so EVERY vertex it owns sits on z 6.00 or z 18.40 - the two
+  // values a 0.1 m inset at each end is guaranteed to exclude. Measured on the page:
+  // the patch adds 390 vertices, all pool-toned, 234 of them at v -0.30 exactly.
+  const box = { u: [81.5, 95.0], v: [-0.32, -0.28], z: [5.9, 18.5] };
   const before = await uvCensus(pg, APT_NAME, box, 'pool');
   const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = A.count.fins; cb.faces.v0.bands[1].fins = { pitch: 1.0, w: 0.15, d: 0.3, tone: 'pool' }; return { before };");
   const during = await uvCensus(pg, APT_NAME, box, 'pool');
@@ -1725,23 +1729,31 @@ const pierTest = await (async () => {
   const pool = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.pool.hex || b.colours.pool[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
   const box = { u: [17, 81], v: [-0.22, -0.18], z: [6.1, 21.4] };
   const before = await sampler(), cBefore = await uvCensus(pg, APT_NAME, box, 'pool');
-  const r = await patchStd(pg, "const before = A.count.piers; b.skins.podium.pier = { w: 0.5, d: 0.2, tone: 'pool' }; return { before };");
+  // 2026-09-08: b.skins.podium NOW CARRIES AN AUTHORED pier (c6286ab gave the podium
+  // its real 0.6 x 0.18 m members). This test was written before that, so it used to
+  // add a pier where there was none and `delete` it afterwards; against today's file
+  // that reads 72 -> 72 -> 13 and takes the building's own piers away. Save and put back.
+  const r = await patchStd(pg, "const before = A.count.piers; b.__pierWas = b.skins.podium.pier || null; b.skins.podium.pier = { w: 0.5, d: 0.2, tone: 'pool' }; return { before };");
   await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
   const during = await sampler(), cDuring = await uvCensus(pg, APT_NAME, box, 'pool');
-  const restored = await patchStd(pg, "delete b.skins.podium.pier; return {};");
+  const restored = await patchStd(pg, "if (b.__pierWas) b.skins.podium.pier = b.__pierWas; else delete b.skins.podium.pier; delete b.__pierWas; return {};");
   const cAfter = await uvCensus(pg, APT_NAME, box, 'pool');
   return { pool, before, during, cBefore, cDuring, cAfter, piers0: r.before, piers1: r.count.piers, piers2: restored.count.piers };
 })();
 const nPoolBefore = pierTest.before.filter(c => c === pierTest.pool).length, nPoolDuring = pierTest.during.filter(c => c === pierTest.pool).length;
 check('apartments: a `bays` skin\'s `pier` stands a member on every bay line, proud of the wall, grouping the bays between — The Standard\'s podium given 0.5 m pool-toned piers 0.2 m proud returns that tone on rays at the bay line where the wall returned white, and its cells fill the v -0.2 plane',
-  pierTest.piers1 > pierTest.piers0 && pierTest.piers1 - pierTest.piers0 >= 20 && nPoolBefore === 0 && nPoolDuring >= 3 && pierTest.cBefore === 0 && pierTest.cDuring >= 60 && pierTest.cAfter === 0 && pierTest.piers2 === pierTest.piers0,
+  pierTest.piers1 >= pierTest.piers0 && nPoolBefore === 0 && nPoolDuring >= 3 && pierTest.cBefore === 0 && pierTest.cDuring >= 60 && pierTest.cAfter === 0 && pierTest.piers2 === pierTest.piers0,
   `piers ${pierTest.piers0} -> ${pierTest.piers1} -> ${pierTest.piers2}; of 71 rays along 7 m of the podium's north face at window height, ${nPoolBefore} returned the pier tone before and ${nPoolDuring} with the piers (${pierTest.during.filter(Boolean).length} hit the mesh); pool-toned vertices on the v -0.2 plane: ${pierTest.cBefore} / ${pierTest.cDuring} / ${pierTest.cAfter}`);
 // OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
 // 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
 // the v 3.0 plane, where the flush storefront had none.
 const openTest = await (async () => {
   const pg = AP.pg;
-  const box = { u: [83.95, 88.85], v: [2.97, 3.03], z: [0.35, 4.95] };
+  // 2026-09-08: was u [83.95, 88.85], z [0.35, 4.95] - the back wall's vertices sit on
+  // z 0.30 and z 5.00 exactly (the opening's own z0/z1), which that inset excluded, and
+  // the u window did not match the s0/s1 patched below. Widened to the whole face; v 3.0
+  // is what discriminates. Measured: the patch adds 42 vertices, 18 charcoal at v 3.00.
+  const box = { u: [81.5, 95.0], v: [2.97, 3.03], z: [0.25, 5.05] };
   const before = await uvCensus(pg, APT_NAME, box, null);
   const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = A.count.openings; cb.faces.v0.bands[0].openings = [{ s0: 6.0, s1: 11.0, z0: 0.3, z1: 5.0, d: 3.0, tone: 'charcoal' }]; return { before };");
   const during = await uvCensus(pg, APT_NAME, box, 'charcoal');
@@ -1758,13 +1770,17 @@ check('apartments: a band\'s `openings` cut a recess of its own depth and tone i
 // pool-toned: pool cells on the z 29.0 plane outside the gym's walls.
 const canopyTest = await (async () => {
   const pg = AP.pg;
-  const box = { u: [83.9, 88.9], v: [-1.99, -0.01], z: [5.23, 5.27] };
+  // 2026-09-08: was u [83.9, 88.9], v [-1.99, -0.01] - a soffit quad's vertices stand on
+  // v 0.00 and v -2.00 (the slab's own extent), so a 0.01 m inset at each end excluded
+  // every one; and the u window did not match the s0/s1 patched below. Measured on the
+  // page: a d 2.2 canopy puts its rust soffit on v -2.20 exactly.
+  const box = { u: [81.5, 95.0], v: [-2.05, 0.05], z: [5.23, 5.27] };
   const before = await uvCensus(pg, APT_NAME, box, 'rust');
   const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = [A.count.canopies, A.count.soffits]; cb.faces.v0.bands[0].canopies = [{ s0: 6.0, s1: 11.0, z: 5.5, d: 2.0, t: 0.25, tone: 'charcoal', soffitTone: 'rust' }]; return { before };");
   const during = await uvCensus(pg, APT_NAME, box, 'rust');
   const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].canopies; return {};");
   const after = await uvCensus(pg, APT_NAME, box, 'rust');
-  const rbox = { u: [41.0, 42.0], v: [11.0, 19.0], z: [28.98, 29.02] };
+  const rbox = { u: [40.9, 42.3], v: [10.9, 19.1], z: [28.98, 29.02] };
   const rBefore = await uvCensus(pg, APT_NAME, rbox, 'pool');
   const r2 = await patchStd(pg, "const gym = b.blocks.find(k => k.id === 'gym'); gym.roof = { kind: 'hip', pitch: 30, tone: 'roof', over: 1.0, lipH: 0.3, lipTone: 'charcoal', soffitTone: 'pool' }; return {};");
   const rDuring = await uvCensus(pg, APT_NAME, rbox, 'pool');
@@ -1956,7 +1972,13 @@ if (AGAINST_NOGEN) {
   }
 } else {
   if (AGAINST_TIP) {
-    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0`, 'apts-against-tip', async pg => {
+    // 2026-09-08: THE ARCHIVE MUST BE ASKED FOR ?apartments=0 TOO. This line loaded our
+    // page with the generator off and the archive with it ON, so the archive drew its own
+    // 25 apartment buildings and the diff was 613,109 px - the switch's own ON/OFF delta,
+    // not a regression. (a03d283 already carries the round-two generator and the switch.)
+    // The --against-nogen branch of this same block demotes the identical comparison to a
+    // context line for exactly this reason; this branch left it as a check that cannot pass.
+    const G = await standardFrame(`${AGAINST_TIP}/index.html?intro=0&drift=0&apartments=0`, 'apts-against-tip', async pg => {
       await pg.evaluate(() => { if (window.SLOPES_ROOFS && window.SLOPES_ROOFS.lines && window.slopesRoofs) { window.SLOPES_ROOFS.lines.on = false; window.slopesRoofs.rebuild(); } });
       await pg.waitForTimeout(800);
     });
