@@ -1776,6 +1776,28 @@ check('apartments: a band\'s `canopies` hang a slab off the wall with its unders
   canopyTest.c1[0] === canopyTest.c0[0] + 1 && canopyTest.c1[1] === canopyTest.c0[1] + 1 && canopyTest.before === 0 && canopyTest.during >= 6 && canopyTest.after === 0 && canopyTest.c2[0] === canopyTest.c0[0]
   && canopyTest.rBefore === 0 && canopyTest.rDuring >= 6 && canopyTest.rAfter === 0 && canopyTest.rs[0] === canopyTest.c0[1] + 1 && canopyTest.rs[1] === canopyTest.c0[1],
   `canopies ${canopyTest.c0[0]} -> ${canopyTest.c1[0]} -> ${canopyTest.c2[0]}, soffits ${canopyTest.c0[1]} -> ${canopyTest.c1[1]} -> ${canopyTest.c2[1]} (roof: ${canopyTest.rs.join(' -> ')}); rust cells on the canopy's soffit plane ${canopyTest.before} / ${canopyTest.during} / ${canopyTest.after}; pool cells on the eave's soffit plane ${canopyTest.rBefore} / ${canopyTest.rDuring} / ${canopyTest.rAfter}`);
+// A BITMAP SIGN and an INSET BALCONY. A 7 x 7 mark of 22 dots on the corner
+// bay's blank top storey at u 84-85.1: sign-toned cells standing
+// APARTMENTS.signProud outside the face where the lettering does not reach;
+// the corner bay's balcony stack made a loggia 1.2 m deep: charcoal cells on
+// the v 1.2 plane behind the face at the balcony's own s, four floors of them.
+const markTest = await (async () => {
+  const pg = AP.pg;
+  const box = { u: [83.9, 85.2], v: [-0.07, -0.05], z: [19.4, 20.6] };
+  const before = await uvCensus(pg, APT_NAME, box, 'sign');
+  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = [A.count.signs, A.count.balconies]; cb.faces.v0.bands[2].signs.push({ bitmap: ['0011100', '0100010', '1000001', '1000001', '1111111', '0100010', '0011100'], s0: 9.8, z0: 19.4, dot: 0.16, tone: 'sign' }); cb.faces.v0.bands[1].balconies = cb.faces.v0.bands[1].balconies.map(x => Object.assign({}, x, { inset: 1.2, insetTone: 'charcoal' })); return { before };");
+  const during = await uvCensus(pg, APT_NAME, box, 'sign');
+  const lbox = { u: [87.9, 89.6], v: [1.18, 1.22], z: [6.1, 18.3] };
+  const lDuring = await uvCensus(pg, APT_NAME, lbox, 'charcoal');
+  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); cb.faces.v0.bands[2].signs.pop(); cb.faces.v0.bands[1].balconies = cb.faces.v0.bands[1].balconies.map(x => { const y = Object.assign({}, x); delete y.inset; delete y.insetTone; return y; }); return {};");
+  const after = await uvCensus(pg, APT_NAME, box, 'sign');
+  const lAfter = await uvCensus(pg, APT_NAME, lbox, 'charcoal');
+  return { before, during, after, lDuring, lAfter, s0: r.before, s1: [r.count.signs, r.count.balconies], s2: [restored.count.signs, restored.count.balconies] };
+})();
+check('apartments: a sign may be a `bitmap` (a graphic mark, any size) and a balcony stack may be `inset` (a loggia cut into the wall) — a 22-dot mark on The Standard\'s corner bay stands 132 sign-toned vertices proud of the blank storey, and the bay\'s juliet stack made 1.2 m loggias puts charcoal cells on the v 1.2 plane behind the face',
+  markTest.s1[0] === markTest.s0[0] + 1 && markTest.before === 0 && markTest.during === 22 * 6 && markTest.after === 0 && markTest.s2[0] === markTest.s0[0]
+  && markTest.s1[1] === markTest.s0[1] && markTest.lDuring >= 4 * 6 && markTest.lAfter === 0,
+  `signs ${markTest.s0[0]} -> ${markTest.s1[0]} -> ${markTest.s2[0]}; sign-toned vertices proud of the storey at the mark: ${markTest.before} / ${markTest.during} / ${markTest.after}; balconies ${markTest.s0[1]} -> ${markTest.s1[1]} (a loggia is still one balcony); charcoal cells on the loggias' back plane ${markTest.lDuring} with the inset, ${markTest.lAfter} restored`);
 // FIELDS. The south bar's `bays` skin given alternating fields white / pool
 // in a checker: pool-toned cells on the south face (v 46.45) fill, and go.
 const fieldsTest = await (async () => {

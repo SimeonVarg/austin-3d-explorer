@@ -1174,6 +1174,25 @@
     const text = (spec.text || '').toUpperCase();
     const proud = APTS.signProud;
     const letterW = 5 * dot, letterH = 7 * dot;
+    // A GRAPHIC MARK. `bitmap: ['0110...', ...]` — rows top to bottom, any
+    // width, '1' a dot — is drawn as one glyph at `dot` in place of `text`
+    // (the Union 'U' on its pylon, 2400 Nueces' logo panel, a two-pronged
+    // mark no font has): `s0`, `z0` its low-s foot as for text, or `s` and
+    // `zTop` centred and hanging as for a vertical sign.
+    if (Array.isArray(spec.bitmap) && spec.bitmap.length) {
+      const rows = spec.bitmap.map(String), gh = rows.length, gw = Math.max(...rows.map(r => r.length));
+      const rd0 = (-W.N[1] * W.T[0] + W.N[0] * W.T[1]) >= 0 ? 1 : -1;
+      const sStart = spec.s != null ? spec.s - rd0 * gw * dot / 2 : (rd0 > 0 ? spec.s0 : spec.s0 + gw * dot);
+      const zTop = spec.zTop != null ? spec.zTop : spec.z0 + gh * dot;
+      let n0 = 0;
+      for (let r = 0; r < gh; r++) for (let c = 0; c < gw; c++) {
+        if (rows[r][c] !== '1') continue;
+        const sa = sStart + rd0 * c * dot, z1 = zTop - r * dot;
+        box(B, W, Math.min(sa, sa + rd0 * dot), Math.max(sa, sa + rd0 * dot), 0, proud, z1 - dot, z1, col, { back: true }); n0++;
+      }
+      count.signs++;
+      return n0;
+    }
     // READING DIRECTION. A viewer in front of the wall (on its +N side) looks
     // along -N, and their right hand points along (-N) x up = (-N.y, N.x).
     // Whether that is +T or -T depends on the plan's winding, so text is laid

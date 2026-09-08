@@ -296,6 +296,18 @@ underside in `soffitTone` when given; `posts: { pitch | at, w, tone, z0? }`
 stand under its outer edge. GrandMarc's two awnings were boxes in `deck`
 standing against the wall; they hang on the face now.
 
+### `bitmap` on a sign — a graphic mark (Union's U, 2400 Nueces' panel)
+
+```jsonc
+{ "bitmap": ["0011100", "0100010", "1000001", "1000001", "1111111", "0100010", "0011100"],
+  "s0": 9.8, "z0": 19.4, "dot": 0.16, "tone": "sign" }
+```
+
+Rows top to bottom, any width, `1` a dot, drawn as one glyph at `dot` in
+place of `text` — `s0`/`z0` its low-s foot as for lettering, or `s`/`zTop`
+centred and hanging. The dot font already sets the whole alphabet and the
+digits (Moontower's W was round 2); this is for the marks no font has.
+
 ### `fields` and `flip` — tone and handedness by bay and storey (2623 Salado, Villas on Rio)
 
 ```jsonc
