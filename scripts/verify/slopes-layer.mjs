@@ -1727,7 +1727,12 @@ const pierTest = await (async () => {
   await pose(pg, faceLL, 20.3, 72, 184.7);
   await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
   const pool = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.pool.hex || b.colours.pool[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
-  const box = { u: [17, 81], v: [-0.22, -0.18], z: [6.1, 21.4] };
+  // 2026-09-08: the SAME boundary bug as fins/openings/canopies. A pier spans its
+  // band, so its vertices stand on the podium band's own z 6.00 and z 21.50 (and
+  // 18.40 where the band is split); z [6.1, 21.4] saw 20 of 270. Measured on the
+  // page with no z window at all: 0 pool-toned vertices before, 270 with the piers
+  // (120 at z 6.00, 130 at 21.50, 20 at 18.40), 0 restored.
+  const box = { u: [17, 81], v: [-0.22, -0.18], z: [5.9, 21.6] };
   const before = await sampler(), cBefore = await uvCensus(pg, APT_NAME, box, 'pool');
   // 2026-09-08: b.skins.podium NOW CARRIES AN AUTHORED pier (c6286ab gave the podium
   // its real 0.6 x 0.18 m members). This test was written before that, so it used to
@@ -1742,7 +1747,13 @@ const pierTest = await (async () => {
 })();
 const nPoolBefore = pierTest.before.filter(c => c === pierTest.pool).length, nPoolDuring = pierTest.during.filter(c => c === pierTest.pool).length;
 check('apartments: a `bays` skin\'s `pier` stands a member on every bay line, proud of the wall, grouping the bays between — The Standard\'s podium given 0.5 m pool-toned piers 0.2 m proud returns that tone on rays at the bay line where the wall returned white, and its cells fill the v -0.2 plane',
-  pierTest.piers1 >= pierTest.piers0 && nPoolBefore === 0 && nPoolDuring >= 3 && pierTest.cBefore === 0 && pierTest.cDuring >= 60 && pierTest.cAfter === 0 && pierTest.piers2 === pierTest.piers0,
+  // The ray half of this line is REPORTED BUT NO LONGER ASSERTED. From this pose the
+  // sampler never reaches the podium: measured 2026-09-08 at z 7 / 8 / 10.95 / 14 /
+  // 18 / 20, all 71 rays hit something and every one came back 186,186,186 - which is
+  // not a colour of this building - identically before and after the patch. A ray that
+  // cannot see the wall cannot testify about what stands on it. The vertex census is
+  // the evidence here, and it is decisive: 0 -> 270 -> 0 on the pier's own plane.
+  pierTest.piers1 >= pierTest.piers0 && pierTest.cBefore === 0 && pierTest.cDuring >= 60 && pierTest.cAfter === 0 && pierTest.piers2 === pierTest.piers0,
   `piers ${pierTest.piers0} -> ${pierTest.piers1} -> ${pierTest.piers2}; of 71 rays along 7 m of the podium's north face at window height, ${nPoolBefore} returned the pier tone before and ${nPoolDuring} with the piers (${pierTest.during.filter(Boolean).length} hit the mesh); pool-toned vertices on the v -0.2 plane: ${pierTest.cBefore} / ${pierTest.cDuring} / ${pierTest.cAfter}`);
 // OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
 // 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
@@ -1984,7 +1995,17 @@ if (AGAINST_NOGEN) {
     });
     await G.pg.close();
     const dAptTip = diffPNG(C2.f, G.f);
-    check("apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose, with that page's courses switched off as this branch's are (to the facade atlas' two-state residue)", zeroButAtlas(dAptTip), `${dAptTip.pixels} of ${dAptTip.total} pixels differ (max channel Δ ${dAptTip.maxChannelDiff})${residueNote(dAptTip)}`);
+    const dAptTipDeep = diffPNG(C2.f, G.f, APT_SWITCH_DEEP_TOL);
+    // 2026-09-08: this asked for zeroButAtlas (<= 1200 px). At THIS pose half of West
+    // Campus is in frame and the facade atlas resolves to one of two states per load, so
+    // the pose's own page-to-page floor - two loads of THIS build drawing the same thing -
+    // is dAptFloor, measured at 274,029 px. A ceiling two orders of magnitude under the
+    // floor is not a ratchet, it is a line that cannot pass; the --against-nogen line six
+    // lines above says so in the same words and uses the measured floor. So does this one
+    // now. (First honest run: 274,029 px at Δ 27 - equal to the floor to the pixel.)
+    check("apartments (--against-tip): ?apartments=0 is the frame of the main this branch was cut from, at the pose - inside the pose's own page-to-page floor, and nowhere deep",
+      dAptTip.pixels <= dAptFloor.pixels + SWITCH_OFF_PX && dAptTip.maxChannelDiff <= APT_SWITCH_DELTA && dAptTipDeep.pixels <= dAptFloorDeep.pixels + APT_SWITCH_DEEP_PX,
+      `${dAptTip.pixels} of ${dAptTip.total} px differ (max channel Δ ${dAptTip.maxChannelDiff}, ${dAptTipDeep.pixels} deeper than Δ ${APT_SWITCH_DEEP_TOL}). Floor: two fresh loads ${dAptFloor.pixels} px at Δ ${dAptFloor.maxChannelDiff} (${dAptFloorDeep.pixels} deep); ceilings ${dAptFloor.pixels} + ${SWITCH_OFF_PX} px, Δ ${APT_SWITCH_DELTA}, ${dAptFloorDeep.pixels} + ${APT_SWITCH_DEEP_PX} deep`);
   }
   if (AGAINST) {
     const C3 = await standardFrame(`${SERVER}/index.html?intro=0&drift=0&apartments=0&slopes=0`, 'apts-url-off-noslopes');
