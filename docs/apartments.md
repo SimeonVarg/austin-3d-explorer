@@ -189,6 +189,46 @@ and 17 along the slope land at 28.65, 39.58 and 49.41 m — the plane's own
 numbers to the millimetre, where the treads had answered 28.81, 39.58 and
 50.34 — and no vertex of the block stands above the plane.
 
+### `fins` — blades standing OFF the wall, in their own tone (Moody Center, 21 Rio, The Castilian)
+
+```jsonc
+"fins": { "kind": "bays", "field": "glass", "bay": 1.219, "glass": "glass", "frame": "fin", "reveal": 0,
+          "bands": [{ "z0": 6.4, "z1": 7.0, "tone": "mcm" }, { "z0": 11.7, "z1": 12.3, "tone": "mcm" }, { "z0": 17.0, "z1": 17.4, "tone": "mcm" }],
+          "fins": { "pitch": 1.219, "w": 0.305, "d": 0.30, "tone": "fin" } }
+```
+
+`fins: { pitch | at: [s...], w, d, tone, off?, from?, to?, on?, z0?, z1?,
+frontTone?, horizontal?, every? }` — on a **skin** (drawn with every piece
+that wears it, the pitch from the piece's own start) or on a **band** (one run
+along the whole face, like its balconies; a list of them is allowed). Each fin
+is a box `w` along the wall, standing `d` proud of it from `off` (a bracket
+gap; 0 sits it on the wall, and then its back is left open so nothing shares
+a plane), the band's height or its own `z0`..`z1`, in `tone`; `frontTone`
+colours the outer face alone (an airfoil's nose); `horizontal: true` lays the
+blades across the wall at a vertical `pitch` (`start` from the band's foot),
+`w` their height — a sunshade, a trellis. Moody's file already carried every
+number: 12 in blades (0.305 m) on 4 ft centres (1.219 m, the luminance
+autocorrelation in S13), 0.30 m of relief, Dark Bronze; the example above is
+its `fins` skin turned right side out — the glazing is the field and the
+blades stand in front of it, instead of 0.91 m of wall recessed between 0.31
+m of fin. 21 Rio's are `{ pitch: 4.3, w: 0.30, d: 0.25, off: 0.1, tone:
+"bronze" }` on brackets; The Castilian's garage screen `{ pitch: 0.57, w:
+0.20, d: 0.15, tone: "finShade" }`.
+
+### `soffitTone` — the underside of an overhang in its own material (Moody Center)
+
+```jsonc
+"roof": { "kind": "hip", "pitch": 9.1, "over": 3.0, "lipH": 2.0, "tone": "apron", "lipTone": "fascia",
+          "soffitTone": "soffit", "deck": "membrane", "d": 9.0 }
+```
+
+`js/slopes-roofs.js` draws an eave lip's top, fascia and soffit in one tone.
+A roof with `soffitTone` gets no lip from the emitter and this file draws the
+three itself from the same profile — the top and the fascia in `lipTone`, the
+soffit in this one — so Moody's 70,000 sq ft of wood-composite soffit is wood
+(`#884420`, measured in its file and unused until now) under the dark bronze
+fascia. A canopy's `soffitTone` (below) is the same idea on a slab.
+
 ### `openings` — a recess of its own depth and tone in a band (garage mouths, entry courts)
 
 ```jsonc
@@ -221,6 +261,20 @@ omitted), in `insetTone` — and all that stands at the face is the rail (`railH
 balcony reads as the shadowed void the photographs show and not as a lit
 slab edge; the Villas on Guadalupe's 0.55 m projection that "landed the dark
 line where the photograph puts it" is the real inset now.
+
+### `canopies` — a slab standing off a wall (GrandMarc's awnings, Skyloft's sky-lounge soffit)
+
+```jsonc
+"canopies": [{ "s0": 12.0, "s1": 15.85, "z": 3.6, "d": 1.4, "t": 0.15, "tone": "awning", "soffitTone": "awningSoffit",
+               "posts": { "pitch": 3.5, "w": 0.15, "tone": "awning" } }]
+```
+
+`canopies: [{ s0, s1 | w, z, d, t?, tone, soffitTone?, off?, posts? }]` on a
+band — a slab `d` out from the wall (from `off` when it does not touch it),
+`t` thick (`APARTMENTS.canopyT`, 0.2) with its top at `z`, in `tone`, its
+underside in `soffitTone` when given; `posts: { pitch | at, w, tone, z0? }`
+stand under its outer edge. GrandMarc's two awnings were boxes in `deck`
+standing against the wall; they hang on the face now.
 
 ### `chamfer` — a 45° cut on a rectangle's corner (Dobie Twenty21, Skyloft, 26 West)
 

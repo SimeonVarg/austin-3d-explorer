@@ -1682,6 +1682,23 @@ check('apartments: a block\'s `rake` leans one face as ONE plane — The Standar
   rakeTest.after === rakeTest.before + 1 && rakeTest.rec && Math.abs(rakeTest.rec.pitch - 43.15) < 0.1 && Math.abs(rakeTest.rec.run - 8) < 0.01
   && rakeTest.hits.every((h, i) => h != null && Math.abs(h - rakeTest.want[i]) < 0.35) && rakeTest.above.all > 100 && rakeTest.above.n === 0 && rakeTest.restored === rakeTest.before,
   `rakes ${rakeTest.before} -> ${rakeTest.after} -> ${rakeTest.restored}; record ${rakeTest.rec ? 'pitch ' + rakeTest.rec.pitch + '° run ' + rakeTest.rec.run + ' rise ' + rakeTest.rec.rise : 'MISSING'}; raycasts at v 13/15/17: ${rakeTest.hits.map((h, i) => (h == null ? 'nothing' : h.toFixed(2)) + ' (want ' + rakeTest.want[i].toFixed(2) + ')').join(', ')}; ${rakeTest.above.n} of ${rakeTest.above.all} block vertices above the plane`);
+// FINS. The corner bay's charcoal band (z 6-18.4 on 23rd St) given blades
+// on a 1 m pitch, 0.15 m wide, standing 0.3 m proud, in the pool tone
+// (nothing else on that face is): the census on the plane 0.3 m outside
+// the face (v = -0.3) must fill with that tone and be empty before and after.
+const finsTest = await (async () => {
+  const pg = AP.pg;
+  const box = { u: [81.7, 94.8], v: [-0.32, -0.28], z: [6.1, 18.3] };
+  const before = await uvCensus(pg, APT_NAME, box, 'pool');
+  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = A.count.fins; cb.faces.v0.bands[1].fins = { pitch: 1.0, w: 0.15, d: 0.3, tone: 'pool' }; return { before };");
+  const during = await uvCensus(pg, APT_NAME, box, 'pool');
+  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[1].fins; return {};");
+  const after = await uvCensus(pg, APT_NAME, box, 'pool');
+  return { before, during, after, fins0: r.before, fins1: r.count.fins, fins2: restored.count.fins };
+})();
+check('apartments: a band\'s `fins` stand blades OFF the wall in their own tone — thirteen 0.15 m blades on a 1 m pitch, 0.3 m proud of The Standard\'s corner bay, put pool-toned cells on the plane 0.3 m outside the face where there were none, and none once taken back',
+  finsTest.fins1 - finsTest.fins0 >= 12 && finsTest.fins1 - finsTest.fins0 <= 14 && finsTest.before === 0 && finsTest.during >= 12 * 6 && finsTest.after === 0 && finsTest.fins2 === finsTest.fins0,
+  `fins ${finsTest.fins0} -> ${finsTest.fins1} -> ${finsTest.fins2}; pool-toned vertices on the v -0.3 plane of the bay: ${finsTest.before} before, ${finsTest.during} with the fins, ${finsTest.after} restored`);
 // OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
 // 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
 // the v 3.0 plane, where the flush storefront had none.
@@ -1698,6 +1715,30 @@ const openTest = await (async () => {
 check('apartments: a band\'s `openings` cut a recess of its own depth and tone into the wall — a 5 m garage mouth 3 m deep in The Standard\'s corner-bay storefront puts charcoal cells on the v 3.0 plane behind the face, where nothing stood before or after',
   openTest.o1 === openTest.o0 + 1 && openTest.before === 0 && openTest.during >= 6 && openTest.after === 0 && openTest.o2 === openTest.o0,
   `openings ${openTest.o0} -> ${openTest.o1} -> ${openTest.o2}; vertices on the v 3.0 plane inside the mouth: ${openTest.before} before, ${openTest.during} charcoal with the opening, ${openTest.after} restored`);
+// CANOPIES and the SOFFIT TONE. A slab 2 m out from the same band with its
+// underside in rust: rust cells on the z 5.25 plane (the soffit) in front of
+// the face; and the gym given a hip with a 1 m overhang whose soffit is
+// pool-toned: pool cells on the z 29.0 plane outside the gym's walls.
+const canopyTest = await (async () => {
+  const pg = AP.pg;
+  const box = { u: [83.9, 88.9], v: [-1.99, -0.01], z: [5.23, 5.27] };
+  const before = await uvCensus(pg, APT_NAME, box, 'rust');
+  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = [A.count.canopies, A.count.soffits]; cb.faces.v0.bands[0].canopies = [{ s0: 6.0, s1: 11.0, z: 5.5, d: 2.0, t: 0.25, tone: 'charcoal', soffitTone: 'rust' }]; return { before };");
+  const during = await uvCensus(pg, APT_NAME, box, 'rust');
+  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].canopies; return {};");
+  const after = await uvCensus(pg, APT_NAME, box, 'rust');
+  const rbox = { u: [41.0, 42.0], v: [11.0, 19.0], z: [28.98, 29.02] };
+  const rBefore = await uvCensus(pg, APT_NAME, rbox, 'pool');
+  const r2 = await patchStd(pg, "const gym = b.blocks.find(k => k.id === 'gym'); gym.roof = { kind: 'hip', pitch: 30, tone: 'roof', over: 1.0, lipH: 0.3, lipTone: 'charcoal', soffitTone: 'pool' }; return {};");
+  const rDuring = await uvCensus(pg, APT_NAME, rbox, 'pool');
+  const r3 = await patchStd(pg, "const gym = b.blocks.find(k => k.id === 'gym'); delete gym.roof; return {};");
+  const rAfter = await uvCensus(pg, APT_NAME, rbox, 'pool');
+  return { before, during, after, c0: r.before, c1: [r.count.canopies, r.count.soffits], c2: [restored.count.canopies, restored.count.soffits], rBefore, rDuring, rAfter, rs: [r2.count.soffits, r3.count.soffits] };
+})();
+check('apartments: a band\'s `canopies` hang a slab off the wall with its underside in its own tone, and a roof\'s `soffitTone` gives the overhang\'s underside its own material — The Standard\'s corner-bay canopy puts rust cells on the z 5.25 plane in front of the face, and a 1 m eave on the gym puts pool cells on the z 29 plane outside its west wall',
+  canopyTest.c1[0] === canopyTest.c0[0] + 1 && canopyTest.c1[1] === canopyTest.c0[1] + 1 && canopyTest.before === 0 && canopyTest.during >= 6 && canopyTest.after === 0 && canopyTest.c2[0] === canopyTest.c0[0]
+  && canopyTest.rBefore === 0 && canopyTest.rDuring >= 6 && canopyTest.rAfter === 0 && canopyTest.rs[0] === canopyTest.c0[1] + 1 && canopyTest.rs[1] === canopyTest.c0[1],
+  `canopies ${canopyTest.c0[0]} -> ${canopyTest.c1[0]} -> ${canopyTest.c2[0]}, soffits ${canopyTest.c0[1]} -> ${canopyTest.c1[1]} -> ${canopyTest.c2[1]} (roof: ${canopyTest.rs.join(' -> ')}); rust cells on the canopy's soffit plane ${canopyTest.before} / ${canopyTest.during} / ${canopyTest.after}; pool cells on the eave's soffit plane ${canopyTest.rBefore} / ${canopyTest.rDuring} / ${canopyTest.rAfter}`);
 // the in-place tests moved the camera (a nadir over the gym, the street outside the podium): back to the pose
 // before the OFF frame, and a settled ON frame there first so the OFF comparison is against the same picture
 await pose(AP.pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);

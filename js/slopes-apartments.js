@@ -1107,6 +1107,31 @@
     count.openings += inside.length;
   }
 
+  // ── canopies: a slab standing off a wall ─────────────────────────────
+  //
+  // `canopies` on a band: `[{ s0, s1, z, d, t?, tone, soffitTone?, off?,
+  // posts? }]` — a slab `d` metres out from the wall (from `off`, a gap,
+  // when the slab does not touch it), `t` thick (APARTMENTS.canopyT) with
+  // its top edge at `z`, in `tone`; its UNDERSIDE in `soffitTone` when that
+  // is given (GrandMarc's two awnings, 3.85 and 3.60 m, which were boxes in
+  // `deck` standing against the wall; Skyloft's sky-lounge soffit). `posts:
+  // { pitch | at, w, tone, z0? }` stand under its outer edge from `z0` (0).
+  function canopy(B, W, spec, P) {
+    const s0 = spec.s0, s1 = spec.s1 != null ? spec.s1 : spec.s0 + (spec.w || 3.0), d = spec.d || 1.0, t = spec.t != null ? spec.t : APTS.canopyT, off = spec.off || 0;
+    const zTop = spec.z, z0 = zTop - t;
+    if (s1 - s0 < 0.02 || d <= 0 || t <= 0) return;
+    const col = toneOf(P, spec.tone, 'coping'), soffit = spec.soffitTone ? P[spec.soffitTone] || col : null;
+    box(B, W, s0, s1, off, off + d, z0, zTop, col, { back: off <= 1e-6, bottom: !!soffit });
+    if (soffit) B.quad(W.at(s0, off, z0), W.at(s0, off + d, z0), W.at(s1, off + d, z0), W.at(s1, off, z0), soffit, [0, 0, -1]);
+    count.soffits += soffit ? 1 : 0;
+    const PS = spec.posts;
+    if (PS) {
+      const w = PS.w || 0.3, pcol = toneOf(P, PS.tone, spec.tone, 'coping'), pz0 = PS.z0 || 0;
+      for (const c of bladeCentres(Object.assign({ from: s0, to: s1 }, PS), s1 - s0)) box(B, W, c - w / 2, c + w / 2, off + d - w, off + d, pz0, z0, pcol, { top: true });
+    }
+    count.canopies++;
+  }
+
   // ── signs ────────────────────────────────────────────────────────────
   /** Dot-matrix lettering on a wall; horizontal (reads along s) or vertical (letters stacked, top first). */
   function sign(B, W, spec, P) {
@@ -1278,6 +1303,13 @@
     const lipH = over > 0 || R.lipH ? (R.lipH != null ? R.lipH : APTS.roof.lipH) : 0;
     const roofCol = toneOf(P, R.tone, blk.roofTone, 'roof');
     const lipCol = over > 0 || R.lipH ? (P[R.lipTone || 'coping'] || roofCol) : null;
+    // `soffitTone`: the overhang's UNDERSIDE in its own material. The emitter
+    // draws an eave lip's top, fascia and soffit in one colour, so a roof
+    // that asks for a soffit tone gets no lip from the emitter (`lip: null`)
+    // and this file draws the three itself from the same profile — the top
+    // and the fascia in the lip tone, the soffit in this one. Moody Center's
+    // 70,000 sq ft of wood-composite soffit under a dark bronze fascia.
+    const soffitCol = lipCol && R.soffitTone ? (P[R.soffitTone] || null) : null;
     // longitude/latitude for the emitter (its dpm is [1, 1]); a ray is the frame's linear map of a metre vector
     const ll = (u, v) => F.ll(u, v);
     const o = ll(0, 0);
@@ -1285,11 +1317,31 @@
     const entry = {
       name: spec.name + ' ' + blk.id, dpm: [1, 1],
       pts: prof.pts.map(p => ll(p[0], p[1])), rays: rays.map(rayLL), caps, spans: prof.spans,
-      d: dUse, run: dUse, rise, base, steps: 0, col: roofCol, lip: lipCol, deck: R.deck ? (P[R.deck] || roofCol) : null,
+      d: dUse, run: dUse, rise, base, steps: 0, col: roofCol, lip: soffitCol ? null : lipCol, deck: R.deck ? (P[R.deck] || roofCol) : null,
     };
     const interior = [...gableEdges];
     const before = B.triangles;
     Roofs.emit(B, { meta: { lip: lipH, over, pitch: Math.tan(pitch) }, roofs: { [blk.id]: entry } }, { lines: false, interior });
+    if (soffitCol) {
+      // the lip, as the emitter would draw it (roofOne step 1), with its own soffit colour
+      const M = prof.pts.length, zLip = base + lipH;
+      const skipLip = new Set();
+      for (const i of gableEdges) { const sp = prof.spans[i]; if (sp) for (let k = sp[0]; k < sp[1]; k++) skipLip.add(k % M); }
+      const capAt = (k, d) => { const c = Math.min(d, caps[k]); return [prof.pts[k][0] + rays[k][0] * c, prof.pts[k][1] + rays[k][1] * c]; };
+      const eaveAt = k => [prof.pts[k][0] - rays[k][0] * over, prof.pts[k][1] - rays[k][1] * over];
+      for (let k = 0; k < M; k++) {
+        const j = (k + 1) % M;
+        if (skipLip.has(k)) continue;
+        const ek = eaveAt(k), ej = eaveAt(j), wk = capAt(k, 0), wj = capAt(j, 0);
+        const dx = ej[0] - ek[0], dy = ej[1] - ek[1], L = Math.hypot(dx, dy) || 1;
+        const o3 = F.at(ek[0] + dy / L, ek[1] - dx / L, 0), o0 = F.at(ek[0], ek[1], 0);   // outward: right of the CCW edge
+        const outward = [o3[0] - o0[0], o3[1] - o0[1], 0];
+        B.quad(F.at(ek[0], ek[1], zLip), F.at(ej[0], ej[1], zLip), F.at(wj[0], wj[1], zLip), F.at(wk[0], wk[1], zLip), lipCol, [0, 0, 1]);
+        B.quad(F.at(ek[0], ek[1], base), F.at(ej[0], ej[1], base), F.at(ej[0], ej[1], zLip), F.at(ek[0], ek[1], zLip), lipCol, outward);
+        B.quad(F.at(wk[0], wk[1], base), F.at(wj[0], wj[1], base), F.at(ej[0], ej[1], base), F.at(ek[0], ek[1], base), soffitCol, [0, 0, -1]);
+      }
+      count.soffits++;
+    }
     // the gable walls: the wall's top edge, then the roof's profile along it, in wall tone (a deck roof's standing edge is the rig's own fin)
     const gableCol = toneOf(P, R.gableTone, 'wall');
     for (const i of (R.deck ? [] : gableEdges)) {
@@ -1508,12 +1560,16 @@
     for (const band of bands) {
       if (band.z1 - band.z0 < 0.05) continue;
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = APTS.signs && band.signs && band.signs.length;
-      if (!hasB && !hasS) continue;
+      const hasF = APTS.fins && band.fins, hasC = APTS.canopies && band.canopies && band.canopies.length;
+      if (!hasB && !hasS && !hasF && !hasC) continue;
       const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
       if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P);
       if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
+      // a band's own fins: on the whole face at their pitch (a skin's ride on each piece with the skin)
+      if (hasF) for (const fs of Array.isArray(band.fins) ? band.fins : [band.fins]) blades(B, Wb, fs, W.L, band.z0, band.z1, P, cut || null);
+      if (hasC) for (const c of band.canopies) canopy(B, Wb, c, P);
     }
   }
 
