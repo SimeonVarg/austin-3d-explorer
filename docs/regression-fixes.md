@@ -258,11 +258,85 @@ the fence reading came from in the first place.
 
 ## The gates
 
-<!--GATES-->
+All on hardware — `ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU
+(0x000025A0) Direct3D11 vs_5_0 ps_5_0, D3D11)` — against `python scripts/serve.py
+8497` on this branch, with `--against-tip` pointing at a second `serve.py` on 8498
+serving a `git archive` of `b3ff9d2`, the commit this branch was cut from.
+
+| gate | result |
+|---|---|
+| `slopes-layer.mjs --against-tip` (`VERIFY_MAX_MS=4200000`) | **78/78 passed** |
+| `art-slopes.mjs` | **7/7 passed** |
+| `walkmeter.mjs` | **PASS** — self-check drift 0 over limit, 0 route errors, live UI gate pass |
+| `facadegrid.mjs` | **0 failing assertions** |
+| `westcampus-probe.mjs` | **21/21 assertions passed** |
+
+Two lines worth quoting because they are the ones that say this change is only
+what it claims to be:
+
+> PASS apartments (--against-tip): ?apartments=0 is the frame of the main this
+> branch was cut from, at the pose — inside the pose's own page-to-page floor,
+> and nowhere deep
+> `274029 of 1296000 px differ (max channel Δ 27, 171 deeper than Δ 24). Floor:
+> two fresh loads 274029 px at Δ 27 (171 deep)`
+
+Equal to the floor to the pixel: with the generator switched off, this branch
+draws the frame main draws.
+
+> PASS apartments: the runtime-off frame is the ?apartments=0 frame at the pose
+> `74949 of 1296000 px differ (max channel Δ 51, 89 of them deeper than Δ 24)`
+
+**`westcampus-probe.mjs` came back 21/21, not the 20/21 that was expected to be
+pre-existing on main.** It was not chased and nothing here touches it.
+
+### The one red, and what was done about it
+
+The first run was **77/78**. The failing line:
+
+> \*FAIL apartments: a band's `canopies` hang a slab off the wall with its
+> underside in its own tone …
+> `canopies 6 -> 6 -> 5, soffits 5 -> 5 -> 4 (roof: 5 -> 4); rust cells on the
+> canopy's soffit plane 0 / 6 / 0; pool cells on the eave's soffit plane 0 / 6 / 0`
+
+Looked at rather than reasoned about: the fixture patches
+`cornerBay.faces.v0.bands[0].canopies` by **assignment** and then **deletes** the
+key. That reads as "add one, take it away again" only while the band carries
+none. On `main` that band has no `canopies`; since the corner fix it carries the
+storefront fascia that projects under the oriel to give it a soffit. So the
+assignment *replaced* the real canopy (6 → 6, not 6 → 7), the delete removed it
+for good (→ 5), and the gym half below inherited the missing soffit (5 → 4
+instead of 6 → 5). Four misses, one cause, and **none of them about the thing the
+line exists to prove** — the two censuses came back `0 / 6 / 0` and `0 / 6 / 0`,
+exactly as written, in the same run.
+
+The fixture pushes and restores now instead of assigning and deleting, so it
+measures "one more canopy" against whatever the data already says. Re-run:
+**78/78**, and that line reads `canopies 6 -> 7 -> 6, soffits 5 -> 6 -> 5
+(roof: 6 -> 5)`.
 
 ## The cost
 
-<!--PERF-->
+`apts-perf.mjs`, headed, on the same GPU, vsync and the occlusion throttles off,
+graphics preset `balanced`, both generators toggled at runtime on **one** page,
+interleaved A/B/B/A, 200 frames a rep, 2 warm-up reps discarded, 3 measured, and
+the **minimum of the per-rep medians** reported. 865,596 triangles ON, 0 OFF.
+
+| pose | ON p50 | OFF p50 | Δ p50 | Δ p90 |
+|---|---|---|---|---|
+| standard-sw | 11.80 ms | 11.80 ms | **+0.00 ms** | +0.90 ms |
+| moody-sw | 10.70 ms | 10.60 ms | **+0.10 ms** | +0.40 ms |
+| mall-cruise | 13.20 ms | 13.50 ms | **−0.30 ms** | +0.10 ms |
+
+The defect threshold for this pass was +3 ms. The worst median cost is +0.10 ms
+and one pose is negative, which is what a change this size should look like:
+three JSON files moved, no new draw call anyone can time.
+
+Two conditions worth naming rather than burying. This instrument runs **headed**
+and at the **balanced** preset — the numbers are not comparable to anything
+measured headless or at another preset. And its three poses are `standard-sw`,
+`moody-sw` and `mall-cruise`: **Villas on Rio is not one of them.** The two
+buildings whose geometry actually grew in this pass are, and Villas' change adds
+no geometry at all — it moves an existing window's pitch and size.
 
 ## What is still open
 
