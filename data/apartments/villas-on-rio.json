@@ -118,6 +118,22 @@
       "hex": "#2c5a70",
       "_src": "S5 src_00 (760-900, 420-560) and (880-1000, 300-420), two patches of the raking glass plane: clusters #234b5e, #3d6578, #355e74 and #254d63. Entered between them. A deep teal-blue - a big plane of insulated vision glass seen against the sky, and the darkest thing on the building."
     },
+    "rakeGlassA": {
+      "hex": "#234b5e",
+      "_src": "the darkest of the four. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassB": {
+      "hex": "#3d6578",
+      "_src": "the lightest of the four. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassC": {
+      "hex": "#355e74",
+      "_src": "the third. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
+    "rakeGlassD": {
+      "hex": "#254d63",
+      "_src": "the second-darkest. S5 src_00 (760-900, 420-560) and (880-1000, 300-420), the two patches of the raking glass: this is that cluster, entered on its own. The four clusters were averaged into `rakeGlass` while the plane was twenty stair-steps and could carry only one tone; the plane can carry all four now, one per pane (`fields` with `fieldRule: checker` on rakeGlassSkin), which is what a wall of insulated vision glass does - every pane returns a different piece of sky. S6's Google Earth (imagery 12/3/2023), re-flown 2026-09-08 at a camera matched to this app's own aerial pose over the north-west corner, shows the same thing and is the reason the flat tone was not left alone: mint panes beside slate ones, in patches, not a field."
+    },
     "taupe": {
       "hex": "#b0aaa4",
       "_src": "S5 src_00 (1500-1800, 1080-1300), the seven-storey wing: clusters #a6a19d, #afa9a4 and #b8b1aa are one material - a warm grey precast - and #b0aaa4 is their middle. #d1d5d3 in the same patch is the white window surround (trimWhite) and #383c38 the openings."
@@ -277,6 +293,14 @@
       "kind": "bays",
       "bay": 1.55,
       "field": "rakeGlass",
+      "fields": [
+        "rakeGlassA",
+        "rakeGlassB",
+        "rakeGlassC",
+        "rakeGlassD"
+      ],
+      "fieldRule": "checker",
+      "_fields_src": "the four glass clusters S5 src_00 gives for this plane, one per pane, indexed by bay + storey so the patchwork runs diagonally rather than in stripes. `field` stays their median for anything that asks for a single tone.",
       "strip": {
         "w": 0.13,
         "tone": "mull",
