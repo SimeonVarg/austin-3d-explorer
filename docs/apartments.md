@@ -131,6 +131,64 @@ OVERLAPS the ring, and a strip drawn proud of the wall does not: the clause
 took 17 of Jester West's 44 and left 27. `APARTMENTS.wallMargin` is the
 number that finishes it — see the hide list above.)*
 
+## Round 3 (Sep 8 2026): the fields the generator lacked, from the builders' own notes
+
+Twenty-seven files wrote down what they could not draw, and a survey ranked
+the gaps by how many buildings faked the same thing and how visible the fake
+is from the two cameras this app is judged at. This round is those fields.
+Every one is proved on The Standard's own numbers by a gate line in
+`scripts/verify/slopes-layer.mjs` (a one-field patch, a rebuild, a measurement
+on the real mesh, the field taken back), and every frame below is the
+builder's own file patched at runtime with the builder's own measured numbers
+— nothing in `data/apartments/` changed in this round; the three builders
+convert their files next.
+
+![Villas on Rio's raking glass from West 22nd Street: twenty treads, then one plane](shots/apartments-round3-villas-rake-street.jpg)
+![The same rake from the air: the sawtooth on the silhouette, then the line](shots/apartments-round3-villas-rake-air.jpg)
+![Moody Center from its plaza: the fins as slots cut into the wall, then as blades standing 0.30 m off the glazing, under a wood soffit](shots/apartments-round3-moody-fins-plaza.jpg)
+![The Standard's podium from 23rd Street: windows scattered on a field, then bays grouped between piers](shots/apartments-round3-standard-piers-street.jpg)
+![The Standard's corner bay: a garage mouth cut 3 m into the storefront under a canopy with a rust soffit, a graphic mark beside the lettering, the juliets as loggias](shots/apartments-round3-standard-corner.jpg)
+
+*Above, left is the branch's own build before the field, right is after, same
+camera, same page, cameras placed by hand at the sidewalk and at the air
+(`H.eye` in the session's `run.mjs`: a camera at (u, v, h) looking along a
+bearing at a pitch, the target derived from it, the zoom from the distance).*
+
+### `rake` — a wall plane that leans (Villas on Rio)
+
+```jsonc
+{ "id": "rake", "plan": [0, 20.74, 22.51, 37.42], "z0": 24.2, "z1": 54.95,
+  "rake": { "face": "u0" },                       // run: the plan's depth behind that face (20.74) unless given
+  "bands": [{ "z0": 24.2, "z1": 54.95, "skin": "panel" }],                    // the flanks, clipped to the wedge
+  "faces": { "u0": { "bands": [{ "z0": 24.2, "z1": 54.95, "skin": "rakeGlassSkin" }] },   // the plane
+             "u1": null } }
+```
+
+`rake: { face, run? }` on a block leans the named face (a rectangle's `u0 |
+u1 | v0 | v1`, a polygon's edge index): its **foot** is that edge of the plan
+at `z0`, its **head** the same edge moved `run` metres into the block at
+`z1`, and the plane between them is ONE surface — Villas on Rio's twenty
+blocks of run 1.037 m and rise 1.538 m (`_rake` in its file: eave 24.2 m at
+u 0, top 54.95 m at u 20.74, pitch 56.0°) become the block above. The
+plane is tiled by the face's own bands as any wall is, in the plane's own
+metres: `s` along the foot, `t` up the slope, `d` out of it, so a 1.55 m
+mullion module is 1.55 m on the glass and the reveal is normal to the plane.
+A band's `z0`/`z1` are metres of height as everywhere else and land where
+those heights cut the plane; so do the building's floor lines (windows and
+`louvre` bands sit where the floors meet the glass; `APARTMENTS.rakeFloors:
+false` drops them). Every other wall of the block is tiled as usual and
+**clipped to the wedge** — the tiler cuts each cell at the plane and drops
+any opening the line would cross — so the flank is a trapezoid in one skin
+at the building's own 3.20 m bay, not twenty slivers rounded to one bay
+each. The cap covers only what lies beyond the head; a parapet stops at the
+head line. Overrides, balconies and canopies are not applied on the raked
+face; a `roof` on a raked block is ignored (the plane is its roof).
+`slopesApartments.built[i].rakes` lists each: `{ block, face, pitch, run,
+rise, len }`. Measured on the patched Villas: nadir raycasts at u 3, 10.37
+and 17 along the slope land at 28.65, 39.58 and 49.41 m — the plane's own
+numbers to the millimetre, where the treads had answered 28.81, 39.58 and
+50.34 — and no vertex of the block stands above the plane.
+
 ### `openings` — a recess of its own depth and tone in a band (garage mouths, entry courts)
 
 ```jsonc
@@ -163,6 +221,34 @@ omitted), in `insetTone` — and all that stands at the face is the rail (`railH
 balcony reads as the shadowed void the photographs show and not as a lit
 slab edge; the Villas on Guadalupe's 0.55 m projection that "landed the dark
 line where the photograph puts it" is the real inset now.
+
+### `chamfer` — a 45° cut on a rectangle's corner (Dobie Twenty21, Skyloft, 26 West)
+
+```jsonc
+{ "id": "tower", "plan": [10, 50, 5, 35], "chamfer": { "u1v0": 2.5, "u1v1": 2.5 }, ... }
+```
+
+Metres — one number for all four corners or `{ u1v0, u0v0, u0v1, u1v1 }` by
+corner — cut at 45°, clamped to half the shorter side. The cut face is keyed
+by the corner's name (`faces.u1v0`, `parapetSides`, `roof.sides`) and the
+four sides keep theirs, so an override on the two returns still works and a
+face may wear its own bands. `count.chamfers` counts the corners cut.
+
+### `plan: { ring, holes }` — a block with light wells (Skyloft, 2706 Rio Grande, GrandMarc)
+
+```jsonc
+{ "id": "ring", "plan": { "ring": [[0, 0], [62.5, 0], [62.5, 35.8], [0, 35.8]],
+                          "holes": [[14, 24, 12, 24], [[38, 12], [48, 12], [48, 24], [38, 24]]] }, ... }
+```
+
+The outer ring is the plan as ever (a rectangle, a polygon, `"footprint"`);
+each hole is a (u, v) ring or a rectangle. A hole's walls face INTO the well
+and are keyed `h<i>.<j>` (hole i, edge j from the hole's point j to j + 1 as
+authored) for `faces`, `parapetSides` and overrides; the cap is triangulated
+round the wells; a hole's edges take a parapet like any other. A pitched
+`roof` on a holed block ignores the holes (and says so). Skyloft's six blocks
+round two wells are one block with two holes; GrandMarc's H-shaped court is
+one H-shaped hole.
 
 ### Taste values added
 
@@ -274,10 +360,10 @@ what the block extents were read from.
   "frame": "obb",                      // or { "obb": {...} } to pin one by hand
   "levels": { "floors": [0, 6.0, 9.1, ...] },   // every floor line, metres; skins put windows on them
   "colours": { "<tone>": { "hex": "#day" } | ["#day", "#golden", "#night"] },
-  "skins":   { "<skin>": { "kind": "pixel" | "bays" | "storefront" | "flat", ... } },
+  "skins":   { "<skin>": { "kind": "pixel" | "bays" | "storefront" | "flat" | "mod4", ..., "fins", "pier" } },
   "balcony": { "proj", "slabT", "railH", "railT" },   // the building's balcony module
-  "blocks":  [ { "id", "plan", "z0", "z1", "bands", "faces", "overrides",
-                 "roofTone", "parapet", "parapetSides", "roofItems", "roof", "inset" } ],
+  "blocks":  [ { "id", "plan" | { "ring", "holes" }, "z0", "z1", "bands", "faces", "overrides",
+                 "roofTone", "parapet", "parapetSides", "roofItems", "roof", "inset", "rake", "chamfer" } ],
   "deck":    { "z", "items": [ { "plan", "z0", "h" | "z1", "tone" } ] }
 }
 ```

@@ -1642,6 +1642,46 @@ const patchStd = (pg, fn, arg) => pg.evaluate(([src, arg]) => {
   A.rebuild();
   return Object.assign({ count: A.count }, r || {});
 }, [fn, arg]);
+// RAKE. The gym (15 x 8 m, z 21.5-29.0) with its north face leaning back
+// over the block's whole depth: a 43.2° plane from the deck edge at v 11 to
+// the roof line at v 19. Three nadir raycasts along the slope must land on
+// the plane (its glazing sits 0.2 m behind it, so ±0.35), and the vertex
+// census of the whole block must find NOTHING standing above the plane —
+// which is what separates one plane from twenty treads: a tread's riser
+// stands up to 1.5 m over the line the Villas' twenty were drawn to.
+const rakeTest = await (async () => {
+  const pg = AP.pg;
+  const r = await patchStd(pg, "const gym = b.blocks.find(k => k.id === 'gym'); const before = A.count.rakes; gym.rake = { face: 'v0' }; return { before };");
+  const rec = ((await pg.evaluate(() => window.slopesApartments.built.find(x => x.name === 'The Standard'))).rakes || [])[0] || null;
+  const probes = [[49.5, 13.0], [49.5, 15.0], [49.5, 17.0]];
+  const hits = [];
+  for (const [u, v] of probes) {
+    const ll = await pg.evaluate(([u, v]) => window.slopesApartments.uvToLngLat('The Standard', u, v), [u, v]);
+    await nadirOver(pg, ll, 20.0);
+    hits.push(await pg.evaluate(ll => { const m = window.__map, p = m.project(ll); const h = window.slopes.raycast(p.x, p.y); return h ? +h.point.z.toFixed(3) : null; }, ll));
+  }
+  const want = probes.map(([u, v]) => +(21.5 + (v - 11) / 8 * 7.5).toFixed(3));
+  // nothing above the plane: every vertex in the gym's box, checked against the plane at its own v
+  const above = await pg.evaluate(() => {
+    const A = window.slopesApartments, S = window.slopes;
+    const g = A.group.children[0].geometry, p = g.getAttribute('position');
+    let n = 0, all = 0;
+    for (let i = 0; i < p.count; i++) {
+      const z = p.getZ(i); if (z < 21.6 || z > 29.5) continue;
+      const ll = S.toLngLat(p.getX(i), p.getY(i), z), uv = A.lngLatToUV('The Standard', ll.lng, ll.lat);
+      if (uv[0] < 42.2 || uv[0] > 56.8 || uv[1] < 11.0 || uv[1] > 18.9) continue;
+      all++;
+      if (z > 21.5 + (uv[1] - 11) / 8 * 7.5 + 0.35) n++;
+    }
+    return { n, all };
+  });
+  const restored = await patchStd(pg, "const gym = b.blocks.find(k => k.id === 'gym'); delete gym.rake; return {};");
+  return { before: r.before, after: r.count.rakes, rec, hits, want, above, restored: restored.count.rakes };
+})();
+check('apartments: a block\'s `rake` leans one face as ONE plane — The Standard\'s gym with its north face raked over its 8 m depth reports a 43.2° plane, three nadir raycasts along it land on the plane, and no vertex of the block stands above it',
+  rakeTest.after === rakeTest.before + 1 && rakeTest.rec && Math.abs(rakeTest.rec.pitch - 43.15) < 0.1 && Math.abs(rakeTest.rec.run - 8) < 0.01
+  && rakeTest.hits.every((h, i) => h != null && Math.abs(h - rakeTest.want[i]) < 0.35) && rakeTest.above.all > 100 && rakeTest.above.n === 0 && rakeTest.restored === rakeTest.before,
+  `rakes ${rakeTest.before} -> ${rakeTest.after} -> ${rakeTest.restored}; record ${rakeTest.rec ? 'pitch ' + rakeTest.rec.pitch + '° run ' + rakeTest.rec.run + ' rise ' + rakeTest.rec.rise : 'MISSING'}; raycasts at v 13/15/17: ${rakeTest.hits.map((h, i) => (h == null ? 'nothing' : h.toFixed(2)) + ' (want ' + rakeTest.want[i].toFixed(2) + ')').join(', ')}; ${rakeTest.above.n} of ${rakeTest.above.all} block vertices above the plane`);
 // OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
 // 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
 // the v 3.0 plane, where the flush storefront had none.

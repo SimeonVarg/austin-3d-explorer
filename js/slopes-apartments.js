@@ -172,6 +172,11 @@
     openings: true,
     openingD: 2.0,
     canopyT: 0.2,
+    // A raked (leaning) face: its skin is tiled in metres ALONG the slope,
+    // and the building's floor lines land on it where the floors cut the
+    // plane. `rakeFloors: false` drops the floor lines from a raked face
+    // altogether (a glass rake with no horizontals at the floors).
+    rakeFloors: true,
   };
   window.APARTMENTS = APTS;
 
@@ -1512,6 +1517,168 @@
     }
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  A RAKED FACE — one wall of a block leans
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Villas on Rio's north arm is roofed by one raking glass plane, from an
+  // eave at 24.2 m on West 22nd Street to the tower's face at 54.95 m,
+  // 20.74 m back: pitch 56.0°. It came in as TWENTY blocks of run 1.037 m
+  // and rise 1.538 m — the treads collinear, a 1.54 m sawtooth on the
+  // silhouette, every flank sliver rounded to one bay so the openings landed
+  // at 2.07 m where the building's are 3.20 — because only a block's roof
+  // could slope, and the gable code degenerates when a standing edge's own
+  // corner travels along that edge. That is the "everything is stacked flat
+  // pieces" defect back one level down, inside a wall.
+  //
+  // `rake: { face, run?, ... }` on a block leans the named face: its FOOT is
+  // that edge of the plan at z0, its HEAD the same edge moved `run` metres
+  // into the block at z1 (the plan's whole depth behind the edge when `run`
+  // is omitted — a pure wedge), and the plane between them is ONE surface,
+  // tiled by the face's own bands as any wall is. The tiler works in the
+  // plane's own metres: s along the foot line, t up the slope, d out of it,
+  // so a skin's module (a 1.55 m mullion, a 2.8 m louvre pitch) is the right
+  // size in metres on the leaning surface; a band's z0/z1 are given in
+  // metres of height as everywhere else and land where those heights cut
+  // the plane, and so do the building's floor lines (windows and floor
+  // bands sit where the floors meet the glass). The other walls of the
+  // block — the flanks the plane cuts through, the wall opposite — are
+  // tiled as usual and CLIPPED to the wedge: the tiler cuts each cell at
+  // the plane and drops any opening the line would cross, so the flank is
+  // a trapezoid in one skin at the building's own bay, and the roof cap
+  // covers only what is left beyond the head. A parapet stops at the head
+  // line. Overrides and fixtures on the raked face itself are not applied
+  // (the face's bands are), and a `roof` on a raked block is ignored.
+  //
+  // The plane's outward normal has a z component (cos 56° for the Villas),
+  // so it is lit by MapLibre's formula as a slope, and it is not a facet:
+  // it is glass, not tile, and takes the real light on the real angle.
+  function rakeOf(spec, blk, planUV, keys, walls, F) {
+    const R = blk.rake;
+    const isRect = Array.isArray(blk.plan) && blk.plan.length === 4 && typeof blk.plan[0] === 'number';
+    const fk = String(R.face != null ? R.face : (isRect ? 'u0' : '0'));
+    const i = keys.indexOf(fk);
+    if (i < 0 || !walls[i]) { warnOnce('rake|' + spec.name + '|' + blk.id, spec.name + ' ' + blk.id + ': rake.face "' + fk + '" is not a face of the plan; drawn plumb'); return null; }
+    const W = walls[i];
+    const inward = [-W.n[0], -W.n[1]];
+    let depth = 0;
+    for (const p of planUV) depth = Math.max(depth, (p[0] - W.a[0]) * inward[0] + (p[1] - W.a[1]) * inward[1]);
+    const run = R.run != null ? Math.min(R.run, depth) : depth;
+    const rise = blk.z1 - blk.z0;
+    if (run < 0.05 || rise < 0.05) { warnOnce('rake|' + spec.name + '|' + blk.id, spec.name + ' ' + blk.id + ': a rake needs a run and a rise (run ' + run.toFixed(2) + ', rise ' + rise.toFixed(2) + '); drawn plumb'); return null; }
+    const len = Math.hypot(run, rise), sinP = rise / len, cosP = run / len;
+    // the wedge: keep where (p - foot)·inward × rise − (z − z0) × run ≥ 0
+    const half = [inward[0] * rise, inward[1] * rise, -run, -(inward[0] * W.a[0] + inward[1] * W.a[1]) * rise + blk.z0 * run];
+    // the plane's own frame: s along the foot line, t up the slope, d out of the plane
+    const at = (s, d, t) => F.at(W.a[0] + W.dir[0] * s + inward[0] * (cosP * t - sinP * d), W.a[1] + W.dir[1] * s + inward[1] * (cosP * t - sinP * d), blk.z0 + sinP * t + cosP * d);
+    const o = at(0, 0, 0), pn = at(0, 1, 0), pt = at(1, 0, 0);
+    const N = [pn[0] - o[0], pn[1] - o[1], pn[2] - o[2]], T = [pt[0] - o[0], pt[1] - o[1], 0];
+    const SW = { at, T, N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n, sloped: true };
+    return { i, face: fk, W: SW, run, rise, len, sinP, cosP, pitch: Math.atan2(rise, run) * 180 / Math.PI, half, inward, foot: W.a, depth, z0: blk.z0 };
+  }
+  /** the raked face itself: its bands, in metres up the slope */
+  function drawRakeFace(B, RK, bands, spec, P, key) {
+    const t0Of = z => (z - RK.z0) / RK.sinP;
+    for (const band of bands) {
+      const zb0 = Math.max(band.z0, RK.z0), zb1 = Math.min(band.z1, RK.z0 + RK.rise);
+      if (zb1 - zb0 < 0.05) continue;
+      const sk = spec.skins[band.skin];
+      if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
+      if (insetOf(band) > 0) warnOnce('rake-inset|' + key, key + ': a raked face cannot be recessed; its band is drawn on the plane');
+      const fl = floorsBetween(spec.levels.floors, zb0, zb1, key + ' ' + band.skin);
+      const floors = APTS.rakeFloors ? fl.floors.map(t0Of) : [];
+      const floorBelow = APTS.rakeFloors && fl.floorBelow != null ? t0Of(fl.floorBelow) : null;
+      const t0 = t0Of(zb0), t1 = t0Of(zb1);
+      const ctx = { len: RK.W.L, z0: t0, z1: t1, floors, floorBelow, key: key + '|' + band.skin, band };
+      const skin = resolveSkin(sk, ctx, P, ctx.key);
+      tileFace(B, { W: RK.W, len: RK.W.L, z0: t0, z1: t1 }, skin, P);
+      if ((band.balconies && band.balconies.length) || (band.canopies && band.canopies.length)) warnOnce('rake-fix|' + key, key + ': balconies and canopies are not drawn on a raked face');
+    }
+    count.rakes++;
+  }
+  /** a ring clipped to the half-plane (p − o)·n ≥ k (Sutherland–Hodgman against one line) */
+  function clipRing(ring, o, n, k) {
+    const f = p => (p[0] - o[0]) * n[0] + (p[1] - o[1]) * n[1] - k;
+    const out = [];
+    for (let i = 0; i < ring.length; i++) {
+      const p = ring[i], q = ring[(i + 1) % ring.length], fp = f(p), fq = f(q);
+      if (fp >= 0) out.push(p);
+      if ((fp >= 0) !== (fq >= 0)) { const t = fp / (fp - fq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); }
+    }
+    return out.length >= 3 ? out : null;
+  }
+  /** the s-range of wall W beyond the rake's head line, or null */
+  function wallBeyondHead(W, RK) {
+    const f = p => (p[0] - RK.foot[0]) * RK.inward[0] + (p[1] - RK.foot[1]) * RK.inward[1] - RK.run;
+    const fa = f(W.a), fb = f(W.b);
+    if (fa < 1e-6 && fb < 1e-6) return null;
+    if (fa >= -1e-6 && fb >= -1e-6) return [0, W.L];
+    const sx = W.L * fa / (fa - fb);
+    return fa >= 0 ? [0, sx] : [sx, W.L];
+  }
+
+  // ── chamfered corners and holed plans ────────────────────────────────
+  //
+  // `chamfer` on a rectangle block — metres, one number for all four corners
+  // or `{ u1v0, u0v0, u0v1, u1v1 }` by corner — cuts each named corner at
+  // 45°, and the cut face is keyed by the corner's name (`faces.u1v0`,
+  // `parapetSides`, `roof.sides`) while the four sides keep theirs: Dobie
+  // Twenty21's tower corners, Skyloft's amenity volume, 26 West's corner
+  // tower at W 26th and Nueces, all drawn square until now. A cut is
+  // clamped to half the shorter side it meets.
+  function chamferRect(plan, ch) {
+    const [u0, u1, v0, v1] = plan;
+    const m = k => Math.max(0, typeof ch === 'number' ? ch : (ch && +ch[k]) || 0);
+    const corners = [['u1v0', [u1, v0]], ['u0v0', [u0, v0]], ['u0v1', [u0, v1]], ['u1v1', [u1, v1]]];
+    const edgeKeys = ['v0', 'u0', 'v1', 'u1'];   // edge k runs from corner k to corner k + 1
+    const half = Math.min(Math.abs(u1 - u0), Math.abs(v1 - v0)) / 2 - 0.01;
+    const ring = [], keys = []; let n = 0;
+    for (let k = 0; k < 4; k++) {
+      const [name, p] = corners[k], mk = Math.min(m(name), half);
+      const prev = corners[(k + 3) % 4][1], next = corners[(k + 1) % 4][1];
+      if (mk > 0.05) {
+        const din = [Math.sign(prev[0] - p[0]), Math.sign(prev[1] - p[1])], dout = [Math.sign(next[0] - p[0]), Math.sign(next[1] - p[1])];
+        ring.push([p[0] + din[0] * mk, p[1] + din[1] * mk]); keys.push(name);
+        ring.push([p[0] + dout[0] * mk, p[1] + dout[1] * mk]); keys.push(edgeKeys[k]);
+        n++;
+      } else { ring.push(p); keys.push(edgeKeys[k]); }
+    }
+    return { ring, keys, n };
+  }
+  /** ringWalls with a key per edge, the two lists kept in step where a short edge is dropped (`keys` null: keyed by kept-wall index, as a polygon plan always was) */
+  function ringWallsKeyed(F, ringUV, keys) {
+    let A = 0;
+    for (let i = 0; i < ringUV.length; i++) { const p = ringUV[i], q = ringUV[(i + 1) % ringUV.length]; A += p[0] * q[1] - q[0] * p[1]; }
+    const outward = A > 0 ? -1 : 1;
+    const out = [];
+    for (let i = 0; i < ringUV.length; i++) {
+      const a = ringUV[i], b = ringUV[(i + 1) % ringUV.length];
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.05) continue;
+      out.push({ W: wallFrame(F, a, b, outward), key: keys ? keys[i] : String(out.length) });
+    }
+    return out;
+  }
+  /**
+   * `plan: { ring, holes: [ring, ...] }` — a block with light wells cut out
+   * of it: Skyloft's two wells were six blocks round two gaps, 2706 Rio
+   * Grande's was a dark plate on the roof, GrandMarc's H-shaped court a
+   * rectangle. The outer ring is the plan as ever (a rectangle, a polygon,
+   * `"footprint"`); each hole is a (u, v) ring or a rectangle, its walls
+   * face INTO the well and are keyed `h<i>.<j>` (hole i, edge j from the
+   * hole's point j to j + 1 as authored), and the cap is triangulated round
+   * them. A hole's edges take a parapet like any other (`parapetSides`
+   * lists them by key); a pitched `roof` on a holed block ignores the holes.
+   */
+  function capWithHoles(B, F, ringUV, holesUV, z, col) {
+    const T = window.THREE;
+    const c2 = ringUV.map(p => new T.Vector2(p[0], p[1]));
+    const h2 = holesUV.map(h => h.map(p => new T.Vector2(p[0], p[1])));
+    let idx = [];
+    try { idx = T.ShapeUtils.triangulateShape(c2, h2); } catch (e) { idx = []; }
+    const all = ringUV.concat(...holesUV).map(p => F.at(p[0], p[1], z));
+    for (const [a, b, c] of idx) B.tri(all[a], all[b], all[c], col, [0, 0, 1]);
+  }
+
   function buildingOne(B, spec) {
     const S = window.slopes;
     const P = palette(spec);
@@ -1524,6 +1691,7 @@
     const levels = spec.levels;
     let top = 0;
     const roofs = [];                 // the pitched roofs built: { block, kind, ridgeZ, rise, dUse }
+    const rakes = [];                 // the raked faces built: { block, face, pitch, run, rise, len }
     const signs0 = count.signs, insets0 = count.insets;
 
     for (const blk of spec.blocks || []) {
@@ -1531,11 +1699,28 @@
       const bands = blk.bands || [];
       const zTop = blk.z1;
       top = Math.max(top, zTop + (blk.parapet || 0));
-      // the plan: the footprint ring, a (u, v) polygon, or a rectangle [u0, u1, v0, v1]
-      const isRect = Array.isArray(blk.plan) && blk.plan.length === 4 && typeof blk.plan[0] === 'number';
-      const planUV = blk.plan === 'footprint' ? ringUV : (isRect ? rectRing(blk.plan) : blk.plan);
-      const walls = ringWalls(F, planUV);
-      const keys = isRect ? RECT_SIDES : walls.map((_, i) => String(i));
+      // the plan: the footprint ring, a (u, v) polygon, a rectangle [u0, u1, v0, v1],
+      // or { ring, holes } — any of those with light wells cut out (capWithHoles)
+      const planSpec = blk.plan && !Array.isArray(blk.plan) && typeof blk.plan === 'object' && blk.plan.ring != null ? blk.plan : null;
+      const planIn = planSpec ? planSpec.ring : blk.plan;
+      const isRect = Array.isArray(planIn) && planIn.length === 4 && typeof planIn[0] === 'number';
+      let planUV = planIn === 'footprint' ? ringUV : (isRect ? rectRing(planIn) : planIn);
+      // a rectangle's sides are keyed by name (and a chamfer's cuts by corner); a polygon's edges by index among the walls kept
+      let keys0 = isRect ? RECT_SIDES.slice() : null;
+      if (isRect && blk.chamfer) { const ch = chamferRect(planIn, blk.chamfer); planUV = ch.ring; keys0 = ch.keys; count.chamfers += ch.n; }
+      const holesUV = planSpec ? (planSpec.holes || []).map(h => (Array.isArray(h) && h.length === 4 && typeof h[0] === 'number') ? rectRing(h) : h).filter(h => Array.isArray(h) && h.length >= 3) : [];
+      count.holes += holesUV.length;
+      // the walls: the outer ring's, then each hole's (reversed, so they face into the well), each ring contiguous
+      const walls = [], keys = [], prevOf = [], nextOf = [], ringLenOf = [];
+      const addRing = (rg, ks) => {
+        const ws = ringWallsKeyed(F, rg, ks), start = walls.length, n = ws.length;
+        ws.forEach((w, j) => { walls.push(w.W); keys.push(w.key); prevOf.push(start + (j - 1 + n) % n); nextOf.push(start + (j + 1) % n); ringLenOf.push(n); });
+      };
+      addRing(planUV, keys0);
+      holesUV.forEach((h, hi) => { const n = h.length; addRing(h.slice().reverse(), h.map((_, k) => 'h' + hi + '.' + ((n - 2 - k + n) % n))); });
+      // the rake: one face leans (rakeOf above); every other wall is clipped to the wedge
+      const RK = blk.rake ? rakeOf(spec, blk, planUV, keys, walls, F) : null;
+      if (RK) rakes.push({ block: blk.id, face: RK.face, pitch: +RK.pitch.toFixed(2), run: +RK.run.toFixed(3), rise: +RK.rise.toFixed(3), len: +RK.len.toFixed(3), z0: blk.z0, z1: blk.z1 });
       // pass 1: what every wall wears — its bands and the override pieces along it
       const plan = walls.map((W, i) => {
         const face = blk.faces ? (keys[i] in blk.faces ? blk.faces[keys[i]] : blk.faces['*']) : undefined;
@@ -1569,32 +1754,45 @@
         if (!plan[i]) continue;
         const W = walls[i], { bd, pieces } = plan[i];
         const wkey = key + '|' + blk.id + '|' + keys[i];
-        const prev = plan[(i - 1 + nW) % nW], next = plan[(i + 1) % nW];
+        if (RK && i === RK.i) { drawRakeFace(B, RK, bd, spec, P, wkey); continue; }
+        const prev = plan[prevOf[i]], next = plan[nextOf[i]], nR = ringLenOf[i];
         for (let k = 0; k < pieces.length; k++) {
           const [a, b, pb] = pieces[k];
           let lo, hi;
           if (k > 0) lo = { kind: 'straight', bands: pieces[k - 1][2] };
-          else { lo = corner(W, walls[(i - 1 + nW) % nW], false); lo.bands = prev && nW > 1 ? prev.pieces[prev.pieces.length - 1][2] : null; }
+          else { lo = corner(W, walls[prevOf[i]], false); lo.bands = prev && nR > 1 ? prev.pieces[prev.pieces.length - 1][2] : null; }
           if (k < pieces.length - 1) hi = { kind: 'straight', bands: pieces[k + 1][2] };
-          else { hi = corner(W, walls[(i + 1) % nW], true); hi.bands = next && nW > 1 ? next.pieces[0][2] : null; }
-          drawWall(B, F, W, a, b, pb, spec, P, wkey, { fixtures: pb !== bd, lo, hi, blockZ0: blk.z0 });
+          else { hi = corner(W, walls[nextOf[i]], true); hi.bands = next && nR > 1 ? next.pieces[0][2] : null; }
+          drawWall(B, F, W, a, b, pb, spec, P, wkey, { fixtures: pb !== bd, lo, hi, blockZ0: blk.z0, clip: RK ? RK.half : null });
         }
         // the face's own balconies and signs: once, on the whole wall, `s` along the face
-        wallFixtures(B, W, bd, spec, P, wkey);
+        wallFixtures(B, W, bd, spec, P, wkey, RK ? { a: RK.half[0] * W.dir[0] + RK.half[1] * W.dir[1], b: RK.half[2], c: RK.half[0] * W.a[0] + RK.half[1] * W.a[1] + RK.half[3] } : null);
       }
       // the roof: the plan at z1 (earcut through slopes.build().polygon), or
       // the pitched roof the block asks for (roofOf); a roof standing inside
       // its wall (`inset`, behind a parapet) keeps the flat cap under it
       let roofRec = null;
-      if (blk.roof) { try { roofRec = roofOf(B, spec, blk, F, planUV, keys, P, zTop); } catch (e) { console.warn('[slopes-apartments] roof', spec.name, blk.id, e); } }
+      if (blk.roof && RK) warnOnce('rake-roof|' + key + '|' + blk.id, spec.name + ' ' + blk.id + ': a raked block carries no roof; the plane is its roof');
+      if (blk.roof && holesUV.length) warnOnce('holes-roof|' + key + '|' + blk.id, spec.name + ' ' + blk.id + ': a pitched roof on a holed plan ignores the holes');
+      if (blk.roof && !RK) { try { roofRec = roofOf(B, spec, blk, F, planUV, keys, P, zTop); } catch (e) { console.warn('[slopes-apartments] roof', spec.name, blk.id, e); } }
       if (roofRec) { roofs.push(roofRec); top = Math.max(top, roofRec.ridgeZ); }
       if (!roofRec || blk.roof.inset > 0) {
-        const cap = planUV.map(p => F.at(p[0], p[1], zTop));
-        B.polygon(cap, P[blk.roofTone || 'roof'], [0, 0, 1], 'xy');
+        // a raked block's cap is only what lies beyond the head line; a holed plan's goes round its wells
+        const capUV = RK ? clipRing(planUV, RK.foot, RK.inward, RK.run) : planUV;
+        const capCol = P[blk.roofTone || 'roof'];
+        if (capUV && (!RK || Math.abs(ringArea(capUV)) > 0.05)) {
+          if (holesUV.length && !RK) capWithHoles(B, F, capUV, holesUV, zTop, capCol);
+          else B.polygon(capUV.map(p => F.at(p[0], p[1], zTop)), capCol, [0, 0, 1], 'xy');
+        }
       }
       if (blk.parapet) {
         const sides = blk.parapetSides || keys;
-        for (let i = 0; i < walls.length; i++) if (sides.includes(keys[i])) box(B, walls[i], 0, walls[i].L, -APTS.parapetT, 0, zTop, zTop + blk.parapet, P[blk.parapetTone || 'coping'], { bottom: true });
+        for (let i = 0; i < walls.length; i++) {
+          if (!sides.includes(keys[i]) || (RK && i === RK.i)) continue;
+          const r = RK ? wallBeyondHead(walls[i], RK) : [0, walls[i].L];
+          if (!r || r[1] - r[0] < 0.05) continue;
+          box(B, walls[i], r[0], r[1], -APTS.parapetT, 0, zTop, zTop + blk.parapet, P[blk.parapetTone || 'coping'], { bottom: true });
+        }
       }
       // rooftop items: closed boxes on the roof — a bulkhead, a stair head, or
       // a `grid` [nu, nv] of them inside `plan` (a condenser cluster: the
@@ -1646,7 +1844,7 @@
     }
     count.buildings++;
     count.names.push(spec.name);
-    return { name: spec.name, id: spec.id || null, top, frame: F, roofs, signs: count.signs - signs0, insets: count.insets - insets0 };
+    return { name: spec.name, id: spec.id || null, top, frame: F, roofs, rakes, signs: count.signs - signs0, insets: count.insets - insets0 };
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -1897,7 +2095,7 @@
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },
-    get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, signs: b.signs, insets: b.insets })); },
+    get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, rakes: b.rakes, signs: b.signs, insets: b.insets })); },
     /** the filter plan as applied, the layers whose clause is missing, the rigs lifted out of js/slopes-roofs.js */
     get hidden() { return { plan: _data ? filterPlan().map(p => p[0]) : [], missing: filtersMissing(), rigs: Object.keys(_rigStash), rigsMissing: rigsMissing() }; },
     /** every character the dot font can set */
