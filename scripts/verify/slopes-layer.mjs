@@ -1398,7 +1398,7 @@ const c = apts.count || {};
 check('apartments: every building in the index is built — The Standard among them, its blocks, faces, windows, balconies and signs, in a group of its own that is drawing',
   c.done && c.buildings === apts.indexed && apts.indexed >= 1 && c.blocks >= 8 && c.faces >= 40 && c.windows >= 1000 && c.balconies >= 20 && c.signs >= 4 && c.triangles >= APT_TRIS_MIN
   && apts.groups.includes('slopes-apartments') && apts.tris >= APT_TRIS_MIN && apts.visible && apts.built.some(b => b.name === APT_NAME && b.top > 58 && b.top < 59),
-  `${c.buildings} of ${apts.indexed} indexed building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.roofs} pitched roofs, ${c.insets} recesses, ${c.frames} framed windows, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); The Standard top ${JSON.stringify((apts.built.find(b => b.name === APT_NAME) || {}).top)}`);
+  `${c.buildings} of ${apts.indexed} indexed building(s) [${(c.names || []).join(', ')}], ${c.blocks} blocks, ${c.faces} faces, ${c.cells} cells, ${c.windows} windows, ${c.balconies} balconies, ${c.signs} signs, ${c.roofs} pitched roofs, ${c.insets} recesses, ${c.frames} framed windows, ${c.rakes} raked faces, ${c.fins} fins, ${c.piers} piers, ${c.openings} openings, ${c.canopies} canopies, ${c.triangles} tris in ${c.ms} ms; group ${apts.groups.includes('slopes-apartments') ? 'present' : 'MISSING'} (${apts.tris} tris, visible ${apts.visible}); The Standard top ${JSON.stringify((apts.built.find(b => b.name === APT_NAME) || {}).top)}`);
 check('apartments: while it draws, the flat prism is filtered out of buildings-3d and buildings-roof by id, the westcampus bands out of the four wc- layers by name, campus-storeys by host, and the roofscape pass by geometry — every planned clause in place',
   apts.filtered === true && apts.b3d.includes(ownClause(apts.ids)) && apts.roof.includes(ownClause(apts.ids))
   && [apts.wc, apts.wcCap, apts.wcSolid, apts.wcDetail].every(f => f.includes(APT_NAME))
@@ -1604,6 +1604,60 @@ const mod4Test = await AP.pg.evaluate(name => {
 check('apartments: the `mod4` skin pairs its cells into dominoes by k = (c - r) mod 4 — on The Standard\'s court faces at least 85 % of the cells it adds pair off, and the count returns once the skin is taken back',
   mod4Test.cells > 100 && mod4Test.dominoes * 2 >= 0.85 * mod4Test.cells && mod4Test.dominoes * 2 <= mod4Test.cells && mod4Test.restored === mod4Test.before,
   `${mod4Test.cells} cells added, ${mod4Test.dominoes} dominoes added (${(200 * mod4Test.dominoes / Math.max(1, mod4Test.cells)).toFixed(0)} % of them paired); the page already carried ${mod4Test.before} dominoes in ${mod4Test.cellsBefore} cells (Union on 24th), ${mod4Test.restored} restored`);
+// ── 2026-09-08: the capabilities the builders could not draw, each proved
+// on The Standard's own numbers the way the four above are: a one-field
+// patch, a rebuild, a measurement on the real mesh, the field taken back.
+//
+// The instrument for most of them is a VERTEX CENSUS in the building's
+// own frame (the `inset` line's): every vertex of the apartments mesh is
+// read back through slopes.toLngLat and lngLatToUV, and counted where it
+// stands on a named plane in a named box with a named day tone. A plane
+// that has cells only after the patch, and none before and none after the
+// restore, is the field working; the tone is the proof the cells are the
+// field's own and not the wall's. The rake is proved by RAYCASTS from a
+// nadir, because "one plane, not steps" is a statement about where a ray
+// lands at three points along the slope.
+const uvCensus = (pg, name, box, tone) => pg.evaluate(([name, box, tone]) => {
+  // box: { u: [u0, u1], v: [v0, v1], z: [z0, z1] }; tone: a colour key of the building (day hex), or null for any
+  const A = window.slopesApartments, S = window.slopes;
+  const g = A.group.children[0].geometry, p = g.getAttribute('position'), cd = g.getAttribute('cDay');
+  const b = A.data.buildings.find(b => b.name === name);
+  let want = null;
+  if (tone) { const c = b.colours[tone]; const hx = Array.isArray(c) ? c[0] : (c.hex || c); want = [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16) / 255); }
+  let n = 0;
+  for (let i = 0; i < p.count; i++) {
+    const z = p.getZ(i);
+    if (z < box.z[0] || z > box.z[1]) continue;
+    if (want && (Math.abs(cd.getX(i) - want[0]) > 0.01 || Math.abs(cd.getY(i) - want[1]) > 0.01 || Math.abs(cd.getZ(i) - want[2]) > 0.01)) continue;
+    const ll = S.toLngLat(p.getX(i), p.getY(i), z);
+    const uv = A.lngLatToUV(name, ll.lng, ll.lat);
+    if (uv[0] < box.u[0] || uv[0] > box.u[1] || uv[1] < box.v[0] || uv[1] > box.v[1]) continue;
+    n++;
+  }
+  return n;
+}, [name, box, tone]);
+const patchStd = (pg, fn, arg) => pg.evaluate(([src, arg]) => {
+  const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === 'The Standard');
+  const r = (new Function('A', 'b', 'arg', src))(A, b, arg);
+  A.rebuild();
+  return Object.assign({ count: A.count }, r || {});
+}, [fn, arg]);
+// OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
+// 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
+// the v 3.0 plane, where the flush storefront had none.
+const openTest = await (async () => {
+  const pg = AP.pg;
+  const box = { u: [83.95, 88.85], v: [2.97, 3.03], z: [0.35, 4.95] };
+  const before = await uvCensus(pg, APT_NAME, box, null);
+  const r = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); const before = A.count.openings; cb.faces.v0.bands[0].openings = [{ s0: 6.0, s1: 11.0, z0: 0.3, z1: 5.0, d: 3.0, tone: 'charcoal' }]; return { before };");
+  const during = await uvCensus(pg, APT_NAME, box, 'charcoal');
+  const restored = await patchStd(pg, "const cb = b.blocks.find(k => k.id === 'cornerBay'); delete cb.faces.v0.bands[0].openings; return {};");
+  const after = await uvCensus(pg, APT_NAME, box, null);
+  return { before, during, after, o0: r.before, o1: r.count.openings, o2: restored.count.openings };
+})();
+check('apartments: a band\'s `openings` cut a recess of its own depth and tone into the wall — a 5 m garage mouth 3 m deep in The Standard\'s corner-bay storefront puts charcoal cells on the v 3.0 plane behind the face, where nothing stood before or after',
+  openTest.o1 === openTest.o0 + 1 && openTest.before === 0 && openTest.during >= 6 && openTest.after === 0 && openTest.o2 === openTest.o0,
+  `openings ${openTest.o0} -> ${openTest.o1} -> ${openTest.o2}; vertices on the v 3.0 plane inside the mouth: ${openTest.before} before, ${openTest.during} charcoal with the opening, ${openTest.after} restored`);
 // the in-place tests moved the camera (a nadir over the gym, the street outside the podium): back to the pose
 // before the OFF frame, and a settled ON frame there first so the OFF comparison is against the same picture
 await pose(AP.pg, STANDARD.center, STANDARD.zoom, STANDARD.pitch, STANDARD.bearing);

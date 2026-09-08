@@ -161,6 +161,17 @@
     // the side walls where a recess ends against a face that is not recessed.
     insetSoffit: true,
     insetReturns: true,
+    // The fixtures that stand OFF a wall (2026-09-08): fins and piers (a
+    // band's or a skin's `fins`, a `bays` skin's `pier`), canopies (a band's
+    // `canopies`) and openings (a band's `openings`, an inset balcony) —
+    // each switchable like the balconies. `openingD` is an opening's depth
+    // when its file gives none, `canopyT` a canopy slab's thickness likewise.
+    fins: true,
+    piers: true,
+    canopies: true,
+    openings: true,
+    openingD: 2.0,
+    canopyT: 0.2,
   };
   window.APARTMENTS = APTS;
 
@@ -168,8 +179,8 @@
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
   const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
-  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
-  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes'];
+  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
+  const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes', 'rakes', 'fins', 'piers', 'openings', 'canopies', 'soffits', 'chamfers', 'holes'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
   /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
   const warned = new Set();
@@ -503,6 +514,42 @@
     B.quad(W.at(s0, d, z0), W.at(s1, d, z0), W.at(s1, d, z1), W.at(s0, d, z1), col, W.N);
   }
 
+  // ── a cut through a face ─────────────────────────────────────────────
+  //
+  // A face is a rectangle in (s, z) until a raking plane runs through it:
+  // the flank of Villas on Rio's north arm is a white panel wall under a
+  // glass plane at 56°, and its cells stop at the plane. `cut` is a
+  // half-plane in the face's own (s, z) — keep where a·s + b·z + c ≥ 0 — and
+  // a cell the line crosses is clipped to it (Sutherland–Hodgman against one
+  // line: a rectangle becomes three to five points) and drawn as a polygon
+  // in the wall's plane. A cell wholly outside is not drawn and not counted;
+  // an opening the line would cross is dropped whole, so every reveal stays
+  // a rectangle.
+  const cutSide = (cut, s, z) => cut.a * s + cut.b * z + cut.c;
+  function clipRect(sa, sb, za, zb, cut) {
+    const pts = [[sa, za], [sb, za], [sb, zb], [sa, zb]];
+    const v = pts.map(p => cutSide(cut, p[0], p[1]));
+    if (v.every(x => x >= -1e-9)) return pts;
+    if (v.every(x => x <= 1e-9)) return null;
+    const out = [];
+    for (let i = 0; i < 4; i++) {
+      const p = pts[i], q = pts[(i + 1) % 4], vp = v[i], vq = v[(i + 1) % 4];
+      if (vp >= 0) out.push(p);
+      if ((vp >= 0) !== (vq >= 0)) { const t = vp / (vp - vq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); }
+    }
+    return out.length >= 3 ? out : null;
+  }
+  /** a cell, clipped to the face's cut when it has one: a quad, a polygon, or nothing */
+  function faceCell(B, W, sa, sb, za, zb, d, col, cut) {
+    if (!cut) { faceQuad(B, W, sa, sb, za, zb, d, col); return true; }
+    const poly = clipRect(sa, sb, za, zb, cut);
+    if (!poly) return false;
+    if (poly.length === 4 && poly[0][0] === sa && poly[2][0] === sb && poly[0][1] === za && poly[2][1] === zb) { faceQuad(B, W, sa, sb, za, zb, d, col); return true; }
+    B.polygon(poly.map(p => { const q = W.at(p[0], d, p[1]); return [q[0], q[1], q[2], p[0]]; }), col, W.N, 'uz');
+    return true;
+  }
+  const rectInCut = (s0, s1, z0, z1, cut) => !cut || [[s0, z0], [s1, z0], [s1, z1], [s0, z1]].every(p => cutSide(cut, p[0], p[1]) >= -1e-6);
+
   /**
    * A closed box on a wall frame: s0..s1 along, d0..d1 out (d0 may be
    * negative = into the wall), z0..z1 up. `skip` names faces to leave out
@@ -527,10 +574,15 @@
    * per cell; a window cell is recessed by `reveal` with four reveal strips.
    */
   function tileFace(B, face, skin, P, opts) {
-    const { W, len, z0, z1 } = face;
+    const { W, len, z0, z1, cut } = face;
     const reveal = APTS.reveals ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
+    // an opening's own depth and tone (a band's `openings`: a garage mouth, an
+    // entry court, a loggia) ride on the window record; the skin's windows
+    // take the skin's reveal and its glass
+    const revealOf = w => APTS.reveals ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel }));
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone }))
+      .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
     // tower's punched window, Jester West's 1.31 x 2.31 m precast round a
@@ -587,30 +639,92 @@
         if (sb - sa < 1e-4) continue;
         const sm = (sa + sb) / 2;
         const win = inBand.find(w => sm > w.s0 && sm < w.s1);
-        count.cells++;
+        let drawn;
         if (win) {
-          const col = win.lit ? [glass[0], glass[1], APTS.nightLitTone] : glass;
-          faceQuad(B, W, sa, sb, za, zb, -reveal, col);
+          const pane = win.tone ? P[win.tone] || glass : glass;
+          const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane;
+          drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
-          faceQuad(B, W, sa, sb, za, zb, 0, fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall));
+          drawn = faceCell(B, W, sa, sb, za, zb, 0, fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall), cut);
         }
+        if (drawn) count.cells++;
       }
     }
     // reveals: four strips per window, joining the recessed pane to the plane
-    if (reveal > 0) {
-      for (const w of windows) {
-        const T = W.T, N = W.N;
-        const P0 = (s, d, z) => W.at(s, d, z);
-        // sill (faces up), head (faces down), jambs (face along the wall)
-        B.quad(P0(w.s0, -reveal, w.z0), P0(w.s1, -reveal, w.z0), P0(w.s1, 0, w.z0), P0(w.s0, 0, w.z0), revealCol, [0, 0, 1]);
-        B.quad(P0(w.s0, 0, w.z1), P0(w.s1, 0, w.z1), P0(w.s1, -reveal, w.z1), P0(w.s0, -reveal, w.z1), revealCol, [0, 0, -1]);
-        B.quad(P0(w.s0, -reveal, w.z0), P0(w.s0, 0, w.z0), P0(w.s0, 0, w.z1), P0(w.s0, -reveal, w.z1), revealCol, T);
-        B.quad(P0(w.s1, 0, w.z0), P0(w.s1, -reveal, w.z0), P0(w.s1, -reveal, w.z1), P0(w.s1, 0, w.z1), revealCol, [-T[0], -T[1], 0]);
-      }
+    for (const w of windows) {
+      const rv = revealOf(w);
+      if (rv <= 0) continue;
+      const T = W.T, N = W.N;
+      const P0 = (s, d, z) => W.at(s, d, z);
+      const rc = (w.revealTone && P[w.revealTone]) || (w.tone ? (P[w.tone] || revealCol) : revealCol);
+      // sill (faces up), head (faces down), jambs (face along the wall)
+      B.quad(P0(w.s0, -rv, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, 0, w.z0), P0(w.s0, 0, w.z0), rc, [0, 0, 1]);
+      B.quad(P0(w.s0, 0, w.z1), P0(w.s1, 0, w.z1), P0(w.s1, -rv, w.z1), P0(w.s0, -rv, w.z1), rc, [0, 0, -1]);
+      B.quad(P0(w.s0, -rv, w.z0), P0(w.s0, 0, w.z0), P0(w.s0, 0, w.z1), P0(w.s0, -rv, w.z1), rc, T);
+      B.quad(P0(w.s1, 0, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, -rv, w.z1), P0(w.s1, 0, w.z1), rc, [-T[0], -T[1], 0]);
     }
+    // the blades standing proud of the wall: the skin's piers (on its bay
+    // lines) and its fins (on their own pitch) — see blades()
+    if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);
+    if (skin.fins) blades(B, W, skin.fins, len, z0, z1, P, cut);
     count.windows += windows.length;
     count.faces++;
+  }
+
+  // ── blades: piers and fins, standing OFF the wall ────────────────────
+  //
+  // A pier or a fin is a box on the wall frame: `w` along the wall, `d` out
+  // of it (from `off` — a bracket gap, 0 when it sits on the wall — to
+  // off + d), the band's height or its own `z0`..`z1`, in `tone`. Nothing
+  // about the wall behind changes: the cells are tiled as usual and the box
+  // stands in front of them with its back left open against the plane, so
+  // the two never share a face. The whole difference between a pier and a
+  // fin is where they stand — a PIER is on the skin's own bay lines and
+  // groups the bays between (The Standard's podium: white piers between the
+  // glazing-and-rust bays), a FIN is on its own pitch (Moody Center's 12 in
+  // airfoil tubes on 4 ft centres, Dark Bronze, standing 0.30 m proud of the
+  // glazing; 21 Rio's bronze fins on brackets; The Castilian's garage
+  // screen). `frontTone` colours the outer face alone (an airfoil's nose
+  // reads lighter than its flanks); `horizontal: true` lays the blades
+  // across the wall at a vertical pitch (a sunshade, a trellis) with `w`
+  // their height. `at: [s...]` places them by hand; otherwise `pitch` from
+  // `from` to `to`, on the centres, or `on: 'joints'` from `from` inclusive.
+  //   { pitch | at, w, d, tone, off?, from?, to?, on?, z0?, z1?, frontTone?, horizontal?, every? }
+  // Under a `cut` (a raking plane through the face) a blade is drawn only
+  // where its whole rectangle is inside the kept side.
+  function bladeCentres(spec, len) {
+    if (Array.isArray(spec.at)) return spec.at.slice();
+    const pitch = spec.pitch || 3.0, from = spec.from || 0, to = spec.to != null ? spec.to : len, every = Math.max(1, spec.every | 0 || 1);
+    const n = Math.max(1, Math.round((to - from) / pitch)), mod = (to - from) / n;
+    const at = [];
+    if (spec.on === 'joints') { for (let i = 0; i <= n; i += every) at.push(from + i * mod); }
+    else for (let i = 0; i < n; i += every) at.push(from + (i + 0.5) * mod);
+    return at;
+  }
+  function blades(B, W, spec, len, z0, z1, P, cut) {
+    const w = spec.w || 0.3, d = spec.d != null ? spec.d : 0.3, off = spec.off || 0;
+    const col = toneOf(P, spec.tone, 'frame'), front = spec.frontTone ? P[spec.frontTone] || col : null;
+    const zb0 = Math.max(z0, spec.z0 != null ? spec.z0 : z0), zb1 = Math.min(z1, spec.z1 != null ? spec.z1 : z1);
+    if (zb1 - zb0 < 0.02 || d <= 0) return 0;
+    const skip = { back: off <= 1e-6, front: !!front };
+    let n = 0;
+    const one = (s0, s1, za, zz) => {
+      if (s1 - s0 < 0.005 || zz - za < 0.005) return;
+      if (!rectInCut(s0, s1, za, zz, cut)) return;
+      box(B, W, s0, s1, off, off + d, za, zz, col, skip);
+      if (front) faceQuad(B, W, s0, s1, za, zz, off + d, front);
+      n++;
+    };
+    if (spec.horizontal) {
+      const pitch = spec.pitch || 1.0, s0 = Math.max(0, spec.from || 0), s1 = Math.min(len, spec.to != null ? spec.to : len);
+      const zs = Array.isArray(spec.at) ? spec.at : (() => { const out = []; for (let z = zb0 + (spec.start != null ? spec.start : pitch / 2); z <= zb1 + 1e-6; z += pitch) out.push(z); return out; })();
+      for (const z of zs) one(s0, s1, Math.max(zb0, z - w / 2), Math.min(zb1, z + w / 2));
+    } else {
+      for (const c of bladeCentres(spec, len)) one(Math.max(0, c - w / 2), Math.min(len, c + w / 2), zb0, zb1);
+    }
+    if (spec.isPier) count.piers += n; else count.fins += n;
+    return n;
   }
 
   // ── skins: each resolves a JSON skin spec into rows/cols/tone/windows ──
@@ -870,6 +984,17 @@
   }
 
   const SKINS = { pixel: skinPixel, bays: skinBays, storefront: skinStorefront, flat: skinFlat, mod4: skinMod4 };
+  /**
+   * A skin spec resolved for one piece of wall, plus the blades any skin
+   * may carry: `fins` (its own pitch, any skin) and `pier` (the bay lines
+   * of a `bays` or `flat` skin — skinBays sets `piers` itself). See blades().
+   */
+  function resolveSkin(sk, ctx, P, key) {
+    const skin = SKINS[sk.kind](sk, ctx, P, key);
+    if (APTS.fins && sk.fins) skin.fins = sk.fins;
+    if (!APTS.piers) skin.piers = null;
+    return skin;
+  }
 
   /**
    * The floor lines of a band between z0 and z1, from the building's levels,
@@ -912,6 +1037,17 @@
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
     for (const fz of floors) {
       const z = fz + (spec.lift || 0);
+      if (spec.inset > 0) {
+        // AN INSET BALCONY (a loggia): the opening is cut into the wall by
+        // openings() below — its sill strip is the loggia's floor, its head
+        // the soffit, its jambs the reveals — and all that stands at the
+        // face is the rail, on the floor of the recess. Nothing projects, so
+        // the balcony reads as the shadowed void the photographs show (the
+        // Villas on Guadalupe, 2819 Rio Grande) and not as a lit slab edge.
+        box(B, W, s0, s1, 0, rt, z, z + rh, rail, { back: true });
+        count.balconies++;
+        continue;
+      }
       box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true });
       // rails: front, and the two returns; a thin box each
       box(B, W, s0, s1, proj - rt, proj, z + t, z + t + rh, rail, { back: true });
@@ -919,6 +1055,51 @@
       box(B, W, s1 - rt, s1, 0, proj - rt, z + t, z + t + rh, rail, { back: true });
       count.balconies++;
     }
+  }
+
+  // ── openings: a recess cut into a band's wall ────────────────────────
+  //
+  // A band's `openings` are the holes a skin cannot make: a garage mouth
+  // (2706 Rio Grande's at u 6-14; Signature 1909's lit one on the west
+  // front), an entry court, a leasing frontage under an overhang. Each is
+  // `{ s0, s1 | w, z0?, z1?, d, tone? | glass?, lit? }` — `s` along the face
+  // (an override piece's own s, like its balconies and signs), `z0`/`z1` in
+  // metres (the band's when omitted), `d` the depth of the recess
+  // (APARTMENTS.openingD when omitted). It is drawn by the tiler as an
+  // opening with its OWN reveal depth and tone: the back wall `d` behind the
+  // plane, the sill (the floor), the head (the soffit) and the two jambs
+  // in `tone`, or — with `glass` — a pane in that glass with the reveals in
+  // `tone` (the skin's frame tone otherwise), lit at night when `lit`. Any
+  // window of the skin under the opening goes. An INSET BALCONY (a stack
+  // with `inset: d`) is the same thing once per floor line, `h` tall
+  // (the storey less the slab when omitted), with the rail drawn at the
+  // face by balconyStack.
+  function openings(skin, band, len, z0, z1, spec, fl, P, sOff) {
+    if (!APTS.openings) return;
+    const list = [];
+    for (const o of band.openings || []) {
+      const s0 = (o.s0 || 0) - sOff, s1 = (o.s1 != null ? o.s1 : (o.s0 || 0) + (o.w || 3.0)) - sOff;
+      const oz0 = o.z0 != null ? o.z0 : z0, oz1 = o.z1 != null ? o.z1 : z1;
+      list.push({ s0, s1, z0: Math.max(z0, oz0), z1: Math.min(z1, oz1), reveal: o.d != null ? o.d : APTS.openingD,
+                  tone: o.glass || o.tone || 'wall', revealTone: o.glass ? (o.tone || null) : null, lit: !!(o.glass && o.lit), opening: true });
+    }
+    if (APTS.balconies) for (const bs of band.balconies || []) {
+      if (!(bs.inset > 0)) continue;
+      const b = Object.assign({}, spec.balcony || {}, bs);
+      const floors = fl.floors;
+      for (let i = 0; i < floors.length; i++) {
+        const fz = floors[i] + (b.lift || 0);
+        const next = i + 1 < floors.length ? floors[i + 1] : z1;
+        const h = b.h != null ? b.h : (next - floors[i]) - (b.slabT || 0.28);
+        list.push({ s0: b.s0 - sOff, s1: b.s1 - sOff, z0: fz, z1: Math.min(z1, fz + h), reveal: b.inset, tone: b.insetTone || 'wall', lit: false, opening: true });
+      }
+    }
+    if (!list.length) return;
+    const inside = list.filter(o => o.s1 > 0 && o.s0 < len && o.z1 > o.z0 + 0.02);
+    if (!inside.length) return;
+    skin.windows = (skin.windows || []).filter(w => !inside.some(o => w.s1 > o.s0 && w.s0 < o.s1 && w.z1 > o.z0 && w.z0 < o.z1));
+    for (const o of inside) skin.windows.push(o);
+    count.openings += inside.length;
   }
 
   // ── signs ────────────────────────────────────────────────────────────
@@ -1190,6 +1371,15 @@
     opts = opts || {};
     // a sub-frame starting at s0 so skins see s from 0
     const sub = { at: (s, d, z) => W.at(s0 + s, d, z), T: W.T, N: W.N, L: len, a: W.a, b: W.b, dir: W.dir, n: W.n };
+    // a raking plane through this wall (a rake block's flank): the half-space
+    // A·u + B·v + C·z + D ≥ 0 in the building's frame, carried into the
+    // piece's own (s, z) so the tiler can clip its cells to it
+    // a band's openings and inset balconies are placed like its balconies and
+    // signs: `s` along the FACE for the face's own bands (drawn per piece
+    // here, so the piece's start is taken off), along the piece for an override's
+    const sOff = opts.fixtures === false ? s0 : 0;
+    const cutAt = opts.clip ? (sOff => { const H = opts.clip, u0 = W.a[0] + W.dir[0] * (s0 + sOff), v0 = W.a[1] + W.dir[1] * (s0 + sOff);
+      return { a: H[0] * W.dir[0] + H[1] * W.dir[1], b: H[2], c: H[0] * u0 + H[1] * v0 + H[3] }; }) : null;
     for (const band of bands) {
       const z0 = band.z0, z1 = band.z1;
       if (z1 - z0 < 0.05) continue;
@@ -1197,10 +1387,11 @@
       if (!sk) { warnOnce('skin|' + key + '|' + band.skin, key + ': no skin "' + band.skin + '"'); continue; }
       const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
       const d = insetOf(band);
-      if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, opts, fl); continue; }
+      if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
       const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
-      const skin = SKINS[sk.kind](sk, ctx, P, ctx.key);
-      tileFace(B, { W: sub, len, z0, z1 }, skin, P);
+      const skin = resolveSkin(sk, ctx, P, ctx.key);
+      openings(skin, band, len, z0, z1, spec, fl, P, sOff);
+      tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
     }
     // the fixtures — balconies and signs — positioned by `s` along THIS
     // piece: an override region's own. A face's default bands' fixtures are
@@ -1264,8 +1455,9 @@
     if (sHi - sLo > 0.05) {
       const subR = { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n };
       const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
-      const skin = SKINS[sk.kind](sk, ctx, P, ctx.key);
-      tileFace(B, { W: subR, len: sHi - sLo, z0, z1 }, skin, P);
+      const skin = resolveSkin(sk, ctx, P, ctx.key);
+      openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
+      tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
     }
     // the returns: a wall across the recess at either end, where nothing recessed meets it
     if (APTS.insetReturns) {
@@ -1307,7 +1499,7 @@
    * look-fix 1 moved its signs into regions of their own to dodge it). A
    * balcony stack had the same defect and the same fix.
    */
-  function wallFixtures(B, W, bands, spec, P, key) {
+  function wallFixtures(B, W, bands, spec, P, key, cut) {
     for (const band of bands) {
       if (band.z1 - band.z0 < 0.05) continue;
       const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = APTS.signs && band.signs && band.signs.length;
@@ -1756,7 +1948,7 @@
     };
     for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings']) hook(name);
     window.applySlopesApartments(map);
-    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses,', count.frames, 'framed windows,', count.dominoes, 'dominoes in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
+    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses,', count.frames, 'framed windows,', count.dominoes, 'dominoes,', count.rakes, 'raked faces,', count.fins, 'fins,', count.piers, 'piers,', count.openings, 'openings,', count.canopies, 'canopies in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
     // a layer that boots after this file (campus-storeys comes with the
     // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
     // fetch) gets its clause when it appears, and a pass that has not been

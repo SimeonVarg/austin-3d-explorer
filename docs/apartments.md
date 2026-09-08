@@ -131,6 +131,48 @@ OVERLAPS the ring, and a strip drawn proud of the wall does not: the clause
 took 17 of Jester West's 44 and left 27. `APARTMENTS.wallMargin` is the
 number that finishes it — see the hide list above.)*
 
+### `openings` — a recess of its own depth and tone in a band (garage mouths, entry courts)
+
+```jsonc
+{ "z0": 0, "z1": 6.0, "skin": "storefront",
+  "openings": [{ "s0": 6.0, "s1": 14.0, "z0": 0.3, "z1": 5.0, "d": 3.0, "tone": "charcoal" }] }
+```
+
+`openings: [{ s0, s1 | w, z0?, z1?, d?, tone? | glass?, lit? }]` on a band —
+`s` along the face for the face's own bands, along the piece for an
+override's (as its balconies and signs are placed), `z0`/`z1` metres (the
+band's when omitted), `d` the depth (`APARTMENTS.openingD`, 2 m, when
+omitted). The tiler draws it as an opening with its OWN reveal depth and
+tone: the back wall `d` behind the plane, the sill (the floor), the head
+(the soffit) and the two jambs in `tone`; with `glass` a pane in that glass
+tone with the reveals in `tone` (the skin's frame tone otherwise), lit at
+night when `lit`. Any window of the skin under it goes. 2706 Rio Grande's
+service opening at u 6-14 on W 28th, Signature 1909's lit garage mouth, 2819
+Rio Grande's leasing frontage under the overhang.
+
+### `inset` on a balcony stack — a loggia, not a slab (The Villas on Guadalupe, 2819 Rio Grande)
+
+```jsonc
+"balconies": [{ "s0": 5.3, "s1": 6.9, "inset": 1.2, "insetTone": "wall", "railTone": "rail" }]
+```
+
+A stack with `inset: d` is cut INTO the wall once per floor line — an opening
+`d` deep from the floor line, `h` tall (the storey less `slabT` when
+omitted), in `insetTone` — and all that stands at the face is the rail (`railH`,
+`railT`, `railTone`) on the floor of the recess. Nothing projects, so the
+balcony reads as the shadowed void the photographs show and not as a lit
+slab edge; the Villas on Guadalupe's 0.55 m projection that "landed the dark
+line where the photograph puts it" is the real inset now.
+
+### Taste values added
+
+| key | default | what it is |
+|---|---|---|
+| `fins`, `piers`, `canopies`, `openings` | `true` | draw those features at all (like `balconies`) |
+| `openingD` | `2.0` | an opening's depth when its file gives none |
+| `canopyT` | `0.2` | a canopy slab's thickness when its file gives none |
+| `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
+
 ## What is in the frame, and where it came from
 
 The building has one outline in OSM (way 380916747: `building=apartments`,
@@ -305,8 +347,8 @@ A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 
 **blocks** — each one is walls plus a roof plus parapets:
 
-- `bands`: `[{ z0, z1, skin, balconies?, signs? }]` up the wall, the default
-  for every face.
+- `bands`: `[{ z0, z1, skin, balconies?, signs?, fins?, canopies?, openings? }]`
+  up the wall, the default for every face.
 - `faces`: per face, keyed `v0 | u0 | v1 | u1` for a rectangle (the side
   each faces) or `"0", "1", ...` (edge index) for a polygon, and `"*"` for
   the rest. `null` skips a face that stands against another block (never
@@ -421,6 +463,9 @@ and guard rail.
 | `wallMargin` | `0.6` | metres OUTSIDE an authored footprint that a baked wall detail (`roofs-pitched`'s `f: band` strips, drawn proud of the wall) may stand and still be hidden — the scaffolding number |
 | `roof.pitch`, `roof.lipH`, `roof.gableLean` | `25`, `0.25`, `0.30` | a roof's pitch when the file gives none; the fascia height where a roof oversails its wall; how far a gable end leans in over its rise so the emitter's strip on that edge stands behind the wall drawn there |
 | `insetSoffit`, `insetReturns` | `true`, `true` | draw a recess's soffit and floor; draw its returns |
+| `fins`, `piers`, `canopies`, `openings` | `true` | draw those fixtures at all (round 3) |
+| `openingD`, `canopyT` | `2.0`, `0.2` | an opening's depth and a canopy's thickness when the file gives none |
+| `rakeFloors` | `true` | a raked face carries the building's floor lines where they cut the plane |
 
 Everything that is a measurement is in the building's file, not here.
 
