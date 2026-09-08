@@ -229,6 +229,26 @@ soffit in this one — so Moody's 70,000 sq ft of wood-composite soffit is wood
 (`#884420`, measured in its file and unused until now) under the dark bronze
 fascia. A canopy's `soffitTone` (below) is the same idea on a slab.
 
+### `pier` — a member on the bay lines that groups the bays (The Standard)
+
+```jsonc
+"podium": { "kind": "bays", "bay": 6.2, "field": "podiumPanel",
+            "pier": { "w": 0.6, "d": 0.22, "tone": "white" },       // every bay line; every: 2 for every second
+            "window": { "w": 1.3, "h": 1.95, "sill": 1.0, "frame": { "w": 0.1, "tone": "charcoal" },
+                        "offsets": [[-1.55, 1.3, { "h": 0.62, "tone": "rust" }], [1.55, 1.6, null]] } }
+```
+
+`pier: { w, d, tone, every?, at?: "joints" | "centres" | [s...], from?, to?,
+off?, frontTone?, z0?, z1? }` on a `bays` skin stands a box `w` wide and `d`
+proud of the wall on every bay line (or every `every`th, or on the bay
+centres), the band's full height, so the wall reads as bays GROUPED between
+piers and not as windows scattered on a field. It composes with everything
+the skin already does — `frame`, `spandrel`, `offsets`, `strip`, `louvre` —
+and with a recess (the piers stand proud of the recessed wall) and an
+override piece (each piece sets its module from its length, as its strips
+do). The numbers above are a look, not a measurement: The Standard's file has
+no pier width yet, and the first authored one is the builder's.
+
 ### `openings` — a recess of its own depth and tone in a band (garage mouths, entry courts)
 
 ```jsonc
@@ -460,7 +480,10 @@ count from a module, never a hard-coded count.
   to the edge.
 
 Every skin takes `glass`, `frame` (the reveal strips' tone) and `reveal`
-(metres a pane sits behind the wall plane; `APARTMENTS.reveal` otherwise).
+(metres a pane sits behind the wall plane; `APARTMENTS.reveal` otherwise),
+and may carry `fins` (blades standing off the wall on their own pitch); a
+`bays` skin may carry `pier` (a member on its bay lines) and `fields` (a tone
+per bay). Round 3 above has each with a worked example.
 
 A `window` spec (on `pixel`, `bays`, `flat`) also takes:
 

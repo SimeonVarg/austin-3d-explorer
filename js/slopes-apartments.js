@@ -848,6 +848,24 @@
       for (let z = ctx.z0 + (lv.start || 0.3); z + lv.w < ctx.z1; z += lv.pitch) bands.push({ z0: z, z1: z + lv.w, tone: lv.tone });
     }
     const floorLines = spec.floorLine ? ctx.floors.map(z => [z, z + spec.floorLine.h, P[spec.floorLine.tone]]) : [];
+    // THE PIER. `pier: { w, d, tone, every?, at?: 'joints' | 'centres', from?,
+    // to? }` stands a box `w` wide and `d` proud of the wall on every bay
+    // line (or every `every`th, or on the bay centres), the band's full
+    // height, so the wall reads as bays GROUPED between piers and not as
+    // windows scattered on a field — The Standard's podium in Humphreys'
+    // photographs: white piers, and between them the glazing with the rust
+    // spandrel under it. Drawn by tileFace through blades(); a `strip` of
+    // the same width under it is not needed, the pier covers the line.
+    let piers = null;
+    if (spec.pier && (spec.pier.d > 0 || spec.pier.d == null)) {
+      const pr = spec.pier, every = Math.max(1, pr.every | 0 || 1);
+      const from = pr.from || 0, to = pr.to != null ? pr.to : ctx.len;
+      const at = [];
+      if (Array.isArray(pr.at)) at.push(...pr.at);
+      else if (pr.at === 'centres') { for (let i = 0; i < n; i += every) at.push((i + 0.5) * mod); }
+      else { for (let i = 0; i <= n; i += every) at.push(i * mod); }
+      piers = { at: at.filter(c => c >= from - 1e-6 && c <= to + 1e-6), w: pr.w || 0.5, d: pr.d != null ? pr.d : 0.2, tone: pr.tone, off: pr.off, frontTone: pr.frontTone, z0: pr.z0, z1: pr.z1, isPier: true };
+    }
     return {
       rows: (z0, z1) => { const out = []; for (const z of ctx.floors) if (z > z0 && z < z1) out.push(z); for (const b of bands) { out.push(b.z0, b.z1); } for (const f of floorLines) { out.push(f[0], f[1]); } return out; },
       cols: () => { const out = []; for (const s of stripCols) { out.push(s[0], s[1]); } return out; },
@@ -858,7 +876,7 @@
         return field;
       },
       windows: windowsFromBays(spec, ctx, P, key),
-      glass: spec.glass, frame: spec.frame, reveal: spec.reveal,
+      glass: spec.glass, frame: spec.frame, reveal: spec.reveal, piers,
     };
   }
 

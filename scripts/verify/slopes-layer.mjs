@@ -1699,6 +1699,43 @@ const finsTest = await (async () => {
 check('apartments: a band\'s `fins` stand blades OFF the wall in their own tone — thirteen 0.15 m blades on a 1 m pitch, 0.3 m proud of The Standard\'s corner bay, put pool-toned cells on the plane 0.3 m outside the face where there were none, and none once taken back',
   finsTest.fins1 - finsTest.fins0 >= 12 && finsTest.fins1 - finsTest.fins0 <= 14 && finsTest.before === 0 && finsTest.during >= 12 * 6 && finsTest.after === 0 && finsTest.fins2 === finsTest.fins0,
   `fins ${finsTest.fins0} -> ${finsTest.fins1} -> ${finsTest.fins2}; pool-toned vertices on the v -0.3 plane of the bay: ${finsTest.before} before, ${finsTest.during} with the fins, ${finsTest.after} restored`);
+// PIERS. The podium skin given a pier on every bay line (0.5 m, 0.2 m
+// proud, pool tone): rays along 7 m of the podium's north face at window
+// height must return the pool tone at a bay line where they returned the
+// wall before, and the census on the v -0.2 plane fills.
+const pierTest = await (async () => {
+  const pg = AP.pg;
+  const sampler = async () => pg.evaluate(([name, u0]) => {
+    const A = window.slopesApartments, S = window.slopes;
+    const out = [];
+    for (let i = 0; i <= 70; i++) {
+      const u = u0 + i * 0.1;
+      const ll = A.uvToLngLat(name, u, 0.0);
+      const l = S.toLocal(ll[0], ll[1], 0), q = S.project(l.x, l.y, 10.95);
+      const h = q ? S.raycast(q.x, q.y) : null;
+      if (!h || !h.object || !h.object.geometry) { out.push(null); continue; }
+      const g = h.object.geometry, cd = g.getAttribute('cDay'), a = h.face.a;
+      out.push([cd.getX(a), cd.getY(a), cd.getZ(a)].map(v => Math.round(v * 255)).join(','));
+    }
+    return out;
+  }, [APT_NAME, 45.0]);
+  const faceLL = await pg.evaluate(([name, u]) => window.slopesApartments.uvToLngLat(name, u, -14.0), [APT_NAME, 48.5]);
+  await pose(pg, faceLL, 20.3, 72, 184.7);
+  await pg.waitForTimeout(800); await pg.evaluate(() => window.__settle(2500));
+  const pool = await pg.evaluate(name => { const A = window.slopesApartments, b = A.data.buildings.find(b => b.name === name); const hx = (b.colours.pool.hex || b.colours.pool[0]); return [1, 3, 5].map(i => parseInt(hx.slice(i, i + 2), 16)).join(','); }, APT_NAME);
+  const box = { u: [17, 81], v: [-0.22, -0.18], z: [6.1, 21.4] };
+  const before = await sampler(), cBefore = await uvCensus(pg, APT_NAME, box, 'pool');
+  const r = await patchStd(pg, "const before = A.count.piers; b.skins.podium.pier = { w: 0.5, d: 0.2, tone: 'pool' }; return { before };");
+  await pg.waitForTimeout(500); await pg.evaluate(() => window.__settle(1500));
+  const during = await sampler(), cDuring = await uvCensus(pg, APT_NAME, box, 'pool');
+  const restored = await patchStd(pg, "delete b.skins.podium.pier; return {};");
+  const cAfter = await uvCensus(pg, APT_NAME, box, 'pool');
+  return { pool, before, during, cBefore, cDuring, cAfter, piers0: r.before, piers1: r.count.piers, piers2: restored.count.piers };
+})();
+const nPoolBefore = pierTest.before.filter(c => c === pierTest.pool).length, nPoolDuring = pierTest.during.filter(c => c === pierTest.pool).length;
+check('apartments: a `bays` skin\'s `pier` stands a member on every bay line, proud of the wall, grouping the bays between — The Standard\'s podium given 0.5 m pool-toned piers 0.2 m proud returns that tone on rays at the bay line where the wall returned white, and its cells fill the v -0.2 plane',
+  pierTest.piers1 > pierTest.piers0 && pierTest.piers1 - pierTest.piers0 >= 20 && nPoolBefore === 0 && nPoolDuring >= 3 && pierTest.cBefore === 0 && pierTest.cDuring >= 60 && pierTest.cAfter === 0 && pierTest.piers2 === pierTest.piers0,
+  `piers ${pierTest.piers0} -> ${pierTest.piers1} -> ${pierTest.piers2}; of 71 rays along 7 m of the podium's north face at window height, ${nPoolBefore} returned the pier tone before and ${nPoolDuring} with the piers (${pierTest.during.filter(Boolean).length} hit the mesh); pool-toned vertices on the v -0.2 plane: ${pierTest.cBefore} / ${pierTest.cDuring} / ${pierTest.cAfter}`);
 // OPENINGS. A 5 m garage mouth cut 3 m into the corner bay's storefront on
 // 23rd St (u 83.9-88.9, z 0.3-5), charcoal: the back wall's cells stand on
 // the v 3.0 plane, where the flush storefront had none.
