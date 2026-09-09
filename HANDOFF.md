@@ -1,5 +1,22 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 9 2026 — DKR reimagination planned, no implementation (docs-only on main)
+
+Simeon reports current DKR is still bad. See `docs/dkr-reimagination-plan.md`:
+fresh main 622ecb2 overview and bowl screenshots, comparison with the architect's
+south-end photograph, six ordered milestones and visual acceptance checkpoints.
+Recommends a dedicated stadium mesh through the existing slopes renderer.
+
+The broad terraces are visible. The bake emits both detailed seats and eight
+solid coarse features into the same seating layer despite obsolete comments;
+that is a candidate cause requiring a hide-and-compare diagnostic, not a proven
+pixel attribution. Reference-led massing and the south-end assembly come before
+small details or game-day effects. Existing Mac stadium ownership stays in force.
+
+Planning only; no app code or stadium data changed. Scratch reference photograph
+is not committed. The two cited current-render frames are in docs/shots.
+
+
 ## Sep 9 2026 — Villas on Rio's measured half-bay window stagger (`codex/villas-floor-grid`)
 
 See `docs/villas-window-stagger.md` for the day/night before-and-after frames.
