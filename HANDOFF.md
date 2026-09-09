@@ -15,6 +15,10 @@ syntax and whitespace checks pass. Full slopes/performance suite not run. Existi
 angular-pane and asymmetric-glass approximations remain. Started from d12aca7 in
 a separate checkout because the original checkout has unrelated unfinished work.
 
+PR #239 remains open: Vercel preview passed, but data-build run 34383999148
+failed twice before project code during apt-get update (Google Chrome package
+index Hash Sum mismatch). Merge deferred under the no-red-merge rule.
+
 
 ## 230. Sep 8 2026 — round three of the apartments generator: the ten things twenty-eight builders could not draw, three buildings rebuilt on them, and five gate lines that had never once been run (`acer/gen` → `main`)
 
