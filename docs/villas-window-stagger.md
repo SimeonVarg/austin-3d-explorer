@@ -44,3 +44,9 @@ claim is made. The pane's physical angular shape and asymmetric pale side remain
 approximations already described in the building JSON.
 
 Branch: `codex/villas-floor-grid`.
+
+Merge status: PR #239 remains OPEN. Vercel preview passed, but GitHub data-build
+run 34383999148 failed twice (attempts 1 and 2) during `apt-get update`, before
+project code: Google's Chrome apt repository returned a Hash Sum mismatch.
+No checksum checks were bypassed. Per the no-red-merge rule, merge is deferred
+until that external package-index failure clears and the build passes.
