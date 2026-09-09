@@ -777,7 +777,11 @@
       const fz = floors[fi];
       const zb = fz + (win.sill != null ? win.sill : 0.8), zt = zb + (win.h || 2.0);
       if (zt > ctx.z1 + 1e-6) continue;
+      // Anchor the checker to the building's floor list, not this band's
+      // first row: changing material halfway up a wall must not reset it.
+      const storey = ctx.allFloors ? ctx.allFloors.indexOf(fz) : fi;
       for (let ci = 0; ci < centres.length; ci++) {
+        if (spec.windowRule === 'checker' && ((ci + storey) & 1)) continue;
         for (let pi = 0; pi < parts.length; pi++) {
           const cx = centres[ci] + (flip && ((ci + fi) & 1) ? -parts[pi][0] : parts[pi][0]), ww = parts[pi][1];
           const s0 = cx - ww / 2, s1 = cx + ww / 2;
@@ -1498,7 +1502,7 @@
       const fl = floorsBetween(spec.levels.floors, z0, z1, key + ' ' + band.skin);
       const d = insetOf(band);
       if (d > 0) { recess(B, sub, len, band, d, sk, spec, P, key, Object.assign({ cutAt, sOff }, opts), fl); continue; }
-      const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
+      const ctx = { len, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, len, z0, z1, spec, fl, P, sOff);
       tileFace(B, { W: sub, len, z0, z1, cut: cutAt ? cutAt(0) : null }, skin, P);
@@ -1564,7 +1568,7 @@
     // the wall, on a frame d behind the plane and starting at sLo
     if (sHi - sLo > 0.05) {
       const subR = { at: (s, dd, z) => W.at(sLo + s, dd - d, z), T: W.T, N: W.N, L: sHi - sLo, a: W.a, b: W.b, dir: W.dir, n: W.n };
-      const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, key: key + '|' + band.skin, band };
+      const ctx = { len: sHi - sLo, z0, z1, floors: fl.floors, floorBelow: fl.floorBelow, allFloors: spec.levels.floors, key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       openings(skin, band, sHi - sLo, z0, z1, spec, fl, P, (opts.sOff || 0) + sLo);
       tileFace(B, { W: subR, len: sHi - sLo, z0, z1, cut: opts.cutAt ? opts.cutAt(sLo) : null }, skin, P);
@@ -1698,7 +1702,7 @@
       const floors = APTS.rakeFloors ? fl.floors.map(t0Of) : [];
       const floorBelow = APTS.rakeFloors && fl.floorBelow != null ? t0Of(fl.floorBelow) : null;
       const t0 = t0Of(zb0), t1 = t0Of(zb1);
-      const ctx = { len: RK.W.L, z0: t0, z1: t1, floors, floorBelow, key: key + '|' + band.skin, band };
+      const ctx = { len: RK.W.L, z0: t0, z1: t1, floors, floorBelow, allFloors: spec.levels.floors.map(t0Of), key: key + '|' + band.skin, band };
       const skin = resolveSkin(sk, ctx, P, ctx.key);
       tileFace(B, { W: RK.W, len: RK.W.L, z0: t0, z1: t1 }, skin, P);
       if ((band.balconies && band.balconies.length) || (band.canopies && band.canopies.length)) warnOnce('rake-fix|' + key, key + ': balconies and canopies are not drawn on a raked face');

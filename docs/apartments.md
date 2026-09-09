@@ -308,6 +308,20 @@ place of `text` — `s0`/`z0` its low-s foot as for lettering, or `s`/`zTop`
 centred and hanging. The dot font already sets the whole alphabet and the
 digits (Moontower's W was round 2); this is for the marks no font has.
 
+### `windowRule` — staggered openings without changing the wall colour
+
+`"windowRule": "checker"` beside `window` keeps openings only where the bay
+index plus the building's storey index is even. Villas on Rio uses a `bay` of
+1.575 m: alternate candidate bays give a nominal 3.15 m opening pitch, shifted
+half a pitch on the next floor. As with other bay skins, modules fit the face
+width. Window dimensions, frames, reveals and night lighting still come from
+`window`. Omit `windowRule` for an opening in every bay.
+
+Storey parity follows `levels.floors` across material bands, recessed walls and
+raked faces, including a floor retained just below a band's base. It does not
+restart at each band's first visible row. This rule is independent of `fields`;
+blank bays retain the ordinary wall material.
+
 ### `fields` and `flip` — tone and handedness by bay and storey (2623 Salado, Villas on Rio)
 
 ```jsonc

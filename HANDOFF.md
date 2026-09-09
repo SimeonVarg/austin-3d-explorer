@@ -1,5 +1,25 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 9 2026 — Villas on Rio's measured half-bay window stagger (`codex/villas-floor-grid`)
+
+See `docs/villas-window-stagger.md` for the day/night before-and-after frames.
+Added opt-in `windowRule: checker` to the apartment generator and enabled it on
+Villas' white panel skin. Building floor indices keep the pattern continuous
+across material bands, inset walls and raked faces. Sizes and floor heights stay
+as repaired by the preceding pass. Removed the now-completed stagger todo.
+
+Focused geometry regression and browser comparison pass; all 28 buildings remain,
+no page errors or generator warnings, night windows remain lit. 888 existing
+skin/face combinations match main's old window generator exactly. Harness drift,
+syntax and whitespace checks pass. Full slopes/performance suite not run. Existing
+angular-pane and asymmetric-glass approximations remain. Started from d12aca7 in
+a separate checkout because the original checkout has unrelated unfinished work.
+
+PR #239 remains open: Vercel preview passed, but data-build run 34383999148
+failed twice before project code during apt-get update (Google Chrome package
+index Hash Sum mismatch). Merge deferred under the no-red-merge rule.
+
+
 ## 230. Sep 8 2026 — round three of the apartments generator: the ten things twenty-eight builders could not draw, three buildings rebuilt on them, and five gate lines that had never once been run (`acer/gen` → `main`)
 
 **Look first: `docs/generator-capabilities.md`** — the pass in plain words with six
