@@ -122,4 +122,7 @@ memory and is never written here, in any tracked file, or in a commit message.
 
 Simeon says the current DKR is still bad and requests a reimagination plan.
 Earlier fixed/done labels are not acceptance. See `docs/dkr-reimagination-plan.md`.
-This request authorizes planning only; stadium implementation has not begun.
+Simeon authorized implementation ("Do it") on September 9. The Acer lane owns
+the new `scripts/bake_stadium_mesh.py` -> `data/stadium.mesh.json` bake and
+`js/slopes-stadium.js`, plus its integration and verification. The legacy Mac
+bake and `data/stadium.geojson` remain untouched as the comparison/fallback.
