@@ -867,6 +867,26 @@ function initControls(map, scene) {
    */
   function maxHeightIn(lng, lat, r) {
     r = r == null ? rCam() : r;
+    // The authored stadium has an open field and sloping decks. The old
+    // footprint heightfield treats the bowl as a tall solid building.
+    // Sample the same camera footprint against the live mesh surface instead.
+    const stadium = window.slopesStadium;
+    if (stadium && stadium.heightAt(lng, lat) !== undefined) {
+      let top = 0;
+      for (const [dx, dy] of [[0,0],[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1],[-1,0],[1,0]]) {
+        const x = lng + dx * r / mLon(lat), y = lat + dy * r / M_LAT;
+        const h = stadium.heightAt(x, y);
+        if (h === undefined) {
+          // Boundary queries retain the original field for neighbouring buildings.
+          return Math.max(top, outerHeightIn(lng, lat, r), gridBuilt ? gridHeightAt(lng, lat, r) : 0);
+        }
+        top = Math.max(top, h);
+      }
+      return top;
+    }
+    return gridHeightAt(lng, lat, r);
+  }
+  function gridHeightAt(lng, lat, r) {
     const ring = outerHeightIn(lng, lat, r);
     if (!gridBuilt) return ring;
     const mx = mLon(lat), my = M_LAT;

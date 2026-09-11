@@ -258,7 +258,10 @@ const zoomFor = (alt, pitch, lat) => {
 // was red on 2026-09-02 against a filter that was right. A regex that cannot
 // match is a guard that cannot pass, which is the same defect as one that
 // cannot fail (README: "every gate must be watchable failing").
-const ROOFS_FILTER_RE = /^(\["all",)?\["match",\["get","f"\],\[/;   // js/slopes-apartments.js wraps it in ['all', keep, its distance clause] while it draws (2026-09-06)
+// js/slopes-stadium.js (2026-09-11) wraps it once more in ['all', <that>, its own
+// distance clause around the DKR rectangle] while the stadium mesh draws, so up
+// to two 'all' wrappers are legitimate; the match on f is still the first leaf.
+const ROOFS_FILTER_RE = /^(\["all",){0,2}\["match",\["get","f"\],\[/;   // js/slopes-apartments.js wraps it in ['all', keep, its distance clause] while it draws (2026-09-06)
 
 // THE ARCH IS A CURVE — and the stand-in it replaces is not a five-sided
 // polygon, it is a STAIRCASE. scripts/bake_entrances.py draws an arched head
@@ -343,7 +346,7 @@ const residueNote = d => d.pixels === 0 ? '' : ` — within the facade atlas' tw
 // The generator groups the scene must hold on a plain page: the campus
 // roofs, the arches, the Capitol dome, and — since 2026-09-03 — the Main
 // Building's hips from the tower bake's rig (js/slopes-roofs.js ROOFS.extra).
-const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower', 'slopes-apartments', 'slopes-art'];   // + the apartments generator, 2026-09-05; + the art lane's group, 2026-09-06
+const WANT_GROUPS = ['slopes-roofs', 'slopes-arches', 'slopes-dome', 'slopes-tower', 'slopes-apartments', 'slopes-art', 'slopes-stadium'];   // + the apartments generator, 2026-09-05; + the art lane's group, 2026-09-06; + the DKR stadium mesh, 2026-09-11
 // THE COURSES (round 6, 2026-09-03; OFF since 2026-09-05). Round 6 drew a
 // ridge course and hip courses on every roof (SLOPES_ROOFS.lines: boxes
 // standing `h` proud of the ridge, pale), because from mall-cruise a far
@@ -1894,10 +1897,13 @@ check('apartments: APARTMENTS.on = false removes the group and restores every fi
   && !offA.b3d.includes(ownClause(apts.ids)) && !offA.roof.includes(ownClause(apts.ids))
   && countOf(offA.b3d, APT_ID) === countOf(urlA.b3d, APT_ID) && countOf(offA.roof, APT_ID) === countOf(urlA.roof, APT_ID)
   && offA.wc === urlA.wc && offA.wcSolid === urlA.wcSolid
-  && (offA.rdeck === null || !offA.rdeck.includes('distance')) && (offA.storeys === null || !offA.storeys.includes(APT_ID))
+  // Byte-identical to the ?apartments=0 page, not "no distance clause at all":
+  // since 2026-09-11 js/slopes-stadium.js puts its own distance clause (the DKR
+  // rectangle) on roofscape-deck too, and it rightly stays when apartments go off.
+  && (offA.rdeck === null || offA.rdeck === urlA.rdeck) && (offA.storeys === null || !offA.storeys.includes(APT_ID))
   && (offA.rigKeys === null || offA.rigKeys.length === 1) && offA.hidden && offA.hidden.rigs.length === 0
   && !urlA.groups.includes('slopes-apartments') && urlA.on === false,
-  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck.includes('distance') ? 'STILL CARRIES the clause' : 'restored')}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
+  `off: group ${offA.groups.includes('slopes-apartments') ? 'STILL THERE' : 'gone'}, filtered ${offA.filtered}, own clause ${offA.b3d.includes(ownClause(apts.ids)) ? 'STILL IN' : 'out of'} buildings-3d, id ×${countOf(offA.b3d, APT_ID)} vs ×${countOf(urlA.b3d, APT_ID)} on ?apartments=0; wc-wall ${offA.wc === urlA.wc ? 'identical' : 'DIFFERS: ' + offA.wc + ' vs ' + urlA.wc}; roofscape-deck ${offA.rdeck === null ? 'absent' : (offA.rdeck === urlA.rdeck ? 'identical to ?apartments=0' : 'DIFFERS from ?apartments=0: ' + offA.rdeck.slice(0, 160))}; campus-storeys ${offA.storeys === null ? 'absent' : (offA.storeys.includes(APT_ID) ? 'STILL CARRIES the clause' : 'restored')}; San Jacinto rig ${offA.rigKeys === null ? 'n/a' : offA.rigKeys.length + ' entries'} (stash ${offA.hidden ? offA.hidden.rigs.length : '-'}); ?apartments=0: on ${urlA.on}, group ${urlA.groups.includes('slopes-apartments') ? 'PRESENT' : 'absent'}`);
 // A runtime-off page against a LOAD is the same comparison the switch section
 // makes at mall-cruise. Measured on the first run of this block, when the two
 // frames were seconds apart and one building was drawn: 933 px, maxΔ 51,

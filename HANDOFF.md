@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 11 2026 — DKR mesh rebuilt (`codex/dkr-mesh`)
+
+See `docs/dkr-mesh-rebuild.md` for the south end, exterior and night evidence.
+New standalone mesh bake and renderer replace the coarse solid stadium with
+independent decks, rows, portals, supports, ramps and south-end architecture.
+Field collision, fallback switches and shared filters are covered by the new
+browser gate. Legacy Mac bake/output remain unchanged. DKR browser and relative
+performance checks pass; model dimensions beyond field/screen remain derived.
+Under-deck walking is not supported by the heightfield collision model.
+
+
 ## Sep 9 2026 — DKR reimagination planned, no implementation (docs-only on main)
 
 Simeon reports current DKR is still bad. See `docs/dkr-reimagination-plan.md`:

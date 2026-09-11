@@ -1,0 +1,2640 @@
+{
+  "version": 1,
+  "name": "Darrell K Royal\u2013Texas Memorial Stadium",
+  "origin": [
+    -97.73254655,
+    30.2836444
+  ],
+  "east": [
+    0.9966564845587028,
+    -0.08170588587787386
+  ],
+  "north": [
+    0.08170588587787386,
+    0.9966564845587028
+  ],
+  "replacedBuildingIds": [
+    "3dba7cda-9a40-4783-89e8-ccd18d5d34a3",
+    "6b5bbe97-18db-42fa-94c1-5d63cf7ffe34"
+  ],
+  "sources": {
+    "registration": "Legacy fieldCorners, aligned to the existing field; NCAA field length 120 yd and width 53 1/3 yd used as scale.",
+    "athletics": "https://texaslonghorns.com/facilities/dkr-texas-memorial-stadium/1",
+    "architect": "https://populous.com/projects/university-of-texas-south-end-zone-project",
+    "aerial": "UT Athletics DJI_0226.jpg, August 2022: empty bowl, north/east wrap, distinct west upper deck, south Longhorn assembly. Viewed 2026-09-09.",
+    "south": "Populous 20211007_DIG_2395_MAS.jpg: glazed towers with rust framing, stepped club terraces and Longhorn balcony. Viewed 2026-09-09.",
+    "board": "UT Athletics facility page specifies 160 by 44 feet for the 2021 south board; 48.768 by 13.4112 m. Retrieved 2026-09-09.",
+    "derived": "Deck rows, elevations, facade bays and supports are reference-led approximations within the registered footprint. Vertical dimensions carry roughly 3 m uncertainty; detailed section boundaries and seat-colour allocation are not surveyed. No claim of a current 2026 aerial survey."
+  },
+  "palette": {
+    "concrete": [
+      "#bcb7aa",
+      "#c2af92",
+      "#34363b"
+    ],
+    "riser": [
+      "#77776e",
+      "#80796b",
+      "#252b32"
+    ],
+    "bench": [
+      "#aeb7b7",
+      "#beb9a9",
+      "#656c72"
+    ],
+    "orangeSeat": [
+      "#a7532d",
+      "#b76639",
+      "#4b4140"
+    ],
+    "orange": [
+      "#b65122",
+      "#c36630",
+      "#573c32"
+    ],
+    "brick": [
+      "#b18958",
+      "#c49460",
+      "#302d2c"
+    ],
+    "stone": [
+      "#ddd4bb",
+      "#e1cb9e",
+      "#464747"
+    ],
+    "glass": [
+      "#43555b",
+      "#647376",
+      "#303e46"
+    ],
+    "steel": [
+      "#5e6264",
+      "#71695c",
+      "#30363e"
+    ],
+    "black": [
+      "#202a30",
+      "#303337",
+      "#151c25"
+    ],
+    "light": [
+      "#d5d4bb",
+      "#f7e6b3",
+      "#fff1c7"
+    ],
+    "endzone": [
+      "#b65122",
+      "#c36630",
+      "#b85c30"
+    ],
+    "screenOrange": [
+      "#b65122",
+      "#c36630",
+      "#e97438"
+    ],
+    "turf": [
+      "#315c38",
+      "#475e34",
+      "#668653"
+    ],
+    "turfAlt": [
+      "#355e3c",
+      "#4a6438",
+      "#6c8c59"
+    ],
+    "paint": [
+      "#eee9da",
+      "#f3dfb6",
+      "#e8e4d2"
+    ]
+  },
+  "sections": [
+    {
+      "name": "west-lower-1",
+      "inner": [
+        [
+          -34.2,
+          -61.6
+        ],
+        [
+          -34.2,
+          -51.333333333333336
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -61.6
+        ],
+        [
+          -74.7,
+          -51.333333333333336
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-2",
+      "inner": [
+        [
+          -34.2,
+          -51.333333333333336
+        ],
+        [
+          -34.2,
+          -41.06666666666667
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -51.333333333333336
+        ],
+        [
+          -74.7,
+          -41.06666666666667
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-3",
+      "inner": [
+        [
+          -34.2,
+          -41.06666666666667
+        ],
+        [
+          -34.2,
+          -30.8
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -41.06666666666667
+        ],
+        [
+          -74.7,
+          -30.8
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-4",
+      "inner": [
+        [
+          -34.2,
+          -30.8
+        ],
+        [
+          -34.2,
+          -20.53333333333334
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -30.8
+        ],
+        [
+          -74.7,
+          -20.53333333333334
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-5",
+      "inner": [
+        [
+          -34.2,
+          -20.53333333333334
+        ],
+        [
+          -34.2,
+          -10.266666666666666
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -20.53333333333334
+        ],
+        [
+          -74.7,
+          -10.266666666666666
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-6",
+      "inner": [
+        [
+          -34.2,
+          -10.266666666666666
+        ],
+        [
+          -34.2,
+          0.0
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          -10.266666666666666
+        ],
+        [
+          -74.7,
+          0.0
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-7",
+      "inner": [
+        [
+          -34.2,
+          0.0
+        ],
+        [
+          -34.2,
+          10.266666666666673
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          0.0
+        ],
+        [
+          -74.7,
+          10.266666666666673
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-8",
+      "inner": [
+        [
+          -34.2,
+          10.266666666666673
+        ],
+        [
+          -34.2,
+          20.533333333333324
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          10.266666666666673
+        ],
+        [
+          -74.7,
+          20.533333333333324
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-9",
+      "inner": [
+        [
+          -34.2,
+          20.533333333333324
+        ],
+        [
+          -34.2,
+          30.800000000000004
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          20.533333333333324
+        ],
+        [
+          -74.7,
+          30.800000000000004
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-10",
+      "inner": [
+        [
+          -34.2,
+          30.800000000000004
+        ],
+        [
+          -34.2,
+          41.06666666666667
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          30.800000000000004
+        ],
+        [
+          -74.7,
+          41.06666666666667
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-11",
+      "inner": [
+        [
+          -34.2,
+          41.06666666666667
+        ],
+        [
+          -34.2,
+          51.333333333333336
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          41.06666666666667
+        ],
+        [
+          -74.7,
+          51.333333333333336
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "west-lower-12",
+      "inner": [
+        [
+          -34.2,
+          51.333333333333336
+        ],
+        [
+          -34.2,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          -74.7,
+          51.333333333333336
+        ],
+        [
+          -74.7,
+          61.6
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "west-lower"
+    },
+    {
+      "name": "northwest-lower-1",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 90.0,
+        "a1": 112.5,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northwest-lower"
+    },
+    {
+      "name": "northwest-lower-2",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 112.5,
+        "a1": 135.0,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northwest-lower"
+    },
+    {
+      "name": "northwest-lower-3",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 135.0,
+        "a1": 157.5,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northwest-lower"
+    },
+    {
+      "name": "northwest-lower-4",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 157.5,
+        "a1": 180.0,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northwest-lower"
+    },
+    {
+      "name": "north-lower-1",
+      "inner": [
+        [
+          -34.2,
+          61.6
+        ],
+        [
+          -22.800000000000004,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          -34.2,
+          102.1
+        ],
+        [
+          -22.800000000000004,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "north-lower-2",
+      "inner": [
+        [
+          -22.800000000000004,
+          61.6
+        ],
+        [
+          -11.400000000000002,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          -22.800000000000004,
+          102.1
+        ],
+        [
+          -11.400000000000002,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "north-lower-3",
+      "inner": [
+        [
+          -11.400000000000002,
+          61.6
+        ],
+        [
+          0.0,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          -11.400000000000002,
+          102.1
+        ],
+        [
+          0.0,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "north-lower-4",
+      "inner": [
+        [
+          0.0,
+          61.6
+        ],
+        [
+          11.399999999999999,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          0.0,
+          102.1
+        ],
+        [
+          11.399999999999999,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "north-lower-5",
+      "inner": [
+        [
+          11.399999999999999,
+          61.6
+        ],
+        [
+          22.800000000000004,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          11.399999999999999,
+          102.1
+        ],
+        [
+          22.800000000000004,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "north-lower-6",
+      "inner": [
+        [
+          22.800000000000004,
+          61.6
+        ],
+        [
+          34.2,
+          61.6
+        ]
+      ],
+      "outer": [
+        [
+          22.800000000000004,
+          102.1
+        ],
+        [
+          34.2,
+          102.1
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "north-lower"
+    },
+    {
+      "name": "northeast-lower-1",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 0.0,
+        "a1": 22.5,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northeast-lower"
+    },
+    {
+      "name": "northeast-lower-2",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 22.5,
+        "a1": 45.0,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northeast-lower"
+    },
+    {
+      "name": "northeast-lower-3",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 45.0,
+        "a1": 67.5,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northeast-lower"
+    },
+    {
+      "name": "northeast-lower-4",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 67.5,
+        "a1": 90.0,
+        "r0": 0,
+        "r1": 40.5
+      },
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "northeast-lower"
+    },
+    {
+      "name": "east-lower-1",
+      "inner": [
+        [
+          34.2,
+          61.6
+        ],
+        [
+          34.2,
+          51.333333333333336
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          61.6
+        ],
+        [
+          74.7,
+          51.333333333333336
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-2",
+      "inner": [
+        [
+          34.2,
+          51.333333333333336
+        ],
+        [
+          34.2,
+          41.06666666666667
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          51.333333333333336
+        ],
+        [
+          74.7,
+          41.06666666666667
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-3",
+      "inner": [
+        [
+          34.2,
+          41.06666666666667
+        ],
+        [
+          34.2,
+          30.8
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          41.06666666666667
+        ],
+        [
+          74.7,
+          30.8
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-4",
+      "inner": [
+        [
+          34.2,
+          30.8
+        ],
+        [
+          34.2,
+          20.53333333333334
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          30.8
+        ],
+        [
+          74.7,
+          20.53333333333334
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-5",
+      "inner": [
+        [
+          34.2,
+          20.53333333333334
+        ],
+        [
+          34.2,
+          10.266666666666666
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          20.53333333333334
+        ],
+        [
+          74.7,
+          10.266666666666666
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-6",
+      "inner": [
+        [
+          34.2,
+          10.266666666666666
+        ],
+        [
+          34.2,
+          0.0
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          10.266666666666666
+        ],
+        [
+          74.7,
+          0.0
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-7",
+      "inner": [
+        [
+          34.2,
+          0.0
+        ],
+        [
+          34.2,
+          -10.266666666666673
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          0.0
+        ],
+        [
+          74.7,
+          -10.266666666666673
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-8",
+      "inner": [
+        [
+          34.2,
+          -10.266666666666673
+        ],
+        [
+          34.2,
+          -20.533333333333324
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          -10.266666666666673
+        ],
+        [
+          74.7,
+          -20.533333333333324
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": true,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-9",
+      "inner": [
+        [
+          34.2,
+          -20.533333333333324
+        ],
+        [
+          34.2,
+          -30.800000000000004
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          -20.533333333333324
+        ],
+        [
+          74.7,
+          -30.800000000000004
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-10",
+      "inner": [
+        [
+          34.2,
+          -30.800000000000004
+        ],
+        [
+          34.2,
+          -41.06666666666667
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          -30.800000000000004
+        ],
+        [
+          74.7,
+          -41.06666666666667
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-11",
+      "inner": [
+        [
+          34.2,
+          -41.06666666666667
+        ],
+        [
+          34.2,
+          -51.333333333333336
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          -41.06666666666667
+        ],
+        [
+          74.7,
+          -51.333333333333336
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "east-lower-12",
+      "inner": [
+        [
+          34.2,
+          -51.333333333333336
+        ],
+        [
+          34.2,
+          -61.6
+        ]
+      ],
+      "outer": [
+        [
+          74.7,
+          -51.333333333333336
+        ],
+        [
+          74.7,
+          -61.6
+        ]
+      ],
+      "rows": 54,
+      "run": 40.5,
+      "base": 1.2,
+      "rise": 21.6,
+      "orange": false,
+      "tier": "east-lower"
+    },
+    {
+      "name": "west-upper-1",
+      "inner": [
+        [
+          -73.2,
+          -79.0
+        ],
+        [
+          -73.2,
+          -69.125
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -79.0
+        ],
+        [
+          -116.2,
+          -69.125
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-2",
+      "inner": [
+        [
+          -73.2,
+          -69.125
+        ],
+        [
+          -73.2,
+          -59.25
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -69.125
+        ],
+        [
+          -116.2,
+          -59.25
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-3",
+      "inner": [
+        [
+          -73.2,
+          -59.25
+        ],
+        [
+          -73.2,
+          -49.375
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -59.25
+        ],
+        [
+          -116.2,
+          -49.375
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-4",
+      "inner": [
+        [
+          -73.2,
+          -49.375
+        ],
+        [
+          -73.2,
+          -39.5
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -49.375
+        ],
+        [
+          -116.2,
+          -39.5
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-5",
+      "inner": [
+        [
+          -73.2,
+          -39.5
+        ],
+        [
+          -73.2,
+          -29.625
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -39.5
+        ],
+        [
+          -116.2,
+          -29.625
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-6",
+      "inner": [
+        [
+          -73.2,
+          -29.625
+        ],
+        [
+          -73.2,
+          -19.75
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -29.625
+        ],
+        [
+          -116.2,
+          -19.75
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-7",
+      "inner": [
+        [
+          -73.2,
+          -19.75
+        ],
+        [
+          -73.2,
+          -9.875
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -19.75
+        ],
+        [
+          -116.2,
+          -9.875
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-8",
+      "inner": [
+        [
+          -73.2,
+          -9.875
+        ],
+        [
+          -73.2,
+          0.0
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          -9.875
+        ],
+        [
+          -116.2,
+          0.0
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-9",
+      "inner": [
+        [
+          -73.2,
+          0.0
+        ],
+        [
+          -73.2,
+          9.875
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          0.0
+        ],
+        [
+          -116.2,
+          9.875
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-10",
+      "inner": [
+        [
+          -73.2,
+          9.875
+        ],
+        [
+          -73.2,
+          19.75
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          9.875
+        ],
+        [
+          -116.2,
+          19.75
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-11",
+      "inner": [
+        [
+          -73.2,
+          19.75
+        ],
+        [
+          -73.2,
+          29.625
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          19.75
+        ],
+        [
+          -116.2,
+          29.625
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-12",
+      "inner": [
+        [
+          -73.2,
+          29.625
+        ],
+        [
+          -73.2,
+          39.5
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          29.625
+        ],
+        [
+          -116.2,
+          39.5
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-13",
+      "inner": [
+        [
+          -73.2,
+          39.5
+        ],
+        [
+          -73.2,
+          49.375
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          39.5
+        ],
+        [
+          -116.2,
+          49.375
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-14",
+      "inner": [
+        [
+          -73.2,
+          49.375
+        ],
+        [
+          -73.2,
+          59.25
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          49.375
+        ],
+        [
+          -116.2,
+          59.25
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-15",
+      "inner": [
+        [
+          -73.2,
+          59.25
+        ],
+        [
+          -73.2,
+          69.125
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          59.25
+        ],
+        [
+          -116.2,
+          69.125
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "west-upper-16",
+      "inner": [
+        [
+          -73.2,
+          69.125
+        ],
+        [
+          -73.2,
+          79.0
+        ]
+      ],
+      "outer": [
+        [
+          -116.2,
+          69.125
+        ],
+        [
+          -116.2,
+          79.0
+        ]
+      ],
+      "rows": 55,
+      "run": 43.0,
+      "base": 28.0,
+      "rise": 28.6,
+      "orange": false,
+      "tier": "west-upper"
+    },
+    {
+      "name": "east-upper-1",
+      "inner": [
+        [
+          74.7,
+          61.6
+        ],
+        [
+          74.7,
+          51.050000000000004
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          61.6
+        ],
+        [
+          102.0,
+          51.050000000000004
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-2",
+      "inner": [
+        [
+          74.7,
+          51.050000000000004
+        ],
+        [
+          74.7,
+          40.5
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          51.050000000000004
+        ],
+        [
+          102.0,
+          40.5
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-3",
+      "inner": [
+        [
+          74.7,
+          40.5
+        ],
+        [
+          74.7,
+          29.950000000000003
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          40.5
+        ],
+        [
+          102.0,
+          29.950000000000003
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-4",
+      "inner": [
+        [
+          74.7,
+          29.950000000000003
+        ],
+        [
+          74.7,
+          19.400000000000006
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          29.950000000000003
+        ],
+        [
+          102.0,
+          19.400000000000006
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-5",
+      "inner": [
+        [
+          74.7,
+          19.400000000000006
+        ],
+        [
+          74.7,
+          8.850000000000001
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          19.400000000000006
+        ],
+        [
+          102.0,
+          8.850000000000001
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-6",
+      "inner": [
+        [
+          74.7,
+          8.850000000000001
+        ],
+        [
+          74.7,
+          -1.6999999999999957
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          8.850000000000001
+        ],
+        [
+          102.0,
+          -1.6999999999999957
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-7",
+      "inner": [
+        [
+          74.7,
+          -1.6999999999999957
+        ],
+        [
+          74.7,
+          -12.249999999999993
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -1.6999999999999957
+        ],
+        [
+          102.0,
+          -12.249999999999993
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-8",
+      "inner": [
+        [
+          74.7,
+          -12.249999999999993
+        ],
+        [
+          74.7,
+          -22.79999999999999
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -12.249999999999993
+        ],
+        [
+          102.0,
+          -22.79999999999999
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-9",
+      "inner": [
+        [
+          74.7,
+          -22.79999999999999
+        ],
+        [
+          74.7,
+          -33.34999999999999
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -22.79999999999999
+        ],
+        [
+          102.0,
+          -33.34999999999999
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-10",
+      "inner": [
+        [
+          74.7,
+          -33.34999999999999
+        ],
+        [
+          74.7,
+          -43.9
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -33.34999999999999
+        ],
+        [
+          102.0,
+          -43.9
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-11",
+      "inner": [
+        [
+          74.7,
+          -43.9
+        ],
+        [
+          74.7,
+          -54.449999999999996
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -43.9
+        ],
+        [
+          102.0,
+          -54.449999999999996
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "east-upper-12",
+      "inner": [
+        [
+          74.7,
+          -54.449999999999996
+        ],
+        [
+          74.7,
+          -65.0
+        ]
+      ],
+      "outer": [
+        [
+          102.0,
+          -54.449999999999996
+        ],
+        [
+          102.0,
+          -65.0
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "east-upper"
+    },
+    {
+      "name": "northeast-upper-1",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 0.0,
+        "a1": 15.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "northeast-upper-2",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 15.0,
+        "a1": 30.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "northeast-upper-3",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 30.0,
+        "a1": 45.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "northeast-upper-4",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 45.0,
+        "a1": 60.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "northeast-upper-5",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 60.0,
+        "a1": 75.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "northeast-upper-6",
+      "arc": {
+        "centre": [
+          34.2,
+          61.6
+        ],
+        "a0": 75.0,
+        "a1": 90.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northeast-upper"
+    },
+    {
+      "name": "north-upper-1",
+      "inner": [
+        [
+          -34.2,
+          102.1
+        ],
+        [
+          -22.800000000000004,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          -34.2,
+          129.4
+        ],
+        [
+          -22.800000000000004,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "north-upper-2",
+      "inner": [
+        [
+          -22.800000000000004,
+          102.1
+        ],
+        [
+          -11.400000000000002,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          -22.800000000000004,
+          129.4
+        ],
+        [
+          -11.400000000000002,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "north-upper-3",
+      "inner": [
+        [
+          -11.400000000000002,
+          102.1
+        ],
+        [
+          0.0,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          -11.400000000000002,
+          129.4
+        ],
+        [
+          0.0,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "north-upper-4",
+      "inner": [
+        [
+          0.0,
+          102.1
+        ],
+        [
+          11.399999999999999,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          0.0,
+          129.4
+        ],
+        [
+          11.399999999999999,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "north-upper-5",
+      "inner": [
+        [
+          11.399999999999999,
+          102.1
+        ],
+        [
+          22.800000000000004,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          11.399999999999999,
+          129.4
+        ],
+        [
+          22.800000000000004,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "north-upper-6",
+      "inner": [
+        [
+          22.800000000000004,
+          102.1
+        ],
+        [
+          34.2,
+          102.1
+        ]
+      ],
+      "outer": [
+        [
+          22.800000000000004,
+          129.4
+        ],
+        [
+          34.2,
+          129.4
+        ]
+      ],
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "north-upper"
+    },
+    {
+      "name": "northwest-upper-1",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 90.0,
+        "a1": 105.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northwest-upper"
+    },
+    {
+      "name": "northwest-upper-2",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 105.0,
+        "a1": 120.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northwest-upper"
+    },
+    {
+      "name": "northwest-upper-3",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 120.0,
+        "a1": 135.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northwest-upper"
+    },
+    {
+      "name": "northwest-upper-4",
+      "arc": {
+        "centre": [
+          -34.2,
+          61.6
+        ],
+        "a0": 135.0,
+        "a1": 150.0,
+        "r0": 40.5,
+        "r1": 67.8
+      },
+      "rows": 35,
+      "run": 27.3,
+      "base": 25.0,
+      "rise": 15.4,
+      "orange": false,
+      "tier": "northwest-upper"
+    },
+    {
+      "name": "south-flank--1",
+      "inner": [
+        [
+          -13,
+          -62
+        ],
+        [
+          -34,
+          -62
+        ]
+      ],
+      "outer": [
+        [
+          -24,
+          -88
+        ],
+        [
+          -63,
+          -73
+        ]
+      ],
+      "rows": 30,
+      "run": 26,
+      "base": 1.2,
+      "rise": 13.5,
+      "orange": false,
+      "tier": "south"
+    },
+    {
+      "name": "south-flank-1",
+      "inner": [
+        [
+          13,
+          -62
+        ],
+        [
+          34,
+          -62
+        ]
+      ],
+      "outer": [
+        [
+          24,
+          -88
+        ],
+        [
+          63,
+          -73
+        ]
+      ],
+      "rows": 30,
+      "run": 26,
+      "base": 1.2,
+      "rise": 13.5,
+      "orange": false,
+      "tier": "south"
+    },
+    {
+      "name": "south-chairback-1",
+      "inner": [
+        [
+          -13.0,
+          -62.0
+        ],
+        [
+          -6.5,
+          -62.0
+        ]
+      ],
+      "outer": [
+        [
+          -13.0,
+          -72.5
+        ],
+        [
+          -6.5,
+          -72.5
+        ]
+      ],
+      "rows": 14,
+      "run": 10.5,
+      "base": 1.2,
+      "rise": 5.6,
+      "orange": true,
+      "tier": "south-chairback"
+    },
+    {
+      "name": "south-chairback-2",
+      "inner": [
+        [
+          -6.5,
+          -62.0
+        ],
+        [
+          0.0,
+          -62.0
+        ]
+      ],
+      "outer": [
+        [
+          -6.5,
+          -72.5
+        ],
+        [
+          0.0,
+          -72.5
+        ]
+      ],
+      "rows": 14,
+      "run": 10.5,
+      "base": 1.2,
+      "rise": 5.6,
+      "orange": true,
+      "tier": "south-chairback"
+    },
+    {
+      "name": "south-chairback-3",
+      "inner": [
+        [
+          0.0,
+          -62.0
+        ],
+        [
+          6.5,
+          -62.0
+        ]
+      ],
+      "outer": [
+        [
+          0.0,
+          -72.5
+        ],
+        [
+          6.5,
+          -72.5
+        ]
+      ],
+      "rows": 14,
+      "run": 10.5,
+      "base": 1.2,
+      "rise": 5.6,
+      "orange": true,
+      "tier": "south-chairback"
+    },
+    {
+      "name": "south-chairback-4",
+      "inner": [
+        [
+          6.5,
+          -62.0
+        ],
+        [
+          13.0,
+          -62.0
+        ]
+      ],
+      "outer": [
+        [
+          6.5,
+          -72.5
+        ],
+        [
+          13.0,
+          -72.5
+        ]
+      ],
+      "rows": 14,
+      "run": 10.5,
+      "base": 1.2,
+      "rise": 5.6,
+      "orange": true,
+      "tier": "south-chairback"
+    }
+  ],
+  "field": {
+    "width": 48.768,
+    "length": 109.728,
+    "apronWidth": 68.4,
+    "apronLength": 123.2
+  },
+  "board": {
+    "width": 48.768,
+    "height": 13.4112,
+    "base": 22.5,
+    "y": -93.5,
+    "curve": 0.002
+  },
+  "south": {
+    "towerX": 34,
+    "towerY": -94,
+    "towerWidth": 12,
+    "towerDepth": 13,
+    "towerHeight": 39,
+    "balcony": [
+      [
+        -33,
+        -77
+      ],
+      [
+        -28,
+        -81
+      ],
+      [
+        -14,
+        -79
+      ],
+      [
+        -10,
+        -85
+      ],
+      [
+        10,
+        -85
+      ],
+      [
+        14,
+        -79
+      ],
+      [
+        28,
+        -81
+      ],
+      [
+        33,
+        -77
+      ],
+      [
+        23,
+        -76
+      ],
+      [
+        15,
+        -73
+      ],
+      [
+        9,
+        -72
+      ],
+      [
+        7,
+        -66
+      ],
+      [
+        -7,
+        -66
+      ],
+      [
+        -9,
+        -72
+      ],
+      [
+        -15,
+        -73
+      ],
+      [
+        -23,
+        -76
+      ]
+    ],
+    "balconyBase": 11.5,
+    "balconyTop": 13.1
+  },
+  "details": {
+    "aisleWidth": 1.7,
+    "slabThickness": 0.65,
+    "benchDepth": 0.3,
+    "benchHeight": 0.38,
+    "railHeight": 1.0,
+    "railThickness": 0.045,
+    "portalWidth": 3.3,
+    "portalHeight": 2.5,
+    "facadeBay": 6.2,
+    "facadeFloor": 4.6,
+    "beamWidth": 0.55,
+    "trim": 0.32,
+    "rowGeometryDistance": 430,
+    "railDistance": 210,
+    "minZoom": 14
+  },
+  "towers": [
+    {
+      "x": -97,
+      "y": 105,
+      "radius": 6.3,
+      "height": 30,
+      "kind": "office"
+    },
+    {
+      "x": -48,
+      "y": 133,
+      "radius": 6.3,
+      "height": 30,
+      "kind": "office"
+    },
+    {
+      "x": 48,
+      "y": 133,
+      "radius": 6.3,
+      "height": 30,
+      "kind": "office"
+    },
+    {
+      "x": 97,
+      "y": 105,
+      "radius": 6.3,
+      "height": 30,
+      "kind": "office"
+    },
+    {
+      "x": -116,
+      "y": -80,
+      "radius": 6.8,
+      "height": 25,
+      "kind": "ramp"
+    },
+    {
+      "x": -116,
+      "y": 83,
+      "radius": 6.8,
+      "height": 25,
+      "kind": "ramp"
+    }
+  ],
+  "bounds": [
+    -129,
+    -103,
+    113,
+    141
+  ]
+}
