@@ -1329,7 +1329,7 @@
   const urlFrom = q.get('from');
   const urlTo = q.get('to');
   const ENABLED = urlWalk !== '0' &&
-    (WAYFIND.on || urlWalk != null || urlFrom != null || urlTo != null);
+    (WAYFIND.on || urlWalk != null || urlFrom != null || urlTo != null || q.get('livehere') === '1');
   window.WAYFIND = WAYFIND;
   if (!ENABLED) return;   // <- byte-identical past this line
 

@@ -770,7 +770,10 @@
     "slabT": 0.28,
     "railH": 0.95,
     "railT": 0.06,
-    "_src": "S9 (TIER4: BW 2.8, BP 1.15, BT 0.28, BR 0.95, BX 0.12 read off Ext_01 against the panel module); the rail drawn 0.06 thick as three thin boxes, the photograph's tube rail (S7), in `railOpen` on the projecting stacks (a solid box standing for bars and air). The podium's juliets are LOGGIAS (`inset` 1.2, S23): nothing projects, the black rail (1.05 m, 0.05 thick) stands at the face on the floor of the recess, the opening is the storey less the 0.28 slab."
+    "_src": "S9 (TIER4: BW 2.8, BP 1.15, BT 0.28, BR 0.95, BX 0.12 read off Ext_01 against the panel module); the rail drawn 0.06 thick as three thin boxes, the photograph's tube rail (S7), in `railOpen` on the projecting stacks (a solid box standing for bars and air). The podium's juliets are LOGGIAS (`inset` 1.2, S23): nothing projects, the black rail (1.05 m, 0.05 thick) stands at the face on the floor of the recess, the opening is the storey less the 0.28 slab. Open rails added from S23: 0.16m post spacing and 0.035m post width are adjustable visual approximations, not field measurements.",
+    "railPitch": 0.16,
+    "railPost": 0.035,
+    "railTone": "rail"
   },
   "blocks": [
     {
@@ -871,71 +874,78 @@
                   "s0": 0.493,
                   "s1": 1.993,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 4.979,
                   "s1": 6.479,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 9.464,
                   "s1": 10.964,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 13.95,
                   "s1": 15.45,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 18.436,
                   "s1": 19.936,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 22.921,
                   "s1": 24.421,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 27.407,
                   "s1": 28.907,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ]
             }
@@ -1072,51 +1082,56 @@
                   "s0": 0.6,
                   "s1": 2.1,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 5.3,
                   "s1": 6.8,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 10.0,
                   "s1": 11.5,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 14.7,
                   "s1": 16.2,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 19.4,
                   "s1": 20.9,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ]
             }
@@ -1152,7 +1167,9 @@
                   "z0": 0.0,
                   "z1": 3.2,
                   "d": 1.5,
-                  "tone": "charcoal"
+                  "tone": "podiumPanel",
+                  "glass": "glass",
+                  "lit": true
                 }
               ],
               "fins": [
@@ -1178,6 +1195,16 @@
                   "d": 0.22,
                   "tone": "stone"
                 }
+              ],
+              "signs": [
+                {
+                  "text": "715",
+                  "s0": 7.2,
+                  "z0": 3.5,
+                  "dot": 0.055,
+                  "gap": 0.055,
+                  "tone": "sign"
+                }
               ]
             },
             {
@@ -1189,21 +1216,23 @@
                   "s0": 0.775,
                   "s1": 2.275,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 5.825,
                   "s1": 7.325,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ],
               "fins": {
@@ -1229,7 +1258,7 @@
               }
             }
           ],
-          "_src": "the 10.1 m of the 23rd St face next to the corner bay (u 71.5-81.6), one piece so its module is its own (two modules of 5.05 m: the windows at u 78.0 and 73.0, the loggias at u 75.5 and 70.5... computed). Its ground floor (S23, S24): charcoal, with the retail glazing as a lit glazed opening 0.25 m behind the face over u 71.5-78 and light mullions at 1.5 m standing on the face line, the residential ENTRANCE as a 1.8 m opening 1.5 m deep at u 78.4-80.2 (the round logo and 715 over it are not drawn), and the junction pier's limestone foot 1 m wide, 0.22 m proud at u 80.6-81.6; above the ground the same pier in the light panel tone runs to the parapet (S23: proud, with its own shadow line on the charcoal). The top storey is the three louvre panels (louvreTop) at the piece's window positions (S19). The round-3 gate had this piece's bays under a `pier` look — these are the measured ones."
+          "_src": "the 10.1 m of the 23rd St face next to the corner bay (u 71.5-81.6), one piece so its module is its own (two modules of 5.05 m: the windows at u 78.0 and 73.0, the loggias at u 75.5 and 70.5... computed). Its ground floor (S23, S24): charcoal, with the retail glazing as a lit glazed opening 0.25 m behind the face over u 71.5-78 and light mullions at 1.5 m standing on the face line, the residential ENTRANCE as a 1.8 m opening 1.5 m deep at u 78.4-80.2 (715 is now drawn over it; the round logo is still absent), and the junction pier's limestone foot 1 m wide, 0.22 m proud at u 80.6-81.6; above the ground the same pier in the light panel tone runs to the parapet (S23: proud, with its own shadow line on the charcoal). The top storey is the three louvre panels (louvreTop) at the piece's window positions (S19). The round-3 gate had this piece's bays under a `pier` look — these are the measured ones."
         }
       ],
       "roofTone": "deck",
@@ -1368,7 +1397,7 @@
                   "slabT": 0.28,
                   "railH": 1.05,
                   "railT": 0.05,
-                  "railTone": "railOpen",
+                  "railTone": "rail",
                   "lift": 0.0
                 }
               ],
@@ -1697,21 +1726,23 @@
                   "s0": 2.375,
                   "s1": 3.875,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 6.625,
                   "s1": 8.125,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ]
             }
@@ -1794,41 +1825,45 @@
                   "s0": 2.506,
                   "s1": 4.006,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 7.019,
                   "s1": 8.519,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 11.531,
                   "s1": 13.031,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 16.044,
                   "s1": 17.544,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ]
             }
@@ -1945,31 +1980,34 @@
                   "s0": 0.4,
                   "s1": 1.9,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 4.7,
                   "s1": 6.2,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 },
                 {
                   "s0": 9.0,
                   "s1": 10.5,
                   "inset": 1.2,
-                  "insetTone": "loggia",
+                  "insetTone": "podiumPanel",
                   "railH": 1.05,
                   "railT": 0.05,
                   "railTone": "rail",
-                  "lift": 0.0
+                  "lift": 0.0,
+                  "insetGlass": "glass"
                 }
               ]
             }
@@ -2276,7 +2314,7 @@
                   "s0": 0.9,
                   "s1": 4.1,
                   "lift": 0.0,
-                  "railTone": "railOpen"
+                  "railTone": "rail"
                 }
               ]
             }
@@ -2417,13 +2455,13 @@
                   "s0": 13.0,
                   "s1": 15.8,
                   "lift": 0.0,
-                  "railTone": "railOpen"
+                  "railTone": "rail"
                 },
                 {
                   "s0": 2.3,
                   "s1": 5.1,
                   "lift": 0.0,
-                  "railTone": "railOpen"
+                  "railTone": "rail"
                 }
               ]
             }
@@ -2868,9 +2906,7 @@
     ]
   },
   "todo": [
-    "A loggia's reveal and its back wall want two tones: Ext_14 at 4x (S23) shows light concrete jambs and soffit (~#c9c2b4 at dusk) round a dark glazed door, and a balcony stack's `insetTone` paints all five surfaces in one. The corner bay's loggia is authored round that as per-storey `openings` with `glass` (2026-09-08, S25); the podium's loggias are still `inset` stacks drawn dark (`loggia`) so the void reads from the street - the same authoring would give them light jambs and a glazed back.",
-    "A loggia rail is a black tube grille 1.05 m tall (S23); a stack's rail is drawn as one solid box of railT, so it stands as a dark panel. The corner loggia's wears `railOpen` for that reason; a slat pitch on the rail would draw the grille.",
-    "The residential entrance on 23rd carries the round logo and '715' over the door (S23) and a louvre grille beside it; a sign on a `flat` ground band at dot 0.05 is expressible but was not placed — the door is at u 78.4-80.2.",
+    "The residential entrance on 23rd carries the round logo and '715' over the door (S23) and a louvre grille beside it; 715 and a glazed entry are now placed; the round logo and adjacent louvre remain unmodeled — the door is at u 78.4-80.2.",
     "Tower B's west face south of the pixel band: the Earth W frame (S22) shows two-light windows ~2.2 m wide at ~3.4 m centres with a rust spandrel under each; the `bays` skin keeps the 5 m / two 1.1 m windows read against the judge's frame (S20). A closer Earth capture of the south face would settle the unit for the whole 66 m bar.",
     "The pixel band's place on the Pearl face is v 19.5-23.2 by three reads that disagree by ±2 m (S17 18.6-22.6 by eye; S23's profile puts its north edge ~9 m south of the corner bay; S22's frame ~10-11 m); tower B's field and the sign follow it.",
     "The oriel's spandrel caps carry a light slab edge on top (S25: a pale line over every charcoal band, the concrete slab's coping) and its storeys a transom at two thirds; the `storefront` skin draws the transom and the band but not the coping line, and every pane of a storefront is `lit` after dark where Ext_14 shows one storey lit and three reflecting the sky."

@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 11 2026 — Apartment comparison preview (`codex/live-here`)
+
+Opt-in `?livehere=1` compares The Standard, Union on 24th and Villas on Rio
+against a recurring class week, with local import and mapped route previews.
+The two new graph entries are explicitly approximate street approaches.
+The Standard gains open rails, light recess reveals and an entrance number;
+Villas' footprint cuts replace filled mass. See docs/live-here.md for scope,
+sources, checks and final evidence. `WAYFIND.on` remains false. No Mac-owned
+outputs or the other open lanes' code were touched.
+
+
 ## Sep 11 2026 — Explore landmark arrivals (`codex/explore-landmarks`)
 
 Added an Explore menu for DKR, the UT Tower, the Capitol and downtown, with
