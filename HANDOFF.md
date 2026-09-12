@@ -10,6 +10,13 @@ Villas' footprint cuts replace filled mass. See docs/live-here.md for scope,
 sources, checks and final evidence. `WAYFIND.on` remains false. No Mac-owned
 outputs or the other open lanes' code were touched.
 
+Verified after merging main's September 12 snapshot: browser flow (including
+synthetic import/deletion and request privacy), schedule arithmetic, 19/19
+graph health gates, matched geometry/raycast checks, and harness parity pass.
+All 19 existing route pairs remain available, with at most 2.12 m change from
+updated entrance positions. The older frozen baselines remain stale. The
+feature and matched before/after frames are documented in docs/live-here.md.
+
 
 ## Sep 11 2026 — Explore landmark arrivals (`codex/explore-landmarks`)
 
