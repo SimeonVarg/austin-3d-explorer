@@ -689,6 +689,12 @@ contract in `slopes.js`'s header already allows.
 
 ## What it costs
 
+The optional balcony fields `railPitch` and `railPost` draw an open grille
+instead of a solid panel. `railT` remains the horizontal rail thickness.
+Omit `railPitch` to retain the existing solid geometry. Inset balconies can
+set `insetGlass` separately from `insetTone` (the reveals); `insetLit` controls
+their night emission. The Standard uses these fields in the live-here pass.
+
 The Standard: 9 blocks, 55 faces, ~11,700 cells, ~1,600 windows, 26
 balconies, 4 signs, ~45,000 triangles in one draw call, built in ~220 ms.
 The whole slopes layer was ~74,000 triangles before it.

@@ -1078,6 +1078,20 @@
   function balconyStack(B, W, spec, floors, P) {
     const s0 = spec.s0, s1 = spec.s1, proj = spec.proj || 1.15, t = spec.slabT || 0.28, rh = spec.railH || 0.95, rt = spec.railT || 0.06;
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
+    function railing(a, b, d0, d1, z0, z1) {
+      if (!(spec.railPitch > 0)) return box(B, W, a, b, d0, d1, z0, z1, rail, { back: true });
+      const post = spec.railPost || rt;
+      box(B, W, a, b, d0, d1, z1 - rt, z1, rail, { back: true });
+      box(B, W, a, b, d0, d1, z0, z0 + rt, rail, { back: true });
+      const along = b - a >= d1 - d0, length = along ? b - a : d1 - d0;
+      const n = Math.max(1, Math.ceil(length / spec.railPitch));
+      for (let i = 0; i <= n; i++) {
+        const x = (length - post) * i / n;
+        box(B, W, along ? a + x : a, along ? a + x + post : b,
+          along ? d0 : d0 + x, along ? d1 : d0 + x + post,
+          z0 + rt, z1 - rt, rail, { back: true });
+      }
+    }
     for (const fz of floors) {
       const z = fz + (spec.lift || 0);
       if (spec.inset > 0) {
@@ -1087,15 +1101,15 @@
         // face is the rail, on the floor of the recess. Nothing projects, so
         // the balcony reads as the shadowed void the photographs show (the
         // Villas on Guadalupe, 2819 Rio Grande) and not as a lit slab edge.
-        box(B, W, s0, s1, 0, rt, z, z + rh, rail, { back: true });
+        railing(s0, s1, 0, rt, z, z + rh);
         count.balconies++;
         continue;
       }
       box(B, W, s0, s1, 0, proj, z, z + t, slab, { back: true });
       // rails: front, and the two returns; a thin box each
-      box(B, W, s0, s1, proj - rt, proj, z + t, z + t + rh, rail, { back: true });
-      box(B, W, s0, s0 + rt, 0, proj - rt, z + t, z + t + rh, rail, { back: true });
-      box(B, W, s1 - rt, s1, 0, proj - rt, z + t, z + t + rh, rail, { back: true });
+      railing(s0, s1, proj - rt, proj, z + t, z + t + rh);
+      railing(s0, s0 + rt, 0, proj - rt, z + t, z + t + rh);
+      railing(s1 - rt, s1, 0, proj - rt, z + t, z + t + rh);
       count.balconies++;
     }
   }
@@ -1134,7 +1148,9 @@
         const fz = floors[i] + (b.lift || 0);
         const next = i + 1 < floors.length ? floors[i + 1] : z1;
         const h = b.h != null ? b.h : (next - floors[i]) - (b.slabT || 0.28);
-        list.push({ s0: b.s0 - sOff, s1: b.s1 - sOff, z0: fz, z1: Math.min(z1, fz + h), reveal: b.inset, tone: b.insetTone || 'wall', lit: false, opening: true });
+        list.push({ s0: b.s0 - sOff, s1: b.s1 - sOff, z0: fz, z1: Math.min(z1, fz + h), reveal: b.inset,
+          tone: b.insetGlass || b.insetTone || 'wall', revealTone: b.insetGlass ? b.insetTone : undefined,
+          lit: !!b.insetLit, opening: true });
       }
     }
     if (!list.length) return;

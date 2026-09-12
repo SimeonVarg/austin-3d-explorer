@@ -1847,7 +1847,8 @@
     const q = new URLSearchParams(window.location.search);
     const doTour = q.get('tour') === '1' || q.get('timelapse') === '1' || q.get('autopilot') === '1';  // ?tour=1 / ?timelapse=1 / ?autopilot=1 replace the intro
     const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
-    const doIntro = !doTour && !doSlider && q.get('intro') !== '0';
+    const liveHere = q.get('livehere') === '1' && q.get('walk') !== '0';
+    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     // Shot A primes ITS first waypoint under the veil, the same way the intro
     // primes its own start pose: the tiles it needs are fetched while the dark
@@ -1993,6 +1994,8 @@
   };
   function initIdleCinema() {
     if (new URLSearchParams(window.location.search).get('drift') === '0') return;
+    const preview = new URLSearchParams(window.location.search);
+    if (preview.get('livehere') === '1' && preview.get('walk') !== '0') return;
     let idleTimer = null, legTimer = null, drifting = false, legIx = 0, pDir = 1;
     const banner = document.getElementById('diff-banner');
     const canRun = () => document.visibilityState === 'visible' &&

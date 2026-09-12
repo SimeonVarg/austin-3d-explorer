@@ -393,10 +393,38 @@
       "id": "tower",
       "_src": "The 19-storey mass, S2 and S3. Its south end is at u 45.5: S6's nadir has a clean parapet line right across the plan there, with the pool and the tower's own roof north of it and a dense condenser field south of it, and S5's aerials show the taupe wing starting at that same point in the elevation. The west and east edges are the ring's own, v 0 and v 37.42.",
       "plan": [
-        20.74,
-        45.5,
-        0.0,
-        37.42
+        [
+          45.5,
+          0
+        ],
+        [
+          20.74,
+          0
+        ],
+        [
+          20.74,
+          37.42
+        ],
+        [
+          45.38,
+          37.42
+        ],
+        [
+          45.39,
+          24.96
+        ],
+        [
+          41.5,
+          24.96
+        ],
+        [
+          41.5,
+          19.84
+        ],
+        [
+          45.5,
+          19.84
+        ]
       ],
       "z0": 0,
       "z1": 55.0,
@@ -413,11 +441,7 @@
         }
       ],
       "faces": {
-        "u1": {
-          "z0": 21.4,
-          "_src": "the south face shows only above the seven-storey wing that stands against it."
-        },
-        "v1": {
+        "2": {
           "bands": [
             {
               "z0": 0,
@@ -431,6 +455,70 @@
             }
           ],
           "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        },
+        "3": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 55.0,
+              "skin": "panel"
+            }
+          ],
+          "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 55.0,
+              "skin": "panel"
+            }
+          ],
+          "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        },
+        "5": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 55.0,
+              "skin": "panel"
+            }
+          ],
+          "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        },
+        "6": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 55.0,
+              "skin": "panel"
+            }
+          ],
+          "_src": "the east face looks at a surface car park and was never photographed; it wears the panel rule with the plain dark base under it instead of a storefront."
+        },
+        "7": {
+          "z0": 21.4,
+          "_src": "the south face shows only above the seven-storey wing that stands against it."
         }
       },
       "overrides": [
@@ -458,10 +546,10 @@
       "roofItems": [
         {
           "plan": [
-            30.0,
-            44.0,
-            13.0,
-            30.0
+            30,
+            41.5,
+            13,
+            30
           ],
           "h": 3.4,
           "tone": "mech",
@@ -485,17 +573,60 @@
           "h": 0.7,
           "tone": "condenser",
           "_src": "S6's nadir: condenser rows along the tower roof's east edge. Seven by two counts the visible clusters, not the units."
+        },
+        {
+          "plan": [
+            41.5,
+            44,
+            13,
+            19.84
+          ],
+          "h": 3.4,
+          "tone": "mech",
+          "_src": "Existing derived plant room clipped to the sourced footprint; no equipment spans the light well."
+        },
+        {
+          "plan": [
+            41.5,
+            44,
+            24.96,
+            30
+          ],
+          "h": 3.4,
+          "tone": "mech",
+          "_src": "Existing derived plant room clipped to the sourced footprint; no equipment spans the light well."
         }
-      ]
+      ],
+      "_notch_src": "S1 footprint, transformed through the same OBB: the light well at u41.50-45.39, v19.84-24.96 and open slot to the east are voids. Newly exposed walls use the existing unsurveyed east-face panel/base rule. No new measured facade claim."
     },
     {
       "id": "wing",
       "_src": "The seven-storey taupe wing at the south end, u 45.5 to the ring's 69.85, full plan depth. Six window rows above the storefront were counted on S5 src_00 (ref/c00_taupe3.jpg), so 7 storeys and a roof deck at 21.4 m, which IS the top of floor 7 on this file's floor lines.",
       "plan": [
-        45.5,
-        69.85,
-        0.0,
-        38.26
+        [
+          69.85,
+          0
+        ],
+        [
+          45.5,
+          0
+        ],
+        [
+          45.5,
+          19.84
+        ],
+        [
+          48.66,
+          19.84
+        ],
+        [
+          48.63,
+          38.26
+        ],
+        [
+          69.81,
+          38.26
+        ]
       ],
       "z0": 0,
       "z1": 21.4,
@@ -512,8 +643,7 @@
         }
       ],
       "faces": {
-        "u0": null,
-        "v0": {
+        "0": {
           "bands": [
             {
               "z0": 0,
@@ -547,7 +677,8 @@
           ],
           "_src": "the west face on Rio Grande: S5 src_00's crop ref/c00_taupe3.jpg has the storefront set back about 1.7 m behind the wall above on square concrete columns roughly 6.6 m apart, and VILLAS ON RIO in dark letters high on the taupe at the north end of that face, above the entry. The letter size is read off the same crop against the 2.8 m floor."
         },
-        "v1": {
+        "1": null,
+        "2": {
           "bands": [
             {
               "z0": 0,
@@ -562,7 +693,37 @@
           ],
           "_src": "the east face on the car park, unphotographed: the same wall rule with the plain dark base."
         },
-        "u1": {
+        "3": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 21.4,
+              "skin": "taupeGrid"
+            }
+          ],
+          "_src": "the east face on the car park, unphotographed: the same wall rule with the plain dark base."
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 21.4,
+              "skin": "taupeGrid"
+            }
+          ],
+          "_src": "the east face on the car park, unphotographed: the same wall rule with the plain dark base."
+        },
+        "5": {
           "bands": [
             {
               "z0": 0,
@@ -590,7 +751,7 @@
       "roofItems": [
         {
           "plan": [
-            47.5,
+            49,
             68.0,
             2.5,
             35.5
@@ -605,7 +766,7 @@
           ],
           "h": 0.7,
           "tone": "condenser",
-          "_src": "S6's nadir: the wing's roof is the densest condenser field on the site - one or two units a flat, right across it. Nine by four counts the visible clusters."
+          "_src": "S6's nadir: the wing's roof is the densest condenser field on the site - one or two units a flat, right across it. Nine by four counts the visible clusters. First row moved inside the sourced roof edge after the open east slot was restored; count remains derived."
         },
         {
           "plan": [
@@ -618,7 +779,8 @@
           "tone": "mech",
           "_src": "S6's nadir: the stair and lift overrun standing above the wing's roof, near its middle."
         }
-      ]
+      ],
+      "_notch_src": "S1 footprint: east slot wraps around the u48.63-48.66 return. Adjacent tower no longer fills the light well. Original street face and sign retain their edge direction and start."
     }
   ],
   "deck": {
@@ -760,7 +922,6 @@
   "todo": [
     "The window cannot be dropped in favour of a field rectangle, and this is why: it is the only thing on this building that lights at night. Every `bays` window carries a `lit` flag and a night tone; a field rectangle carries neither. Rendered at time-of-day 1.0 the tower is read entirely by its lit windows - remove them and nineteen storeys go black beside a lit Torre and a lit Signature 1909.",
     "The custom-formed panels crease diagonally - that is S2's 'angular design motifs' and it is the first thing you see in S5 src_07. Every crease is a fold of about 20-40 mm across a 3.2 x 2.8 m panel, so it is under a pixel at the oblique camera and about half a pixel at walking height; it is not drawn, and this file does not pretend it is. If it is ever wanted it is one diagonal quad per panel, not a skin change.",
-    "The two notches in the ring at u 41.5-48.7 (a 3.9 x 5.1 m light well and a 3.3 x 18.4 m slot open to the east) are in the footprint but not in the massing: the tower and the wing are given as rectangles that meet at u 45.5, so the notches are filled. They are about 3 m wide and face a car park; a plan polygon per block would draw them.",
     "The wedge's east flank (v 37.42) and the tower's and the wing's east and south faces were never photographed - the car park side and the neighbour's wall block every angle - and they wear the same rule as the faces that were.",
     "The four-level parking garage under the building (S4) is not drawn: no photograph reaches its screen and S6's nadir cannot see it. The ground floor is a storefront right round the west side instead, which is what S5 src_00 shows there."
   ],

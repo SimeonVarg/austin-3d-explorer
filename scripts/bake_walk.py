@@ -1202,6 +1202,11 @@ def build_doors():
         out.append(dict(lon=g["sx"] / g["n"], lat=g["sy"] / g["n"],
                         ref=g["ref"], nm=g["nm"], role=g["role"],
                         src=g["src"], bid=g["bid"]))
+    # Curated street approaches carry explicit uncertainty through role/src.
+    # They use the same collision checks and anchor limit as every other door.
+    for approach in load("data/apartment-approaches.json")["approaches"]:
+        out.append({k: approach[k] for k in
+                    ("lon", "lat", "ref", "nm", "role", "src", "bid")})
     out.sort(key=lambda x: (x["ref"], x["nm"], x["lon"]))
     return out
 
@@ -1644,6 +1649,7 @@ def bake(verbose=True):
                 for ft in load("data/westcampus.geojson")["features"]
                 if ft["properties"].get("name")}
     wc_doors = defaultdict(list)
+    wc_names.update(a["nm"] for a in load("data/apartment-approaches.json")["approaches"])
     for i, dr in enumerate(doors):
         if dr["nm"] in wc_names:
             wc_doors[dr["nm"]].append(i)
@@ -1997,7 +2003,7 @@ def gates(c):
          "%d entries with no anchored door, %d anchors off the main component"
          % (len(c["unroutable_entries"]), len(c["off_main_anchors"]))),
         ("T  every West Campus tower routes to %s, driven" % WC_ROUTE_TARGET,
-         not c["wc_failed"] and len(c["wc_routed"]) == 24,
+         not c["wc_failed"] and len(c["wc_routed"]) >= 24,
          "%d of %d routed%s" % (len(c["wc_routed"]),
                                 len(c["wc_routed"]) + len(c["wc_failed"]),
                                 (", FAILING " + ", ".join(c["wc_failed"]))

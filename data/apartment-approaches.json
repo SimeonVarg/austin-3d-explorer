@@ -1,0 +1,19 @@
+{
+  "_readme": "Inputs to bake_walk.py, the sole writer of walk_graph.json. Approximate points on the documented address frontage, not surveyed lobby doors. The live-here preview displays this uncertainty. No invented network edges: the normal obstacle-aware, maximum-30m anchor rules apply.",
+  "approaches": [
+    {
+      "nm": "Union on 24th", "bid": "0a6d10a2-a664-4049-9ea2-83ce692103ef",
+      "lon": -97.745205, "lat": 30.287883,
+      "role": "approach", "src": "frontage-estimate", "ref": "",
+      "source": "https://www.unionon24th.com/virtual-tour",
+      "basis": "701 W 24th Street address; midpoint on north frontage of the sourced apartment footprint. Exact entrance remains unverified."
+    },
+    {
+      "nm": "Villas on Rio", "bid": "e6abe8cf-5a15-4d11-9b04-f0a5c629d59a",
+      "lon": -97.744888, "lat": 30.284705,
+      "role": "approach", "src": "frontage-estimate", "ref": "",
+      "source": "https://www.rhodepartners.com/student-housing-villas-on-rio",
+      "basis": "Rio Grande frontage of the low wing in data/apartments/villas-on-rio.json. Approximate approach, not a claimed lobby door."
+    }
+  ]
+}
