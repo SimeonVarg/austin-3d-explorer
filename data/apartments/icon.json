@@ -1,0 +1,347 @@
+{
+  "name": "Icon",
+  "id": "9f5efc93-dc5f-49fb-8f5a-f002cb5946c6",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 9f5efc93-dc5f-49fb-8f5a-f002cb5946c6",
+    "reference": "https://www.rhodepartners.com/icon",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
+    "placement": "https://www.iconataustin.com/; 2200 San Antonio Street. ArcGIS World GeocodeServer address match score 100 at -97.743084597282,30.285294489137. 28x30m envelope derived from facade bay counts and neighbor spacing; former Intervarsity footprint is retired, not reused as tower plan."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.74341668557628,
+        30.28518672709241
+      ],
+      [
+        -97.74312651444298,
+        30.28516480505866
+      ],
+      [
+        -97.74309931442372,
+        30.28543327290759
+      ],
+      [
+        -97.74338948555702,
+        30.28545519494134
+      ],
+      [
+        -97.74341668557628,
+        30.28518672709241
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74341668557628,
+        30.28518672709241
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96127.5893625756,
+      "my": 111320,
+      "L": 28.000000000529756,
+      "W": 30.000000000061252
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      4.8,
+      7.74,
+      10.68,
+      13.62,
+      16.56,
+      19.5,
+      22.44,
+      25.38,
+      28.32,
+      31.26,
+      34.2,
+      37.14,
+      40.08,
+      43.02,
+      45.96,
+      48.9,
+      51.84,
+      54.78,
+      57.72,
+      60.66,
+      63.6,
+      66.54,
+      69.48,
+      72.42,
+      75.36,
+      78.3,
+      81.24,
+      84.18,
+      87.12
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "icon": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 2.65,
+      "window": {
+        "w": 1.65,
+        "h": 2.25,
+        "sill": 0.3,
+        "mullion": {
+          "cols": [],
+          "rows": [
+            0.33
+          ],
+          "w": 0.06,
+          "tone": "frame"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24,
+      "pier": {
+        "w": 0.24,
+        "d": 0.2,
+        "tone": "trim"
+      },
+      "floorLine": {
+        "h": 0.18,
+        "tone": "trim"
+      }
+    }
+  },
+  "blocks": [
+    {
+      "id": "lobby",
+      "plan": [
+        0,
+        28.000000000529756,
+        0,
+        30.000000000061252
+      ],
+      "z0": 0,
+      "z1": 4.8,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.8,
+          "skin": "glass"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "lower-grid",
+      "plan": [
+        0,
+        28.000000000529756,
+        0,
+        30.000000000061252
+      ],
+      "z0": 4.8,
+      "z1": 16.56,
+      "bands": [
+        {
+          "z0": 4.8,
+          "z1": 16.56,
+          "skin": "icon"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "tower",
+      "plan": [
+        1,
+        27.000000000529756,
+        1,
+        29.000000000061252
+      ],
+      "z0": 16.56,
+      "z1": 87.12,
+      "bands": [
+        {
+          "z0": 16.56,
+          "z1": 87.12,
+          "skin": "icon"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "parapet": 0.6,
+      "parapetTone": "white",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown",
+      "plan": [
+        10.080000000190712,
+        27.000000000529756,
+        3,
+        27.000000000061252
+      ],
+      "z0": 87.12,
+      "z1": 93.6,
+      "bands": [
+        {
+          "z0": 87.12,
+          "z1": 93.6,
+          "skin": "glass"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "chamfer": 2,
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "podium-ledge",
+      "plan": [
+        -0.4,
+        28.400000000529754,
+        -0.4,
+        30.40000000006125
+      ],
+      "z0": 16.3,
+      "z1": 16.580000000000002,
+      "bands": [
+        {
+          "z0": 16.3,
+          "z1": 16.580000000000002,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate."
+  ],
+  "deck": {
+    "z": 87.12,
+    "items": [
+      {
+        "id": "pool",
+        "plan": [
+          15.96000000030196,
+          24.920000000471482,
+          4.800000000009801,
+          15.000000000030626
+        ],
+        "h": 0.12,
+        "tone": "water"
+      },
+      {
+        "id": "planter",
+        "plan": [
+          2.520000000047678,
+          4.200000000079463,
+          4.500000000009187,
+          24.600000000050226
+        ],
+        "h": 0.65,
+        "tone": "plant"
+      }
+    ]
+  },
+  "labelOverride": true
+}

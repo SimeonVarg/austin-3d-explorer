@@ -1,0 +1,747 @@
+{
+  "name": "Mezes Hall",
+  "id": "b9eac672-544a-4f53-9665-0926015f0b5e",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature b9eac672-544a-4f53-9665-0926015f0b5e",
+    "reference": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/MEZ/",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7387618,
+        30.284032
+      ],
+      [
+        -97.7387378,
+        30.2842788
+      ],
+      [
+        -97.7387256,
+        30.2842779
+      ],
+      [
+        -97.7387168,
+        30.2843682
+      ],
+      [
+        -97.7387086,
+        30.2844529
+      ],
+      [
+        -97.7387211,
+        30.2844538
+      ],
+      [
+        -97.7387023,
+        30.2846475
+      ],
+      [
+        -97.7386971,
+        30.2847006
+      ],
+      [
+        -97.7389121,
+        30.2847155
+      ],
+      [
+        -97.738936,
+        30.2844693
+      ],
+      [
+        -97.7392025,
+        30.2844886
+      ],
+      [
+        -97.7392195,
+        30.2843136
+      ],
+      [
+        -97.7389138,
+        30.2842915
+      ],
+      [
+        -97.7389378,
+        30.2840444
+      ],
+      [
+        -97.7387618,
+        30.284032
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.73924515148286,
+        30.28406762020223
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96128.48556081533,
+      "my": 111320,
+      "L": 47.713474495267384,
+      "W": 74.78683420493971
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      7.2,
+      15.5,
+      21.5
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "lower": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.75,
+        "h": 3.5,
+        "sill": 1.5,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "upper": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.9,
+        "h": 4.7,
+        "sill": 1.1,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "attic": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.8,
+        "h": 2.1,
+        "sill": 1.1,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "quoin": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 2,
+      "louvre": {
+        "pitch": 0.75,
+        "w": 0.045,
+        "tone": "frame"
+      }
+    }
+  },
+  "blocks": [
+    {
+      "id": "hall",
+      "plan": {
+        "ring": [
+          [
+            46.633,
+            0.099
+          ],
+          [
+            46.536,
+            27.67
+          ],
+          [
+            47.713,
+            27.672
+          ],
+          [
+            47.68,
+            37.76
+          ],
+          [
+            47.644,
+            47.221
+          ],
+          [
+            46.438,
+            47.217
+          ],
+          [
+            46.359,
+            68.855
+          ],
+          [
+            46.342,
+            74.787
+          ],
+          [
+            25.608,
+            74.638
+          ],
+          [
+            25.708,
+            47.135
+          ],
+          [
+            0.0,
+            47.042
+          ],
+          [
+            0.07,
+            27.493
+          ],
+          [
+            29.559,
+            27.604
+          ],
+          [
+            29.658,
+            0.0
+          ]
+        ]
+      },
+      "z0": 0,
+      "z1": 21.5,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 7.2,
+          "skin": "lower"
+        },
+        {
+          "z0": 7.2,
+          "z1": 15.5,
+          "skin": "upper"
+        },
+        {
+          "z0": 15.5,
+          "z1": 21.5,
+          "skin": "attic"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "overrides": [
+        {
+          "region": [
+            45.933,
+            47.333000000000006,
+            -0.601,
+            0.7989999999999999
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.836,
+            47.236000000000004,
+            26.970000000000002,
+            28.37
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            47.013,
+            48.413000000000004,
+            26.972,
+            28.372
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            46.98,
+            48.38,
+            37.059999999999995,
+            38.46
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            46.943999999999996,
+            48.344,
+            46.520999999999994,
+            47.921
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.738,
+            47.138000000000005,
+            46.516999999999996,
+            47.917
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.659,
+            47.059000000000005,
+            68.155,
+            69.555
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.641999999999996,
+            47.042,
+            74.087,
+            75.48700000000001
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            24.908,
+            26.308,
+            73.938,
+            75.33800000000001
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            25.008,
+            26.407999999999998,
+            46.434999999999995,
+            47.835
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            -0.7,
+            0.7,
+            46.342,
+            47.742000000000004
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            -0.6299999999999999,
+            0.77,
+            26.793,
+            28.192999999999998
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            28.859,
+            30.259,
+            26.904,
+            28.304
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            28.958000000000002,
+            30.358,
+            -0.7,
+            0.7
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "quoin"
+            }
+          ]
+        }
+      ],
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "stringcourse-7.05",
+      "plan": {
+        "ring": [
+          [
+            46.633,
+            0.099
+          ],
+          [
+            46.536,
+            27.67
+          ],
+          [
+            47.713,
+            27.672
+          ],
+          [
+            47.68,
+            37.76
+          ],
+          [
+            47.644,
+            47.221
+          ],
+          [
+            46.438,
+            47.217
+          ],
+          [
+            46.359,
+            68.855
+          ],
+          [
+            46.342,
+            74.787
+          ],
+          [
+            25.608,
+            74.638
+          ],
+          [
+            25.708,
+            47.135
+          ],
+          [
+            0.0,
+            47.042
+          ],
+          [
+            0.07,
+            27.493
+          ],
+          [
+            29.559,
+            27.604
+          ],
+          [
+            29.658,
+            0.0
+          ]
+        ]
+      },
+      "z0": 7.05,
+      "z1": 7.27,
+      "bands": [
+        {
+          "z0": 7.05,
+          "z1": 7.27,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "cap": false,
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "stringcourse-15.2",
+      "plan": {
+        "ring": [
+          [
+            46.633,
+            0.099
+          ],
+          [
+            46.536,
+            27.67
+          ],
+          [
+            47.713,
+            27.672
+          ],
+          [
+            47.68,
+            37.76
+          ],
+          [
+            47.644,
+            47.221
+          ],
+          [
+            46.438,
+            47.217
+          ],
+          [
+            46.359,
+            68.855
+          ],
+          [
+            46.342,
+            74.787
+          ],
+          [
+            25.608,
+            74.638
+          ],
+          [
+            25.708,
+            47.135
+          ],
+          [
+            0.0,
+            47.042
+          ],
+          [
+            0.07,
+            27.493
+          ],
+          [
+            29.559,
+            27.604
+          ],
+          [
+            29.658,
+            0.0
+          ]
+        ]
+      },
+      "z0": 15.2,
+      "z1": 15.42,
+      "bands": [
+        {
+          "z0": 15.2,
+          "z1": 15.42,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "cap": false,
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate.",
+    "Wall subdivisions and window spacing are derived from UT photographs. Existing door approaches and roof geometry are retained; sculpted medallions are not yet modeled."
+  ],
+  "preserveRoof": true
+}

@@ -224,6 +224,13 @@
     // line and how far it stands proud of the pediment face (the blocks stand
     // 0.26; the band stops short of them so nothing is coplanar).
     corbelBand: { down: 0.64, up: 0.05, proud: 0.20 },
+    // Gregory's sash windows and small gable arcade, from UT's GRE exterior
+    // photograph. Heights below the main arches follow the existing baked rig;
+    // the small windows' sizes are photo-derived. All choices remain editable.
+    gableWindows: { on: true, pane: ['#657773','#8c8570','#293530'],
+      bars: ['#b9b8aa','#cfc0a1','#40443d'], barW: 0.10, depth: 0.08,
+      bottom: 9.2, cols: 5, rows: 5, smallCount: 9, smallPitch: 2.3,
+      smallW: 0.95, smallH: 1.65, roofMargin: 2.35 },
     // ── round 4 (2026-09-03): ridges, eaves, the Main Building ──────────
     // A roof whose middle the photograph reads as tile (the bake's `ridge_tops`
     // vote; `rig.roofs[key].full` is present) is drawn to its ridge with no
@@ -910,6 +917,34 @@
       for (let i = 0; i <= seg; i++) { const th = Math.PI * i / seg; poly.push([uc + R * Math.cos(th), A.spring + R * Math.sin(th)]); }
       for (let i = seg; i >= 0; i--) { const th = Math.PI * i / seg; poly.push([uc + A.r * Math.cos(th), A.spring + A.r * Math.sin(th)]); }
       B.extrude(poly, F, 0, A.proud, g.brick, { back: false, smooth: ROOFS.smoothArcs });
+    }
+    const D = ROOFS.gableWindows;
+    if (D?.on) {
+      const sash = (uc,r,spring,bottom,depth,cols,rows) => {
+        const p=[[uc-r,bottom],[uc+r,bottom],[uc+r,spring]];
+        for(let i=1;i<=seg;i++){const th=Math.PI*i/seg;p.push([uc+r*Math.cos(th),spring+r*Math.sin(th)]);}
+        B.extrude(p,F,depth,depth+D.depth,D.pane,{back:false});
+        const rect=(a,b,z0,z1)=>B.extrude([[a,z0],[b,z0],[b,z1],[a,z1]],F,depth+D.depth,depth+2*D.depth,D.bars,{back:false});
+        for(let k=1;k<cols;k++){
+          const x=uc-r+2*r*k/cols;
+          const z=spring+Math.sqrt(Math.max(0,r*r-Math.pow(Math.abs(x-uc)+D.barW/2,2)));
+          rect(x-D.barW/2,x+D.barW/2,bottom,z);
+        }
+        for(let k=1;k<rows;k++){
+          const z=bottom+(spring+r-bottom)*k/rows;
+          const dx=z>spring?Math.sqrt(Math.max(0,r*r-Math.pow(z-spring+D.barW/2,2))):r;
+          rect(uc-dx,uc+dx,z-D.barW/2,z+D.barW/2);
+        }
+      };
+      for(let j=0;j<A.n;j++)sash((j-(A.n-1)/2)*A.pitch,A.r,A.spring,D.bottom,D.depth,D.cols,D.rows);
+      for(let j=0;j<D.smallCount;j++){
+        const u=(j-(D.smallCount-1)/2)*D.smallPitch;
+        const head=g.apex_out-Math.abs(u)*(g.apex_out-g.eave)/(g.w_out/2)-D.roofMargin;
+        const west=g.west.find(([a,b])=>u>=a&&u<=b);
+        if(!west)continue;
+        const v=Math.abs(west[2])<g.bay_v?west[2]-g.bay_back:west[2];
+        sash(u,D.smallW/2,head-D.smallW/2,head-D.smallH,v+g.proud_g+D.depth,2,2);
+      }
     }
   }
 

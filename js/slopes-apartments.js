@@ -177,6 +177,10 @@
     // plane. `rakeFloors: false` drops the floor lines from a raked face
     // altogether (a glass rake with no horizontals at the floors).
     rakeFloors: true,
+    // Optional shaped window heads, sash bars and folded cladding panels.
+    arch: { segments: 20, trimProud: 0.035 },
+    mullion: { w: 0.08, proud: 0.04 },
+    facets: { w: 3, h: 3, depth: 0.3, backingGap: 0.01 },
   };
   window.APARTMENTS = APTS;
 
@@ -586,7 +590,7 @@
     // take the skin's reveal and its glass
     const revealOf = w => APTS.reveals ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone }))
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
@@ -669,10 +673,63 @@
       B.quad(P0(w.s0, -rv, w.z0), P0(w.s0, 0, w.z0), P0(w.s0, 0, w.z1), P0(w.s0, -rv, w.z1), rc, T);
       B.quad(P0(w.s1, 0, w.z0), P0(w.s1, -rv, w.z0), P0(w.s1, -rv, w.z1), P0(w.s1, 0, w.z1), rc, [-T[0], -T[1], 0]);
     }
+    // A round-headed opening retains the rectangular tiler's cutout, then
+    // closes only the two spandrels above its curved head. The glass remains
+    // recessed; the arch soffit joins the wall to the pane along that curve.
+    // Dimensions and tessellation belong to the building's window spec.
+    for (const w of windows) if (w.arch) {
+      const radius = (w.s1 - w.s0) / 2;
+      const rise = Math.min(w.z1 - w.z0, w.arch.rise || radius);
+      const spring = w.z1 - rise, cx = (w.s0 + w.s1) / 2;
+      const segments = Math.max(8, Math.min(48, w.arch.segments || APTS.arch.segments));
+      const rv = revealOf(w), col = P[w.arch.tone] || skin.tone(spring, cx) || P.wall;
+      const at = (s, d, z) => W.at(s, d, z);
+      for (let i = 0; i < segments; i++) {
+        const a = Math.PI * i / segments, b = Math.PI * (i + 1) / segments;
+        const sa = cx - radius * Math.cos(a), sb = cx - radius * Math.cos(b);
+        const za = spring + rise * Math.sin(a), zb = spring + rise * Math.sin(b);
+        B.quad(at(sa,0,za),at(sb,0,zb),at(sb,0,w.z1),at(sa,0,w.z1),col,W.N);
+        if (rv > 0) B.quad(at(sa,0,za),at(sa,-rv,za),at(sb,-rv,zb),at(sb,0,zb),col);
+        const sw = w.arch.trim || 0;
+        if (sw > 0) {
+          const oa = cx - (radius + sw) * Math.cos(a), ob = cx - (radius + sw) * Math.cos(b);
+          const ha = spring + (rise + sw) * Math.sin(a), hb = spring + (rise + sw) * Math.sin(b);
+          const proud = w.arch.proud ?? APTS.arch.trimProud;
+          B.quad(at(sa,proud,za),at(sb,proud,zb),at(ob,proud,hb),at(oa,proud,ha),col,W.N);
+        }
+      }
+    }
+    for (const w of windows) if (w.mullion) {
+      const m = w.mullion, width = m.w || APTS.mullion.w, col = P[m.tone || 'trim'] || P.frame;
+      const d = -revealOf(w) + (m.proud ?? APTS.mullion.proud), radius = (w.s1-w.s0)/2;
+      const rise = w.arch ? Math.min(w.z1-w.z0,w.arch.rise || radius) : 0;
+      const topAt = s => w.arch ? w.z1-rise+rise*Math.sqrt(Math.max(0,1-Math.pow((s-(w.s0+w.s1)/2)/radius,2))) : w.z1;
+      for (const f of m.cols || [.5]) {
+        const x = w.s0 + f*(w.s1-w.s0), a = x-width/2, b=x+width/2;
+        faceQuad(B,W,a,b,w.z0,Math.min(topAt(a),topAt(b)),d,col);
+      }
+      for (const f of m.rows || []) {
+        const z = w.z0+f*(w.z1-w.z0), shrink = w.arch && z > w.z1-rise ? radius*(1-Math.sqrt(Math.max(0,1-Math.pow((z-(w.z1-rise))/rise,2)))) : 0;
+        faceQuad(B,W,w.s0+shrink,w.s1-shrink,z-width/2,z+width/2,d,col);
+      }
+    }
     // the blades standing proud of the wall: the skin's piers (on its bay
     // lines) and its fins (on their own pitch) — see blades()
     if (skin.piers) blades(B, W, skin.piers, len, z0, z1, P, cut);
     if (skin.fins) blades(B, W, skin.fins, len, z0, z1, P, cut);
+    if (skin.facets) {
+      const f = skin.facets, pw = f.w || APTS.facets.w, ph = f.h || APTS.facets.h, depth = f.depth || APTS.facets.depth;
+      const nx = Math.max(1,Math.round(len/pw)), dx=len/nx;
+      for(let i=0;i<nx;i++) for(let z=z0;z<z1-.01;z+=ph) {
+        const a=i*dx,b=(i+1)*dx,zt=Math.min(z+ph,z1),c=(a+b)/2,zm=(z+zt)/2;
+        const gap = f.backingGap ?? APTS.facets.backingGap;
+        const p=[W.at(a,gap,z),W.at(b,gap,z),W.at(b,gap,zt),W.at(a,gap,zt)], peak=W.at(c,depth,zm);
+        for(let k=0;k<4;k++) {
+          const tone = f.tones?.[k % f.tones.length] || f.tone;
+          B.tri(p[k],p[(k+1)%4],peak,P[tone]||P.wall,W.N);
+        }
+      }
+    }
     count.windows += windows.length;
     count.faces++;
   }
@@ -788,7 +845,7 @@
           if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
           if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
           const sp = parts[pi].length > 2 ? (parts[pi][2] && parts[pi][2].h > 0 ? parts[pi][2] : null) : spandrel;
-          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp });
+          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp, arch: win.arch, mullion: win.mullion });
         }
       }
     }
@@ -1035,6 +1092,7 @@
   function resolveSkin(sk, ctx, P, key) {
     const skin = SKINS[sk.kind](sk, ctx, P, key);
     if (APTS.fins && sk.fins) skin.fins = sk.fins;
+    skin.facets = sk.facets;
     if (!APTS.piers) skin.piers = null;
     return skin;
   }
@@ -1057,7 +1115,7 @@
       else if (z < z0 && (below == null || z > below)) below = z;
     }
     let floorBelow = null;
-    if (below != null && z0 - below > 1e-3 && levels.some(z => z > z0 + 1e-3)) {
+    if (below != null && !levels.some(z => Math.abs(z-z0) < 1e-3) && z0 - below > 1e-3 && levels.some(z => z > z0 + 1e-3)) {
       const kept = z0 - below <= APTS.floorSlack;
       if (kept) floorBelow = below;
       // one line per building and band start, not one per face: a band that
@@ -1912,7 +1970,7 @@
       if (blk.roof && holesUV.length) warnOnce('holes-roof|' + key + '|' + blk.id, spec.name + ' ' + blk.id + ': a pitched roof on a holed plan ignores the holes');
       if (blk.roof && !RK) { try { roofRec = roofOf(B, spec, blk, F, planUV, keys, P, zTop); } catch (e) { console.warn('[slopes-apartments] roof', spec.name, blk.id, e); } }
       if (roofRec) { roofs.push(roofRec); top = Math.max(top, roofRec.ridgeZ); }
-      if (!roofRec || blk.roof.inset > 0) {
+      if (blk.cap !== false && (!roofRec || blk.roof.inset > 0)) {
         // a raked block's cap is only what lies beyond the head line; a holed plan's goes round its wells
         const capUV = RK ? clipRing(planUV, RK.foot, RK.inward, RK.run) : planUV;
         const capCol = P[blk.roofTone || 'roof'];
@@ -1929,6 +1987,27 @@
           if (!r || r[1] - r[0] < 0.05) continue;
           box(B, walls[i], r[0], r[1], -APTS.parapetT, 0, zTop, zTop + blk.parapet, P[blk.parapetTone || 'coping'], { bottom: true });
         }
+      }
+      // A roof-edge ribbon whose height follows an authored path. Rambler's
+      // teal crown rises smoothly round its street corner; stacking rectangular
+      // boxes here changes its silhouette into steps. Points are [u,v,topZ].
+      if (blk.crest && blk.crest.path?.length > 1) {
+        const C = blk.crest, path = C.path, width = C.width ?? APTS.parapetT;
+        const col = P[C.tone || blk.parapetTone || 'metal'];
+        const inner = path.map((p, i) => {
+          const a = path[Math.max(0,i-1)], b = path[Math.min(path.length-1,i+1)];
+          const len = Math.hypot(b[0]-a[0],b[1]-a[1]) || 1;
+          return [p[0]-(b[1]-a[1])*width/len,p[1]+(b[0]-a[0])*width/len,p[2]];
+        });
+        const at = (p,z=p[2]) => F.at(p[0],p[1],z);
+        for (let i=0;i<path.length-1;i++) {
+          const a=path[i],b=path[i+1],c=inner[i+1],d=inner[i];
+          B.quad(at(a,zTop),at(b,zTop),at(b),at(a),col);
+          B.quad(at(d,zTop),at(d),at(c),at(c,zTop),col);
+          B.quad(at(a),at(b),at(c),at(d),col);
+        }
+        for (const i of [0,path.length-1]) B.quad(at(path[i],zTop),at(path[i]),at(inner[i]),at(inner[i],zTop),col);
+        top = Math.max(top,...path.map(p=>p[2]));
       }
       // rooftop items: closed boxes on the roof — a bulkhead, a stair head, or
       // a `grid` [nu, nv] of them inside `plan` (a condenser cluster: the
@@ -2106,7 +2185,7 @@
     if (!roofs) return 0;
     let n = 0;
     if (on) {
-      const ids = new Set(_data.replacedBuildingIds || []);
+      const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
       for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0])) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
     } else {
       for (const k of Object.keys(_rigStash)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
@@ -2118,7 +2197,7 @@
   function rigsMissing() {
     const R = window.slopesRoofs, roofs = R && R.data && R.data.roofs;
     if (!roofs || !_data) return [];
-    const ids = new Set(_data.replacedBuildingIds || []);
+    const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
     return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]));
   }
   function filterPlan() {
@@ -2200,17 +2279,38 @@
     const parts = pick('austin-parts');
     const heights = Object.assign({}, (window.__wc4 && window.__wc4.heights) || {});
     const byId = {};
+    const authored = new Map(_data.buildings.map(b => [b.id, b]));
     for (const b of _built) { if (b.name) heights[b.name] = b.top; if (b.id) byId[b.id] = b.top; }
     const extra = [];
     for (const f of buildings.features) {
       const p = f.properties || {};
       // by id first: a snapshot row's name can be null (26 West Courtyard's is), and then a name match keeps the prism's height
       const h = byId[p.id] || heights[p.name];
-      if (h) extra.push({ type: 'Feature', geometry: f.geometry, properties: { h } });
+      // New construction can replace a much smaller former building (Icon's
+      // site was a church). Collision must follow the authored envelope too.
+      const spec = authored.get(p.id);
+      const geometry = spec ? { type: 'Polygon', coordinates: [spec.footprint.ring, ...(spec.footprint.holes || [])] } : f.geometry;
+      if (h) extra.push({ type: 'Feature', geometry, properties: { h } });
     }
     if (!extra.length) return 'no matching footprints';
     window.__flyRebuildCollision({ buildings, parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) } });
     return 'rebuilt with ' + extra.length + ' corrected heights';
+  }
+
+  // A new building may replace a differently named snapshot feature. Keep the
+  // authored name with its mesh, and restore the snapshot label with fallback.
+  const _labelFields = new Map();
+  function setLabels(on) {
+    const entries = on ? _data.buildings.filter(b => b.labelOverride && b.id).flatMap(b => [b.id, b.name]) : [];
+    for (const id of ['buildings-labels-major', 'buildings-labels-mid', 'buildings-labels']) {
+      if (!_map.getLayer(id)) continue;
+      const current = _map.getLayoutProperty(id, 'text-field'), saved = _labelFields.get(id);
+      const base = saved && sameJSON(current, saved.applied) ? saved.base : current;
+      const field = entries.length ? ['match', ['get', 'id'], ...entries, base] : base;
+      if (!sameJSON(current, field)) _map.setLayoutProperty(id, 'text-field', field);
+      if (entries.length) _labelFields.set(id, { base, applied: field });
+      else _labelFields.delete(id);
+    }
   }
 
   window.applySlopesApartments = function applySlopesApartments(map) {
@@ -2222,6 +2322,7 @@
     else if (want && _group && _lastDetail !== S.detail()) { S.remove(_group); _group = build(); S.add(_group); }
     else if (!want && _group) { S.remove(_group); _group = null; }
     setFilters(want);
+    setLabels(want);
     map.triggerRepaint();
   };
 
@@ -2295,6 +2396,7 @@
         if (n > 400 + 240) return;
         setTimeout(tick, n < 400 ? 150 : 1000);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
+        setLabels(true);
         for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
         if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
       };

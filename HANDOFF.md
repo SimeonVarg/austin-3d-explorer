@@ -1,5 +1,22 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 12 2026 — Campus and apartment architecture (`codex/campus-apartment-visuals`)
+
+Twelve dedicated models added: Villas on 24th, Icon, Inspire on 22nd, Pointe on
+Rio, Rambler, Battle, Texas Union, PCL, Welch, Benedict, Mezes and Batts. Union
+on San Antonio now has the long offset tower plan; Gregory gains glazed gable
+windows. Forty models load. See docs/campus-apartment-visuals.md for the four
+cited comparison images, primary sources and explicitly approximate dimensions.
+
+Renderer additions cover arches, divided sashes, folded cladding, curved crown
+ribbons and preserved roof rigs. Icon's collision uses its new envelope and its
+label replaces the former church name. Taste values remain editable in JSON.
+Building guards, original-defect probes, fallback/presets/night checks, existing
+roof-cut checks and all 19 route pairs pass. Repeated frame comparison stays
+within budget; settings and limits are in the visual document. Campus grounds
+and carved ornament remain future work. No Mac-owned files or open-lane code
+changed. HANDOFF is the only documentation overlap with PRs #164 and #189.
+
 ## Sep 11 2026 — Apartment comparison preview (`codex/live-here`)
 
 Opt-in `?livehere=1` compares The Standard, Union on 24th and Villas on Rio

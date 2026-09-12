@@ -1,0 +1,561 @@
+{
+  "name": "Benedict Hall",
+  "id": "6d07e23b-cd54-484d-8fe0-0d47c5dd72d0",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 6d07e23b-cd54-484d-8fe0-0d47c5dd72d0",
+    "reference": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/BEN/",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7389378,
+        30.2840444
+      ],
+      [
+        -97.7392445,
+        30.2840666
+      ],
+      [
+        -97.7392617,
+        30.2838897
+      ],
+      [
+        -97.7391343,
+        30.2838805
+      ],
+      [
+        -97.7390156,
+        30.2838719
+      ],
+      [
+        -97.7387692,
+        30.283854
+      ],
+      [
+        -97.738752,
+        30.2840313
+      ],
+      [
+        -97.7387618,
+        30.284032
+      ],
+      [
+        -97.7389378,
+        30.2840444
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.73926241701963,
+        30.283889754170602
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96128.91326438851,
+      "my": 111320,
+      "L": 47.57889084534487,
+      "W": 19.97329119059607
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      7.2,
+      15.5,
+      21
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "lower": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.75,
+        "h": 3.5,
+        "sill": 1.5,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "upper": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.9,
+        "h": 4.7,
+        "sill": 1.1,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "attic": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.8,
+      "window": {
+        "w": 1.8,
+        "h": 2.1,
+        "sill": 1.1,
+        "frame": {
+          "w": 0.18,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "w": 0.065,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "quoin": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 2,
+      "louvre": {
+        "pitch": 0.75,
+        "w": 0.045,
+        "tone": "frame"
+      }
+    }
+  },
+  "blocks": [
+    {
+      "id": "hall",
+      "plan": {
+        "ring": [
+          [
+            29.586,
+            19.869
+          ],
+          [
+            0.0,
+            19.762
+          ],
+          [
+            0.069,
+            0.0
+          ],
+          [
+            12.359,
+            0.047
+          ],
+          [
+            23.809,
+            0.088
+          ],
+          [
+            47.579,
+            0.167
+          ],
+          [
+            47.506,
+            19.973
+          ],
+          [
+            46.561,
+            19.969
+          ]
+        ]
+      },
+      "z0": 0,
+      "z1": 21,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 7.2,
+          "skin": "lower"
+        },
+        {
+          "z0": 7.2,
+          "z1": 15.5,
+          "skin": "upper"
+        },
+        {
+          "z0": 15.5,
+          "z1": 21,
+          "skin": "attic"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "overrides": [
+        {
+          "region": [
+            28.886,
+            30.285999999999998,
+            19.169,
+            20.569
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            -0.7,
+            0.7,
+            19.062,
+            20.462
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            -0.631,
+            0.7689999999999999,
+            -0.7,
+            0.7
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            11.659,
+            13.059,
+            -0.6529999999999999,
+            0.747
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            23.109,
+            24.509,
+            -0.612,
+            0.7879999999999999
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            46.879,
+            48.279,
+            -0.5329999999999999,
+            0.867
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            46.806,
+            48.206,
+            19.273,
+            20.673
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.861,
+            47.261,
+            19.269000000000002,
+            20.669
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21,
+              "skin": "quoin"
+            }
+          ]
+        }
+      ],
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "stringcourse-7.05",
+      "plan": {
+        "ring": [
+          [
+            29.586,
+            19.869
+          ],
+          [
+            0.0,
+            19.762
+          ],
+          [
+            0.069,
+            0.0
+          ],
+          [
+            12.359,
+            0.047
+          ],
+          [
+            23.809,
+            0.088
+          ],
+          [
+            47.579,
+            0.167
+          ],
+          [
+            47.506,
+            19.973
+          ],
+          [
+            46.561,
+            19.969
+          ]
+        ]
+      },
+      "z0": 7.05,
+      "z1": 7.27,
+      "bands": [
+        {
+          "z0": 7.05,
+          "z1": 7.27,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "cap": false,
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "stringcourse-15.2",
+      "plan": {
+        "ring": [
+          [
+            29.586,
+            19.869
+          ],
+          [
+            0.0,
+            19.762
+          ],
+          [
+            0.069,
+            0.0
+          ],
+          [
+            12.359,
+            0.047
+          ],
+          [
+            23.809,
+            0.088
+          ],
+          [
+            47.579,
+            0.167
+          ],
+          [
+            47.506,
+            19.973
+          ],
+          [
+            46.561,
+            19.969
+          ]
+        ]
+      },
+      "z0": 15.2,
+      "z1": 15.42,
+      "bands": [
+        {
+          "z0": 15.2,
+          "z1": 15.42,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "cap": false,
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate.",
+    "Wall subdivisions and window spacing are derived from UT photographs. Existing door approaches and roof geometry are retained; sculpted medallions are not yet modeled."
+  ],
+  "preserveRoof": true
+}

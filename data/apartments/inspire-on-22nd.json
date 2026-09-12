@@ -1,0 +1,711 @@
+{
+  "name": "Inspire on 22nd",
+  "id": "ebb4403e-5abd-4284-808b-f25fb8d310d3",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature ebb4403e-5abd-4284-808b-f25fb8d310d3",
+    "reference": "https://www.rhodepartners.com/inspire-on-22nd",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7439936,
+        30.2854561
+      ],
+      [
+        -97.7439852,
+        30.2855538
+      ],
+      [
+        -97.7443576,
+        30.2855777
+      ],
+      [
+        -97.7443841,
+        30.28527
+      ],
+      [
+        -97.7440116,
+        30.2852462
+      ],
+      [
+        -97.7439936,
+        30.2854561
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74438873937791,
+        30.285270350498283
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96127.48083788034,
+      "my": 111320,
+      "L": 36.34981538599598,
+      "W": 34.81440548608549
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      5.7,
+      8.75,
+      11.8,
+      14.85,
+      17.9,
+      20.95,
+      24.0,
+      27.05,
+      30.1,
+      33.15,
+      36.2,
+      39.25,
+      42.3,
+      45.35,
+      48.4,
+      51.45,
+      54.5,
+      57.55
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#acb5b6"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "small": {
+      "kind": "bays",
+      "field": "metal",
+      "bay": 2.4,
+      "window": {
+        "w": 0.85,
+        "h": 1.55,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24,
+      "strip": {
+        "w": 0.05,
+        "tone": "frame",
+        "at": "joints"
+      }
+    },
+    "silver": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 3,
+      "window": {
+        "w": 1.25,
+        "h": 2.5,
+        "sill": 0.25,
+        "mullion": {
+          "cols": [],
+          "rows": [
+            0.22
+          ],
+          "w": 0.06,
+          "tone": "frame"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24,
+      "pier": {
+        "w": 0.18,
+        "d": 0.16,
+        "tone": "trim"
+      },
+      "fields": [
+        "white",
+        "metal",
+        "white",
+        "white",
+        "metal"
+      ]
+    },
+    "screen": {
+      "kind": "flat",
+      "field": "dark",
+      "fins": {
+        "pitch": 0.7,
+        "w": 0.12,
+        "d": 0.15,
+        "tone": "metal"
+      }
+    }
+  },
+  "blocks": [
+    {
+      "id": "lobby",
+      "plan": "footprint",
+      "z0": 0,
+      "z1": 5.7,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 5.7,
+          "skin": "glass"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "podium",
+      "plan": "footprint",
+      "z0": 5.7,
+      "z1": 17.9,
+      "bands": [
+        {
+          "z0": 5.7,
+          "z1": 17.9,
+          "skin": "small"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "tower",
+      "plan": [
+        2,
+        34.34981538599598,
+        2,
+        32.81440548608549
+      ],
+      "z0": 17.9,
+      "z1": 57.55,
+      "bands": [
+        {
+          "z0": 17.9,
+          "z1": 57.55,
+          "skin": "silver"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "parapet": 0.45,
+      "parapetTone": "metal",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-0",
+      "plan": [
+        3.0,
+        3.14,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-1",
+      "plan": [
+        6.793726923249498,
+        6.933726923249497,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-2",
+      "plan": [
+        10.587453846498995,
+        10.727453846498996,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-3",
+      "plan": [
+        14.381180769748493,
+        14.521180769748494,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-4",
+      "plan": [
+        18.17490769299799,
+        18.31490769299799,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-5",
+      "plan": [
+        21.96863461624749,
+        22.10863461624749,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-6",
+      "plan": [
+        25.762361539496986,
+        25.902361539496987,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-7",
+      "plan": [
+        29.556088462746484,
+        29.696088462746484,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-8",
+      "plan": [
+        33.34981538599598,
+        33.48981538599598,
+        3,
+        3.14
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-0",
+      "plan": [
+        3.0,
+        3.14,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-1",
+      "plan": [
+        6.793726923249498,
+        6.933726923249497,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-2",
+      "plan": [
+        10.587453846498995,
+        10.727453846498996,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-3",
+      "plan": [
+        14.381180769748493,
+        14.521180769748494,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-4",
+      "plan": [
+        18.17490769299799,
+        18.31490769299799,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-5",
+      "plan": [
+        21.96863461624749,
+        22.10863461624749,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-6",
+      "plan": [
+        25.762361539496986,
+        25.902361539496987,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-7",
+      "plan": [
+        29.556088462746484,
+        29.696088462746484,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-post-n-8",
+      "plan": [
+        33.34981538599598,
+        33.48981538599598,
+        31.81440548608549,
+        31.95440548608549
+      ],
+      "z0": 57.55,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 57.55,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-beam-3",
+      "plan": [
+        3,
+        33.34981538599598,
+        3,
+        3.16
+      ],
+      "z0": 60.94,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 60.94,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-beam-31.81440548608549",
+      "plan": [
+        3,
+        33.34981538599598,
+        31.81440548608549,
+        31.97440548608549
+      ],
+      "z0": 60.94,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 60.94,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-return",
+      "plan": [
+        3,
+        3.16,
+        3,
+        31.81440548608549
+      ],
+      "z0": 60.94,
+      "z1": 61.1,
+      "bands": [
+        {
+          "z0": 60.94,
+          "z1": 61.1,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate."
+  ]
+}

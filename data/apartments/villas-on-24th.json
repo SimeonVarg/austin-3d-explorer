@@ -1,0 +1,508 @@
+{
+  "name": "Villas on 24th",
+  "id": "4e5f2b29-dd92-4232-82c9-fa8ef81c6e77",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 4e5f2b29-dd92-4232-82c9-fa8ef81c6e77",
+    "reference": "https://www.rhodepartners.com/villas-on-24th",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.744202,
+        30.2878109
+      ],
+      [
+        -97.7445923,
+        30.2878421
+      ],
+      [
+        -97.7446272,
+        30.2875179
+      ],
+      [
+        -97.7442753,
+        30.2874897
+      ],
+      [
+        -97.7442707,
+        30.2875328
+      ],
+      [
+        -97.7442322,
+        30.2875297
+      ],
+      [
+        -97.744202,
+        30.2878109
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74462736239192,
+        30.287516297207585
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96125.32540122527,
+      "my": 111320,
+      "L": 37.87421825836643,
+      "W": 36.424103072344636
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      14.4,
+      17.45,
+      20.5,
+      23.55,
+      26.6,
+      29.65,
+      32.7,
+      35.75,
+      38.8,
+      41.85,
+      44.9,
+      47.95,
+      51.0,
+      54.05,
+      57.1,
+      60.15,
+      63.2,
+      66.25,
+      69.3,
+      72.35,
+      75.4,
+      78.45,
+      81.5,
+      84.55,
+      87.6,
+      90.65
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#786d54"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    },
+    "bronzeLight": {
+      "hex": "#afa487"
+    },
+    "bronzeDark": {
+      "hex": "#5c584a"
+    },
+    "bronzeMid": {
+      "hex": "#8b8067"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "panel": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 3.05,
+      "window": {
+        "w": 1.65,
+        "h": 2.45,
+        "sill": 0.27,
+        "frame": {
+          "w": 0.1,
+          "tone": "trim"
+        },
+        "mullion": {
+          "cols": [],
+          "rows": [
+            0.24
+          ],
+          "w": 0.07,
+          "tone": "frame"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24,
+      "pier": {
+        "w": 0.35,
+        "d": 0.35,
+        "tone": "white"
+      }
+    },
+    "garage": {
+      "kind": "flat",
+      "field": "metal",
+      "facets": {
+        "w": 3.1,
+        "h": 3.2,
+        "depth": 0.42,
+        "tone": "metal",
+        "tones": [
+          "bronzeLight",
+          "metal",
+          "bronzeDark",
+          "bronzeMid"
+        ]
+      }
+    },
+    "white": {
+      "kind": "flat",
+      "field": "white"
+    }
+  },
+  "blocks": [
+    {
+      "id": "glazed-lobby",
+      "plan": "footprint",
+      "z0": 0,
+      "z1": 4.8,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.8,
+          "skin": "glass"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "parking-podium",
+      "plan": "footprint",
+      "z0": 4.8,
+      "z1": 14.4,
+      "bands": [
+        {
+          "z0": 4.8,
+          "z1": 14.4,
+          "skin": "garage"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "residential",
+      "plan": [
+        1,
+        36.87421825836643,
+        1,
+        35.424103072344636
+      ],
+      "z0": 14.4,
+      "z1": 90.65,
+      "bands": [
+        {
+          "z0": 14.4,
+          "z1": 90.65,
+          "skin": "panel"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "parapet": 0.5,
+      "parapetTone": "white",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "amenity-pavilion",
+      "plan": [
+        2,
+        18.937109129183217,
+        2,
+        34.424103072344636
+      ],
+      "z0": 90.65,
+      "z1": 97.2,
+      "bands": [
+        {
+          "z0": 90.65,
+          "z1": 97.2,
+          "skin": "glass"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-0",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 17.45,
+      "z1": 17.73,
+      "bands": [
+        {
+          "z0": 17.45,
+          "z1": 17.73,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-3",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 26.6,
+      "z1": 26.880000000000003,
+      "bands": [
+        {
+          "z0": 26.6,
+          "z1": 26.880000000000003,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-6",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 35.75,
+      "z1": 36.03,
+      "bands": [
+        {
+          "z0": 35.75,
+          "z1": 36.03,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-9",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 44.9,
+      "z1": 45.18,
+      "bands": [
+        {
+          "z0": 44.9,
+          "z1": 45.18,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-12",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 54.05,
+      "z1": 54.33,
+      "bands": [
+        {
+          "z0": 54.05,
+          "z1": 54.33,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-15",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 63.2,
+      "z1": 63.480000000000004,
+      "bands": [
+        {
+          "z0": 63.2,
+          "z1": 63.480000000000004,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-18",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 72.35,
+      "z1": 72.63,
+      "bands": [
+        {
+          "z0": 72.35,
+          "z1": 72.63,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "panel-course-21",
+      "plan": [
+        0.9,
+        36.974218258366434,
+        0.9,
+        35.52410307234464
+      ],
+      "z0": 81.5,
+      "z1": 81.78,
+      "bands": [
+        {
+          "z0": 81.5,
+          "z1": 81.78,
+          "skin": "white"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate."
+  ],
+  "deck": {
+    "z": 90.65,
+    "items": [
+      {
+        "id": "pool",
+        "plan": [
+          21.588304407268865,
+          33.70805424994612,
+          5.827856491575142,
+          18.212051536172318
+        ],
+        "h": 0.12,
+        "tone": "water"
+      },
+      {
+        "id": "planter",
+        "plan": [
+          3.4086796432529787,
+          5.681132738754965,
+          5.463615460851695,
+          29.8677645193226
+        ],
+        "h": 0.65,
+        "tone": "plant"
+      }
+    ]
+  }
+}

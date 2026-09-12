@@ -126,3 +126,13 @@ Simeon authorized implementation ("Do it") on September 9. The Acer lane owns
 the new `scripts/bake_stadium_mesh.py` -> `data/stadium.mesh.json` bake and
 `js/slopes-stadium.js`, plus its integration and verification. The legacy Mac
 bake and `data/stadium.geojson` remain untouched as the comparison/fallback.
+
+## Visual direction — September 12, 2026
+
+The next pass prioritizes campus architecture and West Campus apartments; new
+features wait. Campus targets: Texas Union/West Mall, Battle/South Mall, Gregory,
+PCL, Welch and South Mall halls. Apartment priorities: Union on San Antonio,
+Villas on 24th, Icon, then Rambler, Inspire on 22nd and Pointe on Rio; follow up
+on The Standard and Villas on Rio. Downtown scope is skyline silhouettes only.
+Implementation authorized September 12 ("do it"). Work is on
+`codex/campus-apartment-visuals`; retain the existing Mac and open-PR ownership.
