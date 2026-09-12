@@ -3,6 +3,10 @@
 Preview: `?livehere=1&intro=0`. `?walk=0` still disables it, and `WAYFIND.on`
 remains false. The normal Explore menu is unchanged outside this preview.
 
+![Apartment comparison in the city](shots/live-here-desktop.jpg)
+
+![Following one of the mapped walks](shots/live-here-street.jpg)
+
 Choose The Standard, Union on 24th or Villas on Rio. Add recurring class
 meetings, try the explicitly labeled example week, or use the existing local
 schedule importer. Compare home-to-first-class plus last-class-to-home walking
@@ -71,5 +75,8 @@ checks that the original data fails those same rays.
 
 The routing bake reports 19/19 health gates, including all 26 apartment names
 routing to WEL. The city still produces its existing 111 startup geometry
-warnings; this pass does not claim to resolve them. Final browser evidence and
-publication status are recorded below when verification completes.
+warnings; this pass does not claim to resolve them. The full browser gate also
+exercises a synthetic calendar through the existing importer, confirms it is
+saved locally, clears it through the visible button, and checks that the
+synthetic private label did not appear in any request. Desktop route framing
+is checked by projecting every route vertex into the unobscured map rectangle.
