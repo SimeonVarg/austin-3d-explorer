@@ -1,0 +1,525 @@
+{
+  "snapshot": "2026-09-12",
+  "detail": {
+    "roofClearance": 0.1,
+    "frame": 0.13,
+    "mullion": 0.065,
+    "reveal": 0.34,
+    "archTrim": 0.2,
+    "archSegments": 16,
+    "headRoom": 0.8,
+    "sill": 0.6,
+    "cornice": 0.48,
+    "courseHeight": 0.18,
+    "entryWidth": 2.8,
+    "entryHeight": 3.2,
+    "entrySill": 0.1
+  },
+  "colours": {
+    "stone": {
+      "hex": "#d4c9b4"
+    },
+    "trim": {
+      "hex": "#e0d8c7"
+    },
+    "glass": {
+      "hex": "#566b6c"
+    },
+    "dark": {
+      "hex": "#424b4a"
+    },
+    "frame": {
+      "hex": "#a8a48f"
+    },
+    "roofFlat": {
+      "hex": "#8c887a"
+    }
+  },
+  "buildings": [
+    {
+      "code": "GOL",
+      "name": "Goldsmith Hall",
+      "colour": "#d0c3a8",
+      "rows": 2,
+      "ground": 5.6,
+      "bay": 4.8,
+      "window": 3.25,
+      "windowHeight": 4.8,
+      "groundWindow": 2.7,
+      "groundWindowHeight": 3.8,
+      "columns": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "sash": [
+        0.33,
+        0.66
+      ],
+      "reveal": 0.48,
+      "observations": "Limestone studio hall, broad divided glazing and an enclosed planted court; retain the actual court opening.",
+      "roofWings": [
+        [
+          0,
+          17.4,
+          21.03,
+          60.74
+        ],
+        [
+          17.4,
+          43.16,
+          50.93,
+          60.5
+        ],
+        [
+          43.16,
+          52.04,
+          10.3,
+          60.5
+        ],
+        [
+          13.77,
+          43.16,
+          12.82,
+          30.39
+        ],
+        [
+          1.46,
+          13.77,
+          0,
+          21.03
+        ]
+      ],
+      "roofColour": "#ad6546",
+      "roofPitch": 22,
+      "roofOver": 0.12
+    },
+    {
+      "code": "SUT",
+      "name": "Sutton Hall",
+      "colour": "#a67b59",
+      "rows": 3,
+      "ground": 4.6,
+      "bay": 4.0,
+      "window": 1.55,
+      "groundWindow": 2.4,
+      "groundWindowHeight": 3.55,
+      "groundArch": 1.15,
+      "reveal": 0.58,
+      "observations": "Pale arcaded lower floor, warm brick upper floors, inset divided windows and tiled roof."
+    },
+    {
+      "code": "HRH",
+      "name": "Homer Rainey Hall",
+      "colour": "#cbbfa5",
+      "rows": 3,
+      "ground": 4.7,
+      "bay": 4.2,
+      "window": 1.9,
+      "groundWindowHeight": 3.4,
+      "sash": [
+        0.33,
+        0.66
+      ],
+      "observations": "Pale classical hall with tall divided windows, limestone base and emphatic cornice."
+    },
+    {
+      "code": "CAL",
+      "name": "Calhoun Hall",
+      "colour": "#cdbf9f",
+      "rows": 4,
+      "bay": 3.5,
+      "window": 1.55,
+      "observations": "Pale limestone walls and deep regular punched openings."
+    },
+    {
+      "code": "PAR",
+      "name": "Parlin Hall",
+      "colour": "#c9b99b",
+      "rows": 4,
+      "bay": 3.7,
+      "window": 1.45,
+      "groundArch": 0.7,
+      "observations": "Compact limestone hall with lower arched openings and divided upper sashes."
+    },
+    {
+      "code": "WMB",
+      "name": "West Mall Office Building",
+      "colour": "#ccbea2",
+      "rows": 4,
+      "bay": 3.2,
+      "window": 1.45,
+      "observations": "Regular stone-framed sashes in a pale, shallow office block."
+    },
+    {
+      "code": "FAC",
+      "name": "Peter T. Flawn Academic Center",
+      "colour": "#c3bba8",
+      "rows": 3,
+      "ground": 4.3,
+      "bay": 2.8,
+      "window": 1.1,
+      "windowHeight": 3.5,
+      "reveal": 0.68,
+      "screen": true,
+      "pier": 0.6,
+      "pierDepth": 0.25,
+      "groundWindow": 2.25,
+      "observations": "Deep light-stone screens above a recessed glazed base; no ordinary sash grid on the screen."
+    },
+    {
+      "code": "HMA",
+      "name": "Hogg Memorial Auditorium",
+      "colour": "#c9b99e",
+      "rows": 2,
+      "ground": 5.9,
+      "bay": 6.3,
+      "window": 1.25,
+      "onlyWindowFaces": [
+        0,
+        4,
+        8
+      ],
+      "groundWindow": 2.9,
+      "groundWindowHeight": 4.5,
+      "groundArch": 1.1,
+      "observations": "Mostly blank limestone auditorium, tall recessed entry bays and a heavy cornice."
+    },
+    {
+      "code": "BIO",
+      "name": "Biological Laboratories",
+      "colour": "#ad8669",
+      "rows": 4,
+      "ground": 3.5,
+      "bay": 3.5,
+      "window": 1.45,
+      "courses": [
+        3.4
+      ],
+      "observations": "Warm brick above a pale base, small divided windows, broad stone cornice."
+    },
+    {
+      "code": "GEA",
+      "name": "Mary E. Gearing Hall",
+      "colour": "#cabb9c",
+      "rows": 3,
+      "ground": 4.4,
+      "bay": 3.3,
+      "window": 1.55,
+      "groundArch": 0.7,
+      "observations": "Light limestone U-shaped hall framing a garden and central fountain approach."
+    },
+    {
+      "code": "PAI",
+      "name": "T. S. Painter Hall",
+      "colour": "#ab8062",
+      "rows": 4,
+      "ground": 3.6,
+      "bay": 3.4,
+      "window": 1.4,
+      "observations": "Brick academic block above limestone base; short divided sash windows."
+    },
+    {
+      "code": "GEB",
+      "name": "Dorothy Gebauer Building",
+      "colour": "#c9b28b",
+      "rows": 3,
+      "ground": 3.8,
+      "bay": 4.2,
+      "window": 1.9,
+      "arch": 0.9,
+      "windowHeight": 3.6,
+      "observations": "Warm pale walls, upper round-headed openings and prominent stone frieze."
+    },
+    {
+      "code": "WCH",
+      "name": "Will C. Hogg Building",
+      "colour": "#b18868",
+      "rows": 4,
+      "ground": 3.8,
+      "bay": 3.5,
+      "window": 1.6,
+      "observations": "Warm brick, pale stone ground course and divided windows."
+    },
+    {
+      "code": "GAR",
+      "name": "Garrison Hall",
+      "colour": "#ad805f",
+      "rows": 4,
+      "ground": 3.8,
+      "bay": 3.8,
+      "window": 1.6,
+      "observations": "Brick upper walls, limestone base, deep window surrounds; sculpted entrance remains simplified."
+    },
+    {
+      "code": "WAG",
+      "name": "Waggener Hall",
+      "colour": "#b5805d",
+      "rows": 4,
+      "ground": 3.8,
+      "bay": 3.6,
+      "window": 1.4,
+      "windowHeight": 2.65,
+      "observations": "Orange brick with narrow tall sashes and a pale upper frieze."
+    },
+    {
+      "code": "BUR",
+      "name": "Burdine Hall",
+      "colour": "#ad7859",
+      "rows": 4,
+      "ground": 3.2,
+      "bay": 3.4,
+      "window": 1.65,
+      "base": "wall",
+      "blankFaces": [
+        0,
+        3,
+        7,
+        11
+      ],
+      "observations": "Orange brick classroom wings interrupted by broad blank stair walls."
+    },
+    {
+      "code": "PHR",
+      "name": "Pharmacy Building",
+      "colour": "#b89c75",
+      "rows": 4,
+      "ground": 3.9,
+      "bay": 3.5,
+      "window": 1.4,
+      "observations": "Tan brick, pale trim and regular inset sash windows."
+    },
+    {
+      "code": "AHG",
+      "name": "Anna Hiss Gymnasium",
+      "colour": "#ad7959",
+      "rows": 1,
+      "ground": 10.6,
+      "bay": 5.0,
+      "window": 2.2,
+      "groundWindowHeight": 6.3,
+      "groundArch": 1.1,
+      "base": "wall",
+      "sash": [
+        0.2,
+        0.4,
+        0.6,
+        0.8
+      ],
+      "observations": "Tall round-headed gym glazing in low red-brick walls, not stacked office floors."
+    },
+    {
+      "code": "AND",
+      "name": "Andrews Dormitory",
+      "colour": "#baa27b",
+      "rows": 3,
+      "ground": 3.6,
+      "bay": 3.3,
+      "window": 1.35,
+      "groundArch": 0.6,
+      "observations": "Buff brick, light stone lower arcades and divided dormitory sashes."
+    },
+    {
+      "code": "BLD",
+      "name": "Blanton Dormitory",
+      "colour": "#bca07a",
+      "rows": 4,
+      "ground": 3.5,
+      "bay": 3.1,
+      "window": 1.35,
+      "observations": "Buff brick residence wing, pale sash surrounds, courtyard-facing windows."
+    },
+    {
+      "code": "CRD",
+      "name": "Carothers Dormitory",
+      "colour": "#bba17a",
+      "rows": 4,
+      "ground": 3.5,
+      "bay": 3.2,
+      "window": 1.4,
+      "groundArch": 0.65,
+      "observations": "Warm buff brick, pale courses and white dormitory sashes around the northern quad."
+    },
+    {
+      "code": "LTD",
+      "name": "Littlefield Dormitory",
+      "colour": "#ae8665",
+      "rows": 4,
+      "ground": 5.5,
+      "bay": 3.4,
+      "window": 1.45,
+      "groundWindow": 2.2,
+      "groundWindowHeight": 4.0,
+      "groundArch": 1.0,
+      "observations": "Warmer brick residence with lower arcades and a pronounced pale cornice."
+    },
+    {
+      "code": "BHD",
+      "name": "Brackenridge Hall Dormitory",
+      "colour": "#b59b77",
+      "rows": 3,
+      "ground": 3.6,
+      "bay": 3.1,
+      "window": 1.4,
+      "observations": "Tan brick, pale corner/base courses, narrow white sashes around the residence court."
+    },
+    {
+      "code": "RHD",
+      "name": "Roberts Hall",
+      "colour": "#b59b76",
+      "rows": 3,
+      "ground": 3.6,
+      "bay": 3.1,
+      "window": 1.4,
+      "groundArch": 0.55,
+      "observations": "Tan-brick residence wing with stone court entries and divided sash glazing."
+    },
+    {
+      "code": "PHD",
+      "name": "Prather Hall",
+      "colour": "#b69a74",
+      "rows": 3,
+      "ground": 3.6,
+      "bay": 3.2,
+      "window": 1.35,
+      "observations": "Buff brick and light stone courses, small windows overlooking planted courts."
+    },
+    {
+      "code": "MHD",
+      "name": "Moore-Hill Dormitory",
+      "colour": "#b39875",
+      "rows": 5,
+      "ground": 3.4,
+      "bay": 3.3,
+      "window": 1.4,
+      "observations": "Long brick residence wing with five close-spaced rows and pale window frames."
+    },
+    {
+      "code": "BRB",
+      "name": "Bernard and Audre Rapoport Building",
+      "colour": "#b18c6b",
+      "rows": 3,
+      "ground": 3.5,
+      "bay": 3.8,
+      "window": 1.6,
+      "observations": "Three-storey brick academic hall above a light ground course."
+    },
+    {
+      "code": "EPS",
+      "name": "E. P. Schoch Building",
+      "colour": "#aa7f5c",
+      "rows": 3,
+      "ground": 3.5,
+      "bay": 3.7,
+      "window": 1.55,
+      "blankFaces": [
+        1,
+        3
+      ],
+      "observations": "Brick laboratory block with large blank volumes and a windowed three-storey wing."
+    },
+    {
+      "code": "WIN",
+      "name": "F Loren Winship Drama Building",
+      "colour": "#a97a58",
+      "rows": 3,
+      "ground": 4.7,
+      "bay": 4.0,
+      "window": 1.7,
+      "groundWindow": 2.8,
+      "blankFaces": [
+        1,
+        2,
+        4,
+        7,
+        9
+      ],
+      "observations": "Brick theater masses with blank stage walls and a glazed lower entry."
+    },
+    {
+      "code": "ART",
+      "name": "Art Building and Museum",
+      "colour": "#ab7d5c",
+      "rows": 3,
+      "ground": 4.5,
+      "bay": 4.0,
+      "window": 1.5,
+      "onlyWindowFaces": [
+        0,
+        4,
+        8,
+        10,
+        14,
+        16,
+        20
+      ],
+      "observations": "Large blank brick gallery walls; windows are limited to the office-wing faces."
+    },
+    {
+      "code": "SSB",
+      "name": "Student Services Building",
+      "colour": "#b39373",
+      "rows": 5,
+      "ground": 4.0,
+      "bay": 3.5,
+      "window": 2.15,
+      "columns": [],
+      "observations": "Stone-framed grid over brick infill; rooftop colonnade retained where present in existing roof detail."
+    },
+    {
+      "code": "SEA",
+      "name": "Sarah M. and Charles E. Seay Building",
+      "colour": "#b18d6b",
+      "rows": 3,
+      "ground": 4.2,
+      "bay": 3.8,
+      "window": 2.0,
+      "groundWindow": 2.7,
+      "columns": [],
+      "observations": "Brick and broad glazing beneath a shallow hipped roof."
+    },
+    {
+      "code": "MBB",
+      "name": "Louise and James Robert Moffett Molecular Biology Building",
+      "colour": "#cabc9e",
+      "rows": 4,
+      "ground": 4.2,
+      "bay": 3.6,
+      "window": 2.1,
+      "columns": [],
+      "observations": "Long pale four-storey laboratory wing with expressed stair towers."
+    },
+    {
+      "code": "CRH",
+      "name": "Creekside Residence Hall",
+      "colour": "#b99f77",
+      "rows": 2,
+      "ground": 3.4,
+      "bay": 3.3,
+      "window": 1.5,
+      "observations": "Low tan-brick residence hall with simple sash windows."
+    },
+    {
+      "code": "NMS",
+      "name": "Neural Molecular Science Building",
+      "colour": "#b5906e",
+      "rows": 6,
+      "ground": 4.2,
+      "bay": 3.6,
+      "window": 2.1,
+      "columns": [],
+      "observations": "Modern brick and light stone laboratory grid under an overhanging roof."
+    },
+    {
+      "code": "BME",
+      "name": "Biomedical Engineering Building",
+      "colour": "#b99977",
+      "rows": 6,
+      "ground": 4.2,
+      "bay": 3.8,
+      "window": 2.2,
+      "columns": [],
+      "observations": "Brick laboratory mass with pale frame and broad recessed glazing."
+    }
+  ]
+}

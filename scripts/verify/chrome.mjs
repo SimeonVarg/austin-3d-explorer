@@ -178,7 +178,9 @@ export async function launch(chromium, opts = {}) {
 
   let reaped = false;
   const reap = (why, code) => {
-    if (reaped) return;
+    // A test may close in finally before its rejection reaches the process
+    // handler. Cleanup being done must not turn that failure into exit 0.
+    if (reaped) { if (code != null) process.exit(code); return; }
     reaped = true;
     try { browser.process()?.kill('SIGKILL'); } catch (e) {}
     try { browser.close(); } catch (e) {}

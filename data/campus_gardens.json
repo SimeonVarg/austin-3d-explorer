@@ -1,0 +1,435 @@
+{
+  "sources": [
+    "https://sustainability.utexas.edu/campus-sustainability/self-guided-green-tours/bleed-orange-live-green-self-guided-tour",
+    "https://soa.utexas.edu/news/landscape-first-stringfellow",
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+    "data/ground.geojson"
+  ],
+  "accuracy": "Mapped court outlines and paths are retained. Bed subdivisions, planting, furniture and fountain proportions are interpreted from exterior photographs and aerial imagery, not surveyed. East Mall construction is left as mapped.",
+  "detail": {
+    "pathClearance": 0.12,
+    "buildingClearance": 0.22,
+    "bedInset": 0.35,
+    "edgeWidth": 0.16,
+    "pondRim": 0.3,
+    "plantSpacing": 1.8,
+    "plantRadius": 0.43,
+    "plantHeight": 0.65,
+    "benchLength": 2.1,
+    "benchWidth": 0.46,
+    "benchHeight": 0.48,
+    "benchBack": 0.88,
+    "benchSlat": 0.09
+  },
+  "places": [
+    {
+      "name": "Goldsmith Box Courtyard",
+      "building": "GOL",
+      "beds": [
+        [
+          18.6,
+          28.5,
+          31.6,
+          38.8
+        ],
+        [
+          32.1,
+          41.9,
+          31.6,
+          38.8
+        ],
+        [
+          18.6,
+          28.5,
+          42.3,
+          49.6
+        ],
+        [
+          32.1,
+          41.9,
+          42.3,
+          49.6
+        ]
+      ],
+      "benches": [
+        [
+          25.3,
+          40.5,
+          90
+        ],
+        [
+          35.1,
+          40.5,
+          90
+        ],
+        [
+          30.3,
+          34.6,
+          0
+        ],
+        [
+          30.3,
+          46.9,
+          0
+        ]
+      ],
+      "livingWall": [
+        [
+          17.5,
+          35.0
+        ],
+        [
+          17.5,
+          46.0
+        ]
+      ],
+      "note": "Four planted panels separated by the court's cross paths; divided studio glazing encloses the court. Living-wall extent is approximate.",
+      "courtPaving": 0.09
+    },
+    {
+      "name": "Gearing courtyard",
+      "building": "GEA",
+      "lawns": [
+        [
+          15.5,
+          23.0,
+          1.1,
+          13.8
+        ],
+        [
+          29.2,
+          36.7,
+          1.1,
+          13.8
+        ]
+      ],
+      "beds": [
+        [
+          15.3,
+          22.6,
+          14.2,
+          15.5
+        ],
+        [
+          29.4,
+          36.9,
+          14.2,
+          15.5
+        ]
+      ],
+      "fountain": [
+        26.1,
+        6.4,
+        1.5
+      ],
+      "benches": [
+        [
+          18.5,
+          -1.0,
+          0
+        ],
+        [
+          33.5,
+          -1.0,
+          0
+        ]
+      ],
+      "note": "Two lawn panels flank the central walk and small fountain within the U-shaped hall."
+    },
+    {
+      "name": "Honors Quad",
+      "mapped": "Honors Quad",
+      "bounds": [
+        -97.7401,
+        30.2882,
+        -97.7394,
+        30.2893
+      ],
+      "lawnsFromMap": true,
+      "edgePlanting": true,
+      "aerial": {
+        "extent": [
+          -97.74055,
+          30.2877,
+          -97.73875,
+          30.2895
+        ],
+        "size": 1400,
+        "court": [
+          [
+            433,
+            273
+          ],
+          [
+            816,
+            298
+          ],
+          [
+            809,
+            944
+          ],
+          [
+            428,
+            938
+          ]
+        ],
+        "walks": [
+          {
+            "points": [
+              [
+                607,
+                276
+              ],
+              [
+                578,
+                450
+              ],
+              [
+                571,
+                715
+              ],
+              [
+                566,
+                939
+              ]
+            ],
+            "width": 3.1
+          },
+          {
+            "points": [
+              [
+                444,
+                329
+              ],
+              [
+                441,
+                631
+              ],
+              [
+                438,
+                926
+              ]
+            ],
+            "width": 2.3
+          },
+          {
+            "points": [
+              [
+                806,
+                312
+              ],
+              [
+                802,
+                616
+              ],
+              [
+                790,
+                929
+              ]
+            ],
+            "width": 3.0
+          },
+          {
+            "points": [
+              [
+                440,
+                610
+              ],
+              [
+                571,
+                614
+              ],
+              [
+                802,
+                619
+              ]
+            ],
+            "width": 2.2
+          },
+          {
+            "points": [
+              [
+                438,
+                735
+              ],
+              [
+                569,
+                746
+              ],
+              [
+                656,
+                845
+              ],
+              [
+                790,
+                858
+              ]
+            ],
+            "width": 2.1
+          },
+          {
+            "points": [
+              [
+                444,
+                890
+              ],
+              [
+                566,
+                897
+              ],
+              [
+                790,
+                913
+              ]
+            ],
+            "width": 2.2
+          }
+        ]
+      },
+      "note": "Aerial-traced concrete walking paths replace a false asphalt loop inside the residence quad. Source imagery extent and trace points are recorded; widths are approximate."
+    },
+    {
+      "name": "Turtle Pond and Memorial Garden",
+      "mapped": "Memorial Garden",
+      "bounds": [
+        -97.74012,
+        30.2867,
+        -97.7393,
+        30.28712
+      ],
+      "lawnsFromMap": true,
+      "pond": "Turtle Pond",
+      "edgePlanting": true,
+      "benchesLngLat": [
+        [
+          -97.73969,
+          30.28673,
+          85
+        ],
+        [
+          -97.73941,
+          30.28688,
+          5
+        ]
+      ],
+      "note": "Pond outline comes from the existing ground bake; a low rim and planting soften the water edge. Furniture locations are approximate."
+    },
+    {
+      "name": "Brackenridge Roberts Prather courts",
+      "bounds": [
+        -97.73608,
+        30.28215,
+        -97.73496,
+        30.28312
+      ],
+      "lawnsFromMap": true,
+      "note": "Aerial-derived garden pockets beneath the residence-court canopy, clipped clear of mapped paths, service access, parking and dormitories. Small planting boundaries remain approximate.",
+      "aerial": {
+        "extent": [
+          -97.7364,
+          30.2821,
+          -97.7346,
+          30.2839
+        ],
+        "size": 1400,
+        "patches": [
+          {
+            "kind": "bed",
+            "plants": true,
+            "points": [
+              [
+                250,
+                642
+              ],
+              [
+                582,
+                666
+              ],
+              [
+                583,
+                712
+              ],
+              [
+                290,
+                700
+              ]
+            ]
+          },
+          {
+            "kind": "lawn",
+            "points": [
+              [
+                713,
+                677
+              ],
+              [
+                995,
+                697
+              ],
+              [
+                1000,
+                805
+              ],
+              [
+                942,
+                860
+              ],
+              [
+                916,
+                926
+              ],
+              [
+                870,
+                911
+              ],
+              [
+                835,
+                811
+              ],
+              [
+                733,
+                758
+              ]
+            ]
+          },
+          {
+            "kind": "lawn",
+            "points": [
+              [
+                958,
+                850
+              ],
+              [
+                1194,
+                840
+              ],
+              [
+                1171,
+                973
+              ],
+              [
+                1066,
+                984
+              ],
+              [
+                956,
+                959
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "North science walks",
+      "bounds": [
+        -97.7391,
+        30.28805,
+        -97.73726,
+        30.2895
+      ],
+      "lawnsFromMap": true,
+      "note": "Retains mapped green pockets among the smaller science halls; paving and service access remain clear."
+    }
+  ]
+}

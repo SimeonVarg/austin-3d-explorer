@@ -1,5 +1,39 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 12 2026 — Everyday campus (`codex/campus-everywhere`)
+
+Thirty-six hall and dorm profiles now cover West Mall, the Honors Quad, the
+science halls and the southeast residence courts. The total is 76 models.
+Twenty-six existing roof rigs remain; Goldsmith gets separate roof wings around
+its previously filled courtyard. The camera height field now respects polygon
+holes without erasing a separate building inside a courtyard.
+
+The campus planting bake contains 3,090 existing recorded tree positions with
+continuous crowns and branches, plus six garden/courtyard treatments. Honors
+Quad's false asphalt loop is replaced with aerial-traced concrete paths.
+Goldsmith and Gearing gain planted panels, seating, paving and a small fountain
+at Gearing; Turtle Pond keeps its mapped outline. See docs/campus-everywhere.md
+for four cited comparisons, primary sources and explicitly approximate details.
+
+Each new bake owns one output: bake_campus_buildings.py -> campus_buildings.json;
+bake_campus_landscape.py -> campus_landscape.json. Profiles and garden recipes
+are editable JSON inputs. Building collections reuse the apartment renderer.
+Tree and building geometry is disposed on rebuild; materials remain shared.
+
+Verified after integrating main at 8ba4920: campus-everywhere-check (including
+whole-crown replacement, roof/collision holes, separate courtyard pavilion,
+presets, fallback and disposal); campus-apartment-check; live-here-buildings
+(all 19 existing route pairs); harness-drift; apartment-window-rule. A deliberate
+failed test also verifies nonzero exit after browser cleanup. Browser navigation
+timeouts are explicit to accommodate the suite's documented load variance.
+Hardware desktop frame minima: 19.9 ms before, 20.2 ms after; settings and limits
+are in the visual document. The result is not a mobile benchmark.
+
+No Mac-owned or other open-lane code/output changed. HANDOFF is the sole shared
+documentation overlap with PRs #164 and #189; existing facade/roof fallback
+assertions passed. Fine ornament, unphotographed elevations and small garden
+dimensions remain approximate.
+
 ## Sep 12 2026 — Campus and apartment architecture (`codex/campus-apartment-visuals`)
 
 Twelve dedicated models added: Villas on 24th, Icon, Inspire on 22nd, Pointe on
