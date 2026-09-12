@@ -54,7 +54,8 @@ for u,v in [(-14,-15),(14,-15),(14,15),(-14,15),(-14,-15)]:ring.append([x+(u*ax-
 f['geometry']={'type':'Polygon','coordinates':[ring]};s,F,uv=base('Icon','https://www.rhodepartners.com/icon',f);s['sources']['placement']='https://www.iconataustin.com/; 2200 San Antonio Street. ArcGIS World GeocodeServer address match score 100 at -97.743084597282,30.285294489137. 28x30m envelope derived from facade bay counts and neighbor spacing; former Intervarsity footprint is retired, not reused as tower plan.';L,W=F['L'],F['W'];floors(s,28,4.8,2.94)
 s['skins']['icon']=bays('white',2.65,1.65,2.25,.3,pier={'w':.24,'d':.20,'tone':'trim'});s['skins']['icon']['floorLine']={'h':.18,'tone':'trim'};s['skins']['icon']['window']['mullion']={'cols':[],'rows':[.33],'w':.06,'tone':'frame'}
 s['blocks']=[block('lobby',[0,L,0,W],0,4.8,'glass'),block('lower-grid',[0,L,0,W],4.8,16.56,'icon'),block('tower',[1,L-1,1,W-1],16.56,87.12,'icon',parapet=.6,parapetTone='white'),block('crown',[L*.36,L-1,3,W-3],87.12,93.6,'glass',chamfer=2)]
-cornice(s,'podium-ledge',[0,L,0,W],16.3,.4);topdeck(s,L,W,87.12);save('icon',s)
+cornice(s,'podium-ledge',[0,L,0,W],16.3,.4);topdeck(s,L,W,87.12);s['labelOverride']=True
+save('icon',s)
 # Inspire: 18 stories, four small-window podium levels under vertical panel tower.
 s,F,uv=base('Inspire on 22nd','https://www.rhodepartners.com/inspire-on-22nd');L,W=F['L'],F['W'];floors(s,17,5.7,3.05)
 s['colours']['metal']={'hex':'#acb5b6'};s['skins']['small']=bays('metal',2.4,.85,1.55,.7);s['skins']['small']['strip']={'w':.05,'tone':'frame','at':'joints'};s['skins']['silver']=bays('white',3,1.25,2.5,.25,pier={'w':.18,'d':.16,'tone':'trim'});s['skins']['silver']['fields']=['white','metal','white','white','metal'];s['skins']['silver']['window']['mullion']={'cols':[],'rows':[.22],'w':.06,'tone':'frame'};s['skins']['screen']=dict(kind='flat',field='dark',fins={'pitch':.7,'w':.12,'d':.15,'tone':'metal'})

@@ -2297,6 +2297,22 @@
     return 'rebuilt with ' + extra.length + ' corrected heights';
   }
 
+  // A new building may replace a differently named snapshot feature. Keep the
+  // authored name with its mesh, and restore the snapshot label with fallback.
+  const _labelFields = new Map();
+  function setLabels(on) {
+    const entries = on ? _data.buildings.filter(b => b.labelOverride && b.id).flatMap(b => [b.id, b.name]) : [];
+    for (const id of ['buildings-labels-major', 'buildings-labels-mid', 'buildings-labels']) {
+      if (!_map.getLayer(id)) continue;
+      const current = _map.getLayoutProperty(id, 'text-field'), saved = _labelFields.get(id);
+      const base = saved && sameJSON(current, saved.applied) ? saved.base : current;
+      const field = entries.length ? ['match', ['get', 'id'], ...entries, base] : base;
+      if (!sameJSON(current, field)) _map.setLayoutProperty(id, 'text-field', field);
+      if (entries.length) _labelFields.set(id, { base, applied: field });
+      else _labelFields.delete(id);
+    }
+  }
+
   window.applySlopesApartments = function applySlopesApartments(map) {
     map = map || _map;
     if (!map || !_data) return;
@@ -2306,6 +2322,7 @@
     else if (want && _group && _lastDetail !== S.detail()) { S.remove(_group); _group = build(); S.add(_group); }
     else if (!want && _group) { S.remove(_group); _group = null; }
     setFilters(want);
+    setLabels(want);
     map.triggerRepaint();
   };
 
@@ -2379,6 +2396,7 @@
         if (n > 400 + 240) return;
         setTimeout(tick, n < 400 ? 150 : 1000);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
+        setLabels(true);
         for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
         if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
       };

@@ -50,6 +50,8 @@ try{
  assert.ok(r.archPane.distance-r.archCorner.distance>.3,'arched spandrel is in front of recessed pane');
  assert.ok(Math.abs(r.facet.normal[2])>.05,'Villas bronze panels have sloping faces');
  assert.ok(r.iconCollision>85,'new Icon footprint participates in collision');
+ const iconLabel=()=>page.evaluate(()=>__map.getLayoutProperty('buildings-labels','text-field'));
+ const namedIcon=await iconLabel();assert.ok(namedIcon.includes('Icon'),'Icon label replaces the former church name');
  // Observe the old broken plan and square window heads fail these same probes.
  await page.evaluate(oldUnion=>{
   const a=slopesApartments.data.buildings;a[a.findIndex(s=>s.name==='Union on San Antonio')]=oldUnion;
@@ -76,7 +78,9 @@ try{
  // Runtime fallbacks restore their geometry and filters, then rebuild cleanly.
  await page.evaluate(()=>{APARTMENTS.on=false;applySlopesApartments()});
  assert.equal(await page.evaluate(()=>slopesApartments.group),null);
+ assert.deepEqual(await iconLabel(),['get','name'],'fallback restores snapshot label');
  await page.evaluate(()=>{APARTMENTS.on=true;applySlopesApartments()});
+ assert.deepEqual(await iconLabel(),namedIcon,'mesh restores Icon label');
  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),index.buildings.length);
  const results=[];
  if(process.env.VISUAL_PERF){
@@ -94,8 +98,13 @@ try{
   assert.ok(min('after')<min('before')*1.35+2,'no material frame regression: '+JSON.stringify(results));
   await swap(after);
  }
- await page.evaluate(()=>applyTimeOfDay(__map,1,true));await page.waitForTimeout(4000);
+ for(const preset of ['performance','cinematic']){
+  await page.evaluate(preset=>__usePreset(preset),preset);
+  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),index.buildings.length,'all models survive '+preset);
+ }
+ await page.evaluate(()=>{__map.jumpTo({center:[-97.7396,30.2853],zoom:17.3,pitch:55,bearing:20,padding:{top:0,bottom:0,left:0,right:0}});applyTimeOfDay(__map,1,true)});await page.waitForTimeout(4000);
  assert.ok(await page.evaluate(()=>{const a=slopesApartments.group.children[0].geometry.attributes.cNight.array;for(let i=0;i<a.length;i+=3)if(a[i]>.65&&a[i+1]>.4&&a[i+2]<a[i])return true;return false}),'warm night window colors remain');
+ if(out){await page.screenshot({path:out+'/campus-night.jpg',quality:90});await page.waitForTimeout(900);await page.screenshot({path:out+'/campus-night.jpg',quality:90})}
  assert.deepEqual(errors,[]);
  if(out)fs.writeFileSync(out+'/visual-gates.json',JSON.stringify({info,rays:r,watchedFailure:broken,frames:results,errors},null,2));
  console.log('PASS runtime fallback, restored filters, day/night, '+(results.length?'interleaved frame budget':'no frame benchmark requested'));

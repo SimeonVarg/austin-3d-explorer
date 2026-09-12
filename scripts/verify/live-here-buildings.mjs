@@ -4,8 +4,11 @@ import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
 import {launch,BASE} from './chrome.mjs';
 const out=process.env.VERIFY_OUT;
-const previous=['the-standard','villas-on-rio'].map(n=>JSON.parse(execFileSync('git',['show','origin/main:data/apartments/'+n+'.json'],{maxBuffer:1000000}).toString()));
-const oldGraph=execFileSync('git',['show','origin/main:data/walk_graph.json'],{maxBuffer:2000000});
+// Freeze the comparison before PR #242; origin/main already includes the fix.
+const baseline='4493d54';
+const registered=JSON.parse(fs.readFileSync(new URL('../../data/apartments/index.json',import.meta.url))).buildings.length;
+const previous=['the-standard','villas-on-rio'].map(n=>JSON.parse(execFileSync('git',['show',baseline+':data/apartments/'+n+'.json'],{maxBuffer:1000000}).toString()));
+const oldGraph=execFileSync('git',['show',baseline+':data/walk_graph.json'],{maxBuffer:2000000});
 const browser=await launch(chromium,{gl:'hardware'});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
@@ -40,12 +43,11 @@ try {
  const fixedRays=await rays();assert.equal(fixedRays[0].length,0,'light well has no solid roof or suspended equipment');assert.equal(fixedRays[1].length,0,'east slot is open');assert.ok(fixedRays[2].length>0,'control ray still hits tower');
  for(const name of ['standard','villas']){await camera(name);await shot(name+'-after');}
  const afterCount=await page.evaluate(()=>slopesApartments.count);
- assert.equal(afterCount.buildings,28);assert.equal(afterCount.signMissing,0);
+ assert.equal(afterCount.buildings,registered);assert.equal(afterCount.signMissing,0);
  await swap(previous);const oldRays=await rays();assert.ok(oldRays[0].length>0&&oldRays[1].length>0,'regression guard catches the original filled gaps');
  const oldCount=await page.evaluate(()=>slopesApartments.count);
- // The warning de-duplicator persists across rebuilds, so the old data's second
- // build reports zero. The initial main capture recorded 111 startup warnings.
- assert.equal(afterCount.warnings.length,111,'startup warning count matches the initial main capture');
+ // Exact floor boundaries no longer produce spurious floor-below warnings.
+ assert.ok(afterCount.warnings.every(w=>!w.includes('no skin')&&!w.includes('not a face')),'no invalid authored facade');
  for(const name of ['standard','villas']){await camera(name);await shot(name+'-before');}
  await swap(after);
  const pairs=[['JES','GDC'],['JES','WEL'],['PCL','RLP'],['GRE','MAI'],['BUR','CBA'],['STD','MAI'],['21 Rio','WEL'],['The Castilian','GDC'],['PCL','JES'],['GDC','BIO'],['WEL','TSG'],['GDC','DMC'],['GRE','MNC'],['GRE','NEZ'],['GRE','TCP'],['GRE','AF2'],['JES','BMS'],['JES','BMK'],['JES','MCA']];
@@ -59,5 +61,5 @@ try {
  // about 2.1m and PCL about 0.7m since the shipped August graph. Inspectable in
  // the old/new d[] coordinates and link distances; no network shortcut.
  assert.ok(drift.every(d=>d.ok===d.oldOK&&Math.abs(d.delta)<3),'existing shipped routes stay within three metres: '+JSON.stringify(drift));
- assert.deepEqual(errors,[]);console.log('PASS matched building frames, 28 buildings, unchanged startup warning count, real roof-cut rays and original failure, all 19 shipped route pairs within 3m');
+ assert.deepEqual(errors,[]);console.log('PASS matched building frames, all registered buildings, valid facade references, real roof-cut rays and original failure, all 19 shipped route pairs within 3m');
 }finally{await browser.__done();}
