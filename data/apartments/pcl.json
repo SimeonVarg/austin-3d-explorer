@@ -1,0 +1,387 @@
+{
+  "name": "Perry-Castañeda Library",
+  "id": "04ac46be-ba31-4ff5-ab58-e36988f6a5fb",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 04ac46be-ba31-4ff5-ab58-e36988f6a5fb",
+    "reference": "docs/campus-truth/PCL.md",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7381328,
+        30.2830194
+      ],
+      [
+        -97.7384654,
+        30.2833715
+      ],
+      [
+        -97.7384657,
+        30.283256
+      ],
+      [
+        -97.7384913,
+        30.2829748
+      ],
+      [
+        -97.7386467,
+        30.2829863
+      ],
+      [
+        -97.7386752,
+        30.2827104
+      ],
+      [
+        -97.7386886,
+        30.2825729
+      ],
+      [
+        -97.7385002,
+        30.2823819
+      ],
+      [
+        -97.7382471,
+        30.282362
+      ],
+      [
+        -97.7382675,
+        30.2821435
+      ],
+      [
+        -97.7379789,
+        30.2823558
+      ],
+      [
+        -97.7377426,
+        30.2825198
+      ],
+      [
+        -97.7377001,
+        30.2829414
+      ],
+      [
+        -97.7377492,
+        30.2829451
+      ],
+      [
+        -97.7377466,
+        30.2829715
+      ],
+      [
+        -97.7379989,
+        30.2829904
+      ],
+      [
+        -97.7379975,
+        30.2830045
+      ],
+      [
+        -97.7380533,
+        30.2830087
+      ],
+      [
+        -97.7381328,
+        30.2830194
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.73872910120988,
+        30.282178374232334
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96130.04230219881,
+      "my": 111320,
+      "L": 91.1589637859428,
+      "W": 134.52270892782187
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      4.8,
+      9.6,
+      14.4,
+      19.2,
+      24
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "slots": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 2.5,
+      "window": {
+        "w": 0.72,
+        "h": 3.8,
+        "sill": 0.5
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.85,
+      "pier": {
+        "w": 0.48,
+        "d": 0.22,
+        "tone": "stone"
+      }
+    }
+  },
+  "blocks": [
+    {
+      "id": "library",
+      "plan": {
+        "ring": [
+          [
+            48.945,
+            98.263
+          ],
+          [
+            13.677,
+            134.523
+          ],
+          [
+            14.769,
+            121.712
+          ],
+          [
+            15.046,
+            90.313
+          ],
+          [
+            0.052,
+            90.286
+          ],
+          [
+            0.0,
+            59.451
+          ],
+          [
+            0.051,
+            44.091
+          ],
+          [
+            19.946,
+            24.488
+          ],
+          [
+            44.377,
+            24.402
+          ],
+          [
+            44.543,
+            0.0
+          ],
+          [
+            70.121,
+            25.961
+          ],
+          [
+            91.159,
+            46.128
+          ],
+          [
+            91.139,
+            93.238
+          ],
+          [
+            86.401,
+            93.237
+          ],
+          [
+            86.393,
+            96.186
+          ],
+          [
+            62.049,
+            96.169
+          ],
+          [
+            62.046,
+            97.744
+          ],
+          [
+            56.662,
+            97.742
+          ]
+        ]
+      },
+      "z0": 0,
+      "z1": 28.4,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 28.4,
+          "skin": "stone"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "parapet": 0.5,
+      "parapetTone": "stone",
+      "faces": {
+        "1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
+        "5": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
+        "10": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        }
+      },
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate.",
+    "The source maximum of 36.1m is not assigned to a guessed roof box. Main roof 28.4m and slot-band extents are derived pending full elevation measurement."
+  ]
+}

@@ -1,0 +1,441 @@
+{
+  "name": "Battle Hall",
+  "id": "283f5992-bc72-411a-80ba-25d0314544d0",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 283f5992-bc72-411a-80ba-25d0314544d0",
+    "reference": "docs/campus-truth/BTL.md; docs/shots/verdict-battle-vs-photo.jpg",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7403584,
+        30.2855386
+      ],
+      [
+        -97.7405124,
+        30.2855501
+      ],
+      [
+        -97.7405368,
+        30.2853069
+      ],
+      [
+        -97.7403813,
+        30.2852952
+      ],
+      [
+        -97.7403884,
+        30.2852252
+      ],
+      [
+        -97.740187,
+        30.2852101
+      ],
+      [
+        -97.7401484,
+        30.2855956
+      ],
+      [
+        -97.7403512,
+        30.2856107
+      ],
+      [
+        -97.7403584,
+        30.2855386
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.7405441255554,
+        30.28523696484075
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96127.48496292274,
+      "my": 111320,
+      "L": 34.45959448168121,
+      "W": 43.086759224686475
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      1.2,
+      7.2,
+      17.7
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "lower": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.3,
+      "window": {
+        "w": 1.5,
+        "h": 3.4,
+        "sill": 1.2,
+        "mullion": {
+          "w": 0.09,
+          "cols": [
+            0.5
+          ],
+          "rows": [
+            0.45
+          ],
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "arches": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 8.5,
+      "window": {
+        "w": 3.15,
+        "h": 7.2,
+        "sill": 0.55,
+        "arch": {
+          "rise": 1.6,
+          "segments": 24,
+          "tone": "trim",
+          "trim": 0.35
+        },
+        "mullion": {
+          "w": 0.11,
+          "cols": [
+            0.25,
+            0.5,
+            0.75
+          ],
+          "rows": [
+            0.22,
+            0.45,
+            0.68,
+            0.83
+          ],
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.6
+    }
+  },
+  "blocks": [
+    {
+      "id": "reading-hall",
+      "plan": [
+        14.9,
+        34.45,
+        0,
+        43.1
+      ],
+      "z0": 0,
+      "z1": 17.7,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 1.2,
+          "skin": "stone"
+        },
+        {
+          "z0": 1.2,
+          "z1": 7.2,
+          "skin": "lower"
+        },
+        {
+          "z0": 7.2,
+          "z1": 16.2,
+          "skin": "arches"
+        },
+        {
+          "z0": 16.2,
+          "z1": 17.7,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roof",
+      "roof": {
+        "kind": "hip",
+        "pitch": 25,
+        "over": 0.55,
+        "tone": "roof",
+        "lipTone": "trim",
+        "soffitTone": "wood"
+      },
+      "faces": {
+        "u1": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 1.2,
+              "skin": "stone"
+            },
+            {
+              "z0": 1.2,
+              "z1": 7.2,
+              "skin": "lower"
+            },
+            {
+              "z0": 7.2,
+              "z1": 16.2,
+              "skin": "arches",
+              "balconies": [
+                {
+                  "s0": 2.65,
+                  "s1": 5.97
+                },
+                {
+                  "s0": 11.27,
+                  "s1": 14.59
+                },
+                {
+                  "s0": 19.889999999999997,
+                  "s1": 23.209999999999997
+                },
+                {
+                  "s0": 28.509999999999998,
+                  "s1": 31.83
+                },
+                {
+                  "s0": 37.129999999999995,
+                  "s1": 40.449999999999996
+                }
+              ]
+            },
+            {
+              "z0": 16.2,
+              "z1": 17.7,
+              "skin": "trim"
+            }
+          ]
+        }
+      },
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "west-stack-wing",
+      "plan": [
+        0,
+        14.9,
+        7.8,
+        35
+      ],
+      "z0": 0,
+      "z1": 16,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 16,
+          "skin": "lower"
+        }
+      ],
+      "roofTone": "roof",
+      "roof": {
+        "kind": "hip",
+        "pitch": 25,
+        "over": 0.55,
+        "tone": "roof",
+        "lipTone": "trim",
+        "soffitTone": "wood"
+      },
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "cornice-1.1",
+      "plan": [
+        14.58,
+        34.77,
+        -0.32,
+        43.42
+      ],
+      "z0": 1.1,
+      "z1": 1.3800000000000001,
+      "bands": [
+        {
+          "z0": 1.1,
+          "z1": 1.3800000000000001,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "cornice-7",
+      "plan": [
+        14.58,
+        34.77,
+        -0.32,
+        43.42
+      ],
+      "z0": 7,
+      "z1": 7.28,
+      "bands": [
+        {
+          "z0": 7,
+          "z1": 7.28,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "cornice-16.2",
+      "plan": [
+        14.58,
+        34.77,
+        -0.32,
+        43.42
+      ],
+      "z0": 16.2,
+      "z1": 16.48,
+      "bands": [
+        {
+          "z0": 16.2,
+          "z1": 16.48,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "cornice-17.5",
+      "plan": [
+        14.58,
+        34.77,
+        -0.32,
+        43.42
+      ],
+      "z0": 17.5,
+      "z1": 17.78,
+      "bands": [
+        {
+          "z0": 17.5,
+          "z1": 17.78,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate."
+  ],
+  "balcony": {
+    "proj": 0.65,
+    "slabT": 0.16,
+    "railH": 1,
+    "railT": 0.045,
+    "railPitch": 0.2,
+    "railPost": 0.035,
+    "slabTone": "trim",
+    "railTone": "dark"
+  }
+}

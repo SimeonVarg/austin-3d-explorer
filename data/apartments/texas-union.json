@@ -1,0 +1,558 @@
+{
+  "name": "Union Building",
+  "id": "8a2648f5-9994-4d01-9b12-5c589b863c5a",
+  "sources": {
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 8a2648f5-9994-4d01-9b12-5c589b863c5a",
+    "reference": "docs/campus-truth/UNB.md; https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UNB/",
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7409696,
+        30.2866493
+      ],
+      [
+        -97.7409345,
+        30.2869996
+      ],
+      [
+        -97.740979,
+        30.2870029
+      ],
+      [
+        -97.7410408,
+        30.2870075
+      ],
+      [
+        -97.7410122,
+        30.2872936
+      ],
+      [
+        -97.7411874,
+        30.2873067
+      ],
+      [
+        -97.7412159,
+        30.2870218
+      ],
+      [
+        -97.7413059,
+        30.2870285
+      ],
+      [
+        -97.7413303,
+        30.2867844
+      ],
+      [
+        -97.7414458,
+        30.2867931
+      ],
+      [
+        -97.7414679,
+        30.2865725
+      ],
+      [
+        -97.7413293,
+        30.2865621
+      ],
+      [
+        -97.7413776,
+        30.28608
+      ],
+      [
+        -97.7413805,
+        30.2860509
+      ],
+      [
+        -97.7413096,
+        30.2860456
+      ],
+      [
+        -97.7413137,
+        30.286005
+      ],
+      [
+        -97.7413071,
+        30.2860045
+      ],
+      [
+        -97.7411972,
+        30.2859963
+      ],
+      [
+        -97.7411784,
+        30.2859949
+      ],
+      [
+        -97.7411757,
+        30.286022
+      ],
+      [
+        -97.7408203,
+        30.2859954
+      ],
+      [
+        -97.740805,
+        30.2861482
+      ],
+      [
+        -97.7409636,
+        30.28616
+      ],
+      [
+        -97.7409991,
+        30.2861627
+      ],
+      [
+        -97.7409942,
+        30.2862112
+      ],
+      [
+        -97.7410075,
+        30.2862122
+      ],
+      [
+        -97.7409765,
+        30.2865211
+      ],
+      [
+        -97.7410079,
+        30.2865234
+      ],
+      [
+        -97.7409951,
+        30.2866512
+      ],
+      [
+        -97.7409696,
+        30.2866493
+      ]
+    ]
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74152403804212,
+        30.28602088917869
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96126.44678836058,
+      "my": 111320,
+      "L": 67.63771754462731,
+      "W": 145.42720514056873
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      4.4,
+      9.5,
+      13,
+      18.3
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c5b597"
+    },
+    "stone": {
+      "hex": "#ded8c9"
+    },
+    "trim": {
+      "hex": "#dfdbcf"
+    },
+    "glass": {
+      "hex": "#506b78"
+    },
+    "frame": {
+      "hex": "#807b70"
+    },
+    "roof": {
+      "hex": "#965a42"
+    },
+    "roofFlat": {
+      "hex": "#787b77"
+    },
+    "metal": {
+      "hex": "#596264"
+    },
+    "white": {
+      "hex": "#e0e5e3"
+    },
+    "dark": {
+      "hex": "#353c3e"
+    },
+    "brick": {
+      "hex": "#9b6e57"
+    },
+    "wood": {
+      "hex": "#885041"
+    },
+    "water": {
+      "hex": "#458c95"
+    },
+    "plant": {
+      "hex": "#526447"
+    },
+    "pave": {
+      "hex": "#aea58f"
+    },
+    "rail": {
+      "hex": "#566165"
+    }
+  },
+  "skins": {
+    "wall": {
+      "kind": "flat",
+      "field": "wall"
+    },
+    "stone": {
+      "kind": "flat",
+      "field": "stone"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "glass": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "trim",
+      "fascia": 0.2,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "reveal": 0.35
+    },
+    "window": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.5,
+      "window": {
+        "w": 1.5,
+        "h": 2,
+        "sill": 0.7
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "arcade": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 5.3,
+      "window": {
+        "w": 2.3,
+        "h": 3.6,
+        "sill": 0.6,
+        "arch": {
+          "rise": 1.15,
+          "tone": "trim",
+          "trim": 0.18
+        },
+        "mullion": {
+          "cols": [
+            0.5
+          ],
+          "rows": [
+            0.55
+          ],
+          "w": 0.1
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.5
+    },
+    "paired": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 5.3,
+      "window": {
+        "w": 1.1,
+        "h": 2.6,
+        "sill": 0.6,
+        "offsets": [
+          [
+            -0.9,
+            1.1
+          ],
+          [
+            0.9,
+            1.1
+          ]
+        ]
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "slits": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 4.36,
+      "window": {
+        "w": 1.4,
+        "h": 2.4,
+        "sill": 1.2
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "towerdoor": {
+      "kind": "bays",
+      "field": "stone",
+      "bay": 13.1,
+      "window": {
+        "w": 3.7,
+        "h": 7.2,
+        "sill": 1.7,
+        "arch": {
+          "rise": 1.85,
+          "tone": "trim",
+          "trim": 0.45
+        },
+        "mullion": {
+          "cols": [
+            0.33,
+            0.66
+          ],
+          "rows": [
+            0.35,
+            0.7
+          ],
+          "w": 0.12
+        },
+        "cols": [
+          0.5
+        ]
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.85
+    }
+  },
+  "blocks": [
+    {
+      "id": "main-wings",
+      "plan": {
+        "ring": [
+          [
+            46.996,
+            74.334
+          ],
+          [
+            46.959,
+            113.475
+          ],
+          [
+            42.666,
+            113.468
+          ],
+          [
+            36.703,
+            113.46
+          ],
+          [
+            36.666,
+            145.427
+          ],
+          [
+            19.762,
+            145.412
+          ],
+          [
+            19.796,
+            113.579
+          ],
+          [
+            11.113,
+            113.568
+          ],
+          [
+            11.145,
+            86.294
+          ],
+          [
+            0.0,
+            86.291
+          ],
+          [
+            0.024,
+            61.642
+          ],
+          [
+            13.397,
+            61.65
+          ],
+          [
+            13.449,
+            7.782
+          ],
+          [
+            13.454,
+            4.531
+          ],
+          [
+            20.295,
+            4.537
+          ],
+          [
+            20.296,
+            0.0
+          ],
+          [
+            20.933,
+            0.0
+          ],
+          [
+            31.537,
+            0.011
+          ],
+          [
+            33.351,
+            0.014
+          ],
+          [
+            33.346,
+            3.042
+          ],
+          [
+            67.638,
+            3.069
+          ],
+          [
+            67.62,
+            20.142
+          ],
+          [
+            52.318,
+            20.122
+          ],
+          [
+            48.893,
+            20.124
+          ],
+          [
+            48.891,
+            25.544
+          ],
+          [
+            47.608,
+            25.543
+          ],
+          [
+            47.579,
+            60.059
+          ],
+          [
+            44.55,
+            60.051
+          ],
+          [
+            44.536,
+            74.331
+          ]
+        ]
+      },
+      "z0": 0,
+      "z1": 12.8,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 4.4,
+          "skin": "paired"
+        },
+        {
+          "z0": 4.4,
+          "z1": 9.5,
+          "skin": "arcade"
+        },
+        {
+          "z0": 9.5,
+          "z1": 12.8,
+          "skin": "paired"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "entrance-tower",
+      "plan": [
+        20.3,
+        33.4,
+        0,
+        13.5
+      ],
+      "z0": 0,
+      "z1": 18.3,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 9.5,
+          "skin": "towerdoor"
+        },
+        {
+          "z0": 9.5,
+          "z1": 13,
+          "skin": "paired"
+        },
+        {
+          "z0": 13,
+          "z1": 18.3,
+          "skin": "slits"
+        }
+      ],
+      "roofTone": "roof",
+      "roof": {
+        "kind": "hip",
+        "pitch": 18,
+        "over": 0.85,
+        "tone": "roof",
+        "lipTone": "trim",
+        "soffitTone": "wood"
+      },
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "tower-eave",
+      "plan": [
+        19.55,
+        34.15,
+        -0.75,
+        14.25
+      ],
+      "z0": 18.05,
+      "z1": 18.330000000000002,
+      "bands": [
+        {
+          "z0": 18.05,
+          "z1": 18.330000000000002,
+          "skin": "trim"
+        }
+      ],
+      "roofTone": "roofFlat",
+      "_src": "reference; dimensions are derived, see sources.dimensions"
+    }
+  ],
+  "open": [
+    "Unphotographed elevations and small dimensions remain approximate."
+  ],
+  "preserveRoof": true
+}

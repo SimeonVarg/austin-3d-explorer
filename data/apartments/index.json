@@ -28,7 +28,19 @@
     "dobie-twenty21.json",
     "moody-center.json",
     "villas-on-rio.json",
-    "union-on-san-antonio.json"
+    "union-on-san-antonio.json",
+    "villas-on-24th.json",
+    "icon.json",
+    "inspire-on-22nd.json",
+    "pointe-on-rio.json",
+    "rambler.json",
+    "battle-hall.json",
+    "texas-union.json",
+    "pcl.json",
+    "welch-hall.json",
+    "benedict-hall.json",
+    "mezes-hall.json",
+    "batts-hall.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -60,7 +72,19 @@
     "2b0f20a0-f207-4584-8423-c8c5e3441b96",
     "ba9c090c-59c5-46dd-ad4b-fef4ad849866",
     "e6abe8cf-5a15-4d11-9b04-f0a5c629d59a",
-    "87f9cf87-79b7-46e5-803c-2936c8d98fbf"
+    "87f9cf87-79b7-46e5-803c-2936c8d98fbf",
+    "4e5f2b29-dd92-4232-82c9-fa8ef81c6e77",
+    "9f5efc93-dc5f-49fb-8f5a-f002cb5946c6",
+    "ebb4403e-5abd-4284-808b-f25fb8d310d3",
+    "176b7e6b-f1d0-432c-a185-130948f9a3e1",
+    "3ad3da38-9563-4eb1-a359-e06ac5848178",
+    "283f5992-bc72-411a-80ba-25d0314544d0",
+    "8a2648f5-9994-4d01-9b12-5c589b863c5a",
+    "04ac46be-ba31-4ff5-ab58-e36988f6a5fb",
+    "ca0207d3-bbf8-408d-a319-9407d7bd0dd2",
+    "6d07e23b-cd54-484d-8fe0-0d47c5dd72d0",
+    "b9eac672-544a-4f53-9665-0926015f0b5e",
+    "9b936434-819a-417b-9938-eb59a521bb2e"
   ],
   "replacedNames": [
     "The Standard",
@@ -82,6 +106,19 @@
     "Sparq on Rio",
     "Kinsolving Dormitory",
     "2400 Nueces",
-    "Dobie Twenty21"
+    "Dobie Twenty21",
+    "Villas on 24th",
+    "Icon",
+    "Intervarsity Christian Church",
+    "Inspire on 22nd",
+    "Pointe on Rio",
+    "Rambler",
+    "Battle Hall",
+    "Union Building",
+    "Perry-Castañeda Library",
+    "Robert A. Welch Hall",
+    "Benedict Hall",
+    "Mezes Hall",
+    "Batts Hall"
   ]
 }

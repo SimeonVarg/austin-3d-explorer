@@ -1,5 +1,5 @@
 {
-  "_readme": "Union on San Antonio, 2011 San Antonio St, as js/slopes-apartments.js draws it. A 24-storey ribbed-metal tower standing on the north end of a whole West Campus block, over a four-level buff-brick podium, with a fin-screened parking garage filling the rest of the block behind an orange pylon. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): L=104.16, W=35.78. u=0 is the NORTH (W 21st St) end and +u runs SOUTH; v=0 is the WEST (San Antonio St) edge and +v runs EAST. The building's signature is a pale slab ribbon that runs the west face and wraps the north-west corner every third floor, over a wall of vertical standing-seam metal. Read docs/apartments.md for the schema.",
+  "_readme": "Union on San Antonio. September 2026 visual correction replaces the inferred square tower with the offset, full-block floorplate visible in construction aerial imagery. Local +u runs south, +v east. See sources.S10 and open for dimensional uncertainty.",
   "id": "87f9cf87-79b7-46e5-803c-2936c8d98fbf",
   "name": "Union on San Antonio",
   "address": "2011 San Antonio Street, Austin, TX 78705",
@@ -10,9 +10,11 @@
     "S4": "The operator's own photo gallery, uniononsanantonio.com/austin/union-on-san-antonio/photos/ (Entrata media library, 40 images, downloaded 2026-09-07). Three are exterior: g33 the whole building from the San Antonio St / W 21st St intersection with the 'San Antonio St 2100' block sign in frame, g32 a worm's-eye at the tower's north-west corner, g15 the L5 dog terrace with the tower, the glass amenity pavilion and the orange mark in it. Every tone and every facade rule below is measured on these.",
     "S5": "Greystar's own listing and the Rambler apartment review: built 2023, 425 apartments, 991 beds, 29 stories, 'on the corner of San Antonio Street and W 21st Street'; amenities a pool deck, planting terrace, sky lounge, dog park, two-level fitness centre. Architect Page, general contractor Hensel Phelps, developer Greystar.",
     "S6": "MEASURED ON S4's g33 (4096-px original, crops in the session scratchpad under next/build/union-sa/ref/). The corner in that photograph is the building's NORTH-WEST corner: the street sign in the lower left reads 'San Antonio St 2100', which is the block NORTH of W 21st, so the camera stands in the San Antonio x W 21st intersection - which forces the short face to run east (W 21st) and the long face south (San Antonio), and puts the tower at the NORTH end of the block. Read on it: the podium is a plinth, a dark band and two rows of tall bronze-framed windows in buff brick under a blue-grey ribbed band; a naive linear scale off two pedestrians (1.7 m = 60 px) puts the top of that ribbed band at 21.2 m, which is why the deck is 21.30. On the tower, the pale slab bands recur every 2.9 floor pitches on a column profile of the west face (band spacing 320 px against a floor pitch of 110 px), i.e. every 3rd floor, and eight of them are countable up the corner - which is exactly 24 residential floors / 3.",
-    "S7": "Google Earth 3D, Esri World Imagery (Nearmap 2023-10-08 per the layer's own identify endpoint), Google satellite and Bing aerial, all fetched 2026-09-07 and all rectified into this file's (u,v) frame (next/build/union-sa/plan_*.jpg). EVERY ONE of them is a CONSTRUCTION SITE over this block - crane, poured podium deck, open shafts - because the tower topped out in 2023 and none of the four has been re-flown here since. So no nadir measurement of this building exists in any source reachable without logging in, and the plan numbers below come from the photograph instead. They are named in `open`.",
+    "S7": "Historical note: September 7 dismissed construction imagery as unusable. September 12 reinspection (S10) shows the structural floorplate clearly. It can establish plan topology, although not final facade setbacks.",
     "S8": "data/roads.geojson: West 21st Street runs east-west through (-97.743018, 30.283878) and (-97.741944, 30.283803), immediately north of the footprint's north edge, and San Antonio Street runs north-south along its west edge. That is what fixes which end of the obb is which, and it agrees with S5's 'the corner of San Antonio Street and W 21st Street'.",
-    "S9": "data/apartments/union-on-24th.json in this repo - the sibling Union, 701 W 24th St, same developer and same product. Its floor module is 3.26 m, ported from the owner's own three.js model. This file's 3.22 m is solved independently from S3's 332 ft and lands 4 cm from it, which is the check on the storey split."
+    "S9": "data/apartments/union-on-24th.json in this repo - the sibling Union, 701 W 24th St, same developer and same product. Its floor module is 3.26 m, ported from the owner's own three.js model. This file's 3.22 m is solved independently from S3's 332 ft and lands 4 cm from it, which is the check on the storey split.",
+    "S10": "Esri World Imagery MapServer/export retrieved 2026-09-12; bboxSR=imageSR=4326; returned extent [-97.74395,30.28215,-97.74165,30.28445], size 1200x1200. Construction floorplate has two approximately 52m-long wings, about 20m wide, offset east-west with a central overlap. It occupies almost the full 104m site length. The earlier 31m square model contradicts this view. The model uses derived axes u 1.6..102 and v 1.9..33.5, a west cutout south of u 55 and an east cutout north of u 47. Setbacks retain about 2m uncertainty because aerial perspective and construction edges are not a survey.",
+    "S11": "Reinspected operator originals https://medialibrarycfo.entrata.com/15027/MLv3/3/27/2024/12/30/122724/6772f41c211f30.13916037361.jpg and https://medialibrarycfo.entrata.com/15027/MLv3/3/27/2024/12/30/122723/6772f41b321633.19643820366.jpg: thin slab edges, open metal balcony guards, full-height glazing at corners and narrow standing seams, rather than opaque balcony bands."
   },
   "footprint": {
     "ring": [
@@ -93,15 +95,15 @@
   "colours": {
     "_src": "day hex; golden and night follow js/westcampus.js's ramp() unless a full trio is given. Every hex is a median over a named box on S4's g33 unless it says otherwise; the boxes and the marked-up frames are in the scratchpad (ref/samples_podium.jpg, ref/samples_tower2.jpg).",
     "rib": {
-      "hex": "#8a9cb8",
+      "hex": "#748ba0",
       "_src": "The tower's vertical standing-seam metal, the whole outer wall. g33 gives the SAME panel twice under two lights - the sunlit north face #8997ae (box 1060,1240-1105,1275) and the self-shaded west face #827d85 (680,1130-716,1180) - and this is their mean, which is the albedo the app's own daylight is then applied to. LOOK-FIX 1: the mean of those two reads, #8e98a6, came through this app's warm afternoon shader as a BROWN grey - the tower read like brick beside the real thing - so it is carried to #8a9cb8, the same value with the blue the reference has and this light takes back out."
     },
     "ribGroove": {
-      "hex": "#74869f",
+      "hex": "#526b7f",
       "_src": "DERIVED: the seam shadow between ribs, one step down from `rib` on the same ratio js/westcampus.js's ramp() uses between a wall and its shaded reveal."
     },
     "towerGlass": {
-      "hex": "#6f7d8c",
+      "hex": "#47606f",
       "_src": "The tower's glazing. MEASURED it reads #889db7 on the north face (1012,1030-1058,1120), i.e. the same luminance as the panel beside it, because at that hour every pane is returning sky. Ion Austin's look-fix 2 in this folder is the precedent: at the camera this app is judged from, a pane the luminance of the panel beside it is not a window. This is the MID of the sky read and the dark reveal inside the same opening."
     },
     "winFrame": {
@@ -204,26 +206,41 @@
       "bay": 3.16,
       "field": "rib",
       "strip": {
-        "w": 0.3,
+        "w": 0.055,
         "tone": "ribGroove",
         "at": "joints"
       },
       "window": {
-        "w": 1.95,
-        "h": 2.42,
-        "sill": 0.52
+        "w": 1.65,
+        "h": 2.76,
+        "sill": 0.22,
+        "mullion": {
+          "cols": [
+            0.5
+          ],
+          "rows": [
+            0.27
+          ],
+          "w": 0.045,
+          "tone": "winFrame"
+        }
       },
       "glass": "towerGlass",
       "frame": "winFrame",
       "reveal": 0.1,
-      "_src": "The whole tower, all four faces. S6: the north face is 31.6 m and carries 10 window columns, so the bay is 3.16 m - within 2 percent of the 3.22 m floor, i.e. the same near-square module the sibling Union on 24th is built on (S9). The opening is 1.95 x 2.42 m: g33's glazing runs from just above the slab to the soffit and is a little over half the bay. `strip` is the standing seam read as one groove per bay joint, which is all that resolves at this app's cameras - the real seam pitch is about 0.3 m and is under a pixel at the oblique."
+      "_src": "S11. Derived 3.16m bay; vertical glazing and open balcony details. Standing seams are geometric at bay joints; finer seams use the ribbed field skin.",
+      "pier": {
+        "w": 0.055,
+        "d": 0.045,
+        "tone": "ribGroove"
+      }
     },
     "towerBlank": {
       "kind": "bays",
-      "bay": 3.16,
+      "bay": 0.45,
       "field": "rib",
       "strip": {
-        "w": 0.3,
+        "w": 0.025,
         "tone": "ribGroove",
         "at": "joints"
       },
@@ -313,16 +330,32 @@
       "kind": "flat",
       "field": "loggiaGlass",
       "_src": "The recessed wall at the back of the podium's corner loggia. LOOK-FIX 1: it was `wood` on every surface, which made the corner a bright orange box - S4's g32 shows the WOOD is the soffit (the recess's own `tone`) and the wall behind it is dark glazing."
+    },
+    "cornerGlass": {
+      "kind": "storefront",
+      "mullion": 1.1,
+      "mullionW": 0.06,
+      "fascia": 0.1,
+      "plinth": 0.1,
+      "transom": 0.28,
+      "fasciaTone": "rib",
+      "frame": "winFrame",
+      "glass": "towerGlass",
+      "reveal": 0.1,
+      "_src": "The double-height glass amenity pavilion standing on the L5 deck, S4's g15: a clear glass box on a 1.6 m mullion grid with one transom at mid height."
     }
   },
   "balcony": {
     "proj": 1.75,
-    "slabT": 0.42,
-    "railH": 0.82,
-    "railT": 0.05,
+    "slabT": 0.2,
+    "railH": 1.02,
+    "railT": 0.045,
     "slabTone": "slab",
-    "railTone": "railGlass",
-    "_src": "S6: on g33's north face a balcony is a little under one 3.16 m bay wide and about as deep as it is wide at the near corner, with a thin dark guard on a pale precast slab. The ribbon balconies override `proj` to 0.95 - they are a ledge, not a room."
+    "railTone": "rail",
+    "_src": "S11. Open metal guard with .18m derived post pitch and .20m slab edge.",
+    "railPitch": 0.18,
+    "railPost": 0.025,
+    "soffitTone": "wood"
   },
   "blocks": [
     {
@@ -464,84 +497,37 @@
       ],
       "roofItems": [
         {
-          "id": "pool",
-          "plan": [
-            50.0,
-            74.0,
-            6.0,
-            12.5
-          ],
-          "h": 0.1,
-          "tone": "water",
-          "_src": "the lap pool on the garage roof terrace, S4's g18 - a long single-lane pool with the downtown skyline behind it; its plan position is inferred, see `open`"
-        },
-        {
           "id": "pool-coping",
           "plan": [
-            48.6,
-            75.4,
-            4.6,
-            13.9
+            59,
+            87,
+            3,
+            11.3
           ],
-          "h": 0.06,
-          "tone": "coping",
-          "_src": "the pale coping and paving round the pool, S4's g18"
+          "h": 0.07,
+          "tone": "coping"
         },
         {
-          "id": "planter-w",
+          "id": "pool",
           "plan": [
-            46.0,
-            78.0,
+            60,
+            86,
+            4,
+            10.3
+          ],
+          "h": 0.12,
+          "tone": "water"
+        },
+        {
+          "id": "west-planter",
+          "plan": [
+            60,
+            94,
             1.2,
-            3.4
+            2.3
           ],
-          "h": 0.95,
-          "tone": "planter",
-          "_src": "the board-formed planter wall along the San Antonio edge of the pool terrace, S4's g17"
-        },
-        {
-          "id": "planting-w",
-          "plan": [
-            46.3,
-            77.7,
-            1.5,
-            3.1
-          ],
-          "h": 1.55,
-          "tone": "plant",
-          "_src": "what grows out of it, S4's g17"
-        },
-        {
-          "id": "grill-pergola",
-          "plan": [
-            80.0,
-            92.0,
-            5.0,
-            14.0
-          ],
-          "h": 2.6,
-          "tone": "coping",
-          "_src": "the grill pavilion's pergola south of the pool, S4's g17; inferred position, see `open`"
-        },
-        {
-          "id": "plant-cluster",
-          "plan": [
-            46.0,
-            100.0,
-            29.0,
-            34.6
-          ],
-          "grid": [
-            7,
-            1
-          ],
-          "size": [
-            6.0,
-            4.4
-          ],
-          "h": 1.35,
-          "tone": "plant",
-          "_src": "the planted strip along the garage's east edge, S4's g17"
+          "h": 0.85,
+          "tone": "plant"
         }
       ]
     },
@@ -571,287 +557,50 @@
     },
     {
       "id": "tower",
-      "_src": "The 24-storey residential tower standing on the podium's north end. S3's 332 ft to the mechanical parapet is what its top is solved to: DECK 21.30 + 24 x 3.22 = 98.58 to the roof slab, and a 2.61 m parapet on top of that is 101.19 m = 332 ft exactly. S6 puts it at the north-west corner, set in from the podium's faces by about 1.7 m on the street sides. Its plan is the least certain number in this file - see `open`.",
-      "plan": [
-        1.6,
-        33.0,
-        1.9,
-        33.5
-      ],
+      "_src": "S10 offset structural floorplate; derived setbacks. S11 photographed northwest corner facade, unphotographed faces extrapolated.",
+      "plan": {
+        "ring": [
+          [
+            1.6,
+            1.9
+          ],
+          [
+            55,
+            1.9
+          ],
+          [
+            55,
+            13
+          ],
+          [
+            102,
+            13
+          ],
+          [
+            102,
+            33.5
+          ],
+          [
+            47,
+            33.5
+          ],
+          [
+            47,
+            22
+          ],
+          [
+            1.6,
+            22
+          ]
+        ]
+      },
       "z0": 21.3,
       "z1": 98.58,
       "bands": [
         {
           "z0": 21.3,
-          "z1": 24.52,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 24.52,
-          "z1": 25.12,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 25.12,
-          "z1": 34.18,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 34.18,
-          "z1": 34.78,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 34.78,
-          "z1": 43.84,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 43.84,
-          "z1": 44.44,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 44.44,
-          "z1": 53.5,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 53.5,
-          "z1": 54.1,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 54.1,
-          "z1": 63.16,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 63.16,
-          "z1": 63.76,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 63.76,
-          "z1": 72.82,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 72.82,
-          "z1": 73.42,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 73.42,
-          "z1": 82.48,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 82.48,
-          "z1": 83.08,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 83.08,
-          "z1": 92.14,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
-        },
-        {
-          "z0": 92.14,
-          "z1": 92.74,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 0.95,
-              "slabT": 0.58,
-              "railH": 0.48,
-              "railT": 0.06,
-              "railTone": "slab",
-              "s0": 0.6,
-              "s1": 30.8
-            }
-          ]
-        },
-        {
-          "z0": 92.74,
           "z1": 95.36,
-          "skin": "tower",
-          "balconies": [
-            {
-              "proj": 1.75,
-              "slabT": 0.42,
-              "railH": 0.82,
-              "railT": 0.05,
-              "railTone": "railGlass",
-              "s0": 0.6,
-              "s1": 3.2
-            }
-          ]
+          "skin": "tower"
         },
         {
           "z0": 95.36,
@@ -860,7 +609,7 @@
         }
       ],
       "faces": {
-        "u0": {
+        "0": {
           "bands": [
             {
               "z0": 21.3,
@@ -868,431 +617,3060 @@
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 24.52,
-              "z1": 25.12,
+              "z1": 27.74,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 25.12,
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
               "z1": 34.18,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 34.18,
-              "z1": 34.78,
+              "z1": 37.4,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 34.78,
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
               "z1": 43.84,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 43.84,
-              "z1": 44.44,
+              "z1": 47.06,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 44.44,
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
               "z1": 53.5,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 53.5,
-              "z1": 54.1,
+              "z1": 56.72,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 54.1,
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
               "z1": 63.16,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 63.16,
-              "z1": 63.76,
+              "z1": 66.38,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 63.76,
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
               "z1": 72.82,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 72.82,
-              "z1": 73.42,
+              "z1": 76.04,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 73.42,
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
               "z1": 82.48,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 82.48,
-              "z1": 83.08,
+              "z1": 85.7,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
             {
-              "z0": 83.08,
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
               "z1": 92.14,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 50.55,
+                  "s1": 53.28,
+                  "proj": 1.05
                 }
               ]
             },
             {
               "z0": 92.14,
-              "z1": 92.74,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.5,
-                  "s1": 11.6
-                }
-              ]
-            },
-            {
-              "z0": 92.74,
               "z1": 95.36,
               "skin": "tower",
               "balconies": [
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.9,
-                  "s1": 15.5
+                  "s0": 0,
+                  "s1": 53.4,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "1": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 19.2,
-                  "s1": 21.8
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
                 },
                 {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 25.5,
-                  "s1": 28.1
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.25,
+                  "s1": 10.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "2": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 44.15,
+                  "s1": 46.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "3": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.65,
+                  "s1": 20.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.5,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 52.15,
+                  "s1": 54.88,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 55.0,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "5": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 8.65,
+                  "s1": 11.38,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "6": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 42.55,
+                  "s1": 45.28,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 95.36,
+              "z1": 98.58,
+              "skin": "towerBlank"
+            }
+          ]
+        },
+        "7": {
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 24.52,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 24.52,
+              "z1": 27.74,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 27.74,
+              "z1": 30.96,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 30.96,
+              "z1": 34.18,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 34.18,
+              "z1": 37.4,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 37.4,
+              "z1": 40.62,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 40.62,
+              "z1": 43.84,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 43.84,
+              "z1": 47.06,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 47.06,
+              "z1": 50.28,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 50.28,
+              "z1": 53.5,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 53.5,
+              "z1": 56.72,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 56.72,
+              "z1": 59.94,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 59.94,
+              "z1": 63.16,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 63.16,
+              "z1": 66.38,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 66.38,
+              "z1": 69.6,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 69.6,
+              "z1": 72.82,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 72.82,
+              "z1": 76.04,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 76.04,
+              "z1": 79.26,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 79.26,
+              "z1": 82.48,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 82.48,
+              "z1": 85.7,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
+                }
+              ]
+            },
+            {
+              "z0": 85.7,
+              "z1": 88.92,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 88.92,
+              "z1": 92.14,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0.12,
+                  "s1": 2.85,
+                  "proj": 1.05
+                },
+                {
+                  "s0": 17.25,
+                  "s1": 19.98,
+                  "proj": 1.05
+                }
+              ]
+            },
+            {
+              "z0": 92.14,
+              "z1": 95.36,
+              "skin": "tower",
+              "balconies": [
+                {
+                  "s0": 0,
+                  "s1": 20.1,
+                  "proj": 0.85,
+                  "railH": 1.02
                 }
               ]
             },
@@ -1303,693 +3681,140 @@
               "signs": [
                 {
                   "text": "UNION",
-                  "s0": 3.2,
-                  "z0": 96.53,
-                  "dot": 0.235,
-                  "gap": 0.3,
-                  "tone": "sign",
-                  "_src": "S4's g33 (ref/crown.jpg): white sans letters across the top of the north face, about 1.6 m tall, starting a bay in from the corner"
+                  "s0": 3.8,
+                  "z0": 96.5,
+                  "dot": 0.2,
+                  "tone": "slab"
                 }
               ]
             }
-          ],
-          "_src": "the north face on W 21st St: the ribbon wraps about a third of the way round the corner and three bays carry a balcony on every floor (S6: g33, ref/t_right.jpg)"
-        },
-        "v1": {
-          "bands": [
-            {
-              "z0": 21.3,
-              "z1": 24.52,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 24.52,
-              "z1": 25.12,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 25.12,
-              "z1": 34.18,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 34.18,
-              "z1": 34.78,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 34.78,
-              "z1": 43.84,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 43.84,
-              "z1": 44.44,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 44.44,
-              "z1": 53.5,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 53.5,
-              "z1": 54.1,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 54.1,
-              "z1": 63.16,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 63.16,
-              "z1": 63.76,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 63.76,
-              "z1": 72.82,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 72.82,
-              "z1": 73.42,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 73.42,
-              "z1": 82.48,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 82.48,
-              "z1": 83.08,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 83.08,
-              "z1": 92.14,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 92.14,
-              "z1": 92.74,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 11.0
-                }
-              ]
-            },
-            {
-              "z0": 92.74,
-              "z1": 95.36,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 12.6,
-                  "s1": 15.2
-                },
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 18.9,
-                  "s1": 21.5
-                }
-              ]
-            },
-            {
-              "z0": 95.36,
-              "z1": 98.58,
-              "skin": "towerBlank"
-            }
-          ],
-          "_src": "the east face: S4's g31, shot from a high balcony looking at the UT Tower, shows the same ribbed wall with per-floor balcony stacks"
-        },
-        "u1": {
-          "bands": [
-            {
-              "z0": 21.3,
-              "z1": 24.52,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 24.52,
-              "z1": 25.12,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 25.12,
-              "z1": 34.18,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 34.18,
-              "z1": 34.78,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 34.78,
-              "z1": 43.84,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 43.84,
-              "z1": 44.44,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 44.44,
-              "z1": 53.5,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 53.5,
-              "z1": 54.1,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 54.1,
-              "z1": 63.16,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 63.16,
-              "z1": 63.76,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 63.76,
-              "z1": 72.82,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 72.82,
-              "z1": 73.42,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 73.42,
-              "z1": 82.48,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 82.48,
-              "z1": 83.08,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 83.08,
-              "z1": 92.14,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 92.14,
-              "z1": 92.74,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 0.95,
-                  "slabT": 0.58,
-                  "railH": 0.48,
-                  "railT": 0.06,
-                  "railTone": "slab",
-                  "s0": 0.6,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 92.74,
-              "z1": 95.36,
-              "skin": "tower",
-              "balconies": [
-                {
-                  "proj": 1.75,
-                  "slabT": 0.42,
-                  "railH": 0.82,
-                  "railT": 0.05,
-                  "railTone": "railGlass",
-                  "s0": 28.4,
-                  "s1": 31.0
-                }
-              ]
-            },
-            {
-              "z0": 95.36,
-              "z1": 98.58,
-              "skin": "towerBlank"
-            }
-          ],
-          "_src": "the south face is not photographed in any source reached; it wears the west face's rule mirrored, and says so in `open`"
+          ]
         }
       },
       "roofTone": "coping",
       "parapet": 2.61,
       "parapetTone": "rib",
-      "parapetSides": [
-        "v0",
-        "u0",
-        "v1",
-        "u1"
-      ],
-      "roofItems": [
+      "roofItems": [],
+      "overrides": [
         {
-          "id": "plant",
-          "plan": [
-            10.0,
-            24.0,
-            9.0,
-            24.0
-          ],
-          "grid": [
-            3,
-            3
-          ],
-          "size": [
-            3.2,
+          "region": [
+            0.30000000000000004,
+            2.9000000000000004,
+            0.5999999999999999,
             3.2
           ],
-          "h": 1.6,
-          "tone": "equip",
-          "_src": "the roof plant a 29-storey residential tower carries; not photographed, drawn as the condenser field every other roof in this folder carries"
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            53.7,
+            56.3,
+            0.5999999999999999,
+            3.2
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            53.7,
+            56.3,
+            11.7,
+            14.3
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            100.7,
+            103.3,
+            11.7,
+            14.3
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            100.7,
+            103.3,
+            32.2,
+            34.8
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.7,
+            48.3,
+            32.2,
+            34.8
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            45.7,
+            48.3,
+            20.7,
+            23.3
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
+        },
+        {
+          "region": [
+            0.30000000000000004,
+            2.9000000000000004,
+            20.7,
+            23.3
+          ],
+          "bands": [
+            {
+              "z0": 21.3,
+              "z1": 95.36,
+              "skin": "cornerGlass"
+            }
+          ]
         }
       ]
     },
@@ -1997,10 +3822,10 @@
       "id": "pavilion",
       "_src": "The double-height glass amenity pavilion on the L5 deck, immediately south of the tower. S4's g15 photographs it from the dog terrace: a clear glass box two storeys tall with the tower rising behind it. Its plan position is inferred from that frame and is in `open`.",
       "plan": [
-        33.6,
-        41.2,
-        15.6,
-        30.2
+        30,
+        40,
+        24,
+        32.5
       ],
       "z0": 21.3,
       "z1": 28.3,
@@ -2018,110 +3843,38 @@
   ],
   "deck": {
     "z": 21.3,
-    "_src": "The L5 amenity deck between the tower's south face and the garage: S4's g15 is the fenced dog run with its turf, its board-formed planter walls, a timber bench and the glass pavilion beside it. The items' extents are read off that frame's proportions against the 7.6 m the pavilion occupies; they are inferred, not measured on a plan.",
     "items": [
       {
-        "id": "turf",
+        "id": "dog-run",
         "plan": [
-          33.9,
-          41.0,
-          2.4,
-          13.8
+          5,
+          26,
+          24,
+          33.5
         ],
-        "z0": 0.0,
         "h": 0.08,
-        "tone": "turf",
-        "_src": "the dog run's artificial turf, S4's g15"
+        "tone": "turf"
       },
       {
-        "id": "planter-n",
+        "id": "planter",
         "plan": [
-          33.9,
-          41.0,
-          13.8,
-          15.3
+          5,
+          26,
+          33.6,
+          34.7
         ],
-        "z0": 0.0,
-        "h": 1.05,
-        "tone": "planter",
-        "_src": "the near-black board-formed planter wall the run is enclosed by, S4's g15"
-      },
-      {
-        "id": "planting-n",
-        "plan": [
-          34.2,
-          40.7,
-          14.0,
-          15.1
-        ],
-        "z0": 1.05,
-        "h": 1.1,
-        "tone": "plant",
-        "_src": "the grasses and yuccas on top of it, S4's g15"
-      },
-      {
-        "id": "planter-s",
-        "plan": [
-          41.0,
-          41.9,
-          2.4,
-          15.3
-        ],
-        "z0": 0.0,
-        "h": 1.05,
-        "tone": "planter",
-        "_src": "the same wall returning along the deck's south edge, S4's g15"
-      },
-      {
-        "id": "planting-s",
-        "plan": [
-          41.1,
-          41.8,
-          2.6,
-          15.1
-        ],
-        "z0": 1.05,
-        "h": 1.1,
-        "tone": "plant",
-        "_src": "and its planting"
-      },
-      {
-        "id": "terrace",
-        "plan": [
-          33.9,
-          41.9,
-          30.4,
-          35.0
-        ],
-        "z0": 0.0,
-        "h": 0.06,
-        "tone": "deckPave",
-        "_src": "the paved planting terrace on the deck's east side, S5's 'planting terrace'"
-      },
-      {
-        "id": "terrace-plant",
-        "plan": [
-          34.4,
-          41.4,
-          31.2,
-          34.4
-        ],
-        "z0": 0.06,
-        "h": 1.25,
-        "tone": "plant",
-        "_src": "its planting"
+        "h": 0.9,
+        "tone": "planter"
       }
     ]
   },
   "open": [
-    "THE TOWER'S PLAN IS THE WEAKEST NUMBER HERE. 31.4 x 31.6 m at u 1.6-33.0, v 1.9-33.5 is read off the proportions of S4's g33 - ten window columns on the north face at the 3.16 m bay, and both faces reading nearly equal at the corner where they are equally foreshortened. No source reachable without logging in carries a nadir of the finished building: S7 records that Google Earth's 3D mesh, Esri's Nearmap, Google's satellite and Bing's aerial are all construction-site imagery over this block. One current nadir would settle the tower plan, the u=42.0 split between the brick box and the garage, and the deck layout in one pass.",
     "The split at u 42.0 between the brick box and the garage is read off where the brick stops in g33, which is a glancing view of that face; it could be anywhere from about 35 to 48 m.",
     "S3's 'top floor 292 ft' (89.0 m) lands on this file's 22nd tower floor line (88.92 m), not its 24th (95.36 m). Either the top two levels are the sky lounge and the mechanical penthouse S5 lists and SkyscraperPage's figure is the top APARTMENT floor, or the podium is one level taller than the 21.30 m S6 measures. The roof and the parapet are solved to their 332 ft either way, so the residual is two storeys inside the tower, not the height.",
-    "The tower's south face is not photographed in any source reached and wears the west face's rule mirrored - one full-width ribbon every third floor and one per-floor stack at its east corner.",
-    "The ribbon balconies are drawn as one continuous slab and rail per third floor. In S4's g33 the ribbon is continuous on the west face and steps back part-way along the north; the step is not drawn, because the schema's balcony stack is one rectangle per floor line.",
     "The Union 'U' logo cut into the orange pylon is not drawn - the sign field draws a 5x7 dot font, and the mark is a two-pronged glyph, not a letter. Measured: it occupies about the top third of the pylon in g33.",
     "The UNION lettering at the crown is drawn on the north face only. g33 shows it there; whether the west face carries it too is behind the corner in every frame reached.",
     "The pool, the grill pergola and the dog run's extents are inferred from the amenity photographs' proportions, not measured on a plan. Their tones and their existence are sourced; their metres are not.",
-    "The podium's ground floor is drawn as blank ashlar. g33 shows entrance doors and a lobby glazing at the corner that this file does not draw."
+    "The floorplate topology is visible in construction imagery; exact final setbacks and amenity layouts remain derived. Unphotographed elevations repeat the photographed facade module.",
+    "Fine metal seam spacing and curved corner details remain approximate."
   ]
 }
