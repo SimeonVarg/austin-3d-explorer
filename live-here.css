@@ -2,7 +2,7 @@
 :root { --lh-paper:#fcf8f0; --lh-ink:#292920; --lh-muted:#69685e; --lh-accent:#a84622;
   --lh-line:#d9d6cb; --lh-width:370px; --lh-radius:20px; --lh-route:#ff713f; }
 body.live-here #wf-root > :not(#wf-imp), body.live-here #explore, body.live-here #wf-drive { display:none!important; }
-body.live-here #wf-root { z-index:90; }
+body.live-here #wf-imp { position:fixed; z-index:90; }
 #live-here { position:fixed; left:22px; top:22px; bottom:26px; width:var(--lh-width); z-index:75;
   background:var(--lh-paper); color:var(--lh-ink); border:1px solid #ffffffab; border-radius:var(--lh-radius);
   box-shadow:0 12px 45px #13221e33; font:14px/1.4 system-ui,sans-serif; overflow:auto; overscroll-behavior:contain; }

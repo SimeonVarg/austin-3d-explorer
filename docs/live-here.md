@@ -46,10 +46,14 @@ and dark glass, and 715 above its existing recessed entrance. Rail spacing and
 thickness are editable approximations; the building file cites its existing
 S23/S24 photographs. The round entrance logo remains absent.
 
+![The Standard, same camera before and after](shots/live-here-standard.jpg)
+
 Villas' light well and east slot follow the footprint's vertices rather than
 the old filled rectangles. Roof equipment is clipped or repositioned inside
 the roof. Newly exposed, unphotographed walls keep the existing generic panel
 rule. Union's existing architecture is retained.
+
+![Villas on Rio, same camera before and after](shots/live-here-villas.jpg)
 
 ## Implementation and checks
 

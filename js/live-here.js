@@ -4,6 +4,7 @@
   const q = new URLSearchParams(location.search);
   if (q.get('livehere') !== '1' || q.get('walk') === '0') return;
   const C = window.LiveHereCore;
+  const noPadding = {left:0,right:0,top:0,bottom:0};
   const tune = window.LIVE_HERE = {
     duration:1200, routeColor:'#ff713f', routeWidth:5, streetPitch:85, eyeHeight:2.2, roofClearance:3,
     homes:[
@@ -97,7 +98,7 @@
   function duration(){return matchMedia('(prefers-reduced-motion: reduce)').matches?0:tune.duration;}
   function selectHome(i,fly){
     homeIndex=i;renderHomes();clearMap();
-    if(fly&&window.__map){const h=tune.homes[i];window.__map.stop();window.__map.flyTo({center:h.center,zoom:h.zoom,pitch:h.pitch,bearing:h.bearing,duration:duration(),padding:padding()});}
+    if(fly&&window.__map){const h=tune.homes[i];window.__map.stop();window.__map.flyTo({center:h.center,zoom:h.zoom,pitch:h.pitch,bearing:h.bearing,duration:duration(),padding:noPadding});}
     if(result)renderDay();
   }
   function padding(){return innerWidth>650 ? {left:root.hidden?40:420,right:50,top:60,bottom:70} : {left:30,right:30,top:60,bottom:root.hidden?60:innerHeight*.57};}
@@ -147,7 +148,7 @@
     const scale=512*2**zoom;
     const x=(west+east)/2-(pad.left+width/2-innerWidth/2)/scale;
     const y=(north+south)/2-(pad.top+height/2-innerHeight/2)/scale;
-    window.__map.stop();window.__map.easeTo({center:new maplibregl.MercatorCoordinate(x,y).toLngLat(),zoom,pitch:0,bearing:0,padding:0,duration:duration()});
+    window.__map.stop();window.__map.easeTo({center:new maplibregl.MercatorCoordinate(x,y).toLngLat(),zoom,pitch:0,bearing:0,padding:noPadding,duration:duration()});
     $('progress').textContent='Select Street preview, then drag along the mapped walk.';
   }
   function streetAt(){
@@ -160,7 +161,7 @@
     const roof=window.__fly?.roofAt(...eye,0.5)||0,alt=Math.max(tune.eyeHeight,roof?roof+tune.roofClearance:0);
     const pitch=tune.streetPitch,rad=Math.PI/180,lead=alt*Math.tan(pitch*rad),px=map.transform.cameraToCenterDistance;
     const zoom=Math.log2(px*40075016.686*Math.cos(eye[1]*rad)*Math.cos(pitch*rad)/(512*alt));
-    map.stop();map.jumpTo({center:[eye[0]+lead*Math.sin(bearing*rad)/lonScale,eye[1]+lead*Math.cos(bearing*rad)/latScale],zoom,pitch,bearing,padding:0});
+    map.stop();map.jumpTo({center:[eye[0]+lead*Math.sin(bearing*rad)/lonScale,eye[1]+lead*Math.cos(bearing*rad)/latScale],zoom,pitch,bearing,padding:noPadding});
     $('progress').textContent=Math.round(sum*Number($('scrub').value)/1000)+' m along mapped paths'+(roof?' · raised above an obstructing building':' · street preview')+'. Dashed connections are excluded.';
   }
   $('day').onchange=renderLegs;$('overview').onclick=overview;$('street').onclick=streetAt;$('scrub').oninput=streetAt;
