@@ -136,3 +136,8 @@ Villas on 24th, Icon, then Rambler, Inspire on 22nd and Pointe on Rio; follow up
 on The Standard and Villas on Rio. Downtown scope is skyline silhouettes only.
 Implementation authorized September 12 ("do it"). Work is on
 `codex/campus-apartment-visuals`; retain the existing Mac and open-PR ownership.
+
+Simeon's follow-up on September 12 is to "revolutionize campus - not just big +
+main buildings." The next visual pass must improve everyday campus areas as
+connected places: smaller academic buildings, courtyards, paths, planting,
+plazas and entrances. A handful of additional landmark models is insufficient.
