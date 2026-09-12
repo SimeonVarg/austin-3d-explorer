@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 11 2026 — Explore landmark arrivals (`codex/explore-landmarks`)
+
+Added an Explore menu for DKR, the UT Tower, the Capitol and downtown, with
+return to the previous camera. Native keyboard controls, reduced-motion
+arrivals and a phone-sized panel are included. Appearance and camera poses
+are editable in explore.css and window.EXPLORE. See docs/explore.md for frames.
+The dedicated browser gate checks all four arrivals, return, Escape, animation,
+reduced motion, phone bounds and page errors. Harness parity also passes.
+No bake outputs or other lane code changed.
+
+
 ## Sep 11 2026 — DKR mesh rebuilt (`codex/dkr-mesh`)
 
 See `docs/dkr-mesh-rebuild.md` for the south end, exterior and night evidence.
