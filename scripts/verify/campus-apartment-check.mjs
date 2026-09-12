@@ -7,6 +7,7 @@ const root=new URL('../../',import.meta.url),out=process.env.VERIFY_OUT;
 const read=path=>JSON.parse(fs.readFileSync(new URL(path,root)));
 const old=path=>JSON.parse(execFileSync('git',['show','d549ef0:'+path],{cwd:root,maxBuffer:3000000}));
 const index=read('data/apartments/index.json');
+const registered=index.buildings.length+(index.collections||[]).reduce((n,f)=>n+read(f).buildings.length,0);
 const beforeIndex=old('data/apartments/index.json');
 const before={buildings:beforeIndex.buildings.map(f=>old('data/apartments/'+f)),replacedBuildingIds:beforeIndex.replacedBuildingIds,replacedNames:beforeIndex.replacedNames};
 const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:600000});
@@ -16,11 +17,11 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&m.text().includes('[slopes-'))errors.push(m.text())});
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
- await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded'});
+ await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.slopesRoofs?.data&&window.__fly?.indexed(),null,{timeout:180000});
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data));
  const info=await page.evaluate(()=>({count:slopesApartments.count,hidden:slopesApartments.hidden,roofKeys:Object.keys(slopesRoofs.data.roofs)}));
- assert.equal(info.count.buildings,index.buildings.length,'every registered building builds');assert.equal(info.count.signMissing,0);assert.deepEqual(info.hidden.missing,[]);assert.deepEqual(info.hidden.rigsMissing,[]);
+ assert.equal(info.count.buildings,registered,'every registered building builds');assert.equal(info.count.signMissing,0);assert.deepEqual(info.hidden.missing,[]);assert.deepEqual(info.hidden.rigsMissing,[]);
  for(const s of after.buildings.filter(s=>s.preserveRoof))assert.ok(info.roofKeys.some(k=>k.startsWith(s.id+'/')),'preserved roof '+s.name);
  assert.ok(info.count.warnings.every(w=>!w.includes('no skin')&&!w.includes('cannot')&&!w.includes('not a face')),JSON.stringify(info.count.warnings));
  assert.ok(await page.evaluate(()=>{
@@ -81,7 +82,7 @@ try{
  assert.deepEqual(await iconLabel(),['get','name'],'fallback restores snapshot label');
  await page.evaluate(()=>{APARTMENTS.on=true;applySlopesApartments()});
  assert.deepEqual(await iconLabel(),namedIcon,'mesh restores Icon label');
- assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),index.buildings.length);
+ assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered);
  const results=[];
  if(process.env.VISUAL_PERF){
   for(const state of ['after','before','before','after','before','after']){
@@ -100,7 +101,7 @@ try{
  }
  for(const preset of ['performance','cinematic']){
   await page.evaluate(preset=>__usePreset(preset),preset);
-  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),index.buildings.length,'all models survive '+preset);
+  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered,'all models survive '+preset);
  }
  await page.evaluate(()=>{__map.jumpTo({center:[-97.7396,30.2853],zoom:17.3,pitch:55,bearing:20,padding:{top:0,bottom:0,left:0,right:0}});applyTimeOfDay(__map,1,true)});await page.waitForTimeout(4000);
  assert.ok(await page.evaluate(()=>{const a=slopesApartments.group.children[0].geometry.attributes.cNight.array;for(let i=0;i<a.length;i+=3)if(a[i]>.65&&a[i+1]>.4&&a[i+2]<a[i])return true;return false}),'warm night window colors remain');

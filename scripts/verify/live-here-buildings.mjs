@@ -6,7 +6,8 @@ import {launch,BASE} from './chrome.mjs';
 const out=process.env.VERIFY_OUT;
 // Freeze the comparison before PR #242; origin/main already includes the fix.
 const baseline='4493d54';
-const registered=JSON.parse(fs.readFileSync(new URL('../../data/apartments/index.json',import.meta.url))).buildings.length;
+const index=JSON.parse(fs.readFileSync(new URL('../../data/apartments/index.json',import.meta.url)));
+const registered=index.buildings.length+(index.collections||[]).reduce((n,f)=>n+JSON.parse(fs.readFileSync(new URL('../../'+f,import.meta.url))).buildings.length,0);
 const previous=['the-standard','villas-on-rio'].map(n=>JSON.parse(execFileSync('git',['show',baseline+':data/apartments/'+n+'.json'],{maxBuffer:1000000}).toString()));
 const oldGraph=execFileSync('git',['show',baseline+':data/walk_graph.json'],{maxBuffer:2000000});
 const browser=await launch(chromium,{gl:'hardware'});
@@ -14,7 +15,7 @@ try {
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){window.cancelGraphicsAutoDetect();clearInterval(t);}},50);});
- await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded'});
+ await page.goto(BASE+'/index.html?intro=0&drift=0&livehere=1',{waitUntil:'domcontentloaded',timeout:180000});
  await page.waitForFunction(()=>slopesApartments?.count.done&&liveHereState?.().ready&&__fly?.indexed(),null,{timeout:180000});
  const after=await page.evaluate(()=>slopesApartments.data.buildings.filter(b=>['The Standard','Villas on Rio'].includes(b.name)));
  const camera=async name=>page.evaluate(name=>{

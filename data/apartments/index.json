@@ -115,10 +115,13 @@
     "Rambler",
     "Battle Hall",
     "Union Building",
-    "Perry-Castañeda Library",
+    "Perry-Casta\u00c3\u00b1eda Library",
     "Robert A. Welch Hall",
     "Benedict Hall",
     "Mezes Hall",
     "Batts Hall"
+  ],
+  "collections": [
+    "data/campus_buildings.json"
   ]
 }

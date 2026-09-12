@@ -2313,21 +2313,27 @@
     }
   }
 
+  function dropGroup() {
+    if (!_group) return;
+    window.slopes.remove(_group);
+    _group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    _group = null; // The shared slopes material belongs to the scene.
+  }
   window.applySlopesApartments = function applySlopesApartments(map) {
     map = map || _map;
     if (!map || !_data) return;
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
     if (want && !_group) { _group = build(); S.add(_group); }
-    else if (want && _group && _lastDetail !== S.detail()) { S.remove(_group); _group = build(); S.add(_group); }
-    else if (!want && _group) { S.remove(_group); _group = null; }
+    else if (want && _group && _lastDetail !== S.detail()) { dropGroup(); _group = build(); S.add(_group); }
+    else if (!want && _group) { dropGroup(); }
     setFilters(want);
     setLabels(want);
     map.triggerRepaint();
   };
 
   window.slopesApartments = {
-    rebuild() { if (_group) { window.slopes.remove(_group); _group = null; } window.applySlopesApartments(); },
+    rebuild() { dropGroup(); window.applySlopesApartments(); },
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
     get group() { return _group; },
     get data() { return _data; },
@@ -2363,7 +2369,15 @@
             try { buildings.push(await S.fetchJSON(f.startsWith('data/') ? f : 'data/apartments/' + f)); }
             catch (e) { console.warn('[slopes-apartments]', f, e.message); }
           }
-          return { buildings, replacedBuildingIds: idx.replacedBuildingIds || buildings.map(b => b.id).filter(Boolean), replacedNames: idx.replacedNames || buildings.map(b => b.name) };
+          const collected = [];
+          for (const f of idx.collections || []) {
+            const bundle = await S.fetchJSON(f);
+            if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
+            collected.push(...bundle.buildings);
+          }
+          return { buildings: buildings.concat(collected),
+            replacedBuildingIds: [...new Set((idx.replacedBuildingIds || buildings.map(b => b.id).filter(Boolean)).concat(collected.map(b => b.id)))],
+            replacedNames: [...new Set((idx.replacedNames || buildings.map(b => b.name)).concat(collected.map(b => b.name)))] };
         })();
       }
       try { _data = await _fetching; } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }

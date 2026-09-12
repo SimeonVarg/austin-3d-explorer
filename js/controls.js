@@ -373,7 +373,7 @@ function initControls(map, scene) {
       for (const poly of polys) {
         const r = poly[0];
         if (!r || r.length < 4) continue;
-        rings.push([r, h]);
+        rings.push([poly, h]);
         for (const p of r) {
           if (p[0] < minLng) minLng = p[0]; if (p[0] > maxLng) maxLng = p[0];
           if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
@@ -397,18 +397,22 @@ function initControls(map, scene) {
       if (grid[k] < h) grid[k] = h;
     };
 
-    for (const [ring, h] of rings) {
-      const xs = ring.map(p => cx(p[0])), ys = ring.map(p => cy(p[1]));
+    for (const [poly, h] of rings) {
+      const projected = poly.map(ring => ({ ring, xs: ring.map(p => cx(p[0])), ys: ring.map(p => cy(p[1])) }));
+      const { ys } = projected[0];
       let j0 = Math.floor(Math.min.apply(null, ys)), j1 = Math.ceil(Math.max.apply(null, ys));
       j0 = Math.max(0, j0); j1 = Math.min(gny - 1, j1);
       // (a) scanline fill through each cell-row centre
       for (let j = j0; j <= j1; j++) {
         const yc = j + 0.5, xsAt = [];
-        for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
-          const ya = ys[a], yb = ys[b];
-          if ((ya > yc) === (yb > yc)) continue;
-          xsAt.push(xs[a] + (yc - ya) / (yb - ya) * (xs[b] - xs[a]));
-        }
+        // Combine exterior and courtyard crossings before the even/odd fill.
+        // Clearing holes afterwards would erase a separate building in a court.
+        for (const { ring, xs, ys } of projected)
+          for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+            const ya = ys[a], yb = ys[b];
+            if ((ya > yc) === (yb > yc)) continue;
+            xsAt.push(xs[a] + (yc - ya) / (yb - ya) * (xs[b] - xs[a]));
+          }
         xsAt.sort((p, q) => p - q);
         for (let s = 0; s + 1 < xsAt.length; s += 2) {
           const i0 = Math.max(0, Math.floor(xsAt[s])), i1 = Math.min(gnx - 1, Math.ceil(xsAt[s + 1]));
@@ -416,11 +420,13 @@ function initControls(map, scene) {
         }
       }
       // (b) edge walk at half-cell steps so slivers are never missed
-      for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
-        const dx = xs[a] - xs[b], dy = ys[a] - ys[b];
-        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) * 2));
-        for (let s = 0; s <= steps; s++) {
-          stamp(Math.floor(xs[b] + dx * s / steps), Math.floor(ys[b] + dy * s / steps), h);
+      for (const { ring, xs, ys } of projected) {
+        for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+          const dx = xs[a] - xs[b], dy = ys[a] - ys[b];
+          const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) * 2));
+          for (let s = 0; s <= steps; s++) {
+            stamp(Math.floor(xs[b] + dx * s / steps), Math.floor(ys[b] + dy * s / steps), h);
+          }
         }
       }
     }
