@@ -121,7 +121,7 @@
     });
   }
   function routeSource(){
-    const map=window.__map;if(!map?.isStyleLoaded())return null;
+    const map=window.__map;if(!map?.getStyle()?.layers?.length)return null;
     if(!map.getSource('live-here-route')){
       map.addSource('live-here-route',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
       for(const [id,dashed] of [['network',false],['connection',true]])map.addLayer({id:'live-here-'+id,type:'line',source:'live-here-route',
