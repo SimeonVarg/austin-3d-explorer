@@ -20,7 +20,7 @@
  * MapLibre's own formula through slopes.material(), so it sits beside the
  * fill-extrusion city as one look.
  *
- * WHY NO TEXTURES. The brief allowed a canvas-texture path in the shared
+ * Original geometry-first approach. The brief allowed a canvas-texture path in the shared
  * shader (utx-diorama's union.js does its brick and rib textures that way).
  * Measured against the cameras this app is judged from — the oblique at
  * ~0.3 m/px and the walking height at ~0.05 m/px — every feature the
@@ -30,7 +30,8 @@
  * change to slopes.js, no second material, no mipmap policy and no
  * texture-vs-vertex-colour seam at the edge of a building. The one thing a
  * texture would add — brick coursing at 7 cm — is under a pixel at every
- * camera in this app. So: quads.
+ * camera in this app. The walking-height pass now adds opt-in world-space
+ * material joints/grain and glass reflectance; architectural openings stay geometry.
  *
  * HOW A FACE IS DRAWN (the cell tiler, `tileFace`). A face is a rectangle
  * in (s, z) — s along the wall, z up. Its skin gives a row rhythm (panel
@@ -72,6 +73,12 @@
   const APTS = {
     on: q.get('apartments') !== '0',
     index: 'data/apartments/index.json',
+    materials:{
+      on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],
+      names:['Perry-Castañeda Library','Battle Hall','Texas Union','Welch Hall','Benedict Hall','Mezes Hall','Batts Hall','Jester West Hall','Jester East Hall','San Jacinto Hall'],
+      stoneKeys:['stone','trim','precast','coping','white','limestone'],brickKeys:['brick'],glassKeys:['glass','darkGlass'],
+      concreteKeys:['pave','concrete','roofFlat'],brickRedRatio:1.16
+    },
     // The tier of the fill-extrusion layer this stands in for: buildings-3d
     // has no LOD tier (js/lod.js tiers only roofs-pitched and the Capitol
     // discs) and minzoom 14 like every sibling layer in js/app.js.
@@ -445,7 +452,20 @@
       const v = spec.colours[k];
       const hexes = Array.isArray(v) ? v : (v && v.hex);
       out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes : ramp(hexes[0])) : ramp(hexes);
+      const M=APTS.materials;
+      if(M.on&&(spec.code||spec.category==='campus'||M.names.includes(spec.name))){
+        let kind=spec.materials?.[k];
+        if(!kind&&M.glassKeys.includes(k))kind='glass';
+        if(!kind&&M.brickKeys.includes(k))kind='brick';
+        if(!kind&&M.stoneKeys.includes(k))kind='stone';
+        if(!kind&&M.concreteKeys.includes(k))kind='concrete';
+        if(!kind&&k==='wall'){
+          const c=out[k][0];kind=parseInt(c.slice(1,3),16)>parseInt(c.slice(3,5),16)*M.brickRedRatio?'brick':'stone';
+        }
+        if(kind&&M[kind])out[k].surface=M[kind];
+      }
     }
+    Object.defineProperty(out,'_surfaceGlass',{value:APTS.materials.on&&(spec.code||spec.category==='campus'||APTS.materials.names.includes(spec.name))?APTS.materials.glass:null});
     return out;
   }
   /**
@@ -651,7 +671,9 @@
         let drawn;
         if (win) {
           const pane = win.tone ? P[win.tone] || glass : glass;
-          const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane;
+          const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane.slice();
+          if(pane.surface)col.surface=pane.surface;
+          else if(P._surfaceGlass&&!win.tone)col.surface=P._surfaceGlass;
           drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
@@ -968,6 +990,13 @@
     const transom = spec.transom != null ? spec.transom : 0.72;
     for (let i = 0; i < n; i++) {
       const s0 = i * mod + mw / 2, s1 = (i + 1) * mod - mw / 2;
+      if(spec.horizontalPitch>0){
+        for(let z=ctx.z0+plinth;z<zTop;z+=spec.horizontalPitch){
+          const top=Math.min(zTop,z+spec.horizontalPitch);
+          if(top-z>mw)windows.push({s0,s1,z0:z+mw/2,z1:top-mw/2,lit:true});
+        }
+        continue;
+      }
       const zt = ctx.z0 + plinth + (zTop - ctx.z0 - plinth) * transom;
       windows.push({ s0, s1, z0: ctx.z0 + plinth, z1: zt - mw / 2, lit: true });
       windows.push({ s0, s1, z0: zt + mw / 2, z1: zTop, lit: true });

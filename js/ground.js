@@ -1938,7 +1938,7 @@
           //
           // It also buys correctness for free: an extrusion depth-tests against
           // the road extrusions and the buildings, where a fill does not.
-          'fill-extrusion-height': GROUND.pathRaise,
+          'fill-extrusion-height': pathZ(),
           'fill-extrusion-opacity': GROUND.pathOpacity,
           // OFF. The gradient darkens the bottom of every extrusion and this one
           // is 0.22 m tall, so every sidewalk would be a dark ribbon.
@@ -2022,8 +2022,8 @@
         filter: ['==', ['get', 'k'], 'pathslab'],
         paint: {
           'fill-extrusion-pattern': walkPatternExpr(),
-          'fill-extrusion-base': GROUND.pathRaise,
-          'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-base': pathZ(),
+          'fill-extrusion-height': pathZ(GROUND.pathTexLift),
           'fill-extrusion-opacity': pathTexOpacity(p),
           'fill-extrusion-vertical-gradient': false,
         },
@@ -2047,9 +2047,9 @@
                         ['!=', ['get', 's'], 'brickpave']],
         paint: {
           'fill-extrusion-pattern': CLOSE_IMG.paving,
-          'fill-extrusion-base': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-base': pathZ(GROUND.pathTexLift),
           'fill-extrusion-height':
-            GROUND.pathRaise + GROUND.pathTexLift + GROUND.closePathLift,
+            pathZ(GROUND.pathTexLift + GROUND.closePathLift),
           'fill-extrusion-opacity': closePathOpacityExpr(p),
           // OFF, like every thin prism in this file: the slab is 20 mm tall.
           'fill-extrusion-vertical-gradient': false,
@@ -2063,8 +2063,8 @@
                         ['==', ['get', 's'], 'brickpave']],
         paint: {
           'fill-extrusion-pattern': HERRING_IMG,
-          'fill-extrusion-base': GROUND.pathRaise,
-          'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-base': pathZ(),
+          'fill-extrusion-height': pathZ(GROUND.pathTexLift),
           'fill-extrusion-opacity': speedwayTexOpacity(p),
           'fill-extrusion-vertical-gradient': false,
         },
@@ -2424,6 +2424,10 @@
   };
 
   /** Re-read GROUND after a live edit (widths, opacity, scale). */
+  function pathZ(lift=0) {
+    const base=['coalesce',['get','walk_z'],GROUND.pathRaise];
+    return lift?['+',base,lift]:base;
+  }
   window.applyGroundSettings = function applyGroundSettings(map) {
     if (!map.getLayer(PATH)) return;
     const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
@@ -2431,7 +2435,7 @@
     // buffers the centreline), so there is no width to retune here. Changing
     // GROUND.widthScale means re-running the bake. The kerb is still paint.
     set(PATH_CASE, 'line-width', GROUND.kerbPx);
-    set(PATH, 'fill-extrusion-height', GROUND.pathRaise);
+    set(PATH, 'fill-extrusion-height', pathZ());
     set(PATH, 'fill-extrusion-opacity', GROUND.pathOpacity);
     set(AREA, 'fill-opacity', GROUND.areaOpacity);
     // ROAD carries its width in the GEOMETRY now, exactly as PATH does, so
@@ -2452,17 +2456,17 @@
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     set(SPEEDWAY, 'fill-extrusion-opacity', speedwayTexOpacity(p));
-    set(SPEEDWAY, 'fill-extrusion-base', GROUND.pathRaise);
-    set(SPEEDWAY, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
+    set(SPEEDWAY, 'fill-extrusion-base', pathZ());
+    set(SPEEDWAY, 'fill-extrusion-height', pathZ(GROUND.pathTexLift));
     set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
-    set(PATH_TEX, 'fill-extrusion-base', GROUND.pathRaise);
-    set(PATH_TEX, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
+    set(PATH_TEX, 'fill-extrusion-base', pathZ());
+    set(PATH_TEX, 'fill-extrusion-height', pathZ(GROUND.pathTexLift));
     set(CLOSE_AREA, 'fill-opacity', closeAreaOpacityExpr(p));
     set(CLOSE_ROAD, 'fill-opacity', closeRoadOpacityExpr(p));
     set(CLOSE_PATH, 'fill-extrusion-opacity', closePathOpacityExpr(p));
-    set(CLOSE_PATH, 'fill-extrusion-base', GROUND.pathRaise + GROUND.pathTexLift);
+    set(CLOSE_PATH, 'fill-extrusion-base', pathZ(GROUND.pathTexLift));
     set(CLOSE_PATH, 'fill-extrusion-height',
-        GROUND.pathRaise + GROUND.pathTexLift + GROUND.closePathLift);
+        pathZ(GROUND.pathTexLift + GROUND.closePathLift));
     set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
     set(CANOPY, 'fill-extrusion-base', ['*', ['get', 'h'], GROUND.canopyBaseFrac]);
     set(CANOPY, 'fill-extrusion-opacity', GROUND.canopyOpacity);

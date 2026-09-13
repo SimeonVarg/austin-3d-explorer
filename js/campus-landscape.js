@@ -6,13 +6,16 @@
  const q=new URLSearchParams(location.search);
  const C=window.CAMPUS_LANDSCAPE={
   on:q.get('campuslandscape')!=='0',url:'data/campus_landscape.json',minzoom:14,chunkSize:180,
-  crown:{segments:10,rings:5,lobes:5,lobeDepth:.12,wave:.04,mainSpread:.78,clusterSize:.58,clusterOffset:.46,clusterDepth:.71,clusterBase:-.16,clusterJitter:.22,clusterQuality:.7,shade:.90},
-  trunk:{radius:.22,largeRadius:.48,radiusRatio:.055,limbs:3,segments:5,branchReach:.63,branchRise:.62,forkHeight:.18,forkMin:1.8,topRadius:.7,limbRadius:.48,tipRadius:.15},
+  crown:{segments:10,rings:5,lobes:5,lobeDepth:.12,wave:.04,mainSpread:.55,mainDepth:.8,mainRise:.08,clusterSize:.49,clusterOffset:.49,clusterDepth:.73,clusterBase:-.22,clusterJitter:.38,angleJitter:.55,sizeJitter:.28,clusterQuality:.7,shade:.90},
+  trunk:{radius:.22,largeRadius:.48,radiusRatio:.055,limbs:5,segments:5,branchReach:.66,branchRise:.62,forkHeight:.18,forkMin:1.8,topRadius:.7,limbRadius:.48,tipRadius:.15},
   species:{liveoak:{spread:1.03,depth:.78},oak:{spread:1,depth:.88},elm:{spread:.91,depth:1},pecan:{spread:.92,depth:1.06},crape:{spread:.79,depth:.91},magnolia:{spread:.85,depth:1.04},cedar:{spread:.78,depth:1.2},cypress:{spread:.75,depth:1.25},other:{spread:.95,depth:.93}},
   leaf:[['#54704b','#72704b','#10201a'],['#607c50','#7b784b','#13221a'],['#465f43','#666849','#101d18'],['#6b8057','#827e54','#17251c']],
   bark:['#6d6250','#806a50','#171a19'],
   gardens:{lawn:['#64864f','#7b8450','#112018'],bed:['#69583f','#786046','#171811'],hedge:['#456243','#666b43','#0d1b13'],stone:['#c7bda7','#cdb792','#222320'],pave:['#c8bfaa','#d0b78f','#25251f'],water:['#54776b','#6e826b','#101f21'],bench:['#796149','#8c6d4c','#1d1c19'],mulch:['#746047','#7c6345','#171812']},
-  gardenHeights:{lawn:.10,bed:.14,pave:.25,hedge:.78,stone:.45,water:.31},
+  gardenHeights:{lawn:.055,bed:.11,pave:.035,hedge:.78,stone:.45,water:.31},
+  surface:{stone:[1,.82,.34,.55],pave:[3,1.5,1.5,.7],bed:[3,.5,.5,.15]},
+  door:{barHeight:1.05,radius:.024,inset:.13,offset:.025,colour:['#959e9c','#a6a497','#252a29']},
+  walks:{on:true,lift:.006,colour:['#c6c1b4','#cdbb9e','#222521'],surface:[3,1.5,1.5,.8]},
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
  let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
@@ -52,22 +55,26 @@
    const col=C.leaf[Math.min(C.leaf.length-1,Math.floor(hue*C.leaf.length))],thick=Math.min(C.trunk.largeRadius,Math.max(C.trunk.radius,r*C.trunk.radiusRatio));
    const fork=[p.x+Math.cos(seed)*thick,p.y+Math.sin(seed)*thick,Math.max(C.trunk.forkMin,base+height*C.trunk.forkHeight)];
    stem(B,[p.x,p.y,0],fork,thick,thick*C.trunk.topRadius,C.bark);
-   crown(B,[p.x,p.y,cz],[radius*C.crown.mainSpread,radius*C.crown.mainSpread,half],seed,col);
+   crown(B,[p.x,p.y,cz+half*C.crown.mainRise],[radius*C.crown.mainSpread,radius*C.crown.mainSpread,half*C.crown.mainDepth],seed,col,C.crown.clusterQuality);
    const limbs=C.trunk.limbs;
    for(let j=0;j<limbs;j++){
-    const a=seed+j/limbs*Math.PI*2,reach=radius*C.trunk.branchReach*(.82+hash(i,j)*.24),z=base+height*C.trunk.branchRise;
+    const a=seed+j/limbs*Math.PI*2+(hash(i,j+40)-.5)*C.crown.angleJitter,reach=radius*C.trunk.branchReach*(.82+hash(i,j)*.24),z=base+height*C.trunk.branchRise;
     const end=[p.x+Math.cos(a)*reach,p.y+Math.sin(a)*reach,z];
     stem(B,fork,end,thick*C.trunk.limbRadius,thick*C.trunk.tipRadius,C.bark);
-    // Overlapping crowns make a broad, irregular outline instead of flat tiers.
-    const s=C.crown.clusterSize;
+    // Branch-end clusters keep the recorded outer canopy while leaving gaps.
+    // A small upper crown joins the forks without filling the whole envelope.
+    const s=C.crown.clusterSize*(1+(hash(i,j+30)-.5)*C.crown.sizeJitter);
     crown(B,[p.x+Math.cos(a)*radius*C.crown.clusterOffset,p.y+Math.sin(a)*radius*C.crown.clusterOffset,cz+half*C.crown.clusterBase+hash(i,j+20)*half*C.crown.clusterJitter],[radius*s,radius*s,half*C.crown.clusterDepth],seed+j,col,C.crown.clusterQuality);
    }
    count.trees++;
   }
  }
  function polygon(B,rings,z,col){
-  const R=rings.map(r=>{const open=r.length>1&&r[0][0]===r.at(-1)[0]&&r[0][1]===r.at(-1)[1]?r.slice(0,-1):r;return open.map(ll=>{const p=slopes.toLocal(ll[0],ll[1],z);return [p.x,p.y,p.z]})});
-  const flat=R.flat(),indices=THREE.ShapeUtils.triangulateShape(R[0].map(p=>new THREE.Vector2(p[0],p[1])),R.slice(1).map(r=>r.map(p=>new THREE.Vector2(p[0],p[1]))));
+  const R=rings.map(r=>r.map(ll=>{const p=slopes.toLocal(ll[0],ll[1],z);return new THREE.Vector2(p.x,p.y)}).filter((p,i,a)=>!i||!p.equals(a[i-1])));
+  // ShapeUtils removes duplicate closing vertices IN PLACE. Flatten the same
+  // arrays after triangulation, otherwise every hole shifts later indices.
+  for(const ring of R)while(ring.length>1&&ring[0].equals(ring.at(-1)))ring.pop();
+  const indices=THREE.ShapeUtils.triangulateShape(R[0],R.slice(1)),flat=R.flat().map(p=>[p.x,p.y,z]);
   for(const [a,b,c]of indices)B.tri(flat[a],flat[b],flat[c],col,[0,0,1]);
  }
  function boxMesh(B,c,u,v,z0,z1,col,bearing=0){
@@ -90,7 +97,8 @@
  function buildGardens(B){
   count.gardens=0;
   for(const place of data.gardens.places||[])for(const f of place.features||[]){
-   const col=C.gardens[f.kind]||C.gardens.bed,z=f.height??C.gardenHeights[f.kind]??.1;
+   const col=(C.gardens[f.kind]||C.gardens.bed).slice(),z=f.height??C.gardenHeights[f.kind]??.1;
+   if(C.surface[f.kind])col.surface=C.surface[f.kind];
    if(f.rings){
     polygon(B,f.rings,z,col);
     if(z>.2)for(const ring of f.rings)for(let i=0;i<ring.length-1;i++){
@@ -123,6 +131,25 @@
  function build(){
   const chunks=new Map();count.triangles=0;buildTrees(chunks);
   const gardens=slopes.build();buildGardens(gardens);chunks.set('gardens',gardens);
+  for(const r of data.ramps||[]){
+   const points=r.vertices.map(ll=>{const p=slopes.toLocal(...ll);return [p.x,p.y,p.z]}),ring=points.map(p=>new THREE.Vector2(p[0],p[1]));
+   const col=r.colour.slice();col.surface=C.surface.pave;
+   for(const [a,b,c]of THREE.ShapeUtils.triangulateShape(ring,[]))gardens.tri(points[a],points[b],points[c],col);
+   for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];gardens.quad([a[0],a[1],0],[b[0],b[1],0],b,a,col)}
+  }
+  if(C.walks.on){
+   const col=C.walks.colour.slice();col.surface=C.walks.surface;
+   for(const f of data.walks||[])polygon(gardens,f.rings,f.z+C.walks.lift,col);
+  }
+  for(const d of data.doors||[]){
+   const r=d.ring.slice(0,-1).map(ll=>slopes.toLocal(...ll,0));
+   let edge=0,length=0;
+   for(let j=0;j<r.length;j++){const b=r[(j+1)%r.length],a=r[j],l=Math.hypot(b.x-a.x,b.y-a.y);if(l>length){length=l;edge=j}}
+   const a=r[edge],b=r[(edge+1)%r.length],T=C.door;if(length<T.inset*2)continue;
+   const dx=(b.x-a.x)/length,dy=(b.y-a.y)/length,z=d.base+Math.min(T.barHeight,d.height*.5);
+   const p=(s)=>[a.x+dx*s+dy*T.offset,a.y+dy*s-dx*T.offset,z];
+   stem(gardens,p(T.inset),p(length-T.inset),T.radius,T.radius,T.colour);
+  }
   count.railings=0;
   for(const r of data.railings||[]){
    const T=data.railingDetail;
@@ -146,6 +173,25 @@
   slopes.remove(group);group.traverse(o=>o.geometry?.dispose());group=null;
  }
  let fenceClause=null;
+ let rampClause=null;
+ function applyRamps(on){
+  if(!map.getLayer('entrances-detail'))return;
+  let base=map.getFilter('entrances-detail');
+  if(rampClause&&base?.[0]==='all')base=base.slice(1).filter(c=>JSON.stringify(c)!==JSON.stringify(rampClause));
+  else base=base?[base]:[];
+  const ids=(data.ramps||[]).map(r=>r.eid);
+  rampClause=on&&ids.length?['any',['!=',['get','k'],'ramp'],['!',['in',['get','eid'],['literal',ids]]]]:null;
+  map.setFilter('entrances-detail',['all',...base,...(rampClause?[rampClause]:[])]);
+ }
+ const walkFilters=new Map();
+ function applyWalks(on){
+  for(const id of ['ground-paths-texture','ground-close-path-grain']){
+   if(!map.getLayer(id))continue;
+   if(!walkFilters.has(id))walkFilters.set(id,map.getFilter(id));
+   const base=walkFilters.get(id);
+   map.setFilter(id,on&&C.walks.on&&data.walks?.length?['all',base,['!', ['has','walk_z']]]:base);
+  }
+ }
  function applyFences(on){
   if(!map.getLayer('props-line'))return;
   if(!data.retiredFences?.coordinates.length&&!fenceClause)return;
@@ -161,6 +207,8 @@
   if(group&&(!on||lastDensity!==(window.GFX?.treeDensity??1)||lastDetail!==slopes.detail()))drop();
   if(on&&!group){group=build();slopes.add(group)}
   applyFences(on);
+  applyWalks(on);
+  applyRamps(on);
   if(originalFilter)window.applyTreeDensity(map);
   map.triggerRepaint();
  }
@@ -185,6 +233,8 @@
    // mesh at that same transition, without changing the app's base tree filter.
    const densityApply=window.applyTreeDensity;
    window.applyTreeDensity=function(m){densityApply(m);if(C.on&&SLOPES.on&&((window.GFX?.treeDensity??1)!==lastDensity||slopes.detail()!==lastDetail))apply()};
+   const entranceApply=window.applyEntranceDensity;
+   window.applyEntranceDensity=function(m){entranceApply(m);applyRamps(C.on&&SLOPES.on&&!!group)};
   }catch(e){console.error('[campus-landscape]',e);count.done=true}
   clearInterval(timer);
  },180);

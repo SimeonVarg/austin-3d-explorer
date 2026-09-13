@@ -19,7 +19,8 @@
     "benchWidth": 0.46,
     "benchHeight": 0.48,
     "benchBack": 0.88,
-    "benchSlat": 0.09
+    "benchSlat": 0.09,
+    "bedEdgeHeight": 0.15
   },
   "places": [
     {
@@ -84,7 +85,7 @@
         ]
       ],
       "note": "Four planted panels separated by the court's cross paths; divided studio glazing encloses the court. Living-wall extent is approximate.",
-      "courtPaving": 0.09
+      "courtPaving": 0.035
     },
     {
       "name": "Gearing courtyard",
