@@ -1,0 +1,359 @@
+{
+  "snapshot": "2026-09-13",
+  "angle": 5,
+  "colours": {
+    "stone": {
+      "hex": "#d2cabc"
+    },
+    "wall": {
+      "hex": "#c5bda9"
+    },
+    "roof": {
+      "hex": "#878b84"
+    },
+    "glass": {
+      "hex": "#45636a"
+    },
+    "metal": {
+      "hex": "#414d4a"
+    },
+    "brick": {
+      "hex": "#a16146"
+    },
+    "base": {
+      "hex": "#a4aaa5"
+    }
+  },
+  "accuracy": "Mapped footprints retained. Wing and facade dimensions interpreted from official UT exterior photographs, not a survey. Roof planes are simplified.",
+  "bridge": {
+    "from": [
+      114.5,
+      52
+    ],
+    "to": [
+      0.3,
+      34
+    ],
+    "width": 4.1,
+    "base": 12.4,
+    "top": 16.3,
+    "bottomBand": 0.35,
+    "topBand": 0.2
+  },
+  "buildings": [
+    {
+      "id": "bbd0117e-c54d-4157-804f-440a75736e31",
+      "code": "WCP",
+      "name": "William C. Powers, Jr. Student Activity Center",
+      "floors": [
+        0,
+        5,
+        10
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/WCP/",
+      "observations": "UT exterior images 100473462-465 and 100474709 show two upper pale stone levels above a glazed base, narrow slots, broad roof overhangs, and a recessed glass atrium. Building wings follow the mapped outline.",
+      "skins": {
+        "slots": {
+          "kind": "bays",
+          "field": "stone",
+          "bay": 3.9,
+          "windowRule": "all",
+          "window": {
+            "w": 0.8,
+            "h": 2.6,
+            "sill": 0.4
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.34
+        },
+        "base": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 2.4,
+          "mullionW": 0.075,
+          "transom": 0.54,
+          "fascia": 0.14,
+          "fasciaTone": "metal",
+          "reveal": 0.28
+        },
+        "atrium": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 1.9,
+          "mullionW": 0.075,
+          "transom": 0.54,
+          "fascia": 0.14,
+          "fasciaTone": "metal",
+          "reveal": 0.28,
+          "horizontalPitch": 2.8
+        }
+      },
+      "parts": [
+        {
+          "name": "west-wing",
+          "bounds": [
+            -1,
+            -1,
+            55.7,
+            90
+          ],
+          "z0": 0,
+          "z1": 15.6,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.32,
+              "skin": "base"
+            },
+            {
+              "z0": 0.32,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 5,
+              "skin": "stone"
+            },
+            {
+              "z0": 5,
+              "z1": 13.3,
+              "skin": "slots"
+            },
+            {
+              "z0": 13.3,
+              "z1": 15.6,
+              "skin": "stone"
+            }
+          ],
+          "blankShortEnds": 25,
+          "eave": {
+            "over": 1.4,
+            "thick": 0.38,
+            "tone": "metal",
+            "top": "brick"
+          }
+        },
+        {
+          "name": "atrium",
+          "bounds": [
+            55.7,
+            -1,
+            80.9,
+            90
+          ],
+          "z0": 0,
+          "z1": 12.6,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.22,
+              "skin": "base"
+            },
+            {
+              "z0": 0.22,
+              "z1": 12.4,
+              "skin": "atrium"
+            },
+            {
+              "z0": 12.4,
+              "z1": 12.6,
+              "skin": "metal"
+            }
+          ]
+        },
+        {
+          "name": "east-wing",
+          "bounds": [
+            80.9,
+            -1,
+            120,
+            90
+          ],
+          "z0": 0,
+          "z1": 17.8,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.32,
+              "skin": "base"
+            },
+            {
+              "z0": 0.32,
+              "z1": 4.6,
+              "skin": "base"
+            },
+            {
+              "z0": 4.6,
+              "z1": 5,
+              "skin": "stone"
+            },
+            {
+              "z0": 5,
+              "z1": 13.3,
+              "skin": "slots"
+            },
+            {
+              "z0": 13.3,
+              "z1": 17.8,
+              "skin": "stone"
+            }
+          ],
+          "blankShortEnds": 18,
+          "eave": {
+            "over": 1.15,
+            "thick": 0.38,
+            "tone": "metal",
+            "top": "brick"
+          }
+        }
+      ],
+      "open": [
+        "Wing heights and precise roof slopes are estimated from the photographed storeys. No surveyed terrain or interior is implied."
+      ]
+    },
+    {
+      "id": "253a6f8f-1b69-47a4-8912-2b1110230bff",
+      "code": "RLP",
+      "name": "Patton Hall",
+      "floors": [
+        0,
+        5.5,
+        10.2,
+        14.9,
+        19.6,
+        24.3
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/RLP/",
+      "observations": "UT images 100536570 and 100536843-847 show a recessed glass base, tall paired openings with pale piers and dark spandrels, a large projecting roof screen and the elevated connection to Powers.",
+      "skins": {
+        "base": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 2.6,
+          "mullionW": 0.075,
+          "transom": 0.54,
+          "fascia": 0.14,
+          "fasciaTone": "metal",
+          "reveal": 0.28
+        },
+        "upper": {
+          "kind": "bays",
+          "field": "stone",
+          "bay": 2.5,
+          "windowRule": "all",
+          "window": {
+            "w": 1.38,
+            "h": 3.7,
+            "sill": 0.45,
+            "frame": {
+              "w": 0.13,
+              "h": 0.16,
+              "tone": "stone"
+            }
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.34,
+          "pier": {
+            "w": 0.3,
+            "d": 0.28,
+            "tone": "stone"
+          },
+          "floorLine": {
+            "h": 0.35,
+            "tone": "metal"
+          }
+        }
+      },
+      "parts": [
+        {
+          "name": "recessed-base",
+          "z0": 0,
+          "z1": 5.5,
+          "inset": 0.7,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.25,
+              "skin": "base"
+            },
+            {
+              "z0": 0.25,
+              "z1": 5.2,
+              "skin": "base"
+            },
+            {
+              "z0": 5.2,
+              "z1": 5.5,
+              "skin": "metal"
+            }
+          ]
+        },
+        {
+          "name": "upper-halls",
+          "z0": 5.5,
+          "z1": 28.8,
+          "bands": [
+            {
+              "z0": 5.5,
+              "z1": 28.4,
+              "skin": "upper"
+            },
+            {
+              "z0": 28.4,
+              "z1": 28.8,
+              "skin": "metal"
+            }
+          ],
+          "eave": {
+            "over": 0.65,
+            "thick": 0.28,
+            "tone": "metal",
+            "top": "roof"
+          },
+          "soffitTone": "metal"
+        }
+      ],
+      "screens": [
+        {
+          "axis": "v",
+          "along": [
+            3,
+            59
+          ],
+          "across": [
+            -2.1,
+            1.1
+          ],
+          "pitch": 0.78,
+          "width": 0.24,
+          "z": 29.08,
+          "height": 0.24
+        },
+        {
+          "axis": "u",
+          "along": [
+            1,
+            52
+          ],
+          "across": [
+            0.3,
+            3.5
+          ],
+          "pitch": 0.78,
+          "width": 0.24,
+          "z": 29.08,
+          "height": 0.24
+        }
+      ],
+      "open": [
+        "Floor heights, roof-screen spacing and less-photographed elevations remain approximate."
+      ]
+    }
+  ]
+}

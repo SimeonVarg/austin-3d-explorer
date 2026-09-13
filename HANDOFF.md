@@ -1,5 +1,41 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 13 2026 — Campus walking detail (`codex/campus-walking-detail`)
+
+Goldsmith's courtyard caps now handle repeated closing vertices introduced by
+coordinate rounding. Interior walking surfaces are nearly flush, roadside
+pavement retains a curb, and the pilot paths use metre-sized scoring. Gearing's
+four-block ramp is a continuous plane with the original outline and upper end.
+The flat scene datum remains; these are visual depths, not surveyed terrain.
+
+Campus masonry has restrained coursing, grain and view-dependent glass shading.
+Recorded tree crowns have less regular branch clusters. Small push bars reuse
+modern door leaves from the entrance register. Powers and Patton gain individual
+photo-informed stone/glass envelopes, roof projections and an elevated bridge;
+projecting slabs have closed undersides. The collection contains 194 models.
+Heights, roof slopes and unphotographed elevations remain approximate.
+
+Each bake retains one output. `bake_ground.py` adds `--resolve-walks`;
+`bake_campus_landscape.py` consumes those paths and the existing ramp/door
+geometry; new `bake_speedway_buildings.py` owns `speedway_buildings.json`.
+`pedestrian_geometry.py` and `campus_ramps.py` are pure geometry helpers.
+The visual document and two cited comparison sheets are in
+`docs/campus-walking-detail.md`. Reproduce captures with
+`scripts/verify/campus-walking-visuals.mjs`, pointing VERIFY_OUT outside the repo.
+
+No Mac-owned or open Drag experiment code/output changes. HANDOFF is the sole
+shared documentation overlap with #164/#189. PR #247 records the pass.
+
+Verified against main at 7ebda42: campus-walking-data, campus-repairs-data,
+campus-walking-check (including ramp and bridge underside rays),
+campus-repairs-check, guadalupe-check, campus-everywhere-check,
+live-here-buildings (all 19 route pairs), harness-drift and apartment-window-rule.
+Matched captures use the second frame and wait for the entrance source.
+The final route/walking checks cached the exact pinned CDN library bytes to
+avoid intermittent remote library failures; page-error assertions stay intact.
+Interleaved hardware shader/tree medians have minima 22.1 ms before and 22.2 ms
+after, with CPU throttling off; see the visual document for the measured scope.
+
 ## Sep 13 2026 — Campus visual repairs (`codex/campus-visual-repairs`)
 
 Fixed the suspended church roof beside UTC and the Catholic Center's buried

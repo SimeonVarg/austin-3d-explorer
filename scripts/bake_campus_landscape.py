@@ -96,7 +96,7 @@ def compile_gardens():
    if p.get('courtPaving'):
     for hole in hall['footprint']['holes']:emit(local(Polygon(hole)),'pave',height=p['courtPaving'])
    for b in p.get('beds',[]):
-    g=rect(b).difference(blocked);emit(g,'bed',plants=True);emit(g.buffer(T['edgeWidth']).difference(g),'stone',height=.24)
+    g=rect(b).difference(blocked);emit(g,'bed',plants=True);emit(g.buffer(T['edgeWidth']).difference(g),'stone',height=T['bedEdgeHeight'])
    for b in p.get('lawns',[]):emit(rect(b).difference(blocked),'lawn')
    for u,v,bearing in p.get('benches',[]):out['features'].append(dict(kind='bench',at=ll(u,v),bearing=bearing-5))
    if p.get('livingWall'):out['features'].append(dict(kind='livingWall',line=[ll(*q)for q in p['livingWall']],height=3.1))
@@ -147,5 +147,19 @@ old_fences=[make_valid(shape(f['geometry']))for f in json.loads((ROOT/'data/prop
 mask=geographic(unary_union([metric(g)for g in old_fences]).buffer(rail_config['filterMargin']))
 mask_polys=[mask]if mask.geom_type=='Polygon'else list(mask.geoms)
 output={'version':1,'source':'data/trees.geojson: existing tree inventory and detected crowns; no new positions. Crown/branch morphology is a species-inspired visual approximation.','bounds':list(region.bounds),'treeColumns':['lng','lat','radius','crownBase','top','species','density','hue','source'],'trees':trees,'canopyKeys':canopy_keys,'trunkKeys':sorted(set(trunk_keys)),'gardens':compile_gardens(),'railings':railings,'railingDetail':rail_config,'retiredFences':{'type':'MultiPolygon','coordinates':[mapping(g)['coordinates']for g in mask_polys]}}
+# The ground bake remains the only owner of path geometry. This renderer
+# consumes its pilot height tags, keeping metre-sized scoring at walking range.
+output['walks']=[dict(rings=f['geometry']['coordinates'],z=f['properties']['walk_z'])
+ for f in json.loads((ROOT/'data/ground.geojson').read_text())['features']
+ if f['properties'].get('k')=='patharea' and 'walk_z' in f['properties']
+ and f['properties'].get('s')!='brickpave' and f['properties'].get('u')!='steps'
+ and f['geometry']['type']=='Polygon']
+# Door leaves reuse the entrance register, including its source confidence.
+output['doors']=[dict(ring=f['geometry']['coordinates'][0],base=f['properties']['base'],height=f['properties']['h'],source=f['properties'].get('src'),ref=f['properties']['ref'])
+ for f in json.loads((ROOT/'data/entrances.geojson').read_text())['features']
+ if f['properties'].get('k')=='door' and f['properties'].get('ref') in ['UTC','PCL','WCP','RLP']]
+from campus_ramps import compile_ramps
+walk_config=json.loads((ROOT/'data/campus_walk_profiles.json').read_text())
+output['ramps']=compile_ramps(json.loads((ROOT/'data/entrances.geojson').read_text())['features'],walk_config['rampIds'],walk_config['rampToe'])
 OUT.write_text(json.dumps(output,separators=(',',':'),ensure_ascii=False)+'\n',encoding='utf-8')
 print('campus trees',len(trees),'species',dict(Counter(t[5]for t in trees)),'bytes',OUT.stat().st_size)

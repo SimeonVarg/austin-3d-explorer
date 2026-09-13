@@ -5356,6 +5356,8 @@ def main():
     # scoring against the actual asphalt, not those smaller helper cutters.
     from pavement_geometry import trim_rendered_pavement
     feats = trim_rendered_pavement(feats, stats)
+    from pedestrian_geometry import pedestrian_levels
+    feats = pedestrian_levels(feats, stats)
 
     # LAST, and only a colour: see tone_lawns' docstring for why it cannot run
     # earlier. Nothing downstream of here reads `s`.
@@ -5405,6 +5407,16 @@ def main():
 
 if __name__ == "__main__":
     import sys
+    if "--resolve-walks" in sys.argv:
+        from pedestrian_geometry import pedestrian_levels
+        with open(OUT, encoding="utf-8") as f:
+            data=json.load(f)
+        stats=Counter()
+        data['features']=pedestrian_levels(data['features'],stats)
+        with open(OUT,'w',encoding='utf-8') as f:
+            json.dump(data,f,separators=(',',':'))
+        print(json.dumps(dict(stats)))
+        sys.exit(0)
     if "--resolve-pavement" in sys.argv:
         # Incremental final stage over the shipped ground, with no OSM refresh
         # or reauthoring of unrelated gardens, channels and carriageways.

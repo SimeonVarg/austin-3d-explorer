@@ -183,6 +183,10 @@
     // `SLOPES.on = false` from the console stops it on the next frame, no
     // reload; it is read live in render(), never cached.
     on: q.get('slopes') !== '0',
+    surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
+      grain:.035, reflection:.42, near:25, far:120,
+      grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
+      sky:['#7e9fab','#b19b7d','#101922']},
     // ?slopesdebug=1 adds the proof scene (see debugScene below). Nothing
     // debug is ever drawn without it.
     debug: q.get('slopesdebug') === '1',
@@ -331,7 +335,11 @@
     attribute vec3 cNight;
     attribute vec2 aGrad;
     attribute float aFacet;
+    attribute vec4 aSurface;
     varying vec4 v_color;
+    varying vec3 v_pos;
+    varying vec3 v_normal;
+    varying vec4 v_surface;
     void main() {
       vec3 color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0)
                                 : mix(cGold, cNight, (u_p - 0.5) * 2.0);
@@ -378,11 +386,52 @@
       // At the default 1.0 this is an exact multiply by one.
       float k = sloped ? u_roof_shade : 1.0;
       v_color = vec4(lit * k, 1.0) * u_opacity;
+      v_pos = position; v_normal = normal; v_surface = aSurface;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
   const FRAG = `
     varying vec4 v_color;
-    void main() { gl_FragColor = v_color; }`;
+    varying vec3 v_pos;
+    varying vec3 v_normal;
+    varying vec4 v_surface;
+    uniform vec3 u_eye;
+    uniform vec4 u_surfaceStyle;
+    uniform vec3 u_surfaceRange;
+    uniform vec3 u_surfaceSky;
+    uniform vec3 u_surfaceNoise;
+    uniform vec4 u_surfaceHorizon;
+    uniform float u_p;
+    float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    void main() {
+      vec3 col=v_color.rgb;
+      float kind=v_surface.x;
+      if(kind>.5 && u_surfaceRange.x>.5) {
+        vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
+        float strength=v_surface.w;
+        float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
+        if(kind>3.5 && kind<4.5) {
+          float fresnel=pow(1.0-abs(dot(n,view)),3.0);
+          float daylight=1.0-smoothstep(.5,.95,u_p);
+          vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
+          col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
+        } else {
+          vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
+          vec2 size=max(v_surface.yz,vec2(.01));
+          vec2 cell=uv/size;
+          if(kind<2.5)cell.x+=mod(floor(cell.y),2.0)*.5;
+          vec2 edge=(.5-abs(fract(cell)-.5))*size;
+          float d=min(edge.x,edge.y),aa=max(fwidth(d),.0005);
+          float joint=1.0-smoothstep(u_surfaceStyle.x-aa,u_surfaceStyle.x+aa,d);
+          // Subpixel mortar resolves toward the field colour instead of shimmering.
+          float resolved=1.0-smoothstep(.15,.55,max(fwidth(cell.x),fwidth(cell.y)));
+          float tile=hashCell(floor(cell))-.5;
+          float grain=hashCell(floor(uv*u_surfaceNoise.x))-.5;
+          float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+        }
+      }
+      gl_FragColor=vec4(col,v_color.a);
+    }`;
 
   // ── State ───────────────────────────────────────────────────────────────
   let _map = null, _gl = null;
@@ -392,7 +441,7 @@
   let _visible = true;          // js/lod.js's decision, via layer.setVisible
   let _lastPreset = null;
   let _frames = 0, _warnedMatrix = false;
-  let _mat = null, _loc = null, _s3 = null;   // per-frame scratch
+  let _mat = null, _loc = null, _s3 = null, _eye4=null;   // per-frame scratch
   let _debugGroup = null, _debugTwinAdded = false;
   const _light = { enu: [0, 0, 1], colour: [1, 1, 1], intensity: 0 };
 
@@ -504,6 +553,7 @@
     geom.setAttribute('cNight', new T.BufferAttribute(cn, 3));
     geom.setAttribute('aGrad', new T.BufferAttribute(gr, 2));
     geom.setAttribute('aFacet', new T.BufferAttribute(new Float32Array(n), 1));   // never a roof facet
+    geom.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(n*4), 4));
     return geom;
   }
   function add(obj) { if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
@@ -538,7 +588,7 @@
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
   function build() {
     const T = window.THREE;
-    const pos = [], nrm = [], cd = [], cg = [], cn = [], fc = [];
+    const pos = [], nrm = [], cd = [], cg = [], cn = [], fc = [], sf = [];
     const cache = new Map();
     const rgb = hex => { let c = cache.get(hex); if (!c) { c = hexToRgb01(hex); cache.set(hex, c); } return c; };
     // `facet(true)` marks everything pushed after it as a roof facet for
@@ -551,6 +601,7 @@
       // not shift every subsequent vertex relative to its colour attributes.
       pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); fc.push(_facet);
       cd.push(d[0], d[1], d[2]); cg.push(g[0], g[1], g[2]); cn.push(k[0], k[1], k[2]);
+      const surface=col.surface; sf.push(...(surface||[0,0,0,0]));
     };
     const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -660,6 +711,7 @@
       g.setAttribute('cNight', new T.Float32BufferAttribute(cn, 3));
       g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
       g.setAttribute('aFacet', new T.Float32BufferAttribute(fc, 1));
+      g.setAttribute('aSurface', new T.Float32BufferAttribute(sf, 4));
       g.computeBoundingSphere();
       return g;
     }
@@ -803,6 +855,16 @@
       _loc.makeTranslation(originMerc.x, originMerc.y, originMerc.z).scale(_s3);
       camera.projectionMatrix.copy(_mat.multiply(_loc));
       camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+      // The inverse projective z-axis is the camera origin in local metres.
+      _eye4.set(0,0,1,0).applyMatrix4(camera.projectionMatrixInverse);
+      U.u_eye.value.set(_eye4.x/_eye4.w,_eye4.y/_eye4.w,_eye4.z/_eye4.w);
+      const surf=SLOPES.surfaces;
+      U.u_surfaceRange.value.set(surf.on?1:0,surf.near,surf.far);
+      U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
+      U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
+      U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
+      const hour=U.u_p.value,sa=hexToRgb01(surf.sky[hour<=.5?0:1]),sb=hexToRgb01(surf.sky[hour<=.5?1:2]),st=hour<=.5?hour*2:(hour-.5)*2;
+      U.u_surfaceSky.value.set(...sa.map((v,i)=>v+(sb[i]-v)*st));
       renderer.resetState();
       renderer.render(scene, camera);
       _frames++;
@@ -968,9 +1030,13 @@
     originScale = originMerc.meterInMercatorCoordinateUnits();
     _mat = new T.Matrix4(); _loc = new T.Matrix4();
     _s3 = new T.Vector3(originScale, -originScale, originScale);   // the one reflection, point 3
+    _eye4 = new T.Vector4();
 
     U = {
       u_lightpos: { value: new T.Vector3(0, 0, 1) },
+      u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
+      u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
+      u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
       u_lightcolor: { value: new T.Vector3(1, 1, 1) },
       u_lightintensity: { value: 0.28 },
       u_vertical_gradient: { value: SLOPES.verticalGradient },

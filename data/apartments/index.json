@@ -125,6 +125,7 @@
     "data/campus_buildings.json",
     "data/neighborhood_apartments.json",
     "data/guadalupe.json",
-    "data/south_campus.json"
+    "data/south_campus.json",
+    "data/speedway_buildings.json"
   ]
 }

@@ -1,0 +1,35 @@
+{
+  "description": "Flush pedestrian interiors and modest road-side curb levels. These are visual construction depths on the existing flat datum, not surveyed terrain.",
+  "regions": [
+    [
+      -97.73935,
+      30.28165,
+      -97.736,
+      30.28565
+    ],
+    [
+      -97.7415,
+      30.2851,
+      -97.7405,
+      30.2858
+    ],
+    [
+      -97.73965,
+      30.28725,
+      -97.73865,
+      30.2881
+    ]
+  ],
+  "interiorHeight": 0.025,
+  "roadsideHeight": 0.14,
+  "roadsideBand": 2.0,
+  "minimumArea": 0.01,
+  "sources": [
+    "data/ground.geojson",
+    "https://soa.utexas.edu/news/landscape-first-stringfellow"
+  ],
+  "rampIds": [
+    239
+  ],
+  "rampToe": 0.035
+}
