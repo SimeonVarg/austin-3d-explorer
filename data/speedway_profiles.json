@@ -315,7 +315,8 @@
             "thick": 0.28,
             "tone": "metal",
             "top": "roof"
-          }
+          },
+          "soffitTone": "metal"
         }
       ],
       "screens": [

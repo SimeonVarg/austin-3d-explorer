@@ -1895,14 +1895,14 @@
    * them. A hole's edges take a parapet like any other (`parapetSides`
    * lists them by key); a pitched `roof` on a holed block ignores the holes.
    */
-  function capWithHoles(B, F, ringUV, holesUV, z, col) {
+  function capWithHoles(B, F, ringUV, holesUV, z, col, normal=[0,0,1]) {
     const T = window.THREE;
     const c2 = ringUV.map(p => new T.Vector2(p[0], p[1]));
     const h2 = holesUV.map(h => h.map(p => new T.Vector2(p[0], p[1])));
     let idx = [];
     try { idx = T.ShapeUtils.triangulateShape(c2, h2); } catch (e) { idx = []; }
     const all = ringUV.concat(...holesUV).map(p => F.at(p[0], p[1], z));
-    for (const [a, b, c] of idx) B.tri(all[a], all[b], all[c], col, [0, 0, 1]);
+    for (const [a, b, c] of idx) B.tri(all[a], all[b], all[c], col, normal);
   }
 
   function buildingOne(B, spec) {
@@ -2010,6 +2010,13 @@
           if (holesUV.length && !RK) capWithHoles(B, F, capUV, holesUV, zTop, capCol);
           else B.polygon(capUV.map(p => F.at(p[0], p[1], zTop)), capCol, [0, 0, 1], 'xy');
         }
+      }
+      // Elevated slabs and bridges need a downward-facing ceiling. Ordinary
+      // building blocks omit it; a specified soffit retains courtyard holes.
+      if(blk.soffitTone&&blk.z0>0){
+        const col=toneOf(P,blk.soffitTone);
+        if(holesUV.length)capWithHoles(B,F,planUV,holesUV,blk.z0,col,[0,0,-1]);
+        else B.polygon(planUV.map(p=>F.at(p[0],p[1],blk.z0)),col,[0,0,-1],'xy');
       }
       if (blk.parapet) {
         const sides = blk.parapetSides || keys;

@@ -33,6 +33,7 @@ def build():
                 block = dict(id=part['name']+str(i),plan=dict(ring=ring,holes=[list(r.coords)[:-1] for r in piece.interiors]),
                              z0=part['z0'],z1=part['z1'],bands=copy.deepcopy(part['bands']),roofTone=part.get('roofTone','roof'))
                 if part.get('parapet'): block.update(parapet=part['parapet'],parapetTone='stone')
+                if part.get('soffitTone'): block['soffitTone']=part['soffitTone']
                 # Photographed atrium is the connector, not a window grid over
                 # every wall. Blank stone ends stay solid on the wing masses.
                 if part.get('blankShortEnds'):
@@ -40,12 +41,12 @@ def build():
                 blocks.append(block)
                 if part.get('eave'):
                     e=part['eave'];cap=piece.buffer(e['over'],join_style=2)
-                    blocks.append(dict(id=part['name']+'-eave'+str(i),plan=list(cap.exterior.coords)[:-1],z0=part['z1'],z1=part['z1']+e['thick'],bands=[band(part['z1'],part['z1']+e['thick'],e['tone'])],roofTone=e['top']))
+                    blocks.append(dict(id=part['name']+'-eave'+str(i),plan=list(cap.exterior.coords)[:-1],z0=part['z1'],z1=part['z1']+e['thick'],bands=[band(part['z1'],part['z1']+e['thick'],e['tone'])],roofTone=e['top'],soffitTone=e['tone']))
         for screen in p.get('screens',[]):
             a,b=screen['along'];start,end=screen['across'];s=a;i=0
             while s < b:
                 bounds=[start,end,s,min(b,s+screen['width'])] if screen['axis']=='v' else [s,min(b,s+screen['width']),start,end]
-                blocks.append(dict(id='roof-screen-'+str(len(blocks)),plan=bounds,z0=screen['z'],z1=screen['z']+screen['height'],bands=[band(screen['z'],screen['z']+screen['height'],'metal')],roofTone='metal'))
+                blocks.append(dict(id='roof-screen-'+str(len(blocks)),plan=bounds,z0=screen['z'],z1=screen['z']+screen['height'],bands=[band(screen['z'],screen['z']+screen['height'],'metal')],roofTone='metal',soffitTone='metal'))
                 s+=screen['pitch'];i+=1
         result.append(dict(id=p['id'],name=p['name'],code=p['code'],category='campus',
                            footprint=footprint,frame=dict(obb=frame),levels=dict(floors=p['floors']),
@@ -55,7 +56,7 @@ def build():
     bridge=config['bridge'];a=bridge['from'];b=uv(wcp['frame']['obb'],ll(rlp['frame']['obb'],bridge['to']))
     dx,dy=b[0]-a[0],b[1]-a[1];length=(dx*dx+dy*dy)**.5;nx,ny=-dy/length*bridge['width']/2,dx/length*bridge['width']/2
     bridge_plan=[[a[0]-nx,a[1]-ny],[b[0]-nx,b[1]-ny],[b[0]+nx,b[1]+ny],[a[0]+nx,a[1]+ny]]
-    wcp['blocks'].append(dict(id='patton-bridge',plan=bridge_plan,z0=bridge['base'],z1=bridge['top'],bands=[band(bridge['base'],bridge['base']+bridge['bottomBand'],'metal'),band(bridge['base']+bridge['bottomBand'],bridge['top']-bridge['topBand'],'atrium'),band(bridge['top']-bridge['topBand'],bridge['top'],'metal')],roofTone='roof'))
+    wcp['blocks'].append(dict(id='patton-bridge',plan=bridge_plan,z0=bridge['base'],z1=bridge['top'],bands=[band(bridge['base'],bridge['base']+bridge['bottomBand'],'metal'),band(bridge['base']+bridge['bottomBand'],bridge['top']-bridge['topBand'],'atrium'),band(bridge['top']-bridge['topBand'],bridge['top'],'metal')],roofTone='roof',soffitTone='metal'))
     validate(result)
     return dict(version=1,buildings=result)
 

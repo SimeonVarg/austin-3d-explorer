@@ -19,7 +19,8 @@ try{
  page.on('console',m=>{if(m.type()==='error'&&/\[(slopes|campus-landscape)|THREE.WebGL/.test(m.text()))errors.push(m.text())});
  await page.addInitScript(()=>{const t=setInterval(()=>{if(window.cancelGraphicsAutoDetect){cancelGraphicsAutoDetect();clearInterval(t)}},50)});
  await page.goto(BASE+'/index.html?intro=0&drift=0',{waitUntil:'domcontentloaded',timeout:180000});
- await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.campusLandscape?.count.done&&window.__fly?.indexed(),null,{timeout:180000});
+ try{await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.campusLandscape?.count.done&&window.__fly?.indexed(),null,{timeout:180000});}catch(e){console.log('boot',await page.evaluate(()=>({apartments:window.slopesApartments?.count,landscape:window.campusLandscape?.count,fly:window.__fly?.indexed(),entrances:window.__entDefer})),errors);throw e;}
+ console.log('walking scene loaded');
  const geometry=await page.evaluate(()=>{
   let meshes=0,stone=0,glass=0,paving=0;
   slopes.root.traverse(o=>{if(!o.geometry?.attributes.aSurface)return;meshes++;
@@ -83,8 +84,8 @@ try{
   const b=slopesApartments.data.buildings.find(b=>b.code==='WCP'),F=b.frame.obb,part=b.blocks.find(b=>b.id==='patton-bridge');
   const c=part.plan.reduce((s,p)=>[s[0]+p[0]/4,s[1]+p[1]/4],[0,0]);
   const ll=[F.o[0]+(c[0]*F.ax-c[1]*F.ay)/F.mx,F.o[1]+(c[0]*F.ay+c[1]*F.ax)/F.my],p=slopes.toLocal(...ll,5);
-  slopesApartments.group.updateMatrixWorld(true);return new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,-1)).intersectObject(slopesApartments.group,true).length;
- });assert.equal(bridge,0,'bridge leaves ground passage open');
+  slopesApartments.group.updateMatrixWorld(true);const down=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,-1)).intersectObject(slopesApartments.group,true);const up=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,5),new THREE.Vector3(0,0,1)).intersectObject(slopesApartments.group,true);return {ground:down.length,soffit:up[0]?.point.z,expected:part.z0};
+ });assert.equal(bridge.ground,0,'bridge leaves ground passage open');assert.ok(Math.abs(bridge.soffit-bridge.expected)<.001,'bridge has a real underside');
  for(const preset of ['performance','cinematic','balanced']){
   await page.evaluate(p=>{__usePreset(p);applyTimeOfDay(__map,.95,true)},preset);await page.waitForTimeout(900);
   assert.ok(await page.evaluate(()=>slopes.uniforms().u_surfaceSky.value.toArray().every(Number.isFinite)));
