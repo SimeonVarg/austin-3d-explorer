@@ -2211,10 +2211,16 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
+    // Every complete authored model replaces older Drag facade/cap geometry.
+    // Restricting this to the new street shops left PCL and Texas Union drawing
+    // two different elevations and roofs in the same place.
+    if (gone.length) for (const id of ['drag-wall','drag-cap','drag-detail']) {
+      plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', gone]]]]);
+    }
     // Street shops explicitly replace their old frontage and door skins. Keep
     // pools and unrelated entrances; these sources share a building id (bid).
     const frontages = _data.buildings.filter(b => b.replaceFrontage).map(b => b.id);
-    if (frontages.length) for (const id of ['drag-wall','drag-cap','drag-detail','places-solid','places-glass','places-entry','places-label','entrances-portal','entrances-glass','entrances-detail','entrances-mullion','entrances-inscription','entrances-wordmark']) {
+    if (frontages.length) for (const id of ['places-solid','places-glass','places-entry','places-label','entrances-portal','entrances-glass','entrances-detail','entrances-mullion','entrances-inscription','entrances-wordmark']) {
       plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', frontages]]]]);
     }
     const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset, true);

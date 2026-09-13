@@ -91,6 +91,9 @@ jobs:
       - name: Update manifest
         run: python3 scripts/update_manifest.py
 
+      - name: Rebind roofscape to current wall heights
+        run: python3 scripts/bake_roof_anchors.py
+
       - name: Commit baked data
         run: |
           git config user.name  "austin-data-bot"

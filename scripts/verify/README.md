@@ -720,3 +720,22 @@ changed are:
   determinant, which uncancels it: every front face is culled and the sampled
   wall reads exactly the formula's UNLIT value. A pixel proved that in a way
   no amount of handedness reasoning had.
+
+## Campus roof and pavement repairs
+
+`python scripts/verify/campus-repairs-data.py` checks campus and West Campus
+walking surfaces, scored paving and raised curbs against the actual rendered
+asphalt. `--before` must fail on the original overlap. `campus-repairs-check.mjs`
+checks the real roof predicate, loaded equipment tiers, retired facade overlays,
+nearby routes and night/preset behaviour. Its `--break` mode substitutes the
+unsupported polygon-within predicate and must fail.
+
+`VERIFY_OUT=<scratch> node scripts/verify/campus-repairs-visuals.mjs` captures
+matched views; use `CAMPUS_STAGE=before` for the frozen baseline, `CAMPUS_ONLY`
+for a comma-separated subset and `CAMPUS_TIME=1` for night. The script cancels
+auto-detection and retains the second screenshot.
+
+Ground-only repairs can run with `python scripts/bake_ground.py --resolve-pavement`.
+A full ground regeneration runs that stage automatically. The road recipe no
+longer writes a second file as a side effect; run `python scripts/bake_roads.py`
+separately when road markings/tiles need rebuilding.

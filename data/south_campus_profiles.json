@@ -1,0 +1,655 @@
+{
+  "snapshot": "2026-09-13",
+  "angle": 5,
+  "parapet": 0.28,
+  "colours": {
+    "wall": {
+      "hex": "#b9aa8c"
+    },
+    "stone": {
+      "hex": "#cec4ac"
+    },
+    "roof": {
+      "hex": "#918e80"
+    },
+    "glass": {
+      "hex": "#455859"
+    },
+    "dark": {
+      "hex": "#2c393a"
+    },
+    "metal": {
+      "hex": "#504e45"
+    },
+    "plant": {
+      "hex": "#9c9d96"
+    },
+    "brick": {
+      "hex": "#b07c58"
+    }
+  },
+  "buildings": [
+    {
+      "id": "c7ac4306-b855-40b0-813b-923d119ea039",
+      "code": "UTC",
+      "name": "University Teaching Center",
+      "height": 18.6,
+      "floors": [
+        0,
+        5.4,
+        10.8
+      ],
+      "colours": {
+        "wall": "#c5bba5",
+        "stone": "#c9bfa9",
+        "glass": "#354448"
+      },
+      "skins": {
+        "slots": {
+          "kind": "bays",
+          "field": "wall",
+          "bay": 2.55,
+          "windowRule": "all",
+          "window": {
+            "w": 0.95,
+            "h": 4.2,
+            "sill": 0.45
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.78,
+          "pier": {
+            "w": 0.34,
+            "d": 0.3,
+            "tone": "stone"
+          }
+        },
+        "lobby": {
+          "kind": "storefront",
+          "glass": "dark",
+          "frame": "metal",
+          "mullion": 3.1,
+          "mullionW": 0.12,
+          "transom": 0.06,
+          "fascia": 0.1,
+          "fasciaTone": "wall",
+          "reveal": 1.05
+        },
+        "west": {
+          "kind": "bays",
+          "field": "wall",
+          "bay": 2.55,
+          "windowRule": "all",
+          "window": {
+            "w": 0.95,
+            "h": 4.2,
+            "sill": 0.45
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.78,
+          "windowSkip": [
+            [
+              0,
+              14
+            ],
+            [
+              34,
+              49
+            ],
+            [
+              70,
+              85
+            ]
+          ]
+        }
+      },
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 18.6,
+          "skin": "wall"
+        }
+      ],
+      "elevations": [
+        {
+          "edges": [
+            4,
+            9,
+            10,
+            12
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.35,
+              "skin": "stone"
+            },
+            {
+              "z0": 0.35,
+              "z1": 4.5,
+              "skin": "lobby"
+            },
+            {
+              "z0": 4.5,
+              "z1": 5.4,
+              "skin": "wall"
+            },
+            {
+              "z0": 5.4,
+              "z1": 16,
+              "skin": "slots"
+            },
+            {
+              "z0": 16,
+              "z1": 18.6,
+              "skin": "wall"
+            }
+          ]
+        },
+        {
+          "edges": [
+            13
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.5,
+              "skin": "lobby"
+            },
+            {
+              "z0": 4.5,
+              "z1": 5.4,
+              "skin": "wall"
+            },
+            {
+              "z0": 5.4,
+              "z1": 16,
+              "skin": "west"
+            },
+            {
+              "z0": 16,
+              "z1": 18.6,
+              "skin": "wall"
+            }
+          ]
+        }
+      ],
+      "blocks": [
+        {
+          "id": "21st-pedestrian-bridge",
+          "plan": [
+            31.9,
+            37.7,
+            91.8,
+            125.0
+          ],
+          "z0": 5.3,
+          "z1": 8.5,
+          "bands": [
+            {
+              "z0": 5.3,
+              "z1": 5.7,
+              "skin": "dark"
+            },
+            {
+              "z0": 5.7,
+              "z1": 8.25,
+              "skin": "stone"
+            },
+            {
+              "z0": 8.25,
+              "z1": 8.5,
+              "skin": "dark"
+            }
+          ],
+          "roofTone": "roof"
+        },
+        {
+          "id": "bridge-south-pier",
+          "plan": [
+            32.4,
+            34,
+            90.3,
+            92.3
+          ],
+          "z0": 0,
+          "z1": 5.3,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 5.3,
+              "skin": "stone"
+            }
+          ],
+          "roofTone": "stone"
+        },
+        {
+          "id": "bridge-north-pier",
+          "plan": [
+            32.4,
+            34,
+            123,
+            125
+          ],
+          "z0": 0,
+          "z1": 5.3,
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 5.3,
+              "skin": "stone"
+            }
+          ],
+          "roofTone": "stone"
+        }
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UTC/",
+      "observations": "UT exterior photographs show a dark recessed ground level, two tall rows of narrow deep openings, large blank limestone piers and an enclosed bridge across 21st Street. The model represents those visible elevations; floor numbering is not a measurement of above-grade facade rows.",
+      "open": [
+        "The site is on a slope; the below-grade level and exact bridge profile remain simplified."
+      ]
+    },
+    {
+      "id": "3558486d-51f8-4751-bf8f-7e1463136f11",
+      "code": "GSB",
+      "name": "Graduate School of Business Building",
+      "height": 24.2,
+      "floors": [
+        0,
+        4.4,
+        8.8,
+        13.2,
+        17.6,
+        21.3
+      ],
+      "skins": {
+        "brick-bays": {
+          "kind": "bays",
+          "field": "brick",
+          "bay": 2.65,
+          "windowRule": "all",
+          "window": {
+            "w": 1.15,
+            "h": 2.65,
+            "sill": 0.7
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.3
+        },
+        "curtain": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 1.6,
+          "mullionW": 0.075,
+          "transom": 0.06,
+          "fascia": 0.08,
+          "fasciaTone": "metal",
+          "reveal": 0.22
+        }
+      },
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 21.3,
+          "skin": "brick-bays"
+        },
+        {
+          "z0": 21.3,
+          "z1": 23.7,
+          "skin": "curtain"
+        },
+        {
+          "z0": 23.7,
+          "z1": 24.2,
+          "skin": "stone"
+        }
+      ],
+      "elevations": [
+        {
+          "edges": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.4,
+              "skin": "stone"
+            },
+            {
+              "z0": 0.4,
+              "z1": 4.4,
+              "skin": "curtain"
+            },
+            {
+              "z0": 4.4,
+              "z1": 4.85,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.85,
+              "z1": 8.8,
+              "skin": "curtain"
+            },
+            {
+              "z0": 8.8,
+              "z1": 13.2,
+              "skin": "curtain"
+            },
+            {
+              "z0": 13.2,
+              "z1": 17.6,
+              "skin": "curtain"
+            },
+            {
+              "z0": 17.6,
+              "z1": 21.3,
+              "skin": "curtain"
+            },
+            {
+              "z0": 21.3,
+              "z1": 23.7,
+              "skin": "curtain"
+            },
+            {
+              "z0": 23.7,
+              "z1": 24.2,
+              "skin": "stone"
+            }
+          ]
+        }
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/GSB/",
+      "observations": "Angled reflective glazed atrium, fine dark mullions, limestone entry surround and adjoining brick classroom wings. Glass follows the west and diagonal courtyard edges, not the east brick wall.",
+      "open": [
+        "Entry stairs and the inclined glazing above the portal remain simplified."
+      ]
+    },
+    {
+      "id": "e246e0b6-540a-4fcd-8feb-b7a43fef90f4",
+      "code": "CBA",
+      "name": "McCombs School of Business",
+      "height": 22.4,
+      "floors": [
+        0,
+        4.3,
+        8.6,
+        12.9,
+        17.2
+      ],
+      "colours": {
+        "wall": "#b9855f"
+      },
+      "skins": {
+        "punched": {
+          "kind": "bays",
+          "field": "wall",
+          "bay": 2.7,
+          "windowRule": "all",
+          "window": {
+            "w": 1.2,
+            "h": 2.8,
+            "sill": 0.75
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.38
+        },
+        "top": {
+          "kind": "bays",
+          "field": "stone",
+          "bay": 2.7,
+          "windowRule": "all",
+          "window": {
+            "w": 1.8,
+            "h": 2.9,
+            "sill": 0.4
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.55,
+          "pier": {
+            "w": 0.3,
+            "d": 0.25,
+            "tone": "stone"
+          }
+        },
+        "entry": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 1.6,
+          "mullionW": 0.075,
+          "transom": 0.06,
+          "fascia": 0.08,
+          "fasciaTone": "metal",
+          "reveal": 0.22
+        }
+      },
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 0.5,
+          "skin": "stone"
+        },
+        {
+          "z0": 0.5,
+          "z1": 4.3,
+          "skin": "punched"
+        },
+        {
+          "z0": 4.3,
+          "z1": 17.2,
+          "skin": "punched"
+        },
+        {
+          "z0": 17.2,
+          "z1": 17.6,
+          "skin": "stone"
+        },
+        {
+          "z0": 17.6,
+          "z1": 21.6,
+          "skin": "top"
+        },
+        {
+          "z0": 21.6,
+          "z1": 22.4,
+          "skin": "stone"
+        }
+      ],
+      "elevations": [
+        {
+          "edges": [
+            2
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.4,
+              "skin": "stone"
+            },
+            {
+              "z0": 0.4,
+              "z1": 4.3,
+              "skin": "entry"
+            },
+            {
+              "z0": 4.3,
+              "z1": 17.2,
+              "skin": "punched"
+            },
+            {
+              "z0": 17.2,
+              "z1": 17.6,
+              "skin": "stone"
+            },
+            {
+              "z0": 17.6,
+              "z1": 21.6,
+              "skin": "top"
+            },
+            {
+              "z0": 21.6,
+              "z1": 22.4,
+              "skin": "stone"
+            }
+          ]
+        }
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/CBA/",
+      "observations": "Warm brick, repeated narrow punched openings, pale base, a recessed top row with pronounced pale piers and a broad roof cornice. Ground lobby glazing is concentrated on the 21st Street elevation.",
+      "open": [
+        "North and south wings share an approximate height; exact cornice and entry steps remain simplified."
+      ]
+    },
+    {
+      "id": "2dab807b-b10c-4d96-9bb5-12317b519e75",
+      "code": "SZB",
+      "name": "George I. Sanchez Building",
+      "height": 21.5,
+      "floors": [
+        0,
+        4.3,
+        8.6,
+        12.9,
+        17.2
+      ],
+      "colours": {
+        "wall": "#b9a786",
+        "stone": "#c0b094"
+      },
+      "skins": {
+        "pairs": {
+          "kind": "bays",
+          "field": "wall",
+          "bay": 4.6,
+          "windowRule": "all",
+          "window": {
+            "w": 1.65,
+            "h": 2.8,
+            "sill": 0.6
+          },
+          "glass": "glass",
+          "frame": "metal",
+          "reveal": 0.72
+        },
+        "curtain": {
+          "kind": "storefront",
+          "glass": "glass",
+          "frame": "metal",
+          "mullion": 1.6,
+          "mullionW": 0.075,
+          "transom": 0.06,
+          "fascia": 0.08,
+          "fasciaTone": "metal",
+          "reveal": 0.22
+        }
+      },
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 21.0,
+          "skin": "pairs"
+        },
+        {
+          "z0": 21,
+          "z1": 21.5,
+          "skin": "wall"
+        }
+      ],
+      "elevations": [
+        {
+          "edges": [
+            3,
+            19,
+            23,
+            31,
+            46,
+            50
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 0.35,
+              "skin": "wall"
+            },
+            {
+              "z0": 0.35,
+              "z1": 4.3,
+              "skin": "curtain"
+            },
+            {
+              "z0": 4.3,
+              "z1": 8.6,
+              "skin": "curtain"
+            },
+            {
+              "z0": 8.6,
+              "z1": 12.9,
+              "skin": "curtain"
+            },
+            {
+              "z0": 12.9,
+              "z1": 17.2,
+              "skin": "curtain"
+            },
+            {
+              "z0": 17.2,
+              "z1": 21,
+              "skin": "curtain"
+            },
+            {
+              "z0": 21,
+              "z1": 21.5,
+              "skin": "wall"
+            }
+          ]
+        },
+        {
+          "edges": [
+            4,
+            5,
+            6,
+            15,
+            16,
+            17,
+            24,
+            25,
+            26,
+            27,
+            28,
+            30,
+            32,
+            33,
+            34,
+            43,
+            44,
+            45,
+            51,
+            52,
+            53
+          ],
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 21.5,
+              "skin": "wall"
+            }
+          ]
+        }
+      ],
+      "source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/SZB/",
+      "observations": "Five-storey buff masonry wings, broad dark glazing fields, deep paired openings and the mapped curved stair volumes. Alternating blank end walls and glass wings follow the real irregular footprint.",
+      "open": [
+        "The 2026 plaza work and Autobiography of Circles artwork are not reproduced in this model."
+      ]
+    }
+  ]
+}

@@ -77,6 +77,25 @@
   const SRC_D = 'austin-roofscape-detail';  // tier 1 — 2.4 MB, only if you go low
   const DECK = 'roofscape-deck', MAJOR = 'roofscape-major', MINOR = 'roofscape-minor';
   const LAYERS = [DECK, MAJOR, MINOR];
+  let anchors = [], initializing = false;
+  const anchorsReady = fetch('data/roof_anchors.json').then(r => {
+    if (!r.ok) throw new Error('roof anchors HTTP ' + r.status);
+    return r.json();
+  }).then(data => { anchors = data.anchors; window.roofscapeAnchors = data; });
+  // Handle the promise immediately even when map initialization is delayed.
+  anchorsReady.catch(e => console.error('[roofscape] placement data:', e));
+
+  function placedHeight(property) {
+    const expr = ['case'];
+    for (const a of anchors) {
+      // `within` does not classify polygon source features. Roof decks and
+      // units are polygons, so use the same polygon-distance test as their
+      // authored-building replacement masks.
+      expr.push(['all', ['==', ['distance', a.geometry], 0],
+        ['in', ['get', 'b'], ['literal', a.oldBases]]], ['+', ['get', property], a.delta]);
+    }
+    return anchors.length ? expr.concat([['get', property]]) : ['get', property];
+  }
 
   const clamp01 = v => Math.max(0, Math.min(1, v));
 
@@ -124,8 +143,11 @@
     return s ? s.id : undefined;
   }
 
-  window.initRoofscape = function initRoofscape(map) {
-    if (!ROOFS.on || !map || map.getSource(SRC)) return;
+  window.initRoofscape = async function initRoofscape(map) {
+    if (!ROOFS.on || !map || map.getSource(SRC) || initializing) return;
+    initializing = true;
+    try { await anchorsReady; }
+    catch (e) { initializing = false; throw e; }
     map.addSource(SRC, { type: 'geojson', data: 'data/roofscape.geojson' });
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
     const anchor = anchorId(map);
@@ -137,8 +159,8 @@
         filter: ['==', ['get', 'k'], 'deck'],
         paint: {
           'fill-extrusion-color': col,
-          'fill-extrusion-height': ['get', 'h'],
-          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': placedHeight('h'),
+          'fill-extrusion-base': placedHeight('b'),
           'fill-extrusion-opacity': 1.0,
         },
       }, anchor);
@@ -149,8 +171,8 @@
         filter: filterFor(0),
         paint: {
           'fill-extrusion-color': col,
-          'fill-extrusion-height': ['get', 'h'],
-          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': placedHeight('h'),
+          'fill-extrusion-base': placedHeight('b'),
           'fill-extrusion-opacity': 1.0,
           // ON for the clutter and pointless for the deck: the gradient darkens
           // the bottom of an extrusion, which is what makes a 1.7 m box read as
@@ -217,8 +239,8 @@
           filter: filterFor(1),
           paint: {
             'fill-extrusion-color': bakedColor(p),
-            'fill-extrusion-height': ['get', 'h'],
-            'fill-extrusion-base': ['get', 'b'],
+            'fill-extrusion-height': placedHeight('h'),
+            'fill-extrusion-base': placedHeight('b'),
             // Fades in over half a zoom level instead of a thousand boxes
             // popping into existence on one frame.
             'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'],
@@ -309,7 +331,7 @@
         }
         return setTimeout(go, 120);
       }
-      try { window.initRoofscape(map); } catch (e) { console.error('[roofscape]', e); }
+      window.initRoofscape(map).catch(e => console.error('[roofscape]', e));
     };
     if (map.isStyleLoaded && map.isStyleLoaded()) go();
     else map.once('load', () => setTimeout(go, 0));

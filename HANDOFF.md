@@ -1,5 +1,34 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 13 2026 — Campus visual repairs (`codex/campus-visual-repairs`)
+
+Fixed the suspended church roof beside UTC and the Catholic Center's buried
+deck, including both roof-equipment tiers. A small placement bake binds stale
+roof heights to the current building snapshot without rewriting roof geometry.
+The snapshot workflow refreshes it when the building data changes.
+
+UTC, GSB, CBA and Sanchez now have individual facades based on UT exterior
+photos; UTC also gains its enclosed 21st Street bridge. The collection has 192
+models. Heights and unphotographed elevations remain approximate. PCL and Texas
+Union no longer draw old Drag facade/cap geometry over their authored models.
+
+The final ground stage clips path surfaces, texture strips and raised curbs
+against the complete rendered carriageways. The last visible intersection
+outlines came from curbs around separate road classes. All unrelated ground is
+unchanged. Ground and road output now have separate owning bake scripts.
+
+See docs/campus-visual-repairs.md for two cited before/after sheets, sources,
+limits and verification. Matched views cover UTC, its neighboring church, the
+business complex, Sanchez, Guadalupe, Dean Keeton and east campus. No Mac-owned
+or open Drag experiment code/output changed. HANDOFF is the sole shared
+documentation overlap with #164 and #189.
+
+Verified against main at 9b9aacb: campus-repairs-data, campus-repairs-check,
+seven matched camera views, guadalupe-check (including roof/facade fallback,
+presets and night), live-here-buildings (all 19 route pairs and roof-cut rays),
+harness-drift and diff checks. Watched original pavement and invalid roof
+predicate failures both failed as intended. PR #246 records this pass.
+
 ## Sep 12 2026 — Guadalupe and missing apartments (`codex/guadalupe-neighborhood`)
 
 Added 67 street-front profiles along Guadalupe, MLK to West 29th, and 45
