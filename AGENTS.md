@@ -154,3 +154,8 @@ Simeon reports a floating roof beside UTC, insufficient detail on UTC and other
 campus buildings, and sidewalk outlines bleeding into roads. Fix the visible
 defects and inspect surrounding campus areas for the same failure patterns;
 previously passed checks do not establish visual acceptance.
+
+Simeon authorized the next walking-height pass on September 13 ("do it").
+Repair the Gearing/Goldsmith ground defects, then improve the connected UTC,
+PCL, Gregory and Speedway area: materials, entrances, planting and surrounding
+facades together. Keep each bake/output ownership intact and verify close views.
