@@ -40,7 +40,9 @@ def make_building(p, feature, config, roofs):
             bands[1]['canopies']=[dict(s0=t['awningEnd'],s1=max(t['awningEnd']+t['awningMinimum'],length-t['awningEnd']),z=t['awningHeight'],d=p['canopy'],t=t['awningThickness'],tone='awning',soffitTone='dark')]
         base['faces'][str(edge)]=dict(bands=bands)
     blocks=[base]
-    if p.get('preserveRoof'):
+    aligned=abs(h-feature['properties']['final_height'])<0.05 and not p.get('special')
+    keep_roof=p.get('preserveRoof',t['retainSurveyedRoofs'] and aligned)
+    if keep_roof:
         rigs=[r for k,r in roofs.items()if k.startswith(p['id']+'/')]
         if rigs:
             # These selected small roofs are kept only at their existing height.
@@ -72,7 +74,7 @@ def make_building(p, feature, config, roofs):
             base['faces'][str(edge)]=dict(bands=[band(0,h,'bar-window',canopies=[dict(s0=c['awningEnd'],s1=length-c['awningEnd'],z=c['awningHeight'],d=c['awningDepth'],t=c['awningThickness'],tone='awning')])])
     return dict(id=p['id'],name=p['name'],category='guadalupe',replaceFrontage=True,aliases=p.get('aliases',[]),labelOverride=p.get('labelOverride',False),
                 sources=dict(reference=p['source'],observations=p['observations'],footprint='data/snapshots/'+config['snapshot']+'/buildings.detailed.geojson',dimensions='Footprints retained. Heights, facade subdivisions, sign sizing and unphotographed elevations are approximate unless explicitly measured in the source.'),
-                footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,blocks=blocks,preserveRoof=p.get('preserveRoof',False))
+                footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,blocks=blocks,preserveRoof=keep_roof,preserveRoofscape=t['retainSurveyedRoofs'] and aligned)
 
 
 def main():

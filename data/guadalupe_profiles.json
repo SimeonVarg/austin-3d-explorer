@@ -12,6 +12,7 @@
     "treeBufferMeters": 34
   },
   "detail": {
+    "retainSurveyedRoofs": true,
     "angle": 5,
     "shopHeight": 3.3,
     "shopBay": 2.25,

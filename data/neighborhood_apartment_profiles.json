@@ -1,6 +1,7 @@
 {
   "snapshot": "2026-09-12",
   "detail": {
+    "retainSurveyedRoofs": true,
     "angle": 5,
     "ground": 3.8,
     "bay": 3.5,

@@ -8,10 +8,12 @@ const idx=read('data/apartments/index.json'),shops=read('data/guadalupe.json').b
 const all=[...idx.buildings.map(f=>read('data/apartments/'+f)),...(idx.collections||[]).flatMap(f=>read(f).buildings)];
 assert.equal(new Set(all.map(b=>b.id)).size,all.length,'one authored model per footprint');
 assert.equal(shops.length,67);assert.ok(homes.length>=39);
+const snapshot=new Map(read('data/snapshots/2026-09-12/buildings.detailed.geojson').features.map(f=>[f.properties.id,f]));
 for(const b of [...shops,...homes]){
  assert.ok(b.sources.reference&&b.sources.observations,b.name+' has provenance');
  assert.ok(b.levels.floors.every((h,i,a)=>Number.isFinite(h)&&(!i||h>a[i-1])),b.name+' has ordered floors');
  if(b.balcony)assert.ok(b.colours[b.balcony.slabTone]&&b.colours[b.balcony.railTone],b.name+' has balcony colours');
+ if(b.preserveRoofscape)assert.ok(Math.abs(b.blocks[0].z1-snapshot.get(b.id).properties.final_height)<.05,b.name+' retained roof matches original elevation');
 }
 const old=f=>JSON.parse(execFileSync('git',['show','2f4bc2e:'+f],{cwd:root,maxBuffer:5000000}));
 const oi=old('data/apartments/index.json');
@@ -61,6 +63,11 @@ try{
   assert.deepEqual(oldFronts,[],'old frontage is replaced throughout Guad');
  }
  console.log('frontages pass');
+ // This center lies inside Medici's measured deck. A broad viewport query
+ // would pass on neighboring roofs even if this roof were still erased.
+ await page.evaluate(()=>__map.jumpTo({center:[-97.74214339872687,30.28545225],zoom:21,pitch:0,bearing:0}));await page.waitForTimeout(3000);
+ assert.ok(await page.evaluate(()=>__map.queryRenderedFeatures(__map.project([-97.74214339872687,30.28545225]),{layers:['roofscape-deck']}).length)>0,'Medici retains its measured roof deck');
+ console.log('surveyed roof retained');
  const fences=()=>page.evaluate(()=>__map.queryRenderedFeatures({layers:['props-line']}).filter(f=>f.properties.u==='fence'&&f.geometry.coordinates.flat(2).some((v,i,a)=>i%2===0&&v> -97.74181&&v< -97.74170&&a[i+1]>30.28609&&a[i+1]<30.28639)).length);
  await page.evaluate(()=>__map.jumpTo({center:[-97.74178,30.2862],zoom:19.5,pitch:0,bearing:0}));await page.waitForTimeout(3500);
  assert.equal(await fences(),0,'solid fences disappear at the Co-op');

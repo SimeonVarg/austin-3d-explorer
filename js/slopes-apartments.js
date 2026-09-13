@@ -2106,13 +2106,14 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset) {
+  function hideGeometry(inset, roofscapeOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const key = inset + '|' + ((_data && _data.buildings) || []).map(b => b.name).join('|');
+    const buildings = ((_data && _data.buildings) || []).filter(b => !roofscapeOnly || !b.preserveRoofscape);
+    const key = inset + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
-    for (const b of (_data && _data.buildings) || []) {
+    for (const b of buildings) {
       const ring = b.footprint && b.footprint.ring;
       if (!ring || ring.length < 4) continue;
       const pts = ring.slice(0, ring.length - 1);
@@ -2216,7 +2217,7 @@
     if (frontages.length) for (const id of ['drag-wall','drag-cap','drag-detail','places-solid','places-glass','places-entry','places-label','entrances-portal','entrances-glass','entrances-detail','entrances-mullion','entrances-inscription','entrances-wordmark']) {
       plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', frontages]]]]);
     }
-    const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset);
+    const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset, true);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
     const geoW = APTS.hideRoofscape && hideGeometry(0);
     if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);

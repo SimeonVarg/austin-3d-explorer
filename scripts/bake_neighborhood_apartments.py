@@ -106,7 +106,9 @@ def bake(profile, feature, config, roofs):
                 aliases=profile.get('aliases',[]),sources=dict(reference=profile['source'],observations=profile['observations'],
                 footprint='data/snapshots/'+config['snapshot']+'/buildings.detailed.geojson',dimensions=profile.get('dimensions','Footprint retained; facade spacing, heights without explicit source measurements and unseen elevations are approximate.')),
                 footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,
-                blocks=blocks,preserveRoof=preserve,balcony=copy.deepcopy(config['balcony']),deck=dict(z=0,items=deckItems))
+                blocks=blocks,preserveRoof=preserve,
+                preserveRoofscape=t['retainSurveyedRoofs'] and len(blocks)==1 and not deckItems and not profile.get('envelope') and not profile.get('courtyards') and abs(h-feature['properties']['final_height'])<0.05,
+                balcony=copy.deepcopy(config['balcony']),deck=dict(z=0,items=deckItems))
 
 
 def frange(start,stop,step):
