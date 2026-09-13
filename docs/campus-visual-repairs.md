@@ -83,5 +83,18 @@ All facade proportions, materials and massing choices are editable in
   exposure and time of day, cancels graphics auto-detection, and saves the second
   screenshot. Frames use hardware Chrome at 1440×960 without CPU throttling.
 
+All three checks passed on the integrated main baseline `9b9aacb`. The data
+`--before` and runtime `--break` checks failed as intended. Seven final camera
+views were inspected after correcting the roof predicate and curb geometry.
+`guadalupe-check.mjs` passed finite geometry, retained roofs, frontage/fence
+fallbacks, all three presets and night rendering. `live-here-buildings.mjs`
+passed its real roof-cut rays and watched original failure, valid facade
+references, all registered models and all 19 existing walking routes within
+3m of their baseline. `harness-drift.mjs` and `git diff --check` passed.
+
+The runtime collector excludes the renderer's informational floor-band
+diagnostics for blank cornices/lintels; invalid skins, invalid faces, subsystem
+errors and unexpected warnings still fail. No performance improvement is claimed.
+
 Branch: `codex/campus-visual-repairs`. No Mac-owned or open Drag experiment
 code/output is changed. HANDOFF is the only overlap with the older open PRs.

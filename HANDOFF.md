@@ -23,6 +23,12 @@ business complex, Sanchez, Guadalupe, Dean Keeton and east campus. No Mac-owned
 or open Drag experiment code/output changed. HANDOFF is the sole shared
 documentation overlap with #164 and #189.
 
+Verified against main at 9b9aacb: campus-repairs-data, campus-repairs-check,
+seven matched camera views, guadalupe-check (including roof/facade fallback,
+presets and night), live-here-buildings (all 19 route pairs and roof-cut rays),
+harness-drift and diff checks. Watched original pavement and invalid roof
+predicate failures both failed as intended. PR #246 records this pass.
+
 ## Sep 12 2026 — Guadalupe and missing apartments (`codex/guadalupe-neighborhood`)
 
 Added 67 street-front profiles along Guadalupe, MLK to West 29th, and 45
