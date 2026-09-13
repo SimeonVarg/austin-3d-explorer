@@ -1,0 +1,1215 @@
+{
+  "snapshot": "2026-09-12",
+  "detail": {
+    "retainSurveyedRoofs": true,
+    "angle": 5,
+    "ground": 3.8,
+    "bay": 3.5,
+    "window": 1.6,
+    "windowHeightRatio": 0.66,
+    "sill": 0.62,
+    "frame": 0.075,
+    "mullion": 0.045,
+    "reveal": 0.18,
+    "lobbyReveal": 0.23,
+    "lobbyBay": 2.0,
+    "lobbyMullion": 0.08,
+    "transom": 0.78,
+    "fascia": 0.22,
+    "screenBay": 3.2,
+    "screenPitch": 0.3,
+    "screenWidth": 0.12,
+    "curtainReveal": 0.09,
+    "curtainBay": 1.6,
+    "curtainMullion": 0.07,
+    "curtainTransom": 0.8,
+    "curtainFascia": 0.14,
+    "cornice": 0.34,
+    "parapet": 0.65,
+    "podiumInset": 0.65,
+    "roofClearance": 0.15,
+    "roofOver": 0.26,
+    "balconyWidth": 2.6,
+    "balconyEnd": 1.1,
+    "balconyPitch": 7.1,
+    "mullionCols": [
+      0.5
+    ],
+    "windowRule": "all"
+  },
+  "colours": {
+    "wall": {
+      "hex": "#c4c2b8"
+    },
+    "stone": {
+      "hex": "#c9bd9f"
+    },
+    "trim": {
+      "hex": "#e4e0d4"
+    },
+    "accent": {
+      "hex": "#535f64"
+    },
+    "metal": {
+      "hex": "#596369"
+    },
+    "dark": {
+      "hex": "#293338"
+    },
+    "glass": {
+      "hex": "#4f737c"
+    },
+    "curtainGlass": {
+      "hex": "#62908e"
+    },
+    "roof": {
+      "hex": "#92938d"
+    },
+    "pool": {
+      "hex": "#408e97"
+    },
+    "wood": {
+      "hex": "#8c7051"
+    },
+    "rail": {
+      "hex": "#424a4d"
+    },
+    "balc": {
+      "hex": "#babbb5"
+    }
+  },
+  "balcony": {
+    "proj": 0.8,
+    "slabT": 0.14,
+    "railH": 1.05,
+    "railT": 0.04,
+    "slabTone": "balc",
+    "railTone": "rail",
+    "railPitch": 0.16
+  },
+  "buildings": [
+    {
+      "name": "Crest at Pearl",
+      "id": "ee8c58ee-b1ac-41b1-be75-dc307bcde8a0",
+      "floors": 7,
+      "height": 23,
+      "colours": {
+        "wall": "#d4d2c5",
+        "accent": "#716856"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/crest-at-pearl",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        0
+      ]
+    },
+    {
+      "name": "Rio House Apartments",
+      "id": "aa286e15-f82c-406e-a845-5d0631d80395",
+      "floors": 5,
+      "height": 17,
+      "colours": {
+        "wall": "#cec5b6",
+        "accent": "#8d6651"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        8
+      ],
+      "accentEdges": [
+        8
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Envoy Apartments West Campus",
+      "id": "1bffa6bb-92ee-4e4a-ac7c-945125792c7d",
+      "floors": 2,
+      "height": 7.1,
+      "colours": {
+        "wall": "#bbbdb9",
+        "accent": "#4d666d"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "West Campus Flats",
+      "id": "d88dd7df-dbd1-4a5d-87ae-ccd6ff33ba25",
+      "floors": 2,
+      "height": 7.2,
+      "colours": {
+        "wall": "#c5beb4",
+        "accent": "#707f85"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "Diplomat West Campus",
+      "id": "41e34c24-65d8-4bcc-96ae-b1b527649f04",
+      "floors": 3,
+      "height": 10.2,
+      "colours": {
+        "wall": "#dbd1bd",
+        "accent": "#665b4f"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "21 Pearl West Campus",
+      "id": "fa083239-119f-44f1-9a4c-9e106e84c94a",
+      "floors": 5,
+      "height": 17.5,
+      "colours": {
+        "wall": "#b9b3a7",
+        "accent": "#606971"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        13
+      ],
+      "accentEdges": [
+        13
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "The Texan Shoal Creek",
+      "id": "6bae1b04-356d-4b98-801e-b9614dfaf36b",
+      "floors": 5,
+      "height": 18.7,
+      "colours": {
+        "wall": "#bdafa0",
+        "accent": "#6e777a"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        2
+      ],
+      "accentEdges": [
+        2
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Waterford Condominiums",
+      "id": "3f64e7ea-5a96-4028-a3be-c9318d9b4e7f",
+      "floors": 5,
+      "height": 18.5,
+      "colours": {
+        "wall": "#d1c3a4",
+        "accent": "#997a65"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        16
+      ],
+      "accentEdges": [
+        16
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "HillTop",
+      "id": "9f8dbbd9-260d-4588-b76f-bfb254b08897",
+      "floors": 5,
+      "height": 18.5,
+      "colours": {
+        "wall": "#e4dfd3",
+        "accent": "#505b63"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        33
+      ],
+      "accentEdges": [
+        33
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Yugo The Corner",
+      "id": "3de7a448-64eb-450d-94ad-76489525c634",
+      "floors": 7,
+      "height": 24,
+      "colours": {
+        "wall": "#bdbbb2",
+        "accent": "#687d86"
+      },
+      "source": "https://www.markhartarch.com/ruckus-20/",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        15
+      ],
+      "accentEdges": [
+        15
+      ],
+      "preserveRoof": false
+    },
+    {
+      "name": "Texan26",
+      "id": "c3c6a75c-c28c-4e0b-a989-c544152425ed",
+      "floors": 5,
+      "height": 18.5,
+      "colours": {
+        "wall": "#b5b6ab",
+        "accent": "#665c50"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        4
+      ],
+      "accentEdges": [
+        4
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Barranca Square Student Apartments",
+      "id": "0b9217ea-ae66-438b-9487-74b61a94b581",
+      "floors": 2,
+      "height": 7,
+      "colours": {
+        "wall": "#cfb898",
+        "accent": "#875b45"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        12
+      ],
+      "accentEdges": [
+        12
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "Avia Apartments",
+      "id": "447eb759-4dfd-47b7-9e29-cb60d87cf695",
+      "floors": 5,
+      "height": 17,
+      "colours": {
+        "wall": "#d1c9b8",
+        "accent": "#716861"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "The Nine at West Campus",
+      "id": "5087a362-0908-4863-a94b-6d7cf6e87d92",
+      "floors": 5,
+      "height": 17,
+      "colours": {
+        "wall": "#d9d6cd",
+        "accent": "#667981"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        83
+      ],
+      "accentEdges": [
+        83
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        83
+      ]
+    },
+    {
+      "name": "The Block",
+      "id": "bddea10c-167d-4394-9cd8-5af5cc7d853f",
+      "floors": 6,
+      "height": 21.5,
+      "colours": {
+        "wall": "#d9d0b9",
+        "accent": "#9d704d"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        62
+      ],
+      "accentEdges": [
+        62
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        62
+      ]
+    },
+    {
+      "name": "Rio Grande Square Student Housing",
+      "id": "b1d15ed5-5a69-4a0b-a60b-195ca933a79f",
+      "floors": 2,
+      "height": 7.2,
+      "colours": {
+        "wall": "#c5aa87",
+        "accent": "#9b765f"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        8
+      ],
+      "accentEdges": [
+        8
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "Montage Apartments West Campus",
+      "id": "b07e7bf4-6140-45fe-9327-995a8d45b084",
+      "floors": 2,
+      "height": 7.1,
+      "colours": {
+        "wall": "#d7d5c8",
+        "accent": "#56636b"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true,
+      "bay": 3.7,
+      "window": 1.7,
+      "ground": 3.3,
+      "sash": [
+        0.5
+      ]
+    },
+    {
+      "name": "The Venue on Guadalupe",
+      "id": "5d3a4e03-f525-4037-917c-4c4b56584fc4",
+      "floors": 6,
+      "height": 21.0,
+      "colours": {
+        "wall": "#acbcc2",
+        "accent": "#5c727e"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        11
+      ],
+      "accentEdges": [
+        11
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        11
+      ]
+    },
+    {
+      "name": "Block on 25th East",
+      "id": "c039e065-3c15-4a26-a402-4589f1c7857d",
+      "floors": 6,
+      "height": 21.8,
+      "colours": {
+        "wall": "#ded2bc",
+        "accent": "#b56e35"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        56
+      ],
+      "accentEdges": [
+        56
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        56
+      ]
+    },
+    {
+      "name": "Block on 25th West",
+      "id": "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
+      "floors": 6,
+      "height": 21.0,
+      "colours": {
+        "wall": "#cbbfa8",
+        "accent": "#ad7651"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        16
+      ],
+      "accentEdges": [
+        16
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        16
+      ]
+    },
+    {
+      "name": "Yugo Austin Rio",
+      "id": "762122e3-8b0c-4bd5-9795-dcf61325b854",
+      "floors": 7,
+      "height": 24.5,
+      "colours": {
+        "wall": "#dddcd3",
+        "accent": "#c78b30"
+      },
+      "source": "https://www.markhartarch.com/ruckus-20/",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": false
+    },
+    {
+      "name": "Yugo Austin Waterloo",
+      "id": "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
+      "floors": 30,
+      "height": 95.4,
+      "colours": {
+        "wall": "#d4cebe",
+        "accent": "#344348",
+        "curtainGlass": "#55717f"
+      },
+      "source": "https://www.bokapowell.com/projects/waterloo-tower",
+      "observations": "Architect states 30 stories / 320 ft. Four levels of parking, 25 residential levels, cream central spine, dark framed end glazing and a stepped glass crown.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "ground": 5.2,
+      "bay": 3.0,
+      "window": 1.9,
+      "tower": {
+        "podium": 17.5,
+        "plan": [
+          0.025,
+          0.975,
+          0.018,
+          0.98
+        ],
+        "darkFaces": [
+          "v0",
+          "v1"
+        ],
+        "glassFaces": [
+          "u1"
+        ],
+        "blade": [
+          0.06,
+          0.22,
+          0.24,
+          0.8
+        ],
+        "bladeHeight": 97.5,
+        "pavilion": [
+          0.25,
+          0.91,
+          0.29,
+          0.78
+        ],
+        "pavilionHeight": 2.1
+      }
+    },
+    {
+      "name": "Twenty Two 15",
+      "id": "7a5984d8-919c-405c-afe5-cd31ba969b63",
+      "floors": 8,
+      "height": 27.3,
+      "colours": {
+        "wall": "#cbbfaa",
+        "accent": "#938577"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "The Quarters Grayson House",
+      "id": "41627514-f0ac-4268-8e08-b123aec9cac1",
+      "floors": 8,
+      "height": 27.5,
+      "colours": {
+        "wall": "#d5c6aa",
+        "accent": "#8b6552"
+      },
+      "source": "https://www.quartersoncampus.com/graysonhouse/",
+      "observations": "Operator specifies eight stories and 101 apartments; 714 West 22nd Street. Footprint and courts retained. Window layout and finish are approximate.",
+      "entryEdges": [
+        0
+      ],
+      "accentEdges": [
+        0
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        0
+      ]
+    },
+    {
+      "name": "The Quarters Sterling House",
+      "id": "1aa1bea6-6381-4929-a0e2-6615011b45e5",
+      "floors": 5,
+      "height": 18.3,
+      "colours": {
+        "wall": "#d5c6aa",
+        "accent": "#8b6552"
+      },
+      "source": "https://www.quartersoncampus.com/",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        101
+      ],
+      "accentEdges": [
+        101
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        101
+      ]
+    },
+    {
+      "name": "The Nine at Rio",
+      "id": "899a97bb-3643-4cf0-b894-9f1720ef491b",
+      "floors": 5,
+      "height": 18.0,
+      "colours": {
+        "wall": "#afc0c4",
+        "accent": "#666c72"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": true,
+      "balconyEdges": [
+        3
+      ]
+    },
+    {
+      "name": "Palmetto Apartment Complex",
+      "id": "eaea8038-5158-4675-ac47-8bc71b3f5853",
+      "floors": 4,
+      "height": 14.8,
+      "colours": {
+        "wall": "#d4c6aa",
+        "accent": "#9b8170"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        28
+      ],
+      "accentEdges": [
+        28
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Rise at West Campus",
+      "id": "65e5a9ce-377b-4eac-928e-c9634ce2c4da",
+      "floors": 24,
+      "height": 86.4,
+      "colours": {
+        "wall": "#dad9d2",
+        "accent": "#4e585b"
+      },
+      "source": "https://www.nilesbolton.com/rise-at-west-campus",
+      "observations": "Architect describes 24 stories and a tower setback above level six. White and dark vertical tower divisions; folded metal parking screen and open glazed lobby.",
+      "entryEdges": [
+        6
+      ],
+      "accentEdges": [
+        6
+      ],
+      "preserveRoof": false,
+      "ground": 5,
+      "bay": 3.05,
+      "window": 1.65,
+      "tower": {
+        "podium": 20.5,
+        "plan": [
+          0.08,
+          0.92,
+          0.05,
+          0.85
+        ],
+        "darkFaces": [
+          "u0",
+          "v1"
+        ],
+        "pavilion": [
+          0.19,
+          0.83,
+          0.42,
+          0.79
+        ],
+        "pavilionHeight": 2.3,
+        "screenFins": {
+          "pitch": 1.35,
+          "width": 0.1,
+          "depth": 0.26
+        }
+      }
+    },
+    {
+      "name": "Villas on Nueces",
+      "id": "02bbe7f3-6d8e-404d-beff-1f9b6fc92807",
+      "floors": 6,
+      "height": 21.8,
+      "colours": {
+        "wall": "#c4c1ba",
+        "accent": "#77817e"
+      },
+      "source": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": true
+    },
+    {
+      "name": "Torre Student Living",
+      "id": "90cfca73-6957-41b4-bd3a-1a3f3f91a93e",
+      "floors": 18,
+      "height": 59.0,
+      "colours": {
+        "wall": "#e1e0d8",
+        "accent": "#454e55"
+      },
+      "source": "https://www.rhodepartners.com/west-campus-student-housing",
+      "observations": "18 stories; white irregular narrow openings, a broad four-floor curtainwall belt, charcoal screened podium, lower north wing and a roof amenity pavilion.",
+      "entryEdges": [
+        4
+      ],
+      "accentEdges": [
+        4
+      ],
+      "preserveRoof": false,
+      "ground": 5.0,
+      "bay": 2.8,
+      "window": 1.05,
+      "tower": {
+        "podium": 11.35,
+        "plan": [
+          0.015,
+          0.97,
+          0.02,
+          0.76
+        ],
+        "glassBelt": [
+          39.9,
+          52.6
+        ],
+        "glassBeltFaces": [
+          "v0",
+          "u1",
+          "u0"
+        ],
+        "darkFaces": [
+          "v1"
+        ],
+        "wing": [
+          0.04,
+          0.97,
+          0.76,
+          0.985
+        ],
+        "wingHeight": 25.0,
+        "pavilion": [
+          0.13,
+          0.78,
+          0.15,
+          0.52
+        ],
+        "pavilionHeight": 2.8
+      }
+    },
+    {
+      "name": "Lark Austin",
+      "id": "dad49016-2331-4a81-8d6d-78da02dc8092",
+      "floors": 18,
+      "height": 59.5,
+      "colours": {
+        "wall": "#dbded8",
+        "accent": "#686f70"
+      },
+      "source": "https://www.rhodepartners.com/west-campus-student-housing",
+      "observations": "18 stories, closely spaced slender white window piers, dark screened podium and set-back roof pavilion; rectangular footprint.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "ground": 5,
+      "bay": 2.6,
+      "window": 1.05,
+      "tower": {
+        "podium": 8.2,
+        "plan": [
+          0.03,
+          0.97,
+          0.045,
+          0.97
+        ],
+        "darkFaces": [
+          "v1"
+        ],
+        "pavilion": [
+          0.2,
+          0.84,
+          0.4,
+          0.84
+        ],
+        "pavilionHeight": 2.4
+      },
+      "labelOverride": true
+    },
+    {
+      "name": "Legacy on Rio",
+      "id": "b6857217-7bcb-42a4-9a72-a08bdaf960b1",
+      "floors": 7,
+      "height": 24,
+      "colours": {
+        "wall": "#a9ada7",
+        "accent": "#d1d1ca"
+      },
+      "source": "https://www.rhodepartners.com/west-campus-student-housing",
+      "observations": "Seven-story gray panel perimeter block, white window strips and a central vertical entrance screen. The outdated small-building outline is replaced by a conservative envelope within its original extents.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "labelOverride": true,
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "courtyards": [
+        [
+          [
+            0.32,
+            0.38
+          ],
+          [
+            0.68,
+            0.38
+          ],
+          [
+            0.68,
+            0.78
+          ],
+          [
+            0.32,
+            0.78
+          ]
+        ]
+      ],
+      "window": 1.45,
+      "bay": 3.35
+    },
+    {
+      "name": "Noble 2500",
+      "id": "ffb87957-520e-4340-bdd2-e331c2c51046",
+      "floors": 7,
+      "height": 24,
+      "colours": {
+        "wall": "#c8c3b5",
+        "accent": "#3f4b54"
+      },
+      "source": "https://www.markhartarch.com/noble-2500",
+      "observations": "Architect: seven residential floors; light panel walls and dark horizontal cladding, large divided windows, glazed lobby and interior courtyard.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "labelOverride": true,
+      "window": 2.15,
+      "bay": 3.55,
+      "balconyEdges": [
+        0,
+        4
+      ]
+    },
+    {
+      "name": "The Block on 23rd",
+      "id": "df278986-012c-47f9-850c-c4aab874ac91",
+      "floors": 6,
+      "height": 21,
+      "colours": {
+        "wall": "#d5cbb6",
+        "accent": "#ba773c"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        4
+      ],
+      "accentEdges": [
+        4
+      ],
+      "preserveRoof": false,
+      "balconyEdges": [
+        4
+      ],
+      "labelOverride": true
+    },
+    {
+      "name": "The Block on Pearl North",
+      "id": "064e7194-b486-44f4-a1a4-f786fb3d61ea",
+      "floors": 6,
+      "height": 21,
+      "colours": {
+        "wall": "#d5cbb6",
+        "accent": "#a87954"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        32
+      ],
+      "accentEdges": [
+        32
+      ],
+      "preserveRoof": false,
+      "balconyEdges": [
+        32
+      ],
+      "labelOverride": true
+    },
+    {
+      "name": "The Block on Pearl South",
+      "id": "044b203e-2d36-4321-adc9-eea56d0ddc4e",
+      "floors": 6,
+      "height": 21,
+      "colours": {
+        "wall": "#d2c7b2",
+        "accent": "#88614e"
+      },
+      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
+      "entryEdges": [
+        37
+      ],
+      "accentEdges": [
+        37
+      ],
+      "preserveRoof": false,
+      "balconyEdges": [
+        37
+      ],
+      "labelOverride": true
+    },
+    {
+      "name": "1883 at Montgomery House",
+      "id": "2f29f563-e852-4039-a1dc-157ad75a9b1a",
+      "floors": 5,
+      "height": 18.4,
+      "colours": {
+        "wall": "#dbccb1",
+        "accent": "#8c6854"
+      },
+      "source": "https://www.1883atx.com/",
+      "observations": "Operator address is 2700 Nueces. Courtyard apartment block, now 1883 at Montgomery House. Exterior proportions and finish are approximate.",
+      "entryEdges": [
+        7
+      ],
+      "accentEdges": [
+        7
+      ],
+      "preserveRoof": false,
+      "balconyEdges": [
+        7
+      ],
+      "labelOverride": true,
+      "aliases": [
+        "The Quarters Montgomery House"
+      ]
+    },
+    {
+      "name": "Yugo Austin Nueces",
+      "id": "5453ffd2-7119-4e67-ba04-603bde7f10b4",
+      "floors": 6,
+      "height": 21,
+      "colours": {
+        "wall": "#d1d3c8",
+        "accent": "#a8ba42"
+      },
+      "source": "https://lvcollective.com/work/ruckus/",
+      "observations": "Former Ruckus, 2502 Nueces. Light panels, dark frames and yellow-green accents on the entry elevation.",
+      "entryEdges": [
+        1
+      ],
+      "accentEdges": [
+        1
+      ],
+      "preserveRoof": false,
+      "labelOverride": true,
+      "window": 1.7,
+      "bay": 3.2
+    },
+    {
+      "name": "The Quarters Karnes House",
+      "id": "24e04326-a7f3-42cc-bad0-76c3427e389c",
+      "floors": 2,
+      "height": 7.5,
+      "colours": {
+        "wall": "#c5b394",
+        "accent": "#84796a"
+      },
+      "source": "https://www.quartersoncampus.com/karneshouse/; https://www.quartersoncampus.com/karneshouse/austin/karnes/map-and-directions/",
+      "observations": "Operator specifies two floors and 12 apartments; its map pin selects this L-shaped footprint. Replaces a 36.6 m anonymous prism. Unphotographed exterior finish and window spacing are approximate.",
+      "entryEdges": [
+        9
+      ],
+      "preserveRoof": false,
+      "labelOverride": true
+    },
+    {
+      "name": "Axis West Campus",
+      "id": "59a378f0-820e-496f-9b18-58aab0b81607",
+      "floors": 6,
+      "height": 21.7,
+      "colours": {
+        "wall": "#dbd8c9",
+        "accent": "#86654a"
+      },
+      "source": "https://www.axiswestcampus.com/gallery/",
+      "observations": "Six visible levels in operator exterior photos; cream walls, ochre-brick lower bays, shallow open balconies and dark projecting cornices. Existing pool courtyard retained.",
+      "entryEdges": [
+        38
+      ],
+      "accentEdges": [
+        38
+      ],
+      "preserveRoof": false,
+      "labelOverride": true,
+      "balconyEdges": [
+        38
+      ],
+      "window": 1.2,
+      "bay": 3.0
+    },
+    {
+      "name": "Texan Pearl",
+      "id": "4c13313f-3749-4b9b-8437-b52695f4cf47",
+      "floors": 6,
+      "height": 22.2,
+      "colours": {
+        "wall": "#baa88b",
+        "accent": "#8b6750"
+      },
+      "source": "https://www.texanproperties.net/texan-pearl",
+      "observations": "2515 Pearl Street. Operator or public property identity matched to the recorded footprint. Facade proportions, floor heights and unphotographed elevations are approximate.",
+      "entryEdges": [
+        7
+      ],
+      "accentEdges": [
+        7
+      ],
+      "preserveRoof": false,
+      "labelOverride": true,
+      "balconyEdges": [
+        7
+      ]
+    },
+    {
+      "name": "1883 Cameron House",
+      "id": "658b9dd1-7096-4396-9d03-e063b1abee55",
+      "floors": 5,
+      "height": 18.5,
+      "colours": {
+        "wall": "#c1b9a8",
+        "accent": "#815743"
+      },
+      "source": "https://www.1883atx.com/",
+      "observations": "2707 Rio Grande Street. Operator or public property identity matched to the recorded footprint. Facade proportions, floor heights and unphotographed elevations are approximate.",
+      "entryEdges": [
+        7
+      ],
+      "accentEdges": [
+        7
+      ],
+      "preserveRoof": false,
+      "labelOverride": true
+    },
+    {
+      "name": "Camino Flats",
+      "id": "062e1ec3-434b-46cf-97b1-6c8405d07770",
+      "floors": 3,
+      "height": 10.0,
+      "colours": {
+        "wall": "#c0beb4",
+        "accent": "#525f66"
+      },
+      "source": "https://www.tdlr.texas.gov/TABS/Search/Print/EABPRJB6821726",
+      "observations": "2810 Salado Street. Operator or public property identity matched to the recorded footprint. Facade proportions, floor heights and unphotographed elevations are approximate.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "labelOverride": true
+    },
+    {
+      "name": "West 24th Street Apartments",
+      "id": "74715fc8-d197-4ddb-9571-dfacda8bdbc4",
+      "floors": 3,
+      "height": 9.4,
+      "colours": {
+        "wall": "#b7ab91",
+        "accent": "#6e705c"
+      },
+      "source": "https://www.rrc.texas.gov/media/arjdjwez/08b-pdf-pipes_operators-systems_masmtr_feb10-2026.pdf",
+      "observations": "1302 West 24th Street. Operator or public property identity matched to the recorded footprint. Facade proportions, floor heights and unphotographed elevations are approximate.",
+      "entryEdges": [
+        3
+      ],
+      "accentEdges": [
+        3
+      ],
+      "preserveRoof": false,
+      "labelOverride": true
+    },
+    {
+      "name": "The Quarters Nueces House",
+      "id": "5e94c2db-4245-4db3-b5c0-9ed631bcd658",
+      "floors": 8,
+      "height": 27.5,
+      "colours": {
+        "wall": "#c9baa0",
+        "accent": "#806348"
+      },
+      "source": "https://www.quartersoncampus.com/nueceshouse/",
+      "observations": "Operator specifies eight stories and 235 apartments at 2300 Nueces. Three mapped courtyards retained; unphotographed elevations and dimensions are approximate.",
+      "entryEdges": [
+        9
+      ],
+      "accentEdges": [
+        9
+      ],
+      "preserveRoof": false,
+      "labelOverride": true
+    }
+  ]
+}

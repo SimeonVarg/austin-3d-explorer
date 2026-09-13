@@ -1265,8 +1265,11 @@
       let n0 = 0;
       for (let r = 0; r < gh; r++) for (let c = 0; c < gw; c++) {
         if (rows[r][c] !== '1') continue;
+        let run = 1;
+        if (spec.bitmapRuns) while (c + run < gw && rows[r][c + run] === '1') run++;
         const sa = sStart + rd0 * c * dot, z1 = zTop - r * dot;
-        box(B, W, Math.min(sa, sa + rd0 * dot), Math.max(sa, sa + rd0 * dot), 0, proud, z1 - dot, z1, col, { back: true }); n0++;
+        box(B, W, Math.min(sa, sa + rd0 * dot * run), Math.max(sa, sa + rd0 * dot * run), 0, proud, z1 - dot, z1, col, { back: true }); n0 += run;
+        c += run - 1;
       }
       count.signs++;
       return n0;
@@ -2103,13 +2106,14 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset) {
+  function hideGeometry(inset, roofscapeOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const key = inset + '|' + ((_data && _data.buildings) || []).map(b => b.name).join('|');
+    const buildings = ((_data && _data.buildings) || []).filter(b => !roofscapeOnly || !b.preserveRoofscape);
+    const key = inset + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
-    for (const b of (_data && _data.buildings) || []) {
+    for (const b of buildings) {
       const ring = b.footprint && b.footprint.ring;
       if (!ring || ring.length < 4) continue;
       const pts = ring.slice(0, ring.length - 1);
@@ -2207,7 +2211,13 @@
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);
     if (gone.length && APTS.hideStoreys) for (const id of HIDE_LAYERS.storeys) plan.push([id, ['!', ['in', ['get', 'host'], ['literal', gone]]]]);
-    const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset);
+    // Street shops explicitly replace their old frontage and door skins. Keep
+    // pools and unrelated entrances; these sources share a building id (bid).
+    const frontages = _data.buildings.filter(b => b.replaceFrontage).map(b => b.id);
+    if (frontages.length) for (const id of ['drag-wall','drag-cap','drag-detail','places-solid','places-glass','places-entry','places-label','entrances-portal','entrances-glass','entrances-detail','entrances-mullion','entrances-inscription','entrances-wordmark']) {
+      plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', frontages]]]]);
+    }
+    const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset, true);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
     const geoW = APTS.hideRoofscape && hideGeometry(0);
     if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
@@ -2377,7 +2387,7 @@
           }
           return { buildings: buildings.concat(collected),
             replacedBuildingIds: [...new Set((idx.replacedBuildingIds || buildings.map(b => b.id).filter(Boolean)).concat(collected.map(b => b.id)))],
-            replacedNames: [...new Set((idx.replacedNames || buildings.map(b => b.name)).concat(collected.map(b => b.name)))] };
+            replacedNames: [...new Set((idx.replacedNames || buildings.map(b => b.name)).concat(collected.flatMap(b => [b.name,...(b.aliases || [])])))] };
         })();
       }
       try { _data = await _fetching; } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }

@@ -546,8 +546,10 @@
     // `facet(false)` ends the run. Walls, decks, domes and arches never set it.
     let _facet = 0;
     const push = (p, n, col) => {
-      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); fc.push(_facet);
       const d = rgb(col[0]), g = rgb(col[1]), k = rgb(col[2]);
+      // Resolve the palette before touching any buffer. A rejected tone must
+      // not shift every subsequent vertex relative to its colour attributes.
+      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); fc.push(_facet);
       cd.push(d[0], d[1], d[2]); cg.push(g[0], g[1], g[2]); cn.push(k[0], k[1], k[2]);
     };
     const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];

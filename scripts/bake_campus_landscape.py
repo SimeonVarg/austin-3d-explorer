@@ -6,12 +6,25 @@ the existing surveyed/detected tree bake; this does not fetch or move trees.
 import json, math
 from pathlib import Path
 from collections import defaultdict, Counter
-from shapely.geometry import shape, box, Point, mapping
+from shapely.geometry import shape, box, Point, LineString, mapping
+from shapely.ops import transform, unary_union
+from shapely import make_valid
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'data/campus_landscape.json'
 BOUNDS=[-97.7424,30.2806,-97.7304,30.2919]
-region=box(*BOUNDS)
+campus_region=box(*BOUNDS)
+# Follow the recorded Guadalupe centreline, including its bend at 27th.
+# This adds existing crowns beside the street, never synthetic tree positions.
+guad=json.loads((ROOT/'data/guadalupe_profiles.json').read_text())['extent']
+mx=111320*math.cos(math.radians(30.288));my=111320.
+metric=lambda g:transform(lambda x,y:((x+97.742)*mx,(y-30.288)*my),g)
+geographic=lambda g:transform(lambda x,y:(x/mx-97.742,y/my+30.288),g)
+roads=json.loads((ROOT/'data/osm_cache/roads.json').read_text())['elements']
+lines=[LineString([(p['lon'],p['lat'])for p in r['geometry']]) for r in roads if r.get('tags',{}).get('name')=='Guadalupe Street' and len(r.get('geometry',[]))>1]
+centre=unary_union(lines).intersection(box(*guad['bounds']))
+guad_region=geographic(metric(centre).buffer(guad['treeBufferMeters']))
+region=campus_region.union(guad_region)
 features=json.loads((ROOT/'data/trees.geojson').read_text())['features']
 groups=defaultdict(list)
 number=lambda n:format(n,'.12g')
@@ -52,7 +65,7 @@ def compile_gardens():
  mx=111320*math.cos(math.radians(30.286));my=111320
  local=lambda g:transform(lambda x,y:((x+97.74)*mx,(y-30.286)*my),g)
  world=lambda g:transform(lambda x,y:(x/mx-97.74,y/my+30.286),g)
- T=profiles['detail'];campus=local(region)
+ T=profiles['detail'];campus=local(campus_region)
  paths=[];lawns=[];water=[];walls=[]
  for f in ground:
   p=f['properties'];g=make_valid(local(shape(f['geometry'])))
@@ -124,6 +137,15 @@ def compile_gardens():
   for lng,lat,bearing in p.get('benchesLngLat',[]):out['features'].append(dict(kind='bench',at=[lng,lat],bearing=bearing))
  return dict(sources=profiles['sources'],accuracy=profiles['accuracy'],detail=T,places=result)
 
-output={'version':1,'source':'data/trees.geojson: existing tree inventory and detected crowns; no new positions. Crown/branch morphology is a species-inspired visual approximation.','bounds':BOUNDS,'treeColumns':['lng','lat','radius','crownBase','top','species','density','hue','source'],'trees':trees,'canopyKeys':canopy_keys,'trunkKeys':sorted(set(trunk_keys)),'gardens':compile_gardens()}
+rail_config=json.loads((ROOT/'data/guadalupe_profiles.json').read_text())['railings']
+barriers=json.loads((ROOT/'data/osm_cache/furn_barrier.json').read_text())['elements']
+railings=[{'id':e['id'],'line':[[p['lon'],p['lat']]for p in e['geometry']]}for e in barriers if e['id'] in rail_config['ids']]
+rail_lines=unary_union([LineString(r['line'])for r in railings])
+old_fences=[make_valid(shape(f['geometry']))for f in json.loads((ROOT/'data/props.geojson').read_text())['features'] if f['properties'].get('u')=='fence' and shape(f['geometry']).distance(rail_lines)<.000002]
+# Tile quantization can move a thin fence ribbon just outside its source
+# polygon. Buffer the retirement mask, not the physical rails, in metres.
+mask=geographic(unary_union([metric(g)for g in old_fences]).buffer(rail_config['filterMargin']))
+mask_polys=[mask]if mask.geom_type=='Polygon'else list(mask.geoms)
+output={'version':1,'source':'data/trees.geojson: existing tree inventory and detected crowns; no new positions. Crown/branch morphology is a species-inspired visual approximation.','bounds':list(region.bounds),'treeColumns':['lng','lat','radius','crownBase','top','species','density','hue','source'],'trees':trees,'canopyKeys':canopy_keys,'trunkKeys':sorted(set(trunk_keys)),'gardens':compile_gardens(),'railings':railings,'railingDetail':rail_config,'retiredFences':{'type':'MultiPolygon','coordinates':[mapping(g)['coordinates']for g in mask_polys]}}
 OUT.write_text(json.dumps(output,separators=(',',':'),ensure_ascii=False)+'\n',encoding='utf-8')
 print('campus trees',len(trees),'species',dict(Counter(t[5]for t in trees)),'bytes',OUT.stat().st_size)

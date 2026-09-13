@@ -122,6 +122,8 @@
     "Batts Hall"
   ],
   "collections": [
-    "data/campus_buildings.json"
+    "data/campus_buildings.json",
+    "data/neighborhood_apartments.json",
+    "data/guadalupe.json"
   ]
 }
