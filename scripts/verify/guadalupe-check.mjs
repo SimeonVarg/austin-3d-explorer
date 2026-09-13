@@ -66,22 +66,23 @@ try{
  assert.equal(await fences(),0,'solid fences disappear at the Co-op');
  assert.equal(await page.evaluate(()=>campusLandscape.count.railings),2);
  await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=false;applyCampusLandscape()});await page.waitForTimeout(1500);
- assert.ok(await fences()>0,'landscape fallback restores original fences');
+ assert.ok(await fences()>0,'landscape fallback restores original fences');console.log('railings and fence fallback pass');
  await page.evaluate(()=>{CAMPUS_LANDSCAPE.on=true;applyCampusLandscape();APARTMENTS.on=false;applySlopesApartments()});await page.waitForTimeout(1500);
  assert.equal(await page.evaluate(()=>slopesApartments.group),null);
  const restored=await page.evaluate(({ids,layers})=>__map.queryRenderedFeatures({layers:layers.filter(l=>__map.getLayer(l))}).some(f=>ids.includes(f.properties.bid)),{ids,layers});
  assert.ok(restored,'building fallback restores the old Co-op frontage');
  await page.evaluate(()=>{APARTMENTS.on=true;applySlopesApartments()});
+ console.log('building fallback pass');
  for(const preset of ['performance','cinematic','balanced']){
   await page.evaluate(p=>__usePreset(p),preset);
-  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),all.length);
+  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),all.length);console.log('preset',preset);
  }
  await page.evaluate(()=>applyTimeOfDay(__map,1,true));await page.waitForTimeout(1200);
  assert.deepEqual(errors,[]);
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data)),samples=[];
  if(process.env.GUAD_PERF){
   for(const state of ['after','before','before','after','before','after']){
-   await page.evaluate(({data})=>{Object.assign(slopesApartments.data,data);slopesApartments.rebuild();GFX.autoExposure=false;__map.jumpTo({center:[-97.7423,30.2879],zoom:16.8,pitch:58,bearing:310,padding:0});applyTimeOfDay(__map,.12,true)},{data:state==='before'?before:after});
+   await page.evaluate(({data})=>{APARTMENTS.on=false;applySlopesApartments();Object.assign(slopesApartments.data,data);APARTMENTS.on=true;applySlopesApartments();GFX.autoExposure=false;__map.jumpTo({center:[-97.7423,30.2879],zoom:16.8,pitch:58,bearing:310,padding:0});applyTimeOfDay(__map,.12,true)},{data:state==='before'?before:after});
    await page.waitForTimeout(2200);
    const median=await page.evaluate(async()=>{
     const a=[];let last=performance.now();await new Promise(resolve=>{function step(t){a.push(t-last);last=t;__map.setBearing(310+a.length*.12);if(a.length<150)requestAnimationFrame(step);else resolve()}requestAnimationFrame(step)});
