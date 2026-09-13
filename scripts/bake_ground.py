@@ -25,7 +25,6 @@ from collections import Counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "data", "osm_cache")
 OUT = os.path.join(ROOT, "data", "ground.geojson")
-OUT_ROADS = os.path.join(ROOT, "data", "roads.geojson")
 
 # The detailed bbox. Inside it we keep every driveway and parking aisle; outside
 # it those are 4,000 hairlines the camera never resolves, and they double the
@@ -1025,11 +1024,9 @@ def bake_roads(stats, warnings):
                 })
                 stats["stopbar"] += 1
 
-    fc = {"type": "FeatureCollection", "features": feats}
-    with open(OUT_ROADS, "w", encoding="utf-8") as f:
-        json.dump(fc, f, separators=(",", ":"))
+    # Pure recipe: scripts/bake_roads.py owns the road output. Calling this to
+    # obtain cutters must never rewrite another bake's data or stale its tiles.
     stats["road_unknown_surface_values"] = dict(unknown_surface)
-    stats["roads_file_kb"] = round(os.path.getsize(OUT_ROADS) / 1024, 1)
     stats["roads_features"] = len(feats)
     stats["signals_seen"] = len(signals)
     return feats
@@ -5297,7 +5294,7 @@ def main():
     # have to be built while the walks are still LineStrings. bake_roads() is a
     # pure read of the OSM cache — it takes no `feats` and mutates nothing this
     # pass has touched — so moving the call cannot change what it returns, and
-    # data/roads.geojson is written from it further down exactly as before.
+    # scripts/bake_roads.py writes that recipe to data/roads.geojson separately.
     road_feats = bake_roads(stats, warnings)
     roads_m = carriageway_polys(road_feats)
     stats["carriageways_as_cutters"] = len(roads_m)
@@ -5353,6 +5350,13 @@ def main():
     feats += widen_roads(road_feats, stats, warnings,
                          keep_out=pedestrian_mall_union(feats, stats))
 
+    # The resolver above trims against INSET segment cutters, before the full
+    # rendered road union exists. Their exposed rims used to survive across
+    # junctions as pale rectangles. Resolve the final physical slab AND its
+    # scoring against the actual asphalt, not those smaller helper cutters.
+    from pavement_geometry import trim_rendered_pavement
+    feats = trim_rendered_pavement(feats, stats)
+
     # LAST, and only a colour: see tone_lawns' docstring for why it cannot run
     # earlier. Nothing downstream of here reads `s`.
     feats = tone_lawns(feats, stats)
@@ -5401,6 +5405,18 @@ def main():
 
 if __name__ == "__main__":
     import sys
+    if "--resolve-pavement" in sys.argv:
+        # Incremental final stage over the shipped ground, with no OSM refresh
+        # or reauthoring of unrelated gardens, channels and carriageways.
+        from pavement_geometry import trim_rendered_pavement
+        with open(OUT, encoding="utf-8") as f:
+            data = json.load(f)
+        stats = Counter()
+        data["features"] = trim_rendered_pavement(data["features"], stats)
+        with open(OUT, "w", encoding="utf-8") as f:
+            json.dump(data, f, separators=(",", ":"))
+        print(json.dumps(dict(stats), indent=2))
+        sys.exit(0)
     if "--walkaudit" in sys.argv:
         # AUDIT ONLY. Reads the ground already on disk and never writes it, so
         # it can be run against a shipped file to grade it.

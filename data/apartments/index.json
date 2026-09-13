@@ -124,6 +124,7 @@
   "collections": [
     "data/campus_buildings.json",
     "data/neighborhood_apartments.json",
-    "data/guadalupe.json"
+    "data/guadalupe.json",
+    "data/south_campus.json"
   ]
 }
