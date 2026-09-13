@@ -41,12 +41,11 @@ def make_building(p, feature, config, roofs):
         base['faces'][str(edge)]=dict(bands=bands)
     blocks=[base]
     aligned=abs(h-feature['properties']['final_height'])<0.05 and not p.get('special')
-    keep_roof=p.get('preserveRoof',t['retainSurveyedRoofs'] and aligned)
+    rigs=[r for k,r in roofs.items()if k.startswith(p['id']+'/')]
+    keep_roof=bool(rigs) and p.get('preserveRoof',t['retainSurveyedRoofs'] and aligned)
     if keep_roof:
-        rigs=[r for k,r in roofs.items()if k.startswith(p['id']+'/')]
-        if rigs:
-            # These selected small roofs are kept only at their existing height.
-            base['cap']=False
+        # These selected small roofs are kept only at their existing height.
+        base['cap']=False
     if p.get('special')=='coop':
         c=p['detail']
         # Main east elevation: black shop base, cream upper fascia, raised
