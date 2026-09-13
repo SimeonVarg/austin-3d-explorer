@@ -12,7 +12,7 @@ const original=shaders(old('js/slopes.js'));
 const oldLandscape=old('js/campus-landscape.js');
 const oldCrown=Function('return ('+oldLandscape.match(/crown:(\{[^\n]+\}),/)[1]+')')();
 const oldTrunk=Function('return ('+oldLandscape.match(/trunk:(\{[^\n]+\}),/)[1]+')')();
-const browser=await launch(chromium,{gl:'hardware',args:[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit'],maxMs:720000});
+const browser=await launch(chromium,{gl:'hardware',args:process.env.WALK_PERF?[...HW_ARGS,'--disable-gpu-vsync','--disable-frame-rate-limit']:HW_ARGS,maxMs:720000});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:960},reducedMotion:'reduce'}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
