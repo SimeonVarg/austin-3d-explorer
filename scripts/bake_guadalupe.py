@@ -23,7 +23,7 @@ def make_building(p, feature, config, roofs):
     h,ground=p['height'],p.get('ground',t['shopHeight'])
     floors=[0,ground]+[ground+(h-ground)*i/(p['floors']-1) for i in range(1,p['floors'])] if p['floors']>1 else [0,h]
     skins['shop']=dict(kind='storefront',glass='glass',frame='metal',reveal=t['reveal'],mullion=p.get('shopBay',t['shopBay']),mullionW=t['mullion'],transom=t['transom'],fascia=t['fascia'],fasciaTone='signboard')
-    skins['upper']=dict(kind='bays',field='wall',bay=p.get('bay',t['upperBay']),glass='glass',frame='trim',reveal=t['upperReveal'],window=dict(w=t['upperWindow'],h=t['upperWindowHeight'],sill=t['upperSill'],frame=dict(w=t['upperFrame'],tone='trim')))
+    skins['upper']=dict(kind='bays',windowRule=t['windowRule'],field='wall',bay=p.get('bay',t['upperBay']),glass='glass',frame='trim',reveal=t['upperReveal'],window=dict(w=t['upperWindow'],h=t['upperWindowHeight'],sill=t['upperSill'],frame=dict(w=t['upperFrame'],tone='trim')))
     base=dict(id='street-building',plan=plan,z0=0,z1=h,bands=[band(0,h,'wall')],roofTone='roof',parapet=t['parapet'],parapetTone='trim',faces={})
     fronts=p['frontEdges']
     for edge in fronts:
@@ -55,7 +55,7 @@ def make_building(p, feature, config, roofs):
             length=((plan['ring'][(edge+1)%len(plan['ring'])][0]-plan['ring'][edge][0])**2+(plan['ring'][(edge+1)%len(plan['ring'])][1]-plan['ring'][edge][1])**2)**.5
             base['faces'][str(edge)]=dict(bands=[band(0,c['bulkhead'],'dark'),band(c['bulkhead'],c['shopTop'],'shop',canopies=[dict(s0=c['awningEnd'],s1=length-c['awningEnd'],z=c['awningHeight'],d=c['awningDepth'],t=c['awningThickness'],tone='dark')]),band(c['shopTop'],p['wingHeight']-c['wingCornice'],'wall'),band(p['wingHeight']-c['wingCornice'],p['wingHeight'],'trim')])
         center=rect(f,p['centerPlan']);u0,u1,v0,v1=center;span=v1-v0
-        skins['coop-entry']=dict(kind='bays',field='dark',bay=span,window=dict(w=span*c['entryWindowRatio'],h=c['entryWindowHeight'],sill=c['entryWindowSill'],mullion=dict(cols=c['mullionCols'],rows=c['mullionRows'],w=c['mullionWidth'],tone='metal')),glass='glass',frame='dark',reveal=c['entryReveal'])
+        skins['coop-entry']=dict(kind='bays',windowRule=t['windowRule'],field='dark',bay=span,window=dict(w=span*c['entryWindowRatio'],h=c['entryWindowHeight'],sill=c['entryWindowSill'],mullion=dict(cols=c['mullionCols'],rows=c['mullionRows'],w=c['mullionWidth'],tone='metal')),glass='glass',frame='dark',reveal=c['entryReveal'])
         central=dict(id='raised-entry',plan=center,z0=0,z1=h,bands=[band(0,h,'wall')],roofTone='roof',faces={'u1':dict(bands=[band(0,c['entryTop'],'coop-entry'),band(c['entryTop'],c['entryUpperTop'],'coop-entry'),band(c['entryUpperTop'],h-c['centerCornice'],'wall',signs=[lettering('CO-OP',span*c['coopWidthRatio'],span/2,c['coopBaseline'],'dark',config['lettering'],True),lettering('THE',span*c['theWidthRatio'],span/2,c['theBaseline'],'dark',config['lettering'],True)]),band(h-c['centerCornice'],h,'trim')])})
         blocks.append(central)
     if p.get('special')=='hole':
@@ -66,7 +66,7 @@ def make_building(p, feature, config, roofs):
             faces={k:dict(bands=[band(low,high,tone,signs=signs)])for k in ['v0','v1']}
             blocks.append(dict(id=key,plan=panel,z0=low,z1=high,bands=[band(low,high,tone)],roofTone='metal',faces=faces,parapet=c['frameWidth'],parapetTone='metal'))
         # Two timber-framed display bays under deep green awnings.
-        skins['bar-window']=dict(kind='bays',field='wall',bay=c['frontBay'],glass='glass',frame='timber',reveal=c['windowReveal'],window=dict(w=c['windowWidth'],h=c['windowHeight'],sill=c['windowSill'],frame=dict(w=c['windowFrame'],tone='timber')))
+        skins['bar-window']=dict(kind='bays',windowRule=t['windowRule'],field='wall',bay=c['frontBay'],glass='glass',frame='timber',reveal=c['windowReveal'],window=dict(w=c['windowWidth'],h=c['windowHeight'],sill=c['windowSill'],frame=dict(w=c['windowFrame'],tone='timber')))
         for edge in fronts:
             a,b=plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])];length=((b[0]-a[0])**2+(b[1]-a[1])**2)**.5
             base['faces'][str(edge)]=dict(bands=[band(0,h,'bar-window',canopies=[dict(s0=c['awningEnd'],s1=length-c['awningEnd'],z=c['awningHeight'],d=c['awningDepth'],t=c['awningThickness'],tone='awning')])])

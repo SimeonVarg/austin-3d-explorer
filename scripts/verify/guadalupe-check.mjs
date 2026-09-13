@@ -61,7 +61,7 @@ try{
   assert.deepEqual(oldFronts,[],'old frontage is replaced throughout Guad');
  }
  console.log('frontages pass');
- const fences=()=>page.evaluate(()=>__map.queryRenderedFeatures(__map.project([-97.741764,30.28621]),{layers:['props-line']}).filter(f=>f.properties.u==='fence').length);
+ const fences=()=>page.evaluate(()=>__map.queryRenderedFeatures({layers:['props-line']}).filter(f=>f.properties.u==='fence'&&f.geometry.coordinates.flat(2).some((v,i,a)=>i%2===0&&v> -97.74181&&v< -97.74170&&a[i+1]>30.28609&&a[i+1]<30.28639)).length);
  await page.evaluate(()=>__map.jumpTo({center:[-97.74178,30.2862],zoom:19.5,pitch:0,bearing:0}));await page.waitForTimeout(3500);
  assert.equal(await fences(),0,'solid fences disappear at the Co-op');
  assert.equal(await page.evaluate(()=>campusLandscape.count.railings),2);

@@ -43,7 +43,8 @@
     "awningHeight": 3.1,
     "awningThickness": 0.12,
     "doorAt": 0.5,
-    "awningMinimum": 0.1
+    "awningMinimum": 0.1,
+    "windowRule": "all"
   },
   "lettering": {
     "fontPixels": 44,

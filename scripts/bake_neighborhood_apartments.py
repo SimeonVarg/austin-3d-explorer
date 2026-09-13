@@ -31,7 +31,7 @@ def bake(profile, feature, config, roofs):
     colours.update({k:dict(hex=v) for k,v in profile['colours'].items()})
     skins = {k:dict(kind='flat', field=k) for k in colours}
     def windows(field, width, bay=None, height=None):
-        return dict(kind='bays', field=field, bay=bay or profile.get('bay', t['bay']),
+        return dict(kind='bays', field=field, windowRule=profile.get('windowRule',t['windowRule']), bay=bay or profile.get('bay', t['bay']),
                     glass='glass', frame='trim', reveal=t['reveal'],
                     window=dict(w=width, h=height or pitch*t['windowHeightRatio'], sill=t['sill'],
                                 frame=dict(w=t['frame'], tone='trim'),
@@ -58,13 +58,16 @@ def bake(profile, feature, config, roofs):
     base = block('residence',plan,0,h,bands=bands,cap=not preserve)
     for edge in profile.get('accentEdges',[]): base.setdefault('faces',{})[str(edge)] = dict(bands=[band(0,ground,'stoneRooms'),band(ground,h-t['cornice'],'accentRooms'),band(h-t['cornice'],h,'trim')])
     for edge in profile.get('blankEdges',[]): base.setdefault('faces',{})[str(edge)] = dict(bands=[band(0,h,'wall')])
-    for edge in profile.get('entryEdges',[]): base.setdefault('faces',{})[str(edge)] = dict(bands=[band(0,ground,'lobby')]+bands[1:])
+    for edge in profile.get('entryEdges',[]):
+        upper=base.get('faces',{}).get(str(edge),{}).get('bands',bands)[1:]
+        base.setdefault('faces',{})[str(edge)] = dict(bands=[band(0,ground,'lobby')]+upper)
     blocks = [base]
     for edge in profile.get('balconyEdges',[]):
         a,b = plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])]
         length=((b[0]-a[0])**2+(b[1]-a[1])**2)**.5
         stacks=[dict(s0=round(s,3),s1=round(min(s+t['balconyWidth'],length-t['balconyEnd']),3),lift=0) for s in frange(t['balconyEnd'],length-t['balconyWidth'],profile.get('balconyPitch',t['balconyPitch']))]
-        base.setdefault('faces',{})[str(edge)] = dict(bands=[bands[0],band(ground,h-t['cornice'],'rooms',balconies=stacks),bands[-1]])
+        previous=base.get('faces',{}).get(str(edge),{}).get('bands',bands)
+        base.setdefault('faces',{})[str(edge)] = dict(bands=[previous[0],band(ground,h-t['cornice'],previous[1]['skin'],balconies=stacks),previous[-1]])
     # A tower profile replaces the whole mass with independently shaped podium,
     # shaft and roof pavilion; it cannot accidentally turn a leasing office tall.
     if 'tower' in profile:
@@ -73,9 +76,14 @@ def bake(profile, feature, config, roofs):
         shaftBands=[band(podium,h-t['cornice'],'rooms'),band(h-t['cornice'],h,'trim')]
         body=block('tower',shaft,podium,h,bands=shaftBands,parapet=t['parapet'],parapetTone='trim')
         for face in tower.get('darkFaces',[]):body.setdefault('faces',{})[face]=dict(bands=[band(podium,h,'accentRooms')])
-        for face in tower.get('glassFaces',[]):body.setdefault('faces',{})[face]=dict(bands=[band(podium,h,'curtain')])
+        def curtain_bands(lo,hi):
+            # Storefront skins span one band, not one floor. Give curtain
+            # walls a real transom/spandrel at every residential floor.
+            zs=sorted(set([lo,hi]+[z for z in floors if lo<z<hi]))
+            return [band(a,b,'curtain')for a,b in zip(zs,zs[1:])]
+        for face in tower.get('glassFaces',[]):body.setdefault('faces',{})[face]=dict(bands=curtain_bands(podium,h))
         for face in tower.get('glassBeltFaces',[]):
-            lo,hi=tower['glassBelt'];body.setdefault('faces',{})[face]=dict(bands=[band(podium,lo,'rooms'),band(lo,hi,'curtain'),band(hi,h,'rooms')])
+            lo,hi=tower['glassBelt'];body.setdefault('faces',{})[face]=dict(bands=[band(podium,lo,'rooms')]+curtain_bands(lo,hi)+[band(hi,h,'rooms')])
         blocks=[base,body]
         if tower.get('wing'):
             blocks.append(block('lower-wing',rect(f,tower['wing']),podium,tower['wingHeight'],'accentRooms',parapet=t['parapet'],parapetTone='trim'))
