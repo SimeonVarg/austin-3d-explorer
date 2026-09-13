@@ -141,3 +141,9 @@ Simeon's follow-up on September 12 is to "revolutionize campus - not just big +
 main buildings." The next visual pass must improve everyday campus areas as
 connected places: smaller academic buildings, courtyards, paths, planting,
 plazas and entrances. A handful of additional landmark models is insufficient.
+
+Simeon's next request is to "make guad realistic throughout and build any
+apartments not built yet." Treat Guadalupe as a connected street, including
+ordinary storefronts and the spaces between buildings. Audit apartment coverage
+against the current scene before adding missing properties. Preserve the open
+Drag experiment files; use a separately owned bake and output for this pass.
