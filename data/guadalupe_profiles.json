@@ -1555,6 +1555,7 @@
       "#baae91",
       "#252f30"
     ],
-    "source": "data/osm_cache/furn_barrier.json; open rail form and approximate proportions from University Co-op 2025 storefront photograph"
+    "source": "data/osm_cache/furn_barrier.json; open rail form and approximate proportions from University Co-op 2025 storefront photograph",
+    "filterMargin": 0.4
   }
 }
