@@ -1,5 +1,34 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 12 2026 — Guadalupe and missing apartments (`codex/guadalupe-neighborhood`)
+
+Added 67 street-front profiles along Guadalupe, MLK to West 29th, and 45
+apartment models. The collection now contains 188 models. Co-op gains its raised
+entry and serif sign; Hole in the Wall its yellow front and projecting marquee;
+Dirty Martin's its low frontage. Torre, Waterloo, Rise and Lark replace short
+placeholders. Smaller apartment profiles retain mapped outlines and open courts.
+The full apartment list, source ledger and four cited comparisons are in
+docs/guadalupe-neighborhood.md. Most smaller elevations and heights remain
+approximate; this is not a census of unnamed apartments or condos.
+
+Thirty-nine additional recorded Guadalupe trees use continuous crowns. Two
+solid Co-op fences become open rails. Sixty-five unchanged envelopes retain
+their existing roof detail: 62 surveyed roof decks and three pitched roofs.
+Old Drag/places/entrance geometry retires by building ID and restores on
+fallback. Rejected palette lookups no longer misalign later vertex attributes.
+
+Each new bake owns one output: bake_guadalupe.py -> guadalupe.json and
+bake_neighborhood_apartments.py -> neighborhood_apartments.json. The shared
+geometry helper has no file-writing side effects. Taste values and observations
+are in editable profile JSON. The existing landscape bake owns its output.
+
+The visual document records browser geometry/fallback/preset/night checks,
+watched failures, all 19 existing route pairs and interleaved desktop frame
+measurements. Screenshots use matched cameras, frozen exposure and the second
+capture. No Mac-owned or other open-lane code/output changed. HANDOFF is the
+sole shared documentation overlap with #164 and #189; facade/roof fallback
+assertions are included in regression verification.
+
 ## Sep 12 2026 — Everyday campus (`codex/campus-everywhere`)
 
 Thirty-six hall and dorm profiles now cover West Mall, the Honors Quad, the
