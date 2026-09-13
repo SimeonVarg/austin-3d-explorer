@@ -9,6 +9,7 @@ const old=f=>JSON.parse(execFileSync('git',['show','8ba4920:'+f],{cwd:root,maxBu
 const idx=old('data/apartments/index.json'),bundle=read('data/campus_buildings.json');
 const before={buildings:idx.buildings.map(f=>old('data/apartments/'+f)),replacedBuildingIds:idx.replacedBuildingIds,replacedNames:idx.replacedNames};
 assert.equal(bundle.buildings.length,36);
+const currentIndex=read('data/apartments/index.json'),registered=currentIndex.buildings.length+(currentIndex.collections||[]).reduce((n,f)=>n+read(f).buildings.length,0);
 const snapshot=read('data/snapshots/2026-09-12/buildings.detailed.geojson').features;
 for(const b of bundle.buildings){
  const f=snapshot.find(f=>f.properties.id===b.id);
@@ -26,7 +27,7 @@ try{
  await page.waitForFunction(()=>window.slopesApartments?.count.done&&window.campusLandscape?.count.done&&window.slopesRoofs?.data&&window.__fly?.indexed(),null,{timeout:180000});
  const after=await page.evaluate(()=>structuredClone(slopesApartments.data));
  const info=await page.evaluate(()=>({halls:slopesApartments.count.buildings,planting:campusLandscape.count,hidden:slopesApartments.hidden}));
- assert.equal(info.halls,76);assert.ok(info.planting.trees>1500);assert.ok(info.planting.gardens>30);assert.ok(info.planting.triangles>300000);
+ assert.equal(info.halls,registered);assert.ok(info.planting.trees>1500);assert.ok(info.planting.gardens>30);assert.ok(info.planting.triangles>300000);
  assert.deepEqual(info.hidden.missing,[]);assert.deepEqual(info.hidden.rigsMissing,[]);
  assert.ok(await page.evaluate(()=>{
   const g=campusLandscape.group;if(!g||!g.children.length)return false;
@@ -72,7 +73,7 @@ try{
  for(const preset of ['performance','cinematic']){
   await page.evaluate(p=>__usePreset(p),preset);
   counts.push(await page.evaluate(()=>campusLandscape.count.trees));
-  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),76);
+  assert.equal(await page.evaluate(()=>slopesApartments.count.buildings),registered);
  }
  assert.ok(counts[0]<counts[1],'tree density follows graphics preset');
  await page.evaluate(()=>{__usePreset('balanced');applyTimeOfDay(__map,.12,true)});

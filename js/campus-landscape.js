@@ -16,7 +16,7 @@
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
  let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
- const count={done:false,trees:0,triangles:0,gardens:0};
+ const count={done:false,trees:0,triangles:0,gardens:0,railings:0};
  const hash=(n,k=0)=>{const x=Math.sin(n*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
  const norm=a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l)};
  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -123,6 +123,18 @@
  function build(){
   const chunks=new Map();count.triangles=0;buildTrees(chunks);
   const gardens=slopes.build();buildGardens(gardens);chunks.set('gardens',gardens);
+  count.railings=0;
+  for(const r of data.railings||[]){
+   const T=data.railingDetail;
+   for(let i=1;i<r.line.length;i++){
+    const a=slopes.toLocal(...r.line[i-1],0),b=slopes.toLocal(...r.line[i],0),dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),angle=Math.atan2(dy,dx)*180/Math.PI;
+    const center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    for(const z of [T.bottom,T.height-T.rail])boxMesh(gardens,center,length,T.rail,z,z+T.rail,T.colour,angle);
+    const n=Math.ceil(length/T.spacing);
+    for(let k=0;k<=n;k++)boxMesh(gardens,{x:a.x+dx*k/n,y:a.y+dy*k/n},k===0||k===n?T.post:T.picket,T.post,T.bottom,T.height,T.colour,angle);
+   }
+   count.railings++;
+  }
   const g=new THREE.Group();g.name='campus-landscape';g.userData.minzoom=C.minzoom;
   for(const [key,B]of chunks){if(!B.triangles)continue;const mesh=new THREE.Mesh(B.geometry(),slopes.material());mesh.name='campus-'+key;g.add(mesh);count.triangles+=B.triangles}
   lastDensity=window.GFX?.treeDensity??1;lastDetail=slopes.detail();return g;
@@ -133,11 +145,22 @@
   if(!group)return;
   slopes.remove(group);group.traverse(o=>o.geometry?.dispose());group=null;
  }
+ let fenceClause=null;
+ function applyFences(on){
+  if(!map.getLayer('props-line'))return;
+  if(!data.retiredFences?.coordinates.length&&!fenceClause)return;
+  let base=map.getFilter('props-line');
+  if(fenceClause&&base?.[0]==='all')base=base.slice(1).filter(c=>JSON.stringify(c)!==JSON.stringify(fenceClause));
+  else base=base?[base]:[];
+  fenceClause=on&&data.retiredFences?.coordinates.length?['any',['!=',['get','u'],'fence'],['>',['distance',data.retiredFences],0]]:null;
+  map.setFilter('props-line',['all',...base,...(fenceClause?[fenceClause]:[])]);
+ }
  function apply(){
   if(!data||!map||!window.slopes?.root)return;
   const on=C.on&&SLOPES.on;
   if(group&&(!on||lastDensity!==(window.GFX?.treeDensity??1)||lastDetail!==slopes.detail()))drop();
   if(on&&!group){group=build();slopes.add(group)}
+  applyFences(on);
   if(originalFilter)window.applyTreeDensity(map);
   map.triggerRepaint();
  }
