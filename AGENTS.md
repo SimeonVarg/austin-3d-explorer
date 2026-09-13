@@ -147,3 +147,10 @@ apartments not built yet." Treat Guadalupe as a connected street, including
 ordinary storefronts and the spaces between buildings. Audit apartment coverage
 against the current scene before adding missing properties. Preserve the open
 Drag experiment files; use a separately owned bake and output for this pass.
+
+## Visual defects — September 13, 2026
+
+Simeon reports a floating roof beside UTC, insufficient detail on UTC and other
+campus buildings, and sidewalk outlines bleeding into roads. Fix the visible
+defects and inspect surrounding campus areas for the same failure patterns;
+previously passed checks do not establish visual acceptance.
