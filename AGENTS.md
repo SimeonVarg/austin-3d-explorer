@@ -159,3 +159,15 @@ Simeon authorized the next walking-height pass on September 13 ("do it").
 Repair the Gearing/Goldsmith ground defects, then improve the connected UTC,
 PCL, Gregory and Speedway area: materials, entrances, planting and surrounding
 facades together. Keep each bake/output ownership intact and verify close views.
+
+## Bug and campus ground pass — September 13, 2026
+
+Simeon authorized a broad defect repair pass followed by accurate campus ground
+ detail. Use his reported defects as the starting inventory and check the same
+failure modes elsewhere: roof/balcony/window geometry, night materials, delayed
+legacy replacements, missing/recessed entrances, raised walks and stairs,
+road/path clipping, tree/building intersections, sculpture and seating forms,
+and stadium exterior/wall visibility. Capture initial loading as well as settled
+day/night views. Substantial matched-camera before/after evidence is required;
+small cosmetic changes and prior passing tests do not establish acceptance.
+Work starts on `codex/campus-bug-ground-pass`. Existing bake ownership remains.
