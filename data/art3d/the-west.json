@@ -1,0 +1,31 @@
+{
+  "name": "The West",
+  "at": [
+    -97.7377674,
+    30.2855759
+  ],
+  "atFromData": true,
+  "rotation": -5,
+  "radius": 0.762,
+  "separation": 2.343,
+  "slab": [
+    5,
+    3.3,
+    0.32
+  ],
+  "cradle": 0.2,
+  "segments": 32,
+  "rings": 20,
+  "metal": [
+    "#6d786a",
+    "#8d846a",
+    "#18221d"
+  ],
+  "stone": [
+    "#999990",
+    "#aaa28c",
+    "#252821"
+  ],
+  "source": "https://landmarks.utexas.edu/artwork/west",
+  "note": "Published 60-inch buoy diameter. Existing mapped location retained; axis aligned with campus paving per reported rotation defect. Base dimensions approximate."
+}

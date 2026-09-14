@@ -84,6 +84,8 @@
     // discs) and minzoom 14 like every sibling layer in js/app.js.
     lod: null,
     minzoom: 14,
+    twoSided: true, // closed visual envelopes remain opaque from either flight direction
+    fetchTimeoutMs: 45000,
     // Geometry density per graphics preset (0..1) — the sign dots and the
     // window reveals go first when it drops; the massing never does.
     byPreset: { performance: 0.5, balanced: 1.0, cinematic: 1.0, ultra: 1.0 },
@@ -1162,8 +1164,12 @@
    * projection, slab thickness, rail height and thickness) — The Standard's
    * are js/westcampus.js's TIER4 read of Ext_01, carried over.
    */
-  function balconyStack(B, W, spec, floors, P) {
+  function balconyStack(B, W, spec, floors, P, ceiling) {
     const s0 = spec.s0, s1 = spec.s1, proj = spec.proj || 1.15, t = spec.slabT || 0.28, rh = spec.railH || 0.95, rt = spec.railT || 0.06;
+    if (s0 < -0.01 || s1 > W.L + 0.01 || s1 <= s0) {
+      warnOnce('balcony-bounds|' + s0 + '|' + s1 + '|' + W.L, 'Balcony outside its wall piece: ' + s0 + '..' + s1 + ' / ' + W.L);
+      return;
+    }
     const slab = P[spec.slabTone || 'slab'], rail = P[spec.railTone || 'rail'];
     function railing(a, b, d0, d1, z0, z1) {
       if (!(spec.railPitch > 0)) return box(B, W, a, b, d0, d1, z0, z1, rail, { back: true });
@@ -1181,6 +1187,7 @@
     }
     for (const fz of floors) {
       const z = fz + (spec.lift || 0);
+      if (z + (spec.inset > 0 ? 0 : t) + rh > ceiling + 1e-6) continue;
       if (spec.inset > 0) {
         // AN INSET BALCONY (a loggia): the opening is cut into the wall by
         // openings() below — its sill strip is the loggia's floor, its head
@@ -1728,7 +1735,7 @@
       const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
       const d = insetOf(band);
       const Wb = d > 0 ? { at: (s, dd, z) => W.at(s, dd - d, z), T: W.T, N: W.N, L: W.L, a: W.a, b: W.b, dir: W.dir, n: W.n } : W;
-      if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P);
+      if (hasB) for (const bs of band.balconies) balconyStack(B, Wb, Object.assign({}, spec.balcony || {}, bs), floors, P, band.z1);
       if (hasS) for (const sg of band.signs) sign(B, Wb, sg, P);
       // a band's own fins: on the whole face at their pitch (a skin's ride on each piece with the skin)
       if (hasF) for (const fs of Array.isArray(band.fins) ? band.fins : [band.fins]) blades(B, Wb, fs, W.L, band.z0, band.z1, P, cut || null);
@@ -1897,6 +1904,8 @@
    */
   function capWithHoles(B, F, ringUV, holesUV, z, col, normal=[0,0,1]) {
     const T = window.THREE;
+    const clean = ring => { const out=ring.filter((p,i)=>!i||Math.hypot(p[0]-ring[i-1][0],p[1]-ring[i-1][1])>1e-6); while(out.length>1&&Math.hypot(out[0][0]-out.at(-1)[0],out[0][1]-out.at(-1)[1])<1e-6)out.pop(); return out; };
+    ringUV=clean(ringUV); holesUV=holesUV.map(clean);
     const c2 = ringUV.map(p => new T.Vector2(p[0], p[1]));
     const h2 = holesUV.map(h => h.map(p => new T.Vector2(p[0], p[1])));
     let idx = [];
@@ -2002,7 +2011,7 @@
       if (blk.roof && holesUV.length) warnOnce('holes-roof|' + key + '|' + blk.id, spec.name + ' ' + blk.id + ': a pitched roof on a holed plan ignores the holes');
       if (blk.roof && !RK) { try { roofRec = roofOf(B, spec, blk, F, planUV, keys, P, zTop); } catch (e) { console.warn('[slopes-apartments] roof', spec.name, blk.id, e); } }
       if (roofRec) { roofs.push(roofRec); top = Math.max(top, roofRec.ridgeZ); }
-      if (blk.cap !== false && (!roofRec || blk.roof.inset > 0)) {
+      if ((blk.cap !== false || (spec.preserveRoof && !blk.roof)) && (!roofRec || blk.roof.inset > 0)) {
         // a raked block's cap is only what lies beyond the head line; a holed plan's goes round its wells
         const capUV = RK ? clipRing(planUV, RK.foot, RK.inward, RK.run) : planUV;
         const capCol = P[blk.roofTone || 'roof'];
@@ -2104,7 +2113,7 @@
   // ══════════════════════════════════════════════════════════════════════
   //  THE GROUP, THE FILTERS, THE SWITCH
   // ══════════════════════════════════════════════════════════════════════
-  let _built = [];
+  let _built = [], _builtFrame = 0;
   function build() {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
@@ -2116,10 +2125,11 @@
       catch (e) { console.error('[slopes-apartments]', spec.name, e); }
     }
     const geom = B.geometry();
-    const mesh = new T.Mesh(geom, S.material());
+    const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
     mesh.name = 'apartments';
     const g = new T.Group();
     g.name = 'slopes-apartments';
+    _builtFrame = S.frames;
     g.userData.lod = APTS.lod;
     g.userData.minzoom = APTS.minzoom;
     g.add(mesh);
@@ -2385,6 +2395,14 @@
   };
 
   window.slopesApartments = {
+    readyToReveal() {
+      if(!count.done)return false;
+      if(!_group)return true; // explicit fetch failure keeps the fallback usable
+      if(window.slopes.frames<=_builtFrame+1||filtersMissing().length||rigsMissing().length)return false;
+      const sources=new Set(filterPlan().map(([id])=>_map.getLayer(id)?.source).filter(Boolean));
+      for(const id of sources)if(_map.getSource(id)&&!_map.isSourceLoaded(id))return false;
+      return true;
+    },
     rebuild() { dropGroup(); window.applySlopesApartments(); },
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
     get group() { return _group; },
@@ -2407,6 +2425,12 @@
   // Campus pass is on — for that pass's layers, so their filter can be set
   // in the same apply. The data is fetched once, through the layer's cache.
   let _fetching = null;
+  function fetchModel(S,url) {
+    let timer;
+    return Promise.race([S.fetchJSON(url),new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error(url+': model download timed out')),APTS.fetchTimeoutMs);
+    })]).finally(()=>clearTimeout(timer));
+  }
   async function boot() {
     const map = window.__map, S = window.slopes;
     if (!map || !S || !S.root || !map.getLayer('buildings-3d')) return false;
@@ -2415,18 +2439,22 @@
     if (!_data) {
       if (!_fetching) {
         _fetching = (async () => {
-          const idx = await S.fetchJSON(APTS.index);
-          const buildings = [];
-          for (const f of idx.buildings || []) {
-            try { buildings.push(await S.fetchJSON(f.startsWith('data/') ? f : 'data/apartments/' + f)); }
-            catch (e) { console.warn('[slopes-apartments]', f, e.message); }
-          }
-          const collected = [];
-          for (const f of idx.collections || []) {
-            const bundle = await S.fetchJSON(f);
-            if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
-            collected.push(...bundle.buildings);
-          }
+          const idx = await fetchModel(S,APTS.index);
+          // Fetch independent files together; serial fetches left obsolete models visible.
+          const [individual, bundles] = await Promise.all([
+            Promise.all((idx.buildings || []).map(async f => {
+              try { return await fetchModel(S,f.startsWith('data/') ? f : 'data/apartments/' + f); }
+              catch (e) { console.warn('[slopes-apartments]', f, e.message); return null; }
+            })),
+            Promise.all((idx.collections || []).map(async f => {
+              try {
+                const bundle = await fetchModel(S,f);
+                if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
+                return bundle.buildings;
+              } catch(e) { console.warn('[slopes-apartments]',f,e.message);return []; }
+            }))
+          ]);
+          const buildings = individual.filter(Boolean), collected = bundles.flat();
           return { buildings: buildings.concat(collected),
             replacedBuildingIds: [...new Set((idx.replacedBuildingIds || buildings.map(b => b.id).filter(Boolean)).concat(collected.map(b => b.id)))],
             replacedNames: [...new Set((idx.replacedNames || buildings.map(b => b.name)).concat(collected.flatMap(b => [b.name,...(b.aliases || [])])))] };

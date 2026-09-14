@@ -276,8 +276,10 @@ GDC_ATRIUM = (10.60, 32.50, -1.00, 11.70)
 #
 # The brick end wall this bake draws is at 32.50 - GDC_OVERSAIL = 30.00 (the
 # ring's own two end vertices are 32.37 and 32.57). The line the shadow-free
-# frame puts at 29.00 is therefore 0.90 m behind the brick.
-GDC_ATRIUM_RECESS = 0.90  # m the glass sits behind the brick end wall
+# frame puts at 29.00 was previously used for a 0.90 m recess. The user's
+# street-level correction and PCP exterior photograph show a deeper porch;
+# five metres is a photo-informed approximation, not a surveyed dimension.
+GDC_ATRIUM_RECESS = 5.0  # m: reference-informed depth; visible porch between the two Speedway prows
 # IN v THE ATRIUM KEEPS THE RING'S OWN NOTCH, and that is a decision, not an
 # omission. The oversail moves each bar's notch-facing brick 2.5 m further out,
 # so glass left at the ring's notch width sits 2.5 m INSIDE the brick on both
@@ -549,16 +551,13 @@ def build_eer(out, stats):
                                EER_ATRIUM_H - 1.2, EER_ATRIUM_H, 0)))
     stats["eer_bands"] += 1
 
-    gu0, gu1 = EER_CAGE
-    out.append(feat(frame_rect("eer", gu0, gu1, cv0, cv1),
-                    band_props("eer", "entrance", "eer_soffit", SOLID, 0.0, EER_CAGE_BASE, 0)))
-    out.append(feat(frame_rect("eer", gu0, gu1, cv0, cv1),
-                    band_props("eer", "cage", "eer_steel", LATTICE,
-                               EER_CAGE_BASE, EER_CAGE_TOP, 0)))
-    out.append(feat(frame_rect("eer", gu0, gu1, cv0, cv1),
-                    band_props("eer", "cage_rail", "eer_steel", SOLID,
-                               EER_CAGE_TOP, EER_CAGE_TOP + 0.80, 0)))
-    stats["eer_bands"] += 3
+    # Public aerial and Coleman/Ennead photographs put the braced garden
+    # entrance at the WEST end. The old cage was a solid block at the creek.
+    # These thin curtain planes close the hall without filling either porch.
+    for tag, u in [('west_entry_glass', au0), ('east_entry_glass', au1)]:
+        out.append(feat(frame_rect('eer', u, u + .35, cv0, cv1),
+                        band_props('eer', tag, 'eer_glass', GLASS, 0, EER_ATRIUM_H, 0)))
+    stats['eer_bands'] += 2
     HERO_HEIGHTS["eer"] = EER_H
 
 
@@ -598,7 +597,7 @@ def build_gdc(out, stats):
     # filling the notch. v is still the ring's own notch (see GDC_ATRIUM), which
     # is what keeps the Speedway door on the wall it was baked onto.
     au0, au1, av0, av1 = GDC_ATRIUM
-    gx1 = au1 - GDC_OVERSAIL - GDC_ATRIUM_RECESS      # 29.10, the outer face
+    gx1 = au1 - GDC_OVERSAIL - GDC_ATRIUM_RECESS      # outer glass face
     gx0 = gx1 - GDC_GLASS_T
     pr = band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, GDC_LINK_WALL_TOP, 0)
     # ?wallplane=0 puts the atrium back where main draws it: the same 0.80 m

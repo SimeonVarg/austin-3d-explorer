@@ -40,8 +40,10 @@ assert maximum < .02, 'Pavement crosses asphalt: %.2f m2 in one feature' % maxim
 print('PASS campus and West Campus pavement/texture overlap below geometric tolerance')
 
 def other_ground(fc):
+    crossing=unary_union([box(*c['bounds'])for c in read('data/ground_crossings.json')['crossings']])
     return Counter(json.dumps(f, sort_keys=True) for f in fc['features']
-                   if not is_pavement(f['properties']))
+                   if not is_pavement(f['properties']) and not
+                   (f['properties'].get('k')=='roadarea' and crossing.covers(shape(f['geometry']))))
 assert other_ground(old) == other_ground(current), 'Unrelated ground changed'
 assert json.loads(json.dumps(anchors_build())) == read('data/roof_anchors.json'), 'Roof anchors stale'
 assert campus_build() == read('data/south_campus.json'), 'Campus models stale'

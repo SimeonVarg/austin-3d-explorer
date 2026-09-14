@@ -470,13 +470,24 @@
       "code": "SEA",
       "name": "Sarah M. and Charles E. Seay Building",
       "colour": "#b18d6b",
-      "rows": 3,
+      "rows": 4,
       "ground": 4.2,
-      "bay": 3.8,
-      "window": 2.0,
+      "bay": 3.7,
+      "window": 2.9,
       "groundWindow": 2.7,
-      "columns": [],
-      "observations": "Brick and broad glazing beneath a shallow hipped roof."
+      "columns": [
+        0.33,
+        0.67
+      ],
+      "observations": "Brick and broad glazing beneath a shallow hipped roof.",
+      "windowHeight": 2.7,
+      "groundWindowHeight": 2.8,
+      "sash": [],
+      "courses": [
+        4.2,
+        9.067,
+        13.933
+      ]
     },
     {
       "code": "MBB",
@@ -520,6 +531,39 @@
       "window": 2.2,
       "columns": [],
       "observations": "Brick laboratory mass with pale frame and broad recessed glazing."
+    },
+    {
+      "code": "JES",
+      "name": "Beauford H. Jester Center",
+      "colour": "#b7a283",
+      "rows": 3,
+      "height": 11.9,
+      "ground": 4.2,
+      "bay": 3.8,
+      "window": 1.65,
+      "windowHeight": 2.1,
+      "groundWindow": 2.35,
+      "groundWindowHeight": 3.1,
+      "groundArch": 1.05,
+      "reveal": 0.75,
+      "columns": [
+        0.5
+      ],
+      "sash": [],
+      "ownHip": {
+        "kind": "hip",
+        "pitch": 22,
+        "over": 0.45,
+        "d": 4,
+        "deck": "roofFlat",
+        "tone": "roof",
+        "lipTone": "trim",
+        "soffitTone": "stone"
+      },
+      "roofColour": "#984c37",
+      "observations": "UT JES exterior photographs: low three-storey academic entrance block on 21st, arcade and tiled roof, distinct from the dormitory towers. Heights and unseen elevations approximate.",
+      "replaceFrontage": true,
+      "roofSimplify": 1.4
     }
   ]
 }

@@ -293,7 +293,7 @@
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 7.9, "s1": 10.5, "lift": 0.0 }]
+              "balconies": [{ "s0": 0.1, "s1": 2.7, "lift": 0.0 }]
             }
           ],
           "_src": "the first balcony stack on W 23rd. S6 hp_cover shows the stacks as full-height columns of inset balconies with a rust back and a black rail, one per floor, beside a terracotta pilaster; hp_0499 shows the same column at the near end of the elevation. Three stacks are entered on this face at roughly a quarter, a half and three quarters of its length, which is where hp_cover and the S8 SW oblique put them, plus or minus 4 m. `s0/s1` are given equal to the region's u range - see `open` about which way s winds on this face."
@@ -305,7 +305,7 @@
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 23.5, "s1": 26.1, "lift": 0.0 }]
+              "balconies": [{ "s0": 0.1, "s1": 2.7, "lift": 0.0 }]
             }
           ],
           "_src": "the second balcony stack (S6 hp_cover)"
@@ -317,7 +317,7 @@
               "z0": 7.0,
               "z1": 55.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 39.1, "s1": 41.7, "lift": 0.0 }]
+              "balconies": [{ "s0": 0.1, "s1": 2.7, "lift": 0.0 }]
             }
           ],
           "_src": "the third balcony stack (S6 hp_cover)"
@@ -443,7 +443,7 @@
               "z0": 7.0,
               "z1": 46.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 56.5, "s1": 59.1, "lift": 0.0 }]
+              "balconies": [{ "s0": 0.1, "s1": 2.7, "lift": 0.0 }]
             }
           ],
           "_src": "a balcony stack on this block's W 23rd face, the same module as the tall block's (S8 SE oblique, where the stacks continue past the step)"
@@ -455,7 +455,7 @@
               "z0": 7.0,
               "z1": 46.0,
               "skin": "balconyBack",
-              "balconies": [{ "s0": 70.5, "s1": 73.1, "lift": 0.0 }]
+              "balconies": [{ "s0": 0.1, "s1": 2.7, "lift": 0.0 }]
             }
           ],
           "_src": "the second stack on this block (S8 SE oblique)"
@@ -614,7 +614,6 @@
   "open": [
     "The total height is the weakest number here. 17 storeys is stated by the architect and by two independent members of the project team (S3, S4), and the storey count is confirmed from the photographs (S10), but nothing states a height in feet and no source of dimensioned drawings was found. 3.0 m floor to floor is derived, not measured; at 3.2 m the roof would be 58.2 m instead of 55.0. A drawing, a permit, or a rectified vertical ruler on a registered oblique would settle it to a metre.",
     "The Google Earth obliques could not be registered. A projection of the footprint into the SW oblique using the camera the URL states (target lat/lng, d metres, 35 deg vertical fov, heading, tilt) lands correctly in plan - the two ends of the south wall fall within 15 px of their real pixels - but puts the ground plane about 140 px too high, and no single ground-elevation offset fixes both ends. Until that is understood, every height here rests on storey counts rather than on a measured ruler. The nadir IS registered (S9) and every plan number is measured.",
-    "Which way `s` winds on each face was not verified before this file was written. The balcony stacks are entered with `s0/s1` equal to their region's u range, which is right if s runs with +u on these faces and mirrored about the face's centre if it does not. First look, first fix.",
     "The courtyard is a gap between blocks rather than a hole in one, because the schema takes one ring. The consequence is that the four walls facing into it are separate blocks' faces, all of them unphotographed and all of them wearing the plainest panel field. Nothing in any source shows the courtyard - S5 says it has hammocks and it is 'on the upper levels', and hp_cover looks straight over it without showing in.",
     "The published floor area does not reconcile with this massing. 417,000 sq ft (S4) over these blocks would need the upper floors to be about 15 per cent smaller than they are drawn, or that figure excludes the two below-grade parking levels differently than assumed. The massing follows the imagery, which is the stronger evidence, and the discrepancy is recorded rather than resolved.",
     "The deck's pergolas are bright blue in every photograph (S6 hp_drone, hp_0404) and are drawn in the mechanical grey because no blue was sampled. So are the deck's planters, the in-water loungers, and the trees - none of them are drawn.",

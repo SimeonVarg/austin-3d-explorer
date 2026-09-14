@@ -4,7 +4,8 @@
   "sources": {
     "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 04ac46be-ba31-4ff5-ab58-e36988f6a5fb",
     "reference": "docs/campus-truth/PCL.md",
-    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
+    "repair": "UT Direct PCL exterior, north entry and east coffer wall: restore glazing on long orthogonal elevations; retain blank diagonal book-stack walls. Sept 13 bug report."
   },
   "footprint": {
     "ring": [
@@ -319,7 +320,26 @@
       "parapet": 0.5,
       "parapetTone": "stone",
       "faces": {
-        "1": {
+        "2": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
+        "4": {
           "bands": [
             {
               "z0": 0,
@@ -357,6 +377,25 @@
             }
           ]
         },
+        "7": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
         "10": {
           "bands": [
             {
@@ -366,6 +405,50 @@
             },
             {
               "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
+        "11": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "stone"
+            },
+            {
+              "z0": 4.8,
+              "z1": 24,
+              "skin": "slots"
+            },
+            {
+              "z0": 24,
+              "z1": 28.4,
+              "skin": "stone"
+            }
+          ]
+        },
+        "14": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "glass",
+              "inset": 2.4
+            },
+            {
+              "z0": 4.8,
+              "z1": 14.4,
+              "skin": "stone"
+            },
+            {
+              "z0": 14.4,
               "z1": 24,
               "skin": "slots"
             },

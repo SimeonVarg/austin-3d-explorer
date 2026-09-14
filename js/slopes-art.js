@@ -83,6 +83,10 @@
     // two pieces below are hidden by name while this group draws.
     layer: 'props-artpart',
     pieces: [
+      {name:'Square Tilt',url:'data/art3d/square-tilt.json',build:'square'},
+      {name:'The Family Group',url:'data/art3d/family-group.json',build:'family'},
+      {name:'The West',url:'data/art3d/the-west.json',build:'west'},
+      {name:'Mustangs',url:'data/art3d/mustangs.json',build:'mustangs'},
       { name: 'Monochrome for Austin', url: 'data/art3d/monochrome-for-austin.json', build: 'monochrome' },
       { name: 'Circle with Towers',    url: 'data/art3d/circle-with-towers.json',    build: 'circle' },
     ],
@@ -481,6 +485,80 @@
 
   // ══════════════════════════════════════════════════════════════════════
 
+  // Closed smooth surfaces for sculpture: curved limbs and buoys, never tiers.
+  function ellipsoid(B,c,r,col,rot=0,n=20,m=12) {
+    const cs=Math.cos(rot),sn=Math.sin(rot);
+    const at=(i,j)=>{
+      const t=i/n*2*Math.PI,p=j/m*Math.PI,x=Math.cos(t)*Math.sin(p),y=Math.sin(t)*Math.sin(p),z=Math.cos(p);
+      return {p:[c[0]+r[0]*x*cs-r[1]*y*sn,c[1]+r[0]*x*sn+r[1]*y*cs,c[2]+r[2]*z],n:norm([x/r[0]*cs-y/r[1]*sn,x/r[0]*sn+y/r[1]*cs,z/r[2]])};
+    };
+    for(let j=0;j<m;j++)for(let i=0;i<n;i++){
+      const a=at(i,j),b=at(i+1,j),c=at(i+1,j+1),d=at(i,j+1);
+      if(j>0)B.triN(a.p,b.p,d.p,a.n,b.n,d.n,col);
+      if(j<m-1)B.triN(b.p,c.p,d.p,b.n,c.n,d.n,col);
+    }
+  }
+  function organicLimb(B,a,b,r0,r1,col,n=10){
+    const N=norm(b.map((v,i)=>v-a[i])),U=norm(cross(N,Math.abs(N[2])>.9?[1,0,0]:[0,0,1])),V=cross(N,U);
+    const ring=(p,r,k)=>p.map((v,i)=>v+r*(Math.cos(k/n*2*Math.PI)*U[i]+Math.sin(k/n*2*Math.PI)*V[i]));
+    for(let k=0;k<n;k++)B.quad(ring(a,r0,k),ring(a,r0,k+1),ring(b,r1,k+1),ring(b,r1,k),col);
+    ellipsoid(B,a,[r0,r0,r0],col,0,10,6);ellipsoid(B,b,[r1,r1,r1],col,0,10,6);
+  }
+  function buildFamily(B,D){
+    box(B,0,0,D.plinth[0],D.plinth[1],0,D.plinth[2],D.stone);
+    for(const sections of D.robes){
+      const n=D.segments;
+      const at=(r,k)=>{const a=k/n*Math.PI*2,f=1+D.foldDepth*Math.cos(D.folds*a);return [r[0]+r[3]*Math.cos(a)*f,r[1]+r[4]*Math.sin(a)*f,r[2]]};
+      for(let j=1;j<sections.length;j++)for(let k=0;k<n;k++)B.quad(at(sections[j-1],k),at(sections[j-1],k+1),at(sections[j],k+1),at(sections[j],k),D.metal);
+    }
+    for(const [c,r]of D.heads)ellipsoid(B,c,r,D.metal);
+    for(const [a,b,r0,r1]of D.limbs)organicLimb(B,a,b,r0,r1,D.metal);
+  }
+  function buildSquare(B,D){
+    // Plate sculpture: a genuinely open, tilted frame and thin welded plates.
+    // x/z are the frontal drawing; y supplies only the steel's thickness.
+    for(const plate of D.plates){
+      const ring=plate.ring,n=ring.length,y=plate.y||0,half=D.thickness/2;
+      const front=ring.map(p=>[p[0],y-half,p[1]]),back=ring.map(p=>[p[0],y+half,p[1]]);
+      const indices=THREE.ShapeUtils.triangulateShape(ring.map(p=>new THREE.Vector2(...p)),[]);
+      for(const [a,b,c]of indices){B.tri(front[a],front[b],front[c],D.metal,[0,-1,0]);B.tri(back[c],back[b],back[a],D.metal,[0,1,0]);}
+      for(let i=0;i<n;i++)B.quad(front[i],back[i],back[(i+1)%n],front[(i+1)%n],D.metal);
+    }
+  }
+  function buildWest(B,D){
+    const rot=D.rotation*Math.PI/180,cs=Math.cos(rot),sn=Math.sin(rot),R=D.radius,z=D.slab[2]+D.cradle+R;
+    box(B,0,0,D.slab[0],D.slab[1],0,D.slab[2],D.stone,rot);
+    for(const side of [-1,1]){
+      const x=side*D.separation/2;
+      ellipsoid(B,[x*cs,x*sn,z],[R,R,R],D.metal,0,D.segments,D.rings);
+      for(const offset of [-.42,.42])box(B,(x+offset)*cs,(x+offset)*sn,.1,.9,D.slab[2],D.slab[2]+D.cradle,D.metal,rot);
+    }
+    organicLimb(B,[-.45*cs,-.45*sn,z],[.45*cs,.45*sn,z],.07,.07,D.metal);
+  }
+  function buildMustangs(B,D){
+    const z=D.plinth[2];box(B,0,0,D.plinth[0],D.plinth[1],0,z,D.stone);
+    D.horses.forEach(([x,y,rot,size],i)=>{
+      const P=(u,v,h)=>[x+size*(u*Math.cos(rot)-v*Math.sin(rot)),y+size*(u*Math.sin(rot)+v*Math.cos(rot)),z+size*h];
+      const ball=(u,v,h,r)=>ellipsoid(B,P(u,v,h),r.map(q=>q*size),D.metal,rot);
+      const limb=(a,b,r0,r1)=>organicLimb(B,P(...a),P(...b),r0*size,r1*size,D.metal);
+      ball(0,0,1.7,[1.02,.38,.5]);ball(.67,0,1.72,[.42,.39,.57]);ball(-.7,0,1.65,[.44,.41,.51]);
+      limb([.55,0,1.92],[1.02,0,2.68],.35,.20);
+      ball(1.12,0,2.64,[.39,.2,.27]);ball(1.39,0,2.47,[.3,.15,.18]);
+      for(const v of [-.13,.13])limb([.95,v,2.81],[.91,v,3.04],.065,.012);
+      for(const side of [-1,1]){
+        const phase=(i%3-1)*.14*side;
+        limb([.67,side*.25,1.55],[.85+phase,side*.29,.85],.14,.075);
+        limb([.85+phase,side*.29,.85],[1.11+phase,side*.3,.12],.075,.065);
+        ball(1.14+phase,side*.3,.09,[.15,.10,.09]);
+        limb([-.7,side*.27,1.55],[-1.04-phase,side*.29,.8],.19,.09);
+        limb([-1.04-phase,side*.29,.8],[-.78-phase,side*.3,.12],.09,.065);
+        ball(-.76-phase,side*.3,.09,[.15,.1,.09]);
+      }
+      limb([-1,0,1.88],[-1.43,.05,1.45],.10,.085);limb([-1.43,.05,1.45],[-1.56,.15,.8],.085,.025);
+      limb([.61,0,2.05],[.85,0,2.83],.13,.07);
+    });
+  }
+
   function build() {
     const t0 = performance.now();
     const T = window.THREE, S = window.slopes;
@@ -502,6 +580,10 @@
       const B = S.build();
       try {
         if (spec.build === 'monochrome') count.hulls += buildMonochrome(B, D, detail);
+        else if(spec.build==='square') buildSquare(B,D);
+        else if(spec.build==='family') buildFamily(B,D);
+        else if(spec.build==='west') buildWest(B,D);
+        else if(spec.build==='mustangs') buildMustangs(B,D);
         else { const r = buildCircle(B, D, detail); count.fingers += r.fingers; count.towers += r.towers; }
       } catch (e) { console.warn('[slopes-art]', spec.name, e); continue; }
       if (!B.triangles) continue;
