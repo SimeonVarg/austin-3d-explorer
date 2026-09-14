@@ -57,6 +57,11 @@ def bake(p):
  if p.get('screen'):
   skins['upper']=dict(kind='bays',field='wall',bay=p['bay'],window=dict(w=p['window'],h=p['windowHeight'],sill=T['sill']),glass='dark',frame='stone',reveal=p['reveal'],pier=dict(w=p['pier'],d=p['pierDepth'],tone='stone'))
  blocks=[b]
+ if p.get('ownHip'):
+  palette['roof']={'hex':p['roofColour']};b['roof']=p['ownHip'];b['cap']=True
+  if p.get('roofSimplify'):
+   from shapely.geometry import Polygon
+   b['plan']['ring']=[list(q)for q in Polygon(b['plan']['ring']).simplify(p['roofSimplify'],preserve_topology=True).exterior.coords[:-1]]
  if p.get('roofWings'):
   b['cap']=False;palette['roof']={'hex':p['roofColour']}
   for i,r in enumerate(p['roofWings']):
@@ -84,7 +89,7 @@ def bake(p):
   face['bands']=[band(0,ground,'entry')]+[x for x in face['bands']if x['z0']>=ground]
   b.setdefault('faces',{})[str(edge)]=face
  source=f"https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/{p['code']}/"
- return dict(name=p['name'],id=id,code=p['code'],sources={'reference':source,'footprint':f'data/snapshots/{SNAP}/buildings.detailed.geojson','dimensions':'Existing footprint and roof alignment retained. Window spacing, wall colours, trim and unphotographed sides are photo-derived approximations. Goldsmith roof subdivided around its mapped open courtyard.','observations':p['observations']},footprint=dict(ring=ring,holes=holes),frame={'obb':F},levels={'floors':floors},colours=palette,skins=skins,blocks=blocks,preserveRoof=bool(rigs) and not bool(p.get('roofWings')),open=['Small carved ornament and unphotographed elevation details remain simplified.'])
+ return dict(name=p['name'],id=id,code=p['code'],replaceFrontage=p.get('replaceFrontage',False),sources={'reference':source,'footprint':f'data/snapshots/{SNAP}/buildings.detailed.geojson','dimensions':'Existing footprint and roof alignment retained. Window spacing, wall colours, trim and unphotographed sides are photo-derived approximations. Goldsmith roof subdivided around its mapped open courtyard.','observations':p['observations']},footprint=dict(ring=ring,holes=holes),frame={'obb':F},levels={'floors':floors},colours=palette,skins=skins,blocks=blocks,preserveRoof=bool(rigs) and not bool(p.get('roofWings')) and not bool(p.get('ownHip')),open=['Small carved ornament and unphotographed elevation details remain simplified.'])
 
 buildings=[bake(p)for p in PROFILES['buildings']]
 assert len({b['id']for b in buildings})==len(buildings)

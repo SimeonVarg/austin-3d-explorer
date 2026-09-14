@@ -38,6 +38,10 @@ for kind in ['patharea','pathslab']:
     # can change height without losing a gap, junction or courtyard opening.
     a=selected(old,kind)
     b=selected(new,kind)
+    # The verified Inner Campus through-road is an intentional new cut in the
+    # old mall. Keep the coverage assertion everywhere outside that crossing.
+    crossing=unary_union([local(box(*c['bounds']))for c in read('data/ground_crossings.json')['crossings']])
+    a=a.difference(crossing);b=b.difference(crossing)
     assert a.symmetric_difference(b).area<.3, (kind,a.symmetric_difference(b).area)
 again=pedestrian_levels(new,Counter())
 for height in [.025,.14]:

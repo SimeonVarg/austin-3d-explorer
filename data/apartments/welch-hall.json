@@ -4,7 +4,8 @@
   "sources": {
     "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature ca0207d3-bbf8-408d-a319-9407d7bd0dd2",
     "reference": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/WEL/",
-    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements."
+    "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
+    "concourse": "https://www.payette.com/projects/construction-update-ut-austin-welch-hall-renovation/; published ground plan shows continuous recessed Speedway concourse. Depth and pier widths are approximate."
   },
   "footprint": {
     "ring": [
@@ -341,6 +342,17 @@
       "glass": "glass",
       "frame": "frame",
       "reveal": 0.24
+    },
+    "concourse": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "dark",
+      "fasciaTone": "stone",
+      "fascia": 0.18,
+      "mullion": 1.5,
+      "mullionW": 0.08,
+      "horizontalPitch": 2.4,
+      "reveal": 0.12
     }
   },
   "blocks": [
@@ -522,12 +534,73 @@
         }
       ],
       "roofTone": "roofFlat",
-      "_src": "reference; dimensions are derived, see sources.dimensions"
+      "_src": "reference; dimensions are derived, see sources.dimensions",
+      "faces": {
+        "3": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "concourse",
+              "inset": {
+                "d": 4.2,
+                "tone": "stone",
+                "columns": {
+                  "pitch": 7.8,
+                  "w": 0.55,
+                  "d": 0.65,
+                  "tone": "stone"
+                }
+              }
+            },
+            {
+              "z0": 4.8,
+              "z1": 17.55,
+              "skin": "welch"
+            },
+            {
+              "z0": 17.55,
+              "z1": 18.2,
+              "skin": "trim"
+            }
+          ]
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 4.8,
+              "skin": "concourse",
+              "inset": {
+                "d": 4.2,
+                "tone": "stone",
+                "columns": {
+                  "pitch": 7.8,
+                  "w": 0.55,
+                  "d": 0.65,
+                  "tone": "stone"
+                }
+              }
+            },
+            {
+              "z0": 4.8,
+              "z1": 17.55,
+              "skin": "welch"
+            },
+            {
+              "z0": 17.55,
+              "z1": 18.2,
+              "skin": "trim"
+            }
+          ]
+        }
+      }
     }
   ],
   "open": [
     "Unphotographed elevations and small dimensions remain approximate.",
     "Historic and laboratory wing window modules are photo-derived; original pitched roof positions are retained. Sculpted portal ornament remains simplified."
   ],
-  "preserveRoof": true
+  "preserveRoof": true,
+  "replaceFrontage": true
 }

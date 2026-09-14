@@ -142,6 +142,7 @@
   //  here. Nothing aesthetic is buried in a function body.
   // ══════════════════════════════════════════════════════════════════════
   const ENT = {
+    evidenceOnly: true,
     // ?entrances=0 removes the whole pass at load, so an A/B can be measured on
     // ONE build instead of two checkouts. Same lever js/places.js exposes as
     // ?places=0 and js/drag.js as ?drag=0.
@@ -1069,6 +1070,13 @@
         if (a && a.wp && a.o) { a.o[0] += a.wp[0]; a.o[1] += a.wp[1]; }
       }
       if (moved) console.info('[entrances] ?wallplane=0 —', moved, 'pieces back on the footprint ring');
+    }
+    // A wall-facing score is not evidence of a real entrance. Remove the whole
+    // inferred assembly, including its stairs and floating shelter pieces.
+    if (ENT.evidenceOnly) {
+      const rejected = new Set(gj.features.filter(f=>f.properties.src==='field').map(f=>String(f.properties.eid)));
+      gj.features = gj.features.filter(f=>!rejected.has(String(f.properties.eid)));
+      for(const key of Object.keys(gj.arches||{})) if(rejected.has(String(key))) delete gj.arches[key];
     }
     publishGeoJSON(gj);
     // Read the band tones off the real file (see portalColor).

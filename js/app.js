@@ -1784,7 +1784,8 @@
     // ?outer=0) is skipped, never waited on.
     needs: ['austin-outer', 'austin-buildings', 'austin-ground', 'austin-roads'],
     minVeilMs: 7000,   // unchanged from the old `maxVeilMs`: the phone path
-    maxVeilMs: 18000,  // HARD CEILING — a stalled tile must never hold the screen
+    maxVeilMs: 18000,  // tile deadline; authored model handoff has its own fallback
+    authoredCeilingMs: 90000, // terminal failure: keep a stable legacy scene for this visit
     gatePollMs: 200,   // how often the gate is re-asked
     gateHolds: 2,      // consecutive passes required before departure
   };
@@ -1831,6 +1832,10 @@
       // rather than hanging the opening on it.
       try { ok = map.isSourceLoaded(id); } catch (e) { ok = true; }
       if (!ok) missing.push(id);
+    }
+    if (window.SLOPES?.on && window.APARTMENTS?.on) {
+      known++;
+      if (!window.slopesApartments?.readyToReveal()) missing.push('authored-buildings');
     }
     let all = false;
     try { all = !!map.areTilesLoaded(); } catch (e) {}
@@ -1893,30 +1898,25 @@
 
     // `idle` implies areTilesLoaded(), so it implies the gate. Kept exactly as
     // it was: when it does fire, it is the fastest honest signal there is.
-    map.once('idle', () => reveal('idle'));
+    map.once('idle', () => { if (!introGate().missing.length) reveal('idle'); });
 
-    // WITHOUT AN INTRO THERE IS NO OPENING FRAME TO PROTECT, and the whole
-    // verify suite loads with ?intro=0. Those pages keep the old timing to the
-    // millisecond — a gate that adds ten seconds to ninety scripts would be a
-    // change nobody asked for.
-    //
-    // THE TWO RECORDED REEL FLAGS ARE THE EXCEPTION (Z1). ?autopilot=1 and
-    // ?timelapse=1 used to take this flat 7 s timeout, which means the veil
-    // lifted READY OR NOT — and measured (docs/z1-slidein.md), on a loaded
-    // machine `austin-outer` has finished loading exactly zero tiles by then,
-    // so the recorded shot opens on a sparse skyline that visibly densifies
-    // as the flight flies at it ("buildings slide in from the horizon"). On a
-    // quiet machine the `idle` reveal above was accidentally saving the shot;
-    // this makes the save deliberate: the reel flags go through the same
-    // source gate as the intro, with their own ceiling (AP_VEIL_MAX_MS —
-    // see its comment for why a ceiling is not optional). Plain ?tour=1 is
-    // not a reel flag and keeps the old timing, as does everything else.
+    // The apartment picker and free exploration need the same replacement
+    // handoff as the intro. An expired tile deadline may release the veil,
+    // but must not release it while authored buildings are still swapping.
     const doReelGate = q.get('autopilot') === '1' || q.get('timelapse') === '1';
-    if (!doIntro && !doReelGate) { setTimeout(() => reveal('timeout'), INTRO.minVeilMs); return; }
+    // Free exploration shares the authored-building readiness gate.
     const veilCeilMs = doReelGate ? AP_VEIL_MAX_MS : INTRO.maxVeilMs;
 
     const tick = () => {
       const ms = performance.now() - t0;
+      if(ms>=INTRO.authoredCeilingMs && window.APARTMENTS?.on && !window.slopesApartments?.readyToReveal()) {
+        // A failed source must not hold the app forever or swap geometry after
+        // release. Disable this replacement for the visit; a reload retries it.
+        window.APARTMENTS.on=false;
+        window.applySlopesApartments?.(map);
+        dbg.modelFallback='authored handoff timed out';
+        console.warn('[intro] authored handoff timed out; keeping legacy buildings for this visit');
+      }
       const g = introGate();
       holds = g.missing.length ? 0 : holds + 1;
       if (holds >= INTRO.gateHolds && dbg.gateOkAt == null) dbg.gateOkAt = Math.round(ms);
@@ -1924,7 +1924,7 @@
       // 7 s. The gate can only ever make the wait LONGER, never shorter, so the
       // intro he likes on the phone is untouched.
       if (ms >= INTRO.minVeilMs && holds >= INTRO.gateHolds) { reveal('gate'); return; }
-      if (ms >= veilCeilMs) { reveal('ceiling'); return; }
+      if (ms >= veilCeilMs && !g.missing.includes('authored-buildings')) { reveal('ceiling'); return; }
       // Past the floor and still waiting: say so on the load screen rather than
       // holding a finished-looking bar over a stalled city.
       if (ms >= INTRO.minVeilMs && g.known) {

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Bake the cached OSM ground data (data/osm_cache/*.json) into render-ready
-data/ground.geojson AND data/roads.geojson.
+data/ground.geojson. The separate bake_roads.py owns data/roads.geojson.
 
 TRUTH RULE, which governs this whole file: every POSITION here comes from OSM.
 Nothing is scattered, invented or nudged for looks. What is generative is FORM —
@@ -5355,6 +5355,8 @@ def main():
     # junctions as pale rectangles. Resolve the final physical slab AND its
     # scoring against the actual asphalt, not those smaller helper cutters.
     from pavement_geometry import trim_rendered_pavement
+    from crossing_geometry import repair_crossings
+    feats = repair_crossings(feats, road_feats, stats)
     feats = trim_rendered_pavement(feats, stats)
     from pedestrian_geometry import pedestrian_levels
     feats = pedestrian_levels(feats, stats)
@@ -5407,6 +5409,21 @@ def main():
 
 if __name__ == "__main__":
     import sys
+    if "--repair-crossings" in sys.argv:
+        from crossing_geometry import repair_crossings
+        from pavement_geometry import trim_rendered_pavement
+        from pedestrian_geometry import pedestrian_levels
+        with open(OUT, encoding='utf-8') as f:
+            data=json.load(f)
+        with open(os.path.join(ROOT,'data','roads.geojson'), encoding='utf-8') as f:
+            road_features=json.load(f)['features']
+        stats=Counter()
+        data['features']=trim_rendered_pavement(repair_crossings(data['features'],road_features,stats),stats)
+        data['features']=pedestrian_levels(data['features'],stats)
+        with open(OUT,'w',encoding='utf-8') as f:
+            json.dump(data,f,separators=(',',':'))
+        print(json.dumps(dict(stats)))
+        sys.exit(0)
     if "--resolve-walks" in sys.argv:
         from pedestrian_geometry import pedestrian_levels
         with open(OUT, encoding="utf-8") as f:

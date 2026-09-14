@@ -1,0 +1,8 @@
+{
+  "source": "Esri World Imagery, reviewed September 14 2026, and cached OSM Inner Campus Drive centreline. Image acquisition date is unspecified.",
+  "note": "These pedestrian malls cross a continuous vehicle road. They must not cut the road into two dead ends. The road width and alignment still come from the existing road bake.",
+  "crossings": [{
+    "name": "Inner Campus Drive at East Mall, between Welch and Waggener",
+    "bounds": [-97.73820, 30.28540, -97.73778, 30.28582]
+  }]
+}

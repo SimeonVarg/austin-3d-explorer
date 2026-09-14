@@ -1,5 +1,37 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 14 2026 — Bug and campus ground pass (`codex/campus-bug-ground-pass`)
+
+Matched comparisons and remaining limitations: `docs/campus-bug-ground-pass.md`.
+Repaired Mark roof/balcony bounds, Sarah's disappearing envelope, Jester's 21st
+academic entrance block, PCL windows/seating, Welch's continuous recessed ground
+frontage, GDC recessed glass, EER west garden/raised walks/X frames, sculpture
+forms, tree/building clearances and DKR's upper-wall see-through. Retired 215
+inferred entrance assemblies. Initial reveal now waits for authored geometry
+and legacy retirement, with explicit fetch and terminal fallback paths.
+
+Confirmed East Mall pavement cut Inner Campus Drive between Welch/Waggener.
+`bake_ground.py --repair-crossings` restores the existing road centreline/width
+inside `data/ground_crossings.json` masks and reapplies pedestrian levels.
+`crossing_geometry.py` is a pure helper; ground.geojson remains owned by its bake.
+Landscape consumes that output and must be rebaked after changes to ground levels.
+
+Verified against main at 14d2bc1: harness-drift, campus-walking-check,
+campus-walking-data, campus-repairs-data, bug-pass-data, bug-pass-crossings,
+bug-pass-geometry, bug-pass-startup, bug-pass-fallback, JS syntax and diff whitespace. The startup
+check delayed Standard 21 seconds; the old app fails, the repaired app holds the
+cover through replacement. Matched hardware captures wait for entrance/art/model
+readiness and use the second screenshot. No new performance claim.
+
+Open: unnamed glowing wall is across Union on 24th apartments (not Texas Union),
+not yet identified/reproduced. Engineering terrain dimensions remain approximate,
+stadium exterior needs further review, sculptures remain stylized, and broad
+generic gray ground remains outside repaired areas. Nineteen apartment balcony
+warnings are intentionally rejected malformed Grandmarc/2819 Rio patterns.
+
+Mac-owned stadium files and open Drag experiment code/data are untouched.
+HANDOFF is the sole shared documentation overlap with #164/#189.
+
 ## Sep 13 2026 — Campus walking detail (`codex/campus-walking-detail`)
 
 Goldsmith's courtyard caps now handle repeated closing vertices introduced by

@@ -16,6 +16,7 @@
   surface:{stone:[1,.82,.34,.55],pave:[3,1.5,1.5,.7],bed:[3,.5,.5,.15]},
   door:{barHeight:1.05,radius:.024,inset:.13,offset:.025,colour:['#959e9c','#a6a497','#252a29']},
   walks:{on:true,lift:.006,colour:['#c6c1b4','#cdbb9e','#222521'],surface:[3,1.5,1.5,.8]},
+  furniture:{pole:.035,umbrellaSides:8,canopyRise:.45,seatHeight:.46,seatRadius:.23,railHeight:1.05,railPostPitch:1.4},
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
  let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
@@ -91,7 +92,7 @@
   for(let x=Math.min(...xs)+T.plantRadius;x<Math.max(...xs);x+=T.plantSpacing)for(let y=Math.min(...ys)+T.plantRadius;y<Math.max(...ys);y+=T.plantSpacing){
    if(!inRing(x,y,R[0])||R.slice(1).some(r=>inRing(x,y,r)))continue;
    const r=T.plantRadius*(.75+hash(i++,x)*.4),z=T.plantHeight*(.7+hash(i,y)*.3);
-   crown(B,[x,y,z*.5+.14],[r,r,z*.5],i,C.gardens.hedge,C.shrubQuality);
+   crown(B,[x,y,z*.5+(f.height??C.gardenHeights.bed)],[r,r,z*.5],i,C.gardens.hedge,C.shrubQuality);
   }
  }
  function buildGardens(B){
@@ -106,15 +107,45 @@
     }
     if(f.plants)shrubs(B,f);
    }
+   if(f.kind==='beam'){const a=slopes.toLocal(...f.a),b=slopes.toLocal(...f.b);stem(B,[a.x,a.y,a.z],[b.x,b.y,b.z],f.radius,f.radius,f.colour);}
    if(f.kind==='bench'){
-    const T=data.gardens.detail,p=slopes.toLocal(...f.at,0),a=f.bearing||0;
+    const T=data.gardens.detail,p=slopes.toLocal(...f.at,0),a=f.bearing||0,base=f.base||0;
     for(let y=-T.benchWidth/2;y<T.benchWidth/2;y+=T.benchSlat*1.2){
      const r=a*Math.PI/180,c={x:p.x-y*Math.sin(r),y:p.y+y*Math.cos(r)};
-     boxMesh(B,c,T.benchLength,T.benchSlat,T.benchHeight-.06,T.benchHeight,C.gardens.bench,a);
+     boxMesh(B,c,T.benchLength,T.benchSlat,base+T.benchHeight-.06,base+T.benchHeight,C.gardens.bench,a);
     }
-    for(const x of [-T.benchLength*.36,T.benchLength*.36]){const r=a*Math.PI/180;boxMesh(B,{x:p.x+x*Math.cos(r),y:p.y+x*Math.sin(r)},.09,T.benchWidth,.1,T.benchHeight,C.bark,a)}
+    for(const x of [-T.benchLength*.36,T.benchLength*.36]){const r=a*Math.PI/180;boxMesh(B,{x:p.x+x*Math.cos(r),y:p.y+x*Math.sin(r)},.09,T.benchWidth,base+.1,base+T.benchHeight,C.bark,a)}
     const r=a*Math.PI/180,back={x:p.x+T.benchWidth*.5*Math.sin(r),y:p.y-T.benchWidth*.5*Math.cos(r)};
-    for(let z=T.benchHeight+.16;z<T.benchBack;z+=T.benchSlat*1.3)boxMesh(B,back,T.benchLength,.07,z,z+T.benchSlat,C.gardens.bench,a);
+    for(let z=base+T.benchHeight+.16;z<base+T.benchBack;z+=T.benchSlat*1.3)boxMesh(B,back,T.benchLength,.07,z,z+T.benchSlat,C.gardens.bench,a);
+   }
+   if(f.kind==='umbrella'){
+    const p=slopes.toLocal(...f.at,0),T=C.furniture,n=T.umbrellaSides,col=f.colours[count.gardens%f.colours.length];
+    stem(B,[p.x,p.y,0],[p.x,p.y,f.height+T.canopyRise],T.pole,T.pole,C.bark);
+    const disc=(radius,z,col)=>{for(let i=0;i<24;i++){const a=i/24*Math.PI*2,b=(i+1)/24*Math.PI*2;B.tri([p.x,p.y,z],[p.x+radius*Math.cos(a),p.y+radius*Math.sin(a),z],[p.x+radius*Math.cos(b),p.y+radius*Math.sin(b),z],col,[0,0,1])}};
+    disc(f.tableRadius,f.tableHeight,C.gardens.bench);
+    for(let i=0;i<n;i++){
+      const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2,A=[p.x+f.radius*Math.cos(a),p.y+f.radius*Math.sin(a),f.height],D=[p.x+f.radius*Math.cos(b),p.y+f.radius*Math.sin(b),f.height],top=[p.x,p.y,f.height+T.canopyRise];
+      B.tri(top,A,D,col,[0,0,1]);B.tri(top,D,A,col,[0,0,-1]);stem(B,top,A,.012,.012,C.bark);
+    }
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2,c={x:p.x+Math.cos(a)*1.03,y:p.y+Math.sin(a)*1.03};
+      boxMesh(B,c,.44,.44,T.seatHeight-.06,T.seatHeight,C.gardens.bench,a*180/Math.PI);
+      stem(B,[c.x,c.y,.03],[c.x,c.y,T.seatHeight],.04,.04,C.bark);
+    }
+   }
+   if(f.kind==='raisedRail'){
+    const T=C.furniture;
+    for(let i=1;i<f.line.length;i++){
+      const a=slopes.toLocal(...f.line[i-1],0),b=slopes.toLocal(...f.line[i],0),L=Math.hypot(b.x-a.x,b.y-a.y),n=Math.ceil(L/T.railPostPitch);
+      const P=(t,z)=>[a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,z];
+      for(const h of [T.railHeight,.5])stem(B,P(0,f.base+h),P(1,f.base+h),.025,.025,C.bark);
+      for(let j=0;j<=n;j++)stem(B,P(j/n,f.base),P(j/n,f.base+T.railHeight),.032,.032,C.bark);
+    }
+   }
+   if(f.kind==='groundRamp'){
+    const p=f.ring.slice(0,4).map((ll,i)=>{const p=slopes.toLocal(...ll,0);return [p.x,p.y,i===0||i===3?f.start:f.end]});
+    B.quad(...p,C.gardens.pave,[0,0,1]);
+    for(let i=0;i<4;i++){const a=p[i],b=p[(i+1)%4];B.quad([a[0],a[1],0],[b[0],b[1],0],b,a,C.gardens.stone)}
    }
    if(f.kind==='livingWall'){
     const a=slopes.toLocal(...f.line[0],0),b=slopes.toLocal(...f.line[1],0),length=Math.hypot(b.x-a.x,b.y-a.y),T=C.livingWall;

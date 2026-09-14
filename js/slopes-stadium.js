@@ -11,7 +11,7 @@
     portalRow: 22, portalRows: 6,
     chairbackRows: 18,
     arcSegments: 5, facadeFloor: 4.6, facadeGlassShare: 0.70,
-    facadePierWidth: 1.15, facadePierDepth: 0.7, facadeBand: 0.55,
+    facadePierWidth: 1.15, facadePierDepth: 0.7, facadeBand: 0.55, facadeWallDepth: 0.55,
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
     boardSegments: 24, boardBorder: 0.65,
@@ -169,6 +169,11 @@
   function facade(B,a,b,height,outward) {
     const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(len/data.details.facadeBay));
     const at=(t,z,o=0)=>[lerp(a[0],b[0],t)+outward[0]*o,lerp(a[1],b[1],t)+outward[1]*o,z];
+    // Close the upper enclosure behind the glazing. The old facade only had
+    // strips and panes, leaving open cracks from outside through to the field.
+    const rearA=at(0,0,-TUNE.facadeWallDepth),rearB=at(1,0,-TUNE.facadeWallDepth);
+    const backA=at(0,0,-TUNE.facadeWallDepth-.2),backB=at(1,0,-TUNE.facadeWallDepth-.2);
+    slab(B,[rearA.slice(0,2),rearB.slice(0,2),backB.slice(0,2),backA.slice(0,2)],TUNE.facadeFloor,height,'brick');
     for(let i=0;i<n;i++){
       const u=i/n,v=(i+1)/n,c=(u+v)/2;
       // Ground level has genuinely open gates between piers.
