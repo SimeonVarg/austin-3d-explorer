@@ -10,7 +10,7 @@ const idx=JSON.parse(fs.readFileSync(new URL('data/apartments/index.json',root))
 const buildings=idx.buildings.map(f=>JSON.parse(fs.readFileSync(new URL('data/apartments/'+f,root)))).concat(idx.collections.flatMap(f=>JSON.parse(fs.readFileSync(new URL(f,root))).buildings));
 const targets=[['mark','The Mark Austin',140,5,60],['standard','The Standard',110,310,64],['pcl','Perry-Casta�eda Library',95,205,62],['welch','Robert A. Welch Hall',115,280,65],['jester','Jester West Hall',100,190,65],['sarah','Sarah M. and Charles E. Seay Building',95,320,65]];
 const poses=targets.map(([key,name,alt,bearing,pitch])=>{const b=buildings.find(b=>b.name===name || (key==="pcl" && b.name.startsWith("Perry"))),r=b.footprint.ring;return [key,[r.reduce((s,p)=>s+p[0],0)/r.length,r.reduce((s,p)=>s+p[1],0)/r.length],alt,bearing,pitch,false]});
-poses.push(['gdc',[-97.7366,30.2863],100,95,62,false],['eer',[-97.7357,30.2889],115,95,62,false],['west',[-97.73765,30.28550],2.2,305,80,true],['dkr',[-97.7321,30.2848],105,5,65,false],['speedway',[-97.73702,30.28367],6,10,83,true],['welch-road',[-97.7375,30.28515],95,5,45,false],['union-across',[-97.74535,30.2875],165,5,55,false]);
+poses.push(['gdc',[-97.7366,30.2863],100,95,62,false],['eer',[-97.7357,30.2889],115,95,62,false],['west',[-97.73774,30.28552],2.2,335,80,true],['dkr',[-97.7321,30.2848],105,5,65,false],['speedway',[-97.73702,30.28367],6,10,83,true],['welch-road',[-97.7375,30.28515],95,5,45,false],['union-across',[-97.74535,30.2875],165,5,55,false]);
 poses.push(['road-crossing',[-97.73798,30.28562],65,5,25,false]);
 poses.push(['mark-close',[-97.74630,30.28726],64,5,55,true]);
 poses.push(['dkr-exterior',[-97.7344,30.28355],22,80,65,true]);

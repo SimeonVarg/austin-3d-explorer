@@ -2425,6 +2425,17 @@
   // Campus pass is on — for that pass's layers, so their filter can be set
   // in the same apply. The data is fetched once, through the layer's cache.
   let _fetching = null;
+  function replacementCatalog(idx, individual, bundles) {
+    const buildings = individual.filter(Boolean), collected = bundles.flat();
+    // Index-wide aliases can name a file that failed to download. Only retire
+    // those extra legacy pieces when every individual model is available.
+    const complete = individual.every(Boolean);
+    const ids = buildings.map(b=>b.id).filter(Boolean);
+    const names = buildings.flatMap(b=>[b.name,...(b.aliases||[])]);
+    return { buildings: buildings.concat(collected),
+      replacedBuildingIds: [...new Set((complete && idx.replacedBuildingIds || ids).concat(collected.map(b=>b.id)))],
+      replacedNames: [...new Set((complete && idx.replacedNames || names).concat(collected.flatMap(b=>[b.name,...(b.aliases||[])])))] };
+  }
   function fetchModel(S,url) {
     let timer;
     return Promise.race([S.fetchJSON(url),new Promise((_,reject)=>{
@@ -2454,10 +2465,7 @@
               } catch(e) { console.warn('[slopes-apartments]',f,e.message);return []; }
             }))
           ]);
-          const buildings = individual.filter(Boolean), collected = bundles.flat();
-          return { buildings: buildings.concat(collected),
-            replacedBuildingIds: [...new Set((idx.replacedBuildingIds || buildings.map(b => b.id).filter(Boolean)).concat(collected.map(b => b.id)))],
-            replacedNames: [...new Set((idx.replacedNames || buildings.map(b => b.name)).concat(collected.flatMap(b => [b.name,...(b.aliases || [])])))] };
+          return replacementCatalog(idx, individual, bundles);
         })();
       }
       try { _data = await _fetching; } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }

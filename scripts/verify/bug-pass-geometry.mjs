@@ -26,3 +26,12 @@ function enclosure(source){
 assert.ok(enclosure(fs.readFileSync(new URL('js/slopes-stadium.js',root),'utf8')),'upper facade has continuous opaque backing behind its bays');
 assert.ok(!enclosure(execFileSync('git',['show','14d2bc1:js/slopes-stadium.js'],{cwd:root,encoding:'utf8'})),'baseline leaves gaps between panes and piers');
 console.log('PASS stadium upper enclosure closes the original facade gaps; ground gates remain below the wall');
+const source=fs.readFileSync(new URL('js/slopes-apartments.js',root),'utf8');
+const start=source.indexOf('  function replacementCatalog('),end=source.indexOf('  function fetchModel(',start);
+const catalog=Function(source.slice(start,end)+';return replacementCatalog')();
+const idx={replacedBuildingIds:['good','failed','extra'],replacedNames:['Good','Failed','Extra']};
+const partial=catalog(idx,[{id:'good',name:'Good'},null],[[{id:'campus',name:'Campus'}]]);
+assert.deepEqual(partial.replacedBuildingIds,['good','campus']);
+assert.deepEqual(partial.replacedNames,['Good','Campus']);
+assert.ok(catalog(idx,[{id:'good',name:'Good'},{id:'failed',name:'Failed'}],[]).replacedBuildingIds.includes('extra'));
+console.log('PASS failed model keeps its legacy fallback; complete index retains extra replacement aliases');
