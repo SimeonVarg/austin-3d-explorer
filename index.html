@@ -31,6 +31,15 @@
        and 668 KB must not hold the city up. KEEP IN SYNC WITH _harness.html. -->
   <script src="https://unpkg.com/three@0.159.0/build/three.min.js" defer></script>
   <script src="js/tiles.js"></script>
+  <!-- The phone profile (js/mobile.js header). It rewrites this page's OWN
+       query string before any module below parses it, so a phone gets the
+       lighter scene without one line changing in any of them. Immediately
+       after js/tiles.js because harness-drift.mjs requires tiles.js to be the
+       first js/ module, and tiles.js reads only `?tiles=` — a flag this file
+       never sets — so nothing it decides can be changed by running second.
+       ?lite=0 opts out, ?lite=1 forces it on anywhere.
+       KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/mobile.js"></script>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="explore.css" />
   <link rel="stylesheet" href="live-here.css" />

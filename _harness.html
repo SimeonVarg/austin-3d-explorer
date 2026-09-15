@@ -88,6 +88,15 @@
        registers the pmtiles:// protocol and scales the tile workers, and both
        have to happen before any Map is constructed. -->
   <script src="js/tiles.js"></script>
+  <!-- The phone profile (js/mobile.js header). It rewrites this page's OWN
+       query string before any module below parses it, so a phone gets the
+       lighter scene without one line changing in any of them. Immediately
+       after js/tiles.js because harness-drift.mjs requires tiles.js to be the
+       first js/ module, and tiles.js reads only `?tiles=` — a flag this file
+       never sets — so nothing it decides can be changed by running second.
+       ?lite=0 opts out, ?lite=1 forces it on anywhere.
+       KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/mobile.js"></script>
   <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ window.__HARNESS = true; (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
   <!-- First, and before anything that can block: it owns the load screen. -->
   <script src="js/loader.js"></script>
