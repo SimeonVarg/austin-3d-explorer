@@ -1,5 +1,71 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 15 2026 — The phone crash (`claude/mobile-site-breaking-gz7xc3`, PR #249)
+
+Reported: the site loaded then crash-looped on an iPhone, Safari saying "A
+problem repeatedly occurred" and Chrome for iOS "Can't open this page", while
+desktop was fine. Both messages are WebKit taking a tab for memory. It throws
+nothing and logs nothing — there is no console error to find, which is why this
+reads as a mystery rather than a budget.
+
+New `scripts/verify/mobile-budget.mjs` measures it: a phone context, the heap
+read after a forced GC when the veil lifts. Minimum of the reps, per rule 10 —
+a single heap reading moved 60 MB run to run here:
+
+    full scene     1035 MB  (1035-1109)   veil 39 s
+    ?apartments=0   419 MB  (419-445)     veil 42 s
+    ?slopes=0       189 MB  (189-222)     veil 14 s
+
+Desktop Chrome allows 4096 MB, so 1.1 GB survives there and is invisible. JS
+heap ALONE — GPU buffers, tile workers and the decoded basemap are on top.
+
+**ALL OF IT IS ONE GENERATOR.** `js/slopes.js` draws 3,294,128 triangles;
+**2,570,081 are `js/slopes-apartments.js`**. Non-indexed, 22 floats a vertex
+(position, normal, the day/golden/night triples, aGrad, aFacet, aSurface) =
+264 bytes a triangle = **679 MB for that one generator**. Two things were ruled
+out by measurement rather than reasoning: the `_fetches` cache in slopes.js
+holds 57 parsed GeoJSON documents for the life of the page and releasing all of
+them recovers **4 MB**, and the graphics preset is worth 74 MB. Neither is the
+bug. The geometry is.
+
+**OPEN, AND THE REAL FIX:** index those meshes or pack the attributes. Six of
+the 22 floats are three colour triples that could be one packed value plus a
+shader lookup, and non-indexed is 3 vertices a triangle where indexed is closer
+to 1. That is a slopes-lane data pass and it would pay on desktop too — the
+full scene costs a gigabyte there as well, we just could not see it. Until then
+the apartments are simply absent on phones.
+
+`js/mobile.js` is the stopgap. Every subsystem already reads its own switch out
+of `location.search`, so it writes the phone's defaults INTO the query string
+(history.replaceState) before any module parses it: `slopes=0` and
+`preset=performance`. **Not one line changed in js/slopes.js, js/graphics.js or
+any other module** — nothing else in the app knows the file exists. The address
+bar shows what the scene actually is, so a phone URL is still shareable.
+
+Detection is narrow on purpose: a coarse pointer AND a touch digitiser AND a
+short edge <= 1024 CSS px. A desktop has none, and neither does the harness, so
+**no existing pixel or timing number moves** — confirmed at 1280x800, which
+still reads an empty query string and 1043 MB. `?lite=0` opts out, `?lite=1`
+forces it on anywhere, and an explicit flag always wins (`?slopes=1` is
+honoured on a phone).
+
+What a phone keeps: buildings, ground, the Tower, trees, props, the outer-ring
+skyline, West Campus, the storefronts, the entrances. What it loses: the
+three.js layer, so the pitched roofs, the Capitol dome, the arches, the campus
+art and the apartments go back to being the fill-extrusion stand-ins that are
+still underneath them.
+
+Verified against main at 2bbc542: harness-drift (44 scripts both files,
+tiles.js still the first js/ module), mobile-budget on both arms, and a desktop
+context for the no-change assertion. Measured with `VERIFY_STUB=1` — the real
+basemap is unreachable from that container — so the absolute heap is a floor
+and the gap between arms is the trustworthy part. **The WebKit kill itself was
+not reproduced; no iOS device was available.** The claim is a memory budget,
+not a repro.
+
+No Mac-owned files touched. Nothing owned by #164 or #189 touched.
+
+
 ## Sep 14 2026 — Bug and campus ground pass (`codex/campus-bug-ground-pass`)
 
 Matched comparisons and remaining limitations: `docs/campus-bug-ground-pass.md`.
