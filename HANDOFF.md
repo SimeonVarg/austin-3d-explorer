@@ -30249,3 +30249,46 @@ NOT this pass:** flat tan slabs float unsupported in the sky above Moody Center'
 roof, obvious from the street. They are in main's own before-frames too — 2,687
 non-sky pixels in that band, and the before/after difference across the whole
 band is 3 pixels. Someone should chase it.
+
+## 2026-09-15 — load screen: the "89% for 20 s" stall (branch `acer/loading-fix`)
+
+Measured on the live site, headless, hardware GL: the 41 authored apartment
+models began downloading at 7.5 s, finished at 13.5 s, then BUILT on the main
+thread in one synchronous block until 25 s. During that block MapLibre's tile
+messages queued, frames stopped, the rail sat at "89%", and the veil lifted on
+the 30 s ceiling. Fixes, each measured:
+
+- `js/slopes.js` builder: vertex store is now growable Float32Arrays written in
+  place instead of seven plain arrays fed by 170 M `push()` calls and a
+  per-vertex spread. Builder self-time 6.3 s -> ~2 s; GC 1.6 s -> ~1 s. Output
+  is byte-identical (GDC frame pixel-identical before/after).
+- `js/slopes-apartments.js`: download starts as soon as `slopes.fetchJSON`
+  exists (~2 s, was 7.5 s); the build starts as soon as data and the scene root
+  exist (was: after the building layers, ~9 s); the build is a generator that
+  yields per block, time-sliced (150 ms under the veil, 6 ms live) so tiles
+  load alongside it; filters follow the GROUP so the swap is never a hole
+  first; the filter poll runs every 500 ms, not 150 (it re-serialises a
+  195-footprint clause each tick — 1.7 s a load).
+- `js/app.js` + `js/graphics.js`: while the veil is up the map paints at
+  INTRO.veilRenderScale (0.25) of the preset's scale — an opaque veil makes
+  every frame under it waste — restored in reveal() before the fade. The
+  auto-detect probe refuses to measure under the veil (it only steps down;
+  cheap frames would hide a weak machine). INTRO.waitAuthored is a knob: the
+  intro still holds for the apartments, because letting the flight depart
+  while they built dropped it to 11-14 fps with 0.5 s hitches (measured).
+- `js/campus-landscape.js`: `norm` without spread/map (0.5 s a load).
+
+Result on this laptop (min of 2, same headless rig): veil 30.4 s -> 22.0 s,
+flight 37 fps / worst gap 0.18 s after lift (unchanged), apartments landed
+before lift. The thread is no longer frozen, so the bar moves and the
+"waiting" text shows. What is left is spread thin: MapLibre tiling ~9 s,
+campus-landscape ~3 s, the other slopes generators 0.3-0.7 s each when they
+land. Deferring those past the veil would need each to be sliced too, or the
+flight stutters — not done.
+
+NOT fixed: phones still get `slopes=0` from js/mobile.js, so no authored
+apartments on mobile. That is a memory problem (679 MB of vertex attributes for
+the apartments alone; see mobile.js header), not a cache problem. The typed
+array builder now has ONE write site, so packing colours/normals to bytes is a
+contained follow-up; the honest phone fix is also fewer triangles (windows as
+quads, not boxes, on the lite profile) — a taste call for Simeon.

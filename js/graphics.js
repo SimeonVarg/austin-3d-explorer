@@ -613,7 +613,11 @@
     // Render scale. MapLibre takes an absolute ratio, so multiply the device's.
     const dpr = window.devicePixelRatio || 1;
     if (typeof _map.setPixelRatio === 'function') {
-      const want = +(dpr * GFX.renderScale).toFixed(3);
+      // window.__veilRenderScale: js/app.js sets it below 1 while the load
+      // veil is up, so the frames nobody can see are cheap, and back to 1 at
+      // reveal. Measured 2026-09-15: full-resolution painting under the veil
+      // was a top-three cost of a 25-30 s load.
+      const want = +(dpr * GFX.renderScale * (window.__veilRenderScale || 1)).toFixed(3);
       if (Math.abs((_map.getPixelRatio ? _map.getPixelRatio() : dpr) - want) > 0.001) {
         try { _map.setPixelRatio(want); } catch (e) {}
       }
@@ -1313,7 +1317,12 @@
       if (autoCancelled) return;
       let easing = false;
       try { easing = !!(_map && typeof _map.isEasing === 'function' && _map.isEasing()); } catch (e) {}
-      if (easing) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
+      // Never measure under the load veil: frames there are painted at
+      // INTRO.veilRenderScale (js/app.js) and would make a weak machine look
+      // fast, and this probe only ever steps DOWN. The veil is removed at
+      // reveal, so this retries until it is.
+      const veiled = !!document.getElementById('veil');
+      if (easing || veiled) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
       runProbe();
     }, delay == null ? PROBE_DELAY_MS : delay);
   }

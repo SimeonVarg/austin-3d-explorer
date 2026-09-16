@@ -22,7 +22,8 @@
  let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
  const count={done:false,trees:0,triangles:0,gardens:0,railings:0};
  const hash=(n,k=0)=>{const x=Math.sin(n*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
- const norm=a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l)};
+ // Every caller passes a 3-vector; the spread-and-map form was 0.5 s of a load (profiled 2026-09-15).
+ const norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l]};
  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
  const mixTone=(col,f)=>col.map(h=>'#'+h.slice(1).match(/../g).map(s=>Math.round(Math.min(255,parseInt(s,16)*f)).toString(16).padStart(2,'0')).join(''));
  function stem(B,a,b,r0,r1,col){
