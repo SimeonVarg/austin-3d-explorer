@@ -1,5 +1,80 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 16 2026 — The phone shows the REAL buildings (`claude/mobile-buildings-*`)
+
+Reported, and by two people: after the Sep 15 phone fix the site ran but "still
+shows old buildings — the standard having two pillars shooting up instead of
+the W shape." That was the Sep 15 fix, not a separate defect. `?slopes=0` takes
+the whole three.js layer out, and `data/apartments/index.json`'s
+`replacedBuildingIds` are only filtered out WHILE the layer is on — so all 195
+authored buildings reverted to their flat prisms. The phone stopped crashing
+and started lying. Frames in the PR.
+
+**js/slopes.js build() now emits INDEXED, BYTE-PACKED geometry.** Both are
+lossless and both were proved so, not argued:
+
+  - a planar quad writes 4 vertices and 6 Uint32 indices instead of 6 vertices.
+    NON-planar quads keep the old two-triangle path, because welding one gives
+    its second half the first half's normal. A first cut allowed 0.8 deg of
+    disagreement and the fingerprint below caught it — 0.9999 is not planar,
+    `1 - 1e-12` is.
+  - cDay/cGold/cNight were 9 floats (36 of a vertex's 88 bytes). Every one is
+    read from a six-digit hex string, so the source never had more than 8 bits
+    a channel; they are normalized UNSIGNED_BYTE now, 9 bytes, and the shader
+    reads the same 0..1 vec3 with no GLSL change.
+
+A vertex went from 88 bytes to 58, and there are 33.2% fewer of them.
+
+**HOW IT WAS VERIFIED, because pixels could not do it.** A before/after pixel
+diff said the mall frame moved 10.3%. It was meaningless: a CONTROL of the SAME
+code loaded twice moved 99.8% of that frame. Load-to-load state through this
+page (atlas, tiles, exposure, hour) swamps the change. So the comparison moved
+to the thing the change is actually about — every triangle's expanded vertex
+stream, hashed in emission order off `slopesApartments.group`:
+
+    triangles      2,570,081 -> 2,570,081   SAME
+    vertices       7,710,243 -> 5,150,725   33.2% fewer
+    geometry hash    25174659 ->  25174659  SAME
+    colour hash     370312412 -> 370312412  SAME
+
+**js/slopes-apartments.js `byPreset` WAS DEAD.** Declared, documented as "the
+sign dots and the window reveals go first", and read nowhere — a grep found it
+only on its own two lines, so `?preset=performance` built the same 2,570,081
+triangles `ultra` did. It is wired up (`detailNow`, `wantReveals`, `wantSigns`)
+with explicit `revealsAbove`/`signsAbove` thresholds. NOTE THIS CHANGES DESKTOP
+at `preset=performance`: reveals and sign dots now actually drop there. Balanced
+(the default) is untouched.
+
+Measured, 390x844 at DPR 3, heap after a forced GC, VERIFY_STUB=1:
+
+    full scene (?lite=0)      657 MB   was 1035-1109
+    PHONE DEFAULT             485 MB   1,961,788 slopes tris, veil 27 s
+    ?lite=safe                190 MB   no three.js layer at all, veil 14 s
+
+**The boot counter.** 485 MB is a judgement about a phone this code cannot
+measure, and the failure mode is a crash-loop in front of a recruiter. So
+js/mobile.js increments a localStorage counter before the heavy build and
+clears it when the veil lifts; two boots that never cleared it and the third
+takes `?lite=safe` by itself. Tested: arms, falls back, resets.
+
+**OPEN — the next real pass.** The cell tiler is now the big one: 583,089 panel
+cells, one quad each, 1,166,178 triangles. Merging same-tone cells per face
+would take most of that out and would pay on desktop too. Also unexamined:
+aSurface is 4 floats (16 B) and aGrad 2 (8 B) — 24 of the remaining 58 bytes,
+both packable, neither trivially (aSurface's first component is a material
+INDEX and concrete's second is 1.25, so plain normalized bytes will not hold
+them).
+
+Verified against main at 956e81d: harness-drift (44 scripts both files),
+apartment-window-rule PASS, the geometry fingerprint above, the boot-counter
+test, and every js/ module parses. `campus-apartment-check.mjs` times out here
+at its 180 s wait — CONFIRMED to do the same on unmodified main in this
+container (software rasteriser, shared cores), so it is the container, not this
+change; it needs a re-run on real hardware.
+
+Only js/drag.js is touched by an open PR (#164); nothing here goes near it.
+
+
 ## Sep 15 2026 — The phone crash (`claude/mobile-site-breaking-gz7xc3`, PR #249)
 
 Reported: the site loaded then crash-looped on an iPhone, Safari saying "A
