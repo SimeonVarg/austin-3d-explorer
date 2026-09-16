@@ -595,15 +595,68 @@
     // same bytes out of geometry().
     let cap = 1 << 16, nV = 0;
     let P = new Float32Array(cap * 3), NM = new Float32Array(cap * 3);
-    let CD = new Float32Array(cap * 3), CG = new Float32Array(cap * 3), CN = new Float32Array(cap * 3);
-    let FC = new Float32Array(cap), SF = new Float32Array(cap * 4);
+    // ── WHY THE COLOURS ARE BYTES ────────────────────────────────────────
+    //
+    // cDay, cGold and cNight are nine of the twenty-two floats a vertex
+    // carries — 36 of its 88 bytes, more than position and normal together.
+    // Every one of them is read from a SIX-DIGIT HEX STRING in the building's
+    // own data file, so the source has exactly 8 bits per channel and a
+    // Float32 stores 24 bits of precision the value never had.
+    //
+    // Held as normalized UNSIGNED_BYTE the attribute is 3 bytes instead of
+    // 12, the GPU expands it back to the same 0..1 float in the shader, and
+    // the pixel is IDENTICAL — this is a lossless change, not a quality
+    // setting. It also shrinks the growth buffers, so the build's own peak
+    // comes down with it.
+    let CD = new Uint8Array(cap * 3), CG = new Uint8Array(cap * 3), CN = new Uint8Array(cap * 3);
+    // aFacet is 0 or 1. It was a float.
+    let FC = new Uint8Array(cap);
+    let SF = new Float32Array(cap * 4);
     const grow = () => {
       cap *= 2;
       const g = (a, k) => { const b = new Float32Array(cap * k); b.set(a); return b; };
-      P = g(P, 3); NM = g(NM, 3); CD = g(CD, 3); CG = g(CG, 3); CN = g(CN, 3); FC = g(FC, 1); SF = g(SF, 4);
+      const u = (a, k) => { const b = new Uint8Array(cap * k); b.set(a); return b; };
+      P = g(P, 3); NM = g(NM, 3); CD = u(CD, 3); CG = u(CG, 3); CN = u(CN, 3); FC = u(FC, 1); SF = g(SF, 4);
+    };
+    // ── THE INDEX, AND THE ONLY REASON IT IS HERE ────────────────────────
+    //
+    // A vertex in this layout costs 22 floats — position, normal, the three
+    // colour triples, aGrad, aFacet, aSurface — which is 88 bytes. A quad
+    // emitted as two independent triangles writes SIX of them for a shape
+    // with four corners, and two of those six are exact duplicates.
+    //
+    // Measured on this build: js/slopes-apartments.js alone draws 2,570,081
+    // triangles, and non-indexed that is 647 MB of attribute buffer. It is
+    // the single largest allocation in the app by an order of magnitude, and
+    // it is what made the site unopenable on a phone (js/mobile.js header).
+    //
+    // Indexing a planar quad writes 4 vertices (352 bytes) plus 6 Uint32
+    // indices (24 bytes) instead of 6 vertices (528 bytes) — 29% less, for
+    // BYTE-IDENTICAL output: same corners, same flat normal, same winding.
+    // A lone triangle costs 12 bytes more than it did, which is why the
+    // planar-quad path is the one that matters and the rest simply rides
+    // along.
+    //
+    // NON-PLANAR QUADS TAKE THE OLD PATH ON PURPOSE. `tri` computes each
+    // triangle's own normal, so a quad whose two halves do not share a plane
+    // is currently shaded as two facets. Welding it to four vertices would
+    // give both halves one averaged normal and CHANGE THE PIXELS. So `quad`
+    // measures the two normals and only welds when they agree; otherwise it
+    // emits the same two independent triangles it always did.
+    let icap = 1 << 17, nI = 0;
+    let IDX = new Uint32Array(icap);
+    const igrow = () => { icap *= 2; const b = new Uint32Array(icap); b.set(IDX); IDX = b; };
+    const emit = (a, b, c) => {
+      while (nI + 3 > icap) igrow();
+      IDX[nI++] = a; IDX[nI++] = b; IDX[nI++] = c; tris++;
     };
     const cache = new Map();
-    const rgb = hex => { let c = cache.get(hex); if (!c) { c = hexToRgb01(hex); cache.set(hex, c); } return c; };
+    // 0..255, rounded once per tone rather than once per vertex.
+    const rgb = hex => {
+      let c = cache.get(hex);
+      if (!c) { const f = hexToRgb01(hex); c = [Math.round(f[0] * 255), Math.round(f[1] * 255), Math.round(f[2] * 255)]; cache.set(hex, c); }
+      return c;
+    };
     // A palette entry ([day, golden, night]) is the same array object for every
     // vertex of a tone, so its three lookups are resolved once per object.
     const colCache = new WeakMap();
@@ -630,21 +683,48 @@
       FC[nV] = _facet;
       const s = col.surface;                        // fresh slots are already 0
       if (s) { SF[i4] = s[0]; SF[i4 + 1] = s[1]; SF[i4 + 2] = s[2]; SF[i4 + 3] = s[3]; }
-      nV++;
+      return nV++;
     };
     const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
     const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     let tris = 0;
-    function tri(a, b, c, col, want) {
-      let n = cross(sub(b, a), sub(c, a));
+    /** The unit normal of triangle (a, b, c), or null if it is degenerate. */
+    function faceN(a, b, c) {
+      const n = cross(sub(b, a), sub(c, a));
       const L = Math.hypot(n[0], n[1], n[2]);
-      if (L < 1e-9) return;                        // degenerate: nothing to draw
-      n = [n[0] / L, n[1] / L, n[2] / L];
-      if (want && dot(n, want) < 0) { const t = b; b = c; c = t; n = [-n[0], -n[1], -n[2]]; }
-      push(a, n, col); push(b, n, col); push(c, n, col); tris++;
+      if (L < 1e-9) return null;
+      return [n[0] / L, n[1] / L, n[2] / L];
     }
-    function quad(a, b, c, d, col, want) { tri(a, b, c, col, want); tri(a, c, d, col, want); }
+    function tri(a, b, c, col, want) {
+      let n = faceN(a, b, c);
+      if (!n) return;                              // degenerate: nothing to draw
+      if (want && dot(n, want) < 0) { const t = b; b = c; c = t; n = [-n[0], -n[1], -n[2]]; }
+      emit(push(a, n, col), push(b, n, col), push(c, n, col));
+    }
+    function quad(a, b, c, d, col, want) {
+      // Two halves, two normals. They agree for every rectangle the cell
+      // tiler cuts and every side an extrusion sweeps, which is where all the
+      // bytes are; a quad that has been bent takes the two-triangle path so
+      // its shading is untouched.
+      // TRULY planar, not nearly. A first cut allowed 0.9999 (0.8 deg of
+      // disagreement) and the geometry fingerprint caught it: welding a
+      // slightly bent quad gives its second half the FIRST half's normal, so
+      // 0.8 deg of shading moved on every bent quad in the city. For a quad
+      // that really is flat the two cross products differ only in the last
+      // bit or two, so this keeps the weld exact and sends anything bent down
+      // the old two-triangle path.
+      const n1 = faceN(a, b, c), n2 = faceN(a, c, d);
+      if (!n1 || !n2 || dot(n1, n2) < 1 - 1e-12) { tri(a, b, c, col, want); tri(a, c, d, col, want); return; }
+      let n = n1;
+      let flip = false;
+      if (want && dot(n, want) < 0) { n = [-n[0], -n[1], -n[2]]; flip = true; }
+      const ia = push(a, n, col), ib = push(b, n, col), ic = push(c, n, col), id = push(d, n, col);
+      // Flipping the winding is a reversal of the corner ORDER, which the
+      // index list expresses without touching a vertex.
+      if (flip) { emit(ia, ic, ib); emit(ia, id, ic); }
+      else { emit(ia, ib, ic); emit(ia, ic, id); }
+    }
     /** A triangle with its own per-vertex normals (a smooth-shaded curve); wound to face their mean. */
     function triN(a, b, c, na, nb, nc, col) {
       let n = cross(sub(b, a), sub(c, a));
@@ -653,7 +733,7 @@
       n = [n[0] / L, n[1] / L, n[2] / L];
       const avg = [na[0] + nb[0] + nc[0], na[1] + nb[1] + nc[1], na[2] + nb[2] + nc[2]];
       if (dot(n, avg) < 0) { let t = b; b = c; c = t; t = nb; nb = nc; nc = t; }
-      push(a, na, col); push(b, nb, col); push(c, nc, col); tris++;
+      emit(push(a, na, col), push(b, nb, col), push(c, nc, col));
     }
     /** A planar polygon, any orientation; triangulated in the given plane. */
     function polygon(pts, col, want, plane) {
@@ -736,12 +816,15 @@
       // slice(): trimmed copies, so the oversized growth buffers can be freed.
       g.setAttribute('position', new T.Float32BufferAttribute(P.slice(0, nV * 3), 3));
       g.setAttribute('normal', new T.Float32BufferAttribute(NM.slice(0, nV * 3), 3));
-      g.setAttribute('cDay', new T.Float32BufferAttribute(CD.slice(0, nV * 3), 3));
-      g.setAttribute('cGold', new T.Float32BufferAttribute(CG.slice(0, nV * 3), 3));
-      g.setAttribute('cNight', new T.Float32BufferAttribute(CN.slice(0, nV * 3), 3));
+      // `true` = normalized: the GPU divides by 255 on the way into the
+      // shader, so `attribute vec3 cDay` still reads 0..1 and no GLSL changes.
+      g.setAttribute('cDay', new T.BufferAttribute(CD.slice(0, nV * 3), 3, true));
+      g.setAttribute('cGold', new T.BufferAttribute(CG.slice(0, nV * 3), 3, true));
+      g.setAttribute('cNight', new T.BufferAttribute(CN.slice(0, nV * 3), 3, true));
       g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(nV * 2), 2));
-      g.setAttribute('aFacet', new T.Float32BufferAttribute(FC.slice(0, nV), 1));
+      g.setAttribute('aFacet', new T.BufferAttribute(FC.slice(0, nV), 1, false));
       g.setAttribute('aSurface', new T.Float32BufferAttribute(SF.slice(0, nV * 4), 4));
+      g.setIndex(new T.BufferAttribute(IDX.slice(0, nI), 1));
       g.computeBoundingSphere();
       return g;
     }

@@ -94,7 +94,30 @@
     fetchTimeoutMs: 45000,
     // Geometry density per graphics preset (0..1) — the sign dots and the
     // window reveals go first when it drops; the massing never does.
+    //
+    // THIS WAS DEAD FOR A WHILE. The table was declared and never read: a grep
+    // for `byPreset` on 2026-09-16 found it nowhere else in the file, so
+    // `?preset=performance` built the same 2,570,081 triangles `ultra` did and
+    // the only thing the preset changed was the render scale. It is wired up
+    // below (`detailNow`, `wantReveals`, `wantSigns`) and it now means what
+    // this comment always said it did.
+    //
+    // WHAT DROPS, AND AT WHAT THRESHOLD. Measured on this build, with
+    // ?campuslandscape=0, on a 390x844 phone context:
+    //
+    //    everything            2,570,081 tris   565 MB
+    //    reveals off           1,894,849 tris   484 MB
+    //    reveals + signs off   1,838,949 tris   450 MB
+    //    ... + balconies off   1,381,005 tris   385 MB
+    //
+    // Balconies stay at every density: The Standard's projecting balconies are
+    // part of its shape, and the massing is the promise. The reveals are the
+    // 0.12 m a window sits behind its wall — at a phone's ~0.3 m/px that is a
+    // third of a pixel, which is why they go first.
     byPreset: { performance: 0.5, balanced: 1.0, cinematic: 1.0, ultra: 1.0 },
+    // Below this density the window reveals go; below this, the sign dots too.
+    revealsAbove: 0.75,
+    signsAbove: 0.6,
     balconies: true,      // draw balcony slabs and rails (false: flush walls)
     signs: true,          // draw the dot-matrix name signs
     deck: true,           // draw the podium roof deck's pool, turf, screen, rail
@@ -203,6 +226,22 @@
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
   const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
+  /**
+   * The density in force right now: APTS.byPreset for the live graphics preset,
+   * overridden by SLOPES.detail() when the slopes layer has been told a number
+   * directly (?slopesdetail, the builder's console), so the layer and its
+   * generator never disagree about how much to draw.
+   */
+  function detailNow() {
+    const pre = (window.GFX && window.GFX.preset) || 'balanced';
+    const mine = APTS.byPreset[pre];
+    const theirs = window.slopes && window.slopes.detail ? window.slopes.detail() : null;
+    if (mine == null) return theirs == null ? 1 : theirs;
+    return theirs == null ? mine : Math.min(mine, theirs);
+  }
+  const wantReveals = () => APTS.reveals && detailNow() >= APTS.revealsAbove;
+  const wantSigns = () => APTS.signs && detailNow() >= APTS.signsAbove;
+
   const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
   const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes', 'rakes', 'fins', 'piers', 'openings', 'canopies', 'soffits', 'chamfers', 'holes'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
@@ -612,11 +651,11 @@
    */
   function tileFace(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
-    const reveal = APTS.reveals ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
+    const reveal = wantReveals() ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
     // an opening's own depth and tone (a band's `openings`: a garage mouth, an
     // entry court, a loggia) ride on the window record; the skin's windows
     // take the skin's reveal and its glass
-    const revealOf = w => APTS.reveals ? (w.reveal != null ? w.reveal : reveal) : 0;
+    const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
       .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
@@ -1735,7 +1774,7 @@
   function wallFixtures(B, W, bands, spec, P, key, cut) {
     for (const band of bands) {
       if (band.z1 - band.z0 < 0.05) continue;
-      const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = APTS.signs && band.signs && band.signs.length;
+      const hasB = APTS.balconies && band.balconies && band.balconies.length, hasS = wantSigns() && band.signs && band.signs.length;
       const hasF = APTS.fins && band.fins, hasC = APTS.canopies && band.canopies && band.canopies.length;
       if (!hasB && !hasS && !hasF && !hasC) continue;
       const floors = floorsBetween(spec.levels.floors, band.z0, band.z1, key + ' ' + band.skin).floors;
@@ -2169,7 +2208,7 @@
     g.add(mesh);
     count.triangles = B.triangles;
     count.ms = +(performance.now() - t0).toFixed(1);
-    _lastDetail = S.detail();
+    _lastDetail = detailNow();
     return g;
   }
 
@@ -2440,7 +2479,7 @@
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
     if (want && !_group && !_building) { startBuild(map); }
-    else if (want && _group && _lastDetail !== S.detail()) { dropGroup(); startBuild(map); }
+    else if (want && _group && _lastDetail !== detailNow()) { dropGroup(); startBuild(map); }
     else if (!want && _group) { dropGroup(); }
     else if (!want && _building) { _building = null; }   // the in-flight build discards itself on landing
     setFilters(want && !!_group);
