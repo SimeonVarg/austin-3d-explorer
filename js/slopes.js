@@ -588,20 +588,49 @@
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
   function build() {
     const T = window.THREE;
-    const pos = [], nrm = [], cd = [], cg = [], cn = [], fc = [], sf = [];
+    // Vertex store: growable Float32Arrays written in place. This used to be
+    // seven plain arrays fed one number at a time (170 million push() calls
+    // for the apartments alone, plus a per-vertex spread); profiled 2026-09-15
+    // that was ~6 s of the 11 s apartment build and 1.6 s of GC. Same API,
+    // same bytes out of geometry().
+    let cap = 1 << 16, nV = 0;
+    let P = new Float32Array(cap * 3), NM = new Float32Array(cap * 3);
+    let CD = new Float32Array(cap * 3), CG = new Float32Array(cap * 3), CN = new Float32Array(cap * 3);
+    let FC = new Float32Array(cap), SF = new Float32Array(cap * 4);
+    const grow = () => {
+      cap *= 2;
+      const g = (a, k) => { const b = new Float32Array(cap * k); b.set(a); return b; };
+      P = g(P, 3); NM = g(NM, 3); CD = g(CD, 3); CG = g(CG, 3); CN = g(CN, 3); FC = g(FC, 1); SF = g(SF, 4);
+    };
     const cache = new Map();
     const rgb = hex => { let c = cache.get(hex); if (!c) { c = hexToRgb01(hex); cache.set(hex, c); } return c; };
+    // A palette entry ([day, golden, night]) is the same array object for every
+    // vertex of a tone, so its three lookups are resolved once per object.
+    const colCache = new WeakMap();
+    const rgb3 = col => {
+      let c = colCache.get(col);
+      if (!c) { c = [rgb(col[0]), rgb(col[1]), rgb(col[2])]; colCache.set(col, c); }
+      return c;
+    };
     // `facet(true)` marks everything pushed after it as a roof facet for
     // SLOPES.facetShade (a sloped face shaded like the slab it replaces);
     // `facet(false)` ends the run. Walls, decks, domes and arches never set it.
     let _facet = 0;
     const push = (p, n, col) => {
-      const d = rgb(col[0]), g = rgb(col[1]), k = rgb(col[2]);
       // Resolve the palette before touching any buffer. A rejected tone must
       // not shift every subsequent vertex relative to its colour attributes.
-      pos.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); fc.push(_facet);
-      cd.push(d[0], d[1], d[2]); cg.push(g[0], g[1], g[2]); cn.push(k[0], k[1], k[2]);
-      const surface=col.surface; sf.push(...(surface||[0,0,0,0]));
+      const c = rgb3(col), d = c[0], g = c[1], k = c[2];
+      if (nV >= cap) grow();
+      const i3 = nV * 3, i4 = nV * 4;
+      P[i3] = p[0]; P[i3 + 1] = p[1]; P[i3 + 2] = p[2];
+      NM[i3] = n[0]; NM[i3 + 1] = n[1]; NM[i3 + 2] = n[2];
+      CD[i3] = d[0]; CD[i3 + 1] = d[1]; CD[i3 + 2] = d[2];
+      CG[i3] = g[0]; CG[i3 + 1] = g[1]; CG[i3 + 2] = g[2];
+      CN[i3] = k[0]; CN[i3 + 1] = k[1]; CN[i3 + 2] = k[2];
+      FC[nV] = _facet;
+      const s = col.surface;                        // fresh slots are already 0
+      if (s) { SF[i4] = s[0]; SF[i4 + 1] = s[1]; SF[i4 + 2] = s[2]; SF[i4 + 3] = s[3]; }
+      nV++;
     };
     const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -704,14 +733,15 @@
     }
     function geometry() {
       const g = new T.BufferGeometry();
-      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
-      g.setAttribute('normal', new T.Float32BufferAttribute(nrm, 3));
-      g.setAttribute('cDay', new T.Float32BufferAttribute(cd, 3));
-      g.setAttribute('cGold', new T.Float32BufferAttribute(cg, 3));
-      g.setAttribute('cNight', new T.Float32BufferAttribute(cn, 3));
-      g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
-      g.setAttribute('aFacet', new T.Float32BufferAttribute(fc, 1));
-      g.setAttribute('aSurface', new T.Float32BufferAttribute(sf, 4));
+      // slice(): trimmed copies, so the oversized growth buffers can be freed.
+      g.setAttribute('position', new T.Float32BufferAttribute(P.slice(0, nV * 3), 3));
+      g.setAttribute('normal', new T.Float32BufferAttribute(NM.slice(0, nV * 3), 3));
+      g.setAttribute('cDay', new T.Float32BufferAttribute(CD.slice(0, nV * 3), 3));
+      g.setAttribute('cGold', new T.Float32BufferAttribute(CG.slice(0, nV * 3), 3));
+      g.setAttribute('cNight', new T.Float32BufferAttribute(CN.slice(0, nV * 3), 3));
+      g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(nV * 2), 2));
+      g.setAttribute('aFacet', new T.Float32BufferAttribute(FC.slice(0, nV), 1));
+      g.setAttribute('aSurface', new T.Float32BufferAttribute(SF.slice(0, nV * 4), 4));
       g.computeBoundingSphere();
       return g;
     }

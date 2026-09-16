@@ -73,6 +73,12 @@
   const APTS = {
     on: q.get('apartments') !== '0',
     index: 'data/apartments/index.json',
+    // How long one build slice may hold the main thread before yielding, ms.
+    // While the veil is up nothing is animating, so slices are long and only
+    // have to let MapLibre's tile messages through; once the city is visible
+    // they are short so a rebuild (a detail change) does not stutter the frame.
+    buildSliceMs: 150,
+    buildSliceMsLive: 6,
     materials:{
       on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],
       names:['Perry-Castañeda Library','Battle Hall','Texas Union','Welch Hall','Benedict Hall','Mezes Hall','Batts Hall','Jester West Hall','Jester East Hall','San Jacinto Hall'],
@@ -1914,7 +1920,10 @@
     for (const [a, b, c] of idx) B.tri(all[a], all[b], all[c], col, normal);
   }
 
-  function buildingOne(B, spec) {
+  // A generator: it yields once per block so build() can hand the main thread
+  // back mid-building. One building is ~270 ms of geometry; a block is a
+  // fraction of that, which is the difference between a stutter and none.
+  function* buildingOne(B, spec) {
     const S = window.slopes;
     const P = palette(spec);
     const ring = spec.footprint.ring;
@@ -1930,6 +1939,7 @@
     const signs0 = count.signs, insets0 = count.insets;
 
     for (const blk of spec.blocks || []) {
+      yield;                          // build() may pause here (time-sliced)
       count.blocks++;
       const bands = blk.bands || [];
       const zTop = blk.z1;
@@ -2114,16 +2124,40 @@
   //  THE GROUP, THE FILTERS, THE SWITCH
   // ══════════════════════════════════════════════════════════════════════
   let _built = [], _builtFrame = 0;
-  function build() {
+  /**
+   * Build every authored building, yielding to the event loop whenever a slice
+   * has used APTS.buildSliceMs. Measured 2026-09-15 on the live site: the 41
+   * models took 6 s to download and then 11 s to build, and that 11 s was ONE
+   * synchronous block — MapLibre's tile messages queued behind it, frames
+   * stopped, and the load screen sat at "89%" for the whole of it. The build
+   * costs the same CPU sliced, but tiles and frames now interleave with it, so
+   * the veil lifts on the tiles and the apartments land while the intro is
+   * still downtown. Returns a Promise of the group.
+   */
+  async function build() {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
     resetCount();
     const B = S.build();
     _built = [];
+    let sliceT0 = performance.now(), slices = 1;
+    const pause = async () => {
+      const budget = document.getElementById('veil') ? APTS.buildSliceMs : APTS.buildSliceMsLive;
+      if (performance.now() - sliceT0 < budget) return;
+      await new Promise(r => setTimeout(r, 0));
+      sliceT0 = performance.now(); slices++;
+    };
     for (const spec of _data.buildings) {
-      try { _built.push(buildingOne(B, spec)); }
+      try {
+        const it = buildingOne(B, spec);          // generator: yields per block
+        let r = it.next();
+        while (!r.done) { await pause(); r = it.next(); }
+        _built.push(r.value);
+      }
       catch (e) { console.error('[slopes-apartments]', spec.name, e); }
+      await pause();
     }
+    count.buildSlices = slices;
     const geom = B.geometry();
     const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
     mesh.name = 'apartments';
@@ -2381,22 +2415,43 @@
     _group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     _group = null; // The shared slopes material belongs to the scene.
   }
+  // The build is async (time-sliced, see build()). `_building` is the one in
+  // flight, so a re-apply during it neither starts a second build nor hides the
+  // legacy prisms before there is a mesh to stand in for them — the filters
+  // follow the GROUP, never the intent, or the swap would be a hole first.
+  let _building = null;
+  function startBuild(map) {
+    const S = window.slopes;
+    const p = _building = build().then(g => {
+      if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); return; } // superseded
+      _building = null;
+      const want = !!(window.SLOPES.on && APTS.on);
+      if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); return; }
+      _group = g; S.add(_group);
+      setFilters(true); setLabels(true);
+      (map || _map).triggerRepaint();
+      console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
+    }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
+    return p;
+  }
   window.applySlopesApartments = function applySlopesApartments(map) {
     map = map || _map;
     if (!map || !_data) return;
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
-    if (want && !_group) { _group = build(); S.add(_group); }
-    else if (want && _group && _lastDetail !== S.detail()) { dropGroup(); _group = build(); S.add(_group); }
+    if (want && !_group && !_building) { startBuild(map); }
+    else if (want && _group && _lastDetail !== S.detail()) { dropGroup(); startBuild(map); }
     else if (!want && _group) { dropGroup(); }
-    setFilters(want);
-    setLabels(want);
+    else if (!want && _building) { _building = null; }   // the in-flight build discards itself on landing
+    setFilters(want && !!_group);
+    setLabels(want && !!_group);
     map.triggerRepaint();
   };
 
   window.slopesApartments = {
     readyToReveal() {
       if(!count.done)return false;
+      if(_building)return false;   // time-sliced build still in flight
       if(!_group)return true; // explicit fetch failure keeps the fallback usable
       if(window.slopes.frames<=_builtFrame+1||filtersMissing().length||rigsMissing().length)return false;
       const sources=new Set(filterPlan().map(([id])=>_map.getLayer(id)?.source).filter(Boolean));
@@ -2442,14 +2497,12 @@
       timer=setTimeout(()=>reject(new Error(url+': model download timed out')),APTS.fetchTimeoutMs);
     })]).finally(()=>clearTimeout(timer));
   }
-  async function boot() {
-    const map = window.__map, S = window.slopes;
-    if (!map || !S || !S.root || !map.getLayer('buildings-3d')) return false;
-    if (window.WESTCAMPUS && window.WESTCAMPUS.on && !map.getLayer('wc-wall') && !window.__wcSkipped) return false;
-    _map = map;
-    if (!_data) {
-      if (!_fetching) {
-        _fetching = (async () => {
+  // Start the 41 downloads the moment js/slopes.js can fetch, not when the
+  // building layers exist: measured 2026-09-15 they began at 7.5 s and ended at
+  // 13.5 s, entirely because they waited for layers they do not need.
+  function startFetch(S) {
+    if (_fetching) return _fetching;
+    _fetching = (async () => {
           const idx = await fetchModel(S,APTS.index);
           // Fetch independent files together; serial fetches left obsolete models visible.
           const [individual, bundles] = await Promise.all([
@@ -2467,9 +2520,23 @@
           ]);
           return replacementCatalog(idx, individual, bundles);
         })();
-      }
-      try { _data = await _fetching; } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
+    return _fetching;
+  }
+  async function boot() {
+    const map = window.__map, S = window.slopes;
+    if (S && S.fetchJSON) startFetch(S);
+    if (!map || !S || !S.root) return false;
+    _map = map;
+    if (!_data) {
+      try { _data = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
     }
+    // The mesh needs data and a scene root, not the building layers: start it
+    // now (measured 2026-09-15: waiting for the layers put the build at ~9 s
+    // instead of ~2.5 s). The filters that hide the legacy prisms wait for the
+    // layers below, as before.
+    if (window.SLOPES.on && APTS.on && !_group && !_building) startBuild(map);
+    if (!map.getLayer('buildings-3d')) return false;
+    if (window.WESTCAMPUS && window.WESTCAMPUS.on && !map.getLayer('wc-wall') && !window.__wcSkipped) return false;
     S.onSwitch(() => window.applySlopesApartments(map));
     // after any pass that rewrites a layer we filter — the slopes settings,
     // js/slopes-roofs.js's own apply (it sets roofs-pitched's filter from
@@ -2484,8 +2551,7 @@
       window[name] = wrapped;
     };
     for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings']) hook(name);
-    window.applySlopesApartments(map);
-    console.log('[slopes-apartments]', count.buildings, 'building(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.windows, 'windows,', count.balconies, 'balconies,', count.signs, 'signs' + (count.signMissing ? ' (' + count.signMissing + ' characters the font lacks)' : '') + ',', count.roofs, 'pitched roofs,', count.insets, 'recesses,', count.frames, 'framed windows,', count.dominoes, 'dominoes,', count.rakes, 'raked faces,', count.fins, 'fins,', count.piers, 'piers,', count.openings, 'openings,', count.canopies, 'canopies in', count.triangles, 'triangles,', count.ms, 'ms; collision:', extendCollision(map), '; hidden:', filterPlan().filter(p => map.getLayer(p[0])).map(p => p[0]).join(' '));
+    window.applySlopesApartments(map);   // starts the time-sliced build; it logs its own counts when it lands
     // a layer that boots after this file (campus-storeys comes with the
     // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
     // fetch) gets its clause when it appears, and a pass that has not been
@@ -2495,8 +2561,10 @@
       let n = 0;
       const tick = () => {
         n++;
-        if (n > 400 + 240) return;
-        setTimeout(tick, n < 400 ? 150 : 1000);
+        // 500 ms, not 150: each tick re-serialises every planned filter (the
+        // roofscape clause carries 195 footprints) — profiled at 1.7 s a load.
+        if (n > 120 + 240) return;
+        setTimeout(tick, n < 120 ? 500 : 1000);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
         setLabels(true);
         for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);

@@ -478,6 +478,9 @@
     if (built) return;
     built = true;
     const p = DEFAULT_P;
+    // Cheap frames until reveal() lifts the veil (INTRO.veilRenderScale).
+    if (document.getElementById('veil') && INTRO.veilRenderScale > 0 && INTRO.veilRenderScale < 1)
+      window.__veilRenderScale = INTRO.veilRenderScale;
 
     if (scene) {
       // Facade images must exist before any layer references them, or MapLibre
@@ -1788,6 +1791,18 @@
     authoredCeilingMs: 90000, // terminal failure: keep a stable legacy scene for this visit
     gatePollMs: 200,   // how often the gate is re-asked
     gateHolds: 2,      // consecutive passes required before departure
+    // Hold the veil until the authored apartments have built. Measured
+    // 2026-09-15: letting the flight depart while they built in the
+    // background (time-sliced) dropped the intro to 11-14 fps with 0.5 s
+    // hitches, against 35 fps with no build — a worse first impression than
+    // the wait. The build now overlaps the tile wait instead of following it
+    // (js/slopes-apartments.js build()), which is where the time went.
+    waitAuthored: true,
+    // Render scale while the veil is up (multiplies the preset's). The veil is
+    // opaque, so every frame painted under it is wasted; at 0.25 the painter
+    // costs ~1/16th and the thread goes to tiles and the apartment build.
+    // Restored to 1 at reveal, before the veil starts to fade.
+    veilRenderScale: 0.25,
   };
 
   /**
@@ -1819,7 +1834,14 @@
    * begun fetching answers "all loaded" the first time it is asked (boot.mjs
    * hit exactly this and it produced a 3x error), so one poll is not evidence.
    */
-  function introGate() {
+  // `waitAuthored`: whether the authored apartment meshes are part of the gate
+  // (INTRO.waitAuthored; always on for the reel and live-here paths). Measured
+  // on the live site 2026-09-15: the 41 models began downloading at 7.5 s,
+  // finished at 13.5 s, then built on the main thread in ONE block until 25 s
+  // — starving the tiles this gate was also waiting on, so the bar sat at
+  // "89%" for 20+ s and the veil lifted on the 30 s ceiling. The download now
+  // starts at ~2 s and the build is time-sliced so tiles load alongside it.
+  function introGate(waitAuthored = true) {
     const style = (map.getStyle && map.getStyle()) || null;
     const have = (style && style.sources) || {};
     const missing = [];
@@ -1833,7 +1855,7 @@
       try { ok = map.isSourceLoaded(id); } catch (e) { ok = true; }
       if (!ok) missing.push(id);
     }
-    if (window.SLOPES?.on && window.APARTMENTS?.on) {
+    if (waitAuthored && window.SLOPES?.on && window.APARTMENTS?.on) {
       known++;
       if (!window.slopesApartments?.readyToReveal()) missing.push('authored-buildings');
     }
@@ -1867,9 +1889,19 @@
     const t0 = performance.now();
     let revealed = false, poll = null, holds = 0;
 
+    // The apartment picker and free exploration need the same replacement
+    // handoff as the intro. An expired tile deadline may release the veil,
+    // but must not release it while authored buildings are still swapping.
+    const doReelGate = q.get('autopilot') === '1' || q.get('timelapse') === '1';
+    // The reel and live-here paths always wait for the authored apartments
+    // (their first frame is West Campus); the plain intro waits when
+    // INTRO.waitAuthored says so — see the note on that constant.
+    const waitAuthored = doReelGate || liveHere || INTRO.waitAuthored !== false;
+    const gate = () => introGate(waitAuthored);
+
     // Debug/test hook, same shape as window.__ae / window.__fly / __railWrites.
     const dbg = window.__intro = {
-      needs: INTRO.needs.slice(), gate: introGate,
+      needs: INTRO.needs.slice(), gate: gate, waitAuthored: waitAuthored,
       waitedMs: null, reason: null, missingAtLift: null, gateOkAt: null,
     };
 
@@ -1877,13 +1909,17 @@
       if (revealed) return;
       revealed = true;
       if (poll) clearInterval(poll);
-      const g = introGate();
+      const g = gate();
       dbg.waitedMs = Math.round(performance.now() - t0);
       dbg.reason = reason;
       dbg.missingAtLift = g.missing;
       // Fill the skyline before the veil goes, so the last thing seen is the
       // city fully lit rather than a bar stranded at 80%.
       try { if (window.loaderDone) window.loaderDone(); } catch (e) {}
+      // Back to full resolution BEFORE the veil starts to fade (see
+      // INTRO.veilRenderScale); applyGraphics re-applies the pixel ratio.
+      window.__veilRenderScale = 1;
+      try { if (window.applyGraphics) window.applyGraphics(); } catch (e) {}
       const veil = document.getElementById('veil');
       if (veil) {
         veil.classList.add('lift');
@@ -1898,18 +1934,13 @@
 
     // `idle` implies areTilesLoaded(), so it implies the gate. Kept exactly as
     // it was: when it does fire, it is the fastest honest signal there is.
-    map.once('idle', () => { if (!introGate().missing.length) reveal('idle'); });
+    map.once('idle', () => { if (!gate().missing.length) reveal('idle'); });
 
-    // The apartment picker and free exploration need the same replacement
-    // handoff as the intro. An expired tile deadline may release the veil,
-    // but must not release it while authored buildings are still swapping.
-    const doReelGate = q.get('autopilot') === '1' || q.get('timelapse') === '1';
-    // Free exploration shares the authored-building readiness gate.
     const veilCeilMs = doReelGate ? AP_VEIL_MAX_MS : INTRO.maxVeilMs;
 
     const tick = () => {
       const ms = performance.now() - t0;
-      if(ms>=INTRO.authoredCeilingMs && window.APARTMENTS?.on && !window.slopesApartments?.readyToReveal()) {
+      if(waitAuthored && ms>=INTRO.authoredCeilingMs && window.APARTMENTS?.on && !window.slopesApartments?.readyToReveal()) {
         // A failed source must not hold the app forever or swap geometry after
         // release. Disable this replacement for the visit; a reload retries it.
         window.APARTMENTS.on=false;
@@ -1917,7 +1948,7 @@
         dbg.modelFallback='authored handoff timed out';
         console.warn('[intro] authored handoff timed out; keeping legacy buildings for this visit');
       }
-      const g = introGate();
+      const g = gate();
       holds = g.missing.length ? 0 : holds + 1;
       if (holds >= INTRO.gateHolds && dbg.gateOkAt == null) dbg.gateOkAt = Math.round(ms);
       // The FLOOR is the old behaviour and the phone's: never lift earlier than
