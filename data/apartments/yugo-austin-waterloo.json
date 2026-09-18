@@ -1,0 +1,691 @@
+{
+  "_readme": "Yugo Austin Waterloo (2400 Seton Ave), authored 2026-09-17 from the reference folder austin-reference-images/yugo-waterloo (10 photographs, notes.md) and a z20 satellite view. Frame (stored obb): +u runs EAST (bearing 95), +v runs NORTH; u 0 = the west edge, v 0 = the south edge. Replaces the baked entry in data/neighborhood_apartments.json (removed from its profile list).",
+  "id": "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
+  "name": "Yugo Austin Waterloo",
+  "aliases": [
+    "Waterloo",
+    "Waterloo Tower",
+    "Yugo Waterloo"
+  ],
+  "category": "apartment",
+  "sources": {
+    "photos": "austin-reference-images/yugo-waterloo: aerial NNW (01, 02), SE corner from the street (03), W/S corner (04), podium (05-07), crown and blade (08, crown-detail)",
+    "satellite": "Esri World Imagery z20: the tower roof covers the whole site (mechanical, pool deck at the south end) - no separate lower podium wing",
+    "facts": "30 storeys, ~95 m to the main roof (DCI Engineers: 300 ft); BOKA Powell + Hip Hop Studio; 2022",
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson"
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7439516,
+        30.2884911
+      ],
+      [
+        -97.7442372,
+        30.2885129
+      ],
+      [
+        -97.7442901,
+        30.2879976
+      ],
+      [
+        -97.7440044,
+        30.2879758
+      ],
+      [
+        -97.7439516,
+        30.2884911
+      ]
+    ],
+    "holes": []
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74429012175882,
+        30.287997385243923
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96124.7141254927,
+      "my": 111320,
+      "L": 27.62637350786823,
+      "W": 57.61209641000601
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      5.2,
+      8.31,
+      11.421,
+      14.531,
+      17.641,
+      20.752,
+      23.862,
+      26.972,
+      30.083,
+      33.193,
+      36.303,
+      39.414,
+      42.524,
+      45.634,
+      48.745,
+      51.855,
+      54.966,
+      58.076,
+      61.186,
+      64.297,
+      67.407,
+      70.517,
+      73.628,
+      76.738,
+      79.848,
+      82.959,
+      86.069,
+      89.179,
+      92.29,
+      95.4
+    ]
+  },
+  "colours": {
+    "brick": {
+      "hex": "#2e2a2c"
+    },
+    "brickFrame": {
+      "hex": "#3b3738"
+    },
+    "brickLight": {
+      "hex": "#c9c5c1"
+    },
+    "charcoal": {
+      "hex": "#2a2d30"
+    },
+    "charPanel": {
+      "hex": "#b9bcbd"
+    },
+    "tan": {
+      "hex": "#a8947b"
+    },
+    "bronze": {
+      "hex": "#5b4638"
+    },
+    "greige": {
+      "hex": "#d3cdc3"
+    },
+    "cream": {
+      "hex": "#e6ddcc"
+    },
+    "signBronze": {
+      "hex": "#6e5540"
+    },
+    "glass": {
+      "hex": "#4e7584"
+    },
+    "curtainGlass": {
+      "hex": "#6a9fb3"
+    },
+    "crownGlass": {
+      "hex": "#4f9489"
+    },
+    "frameDark": {
+      "hex": "#1c1f21"
+    },
+    "metal": {
+      "hex": "#596369"
+    },
+    "trim": {
+      "hex": "#d9d4ca"
+    },
+    "roof": {
+      "hex": "#8e8f8a"
+    },
+    "dark": {
+      "hex": "#23272a"
+    },
+    "stone": {
+      "hex": "#c9bd9f"
+    },
+    "_src": "notes.md samples: brick darkest #222023 / mid #413d3e, white glazed brick #bdb8b4-#bfbcbb; the rest read off the photographs by eye: tan field, darker bronze sub-panel, light greige east field, cream blade, bronze wordmark, sky-blue south curtain wall, green-teal crown glass (crown-detail)."
+  },
+  "skins": {
+    "lobby": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.25,
+      "mullion": 2.2,
+      "mullionW": 0.09,
+      "fascia": 0.4,
+      "fasciaTone": "brick",
+      "_src": "a double-height black-framed glass storefront (podium photos 05-07)"
+    },
+    "podium": {
+      "kind": "bays",
+      "field": "brick",
+      "bay": 3.1,
+      "window": {
+        "w": 1.05,
+        "h": 2.05,
+        "sill": 0.55,
+        "offsets": [
+          [
+            -0.72,
+            1.05
+          ]
+        ],
+        "frame": {
+          "w": 0.22,
+          "tone": "brickFrame"
+        },
+        "accent": {
+          "w": 1.05,
+          "gap": 0.44,
+          "side": "right",
+          "tones": [
+            "brickLight"
+          ]
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.22,
+      "_src": "near-black brick; every opening in a raised brick frame; portrait glass windows alternating with white glazed-brick panels of the same size (05, straight on)"
+    },
+    "north": {
+      "kind": "bays",
+      "field": "charcoal",
+      "bay": 3.1,
+      "window": {
+        "w": 1.1,
+        "h": 2.3,
+        "sill": 0.4,
+        "offsets": [
+          [
+            -0.72,
+            1.1
+          ]
+        ],
+        "accent": {
+          "w": 1.1,
+          "gap": 0.34,
+          "side": "right",
+          "tones": [
+            "charPanel",
+            "charcoal"
+          ]
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.18,
+      "_src": "north: a near-black frame grid; each bay pairs a glass pane with a light-grey opaque panel of the same size (01, 02)"
+    },
+    "west": {
+      "kind": "bays",
+      "field": "tan",
+      "bay": 2.6,
+      "window": {
+        "w": 0.85,
+        "h": 2.2,
+        "sill": 0.45
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.18,
+      "_src": "west: warm tan panel field with narrow portrait punched windows (crown-detail, 02)"
+    },
+    "westBronze": {
+      "kind": "bays",
+      "field": "bronze",
+      "bay": 2.6,
+      "window": {
+        "w": 0.85,
+        "h": 2.2,
+        "sill": 0.45
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.18,
+      "_src": "west: the darker bronze-brown sub-panel ~3-4 bays wide running most of the height"
+    },
+    "east": {
+      "kind": "bays",
+      "field": "greige",
+      "bay": 2.6,
+      "window": {
+        "w": 1.15,
+        "h": 2.25,
+        "sill": 0.4,
+        "spandrel": {
+          "h": 0.5,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.18,
+      "_src": "east (Seton): light greige panel grid, portrait windows with light spandrels (03, 07)"
+    },
+    "curtain": {
+      "kind": "storefront",
+      "glass": "curtainGlass",
+      "frame": "greige",
+      "reveal": 0.06,
+      "mullion": 1.55,
+      "mullionW": 0.12,
+      "fascia": 0.35,
+      "fasciaTone": "greige",
+      "_src": "south: a full-height curtain wall of near-square sky-blue panes in light frames, a transom at every floor (03)"
+    },
+    "crown": {
+      "kind": "storefront",
+      "glass": "crownGlass",
+      "frame": "frameDark",
+      "reveal": 0.1,
+      "mullion": 1.2,
+      "mullionW": 0.08,
+      "fascia": 0.3,
+      "fasciaTone": "frameDark",
+      "_src": "the top two floors: a continuous green-teal glazed amenity band, slender mullions, dark cap (01, 02, crown-detail)"
+    },
+    "blade": {
+      "kind": "bays",
+      "field": "cream",
+      "window": {
+        "cols": [
+          0.14,
+          0.32,
+          0.5,
+          0.68,
+          0.86
+        ],
+        "w": 0.45,
+        "h": 2.1,
+        "sill": 0.5
+      },
+      "glass": "bronze",
+      "frame": "bronze",
+      "reveal": 0.12,
+      "_src": "the cream blade: near-blank, 5 narrow slot columns, one slot per storey (crown-detail, counted)"
+    },
+    "bladeBlank": {
+      "kind": "flat",
+      "field": "cream"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "metal": {
+      "kind": "flat",
+      "field": "metal"
+    },
+    "brick": {
+      "kind": "flat",
+      "field": "brick"
+    }
+  },
+  "balcony": {
+    "proj": 0.8,
+    "slabT": 0.14,
+    "railH": 1.05,
+    "railT": 0.04,
+    "slabTone": "balc",
+    "railTone": "rail",
+    "railPitch": 0.16
+  },
+  "blocks": [
+    {
+      "id": "podium",
+      "plan": {
+        "ring": [
+          [
+            27.626,
+            57.587
+          ],
+          [
+            0.066,
+            57.612
+          ],
+          [
+            0.0,
+            0.024
+          ],
+          [
+            27.57,
+            0.0
+          ]
+        ],
+        "holes": []
+      },
+      "z0": 0,
+      "z1": 17.641,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 5.2,
+          "skin": "lobby"
+        },
+        {
+          "z0": 5.2,
+          "z1": 17.641,
+          "skin": "podium"
+        }
+      ],
+      "roofTone": "roof",
+      "_src": "six storeys over the whole site: double-height lobby, four parking rows dressed as the brick checker"
+    },
+    {
+      "id": "tower",
+      "plan": [
+        3.4,
+        26.9,
+        1.0,
+        56.5
+      ],
+      "z0": 17.641,
+      "z1": 95.4,
+      "roofTone": "roof",
+      "parapet": 0.6,
+      "parapetTone": "frameDark",
+      "faces": {
+        "v1": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "north"
+            },
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "crown"
+            },
+            {
+              "z0": 92.29,
+              "z1": 95.4,
+              "skin": "crown"
+            }
+          ]
+        },
+        "u0": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "west"
+            },
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "crown"
+            },
+            {
+              "z0": 92.29,
+              "z1": 95.4,
+              "skin": "crown"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 20.752,
+              "skin": "curtain"
+            },
+            {
+              "z0": 20.752,
+              "z1": 23.862,
+              "skin": "curtain"
+            },
+            {
+              "z0": 23.862,
+              "z1": 26.972,
+              "skin": "curtain"
+            },
+            {
+              "z0": 26.972,
+              "z1": 30.083,
+              "skin": "curtain"
+            },
+            {
+              "z0": 30.083,
+              "z1": 33.193,
+              "skin": "curtain"
+            },
+            {
+              "z0": 33.193,
+              "z1": 36.303,
+              "skin": "curtain"
+            },
+            {
+              "z0": 36.303,
+              "z1": 39.414,
+              "skin": "curtain"
+            },
+            {
+              "z0": 39.414,
+              "z1": 42.524,
+              "skin": "curtain"
+            },
+            {
+              "z0": 42.524,
+              "z1": 45.634,
+              "skin": "curtain"
+            },
+            {
+              "z0": 45.634,
+              "z1": 48.745,
+              "skin": "curtain"
+            },
+            {
+              "z0": 48.745,
+              "z1": 51.855,
+              "skin": "curtain"
+            },
+            {
+              "z0": 51.855,
+              "z1": 54.966,
+              "skin": "curtain"
+            },
+            {
+              "z0": 54.966,
+              "z1": 58.076,
+              "skin": "curtain"
+            },
+            {
+              "z0": 58.076,
+              "z1": 61.186,
+              "skin": "curtain"
+            },
+            {
+              "z0": 61.186,
+              "z1": 64.297,
+              "skin": "curtain"
+            },
+            {
+              "z0": 64.297,
+              "z1": 67.407,
+              "skin": "curtain"
+            },
+            {
+              "z0": 67.407,
+              "z1": 70.517,
+              "skin": "curtain"
+            },
+            {
+              "z0": 70.517,
+              "z1": 73.628,
+              "skin": "curtain"
+            },
+            {
+              "z0": 73.628,
+              "z1": 76.738,
+              "skin": "curtain"
+            },
+            {
+              "z0": 76.738,
+              "z1": 79.848,
+              "skin": "curtain"
+            },
+            {
+              "z0": 79.848,
+              "z1": 82.959,
+              "skin": "curtain"
+            },
+            {
+              "z0": 82.959,
+              "z1": 86.069,
+              "skin": "curtain"
+            },
+            {
+              "z0": 86.069,
+              "z1": 89.179,
+              "skin": "curtain"
+            },
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "crown"
+            },
+            {
+              "z0": 92.29,
+              "z1": 95.4,
+              "skin": "crown"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "east"
+            },
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "crown"
+            },
+            {
+              "z0": 92.29,
+              "z1": 95.4,
+              "skin": "crown"
+            }
+          ]
+        }
+      },
+      "overrides": [
+        {
+          "region": [
+            3.4,
+            3.4,
+            36.0,
+            47.0
+          ],
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "westBronze"
+            },
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "crown"
+            },
+            {
+              "z0": 92.29,
+              "z1": 95.4,
+              "skin": "crown"
+            }
+          ]
+        }
+      ],
+      "_src": "the tower covers the whole site (satellite); each face its own field (notes.md table). West face set 3.4 m back so the blade stands proud."
+    },
+    {
+      "id": "blade",
+      "plan": [
+        0.3,
+        3.5,
+        7.5,
+        19.5
+      ],
+      "z0": 17.641,
+      "z1": 99.6,
+      "roofTone": "cream",
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 94.0,
+              "skin": "blade"
+            },
+            {
+              "z0": 94.0,
+              "z1": 99.6,
+              "skin": "bladeBlank",
+              "signs": [
+                {
+                  "text": "WATERLOO",
+                  "s0": 1.9,
+                  "z0": 96.4,
+                  "dot": 0.19,
+                  "gap": 0.2,
+                  "tone": "signBronze"
+                }
+              ]
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 99.6,
+              "skin": "bladeBlank"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 99.6,
+              "skin": "bladeBlank"
+            }
+          ]
+        }
+      },
+      "_src": "the cream blade on the west face, standing proud of it and rising above the crown, WATERLOO in bronze capitals across the top (crown-detail, 01, 08); ~12 m wide"
+    },
+    {
+      "id": "mech",
+      "plan": [
+        4.5,
+        10.5,
+        47.0,
+        55.0
+      ],
+      "z0": 95.4,
+      "z1": 98.60000000000001,
+      "bands": [
+        {
+          "z0": 95.4,
+          "z1": 98.60000000000001,
+          "skin": "metal"
+        }
+      ],
+      "roofTone": "metal",
+      "_src": "one silver mechanical enclosure at the north-west corner of the roof (notes.md)"
+    }
+  ],
+  "deck": {
+    "z": 0,
+    "items": []
+  }
+}

@@ -30434,3 +30434,6 @@ Evidence: `docs/shots/villas24-photo-match-{aerial-nw,south}.jpg`. Data only:
 two narrow panes per 3.05 m bay in thick black frames, swapping sides floor to
 floor (the woven look); a white fin every second bay; dark glass the full height
 of all four corners; a pale teal glass box over ~70% of the roof; bright white field.
+
+## 2026-09-17 — Yugo Austin Waterloo authored from its photographs (branch `acer/yugo`)
+Evidence: `docs/shots/waterloo-photo-match-{aerial,crown,se}.jpg`. Moved OUT of the neighborhood bake into its own file `data/apartments/yugo-austin-waterloo.json` (profile removed from `data/neighborhood_apartment_profiles.json`; the rebake changed no other building, checked). Dark brick podium with glass/white checker, double-height lobby; tower with four different faces (north charcoal grid + grey panels, west tan with a bronze strip, south blue curtain wall, east greige with spandrels); green-teal glass crown; the cream WATERLOO blade proud of the west face, above the crown. The deep full-height slot between faces is NOT modelled yet.
