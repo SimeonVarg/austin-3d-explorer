@@ -30428,3 +30428,9 @@ Evidence: `docs/shots/icon-photo-match-{dusk,crown,street}.jpg` (REAL | BEFORE |
   beside each window from seven tones; crown moved WEST with the pool on the
   east terrace (it was drawn over the east), white-mullioned glass.
 Open: the render's daylight warms white to beige on every building (taste call).
+
+## 2026-09-17 — Villas on 24th matched to its photographs (branch `acer/match-villas24`)
+Evidence: `docs/shots/villas24-photo-match-{aerial-nw,south}.jpg`. Data only:
+two narrow panes per 3.05 m bay in thick black frames, swapping sides floor to
+floor (the woven look); a white fin every second bay; dark glass the full height
+of all four corners; a pale teal glass box over ~70% of the roof; bright white field.
