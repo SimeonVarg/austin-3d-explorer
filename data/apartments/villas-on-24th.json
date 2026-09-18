@@ -109,10 +109,10 @@
       "hex": "#786d54"
     },
     "white": {
-      "hex": "#e0e5e3"
+      "hex": "#eceeec"
     },
     "dark": {
-      "hex": "#353c3e"
+      "hex": "#23282b"
     },
     "brick": {
       "hex": "#9b6e57"
@@ -140,7 +140,17 @@
     },
     "bronzeMid": {
       "hex": "#8b8067"
-    }
+    },
+    "slotGlass": {
+      "hex": "#2c373d"
+    },
+    "crownGlass": {
+      "hex": "#7aa3aa"
+    },
+    "crownFrame": {
+      "hex": "#3a4347"
+    },
+    "_src2026": "2026-09-17 from the owner's photos (tower south render, NW aerial, corner detail at dusk): a bright white panel field; windows in thick near-black frames; dark glass running the full height of the corners; a pale teal glass amenity box on the roof."
   },
   "skins": {
     "wall": {
@@ -195,30 +205,35 @@
       "field": "white",
       "bay": 3.05,
       "window": {
-        "w": 1.65,
-        "h": 2.45,
-        "sill": 0.27,
-        "frame": {
-          "w": 0.1,
-          "tone": "trim"
-        },
-        "mullion": {
-          "cols": [],
-          "rows": [
-            0.24
+        "w": 0.72,
+        "h": 2.35,
+        "sill": 0.35,
+        "offsets": [
+          [
+            -0.62,
+            0.72
           ],
-          "w": 0.07,
-          "tone": "frame"
+          [
+            0.2,
+            0.72
+          ]
+        ],
+        "flip": true,
+        "frame": {
+          "w": 0.12,
+          "tone": "dark"
         }
       },
       "glass": "glass",
-      "frame": "frame",
-      "reveal": 0.24,
+      "frame": "dark",
+      "reveal": 0.22,
       "pier": {
-        "w": 0.35,
-        "d": 0.35,
-        "tone": "white"
-      }
+        "w": 0.22,
+        "d": 0.28,
+        "tone": "white",
+        "every": 2
+      },
+      "_src": "corner detail photo at dusk, 2026-09-17: every ~3.05 m bay holds TWO narrow tall panes (~0.72 x 2.35 m) in thick black frames; the pair sits left or right of the bay centre and swaps floor to floor, so the white between them reads as a woven basket; a shallow white fin every second bay line."
     },
     "garage": {
       "kind": "flat",
@@ -239,6 +254,28 @@
     "white": {
       "kind": "flat",
       "field": "white"
+    },
+    "cornerGlass": {
+      "kind": "storefront",
+      "glass": "slotGlass",
+      "frame": "dark",
+      "fasciaTone": "dark",
+      "fascia": 0.05,
+      "mullion": 3.05,
+      "mullionW": 0.1,
+      "reveal": 0.05,
+      "_src": "the dark full-height glass slot at each corner (NW aerial and corner detail)"
+    },
+    "crownGlass": {
+      "kind": "storefront",
+      "glass": "crownGlass",
+      "frame": "crownFrame",
+      "fasciaTone": "crownFrame",
+      "fascia": 0.4,
+      "mullion": 1.6,
+      "mullionW": 0.1,
+      "reveal": 0.1,
+      "_src": "the rooftop amenity box: pale teal glass, thin dark mullions (NW aerial, rooftop photo)"
     }
   },
   "blocks": [
@@ -297,10 +334,10 @@
     {
       "id": "amenity-pavilion",
       "plan": [
-        2,
-        18.937109129183217,
-        2,
-        34.424103072344636
+        1,
+        26.5,
+        1,
+        35.42
       ],
       "z0": 90.65,
       "z1": 97.2,
@@ -308,11 +345,11 @@
         {
           "z0": 90.65,
           "z1": 97.2,
-          "skin": "glass"
+          "skin": "crownGlass"
         }
       ],
       "roofTone": "roofFlat",
-      "_src": "reference; dimensions are derived, see sources.dimensions"
+      "_src": "2026-09-17: the glass box runs flush with the tower on three sides over ~70% of the roof (NW aerial), with the open terrace and pool on the rest"
     },
     {
       "id": "panel-course-0",
@@ -473,6 +510,86 @@
       ],
       "roofTone": "roofFlat",
       "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "corner-glass-0",
+      "plan": [
+        0.85,
+        3.4,
+        0.85,
+        3.4
+      ],
+      "z0": 14.4,
+      "z1": 90.65,
+      "bands": [
+        {
+          "z0": 14.4,
+          "z1": 90.65,
+          "skin": "cornerGlass"
+        }
+      ],
+      "roofTone": "dark",
+      "_src": "dark glass the full height of the corner, standing 0.15 m proud of the white faces (NW aerial, corner detail)"
+    },
+    {
+      "id": "corner-glass-1",
+      "plan": [
+        34.474218258366434,
+        37.02421825836643,
+        0.85,
+        3.4
+      ],
+      "z0": 14.4,
+      "z1": 90.65,
+      "bands": [
+        {
+          "z0": 14.4,
+          "z1": 90.65,
+          "skin": "cornerGlass"
+        }
+      ],
+      "roofTone": "dark",
+      "_src": "dark glass the full height of the corner, standing 0.15 m proud of the white faces (NW aerial, corner detail)"
+    },
+    {
+      "id": "corner-glass-2",
+      "plan": [
+        34.474218258366434,
+        37.02421825836643,
+        33.02410307234464,
+        35.574103072344634
+      ],
+      "z0": 14.4,
+      "z1": 90.65,
+      "bands": [
+        {
+          "z0": 14.4,
+          "z1": 90.65,
+          "skin": "cornerGlass"
+        }
+      ],
+      "roofTone": "dark",
+      "_src": "dark glass the full height of the corner, standing 0.15 m proud of the white faces (NW aerial, corner detail)"
+    },
+    {
+      "id": "corner-glass-3",
+      "plan": [
+        0.85,
+        3.4,
+        33.02410307234464,
+        35.574103072344634
+      ],
+      "z0": 14.4,
+      "z1": 90.65,
+      "bands": [
+        {
+          "z0": 14.4,
+          "z1": 90.65,
+          "skin": "cornerGlass"
+        }
+      ],
+      "roofTone": "dark",
+      "_src": "dark glass the full height of the corner, standing 0.15 m proud of the white faces (NW aerial, corner detail)"
     }
   ],
   "open": [
