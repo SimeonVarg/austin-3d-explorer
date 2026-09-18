@@ -1116,7 +1116,7 @@
     return {
       rows: () => [zTop],
       cols: () => [],
-      tone: (zm) => zm > zTop ? P[spec.fasciaTone || 'charcoal'] : P[spec.frame || 'frame'],
+      tone: (zm) => zm > zTop ? (P[spec.fasciaTone || 'charcoal'] || P[spec.frame || 'frame']) : P[spec.frame || 'frame'],
       windows, glass: spec.glass || 'storeGlass', frame: spec.frame || 'frame', reveal: spec.reveal != null ? spec.reveal : 0.25,
     };
   }
@@ -2310,8 +2310,12 @@
     const key = inset + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
-    for (const b of buildings) {
-      const ring = b.footprint && b.footprint.ring;
+    // A building may add `hideRings`: outlines it replaces beyond its own
+    // footprint (Moody's two snapshot roof plates, whose deck items stood
+    // 20-38 m outside the drum and floated at 24 m once the plates went).
+    const rings = [];
+    for (const b of buildings) rings.push(b.footprint && b.footprint.ring, ...(b.hideRings || []));
+    for (const ring of rings) {
       if (!ring || ring.length < 4) continue;
       const pts = ring.slice(0, ring.length - 1);
       const lat0 = pts.reduce((a, p) => a + p[1], 0) / pts.length, lng0 = pts[0][0];
