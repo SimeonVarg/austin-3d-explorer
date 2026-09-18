@@ -700,7 +700,10 @@ def main():
     feats = json.load(open(snap, encoding="utf-8"))["features"]
 
     runs = json.load(open(RUNS, encoding="utf-8")) if os.path.exists(RUNS) else {}
-    pitched = {k.split("/")[0] for k, v in runs.items() if v and v[0] >= MIN_RUN_PITCHED}
+    # bake_roofs.py also caches side records here (`<id>/<n>/wing`, `/parts`,
+    # `/hall`) as dicts; only the list entries are runs.
+    pitched = {k.split("/")[0] for k, v in runs.items()
+               if isinstance(v, list) and v and isinstance(v[0], (int, float)) and v[0] >= MIN_RUN_PITCHED}
     garages = load_parking()
     # DKR is a ring 46,000 m^2 in plan, and app.js REPLACES its extrusion with a
     # perimeter wall plus seating bands because 82% of that plan is open seating,
