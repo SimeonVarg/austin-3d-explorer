@@ -301,7 +301,11 @@
       "#9a958c",
       "#1a1d26"
     ],
-    "_condenser_src": "the rooftop condenser rows, mid grey in the S6 nadir; entered like S9's mech tone, night as the deck. Same value The Standard uses."
+    "_condenser_src": "the rooftop condenser rows, mid grey in the S6 nadir; entered like S9's mech tone, night as the deck. Same value The Standard uses.",
+    "pylon": {
+      "hex": "#7c4034",
+      "_src": "2026-09-17: the pylon brick, dark maroon-brown in the blue-hour and aerial frames (notes: the sunlit orange in the east photo is the light, not the brick)"
+    }
   },
   "skins": {
     "_src": "each skin is a rule; its numbers are below with their source",
@@ -405,6 +409,11 @@
       "kind": "flat",
       "field": "brick",
       "_src": "the mechanical/lift-core bulkhead: brick to the top in the NW, SW and W obliques, where it stands clear above every white roof."
+    },
+    "pylon": {
+      "kind": "flat",
+      "field": "pylon",
+      "_src": "blank brick pylon"
     }
   },
   "_balcony_note": "THIS BUILDING HAS NO BALCONIES. Every S6 oblique shows a flat punched-window elevation with nothing projecting from it, so there is no `balcony` module and no `balconies` on any band. Nor any exterior signage: the CALLAWAY HOUSE lettering in S5 is on the lobby's interior stone wall, and no S6 frame shows a wall or roof sign, so there are no `signs` either.",
@@ -847,6 +856,86 @@
         "u0",
         "u1"
       ]
+    },
+    {
+      "id": "pylon-ne",
+      "plan": [
+        71.2,
+        77.8,
+        51.8,
+        58.8
+      ],
+      "z0": 19.7,
+      "z1": 56.8,
+      "roofTone": "pylon",
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 56.8,
+          "skin": "pylon"
+        }
+      ],
+      "_src": "2026-09-17: a blank dark-brick pylon pinning an end of the tower, standing 0.3 m proud and rising ~3.3 m (one storey) above the 53.5 m roof - 'the single most recognisable feature' (notes.md, east elevation and blue-hour corner photos). Positions: the ends of the east face (east photo), the Nueces/22nd corner with the vertical sign (blue-hour photo), the south wing's end."
+    },
+    {
+      "id": "pylon-se",
+      "plan": [
+        71.2,
+        77.8,
+        19.7,
+        26.0
+      ],
+      "z0": 19.7,
+      "z1": 56.8,
+      "roofTone": "pylon",
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 56.8,
+          "skin": "pylon"
+        }
+      ],
+      "_src": "2026-09-17: a blank dark-brick pylon pinning an end of the tower, standing 0.3 m proud and rising ~3.3 m (one storey) above the 53.5 m roof - 'the single most recognisable feature' (notes.md, east elevation and blue-hour corner photos). Positions: the ends of the east face (east photo), the Nueces/22nd corner with the vertical sign (blue-hour photo), the south wing's end."
+    },
+    {
+      "id": "pylon-nw",
+      "plan": [
+        0.2,
+        6.4,
+        63.0,
+        69.8
+      ],
+      "z0": 19.7,
+      "z1": 56.8,
+      "roofTone": "pylon",
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 56.8,
+          "skin": "pylon"
+        }
+      ],
+      "_src": "2026-09-17: a blank dark-brick pylon pinning an end of the tower, standing 0.3 m proud and rising ~3.3 m (one storey) above the 53.5 m roof - 'the single most recognisable feature' (notes.md, east elevation and blue-hour corner photos). Positions: the ends of the east face (east photo), the Nueces/22nd corner with the vertical sign (blue-hour photo), the south wing's end."
+    },
+    {
+      "id": "pylon-s",
+      "plan": [
+        24.0,
+        37.3,
+        1.7,
+        7.2
+      ],
+      "z0": 19.7,
+      "z1": 56.8,
+      "roofTone": "pylon",
+      "bands": [
+        {
+          "z0": 19.7,
+          "z1": 56.8,
+          "skin": "pylon"
+        }
+      ],
+      "_src": "2026-09-17: a blank dark-brick pylon pinning an end of the tower, standing 0.3 m proud and rising ~3.3 m (one storey) above the 53.5 m roof - 'the single most recognisable feature' (notes.md, east elevation and blue-hour corner photos). Positions: the ends of the east face (east photo), the Nueces/22nd corner with the vertical sign (blue-hour photo), the south wing's end."
     }
   ],
   "deck": {
