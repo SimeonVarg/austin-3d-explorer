@@ -1,0 +1,390 @@
+{
+  "_readme": "Yugo Austin Nueces (the former Ruckus), 2502 Nueces St. Frame: +u EAST, +v NORTH; the street face is the east edge (u 55.6). Authored 2026-09-17 from the owner's street photograph (a video still).",
+  "id": "5453ffd2-7119-4e67-ba04-603bde7f10b4",
+  "name": "Yugo Austin Nueces",
+  "category": "apartment",
+  "labelOverride": true,
+  "aliases": [],
+  "sources": {
+    "photo": "austin-reference-images/yugo-nueces/yugo-nueces__street-elevation__01.webp",
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+    "previous": "baked by scripts/bake_neighborhood_apartments.py until 2026-09-17"
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.743633,
+        30.289528
+      ],
+      [
+        -97.7430564,
+        30.2894847
+      ],
+      [
+        -97.7430379,
+        30.2896684
+      ],
+      [
+        -97.7436145,
+        30.2897118
+      ],
+      [
+        -97.743633,
+        30.289528
+      ]
+    ],
+    "holes": []
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74363312171575,
+        30.289528009195056
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96123.38741601184,
+      "my": 111320,
+      "L": 55.645685992190714,
+      "W": 20.55542606804456
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      3.8,
+      7.24,
+      10.68,
+      14.12,
+      17.56,
+      21.0
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#e9e8e2"
+    },
+    "lime": {
+      "hex": "#b7c460"
+    },
+    "board": {
+      "hex": "#2e2f33"
+    },
+    "boardFrame": {
+      "hex": "#5b5f63"
+    },
+    "dark": {
+      "hex": "#26282b"
+    },
+    "frameDark": {
+      "hex": "#1e2124"
+    },
+    "glass": {
+      "hex": "#4c6f7b"
+    },
+    "storeGlass": {
+      "hex": "#3d6070"
+    },
+    "fascia": {
+      "hex": "#3a3c40"
+    },
+    "sign": {
+      "hex": "#f2f2ee"
+    },
+    "trim": {
+      "hex": "#e4e0d4"
+    },
+    "roof": {
+      "hex": "#8f908b"
+    },
+    "metal": {
+      "hex": "#596369"
+    },
+    "stone": {
+      "hex": "#c9bd9f"
+    },
+    "_src": "read off the owner-supplied street photographs by eye (2026-09-14): white render field, lime-green panel blocks, near-black board-and-batten wing, dark storefront with painted shapes and a white-lettered fascia sign"
+  },
+  "skins": {
+    "white": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.4,
+      "window": {
+        "w": 1.0,
+        "h": 1.3,
+        "sill": 1.0,
+        "frame": {
+          "w": 0.08,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15,
+      "_src": "the white field: one small square window per bay, dark frames"
+    },
+    "lime": {
+      "kind": "bays",
+      "field": "lime",
+      "bay": 4.3,
+      "window": {
+        "w": 1.2,
+        "h": 1.35,
+        "sill": 0.95,
+        "offsets": [
+          [
+            -0.7,
+            1.2
+          ],
+          [
+            0.7,
+            1.2
+          ]
+        ],
+        "frame": {
+          "w": 0.08,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15,
+      "_src": "the lime blocks: a pair of square windows per bay"
+    },
+    "board": {
+      "kind": "bays",
+      "field": "board",
+      "bay": 3.2,
+      "window": {
+        "w": 0.8,
+        "h": 1.4,
+        "sill": 0.9,
+        "offsets": [
+          [
+            -0.45,
+            0.8
+          ],
+          [
+            0.45,
+            0.8
+          ]
+        ],
+        "frame": {
+          "w": 0.07,
+          "tone": "boardFrame"
+        }
+      },
+      "glass": "glass",
+      "frame": "boardFrame",
+      "reveal": 0.12,
+      "_src": "the near-black board-and-batten wing: paired narrow windows"
+    },
+    "store": {
+      "kind": "storefront",
+      "glass": "storeGlass",
+      "frame": "frameDark",
+      "reveal": 0.3,
+      "mullion": 1.9,
+      "mullionW": 0.1,
+      "fascia": 0.9,
+      "fasciaTone": "fascia",
+      "_src": "ground floor: dark-framed glass with painted shapes behind it, a dark fascia carrying the sign"
+    },
+    "topDark": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "board",
+      "reveal": 0.1,
+      "mullion": 1.5,
+      "mullionW": 0.1,
+      "fascia": 0.3,
+      "fasciaTone": "board"
+    },
+    "flatBoard": {
+      "kind": "flat",
+      "field": "board"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    },
+    "whiteBig": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 4.4,
+      "window": {
+        "w": 1.9,
+        "h": 1.5,
+        "sill": 0.85,
+        "frame": {
+          "w": 0.1,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15,
+      "_src": "big square windows in dark frames (Nueces photo)"
+    },
+    "limeBig": {
+      "kind": "bays",
+      "field": "lime",
+      "bay": 4.4,
+      "window": {
+        "w": 1.9,
+        "h": 1.5,
+        "sill": 0.85,
+        "frame": {
+          "w": 0.1,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15
+    }
+  },
+  "balcony": {
+    "proj": 0.8,
+    "slabT": 0.14,
+    "railH": 1.05,
+    "railT": 0.04,
+    "slabTone": "balc",
+    "railTone": "rail",
+    "railPitch": 0.16
+  },
+  "deck": {
+    "z": 0,
+    "items": []
+  },
+  "blocks": [
+    {
+      "id": "residence",
+      "plan": {
+        "ring": [
+          [
+            0.012,
+            0.0
+          ],
+          [
+            55.646,
+            0.029
+          ],
+          [
+            55.635,
+            20.555
+          ],
+          [
+            0.0,
+            20.538
+          ]
+        ],
+        "holes": []
+      },
+      "z0": 0,
+      "z1": 21.0,
+      "roofTone": "roof",
+      "parapet": 0.9,
+      "parapetTone": "trim",
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 3.8,
+          "skin": "store"
+        },
+        {
+          "z0": 3.8,
+          "z1": 21.0,
+          "skin": "whiteBig"
+        }
+      ],
+      "_src": "white render body with big dark-framed windows over a dark glass ground floor"
+    },
+    {
+      "id": "lime-upper",
+      "plan": [
+        55.59,
+        55.94,
+        1.5,
+        9.0
+      ],
+      "z0": 14.1,
+      "z1": 21.0,
+      "bands": [
+        {
+          "z0": 14.1,
+          "z1": 21.0,
+          "skin": "limeBig"
+        }
+      ],
+      "roofTone": "trim",
+      "_src": "the upper lime block at the south end of the street face"
+    },
+    {
+      "id": "lime-lower",
+      "plan": [
+        55.59,
+        55.94,
+        9.0,
+        20.5
+      ],
+      "z0": 3.8,
+      "z1": 10.7,
+      "bands": [
+        {
+          "z0": 3.8,
+          "z1": 10.7,
+          "skin": "limeBig"
+        }
+      ],
+      "roofTone": "trim",
+      "_src": "the lower lime block at the north end, floors 2-3"
+    },
+    {
+      "id": "sign-band",
+      "plan": [
+        55.59,
+        56.09,
+        0.0,
+        20.55
+      ],
+      "z0": 3.2,
+      "z1": 4.4,
+      "bands": [
+        {
+          "z0": 3.2,
+          "z1": 4.4,
+          "skin": "flatBoard"
+        }
+      ],
+      "roofTone": "trim",
+      "faces": {
+        "u1": {
+          "bands": [
+            {
+              "z0": 3.2,
+              "z1": 4.4,
+              "skin": "flatBoard",
+              "signs": [
+                {
+                  "text": "AUSTIN NUECES",
+                  "s0": 5.5,
+                  "z0": 3.45,
+                  "dot": 0.12,
+                  "gap": 0.11,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "_src": "the dark fascia with AUSTIN NUECES in white capitals"
+    }
+  ]
+}

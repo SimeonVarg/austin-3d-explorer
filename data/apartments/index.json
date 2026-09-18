@@ -41,7 +41,9 @@
     "benedict-hall.json",
     "mezes-hall.json",
     "batts-hall.json",
-    "yugo-austin-waterloo.json"
+    "yugo-austin-waterloo.json",
+    "yugo-austin-rio.json",
+    "yugo-austin-nueces.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -86,7 +88,9 @@
     "6d07e23b-cd54-484d-8fe0-0d47c5dd72d0",
     "b9eac672-544a-4f53-9665-0926015f0b5e",
     "9b936434-819a-417b-9938-eb59a521bb2e",
-    "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
+    "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
+    "762122e3-8b0c-4bd5-9795-dcf61325b854",
+    "5453ffd2-7119-4e67-ba04-603bde7f10b4"
   ],
   "replacedNames": [
     "The Standard",
@@ -125,7 +129,9 @@
     "Yugo Austin Waterloo",
     "Waterloo",
     "Waterloo Tower",
-    "Yugo Waterloo"
+    "Yugo Waterloo",
+    "Yugo Austin Rio",
+    "Yugo Austin Nueces"
   ],
   "collections": [
     "data/campus_buildings.json",
