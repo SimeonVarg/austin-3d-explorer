@@ -99,10 +99,15 @@ def main():
         fc = json.load(f)
 
     heroes = {}
+    heroes_by_id = {}
     hero_path = "scripts/hero_overrides.json"
     if os.path.exists(hero_path):
         with open(hero_path) as f:
-            heroes = {h["match_name"].lower(): h for h in json.load(f)}
+            _all = json.load(f)
+            heroes = {h["match_name"].lower(): h for h in _all if h.get("match_name")}
+            # match_id: for a building OSM and Overture leave unnamed (Texan
+            # Tower, 2505 San Gabriel St, is one), so a name can never match it.
+            heroes_by_id = {h["match_id"]: h for h in _all if h.get("match_id")}
 
     # OSM names are enrichment, not essential (heights come from Overture), and
     # the public Overpass API is occasionally flaky/rate-limited. Don't let a
@@ -156,8 +161,8 @@ def main():
             n_default += 1
 
         # A known-correction override (scripts/hero_overrides.json) wins if present.
-        if name and name.lower() in heroes:
-            hero = heroes[name.lower()]
+        hero = heroes_by_id.get(p.get("id")) or (heroes.get(name.lower()) if name else None)
+        if hero:
             height = hero.get("height", height)
             name = hero.get("display_name", name)
             source = "hero_override"
