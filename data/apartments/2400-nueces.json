@@ -18,22 +18,66 @@
   },
   "footprint": {
     "ring": [
-      [-97.7437393, 30.2880715],
-      [-97.7437492, 30.2879797],
-      [-97.7432616, 30.2879402],
-      [-97.7432518, 30.2880299],
-      [-97.7432033, 30.288026],
-      [-97.7431161, 30.2888269],
-      [-97.7436967, 30.288874],
-      [-97.7437836, 30.2880751],
-      [-97.7437393, 30.2880715]
+      [
+        -97.7437393,
+        30.2880715
+      ],
+      [
+        -97.7437492,
+        30.2879797
+      ],
+      [
+        -97.7432616,
+        30.2879402
+      ],
+      [
+        -97.7432518,
+        30.2880299
+      ],
+      [
+        -97.7432033,
+        30.288026
+      ],
+      [
+        -97.7431161,
+        30.2888269
+      ],
+      [
+        -97.7436967,
+        30.288874
+      ],
+      [
+        -97.7437836,
+        30.2880751
+      ],
+      [
+        -97.7437393,
+        30.2880715
+      ]
     ],
     "_src": "S1 verbatim; in (u,v) it is (89.33,4.28) (99.59,4.29) (99.58,51.36) (89.55,51.37) (89.55,56.05) (0,56.06) (0,0) (89.32,0) -- a 99.59 x 56.06 rectangle whose southern 10.3 m steps in 4.3 m off Seton and 4.7 m off Nueces."
   },
   "frame": "obb",
   "_frame_src": "obbOf(ring): L=99.0, W=56.1, +u at bearing 185.4 deg, logged by the generator at boot. The bake's row (S8) measured its colour bays in the same frame and says the same thing: 'the 99.6 m long axis runs SOUTH (+u), so u=1 is the 24th Street end'.",
   "levels": {
-    "floors": [0, 6.0, 8.84, 11.68, 14.52, 17.36, 20.2, 23.04, 25.88, 28.72, 31.56, 34.4, 37.24, 40.08, 42.92, 45.76],
+    "floors": [
+      0,
+      6.0,
+      8.84,
+      11.68,
+      14.52,
+      17.36,
+      20.2,
+      23.04,
+      25.88,
+      28.72,
+      31.56,
+      34.4,
+      37.24,
+      40.08,
+      42.92,
+      45.76
+    ],
     "_src": "16 storeys (S3, S2). Ground floor 6.0 m: the academic/retail level is double height in S5, where the storefront band is about 1.9x a residential floor. Levels 2-16 at 2.84 m to the roof slab at 48.60 -- 2.84 is DERIVED, it is what 16 floors and a measured 48.6 m roof imply.",
     "ground": 6.0,
     "roof": 48.6,
@@ -95,29 +139,77 @@
       "hex": "#a09582",
       "_src": "BASE_STONE (S8): the cast-stone ground floor this building's row names (base=(5.0,'sp',BASE_STONE))."
     },
-    "glass": ["#2a3238", "#3a3f42", "#141a20"],
+    "glass": [
+      "#2a3238",
+      "#3a3f42",
+      "#141a20"
+    ],
     "_glass_src": "punched-window glass. No crop of S5 is free of the street trees, so this is the family value data/apartments/the-standard.json measured for the same kind of window and the same camera; the slot windows in the charcoal crop (16% #5a637e) are sky reflection, not the pane.",
-    "storeGlass": ["#4a5a62", "#5c6068", "#e9c27a"],
+    "storeGlass": [
+      "#4a5a62",
+      "#5c6068",
+      "#e9c27a"
+    ],
     "_storeGlass_src": "storefront glazing, amber-lit at night; the-standard.json's value for the same treatment. S5 shows the ground floor as full-height glazing behind a canopy.",
-    "roof": ["#c9cdd1", "#cdcbc6", "#1b1e26"],
+    "roof": [
+      "#c9cdd1",
+      "#cdcbc6",
+      "#1b1e26"
+    ],
     "_roof_src": "white membrane roof, which is what the whole ring reads as in both nadirs (S7); entered cool the way S10 enters top faces.",
-    "deck": ["#b0b6bd", "#bcbbb6", "#1b1e26"],
+    "deck": [
+      "#b0b6bd",
+      "#bcbbb6",
+      "#1b1e26"
+    ],
     "_deck_src": "S10 deck",
-    "pool": ["#2f86ad", "#4a8096", "#1d4a63"],
+    "pool": [
+      "#2f86ad",
+      "#4a8096",
+      "#1d4a63"
+    ],
     "_pool_src": "S10 pool",
-    "turf": ["#4e7d46", "#6b7d49", "#141f19"],
+    "turf": [
+      "#4e7d46",
+      "#6b7d49",
+      "#141f19"
+    ],
     "_turf_src": "S10 turf",
-    "shade": ["#7e858c", "#8a8781", "#181b23"],
+    "shade": [
+      "#7e858c",
+      "#8a8781",
+      "#181b23"
+    ],
     "_shade_src": "S10 shade",
-    "furn": ["#8d867e", "#988b7a", "#171921"],
+    "furn": [
+      "#8d867e",
+      "#988b7a",
+      "#171921"
+    ],
     "_furn_src": "S10 furn",
-    "rail": ["#c6c3bb", "#cdc2ae", "#1e2029"],
+    "rail": [
+      "#c6c3bb",
+      "#cdc2ae",
+      "#1e2029"
+    ],
     "_rail_src": "S10 raill -- the pale precast / white-metal parapet, whose comment names this building as one of the two it exists for. S5 shows the balustrades plainly white, and S8 says the same.",
-    "slab": ["#b8b3a9", "#c2b5a1", "#1c1e26"],
+    "slab": [
+      "#b8b3a9",
+      "#c2b5a1",
+      "#1c1e26"
+    ],
     "_slab_src": "S10 balc (the balcony slab edge)",
-    "condenser": ["#9ca1a6", "#a8a191", "#1a1d26"],
+    "condenser": [
+      "#9ca1a6",
+      "#a8a191",
+      "#1a1d26"
+    ],
     "_condenser_src": "S10 mech",
-    "sign": ["#8a4a22", "#b4622c", "#ff8a3c"],
+    "sign": [
+      "#8a4a22",
+      "#b4622c",
+      "#ff8a3c"
+    ],
     "_sign_src": "S10 sign -- the dark bronze/orange letters; S5 shows an orange 2400 logo panel on the limestone at the corner.",
     "stripeBlue": {
       "hex": "#a8b2ca",
@@ -156,11 +248,36 @@
       "plank": 0.45,
       "bond": 0.5,
       "runMax": 1,
-      "macro": [1, 1],
-      "tones": ["stripeBrown", "stripeWhite", "stripeCream", "stripeBlue", "stripeGrey", "stripeUmber"],
-      "weights": [21, 18, 18, 15, 15, 13],
+      "macro": [
+        1,
+        1
+      ],
+      "tones": [
+        "stripeBrown",
+        "stripeWhite",
+        "stripeCream",
+        "stripeBlue",
+        "stripeGrey",
+        "stripeUmber"
+      ],
+      "weights": [
+        21,
+        18,
+        18,
+        15,
+        15,
+        13
+      ],
       "window": {
-        "cols": [0.07, 0.21, 0.35, 0.49, 0.63, 0.77, 0.91],
+        "cols": [
+          0.07,
+          0.21,
+          0.35,
+          0.49,
+          0.63,
+          0.77,
+          0.91
+        ],
         "w": 0.55,
         "h": 1.9,
         "sill": 0.55
@@ -207,16 +324,28 @@
       "plank": 0.47,
       "bond": 0.5,
       "runMax": 2,
-      "macro": [1, 1],
-      "tones": ["shingle", "silverPanel"],
-      "weights": [64, 36],
+      "macro": [
+        1,
+        1
+      ],
+      "tones": [
+        "shingle",
+        "silverPanel"
+      ],
+      "weights": [
+        22,
+        78
+      ],
       "window": {
-        "cols": [0.32, 0.72],
+        "cols": [
+          0.32,
+          0.72
+        ],
         "w": 1.4,
         "h": 1.6,
         "sill": 0.9
       },
-      "_src": "the pale metal shingle volume on W 24th (S5 crop (780,70)-(880,170)): small square-ish scales in a half bond, two tones of the same metal. 0.47 m is the scale size read against the storey height in that crop -- six courses to a 2.84 m floor."
+      "_src": "the pale metal shingle volume on W 24th (S5 crop (780,70)-(880,170)): small square-ish scales in a half bond, two tones of the same metal. 0.47 m is the scale size read against the storey height in that crop -- six courses to a 2.84 m floor. 2026-09-17: weights 64/36 -> 22/78 - the aerial photographs read the wall as a smooth PALE silver with a fine texture; the darker shingle as the majority tone rendered a grey speckle."
     },
     "goldSkin": {
       "kind": "bays",
@@ -303,7 +432,12 @@
     {
       "id": "northBar",
       "_src": "the north bar of the perimeter block, u 0-21 (S7: the rectified 200 m nadir puts the north court's north wall at u=20.3). Its north face is unphotographed from the ground -- the plainest panel rule -- and its Nueces face is the charcoal slot-window volume (S5).",
-      "plan": [0.0, 20.85, 0, 56.06],
+      "plan": [
+        0.0,
+        20.85,
+        0,
+        56.06
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -392,18 +526,39 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["u0", "v0", "v1", "u1"],
+      "parapetSides": [
+        "u0",
+        "v0",
+        "v1",
+        "u1"
+      ],
       "roofItems": [
         {
-          "plan": [3.97, 16.88, 8.0, 24.0],
-          "grid": [5, 6],
-          "size": [1.1, 1.8],
+          "plan": [
+            3.97,
+            16.88,
+            8.0,
+            24.0
+          ],
+          "grid": [
+            5,
+            6
+          ],
+          "size": [
+            1.1,
+            1.8
+          ],
           "h": 1.0,
           "tone": "condenser",
           "_src": "S7 nadir: the field of small units on the north bar's roof"
         },
         {
-          "plan": [4.96, 8.94, 34.0, 40.0],
+          "plan": [
+            4.96,
+            8.94,
+            34.0,
+            40.0
+          ],
           "h": 2.6,
           "tone": "roof",
           "_src": "S7 nadir: the bulkhead at the north-east of the roof"
@@ -413,7 +568,12 @@
     {
       "id": "westArmN",
       "_src": "the west arm beside the north court, u 21-40.5 x v 0-12.5 (S7: the rectified 200 m nadir puts the north court's west wall at v=14.7 and the west arm's roof edge at v=9.4; 12.5 splits the difference, the 5 m of it being the building lean the ortho imagery still carries at 48 m). LOOK-FIX 4: its court face is the blank salmon panel volume S7's SE oblique sees standing on the west side of the north court.",
-      "plan": [20.85, 40.22, 0, 12.5],
+      "plan": [
+        20.85,
+        40.22,
+        0,
+        12.5
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -469,12 +629,20 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "v1"]
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
     },
     {
       "id": "eastArmN",
       "_src": "the east arm beside the north court, u 21-40.5 x v 50-56.06 (S7 rectified nadir: the court's east wall at v=50.6). This is the gold stucco volume on Nueces (S5). LOOK-FIX 4: the gold is an override strip, the rest of the face is the panel field.",
-      "plan": [20.85, 40.22, 50, 56.06],
+      "plan": [
+        20.85,
+        40.22,
+        50,
+        56.06
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -532,10 +700,18 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "v1"],
+      "parapetSides": [
+        "v0",
+        "v1"
+      ],
       "overrides": [
         {
-          "region": [20.85, 28.0, 55.0, 57.0],
+          "region": [
+            20.85,
+            28.0,
+            55.0,
+            57.0
+          ],
           "bands": [
             {
               "z0": 0,
@@ -555,7 +731,12 @@
     {
       "id": "midBar",
       "_src": "the bar between the two courts, u 40.5-60.5, full width (S7 rectified nadir: the north court ends at u=40.2 and the south court's deck begins at u=60.9).",
-      "plan": [40.22, 60.08, 0, 56.06],
+      "plan": [
+        40.22,
+        60.08,
+        0,
+        56.06
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -644,24 +825,50 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "v1", "u0", "u1"],
+      "parapetSides": [
+        "v0",
+        "v1",
+        "u0",
+        "u1"
+      ],
       "roofItems": [
         {
-          "plan": [48.66, 54.61, 18.0, 24.0],
+          "plan": [
+            48.66,
+            54.61,
+            18.0,
+            24.0
+          ],
           "h": 2.2,
           "tone": "condenser",
           "_src": "S7 and the Esri z20 nadir (research/union24th-area/imagery/aerial/2400-nueces_nadir_z20.jpg): two large round roof fans side by side at u~50, v~21 and v~34. Drawn as boxes -- the generator has no cylinder."
         },
         {
-          "plan": [48.66, 54.61, 31.0, 37.0],
+          "plan": [
+            48.66,
+            54.61,
+            31.0,
+            37.0
+          ],
           "h": 2.2,
           "tone": "condenser",
           "_src": "the second of the two fans"
         },
         {
-          "plan": [41.71, 46.67, 6.0, 14.0],
-          "grid": [2, 3],
-          "size": [1.1, 1.8],
+          "plan": [
+            41.71,
+            46.67,
+            6.0,
+            14.0
+          ],
+          "grid": [
+            2,
+            3
+          ],
+          "size": [
+            1.1,
+            1.8
+          ],
           "h": 1.0,
           "tone": "condenser",
           "_src": "S7 nadir: units at the mid bar's west end"
@@ -671,7 +878,12 @@
     {
       "id": "westArmS",
       "_src": "the west arm beside the south court, u 60.5-79 x v 0-8 (S7 rectified nadir: the pool deck's west edge reads at v=2.2 and the arm is narrower here than in the north; 8 is that read plus the ortho lean).",
-      "plan": [60.08, 78.45, 0, 8],
+      "plan": [
+        60.08,
+        78.45,
+        0,
+        8
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -727,12 +939,20 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "v1"]
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
     },
     {
       "id": "eastArmS",
       "_src": "the east arm beside the south court, u 60.5-79 x v 41-56.06 (S7 rectified nadir: the pool deck's east edge at v=41). This is the stretch of Nueces S5 photographs head on: glazed ground floor, striped panel liner, cool grey panel above.",
-      "plan": [60.08, 78.45, 41, 56.06],
+      "plan": [
+        60.08,
+        78.45,
+        41,
+        56.06
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -800,12 +1020,48 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["v0", "v1"]
+      "parapetSides": [
+        "v0",
+        "v1"
+      ]
     },
     {
       "id": "southBar",
       "_src": "the south bar, u 79 to the W 24th Street edge, taking the footprint's own step at u=89.3/89.55 (S1). Its W 24th elevation is the one S5 photographs: dark red brick with balconies at the west end, the pale metal shingle volume in the middle, the honey limestone corner volume at Nueces.",
-      "plan": [[78.45, 0], [88.69, 0], [88.7, 4.28], [98.89, 4.29], [98.88, 51.36], [88.92, 51.37], [88.92, 56.05], [78.45, 56.06]],
+      "plan": [
+        [
+          78.45,
+          0
+        ],
+        [
+          88.69,
+          0
+        ],
+        [
+          88.7,
+          4.28
+        ],
+        [
+          98.89,
+          4.29
+        ],
+        [
+          98.88,
+          51.36
+        ],
+        [
+          88.92,
+          51.37
+        ],
+        [
+          88.92,
+          56.05
+        ],
+        [
+          78.45,
+          56.06
+        ]
+      ],
       "z0": 0,
       "z1": 48.6,
       "bands": [
@@ -898,7 +1154,12 @@
       },
       "overrides": [
         {
-          "region": [85.4, 99.0, 42.0, 56.2],
+          "region": [
+            85.4,
+            99.0,
+            42.0,
+            56.2
+          ],
           "bands": [
             {
               "z0": 0,
@@ -919,7 +1180,12 @@
           "_src": "the honey Texas-limestone corner volume at W 24th and Nueces, running full height -- S5 shows it as the tallest thing at the corner, above the panel field beside it, and S8's own reading is that the limestone bay goes at this end (its u 0.82-1.00 bay). About 13.6 m along W 24th and 14 m along Nueces, read off S5 against the storey lines. LOOK-FIX 4: it stops at the 6th floor line (20.2 m), not at the roof. S5 shows it rising well above the panel field beside it -- the frame only reaches the 6th storey, so 'full height' was a reading of a crop, not of the building -- and S7's SE oblique shows pale panel above the stone at that corner. Both sources agree at 20.2 and only one of them was being read."
         },
         {
-          "region": [96.82, 99.0, 20.0, 42.0],
+          "region": [
+            96.82,
+            99.0,
+            20.0,
+            42.0
+          ],
           "bands": [
             {
               "z0": 0,
@@ -938,24 +1204,53 @@
       "roofTone": "roof",
       "parapet": 1.2,
       "parapetTone": "coping",
-      "parapetSides": ["0", "1", "2", "3", "4", "5", "6"],
+      "parapetSides": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
       "roofItems": [
         {
-          "plan": [81.43, 95.33, 10.0, 26.0],
-          "grid": [5, 6],
-          "size": [1.1, 1.8],
+          "plan": [
+            81.43,
+            95.33,
+            10.0,
+            26.0
+          ],
+          "grid": [
+            5,
+            6
+          ],
+          "size": [
+            1.1,
+            1.8
+          ],
           "h": 1.0,
           "tone": "condenser",
           "_src": "S7 nadir: the condenser field on the south bar's roof"
         },
         {
-          "plan": [79.94, 84.9, 44.0, 50.0],
+          "plan": [
+            79.94,
+            84.9,
+            44.0,
+            50.0
+          ],
           "h": 2.6,
           "tone": "roof",
           "_src": "S7 nadir: the bulkhead at the south-east"
         },
         {
-          "plan": [91.36, 96.32, 44.0, 50.0],
+          "plan": [
+            91.36,
+            96.32,
+            44.0,
+            50.0
+          ],
           "h": 6.6,
           "tone": "roof",
           "_src": "the lift/stair bulkhead over the corner core: its top at 48.6+6.6 = 55.2 m is S3's 181 ft T.O. structure, which is the only way that number and the measured 48.6 m parapet (levels._heights_src) agree."
@@ -969,7 +1264,12 @@
     "items": [
       {
         "id": "pool",
-        "plan": [64.05, 68.52, 12.5, 27.5],
+        "plan": [
+          64.05,
+          68.52,
+          12.5,
+          27.5
+        ],
         "z0": 0.0,
         "h": 0.12,
         "tone": "pool",
@@ -977,7 +1277,12 @@
       },
       {
         "id": "turf",
-        "plan": [70.01, 74.47, 12.0, 22.0],
+        "plan": [
+          70.01,
+          74.47,
+          12.0,
+          22.0
+        ],
         "z0": 0.0,
         "h": 0.1,
         "tone": "turf",
@@ -985,7 +1290,12 @@
       },
       {
         "id": "furnN",
-        "plan": [61.07, 63.06, 10.0, 34.0],
+        "plan": [
+          61.07,
+          63.06,
+          10.0,
+          34.0
+        ],
         "z0": 0.0,
         "h": 0.8,
         "tone": "furn",
@@ -993,7 +1303,12 @@
       },
       {
         "id": "furnS",
-        "plan": [70.5, 72.49, 26.0, 38.0],
+        "plan": [
+          70.5,
+          72.49,
+          26.0,
+          38.0
+        ],
         "z0": 0.0,
         "h": 0.8,
         "tone": "furn",
@@ -1001,7 +1316,12 @@
       },
       {
         "id": "trellis",
-        "plan": [74.97, 77.95, 8.0, 40.0],
+        "plan": [
+          74.97,
+          77.95,
+          8.0,
+          40.0
+        ],
         "z0": 2.4,
         "z1": 2.7,
         "tone": "shade",
@@ -1009,7 +1329,12 @@
       },
       {
         "id": "deckRail",
-        "plan": [60.37, 78.25, 7.6, 7.9],
+        "plan": [
+          60.37,
+          78.25,
+          7.6,
+          7.9
+        ],
         "z0": 0.0,
         "h": 1.1,
         "tone": "rail",
