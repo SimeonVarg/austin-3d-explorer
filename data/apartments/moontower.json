@@ -149,10 +149,10 @@
    "plank": 1.375,
    "bond": 0.0,
    "macro": [
-    4,
-    2
+    9,
+    1
    ],
-   "runMax": 3,
+   "runMax": 2,
    "tones": [
     "white",
     "charcoal"
@@ -170,7 +170,7 @@
    "glass": "glass",
    "frame": "frame",
    "reveal": 0.07,
-   "_src": "S4. The decision cell is 4 courses by 2 planks = 5.64 m by 2.75 m = TWO FLOORS BY ONE BAY, which is the size of every white block in the photograph; the runs of one to three cells are why some blocks are one bay wide and some three. course 1.41 = half a floor and plank 1.375 = half a bay are the real panel joints, and they stay drawn inside a cell so the coursing survives a walk-up. weights 0.67/0.33 are the white-to-charcoal split on the east face: k-means over the north wing gives 48.7% white against 26.0% charcoal, i.e. 65/35, and counting the macro cells bay by bay in S4 gives about two white to one charcoal. LOOK-FIX 1, three changes, each with the measurement that forced it. bond was 0.5 and is now 0, because in S4 the panel joints STACK - every vertical joint between a white block and a charcoal one lines up with the ones above and below it, and a running bond shifted every macro row half a plank and made our wall read as ragged noise where the photograph reads as clean vertical slabs. reveal is 0.07 rather than the 0.12 default, because at 0.12 the four dark reveal strips round every window turned the whole elevation charcoal. Together with the weights: the same k-means run on OUR first render gave 39.8% white to 33.9% charcoal against the photograph's 48.7 to 26.0, and these three are what closes that gap."
+   "_src": "S4. The decision cell is 4 courses by 2 planks = 5.64 m by 2.75 m = TWO FLOORS BY ONE BAY, which is the size of every white block in the photograph; the runs of one to three cells are why some blocks are one bay wide and some three. course 1.41 = half a floor and plank 1.375 = half a bay are the real panel joints, and they stay drawn inside a cell so the coursing survives a walk-up. weights 0.67/0.33 are the white-to-charcoal split on the east face: k-means over the north wing gives 48.7% white against 26.0% charcoal, i.e. 65/35, and counting the macro cells bay by bay in S4 gives about two white to one charcoal. LOOK-FIX 1, three changes, each with the measurement that forced it. bond was 0.5 and is now 0, because in S4 the panel joints STACK - every vertical joint between a white block and a charcoal one lines up with the ones above and below it, and a running bond shifted every macro row half a plank and made our wall read as ragged noise where the photograph reads as clean vertical slabs. reveal is 0.07 rather than the 0.12 default, because at 0.12 the four dark reveal strips round every window turned the whole elevation charcoal. Together with the weights: the same k-means run on OUR first render gave 39.8% white to 33.9% charcoal against the photograph's 48.7 to 26.0, and these three are what closes that gap. 2026-09-17: macro [4,2] -> [9,1], runMax 3 -> 2. The owner's east aerial reads as long VERTICAL white and charcoal stripes, one or two planks wide, running ~4 storeys and then stepping sideways; square 4x2 cells made camouflage blobs."
   },
   "panelPale": {
    "kind": "pixel",
@@ -178,10 +178,10 @@
    "plank": 1.375,
    "bond": 0.0,
    "macro": [
-    4,
-    2
+    9,
+    1
    ],
-   "runMax": 3,
+   "runMax": 2,
    "tones": [
     "white",
     "charcoal"
@@ -199,7 +199,7 @@
    "glass": "glass",
    "frame": "frame",
    "reveal": 0.07,
-   "_src": "the same rule for the lower zone, where S4 measures 51.7% white against 24.8% charcoal, 68/32 - the base of every elevation is a broad white band with charcoal strips run through it. LOOK-FIX 1 as panel: bond 0, reveal 0.07, weights up."
+   "_src": "the same rule for the lower zone, where S4 measures 51.7% white against 24.8% charcoal, 68/32 - the base of every elevation is a broad white band with charcoal strips run through it. LOOK-FIX 1 as panel: bond 0, reveal 0.07, weights up. 2026-09-17: macro [4,2] -> [9,1], runMax 3 -> 2. The owner's east aerial reads as long VERTICAL white and charcoal stripes, one or two planks wide, running ~4 storeys and then stepping sideways; square 4x2 cells made camouflage blobs."
   },
   "banded": {
    "kind": "bays",
