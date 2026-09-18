@@ -153,8 +153,8 @@
       "_src": "the mid-grey plank scattered through the light field (S15, tower B's west face at 3x; the bake's STD_PALE #bab9b0, S9)"
     },
     "pixDark": {
-      "hex": "#4a4e52",
-      "_src": "the dark plank: S14 ~#4a4e54; S16 k-means #4c5153 at dusk; S17 #3c4653 in Earth's shade — the middle value"
+      "hex": "#5c6064",
+      "_src": "the dark plank: S14 ~#4a4e54; S16 k-means #4c5153 at dusk; S17 #3c4653 in Earth's shade — the middle value 2026-09-16: lifted from #4a4e52 — owner photo 2 (daylight) samples the bars at #616365; the old value rendered near-black (#413f3b)."
     },
     "white": {
       "hex": "#eaece8",
@@ -351,7 +351,19 @@
       "#b8b0a4",
       "#26282c"
     ],
-    "_door_src": "the light service doors in the charcoal ground floor on the east half of 23rd (S24) — a look"
+    "_door_src": "the light service doors in the charcoal ground floor on the east half of 23rd (S24) — a look",
+    "planterLime": [
+      "#8cc63e",
+      "#b0c24a",
+      "#26301a"
+    ],
+    "_planterLime_src": "owner photo 2/3: the long bright lime planter boxes along the turf and the south fence (a look, not sampled)",
+    "screenWall": [
+      "#62656a",
+      "#7a6f64",
+      "#1c1e22"
+    ],
+    "_screenWall_src": "owner photo 2: the jumbotron hangs on a freestanding mid-grey wall, not on the tower"
   },
   "skins": {
     "_src": "each skin is a rule; its numbers are below with their source",
@@ -371,9 +383,9 @@
         "pixWhite"
       ],
       "weights": [
-        24,
-        10,
-        66
+        38,
+        4,
+        58
       ],
       "window": {
         "cols": [
@@ -384,7 +396,8 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8)."
+      "_src": "panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8). 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "stack": 0.15
     },
     "pixelA": {
       "kind": "pixel",
@@ -402,9 +415,9 @@
         "pixWhite"
       ],
       "weights": [
-        24,
-        10,
-        66
+        38,
+        4,
+        58
       ],
       "window": {
         "cols": [
@@ -415,7 +428,8 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white."
+      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "stack": 0.15
     },
     "pixelB": {
       "kind": "pixel",
@@ -434,10 +448,10 @@
         "pixWhite"
       ],
       "weights": [
-        22,
-        10,
+        36,
         4,
-        64
+        4,
+        56
       ],
       "window": {
         "cols": [
@@ -447,7 +461,8 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x). panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. This field, and the strip of it that reaches the street, carries occasional RUST planks (S19: Ext_14's right edge) — 4 %."
+      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x). panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. This field, and the strip of it that reaches the street, carries occasional RUST planks (S19: Ext_14's right edge) — 4 %. 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "stack": 0.15
     },
     "pixelPlain": {
       "kind": "pixel",
@@ -466,12 +481,13 @@
         "pixWhite"
       ],
       "weights": [
-        22,
-        10,
+        36,
         4,
-        64
+        4,
+        56
       ],
-      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower; with tower B's rust planks (S19)"
+      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower; with tower B's rust planks (S19) 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "stack": 0.15
     },
     "bays": {
       "kind": "bays",
@@ -1454,9 +1470,10 @@
                   "text": "THE STANDARD",
                   "s0": 0.6,
                   "z0": 19.55,
-                  "dot": 0.12,
+                  "dot": 0.15,
                   "gap": 0.13,
-                  "tone": "sign"
+                  "tone": "sign",
+                  "_src": "2026-09-16: letters ~1.05 m (owner photo 2: the name fills most of the sign band's height on 23rd)"
                 }
               ]
             }
@@ -1495,9 +1512,10 @@
                   "text": "THE STANDARD",
                   "s0": 1.3,
                   "z0": 19.55,
-                  "dot": 0.115,
-                  "gap": 0.115,
-                  "tone": "sign"
+                  "dot": 0.135,
+                  "gap": 0.12,
+                  "tone": "sign",
+                  "_src": "2026-09-16: letters ~0.95 m, the text ~9.4 m, still inside the ~11 m Pearl face"
                 }
               ]
             }
@@ -2101,14 +2119,15 @@
                   "vertical": true,
                   "s": 17.0,
                   "zTop": 54.4,
-                  "dot": 0.135,
-                  "gap": 0.14,
+                  "dot": 0.2,
+                  "gap": 0.3,
                   "tone": "signVert",
                   "back": {
-                    "w": 1.5,
+                    "w": 1.9,
                     "tone": "pixWhite",
                     "pad": 0.6
-                  }
+                  },
+                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (owner photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
                 }
               ]
             }
@@ -2557,14 +2576,15 @@
                   "vertical": true,
                   "s": 2.7,
                   "zTop": 49.4,
-                  "dot": 0.135,
-                  "gap": 0.14,
+                  "dot": 0.2,
+                  "gap": 0.3,
                   "tone": "signVert",
                   "back": {
-                    "w": 1.5,
+                    "w": 1.9,
                     "tone": "pixWhite",
                     "pad": 0.6
-                  }
+                  },
+                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (owner photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
                 }
               ]
             }
@@ -2787,84 +2807,6 @@
         "_src": "S9 deckRail: the guard along the north edge over 23rd St (S5/S6)"
       },
       {
-        "id": "palmW1Planter",
-        "plan": [
-          88.5,
-          90.3,
-          6.1,
-          7.9
-        ],
-        "z0": 0.0,
-        "h": 0.6,
-        "tone": "spaTile",
-        "_src": "a square blue-mosaic planter ~1.8 m (S18; S14 photo 2: at least three)"
-      },
-      {
-        "id": "palmW1Trunk",
-        "plan": [
-          89.25,
-          89.55,
-          6.85,
-          7.15
-        ],
-        "z0": 0.6,
-        "h": 3.4,
-        "tone": "palmTrunk",
-        "_src": "its palm: the trunk (a look)"
-      },
-      {
-        "id": "palmW1Crown",
-        "plan": [
-          88.3,
-          90.5,
-          5.9,
-          8.1
-        ],
-        "z0": 3.6,
-        "h": 1.3,
-        "tone": "palmCrown",
-        "_src": "its palm: the crown as a box (a look)"
-      },
-      {
-        "id": "palmW2Planter",
-        "plan": [
-          91.7,
-          93.5,
-          6.1,
-          7.9
-        ],
-        "z0": 0.0,
-        "h": 0.6,
-        "tone": "spaTile",
-        "_src": "a square blue-mosaic planter ~1.8 m (S18; S14 photo 2: at least three)"
-      },
-      {
-        "id": "palmW2Trunk",
-        "plan": [
-          92.45,
-          92.75,
-          6.85,
-          7.15
-        ],
-        "z0": 0.6,
-        "h": 3.4,
-        "tone": "palmTrunk",
-        "_src": "its palm: the trunk (a look)"
-      },
-      {
-        "id": "palmW2Crown",
-        "plan": [
-          91.5,
-          93.7,
-          5.9,
-          8.1
-        ],
-        "z0": 3.6,
-        "h": 1.3,
-        "tone": "palmCrown",
-        "_src": "its palm: the crown as a box (a look)"
-      },
-      {
         "id": "palmEPlanter",
         "plan": [
           63.5,
@@ -2902,6 +2844,119 @@
         "h": 1.3,
         "tone": "palmCrown",
         "_src": "its palm: the crown as a box (a look)"
+      },
+      {
+        "id": "palmP1Planter",
+        "plan": [
+          74.3,
+          76.10000000000001,
+          3.4,
+          5.2
+        ],
+        "z0": 0.0,
+        "h": 0.7,
+        "tone": "spaTile",
+        "_src": "2026-09-16, owner photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
+      },
+      {
+        "id": "palmP1Trunk",
+        "plan": [
+          75.05,
+          75.35000000000001,
+          4.15,
+          4.45
+        ],
+        "z0": 0.7,
+        "h": 3.4,
+        "tone": "palmTrunk"
+      },
+      {
+        "id": "palmP1Crown",
+        "plan": [
+          74.10000000000001,
+          76.3,
+          3.2,
+          5.4
+        ],
+        "z0": 4.1,
+        "h": 1.3,
+        "tone": "palmCrown"
+      },
+      {
+        "id": "palmP2Planter",
+        "plan": [
+          81.0,
+          82.80000000000001,
+          3.4,
+          5.2
+        ],
+        "z0": 0.0,
+        "h": 0.7,
+        "tone": "spaTile",
+        "_src": "2026-09-16, owner photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
+      },
+      {
+        "id": "palmP2Trunk",
+        "plan": [
+          81.75,
+          82.05000000000001,
+          4.15,
+          4.45
+        ],
+        "z0": 0.7,
+        "h": 3.4,
+        "tone": "palmTrunk"
+      },
+      {
+        "id": "palmP2Crown",
+        "plan": [
+          80.80000000000001,
+          83.0,
+          3.2,
+          5.4
+        ],
+        "z0": 4.1,
+        "h": 1.3,
+        "tone": "palmCrown"
+      },
+      {
+        "id": "planterTurfSouth",
+        "plan": [
+          63.0,
+          75.0,
+          11.0,
+          11.6
+        ],
+        "z0": 0.0,
+        "h": 0.8,
+        "tone": "planterLime",
+        "_src": "owner photo 2: lime planter boxes behind the turf"
+      },
+      {
+        "id": "planterTurfWest",
+        "plan": [
+          85.6,
+          90.0,
+          8.6,
+          9.2
+        ],
+        "z0": 0.0,
+        "h": 0.8,
+        "tone": "planterLime",
+        "_src": "owner photo 2: a lime planter at the west turf"
+      },
+      {
+        "id": "screenWall",
+        "plan": [
+          59.8,
+          71.2,
+          12.1,
+          12.7
+        ],
+        "z0": 0.0,
+        "h": 5.6,
+        "tone": "screenWall",
+        "_src": "owner photo 2: the freestanding wall the screen hangs on"
       }
     ]
   },

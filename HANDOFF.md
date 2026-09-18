@@ -30367,3 +30367,44 @@ the apartments alone; see mobile.js header), not a cache problem. The typed
 array builder now has ONE write site, so packing colours/normals to bytes is a
 contained follow-up; the honest phone fix is also fewer triangles (windows as
 quads, not boxes, on the lite profile) — a taste call for Simeon.
+
+## 2026-09-16/17 — The Standard matched to the owner's photographs (branch `acer/match-standard`)
+
+Simeon's brief: "make the scene match the image, angle by angle." The Standard
+first. Evidence: `docs/shots/standard-photo-match-01..03.jpg` — REAL | BEFORE
+(live) | AFTER, each render shot from the photo's camera and warped into its lens.
+
+Changes:
+- `js/slopes-apartments.js` skinPixel: `stack` (0..1). A dark plank may stand on
+  one in the course below only with that probability, decided on the surviving
+  tone below (memoised). The Standard's bars are one course tall and separated by
+  white courses in every photo; the old per-course hash stacked them into blobs.
+  Default 1 = old behaviour, so no other building changes.
+- `js/slopes-apartments.js` build(): yields through a MessageChannel, not
+  setTimeout. A hidden/background tab clamps setTimeout to ~1 s; a rebuild after
+  load took 58 MINUTES that way (measured). Long slices whenever nothing is
+  watched (veil up or tab hidden), 12 ms otherwise.
+- `data/apartments/the-standard.json`: pixel weights raised with `stack` 0.15 so
+  the surviving dark share stays ~24%, mid-grey planks 10 -> 4; pixDark
+  #4a4e52 -> #5c6064 (owner photo 2 samples #616365); vertical signs 0.95 m ->
+  1.4 m letters (the name spans ~20 m of tower, owner photo 1); corner signs
+  0.84 -> 1.05 m; the two palms moved INTO the pool (owner photo 2); lime planter
+  boxes; the screen's freestanding wall.
+
+Measured and NOT shipped: `INTRO.waitAuthored = false` (Simeon chose "don't
+wait"). With it, the intro plays while ~2.5 M apartment triangles upload: 12-19
+fps with 0.8-1.2 s freezes, against ~37 fps. Kept at true pending his call; the
+real fix is the slimming pass (pack/index the vertex data, ~679 MB today).
+
+Found, not yet fixed (need better evidence than a camera solve):
+- The charcoal corner block shows THREE window columns on 23rd St in owner photo
+  1 / Ext_01; the data has two (13.3 m wide, S9). One bay (~2.2 m) short, probably.
+- Tower tops sit ~11% lower relative to the podium than in Ext_01 from the
+  solved camera — either the camera or the roof heights; unresolved.
+- The render's day light warms white to beige (#ecedea renders #ddd0c1); the
+  photos are cool white. Scene-wide, so a taste call for Simeon.
+
+Tools (scratchpad, not the repo): a camera solver from 3D<->pixel pairs with
+lens shift; a wireframe-onto-photo overlay; a renderer that shoots the app from a
+photo's camera (blocking models of buildings built after the photo, clearing old
+boxes around the drone) and warps the frame into the photo's own lens.
