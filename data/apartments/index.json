@@ -40,7 +40,8 @@
     "welch-hall.json",
     "benedict-hall.json",
     "mezes-hall.json",
-    "batts-hall.json"
+    "batts-hall.json",
+    "yugo-austin-waterloo.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -84,7 +85,8 @@
     "ca0207d3-bbf8-408d-a319-9407d7bd0dd2",
     "6d07e23b-cd54-484d-8fe0-0d47c5dd72d0",
     "b9eac672-544a-4f53-9665-0926015f0b5e",
-    "9b936434-819a-417b-9938-eb59a521bb2e"
+    "9b936434-819a-417b-9938-eb59a521bb2e",
+    "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a"
   ],
   "replacedNames": [
     "The Standard",
@@ -119,7 +121,11 @@
     "Robert A. Welch Hall",
     "Benedict Hall",
     "Mezes Hall",
-    "Batts Hall"
+    "Batts Hall",
+    "Yugo Austin Waterloo",
+    "Waterloo",
+    "Waterloo Tower",
+    "Yugo Waterloo"
   ],
   "collections": [
     "data/campus_buildings.json",

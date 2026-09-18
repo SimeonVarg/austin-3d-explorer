@@ -542,59 +542,6 @@
       "preserveRoof": false
     },
     {
-      "name": "Yugo Austin Waterloo",
-      "id": "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
-      "floors": 30,
-      "height": 95.4,
-      "colours": {
-        "wall": "#d4cebe",
-        "accent": "#344348",
-        "curtainGlass": "#55717f"
-      },
-      "source": "https://www.bokapowell.com/projects/waterloo-tower",
-      "observations": "Architect states 30 stories / 320 ft. Four levels of parking, 25 residential levels, cream central spine, dark framed end glazing and a stepped glass crown.",
-      "entryEdges": [
-        3
-      ],
-      "accentEdges": [
-        3
-      ],
-      "preserveRoof": false,
-      "ground": 5.2,
-      "bay": 3.0,
-      "window": 1.9,
-      "tower": {
-        "podium": 17.5,
-        "plan": [
-          0.025,
-          0.975,
-          0.018,
-          0.98
-        ],
-        "darkFaces": [
-          "v0",
-          "v1"
-        ],
-        "glassFaces": [
-          "u1"
-        ],
-        "blade": [
-          0.06,
-          0.22,
-          0.24,
-          0.8
-        ],
-        "bladeHeight": 97.5,
-        "pavilion": [
-          0.25,
-          0.91,
-          0.29,
-          0.78
-        ],
-        "pavilionHeight": 2.1
-      }
-    },
-    {
       "name": "Twenty Two 15",
       "id": "7a5984d8-919c-405c-afe5-cd31ba969b63",
       "floors": 8,
