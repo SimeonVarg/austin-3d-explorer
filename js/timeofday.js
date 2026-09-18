@@ -42,7 +42,10 @@
       // are the p=0 anchors and must stay equal to the route's first key.
       sky: '#5d94cf', horizon: '#c8e0f0', fog: '#c4dcee',
       skyBlend: 0.72, horizonBlend: 0.92, fogGround: 0.08,
-      lightColor: '#ffeeda', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
+      // 2026-09-17: lightColor was #ffeeda (peach), which turned every sampled
+      // grey or white wall tan (#bababa rendered #b3a696); the reference photos
+      // are neutral in daylight. One-line revert.
+      lightColor: '#fbfaf6', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
       // `ground` is the catch-all under everything OSM does not classify. It
       // used to be a pale sand (#ded3bc, luma 208) — brighter than a concrete
       // path, so the real walked paths in ground.geojson were invisible
