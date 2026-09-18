@@ -501,28 +501,6 @@
       ]
     },
     {
-      "name": "Block on 25th West",
-      "id": "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
-      "floors": 6,
-      "height": 21.0,
-      "colours": {
-        "wall": "#cbbfa8",
-        "accent": "#ad7651"
-      },
-      "source": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
-      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
-      "entryEdges": [
-        16
-      ],
-      "accentEdges": [
-        16
-      ],
-      "preserveRoof": true,
-      "balconyEdges": [
-        16
-      ]
-    },
-    {
       "name": "Twenty Two 15",
       "id": "7a5984d8-919c-405c-afe5-cd31ba969b63",
       "floors": 8,

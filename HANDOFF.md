@@ -30443,3 +30443,6 @@ Evidence: `docs/shots/yugo-{rio,nueces}-photo-match.jpg`. Both moved out of the 
 
 ## 2026-09-17 — Daylight sun made neutral (branch `acer/match-mark`)
 `PRESETS.day.lightColor` #ffeeda -> #fbfaf6 in `js/timeofday.js`. The peach sun multiplied every sampled grey/white wall to tan: The Mark sampled #bababa rendered #b3a696; now #b0afad against the photo's #b0b1b3. Daytime only; golden hour (the default) and night unchanged. Evidence `docs/shots/daylight-neutral-{mark,icon}.jpg`. One-line revert if Simeon prefers the warm look.
+
+## 2026-09-17 — Block on 25th West authored from its photographs (branch `acer/block25`)
+Evidence `docs/shots/block25-photo-match-*.jpg`. Own file `data/apartments/block-on-25th-west.json`, removed from the neighborhood bake (no other building changed). Five storeys: limestone ground floor, slate stucco courtyard donut, burnt-orange corner mass with THE BLOCK over the corner shop, grey stair tower with a hipped cap on 25th. Not yet: projecting balconies with knee braces, the stepped parapet, the corner loggias.
