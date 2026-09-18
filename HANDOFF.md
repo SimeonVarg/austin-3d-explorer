@@ -30440,3 +30440,6 @@ Evidence: `docs/shots/waterloo-photo-match-{aerial,crown,se}.jpg`. Moved OUT of 
 
 ## 2026-09-17 — Yugo Austin Rio and Yugo Austin Nueces authored from their photographs (branch `acer/yugo2`)
 Evidence: `docs/shots/yugo-{rio,nueces}-photo-match.jpg`. Both moved out of the neighborhood bake into their own files (rebake changed no other building). Rio: white body, two lime blocks, the near-black board wing, dark storefront with AUSTIN RIO, a dark rooftop room; the bake had its accent ORANGE. Nueces: white body with big dark-framed windows, two lime blocks on the Nueces St face, AUSTIN NUECES fascia; the bake had the whole face lime. One photo each, so only the street faces are evidenced.
+
+## 2026-09-17 — Daylight sun made neutral (branch `acer/match-mark`)
+`PRESETS.day.lightColor` #ffeeda -> #fbfaf6 in `js/timeofday.js`. The peach sun multiplied every sampled grey/white wall to tan: The Mark sampled #bababa rendered #b3a696; now #b0afad against the photo's #b0b1b3. Daytime only; golden hour (the default) and night unchanged. Evidence `docs/shots/daylight-neutral-{mark,icon}.jpg`. One-line revert if Simeon prefers the warm look.
