@@ -78,7 +78,7 @@
     // have to let MapLibre's tile messages through; once the city is visible
     // they are short so a rebuild (a detail change) does not stutter the frame.
     buildSliceMs: 150,
-    buildSliceMsLive: 6,
+    buildSliceMsLive: 12,
     materials:{
       on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],
       names:['Perry-Castañeda Library','Battle Hall','Texas Union','Welch Hall','Benedict Hall','Mezes Hall','Batts Hall','Jester West Hall','Jester East Hall','San Jacinto Hall'],
@@ -954,10 +954,51 @@
       return tones[tones.length - 1];
     };
     const offOf = row => (Math.floor(row / MR) % 2) * bond;   // the bond steps per macro row
+    // STACKING. `stack` (0..1, default 1 = no rule) is the chance a mark of the
+    // `stackTone` (default the first tone, the darkest) may stand directly on
+    // one in the macro row below. The Standard's photographs (owner photos
+    // 2026-09-06, Ext_01 at full size): the dark bars are one course tall and
+    // separated by white courses almost everywhere — a hash per course with no
+    // memory of the course below stacked them into T- and L-shaped blobs that
+    // read as camouflage. Decided on the SURVIVING tone of the row below, so
+    // the final dark share is what the weights ask for after suppression is
+    // accounted for by the file, not a chain of raw hashes.
+    const stack = spec.stack != null ? spec.stack : 1;
+    const stackTone = spec.stackTone != null ? spec.stackTone : 0;
+    const idxMemo = new Map();
+    const toneIdxRaw = (mrow, mplank) => {
+      let i = mplank, guard = 0;
+      while (guard++ < runMax) {
+        const runLen = 1 + Math.floor(h01(key, 'run', mrow, i) * runMax);
+        if (i + runLen > mplank) break;
+        i += runLen;
+      }
+      const r = h01(key, 'tone', mrow, i);
+      for (let k = 0; k < cum.length; k++) if (r <= cum[k]) return k;
+      return cum.length - 1;
+    };
+    const macroSpan = mrow => MP * plank;
+    const toneIdx = (mrow, mplank) => {
+      const key2 = mrow + ':' + mplank;
+      if (idxMemo.has(key2)) return idxMemo.get(key2);
+      let k = toneIdxRaw(mrow, mplank);
+      if (stack < 1 && k === stackTone && mrow > 0) {
+        // this macro plank's s-range, and the macro planks of the row below that overlap it
+        const off = offOf(mrow * MR), offB = offOf((mrow - 1) * MR), span = macroSpan(mrow);
+        const s0 = off + (mplank * MP - 1) * plank, s1 = s0 + span;
+        const b0 = Math.floor(Math.floor((s0 + 1e-6 - offB + plank) / plank) / MP);
+        const b1 = Math.floor(Math.floor((s1 - 1e-6 - offB + plank) / plank) / MP);
+        let under = false;
+        for (let b = b0; b <= b1 && !under; b++) if (toneIdx(mrow - 1, b) === stackTone) under = true;
+        if (under && h01(key, 'stack', mrow, mplank) >= stack) k = tones.length - 1;   // the field tone
+      }
+      idxMemo.set(key2, k);
+      return k;
+    };
     return {
       rows: (z0, z1) => { const out = []; for (let z = zBase + course * Math.ceil((z0 - zBase) / course - 1e-6); z < z1; z += course) out.push(z); return out; },
       cols: (zm, len) => { const off = offOf(rowOf(zm)); const out = []; for (let s = off - plank; s < len; s += plank) if (s > 0) out.push(s); return out; },
-      tone: (zm, sm) => { const row = rowOf(zm); const off = offOf(row); const plankIdx = Math.floor((sm - off + plank) / plank); return toneAt(Math.floor(row / MR), Math.floor(plankIdx / MP)); },
+      tone: (zm, sm) => { const row = rowOf(zm); const off = offOf(row); const plankIdx = Math.floor((sm - off + plank) / plank); if (stack < 1) return tones[toneIdx(Math.floor(row / MR), Math.floor(plankIdx / MP))]; return toneAt(Math.floor(row / MR), Math.floor(plankIdx / MP)); },
       windows: windowsFromBays(spec, ctx, P, key),
       glass: spec.glass, frame: spec.frame, reveal: spec.reveal,
     };
@@ -2180,10 +2221,17 @@
     const B = S.build();
     _built = [];
     let sliceT0 = performance.now(), slices = 1;
+    // Yield through a MessageChannel, not setTimeout: a hidden or background
+    // tab clamps setTimeout to ~1 s per call, and measured 2026-09-16 a
+    // rebuild after load (6 ms slices) took 58 MINUTES that way. A message
+    // task is not clamped. And when nothing is being watched (the veil is up,
+    // or the tab is hidden) the slices are long — there is no frame to protect.
+    const yieldTask = () => new Promise(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
     const pause = async () => {
-      const budget = document.getElementById('veil') ? APTS.buildSliceMs : APTS.buildSliceMsLive;
+      const quiet = document.getElementById('veil') || document.hidden;
+      const budget = quiet ? APTS.buildSliceMs : APTS.buildSliceMsLive;
       if (performance.now() - sliceT0 < budget) return;
-      await new Promise(r => setTimeout(r, 0));
+      await yieldTask();
       sliceT0 = performance.now(); slices++;
     };
     for (const spec of _data.buildings) {
