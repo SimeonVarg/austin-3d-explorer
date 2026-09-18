@@ -30408,3 +30408,23 @@ Tools (scratchpad, not the repo): a camera solver from 3D<->pixel pairs with
 lens shift; a wireframe-onto-photo overlay; a renderer that shoots the app from a
 photo's camera (blocking models of buildings built after the photo, clearing old
 boxes around the drone) and warps the frame into the photo's own lens.
+
+**Decision, 2026-09-17 (Simeon, "A"):** keep `INTRO.waitAuthored = true` for now.
+Flip it to false in the same PR as the vertex-slimming pass, once the intro holds
+~37 fps while the apartments upload. Do not flip it before that.
+
+## 2026-09-17 — Icon matched to its photographs (branch `acer/match-icon`)
+
+Evidence: `docs/shots/icon-photo-match-{dusk,crown,street}.jpg` (REAL | BEFORE | AFTER).
+- Generator: window `head: {h, tone}` (a panel over the opening) and `accent:
+  {w, gap, side, tones}` (a panel beside it, tone per bay+storey). Note `side`
+  is in the face's s direction, which reads mirrored from outside on some faces.
+- Generator: a building whose model THROWS now keeps its legacy prism, bands and
+  roofscape visible (`_failed`), instead of leaving a hole. Proven by serving a
+  broken icon.json: Icon's old box stayed, The Standard unaffected.
+- icon.json: white, not tan; colours sampled from Rhode Partners' frontal photo;
+  tower = white field, grey pier every third bay, grey floor ledges, taupe window
+  heads; podium = proud white pier every bay, white floor bands, coloured panel
+  beside each window from seven tones; crown moved WEST with the pool on the
+  east terrace (it was drawn over the east), white-mullioned glass.
+Open: the render's daylight warms white to beige on every building (taste call).
