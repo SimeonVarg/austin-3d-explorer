@@ -28,5 +28,11 @@
     "display_name": "Gregory Gym",
     "height": 20.0,
     "note": "Historic; low but wide footprint."
+  },
+  {
+    "match_id": "f142fa08-fece-4a8d-8aae-efe0b88b38cf",
+    "display_name": "Texan Tower",
+    "height": 19.5,
+    "note": "Texan Tower Condominiums, 2505 San Gabriel St: six storeys, built 1970 (Texan Tower OA; realtyprosaustin.com). Overture had 30 m. Unnamed in OSM/Overture, so matched by id. Asked about by Simeon 2026-09-17."
   }
 ]
