@@ -168,6 +168,197 @@
       ]
     ]
   },
+  "hideRings": [
+    [
+      [
+        -97.7304537,
+        30.2816139
+      ],
+      [
+        -97.7304728,
+        30.2816195
+      ],
+      [
+        -97.731081,
+        30.2817305
+      ],
+      [
+        -97.7311226,
+        30.2817343
+      ],
+      [
+        -97.7311629,
+        30.281724
+      ],
+      [
+        -97.7311912,
+        30.2816946
+      ],
+      [
+        -97.7314227,
+        30.2810005
+      ],
+      [
+        -97.731443,
+        30.2809396
+      ],
+      [
+        -97.7314432,
+        30.2808904
+      ],
+      [
+        -97.7313491,
+        30.2808106
+      ],
+      [
+        -97.7307984,
+        30.2803274
+      ],
+      [
+        -97.7303423,
+        30.2801724
+      ],
+      [
+        -97.7302521,
+        30.2801655
+      ],
+      [
+        -97.7301799,
+        30.2801884
+      ],
+      [
+        -97.7301267,
+        30.2802266
+      ],
+      [
+        -97.7299281,
+        30.2806162
+      ],
+      [
+        -97.7297812,
+        30.2809321
+      ],
+      [
+        -97.7297623,
+        30.2810068
+      ],
+      [
+        -97.7297786,
+        30.2810596
+      ],
+      [
+        -97.729829,
+        30.2811227
+      ],
+      [
+        -97.730438,
+        30.2816046
+      ],
+      [
+        -97.7304537,
+        30.2816139
+      ]
+    ],
+    [
+      [
+        -97.7308964,
+        30.2816841
+      ],
+      [
+        -97.7309072,
+        30.2816783
+      ],
+      [
+        -97.7314305,
+        30.2811727
+      ],
+      [
+        -97.7314391,
+        30.2811628
+      ],
+      [
+        -97.7314485,
+        30.2811107
+      ],
+      [
+        -97.7313845,
+        30.2808948
+      ],
+      [
+        -97.731302,
+        30.2807811
+      ],
+      [
+        -97.7307941,
+        30.2803323
+      ],
+      [
+        -97.7306428,
+        30.2802848
+      ],
+      [
+        -97.7305009,
+        30.2802605
+      ],
+      [
+        -97.7303895,
+        30.2802838
+      ],
+      [
+        -97.7302353,
+        30.2803554
+      ],
+      [
+        -97.7301217,
+        30.2804358
+      ],
+      [
+        -97.7299834,
+        30.2805498
+      ],
+      [
+        -97.7299279,
+        30.2806294
+      ],
+      [
+        -97.7298332,
+        30.2808475
+      ],
+      [
+        -97.7298337,
+        30.2809692
+      ],
+      [
+        -97.7298555,
+        30.2810517
+      ],
+      [
+        -97.7298787,
+        30.2811094
+      ],
+      [
+        -97.7304383,
+        30.2815827
+      ],
+      [
+        -97.7304637,
+        30.2815973
+      ],
+      [
+        -97.7304876,
+        30.2816047
+      ],
+      [
+        -97.7308798,
+        30.2816823
+      ],
+      [
+        -97.7308964,
+        30.2816841
+      ]
+    ]
+  ],
+  "_hideRings_src": "The snapshot's two unnamed roof plates this file replaces (index.json replacedBuildingIds 2b0f20a0-f207-4584-8423-c8c5e3441b96, ba9c090c-59c5-46dd-ad4b-fef4ad849866). Their prisms are hidden by id, but js/roofs.js's roofscape items over them are hidden by GEOMETRY, and the drum ring alone left 48 of them floating at 21-24 m around the arena (2026-09-18). slopes-apartments hides by these outlines too, on the same inset.",
   "frame": "obb",
   "_frame_src": "S2's ring through the generator's own obbOf: L=148.45, W=121.44, +u at bearing 135.46 deg. u=0 is the NORTH-WEST end and +u runs south-east; v=0 is the SOUTH-WEST edge and +v runs north-east - checked against the ring's own longitudes and latitudes.",
   "levels": {
@@ -185,16 +376,16 @@
   "colours": {
     "_src": "Every tone is either S10's own sampled value for this building (so a mesh panel here and the fill-extrusion bands the rest of the app draws age through the same ramp) or a k-means cluster centre over a named crop of S5 or S6. The snapshot's own measured wall-day for this feature is #4c4c51 (S2), which is the anchor those sit against.",
     "mcm": {
-      "hex": "#5a5147",
-      "_src": "S10 WALL_DAY['moody-plinth'] - ALPOLIC/fr dark bronze MCM, sunlit albedo, sampled from the manufacturer's photographs; two of them agree to 10 luma."
+      "hex": "#4e4335",
+      "_src": "the dark bronze panel wall where no fin shades it, same photograph: #4e4335 (67%) / #5c5141 (26%)"
     },
     "fin": {
-      "hex": "#2c2b34",
-      "_src": "S12: the two flank reads of one fin, #373745 lit and #070810 shaded, meaned - which is the albedo the generator's shader then splits back into a lit and a shaded flank by normal. REPLACES S10's #493c34 (WALL_DAY 'moody-fins'), a warm brown, where the photograph's screen is cool and much darker: the whole fin band area-weighted is #38363f and the darkest read in it is #08070e. Dark Bronze anodised aluminium photographs as a cool near-black at this distance, not as bronze."
+      "hex": "#4a3d31",
+      "_src": "2026-09-18, off the north-west photograph (moody-center__northwest-oblique-elevated__01): the fin band over the wall reads #302a24 (66%) and #1e1a17 in shade with #75654d-#8d7757 sunlit edges - a WARM dark bronze, which the notes' own sample table agrees with (#221B18 shade, #8F6F51 sun). The cool #2c2b34 this replaces made the screen read as blue-black."
     },
     "finNose": {
-      "hex": "#373745",
-      "_src": "S12's LIT flank of the one fin it measured, 28.4% of that crop (the shaded flank, #070810, is the other read, and `fin` is the two meaned). It goes on the blade's outer face alone, through `frontTone` - todo 3's airfoil, as far as a box can carry it: an extruded tube's nose is a narrow rounded surface that returns sky where the flat flanks return the wall, so the front reads a step lighter than the sides and the blade stops being a flat plank. No new number: both values were already measured for `fin`."
+      "hex": "#8d7757",
+      "_src": "the sunlit bronze on the fins' outer faces, same photograph (12% of the right-hand fin crop)"
     },
     "glass": {
       "hex": "#5980ac",
@@ -221,12 +412,12 @@
       "_src": "S12: the darkest cluster of the storefront crop, which is the mullion grid itself. REPLACES the derived `mcm` x 0.65. Also the fins' reveal jambs."
     },
     "fascia": {
-      "hex": "#454049",
-      "_src": "S12: the roof edge, cooled off its S10 value #4a423a (WALL_DAY 'moody-fascia') toward the photograph's own two reads - #434d6a where it faces the sky and #40363d where it does not - on the same argument S10 made, that the blue in the first is the sky the metal reflects and not the metal. Warm bronze was nine units too far to the red."
+      "hex": "#46413d",
+      "_src": "the roof's edge band, NW photograph: #44403d / #393532"
     },
     "soffit": {
-      "hex": "#884420",
-      "_src": "S5, k-means over crop (600,330)-(1100,430) of the wood soffit in full sun: clusters #974f21 (52.4%) and #6f3311 (32.9%), weighted mean #884420. js/moody.js's own sampled SOFFIT_TINT (129,75,37) = #814b25 sits inside that pair, which is the cross-check. This is the 70,000 sq ft Parlex Prodema wood-composite canopy soffit (S3, S4)."
+      "hex": "#895629",
+      "_src": "2026-09-18: the NW photograph's soffit crop, #895629 (60%) / #754621 (37%). The soffit faces down and is always in shade, and this app draws a downward face at its albedo, so the shaded read is the one to use; notes.md's #9D6032 is the plaza side lit by bounce off the paving, and drew too orange."
     },
     "apron": {
       "hex": "#ccd0cf",
@@ -243,6 +434,14 @@
     "canopy": {
       "hex": "#a79f9e",
       "_src": "S12: the lower canopy's soffit where the sun bounces up on to it, the two pale clusters of that crop area-weighted (the two dark ones are the fins standing in front of it). The lower canopy's underside is a PALE grey-white plane in S5 - it is the one light surface on the lower half of this building - and the ground band's recess was wearing `mcm`, the dark bronze wall panel, for it."
+    },
+    "ribbonGlass": {
+      "hex": [
+        "#a7b3ba",
+        "#b3a58f",
+        "#b08f57"
+      ],
+      "_src": "the glass ribbon between the fins and the soffit reflects cloud and sky: #b4babe (53%) / #8a9da8 (28%) in the NW photograph (2026-09-18). Golden is a warm step of it; night keeps glassSky's lit tone."
     }
   },
   "skins": {
@@ -288,6 +487,27 @@
       "frame": "mullion",
       "reveal": 0.1,
       "_src": "S5: the ground floor is a continuous full-height glazed storefront on close dark mullions, set back under the lower canopy. The 2.4 m mullion module and the 0.62 transom are read off S5's own bays against the door heights beside them; the 0.55 m head fascia is the band of metal under the canopy slab. The whole ring is drawn this way, which is the plainest rule the building has: on the plaza faces S5 shows exactly this, and the back-of-house and gate faces (unphotographed at this resolution) get it too."
+    },
+    "panel": {
+      "kind": "flat",
+      "field": "mcm",
+      "_src": "the dark bronze MCM wall the fins hang in front of (NW photograph; notes.md 'Behind them, a dark bronze flat-panel wall')"
+    },
+    "ribbon": {
+      "kind": "storefront",
+      "glass": "ribbonGlass",
+      "frame": "mullion",
+      "reveal": 0.08,
+      "mullion": 1.6,
+      "mullionW": 0.08,
+      "transom": 0.5,
+      "fascia": 0,
+      "_src": "the concourse glass above the fins and under the soffit, two tiers with one horizontal at mid-height (NW photograph crop, corner-oblique)",
+      "fasciaTone": "mullion"
+    },
+    "fasciaBand": {
+      "kind": "flat",
+      "field": "fascia"
     }
   },
   "blocks": [
@@ -296,7 +516,7 @@
       "_src": "The arena itself: one closed volume on S2's own ring, which S8 confirms is the WALL line (the ring drawn back at z=0 lands on the base of the dark wall in the 200d/75t west frame). There are no towers, no wings and no light wells - S6's nadir shows one continuous roof plate over the whole polygon.",
       "plan": "footprint",
       "z0": 0,
-      "z1": 17.4,
+      "z1": 20.4,
       "bands": [
         {
           "z0": 0,
@@ -311,15 +531,31 @@
               "d": 0.5,
               "tone": "column"
             }
-          },
-          "_src": "S5: the ground floor stands back from the building line under a canopy carried on slender round columns, and that canopy's soffit is the pale plane S12 measured - not the wood of the roof above and not the dark bronze of the wall. 6.0 m of recess (the first massing had 5.0, the second look 11.0) puts the storefront 3 m BEHIND the fin screen above it, which is the order S5 shows - roof edge furthest out, the lower canopy's edge just inside it, the fin screen behind that, the storefront behind again - and leaves the canopy projecting 3 m past the fin wall on its columns. 11.0 was rejected for the same reason 8.0 was on the band above: it stood the storefront 8 m behind a screen that only overhangs 3, and the pale soffit read as a terrace. One number serves the whole ring - the entry plazas are recessed more and the service faces much less, and S6 cannot resolve the difference face by face at 0.25 m/px. The 9.0 m column pitch is read off S5's own colonnade against the 2.4 m storefront module behind it. +/- 2 m on the depth."
+          }
         },
         {
           "z0": 6.4,
-          "z1": 17.4,
-          "skin": "fins",
+          "z1": 13.7,
+          "skin": "panel",
+          "fins": [
+            {
+              "pitch": 1.219,
+              "w": 0.305,
+              "d": 0.3,
+              "tone": "fin",
+              "frontTone": "finNose",
+              "z0": 6.4,
+              "z1": 13.7
+            }
+          ],
+          "_src": "the fin rank over dark bronze panel (NW photograph)"
+        },
+        {
+          "z0": 13.7,
+          "z1": 20.4,
+          "skin": "ribbon",
           "inset": {
-            "d": 2.0,
+            "d": 3.0,
             "tone": "mcm"
           },
           "fins": [
@@ -327,49 +563,48 @@
               "pitch": 1.219,
               "w": 0.305,
               "d": 0.3,
-              "z0": 7.0,
-              "z1": 11.7,
               "tone": "fin",
-              "frontTone": "finNose"
-            },
-            {
-              "pitch": 1.219,
-              "w": 0.305,
-              "d": 0.3,
-              "z0": 12.3,
-              "z1": 17.0,
-              "tone": "fin",
-              "frontTone": "finNose"
+              "frontTone": "finNose",
+              "z0": 13.7,
+              "z1": 15.1,
+              "off": 3.0
             }
           ],
-          "_fins_src": "TWO RUNS, NOT ONE, AND S4 IS WHY: the blades are 'extruded aluminium airfoil tubes 10 to 16 ft long' - 3.0 to 4.9 m - not 11 m mullions. So one run of blades screens each concourse ribbon (7.00-11.70 and 12.30-17.00, 4.70 m each, inside S4's range) and the three metal rails of the skin below them are left bare, which is what S5 shows. They are on the BAND rather than on the skin for exactly that reason: a skin carries one run, a band carries a list. Blade 0.305 m (12 in, S4, and 0.29 m measured in S13's own strips), pitch 1.219 m (4 ft; S13 autocorrelates 1.179 / 1.200 / 1.300 m on three strips), standing 0.30 m proud. They hang on the recessed fin wall, so they project INTO the 3.0 m the band is inset and stop 2.7 m short of the building line - which is right: the screen is behind the roof edge, not in front of it. Each face restarts the pitch at its own s=0, so a blade does not always land on the corner; on a 35-sided ring at 1.219 m centres the worst a corner can be out is half a pitch, 0.61 m, and no camera in this app resolves that.",
-          "_src": "The fin screen, one band from the lower canopy to the roof plate, standing 2.0 m BACK from the building line in the wall's own dark bronze. TWO NUMBERS CHANGED THIS ROUND AND S15 IS WHY. The depth was 3.0 m and the tone was `soffit`, the wood - a workaround from the round when a roof could not have its own soffit material, so the head of this recess was carrying the building's wood for it. A roof can now (`roof.soffitTone`), and the workaround had a cost that only an aerial shows: an inset's soffit, its returns and its FLOOR are one tone, so the 3.0 m ring of floor at 6.40 m - the top of the lower canopy, which is a deck and not a ceiling - was drawn in saturated wood and read from the air as a bright orange band running the whole 477 m perimeter. S15 has no warm band anywhere on that elevation: the wall is one dark plane from the plate's edge to the paving. So the recess is the wall's own metal now (`mcm`, the ALPOLIC dark bronze) and the wood is the roof's, where it belongs and where the plaza sees it. 2.0 m rather than 3.0 so the head of the recess tucks entirely behind the eave's own 2.10 m of wood, and the floor ring is the narrower for it. The 8.0 m tried in an earlier round is still wrong for the reason it was wrong then - at the app's 62-degree oblique it is a five-metre-deep trench open to the sky. ONE band, not two, because the generator closes every inset band with a soffit at its own top and a second band would hang a false shelf through the middle of the wall - the two glazed ribbons are the skin's field between its three rails."
+          "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
         }
       ],
       "faces": {
-        "17": {
+        "0": {
           "bands": [
             {
               "z0": 0,
               "z1": 6.4,
-              "skin": "store",
-              "inset": {
-                "d": 6.0,
-                "tone": "canopy",
-                "columns": {
-                  "pitch": 9.0,
-                  "w": 0.5,
-                  "d": 0.5,
-                  "tone": "column"
-                }
-              }
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
             },
             {
               "z0": 6.4,
-              "z1": 17.4,
-              "skin": "fins",
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
               "inset": {
-                "d": 2.0,
+                "d": 3.0,
                 "tone": "mcm"
               },
               "fins": [
@@ -377,68 +612,48 @@
                   "pitch": 1.219,
                   "w": 0.305,
                   "d": 0.3,
-                  "z0": 7.0,
-                  "z1": 11.7,
                   "tone": "fin",
-                  "frontTone": "finNose"
-                },
-                {
-                  "pitch": 1.219,
-                  "w": 0.305,
-                  "d": 0.3,
-                  "z0": 12.3,
-                  "z1": 17.0,
-                  "tone": "fin",
-                  "frontTone": "finNose"
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
                 }
               ],
-              "canopies": [
-                {
-                  "s0": 0,
-                  "s1": 11.42,
-                  "z": 19.4,
-                  "t": 2.0,
-                  "off": 4.2,
-                  "d": 5.8,
-                  "tone": "fascia",
-                  "soffitTone": "soffit"
-                },
-                {
-                  "s0": 0,
-                  "s1": 11.42,
-                  "z": 19.45,
-                  "t": 0.1,
-                  "off": 4.35,
-                  "d": 5.45,
-                  "tone": "apron"
-                }
-              ]
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
             }
           ]
         },
-        "18": {
+        "1": {
           "bands": [
             {
               "z0": 0,
               "z1": 6.4,
-              "skin": "store",
-              "inset": {
-                "d": 6.0,
-                "tone": "canopy",
-                "columns": {
-                  "pitch": 9.0,
-                  "w": 0.5,
-                  "d": 0.5,
-                  "tone": "column"
-                }
-              }
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
             },
             {
               "z0": 6.4,
-              "z1": 17.4,
-              "skin": "fins",
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
               "inset": {
-                "d": 2.0,
+                "d": 3.0,
                 "tone": "mcm"
               },
               "fins": [
@@ -446,60 +661,421 @@
                   "pitch": 1.219,
                   "w": 0.305,
                   "d": 0.3,
-                  "z0": 7.0,
-                  "z1": 11.7,
                   "tone": "fin",
-                  "frontTone": "finNose"
-                },
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
+                }
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
+            }
+          ]
+        },
+        "2": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.4,
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
+            },
+            {
+              "z0": 6.4,
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
                 {
                   "pitch": 1.219,
                   "w": 0.305,
                   "d": 0.3,
-                  "z0": 12.3,
-                  "z1": 17.0,
                   "tone": "fin",
-                  "frontTone": "finNose"
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
                 }
               ],
-              "canopies": [
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
+              "inset": {
+                "d": 3.0,
+                "tone": "mcm"
+              },
+              "fins": [
                 {
-                  "s0": 0,
-                  "s1": 16.22,
-                  "z": 19.4,
-                  "t": 2.0,
-                  "off": 4.2,
-                  "d": 5.8,
-                  "tone": "fascia",
-                  "soffitTone": "soffit"
-                },
-                {
-                  "s0": 0,
-                  "s1": 16.22,
-                  "z": 19.45,
-                  "t": 0.1,
-                  "off": 4.35,
-                  "d": 5.45,
-                  "tone": "apron"
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
                 }
-              ]
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
+            }
+          ]
+        },
+        "3": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.4,
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
+            },
+            {
+              "z0": 6.4,
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
+              "inset": {
+                "d": 3.0,
+                "tone": "mcm"
+              },
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
+                }
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
+            }
+          ]
+        },
+        "4": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.4,
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
+            },
+            {
+              "z0": 6.4,
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
+              "inset": {
+                "d": 3.0,
+                "tone": "mcm"
+              },
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
+                }
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
+            }
+          ]
+        },
+        "5": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.4,
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
+            },
+            {
+              "z0": 6.4,
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
+              "inset": {
+                "d": 3.0,
+                "tone": "mcm"
+              },
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
+                }
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
+            }
+          ]
+        },
+        "6": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 6.4,
+              "skin": "panel",
+              "_src": "the north-west face is solid dark bronze panel at the plaza level, the Northwest Lobby door and its glass corner aside (NW photograph)"
+            },
+            {
+              "z0": 6.4,
+              "z1": 13.7,
+              "skin": "panel",
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 6.4,
+                  "z1": 13.7
+                }
+              ],
+              "_src": "the fin rank over dark bronze panel (NW photograph)"
+            },
+            {
+              "z0": 13.7,
+              "z1": 20.4,
+              "skin": "ribbon",
+              "inset": {
+                "d": 3.0,
+                "tone": "mcm"
+              },
+              "fins": [
+                {
+                  "pitch": 1.219,
+                  "w": 0.305,
+                  "d": 0.3,
+                  "tone": "fin",
+                  "frontTone": "finNose",
+                  "z0": 13.7,
+                  "z1": 15.1,
+                  "off": 3.0
+                }
+              ],
+              "_src": "the glass ribbon, set 3 m back behind the concourse terrace; the fins rise 1.4 m past the wall head, standing at the building line in front of the terrace rail"
             }
           ]
         }
       },
       "_faces_src": "THE DEEP CANTILEVER, WHICH USED TO BE MISSING BECAUSE `roof.over` IS ONE NUMBER. S14 measures the plate standing 8.05, 7.93 and 7.87 m outside the wall ring at three vertices, and projected back those three are the offsets of ring edges 17 and 18 - the SSE-facing corner over the south entry, 11.42 + 16.22 = 27.64 m of frontage. The eave itself carries 2.10 m of that (`roof.over`); the rest is drawn here as a slab on those two faces' own fin band, in the fascia's dark bronze with the wood soffit under it, as thick as the eave it continues (top 19.40 = the wall's 17.40 plus the 2.00 m fascia). `off` 4.20 = the 2.00 m the band is inset + the 2.10 m the eave already reaches + a 0.10 m gap, and that gap is the only number here that is not measured: it is there so the slab's back face and the eave's fascia are not coplanar, because two coplanar faces z-fight and 0.10 m is invisible at every camera in this app. `d` 5.80 carries the slab out to 8.00 m beyond the ring. The two slabs meet at the 20-degree kink between the two edges and leave a 2.8 m notch at their outer corners; looked at from the air that reads as a fold in the plate, which is what it is. These two faces carry a copy of the block's own bands because a face's `bands` REPLACE them; the two lists are the same but for the canopy.\nTHE CANTILEVER IS THE ROOF PLATE, SO ITS TOP IS THE ROOF'S. It was one box in `fascia`, top included, standing 8 m out of a plate that is pale `apron` on top everywhere else - and from the air that read as a blank dark panel bitten out of the roof over the south entry, as though a bay had been boarded up. A canopy paints one tone on every face it has, so the plate is TWO slabs now: the 2.00 m fascia box unchanged (dark rim, wood soffit under it), and a 0.10 m cap in `apron` on top of it, held 0.15 m inside the rim so the dark vertical edge still wraps the outside, its top at 19.45 rather than 19.40 so the two are not coplanar. That is the same construction the eave itself has - `roof.tone` apron over `roof.lipTone` fascia - carried on to the piece of plate that is drawn here instead of by the roof. It is half of what todo 2 asks for; the eave's own lip still wears its fascia on its top, because a roof has no `topTone` and that is the generator's to add.",
       "roofTone": "apron",
+      "_roof_src": "The roof plate. THE OVERSAIL IS 2.10 m NOW, NOT 3.0, AND THE WOOD SOFFIT IS WOOD. 2.13 m is the median of the twelve vertices of the plate that carry information about it (S14: seven of the other eleven are OSM nodes shared with the building way and read 0.00 for that reason alone, which is also why S11's 1.6 m median is too low, and four are the south corner's own 8 m cantilever), rounded to 2.10. The old 3.0 was never measured at all - it was picked to equal the fin band's recess. A scalar has to be ONE number for a plate that measures 0.87-3.28 m round most of the ring and 8 m over the south corner, so the median is the number and the corner is drawn as a canopy on faces 17 and 18 instead (see `_faces_src`). `soffitTone` is the round-3 field that lets the eave's underside be the Parlex Prodema wood veneer (`soffit`, #884420, measured in S12 and unused in this file until now) while its top and its fascia stay the dark bronze `fascia`: js/slopes-roofs.js draws all three in one tone, so the generator now skips the lip and draws the three itself. From the plaza that is 1.60 m of wood on the eave running straight into the 3.00 m of wood at the head of the fin band's recess - 4.6 m of continuous soffit, which is what S5 shows. The fascia is 2.0 m, not the 2.8 first authored: measured on S5 against the fin band's known 11.0 m, the dark band on the roof edge is 20 px where the band is 105 px at the centre of the frame and 20 px where it is 115 at the right, i.e. 2.1 and 1.9 m. Its underside and its top are drawn in the same tone as the fascia because the emitter has one colour for all three - the wood soffit is todo 2, and the 3.0 m the fin band is inset carries it instead. Inside the eave the surface rises at 9.1 degrees for 9.0 m (a 1.44 m rise) to the flat white membrane at 22.60 m: that is the grey walk-on apron ring round the white TPO plate that S6's nadir shows. 9.0 m, not the 15.0 first authored, is measured on the S6 300 m nadir - the plate's long axis is 850 px for 148 m, i.e. 5.7 px/m, and the grey ring on the south-east reads 45-55 px, so 8-10 m. At 15 m the ring was half the roof and the straight-skeleton solve on this 35-vertex ring faceted it visibly; at 9 m it is the narrow band the nadir shows. It is a slope rather than a step because S6's frame from directly above the edge shows the ring rising into the membrane rather than meeting it at a face.",
+      "cap": false,
+      "_src_2026_09_18": "Re-stacked against the three daylight photographs, heights by ratio off the NW frame against the 22.6 m total (levels._height_src): ground 0-6.4, dark panel with fins 6.4-13.7, fins on to 15.1, a set-back glass ribbon 13.7-20.4, the roof slab's wood soffit at 20.35, fascia to 21.75, the deck at 22.6. Faces 0-6 are the north-west face (normals 287-329 deg). The roof moved to its own block, below."
+    },
+    {
+      "id": "roof",
+      "plan": [
+        [
+          -20.28,
+          77.32
+        ],
+        [
+          -21.02,
+          79.68
+        ],
+        [
+          -20.9,
+          83.16
+        ],
+        [
+          -19.31,
+          86.13
+        ],
+        [
+          -16.53,
+          88.56
+        ],
+        [
+          35.46,
+          122.85
+        ],
+        [
+          115.34,
+          127.37
+        ],
+        [
+          123.86,
+          126.04
+        ],
+        [
+          129.73,
+          122.66
+        ],
+        [
+          133.98,
+          116.33
+        ],
+        [
+          147.02,
+          86.47
+        ],
+        [
+          149.95,
+          82.58
+        ],
+        [
+          151.11,
+          76.61
+        ],
+        [
+          166.2,
+          38.32
+        ],
+        [
+          165.95,
+          31.28
+        ],
+        [
+          162.78,
+          24.29
+        ],
+        [
+          156.47,
+          18.77
+        ],
+        [
+          132.29,
+          7.8
+        ],
+        [
+          128.11,
+          3.85
+        ],
+        [
+          114.11,
+          -2.79
+        ],
+        [
+          43.92,
+          -3.0
+        ],
+        [
+          34.36,
+          -1.09
+        ],
+        [
+          26.23,
+          -0.91
+        ],
+        [
+          23.66,
+          0.59
+        ],
+        [
+          19.42,
+          5.26
+        ],
+        [
+          6.27,
+          12.95
+        ],
+        [
+          2.4,
+          17.76
+        ],
+        [
+          1.61,
+          19.97
+        ],
+        [
+          1.73,
+          22.32
+        ],
+        [
+          4.18,
+          26.42
+        ],
+        [
+          4.77,
+          28.64
+        ],
+        [
+          3.17,
+          35.38
+        ]
+      ],
+      "z0": 20.349999999999998,
+      "z1": 21.75,
+      "soffitTone": "soffit",
+      "roofTone": "apron",
+      "bands": [
+        {
+          "z0": 20.349999999999998,
+          "z1": 21.75,
+          "skin": "fasciaBand"
+        }
+      ],
       "roof": {
         "kind": "hip",
-        "pitch": 9.1,
-        "over": 2.1,
-        "lipH": 2.0,
+        "pitch": 5.0,
+        "over": 0,
         "tone": "apron",
-        "lipTone": "fascia",
-        "soffitTone": "soffit",
         "deck": "membrane",
-        "d": 9.0
+        "d": 10.0
       },
-      "_roof_src": "The roof plate. THE OVERSAIL IS 2.10 m NOW, NOT 3.0, AND THE WOOD SOFFIT IS WOOD. 2.13 m is the median of the twelve vertices of the plate that carry information about it (S14: seven of the other eleven are OSM nodes shared with the building way and read 0.00 for that reason alone, which is also why S11's 1.6 m median is too low, and four are the south corner's own 8 m cantilever), rounded to 2.10. The old 3.0 was never measured at all - it was picked to equal the fin band's recess. A scalar has to be ONE number for a plate that measures 0.87-3.28 m round most of the ring and 8 m over the south corner, so the median is the number and the corner is drawn as a canopy on faces 17 and 18 instead (see `_faces_src`). `soffitTone` is the round-3 field that lets the eave's underside be the Parlex Prodema wood veneer (`soffit`, #884420, measured in S12 and unused in this file until now) while its top and its fascia stay the dark bronze `fascia`: js/slopes-roofs.js draws all three in one tone, so the generator now skips the lip and draws the three itself. From the plaza that is 1.60 m of wood on the eave running straight into the 3.00 m of wood at the head of the fin band's recess - 4.6 m of continuous soffit, which is what S5 shows. The fascia is 2.0 m, not the 2.8 first authored: measured on S5 against the fin band's known 11.0 m, the dark band on the roof edge is 20 px where the band is 105 px at the centre of the frame and 20 px where it is 115 at the right, i.e. 2.1 and 1.9 m. Its underside and its top are drawn in the same tone as the fascia because the emitter has one colour for all three - the wood soffit is todo 2, and the 3.0 m the fin band is inset carries it instead. Inside the eave the surface rises at 9.1 degrees for 9.0 m (a 1.44 m rise) to the flat white membrane at 22.60 m: that is the grey walk-on apron ring round the white TPO plate that S6's nadir shows. 9.0 m, not the 15.0 first authored, is measured on the S6 300 m nadir - the plate's long axis is 850 px for 148 m, i.e. 5.7 px/m, and the grey ring on the south-east reads 45-55 px, so 8-10 m. At 15 m the ring was half the roof and the straight-skeleton solve on this 35-vertex ring faceted it visibly; at 9 m it is the narrow band the nadir shows. It is a slope rather than a step because S6's frame from directly above the edge shows the ring rising into the membrane rather than meeting it at a face."
+      "_src": "THE ROOF IS ITS OWN SLAB NOW, ON THE REAL ROOF OUTLINE. Every photograph shows a wood-lined cantilever running far past the walls (notes.md: 'up to ~75 ft / 23 m'); the drum-ring eave with its 2.1 m `over` drew a thin dark lid. The plan is the snapshot's own roof plate (2b0f20a0, OSM building=roof) unioned with the drum grown 3 m (the plate runs inside the drum on the west, where OSM is loose), then rounded 6 m - the rounded octagon of the roof-plan drawing. Its underside is the wood soffit (soffitTone), its edge a 1.35 m fascia, its top a 5-degree apron 10 m wide onto the flat deck, ending at 22.6 m."
     }
   ],
   "todo": [
@@ -510,6 +1086,7 @@
     "5. Not modelled, and each is a real feature: the solid MCM gate portals and the loading dock among the ground-floor storefront (round 3's `openings` is the primitive - it wants a frame that shows where they are, which nothing on disk does), the 'MOODY CENTER' roof graphic S6's nadir shows (a sign goes on a wall, not on a cap - no primitive), the Longhorn and BOX OFFICE signs S5 has on the plaza elevation (`signs.bitmap` is the primitive and the placement is the missing measurement), and the arena's own night lighting. The night model moved again: the fin band's glazing is a row of windows once more (it had to be, for the day frame - see the `fins` skin's own _src), so APARTMENTS.nightLit scatters lit panes across it. A concourse is one continuous lit room and not forty flats, and the frame said so: with the default night ramp the ribbon read as scattered pale flats. DONE the same round - `glassSky` carries three values now and its night entry is APARTMENTS.nightLitTone at 0.81, so lit and unlit panes sit within a step of each other and the ribbon reads as one band. The arena's own floodlighting is still not modelled.",
     "6. The east face is up to 11 m too tall and the west face is right, because the app has no terrain and the site falls 11 m across the building (S7). See levels._height_src.",
     "7. The mesh's own top is 20.84 m, not the 22.60 m `levels.membrane` states: 17.40 (wall) + 2.00 (fascia) + 9.0 m of apron at 9.1 degrees (1.44 m of rise) = 20.84. Three of those four numbers are measured (S8's wall, S5's fascia, S6's apron width) and the pitch is the one that never was, so the pitch is where the missing 1.76 m belongs: atan(3.2 / 9.0) = 19.6 degrees would land the deck on 22.60. Left alone this round because it changes the silhouette from every camera and this round's frames are about the wall, and because a 19.6-degree walk-on apron is a claim S6 has not been asked about yet.",
-    "8. The floor of an inset band and its soffit are one tone, so the 2.0 m ring of deck at 6.40 m - the top of the lower canopy - is drawn in whatever the head of the recess above it is drawn in. It is the wall's dark bronze now, which is at least not a lie about the material, but it is a deck and it wants the pale grey `canopy` already holds. A `floorTone` beside `inset.tone` is the field."
+    "8. The floor of an inset band and its soffit are one tone, so the 2.0 m ring of deck at 6.40 m - the top of the lower canopy - is drawn in whatever the head of the recess above it is drawn in. It is the wall's dark bronze now, which is at least not a lie about the material, but it is a deck and it wants the pale grey `canopy` already holds. A `floorTone` beside `inset.tone` is the field.",
+    "9. 2026-09-18 photo match: roof on its own slab (the snapshot plate's outline), fins over dark panel not glass, a set-back glass ribbon, warm bronze tones sampled off the NW photograph. The south-corner canopies on faces 17/18 are gone - the slab covers them. Still owed: the SADDLE (the roof edge rises at the corners and dips mid-face, the corner-oblique photograph), the fin rank's stepped ends and its break at the flag-plaza entry (plain glass there), the Northwest Lobby door and glass corner, and the MOODY CENTER sign panel."
   ]
 }

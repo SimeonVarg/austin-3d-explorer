@@ -30446,3 +30446,11 @@ Evidence: `docs/shots/yugo-{rio,nueces}-photo-match.jpg`. Both moved out of the 
 
 ## 2026-09-17 — Block on 25th West authored from its photographs (branch `acer/block25`)
 Evidence `docs/shots/block25-photo-match-*.jpg`. Own file `data/apartments/block-on-25th-west.json`, removed from the neighborhood bake (no other building changed). Five storeys: limestone ground floor, slate stucco courtyard donut, burnt-orange corner mass with THE BLOCK over the corner shop, grey stair tower with a hipped cap on 25th. Not yet: projecting balconies with knee braces, the stepped parapet, the corner loggias.
+
+## 2026-09-18 — Moody Center matched to its photographs (branch `acer/moody-floaters`)
+Evidence `docs/shots/moody-photo-match-nw.jpg` (photo | before | after).
+- Grey slabs floated in the sky beside the arena. They were `roofscape-minor` deck items over the snapshot's two unnamed roof plates (2b0f20a0, ba9c090c), which the file already replaces; the geometry hide used only the drum ring, and the items stood 20-38 m outside it. New per-building `hideRings` in `js/slopes-apartments.js` adds outlines to that hide; Moody carries the two plates. Checked every other replaced id: Moody was the only one with floaters.
+- The roof is its own slab now, on the snapshot roof plate's outline (unioned with the drum grown 3 m, rounded): a big wood-soffit cantilever, 1.35 m fascia, deck at 22.6 m. The old drum eave drew a thin dark lid.
+- Fins over dark bronze panel (the band was sky-blue glass), a glass ribbon set 3 m back between the fins and the soffit, the north-west face solid panel at ground. Warm bronze, glass and soffit colours sampled off the NW photograph.
+- Storefront skin: a missing `fasciaTone` now falls back to the frame tone instead of crashing the building.
+Not yet: the roof SADDLE (edge rises at the corners), the stepped fin ends, the plain-glass flag-plaza entry, the lobby door, the MOODY CENTER sign. The `md-corner` pose on file is wrong (45 m up; the photo is from the plaza) and needs a fresh solve.
