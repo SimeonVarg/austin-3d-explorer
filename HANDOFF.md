@@ -30454,3 +30454,11 @@ Evidence `docs/shots/moody-photo-match-nw.jpg` (photo | before | after).
 - Fins over dark bronze panel (the band was sky-blue glass), a glass ribbon set 3 m back between the fins and the soffit, the north-west face solid panel at ground. Warm bronze, glass and soffit colours sampled off the NW photograph.
 - Storefront skin: a missing `fasciaTone` now falls back to the frame tone instead of crashing the building.
 Not yet: the roof SADDLE (edge rises at the corners), the stepped fin ends, the plain-glass flag-plaza entry, the lobby door, the MOODY CENTER sign. The `md-corner` pose on file is wrong (45 m up; the photo is from the plaza) and needs a fresh solve.
+
+## 2026-09-18 — 21 Rio's tower matched to its photographs (branch `acer/match-21rio`)
+Evidence `docs/shots/21rio-photo-match.jpg` (aerial, and two 2010 street photos; photo | before | after).
+- The file's `_readme` had the frame backwards: +u points SOUTH (u=0 is the north end). For a rectangle, `s` runs from the SW corner on `v0`, the SE corner on `u1`, the NE corner on `v1`.
+- The two 2010 photos only agree if the white "21 Rio" pier and the cream juliet strip are on the EAST face (lit by the morning sun while the south face is in shade, and the same width in both). That is also why the SW aerial never shows them.
+- South: blue-grey, the glazed bay at the west end only (it was on both faces), a balcony stack in front of it, two stacks under an orange roof pergola, a paler middle plane. East: juliet strip, the white pier rising to 70 m with 21 RIO, then one continuous recessed gallery per floor (white slabs, three orange rails, white columns, brown door panels). West: cream with its pergola. The little orange posts on the parapet are gone.
+- Render tool: `match.mjs` gained `swap` (serve main's copy of a data file) so a BEFORE is rendered locally; the live site took 103 s to load here and gave junk frames.
+Not yet: the podium (west orange grid screen, south two-tone garage), the gallery's condenser boxes, the pergolas' sloping struts.

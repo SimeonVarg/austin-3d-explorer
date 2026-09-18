@@ -1,5 +1,5 @@
 {
-  "_readme": "21 Rio, 2101 Rio Grande St, as js/slopes-apartments.js draws it. One 2009 tower on a full-site base: a retail ground floor, five levels of parking garage behind a cast-stone frame with bronze louvre screens and full-height bronze fins, and a 15-storey white-panel residential tower standing back from it on three sides, balconies on every floor with bronze pipe rails, a glazed bay wrapping the south-west corner, and bronze trellis frames standing above the parapet over each balcony stack. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): the ring is a clean rectangle 40.22 x 36.62 m. u=0 is the SOUTH end and +u runs north; v=0 is the WEST (Rio Grande St) edge and +v runs east - see _frame_src. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
+  "_readme": "21 Rio, 2101 Rio Grande St, as js/slopes-apartments.js draws it. One 2009 tower on a full-site base: a retail ground floor, five levels of parking garage behind a cast-stone frame with bronze louvre screens and full-height bronze fins, and a 15-storey white-panel residential tower standing back from it on three sides, balconies on every floor with bronze pipe rails, a glazed bay wrapping the south-west corner, and bronze trellis frames standing above the parapet over each balcony stack. Metres in the footprint's oriented bounding box (js/westcampus.js obbOf): the ring is a clean rectangle 40.22 x 36.62 m. u=0 is the NORTH end and +u runs SOUTH (bearing 185.6, computed 2026-09-18; this said SOUTH before); v=0 is the WEST (Rio Grande St) edge and +v runs east - see _frame_src. Every number carries a _src naming a key in `sources`, or says derived or unknown. Read docs/apartments.md for the schema.",
   "id": "73c958f3-3b1a-407c-9a9d-d3ab1e66b2c5",
   "name": "21 Rio",
   "address": "2101 Rio Grande St, Austin, TX 78705",
@@ -108,12 +108,12 @@
       "_src": "the balcony slabs and their soffits: the same white concrete as the wall in S4 and S5, not separately sampled."
     },
     "winGlass": {
-      "hex": "#a3b9c0",
-      "_src": "S4, crop (618,478)-(644,505) of one punched window: the 27 % cluster #a3b9c0 is the vision glass, the 41 % #eff1f3 its white surround. The S6 mesh gives the same glass a green cast (#8ea3a0, 11 % of the tower_white crop); the value entered is the photograph's."
+      "hex": "#466a76",
+      "_src": "punched-window glass, #3e6470 (__02)"
     },
     "cwGlass": {
-      "hex": "#6d838a",
-      "_src": "the glazed bay that wraps the south-west corner. S4 crops it at (880,150)-(940,290) where it is reflecting open sky (48 % #dbe6ef) so the photograph cannot give the material; the S6 mesh reads the same bay in shade at (668,300)-(690,460) - 39 % #252b37, 29 % #536c78. Entered between the two readings, a dark blue-green glass, and so derived from two lighting extremes rather than sampled once."
+      "hex": "#2f4a55",
+      "_src": "the south-west glazed bay, dark blue-green: #2b4350 (__02)"
     },
     "frame": {
       "hex": "#e8e6e2",
@@ -154,8 +154,36 @@
     ],
     "_turf_src": "S9's planting trio - the green patch S6 shows on the west terrace.",
     "rail": {
-      "hex": "#c07840",
-      "_src": "the terrace guard rail: the same bronze as everything else metal here (S4)."
+      "hex": "#8a5038",
+      "_src": "the burnt-orange rails and pergolas: #8e5941 on the east gallery's top rail (__02); notes.md #83513D-#895742"
+    },
+    "southGrey": {
+      "hex": "#a4aaab",
+      "_src": "the south face's blue-grey stucco: #697173 in shade (__02), #a1a8aa (__01); sampled 2026-09-18 off austin-reference-images/21-rio/south-and-east-elevations__02 (clean wall patches, brighter half) and __01"
+    },
+    "southPale": {
+      "hex": "#b9bfc0",
+      "_src": "the paler plane in the middle of the south face, 1.13x the grey's luminance in __02 (#658692 vs #697173, both in shade)"
+    },
+    "cream": {
+      "hex": "#d9d2c3",
+      "_src": "the east face's cream field and juliet zone: #e4dbc7 sunlit (__02), #bab6ad (__01)"
+    },
+    "westCream": {
+      "hex": "#d8cfc2",
+      "_src": "notes.md: the west face is cream / warm off-white, #9C9187 in shade on the aerial"
+    },
+    "pierWhite": {
+      "hex": "#e8ebe8",
+      "_src": "the '21 Rio' pier: #fffffd blown out in sun (__02), #d8dcd8 (__01)"
+    },
+    "doorBrown": {
+      "hex": "#8c4a2e",
+      "_src": "the warm-brown door-side panels behind the east gallery (__01: #a26248 lit, #421c17 shade)"
+    },
+    "logo": {
+      "hex": "#6b2226",
+      "_src": "the dark maroon '21 Rio' wordmark"
     }
   },
   "skins": {
@@ -207,17 +235,17 @@
     },
     "panel": {
       "kind": "bays",
-      "bay": 4.6,
-      "field": "panel",
+      "bay": 3.8,
+      "field": "westCream",
       "window": {
-        "w": 2.3,
-        "h": 1.95,
+        "w": 1.25,
+        "h": 1.85,
         "sill": 0.85
       },
       "glass": "winGlass",
       "frame": "frame",
       "reveal": 0.14,
-      "_src": "The tower's default wall: white panel with one paired punched window per bay per floor. Bay 4.6 m: on the south elevation in the S6 oblique the face reads as six elements - a glazed corner bay, three balcony stacks and two window columns - across 31.2 m, and the two windows in one gap sit about 5 m apart; 4.6 m is that pitch taken across both elevations, plus or minus 0.6 m. Window 2.3 x 1.95 on a 0.85 m sill: in S4 each opening is a single wide light split by one mullion and runs about two thirds of the floor pitch, and 1.95 of 3.04 m is 64 %."
+      "_src": "portrait punched windows (~1:1.5) in columns about 3.8 m apart (__02: columns at s 6.8, 10.7, 18.4, 28.3)"
     },
     "curtain": {
       "kind": "storefront",
@@ -233,8 +261,96 @@
     },
     "blank": {
       "kind": "flat",
-      "field": "panel",
+      "field": "westCream",
       "_src": "the tower's unpierced wall - the stair and lift core strip in S4, which is the SAME white as the rest of the panel there and only reads grey in the S6 mesh because that face is in shade. It gets its own skin so it can lose the window grid, not a second colour."
+    },
+    "southField": {
+      "kind": "bays",
+      "bay": 3.8,
+      "field": "southGrey",
+      "window": {
+        "w": 1.25,
+        "h": 1.85,
+        "sill": 0.85
+      },
+      "glass": "winGlass",
+      "frame": "frame",
+      "reveal": 0.14
+    },
+    "southPaleField": {
+      "kind": "bays",
+      "bay": 3.8,
+      "field": "southPale",
+      "window": {
+        "w": 1.25,
+        "h": 1.85,
+        "sill": 0.85
+      },
+      "glass": "winGlass",
+      "frame": "frame",
+      "reveal": 0.14
+    },
+    "julietZone": {
+      "kind": "bays",
+      "field": "cream",
+      "window": {
+        "cols": [
+          0.49
+        ],
+        "w": 2.4,
+        "h": 2.0,
+        "sill": 0.55
+      },
+      "glass": "winGlass",
+      "frame": "frame",
+      "reveal": 0.12,
+      "_src": "one wide two-light window per floor behind a shallow juliet balcony"
+    },
+    "pierSkin": {
+      "kind": "bays",
+      "field": "pierWhite",
+      "window": {
+        "cols": [
+          0.18
+        ],
+        "w": 0.9,
+        "h": 0.9,
+        "sill": 0.6
+      },
+      "glass": "winGlass",
+      "frame": "pierWhite",
+      "reveal": 0.12,
+      "_src": "the near-blank white pier: one small square window per floor near its north edge"
+    },
+    "gallery": {
+      "kind": "bays",
+      "bay": 2.05,
+      "field": "cream",
+      "window": {
+        "w": 1.15,
+        "h": 2.3,
+        "sill": 0.1,
+        "accent": {
+          "w": 0.55,
+          "gap": 0.15,
+          "side": "right",
+          "tones": [
+            "doorBrown"
+          ]
+        }
+      },
+      "glass": "winGlass",
+      "frame": "frame",
+      "reveal": 0.08,
+      "_src": "behind the gallery rail: tall sliding glass doors alternating with warm-brown door-side panels"
+    },
+    "creamFlat": {
+      "kind": "flat",
+      "field": "cream"
+    },
+    "pierFlat": {
+      "kind": "flat",
+      "field": "pierWhite"
     }
   },
   "balcony": {
@@ -406,7 +522,46 @@
                   "s0": 26.56,
                   "s1": 29.46
                 }
-              ]
+              ],
+              "canopies": [
+                {
+                  "s0": 2.5,
+                  "s1": 35.5,
+                  "z": 68.0,
+                  "d": 0.25,
+                  "off": 1.9500000000000002,
+                  "t": 0.45,
+                  "tone": "rail",
+                  "posts": {
+                    "pitch": 4.4,
+                    "w": 0.2,
+                    "z0": 61.9,
+                    "tone": "rail"
+                  }
+                },
+                {
+                  "s0": 2.5,
+                  "s1": 35.5,
+                  "z": 68.0,
+                  "d": 0.25,
+                  "off": 0.0,
+                  "t": 0.45,
+                  "tone": "rail"
+                }
+              ],
+              "fins": [
+                {
+                  "pitch": 0.6,
+                  "from": 2.5,
+                  "to": 35.5,
+                  "w": 0.12,
+                  "d": 2.2,
+                  "z0": 67.6,
+                  "z1": 68.0,
+                  "tone": "rail"
+                }
+              ],
+              "_src_pergola": "the west pergola runs most of the face at the top (aerial)"
             }
           ]
         },
@@ -415,21 +570,60 @@
             {
               "z0": 22.4,
               "z1": 68.0,
-              "skin": "panel",
+              "skin": "southField",
               "balconies": [
                 {
-                  "s0": 4.7,
-                  "s1": 7.6
+                  "s0": 27.95,
+                  "s1": 31.05
                 },
                 {
-                  "s0": 12.3,
-                  "s1": 15.2
+                  "s0": 15.8,
+                  "s1": 19.0
                 },
                 {
-                  "s0": 19.9,
-                  "s1": 22.8
+                  "s0": 8.0,
+                  "s1": 11.2
                 }
-              ]
+              ],
+              "canopies": [
+                {
+                  "s0": 6.9,
+                  "s1": 24.5,
+                  "z": 68.0,
+                  "d": 0.25,
+                  "off": 1.9500000000000002,
+                  "t": 0.45,
+                  "tone": "rail",
+                  "posts": {
+                    "pitch": 4.4,
+                    "w": 0.2,
+                    "z0": 61.9,
+                    "tone": "rail"
+                  }
+                },
+                {
+                  "s0": 6.9,
+                  "s1": 24.5,
+                  "z": 68.0,
+                  "d": 0.25,
+                  "off": 0.0,
+                  "t": 0.45,
+                  "tone": "rail"
+                }
+              ],
+              "fins": [
+                {
+                  "pitch": 0.6,
+                  "from": 6.9,
+                  "to": 24.5,
+                  "w": 0.12,
+                  "d": 2.2,
+                  "z0": 67.6,
+                  "z1": 68.0,
+                  "tone": "rail"
+                }
+              ],
+              "_src": "south: blue-grey stucco, the glazed bay at the west end with a balcony stack in front of it, two more stacks under the pergola (__02: stacks at s 11.9-15.7 and 19.7-23.6, pergola s 6.7-24.3)"
             }
           ]
         },
@@ -438,17 +632,121 @@
             {
               "z0": 22.4,
               "z1": 68.0,
-              "skin": "panel",
+              "skin": "julietZone",
               "balconies": [
                 {
-                  "s0": 7.36,
-                  "s1": 10.26
+                  "s0": 31.66,
+                  "s1": 34.76,
+                  "proj": 0.35
+                }
+              ],
+              "fins": [
+                {
+                  "horizontal": true,
+                  "at": [
+                    22.4,
+                    25.44,
+                    28.48,
+                    31.52,
+                    34.56,
+                    37.6,
+                    40.64,
+                    43.68,
+                    46.72,
+                    49.76,
+                    52.8,
+                    55.84,
+                    58.88,
+                    61.92,
+                    64.96
+                  ],
+                  "w": 0.3,
+                  "d": 2.0,
+                  "off": -2.0,
+                  "from": 1.46,
+                  "to": 21.16,
+                  "tone": "slab"
                 },
                 {
-                  "s0": 25.36,
-                  "s1": 28.26
+                  "horizontal": true,
+                  "at": [
+                    23.45,
+                    26.49,
+                    29.53,
+                    32.57,
+                    35.61,
+                    38.65,
+                    41.69,
+                    44.73,
+                    47.77,
+                    50.81,
+                    53.85,
+                    56.89,
+                    59.93,
+                    62.97,
+                    66.01
+                  ],
+                  "w": 0.12,
+                  "d": 0.08,
+                  "off": -0.1,
+                  "from": 1.46,
+                  "to": 21.16,
+                  "tone": "rail"
+                },
+                {
+                  "horizontal": true,
+                  "at": [
+                    23.12,
+                    26.16,
+                    29.2,
+                    32.24,
+                    35.28,
+                    38.32,
+                    41.36,
+                    44.4,
+                    47.44,
+                    50.48,
+                    53.52,
+                    56.56,
+                    59.6,
+                    62.64,
+                    65.68
+                  ],
+                  "w": 0.07,
+                  "d": 0.06,
+                  "off": -0.1,
+                  "from": 1.46,
+                  "to": 21.16,
+                  "tone": "rail"
+                },
+                {
+                  "horizontal": true,
+                  "at": [
+                    22.8,
+                    25.84,
+                    28.88,
+                    31.92,
+                    34.96,
+                    38.0,
+                    41.04,
+                    44.08,
+                    47.12,
+                    50.16,
+                    53.2,
+                    56.24,
+                    59.28,
+                    62.32,
+                    65.36
+                  ],
+                  "w": 0.07,
+                  "d": 0.06,
+                  "off": -0.1,
+                  "from": 1.46,
+                  "to": 21.16,
+                  "tone": "rail"
                 }
-              ]
+              ],
+              "_src": "east: the cream juliet zone at the south end, the white pier (its own block, below), then one continuous recessed gallery per floor - white slab noses, two orange pipe rails, round white columns about 4.1 m apart (__01: s 18.6, 22.8, 26.9, 31.2)"
             }
           ]
         },
@@ -481,10 +779,10 @@
       "overrides": [
         {
           "region": [
-            29.66,
+            35.9,
             36.26,
             2.6,
-            9.2
+            5.8
           ],
           "bands": [
             {
@@ -493,7 +791,28 @@
               "skin": "curtain"
             }
           ],
-          "_src": "the glazed bay wrapping the SOUTH-WEST corner, floor to roof: in S4 it is the tall glazed grid at the end of the near elevation and in S6 it is the dark green-glass column standing exactly at the near arris, on both returns. 6.6 m along each face, read off S6 against the bay module, plus or minus 1 m. CORRECTED 2026-09-05: mirrored into the true frame, so the bay is at the HIGH-u (south) end of the west elevation - the street corner of 21st and Rio Grande."
+          "_src": "the SW glazed bay, south face only, s 0-3.2 (__02)"
+        },
+        {
+          "region": [
+            35.9,
+            36.26,
+            6.9,
+            29.8
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 61.92,
+              "skin": "southPaleField"
+            },
+            {
+              "z0": 61.92,
+              "z1": 68.0,
+              "skin": "southField"
+            }
+          ],
+          "_src": "the paler plane, s 4.3-27.2, stopping two floors below the roof (__02)"
         },
         {
           "region": [
@@ -508,8 +827,93 @@
               "z1": 68.0,
               "skin": "blank"
             }
+          ]
+        },
+        {
+          "region": [
+            33.3,
+            36.26,
+            2.6,
+            2.9
           ],
-          "_src": "the stair and lift core: an unpierced strip on the west elevation, 5.5 m wide, which S4 shows as a blank white band with only small vents between the second balcony stack and the corner bay. PLACED, not dimensioned: it is put in the 6.7 m gap the west elevation actually has between the second stack (u 16.4-19.3) and the stack next to the corner bay (u 26.0-28.9). The number this file carried before landed on top of a balcony stack once the frame was corrected, which is how the collision was found."
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "pierFlat"
+            }
+          ],
+          "_src": "a flat white pier closes the west face's south end (notes.md)"
+        },
+        {
+          "region": [
+            30.06,
+            36.26,
+            33.5,
+            33.8
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "julietZone"
+            }
+          ]
+        },
+        {
+          "region": [
+            21.16,
+            30.06,
+            33.5,
+            33.8
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "pierFlat"
+            }
+          ]
+        },
+        {
+          "region": [
+            1.46,
+            21.16,
+            33.5,
+            33.8
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "gallery",
+              "inset": {
+                "d": 2.0,
+                "tone": "slab",
+                "columns": {
+                  "pitch": 4.1,
+                  "w": 0.45,
+                  "d": 0.45,
+                  "tone": "slab"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "region": [
+            0.0,
+            1.46,
+            33.5,
+            33.8
+          ],
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 68.0,
+              "skin": "creamFlat"
+            }
+          ]
         }
       ],
       "roofTone": "roof",
@@ -581,129 +985,50 @@
           "h": 0.6,
           "tone": "condenser",
           "_src": "S6 nadir: a second scatter of small units on the north-west quarter of the roof."
-        },
-        {
-          "plan": [
-            26.0,
-            28.9,
-            2.6,
-            2.95
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 7.36-10.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            16.4,
-            19.3,
-            2.6,
-            2.95
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 16.96-19.86. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            6.8,
-            9.7,
-            2.6,
-            2.95
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the west elevation's balcony stack at s 26.56-29.46. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            35.91,
-            36.26,
-            26.2,
-            29.1
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 4.70-7.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            35.91,
-            36.26,
-            18.6,
-            21.5
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 12.30-15.20. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            35.91,
-            36.26,
-            11.0,
-            13.9
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the south elevation's balcony stack at s 19.90-22.80. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            7.36,
-            10.26,
-            33.45,
-            33.8
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the east elevation's balcony stack at s 7.36-10.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            25.36,
-            28.26,
-            33.45,
-            33.8
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the east elevation's balcony stack at s 25.36-28.26. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            0.0,
-            0.35,
-            7.3,
-            10.2
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 4.70-7.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            0.0,
-            0.35,
-            16.8,
-            19.7
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 14.20-17.10. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
-        },
-        {
-          "plan": [
-            0.0,
-            0.35,
-            26.3,
-            29.2
-          ],
-          "h": 2.2,
-          "tone": "bronze",
-          "_src": "the bronze trellis frame over the north elevation's balcony stack at s 23.70-26.60. S4 and S6 both show an open pipe frame standing about two metres above the parapet over every stack - it is the one thing that gives this building a silhouette. DERIVED from that stack, so a frame can never drift off its balconies; the generator has no open frame, so each is drawn as a 0.35 m bronze fin (see `open`)."
         }
-      ]
+      ],
+      "_src_2026_09_18": "Re-read against the 2010 photographs: the old model put the glazed bay at the SW corner of BOTH faces, balconies in every face's stacks alike, and little orange posts where the pergolas are. Now: three rules on three faces (notes.md 'what to get right first')."
+    },
+    {
+      "id": "rio-pier",
+      "plan": [
+        21.16,
+        30.06,
+        31.9,
+        33.95
+      ],
+      "z0": 22.4,
+      "z1": 70.0,
+      "roofTone": "pierWhite",
+      "bands": [
+        {
+          "z0": 22.4,
+          "z1": 70.0,
+          "skin": "pierFlat"
+        }
+      ],
+      "faces": {
+        "v1": {
+          "bands": [
+            {
+              "z0": 22.4,
+              "z1": 70.0,
+              "skin": "pierSkin",
+              "signs": [
+                {
+                  "text": "21 RIO",
+                  "s0": 0.95,
+                  "z0": 67.55,
+                  "dot": 0.2,
+                  "gap": 0.2,
+                  "tone": "logo"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "_src": "the white '21 Rio' pier, 8.9 m wide at the south end of the east face (__01 and __02 agree on s 6.2-15.1), standing a little proud and rising above the parapet to ~70 m, the wordmark about a floor and a half below its top"
     }
   ],
   "deck": {
@@ -767,5 +1092,8 @@
     "The north and east elevations were never photographed. They wear the same rule as the two that were, with one fewer balcony stack on the east where an alley runs; where each stack sits along its face is read to about a metre off one oblique.",
     "DONE 2026-09-05: the ground band is inset (1.5 m, a look) with piers on the fin module; the garage entry is still not drawn (was: The ground floor is recessed under the podium in S4 and is drawn in the podium plane with a 0.35 m reveal standing in for it. The garage ent ...)",
     "S7's balcony spec for this building is ('long', 2, 19) - nineteen floors on two elevations. That is generative and it is wrong: the balconies belong to the tower's fifteen floors, on all four elevations, because the six floors below them are a retail floor and five parking decks."
+  ],
+  "todo": [
+    "2026-09-18 photo match: tower faces rebuilt from the 2010 photographs. Still owed: the podium (west orange grid screen over cream stucco + limestone, orange canopies; the south garage in two-tone precast with slot bands), the condenser boxes on the east gallery slab edges, and the pergolas' sloping struts."
   ]
 }
