@@ -657,7 +657,7 @@
     // take the skin's reveal and its glass
     const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion }))
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
@@ -688,7 +688,26 @@
       const zt = w.z0 - fh;
       return { s0: w.s0, s1: w.s1, z0: Math.max(z0, zt - w.spandrel.h), z1: zt, col: P[w.spandrel.tone] || P.frame || P.wall, w };
     }).filter(r => r.z1 - r.z0 > 1e-4);
-    const regions = framed.concat(spandrels);   // frames first: where a ring and a panel meet, the ring wins
+    // THE HEAD. `head: { h, tone }` is a panel of the opening's own width
+    // standing directly ABOVE it — Icon's taupe lintel with its vent holes over
+    // every window, tower and podium alike (south elevation photo, 2026-09-14).
+    const heads = windows.filter(w => w.head && w.head.h > 0 && w.zTop < z1 - 1e-6).map(w => {
+      const fh = w.frame && w.frame.w > 0 ? (w.frame.h != null ? w.frame.h : w.frame.w) : 0;
+      const zb = w.zTop + fh;
+      return { s0: w.s0, s1: w.s1, z0: zb, z1: Math.min(z1, zb + w.head.h), col: P[w.head.tone] || P.frame || P.wall, w };
+    }).filter(r => r.z1 - r.z0 > 1e-4);
+    // THE ACCENT. `accent: { w, gap, side, tones, dz0, dz1 }` is a narrow
+    // coloured panel standing beside the opening, from its sill to the top of
+    // its head; the tone is picked per bay and storey from `tones` (Icon's
+    // podium: rust, olive, brown, violet-grey, pale grey panels beside every
+    // window, no two neighbours alike).
+    const accents = windows.filter(w => w.accent && w.accent.w > 0).map(w => {
+      const a = w.accent, left = (a.side || 'left') === 'left';
+      const sa = left ? w.s0 - (a.gap || 0) - a.w : w.s1 + (a.gap || 0);
+      const zt = w.zTop + (w.head && w.head.h > 0 ? w.head.h : 0) + (a.dz1 || 0);
+      return { s0: Math.max(0, sa), s1: Math.min(len, sa + a.w), z0: Math.max(z0, w.z0 + (a.dz0 || 0)), z1: Math.min(z1, zt), col: P[a.tone] || P.wall, w };
+    }).filter(r => r.s1 - r.s0 > 1e-4 && r.z1 - r.z0 > 1e-4);
+    const regions = framed.concat(spandrels, heads, accents);   // frames first: where a ring and a panel meet, the ring wins
     // z cuts: the skin's row lines, every window's top and bottom, every frame's and spandrel's
     const zc = new Set([z0, z1]);
     for (const z of skin.rows(z0, z1)) if (z > z0 && z < z1) zc.add(+z.toFixed(4));
@@ -914,7 +933,12 @@
           if (s0 < 0.05 || s1 > ctx.len - 0.05) continue;
           if (skipS.some(r => s1 > r[0] && s0 < r[1])) continue;
           const sp = parts[pi].length > 2 ? (parts[pi][2] && parts[pi][2].h > 0 ? parts[pi][2] : null) : spandrel;
-          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp, arch: win.arch, mullion: win.mullion });
+          let accent = null;
+          if (win.accent && win.accent.w > 0 && Array.isArray(win.accent.tones) && win.accent.tones.length) {
+            const T = win.accent.tones, k = Math.floor(h01(key, 'accent', ci, storey) * T.length) % T.length;
+            accent = Object.assign({}, win.accent, { tone: T[k] });
+          }
+          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp, arch: win.arch, mullion: win.mullion, head: win.head || null, accent });
         }
       }
     }
@@ -2204,6 +2228,11 @@
   //  THE GROUP, THE FILTERS, THE SWITCH
   // ══════════════════════════════════════════════════════════════════════
   let _built = [], _builtFrame = 0;
+  // Buildings whose model threw. Their legacy prism, bands and roofscape stay
+  // visible: a model that fails must fall back to the old box, never leave a
+  // HOLE (2026-09-17: one malformed colour made Icon vanish from the skyline).
+  const _failed = new Set();
+  const okBuildings = () => ((_data && _data.buildings) || []).filter(b => !_failed.has(b.id || b.name));
   /**
    * Build every authored building, yielding to the event loop whenever a slice
    * has used APTS.buildSliceMs. Measured 2026-09-15 on the live site: the 41
@@ -2218,6 +2247,7 @@
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
     resetCount();
+    _failed.clear();
     const B = S.build();
     _built = [];
     let sliceT0 = performance.now(), slices = 1;
@@ -2241,7 +2271,7 @@
         while (!r.done) { await pause(); r = it.next(); }
         _built.push(r.value);
       }
-      catch (e) { console.error('[slopes-apartments]', spec.name, e); }
+      catch (e) { console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); }
       await pause();
     }
     count.buildSlices = slices;
@@ -2276,7 +2306,7 @@
   function hideGeometry(inset, roofscapeOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = ((_data && _data.buildings) || []).filter(b => !roofscapeOnly || !b.preserveRoofscape);
+    const buildings = okBuildings().filter(b => !roofscapeOnly || !b.preserveRoofscape);
     const key = inset + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
@@ -2372,8 +2402,11 @@
     return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]));
   }
   function filterPlan() {
-    const gone = _data.replacedBuildingIds || [];
-    const names = _data.replacedNames || [];
+    const bad = _failed.size ? _data.buildings.filter(b => _failed.has(b.id || b.name)) : [];
+    const badIds = new Set(bad.map(b => b.id).filter(Boolean));
+    const badNames = new Set(bad.flatMap(b => [b.name, ...(b.aliases || [])]));
+    const gone = (_data.replacedBuildingIds || []).filter(id => !badIds.has(id));
+    const names = (_data.replacedNames || []).filter(n => !badNames.has(n));
     const plan = [];
     if (gone.length) for (const id of HIDE_LAYERS.prism) plan.push([id, ['!', ['in', ['get', 'id'], ['literal', gone]]]]);
     if (names.length) for (const id of HIDE_LAYERS.bands) plan.push([id, ['!', ['in', ['get', 'name'], ['literal', names]]]]);

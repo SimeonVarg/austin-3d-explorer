@@ -5,7 +5,8 @@
     "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson, feature 9f5efc93-dc5f-49fb-8f5a-f002cb5946c6",
     "reference": "https://www.rhodepartners.com/icon",
     "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
-    "placement": "https://www.iconataustin.com/; 2200 San Antonio Street. ArcGIS World GeocodeServer address match score 100 at -97.743084597282,30.285294489137. 28x30m envelope derived from facade bay counts and neighbor spacing; former Intervarsity footprint is retired, not reused as tower plan."
+    "placement": "https://www.iconataustin.com/; 2200 San Antonio Street. ArcGIS World GeocodeServer address match score 100 at -97.743084597282,30.285294489137. 28x30m envelope derived from facade bay counts and neighbor spacing; former Intervarsity footprint is retired, not reused as tower plan.",
+    "photos2026": "Owner photos 2026-09-14 (tower dusk, crown, context) + icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16; colours sampled from it"
   },
   "footprint": {
     "ring": [
@@ -81,7 +82,7 @@
   },
   "colours": {
     "wall": {
-      "hex": "#c5b597"
+      "hex": "#dcdad6"
     },
     "stone": {
       "hex": "#ded8c9"
@@ -90,7 +91,7 @@
       "hex": "#dfdbcf"
     },
     "glass": {
-      "hex": "#506b78"
+      "hex": "#4f7f93"
     },
     "frame": {
       "hex": "#807b70"
@@ -105,7 +106,7 @@
       "hex": "#596264"
     },
     "white": {
-      "hex": "#e0e5e3"
+      "hex": "#dcdad6"
     },
     "dark": {
       "hex": "#353c3e"
@@ -127,7 +128,50 @@
     },
     "rail": {
       "hex": "#566165"
-    }
+    },
+    "pierGrey": {
+      "hex": "#bbbbb9"
+    },
+    "ledge": {
+      "hex": "#b5b8b5"
+    },
+    "head": {
+      "hex": "#746052"
+    },
+    "podiumWhite": {
+      "hex": "#dcd8d4"
+    },
+    "podiumBand": {
+      "hex": "#c7c3be"
+    },
+    "acRust": {
+      "hex": "#95654f"
+    },
+    "acBrown": {
+      "hex": "#6d5a4f"
+    },
+    "acOlive": {
+      "hex": "#77705f"
+    },
+    "acViolet": {
+      "hex": "#7c7583"
+    },
+    "acPale": {
+      "hex": "#aaa8a9"
+    },
+    "acBlue": {
+      "hex": "#7084a0"
+    },
+    "acTaupe": {
+      "hex": "#897366"
+    },
+    "crownFrame": {
+      "hex": "#e4e4e0"
+    },
+    "crownGlass": {
+      "hex": "#6f8e9a"
+    },
+    "_src2026": "Sampled from icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: tower field #d0cecc in shade, lifted to the daylight white; grey piers #bbbbbb; floor ledges #b5b8b5; taupe window heads #746052; the podium's accent panels rust #95654f, brown #6d5a4f, olive #77705f, violet-grey #7c7583, pale grey #aaa8a9, blue-grey #7084a0, taupe #897366. The old wall was tan (#c5b597); every photograph shows white."
   },
   "skins": {
     "wall": {
@@ -206,6 +250,103 @@
         "h": 0.18,
         "tone": "trim"
       }
+    },
+    "iconTower": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 2.72,
+      "window": {
+        "w": 1.35,
+        "h": 2.05,
+        "sill": 0.45,
+        "offsets": [
+          [
+            0,
+            1.35
+          ]
+        ],
+        "flip": false,
+        "head": {
+          "h": 0.4,
+          "tone": "head"
+        }
+      },
+      "pier": {
+        "w": 0.42,
+        "d": 0.18,
+        "tone": "pierGrey",
+        "every": 3
+      },
+      "floorLine": {
+        "h": 0.22,
+        "tone": "ledge"
+      },
+      "glass": "glass",
+      "frame": "ledge",
+      "reveal": 0.2,
+      "_src": "tower (floors 6-30), icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: a white field; a grey concrete pier every THIRD window bay (big bays ~8.2 m of three ~2.72 m bays); a grey ledge at every floor; each window ~1.35 x 2.05 m under a taupe head ~0.4 m; the windows stand in straight vertical columns (the dusk aerial at full size; a stagger read as noise from 70 m)."
+    },
+    "iconPodium": {
+      "kind": "bays",
+      "field": "podiumWhite",
+      "bay": 2.72,
+      "window": {
+        "w": 1.55,
+        "h": 1.8,
+        "sill": 0.55,
+        "offsets": [
+          [
+            -0.3,
+            1.55
+          ]
+        ],
+        "head": {
+          "h": 0.45,
+          "tone": "head"
+        },
+        "accent": {
+          "w": 0.5,
+          "gap": 0.1,
+          "side": "right",
+          "tones": [
+            "acRust",
+            "acBrown",
+            "acOlive",
+            "acViolet",
+            "acPale",
+            "acBlue",
+            "acTaupe",
+            "podiumWhite"
+          ],
+          "dz0": -0.25,
+          "dz1": 0.14
+        }
+      },
+      "pier": {
+        "w": 0.45,
+        "d": 0.25,
+        "tone": "podiumWhite",
+        "every": 1
+      },
+      "floorLine": {
+        "h": 0.3,
+        "tone": "podiumBand"
+      },
+      "glass": "glass",
+      "frame": "ledge",
+      "reveal": 0.24,
+      "_src": "floors 2-5, icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: a bolder white grid, a proud white pier on EVERY bay line and a white band at every floor; one big ~1.55 x 1.8 m window per bay under a taupe head, and beside it on the left a ~0.5 m panel in one of seven colours, picked per bay and storey (and sometimes plain white). The panel stands on the viewer's LEFT of the window; this face's s runs right-to-left seen from outside, so the file says 'right'. It runs the whole storey between the white bands (2026-09-17, street photo)."
+    },
+    "crownGlass": {
+      "kind": "storefront",
+      "glass": "crownGlass",
+      "frame": "crownFrame",
+      "fasciaTone": "crownFrame",
+      "fascia": 0.35,
+      "mullion": 1.1,
+      "mullionW": 0.14,
+      "reveal": 0.15,
+      "_src": "owner crown photo: a faceted glass room with slim white mullions ~1.1 m apart and a white head band"
     }
   },
   "blocks": [
@@ -243,7 +384,7 @@
         {
           "z0": 4.8,
           "z1": 16.56,
-          "skin": "icon"
+          "skin": "iconPodium"
         }
       ],
       "roofTone": "roofFlat",
@@ -263,7 +404,7 @@
         {
           "z0": 16.56,
           "z1": 87.12,
-          "skin": "icon"
+          "skin": "iconTower"
         }
       ],
       "roofTone": "roofFlat",
@@ -274,10 +415,10 @@
     {
       "id": "crown",
       "plan": [
-        10.080000000190712,
-        27.000000000529756,
-        3,
-        27.000000000061252
+        1.5,
+        19.5,
+        4.5,
+        27.5
       ],
       "z0": 87.12,
       "z1": 93.6,
@@ -285,12 +426,12 @@
         {
           "z0": 87.12,
           "z1": 93.6,
-          "skin": "glass"
+          "skin": "crownGlass"
         }
       ],
       "roofTone": "roofFlat",
-      "chamfer": 2,
-      "_src": "reference; dimensions are derived, see sources.dimensions"
+      "chamfer": 3.5,
+      "_src": "2026-09-16: moved WEST. The owner's dusk aerial (camera south-east of the tower, looking north-west: sunset on the left, Moontower right) shows the glass room over the west ~70% with a railed terrace and pool on the east and south; it was drawn over the east. Set back ~3.5 m from the south edge; the bigger chamfer stands in for its curved south-east corner."
     },
     {
       "id": "podium-ledge",
@@ -322,24 +463,26 @@
       {
         "id": "pool",
         "plan": [
-          15.96000000030196,
-          24.920000000471482,
-          4.800000000009801,
-          15.000000000030626
+          20.5,
+          25.6,
+          7.0,
+          17.0
         ],
         "h": 0.12,
-        "tone": "water"
+        "tone": "water",
+        "_src": "owner crown photo: the pool on the east terrace, beside the glass room"
       },
       {
-        "id": "planter",
+        "id": "loungers",
         "plan": [
-          2.520000000047678,
-          4.200000000079463,
-          4.500000000009187,
-          24.600000000050226
+          20.5,
+          25.6,
+          18.5,
+          19.4
         ],
-        "h": 0.65,
-        "tone": "plant"
+        "h": 0.45,
+        "tone": "pave",
+        "_src": "owner crown photo: loungers along the terrace (a look)"
       }
     ]
   },
