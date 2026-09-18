@@ -1,0 +1,412 @@
+{
+  "_readme": "Yugo Austin Rio, 620 W 24th St. Frame: +u EAST, +v NORTH; the street face is the south edge (v 0). Authored 2026-09-17 from the owner's street photograph; positions are fractions of the photographed facade mapped onto the 27.2 m edge.",
+  "id": "762122e3-8b0c-4bd5-9795-dcf61325b854",
+  "name": "Yugo Austin Rio",
+  "category": "apartment",
+  "labelOverride": false,
+  "aliases": [],
+  "sources": {
+    "photo": "austin-reference-images/yugo-rio/yugo-rio__street-elevation__01.webp",
+    "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson",
+    "previous": "baked by scripts/bake_neighborhood_apartments.py until 2026-09-17"
+  },
+  "footprint": {
+    "ring": [
+      [
+        -97.7443044,
+        30.2879929
+      ],
+      [
+        -97.7442529,
+        30.2885082
+      ],
+      [
+        -97.7445338,
+        30.2885291
+      ],
+      [
+        -97.7445854,
+        30.2880139
+      ],
+      [
+        -97.7443044,
+        30.2879929
+      ]
+    ],
+    "holes": []
+  },
+  "frame": {
+    "obb": {
+      "o": [
+        -97.74458599488695,
+        30.288013944941543
+      ],
+      "ax": 0.9961946980917455,
+      "ay": -0.08715574274765817,
+      "mx": 96124.69778767656,
+      "my": 111320,
+      "L": 27.169402397036926,
+      "W": 57.60171241230173
+    }
+  },
+  "levels": {
+    "floors": [
+      0,
+      3.8,
+      7.25,
+      10.7,
+      14.15,
+      17.6,
+      21.05,
+      24.5
+    ]
+  },
+  "colours": {
+    "wall": {
+      "hex": "#e9e8e2"
+    },
+    "lime": {
+      "hex": "#b7c460"
+    },
+    "board": {
+      "hex": "#2e2f33"
+    },
+    "boardFrame": {
+      "hex": "#5b5f63"
+    },
+    "dark": {
+      "hex": "#26282b"
+    },
+    "frameDark": {
+      "hex": "#1e2124"
+    },
+    "glass": {
+      "hex": "#4c6f7b"
+    },
+    "storeGlass": {
+      "hex": "#3d6070"
+    },
+    "fascia": {
+      "hex": "#3a3c40"
+    },
+    "sign": {
+      "hex": "#f2f2ee"
+    },
+    "trim": {
+      "hex": "#e4e0d4"
+    },
+    "roof": {
+      "hex": "#8f908b"
+    },
+    "metal": {
+      "hex": "#596369"
+    },
+    "stone": {
+      "hex": "#c9bd9f"
+    },
+    "_src": "read off the owner-supplied street photographs by eye (2026-09-14): white render field, lime-green panel blocks, near-black board-and-batten wing, dark storefront with painted shapes and a white-lettered fascia sign"
+  },
+  "skins": {
+    "white": {
+      "kind": "bays",
+      "field": "wall",
+      "bay": 3.4,
+      "window": {
+        "w": 1.0,
+        "h": 1.3,
+        "sill": 1.0,
+        "frame": {
+          "w": 0.08,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15,
+      "_src": "the white field: one small square window per bay, dark frames"
+    },
+    "lime": {
+      "kind": "bays",
+      "field": "lime",
+      "bay": 4.3,
+      "window": {
+        "w": 1.2,
+        "h": 1.35,
+        "sill": 0.95,
+        "offsets": [
+          [
+            -0.7,
+            1.2
+          ],
+          [
+            0.7,
+            1.2
+          ]
+        ],
+        "frame": {
+          "w": 0.08,
+          "tone": "frameDark"
+        }
+      },
+      "glass": "glass",
+      "frame": "frameDark",
+      "reveal": 0.15,
+      "_src": "the lime blocks: a pair of square windows per bay"
+    },
+    "board": {
+      "kind": "bays",
+      "field": "board",
+      "bay": 3.2,
+      "window": {
+        "w": 0.8,
+        "h": 1.4,
+        "sill": 0.9,
+        "offsets": [
+          [
+            -0.45,
+            0.8
+          ],
+          [
+            0.45,
+            0.8
+          ]
+        ],
+        "frame": {
+          "w": 0.07,
+          "tone": "boardFrame"
+        }
+      },
+      "glass": "glass",
+      "frame": "boardFrame",
+      "reveal": 0.12,
+      "_src": "the near-black board-and-batten wing: paired narrow windows"
+    },
+    "store": {
+      "kind": "storefront",
+      "glass": "storeGlass",
+      "frame": "frameDark",
+      "reveal": 0.3,
+      "mullion": 1.9,
+      "mullionW": 0.1,
+      "fascia": 0.9,
+      "fasciaTone": "fascia",
+      "_src": "ground floor: dark-framed glass with painted shapes behind it, a dark fascia carrying the sign"
+    },
+    "topDark": {
+      "kind": "storefront",
+      "glass": "glass",
+      "frame": "board",
+      "reveal": 0.1,
+      "mullion": 1.5,
+      "mullionW": 0.1,
+      "fascia": 0.3,
+      "fasciaTone": "board"
+    },
+    "flatBoard": {
+      "kind": "flat",
+      "field": "board"
+    },
+    "roof": {
+      "kind": "flat",
+      "field": "roof"
+    },
+    "trim": {
+      "kind": "flat",
+      "field": "trim"
+    }
+  },
+  "balcony": {
+    "proj": 0.8,
+    "slabT": 0.14,
+    "railH": 1.05,
+    "railT": 0.04,
+    "slabTone": "balc",
+    "railTone": "rail",
+    "railPitch": 0.16
+  },
+  "deck": {
+    "z": 0,
+    "items": []
+  },
+  "blocks": [
+    {
+      "id": "residence",
+      "plan": {
+        "ring": [
+          [
+            27.169,
+            0.025
+          ],
+          [
+            27.101,
+            57.602
+          ],
+          [
+            0.0,
+            57.566
+          ],
+          [
+            0.057,
+            0.0
+          ]
+        ],
+        "holes": []
+      },
+      "z0": 0,
+      "z1": 24.5,
+      "roofTone": "roof",
+      "parapet": 0.8,
+      "parapetTone": "trim",
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 3.8,
+          "skin": "store"
+        },
+        {
+          "z0": 3.8,
+          "z1": 24.5,
+          "skin": "white"
+        }
+      ],
+      "faces": {
+        "3": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 3.8,
+              "skin": "store"
+            },
+            {
+              "z0": 3.8,
+              "z1": 24.5,
+              "skin": "white"
+            }
+          ]
+        }
+      },
+      "_src": "white body over a dark glass ground floor"
+    },
+    {
+      "id": "dark-wing",
+      "plan": [
+        16.4,
+        27.2,
+        -0.2,
+        0.05
+      ],
+      "z0": 0,
+      "z1": 24.5,
+      "bands": [
+        {
+          "z0": 0,
+          "z1": 24.5,
+          "skin": "board"
+        }
+      ],
+      "roofTone": "trim",
+      "_src": "the near-black board-and-batten wing, full height, east end of the street face"
+    },
+    {
+      "id": "lime-west",
+      "plan": [
+        0.0,
+        8.6,
+        -0.3,
+        0.05
+      ],
+      "z0": 11.6,
+      "z1": 24.5,
+      "bands": [
+        {
+          "z0": 11.6,
+          "z1": 24.5,
+          "skin": "lime"
+        }
+      ],
+      "roofTone": "trim",
+      "_src": "the upper-west lime block, floors 4-7"
+    },
+    {
+      "id": "lime-mid",
+      "plan": [
+        11.8,
+        19.2,
+        -0.35,
+        0.05
+      ],
+      "z0": 7.8,
+      "z1": 19.6,
+      "bands": [
+        {
+          "z0": 7.8,
+          "z1": 19.6,
+          "skin": "lime"
+        }
+      ],
+      "roofTone": "trim",
+      "_src": "the middle lime block, floors 3-6, standing over the white and the dark wing"
+    },
+    {
+      "id": "sign-band",
+      "plan": [
+        7.5,
+        16.4,
+        -0.25,
+        0.05
+      ],
+      "z0": 3.3,
+      "z1": 4.5,
+      "bands": [
+        {
+          "z0": 3.3,
+          "z1": 4.5,
+          "skin": "flatBoard"
+        }
+      ],
+      "roofTone": "trim",
+      "faces": {
+        "v0": {
+          "bands": [
+            {
+              "z0": 3.3,
+              "z1": 4.5,
+              "skin": "flatBoard",
+              "signs": [
+                {
+                  "text": "AUSTIN RIO",
+                  "s0": 0.9,
+                  "z0": 3.55,
+                  "dot": 0.12,
+                  "gap": 0.11,
+                  "tone": "sign"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "_src": "the fascia sign over the entrance"
+    },
+    {
+      "id": "top-room",
+      "plan": [
+        5.0,
+        13.4,
+        8.0,
+        40.0
+      ],
+      "z0": 24.5,
+      "z1": 27.7,
+      "roofTone": "roof",
+      "bands": [
+        {
+          "z0": 24.5,
+          "z1": 27.7,
+          "skin": "topDark"
+        }
+      ],
+      "_src": "the dark set-back rooftop room"
+    }
+  ]
+}

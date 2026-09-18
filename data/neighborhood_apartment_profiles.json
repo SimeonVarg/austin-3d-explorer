@@ -523,25 +523,6 @@
       ]
     },
     {
-      "name": "Yugo Austin Rio",
-      "id": "762122e3-8b0c-4bd5-9795-dcf61325b854",
-      "floors": 7,
-      "height": 24.5,
-      "colours": {
-        "wall": "#dddcd3",
-        "accent": "#c78b30"
-      },
-      "source": "https://www.markhartarch.com/ruckus-20/",
-      "observations": "Existing footprint, courtyard openings and roof alignment checked against Esri World Imagery. Facades are simplified; unphotographed elevations use a restrained window and trim profile.",
-      "entryEdges": [
-        0
-      ],
-      "accentEdges": [
-        0
-      ],
-      "preserveRoof": false
-    },
-    {
       "name": "Twenty Two 15",
       "id": "7a5984d8-919c-405c-afe5-cd31ba969b63",
       "floors": 8,
@@ -990,28 +971,6 @@
       "aliases": [
         "The Quarters Montgomery House"
       ]
-    },
-    {
-      "name": "Yugo Austin Nueces",
-      "id": "5453ffd2-7119-4e67-ba04-603bde7f10b4",
-      "floors": 6,
-      "height": 21,
-      "colours": {
-        "wall": "#d1d3c8",
-        "accent": "#a8ba42"
-      },
-      "source": "https://lvcollective.com/work/ruckus/",
-      "observations": "Former Ruckus, 2502 Nueces. Light panels, dark frames and yellow-green accents on the entry elevation.",
-      "entryEdges": [
-        1
-      ],
-      "accentEdges": [
-        1
-      ],
-      "preserveRoof": false,
-      "labelOverride": true,
-      "window": 1.7,
-      "bay": 3.2
     },
     {
       "name": "The Quarters Karnes House",
