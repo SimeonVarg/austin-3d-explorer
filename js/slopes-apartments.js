@@ -81,7 +81,6 @@
     buildSliceMsLive: 12,
     materials:{
       on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],
-      names:['Perry-Castañeda Library','Battle Hall','Texas Union','Welch Hall','Benedict Hall','Mezes Hall','Batts Hall','Jester West Hall','Jester East Hall','San Jacinto Hall'],
       stoneKeys:['stone','trim','precast','coping','white','limestone'],brickKeys:['brick'],glassKeys:['glass','darkGlass'],
       concreteKeys:['pave','concrete','roofFlat'],brickRedRatio:1.16
     },
@@ -494,23 +493,16 @@
   }
   function palette(spec) {
     const out = {};
-    const study=window.SLOPES?.sunlight?.buildings.includes(spec.name);
+
     for (const k of Object.keys(spec.colours || {})) {
       if (k[0] === '_') continue;                       // a `_src` note beside a colour, not a colour
       const v = spec.colours[k];
       const hexes = Array.isArray(v) ? v : (v && v.hex);
       out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes : ramp(hexes[0])) : ramp(hexes);
       const M=APTS.materials;
-      if(M.on&&(study||spec.code||spec.category==='campus'||M.names.includes(spec.name))){
+      if(M.on){
         let kind=spec.materials?.[k];
-        // The two study buildings use explicit material assignments. A +10
-        // kind tags the existing aSurface attribute, no new geometry buffer.
-        if(study){
-          const surface=kind&&M[kind]?M[kind]:[5,1,1,1];
-          out[k].surface=[surface[0]+10,...surface.slice(1)];
-          continue;
-        }
-        if(!kind&&M.glassKeys.includes(k))kind='glass';
+        if(!kind&&(M.glassKeys.includes(k)||/glass|glaz|window/i.test(k)))kind='glass';
         if(!kind&&M.brickKeys.includes(k))kind='brick';
         if(!kind&&M.stoneKeys.includes(k))kind='stone';
         if(!kind&&M.concreteKeys.includes(k))kind='concrete';
@@ -520,7 +512,7 @@
         if(kind&&M[kind])out[k].surface=M[kind];
       }
     }
-    Object.defineProperty(out,'_surfaceGlass',{value:APTS.materials.on&&(spec.code||spec.category==='campus'||APTS.materials.names.includes(spec.name))?APTS.materials.glass:null});
+    Object.defineProperty(out,'_surfaceGlass',{value:APTS.materials.on?APTS.materials.glass:null});
     return out;
   }
   /**
@@ -746,8 +738,10 @@
         if (win) {
           const pane = win.tone ? P[win.tone] || glass : glass;
           const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane.slice();
-          if(pane.surface)col.surface=pane.surface;
-          else if(P._surfaceGlass&&!win.tone)col.surface=P._surfaceGlass;
+          // Explicit opening tones also describe garage mouths and masonry
+          // recesses. Only an actual window inherits the glass material.
+          if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
+          else if(pane.surface)col.surface=pane.surface;
           drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;

@@ -1,5 +1,10 @@
 # Sunlit materials study
 
+Historical study, superseded by [default citywide sunlight](citywide-sunlight.md).
+The building allowlist and opt-in requirement described below have been removed.
+Use `/dev/citywide-sunlight.html` for the current comparison, including Otis,
+downtown and campus. This page preserves the earlier study's evidence.
+
 Branch: `codex/sunlit-materials`. This is an opt-in lighting study on **Yugo
 Austin Waterloo** and **The Callaway House Austin**. Building shapes and authored
 colours are unchanged. The natural lighting direction was accepted on 2026-09-19.

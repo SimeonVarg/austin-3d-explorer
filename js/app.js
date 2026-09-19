@@ -430,6 +430,7 @@
       canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
     });
     window.__map = map;
+window.CityLighting.install(map);
     // Y12. Before the first frame is drawn, and again once the style has
     // swapped the transform out from under us. A no-op above WALK_NEAR.ALT_HI.
     window.__walkNearOn = installWalkingNearPlane(map);
@@ -475,6 +476,7 @@
   }
 
   function buildScene() {
+  window.CityLighting.setBuildings(scene?.buildings?.features || []);
     if (built) return;
     built = true;
     const p = DEFAULT_P;

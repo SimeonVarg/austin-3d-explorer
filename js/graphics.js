@@ -178,6 +178,7 @@
     { key: 'outerDensity', label: 'City beyond campus', min: 0.2, max: 1, step: 0.025, group: 'speed',
       fmt: v => Math.round(v * 100) + '%' },
 
+    { key: 'windowReflections', label: 'Window reflections', min: 0, max: 1.2, step: 0.05, group: 'light', fmt: v => Math.round(v*100)+'%' },
     { key: 'shadows', label: 'Building shadows', type: 'bool', group: 'light' },
     { key: 'ao', label: 'Shadows at the base', type: 'bool', group: 'light' },
     // No hint about the reload, deliberately: raising this from zero calls
@@ -232,6 +233,7 @@
   // to change if it should be richer, and it changes everywhere at once, which
   // is the point.
   const GRADE = {
+    windowReflections: 1,
     exposure: 1.03,
     contrast: 1.06,
     saturation: 1.0,

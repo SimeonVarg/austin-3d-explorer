@@ -183,24 +183,20 @@
     // `SLOPES.on = false` from the console stops it on the next frame, no
     // reload; it is read live in render(), never cached.
     on: q.get('slopes') !== '0',
-    // Two-building visual study, opt-in until the look is reviewed. Surface
-    // kinds 11..15 carry the study flag without adding a vertex attribute.
-    // ?sunlight=0 / live .on=false returns those faces to the original shader.
+    // Default across both rendering paths. ?sunlight=0 is the comparison switch.
     sunlight: {
-      on: q.get('sunlight') === '1',
-      buildings: ['Yugo Austin Waterloo', 'The Callaway House Austin'],
-      ambient: .32, direct: 1.45, glassReflectance: .60, sunGlint: 3.0,
+      on: q.get('sunlight') !== '0',
+      ambient: .32, direct: 1.45, glassReflectance: .90, reflectionStrength: 1, sunGlint: 3.0,
       glintPower: 900, haloPower: 24, haloStrength: .10,
-      horizonHeight: .32, sunsetSpread: 6, sunsetStrength: .8,
+      horizonHeight: .45, sunsetSpread: 3, sunsetStrength: 1.5,
       daySun: '#fff8ed', lowSun: '#ffb45f', shade: '#c2cddd',
       dayZenith: '#6396c7', dayHorizon: '#c4d8e5',
-      lowZenith: '#6c91b3', lowHorizon: '#e7c9a5', sunset: '#ffad55',
+      lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
-      shadows: true, shadowSize: 1536, shadowRadius: 95,
+      shadows: true, shadowSize: 1536, shadowRadii: [240, 1400], shadowSnap: 20,
       shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
-      shadowCentres: [[-97.744121,30.288244,48],[-97.74352,30.28478,30]],
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
@@ -416,100 +412,26 @@
     varying vec3 v_normal;
     varying vec4 v_surface;
     varying vec3 v_albedo;
-    uniform vec3 u_eye;
     uniform vec4 u_surfaceStyle;
     uniform vec3 u_surfaceRange;
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
     uniform vec4 u_surfaceHorizon;
     uniform float u_p;
-    uniform vec4 u_sunlight;
-    uniform vec3 u_sunDirection;
-    uniform vec3 u_sunColour;
-    uniform vec3 u_shadeColour;
-    uniform vec3 u_skyZenith;
-    uniform vec3 u_skyHorizon;
-    uniform vec3 u_sunsetColour;
-    uniform vec3 u_groundColour;
-    uniform vec4 u_glassSun;
-    uniform vec4 u_reflectionSky;
-    uniform vec2 u_sunPresence;
-    uniform sampler2D u_sunShadow0;
-    uniform sampler2D u_sunShadow1;
-    uniform mat4 u_sunShadowMatrix0;
-    uniform mat4 u_sunShadowMatrix1;
-    uniform vec4 u_shadowSettings;
-    uniform vec4 u_shadowCentres;
+    ${window.CityLighting.uniforms}
     #include <packing>
+    ${window.CityLighting.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-    vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
-    vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
-    vec3 reflectedSky(vec3 r) {
-      float height=smoothstep(0.0,u_reflectionSky.x,max(r.z,0.0));
-      vec3 sky=mix(u_skyHorizon,u_skyZenith,height);
-      // A warm horizon toward the actual sun, cooler sky in other directions.
-      vec2 sunH=normalize(u_sunDirection.xy+vec2(.00001));
-      vec2 rayH=normalize(r.xy+vec2(.00001));
-      float azimuth=pow(max(dot(rayH,sunH),0.0),u_reflectionSky.y);
-      float warmth=azimuth*(1.0-height)*u_sunPresence.y*u_reflectionSky.z;
-      sky=mix(sky,u_sunsetColour,warmth);
-      return mix(u_groundColour,sky,smoothstep(-u_reflectionSky.w,u_reflectionSky.w,r.z));
-    }
-    float shadowSample(sampler2D shadowMap,vec3 p) {
-      float light=0.0;
-      // Small PCF kernel softens the texel edge without smearing a balcony's
-      // shadow across a whole floor. Depth is packed RGBA, not an 8-bit red.
-      for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++) {
-        float depth=unpackRGBAToDepth(texture2D(shadowMap,p.xy+vec2(float(x),float(y))*u_shadowSettings.y));
-        light+=step(p.z-u_shadowSettings.z,depth);
-      }
-      return light/9.0;
-    }
-    float sunlightVisibility(vec3 n) {
-      if(u_shadowSettings.x<.5)return 1.0;
-      bool first=distance(v_pos.xy,u_shadowCentres.xy)<distance(v_pos.xy,u_shadowCentres.zw);
-      vec4 clip=(first?u_sunShadowMatrix0:u_sunShadowMatrix1)*vec4(v_pos+n*u_shadowSettings.w,1.0);
-      vec3 p=clip.xyz/clip.w*.5+.5;
-      if(any(lessThan(p,vec3(0.0)))||any(greaterThan(p,vec3(1.0))))return 1.0;
-      return first?shadowSample(u_sunShadow0,p):shadowSample(u_sunShadow1,p);
-    }
     void main() {
       vec3 col=v_color.rgb;
       float kind=v_surface.x;
-      bool study=kind>10.5;
-      if(study) kind-=10.0;
-      // Keep the old scene exactly available in the same session. The study
-      // buildings had no surface classification before this change.
-      if(study && u_sunlight.x<.5) kind=0.0;
-      if(study && u_sunlight.x>.5) {
-        vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
-        float facing=max(dot(n,u_sunDirection),0.0);
-        float visibility=sunlightVisibility(n);
-        vec3 albedo=linearColour(v_albedo);
-        vec3 diffuse=albedo*(linearColour(u_shadeColour)*u_sunlight.y+
-          linearColour(u_sunColour)*facing*visibility*u_sunlight.z);
-        if(kind>3.5 && kind<4.5) {
-          vec3 reflected=reflect(-view,n);
-          float fresnel=pow(1.0-clamp(abs(dot(n,view)),0.0,1.0),5.0);
-          float reflectance=mix(u_sunlight.w,1.0,fresnel);
-          vec3 environment=linearColour(reflectedSky(reflected));
-          // Reflection of the shared sky sun, not a fixed orange facade tint.
-          float alignment=max(dot(reflected,u_sunDirection),0.0);
-          float highlight=pow(alignment,u_glassSun.y)*u_glassSun.x+
-                          pow(alignment,u_glassSun.z)*u_glassSun.w;
-          environment+=linearColour(u_sunColour)*highlight*visibility*smoothstep(0.0,.08,facing);
-          // Glass keeps its authored tint, but no orange day/golden ramp is
-          // baked into the reflected environment. Its brightness is view-dependent.
-          diffuse=mix(diffuse,environment,reflectance);
-        }
-        col=mix(col,displayColour(diffuse),u_sunPresence.x);
-      }
+      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0)*v_color.a;
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=v_surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
         if(kind>3.5 && kind<4.5) {
-          if(!study) {
+          if(u_sunlight.x<.5) {
           float fresnel=pow(1.0-abs(dot(n,view)),3.0);
           float daylight=1.0-smoothstep(.5,.95,u_p);
           vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
@@ -528,7 +450,7 @@
           float tile=hashCell(floor(cell))-.5;
           float grain=hashCell(floor(uv*u_surfaceNoise.x))-.5;
           float grainFade=1.0-smoothstep(.2,1.0,max(fwidth(uv.x),fwidth(uv.y))*u_surfaceNoise.x);
-          col*=1.0+strength*nearDetail*(study?u_sunPresence.x:1.0)*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
+          col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
         }
       }
       gl_FragColor=vec4(col,v_color.a);
@@ -553,7 +475,7 @@
   function updateSunShadows() {
     const s=SLOPES.sunlight,T=window.THREE;
     U.u_shadowSettings.value.x=0;
-    if(!s.on||!s.shadows||U.u_sunDirection.value.z<=0||!window.slopesApartments?.count.done)return;
+    if(!s.on||!s.shadows||window.GFX?.shadows===false||U.u_sunDirection.value.z<=0||!window.slopesApartments?.count.done)return;
     // No new per-frame scene traversal or geometry. Render the existing mesh
     // scene from the sun only when the hour or completed building set changes.
     if(_sunShadow&&_sunShadow.size!==s.shadowSize)releaseSunShadows();
@@ -564,11 +486,15 @@
         fragmentShader:'#include <packing>\nvarying float v_depth; void main(){gl_FragColor=packDepthToRGBA(v_depth);}',
         side:T.DoubleSide,blending:T.NoBlending,depthTest:true,depthWrite:true,
       });
-      const cameras=s.shadowCentres.map(()=>new T.OrthographicCamera(-s.shadowRadius,s.shadowRadius,s.shadowRadius,-s.shadowRadius,1,s.shadowDistance*2));
+      const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
       _sunShadow={targets,depth,cameras,key:null,size:s.shadowSize,updates:0};
       U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
     }
-    const key=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadius,s.shadowDistance,JSON.stringify(s.shadowCentres),root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
+    const centre=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
+    centre.x=Math.round(centre.x/s.shadowSnap)*s.shadowSnap;
+    centre.y=Math.round(centre.y/s.shadowSnap)*s.shadowSnap;
+    const proxy=window.CityLighting.shadowProxy(_map);
+    const key=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,centre.x,centre.y,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
     if(_sunShadow.key!==key) {
       const target=renderer.getRenderTarget(),override=scene.overrideMaterial;
       // MapLibre owns canvas sizing. Three's default viewport is stale unless
@@ -579,22 +505,22 @@
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
       try {
         scene.overrideMaterial=_sunShadow.depth;
+        if(proxy){scene.add(proxy);proxy.visible=true;}
         renderer.setClearColor(0xffffff,1);
         for(let i=0;i<2;i++) {
-          const c=toLocal(...s.shadowCentres[i]),cam=_sunShadow.cameras[i];
-          cam.left=cam.bottom=-s.shadowRadius;cam.right=cam.top=s.shadowRadius;
+          const c=centre,cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
+          cam.left=cam.bottom=-radius;cam.right=cam.top=radius;
           cam.far=s.shadowDistance*2;cam.updateProjectionMatrix();
           cam.up.set(0,0,1);
           cam.position.set(c.x,c.y,c.z).addScaledVector(U.u_sunDirection.value,s.shadowDistance);
           cam.lookAt(c.x,c.y,c.z);cam.updateMatrixWorld(true);
           U[i===0?'u_sunShadowMatrix0':'u_sunShadowMatrix1'].value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
-          if(i===0){U.u_shadowCentres.value.x=c.x;U.u_shadowCentres.value.y=c.y;}
-          else{U.u_shadowCentres.value.z=c.x;U.u_shadowCentres.value.w=c.y;}
           renderer.setRenderTarget(_sunShadow.targets[i]);renderer.clear();renderer.render(scene,cam);
         }
         _sunShadow.key=key;
         _sunShadow.updates++;
       } finally {
+        if(proxy){scene.remove(proxy);proxy.visible=false;}
         scene.overrideMaterial=override;renderer.setRenderTarget(target);renderer.setClearColor(clear,alpha);
         renderer.setViewport(...viewport);renderer.setScissor(...scissor);renderer.setScissorTest(scissorTest);
       }
@@ -1085,7 +1011,8 @@
     /** js/lod.js calls this instead of setLayoutProperty for custom layers. */
     setVisible(v) { _visible = !!v; if (_map) _map.triggerRepaint(); },
     isVisible() { return _visible; },
-    render(gl, args) {
+    prerender(gl,args) { this.render(gl,args,true); },
+    render(gl, args, prepareOnly=false) {
       // The switch, read LIVE every frame — never cached at onAdd.
       if (!SLOPES.on || !scene) return;
       // Each generator's group carries the minzoom and the LOD tier of the
@@ -1107,7 +1034,7 @@
         const vis = !(ud.minzoom != null && zoom < ud.minzoom) && (_visible || ud.lod !== 'mid');
         g.visible = vis; any = any || vis;
       }
-      if (!any) return;
+      // Lighting still updates when LOD hides every authored mesh.
       const T = window.THREE;
       if (!renderer) {
         // Built here, not in onAdd: see contract point 7.
@@ -1149,6 +1076,7 @@
       const present=clamp01((elevation-sunlight.nightFadeEnd)/(sunlight.nightFadeStart-sunlight.nightFadeEnd));
       U.u_sunPresence.value.set(present*present*(3-2*present),warm);
       U.u_sunlight.value.set(sunlight.on?1:0,sunlight.ambient,sunlight.direct,sunlight.glassReflectance);
+      U.u_glassStrength.value=sunlight.reflectionStrength*(window.GFX?.windowReflections??1);
       U.u_glassSun.value.set(sunlight.sunGlint,sunlight.glintPower,sunlight.haloPower,sunlight.haloStrength);
       U.u_reflectionSky.value.set(sunlight.horizonHeight,sunlight.sunsetSpread,sunlight.sunsetStrength,sunlight.groundBlend);
       const blendColour=(uniform,a,b,t)=>{
@@ -1163,6 +1091,8 @@
       U.u_groundColour.value.set(...hexToRgb01(sunlight.ground));
       renderer.resetState();
       updateSunShadows();
+      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture));
+      if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
     },
@@ -1334,7 +1264,7 @@
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
       u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
-      u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
+      u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
       u_sunsetColour:{value:new T.Vector3()},u_groundColour:{value:new T.Vector3()},
@@ -1342,7 +1272,7 @@
       u_sunPresence:{value:new T.Vector2()},
       u_sunShadow0:{value:null},u_sunShadow1:{value:null},
       u_sunShadowMatrix0:{value:new T.Matrix4()},u_sunShadowMatrix1:{value:new T.Matrix4()},
-      u_shadowSettings:{value:new T.Vector4()},u_shadowCentres:{value:new T.Vector4()},
+      u_shadowSettings:{value:new T.Vector4()},
       u_lightcolor: { value: new T.Vector3(1, 1, 1) },
       u_lightintensity: { value: 0.28 },
       u_vertical_gradient: { value: SLOPES.verticalGradient },

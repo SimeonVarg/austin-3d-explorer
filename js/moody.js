@@ -223,7 +223,7 @@
       let g = mix(w, M.GLASS_SKY, M.GLASS_SKY_MIX * (1 - dark));
       g = mix(g, [255, 176, 96], golden * 0.42);
       g = mix(g, [14, 18, 30], dark * 0.86);
-      fill(g, 0, 0, T, T);
+      ctx.fillStyle=css(g);window.CityLighting.glassRect(ctx, 0, 0, T, T);
       if (night > 0.02) {
         const room = mix(g, M.GLASS_NIGHT, M.GLASS_NIGHT_MIX * night);
         fill(room, 0, 0, T, T);
@@ -303,7 +303,7 @@
             if (night > 0.05 && hash01(seed + 1009, r, c) < 0.30) {
               pane = mix(glass, [255, 206, 150], Math.min(1, night * 1.3) * 0.86);
             }
-            fill(pane, xx, y, M.BODY_W, M.BODY_H);
+            ctx.fillStyle=css(pane);window.CityLighting.glassRect(ctx, xx, y, M.BODY_W, M.BODY_H);
             fill(reveal, xx, y, 1, M.BODY_H);
           };
           draw(x);

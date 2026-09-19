@@ -313,7 +313,7 @@
         let v = mix(glass, [255, 255, 255], 0.05 * hash01(r + 2, c + 5));
         if (night > 0 && hash01(c + 11, r + 4) < ARTS.glassLit) v = mix(v, lit, night * 0.62);
         ctx.fillStyle = css(v);
-        ctx.fillRect(Math.round(c * sx) + M, Math.round(r * sy) + M,
+        window.CityLighting.glassRect(ctx, Math.round(c * sx) + M, Math.round(r * sy) + M,
                      Math.round(sx) - M, Math.round(sy) - M);
       }
     }

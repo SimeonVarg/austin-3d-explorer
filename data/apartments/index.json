@@ -44,7 +44,8 @@
     "yugo-austin-waterloo.json",
     "yugo-austin-rio.json",
     "yugo-austin-nueces.json",
-    "block-on-25th-west.json"
+    "block-on-25th-west.json",
+    "the-otis-hotel.json"
   ],
   "replacedBuildingIds": [
     "36365d18-2eb6-43c5-b042-6197e7767e17",
@@ -92,7 +93,8 @@
     "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
     "762122e3-8b0c-4bd5-9795-dcf61325b854",
     "5453ffd2-7119-4e67-ba04-603bde7f10b4",
-    "3d9f61df-03ab-4b6f-8f47-8cd7463827be"
+    "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
+    "12126a99-0b70-410e-a37b-cd25080f2036"
   ],
   "replacedNames": [
     "The Standard",
@@ -136,7 +138,10 @@
     "Yugo Austin Nueces",
     "Block on 25th West",
     "The Block on 25th",
-    "The Block on 25th West"
+    "The Block on 25th West",
+    "The Otis Hotel",
+    "The Otis Hotel, Autograph Collection",
+    "AC Hotel Austin-University"
   ],
   "collections": [
     "data/campus_buildings.json",

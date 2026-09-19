@@ -41,7 +41,9 @@
     return [x*data.east[0]+y*data.east[1],x*data.north[0]+y*data.north[1]];
   }
   const point = p=>[origin.x+east[0]*p[0]+north[0]*p[1],origin.y+east[1]*p[0]+north[1]*p[1],p[2]];
-  const colour = key=>TUNE.flat ? data.palette.concrete : (data.palette[key] || data.palette.concrete);
+  const colour = key=>TUNE.flat ? data.palette.concrete : key==='glass'
+    ? window.CityLighting.glassColour(data.palette.glass)
+    : (data.palette[key] || data.palette.concrete);
   function collisionTri(a,b,c) {
     const den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);
     if(Math.abs(den)<0.01)return;
