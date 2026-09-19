@@ -8,6 +8,9 @@
   'use strict';
   const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, failures:[], glassImages:0};
   let frame=null, serial=0, fallbackShadow=null;
+  // Pattern texels below this alpha are translucent overlays, not glass-coded
+  // facade texels (which are 191..255). Anything between the two bands works.
+  const OVERLAY_ALPHA=0.70;
   const uniforms = `
     uniform vec3 u_eye;
     uniform vec4 u_sunlight;
@@ -209,9 +212,18 @@
             kind=pattern?'pattern-fragment':'solid-fragment';
             const packing=`float unpackRGBAToDepth(vec4 v){return dot(v,vec4(255.0/256.0/16777216.0,255.0/256.0/65536.0,255.0/256.0/256.0,255.0/256.0));}`;
             source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\nvoid main()`);
-            const output=pattern?`float glass=clamp((1.0-mixedColor.a)*255.0/64.0,0.0,1.0);
+            // The glass code is a FACADE-atlas convention: opaque texels, and
+            // alpha 191 reserved for glass (see glassRect). A texel below
+            // OVERLAY_ALPHA is neither: it is a translucent ground overlay
+            // (creek ripple, walk grain, Speedway brick; measured max alpha
+            // 121/255, facades min 191/255). Read as glass it became an opaque
+            // sky mirror that hid the surface it only meant to tint, which is
+            // what made the creek's z-fight full-contrast. Those texels keep
+            // MapLibre's own premultiplied output. docs/water-flicker.md.
+            const output=pattern?`if(mixedColor.a<${OVERLAY_ALPHA.toFixed(3)}){fragColor=mixedColor*v_lighting;}else{
+              float glass=clamp((1.0-mixedColor.a)*255.0/64.0,0.0,1.0);
               vec3 cityBase=mixedColor.rgb;
-              fragColor=vec4(cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass)*v_lighting.a,v_lighting.a);`
+              fragColor=vec4(cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass)*v_lighting.a,v_lighting.a);}`
               :`fragColor=vec4(cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);`;
             source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output);
             stats.fragmentShaders++;
