@@ -923,7 +923,7 @@
       const sash = (uc,r,spring,bottom,depth,cols,rows) => {
         const p=[[uc-r,bottom],[uc+r,bottom],[uc+r,spring]];
         for(let i=1;i<=seg;i++){const th=Math.PI*i/seg;p.push([uc+r*Math.cos(th),spring+r*Math.sin(th)]);}
-        B.extrude(p,F,depth,depth+D.depth,D.pane,{back:false});
+        B.extrude(p,F,depth,depth+D.depth,window.CityLighting.glassColour(D.pane),{back:false});
         const rect=(a,b,z0,z1)=>B.extrude([[a,z0],[b,z0],[b,z1],[a,z1]],F,depth+D.depth,depth+2*D.depth,D.bars,{back:false});
         for(let k=1;k<cols;k++){
           const x=uc-r+2*r*k/cols;

@@ -185,7 +185,7 @@
     // Routed fields win over the linear preset blend across the WHOLE range,
     // not just p > 0.5 as before.
     for (const k of Object.keys(ROUTES)) out[k] = duskAt(ROUTES[k], p);
-    // The opt-in material study shares its sky palette with the visible sky.
+    // The citywide material lighting shares its palette with the visible sky.
     // A blue reflection under an entirely purple sky would be a different sun
     // story. Fade back to the existing twilight/night route as the sun sets.
     const study=window.SLOPES?.sunlight;

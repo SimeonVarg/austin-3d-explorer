@@ -966,6 +966,7 @@
     const cLit = litProps
       ? [litProps.properties.wd, litProps.properties.wg, litProps.properties.wn]
       : trioOf('#3a4048', '#ffdca8', 0.06);
+    cGlass.surface=cLit.surface=window.CityLighting.glassColour(cGlass).surface;
 
     // The numeral, unchanged: the middle bay full height, all three across the
     // bottom, two cells in the left bay near the top. Three bays is exactly
