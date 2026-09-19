@@ -108,7 +108,9 @@ for (const arm of ARMS) {
   page.on('crash', () => errs.push('*** PAGE CRASHED ***'));
 
   const t0 = Date.now();
-  await page.goto(BASE + '/' + arm, { waitUntil: 'load', timeout: WAIT });
+  // An arm may be a full URL, so two servers (e.g. main and a branch) can be
+  // interleaved in one run: node mobile-budget.mjs http://a/?x http://b/?x ...
+  await page.goto(/^https?:/.test(arm) ? arm : BASE + '/' + arm, { waitUntil: 'load', timeout: WAIT });
 
   // The app's own "the city is built" signal, so every arm is read at the same
   // point in its life rather than after a fixed sleep.
@@ -122,6 +124,16 @@ for (const arm of ARMS) {
     if (lifted) { veil = Date.now() - t0; break; }
     await page.waitForTimeout(500);
   }
+  // Since 2026-09-19 a phone can lift the veil BEFORE the authored buildings
+  // land (js/mobile.js LITE.lateAuthored). Reading the heap then would measure
+  // a scene without its biggest layer and look better for it. Wait for them.
+  let landed = null;
+  while (Date.now() < deadline) {
+    const done = await page.evaluate(() => !(window.SLOPES && window.SLOPES.on) || !(window.APARTMENTS && window.APARTMENTS.on) ||
+      !!(window.slopesApartments && window.slopesApartments.group)).catch(() => false);
+    if (done) { landed = Date.now() - t0; break; }
+    await page.waitForTimeout(500);
+  }
 
   await page.waitForTimeout(2000);
   await page.evaluate(() => { if (window.gc) { window.gc(); window.gc(); } }).catch(() => {});
@@ -131,23 +143,26 @@ for (const arm of ARMS) {
     heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
     limit: performance.memory ? Math.round(performance.memory.jsHeapSizeLimit / 1048576) : null,
     lite: window.LITE_PROFILE || null,
-    search: location.search,
+    // js/mobile.js puts the visitor's own URL back after boot, so the profile
+    // that was in force is LITE_PROFILE.applied, not location.search.
+    search: location.search + (window.LITE_PROFILE && window.LITE_PROFILE.applied.length ? '  [+' + window.LITE_PROFILE.applied.join('&') + ']' : ''),
     slopes: window.slopes && window.slopes.stats ? window.slopes.stats().triangles : 0,
   }));
 
-  rows.push({ arm: arm || '(default)', ...m, veilMs: veil, errors: errs });
+  rows.push({ arm: arm || '(default)', ...m, veilMs: veil, landedMs: landed, errors: errs });
   await ctx.close();
 }
 await browser.close();
 
 console.log(`base ${BASE}${STUB ? '   [VERIFY_STUB=1: stubbed basemap, absolute heap is a floor]' : ''}`);
 console.log('');
-console.log('arm'.padEnd(26), 'heap MB'.padStart(8), 'veil'.padStart(9), 'slopes tris'.padStart(12), '  effective query');
+console.log('arm'.padEnd(26), 'heap MB'.padStart(8), 'veil'.padStart(9), 'landed'.padStart(9), 'slopes tris'.padStart(12), '  effective query');
 for (const r of rows) {
   console.log(
     r.arm.padEnd(26),
     String(r.heap).padStart(8),
     (r.veilMs === null ? 'NEVER' : r.veilMs + ' ms').padStart(9),
+    (r.landedMs === null ? 'NEVER' : r.landedMs + ' ms').padStart(9),
     String(r.slopes).padStart(12),
     '  ' + (r.search || '(none)'),
   );
