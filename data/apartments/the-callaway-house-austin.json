@@ -2,6 +2,10 @@
   "_readme": "The Callaway House Austin, 505 W 22nd St, as js/slopes-apartments.js draws it. Every number cites a source key from `sources` in a sibling `_src` field; a value with no source says so. Metres, in the footprint's own oriented bounding box (js/westcampus.js obbOf): +u runs EAST along W 22nd St (bearing 94.8 deg), +v runs NORTH; u=0 is the west (Nueces St) edge, v=0 the south edge, v=71.1 the north (W 22nd St) edge, L=80.17, W=71.12. Read docs/apartments.md for the schema.",
   "id": "11b2bb80-d577-4da7-8b10-d27385f80c4b",
   "name": "The Callaway House Austin",
+  "materials": {
+    "brick": "brick", "brickDark": "brick", "brickBase": "brick", "pylon": "brick",
+    "glass": "glass", "storeGlass": "glass"
+  },
   "address": "505 W 22nd St, Austin, TX 78705",
   "sources": {
     "S1": "data/snapshots/2026-08-27/buildings.detailed.geojson feature 11b2bb80-d577-4da7-8b10-d27385f80c4b: the 38-vertex footprint (area 4,200 m2), num_floors 17, final_height 62.5, source_height 'overture'. The 62.5 is NOT independent of S3 - it is 205 ft, S3's top-of-mechanical - but it arrives here as an Overture guess and is only used because S3 states the same number from a stated measurement.",

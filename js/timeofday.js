@@ -185,6 +185,21 @@
     // Routed fields win over the linear preset blend across the WHOLE range,
     // not just p > 0.5 as before.
     for (const k of Object.keys(ROUTES)) out[k] = duskAt(ROUTES[k], p);
+    // The opt-in material study shares its sky palette with the visible sky.
+    // A blue reflection under an entirely purple sky would be a different sun
+    // story. Fade back to the existing twilight/night route as the sun sets.
+    const study=window.SLOPES?.sunlight;
+    if(study?.on&&study.atmosphere&&window.skyBodies){
+      const elevation=window.skyBodies(p).sun.elev;
+      const warm=clamp01(1-elevation/study.warmElevation);
+      const t=clamp01((elevation-study.nightFadeEnd)/(study.nightFadeStart-study.nightFadeEnd));
+      const presence=t*t*(3-2*t);
+      out.sky=lerpHex(out.sky,lerpHex(study.dayZenith,study.lowZenith,warm),presence);
+      out.horizon=lerpHex(out.horizon,lerpHex(study.dayHorizon,study.lowHorizon,warm),presence);
+      out.fog=lerpHex(out.fog,out.horizon,presence);
+      out.skyBlend=lerpNum(out.skyBlend,study.skyBlend,presence);
+      out.saturation=lerpNum(out.saturation,study.saturation,presence);
+    }
     return out;
   }
 

@@ -1,0 +1,161 @@
+{
+  "date": "2026-09-19",
+  "base": "f9d2f26",
+  "preset": "balanced",
+  "cpuThrottle": 1,
+  "renderer": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "triangles": 2593067,
+  "method": "Three interleaved actual-map-render runs each mode; 91 renders, 90 frame intervals per run. Min of run means. Not isolated GPU time.",
+  "scope": "Desktop prototype. Mobile, shadow update spikes, off-versus-unmodified-main cost and citywide coverage are unverified.",
+  "waterloo-checks": {
+    "nightControlChangedPixels": 0,
+    "nightChangedPixels": 0,
+    "nightPixels": 1917867,
+    "nightChangedFraction": 0,
+    "nonblack": 1917867,
+    "geometryUnchanged": true,
+    "nightSun": 0,
+    "nightShadow": 0,
+    "sunDirectionError": 1.3877787807814457e-17,
+    "shadowCached": true,
+    "shadowMaps": 2,
+    "shadowActive": true,
+    "glError": 0,
+    "shaderFailures": 0,
+    "pass": true
+  },
+  "waterloo-frames": [
+    {
+      "enabled": false,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 23.80000001192093,
+      "p95": 31.399999991059303,
+      "mean": 24.852222222255335
+    },
+    {
+      "enabled": true,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 27.5,
+      "p95": 43.099999994039536,
+      "mean": 27.377777777777776
+    },
+    {
+      "enabled": false,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 26.400000005960464,
+      "p95": 40.8999999910593,
+      "mean": 27.261111111111113
+    },
+    {
+      "enabled": true,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 29.899999991059303,
+      "p95": 35.69999998807907,
+      "mean": 29.56000000006623
+    },
+    {
+      "enabled": false,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 24.599999994039536,
+      "p95": 40,
+      "mean": 26.251111111044885
+    },
+    {
+      "enabled": true,
+      "building": "waterloo",
+      "renderedFrames": 91,
+      "median": 28.600000008940697,
+      "p95": 46.1000000089407,
+      "mean": 29.345555555489327
+    }
+  ],
+  "callaway-checks": {
+    "nightControlChangedPixels": 0,
+    "nightChangedPixels": 0,
+    "nightPixels": 1917867,
+    "nightChangedFraction": 0,
+    "nonblack": 1917867,
+    "geometryUnchanged": true,
+    "nightSun": 0,
+    "nightShadow": 0,
+    "sunDirectionError": 1.3877787807814457e-17,
+    "shadowCached": true,
+    "shadowMaps": 2,
+    "shadowActive": true,
+    "glError": 0,
+    "shaderFailures": 0,
+    "pass": true
+  },
+  "callaway-frames": [
+    {
+      "enabled": false,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 26.600000008940697,
+      "p95": 35.599999994039536,
+      "mean": 26.674444444477558
+    },
+    {
+      "enabled": true,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 28.599999994039536,
+      "p95": 53.900000005960464,
+      "mean": 28.819999999966885
+    },
+    {
+      "enabled": false,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 26.700000002980232,
+      "p95": 59.1000000089407,
+      "mean": 29.19222222218911
+    },
+    {
+      "enabled": true,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 28.700000002980232,
+      "p95": 39.30000001192093,
+      "mean": 28.586666666633555
+    },
+    {
+      "enabled": false,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 28,
+      "p95": 47.70000000298023,
+      "mean": 28.531111111077998
+    },
+    {
+      "enabled": true,
+      "building": "callaway",
+      "renderedFrames": 91,
+      "median": 20.700000002980232,
+      "p95": 64.6000000089407,
+      "mean": 27.160000000066226
+    }
+  ],
+  "shadow-disabled-check": {
+    "nightControlChangedPixels": 0,
+    "nightChangedPixels": 0,
+    "nightPixels": 1917867,
+    "nightChangedFraction": 0,
+    "nonblack": 1917867,
+    "geometryUnchanged": true,
+    "nightSun": 0,
+    "nightShadow": 0,
+    "sunDirectionError": 1.3877787807814457e-17,
+    "shadowCached": true,
+    "shadowMaps": 0,
+    "shadowActive": false,
+    "glError": 0,
+    "shaderFailures": 0,
+    "pass": false
+  }
+}
