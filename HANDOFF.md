@@ -30462,3 +30462,7 @@ Evidence `docs/shots/21rio-photo-match.jpg` (aerial, and two 2010 street photos;
 - South: blue-grey, the glazed bay at the west end only (it was on both faces), a balcony stack in front of it, two stacks under an orange roof pergola, a paler middle plane. East: juliet strip, the white pier rising to 70 m with 21 RIO, then one continuous recessed gallery per floor (white slabs, three orange rails, white columns, brown door panels). West: cream with its pergola. The little orange posts on the parapet are gone.
 - Render tool: `match.mjs` gained `swap` (serve main's copy of a data file) so a BEFORE is rendered locally; the live site took 103 s to load here and gave junk frames.
 Not yet: the podium (west orange grid screen, south two-tone garage), the gallery's condenser boxes, the pergolas' sloping struts.
+
+## 2026-09-18 — photo matching handed to Astra
+Done and live this round: Moody Center, 21 Rio (plus The Standard, Icon, Villas 24, Yugo x3, Block 25 W, Moontower, 2400 Nueces, Callaway pylons, Texan Tower height earlier).
+Unfinished: branch `acer/match-dobie` (NOT merged, not verified) — stepped diamond plan, one glass ribbon + one spandrel band per storey, brown crown with corner shoulders. Its last render hung; re-verify before merging.
