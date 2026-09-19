@@ -1769,8 +1769,9 @@ window.CityLighting.install(map);
   // crest — `crest.zoom` is the dial for that, and raising it by 0.3 cuts the
   // drawn area by about a third if a weaker device ever needs it.
   //
-  // Every value here is a one-line taste edit. Any input cancels the flight and
-  // skips to `end`, which is what pressing a key during a title sequence means.
+  // Every value here is a one-line taste edit. The first navigation input stops
+  // the flight ON THE FRAME BEING SHOWN and the user flies on from there — see
+  // primeIntro() and docs/intro-interrupt.md for why it no longer skips to `end`.
   const INTRO = {
     start: { center: [-97.7420, 30.2680], zoom: 16.2,  pitch: 78, bearing: 5 },
     crest: { center: [-97.7404, 30.2748], zoom: 15.45, pitch: 71, bearing: 3 },
@@ -1905,6 +1906,9 @@ window.CityLighting.install(map);
     const dbg = window.__intro = {
       needs: INTRO.needs.slice(), gate: gate, waitAuthored: waitAuthored,
       waitedMs: null, reason: null, missingAtLift: null, gateOkAt: null,
+      // The opening flight's live state (see primeIntro): null when the intro
+      // is not playing on this path.
+      flight: flight ? flight.state : null,
     };
 
     const reveal = (reason) => {
@@ -1972,44 +1976,123 @@ window.CityLighting.install(map);
     tick();
   }
 
+  /**
+   * THE OPENING FLIGHT, AND WHAT TOUCHING THE CONTROLS DURING IT DOES.
+   *
+   * Reported: "moving during the intro teleports me behind campus." It did,
+   * by design. Any mousedown/wheel/keydown/touchstart used to run
+   * `map.stop(); map.jumpTo(INTRO.end)` — skip to the title sequence's last
+   * frame. INTRO.end is over north campus facing SOUTH, so pressing W three
+   * seconds in, while looking north up Congress, cut the camera 3.5 km and
+   * 162 degrees in one frame and then flew you forward from somewhere you
+   * never saw (measured: scripts/verify/intro-interrupt.mjs, before the fix).
+   * The same listeners also missed the most common look gesture entirely: the
+   * controller's pointerdown calls preventDefault, which suppresses the
+   * compatibility `mousedown`, so a mouse drag never cancelled anything and
+   * leg 2's timer later flew the camera away from under the user.
+   *
+   * NOW: the first NAVIGATION input stops the flight on the frame on screen
+   * and the controller carries on from exactly there. Nothing jumps.
+   *
+   *   - "Navigation input" is defined by the one thing that knows: the flight
+   *     controller (js/controls.js). The moment it takes the camera it fires
+   *     `flycam:takeover` on window, BEFORE it stops the running ease and
+   *     re-reads the pose, and the flight cancels itself on that. So keys,
+   *     drag-look, the wheel, pinch, tap-drag and the joystick all count, on
+   *     every device, and a click on a panel or a key typed into a text field
+   *     does not — the flight simply carries on.
+   *   - Anything ELSE that moves the camera mid-flight (R's home ease, a
+   *     landmark orbit, the tour key, wayfind's `Walk it`, which calls
+   *     map.stop()) ends one of our legs short of its target. Each leg's own
+   *     `moveend` checks it arrived; if it did not, the flight is over and
+   *     whoever moved the camera keeps it.
+   *   - Leg 2 starts from leg 1's completed `moveend`, not from a timer. The old
+   *     `setTimeout(leg1Ms + 30)` was the thing a `map.stop()` could not reach:
+   *     it fired on top of whatever the user or another module had done since
+   *     (js/wayfind.js documents it doing exactly that to a walk).
+   *   - Under the veil the flight is only primed. If anything has moved the
+   *     camera off INTRO.start by the time the veil lifts, it does not depart.
+   *
+   * `window.__intro.flight` is the live state: primed | flying | done |
+   * cancelled, the leg, and what cancelled it.
+   */
   function primeIntro() {
-    let cancelled = false, leg2Timer = null;
-    const cancel = () => {
-      if (cancelled) return;
-      cancelled = true;
-      clearTimeout(leg2Timer);
-      map.stop();
-      // Skip to the END pose, not to SPAWN. Stopping mid-ease strands the
-      // camera at whatever partial zoom/pitch the tween had reached, and on
-      // this path that is somewhere over the Capitol — nowhere anyone asked to
-      // be. Cancelling a title sequence should give you its last frame.
-      map.jumpTo(INTRO.end);
-      off();
+    const F = { state: 'primed', leg: 0, cancelledBy: null, cancelledAtMs: null, pose: null };
+    const t0 = performance.now();
+    let ours = false;                 // is the ease running right now one of our legs?
+
+    // Tolerant pose test: a completed leg lands exactly on its target (both
+    // easings reach 1 at t = 1); an interrupted one is metres or degrees off.
+    const at = (P) => {
+      const c = map.getCenter();
+      const dE = (c.lng - P.center[0]) * 111195 * Math.cos(c.lat * Math.PI / 180);
+      const dN = (c.lat - P.center[1]) * 111195;
+      const dB = ((map.getBearing() - P.bearing) % 360 + 540) % 360 - 180;
+      return Math.hypot(dE, dN) < 0.5 && Math.abs(map.getZoom() - P.zoom) < 1e-3 &&
+             Math.abs(map.getPitch() - P.pitch) < 0.05 && Math.abs(dB) < 0.05;
     };
-    const evts = ['mousedown','wheel','keydown','touchstart'];
-    const off = () => evts.forEach(e => window.removeEventListener(e, cancel, true));
-    evts.forEach(e => window.addEventListener(e, cancel, true));
-
-    map.jumpTo(INTRO.start);
-
-    const fly = () => {
-      if (cancelled) return;
-      // Leg 1: gentle at both ends. The deceleration into the crest is what
-      // makes the top of the arc read as a held beat rather than a waypoint.
-      map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms,
-                   easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) });
-      leg2Timer = setTimeout(() => {
-        if (cancelled) return;
+    const release = () => {
+      window.removeEventListener('flycam:takeover', onTakeover);
+      map.off('moveend', onMoveEnd);
+    };
+    const cancel = (why) => {
+      if (F.state === 'done' || F.state === 'cancelled') return;
+      F.state = 'cancelled';
+      F.cancelledBy = why;
+      F.cancelledAtMs = Math.round(performance.now() - t0);
+      release();
+      // KEEP THE CAMERA. If one of our legs is still running, stop it:
+      // MapLibre's stop() leaves the transform on the last frame it drew, which
+      // is the frame the user was looking at when they touched the controls.
+      // Never jumpTo anywhere from here.
+      if (ours && map.isEasing()) { ours = false; map.stop(); }
+      ours = false;
+      const c = map.getCenter();
+      F.pose = { center: [c.lng, c.lat], zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() };
+    };
+    const onTakeover = () => cancel('input');
+    const leg = (n) => {
+      F.leg = n;
+      ours = true;
+      if (n === 1) {
+        // Leg 1: gentle at both ends. The deceleration into the crest is what
+        // makes the top of the arc read as a held beat rather than a waypoint.
+        map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms,
+                     easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) }, { introLeg: 1 });
+      } else {
         // Leg 2: ease-in-out cubic. Starts from the crest's zero velocity with
         // no jerk, carries more speed through the middle than a cosine would,
         // and has the longer tail that the arrival on the Tower wants.
         map.easeTo({ ...INTRO.end, duration: INTRO.leg2Ms,
                      easing: t => t < 0.5 ? 4 * t * t * t
-                                          : 1 - Math.pow(-2 * t + 2, 3) / 2 });
-        setTimeout(off, INTRO.leg2Ms + 600);
-      }, INTRO.leg1Ms + 30);
+                                          : 1 - Math.pow(-2 * t + 2, 3) / 2 }, { introLeg: 2 });
+      }
     };
-    return { fly };
+    // A leg's ease ended — completed, or stopped by someone else. MapLibre
+    // fires moveend with the eventData the ease was started with, so events
+    // from the controller's jumpTo ({fly:true}) or anyone else's camera call
+    // never match here.
+    const onMoveEnd = (e) => {
+      if (!e || e.introLeg == null || e.introLeg !== F.leg || F.state !== 'flying') return;
+      ours = false;
+      if (!at(F.leg === 1 ? INTRO.crest : INTRO.end)) { cancel('camera moved'); return; }
+      if (F.leg === 1) leg(2);
+      else { F.state = 'done'; release(); }
+    };
+    window.addEventListener('flycam:takeover', onTakeover);
+    map.on('moveend', onMoveEnd);
+
+    map.jumpTo(INTRO.start);
+
+    const fly = () => {
+      if (F.state !== 'primed') return;
+      // The user drove under the veil (the takeover already cancelled us), or
+      // something else placed the camera: either way the camera is theirs.
+      if (!at(INTRO.start) || map.isEasing()) { cancel('moved under the veil'); return; }
+      F.state = 'flying';
+      leg(1);
+    };
+    return { fly, cancel, state: F };
   }
 
   // ── Idle cinema ───────────────────────────────────────────────────
