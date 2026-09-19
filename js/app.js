@@ -1898,7 +1898,8 @@ window.CityLighting.install(map);
     // The reel and live-here paths always wait for the authored apartments
     // (their first frame is West Campus); the plain intro waits when
     // INTRO.waitAuthored says so — see the note on that constant.
-    const waitAuthored = doReelGate || liveHere || INTRO.waitAuthored !== false;
+    // `let`: a phone past INTRO.authoredCeilingMs stops waiting (see tick).
+    let waitAuthored = doReelGate || liveHere || INTRO.waitAuthored !== false;
     const gate = () => introGate(waitAuthored);
 
     // Debug/test hook, same shape as window.__ae / window.__fly / __railWrites.
@@ -1943,12 +1944,25 @@ window.CityLighting.install(map);
     const tick = () => {
       const ms = performance.now() - t0;
       if(waitAuthored && ms>=INTRO.authoredCeilingMs && window.APARTMENTS?.on && !window.slopesApartments?.readyToReveal()) {
+        if (window.LITE_PROFILE?.lateAuthored) {
+          // A PHONE (js/mobile.js) does not get the legacy scene for the visit:
+          // a slow phone is where the authored build takes longest, and the
+          // old prisms are the defect it would show (The Standard as two
+          // pillars; docs/mobile-real-buildings.md). Lift the veil on the
+          // prisms and let the build land live — its filters follow the group,
+          // so the swap is never a hole. Desktop keeps the stable fallback.
+          waitAuthored = false;
+          dbg.waitAuthored = false;
+          dbg.modelLate = 'authored handoff past the ceiling; landing after reveal';
+          console.warn('[intro] authored handoff past the ceiling; the phone keeps building after reveal');
+        } else {
         // A failed source must not hold the app forever or swap geometry after
         // release. Disable this replacement for the visit; a reload retries it.
         window.APARTMENTS.on=false;
         window.applySlopesApartments?.(map);
         dbg.modelFallback='authored handoff timed out';
         console.warn('[intro] authored handoff timed out; keeping legacy buildings for this visit');
+        }
       }
       const g = gate();
       holds = g.missing.length ? 0 : holds + 1;
