@@ -161,7 +161,7 @@
     if (ARCHES.transom && a.tr) {
       // the half-ellipse, from (half, spring) over the crown to (-half, spring)
       const poly = arcPts(a, 2 * seg, 0, 0, Math.PI);
-      B.extrude(poly, F, a.tr.v[0], a.tr.v[1], a.tr.c, { back: false, skipDown: true, smooth: ARCHES.smooth });
+      B.extrude(poly, F, a.tr.v[0], a.tr.v[1], window.CityLighting.glassColour(a.tr.c), { back: false, skipDown: true, smooth: ARCHES.smooth });
     }
     if (ARCHES.band && a.band && radial) {
       // ONE ring, not two halves: the extrados runs right over the crown, so

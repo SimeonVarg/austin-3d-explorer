@@ -1,0 +1,192 @@
+{
+  "date": "2026-09-19",
+  "branch": "codex/citywide-sunlight",
+  "base": "2abe445",
+  "settings": {
+    "app": "index.html; no sunlight opt-in",
+    "preset": "balanced",
+    "CPU_throttle": 1,
+    "pixelCount": 1917867,
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "capture": "second settled screenshot"
+  },
+  "otis": {
+    "bootDefaults": {
+      "sunlight": true,
+      "reflections": 1
+    },
+    "nightControlChangedPixels": 0,
+    "nightChangedPixels": 0,
+    "nightPixels": 1917867,
+    "nightChangedFraction": 0,
+    "nonblack": 1917867,
+    "geometryUnchanged": true,
+    "nightSun": 0,
+    "nightShadow": 0,
+    "sunDirectionError": 1.3877787807814457e-17,
+    "shadowSettled": true,
+    "shadowUpdates": [
+      5,
+      5
+    ],
+    "shadowCached": true,
+    "shadowMaps": 2,
+    "shadowActive": true,
+    "reflectionChangedPixels": 169652,
+    "reflectionZero": true,
+    "shadowChangedPixels": 231329,
+    "shadowControlOff": true,
+    "glError": 0,
+    "citywide": {
+      "vertexShaders": 8,
+      "fragmentShaders": 8,
+      "programs": 8,
+      "draws": 45145,
+      "failures": [],
+      "glassImages": 20,
+      "shadowProxyTriangles": 149057
+    },
+    "shaderFailures": 0,
+    "pass": true
+  },
+  "downtown": {
+    "bootDefaults": {
+      "sunlight": true,
+      "reflections": 1
+    },
+    "nightControlChangedPixels": 0,
+    "nightChangedPixels": 0,
+    "nightPixels": 1917867,
+    "nightChangedFraction": 0,
+    "nonblack": 1917867,
+    "geometryUnchanged": true,
+    "nightSun": 0,
+    "nightShadow": 0,
+    "sunDirectionError": 1.3877787807814457e-17,
+    "shadowSettled": true,
+    "shadowUpdates": [
+      17,
+      17
+    ],
+    "shadowCached": true,
+    "shadowMaps": 2,
+    "shadowActive": true,
+    "reflectionChangedPixels": 394061,
+    "reflectionZero": true,
+    "shadowChangedPixels": 301499,
+    "shadowControlOff": true,
+    "glError": 0,
+    "citywide": {
+      "vertexShaders": 8,
+      "fragmentShaders": 8,
+      "programs": 8,
+      "draws": 90131,
+      "failures": [],
+      "glassImages": 55,
+      "shadowProxyTriangles": 213960
+    },
+    "shaderFailures": 0,
+    "pass": true
+  },
+  "coldShadowsOff": {
+    "shadowStats": {
+      "shadowUpdates": 0,
+      "shadowSize": 0,
+      "shadowMaps": 0
+    },
+    "glError": 0,
+    "defaults": {
+      "sunlight": true,
+      "reflections": 1
+    },
+    "u": [
+      1,
+      0.32,
+      1.45,
+      0.9
+    ],
+    "presence": [
+      1,
+      0.7
+    ],
+    "shadow": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "citywide": {
+      "vertexShaders": 8,
+      "fragmentShaders": 8,
+      "programs": 8,
+      "draws": 22491,
+      "failures": [],
+      "glassImages": 10
+    }
+  },
+  "ordinaryMenu": {
+    "reflectionDefault": "100%",
+    "reflectionHome": "0%; visible panes darkened",
+    "balancedReset": "100%",
+    "buildingShadows": "unchecked on cold load; checkbox restored shadows"
+  },
+  "testNotes": [
+    "An earlier cache sample ran while sources were re-tiling after a preset change. The harness now waits for loaded tiles and stable depth maps, then independently verifies the parked cache over another 4.2 seconds.",
+    "No mobile hardware performance claim. Benchmark measures parked render frames, not first load or continuous travel."
+  ],
+  "benchmark": [
+    {
+      "enabled": false,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 39,
+      "p95": 55.79999999701977,
+      "mean": 38.96333333336645
+    },
+    {
+      "enabled": true,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 40.099999994039536,
+      "p95": 59.099999994039536,
+      "mean": 39.60333333330022
+    },
+    {
+      "enabled": false,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 39.29999999701977,
+      "p95": 64.90000000596046,
+      "mean": 37.754444444510675
+    },
+    {
+      "enabled": true,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 40.599999994039536,
+      "p95": 54.79999999701977,
+      "mean": 38.583333333333336
+    },
+    {
+      "enabled": false,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 38.69999998807907,
+      "p95": 45.80000001192093,
+      "mean": 36.584444444378214
+    },
+    {
+      "enabled": true,
+      "building": "downtown",
+      "renderedFrames": 91,
+      "median": 40.70000000298023,
+      "p95": 55.400000005960464,
+      "mean": 39.12555555568801
+    }
+  ],
+  "minimumMeanFrameMs": {
+    "before": 36.584444444378214,
+    "after": 38.583333333333336
+  },
+  "benchmarkScope": "Six interleaved 90-render-frame reps, unthrottled AMD integrated GPU, balanced, same parked downtown camera. Lighting-off retains the shared adapter; this is not a total pre-PR cost comparison."
+}

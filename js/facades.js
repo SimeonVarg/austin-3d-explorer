@@ -1780,7 +1780,7 @@
       for (let k = 0; k < DKR.SB_TIERS; k++) {
         const y = Math.round(k * step + (step - DKR.SB_GLASS_H) / 2);
         fill(mix(w, [0, 0, 0], DKR.SB_SPANDREL), 0, y - 2, T, DKR.SB_GLASS_H + 4);
-        fill(glass, 0, y, T, DKR.SB_GLASS_H);
+        ctx.fillStyle=css(glass); window.CityLighting.glassRect(ctx, 0, y, T, DKR.SB_GLASS_H);
         // A lit hood over the band is what makes it read RECESSED rather than
         // painted on — the single cheapest depth cue on a flat extrusion.
         fill(mix(w, [255, 255, 255], DKR.SB_REVEAL * (1 - dark * 0.8)), 0, y - 1, T, 1);
@@ -1838,7 +1838,7 @@
         if (isGlass) {
           // A tall grey-mullioned curtain panel, set back behind the piers.
           fill(mix(w, [138, 146, 152], 0.75), x - 1, 0, ow + 2, T);
-          fill(glass, x, 0, ow, T);
+          ctx.fillStyle=css(glass); window.CityLighting.glassRect(ctx, x, 0, ow, T);
           if (night > 0.02) fill(mix(glass, [255, 226, 186], night * 0.55), x, 0, ow, T);
           for (let m = 0; m < ow; m += DKR.SN_MULLION) fill(mix(w, [0, 0, 0], 0.34), x + m, 0, 1, T);
         } else {
@@ -1894,7 +1894,7 @@
       const step = T / DKR.SG_TIERS;
       for (let k = 0; k < DKR.SG_TIERS; k++) {
         const y = Math.round(k * step + (step - DKR.SG_GLASS_H) / 2);
-        fill(glass, 0, y, T, DKR.SG_GLASS_H);
+        ctx.fillStyle=css(glass); window.CityLighting.glassRect(ctx, 0, y, T, DKR.SG_GLASS_H);
         fill(mix(metal, [255, 255, 255], 0.16 * (1 - dark * 0.8)), 0, y - 1, T, 1);
         fill(mix(metal, [0, 0, 0], 0.18), 0, y + DKR.SG_GLASS_H, T, 1);
         // Club levels are lit as a continuous room, not as a pane scatter.
@@ -2159,7 +2159,7 @@
         } else {
           ctx.fillStyle = css(glass);
         }
-        ctx.fillRect(x, y, g.w, g.h);
+        window.CityLighting.glassRect(ctx, x, y, g.w, g.h);
 
         // Reveal: the jamb the opening is recessed behind, on one side only.
         // One-sided because the sun is on one side — a symmetric reveal reads

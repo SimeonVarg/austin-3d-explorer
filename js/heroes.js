@@ -510,7 +510,7 @@
           v = mix(v, lit, night * 0.88);
         }
         ctx.fillStyle = css(v);
-        ctx.fillRect(x, ys, w, sh);
+        window.CityLighting.glassRect(ctx, x, ys, w, sh);
       }
     }
     return grab(ctx);
@@ -552,7 +552,7 @@
         let v = glass;
         if (night > 0 && hash01(c + 4, r + 9) < HEROES.brickLit) v = mix(v, lit, night * 0.70);
         ctx.fillStyle = css(v);
-        ctx.fillRect(Math.round(c * T / BAYS) + 1, y0 + bh + sh, Math.max(1, Math.round(T / BAYS) - 2), gh);
+        window.CityLighting.glassRect(ctx, Math.round(c * T / BAYS) + 1, y0 + bh + sh, Math.max(1, Math.round(T / BAYS) - 2), gh);
       }
     }
     // The stack-bond piers: a brick vertical every structural bay, drawn over
@@ -588,7 +588,7 @@
         let v = glass;
         if (night > 0 && hash01(c + 6, r + 2) < HEROES.nbLit) v = mix(v, lit, night * 0.74);
         ctx.fillStyle = css(v);
-        ctx.fillRect(x, y, ww, wh);
+        window.CityLighting.glassRect(ctx, x, y, ww, wh);
         // the angled brick reveal — one texel, on one side, catching light
         ctx.fillStyle = css(mix(brick, [255, 255, 255], 0.16));
         ctx.fillRect(x - 1, y, 1, wh);
@@ -615,7 +615,7 @@
           let v = mix(glass, [255, 255, 255], 0.05 * hash01(r + 2, c + 5));
           if (night > 0 && hash01(c + 11, r + 4) < HEROES.glassLit) v = mix(v, lit, night * 0.62);
           ctx.fillStyle = css(v);
-          ctx.fillRect(Math.round(c * sx) + M, Math.round(r * sy) + M,
+          window.CityLighting.glassRect(ctx, Math.round(c * sx) + M, Math.round(r * sy) + M,
                        Math.round(sx) - M, Math.round(sy) - M);
         }
       }
@@ -633,13 +633,13 @@
     const B = HEROES.cageBays, M = HEROES.cageMember, step = T / B;
 
     ctx.fillStyle = css(glass);
-    ctx.fillRect(0, 0, T, T);
+    window.CityLighting.glassRect(ctx, 0, 0, T, T);
     if (night > 0) {
       for (let r = 0; r < B; r++) {
         for (let c = 0; c < B; c++) {
           if (hash01(r + 8, c + 1) > HEROES.cageGlassLit) continue;
           ctx.fillStyle = css(mix(glass, lit, night * 0.66));
-          ctx.fillRect(Math.round(c * step), Math.round(r * step),
+          window.CityLighting.glassRect(ctx, Math.round(c * step), Math.round(r * step),
                        Math.round(step), Math.round(step));
         }
       }

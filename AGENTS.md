@@ -118,6 +118,23 @@ memory and is never written here, in any tracked file, or in a commit message.
 11. **Parameterise every taste value** so Simeon can overrule any aesthetic call
     with a one-line edit. No aesthetic constant buried in a function body.
 
+### Current lighting direction (2026-09-19)
+
+Scope correction: the sunlight, reflective windows and cast shadows are a
+project-wide DEFAULT, across all building renderers and neighbourhoods. Do not
+stop at opt-in demonstrations or a named-building allowlist. Match the owner's
+Otis phone photograph: strong amber lower glazing with cooler blue upper and
+adjacent glazing, while shaded masonry remains dark. Add Otis if missing.
+The accepted natural direction does not mean suppressing the glare visible in
+the reference. Verify citywide coverage and normal application defaults.
+
+Keep the natural lighting direction: warm sunlight and window reflections,
+cooler shade, restrained glare. Simeon chose this over stronger cinematic glow
+after reviewing the two-building preview. See `docs/sunlit-materials.md` for
+the preview, evidence, tuning and remaining technical limits before a wider
+rollout. Prefer the curated local exterior photographs and owner references;
+exclude unrelated interiors and social posts from building-matching research.
+
 ## DKR direction — September 9, 2026
 
 Simeon says the current DKR is still bad and requests a reimagination plan.

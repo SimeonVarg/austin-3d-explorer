@@ -183,6 +183,21 @@
     // `SLOPES.on = false` from the console stops it on the next frame, no
     // reload; it is read live in render(), never cached.
     on: q.get('slopes') !== '0',
+    // Default across both rendering paths. ?sunlight=0 is the comparison switch.
+    sunlight: {
+      on: q.get('sunlight') !== '0',
+      ambient: .32, direct: 1.45, glassReflectance: .90, reflectionStrength: 1, sunGlint: 3.0,
+      glintPower: 900, haloPower: 24, haloStrength: .10,
+      horizonHeight: .45, sunsetSpread: 3, sunsetStrength: 1.5,
+      daySun: '#fff8ed', lowSun: '#ffb45f', shade: '#c2cddd',
+      dayZenith: '#6396c7', dayHorizon: '#c4d8e5',
+      lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
+      ground: '#484e51', groundBlend: .08,
+      nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
+      atmosphere: true, skyBlend: .72, saturation: 1.0,
+      shadows: true, shadowSize: 1536, shadowRadii: [240, 1400], shadowSnap: 20,
+      shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
+    },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
       grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
@@ -340,6 +355,7 @@
     varying vec3 v_pos;
     varying vec3 v_normal;
     varying vec4 v_surface;
+    varying vec3 v_albedo;
     void main() {
       vec3 color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0)
                                 : mix(cGold, cNight, (u_p - 0.5) * 2.0);
@@ -387,6 +403,7 @@
       float k = sloped ? u_roof_shade : 1.0;
       v_color = vec4(lit * k, 1.0) * u_opacity;
       v_pos = position; v_normal = normal; v_surface = aSurface;
+      v_albedo = cDay;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
   const FRAG = `
@@ -394,27 +411,33 @@
     varying vec3 v_pos;
     varying vec3 v_normal;
     varying vec4 v_surface;
-    uniform vec3 u_eye;
+    varying vec3 v_albedo;
     uniform vec4 u_surfaceStyle;
     uniform vec3 u_surfaceRange;
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
     uniform vec4 u_surfaceHorizon;
     uniform float u_p;
+    ${window.CityLighting.uniforms}
+    #include <packing>
+    ${window.CityLighting.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     void main() {
       vec3 col=v_color.rgb;
       float kind=v_surface.x;
+      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0)*v_color.a;
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=v_surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
         if(kind>3.5 && kind<4.5) {
+          if(u_sunlight.x<.5) {
           float fresnel=pow(1.0-abs(dot(n,view)),3.0);
           float daylight=1.0-smoothstep(.5,.95,u_p);
           vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
           col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
-        } else {
+          }
+        } else if(kind<3.5) {
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(v_surface.yz,vec2(.01));
           vec2 cell=uv/size;
@@ -441,6 +464,69 @@
   let _visible = true;          // js/lod.js's decision, via layer.setVisible
   let _lastPreset = null;
   let _frames = 0, _warnedMatrix = false;
+  let _sunShadow = null;
+
+  function releaseSunShadows() {
+    if(!_sunShadow)return;
+    _sunShadow.targets.forEach(t=>t.dispose());_sunShadow.depth.dispose();_sunShadow=null;
+    if(U){U.u_sunShadow0.value=null;U.u_sunShadow1.value=null;U.u_shadowSettings.value.x=0;}
+  }
+
+  function updateSunShadows() {
+    const s=SLOPES.sunlight,T=window.THREE;
+    U.u_shadowSettings.value.x=0;
+    if(!s.on||!s.shadows||window.GFX?.shadows===false||U.u_sunDirection.value.z<=0||!window.slopesApartments?.count.done)return;
+    // No new per-frame scene traversal or geometry. Render the existing mesh
+    // scene from the sun only when the hour or completed building set changes.
+    if(_sunShadow&&_sunShadow.size!==s.shadowSize)releaseSunShadows();
+    if(!_sunShadow) {
+      const targets=[0,1].map(()=>new T.WebGLRenderTarget(s.shadowSize,s.shadowSize,{minFilter:T.NearestFilter,magFilter:T.NearestFilter,depthBuffer:true,stencilBuffer:false}));
+      const depth=new T.ShaderMaterial({
+        vertexShader:'varying float v_depth; void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_depth=gl_Position.z/gl_Position.w*.5+.5;}',
+        fragmentShader:'#include <packing>\nvarying float v_depth; void main(){gl_FragColor=packDepthToRGBA(v_depth);}',
+        side:T.DoubleSide,blending:T.NoBlending,depthTest:true,depthWrite:true,
+      });
+      const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
+      _sunShadow={targets,depth,cameras,key:null,size:s.shadowSize,updates:0};
+      U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
+    }
+    const centre=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
+    centre.x=Math.round(centre.x/s.shadowSnap)*s.shadowSnap;
+    centre.y=Math.round(centre.y/s.shadowSnap)*s.shadowSnap;
+    const proxy=window.CityLighting.shadowProxy(_map);
+    const key=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,centre.x,centre.y,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
+    if(_sunShadow.key!==key) {
+      const target=renderer.getRenderTarget(),override=scene.overrideMaterial;
+      // MapLibre owns canvas sizing. Three's default viewport is stale unless
+      // explicitly restored after leaving an offscreen target (setSize is
+      // intentionally forbidden in this shared canvas).
+      const gl=renderer.getContext(),viewport=gl.getParameter(gl.VIEWPORT);
+      const scissor=gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
+      const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
+      try {
+        scene.overrideMaterial=_sunShadow.depth;
+        if(proxy){scene.add(proxy);proxy.visible=true;}
+        renderer.setClearColor(0xffffff,1);
+        for(let i=0;i<2;i++) {
+          const c=centre,cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
+          cam.left=cam.bottom=-radius;cam.right=cam.top=radius;
+          cam.far=s.shadowDistance*2;cam.updateProjectionMatrix();
+          cam.up.set(0,0,1);
+          cam.position.set(c.x,c.y,c.z).addScaledVector(U.u_sunDirection.value,s.shadowDistance);
+          cam.lookAt(c.x,c.y,c.z);cam.updateMatrixWorld(true);
+          U[i===0?'u_sunShadowMatrix0':'u_sunShadowMatrix1'].value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
+          renderer.setRenderTarget(_sunShadow.targets[i]);renderer.clear();renderer.render(scene,cam);
+        }
+        _sunShadow.key=key;
+        _sunShadow.updates++;
+      } finally {
+        if(proxy){scene.remove(proxy);proxy.visible=false;}
+        scene.overrideMaterial=override;renderer.setRenderTarget(target);renderer.setClearColor(clear,alpha);
+        renderer.setViewport(...viewport);renderer.setScissor(...scissor);renderer.setScissorTest(scissorTest);
+      }
+    }
+    U.u_shadowSettings.value.set(1,1/s.shadowSize,s.shadowBias/(s.shadowDistance*2-1),s.shadowNormalBias);
+  }
   let _mat = null, _loc = null, _s3 = null, _eye4=null;   // per-frame scratch
   let _debugGroup = null, _debugTwinAdded = false;
   const _light = { enu: [0, 0, 1], colour: [1, 1, 1], intensity: 0 };
@@ -918,13 +1004,15 @@
     renderingMode: '3d',
     onAdd(map, gl) { _gl = gl; },
     onRemove() {
+      releaseSunShadows();
       try { if (renderer) renderer.dispose(); } catch (e) {}
       renderer = null; _frames = 0;
     },
     /** js/lod.js calls this instead of setLayoutProperty for custom layers. */
     setVisible(v) { _visible = !!v; if (_map) _map.triggerRepaint(); },
     isVisible() { return _visible; },
-    render(gl, args) {
+    prerender(gl,args) { this.render(gl,args,true); },
+    render(gl, args, prepareOnly=false) {
       // The switch, read LIVE every frame — never cached at onAdd.
       if (!SLOPES.on || !scene) return;
       // Each generator's group carries the minzoom and the LOD tier of the
@@ -946,7 +1034,7 @@
         const vis = !(ud.minzoom != null && zoom < ud.minzoom) && (_visible || ud.lod !== 'mid');
         g.visible = vis; any = any || vis;
       }
-      if (!any) return;
+      // Lighting still updates when LOD hides every authored mesh.
       const T = window.THREE;
       if (!renderer) {
         // Built here, not in onAdd: see contract point 7.
@@ -978,7 +1066,33 @@
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
       const hour=U.u_p.value,sa=hexToRgb01(surf.sky[hour<=.5?0:1]),sb=hexToRgb01(surf.sky[hour<=.5?1:2]),st=hour<=.5?hour*2:(hour-.5)*2;
       U.u_surfaceSky.value.set(...sa.map((v,i)=>v+(sb[i]-v)*st));
+      const sunlight=SLOPES.sunlight,body=window.skyBodies?.(hour)?.sun;
+      // Read the same celestial track as sky.js and shadows.js. The moon's
+      // fallback map light must never become a second reflected sun at night.
+      const elevation=body?.elev??-90,azimuth=(body?.az??0)*Math.PI/180;
+      const elevationRad=elevation*Math.PI/180,ce=Math.cos(elevationRad);
+      U.u_sunDirection.value.set(Math.sin(azimuth)*ce,Math.cos(azimuth)*ce,Math.sin(elevationRad));
+      const warm=clamp01(1-elevation/sunlight.warmElevation);
+      const present=clamp01((elevation-sunlight.nightFadeEnd)/(sunlight.nightFadeStart-sunlight.nightFadeEnd));
+      U.u_sunPresence.value.set(present*present*(3-2*present),warm);
+      U.u_sunlight.value.set(sunlight.on?1:0,sunlight.ambient,sunlight.direct,sunlight.glassReflectance);
+      U.u_glassStrength.value=sunlight.reflectionStrength*(window.GFX?.windowReflections??1);
+      U.u_glassSun.value.set(sunlight.sunGlint,sunlight.glintPower,sunlight.haloPower,sunlight.haloStrength);
+      U.u_reflectionSky.value.set(sunlight.horizonHeight,sunlight.sunsetSpread,sunlight.sunsetStrength,sunlight.groundBlend);
+      const blendColour=(uniform,a,b,t)=>{
+        const ca=hexToRgb01(a),cb=hexToRgb01(b);
+        uniform.value.set(...ca.map((v,i)=>v+(cb[i]-v)*t));
+      };
+      blendColour(U.u_sunColour,sunlight.daySun,sunlight.lowSun,warm);
+      blendColour(U.u_skyZenith,sunlight.dayZenith,sunlight.lowZenith,warm);
+      blendColour(U.u_skyHorizon,sunlight.dayHorizon,sunlight.lowHorizon,warm);
+      U.u_shadeColour.value.set(...hexToRgb01(sunlight.shade));
+      U.u_sunsetColour.value.set(...hexToRgb01(sunlight.sunset));
+      U.u_groundColour.value.set(...hexToRgb01(sunlight.ground));
       renderer.resetState();
+      updateSunShadows();
+      window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture));
+      if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
     },
@@ -1150,6 +1264,15 @@
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
       u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
+      u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
+      u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
+      u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
+      u_sunsetColour:{value:new T.Vector3()},u_groundColour:{value:new T.Vector3()},
+      u_glassSun:{value:new T.Vector4()},u_reflectionSky:{value:new T.Vector4()},
+      u_sunPresence:{value:new T.Vector2()},
+      u_sunShadow0:{value:null},u_sunShadow1:{value:null},
+      u_sunShadowMatrix0:{value:new T.Matrix4()},u_sunShadowMatrix1:{value:new T.Matrix4()},
+      u_shadowSettings:{value:new T.Vector4()},
       u_lightcolor: { value: new T.Vector3(1, 1, 1) },
       u_lightintensity: { value: 0.28 },
       u_vertical_gradient: { value: SLOPES.verticalGradient },
@@ -1196,6 +1319,7 @@
     get origin() { return originMerc; }, get scale() { return originScale; },
     get frames() { return _frames; }, get debugGroup() { return _debugGroup; },
     uniforms: () => U,
+    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
   };
 
   // Self-boot, the shape js/roofs.js documents: take the style's own `load`

@@ -2,6 +2,10 @@
   "_readme": "Yugo Austin Waterloo (2400 Seton Ave), authored 2026-09-17 from the reference folder austin-reference-images/yugo-waterloo (10 photographs, notes.md) and a z20 satellite view. Frame (stored obb): +u runs EAST (bearing 95), +v runs NORTH; u 0 = the west edge, v 0 = the south edge. Replaces the baked entry in data/neighborhood_apartments.json (removed from its profile list).",
   "id": "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
   "name": "Yugo Austin Waterloo",
+  "materials": {
+    "brick": "brick", "brickFrame": "brick", "brickLight": "brick",
+    "glass": "glass", "curtainGlass": "glass", "crownGlass": "glass"
+  },
   "aliases": [
     "Waterloo",
     "Waterloo Tower",
