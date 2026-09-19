@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sunlight study · Austin</title>
+<style>
+body{margin:0;background:#101820;color:#eef3f5;font:14px system-ui}header{height:46px;display:flex;align-items:center;gap:8px;padding:0 14px}button,select{background:#24343e;color:inherit;border:1px solid #546772;border-radius:5px;padding:6px 10px}button[aria-pressed=true]{background:#7a4824}iframe{border:0;width:100%;height:calc(100vh - 46px)}#status{margin-left:auto;font-size:12px;color:#b6c5ce}
+</style>
+<header><b>Sunlight study</b><select id="building" aria-label="Building"><option value="waterloo">Waterloo</option><option value="callaway">Callaway</option></select><button id="before">Before</button><button id="after">After</button><button id="orbit">Other angle</button><button id="day">Day</button><button id="gold">Sunset</button><button id="night">Night</button><button id="measure">Benchmark A/B</button><button id="check">Run checks</button><span id="status">Loading city…</span></header>
+<aside style="position:fixed;bottom:14px;left:14px;z-index:2;background:#101820dc;padding:8px;border-radius:6px"><label>Distance <input id="distance" type="number" value="125" min="45" max="400" step="10" style="width:55px"></label> <label>Angle <input id="azimuth" type="number" value="150" step="10" style="width:55px"></label> <button id="position">Set view</button> <button id="shadow">Toggle shadows</button> <button id="debug">Inspect</button><pre id="inspection" style="font-size:10px;max-height:150px;overflow:auto;max-width:650px"></pre></aside>
+<iframe id="city" title="Austin lighting preview" src="../../index.html?intro=0&drift=0&preset=balanced&clip=1&labels=0&sunlight=0"></iframe>
+<script src="sunlight-preview.js"></script>

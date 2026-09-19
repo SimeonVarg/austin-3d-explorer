@@ -494,14 +494,22 @@
   }
   function palette(spec) {
     const out = {};
+    const study=window.SLOPES?.sunlight?.buildings.includes(spec.name);
     for (const k of Object.keys(spec.colours || {})) {
       if (k[0] === '_') continue;                       // a `_src` note beside a colour, not a colour
       const v = spec.colours[k];
       const hexes = Array.isArray(v) ? v : (v && v.hex);
       out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes : ramp(hexes[0])) : ramp(hexes);
       const M=APTS.materials;
-      if(M.on&&(spec.code||spec.category==='campus'||M.names.includes(spec.name))){
+      if(M.on&&(study||spec.code||spec.category==='campus'||M.names.includes(spec.name))){
         let kind=spec.materials?.[k];
+        // The two study buildings use explicit material assignments. A +10
+        // kind tags the existing aSurface attribute, no new geometry buffer.
+        if(study){
+          const surface=kind&&M[kind]?M[kind]:[5,1,1,1];
+          out[k].surface=[surface[0]+10,...surface.slice(1)];
+          continue;
+        }
         if(!kind&&M.glassKeys.includes(k))kind='glass';
         if(!kind&&M.brickKeys.includes(k))kind='brick';
         if(!kind&&M.stoneKeys.includes(k))kind='stone';
