@@ -2114,8 +2114,20 @@ window.CityLighting.install(map);
     if (preview.get('livehere') === '1' && preview.get('walk') !== '0') return;
     let idleTimer = null, legTimer = null, drifting = false, legIx = 0, pDir = 1;
     const banner = document.getElementById('diff-banner');
+    // Never while the opening flight is primed under the veil or flying. The
+    // countdown starts at load, so a veil that outlasts idleMs (a slow network,
+    // a slow device, the authored-apartment wait) started the drift under it.
+    // Measured after a 97 s veil: the camera had turned 60 degrees off the
+    // opening composition before anyone saw it, and the flight departed from
+    // there. With the flight's own "did anyone move the camera?" test it would
+    // not have departed at all (docs/intro-interrupt.md).
+    const introBusy = () => {
+      const f = window.__intro && window.__intro.flight;
+      return !!f && (f.state === 'primed' || f.state === 'flying');
+    };
     const canRun = () => document.visibilityState === 'visible' &&
                          (!banner || banner.classList.contains('hidden')) &&
+                         !introBusy() &&
                          !(window.__fly && window.__fly.eye().driving) &&
                          !(map.isEasing && map.isEasing());
     const stop = () => {

@@ -999,11 +999,13 @@ function initControls(map, scene) {
   // `keepInput` is for the TAKEOVER frame (see the tick): the pose is re-read
   // from the map, but the look/wheel/pinch that made this a driving frame is the
   // user's first input and must be applied, not thrown away. It used to be
-  // zeroed here, so the first wheel notch after any external animation (the
-  // opening flight, the R ease, the tour) did nothing but stop it, and the first
-  // frame of every drag was lost. On an idle frame there is nothing to keep —
-  // any pending input would have made it a driving frame — so the idle path is
-  // unchanged.
+  // zeroed here, so the first wheel notch from rest (after any idle spell, the
+  // opening flight, the R ease, the tour) only took the camera and did nothing:
+  // measured with one notch from rest, +0% altitude before, +54% after
+  // (docs/intro-interrupt.md). A drag was unaffected, because its press takes
+  // the camera a frame before its first movement. On an idle frame there is
+  // nothing to keep — any pending input would have made it a driving frame —
+  // so the idle path is unchanged.
   function syncFromMap(keepInput) {
     const c = map.getCenter();
     bearing = map.getBearing();

@@ -52,11 +52,12 @@
  *
  * CONTROL CASES: `none` (no input — the flight must still play and end exactly
  * on INTRO.end), `none-probe` (same, with the graphics auto-detect probe left
- * running, i.e. normal startup), `none-reduced-motion` (prefers-reduced-motion:
- * both legs are instant, it must still land on INTRO.end), `home` (R during
- * leg 1 — the deliberate reset must still reach the spawn pose and stay
- * there), `tour` / `autopilot` (?tour=1 / ?autopilot=1 still replace the
- * intro and still move).
+ * running, i.e. normal startup), `none-drift` (the idle drift left on, as in
+ * production; it bites only when the veil outlasts the drift's 25 s countdown),
+ * `none-reduced-motion` (prefers-reduced-motion: both legs are instant, it must
+ * still land on INTRO.end), `home` (R during leg 1 — the deliberate reset must
+ * still reach the spawn pose and stay there), `tour` / `autopilot` (?tour=1 /
+ * ?autopilot=1 still replace the intro and still move).
  *
  * Usage:
  *   VERIFY_URL=http://127.0.0.1:8611 VERIFY_GL=hardware \
@@ -398,7 +399,7 @@ async function runCase(browser, spec) {
     });
   }
   const q = (spec.query || '') + EXTRA_Q;
-  await page.goto(`${BASE}/index.html?drift=0${q}`, { timeout: 90000 });
+  await page.goto(`${BASE}/index.html?drift=${spec.drift ? 1 : 0}${q}`, { timeout: 90000 });
   if (!spec.keepProbe) {
     page.waitForFunction(() => typeof window.cancelGraphicsAutoDetect === 'function', null, { timeout: 60000 })
       .then(() => page.evaluate(() => window.cancelGraphicsAutoDetect())).catch(() => {});
@@ -734,6 +735,11 @@ if (CONTROLS) {
   specs.push({ id: 'none', kind: 'none' });
   specs.push({ id: 'none-probe', kind: 'none', keepProbe: true });
   specs.push({ id: 'none-reduced-motion', kind: 'none', reduced: true });
+  // Production config: the idle drift ON. Its countdown starts at load, so a
+  // veil longer than its 25 s used to start it under the veil (see the
+  // introBusy note in js/app.js). Only a real test when the veil outlasts 25 s:
+  // the result line prints the veil wait.
+  specs.push({ id: 'none-drift', kind: 'none', drift: true });
   specs.push({ id: 'home', kind: 'home' });
   specs.push({ id: 'tour', kind: 'tour', query: '&tour=1' });
   specs.push({ id: 'autopilot', kind: 'tour', query: '&autopilot=1' });
