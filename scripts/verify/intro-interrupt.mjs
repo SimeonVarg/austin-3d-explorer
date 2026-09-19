@@ -14,16 +14,24 @@
  * MapLibre's transform, and window.__fly.eye()), fires ONE real input at a
  * chosen moment of the flight, and asserts on the recorded trajectory:
  *
- *   jump      the step across the input frame is no bigger than the flight's
- *             own per-frame step just before it plus what the controller can
- *             move in one frame (horizontal, vertical, bearing)
- *   stopped   no camera ease runs after the controller has taken the camera,
- *             i.e. neither leg of the flight resumes on top of the user
- *   reach     over the observation window the eye moves no further than the
- *             controller's own top speed allows — the flight is 5-20x faster
+ *   no cut    until the controller's takeover the flight may still draw
+ *             frames, and every one of them must lie ON THE FLIGHT'S OWN PATH
+ *             (zoom, pitch and bearing are linear in the eased progress k, so
+ *             k is exact from the zoom) and be no further along than the clock
+ *             allows. A starved frame that lurches 100 m forward passes; a cut
+ *             to INTRO.end does not. The uninterrupted case runs the same test
+ *             over a whole flight, which is what validates the model.
+ *   takeover  the controller has the camera within two frames of the input
+ *   handover  its first frame is within one controller tick of the pose the
+ *             flight left (snapshotted at the `flycam:takeover` announcement),
+ *             and every later step is within the controller's own reach
+ *   stopped   no camera ease runs after the takeover, i.e. neither leg of the
+ *             flight resumes on top of the user
+ *   reach     over the whole window the eye moves no further than the
+ *             controller's top speed allows — the flight is 5-20x faster
  *   effect    the input did what it does (W goes forward along the bearing,
  *             the arrow strafes, Q/wheel climb, a drag turns) FROM the pose the
- *             user was looking at
+ *             user was looking at, read after the gesture's last event
  *   sync      __fly.eye() agrees with the map's camera afterwards
  *
  * PHASES (the flight's timeline, measured from the moment the veil lifts):
@@ -44,19 +52,32 @@
  *
  * CONTROL CASES: `none` (no input — the flight must still play and end exactly
  * on INTRO.end), `none-probe` (same, with the graphics auto-detect probe left
- * running, i.e. normal startup), `home` (R during leg 1 — the deliberate reset
- * must still reach the spawn pose and stay there), `tour` / `autopilot`
- * (?tour=1 / ?autopilot=1 still replace the intro and still move).
+ * running, i.e. normal startup), `none-reduced-motion` (prefers-reduced-motion:
+ * both legs are instant, it must still land on INTRO.end), `home` (R during
+ * leg 1 — the deliberate reset must still reach the spawn pose and stay
+ * there), `tour` / `autopilot` (?tour=1 / ?autopilot=1 still replace the
+ * intro and still move).
  *
  * Usage:
  *   VERIFY_URL=http://127.0.0.1:8611 VERIFY_GL=hardware \
  *     node scripts/verify/intro-interrupt.mjs [--only=key-w@leg1,none] \
  *       [--inputs=key-w,drag] [--phases=leg1,leg2] [--controls=0] \
- *       [--record=key-w@leg1,drag@leg2] [--out=<dir>] [--report]
+ *       [--record=key-w@leg1,drag@leg2] [--query=apartments=0] \
+ *       [--out=<dir>] [--dump] [--report]
+ *   node scripts/verify/intro-interrupt.mjs --reanalyse=<dir of a --dump run>
  *
  * Exit 1 if any case fails (unless --report). Writes <out>/intro-interrupt.json
  * with every case's numbers and, for --record cases, a screencast of JPEG
- * frames named by milliseconds relative to the input.
+ * frames named by milliseconds relative to the input. --dump also writes each
+ * case's raw frame log, and --reanalyse re-runs the assertions over those with
+ * no browser at all.
+ *
+ * TIMING ON A LOADED MACHINE. Every check is frame- and event-relative, never
+ * wall-clock: the page's own log of when it saw the input, and of each frame.
+ * Measured on the owner's laptop with two other lanes rendering: 2-9 fps
+ * during the flight, CDP input delivered up to ~1 s late, and the veil lifting
+ * on its ceiling. Each case reports where its input actually LANDED; a phase
+ * the input missed is reported as a note, not silently relabelled.
  *
  * Browser count: ONE browser for the whole run, one page at a time. On the
  * owner's laptop wrap it in the lane GPU slot runner.
@@ -361,7 +382,8 @@ async function waitPhase(page, phase) {
 }
 
 async function runCase(browser, spec) {
-  const ctx = await browser.newContext(spec.mobile ? PHONE : DESKTOP);
+  const ctx = await browser.newContext({ ...(spec.mobile ? PHONE : DESKTOP),
+                                        ...(spec.reduced ? { reducedMotion: 'reduce' } : {}) });
   await ctx.addInitScript(recorder);
   const page = await ctx.newPage();
   const errors = [];
@@ -481,7 +503,9 @@ function analyse(spec, d, fired, phaseOk, errors) {
     const firstEase = F.find(f => f.t >= reveal && f.easing);
     const lastEase = [...F].reverse().find(f => f.easing);
     const dur = firstEase && lastEase ? lastEase.t - firstEase.t : null;
-    check('flight plays both legs (~12.6 s of easing)', dur != null && dur > 11800 && dur < 14500,
+    // prefers-reduced-motion: MapLibre runs every easeTo at duration 0, so the
+    // flight is two instant steps and lands on the end frame at the reveal.
+    if (!spec.reduced) check('flight plays both legs (~12.6 s of easing)', dur != null && dur > 11800 && dur < 14500,
           `eased for ${dur == null ? 'n/a' : (dur / 1000).toFixed(2) + ' s'}`);
     check('camera at rest after the flight', !easingEnd, easingEnd ? 'still easing at reveal+13.6 s' : 'at rest');
     // Largest single-frame step during the whole flight: the flight's own
@@ -493,7 +517,8 @@ function analyse(spec, d, fired, phaseOk, errors) {
     res.flightFps = r2(flyingFrames.length / 12.7);
     const legsN = flightLegs(d);
     const pc = pathCheck(F.filter(f => reveal != null && f.t >= reveal - 200), legsN);
-    check('uninterrupted flight stays on the modelled path (validates the path check)', pc.ok, pc.detail);
+    if (!spec.reduced)
+      check('uninterrupted flight stays on the modelled path (validates the path check)', pc.ok, pc.detail);
     check('controller never takes the camera on its own', !F.some(f => f.t > reveal && f.fly && f.fly.driving),
           F.some(f => f.t > reveal && f.fly && f.fly.driving) ? 'driving went true with no input' : 'never drove');
     if (d.intro && d.intro.flight) check('flight state is done', d.intro.flight.state === 'done', `state ${d.intro.flight.state}`);
@@ -586,6 +611,19 @@ function analyse(spec, d, fired, phaseOk, errors) {
     if (over > worst.over) worst = { over, h, v, b: db, hAllow, vAllow, bAllow, t: b.t - tIn, handover: i === 1 };
   }
   res.controllerMaxStep = { h: r2(ctl.h), v: r2(ctl.v), b: r2(ctl.b) };
+  // The camera just before the input, at it (the takeover snapshot when there
+  // is one, else the first frame drawn after it) and 0.25 / 0.5 / 1 / 2 s
+  // after, with __fly.eye(): the record the matrix in docs/intro-interrupt.md
+  // is read from. Each is the first frame drawn at or after that moment.
+  const pose = (f, label) => f ? {
+    at: label, dtMs: Math.round(f.t - tIn), center: [+f.lng.toFixed(6), +f.lat.toFixed(6)], zoom: +f.z.toFixed(3),
+    pitch: r2(f.p), bearing: r2(f.b), cam: f.cLng != null ? [+f.cLng.toFixed(6), +f.cLat.toFixed(6)] : null, camAlt: r2(f.alt),
+    fly: f.fly ? { lng: +f.fly.lng.toFixed(6), lat: +f.fly.lat.toFixed(6), alt: r2(f.fly.alt), bearing: r2(f.fly.b),
+                   pitch: r2(f.fly.p), driving: !!f.fly.driving } : null,
+  } : { at: label, missing: true };
+  const firstFrom = ms => F.find(f => f.t >= tIn + ms) || null;
+  res.samples = [pose(before, 'before'), pose(snap ? { ...snap, fly: null } : after[0], snap ? 'input (takeover)' : 'input'),
+                 ...[250, 500, 1000, 2000].map(ms => pose(firstFrom(ms), `+${ms} ms`))];
   const first = after[0];
   res.jumpAtInput = { h: r2(hdist(camOf(before), camOf(first))), v: r2(first.alt - before.alt),
                       b: r2(wrap180(first.b - before.b)), dtMs: Math.round(first.t - before.t) };
@@ -695,6 +733,7 @@ specs.push({ id: 'key-w@boundary-exact', kind: 'input', input: 'key-w', phase: '
 if (CONTROLS) {
   specs.push({ id: 'none', kind: 'none' });
   specs.push({ id: 'none-probe', kind: 'none', keepProbe: true });
+  specs.push({ id: 'none-reduced-motion', kind: 'none', reduced: true });
   specs.push({ id: 'home', kind: 'home' });
   specs.push({ id: 'tour', kind: 'tour', query: '&tour=1' });
   specs.push({ id: 'autopilot', kind: 'tour', query: '&autopilot=1' });
