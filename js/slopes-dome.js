@@ -4,7 +4,7 @@
  *
  * data/capitol_dome.geojson (scripts/bake_capitol.py) stacks the three curved
  * parts of the Capitol as flat fill-extrusion discs — 18 for the dome, 7 for
- * the bullock-dome, 4 for the cupola — because a fill-extrusion cannot slope.
+ * the bullock-dome, 5 for the cupola — because a fill-extrusion cannot slope.
  * Each disc is a ring at one height with one radius, and read bottom to top
  * the discs of a part are a clean monotonic radius-against-height profile,
  * coaxial to 0.2 m (the scout measured 12.57 → 4.88 m over 60 → 75 m for the
@@ -63,7 +63,10 @@
     // stand ON it. The discs stay the fill-extrusion stand-in they were and
     // are what the lathe falls back to when the member is absent. Off, the
     // discs' own profile is revolved, closed onto the lantern -- the 28 m
-    // spike the critics saw on 2026-09-03.
+    // spike the critics saw on 2026-09-03. Since 2026-09-19 the bake writes
+    // `lathe.cupola` too: the band and small bell dome above the lantern,
+    // which the four thinning discs had lathed into a straight cone
+    // (docs/capitol-roof.md). Any part with a `lathe` entry is read the same way.
     lathe: true,
     // The wings' hips: scripts/bake_capitol.py writes a `rig` member beside
     // the discs (bake_roofs.py's own schema, on the OSM part outlines), and
