@@ -42,14 +42,26 @@
       }
       return light/9.0;
     }
+    // One shadow-map texel in metres, read off the map's own matrix: an
+    // orthographic row's xyz length is 1/radius.
+    float shadowTexel(mat4 m){return 2.0*u_shadowSettings.y/length(vec3(m[0][0],m[1][0],m[2][0]));}
     float sunlightVisibility(vec3 pos,vec3 n) {
       if(u_shadowSettings.x<.5)return 1.0;
-      vec4 nearClip=u_sunShadowMatrix0*vec4(pos+n*u_shadowSettings.w,1.0);
+      // The 3x3 kernel reaches ~1.9 texels from the receiver, and a surface
+      // tilted theta from the sun changes depth by tan(theta) per texel, so a
+      // fixed 9 cm offset let tilted lit faces shadow themselves: at midday
+      // the mean visibility of sun-facing campus pixels was 0.77-0.82, and
+      // 0.93-0.95 with this offset (docs/dark-campus-diagnosis.md; a planar
+      // model predicts 0.62-0.74 near, ~0.53 far). Offsetting 2 texels * sin(theta)
+      // along the normal clears the kernel; a sun-facing wall (theta ~ 0)
+      // keeps the small constant offset and its contact shadows.
+      float cosSun=clamp(dot(n,u_sunDirection),0.0,1.0),sinSun=sqrt(1.0-cosSun*cosSun);
+      vec4 nearClip=u_sunShadowMatrix0*vec4(pos+n*(u_shadowSettings.w+2.0*shadowTexel(u_sunShadowMatrix0)*sinSun),1.0);
       vec3 a=nearClip.xyz/nearClip.w*.5+.5;
       // Nested, camera-following maps. Never select by building name/location.
       float nearEdge=min(min(a.x,1.0-a.x),min(a.y,1.0-a.y));
       if(nearEdge>.07&&a.z>0.0&&a.z<1.0)return shadowSample(u_sunShadow0,a);
-      vec4 farClip=u_sunShadowMatrix1*vec4(pos+n*u_shadowSettings.w,1.0);
+      vec4 farClip=u_sunShadowMatrix1*vec4(pos+n*(u_shadowSettings.w+2.0*shadowTexel(u_sunShadowMatrix1)*sinSun),1.0);
       vec3 b=farClip.xyz/farClip.w*.5+.5;
       if(any(lessThan(b,vec3(0.0)))||any(greaterThan(b,vec3(1.0))))return 1.0;
       float farEdge=min(min(b.x,1.0-b.x),min(b.y,1.0-b.y));
@@ -119,10 +131,34 @@
     stats.glassImages++;return {...image,data};
   }
   let buildings=[],proxy=null,proxyDirty=true,proxyTimer=null,proxyMap=null,proxyBuilt=0;
+  // Only what is DRAWN may cast. The Tower, hero, Drag, arts, Moody and West
+  // Campus passes draw their own buildings and hide the legacy prism with the
+  // shared ['!',['in',['get','id'],['literal',ids]]] clause on buildings-3d.
+  // Before 2026-09-19 those hidden prisms still cast (the Tower's was a 94 m
+  // block over the whole 79 x 87 m Main Building, darkening its roofs, the
+  // shaft and a 900 m golden-hour streak), while the geometry actually drawn
+  // cast nothing. docs/dark-campus-diagnosis.md has the measurements.
+  //
+  // ADDING A PASS: if your pass hides legacy prisms on buildings-3d, its source
+  // MUST be listed here or those buildings will cast no shadow at all — the
+  // prism is skipped and nothing replaces it, which is the same bug the other
+  // way round. Volumes only: detail overlays that sit ON a building already
+  // counted here (austin-places, austin-entrances, austin-roofs,
+  // austin-roofscape, campus-storeys) are deliberately left out, because they
+  // would add coincident geometry to the shadow map for nothing.
+  // scripts/verify/dark-campus.mjs asserts the skip list is non-empty.
+  const casterSources=['austin-outer','austin-parts','austin-stadium','austin-tower','austin-heroes','austin-drag','austin-arts','austin-moody','austin-westcampus'];
+  function hiddenIds(filter,out=new Set()) {
+    if(!Array.isArray(filter))return out;
+    if(filter[0]==='all'){for(const f of filter.slice(1))hiddenIds(f,out);return out;}
+    const m=filter[0]==='!'&&filter[1];
+    if(Array.isArray(m)&&m[0]==='in'&&m[1]?.[0]==='get'&&m[1][1]==='id'&&m[2]?.[0]==='literal')for(const id of m[2][1])out.add(id);
+    return out;
+  }
   function shadowProxy(map) {
     if(!proxyMap) {
       proxyMap=map;
-      map.on('sourcedata',e=>{if(['austin-outer','austin-parts','austin-stadium'].includes(e.sourceId))proxyDirty=true;});
+      map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId))proxyDirty=true;});
       map.on('moveend',()=>{proxyDirty=true;});
       map.on('remove',()=>{clearTimeout(proxyTimer);proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
@@ -134,19 +170,31 @@
       const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
       const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
       const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
-      // The displayed base layer suppresses parent prisms with detailed parts.
-      const features=buildings.filter(f=>!f.properties?.has_parts);
-      for(const source of ['austin-outer','austin-parts','austin-stadium']) {
+      // The displayed base layer suppresses parent prisms with detailed parts,
+      // and replaced prisms by id (see casterSources).
+      const style=map.getStyle().layers,hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
+      const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
+      stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
+      for(const source of casterSources) {
         if(!map.getSource(source))continue;
-        const layers=map.getStyle().layers.filter(l=>l.type==='fill-extrusion'&&l.source===source);
-        const sourceLayers=[...new Set(layers.map(l=>l['source-layer']))];
-        for(const sourceLayer of sourceLayers)features.push(...map.querySourceFeatures(source,sourceLayer?{sourceLayer}:{}));
+        // Each visible layer with its own display filter: a part, deck or
+        // detail that no layer draws does not cast.
+        for(const l of style) {
+          if(l.type!=='fill-extrusion'||l.source!==source||l.layout?.visibility==='none')continue;
+          const o={};if(l['source-layer'])o.sourceLayer=l['source-layer'];if(l.filter)o.filter=l.filter;
+          try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+        }
       }
       const local=p=>{const v=S.toLocal(p[0],p[1],0);return new T.Vector2(v.x,v.y);};
       const tri=(a,b,c,za,zb=za,zc=za)=>positions.push(a.x,a.y,za,b.x,b.y,zb,c.x,c.y,zc);
       for(const f of features) {
-        const p=f.properties||{},h=+(p.final_height??p.h??p.height??0),base=+(p.b??p.min_height??0);
-        if(h<=base||h<=0||ids.has(p.id)||ids.has(f.id))continue;
+        // Parts, stadium decks and the replacement passes carry `base`; the
+        // outer ring carries `b`. Reading only `b` stood decks on the ground.
+        // Heroes and arts use `b` for a building KEY ('gdc', 'petal'), so
+        // only a finite number counts; NaN would reach the GPU as geometry.
+        const p=f.properties||{},num=v=>v==null||v===''||!isFinite(+v)?null:+v;
+        const h=num(p.final_height)??num(p.h)??num(p.height)??0,base=num(p.b)??num(p.base)??num(p.min_height)??0;
+        if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id))continue;
         const polys=f.geometry?.type==='Polygon'?[f.geometry.coordinates]:f.geometry?.type==='MultiPolygon'?f.geometry.coordinates:[];
         for(const poly of polys) {
           const ring=poly[0];if(!ring?.length)continue;
