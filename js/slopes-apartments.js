@@ -123,6 +123,11 @@
     deck: true,           // draw the podium roof deck's pool, turf, screen, rail
     reveals: true,        // draw the four strips that join a window to the wall plane
     reveal: 0.12,         // m a window pane sits behind the wall plane (0 = flush)
+    // One quad per RUN of same-tone wall cells in a row, not one per cell. The
+    // cells of a run are coplanar, one colour, and the shader maps surfaces by
+    // world position, so the run draws the same pixels with fewer vertices —
+    // the phone's memory (js/mobile.js). ?mergecells=0 restores cell-per-quad.
+    mergeCells: q.get('mergecells') !== '0',
     // Night: the share of windows that are lit after dark, by a fixed hash so
     // it never flickers, and the tone they take. The rest go the glass's own
     // night colour. 0.45 is the share the West Campus facade atlas draws.
@@ -714,6 +719,13 @@
     for (const w of windows) { if (w.z0 > z0 && w.z0 < z1) zc.add(+w.z0.toFixed(4)); if (w.z1 > z0 && w.z1 < z1) zc.add(+w.z1.toFixed(4)); }
     for (const f of regions) { if (f.z0 > z0 && f.z0 < z1) zc.add(+f.z0.toFixed(4)); if (f.z1 > z0 && f.z1 < z1) zc.add(+f.z1.toFixed(4)); }
     const zs = [...zc].sort((a, b) => a - b);
+    // APTS.mergeCells, the second half: a wall run that the next row repeats
+    // exactly (same s-extent, same tone) grows upward instead of being drawn,
+    // so a pier between two columns of windows is one quad for its whole
+    // height, not one per window row. Keyed by the run's s-extent.
+    let open = new Map();
+    const runKey = (sa, sb) => sa.toFixed(3) + '|' + sb.toFixed(3);
+    const emitRect = o => { if (faceCell(B, W, o.sa, o.sb, o.za, o.zb, 0, o.col, cut)) count.cells++; };
     const glass = P[skin.glass || 'glass'];
     const revealCol = P[skin.revealTone || skin.frame || 'frame'] || P.frame || glass;
     for (let r = 0; r < zs.length - 1; r++) {
@@ -729,25 +741,44 @@
       const frBand = regions.filter(f => f.z0 <= za + 1e-6 && f.z1 >= zb - 1e-6);
       for (const f of frBand) { if (f.s0 > 0 && f.s0 < len) sc.add(+f.s0.toFixed(4)); if (f.s1 > 0 && f.s1 < len) sc.add(+f.s1.toFixed(4)); }
       const ss = [...sc].sort((a, b) => a - b);
+      // a pending run of same-tone wall cells (APTS.mergeCells): drawn as one quad when a window or a new tone ends it
+      let run = null;
+      const rowRuns = [];
+      const flush = () => { if (run) { rowRuns.push(run); run = null; } };
       for (let c = 0; c < ss.length - 1; c++) {
         const sa = ss[c], sb = ss[c + 1];
         if (sb - sa < 1e-4) continue;
         const sm = (sa + sb) / 2;
         const win = inBand.find(w => sm > w.s0 && sm < w.s1);
-        let drawn;
         if (win) {
+          flush();
           const pane = win.tone ? P[win.tone] || glass : glass;
           const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane.slice();
           if(pane.surface)col.surface=pane.surface;
           else if(P._surfaceGlass&&!win.tone)col.surface=P._surfaceGlass;
-          drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
+          if (faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut)) count.cells++;
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
-          drawn = faceCell(B, W, sa, sb, za, zb, 0, fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall), cut);
+          const col = fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall);
+          if (APTS.mergeCells && run && run.col === col && sa - run.sb < 1e-3) run.sb = sb;
+          else { flush(); run = { sa, sb, col }; }
+          if (!APTS.mergeCells) flush();
         }
-        if (drawn) count.cells++;
       }
+      flush();
+      const next = new Map();
+      for (const q of rowRuns) {
+        const k = runKey(q.sa, q.sb), prev = APTS.mergeCells ? open.get(k) : null;
+        let o = prev && prev.col === q.col && Math.abs(prev.zb - za) < 1e-4 ? prev : null;
+        if (o) { open.delete(k); o.zb = zb; }
+        else o = { sa: q.sa, sb: q.sb, za, zb, col: q.col };
+        if (next.has(k)) emitRect(next.get(k));
+        next.set(k, o);
+      }
+      for (const o of open.values()) emitRect(o);
+      open = next;
     }
+    for (const o of open.values()) emitRect(o);
     // reveals: four strips per window, joining the recessed pane to the plane
     for (const w of windows) {
       const rv = revealOf(w);
@@ -2040,7 +2071,7 @@
     let top = 0;
     const roofs = [];                 // the pitched roofs built: { block, kind, ridgeZ, rise, dUse }
     const rakes = [];                 // the raked faces built: { block, face, pitch, run, rise, len }
-    const signs0 = count.signs, insets0 = count.insets;
+    const signs0 = count.signs, insets0 = count.insets, tris0 = B.triangles, cells0 = count.cells;
 
     for (const blk of spec.blocks || []) {
       yield;                          // build() may pause here (time-sliced)
@@ -2221,7 +2252,7 @@
     }
     count.buildings++;
     count.names.push(spec.name);
-    return { name: spec.name, id: spec.id || null, top, frame: F, roofs, rakes, signs: count.signs - signs0, insets: count.insets - insets0 };
+    return { name: spec.name, id: spec.id || null, top, frame: F, roofs, rakes, signs: count.signs - signs0, insets: count.insets - insets0, triangles: B.triangles - tris0, cells: count.cells - cells0 };
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -2587,7 +2618,7 @@
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },
-    get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, rakes: b.rakes, signs: b.signs, insets: b.insets })); },
+    get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, rakes: b.rakes, signs: b.signs, insets: b.insets, triangles: b.triangles, cells: b.cells })); },
     /** the filter plan as applied, the layers whose clause is missing, the rigs lifted out of js/slopes-roofs.js */
     get hidden() { return { plan: _data ? filterPlan().map(p => p[0]) : [], missing: filtersMissing(), rigs: Object.keys(_rigStash), rigsMissing: rigsMissing() }; },
     /** every character the dot font can set */
