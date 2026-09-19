@@ -30466,3 +30466,5 @@ Not yet: the podium (west orange grid screen, south two-tone garage), the galler
 ## 2026-09-18 — photo matching handed to Astra
 Done and live this round: Moody Center, 21 Rio (plus The Standard, Icon, Villas 24, Yugo x3, Block 25 W, Moontower, 2400 Nueces, Callaway pylons, Texan Tower height earlier).
 Unfinished: branch `acer/match-dobie` (NOT merged, not verified) — stepped diamond plan, one glass ribbon + one spandrel band per storey, brown crown with corner shoulders. Its last render hung; re-verify before merging.
+
+Unfinished: branch `acer/slim-cells` (NOT merged) merges same-tone wall cells: 2.59M -> 2.20M triangles, 317 -> 269 MB. Needs a pixel check (?mergecells=0 vs default) and a phone-memory run (scripts/verify/mobile-budget.mjs). Next cut: balcony pickets draw hidden top/bottom faces (Union on San Antonio is 260k triangles). Phones fall back to plain boxes after two memory crashes (js/mobile.js).
