@@ -120,6 +120,14 @@ memory and is never written here, in any tracked file, or in a commit message.
 
 ### Current lighting direction (2026-09-19)
 
+Scope correction: the sunlight, reflective windows and cast shadows are a
+project-wide DEFAULT, across all building renderers and neighbourhoods. Do not
+stop at opt-in demonstrations or a named-building allowlist. Match the owner's
+Otis phone photograph: strong amber lower glazing with cooler blue upper and
+adjacent glazing, while shaded masonry remains dark. Add Otis if missing.
+The accepted natural direction does not mean suppressing the glare visible in
+the reference. Verify citywide coverage and normal application defaults.
+
 Keep the natural lighting direction: warm sunlight and window reflections,
 cooler shade, restrained glare. Simeon chose this over stronger cinematic glow
 after reviewing the two-building preview. See `docs/sunlit-materials.md` for
