@@ -60,7 +60,7 @@ Full writeup, accuracy tables, failure list and licence position:
 FLAGGED, NOT FIXED: `docs/campus-truth/*.md` calls the City of Austin footprint
 layer "public domain". The city catalogue says "See Terms of Use". It is one
 line in each of 16 building files (line 9), `docs/campus-truth/README.md` line
-35, and `HANDOFF.md` line 30232. The USGS lidar genuinely is public domain; the
+35, and `HANDOFF.md` (line 30232 on `main` before this change, 30295 after it). The USGS lidar genuinely is public domain; the
 Austin layer is not, and nothing in this pass redistributes its polygons.
 
 ## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
