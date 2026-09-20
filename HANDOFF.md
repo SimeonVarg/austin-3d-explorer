@@ -1,5 +1,68 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #PRNUM)
+
+The model has been guessing how tall buildings are — an Overture tag, a number
+read off a photograph, a floor count multiplied by a plausible storey height.
+The USGS flew central Austin with a lidar scanner in February 2017 and put every
+return in a public bucket, so the heights were sitting there the whole time,
+free and unmeasured.
+
+`scripts/bake_massing.py` → `data/massing.json` (one bake, one output file, and
+nothing else writes it). It walks the 3DEP EPT octree, clips the class-6
+returns to each building's own footprint, takes the ground from the class-2
+returns in a ring just outside it, and writes `ground_z`, `h_max`, `h_p99`,
+`h_med`, the roof steps off a 0.5 m raster, a flat/pitched verdict with a
+confidence, the point density, the acquisition dates and the City of Austin's
+own height. 537 of the 552 buildings in the model area got a real measurement,
+and the whole file is 350 KB.
+
+It reproduces what we already knew: Welch Hall 31.68 m against the repo's
+32.61, the Capitol 91.06 against 92.0, Jester 51.43 against 53.4, and the
+Austonian — the tallest thing in the model — 209.49 against the city's 210.31.
+Against the city layer as an independent source, the median disagreement is
+1.68 m and 80% land within 5 m.
+
+Three things it found that we were wrong about:
+
+  - **51 buildings postdate the flight**, including The Standard, both Unions,
+    Villas on Rio, Rambler, Icon and Moody Center. For those the lidar measures
+    the parking lot or the walk-up that used to be there, so the record carries
+    a `late_build` flag and that is the one flag that means "do not use this
+    height". 13 of the 15 unmeasurable buildings are the same story: the site
+    was open ground in 2017.
+  - **The city-coverage trust flag the scouting round proposed does not
+    predict a wrong height.** Measured over 475 buildings, low coverage is no
+    worse than full coverage. What it actually detects is that our footprint and
+    the city's are different shapes, and the failure runs in BOTH directions —
+    the city's polygon over the Paramount Theatre is 41× our footprint and
+    carries the height of the block behind it. So the file now records
+    `city_ratio` as well as `city_cover`.
+  - **The 2017 classifier missed some roofs entirely.** Signature 1909's roof,
+    73 m up, is labelled *ground* in this tile. The bake now measures a
+    non-vegetation surface (`h_nv`) alongside class 6; where they diverge it
+    says so instead of shipping a 6.89 m height for a 63 m building.
+
+And the ground under the model spans 127.8 m to 186.2 m — a 58.4 m fall from
+the Facilities Complex to Rainey Street, 36.5 m across campus alone. Terrain is
+deliberately off in `js/app.js`, so every building stands on one flat datum;
+that is now a measured number rather than a known unknown, and `ground_z` is
+what would fix it.
+
+**Nothing in the renderer reads this file.** That is on purpose — the numbers
+should be argued with before anything moves on screen. Wiring it in is the next
+pass, and the obvious first customer is the 51 `late_build` buildings, where the
+model's current heights come from nowhere in particular.
+
+Full writeup, accuracy tables, failure list and licence position:
+`docs/massing-from-lidar.md`.
+
+FLAGGED, NOT FIXED: `docs/campus-truth/*.md` calls the City of Austin footprint
+layer "public domain". The city catalogue says "See Terms of Use". It is one
+line in each of 16 building files (line 9), `docs/campus-truth/README.md` line
+35, and `HANDOFF.md` line 30232. The USGS lidar genuinely is public domain; the
+Austin layer is not, and nothing in this pass redistributes its polygons.
+
 ## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
 
 Phones that had never crashed were being shown the safe fallback — The Standard
