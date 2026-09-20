@@ -1,9 +1,17 @@
 # Render audit — 2026-09-19 (main @ c656249)
 
 Audit lane, branch `acer/render-audit`. Scope: desktop and the phone profile
-(`?lite=1`), day / sunset / night, on `main` at c656249 (the citywide
-sunlight merge, PR #267), locally and on production
+(`?lite=1`), day / sunset / night, locally and on production
 (https://flyover-utx.vercel.app/, read-only).
+
+**Which commit these numbers are from.** Every measurement below was taken
+against `main` at **c656249** (the citywide sunlight merge, PR #267), which is
+also what production was serving throughout. The branch was then rebased onto
+**87f6ec4**, which adds only the Capitol's attic and lantern
+(`js/slopes-dome.js`, `scripts/bake_capitol.py`) and a data snapshot — no file
+any assertion here depends on — and the `js/lod.js` gate was re-run on that
+rebased tree. `austin-data-bot` later pushed a 2026-09-20 data snapshot onto
+the branch as well; it is flagged on the PR and nothing here reads it.
 
 **Conditions, because they bound every timing here.** One Windows laptop,
 headless Chrome on hardware GL (ANGLE / D3D11), with two other lanes'
@@ -500,8 +508,10 @@ blurrier", and I cannot separate the two from the numbers I have. **I am not
 claiming a far-cutoff defect from them** — only that the near cascade is doing
 real work at every pose, which is what having two of them is for.
 
-**Nothing is drawn twice: one legacy prism inside 196 authored footprints, and
-it is buried.** `audit-dupes.mjs` looks straight down at every authored
+**Duplicate replacements — PROVISIONAL, not clean: one legacy prism found
+inside 196 authored footprints, and the probe failed its own control.** (Filed
+here because the finding is a near-negative, but read the caveat at the end of
+this item before using it.) `audit-dupes.mjs` looks straight down at every authored
 building (pitch 0 is the only angle at which `queryRenderedFeatures` answers
 for a fill-extrusion) and asks all **55** building-like fill-extrusion layers
 what they drew at a 5x5 grid inside the footprint, inset 1.5 m from the edge,
@@ -527,13 +537,24 @@ probe points inside **Jester East Hall**'s authored footprint. It is a
 separate OSM polygon that the authored building's `hideRings` does not cover,
 so the old prism is still drawn where the new mesh stands.
 
-**The instrument had to be re-proved before this negative could be believed.**
+**NOT YET PROVED, and the table above is therefore provisional.**
 `audit-dupes.mjs`'s own control — one point on an ordinary building, which must
 hit or the probe is blind — came back `[]`. A negative from an instrument that
-failed its own control is worth nothing, so `audit-dupes-control.mjs` re-runs
-it against six ordinary campus buildings with a 3x3 tap each (so a point that
-lands in a light well cannot be mistaken for blindness), then re-probes Jester
-East and photographs it with the authored mesh on and off.
+failed its own control is worth nothing. The probe was certainly not *wholly*
+blind (it returned 125 buildings' worth of hits at z18, and it named a feature
+by id), but "only one legacy prism in 196 footprints" is exactly the kind of
+clean negative a partly-blind probe produces, and it is not being claimed here
+as verified.
+
+`audit-dupes-control.mjs` is written and committed to settle it: six ordinary
+campus buildings with a 3x3 tap each, so a point landing in a light well cannot
+be read as blindness, then a re-probe of Jester East and a mesh-on / mesh-off
+pair at two pitches — because whether the leftover prism is *visible* or buried
+inside the replacement is a separate question from whether it is drawn, and
+only the picture answers it. **It had not been run when this was written**: the
+machine's three browser slots were held by other lanes for the last stretch of
+the round. Whoever picks this up should run it first, before treating the table
+above as a result.
 
 **Crossing a LOD threshold during a climb does not pop.** A scripted vertical
 climb, 528 frames, `renderDistance` 700 (thresholds 315 m fine / 700 m mid,
