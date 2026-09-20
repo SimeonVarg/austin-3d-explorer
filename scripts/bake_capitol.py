@@ -328,6 +328,26 @@ COLLAR_HALF = 22.0       # the crossing's roof mass, off the aerial
 ATTIC_HALF = 15.4        # 30.7 m across in ref_oblique.jpg, scaled on the
                          # building's own 167.7 m footprint width
 
+# ...AND IT WAS STILL ANGLED, BECAUSE THE SQUARES WERE SQUARE TO THE COMPASS.
+# (2026-09-19, reported again: "an inaccurate angled top on the Texas Capitol".)
+#
+# `square()` puts its edges on true east and true north. The Capitol does not
+# stand on that grid: every long edge of its OSM outline and of all 13 of its
+# parts runs at 17.9 deg / 107.7 deg, the grid of Congress Avenue. So the attic
+# block and the three collar steps were a square twisted 17.9 deg against the
+# building they stand on - from the south you saw two faces of the attic at
+# once, a slanted red wedge under the drum, and from the east and west the
+# collar's corners stuck out past the 47.7 m centre block over the wings at the
+# same skew. The nadir photograph (and every elevation) shows nothing out of
+# square up there. The skirt removed on 2026-08-03 was built from the same
+# square() and carried the same twist, which is why "it looks angled" survived
+# that fix.
+#
+# The angle is DERIVED, not typed: the length-weighted mean edge direction of
+# the Capitol's own outline, modulo 90 (grid_rotation below), so it follows
+# the data. False puts the squares back on the compass.
+ALIGN_TO_GRID = True
+
 # THE DOME MUST NOT OVERHANG ITS OWN DRUM. It sprang at 0.98 of the drum
 # radius, which is 30.0 m across against a colonnade 29.7 m across — a dome
 # fractionally WIDER than the thing holding it up, which is what makes a stack
@@ -411,6 +431,65 @@ def lathe_profile(R, z0, z1):
         if z < 2.0 * LATHE_SWELL_M:
             r *= 1.0 + LATHE_SWELL * max(0.0, 1.0 - ((z - LATHE_SWELL_M) / LATHE_SWELL_M) ** 2)
         out.append([round(r, 3), round(z0 + z, 3)])
+    return out
+
+
+# ── THE CUPOLA WAS A CONE, AND THE REAL ONE IS A LITTLE DOME ────────────────
+# Four discs thinning linearly from 3.1 m to 0.9 m over the 5 m above the
+# lantern, lathed into a straight 25-degree cone - a pencil point on top of the
+# dome, the one sloped surface in the whole stack that nothing in any
+# photograph has. What is really there, read off the Library of Congress
+# telephoto of the lantern (Carol M. Highsmith, LCCN 2014632686, public
+# domain; see docs/capitol-roof.md for the pixel rows), scaled on the
+# Goddess's own 4.75 m from her feet to the tip of the star:
+#
+#     lantern cornice, the widest ring        ~81.1 - 82.3 m
+#     a VERTICAL band with oculi and brackets  82.3 - 84.0 m   r ~2.6-2.8
+#     a small bell dome, convex                84.0 - 86.9 m   r 2.5 -> 0.8
+#     the pedestal the Goddess stands on       86.9 - 87.5 m   r ~0.8
+#
+# The same stack, fitted between this bake's own Z_LANTERN_TOP (83.0) and
+# Z_CUPOLA_TOP (88.0 - where the goddess disc starts), which span 5.0 m against
+# the photograph's 5.2 m. The bell is an elliptical quadrant: vertical at its
+# springing, flat at its neck - a dome, not a cone. Corner points are written
+# twice so the lathe keeps the band's wall and the ledge above it as two faces
+# rather than smoothing one normal round the corner.
+CUPOLA_BAND_H = 1.6        # the vertical band with the oculi
+CUPOLA_BAND_R = 2.70       # its radius (the lantern below is 3.1, its cornice the ledge)
+CUPOLA_BELL_R = 2.45       # the bell springs set back from the band
+CUPOLA_NECK_R = 0.85       # the pedestal under the Goddess (her disc is 0.75)
+CUPOLA_NECK_H = 0.7
+CUPOLA_SAMPLES = 10        # profile points up the bell
+CUPOLA_DISCS = 5           # the fill-extrusion stand-in (?slopes=0): discs off the same profile
+
+
+def cupola_profile(z0, z1):
+    """[r, z] pairs js/slopes-dome.js revolves for the cupola (lathe.cupola)."""
+    zb = z0 + CUPOLA_BAND_H
+    zn = z1 - CUPOLA_NECK_H
+    out = [[CUPOLA_BAND_R, z0], [CUPOLA_BAND_R, zb], [CUPOLA_BAND_R, zb], [CUPOLA_BELL_R, zb]]
+    for i in range(CUPOLA_SAMPLES + 1):
+        t = i / float(CUPOLA_SAMPLES)
+        r = CUPOLA_NECK_R + (CUPOLA_BELL_R - CUPOLA_NECK_R) * math.sqrt(max(0.0, 1.0 - t * t))
+        out.append([r, zb + (zn - zb) * t])
+    out += [[CUPOLA_NECK_R, zn], [CUPOLA_NECK_R, z1]]
+    return [[round(r, 3), round(z, 3)] for r, z in out]
+
+
+def cupola_discs(z0, z1):
+    """(r, base, top) stand-in discs for the fill-extrusion layer: the band,
+    then the bell in CUPOLA_DISCS - 2 steps at their mid-height radius, then
+    the neck. The layer that draws them cannot slope, so the steps ARE the
+    silhouette; they follow the same profile the lathe revolves."""
+    zb = z0 + CUPOLA_BAND_H
+    zn = z1 - CUPOLA_NECK_H
+    out = [(CUPOLA_BAND_R, z0, zb)]
+    n = max(1, CUPOLA_DISCS - 2)
+    for i in range(n):
+        t = (i + 0.5) / n
+        r = CUPOLA_NECK_R + (CUPOLA_BELL_R - CUPOLA_NECK_R) * math.sqrt(max(0.0, 1.0 - t * t))
+        out.append((r, zb + (zn - zb) * i / n, zb + (zn - zb) * (i + 1) / n))
+    out.append((CUPOLA_NECK_R, zn, z1))
     return out
 
 
@@ -759,6 +838,25 @@ def square(cx_m, cy_m, half, lat0, rot=0.0):
     return to_ll(pts + [pts[0]], lat0)
 
 
+def grid_rotation(ring_ll):
+    """The building's grid, as the `rot` square() takes (radians, CCW from east).
+
+    Every edge votes for its direction modulo 90 deg, weighted by its length:
+    the mean is taken on the doubled-doubled angle (4a) so that an edge and its
+    perpendicular vote for the SAME grid instead of cancelling.
+    """
+    lat0 = sum(p[1] for p in ring_ll) / len(ring_ll)
+    m = to_m(closed(list(ring_ll)), lat0)
+    sx = sy = 0.0
+    for (x0, y0), (x1, y1) in zip(m, m[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        length = math.hypot(dx, dy)
+        a = math.atan2(dy, dx)
+        sx += length * math.cos(4 * a)
+        sy += length * math.sin(4 * a)
+    return math.atan2(sy, sx) / 4.0
+
+
 def shrink_ring(ring_ll, frac, lat0):
     """Scale a ring toward its own centroid. Used for the stepped caps —
     an inset is what makes a stack of prisms read as a pitch (bake_roofs.py)."""
@@ -1062,17 +1160,20 @@ def main():
     # standing-seam sheet as the wings' roofs, and they are continuous with
     # them. The square's CORNERS point NE/NW/SE/SW into the four re-entrant
     # angles of the cross plan, which is what puts the hips on the diagonals.
+    # On the BUILDING's grid, not the compass's (ALIGN_TO_GRID).
+    grid = grid_rotation(capitol_ring) if ALIGN_TO_GRID else 0.0
+    stats["capitol_grid_deg"] = round(math.degrees(grid), 2)
     for i in range(COLLAR_STEPS):
         t0, t1 = i / COLLAR_STEPS, (i + 1) / COLLAR_STEPS
         z0 = Z_MAIN_ROOF + (Z_COLLAR_TOP - Z_MAIN_ROOF) * t0
         z1 = Z_MAIN_ROOF + (Z_COLLAR_TOP - Z_MAIN_ROOF) * t1
         half = COLLAR_HALF + (ATTIC_HALF - COLLAR_HALF) * t0
-        emit(square(dcx, dcy, half, lat0), z0, z1, CAP_ROOF, CAP_ROOF, "collar")
+        emit(square(dcx, dcy, half, lat0, rot=grid), z0, z1, CAP_ROOF, CAP_ROOF, "collar")
 
     # -- the attic: a square granite block with VERTICAL walls --------------
     # This is the band with the six seals and the south pediment. One prism,
     # one height, no taper — the whole point of it is that it does not slope.
-    emit(square(dcx, dcy, ATTIC_HALF, lat0), Z_COLLAR_TOP, Z_ATTIC_TOP,
+    emit(square(dcx, dcy, ATTIC_HALF, lat0, rot=grid), Z_COLLAR_TOP, Z_ATTIC_TOP,
          GRANITE_ATTIC, GRANITE_ATTIC, "attic")
 
     # -- drum: a cylinder, ringed by its colonnade ------------------------
@@ -1113,12 +1214,11 @@ def main():
              GRANITE_DOME, GRANITE_DOME, "lantern-column")
     # The cupola was CAP_ROOF — grey-green sheet metal, on the one part of the
     # building where every photograph shows granite-coloured paint. Only the
-    # WINGS' roofs are that metal.
-    for i in range(4):
-        t0, t1 = i / 4, (i + 1) / 4
-        emit(circle(dcx, dcy, 3.1 * (1 - 0.72 * t0), lat0, 20),
-             Z_LANTERN_TOP + (Z_CUPOLA_TOP - Z_LANTERN_TOP) * t0,
-             Z_LANTERN_TOP + (Z_CUPOLA_TOP - Z_LANTERN_TOP) * t1,
+    # WINGS' roofs are that metal. And it is a band and a small bell dome, not
+    # a cone (CUPOLA_* above); these discs are the stand-in, lathe.cupola the
+    # shape.
+    for r, z0, z1 in cupola_discs(Z_LANTERN_TOP, Z_CUPOLA_TOP):
+        emit(circle(dcx, dcy, r, lat0, 20), z0, z1,
              GRANITE_DOME, GRANITE_DOME, "cupola")
     # 302.64 ft to the tip of her star.
     emit(circle(dcx, dcy, 0.75, lat0, 12), Z_CUPOLA_TOP, Z_STATUE_TOP - 1.2,
@@ -1396,6 +1496,7 @@ def main():
         "dome": {"prof": lathe_profile(drum["spring_r"], Z_DRUM_TOP, Z_DOME_TOP),
                  "crown": LATHE_CROWN, "swell": [LATHE_SWELL, LATHE_SWELL_M],
                  "power": LATHE_POWER},
+        "cupola": {"prof": cupola_profile(Z_LANTERN_TOP, Z_CUPOLA_TOP)},
     }
     outputs = [("capitol.geojson", fc(buildings)),
                ("capitol_parts.geojson", parts_fc),
