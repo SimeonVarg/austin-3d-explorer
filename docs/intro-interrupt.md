@@ -30,14 +30,8 @@ Measured with the new harness against the unchanged `js/app.js` and
    calls `preventDefault()`, which suppresses the compatibility `mousedown`.
    Measured: every real mouse drag the harness sent logged `pointerdown` and no
    `mousedown`, on both branches. So the drag itself worked, but the intro never
-   heard about it and its leg-2 timer stayed armed. Measured end to end: a quick flick 2.1 s into leg 1 on `main`, then
-   hands off. Leg 2's timer fired four seconds later (first eased frame at
-   reveal+6178 ms, its `leg1Ms + 30`) and carried the camera **3,597 m and 162
-   degrees** onto `INTRO.end` — away from the view the user had just aimed. The same
-   flick on this branch cancels the flight (`cancelled by input`) and nothing eases
-   after it: 0 m. It bites only when the flick has decayed before the timer fires;
-   in the harness's own `drag@leg1` case on `main` the controller still had the
-   camera, so the resumed ease was killed after one frame (0.03 m in 14 s).
+   heard about it and its leg-2 timer stayed armed — see the next item for what
+   that timer then did.
 3. **Leg 2 was a timer that `map.stop()` couldn't reach.** Anything that
    stopped the flight without going through the intro's own cancel (the drag
    above, wayfind's `Walk it`, the landmark orbit) was overridden
@@ -45,6 +39,19 @@ Measured with the new harness against the unchanged `js/app.js` and
    happening to a walk (its ROUND 6 note). The same timer also cut leg 1 short
    when frames were slow: on this machine leg 2 started from 98% of the way
    to the crest instead of the crest itself.
+
+   **Measured end to end.** A quick flick of the mouse
+   1.5-2.5 s into leg 1, released, then left alone: on `main` leg 2 fired a few
+   seconds later and carried the camera **3,634 m and 163 degrees** onto
+   `INTRO.end` — out of the view the user had just aimed. Three interleaved reps
+   on `main`: 3,634 / 3,639 / 3,644 m, first eased frame at reveal+6.9 to +8.5 s
+   (the timer's `leg1Ms + 30`, plus how late a starved frame lands). The same
+   flick on this branch cancels the flight and nothing eases after it: 0 m in
+   every rep, and the camera is left over downtown where the drag stopped it —
+   2.54 km from `INTRO.end`, which is the point. It only bites when the flick has
+   decayed before the timer fires: in the harness's own `drag@leg1` case on `main`
+   the controller still held the camera, so the resumed ease died after one frame
+   (0.03 m in 14 s).
 4. **The first wheel notch from rest did nothing.** At the takeover,
    `syncFromMap()` zeroed the pending wheel/look input, so the notch that woke
    the controller was thrown away. Measured with `?intro=0`, one notch from
@@ -163,18 +170,18 @@ Each "pass" cell also names what the input did from the stopped pose.
 
 | input \ moment | under the veil | reveal | leg 1 | leg 1 -> 2 | leg 2 | settle |
 |---|---|---|---|---|---|---|
-| W (forward) | pass, 9 m | not run | pass, 9 m | not run | not run | not run |
-| Left arrow (strafe) | not run | not run | not run | not run | pass, 15 m | not run |
-| Q (climb) | not run | not run | pass, +11% alt | not run | not run | not run |
+| W (forward) | pass, 14 m | not run | pass, 20 m | not run | not run | not run |
+| Left arrow (strafe) | not run | not run | not run | not run | pass, 16 m | not run |
+| Q (climb) | not run | not run | pass, +10% alt | not run | not run | not run |
 | mouse drag (look) | not run | pass, 40 deg turn | not run | pass, 40 deg turn | pass, 40 deg turn | not run |
 | mouse wheel (climb) | not run | not run | not run | pass, +137% alt | not run | pass, +137% alt |
-| phone joystick | not run | not run | pass, 52 m | not run | not run | pass, 25 m |
+| phone joystick | not run | not run | pass, 44 m | not run | not run | pass, 29 m |
 | phone swipe (look) | pass, 27 deg turn | not run | not run | not run | pass, 27 deg turn | not run |
 
-- `key-w@reveal-exact`: pass (leg1 +2 ms, 20 m)
-- `key-w@boundary-exact`: pass (leg1 end +1 ms, leg2 began +4 ms, 34 m)
-- `none`: pass (flight drew 2.76 fps; largest single flight step 604.61 m)
-- `none-reduced-motion`: pass (flight drew 1.97 fps; largest single flight step 3646.31 m)
+- `key-w@reveal-exact`: pass (leg1 +2 ms, 14 m)
+- `key-w@boundary-exact`: pass (leg1 end +1 ms, leg2 began +5 ms, 19 m)
+- `none`: pass (flight drew 3.15 fps; largest single flight step 665.66 m)
+- `none-reduced-motion`: pass (flight drew 2.91 fps; largest single flight step 3646.31 m)
 - `home`: pass
 
 **Default path** (authored apartments on, the veil waits for them; 15 cases,
@@ -186,21 +193,21 @@ same code): `autopilot` pass; `drag@leg2` pass; `drag@reveal` pass; `home` pass;
 
 | case | landed | input took | flight -> takeover | +0.25 s | +0.5 s | +1 s | +2 s | eye |
 |---|---|---|---|---|---|---|---|---|
-| key-w@veil | veil (994 ms before lift) | 1.1 s | 0 m / +0° / +0% | 0 m / +0° / +0% | 1 m / +0° / +0% | 7 m / +0° / +0% | 12 m / +0° / +0% | 0.1 m |
-| key-w@leg1 | leg1 +3296 ms | 1.0 s | 124 m / -1° / +47% | 0 m / +0° / +0% | 6 m / +0° / +0% | 6 m / +0° / +0% | 13 m / +0° / +0% | 0.0 m |
-| key-arrow@leg2 | leg1 end +3190 ms, leg2 began +1 ms | 1.3 s | 281 m / -10° / -5% | 2 m / +0° / +0% | 6 m / +0° / +0% | 11 m / +0° / +0% | 21 m / +0° / +0% | 0.1 m |
-| key-q@leg1 | leg1 +3501 ms | 1.0 s | 61 m / -0° / +17% | 0 m / +0° / +5% | 0 m / +0° / +5% | 0 m / +0° / +11% | 0 m / +0° / +11% | 0.1 m |
-| drag@reveal | leg1 +2579 ms | 16.7 s | 15 m / -0° / +5% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0.0 m |
-| drag@boundary | leg1 end +76 ms, leg2 began +1 ms | 11.8 s | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / -4° / +0% | 0 m / -4° / +0% | 0 m / -8° / +0% | 0.1 m |
-| drag@leg2 | leg1 end +1613 ms, leg2 began +1 ms | 19.7 s | 99 m / -3° / -2% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0.1 m |
-| wheel@boundary | leg1 end +1485 ms, leg2 began +1 ms | 1.6 s | 123 m / -4° / -2% | 0 m / +0° / +54% | 0 m / +0° / +54% | 0 m / +0° / +54% | 0 m / +0° / +137% | 0.2 m |
-| wheel@settle | leg1 end +5814 ms, leg2 began +1 ms | 1.2 s | 36 m / -4° / -2% | 0 m / +0° / +54% | 0 m / +0° / +54% | 0 m / +0° / +54% | 0 m / +0° / +137% | 0.1 m |
-| joystick@leg1 | leg1 +3189 ms | 3.3 s | 4 m / -0° / +1% | 0 m / +0° / +0% | 1 m / +0° / +0% | 3 m / +0° / +0% | 21 m / +0° / +0% | 0.1 m |
-| joystick@settle | leg1 end +6273 ms, leg2 began +1 ms | 3.1 s | 1 m / -0° / -0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 1 m / +0° / +0% | 6 m / +0° / +0% | 0.0 m |
-| touch-look@veil | veil (4930 ms before lift) | 5.8 s | 0 m / +0° / +0% | 0 m / +3° / +0% | 0 m / +3° / +0% | 0 m / +5° / +0% | 0 m / +8° / +0% | 0.0 m |
-| touch-look@leg2 | leg1 end +4725 ms, leg2 began +1 ms | 5.7 s | 146 m / -11° / -6% | 0 m / +3° / +0% | 0 m / +3° / +0% | 0 m / +5° / +0% | 0 m / +11° / +0% | 0.0 m |
-| key-w@reveal-exact | leg1 +2 ms | 4.0 s | 0 m / +0° / +0% | 1 m / +0° / +0% | 1 m / +0° / +0% | 7 m / +0° / +0% | 14 m / +0° / +0% | 0.0 m |
-| key-w@boundary-exact | leg1 end +1 ms, leg2 began +4 ms | 1.8 s | 31 m / -0° / +4% | 3 m / +0° / +0% | 8 m / +0° / +0% | 14 m / +0° / +0% | 34 m / +0° / +0% | 0.0 m |
+| key-w@veil | veil (1509 ms before lift) | 1.3 s | 0 m / +0° / +0% | 4 m / +0° / +0% | 7 m / +0° / +0% | 10 m / +0° / +0% | 16 m / +0° / +0% | 0.1 m |
+| key-w@leg1 | leg1 +3860 ms | 1.4 s | 34 m / -0° / +9% | 2 m / +0° / +0% | 6 m / +0° / +0% | 15 m / +0° / +0% | 23 m / +0° / +0% | 0.0 m |
+| key-arrow@leg2 | leg1 end +3563 ms, leg2 began +1 ms | 1.0 s | 641 m / -26° / -13% | 2 m / +0° / +0% | 2 m / +0° / +0% | 10 m / +0° / +0% | 19 m / +0° / +0% | 0.0 m |
+| key-q@leg1 | leg1 +3302 ms | 1.0 s | 36 m / -0° / +9% | 0 m / +0° / +4% | 0 m / +0° / +7% | 0 m / +0° / +10% | 0 m / +0° / +10% | 0.0 m |
+| drag@reveal | leg1 +1495 ms | 16.4 s | 6 m / -0° / +3% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0.1 m |
+| drag@boundary | leg1 end +98 ms, leg2 began +1 ms | 12.6 s | 11 m / -0° / +1% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0.1 m |
+| drag@leg2 | leg1 end +3543 ms, leg2 began +1 ms | 20.2 s | 2258 m / -85° / -36% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0 m / +0° / +0% | 0.0 m |
+| wheel@boundary | leg1 end +2610 ms, leg2 began +1 ms | 0.7 s | 328 m / -10° / -5% | 0 m / +0° / +54% | 0 m / +0° / +54% | 0 m / +0° / +137% | 0 m / +0° / +137% | 0.3 m |
+| wheel@settle | leg1 end +6763 ms, leg2 began +1 ms | 0.3 s | 0 m / -0° / -0% | 0 m / +0° / +54% | 0 m / +0° / +137% | 0 m / +0° / +137% | 0 m / +0° / +137% | 0.1 m |
+| joystick@leg1 | leg1 +3418 ms | 3.7 s | 16 m / -0° / +4% | 0 m / +0° / +0% | 0 m / +0° / +0% | 1 m / +0° / +0% | 8 m / +0° / +0% | 0.0 m |
+| joystick@settle | leg1 end +6228 ms, leg2 began +1 ms | 2.9 s | 1 m / -0° / -0% | 0 m / +0° / +0% | 1 m / +0° / +0% | 1 m / +0° / +0% | 11 m / +0° / +0% | 0.0 m |
+| touch-look@veil | veil (10784 ms before lift) | 8.4 s | 0 m / +0° / +0% | 0 m / +3° / +0% | 0 m / +3° / +0% | 0 m / +3° / +0% | 0 m / +5° / +0% | 0.0 m |
+| touch-look@leg2 | leg1 end +3326 ms, leg2 began +1 ms | 4.5 s | 163 m / -6° / -3% | 0 m / +3° / +0% | 0 m / +5° / +0% | 0 m / +8° / +0% | 0 m / +16° / +0% | 0.0 m |
+| key-w@reveal-exact | leg1 +2 ms | 2.0 s | 0 m / +0° / +0% | 1 m / +0° / +0% | 4 m / +0° / +0% | 10 m / +0° / +0% | 14 m / +0° / +0% | 0.0 m |
+| key-w@boundary-exact | leg1 end +1 ms, leg2 began +5 ms | 2.7 s | 0 m / +0° / +0% | 3 m / +0° / +0% | 3 m / +0° / +0% | 3 m / +0° / +0% | 8 m / +0° / +0% | 0.1 m |
 
 </details>
 
@@ -282,8 +289,10 @@ Camera eye position relative to the last frame drawn BEFORE the input. Each cell
   `INTRO.end` (centre 0.000 m off, zoom 16.45, pitch 74, bearing 202), in 12.9 s
   of easing, and `__intro.flight.state` reads `done` (`none`, `none-probe`,
   `none-reduced-motion`, and `none-drift` with the drift on after a 93 s veil).
-- R during leg 1 still eases to the spawn pose and nothing moves the camera
-  after it lands (`home`: 0 of 8 frames off home after arriving).
+- R during leg 1 still eases to the spawn pose (centre 0 m off, zoom 16.5) and
+  nothing moves the camera after it lands (`home`: 0 of the 7 frames watched
+  after arrival are off home). The flight records itself `cancelled by camera
+  moved`, which is the path anything that ends a leg short takes.
 - `?tour=1` and `?autopilot=1` still replace the intro and still move.
 - `scripts/verify/intro-timeline.mjs` (landscape with `apartments=0`, and
   portrait on the default path): exit 0, no page errors. Landscape shows the
@@ -331,19 +340,40 @@ Honest limits:
 - **The full 49-case matrix ran with `?apartments=0`** and is an earlier run of
   the same app code, re-checked with the final assertions from its saved frame
   logs (`--reanalyse`); it predates the takeover snapshot, so its camera record
-  is relative to the last frame before the input. The 18-case live run used
-  the final harness end to end. The default path (authored apartments on) was
-  run on 15 cases; there the veil waits up to 90 s for the apartments, which
-  made the full matrix impractical.
+  is relative to the last frame before the input. The 18-case live run is the
+  final harness against the exact committed code, end to end; an earlier run of
+  the same 18 cases, before the drift guard was added, also passed 18/18, and
+  re-analysing both of those saved runs with the final harness still gives 18/18
+  and 49/49. The default path (authored apartments on) was run on 15 cases;
+  there the veil waits up to 90 s for the apartments, which made the full matrix
+  impractical.
+- **The leg-2 fly-away number in item 2 comes from a scratch probe**
+  (`drag-flyaway3.mjs`, not committed), not from the harness: the harness reads
+  the camera for 2 s after the input and that timer fires about 4 s later. The
+  probe dispatches its flick in the page and triggers it on an animation frame,
+  because the same flick timed from outside the page landed as late as
+  reveal+9.7 s on this machine — past the timer, so the case under test never
+  happened. Two of its runs are reported; a third attempt died on a 90 s page-load
+  timeout under load.
 - **The before column is a subset** (12 cases), because every case on `main`
   fails the same way. On `main` the path model itself doesn't hold (item 3:
   the leg-2 timer cut leg 1 short), so the before cells are read from the jump
   itself, not from the path check.
 - **Phone rows are emulated touch in desktop Chrome,** not a phone.
-- **Not exercised here:** pinch and tap-drag (they take the camera through the
-  same takeover), and wayfind's `Walk it` / the landmark orbit / the T key
-  during the flight (they end a leg short, which is the same `moveend` path R
-  takes, and R is tested).
+- **Pinch and tap-drag are not exercised.** Both set state in the same
+  `inputActive` expression as the gestures that are tested (`pointerCount() >= 2`
+  and `tapDragId`), so both take the camera by the same takeover — but neither
+  was run here, so neither is claimed. A pinch case was written for the harness
+  and then removed again rather than shipped unrun: the three shared browser
+  slots stayed saturated by other lanes for over an hour, and an input case that
+  has never executed does not belong in the default set. Tap-drag is harder
+  still: it needs a second touch within 280 ms of the first (`TAP_MS` in
+  `js/controls.js`), and CDP input on this machine under load arrives up to ~1 s
+  late, so the harness cannot hit that window reliably, and a synthetic in-page
+  version would not be a real touch.
+- **Also not exercised:** wayfind's `Walk it`, the landmark orbit and the T key
+  during the flight. They end a leg short, which is the same `moveend` path R
+  takes, and R is tested.
 - The frames in `docs/shots/intro-interrupt-*.jpg` come from a screencast,
   which only delivers a frame when the compositor has a new one; that's why
   the before sheet's first frame after the key press still shows the old view.
