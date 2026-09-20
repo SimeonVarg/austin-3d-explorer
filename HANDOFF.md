@@ -1,5 +1,48 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 20 2026 — The opening flight stops where you are (`acer/intro-keep-camera`, PR #271)
+
+Moving during the intro used to teleport you behind campus. Any mousedown,
+wheel, keydown or touchstart ran `map.stop(); map.jumpTo(INTRO.end)` — a cut to
+the flight's LAST frame, over north campus facing south, up to 3.5 km and 162
+degrees from wherever you were, and then you flew on from somewhere you never
+saw. Now the first navigation input stops the flight on the frame on screen and
+you carry on from exactly there; there is no `jumpTo` anywhere in the cancel
+path.
+
+"Navigation input" is decided by the one module that knows: when
+`js/controls.js` takes the camera it fires `flycam:takeover`, and the flight
+cancels on that — so keys, drag-look, wheel, pinch, tap-drag and the joystick
+all count, on every device, and a click on a panel or a key typed into a text
+field does not. Leg 2 now starts from leg 1's own `moveend` instead of a
+`setTimeout` that nothing could reach, the flight only departs if the camera is
+still on `INTRO.start` when the veil lifts, and the idle drift no longer starts
+underneath a long veil.
+
+**Caught on review, on the merged result, and fixed before it landed:** a
+takeover that rides the render loop can be *missed*. The old cancel was a DOM
+listener, which cannot miss an event; the new one reads input state once per
+animation frame, so a press and a release inside one frame gap leave nothing
+behind. On this laptop with other lanes rendering the flight runs at 1.6-3.4 fps
+and frame gaps of 558-776 ms are ordinary — a full second of W was ignored in 2
+runs out of 6 and the flight ran to completion under it. The handlers that
+accept an input now latch it and the tick consumes the latch, so a takeover can
+be a frame late but never skipped. `key-tap-between-frames` is the deterministic
+guard (keydown and keyup in the same task, so no frame can render between them):
+without the latch it fails 3 times in 3 with the camera 600-738 m further on;
+with it, cancelled every time.
+
+Known and NOT fixed: the same race at the veil itself — an input that lands
+under the veil with no frame after it before the lift lets the flight depart and
+cancel ~300 ms (0.09 m) into leg 1. Cosmetic, 1 case in 52 at 2 fps, and the
+reason a fix was backed out rather than shipped is written up in
+`docs/intro-interrupt.md`.
+
+Guard: `scripts/verify/intro-interrupt.mjs`, 52 cases (7 inputs x 6 phases, 2
+synthetic instants, the deterministic tap, and the `none` / `home` / `tour`
+controls). It recycles its browser every 16 cases — a full matrix through one
+browser hit `net::ERR_INSUFFICIENT_RESOURCES` on case 50.
+
 ## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #277)
 
 The model has been guessing how tall buildings are — an Overture tag, a number
