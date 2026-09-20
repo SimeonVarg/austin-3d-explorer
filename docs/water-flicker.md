@@ -209,6 +209,13 @@ Same plan, same poses, same session settings; c656249 vs this branch. Moving
 sequence shown; the stopped sequence gave identical numbers in every row
 (stop-go 0.000 %).
 
+The `water px/frame` column is the **after** run's mask. The before run's
+mask agreed with it to under 1 % on every row except `shoal-translate`,
+where it was 4,855 px against 6,324 — the two sessions had streamed
+different amounts of that narrow creek. Both columns are rates over their
+own denominator, so the comparison holds, but the Shoal row is the one to
+read as "15 % became 0.6 %" rather than as two counts.
+
 | trajectory | before flip / jump | after flip / jump | water px/frame |
 |---|---|---|---|
 | `waller-translate-sunset` | **17.305 % / 36.994 %** | 0.002 % / 0.069 % | 16,364 |
