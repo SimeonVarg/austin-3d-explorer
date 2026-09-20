@@ -754,13 +754,42 @@ streets at eye level, the Main Mall and Tower, the South Mall, the Guadalupe
 storefronts, the Capitol (30 m and down the avenue at 1.7 m), State Parking Garage
 R, Lady Bird Lake (aerial and from the Lamar bridge) and the campus aerial. A pose
 is `eye`/`target` (`[lng, lat, metres]`) or a plain `center/zoom/pitch/bearing`.
-The regimes are slider values: `blue` p .62 (sun −5.8°), `twilight` .69 (−12.1°),
-`night` 1.0 (−40°) by default, plus `early` .7222 (−15°, the owner's 20:36 series)
-and `day` .30 / `golden` .50 for the no-regression check (A9). Each pose carries
-named `regions` — `sky`, `wall`, `ground`, `water` feed the ratios; any other name
-(`dome`, `tower`) is measured and reported but not divided — and each route
-optional `refs` per regime (paths under `../austin-reference-images`, which is
-local and never committed).
+The regimes are slider values, and `defaultRegimes` is all four of the plan's
+acceptance elevations: `blue` p .62 (sun −5.8°), `twilight` .69 (−12.1°),
+**`early` .7222 (−15°, the owner's 20:36 series)** and `night` 1.0 (−40°), plus
+`day` .30 / `golden` .50 for the no-regression check (A9). `early` was missing from
+`defaultRegimes` until September 20 2026, which meant the only regime the owner's
+own photographs measure was named in the plan, titled into a route and never shot.
+If you shorten a run with `--regimes`, keep `early` in it.
+
+Each pose carries named `regions` — `sky`, `wall`, `ground`, `water` feed the
+ratios; any other name (`dome`, `tower`) is measured and reported but not divided.
+**A region under 1% of the frame is flagged** (`small` on the region, `#` on the
+ratio in the table and on the sheet): a median over four thousand pixels of a
+gradient sky is a number, not a measurement of the sky.
+
+**A ratio whose denominator is near black is flagged too** (`dark` on the region,
+`~` on the ratio), and a band is printed beside it: the same ratio recomputed with
+that denominator one 8-bit sRGB code darker and one lighter. **At p = 1 the `sky`
+median is code 3 or 4 out of 255 in fourteen of the sixteen poses**, so a deep-night
+`wall/sky` is a quotient of two near-black codes and moves 25–50% on one code. That
+is why `wall/sky 4.98` came back bit-identical from three different renders at two
+different viewport sizes on September 20 2026 — the medians simply landed on the
+same code, not because the scene was the same. Read the band, never the number:
+`lady-bird-lake/aerial-west-120m` prints **10.7** at p 1 and its band is **8.0–16.0**,
+which straddles the plan's A3 target of ≥ 15. A ratio is the wrong question at deep
+night; the frames are fine, the division is not.
+
+Each route takes optional `refs` per regime (paths under `../austin-reference-images`,
+local, never committed). **Bind a reference to the regime its own package entry is
+tagged with, not to the row that happens to be free.** Four of the first sixteen
+bindings had drifted — a blue-hour skyline on a twilight row, two blue-hour property
+photos on twilight rows, and a full-night photo on a twilight row where it was also
+the same picture as the night row at lower resolution — so three sheets showed the
+wrong hour and one showed the same photograph twice. An empty cell is a fact about
+the corpus. And **do not bind a no-derivatives file at all**: `--refs on` composites
+the reference into a sheet, which is a derivative. See the `_readme` and the
+`refNote` fields in `night-routes.json`.
 
 **Pitch cannot go above the horizon**, so a target above the eye clamps to 88°,
 and the map centre then lands about 28.6 × the eye height ahead: the subject sits
@@ -796,17 +825,33 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 ... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 1
 # change regions, then re-measure an old run without loading the app
 ... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --show-regions
+# R10, the phone pass (the regions were read off landscape frames: re-read them first)
+... night-compare.mjs --out <scratch>/r10 --viewport 393x852 --a 'lite=1'       --only wc-elevated,wc-street --show-regions
+# ...and the leg that separates the PRESET from the ASPECT (see below): lite at landscape
+... night-compare.mjs --out <scratch>/lite --a 'lite=1'                         --only wc-elevated,wc-street
+# what every flag does
+node scripts/verify/night-compare.mjs --help
 ```
 
 `gpu-run.mjs` is in the session's lanes scratch folder, not the repo. It holds one
 of three machine-wide browser slots and passes the exit code through. Elsewhere,
 run the command bare, one at a time.
 
-What a shot is: `index.html?intro=0&drift=0&clip=1<query>`, 1440×900 at DPR 1,
+What a shot is: `index.html?intro=0&drift=0&clip=1<query>`, 1440×900 at DPR 1
+(`--viewport WxH` overrides it — but the tracked region rectangles are fractions read
+off landscape frames, so they will not land on the same subjects in portrait: run
+`--show-regions` and re-read them before quoting a ratio from another size; this was
+**measured** on September 20 2026 and the answer is per-rectangle, see below),
 hardware GL. The auto-detect probe is cancelled at once. The harness waits for
 the veil to lift and for the authored buildings (a built group **and**
 `readyToReveal()`). If the app gave up on them under load (`INTRO.authoredCeilingMs`),
-it switches them back on and says so; if they never arrive it exits 2. Each
+it **reloads** — which is js/app.js's own documented remedy for that state — up to
+twice, and only then pokes `APARTMENTS.on` back on in the abandoned page; the report
+says which path it took. The poke alone is not reliable: on September 20 2026, with
+all three GPU slots busy, it produced 30 `Cannot read properties of null (reading
+'getLayer')` page errors and a group that never became ready inside a ten-minute
+wait, and the run died before its first frame. If they never arrive it exits 2, and
+the usual cause is simply a busy machine — check the slots and run it again. Each
 regime is applied once. Then, per pose: jumpTo, reset the auto-exposure meter,
 wait for tiles and idle, re-pose, settle 3 s, screenshot, 1 s, screenshot and
 keep the second. If the two differ in more than 0.25% of pixels by more than 24
@@ -825,6 +870,34 @@ number is not a window count at all** — at blue hour it is mostly sky and lit
 pavement (`wc-street/rio-grande-23rd` measured 38.9% that way, all of it road).
 The fallback sets `windows.fallback` in the report and prints `*` in the table and
 on the tile; give the pose a `wall` region rather than quoting a starred number.
+
+**R10, the phone pass — what it actually measured (September 20 2026).** Three
+interleaved legs on a quiet machine, same poses, same regimes (`early`, `night`),
+196 authored buildings confirmed on every leg: **1440×900 as shipped** (preset
+`balanced`), **1440×900 `?lite=1`** (preset `performance`) and **393×852 `?lite=1`**.
+Two things came out of it, and they are separable only because the middle leg
+exists.
+
+- **`?lite=1` is a different renderer, not a smaller window.** It reports preset
+  `performance`: bloom 0 (from 0.4), god rays 0 (from 0.5), auto-exposure **off**,
+  render scale 0.75, stars 0.5. At the same size and pose that leaves `wall/sky`
+  almost untouched (3.83→3.53, 8.04→7.63, and three night poses bit-identical) but
+  moves the **bright-window share up by a third at full night on every pose**
+  (9.4→12.5, 13.3→16.7, 17.8→24.2, 5.6→7.1, 9.9→13.1 %). Without bloom and
+  auto-exposure the lit pixels stay compact and the region median falls, so more
+  pixels clear the 4× test. A phone window count is not a desktop window count.
+- **The rectangles survive the portrait crop unevenly, per rectangle.** Looked at
+  on `wc-elevated/over-drag-wnw`: `sky` lands entirely on clean sky (portrait has
+  *more* sky above the skyline) and `ground` lands on the lit intersection, but of
+  the two `wall` rectangles the left one falls completely off the tower onto haze
+  and treetops and the right one is about half trees. The numbers agree:
+  `wc-street/san-antonio-castilian` goes `wall/sky` 2.50 → **10.2** at early and its
+  window share 23.7% → **0%** purely from the aspect change. So: `sky` and `ground`
+  are reusable in portrait, `wall` is not. Re-read `wall` with `--show-regions`
+  before quoting any phone ratio.
+
+This is still desktop Chromium in a phone profile. **No frame has ever been timed on
+a real iPhone**, and nothing here is a frame-rate measurement.
 A/B: mean |Δluma| and % of pixels over 16 and 48, per frame. The thresholds are
 the constant blocks at the top of the script.
 

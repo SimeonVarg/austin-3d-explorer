@@ -66,6 +66,20 @@ because three Commons files were collected twice (Cutrer 2012 full night, Kotipa
 Regime tags are as each gatherer judged them **by looking**. Several EXIF clocks and captions were wrong
 (section 2).
 
+**Which regimes the corpus actually covers, and what that means for the harness.** Counting the tags in
+the three `sources.json` files: blue hour and full night are well covered; **twilight has exactly two
+photographs** (`dobie-center-pool-twilight` and `ut-tower-all-seeing`, and the second is heavily HDR, so
+§2 forbids calibrating on it), and two more are hedged "twilight / blue hour" (`torre`, `rambler`). There
+is **no web photograph at all of early night at sun −15°** — that regime is carried entirely by the
+owner's IMG_9964–9969, and only by them.
+
+`scripts/verify/night-routes.json` binds one reference per route per regime, and as of 2026-09-20 it binds
+each photograph to **the regime its own entry above is tagged with**, leaving the row empty where the
+corpus has nothing. Four bindings had drifted off their tags (a blue-hour skyline on the twilight row, two
+rambleratx blue-hour frames on twilight rows, and the full-night Drag photo on the twilight row — where it
+was also the same picture as the night row, at lower resolution). An empty cell in that file is a fact
+about this corpus. A wrong one is a lie about the sky.
+
 **Downtown and the lake** (`_night/downtown/`)
 
 | file (short) | regime | evidence | credit, licence | source |
@@ -81,7 +95,7 @@ Regime tags are as each gatherer judged them **by looking**. Several EXIF clocks
 | lady-bird-lake-reflection-night__hargup | full night | **handheld**: midrise about half lit; rippled, broken reflection (not glassy) | Hargup, CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Lady_bird_lake_night.jpg) |
 | skyline-predawn-wide__maxxparten | predawn | window and reflection colour only. **Heavy HDR; the sky is graded** | Maxx Parten, public domain | [Commons](https://commons.wikimedia.org/wiki/File:Myworld_-_Flickr_-_Night_Photo.jpg) |
 | skyline-fullnight-wide__zykov 03:42 | full night | dry pavement reflecting lamp colour; Capitol dome white. One diffraction star | Aleksandr Zykov, CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Austin_(8095571690).jpg) |
-| sixthstreet-fullnight-streetview__payravi | full night | **key street frame**: warm ground floors, dark upstairs, one lit rooftop bar (the exception) | Kevin Payravi, CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sixth_Street_(Austin)_at_night.jpg) |
+| sixthstreet-fullnight-streetview__payravi | full night | **key street frame**: warm ground floors — and upstairs is lit too, in two colours. Corrected 2026-09-20 by opening the frame: the brick pub's second-floor arched windows read violet/blue (interior club lighting) and the tan building beside it has several warm amber upper-floor windows. What is dark is the **office tower behind**, not the low-rise bar fronts | Kevin Payravi, CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sixth_Street_(Austin)_at_night.jpg) |
 | sixthstreet-fullnight-crowd2__spawnzilla | full night | festoons over the street, cool marquee. **Long exposure**: crowd erased, trails | Spawnzilla, CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sixth_Street_20160907224459.jpg) |
 | congressbridge-fullnight-view__mayer | blue hour / early night | hotel near 100% lit, office tower partial; Frost blue crown | Daniel Mayer, CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Austin_from_Congress_Bridge-at_night.JPG) |
 | skyline-dusk-wide-pano__dimas 19:08 | blue hour | cleanest blue-hour colour: skyline silhouetted, moderate occupancy | J Dimas, CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Austin_Texas_skyline_at_dusk_in_2016.jpg) |
@@ -102,7 +116,7 @@ Regime tags are as each gatherer judged them **by looking**. Several EXIF clocks
 | ut-tower-flawn-academic-night_2009 | full night | Flawn arcade lit bright, pierced screens above dark, plaza lamp pools. Paving glossy (wet not confirmed) | Matthew Rutledge, public domain | [Commons](https://commons.wikimedia.org/wiki/File:Ut-tower-flawn-academic-night.jpg) |
 | ut-campus-deankeeton-night_2005 | blue hour | irregular dorm occupancy (mostly dark); sodium pools with falloff | Eagleamn, CC BY-SA 2.5 | [Commons](https://commons.wikimedia.org/wiki/File:University_of_Texas_at_Austin_campus_(night_view).jpg) |
 | drag-guadalupe-night_2009 | full night | lit Co-op storefront under a dark upper floor; one cobra-head pool; **dry** | bigbirdz, CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:The_drag,_austin,_texas_(3233745166).jpg) |
-| dobie-center-pool-twilight_2014 | twilight | per-unit colour variety (warm/cool/pink). **The old Dobie tower, since rebuilt** | Joshm560, CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:2021_Guadalupe_Street-print-048-Pool_Twilight_09-4168x2702-300dpi.jpg) |
+| dobie-center-pool-twilight_2014 | twilight | per-unit colour variety (warm/cool/pink) on a real West Campus residential curtain wall, plus unlit glass reading dark navy and reflective (not black), a warm podium soffit and a lit pool. **Corrected 2026-09-20: the tower was NOT demolished.** Dobie Center (1972, 2021 Guadalupe St) was renovated and rebranded Dobie Twenty21 and UT bought it in 2021 — this is the same building that stands today, and it is valid West Campus evidence ([Wikipedia](https://en.wikipedia.org/wiki/Dobie_Center), [Austin Monthly](https://www.austinmonthly.com/dobie-twenty21-by-the-numbers/)) | Joshm560, CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:2021_Guadalupe_Street-print-048-Pool_Twilight_09-4168x2702-300dpi.jpg) |
 | ut-tower-all-seeing_2014 | twilight | arch brightness only. **Heavy HDR: halos are processing** | Peter Hansen, CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:The_All_Seeing_Tower_(69275597).jpeg) |
 | ut-tower-full-orange_2007 | full night | third independent confirmation of the centre-column pattern | Allison Fang, CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:UT_tower_lit_entirely_in_orange.jpg) |
 | torre-westcampus-twilight | blue hour | bright lobby, lit glazed amenity box, mixed unit occupancy, rooftop strings. Real-estate grading | unattributed, **licence unknown** | [rambleratx](https://www.rambleratx.com/resources/best-apartments-in-west-campus-near-ut-austin/) |
@@ -148,7 +162,7 @@ Regime tags are as each gatherer judged them **by looking**. Several EXIF clocks
 | **Wrong clocks**: EXIF or caption time does not match the sky | transit-center (17:49 in March, plainly night), kotipalli (06:51), others | The regime was judged by looking. |
 | **Era: sodium street lights** | every web photo 2005–2013 shows orange HPS pools | Austin Energy had converted "more than 13,000" of 56,000 streetlights to LED by 2014 and replaced globe fixtures with flat-glass full-cutoff heads ([Austin Monitor, 2014-09-16](https://www.austinmonitor.com/stories/whispers/austin-energy-automates-streetlight-system/)). The owner's 2026 photos show white heads. **Use the owner's 2026 frames for lamp colour, not the orange of older photos.** |
 | Temporary lighting | safeway (SXSW gels), commencement "12" windows, orange Tower states | These are special occasions, not the baseline. The Tower's everyday state is white shaft, orange crown. |
-| A demolished building | dobie-center-pool-twilight | Generic glass-tower behaviour only. |
+| ~~A demolished building~~ **struck 2026-09-20: it was never demolished** | dobie-center-pool-twilight | The tower at 2021 Guadalupe was renovated as Dobie Twenty21, not replaced. This row used to discount the frame to "generic glass-tower behaviour only", and §1.2 said "since rebuilt" while this row said "demolished" — two different wrong claims about the same picture, each of them throwing away the corpus's **only** evidence of per-unit colour variety. Read it as West Campus. What it does carry from 2014 is an older curtain wall and an older occupancy, so use the colour VARIETY and the unlit-glass behaviour, not the lit-unit share. |
 
 ---------------------------------------------------------------------------------------------------
 
@@ -276,8 +290,12 @@ Every bright thing in a night photo is either an **emitter** or a **receiver**.
 
 **OBSERVED (web):**
 - The Drag: a lit Co-op storefront directly under a completely dark upper floor.
-- 6th St: warm arched ground floors under dark upstairs, **except** one rooftop bar lit as brightly as the
-  street.
+- 6th St (**re-read from the frame 2026-09-20; the earlier note here was wrong**): warm arched ground
+  floors, and **upstairs is lit too**. On the brick pub the second-floor arched windows read violet/blue
+  from interior club lighting; on the tan building next door several upper-floor windows are warm amber.
+  What is dark is the office tower BEHIND the bar fronts. The useful rule for a bar street is not
+  "dark upstairs with one rooftop exception" — it is **low-rise bar buildings lit on every floor, in
+  more than one hue, against dark towers behind**.
 - Main Building arches and the Flawn arcade: lit ground floors under dark screens.
 - Torre, Rambler, Waterloo: bright bases.
 
@@ -285,7 +303,9 @@ Every bright thing in a night photo is either an **emitter** or a **receiver**.
 - Lobbies and open retail: 1.5–4× the median lit window, warm `#e5c37f`–`#f6d792`, one continuous volume,
   with a pavement spill pool.
 - Closed shops fall to a lit-window level or dark.
-- Upstairs is usually dimmer, with exceptions (rooftop bars and amenity floors).
+- Upstairs is usually dimmer on a residential or office block — but **on an entertainment street it is
+  lit, and coloured** (club light through upper windows). Do not model 6th Street or the Rainey
+  district as a dark box with a bright ground floor.
 - Closing time should come from the business, not a coin flip: `data/places.geojson` already carries an
   `open` flag and a category (plan W4).
 
@@ -517,7 +537,13 @@ Every bright thing in a night photo is either an **emitter** or a **receiver**.
 - No night photo of the Pfluger, First Street or Lamar bridges.
 - No licensed Rainey St bar or porch photo, and nothing for the 2nd Street District.
 - No real parking garage (only the transit-canopy proxy and the owner's Zalat and Torre podiums), no gas
-  station, no Moody Center, no 360 Condominiums. The West Mall is also uncovered.
+  station, no Moody Center, no 360 Condominiums. The West Mall is also uncovered. The one real lit garage
+  podium in the corpus, `the-independent__crown-and-podium-garage`, is **CC BY-NC-ND**, so it cannot be
+  composited into a comparison sheet (a sheet is a derivative) and is therefore not wired into
+  `night-routes.json`. It was wired in until 2026-09-20. Open it directly instead; the harness's
+  `parking-structure` route binds the CC BY transit-canopy proxy and says why.
+- **No twilight photograph of most subjects** and none at all of early night (−15°) except the owner's.
+  See the coverage note under §1.2 before reading an empty reference cell as an oversight.
 - No licensed colour photo of the Frost crown fully lit at full night.
 - One damp-street sample (owner 03:05) and one predawn damp frame. No rain.
 - No late-night frame of the Icon crown.

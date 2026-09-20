@@ -44,6 +44,11 @@
  *                          night-routes.local.json when it exists. Loaded loudly.
  *   --refs off             no reference column (use this for sheets you will commit:
  *                          third-party and owner photographs are never committed).
+ *   --viewport WxH         override the routes file's 1440x900. R10 (the phone pass) is
+ *                          `--viewport 393x852 --a 'lite=1'`. Regions are FRACTIONS, so
+ *                          they survive the resize — but a rectangle read off a landscape
+ *                          frame does not land on the same thing in a portrait one:
+ *                          re-read them with --show-regions before quoting a ratio.
  *   --tile <px>            sheet tile width (default 560).
  *   --same <pct>           ASSERT: in every frame, fewer than <pct>% of pixels differ
  *                          between A and B by more than 16 luma. For "this change does
@@ -56,6 +61,7 @@
  *                          regions drawn on a labelled 5% grid, so the next rectangle is READ
  *                          OFF the frame. Poses with no regions get one too.
  *   --gl hardware|swiftshader   default hardware (screenshots; see chrome.mjs).
+ *   --help                 print this block and exit 0.
  *
  * ── What each shot does ───────────────────────────────────────────────────
  *
@@ -64,8 +70,10 @@
  * to lift AND for window.slopesApartments.readyToReveal() with a built group — the
  * authored buildings, not the legacy fallback. If the app has switched the authored
  * buildings off for the visit (js/app.js, INTRO.authoredCeilingMs, which fires under
- * machine load), they are switched back on and the report says so. If they cannot be
- * had, the run exits 2: frames of the fallback city are not frames of our city.
+ * machine load), the page is RELOADED — which is js/app.js's own documented remedy —
+ * up to WAIT.authoredReloads times, and only then poked back on in place; the report
+ * records which happened. If they still cannot be had, the run exits 2: frames of the
+ * fallback city are not frames of our city, and the usual cause is a busy machine.
  *
  * Regimes are applied once each (applyTimeOfDay(map, p, true)); every pose is then
  * shot under that regime: jumpTo, auto-exposure meter reset, wait for tiles + idle
@@ -100,6 +108,20 @@
  * A pose with NO wall region falls back to the whole frame, and then the number is
  * not a window count at all -- at blue hour it is mostly sky and lit pavement. That
  * sets windows.fallback and stars the number in the table. Give the pose a wall.
+ * A ratio whose DENOMINATOR median is under MEASURE.minDenomCode (sRGB code 6 of
+ * 255) is marked `~`, and a band is reported beside it: the ratio recomputed with
+ * that denominator one 8-bit code darker and one lighter. At p = 1 the `sky`
+ * median is code 3 or 4 in fourteen of the sixteen poses, so wall/sky there is a
+ * quotient of two near-black codes and moves 25-50% on one code. That is why
+ * `wall/sky 4.98` came back bit-identical from three different renders at two
+ * different viewport sizes: the medians landed on the same code. Do not read a
+ * deep-night ratio as a measurement of the scene; A3 cannot be settled at this
+ * precision, and the fix is a different question, not a longer run.
+ * A region under MEASURE.minRegionFrac of the frame (1%) is measured and divided as
+ * usual and then FLAGGED: `frac` and `small` on the region, `smallRegions` and
+ * `ratiosSmall` on the shot, and `#` on the number in the table and on the sheet. A
+ * median over four thousand pixels of a gradient sky is a number, not a measurement
+ * of the sky, and every ratio built on it inherits that.
  * A/B: mean |delta luma|, % of pixels over 16 and over 48, per frame.
  *
  * ── Exit codes (scripts/verify/README.md) ─────────────────────────────────
@@ -126,6 +148,7 @@ const WAIT = {
   styleMs: 180000,       // map + style
   veilMs: 300000,        // the veil lifting
   authoredMs: 600000,    // authored buildings ready (after a re-enable, a full build)
+  authoredReloads: 2,    // reloads allowed when the app abandons them (js/app.js's own remedy)
   regimeIdleMs: 30000,   // after applyTimeOfDay
   tilesMs: 45000,        // per pose: tiles + authored sources
   idleMs: 20000,         // per pose: then one 'idle'
@@ -134,7 +157,19 @@ const WAIT = {
 };
 const SETTLE = { luma: 24, maxPct: 0.25, retries: 2, waitMs: 3000 };
 const CAMERA = { pitchTol: 0.6, altTolAbs: 1.5, altTolRel: 0.05, zoomTol: 0.02 };
-const MEASURE = { relK: 4, minLuma: 40, absLuma: 120, hotLuma: 120, veryHotLuma: 200, blankStd: 1.0 };
+const MEASURE = { relK: 4, minLuma: 40, absLuma: 120, hotLuma: 120, veryHotLuma: 200, blankStd: 1.0,
+  // A region smaller than this share of the frame is measured, reported and then
+  // FLAGGED (`small: true`, `#` in the table). A median over a few thousand pixels
+  // of a gradient sky is a number, not a measurement of the sky, and every ratio
+  // built on it inherits that. 1% of 1440x900 is 12,960 px.
+  minRegionFrac: 0.01,
+  // A ratio is only as good as its DENOMINATOR. At p = 1 the `sky` median is
+  // sRGB code 3 or 4 out of 255 in fourteen of the sixteen poses, so wall/sky is
+  // a quotient of two near-black 8-bit codes and one code either way moves it by
+  // 25-50%. Below this code the ratio is marked `~` and a band is reported
+  // instead of a number. It is a measurement limit, not a scene property:
+  // A3 (wall/sky >= 15 at deep night) cannot be settled at this precision.
+  minDenomCode: 6 };
 const DIFF = { luma: 16, lumaBig: 48 };
 const JPEG_Q = 90, SHEET_Q = 0.82;
 
@@ -149,6 +184,15 @@ function arg(name, dflt) {
 }
 const has = name => argv.includes('--' + name);
 function die(msg) { console.error('night-compare: ' + msg); process.exit(2); }
+
+// --help prints this file's own header block. It has to come before every other
+// argument check, or `--help` dies on "--out is required" (it did).
+if (has('help') || argv.includes('-h')) {
+  const src = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8');
+  const block = src.slice(src.indexOf('/**'), src.indexOf('*/') + 2);
+  console.log(block.replace(/^\/\*\*?/, '').replace(/\s*\*\/$/, '').replace(/^ ?\* ?/gm, ''));
+  process.exit(0);
+}
 
 const OUT = arg('out', null);
 if (!OUT) die('--out <dir> is required (see the header of this file)');
@@ -197,7 +241,20 @@ if (localFile) {
   Object.assign(CFG.regimes, L.regimes || {});
 }
 const REF_ROOT = path.resolve(REPO, process.env.NIGHT_REF_ROOT || CFG.refRoot || '../austin-reference-images');
-const [VW, VH] = CFG.viewport || [1440, 900];
+// --viewport WxH overrides the routes file. This is what R10 (the phone pass) needs:
+//   --viewport 393x852 --a 'lite=1'
+// The regions are FRACTIONS of the frame, so they survive the change of size — but a
+// rectangle read off a 1440x900 landscape frame will not land on the same thing in a
+// 393x852 portrait one. Re-read them with --show-regions before quoting any ratio
+// from a viewport the rectangles were not drawn on.
+let [VW, VH] = CFG.viewport || [1440, 900];
+const VP_ARG = arg('viewport', null);
+if (VP_ARG) {
+  const m = /^(\d{2,5})\s*[x×,]\s*(\d{2,5})$/.exec(VP_ARG.trim());
+  if (!m) die(`--viewport wants WxH, e.g. --viewport 393x852 (got "${VP_ARG}")`);
+  VW = +m[1]; VH = +m[2];
+}
+const VP_OVERRIDDEN = !!VP_ARG;
 
 function validRect(r) { return Array.isArray(r) && r.length === 4 && r.every(v => typeof v === 'number' && v >= 0 && v <= 1) && r[2] > r[0] && r[3] > r[1]; }
 function rectsOf(spec) { return validRect(spec) ? [spec] : (Array.isArray(spec) && spec.every(validRect) ? spec : null); }
@@ -315,7 +372,23 @@ function pageMeasure({ b64, regions, M }) {
     }
     const frame = stats([[0, 0, 1, 1]]);
     const out = { frame, regions: {} };
-    for (const [name, rects] of Object.entries(regions)) out.regions[name] = stats(rects);
+    // A region is FLAGGED when it covers less than M.minRegionFrac of the frame. It is
+    // still measured and still divided — but a `sky` of 4,000 px in a tree-lined street
+    // canyon is a slot of sky, and every ratio over it is a ratio over that slot.
+    // And a region's median is also recorded as the 8-BIT sRGB CODE it came from
+    // (`code`). At full night that code is 3 or 4 out of 255 in fourteen of the
+    // sixteen poses, and a ratio between two codes that low has no precision left:
+    // see the `dark` flag below.
+    const toCode = L => { const v = L <= 0.0031308 ? L * 12.92 : 1.055 * Math.pow(L, 1 / 2.4) - 0.055; return +(v * 255).toFixed(1); };
+    for (const [name, rects] of Object.entries(regions)) {
+      const s = stats(rects);
+      s.frac = +(s.n / (W * H)).toFixed(4);
+      if (s.frac < M.minRegionFrac) s.small = true;
+      s.code = toCode(s.Y.p50);
+      if (s.code < M.minDenomCode) s.dark = true;
+      out.regions[name] = s;
+    }
+    out.smallRegions = Object.entries(out.regions).filter(([, s]) => s.small).map(([k]) => k);
     // bright windows in the wall region (or the frame)
     const wr = regions.wall || [[0, 0, 1, 1]];
     const med = (regions.wall ? out.regions.wall : frame).Y.p50;
@@ -340,8 +413,24 @@ function pageMeasure({ b64, regions, M }) {
       rgb: win ? [Math.round(wr_ / win), Math.round(wg / win), Math.round(wb / win)] : null };
     const Y50 = k => out.regions[k] ? out.regions[k].Y.p50 : null;
     const ratio = (a, b) => (Y50(a) != null && Y50(b) != null && Y50(b) > 0) ? +(Y50(a) / Y50(b)).toPrecision(3) : undefined;
-    out.ratios = {};
-    for (const [a, b] of [['wall', 'sky'], ['ground', 'sky'], ['water', 'sky'], ['wall', 'ground']]) { const v = ratio(a, b); if (v !== undefined) out.ratios[a + '/' + b] = v; }
+    // A ratio whose DENOMINATOR median is only a few 8-bit codes above black is
+    // quantisation-limited: one code either way moves it by tens of percent. The
+    // band is recorded (denominator code ±1) so no table can print 0.801 as if it
+    // were three significant figures. `lady-bird-lake/aerial-west-120m` at p 1
+    // reads 10.7 and its band is 8.0–16.0, which straddles A3's ≥ 15 target.
+    const fromCode = c => { const v = Math.max(c, 1) / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    out.ratios = {}; out.ratiosSmall = []; out.ratiosDark = []; out.ratioBands = {};
+    for (const [a, b] of [['wall', 'sky'], ['ground', 'sky'], ['water', 'sky'], ['wall', 'ground']]) {
+      const v = ratio(a, b); if (v === undefined) continue;
+      const k = a + '/' + b;
+      out.ratios[k] = v;
+      if (out.regions[a].small || out.regions[b].small) out.ratiosSmall.push(k);
+      if (out.regions[b].dark) {
+        out.ratiosDark.push(k);
+        const num = out.regions[a].Y.p50, c = Math.round(out.regions[b].code);
+        out.ratioBands[k] = [+(num / fromCode(c + 1)).toPrecision(3), +(num / fromCode(c - 1)).toPrecision(3)];
+      }
+    }
     return out;
   })();
 }
@@ -451,33 +540,55 @@ async function shootSide(browser, side, shots, log) {
   page.on('pageerror', e => { if (info.pageErrors.length < 30) info.pageErrors.push(e.message.slice(0, 300)); });
   page.on('console', m => { if (m.type() === 'error' && info.pageErrors.length < 30) info.pageErrors.push('console: ' + m.text().slice(0, 300)); });
   const t0 = Date.now();
-  try {
+  // ── Getting to a page that is really OUR city ─────────────────────────────
+  // Under machine load the app gives up on the authored buildings at 90 s
+  // (js/app.js, INTRO.authoredCeilingMs) and keeps the legacy scene "for this
+  // visit". js/app.js says of that state, in its own comment: "a reload retries
+  // it". Poking `APARTMENTS.on = true` and re-running applySlopesApartments in
+  // the abandoned page does NOT reliably retry it: on 2026-09-20, with three
+  // GPU slots busy, that path produced 30 `Cannot read properties of null
+  // (reading 'getLayer')` page errors and a group that never became ready
+  // inside a ten-minute wait, and the run died before its first frame. So the
+  // first remedy is the one the app documents — reload — and the poke is only
+  // the fallback after that. Both are recorded.
+  const loadOnce = async () => {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: WAIT.styleMs });
-  } catch (e) { await page.close(); return { info, fatal: `side ${side.key}: the app never loaded (${e.message.split('\n')[0]})` }; }
-  await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-  info.veil = await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: WAIT.veilMs }).then(() => 'lifted').catch(() => 'STILL UP');
-  info.veilMs = Date.now() - t0;
-  // The authored buildings. readyToReveal() is ALSO true when there is no group
-  // (a fetch failure keeps the fallback usable), so the group is checked separately.
-  const pre = await page.evaluate(() => ({ on: window.APARTMENTS && window.APARTMENTS.on, group: !!(window.slopesApartments && window.slopesApartments.group), intro: window.__intro ? { reason: window.__intro.reason, waitedMs: window.__intro.waitedMs, modelFallback: window.__intro.modelFallback || null, missingAtLift: window.__intro.missingAtLift } : null }));
-  info.intro = pre.intro;
-  if (pre.on === false) {
+    await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+    const veil = await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: WAIT.veilMs }).then(() => 'lifted').catch(() => 'STILL UP');
+    // readyToReveal() is ALSO true when there is no group (a fetch failure keeps
+    // the fallback usable), so the group is checked separately.
+    const pre = await page.evaluate(() => ({ on: window.APARTMENTS && window.APARTMENTS.on, group: !!(window.slopesApartments && window.slopesApartments.group), intro: window.__intro ? { reason: window.__intro.reason, waitedMs: window.__intro.waitedMs, modelFallback: window.__intro.modelFallback || null, missingAtLift: window.__intro.missingAtLift } : null }));
+    return { veil, pre };
+  };
+  let att;
+  try { att = await loadOnce(); }
+  catch (e) { await page.close(); return { info, fatal: `side ${side.key}: the app never loaded (${e.message.split('\n')[0]})` }; }
+  info.veil = att.veil; info.veilMs = Date.now() - t0; info.intro = att.pre.intro;
+  info.authoredReloads = 0;
+  for (let i = 0; i < WAIT.authoredReloads && att.pre.on === false; i++) {
+    info.authoredReloads++;
+    info.warnings.push(`the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt ${i + 1} of ${WAIT.authoredReloads})`);
+    log(`[${side.key}] authored handoff timed out; reloading (${i + 1}/${WAIT.authoredReloads})`);
+    try { att = await loadOnce(); } catch (e) { break; }
+    info.veil = att.veil; info.intro = att.pre.intro;
+  }
+  if (att.pre.on === false) {
     info.authoredReenabled = true;
-    info.warnings.push('the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); switched back on in the page');
+    info.warnings.push('still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)');
     await page.evaluate(() => { window.APARTMENTS.on = true; window.applySlopesApartments && window.applySlopesApartments(window.__map); });
   }
   const ok = await page.waitForFunction(() => !!(window.slopesApartments && window.slopesApartments.group) && window.slopesApartments.readyToReveal(), null, { timeout: WAIT.authoredMs }).then(() => true).catch(() => false);
   info.readyMs = Date.now() - t0;
   info.apartments = await page.evaluate(() => { const A = window.slopesApartments; if (!A) return null; const c = A.count; return { group: !!A.group, buildings: c.buildings, done: c.done, triangles: c.triangles, slopesOn: window.SLOPES && window.SLOPES.on }; });
-  if (!ok) { await page.close(); return { info, fatal: `side ${side.key}: the authored buildings never became ready (group ${info.apartments && info.apartments.group}); frames would show the fallback city` }; }
+  if (!ok) { await page.close(); return { info, fatal: `side ${side.key}: the authored buildings never became ready (group ${info.apartments && info.apartments.group}) after ${info.authoredReloads} reload(s); frames would show the fallback city. This is the machine being busy: check the GPU slots and run it again on a quieter machine.` }; }
   info.gfx = await page.evaluate(() => { const G = window.GFX || {}; return { preset: G.preset, bloom: G.bloom, godRays: G.godRays, autoExposure: G.autoExposure, renderScale: G.renderScale, filmic: G.filmic, exposure: G.exposure, stars: G.stars }; });
   if (BREAK && side.key === 'B') {
     info.broken = await page.evaluate(() => { const g = window.slopesApartments.group; g.visible = false; window.__map.triggerRepaint(); return 'authored apartments hidden (group.visible = false)'; });
     info.warnings.push('--break: ' + info.broken);
   }
   await sleep(3000);
-  log(`[${side.key}] ready in ${(info.readyMs / 1000).toFixed(1)} s (veil ${info.veil} at ${(info.veilMs / 1000).toFixed(1)} s, intro ${pre.intro && pre.intro.reason}); ${info.apartments.buildings} authored buildings; preset ${info.gfx.preset}; build ${info.build.sha1 || info.build.error}`);
+  log(`[${side.key}] ready in ${(info.readyMs / 1000).toFixed(1)} s (veil ${info.veil} at ${(info.veilMs / 1000).toFixed(1)} s, intro ${info.intro && info.intro.reason}${info.authoredReloads ? ', ' + info.authoredReloads + ' reload(s)' : ''}); ${info.apartments.buildings} authored buildings; preset ${info.gfx.preset}; build ${info.build.sha1 || info.build.error}`);
 
   const helper = await browser.newPage({ viewport: { width: 64, height: 64 } });
   for (const g of REGIMES_USED) {
@@ -585,9 +696,19 @@ function tileLines(s, sideLabel) {
   const m = s.metrics, L = [];
   L.push(`${sideLabel}  ${s.regime} p${s.p} sun ${s.sunElev}°`);
   const r = m.ratios;
-  const rs = Object.entries(r).map(([k, v]) => `${k} ${fmt(v)}`).join('  ');
+  const small = new Set(m.ratiosSmall || []);
+  const dark = new Set(m.ratiosDark || []);
+  const rs = Object.entries(r).map(([k, v]) => `${k} ${fmt(v)}${small.has(k) ? '#' : ''}${dark.has(k) ? '~' : ''}`).join('  ');
   L.push(`mean ${m.frame.luma.mean}  p99 ${m.frame.luma.p99}  win ${m.windows.pct}%${m.windows.fallback ? '*' : ''}${rs ? '  ' + rs : ''}`);
   if (m.windows.fallback) L.push('* no wall region: whole-frame count, not windows');
+  if (dark.size) {
+    L.push('~ denominator is sRGB code ' + [...dark].map(k => `${k.split('/')[1]} ${Math.round(m.regions[k.split('/')[1]].code)}`).filter((v, i, a) => a.indexOf(v) === i).join(', ') +
+      ': ' + [...dark].map(k => `${k} ${fmt((m.ratioBands[k] || [])[0])}-${fmt((m.ratioBands[k] || [])[1])} at ±1 code`).join('; '));
+  }
+  if (m.smallRegions && m.smallRegions.length) {
+    L.push(`# region under ${(MEASURE.minRegionFrac * 100).toFixed(0)}% of frame: ` +
+      m.smallRegions.map(k => `${k} ${(m.regions[k].frac * 100).toFixed(2)}%`).join(', '));
+  }
   if (s.diffA) L.push(`vs A: ${s.diffA.pctOver}% px >${DIFF.luma}  mean|d| ${s.diffA.meanAbs}`);
   if (!s.camera.ok) L.push('CAMERA OFF: ' + s.camera.off.join('; '));
   if (s.settle && !s.settle.settled) L.push(`UNSETTLED ${s.settle.pctOver}%`);
@@ -652,14 +773,40 @@ function summarise(report) {
   const lines = [];
   const pad = (s, n) => String(s).padEnd(n);
   lines.push(pad('side', 5) + pad('regime', 9) + pad('route/pose', 44) + pad('mean', 7) + pad('p99', 5) + pad('win%', 8) + pad('wall/sky', 10) + pad('grnd/sky', 10) + pad('water/sky', 10) + 'vs A');
-  let anyFallback = false;
+  let anyFallback = false, anySmall = false, anyDark = false;
   for (const s of report.shots) {
     const m = s.metrics, r = m.ratios;
+    const small = new Set(m.ratiosSmall || []);
+    const dark = new Set(m.ratiosDark || []);
+    const rf = k => fmt(r[k]) + (small.has(k) ? '#' : '') + (dark.has(k) ? '~' : '');
     if (m.windows.fallback) anyFallback = true;
+    if (m.smallRegions && m.smallRegions.length) anySmall = true;
+    if (dark.size) anyDark = true;
     lines.push(pad(s.side, 5) + pad(s.regime, 9) + pad(`${s.route}/${s.pose}`, 44) + pad(m.frame.luma.mean, 7) + pad(m.frame.luma.p99, 5) + pad(m.windows.pct + (m.windows.fallback ? '*' : ''), 9) +
-      pad(fmt(r['wall/sky']), 10) + pad(fmt(r['ground/sky']), 10) + pad(fmt(r['water/sky']), 10) + (s.diffA ? `${s.diffA.pctOver}% >${DIFF.luma}` : ''));
+      pad(rf('wall/sky'), 10) + pad(rf('ground/sky'), 10) + pad(rf('water/sky'), 10) + (s.diffA ? `${s.diffA.pctOver}% >${DIFF.luma}` : ''));
   }
   if (anyFallback) lines.push('* the pose has no `wall` region, so win% counts the whole frame (sky and pavement included). Not a window count.');
+  if (anySmall) {
+    lines.push(`# marks a ratio with a region under ${(MEASURE.minRegionFrac * 100).toFixed(0)}% of the frame on one side. Every small region, ratio or not (dome and tower are named features and are never divided):`);
+    const seen = new Set();
+    for (const s of report.shots) {
+      const k = `${s.route}/${s.pose}`; const m = s.metrics;
+      if (!m.smallRegions || !m.smallRegions.length || seen.has(k)) continue;
+      seen.add(k);
+      lines.push('    ' + pad(k, 44) + m.smallRegions.map(n => `${n} ${m.regions[n].n} px (${(m.regions[n].frac * 100).toFixed(2)}%)`).join(', '));
+    }
+  }
+  if (anyDark) {
+    lines.push(`~ marks a ratio whose DENOMINATOR median is under sRGB code ${MEASURE.minDenomCode} of 255. One code either way is the band in brackets, so the printed number is not three significant figures — it is not even one. This is the instrument, not the scene: at p = 1 the sky really is a few codes above black, and a ratio is the wrong way to ask the question there.`);
+    for (const s of report.shots) {
+      const m = s.metrics;
+      if (!m.ratiosDark || !m.ratiosDark.length) continue;
+      lines.push('    ' + pad(`${s.regime} ${s.route}/${s.pose}`, 50) + m.ratiosDark.map(k => {
+        const b = m.ratioBands[k] || [];
+        return `${k} ${fmt(m.ratios[k])} [${fmt(b[0])}-${fmt(b[1])}], ${k.split('/')[1]} code ${Math.round(m.regions[k.split('/')[1]].code)}`;
+      }).join('; '));
+    }
+  }
   return lines.join('\n');
 }
 
@@ -681,9 +828,9 @@ try {
     log(`night-compare --from: re-measuring ${report.shots.length} frames in ${OUT}`);
   } else {
     report = { tool: 'scripts/verify/night-compare.mjs', when: new Date().toISOString(), harnessGit: gitInfo(), routesFile: ROUTES_FILE, localOverlay: localFile,
-      viewport: [VW, VH], dpr: 1, gl: GL, args: argv, params: { WAIT, SETTLE, CAMERA, MEASURE, DIFF }, regimes: Object.fromEntries(REGIMES_USED.map(g => [g, CFG.regimes[g]])),
+      viewport: [VW, VH], viewportOverridden: VP_OVERRIDDEN, dpr: 1, gl: GL, args: argv, params: { WAIT, SETTLE, CAMERA, MEASURE, DIFF }, regimes: Object.fromEntries(REGIMES_USED.map(g => [g, CFG.regimes[g]])),
       sides: [], shots: [] };
-    log(`night-compare: ${POSES.length} poses x regimes [${REGIMES_USED.join(', ')}] x ${SIDES.length} side(s) = ${nShots} shots; gl ${GL}; out ${OUT}`);
+    log(`night-compare: ${POSES.length} poses x regimes [${REGIMES_USED.join(', ')}] x ${SIDES.length} side(s) = ${nShots} shots; ${VW}x${VH}${VP_OVERRIDDEN ? ' (--viewport override; the regions were read off ' + (CFG.viewport || [1440, 900]).join('x') + ')' : ''}; gl ${GL}; out ${OUT}`);
     for (const side of SIDES) {
       const r = await shootSide(browser, side, report.shots, log);
       report.sides.push(r.info);

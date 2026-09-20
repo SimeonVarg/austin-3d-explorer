@@ -15,9 +15,30 @@ Tags used throughout:
 - The daytime look stays: the owner likes the citywide sunlight and strong window glare (PR #267). Every
   change here must leave p ≤ 0.56 frames within noise of `main`.
 
-**Where the baseline evidence is (local, not tracked):**
+**What the owner has already said about night, and how that squares with the first non-goal.**
+`docs/PASS_NIGHT.md` (2026-07-31) opens with his only recorded verdict on night mode, verbatim:
+**"lights are a bit too dim on night mode."** Read plainly that asks for the thing this plan's first
+non-goal refuses, so it has to be answered rather than left out.
+
+That pass answered it and the answer holds here: measured, the complaint was **density, not gain**. There
+were 1,039 street lamps in a 3.3 × 3.1 km box, adding +0.15 to +0.57 luma across the whole frame, and the
+two biggest unlit road classes (`service` and `path` — campus drives and every lit walk, 416 features)
+had no lamps at all. More lamps in more places read as "brighter". Turning the existing ones up did not,
+and the same pass found that when it luma-mismatched the cool edge against the warm core the result was a
+belt of white blobs, not a brighter city.
+
+So: **more lit things, not more gain.** Every item below adds light by adding sources and occupancy
+(W3, W4, W5) or by lowering what should never have been bright (the sky and the unlit walls, W1/W6).
+None of them turns a master exposure up. If the owner says "still too dim" against a frame built this
+way, that is the §8 taste call and not a bug — and §8 now shows him where the two answers differ.
+
+**The full inventory this plan summarises is `docs/night-code-inventory.md`** — in this repo, next to
+this file, since 2026-09-20. It is 50 KB of code analysis with no photograph in it, so nothing in the
+disk or licence rules kept it out, and Codex owns the renderer it describes: handing him a summary and a
+list of line numbers while the reading sat in a git-ignored folder on one laptop was simply a mistake.
+
+**Where the rest of the baseline evidence is (local, not tracked):**
 `C:/Users/simip/Projects/austin-reference-images/_night/_baseline-c656249/` holds:
-- `code-inventory.md`: the full inventory this plan summarises;
 - `captures-C/`: 12 views × blue hour, twilight and full night, plus the `E1` and `E7` experiments;
 - `captures-B/`;
 - `sweep.json`, `perf-*.json`;
@@ -87,8 +108,11 @@ Measured, E1 at p=1, changing only the light colour to white:
 - **Street pools:** 3,344 synthetic points sampled on road **centrelines** (`js/night.js:569-586,622-670`).
   - [M] Only **2.2%** have a mapped OSM pole within 15 m, and 10 sit inside buildings.
   - The "head" is a second ground disc (`:483-495`).
-  - Pools sit **below** the raised `ground-paths` (layer #137 vs #145), so pavements are never lit
-    (`js/night.js:414-440`).
+  - Pools sit **below** the raised `ground-paths` (layer **#134 vs #144**, as the layer-order table in
+    `js/night.js:414-440` gives them — this plan quoted #137 and #145 until 2026-09-20), so pavements are
+    never lit. That comment also records that moving the pools after the ground stack works and is not
+    shipped only because `scripts/verify/night-lights.mjs:89` gates on `poolIdx < buildingsIdx`, which is
+    the layer-index assertion W0 proposes to re-express in pixels.
   - The generator is fenced to latitude ≥ 30.269 (`:547-567,623`), so downtown streets have none.
 - **What the pools look like** [M]:
   - WC street, p=1: hiding the lamp layers drops the lower frame from luma 110 to 11. The carriageway reads
@@ -316,14 +340,35 @@ are the core. W8 and W9 follow.
 
 ### W0. Instruments before pixels [P]
 
+**Read `docs/PASS_NIGHT.md` §4 before touching either gate or either measure.** It is this repo's own
+night failure ledger, from the 2026-07-31 pass, and it already paid for three of the four things below.
+
 - **Re-express two gates:**
   - `night-silhouette.mjs:53-59` becomes regime-aware: wall < sky at blue hour (sun > −6°), and wall ≥ 3× sky
     (linear) at early and full night.
-  - `night-lights.mjs:89` checks pool occlusion in pixels, not layer index.
+    **But the threshold is not what is broken about that script.** PASS_NIGHT §4 and §7 record that it
+    locates the roofline with `queryRenderedFeatures`, which `scripts/verify/README.md` documents as
+    returning 0 for fill-extrusion layers at flying pitch; measured over nine runs it **finds no column
+    about two thirds of the time**, and a rewrite was attempted and reverted because measuring the skyline
+    as a band median changes what the check claims. Re-tuning the threshold of a locator that misses two
+    runs in three buys nothing. Either fix the **locator** first (and then the threshold is a one-line
+    change), or retire the script and assert the same claim from `night-compare`'s `wall/sky` ratio, which
+    reads a named rectangle and cannot come back empty. Retiring it is the cheaper of the two and does not
+    lose a claim.
+  - `night-lights.mjs:89` checks pool occlusion in pixels, not layer index. (`js/night.js:414-440` says
+    the pavement fix is already written and is waiting on exactly this assertion.)
 - **New measures** (extend `night-luma.mjs` / `night-variety.mjs`):
   - convert the graded frame to linear Y;
-  - class masks by layer hiding (the `night-luma.mjs` method);
+  - class masks by layer hiding (the `night-luma.mjs` method) — PASS_NIGHT §4 item 1 is the warning that
+    comes with it: hiding ~30 fill-extrusion layers and showing them again re-tiles the scene and drops
+    the facade atlas, and two consecutive grabs of the same pose once disagreed on **695,048 of 1,296,000
+    pixels**. `night-luma.mjs` was rewritten to take one `readPixels` per pose and change no visibility at
+    all. Do not reintroduce diff-by-hiding;
   - a lit-unit counter read from **data** (three.js window records at a given p) as well as from pixels.
+    This is the item PASS_NIGHT most wants: §4 items 2–4 conclude, after three rigs, that **no chroma
+    threshold separates a light from a wall in general** (a luma threshold scored the Co-op and the Harry
+    Ransom Center as 38% lit window; a warm-chroma threshold then filed 4000 K lamps as walls). The
+    data-side counter is the only one of these measures that is not a pixel class.
 - **Matched views:** this round's `match.mjs` renders the scene from a photo's camera (eye and target in
   metres). It lives in a session scratch folder, not in the repo, so port it into `scripts/verify/` first. Poses for the owner's elevated series
   must stay local (they reveal a viewpoint). Poses for the street-level frames (9963, 9970, 9977–9981) are
@@ -345,32 +390,86 @@ re-shoot.
 It is a **comparison instrument, not a gate**: nothing in it encodes the §7.2 targets, so it can measure
 a change without pre-judging it. `--same` is the only assertion, and it is the A9 no-regression check.
 
-**Baseline on `main` @ `c656249`** (run 2026-09-20 01:03 UTC, hardware GL, 1440×900 DPR 1, `?drift=0`,
-auto-detect cancelled, second screenshot kept; frames under
-`<scratch>/lanes/night/harness/baseline2/`, report `report.json`). Three sheets are committed as the
-before-picture for W1–W6; the rest stay in scratch.
+**Baseline on `main` @ `c656249`**, at all four acceptance regimes. Blue hour, twilight and full night
+were shot 2026-09-20 01:03 UTC; **early night (sun −15°, the owner's 20:36) was shot 2026-09-20 05:20
+UTC** in the same worktree at the same settings, after `defaultRegimes` was corrected to include it.
+Settings both times: hardware GL, 1440×900 DPR 1, `?drift=0`, graphics auto-detect cancelled, second
+screenshot kept, 196 authored buildings confirmed built (not the legacy fallback). Frames under
+`<scratch>/lanes/night/harness/baseline2/` and `…/early/`, reports `report.json`. Three sheets are
+committed as the before-picture for W1–W6; the rest stay in scratch, and none of the reference or
+owner-matched sheets may ever be committed.
 
-| | blue hour (p .62, sun −5.8°) | twilight (p .69, −12.1°) | full night (p 1, −40°) |
-|---|---|---|---|
-| ![](shots/night-baseline-wc-elevated.jpg) `wc-elevated/over-drag-wnw` | wall/sky **4.44**, ground/sky 7.59, bright windows **0%** | wall/sky **9.64**, ground/sky 11.7, windows **0%** | wall/sky 4.98, windows 13.3% |
-| ![](shots/night-baseline-skyline.jpg) `skyline-south-shore/shore-10m` | wall/sky 2.37, **water/sky 20.5** | wall/sky 2.13, **water/sky 22.9** | wall/sky 7.06, water/sky 1.75 |
-| ![](shots/night-baseline-congress.jpg) `congress-street/at-5th-1p7m` | wall/sky 4.69, ground/sky 5.04 | wall/sky 5.60, ground/sky 6.67 | wall/sky 6.16, ground/sky 2.33 |
+The blue/twilight/night numbers below were **re-measured on 2026-09-20** with corrected region
+rectangles (see the caution at the end of this block), so a few of them differ from the first reading of
+the same frames. No frame was re-shot to get them.
 
-Read against §7.2 that is: **A1 fails everywhere** (target wall/sky ≤ 0.5 at blue hour; measured 0.6–14.2
-across the sixteen poses, and water/sky 16–24 where the lake is in frame, against a target of ≤ 1).
-**A2's wall/sky 3–7 at early night is already in range by accident** — not because the walls went dark but
-because the sky did, and at the same time ground/sky runs 1.7–90 and exceeds wall/sky in 10 of the 12 poses
-that measure both, so the pavement, not the building, is the brightest surface in the frame.
-**A3 fails**: at p 1 wall/sky is 0.6–10.7 against a target of ≥ 15, and the one pose that
-looks right (`lady-bird-lake/aerial-west-120m`, 10.7) gets there from altitude, not from dark walls.
-**§1.1's staggered clocks are visible in one column**: hero and arts windows are 0% at blue hour and
-twilight on the elevated West Campus poses and only appear at p 1, while the street lamps are already full
-on at p .62 — the sheets' top two rows have lit pavement under unlit buildings.
+| | blue hour (p .62, −5.8°) | twilight (p .69, −12.1°) | **early night (p .7222, −15°)** | full night (p 1, −40°) |
+|---|---|---|---|---|
+| ![](shots/night-baseline-wc-elevated.jpg) `wc-elevated/over-drag-wnw` | wall/sky **4.44**, ground/sky 9.46, bright windows **0%** | wall/sky **9.64**, ground/sky 16.8, windows **0%** | wall/sky **12.2**, ground/sky 20.4, windows **0%** | wall/sky 4.98, ground/sky 36.0, windows 13.3% |
+| ![](shots/night-baseline-skyline.jpg) `skyline-south-shore/shore-10m` | wall/sky 2.37, **water/sky 20.5** | wall/sky 2.13, **water/sky 22.9** | wall/sky 2.58, **water/sky 23.2**, windows 0.07% | wall/sky 7.06, water/sky 1.75, windows 7.6% |
+| ![](shots/night-baseline-congress.jpg) `congress-street/at-5th-1p7m` | wall/sky 4.69, ground/sky 5.04 | wall/sky 5.60, ground/sky 6.67 | wall/sky 5.85, ground/sky 6.67 | wall/sky 6.16, ground/sky 2.33 |
 
-Two cautions carried by the run: `wc-street/rio-grande-23rd` reads wall/sky **0.60** at blue hour, which is
-not a pass — it is a pose whose `wall` region is mostly shaded near-field facade; and the app had given up
-on the authored buildings under load on this visit (`INTRO.authoredCeilingMs`), so the harness switched them
-back on in the page and said so. Both are recorded in `report.json`.
+Read against §7.2, over all sixteen committed poses:
+
+- **A1 fails everywhere.** Target wall/sky ≤ 0.5 at blue hour; measured **1.21–14.2**, and water/sky
+  16.2–20.5 where the lake is in frame, against a target of ≤ 1.
+- **A2's target band is met by accident at early night.** Target 3–7; measured wall/sky **1.35–18.4** at
+  −15°, with most poses inside the band — but not because the walls went dark. The sky did. At the same
+  regime ground/sky runs **1.54–118** and **exceeds wall/sky in 10 of the 13 poses that measure both**, so
+  the pavement, not the building, is the brightest surface in the frame. The ratio is in range and the
+  picture is wrong, which is exactly why A2 cannot be read on its own.
+- **A3 fails, and A3 also cannot be settled by this instrument.** At p 1 wall/sky is **0.80–10.7**
+  against a target of ≥ 15, and the one pose that looks right (`lady-bird-lake/aerial-west-120m`, 10.7)
+  gets there from altitude, not from dark walls. Deep night's ground/sky spread is **0.48–599**.
+  But **at p 1 the `sky` median is sRGB code 3 or 4 out of 255 in fourteen of the sixteen poses**, so
+  every deep-night ratio is a quotient of two near-black 8-bit codes: one code either way moves it
+  25–50%, and the aerial pose's 10.7 has a band of **8.0–16.0**, which straddles the ≥ 15 target. The
+  harness marks these `~` and prints the band from 2026-09-20; the giveaway that found it was
+  `wall/sky 4.98` coming back **bit-identical** from three different renders at two different viewport
+  sizes, because the medians landed on the same code. **A3 must be re-expressed before it can be used**
+  — as an absolute linear wall luminance with a cap on the sky, or measured off a frame that is not an
+  8-bit JPEG. It is a measurement limit, not a scene property, and no amount of re-running fixes it.
+- **§1.1's staggered clocks are visible in one column.** Hero and arts windows read **0% at blue hour,
+  twilight and early night** on every elevated West Campus pose and only appear at p 1, while the street
+  lamps are 99.8% on by p .62 — the sheets' top three rows are lit pavement under unlit buildings. The
+  new early-night column is the clearest statement of the defect in the whole package: at the exact sun
+  elevation of the owner's photographs, where his frames show a dense grid of lit windows, ours shows
+  none at all.
+- **The owner-matched comparison now exists** (local only, never committed). Shot at `early` from the
+  overlay's four approximate camera matches for IMG_9964–9969: our frame is pale unlit slabs under a
+  still-bright sky; his is dark walls, a black sky and lit units. Those poses carry no `wall` region yet,
+  so they have no ratio — that is the next thing to add to the overlay.
+
+- **The reference column has now been run too**, for the first time (2026-09-20). The committed baseline
+  was shot with `--refs off --local none`, so `refFor()`, the reference tiles and the `missing:` path had
+  never produced a frame in either direction. All three branches are now exercised: the fifteen bound web
+  photographs composite at the hours their own package entries are tagged with, an unbound row prints
+  `no reference for <regime>` rather than borrowing a photograph of a different sky, and a deliberately
+  unresolvable `NIGHT_REF_ROOT` prints `missing: <file>`. **None of those sheets may be committed.**
+
+Four cautions carried by these runs:
+
+1. **Four region rectangles were not on the thing they were named after,** and were corrected on
+   2026-09-20. `wc-street/rio-grande-23rd`'s `sky` sat on the far end of the street canyon and measured
+   rgb(110,78,64) at blue hour — brown haze, not sky — which is what produced the wall/sky **0.60** this
+   plan previously quoted and blamed on the wall. `south-mall/terrace-4m`'s `sky` straddled the roofline;
+   `wc-elevated/down-on-ion`'s was 7,785 px of building; and `campus-aerial/z16-p68` had no regions at
+   all, so one pose in sixteen produced no ratio and only a starred whole-frame number. All four now sit
+   on what they are called, and the harness flags any region under 1% of the frame with `#`.
+2. `wc-street/rio-grande-23rd` still carries a flagged `sky`: at 1.7 m under a tree canopy the real sky
+   is 6,942 px in two slots (0.54% of the frame). Every ratio on that pose is a ratio over those slots.
+3. **The app gave up on the authored buildings on both visits** (`INTRO.authoredCeilingMs`, which fires
+   under machine load). The harness now reloads first — js/app.js's own documented remedy — and only
+   pokes `APARTMENTS.on` back on if that fails; on the early run both reloads timed out and the poke
+   worked, and an earlier attempt at the same run died outright with 30 `getLayer` null errors. Any run
+   of this harness on a loaded machine is at risk, and `report.json` says which path it took.
+4. **Every deep-night ratio in the table above is quantisation-limited.** At p 1 the `sky` median is
+   sRGB code **3 or 4 of 255** in fourteen of the sixteen poses, so `wall/sky` and `ground/sky` there are
+   quotients of two near-black 8-bit codes and one code either way moves them 25–50%. The harness marks
+   them `~` and prints the ±1-code band beside them from 2026-09-20. Read `wall/sky 4.98` as
+   **4.0–6.6**, and `10.7` on the aerial pose as **8.0–16.0**. The blue-hour, twilight and early-night
+   numbers are unaffected — their skies are nowhere near black — so the A1 and A2 readings stand as
+   written; it is A3 that needs a different question (see §7.2).
 
 ### W1. One night clock with per-class on-curves [P]
 
@@ -580,10 +679,47 @@ These are now poses in **`scripts/verify/night-routes.json`**, shot by `night-co
 `wc-elevated` (3 poses), R2/R3 → `wc-street`, R4 → `congress-street` + `capitol`, R5 →
 `skyline-south-shore` + `lady-bird-lake`, R6 → `guadalupe-storefronts`, R7 → `main-mall-tower` +
 `south-mall`, R8 → `parking-structure`, R9 → `campus-aerial`. The regimes are named there too (`blue`,
-`twilight`, `early`, `night`, and `day`/`golden` for A9). Two are **not** in the tracked file: R10 (the
-393×852 `?lite=1` phone pass — the harness is fixed at 1440×900 and needs a viewport flag first) and the
-matched poses for the owner's photographs, which name a viewpoint and live in
-`../austin-reference-images/_night/night-routes.local.json` outside every repo.
+`twilight`, `early`, `night`, and `day`/`golden` for A9), and **`defaultRegimes` carries all four
+acceptance elevations, `early` included**. Until 2026-09-20 it read `blue, twilight, night`, so the one
+regime the owner's own photographs measure — the regime this section prints in bold, and the regime the
+`wc-elevated` route is titled after — was never actually shot, and the W0a baseline below had no column
+for it. It has one now.
+
+**R10, the phone pass, is runnable from 2026-09-20**: the harness took a `--viewport` flag, so R10 is
+`--viewport 393x852 --a 'lite=1' --only wc-elevated,wc-street`. One caveat that is not optional: the
+region rectangles in the tracked file were read off 1440×900 landscape frames and they are fractions, so
+they survive the resize onto entirely different subjects. Run it once with `--show-regions` and re-read
+them before quoting any ratio from a portrait frame. The frames are honest at any size; the rectangles
+are not.
+
+**R10 has now been run** (2026-09-20, quiet machine, `early` and `night`, R1+R2's five poses, 196
+authored buildings confirmed on every leg). Three interleaved legs, because one phone run on its own
+confounds two different changes:
+
+| leg | `wall/sky`, `san-antonio-castilian` early | bright windows, `over-mlk-north` night |
+|---|---|---|
+| 1440×900 as shipped (preset `balanced`) | 2.58 | 17.8% |
+| 1440×900 `?lite=1` (preset `performance`) | 2.50 | **24.2%** |
+| 393×852 `?lite=1` | **10.2** | 7.6% |
+
+- **`?lite=1` is a different renderer, not a smaller window.** It reports preset `performance`: bloom 0
+  (from 0.4), god rays 0 (from 0.5), auto-exposure **off**, render scale 0.75, stars 0.5. At the same
+  size that leaves `wall/sky` almost untouched but lifts the bright-window share by about a third at
+  full night on **every** pose (9.4→12.5, 13.3→16.7, 17.8→24.2, 5.6→7.1, 9.9→13.1 %). Without bloom
+  and auto-exposure the lit pixels stay compact and the region median falls, so more pixels clear the
+  4× test. **A phone window count is not a desktop window count**, and A4/A5 will need a phone-side
+  target or a phone-side instrument, not the desktop numbers read at a smaller size.
+- **The rectangles survive the portrait crop unevenly, per rectangle** — looked at, not assumed. On
+  `wc-elevated/over-drag-wnw` the `sky` rectangle lands entirely on clean sky (portrait has *more* sky
+  above the skyline) and `ground` lands on the lit intersection, but of the two `wall` rectangles the
+  left falls completely off the tower onto haze and treetops and the right is about half trees. The
+  numbers agree: `san-antonio-castilian` goes 2.50 → 10.2 and its window share 23.7% → 0% purely from
+  the aspect. **`sky` and `ground` are reusable in portrait; `wall` is not.**
+
+What R10 still does not have: a frame time, on any phone. This is desktop Chromium in a phone profile.
+
+The matched poses for the owner's photographs are still **not** in the tracked file — they name a
+viewpoint — and live in `../austin-reference-images/_night/night-routes.local.json` outside every repo.
 
 | route | path | what it judges | reference |
 |---|---|---|---|
@@ -617,16 +753,47 @@ matched poses for the owner's photographs, which name a viewpoint and live in
 The owner's display levels (reference §5) are phone-lifted. **The ratios are the acceptance.** Absolute
 level is the §8 decision.
 
+**A4 and A5 are the two rows that cannot be settled from pixels alone, and this repo has already proved
+it.** Both are written in the vocabulary of the warm/neutral split — "bright / dim share", "cream/neutral
+share; warm; cool; mean hue warm (b\* > 0)" — and `night-compare`'s bright-window measure is that split
+(Y ≥ 4× the region median, luma ≥ 40, **R ≥ B**). `docs/PASS_NIGHT.md` §4 items 2–4 is a three-rig failure
+ledger against exactly that: a luma threshold scored the Co-op and the Harry Ransom Center as 38% lit
+window; a warm-chroma split (+25 R−B) then filed the new 4000 K street lamps as unlit wall and made a
+pose's "unlit" p99 jump 136 → 226, which reads identically to the inverted-silhouette failure; and at
+R−B = 0 the conclusion was that **"no chroma threshold separates a light from a wall in general"**,
+because the scene legitimately contains cool sources (TV-blue, fluorescent). That pass therefore demoted
+the chroma classes to *reporting* and ran its assertions on histogram shape.
+
+So, for A4 and A5:
+- the **data-side counter of W0** (three.js window records at a given p) is the primary instrument, and
+  the pixel share is the corroborating one. A4 already says "data **and** pixels": that ordering is not
+  decoration;
+- a pixel-side A5 verdict is only safe inside a `wall` rectangle that has been eyeballed to contain
+  windows and no lamp head, which is why `night-routes.json` insists on a `wall` region and now also
+  flags any region under 1% of the frame;
+- "mean hue warm (b\* > 0)" must be read over the **counted lit units**, never over the wall region as a
+  whole — masonry lit by a warm lamp will satisfy it with no window lit at all.
+
 ---------------------------------------------------------------------------------------------------
 
 ## 8. The one taste question for the owner
 
+**He has answered a version of this once already.** On 2026-07-31 he said *"lights are a bit too dim on
+night mode"* (`docs/PASS_NIGHT.md`). That pass read it as density and fixed density, and he did not come
+back on it — so it is one data point, not a settled preference about absolute level, and it points at the
+brighter of the two options below. Put it in front of him with the pair rather than deciding for him.
+
 Show **one matched pair** at R2/R1, early night and deep night:
 
 - **(a)** the "phone look": the owner's own photos, with walls clearly readable at 4–7× / 25–30× the sky,
-  warm-grey, and a slate sky;
+  warm-grey, and a slate sky. This is the brighter option, and it is the one his 2026-07-31 complaint
+  leans towards;
 - **(b)** a darker "eye look" that keeps the same ratios at a lower overall exposure. Its night-light tint is
   the blue-moon convention.
+
+Both options have the same **ratios**; they differ only in absolute level, and both have far more lit
+things in them than `main` does today. Neither is "turn the brightness up", which §1.4 measured is not the
+problem — so if (b) looks too dim to him, the answer is (a), not a gain slider.
 
 Everything else in this plan is an execution decision, backed by the evidence above. Lamp colour follows
 the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued in a city sky.
@@ -641,8 +808,16 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
   `js/drag.js` is frozen (#164). `js/slopes-stadium.js` and the stadium bake belong to the Acer DKR lane, and
   `js/stadium.js` to the Mac lane.
 - **Zoom-level pops** in atlas pane identity (D3).
-- **Phones are unmeasured.** No item here has a real-iPhone frame time. Everything under "phone" is desktop
-  Chromium in a phone profile.
+- **Phones are unmeasured for SPEED.** No item here has a real-iPhone frame time, and nothing in this
+  harness measures one; everything under "phone" is desktop Chromium in a phone profile. The *look* is
+  no longer unmeasured: R10 ran on 2026-09-20 (§7.1) and returned two things that change the acceptance
+  — `?lite=1` is a different renderer (no bloom, no auto-exposure, render scale 0.75) and lifts the
+  bright-window share by about a third at full night, and the tracked `wall` rectangles do not land on
+  walls in portrait while `sky` and `ground` do. **Do not read a desktop A4/A5 number as a phone
+  number.**
+- **The deep-night ratios are quantisation-limited** (§7.2, A3). At p 1 the sky median is 3 or 4 codes
+  above black, so `wall/sky` there carries less than one significant figure. The harness prints the
+  ±1-code band; the plan's A3 needs re-expressing before it can be a gate.
 - **The web references are unmeasured**, and the owner's are phone-processed (reference §2). Treat the
   targets as ratios with ranges, not exact values.
 
@@ -650,8 +825,21 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
 
 ## 10. Sources
 
-- Reference package: `docs/night-reference-package.md`. Owner analysis (private, local):
-  `austin-reference-images/_owner-phone/analysis/owner-photos.md`.
+- Reference package: `docs/night-reference-package.md`. Code inventory: `docs/night-code-inventory.md`.
+  Owner analysis (private, local): `austin-reference-images/_owner-phone/analysis/owner-photos.md`.
+- **This repo's own prior night work, which every item above depends on and which the first draft of this
+  plan did not cite:**
+  - `docs/PASS_NIGHT.md` — the 2026-07-31 night pass: the owner's verbatim verdict, the measurement that
+    showed the complaint was lamp *density* not gain, the three-rig failure ledger for chroma-based "lit
+    window" measures (§4), and the note that `night-silhouette.mjs` is a coin flip at its own pose
+    (§4, §7). Read §4 before building any instrument in W0.
+  - `docs/night/black-towers.md` — why some West Campus blocks are black at night: the `dk` facade family
+    has no lit-window variant by design (`GRIDS.dk = null`, `OCCUPANCY.dk = [0,0]`), and one of the two
+    bands using it is 44% of The Castilian's elevation. Directly relevant to W3 and W4.
+  - `docs/night/flicker.md` — the reproducible 242 px cluster in `westcampus-day` and the harness
+    discipline used to pin it.
+  - `docs/night/entrances-payload.md` — what `data/entrances.geojson` really costs (348 KB wire, 115 ms
+    main thread), measured, with the conclusion to leave it alone. Relevant to §1.4's entrance pools.
 - Baseline inventory and captures (local): `austin-reference-images/_night/_baseline-c656249/`.
 - The comparison harness and its `c656249` baseline (W0a): `scripts/verify/night-compare.mjs`,
   `scripts/verify/night-routes.json`, `scripts/verify/README.md`; committed sheets
