@@ -21,7 +21,8 @@ It reproduces what we already knew: Welch Hall 31.68 m against the repo's
 32.61, the Capitol 91.06 against 92.0, Jester 51.43 against 53.4, and the
 Austonian — the tallest thing in the model — 209.49 against the city's 210.31.
 Against the city layer as an independent source, the median disagreement is
-1.68 m and 80% land within 5 m.
+1.60 m over 475 buildings and 80% land within 5 m — and 1.27 m over the 285
+where the city's polygon is genuinely the same shape as ours.
 
 Three things it found that we were wrong about:
 
