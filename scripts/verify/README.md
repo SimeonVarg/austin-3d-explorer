@@ -132,7 +132,13 @@ node night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night
 > by hand off the build printed on the overview sheet.
 >
 > Both commands above were then run **verbatim** through `gpu-run.mjs` on a quiet machine
-> against this branch: **exit 1 and exit 1**, three of three and two of two poses red.
+> against this branch: **exit 1 and exit 1**, three of three and two of two poses red — and
+> again on the branch with `origin/main` merged in, which matters because that merge carries
+> PR #274's new Capitol pavilions, the geometry the re-aimed Capitol rectangles sit on.
+> On the merged build (`676fc22f41ab`) the Capitol run is **exit 1**, 0.181% and 0.318%, and
+> the rectangles are still on their subject: `wall` **71 → 28**, `dome` **76 → 20** at
+> `congress-30m`, unchanged from before the merge. The `wc-elevated` run is **exit 1**,
+> 8.154 / 3.659 / 7.094%.
 > Both runs happened to load symmetrically (0 reloads on both sides), so they demonstrate
 > the exit code and not the gate. The gate itself was watched both ways on those same
 > frames with `--from`, side B's reload count edited by hand in the report: same
