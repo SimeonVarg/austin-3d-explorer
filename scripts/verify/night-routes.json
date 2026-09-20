@@ -1,0 +1,285 @@
+{
+  "_readme": [
+    "Named camera routes for the night renderer, read by scripts/verify/night-compare.mjs.",
+    "A pose is either eye/target ([lng, lat, metres above ground] each; bearing and pitch are derived, pitch is clamped to the app's 88 deg and the zoom comes from the app's 58 deg vertical FOV) or a plain MapLibre pose (center, zoom, pitch, bearing).",
+    "Because pitch cannot go above the horizon, a target ABOVE the eye clamps to 88 deg: the map centre then lands about 28.6 x the eye height ahead, and the subject sits high in the frame rather than at its centre. Stand far enough back that it still fits.",
+    "regions: named rectangles [x0, y0, x1, y1] as fractions of the frame (0,0 = top left). A region may be one rectangle or a list of them; rectangles in one region must not overlap. sky/wall/ground/water feed the ratios; any other name (dome, tower) is measured and reported but not divided.",
+    "They were read off the 2026-09-19 baseline frames (1440x900) with night-compare --show-regions, which draws them on a labelled 5% grid. After editing them, re-measure an old run with --from instead of re-shooting it.",
+    "regionSubjects: WHOSE geometry a rectangle is on -- 'authored' (the slopes scene draws it; --break slopes MUST move its numbers), 'basemap' (MapLibre's own fill-extrusion or road, lit and graded by our style: a true reading of the frame and not of anything we build, and every ratio that touches one prints with a b), or 'sky'. A region with no entry is UNDECLARED, which is a third value and not a synonym for authored: night-compare lists it under verdict.breakCoverage.undeclaredAndUnmoved whenever a sabotage fails to move it. Declare a region only from a --break run that measured it, never by eye off a still: at the two Capitol poses four rectangles read as buildings and pavement of our city for a week and were MapLibre's, and it took deleting 3,560,273 triangles and watching every number stand still to find out.",
+    "EVERY pose should carry a wall region: without one the bright-window measure falls back to the whole frame, where at blue hour it counts sky and lit pavement and is not a window count at all (it is then starred in the table).",
+    "Region SIZE is part of the answer. A region under 1% of the frame (MEASURE.minRegionFrac) is measured and divided as usual and then flagged with # in the table and `small` in the report: a median over four thousand pixels of a gradient sky is a number, not a measurement of the sky. Two poses cannot do better and say so below.",
+    "regimes: slider values. p is canonical (it is what the owner drags); sunElev is what js/sky.js SUN_KEYS gives for that p at c656249, and night-compare warns when a build disagrees by more than 0.5 deg.",
+    "defaultRegimes carries all four acceptance elevations of docs/night-implementation-plan.md sec 7.1, INCLUDING `early` (-15 deg). `early` is the only regime the owner's own photographs measure (IMG_9964-9969 at 20:36, sun -14.5 to -15.2), so a run that skips it has no measured evidence to be compared against. Use --regimes to shoot fewer.",
+    "refs: optional reference photographs per regime, as paths under refRoot (a local, git-ignored folder; missing files are skipped). None of them may be committed.",
+    "refExceptions: { \"<regime>\": \"<why>\" } on a route DECLARES a binding whose photograph's own clock falls outside that row's sun-elevation band and which we keep anyway. night-refmeasure.py --sun prints a declared gap as DEFENDED and exits 0; an undeclared one prints UNEXPLAINED and exits 1, and an exception naming a regime the route does not bind is called out as stale. There is exactly one in the file (capitol/night). Do not use refNote for this: nearly every route has one, so every gap read as accepted.",
+    "A ref is bound to the regime its own package entry tags it with (docs/night-reference-package.md sec 1.2 and each folder's sources.json), never to the regime whose row happens to be empty. Where the corpus has no photograph of a regime the row is left out, and the note below says so: an empty cell is evidence about the corpus, a wrong cell is a lie about the sky. Only ONE ref fits a regime row, so a second photograph of the same regime is named in the route's refNote rather than bound.",
+    "Licence: no ref may be committed, and a ref under a NO-DERIVATIVES licence is not wired here at all, because --refs on composites it into a sheet (which is a derivative). the-independent__crown-and-podium-garage (CC BY-NC-ND) is therefore named in parking-structure.refNote and not bound.",
+    "West Campus elevated poses are GENERIC vantage points over public streets that frame the same buildings the owner photographed (IMG_9964-9969). The matched poses for those photographs stay in a local overlay file (see night-compare.mjs --local), never here."
+  ],
+  "version": 2,
+  "viewport": [1440, 900],
+  "refRoot": "../austin-reference-images",
+  "defaultRegimes": ["blue", "twilight", "early", "night"],
+  "regimes": {
+    "day":      { "p": 0.30, "sunElev": 54.0, "note": "no-regression check (plan A9)" },
+    "golden":   { "p": 0.50, "sunElev": 6.0,  "note": "no-regression check (plan A9)" },
+    "blue":     { "p": 0.62, "sunElev": -5.8, "note": "blue hour; the inventory's p .62" },
+    "twilight": { "p": 0.69, "sunElev": -12.1, "note": "nautical twilight / early night; the inventory's p .69" },
+    "early":    { "p": 0.7222, "sunElev": -15.0, "note": "the owner's 20:36 elevated series (sun -14.5 to -15.2 deg)" },
+    "night":    { "p": 1.0,  "sunElev": -40.0, "note": "full night (p = 1)" }
+  },
+  "routes": [
+    {
+      "id": "skyline-south-shore",
+      "title": "Downtown skyline across Lady Bird Lake, from the south shore",
+      "plan": "R5",
+      "judges": "skyline occupancy, crowns and accents, water against sky",
+      "poses": [
+        { "id": "shore-10m", "eye": [-97.7465, 30.2612, 10], "target": [-97.7430, 30.2690, 80],
+          "regions": {
+            "sky":   [0.05, 0.02, 0.95, 0.10],
+            "wall":  [[0.04, 0.22, 0.26, 0.40], [0.62, 0.24, 0.95, 0.40]],
+            "water": [0.10, 0.62, 0.90, 0.95]
+          } }
+      ],
+      "refNote": "Amended 2026-09-20, when every stated capture time in the corpus was turned into a sun elevation (scripts/verify/night-refmeasure.py --sun). dimas-2016-11-23_1908 is tagged BLUE HOUR by its own sources.json and was described here as the corpus's cleanest blue-hour colour; 19:08 on 2016-11-23 is 1 h 37 m after sunset and puts the sun at -20.9 deg, which is full night. Its blue is a long exposure and a white balance, not a blue-hour sky, and it stays unbound. The blue row keeps the Cutrer 20:34 frame, which is the same tripod as the 23:20 night frame and so makes the two rows directly comparable — but 20:34 is seven minutes after sunset (sun -2.6 deg), the top of civil twilight rather than the middle of the blue hour, and its wall/sky of 0.122 should be read as a sunset number. The corpus has no twilight or early-night skyline photograph at all.",
+      "refs": {
+        "blue": "_night/downtown/skyline-blue-hour__congress-view__cutrer-2012-07-31_2034.jpg",
+        "night": "_night/downtown/skyline-full-night__congress-view__cutrer-2012-07-31_2320.jpg"
+      }
+    },
+    {
+      "id": "congress-street",
+      "title": "Congress Avenue at street level, looking north to the Capitol",
+      "plan": "R4",
+      "judges": "downtown lamps, retail frontage, the dome against the sky",
+      "poses": [
+        { "id": "at-5th-1p7m", "eye": [-97.74285, 30.26790, 1.7], "target": [-97.74060, 30.27450, 30],
+          "regions": {
+            "sky":    [0.40, 0.02, 0.55, 0.20],
+            "wall":   [[0.02, 0.10, 0.25, 0.60], [0.72, 0.15, 0.98, 0.60]],
+            "ground": [0.20, 0.80, 0.80, 0.98]
+          } }
+      ],
+      "refNote": "blue is EMPTY from 2026-09-20. It held texas-capitol__congress-ave-bluehour-predawn, which is not blue hour: its sky measures median linear Y 0.0011 (sRGB code 3 — black), its camera clock says 06:06 on 2019-08-11 (sun -10.8 deg, a sky that is not black) and the photographer's caption says 5AM (sun about -21 deg, a sky that is). Pixels and caption agree; the clock is wrong; the frame is deep night and was sitting on a blue row of two routes. night is CORRECT and was challenged on 2026-09-20: the zykov frame's EXIF DateTimeOriginal is 2012:10:10 03:42:41 from the camera itself (the 2012:10:13 10:45 in tag 306 is a later QuickTime write stamp), and ISO 3200 / f2 / 1/50 s is EV100 2.6, a night street, not the dusk bat-watching hour. Sun elevation at that stamp: -48.9 deg. Its sky measures sRGB ~50-62, five times sec 5's full-night target of 11 — because a camera exposes to make a scene legible. Read RATIOS off it, never levels.",
+      "refs": {
+        "night": "_night/downtown/skyline-fullnight-wide__zykov-2012-10-10_0342.jpg"
+      }
+    },
+    {
+      "id": "wc-elevated",
+      "title": "West Campus from above, early night (the subjects of the owner's IMG_9964-9969)",
+      "plan": "R1",
+      "judges": "apartment window occupancy, crowns, podiums, pools",
+      "poses": [
+        { "id": "over-drag-wnw", "note": "80 m over the campus side of Guadalupe at 22nd, looking WNW across Icon and Moontower to Union on 24th and Villas on 24th (9964/9969 subjects)",
+          "eye": [-97.7412, 30.2858, 80], "target": [-97.7448, 30.2872, 45],
+          "regions": {
+            "sky":    [0.08, 0.04, 0.95, 0.25],
+            "wall":   [[0.19, 0.39, 0.30, 0.51], [0.73, 0.52, 0.91, 0.70]],
+            "ground": [0.455, 0.825, 0.60, 0.905]
+          },
+          "regionSubjects": { "wall": "authored", "ground": "authored" } },
+        { "id": "over-mlk-north", "note": "80 m over MLK at Nueces, looking north up the Rio Grande corridor: 21 Rio, Villas on Rio, Signature 1909 (9965/9966 subjects)",
+          "eye": [-97.7445, 30.2806, 80], "target": [-97.7450, 30.2852, 30],
+          "regions": {
+            "sky":  [0.05, 0.03, 0.78, 0.30],
+            "wall": [[0.82, 0.35, 0.98, 0.62], [0.48, 0.40, 0.53, 0.57]]
+          },
+          "regionSubjects": { "wall": "authored" } },
+        { "id": "down-on-ion", "note": "110 m over 22nd St, looking steeply down SSE onto Ion and the Callaway House (9967/9968 subjects)",
+          "eye": [-97.7437, 30.2860, 110], "target": [-97.74326, 30.28439, 25],
+          "regions": {
+            "sky":    [0.03, 0.015, 0.62, 0.072],
+            "wall":   [[0.22, 0.38, 0.38, 0.85], [0.49, 0.51, 0.64, 0.72]],
+            "ground": [0.69, 0.49, 0.735, 0.77]
+          },
+          "regionSubjects": { "wall": "authored", "ground": "authored" } }
+      ],
+      "regionNote": "The three `wall` regions and the two `ground` regions are declared `authored` on the measurement: `--break slopes` at night moved wall 18->21, 19->21 and 17->12 and ground 59->65 and 11->7, and the bright-window share collapsed 13.349 -> 1.850, 17.847 -> 0.403 and 9.419 -> 2.496. The three `sky` regions are deliberately left UNDECLARED: two of them did not move (which is consistent with sky and also with a rectangle on a basemap wall), and down-on-ion's moved by one code, which is too small a signal to call either way. They will keep printing under breakCoverage.undeclaredAndUnmoved until somebody runs --break with --show-regions in hand and settles it.",
+      "refNote": "torre sat on `twilight` until 2026-09-20 on the strength of its FILE NAME; its sources.json reads 'twilight / blue hour' and the package's own table (sec 1.2) calls it blue hour, so it moves to `blue`. `twilight` now carries the Dobie pool frame, one of only two photographs in the corpus that any gatherer tagged plainly twilight, and the only close-up of a West Campus residential curtain wall with per-unit colour variety (the package used to discount it on a false claim that the tower was demolished; it was renovated as Dobie Twenty21). The corpus has no full-night West Campus apartment photograph.",
+      "refs": {
+        "blue": "_night/westcampus-campus/torre-westcampus-twilight_ca2020s-rambleratx-article.png",
+        "twilight": "_night/westcampus-campus/dobie-center-pool-twilight_2014-joshm560.jpg"
+      }
+    },
+    {
+      "id": "wc-street",
+      "title": "West Campus streets at eye level",
+      "plan": "R2 / R3",
+      "judges": "street lamps, lobbies, garage decks, pavement light",
+      "poses": [
+        { "id": "rio-grande-23rd",
+          "note": "the `sky` rectangle was [0.49,0.34,0.53,0.45] until 2026-09-20 — the far end of the street canyon, which at blue hour measured rgb(110,78,64), brown haze and distant facade, not sky. It made wall/sky read 0.60 at blue hour, which the plan quoted as a caveat about the WALL. The real sky in this frame is two narrow slots between the tree canopies, 6,942 px together (0.54% of the frame), so both slots are named and every ratio here comes back flagged with #. A 1.7 m pose on a tree-lined street has almost no sky, and that is the honest answer, not a rectangle that finds some.",
+          "eye": [-97.74478, 30.28660, 1.7], "target": [-97.74455, 30.28950, 10],
+          "regions": {
+            "sky":    [[0.452, 0.005, 0.505, 0.072], [0.80, 0.05, 0.86, 0.08]],
+            "wall":   [[0.74, 0.26, 0.90, 0.49], [0.57, 0.03, 0.66, 0.31]],
+            "ground": [0.21, 0.67, 0.62, 0.91]
+          } },
+        { "id": "san-antonio-castilian", "note": "a near facade fills the left third of this frame at 1.7 m; the regions deliberately sit on the far side of the street",
+          "eye": [-97.74285, 30.28620, 1.7], "target": [-97.74250, 30.28850, 12],
+          "regions": {
+            "sky":    [0.42, 0.02, 0.52, 0.20],
+            "wall":   [[0.556, 0.03, 0.653, 0.26], [0.70, 0.24, 0.98, 0.48]],
+            "ground": [0.49, 0.62, 0.90, 0.89]
+          } }
+      ],
+      "refNote": "twilight is EMPTY from 2026-09-20. rambler sat there on the strength of its filename and was looked at properly on 2026-09-20: direct orange solar glow on the right horizon, pink-lit cirrus, a bright blue zenith (sky median linear Y 0.553) and a facade legible in ambient light. That is the sun at roughly 0 to -3 deg, about 10 deg off the -12.1 deg row it was bound to, and its own source site calling it golden hour was closer to right than this file was. Neither rambleratx photo carries a clock, so both stay judgement calls; waterloo keeps `blue` (sky Y 0.400, orange still on the horizon, lamps just on, wall/sky 0.132 - the one measured blue-hour wall in the whole corpus). The corpus has no West Campus street photograph at nautical twilight. Both are rambleratx property photos: licence unknown, reference only, never redistribute, and they are real-estate graded.",
+      "refs": {
+        "blue": "_night/westcampus-campus/waterloo-westcampus-duskblue_ca2022-rambleratx.jpg"
+      }
+    },
+    {
+      "id": "main-mall-tower",
+      "title": "Main Mall, looking up at the UT Tower",
+      "plan": "R7",
+      "judges": "the Tower's flood circuits kept, campus lamps",
+      "poses": [
+        { "id": "mall-1p7m", "eye": [-97.73940, 30.28400, 1.7], "target": [-97.73932, 30.28625, 60],
+          "regions": {
+            "sky":    [0.28, 0.03, 0.44, 0.22],
+            "wall":   [0.69, 0.23, 0.82, 0.48],
+            "tower":  [0.47, 0.14, 0.51, 0.34],
+            "ground": [0.05, 0.64, 0.36, 0.86]
+          } }
+      ],
+      "refNote": "Added 2026-09-20, fifth pass: this was the only BOUND route in this file with no refNote at all, against the rule the package wrote for itself -- the pixels decide, the clock checks, and the refNote records the argument; a binding that disagrees with its own tag is fine, a binding nobody explained is not. The binding is right, and the frame was opened to say so: a ground-floor arcade lit bright warm white, pierced-stone screens above it dark, several sodium lamps with visible bloom and pooling on glossy pavement, black sky. That is full night and it is exactly this route's arcade-and-plaza interest. What needed writing down is the SUBJECT. This file's own sources.json says the real subject is the Flawn Academic Center, a lower flanking building, and that the Tower 'is smaller in frame, partly screened by oak trees' -- on a route called main-mall-tower, whose pose carries a `tower` region, the reference tile is a lit low arcade beside a distant floodlit shaft, not the Tower the route is named for. Read it as the arcade reference it is. The corpus holds seven closer Tower frames and no blue-hour or twilight frame of this plaza, so those rows stay empty. Public domain, 2009-03-07, no capture time, so --sun leaves the regime a judgement call and the pixels are the whole argument.",
+      "refs": {
+        "night": "_night/westcampus-campus/ut-tower-flawn-academic-night_2009-matthewrutledge.jpg"
+      }
+    },
+    {
+      "id": "south-mall",
+      "title": "South Mall from the Tower terrace, looking south",
+      "plan": "R7",
+      "judges": "campus lamps and walks, the Capitol on axis",
+      "poses": [
+        { "id": "terrace-4m", "note": "`sky` was [0.40,0.16,0.56,0.22] until 2026-09-20, which straddled the rooflines along its lower edge. The clean sky block above it is 57,375 px (4.4%) and reads luma sd 1.7 at blue hour.",
+          "eye": [-97.73942, 30.28530, 4], "target": [-97.73955, 30.28250, 2],
+          "regions": {
+            "sky":    [0.42, 0.02, 0.68, 0.19],
+            "wall":   [0.79, 0.33, 0.92, 0.51],
+            "ground": [0.21, 0.69, 0.76, 0.91]
+          } }
+      ],
+      "refs": {}
+    },
+    {
+      "id": "guadalupe-storefronts",
+      "title": "Guadalupe (the Drag) storefronts at 22nd, eye level",
+      "plan": "R6",
+      "judges": "storefronts against dark upstairs, pavement pools",
+      "poses": [
+        { "id": "drag-22nd-1p7m", "eye": [-97.74185, 30.28520, 1.7], "target": [-97.74175, 30.28800, 4],
+          "regions": {
+            "sky":    [0.50, 0.03, 0.72, 0.20],
+            "wall":   [0.18, 0.16, 0.29, 0.34],
+            "ground": [0.25, 0.62, 0.75, 0.90]
+          } }
+      ],
+      "refNote": "the twilight row held drag-guadalupe-night_2009-bigbirdz.jpg, which is (a) tagged FULL NIGHT and (b) pixel-for-pixel the same photograph as the night row's file at 1280x857 instead of 1920x1285 — both rows of this sheet showed the same picture, and the twilight row showed a night one. Removed 2026-09-20; the higher-resolution copy stays on `night`. The corpus has no blue-hour or twilight photograph of the Drag.",
+      "refs": {
+        "night": "_night/landmarks-street/guadalupe-drag__storefronts-full-night__01.jpg"
+      }
+    },
+    {
+      "id": "capitol",
+      "title": "The Capitol from Congress Avenue",
+      "plan": "R4",
+      "judges": "the floodlit dome and portico against the sky",
+      "poses": [
+        { "id": "congress-30m", "eye": [-97.74212, 30.26991, 30], "target": [-97.74040, 30.27470, 60],
+          "note": "REGIONS RE-AIMED 2026-09-20 and the old ones kept under honest names. Everything we author at this pose is the Capitol itself, and it is 0.394% of the frame (the A-vs-B mask of the --break slopes run, at a per-channel difference over 3 of 255): the wide pale building under the dome, the towers either side of Congress and the pavement are all MapLibre fill-extrusions and road lit by our style. The old `wall` sat on the tower at x 0.583-0.667 and the old `ground` on the pavement, so `--break slopes` removed 3,560,273 triangles and every region median, every ratio and the window share came back bit-identical. wall and dome are now read off the A-vs-B mask of that very run: 95.7% of wall and 93.2% of dome are pixels the sabotage changed by more than 3 of 255 on any channel (90.6% and 88.0% at a threshold of 6).",
+          "regions": {
+            "sky":      [0.32, 0.03, 0.50, 0.25],
+            "wall":     [0.4910, 0.4244, 0.5215, 0.4511],
+            "dome":     [0.4931, 0.3922, 0.5194, 0.4233],
+            "downtown": [0.583, 0.33, 0.667, 0.578],
+            "ground":   [0.43, 0.69, 0.57, 0.87]
+          },
+          "regionSubjects": { "sky": "sky", "wall": "authored", "dome": "authored", "downtown": "basemap", "ground": "basemap" } },
+        { "id": "gate-1p7m", "note": "348 m down the Congress Ave centreline (derived from the two working poses: dlng/dlat 0.3409). The first try stood 41 m east of the centreline, inside the buildings, and photographed a blank wall at every regime. REGIONS RE-AIMED 2026-09-20, same reason as congress-30m: the old `wall` was two rectangles on the buildings flanking the avenue, which are MapLibre's, and the old `dome` sat BELOW the dome on the dark ridge in front of it and did not move by one code when the Capitol was deleted. wall and dome are now read off the A-vs-B mask: 92.2% of wall and 94.4% of dome are pixels the sabotage changed by more than 3 of 255 on any channel (86.3% and 89.6% at a threshold of 6). flanking keeps the old pair under a name that says whose they are.",
+          "eye": [-97.74156, 30.27155, 1.7], "target": [-97.74049, 30.27470, 45],
+          "regions": {
+            "sky":      [0.30, 0.04, 0.58, 0.28],
+            "wall":     [0.4979, 0.3344, 0.5424, 0.3678],
+            "dome":     [0.5007, 0.2856, 0.5396, 0.3322],
+            "flanking": [[0.08, 0.34, 0.26, 0.60], [0.64, 0.26, 0.78, 0.52]],
+            "ground":   [0.25, 0.75, 0.75, 0.95]
+          },
+          "regionSubjects": { "sky": "sky", "wall": "authored", "dome": "authored", "flanking": "basemap", "ground": "basemap" } }
+      ],
+      "regionNote": "Both poses give a SMALL-REGION reading of our geometry and cannot do better from where they stand: the whole Capitol is 0.394% of the frame at congress-30m and 0.430% at gate-1p7m (the A-vs-B mask of the --break slopes run, at a per-channel difference over 3 of 255), so as the harness counts them wall is 1,100 px (0.08%) and 2,112 px (0.16%) and dome 1,102 px (0.09%) and 2,394 px (0.18%) and print with the # flag. They are a flat floodlit stone surface, which is what makes a median over a thousand pixels of it worth having (unlike a thousand pixels of a gradient sky), but if A1 or A3 ever has to REST on this route, the fix is a closer pose, not a bigger rectangle -- and a closer pose re-shoots every kept run that holds a capitol frame.",
+      "refNote": "blue is EMPTY from 2026-09-20, for the reason written out on congress-street: the pre-dawn Capitol frame that sat here measures a black sky (median linear Y 0.0011, sRGB code 3) and is deep night, not blue hour. night keeps its B&W companion from the same shoot, which IS full night by its pixels whatever its camera clock says. The corpus has no blue-hour photograph of the Capitol. EXPECTED, so the next reader does not chase it: night-refmeasure.py --sun prints this binding under 'BOUND TO A ROW ITS OWN CLOCK PUTS IT OUTSIDE OF', 29.2 deg off, on every run. That line is the flag working, not an open defect. From 2026-09-20 what accepts it is this route's refExceptions.night entry, and --sun prints it as DEFENDED and exits 0; without that entry it prints UNEXPLAINED and exits 1. It used to be THIS refNote that made the gap look accepted, which could not work -- most routes have a refNote, so every gap looked accepted and a real regression would have printed exactly like this one. The refNote is still the long argument; the exception is the declaration.",
+      "refExceptions": {
+        "night": "the B&W dome frame's camera clock (2019-08-11 ~06:06) puts the sun at -10.8 deg, 29.2 deg off this row, and the clock is wrong: the photographer's own caption says 5AM (about -21 deg) and the frame's sky measures sRGB code 3, which is black. Pixels and caption agree against the clock, so the binding stands and the gap is expected on every --sun run. The long argument is in this route's refNote."
+      },
+      "refs": {
+        "night": "_night/landmarks-street/texas-capitol__dome-floodlit-full-night-bw__01.jpg"
+      }
+    },
+    {
+      "id": "parking-structure",
+      "title": "A parking structure (State Parking Garage R, 29.9 m, wp dk06)",
+      "plan": "R8",
+      "judges": "the garage-deck class (GD): lit soffit bands",
+      "poses": [
+        { "id": "garage-r-west-100m", "note": "100 m due west of the deck's centroid (-97.73706, 30.27858) at 10 m, looking at deck mid-height. The inventory's own garage pose (130 m SSW, 22 m up) put an apartment facade across the near half; a West Campus guess landed on a facade. wall sits on the deck bands.",
+          "eye": [-97.73810, 30.27858, 10], "target": [-97.73706, 30.27858, 15],
+          "regions": {
+            "sky":    [0.30, 0.03, 0.62, 0.17],
+            "wall":   [0.20, 0.24, 0.62, 0.52],
+            "ground": [0.64, 0.59, 0.80, 0.67]
+          } }
+      ],
+      "refNote": "the-independent__crown-and-podium-garage is the corpus's only real lit garage podium and its only CC BY-NC-ND file. A no-derivatives licence and a harness that composites the file into a sheet do not go together, so it is NOT bound here; open it directly when judging the GD class. The bound reference is the package's own named proxy for a garage soffit (linear tubes under a canopy, CC BY 2.0). Reference package sec 7 is right that this is the weakest corner of the corpus.",
+      "refs": {
+        "night": "_night/landmarks-street/street__north-lamar-transit-center-full-night__01.jpg"
+      }
+    },
+    {
+      "id": "lady-bird-lake",
+      "title": "Lady Bird Lake and downtown",
+      "plan": "R5",
+      "judges": "water against the sky, streaks under emitters, skyline",
+      "poses": [
+        { "id": "aerial-west-120m", "eye": [-97.7600, 30.2665, 120], "target": [-97.7455, 30.2625, 0],
+          "regions": {
+            "sky":    [0.34, 0.02, 0.60, 0.20],
+            "wall":   [[0.09, 0.32, 0.16, 0.51], [0.45, 0.355, 0.507, 0.49]],
+            "water":  [0.42, 0.545, 0.575, 0.69],
+            "ground": [0.14, 0.78, 0.29, 0.87]
+          } },
+        { "id": "lamar-bridge-8m", "eye": [-97.7565, 30.2648, 8], "target": [-97.7470, 30.2668, 80],
+          "regions": {
+            "sky":   [0.10, 0.02, 0.55, 0.12],
+            "wall":  [[0.52, 0.22, 0.60, 0.42], [0.38, 0.26, 0.43, 0.42]],
+            "water": [0.12, 0.56, 0.66, 0.90]
+          } }
+      ],
+      "refNote": "night was EMPTIED on 2026-09-20. It held lady-bird-lake-reflection-night__hargup-2015-07-09_2129, and 21:29 on 2015-07-09 puts the sun at -10.8 deg: nautical twilight, 29 deg off the row it was on, whatever the word 'night' in its filename says. It moves to `twilight`, where it belongs. blue keeps the town-lake reflection frame, whose water/sky measures 0.254. CORRECTED 2026-09-20, fifth pass: that sentence used to go on 'and with dimas (0.266) and kotipalli (0.220) it is what A1's water half is now measured from', which counted ONE photograph as two. The frame bound here (3840x2490) and kotipalli-0651 (townlake-dawn-reflection__kotipalli-2013-06-10_0651.jpg, 7360x4773) are the same Commons picture at two resolutions -- greyscale correlation 0.99997 at 96x64, and docs/night-reference-package.md sec 1.2 lists it among the three files collected twice. Their 0.254 and 0.220 are resampling and two independently-placed rectangles, not two observations, so A1's water half rests on TWO photographs (this one and dimas at 0.266), not three. night-refmeasure.py now refuses to list them both and keeps the higher-resolution copy. And note what this row is: the LOWER-resolution copy of a picture whose own stamp puts the sun at +3.6 deg, ABOVE the horizon, i.e. not blue hour by its clock. It is kept on `blue` deliberately, because its pixels are a dim sky over a dark lake with the skyline lit and reflected, and because the corpus holds no clock-confirmed blue-hour water frame at all; the clock is a reason to distrust the TAG, not the pixels. If such a frame is ever gathered this row should move to it -- the plan's A1 box says the same.",
+      "refs": {
+        "blue": "_night/landmarks-street/downtown-skyline__town-lake-water-reflection-bluehour__01.jpg",
+        "twilight": "_night/downtown/lady-bird-lake-reflection-night__hargup-2015-07-09_2129.jpg"
+      }
+    },
+    {
+      "id": "campus-aerial",
+      "title": "Campus aerial, whole-frame ordering",
+      "plan": "R9",
+      "judges": "whole-frame ordering: the brightest things are lights",
+      "poses": [
+        { "id": "z16-p68",
+          "note": "A9's whole-frame ordering check reads the frame, not a region — but with NO regions at all this pose produced no ratio and a starred whole-frame `window` number, so it was the one pose of sixteen that measured nothing. It has regions from 2026-09-20. `sky` is the clean band above the downtown skyline (176k px). `wall` is the one facade big enough to read at z16: the long brick block in the near-bottom third, 18,480 px, which at p 1 runs p50 18 / p90 59, i.e. lit windows against a dark wall. `ground` is the lamp-lit intersection below it. They are coarse by construction; the pose's job is still whole-frame ordering.",
+          "center": [-97.7395, 30.2860], "zoom": 16.0, "pitch": 68, "bearing": 200,
+          "regions": {
+            "sky":    [0.03, 0.02, 0.97, 0.165],
+            "wall":   [0.368, 0.733, 0.562, 0.806],
+            "ground": [0.20, 0.845, 0.40, 0.925]
+          } }
+      ],
+      "refs": {}
+    }
+  ]
+}

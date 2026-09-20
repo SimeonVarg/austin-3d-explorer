@@ -1,0 +1,197 @@
+{
+  "_readme": "Regions for scripts/verify/night-refmeasure.py: the rectangles on the WEB REFERENCE PHOTOGRAPHS that docs/night-reference-package.md §5 and docs/night-implementation-plan.md §7.2 A1 quote ratios from. Until 2026-09-20 nobody had measured a web photo (the package says so itself, §7: 'Nobody measured the web photos'), so A1's 'unlit wall / horizon sky <= 0.5 at blue hour' came from looking at them. This file is the regions; the photographs themselves live outside the repo in austin-reference-images/_night/ and are never committed.",
+  "_units": "x0,y0,x1,y1 as FRACTIONS of the image, like night-routes.json. Ratios are medians of linear relative luminance (sRGB decoded), the same unit night-compare.mjs divides with.",
+  "_caution": "A camera exposes to make a scene legible; it does not measure it. Two photographs of the same sky at the same minute, at different ISO/shutter, give different sRGB codes. A RATIO of two regions inside ONE frame survives that (both regions moved together). An ABSOLUTE sRGB level from a web photo does not, and §5's ladder must never be read off one.",
+  "refRoot": "../austin-reference-images",
+  "photos": [
+    {
+      "file": "_night/downtown/skyline-blue-hour__mrlaugh-2023-12-04_1755.jpg",
+      "id": "mrlaugh-1755",
+      "regime": "blue hour, CLOCK-CONFIRMED (sun -5.9 deg from its own 17:55:59 stamp) - and HDR-FLAGGED",
+      "license": "CC BY-SA 2.0",
+      "note": "Added 2026-09-20 because A1's blue-hour targets were being measured off three frames that are not blue hour, and this is the corpus's ONLY clock-confirmed blue hour. It does not rescue A1: its own sources.json entry flags it 'heavy HDR / phone-night-mode vividness', and section 2 of the reference package forbids calibrating on an HDR frame (that is why ut-tower-all-seeing is disqualified for twilight). So this row is a CROSS-CHECK, never a target. wall = the pale grey roofline panel of the foreground apartment block, which carries no light of its own; sky = the clear horizon band right of the skyline, above the low east-side roofs.",
+      "regions": {
+        "sky": [
+          0.72,
+          0.28,
+          0.8,
+          0.42
+        ],
+        "wall": [
+          0.356,
+          0.774,
+          0.392,
+          0.79
+        ]
+      }
+    },
+    {
+      "file": "_night/downtown/skyline-blue-hour__congress-view__cutrer-2012-07-31_2034.jpg",
+      "id": "cutrer-2034",
+      "regime": "sunset (sun -2.6 deg from its own 20:34 stamp, NOT blue hour)",
+      "license": "CC BY 2.0",
+      "note": "20:34 on 2012-07-31, seven minutes after sunset: the sun is -2.6 deg, so this is the top of civil twilight, not blue hour. wall = the Austonian's dark glass shaft above the lit chevrons; the first rectangle tried here sat on a pale concrete face still catching the western afterglow and read wall/sky 2.16.",
+      "regions": {
+        "sky": [
+          0.55,
+          0.07,
+          0.78,
+          0.17
+        ],
+        "wall": [
+          0.325,
+          0.14,
+          0.375,
+          0.33
+        ]
+      }
+    },
+    {
+      "file": "_night/downtown/skyline-dusk-wide-pano__dimas-2016-11-23_1908.jpg",
+      "id": "dimas-1908",
+      "regime": "full night (sun -20.9 deg from its own 19:08 stamp, NOT blue hour)",
+      "license": "CC BY 2.0",
+      "note": "19:08 panorama across the lake. Distant skyline: no broad unlit wall, so this frame answers water/sky only. CORRECTED 2026-09-20: this entry was tagged 'blue' while night-routes.json's own lady-bird-lake refNote already said the opposite -- 'full night ... Its blue is a long exposure and a white balance, not a blue-hour sky, and it stays unbound'. Its water/sky 0.266 is a FULL-NIGHT ratio and must not be counted toward a blue-hour target; it is kept here as the full-night end of the water ladder.",
+      "regions": {
+        "sky": [
+          0.3,
+          0.04,
+          0.55,
+          0.17
+        ],
+        "water": [
+          0.32,
+          0.62,
+          0.6,
+          0.78
+        ]
+      }
+    },
+    {
+      "file": "_night/landmarks-street/downtown-skyline__town-lake-water-reflection-bluehour__01.jpg",
+      "id": "townlake-bluehour",
+      "regime": "blue (tag) / UNCLOCKED: no capture time, so the regime is a judgement call",
+      "license": "CC BY-SA 3.0",
+      "note": "Lamp head in frame top-left; the sky rectangle is kept clear of its flare. CORRECTED 2026-09-20: this photograph states no capture time, so --sun cannot check it and its 'blue hour' is a word in a filename. Its water/sky 0.254 is the closest thing the corpus has to a blue-hour water ratio and it is still an unclocked judgement call. CORRECTED AGAIN 2026-09-20, fifth pass: THIS IS THE SAME PHOTOGRAPH AS kotipalli-0651, at 3840x2490 against 7360x4773 -- greyscale correlation 0.99997 at 96x64, and reference package sec 1.2 lists it among the three files collected twice. This entry and that one were measured separately at 0.254 and 0.220 and BOTH were quoted as independent evidence for A1's water half. They are not. night-refmeasure.py now drops this lower-resolution copy from every table and aggregate and prints the group; the entry is kept because night-routes.json's lady-bird-lake/blue is bound to this file and the 0.254/0.220 spread is a useful measure of what a rectangle placement is worth (15%).",
+      "regions": {
+        "sky": [
+          0.3,
+          0.04,
+          0.46,
+          0.17
+        ],
+        "water": [
+          0.56,
+          0.62,
+          0.86,
+          0.78
+        ]
+      }
+    },
+    {
+      "file": "_night/downtown/townlake-dawn-reflection__kotipalli-2013-06-10_0651.jpg",
+      "id": "kotipalli-0651",
+      "regime": "blue (tag) / UNRESOLVED: its own 06:51 stamp puts the sun at +3.6 deg, above the horizon",
+      "license": "CC BY-SA 3.0",
+      "note": "06:51 dawn, described as the dusk blue hour reversed. CORRECTED 2026-09-20: its own clock puts the sun at +3.6 deg -- daylight, not twilight -- so either the stamp or the tag is wrong and nothing here settles which. Reference package section 1.2 already calls this clock suspect. Its water/sky 0.220 is kept as a water-against-sky ratio, but it is NOT evidence for a blue-hour target. AND 2026-09-20, fifth pass: townlake-bluehour is THIS SAME PHOTOGRAPH at 3840x2490 (correlation 0.99997). This is the copy night-refmeasure.py keeps, being the higher resolution of the two; A1's water half therefore rests on this frame and dimas, two photographs and not three.",
+      "regions": {
+        "sky": [
+          0.42,
+          0.04,
+          0.62,
+          0.17
+        ],
+        "water": [
+          0.35,
+          0.72,
+          0.65,
+          0.88
+        ]
+      }
+    },
+    {
+      "file": "_night/landmarks-street/texas-capitol__congress-ave-bluehour-predawn__01.jpg",
+      "id": "capitol-bluehour",
+      "regime": "deep night (NOT blue hour - see note)",
+      "license": "CC BY 2.0",
+      "note": "Kept as the entry that disproves its own tag. sources.json tags it 'blue hour (pre-dawn twilight)' and night-routes.json bound it to congress-street/blue AND capitol/blue. Its sky measures median linear Y 0.0011, sRGB code 3 - black. Its camera clock says 2019-08-11 06:06 (sun -10.8 deg, nautical twilight, a sky that is not black); the photographer's own caption says 5AM (sun about -21 deg, a sky that is). The pixels and the caption agree and the clock is wrong: this is deep night, and it was sitting on two blue rows.",
+      "regions": {
+        "sky": [
+          0.3,
+          0.04,
+          0.45,
+          0.19
+        ],
+        "wall": [
+          0.865,
+          0.15,
+          0.985,
+          0.36
+        ]
+      }
+    },
+    {
+      "file": "_night/westcampus-campus/waterloo-westcampus-duskblue_ca2022-rambleratx.jpg",
+      "id": "waterloo-dusk",
+      "regime": "blue (tag) / UNCLOCKED: no capture time, so the regime is a judgement call",
+      "license": "unknown - reference only, never redistribute",
+      "note": "The one West Campus street frame tagged blue hour. Wall = the red brick low-rise on the left, which carries no light of its own. CORRECTED 2026-09-20: it states no capture time (the file is dated by its upload), so --sun cannot check it; its licence is unknown as well, so it is reference only. wall/sky 0.132 is a measurement of THIS frame, not of blue hour.",
+      "regions": {
+        "sky": [
+          0.3,
+          0.02,
+          0.5,
+          0.1
+        ],
+        "wall": [
+          0.02,
+          0.12,
+          0.125,
+          0.34
+        ]
+      }
+    },
+    {
+      "file": "_night/downtown/congressbridge-fullnight-view__mayer-2006-11.jpg",
+      "id": "mayer-congressbridge",
+      "regime": "blue/early",
+      "license": "CC BY-SA 3.0",
+      "note": "Tagged 'blue hour / early night'; no time is stated, and the sky still carries colour while every tower is fully lit, so it is late blue hour at the earliest. wall = the dark upper shaft of the triangular-crowned tower on the left. The first rectangle tried here sat on the lit Radisson facade.",
+      "regions": {
+        "sky": [
+          0.38,
+          0.03,
+          0.53,
+          0.16
+        ],
+        "wall": [
+          0.045,
+          0.15,
+          0.155,
+          0.32
+        ]
+      }
+    },
+    {
+      "file": "_night/westcampus-campus/rambler-nueces-twilight_2023-rambleratx.jpg",
+      "id": "rambler-sunset",
+      "regime": "sunset (NOT twilight - see night-routes.json wc-street refNote)",
+      "license": "unknown - reference only, never redistribute",
+      "note": "Measured 2026-09-20 to settle what regime it is: direct orange solar glow on the right horizon, pink-lit cirrus, a bright blue zenith and a fully legible facade. It is a sunset frame, ~12 deg off the nautical-twilight row it used to sit on.",
+      "regions": {
+        "sky": [
+          0.3,
+          0.02,
+          0.45,
+          0.1
+        ],
+        "wall": [
+          0.3,
+          0.35,
+          0.42,
+          0.55
+        ]
+      }
+    }
+  ]
+}

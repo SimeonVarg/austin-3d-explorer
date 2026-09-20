@@ -1,0 +1,507 @@
+#!/usr/bin/env python3
+"""Measure the night reference PHOTOGRAPHS the same way night-compare.mjs measures our frames.
+
+Why this exists
+---------------
+docs/night-reference-package.md §7 said, in its own words, "Nobody measured the web
+photos"  — and docs/night-implementation-plan.md §7.2 then gated A1 on a number
+("unlit wall / horizon sky <= 0.5 at blue hour; water <= 1") that came from looking
+at those same unmeasured, graded photographs. A threshold our renders are failed
+against every round should be a measurement of something, so this measures it.
+
+What it measures, and what it cannot
+------------------------------------
+For each photograph in night-ref-regions.json it takes the MEDIAN LINEAR relative
+luminance (sRGB decoded, Rec.709 weights) inside each named rectangle and divides
+them -- exactly the quantity scripts/verify/night-compare.mjs calls `wall/sky`,
+so the two sides of A1 are the same unit.
+
+A RATIO inside one frame is the only thing a web photograph can honestly give.
+The camera chose an exposure to make the scene legible; the two regions moved
+together under that choice, so their ratio survives it. The ABSOLUTE level did
+not survive it, and no absolute sRGB code from a web photograph may be quoted --
+that is what §5's luminance ladder is for, and §5's ladder comes off the owner's
+phone frames at known settings, not off these.
+
+--sun: what regime a photograph ACTUALLY is
+-------------------------------------------
+Every regime tag in this corpus was a word somebody wrote down -- "blue hour",
+"twilight", "full night" -- and the routes file then binds a photograph to a row
+defined by a SUN ELEVATION. Those are not the same kind of thing, and on
+2026-09-20 they disagreed by up to 24 degrees. `--sun` computes the solar
+elevation at Austin from each photograph's own stated capture time (NOAA's
+algorithm, US DST, +/- 0.5 deg against a known sunset) and prints it beside the
+word and beside the row it is bound to. A photograph with no stated time is
+printed as such and stays a judgement call; a photograph WITH one is no longer
+a matter of opinion.
+
+Usage
+-----
+  python scripts/verify/night-refmeasure.py                 # measure, print a table
+  python scripts/verify/night-refmeasure.py --sun           # sun elevation vs tag vs binding
+                                                            # exit 0 every out-of-band binding is
+                                                            # declared in a route's refExceptions;
+                                                            # exit 1 one is not (see below)
+  python scripts/verify/night-refmeasure.py --overlay DIR   # ALSO write <id>.jpg with the
+                                                            # rectangles drawn, so the next
+                                                            # rectangle is read off the frame
+  python scripts/verify/night-refmeasure.py --json OUT.json
+
+Needs Pillow and numpy. The photographs are NOT in this repo: they live in
+austin-reference-images/_night/ (git-ignored, third party, never committed).
+"""
+import argparse
+import datetime
+import json
+import math
+import os
+import re
+import sys
+
+try:
+    import numpy as np
+    from PIL import Image, ImageDraw
+except ImportError:                                            # pragma: no cover
+    sys.exit("night-refmeasure needs Pillow and numpy: pip install pillow numpy")
+
+HERE = os.path.dirname(os.path.abspath(__file__))          # scripts/verify
+REPO = os.path.dirname(os.path.dirname(HERE))              # the worktree root
+REGIONS = os.path.join(HERE, "night-ref-regions.json")
+# The ratios A1 is written as. Anything else named in a photo's regions is
+# measured and printed but not divided (same rule as night-compare.mjs).
+RATIOS = [("wall", "sky"), ("water", "sky"), ("wall", "ground")]
+
+# --sun flags a binding whose photograph's own clock falls OUTSIDE the BAND of the row
+# it sits on (BANDS below), not merely far from that row's nominal elevation: `night`
+# spans -90 to -19, so -31.6 deg on a -40 deg row is correct and -10.8 deg is not.
+#
+# IT IS A GATE NOW (2026-09-20). It used to print the whole section and exit 0, so the
+# one defended exception in the file and the next real regression printed the same and
+# scored the same. The difference between them is not something a reader can infer, so
+# it is DECLARED: a route carries `refExceptions: { "<regime>": "<why>" }` in
+# night-routes.json naming the binding it accepts and the argument for it. A gap with
+# an exception prints as DEFENDED and costs nothing; a gap WITHOUT one prints as
+# UNEXPLAINED and exits 1.
+#
+# `refNote` used to stand in for this and could not: it is the route's general note,
+# most routes have one, and "this route has a note" is not "this note defends this
+# binding". Every gap looked defended because every gap had a note.
+#
+# What this gate does NOT cover, so nobody reads it as covering it: THE WORD AND THE
+# CLOCK DISAGREE, which is a sources.json `regime` tag against the same photograph's
+# clock. Eleven of those stand, most on photographs nothing is bound to, and several
+# are already corrected in prose in docs/night-reference-package.md. They are a
+# separate job and they are printed, not gated.
+
+
+# ── Sun elevation at Austin, from a photograph's own stated capture time ─────
+LAT, LON = 30.2672, -97.7431            # Congress Ave at the river; the corpus is all within 3 km
+SOURCES = ["downtown", "landmarks-street", "westcampus-campus"]
+
+
+def _us_dst(dt):
+    """US rule since 2007: 2nd Sunday March 02:00 to 1st Sunday November 02:00."""
+    d = datetime.date(dt.year, 3, 1)
+    d += datetime.timedelta(days=(6 - d.weekday()) % 7)
+    start = datetime.datetime.combine(d + datetime.timedelta(days=7), datetime.time(2))
+    d = datetime.date(dt.year, 11, 1)
+    d += datetime.timedelta(days=(6 - d.weekday()) % 7)
+    return start <= dt < datetime.datetime.combine(d, datetime.time(2))
+
+
+def sun_elevation(dt_local, lat=LAT, lon=LON):
+    """NOAA solar position. Checked against Austin sunset 2012-07-31 20:27 CDT: -1.23 deg
+    here against the -0.83 deg of refracted-upper-limb sunset, i.e. right to ~0.4 deg."""
+    ut = dt_local + datetime.timedelta(hours=5 if _us_dst(dt_local) else 6)
+    y, m = ut.year, ut.month
+    if m <= 2:
+        y -= 1
+        m += 12
+    A = y // 100
+    B = 2 - A + A // 4
+    jd = (math.floor(365.25 * (y + 4716)) + math.floor(30.6001 * (m + 1)) + ut.day + B - 1524.5
+          + (ut.hour + ut.minute / 60 + ut.second / 3600) / 24.0)
+    T = (jd - 2451545.0) / 36525.0
+    L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) % 360
+    M = 357.52911 + T * (35999.05029 - 0.0001537 * T)
+    e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T)
+    Mr = math.radians(M)
+    C = (math.sin(Mr) * (1.914602 - T * (0.004817 + 0.000014 * T))
+         + math.sin(2 * Mr) * (0.019993 - 0.000101 * T) + math.sin(3 * Mr) * 0.000289)
+    omega = 125.04 - 1934.136 * T
+    lam = L0 + C - 0.00569 - 0.00478 * math.sin(math.radians(omega))
+    eps = (23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60
+           + 0.00256 * math.cos(math.radians(omega)))
+    epsr, lamr = math.radians(eps), math.radians(lam)
+    decl = math.asin(math.sin(epsr) * math.sin(lamr))
+    y2 = math.tan(epsr / 2) ** 2
+    L0r = math.radians(L0)
+    eq = 4 * math.degrees(y2 * math.sin(2 * L0r) - 2 * e * math.sin(Mr)
+                          + 4 * e * y2 * math.sin(Mr) * math.cos(2 * L0r)
+                          - 0.5 * y2 * y2 * math.sin(4 * L0r) - 1.25 * e * e * math.sin(2 * Mr))
+    ha = ((ut.hour * 60 + ut.minute + ut.second / 60) + eq + 4 * lon) / 4 - 180
+    if ha < -180:
+        ha += 360
+    zen = math.acos(math.sin(math.radians(lat)) * math.sin(decl)
+                    + math.cos(math.radians(lat)) * math.cos(decl) * math.cos(math.radians(ha)))
+    return 90 - math.degrees(zen)
+
+
+def parse_when(s):
+    """'2012-10-10 03:42', '2009-01-23, 22:59', '2019-08-11, ~06:06 (...)' -> datetime.
+    A bare date carries no hour and returns None: the tag stays a judgement call."""
+    if not s:
+        return None
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})[ T,]+~?(\d{1,2}):(\d{2})(?::(\d{2}))?", str(s).strip())
+    if not m:
+        return None
+    g = [int(x) if x else 0 for x in m.groups()]
+    return datetime.datetime(g[0], g[1], g[2], g[3], g[4], g[5])
+
+
+# What sun elevation each regime NAME actually means, as a band. A photograph's word
+# ("blue hour") and a routes-file row (sun -5.8 deg) are different kinds of thing; this
+# is the only place they are made comparable. Bands follow §3 and the §5 ladder of
+# docs/night-reference-package.md; `night` is open-ended downward because every sky past
+# about -19 deg is the same sky and the row's -40 deg is a stand-in, not a requirement.
+BANDS = {"day": (10, 90), "golden": (-2, 10), "blue": (-9, -2),
+         "twilight": (-14, -9), "early": (-19, -13), "night": (-90, -19)}
+# The words the corpus uses, mapped to the band each one claims.
+TAG_BAND = [("deep night", "night"), ("full night", "night"), ("early night", "early"),
+            ("predawn", "night"), ("twilight", "twilight"), ("blue hour", "blue"),
+            ("dusk", "blue"), ("golden", "golden"), ("day", "day")]
+
+
+def band_of(elev):
+    for g, (lo, hi) in BANDS.items():
+        if lo <= elev < hi:
+            return g
+    return "day" if elev >= 10 else "night"
+
+
+def claimed_band(tag):
+    """The FIRST regime word in a free-text tag. 'blue hour / early night' claims blue."""
+    t = (tag or "").lower()
+    hits = [(t.find(w), g) for w, g in TAG_BAND if t.find(w) >= 0]
+    return min(hits)[1] if hits else None
+
+
+def sun_report(root, routes_file):
+    """Every photograph's stated time -> sun elevation, beside its word and its binding."""
+    bound, notes = {}, {}                         # file -> [(route, regime, regimeSunElev)]
+    excs = {}                                     # route -> {regime: why this gap is accepted}
+    try:
+        cfg = json.load(open(routes_file, encoding="utf-8"))
+        regs = cfg.get("regimes", {})
+        for rt in cfg.get("routes", []):
+            if rt.get("refExceptions"):
+                excs[rt["id"]] = rt["refExceptions"]
+            for g, f in (rt.get("refs") or {}).items():
+                bound.setdefault(f.lstrip("/"), []).append(
+                    (rt["id"], g, (regs.get(g) or {}).get("sunElev")))
+                if rt.get("refNote"):
+                    notes.setdefault(f.lstrip("/"), {})[rt["id"]] = rt["refNote"]
+        # An exception naming a regime this route does not bind is a stale exception,
+        # and a stale exception is how a real gap gets waved through later.
+        for rid, m in excs.items():
+            rt = next((x for x in cfg.get("routes", []) if x["id"] == rid), {})
+            for g in m:
+                if g not in (rt.get("refs") or {}):
+                    print("  (night-routes.json: %s.refExceptions names regime '%s', which that "
+                          "route does not bind. Remove it.)" % (rid, g))
+    except Exception as e:
+        print("  (could not read %s: %s)" % (routes_file, e))
+    rows = []
+    for sub in SOURCES:
+        p = os.path.join(root, "_night", sub, "sources.json")
+        if not os.path.exists(p):
+            continue
+        for it in json.load(open(p, encoding="utf-8")):
+            dt = parse_when(it.get("date"))
+            elev = round(sun_elevation(dt), 1) if dt else None
+            key = "_night/%s/%s" % (sub, it.get("file"))
+            # The row a photograph is bound to IS a sun elevation. If its own clock puts
+            # it far from that elevation, say so HERE, on the row, with the size of the
+            # gap -- not only in a summary at the bottom. An ACCEPTED mismatch (capitol/
+            # night is one: a black sky whatever the camera clock says) must read as
+            # accepted, with the refNote that accepts it, and not like every correct row.
+            gaps = []
+            for rt, g, ge in bound.get(key, []):
+                if elev is None or g not in BANDS or band_of(elev) == g:
+                    continue          # the clock lands inside the band the row IS
+                gaps.append({"route": rt, "regime": g, "rowSunElev": ge, "band": BANDS[g],
+                             "clockBand": band_of(elev),
+                             "delta": round(abs(elev - ge), 1) if ge is not None else None,
+                             "exception": (excs.get(rt) or {}).get(g),
+                             "refNote": (notes.get(key) or {}).get(rt)})
+            rows.append({"file": key, "date": it.get("date"), "sunElev": elev,
+                         "taggedRegime": it.get("regime"), "boundTo": bound.get(key, []),
+                         "sunGaps": gaps})
+    return rows
+
+
+# ── The same photograph, entered twice ──────────────────────────────────────
+# night-ref-regions.json listed `townlake-bluehour` (3840x2490) and `kotipalli-0651`
+# (7360x4773) as two `photos`. They are ONE Commons picture at two resolutions --
+# correlation 0.99997 on a 96x64 greyscale thumbnail -- and the reference package's
+# own sec 1.2 says as much in its list of files collected twice. Measured separately
+# they gave water/sky 0.254 and 0.220, and BOTH were then quoted, in the plan's A1 box
+# and in night-routes.json's lady-bird-lake refNote, as independent evidence: "with
+# dimas (0.266) and kotipalli (0.220) it is what A1's water half is now measured from".
+# A1's water half rested on two photographs, not three, and the 15% spread between the
+# two entries is resampling and two independently-placed rectangles, nothing else.
+# --sun made it worse by printing one as UNCLOCKED and the other as "+3.6 deg = golden
+# but tagged blue" -- for the same picture.
+#
+# So this tool no longer lists an image twice. It fingerprints every file it is about
+# to measure, keeps the HIGHEST-RESOLUTION member of each duplicate group, drops the
+# rest from the table and from every aggregate, and prints the group first so the
+# collapse is the first thing read. The listing still exits 0: a documented command
+# that exits 2 for ever is a broken gate, and the fix belongs in the regions file.
+DUP_CORR = 0.999
+
+
+def fingerprint(path):
+    """96x64 greyscale, mean removed, unit variance. Resolution-independent."""
+    im = Image.open(path)
+    try:
+        im.draft("L", (96, 64))     # DCT-scaled decode: the 7360x4773 file without the memory
+    except Exception:
+        pass
+    g = np.asarray(im.convert("L").resize((96, 64), Image.BILINEAR), dtype=np.float64)
+    g -= g.mean()
+    s = g.std()
+    return g / s if s else g
+
+
+def duplicate_groups(items):
+    """items: [(id, path, (W, H))] -> [[id, ...]], each group ordered highest-resolution first."""
+    fps, size = {}, {}
+    for i, p, wh in items:
+        try:
+            fps[i] = fingerprint(p)
+            size[i] = wh[0] * wh[1]
+        except Exception:
+            pass
+    groups, seen = [], set()
+    ids = list(fps)
+    for a in ids:
+        if a in seen:
+            continue
+        g = [a]
+        seen.add(a)
+        for b in ids:
+            if b in seen:
+                continue
+            if float((fps[a] * fps[b]).mean()) >= DUP_CORR:
+                g.append(b)
+                seen.add(b)
+        if len(g) > 1:
+            groups.append(sorted(g, key=lambda i: -size[i]))
+    return groups
+
+
+def linear_Y(rgb8):
+    """sRGB 8-bit -> linear relative luminance, per pixel. The unit every ratio uses."""
+    c = rgb8.astype(np.float64) / 255.0
+    lin = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * lin[..., 0] + 0.7152 * lin[..., 1] + 0.0722 * lin[..., 2]
+
+
+def measure(img, regions):
+    # Crop FIRST. One of these photographs is a 13045x5767 panorama and decoding the
+    # whole thing to float64 wants 1.7 GB; the rectangle wants a few MB.
+    img = img.convert("RGB")
+    W, H = img.size
+    out = {}
+    for name, box in regions.items():
+        x0, y0, x1, y1 = box
+        cx0, cy0 = int(x0 * W), int(y0 * H)
+        cx1, cy1 = max(cx0 + 1, int(x1 * W)), max(cy0 + 1, int(y1 * H))
+        srgb = np.asarray(img.crop((cx0, cy0, cx1, cy1))).reshape(-1, 3)
+        y = linear_Y(srgb)
+        out[name] = {
+            "Ymedian": float(np.median(y)),
+            "Ymean": float(y.mean()),
+            "srgbMedian": [int(v) for v in np.median(srgb, axis=0)],
+            "px": int(y.size),
+            "frac": float(y.size) / (H * W),
+        }
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--regions", default=REGIONS)
+    ap.add_argument("--overlay", default=None, help="write <id>.jpg with the rectangles drawn")
+    ap.add_argument("--json", default=None)
+    ap.add_argument("--sun", action="store_true", help="sun elevation from each photo's stated time")
+    ap.add_argument("--routes", default=os.path.join(HERE, "night-routes.json"))
+    args = ap.parse_args()
+
+    cfg = json.load(open(args.regions, encoding="utf-8"))
+    root = os.path.abspath(os.path.join(REPO, cfg.get("refRoot", "../austin-reference-images")))
+
+    if args.sun:
+        rows = sun_report(root, args.routes)
+        print("sun elevation at Austin from each photograph's OWN stated capture time")
+        print("(no time stated = the tag is still a judgement call; see the file's notes)\n")
+        print("%-8s  %-16s  %-34s  %s" % ("sun", "stated", "tagged", "bound to"))
+        print("(! on a binding = this photograph's own clock falls OUTSIDE that row's sun-elevation\n"
+              " band. A wide band is not a gap: `night` is -90 to -19, so -31.6 on a -40 row is fine.)\n")
+        for r in sorted(rows, key=lambda r: (r["sunElev"] is None, -(r["sunElev"] or 0))):
+            gapof = {(g["route"], g["regime"]): g for g in r.get("sunGaps") or []}
+            b = ", ".join("%s%s/%s (%s deg)%s" % (
+                "! " if (x[0], x[1]) in gapof else "", x[0], x[1], x[2],
+                "  <-- clock is %s, %s deg off this row" % (gapof[(x[0], x[1])]["clockBand"],
+                                                            gapof[(x[0], x[1])]["delta"])
+                if (x[0], x[1]) in gapof else "")
+                for x in r["boundTo"]) or "-"
+            print("%-8s  %-16s  %-34s  %s" % (
+                ("%+.1f" % r["sunElev"]) if r["sunElev"] is not None else "  -",
+                r["date"] or "-", str(r["taggedRegime"])[:34], b))
+            print("          %s" % r["file"])
+            for g in r.get("sunGaps") or []:
+                if g["exception"]:
+                    print("          DEFENDED: %s.refExceptions.%s accepts this binding -- %s"
+                          % (g["route"], g["regime"], g["exception"]))
+                    if g["refNote"]:
+                        print("          (the %s refNote carries the long argument: %s)"
+                              % (g["route"],
+                                 g["refNote"][:220] + ("..." if len(g["refNote"]) > 220 else "")))
+                else:
+                    print("          UNEXPLAINED: %s/%s is the %s band %s and this clock is %s."
+                          " Add %s.refExceptions.%s in night-routes.json with the argument, or"
+                          " rebind it. A refNote is NOT enough: most routes have one, so every"
+                          " gap used to look defended."
+                          % (g["route"], g["regime"], g["regime"], g["band"], g["clockBand"],
+                             g["route"], g["regime"]))
+        misbound, mistagged = [], []
+        for r in rows:
+            if r["sunElev"] is None:
+                continue
+            r["actualBand"] = band_of(r["sunElev"])
+            for rt, g, _e in r["boundTo"]:
+                if g in BANDS and g != r["actualBand"]:
+                    misbound.append((r, rt, g))
+            cb = claimed_band(r["taggedRegime"])
+            if cb and cb != r["actualBand"]:
+                mistagged.append((r, cb))
+        unexplained = []
+        if misbound:
+            print("\nBOUND TO A ROW ITS OWN CLOCK PUTS IT OUTSIDE OF:")
+            for r, rt, g in misbound:
+                why = next((x["exception"] for x in (r.get("sunGaps") or [])
+                            if x["route"] == rt and x["regime"] == g), None)
+                print("  %-11s %+.1f deg (%s)  %s\n      -> %s/%s, which is the %s band %s"
+                      % ("DEFENDED" if why else "UNEXPLAINED",
+                         r["sunElev"], r["actualBand"], r["file"], rt, g, g, BANDS[g]))
+                if why:
+                    print("      accepted by %s.refExceptions.%s: %s" % (rt, g, why))
+                else:
+                    unexplained.append((r["file"], rt, g))
+        if mistagged:
+            print("\nTHE WORD AND THE CLOCK DISAGREE (one of the two is wrong; say which):")
+            for r, cb in mistagged:
+                print("  %+.1f deg = %-8s but tagged %-10s  %s"
+                      % (r["sunElev"], r["actualBand"], cb, r["file"]))
+        notime = [r for r in rows if r["sunElev"] is None]
+        print("\n%d of %d photographs state no capture time; their regime is a judgement call."
+              % (len(notime), len(rows)))
+        if args.json:
+            json.dump(rows, open(args.json, "w", encoding="utf-8"), indent=1)
+            print("\nwrote " + args.json)
+        # The gate. A DEFENDED gap costs nothing; an UNEXPLAINED one is the next real
+        # regression, and until 2026-09-20 the two printed the same and scored the
+        # same (exit 0). The WORD-AND-CLOCK list above is a sources.json tagging
+        # question, mostly on photographs nothing is bound to, and is NOT gated here.
+        if unexplained:
+            print("\nFAIL: %d binding(s) sit outside their row's sun-elevation band with no"
+                  " refExceptions entry in night-routes.json:" % len(unexplained))
+            for f, rt, g in unexplained:
+                print("  %s\n      -> %s/%s" % (f, rt, g))
+            return 1
+        print("PASS: every binding outside its row's band is declared in a route's"
+              " refExceptions.")
+        return 0
+    rows, results, missing = [], [], []
+    # Refuse to list the same picture twice. See DUP_CORR above.
+    onDisk = []
+    for p in cfg["photos"]:
+        path = os.path.join(root, p["file"].lstrip("/"))
+        if os.path.exists(path):
+            with Image.open(path) as im:
+                onDisk.append((p["id"], path, im.size))
+    dups = duplicate_groups(onDisk)
+    dropped, dupOf = {}, {}
+    if dups:
+        byId = {i: (p, wh) for i, p, wh in onDisk}
+        print("THE SAME PHOTOGRAPH, ENTERED MORE THAN ONCE. Refusing to list it twice:\n")
+        for g in dups:
+            keep = g[0]
+            for i in g:
+                w, h = byId[i][1]
+                if i == keep:
+                    print("  %-22s %5dx%-5d  KEPT (highest resolution)" % (i, w, h))
+                else:
+                    dropped[i] = keep
+                    dupOf.setdefault(keep, []).append(i)
+                    print("  %-22s %5dx%-5d  dropped: the same pixels as %s" % (i, w, h, keep))
+        print("\n  A spread between two entries that are one picture is resampling and two\n"
+              "  independently-placed rectangles, not two observations. Fix\n"
+              "  night-ref-regions.json; until then the dropped rows are in no table and no\n"
+              "  aggregate below.\n")
+    for p in cfg["photos"]:
+        path = os.path.join(root, p["file"].lstrip("/"))
+        if not os.path.exists(path):
+            missing.append(p["file"])
+            continue
+        if p["id"] in dropped:
+            continue
+        img = Image.open(path)
+        m = measure(img, p["regions"])
+        ratios = {}
+        for num, den in RATIOS:
+            if num in m and den in m and m[den]["Ymedian"] > 0:
+                ratios[f"{num}/{den}"] = round(m[num]["Ymedian"] / m[den]["Ymedian"], 3)
+        results.append({"id": p["id"], "file": p["file"], "regime": p.get("regime"),
+                        "license": p.get("license"), "size": list(img.size),
+                        "regions": m, "ratios": ratios, "note": p.get("note"),
+                        "duplicatesCollapsedIntoThis": dupOf.get(p["id"])})
+        rows.append((p["id"], p.get("regime", ""),
+                     " ".join(f"{k} {v}" for k, v in ratios.items()) or "-",
+                     " ".join(f"{k} Y {m[k]['Ymedian']:.4f}" for k in sorted(m))))
+        if args.overlay:
+            os.makedirs(args.overlay, exist_ok=True)
+            W, H = img.size
+            sc = 1100.0 / W
+            o = img.convert("RGB").resize((1100, int(H * sc)))
+            d = ImageDraw.Draw(o)
+            for name, (x0, y0, x1, y1) in p["regions"].items():
+                d.rectangle([x0 * o.width, y0 * o.height, x1 * o.width, y1 * o.height],
+                            outline=(255, 0, 0), width=3)
+                d.text((x0 * o.width + 6, y0 * o.height + 4), name, fill=(255, 255, 0))
+            o.save(os.path.join(args.overlay, p["id"] + ".jpg"), quality=82)
+
+    w = max([len(r[0]) for r in rows] + [8])
+    print(f"{'id'.ljust(w)}  {'regime'.ljust(22)}  ratios (median linear Y)")
+    for r in rows:
+        print(f"{r[0].ljust(w)}  {str(r[1])[:22].ljust(22)}  {r[2]}")
+    print()
+    for r in rows:
+        print(f"  {r[0].ljust(w)}  {r[3]}")
+    if missing:
+        print("\nNOT ON DISK (austin-reference-images is local and git-ignored):")
+        for f in missing:
+            print("  " + f)
+    print("\n%d entries in night-ref-regions.json, %d on disk, %d DISTINCT photographs listed."
+          % (len(cfg["photos"]), len(onDisk), len(rows)))
+    if args.json:
+        json.dump({"refRoot": root, "photos": results, "missing": missing,
+                   "duplicateGroups": dups, "duplicateCorrelationFloor": DUP_CORR},
+                  open(args.json, "w", encoding="utf-8"), indent=1)
+        print("\nwrote " + args.json)
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)

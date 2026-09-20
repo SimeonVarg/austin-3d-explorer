@@ -96,7 +96,132 @@ node night-silhouette.mjs --break  # building walls forced to #f2f2f2
 node westcampus-probe.mjs --break  # one of the three wc- layers hidden
 node walk.mjs                      # ships its own watched failure, see §145
 node coplanar.mjs --selftest       # eight assertions; makes itself fail
+node night-compare.mjs --selftest  # the MEASURING half; 22 assertions, 7 sabotages
 ```
+
+`night-compare.mjs` is the newest of these and the only one whose `--break` is not a
+bare one-liner: the tool takes no default `--out`, and `--break` sabotages side B, so
+it needs a side B. A served checkout and these exact two commands, which are the ones
+in the reproduce block below:
+
+```bash
+node night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night \
+  --a '' --b '' --break        --same 0.05 --refs off --local none   # -> exit 1
+node night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night \
+  --a '' --b '' --break slopes --same 0.05 --refs off --local none   # -> exit 1
+```
+
+> **Both of these returned exit 2, not exit 1, when an independent reader ran them on a
+> loaded laptop (2026-09-20), and the sabotage had nothing to do with it.**
+> `verdict.loadAsymmetry` fired on a reload-count difference alone — A 0 reloads against
+> B 2 in one, A 1 against B 2 in the other — with **the same `build.sha1` on both sides,
+> the same 2,600,942 authored triangles and `tilesOk: true` on every shot.** The rule was
+> written for a run comparing two BUILDS, where the reload path says which build a mesh
+> was built under. In a `--break` run both sides are the same build by construction, so it
+> had nothing to discriminate; and side B is shot second, on a machine side A has just
+> loaded twice, which makes it systematically likelier to reload. A documented watched
+> failure that returns the wrong code on a busy machine teaches lanes to ignore the code.
+>
+> **Now:** the reload-path rule fires only when the two sides differ in `build.sha1` or in
+> site. Same build, different reload paths is `verdict.loadAsymmetryWarning` — printed in
+> full, not in the exit code. `tilesOk: false` and an A/B `tilesOk` disagreement are
+> untouched and still exit 2; they are about the frame, not about the route to it.
+> **And the converse is a verdict now too:** both sides on the same site and query and
+> NOT the same `build.sha1` means a rebuild landed mid-run, which is `loadAsymmetry` and
+> exit 2. That had happened once, in `build-ab-c656249-vs-main-daygolden`, and was caught
+> by hand off the build printed on the overview sheet.
+>
+> Both commands above were then run **verbatim** through `gpu-run.mjs` on a quiet machine
+> against this branch: **exit 1 and exit 1**, three of three and two of two poses red — and
+> again on the branch with `origin/main` merged in, which matters because that merge carries
+> PR #274's new Capitol pavilions, the geometry the re-aimed Capitol rectangles sit on.
+> On the merged build (`676fc22f41ab`) the Capitol run is **exit 1**, 0.181% and 0.318%, and
+> the rectangles are still on their subject: `wall` **71 → 28**, `dome` **76 → 20** at
+> `congress-30m`, unchanged from before the merge. The `wc-elevated` run is **exit 1**,
+> 8.154 / 3.659 / 7.094%.
+> Both runs happened to load symmetrically (0 reloads on both sides), so they demonstrate
+> the exit code and not the gate. The gate itself was watched both ways on those same
+> frames with `--from`, side B's reload count edited by hand in the report: same
+> `build.sha1` → **exit 1** plus the warning; a different `build.sha1` → **exit 2** with
+> both asymmetry lines.
+
+> **Corrected in the fifth pass (2026-09-20). The two entries that used to sit in the
+> list above DID NOT RUN.** `node night-compare.mjs --break --same 1` dies with
+> `--out <dir> is required`, exit 2, and `node night-compare.mjs --break slopes --same 1`
+> dies with `--break sabotages side B; pass --b too`, exit 2 — the argument checks at
+> `night-compare.mjs:290` and `:317`, both long before a browser is launched. They also carried
+> `--same 1`, which is the tolerance this same file then proves is the one that hides
+> the sabotage at the Capitol. A lane copy-pasting the canonical watched failure got
+> either an argument error or, after fixing it up, a documented PASS.
+
+`--break` removes geometry, so it can only go red at a pose where that geometry is a
+large share of the frame. **It came back green at the two Capitol poses with 3.56 M
+authored triangles removed and the dome visibly gone** (0.172% and 0.308% of pixels
+moved, against the 1% tolerance it was run with; at the derived 0.05% it is red).
+Red somewhere is not red everywhere; the run's `verdict.breakCoverage` names the
+poses the sabotage could not move, and the kept reports are in
+`docs/night/harness-runs/`. **The whole route set at `day` and `golden` -- the
+coverage map A9 needs -- has not been run**: it hung on `campus-aerial/z16-p68`
+with three GPU lanes live on this laptop and was killed.
+
+**And "the sabotage moved pixels here" is not "the instrument noticed".** That same
+green Capitol run is the one that finally said what the Capitol rectangles were on,
+and it had been saying it for five passes. Delete the entire authored scene -- 3.56 M
+triangles, the dome visibly out of the frame -- and at both Capitol poses **every
+measured number came back bit-identical**: `sky` code 3 = 3, `wall` code 8 = 8,
+`ground` code 143 = 143, all three ratios, and the bright-window share. Only `dome`
+moved, at one of the two poses, by three codes. The `wall` and `ground` rectangles
+were on MapLibre's own fill-extrusions and road; at the Capitol we author the Capitol
+and nothing else, **0.394%** and **0.430%** of the frame (pixels the sabotage changed by more than
+3 of 255 on any channel; 0.172% and 0.308% at the 16-luma threshold `--same` uses).
+
+So `pctOver` (pixels) and the acceptance table (region medians, ratios, window share)
+are two different questions, and `verdict.breakCoverage` answers both now, per pose:
+
+- `movedMeasured` / `unmovedMeasured` -- which measured numbers changed A to B, with
+  each region's declared subject beside it;
+- **pixels over tolerance and NOT ONE measured number moved** is `measuredNothingAt`
+  -> **exit 2**. The rectangles are not on what was removed;
+- a region declared `regionSubjects: "authored"` in `night-routes.json` that survives
+  `--break slopes` (the mode that empties the WHOLE authored scene) is
+  `authoredRegionsNotOnSubject` -> **exit 2**;
+- a region with **no** declared subject that did not move is listed under
+  `undeclaredAndUnmoved`. Undeclared is a third value, not a synonym for authored:
+  declare it from a sabotage that measured it, never by eye off a still.
+
+`regionSubjects` takes `authored`, `basemap` or `sky`. A ratio with a `basemap` region
+on either side of the division prints with a `b` and is a true reading of the frame
+that is **not** a reading of anything we build. Both new guards were watched failing on
+the old Capitol rectangles before they were trusted: exit 2, both blocks populated.
+
+**And a red `--break` is not automatically red for the right reason.** Re-run on a
+busy laptop, the first of those two commands came back `FAIL --same 0.05%`, exit 1,
+"5 of 5 frames" — with the UNSABOTAGED side A the broken one: unretinted tree
+canopies, no lit window grid, the Capitol dome missing from the control and present
+in the sabotaged side. The diff was A's defect. The only trace in the whole report
+was `tilesOk: false` on all five A shots, a field that never reached the verdict.
+`tilesOk: false`, and an A/B disagreement in `tilesOk` or in the recovery path
+(reloads, the `APARTMENTS.on` poke), are `uninterpretable` and exit 2 now.
+**If one of these comes back exit 2, read `verdict.uninterpretable` and
+`verdict.loadAsymmetry` before you read anything else.** The picture and the two
+reports are in `docs/night/harness-runs/README.md`.
+
+**`--selftest` is the other half, and it was missing entirely.** `--break` only ever
+watched `--same` (`pageDiff`). `pageMeasure` — the region medians, the four ratios,
+the quantisation band and the bright-window share that the whole A1–A5 acceptance
+table is written in — had no self-test, no synthetic frame with a known answer and no
+watched failure, while the docs already record four region rectangles that were
+sitting on the wrong subject and were caught only by eye. `--selftest` paints
+synthetic frames whose every answer is arithmetic over a colour and a pixel count,
+pushes them through the real `pageMeasure`/`pageDiff`, asserts 22 numbers exactly,
+re-runs one through the JPEG path a shoot actually uses — and then sabotages the
+source text of those two functions seven times, one criterion each (the Rec.709
+weights, `R >= B`, `luma >= 40`, `Y >= 4 x median`, the region rectangle, the ±1-code
+band, the 16-luma diff threshold) and requires every one to be caught. A sabotage
+whose target string is no longer in the source is a hard failure, not a skip. It
+needs no server and no `--out`, and it caught a wrong expectation in its own first
+run. `node night-compare.mjs --selftest-break relk` runs one of them and prints
+every assertion, so a human can watch it fail.
 
 This repo has shipped a guard that could not fail **four separate times** (the
 harness drifting from index.html, twice; a stale hand-maintained family list; a
@@ -739,3 +864,298 @@ Ground-only repairs can run with `python scripts/bake_ground.py --resolve-paveme
 A full ground regeneration runs that stage automatically. The road recipe no
 longer writes a second file as a side effect; run `python scripts/bake_roads.py`
 separately when road markings/tiles need rebuilding.
+
+## The night comparison harness: `night-compare.mjs` + `night-routes.json` (added September 19 2026)
+
+The instrument for the night renderer (`docs/night-implementation-plan.md`, W0 and
+§7). It is a **comparison** harness, not a gate: it shoots the same named poses
+at the same lighting regimes for one build, or for two builds or flag sets side
+by side, and writes labelled sheets plus a JSON report of measurements.
+
+`night-routes.json` holds 16 poses on 11 routes (plan §7.1): the downtown skyline
+from the south shore, Congress Avenue at 1.7 m, three generic elevated West Campus
+views that frame what the owner photographed (IMG_9964-9969), two West Campus
+streets at eye level, the Main Mall and Tower, the South Mall, the Guadalupe
+storefronts, the Capitol (30 m and down the avenue at 1.7 m), State Parking Garage
+R, Lady Bird Lake (aerial and from the Lamar bridge) and the campus aerial. A pose
+is `eye`/`target` (`[lng, lat, metres]`) or a plain `center/zoom/pitch/bearing`.
+The regimes are slider values, and `defaultRegimes` is all four of the plan's
+acceptance elevations: `blue` p .62 (sun −5.8°), `twilight` .69 (−12.1°),
+**`early` .7222 (−15°, the owner's 20:36 series)** and `night` 1.0 (−40°), plus
+`day` .30 / `golden` .50 for the no-regression check (A9). `early` was missing from
+`defaultRegimes` until September 20 2026, which meant the only regime the owner's
+own photographs measure was named in the plan, titled into a route and never shot.
+If you shorten a run with `--regimes`, keep `early` in it.
+
+Each pose carries named `regions` — `sky`, `wall`, `ground`, `water` feed the
+ratios; any other name (`dome`, `tower`) is measured and reported but not divided.
+**A region under 1% of the frame is flagged** (`small` on the region, `#` on the
+ratio in the table and on the sheet): a median over four thousand pixels of a
+gradient sky is a number, not a measurement of the sky.
+
+**A ratio whose denominator is near black is flagged too** (`dark` on the region,
+`~` on the ratio), and a band is printed beside it: the same ratio recomputed with
+that denominator one 8-bit sRGB code darker and one lighter. **At p = 1 the `sky`
+median is code 3 or 4 out of 255 in fourteen of the sixteen poses**, so a deep-night
+`wall/sky` is a quotient of two near-black codes and moves 25–50% on one code. That
+is why `wall/sky 4.98` came back bit-identical from three different renders at two
+different viewport sizes on September 20 2026 — the medians simply landed on the
+same code, not because the scene was the same. Read the band, never the number:
+`lady-bird-lake/aerial-west-120m` prints **10.7** at p 1 and its band is **8.0–16.0**,
+which straddles the plan's A3 target of ≥ 15. A ratio is the wrong question at deep
+night; the frames are fine, the division is not.
+
+Each route takes optional `refs` per regime (paths under `../austin-reference-images`,
+local, never committed). **Bind a reference to the regime its own PIXELS are, and
+write down why in its `refNote`.** Four of the first sixteen bindings had drifted —
+a blue-hour skyline on a twilight row, two blue-hour property photos on twilight
+rows, and a full-night photo on a twilight row where it was also the same picture as
+the night row at lower resolution — so three sheets showed the wrong hour and one
+showed the same photograph twice. An empty cell is a fact about the corpus. And **do
+not bind a no-derivatives file at all**: `--refs on` composites the reference into a
+sheet, which is a derivative. See the `_readme` and the `refNote` fields in
+`night-routes.json`.
+
+> **Superseded 2026-09-20, and this paragraph went on saying the old rule for two
+> more passes on the same day.**
+> It used to read "bind a reference to the regime its own package entry is tagged
+> with". A package entry's regime is *a word somebody typed*; a row is *a sun
+> elevation*; agreeing with yourself is not a check. `night-refmeasure.py --sun`
+> computes the elevation from each photograph's own stated clock, and on 46
+> photographs it found eleven where the word and the clock disagree and one bound to
+> a row 29° away from its own clock. The rule is therefore: **the pixels decide, the
+> clock checks, and the `refNote` records the argument.** `hargup` is the worked
+> example — its `sources.json` says "full night", its clock says −10.8°, its sky is
+> not black, and it is deliberately bound to `twilight` with the reason written
+> down. A binding that disagrees with its own tag is fine. A binding nobody
+> explained is not.
+
+**Pitch cannot go above the horizon**, so a target above the eye clamps to 88°,
+and the map centre then lands about 28.6 × the eye height ahead: the subject sits
+high in the frame, not at its centre. Stand back far enough that it still fits.
+
+**A camera that reached its pose can still be facing a wall.** Two of the first
+sixteen were: the Capitol gate pose stood 41 m east of the Congress Ave centreline,
+inside the buildings, and a West Campus garage guess landed on an apartment facade.
+Both reported `camera ok` at every regime. Always look at `overview-A-*.jpg` before
+quoting a pose.
+
+**`--break` was green, and that is the most important thing this harness has
+learned about itself.** The flag exists so that `--same` -- the only assertion in
+the tool, and the whole of the A9 no-regression row -- can be shown to fail. It had
+never been run. Run for the first time on 2026-09-20 it came back `PASS --same 1%`,
+exit 0, with A and B differing on **0.005%** of pixels and every measured number
+identical on both sides. It had hidden the authored apartments with
+`group.visible = false`, and `js/slopes.js` `render()` rewrites `g.visible` for every
+child of `root` **on every frame** from minzoom and the LOD tier (`js/slopes.js:1030-1036`)
+-- so the flag was back to true before the first screenshot. `--break` now calls
+`slopes.remove(group)`, which that loop cannot undo, and the run **dies** if the
+group is back in the scene at the first repaint or at the end of the shoot. Both
+halves are now demonstrated on `wc-elevated/over-drag-wnw` at `night`: control
+**0.006%** (exit 0), sabotaged **8.162%** (exit 1), bright windows 13.349% -> 1.852%.
+**An assertion nobody has watched fail is not an assertion.** Both reports are kept in
+`docs/night/harness-runs/`, because a demonstration that lives in a swept scratch
+folder is the same claim on trust it replaced.
+
+**...and the floor is zero, so `--same 1` was never the right number.** `--break`
+removes geometry, so it can only go red where that geometry is a large share of the
+frame -- at the two Capitol poses, `--break slopes` took **3,560,273 triangles** out
+(the dome visibly gone) and moved **0.172%** and **0.308%** of pixels: `PASS --same
+1%`. The fix was not a stronger sabotage. Measured 2026-09-20, `main` against itself,
+two independent page loads, 16 poses x `day` and `golden` on a quiet machine: **0.000%
+on all 32 frames**, 24 of them byte-identical JPEGs, worst mean |delta luma| 0.021.
+The renderer is deterministic across loads at those regimes, so the A9 tolerance is
+**`--same 0.05`** -- ten times the largest reading ever taken from an unchanged build
+(0.005% at `night`, on a loaded machine). Re-measured at 0.05 with `--from`, no app
+loaded and nothing re-shot, the Capitol wipe goes red: `FAIL --same 0.05%`, exit 1,
+both frames named. **A tolerance nobody derived is a tolerance that hides whatever
+fits under it.**
+
+**`count.buildings` is not a count.** It is incremented inside the time-sliced build
+and zeroed at the top of it, but the `APARTMENTS.on` poke can start a second build
+that overlaps the first and counts on top of it. Measured on one build at one port:
+196 (clean), 298, 323, 363 -- with `triangles` bit-identical at 2,600,942 throughout
+and the catalogue holding exactly 196. **Quote `triangles`.** The harness now logs it
+first and warns when the raw counter exceeds `catalog`.
+
+**`--from` rewrites the sheets, so it records its own settings.** It used to
+overwrite only `remeasured` and `routesFile`, leaving `args`, `when`, `gl`,
+`viewport`, `localOverlay` and `harnessGit` describing the original shoot -- which
+once left `args: ... --refs off` sitting in a folder whose sheets had fifteen
+third-party photographs composited into them. The shoot's settings now keep the
+top-level names and also appear under `shoot`; the measuring pass writes `remeasure`
+(its own args, git, routes file, local overlay, `refs` and tile width) and
+`referenceSheets` (every photograph it composited, and `mayBeCommitted`). When it
+composites any, it also drops a `DO-NOT-COMMIT.txt` in the folder.
+
+**Matched poses for the owner's photographs are private.** They reveal where he
+took them. They live in `../austin-reference-images/_night/night-routes.local.json`
+(outside every repo), which the harness loads automatically and announces in
+capitals; `--local none` skips it. Never copy a pose from it into a tracked file,
+and never commit a sheet made with it.
+
+**On the Acer every run goes through the lanes' GPU-slot wrapper** (parallel
+hardware-GL Chromes have blue-screened it):
+
+```bash
+python scripts/serve.py 8661                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare -- \
+  node scripts/verify/night-compare.mjs --out <scratch>/run1
+
+# a flag against the build as shipped
+... night-compare.mjs --out <scratch>/flag --a '' --b '&someflag=1'
+# two builds (main on :8661, a branch worktree on :8662)
+... night-compare.mjs --out <scratch>/ab --a-site http://127.0.0.1:8661 --b-site http://127.0.0.1:8662
+# day and golden must not move (A9): exit 1 if any frame differs in >= 0.05% of pixels.
+# 0.05 is MEASURED, not chosen: main against itself over 16 poses x day and golden is
+# 0.000% on all 32 frames, 24 of them byte-identical JPEGs. See "the floor is zero" below.
+... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 0.05
+# the watched failure: side B has the authored apartments taken OUT OF THE SCENE in the page.
+# This must exit 1. It exited 0 until 2026-09-20 -- see "--break was green" below.
+# An exit 2 here is the MACHINE, not the sabotage: read verdict.uninterpretable first.
+... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --a '' --b '' --break        --same 0.05 --refs off --local none
+# the stronger sabotage, for a pose the apartments are not in: the WHOLE authored scene
+... night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night --a '' --b '' --break slopes --same 0.05 --refs off --local none
+# the MEASURING half, watched failing. No server, no --out and no app -- but it DOES launch
+# a Chrome (SwiftShader) to run the real pageMeasure/pageDiff, so on the Acer it takes a GPU
+# slot like everything else. It must exit 0. (This line used to say "no GPU" and run bare.)
+node <lanes>/gpu-run.mjs --label night-selftest -- node scripts/verify/night-compare.mjs --selftest
+node <lanes>/gpu-run.mjs --label night-selftest -- node scripts/verify/night-compare.mjs --selftest-break relk
+# fold another run's frames into this one's report, with its provenance
+... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --merge <scratch>/run2 --refs off
+# change regions, then re-measure an old run without loading the app
+... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --show-regions
+# R10, the phone pass (the regions were read off landscape frames: re-read them first)
+... night-compare.mjs --out <scratch>/r10 --viewport 393x852 --a 'lite=1'       --only wc-elevated,wc-street --show-regions
+# ...and the leg that separates the PRESET from the ASPECT (see below): lite at landscape
+... night-compare.mjs --out <scratch>/lite --a 'lite=1'                         --only wc-elevated,wc-street
+# what every flag does
+node scripts/verify/night-compare.mjs --help
+```
+
+### `night-refmeasure.py` -- measuring the reference PHOTOGRAPHS (added September 20 2026)
+
+The package used to say, of itself, "Nobody measured the web photos", while the
+plan's A1 gated our renders on a number taken from looking at them. This puts the
+same rectangles on the photographs and divides them the same way (median linear Y).
+No browser, no server: Pillow and numpy.
+
+```bash
+python scripts/verify/night-refmeasure.py                       # the ratios
+python scripts/verify/night-refmeasure.py --sun                 # what regime each photo ACTUALLY is
+python scripts/verify/night-refmeasure.py --overlay <scratch>/ov  # rectangles drawn on the frames
+```
+
+Regions live in `night-ref-regions.json`; the photographs live outside the repo in
+`../austin-reference-images/_night/` and are never committed. **Read RATIOS off a web
+photograph, never levels** -- the camera chose an exposure and both regions moved
+with it. The zykov deep-night frame measures a sky at sRGB 50-62 against the
+package's full-night target of 11, purely because it was shot at ISO 3200 f/2.
+
+`--sun` is the part that found real defects. A regime tag is a word somebody wrote
+down; a row in `night-routes.json` is a sun elevation. `--sun` computes the elevation
+at Austin from each photograph's own stated capture time and prints it beside both.
+On its first run it found a frame bound **29 degrees** from its row
+(`lady-bird-lake-reflection-night__hargup`, 21:29 = sun -10.8 deg, sitting on `night`),
+and a pre-dawn Capitol frame with a **black sky** (median linear Y 0.0011, sRGB code 3)
+sitting on the **blue** row of two routes. 22 of the 46 photographs state no time at
+all, so half the corpus cannot be checked this way and stays a judgement by eye.
+
+**`--sun` is a gate from 2026-09-20; it used to print and exit 0.** One binding in the
+file is a deliberate, argued exception — `capitol/night`, 29.2 degrees off its own
+camera clock, kept because the frame's sky measures sRGB code 3 and the photographer's
+caption contradicts the clock. It printed under `BOUND TO A ROW ITS OWN CLOCK PUTS IT
+OUTSIDE OF` and exited 0, which is exactly what the next real regression would have
+done. The difference is DECLARED now: a route carries
+`refExceptions: { "<regime>": "<why>" }`, a declared gap prints **DEFENDED** and exits
+0, an undeclared one prints **UNEXPLAINED** and exits **1**, and an exception naming a
+regime the route does not bind is called out as stale. `refNote` cannot do this job —
+nearly every route has one, so every gap read as accepted. Watched failing both ways:
+with the exception removed, exit 1. What this gate does **not** cover, deliberately, is
+`THE WORD AND THE CLOCK DISAGREE` — eleven `sources.json` regime tags against their own
+clocks, mostly on photographs nothing is bound to. Those are printed, not gated.
+
+`sources.json` schema (all three folders, fixed 2026-09-20): one array, snake_case,
+`file`, `source_page`, `direct_image_url`, `author_credit`, `license`, `date`,
+`regime`, `processing_flags` (list), `evidence` (string). `downtown/` used camelCase
+and `westcampus-campus/` used `evidences` until then.
+
+`gpu-run.mjs` is in the session's lanes scratch folder, not the repo. It holds one
+of three machine-wide browser slots and passes the exit code through. Elsewhere,
+run the command bare, one at a time.
+
+What a shot is: `index.html?intro=0&drift=0&clip=1<query>`, 1440×900 at DPR 1
+(`--viewport WxH` overrides it — but the tracked region rectangles are fractions read
+off landscape frames, so they will not land on the same subjects in portrait: run
+`--show-regions` and re-read them before quoting a ratio from another size; this was
+**measured** on September 20 2026 and the answer is per-rectangle, see below),
+hardware GL. The auto-detect probe is cancelled at once. The harness waits for
+the veil to lift and for the authored buildings (a built group **and**
+`readyToReveal()`). If the app gave up on them under load (`INTRO.authoredCeilingMs`),
+it **reloads** — which is js/app.js's own documented remedy for that state — up to
+twice, and only then pokes `APARTMENTS.on` back on in the abandoned page; the report
+says which path it took. The poke alone is not reliable: on September 20 2026, with
+all three GPU slots busy, it produced 30 `Cannot read properties of null (reading
+'getLayer')` page errors and a group that never became ready inside a ten-minute
+wait, and the run died before its first frame. If they never arrive it exits 2, and
+the usual cause is simply a busy machine — check the slots and run it again. Each
+regime is applied once. Then, per pose: jumpTo, reset the auto-exposure meter,
+wait for tiles and idle, re-pose, settle 3 s, screenshot, 1 s, screenshot and
+keep the second. If the two differ in more than 0.25% of pixels by more than 24
+luma, it re-shoots up to twice and records the frame as unsettled if that does not
+help. The camera is checked against the pose (pitch; eye altitude via `__fly.eye()`).
+
+What it measures, per frame and per region, from the kept JPEG: `luma` (Rec.709
+on graded sRGB, 0–255, the unit of the plan's §1.4 tables) and linear `Y` (the
+unit for ratios): mean, p10/p50/p90, % over luma 120 and 200. Ratios are of
+median Y: `wall/sky`, `ground/sky`, `water/sky`, `wall/ground`. **Bright windows:**
+in the `wall` region, pixels with Y ≥ 4 × the region's median, luma ≥ 40 and
+R ≥ B (the `night-luma.mjs` warm/neutral split), as a %, with their mean colour;
+`absPct` is the plan's cruder "luma > 120, R ≥ B". These are pixel classes, not
+truth. **A pose with no `wall` region falls back to the whole frame, and then the
+number is not a window count at all** — at blue hour it is mostly sky and lit
+pavement (`wc-street/rio-grande-23rd` measured 38.9% that way, all of it road).
+The fallback sets `windows.fallback` in the report and prints `*` in the table and
+on the tile; give the pose a `wall` region rather than quoting a starred number.
+
+**R10, the phone pass — what it actually measured (September 20 2026).** Three
+interleaved legs on a quiet machine, same poses, same regimes (`early`, `night`),
+196 authored buildings confirmed on every leg: **1440×900 as shipped** (preset
+`balanced`), **1440×900 `?lite=1`** (preset `performance`) and **393×852 `?lite=1`**.
+Two things came out of it, and they are separable only because the middle leg
+exists.
+
+- **`?lite=1` is a different renderer, not a smaller window.** It reports preset
+  `performance`: bloom 0 (from 0.4), god rays 0 (from 0.5), auto-exposure **off**,
+  render scale 0.75, stars 0.5. At the same size and pose that leaves `wall/sky`
+  almost untouched (3.83→3.53, 8.04→7.63, and three night poses bit-identical) but
+  moves the **bright-window share up by a third at full night on every pose**
+  (9.4→12.5, 13.3→16.7, 17.8→24.2, 5.6→7.1, 9.9→13.1 %). Without bloom and
+  auto-exposure the lit pixels stay compact and the region median falls, so more
+  pixels clear the 4× test. A phone window count is not a desktop window count.
+- **The rectangles survive the portrait crop unevenly, per rectangle.** Looked at
+  on `wc-elevated/over-drag-wnw`: `sky` lands entirely on clean sky (portrait has
+  *more* sky above the skyline) and `ground` lands on the lit intersection, but of
+  the two `wall` rectangles the left one falls completely off the tower onto haze
+  and treetops and the right one is about half trees. The numbers agree:
+  `wc-street/san-antonio-castilian` goes `wall/sky` 2.50 → **10.2** at early and its
+  window share 23.7% → **0%** purely from the aspect change. So: `sky` and `ground`
+  are reusable in portrait, `wall` is not. Re-read `wall` with `--show-regions`
+  before quoting any phone ratio.
+
+This is still desktop Chromium in a phone profile. **No frame has ever been timed on
+a real iPhone**, and nothing here is a frame-rate measurement.
+A/B: mean |Δluma| and % of pixels over 16 and 48, per frame. The thresholds are
+the constant blocks at the top of the script.
+
+Exit codes: **0** every shot taken and interpretable (and `--same` held); **1**
+`--same` failed; **2** cannot run or cannot interpret (bad arguments, app never
+ready, authored buildings missing, a pose not reached, a blank frame); **124** the
+watchdog.
+
+**Regions are drawn on one build's frames.** A change that moves a skyline or
+opens up a street can push a `wall` rectangle onto sky. `--show-regions` writes
+one `regions-<route>-<pose>.jpg` per pose: the frame with the rectangles drawn on
+a labelled 5% grid, so the next rectangle is read off the picture rather than
+guessed. Re-draw, then `--from` to re-measure the frames you already have — no app
+load, about a minute for a full run.
