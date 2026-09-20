@@ -261,6 +261,16 @@ viewport, performance preset, render scale 0.75, so the drawing buffer is
 | `waller-translate-night` | **23.363 % / 41.581 %** | 0.000 % / 0.000 % (repeat: 0.000 % / 0.000 %) |
 | `lake-translate-sunset` | 0.000 % / 0.010 % | 0.032 % / 0.037 % (repeat: 0.000 % / 0.009 %) |
 
+And what that profile looks like — same session on each side, so the scenes
+are comparable (same buildings, same labels, same trees; only the shading
+differs):
+
+![the phone profile, before and after, at the creek by day and night and at the lake](shots/water-flicker-lite.jpg)
+
+The creek goes from a pale blue ribbon to water on the phone profile too, and
+the lake pair is indistinguishable, which is what the 0.000 % rows say in
+pictures.
+
 ![where the flips were: magenta = a water pixel that flipped at least once in 16 frames](shots/water-flicker-heat.jpg)
 
 **What is left, and why it is not flicker:**
