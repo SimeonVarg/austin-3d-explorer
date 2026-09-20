@@ -468,6 +468,16 @@ mechanism.
   The plan is written and ready at `plan-tie3.json` in the lane scratch;
   it is one run. 0.6 % flip on 6.3 k pixels is not a visible defect either
   way, which is why it lost the slot.
+* **No matched still of the Speedway brick or the Capitol grounds.** Both are
+  covered by mechanism — their pattern images measure max alpha 121, and the
+  glass term saturates at 1.0 below alpha 191, so every texel of both was
+  being written as full glass — and the walks figure shows that mechanism in
+  a picture. But the first attempt at those two poses produced the
+  cross-session pair described above and was binned, and the careful
+  re-shoot (`_water-ov.tmp.mjs`, both sides in one browser, waiting on
+  `areTilesLoaded()` at every pose) sat in the GPU queue behind three other
+  lanes for half an hour and never ran. So: the *walks* are shown, the
+  Speedway brick and the Capitol ground are argued.
 * No real phone was used. The phone profile is `?lite=1` in desktop Chrome at
   a 430×932 viewport on the same GPU.
 
