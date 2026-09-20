@@ -347,6 +347,18 @@ which is the honest way to pair them: stop-go measured 0.000 % at every pose,
 so the picture with the camera moving is the same picture as the settled one,
 and the stills are therefore literally the frames the table above scored.
 
+**A pair of stills from two different browser sessions was thrown away to get
+here.** The first attempt shot the "after" side in one session and the
+"before" side in another, and the result was worthless in a way that looked
+convincing: at the Speedway pose a whole authored building was present on one
+side and missing on the other, and at the Capitol the entire surrounding city
+and every label were absent from one side. Neither has anything to do with
+shading — the two sessions had simply streamed different amounts. A settle of
+`once('idle')` plus a few seconds is not enough after a jump to a new part of
+the map; `areTilesLoaded()` is the thing to wait on. Pairs in this doc are
+either from the same session or from the metric harness, which does a full
+mask pass over every pose before it scores anything.
+
 ![Waller Creek before and after at day, sunset and night](shots/water-flicker-creek-stills.jpg)
 
 The creek stops being a pale sky mirror and goes back to being water with a
