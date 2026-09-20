@@ -228,8 +228,10 @@ The metric is deterministic *within* a session (moving = stopped to
 0.000 % everywhere), so the spread is session-to-session tile and streaming
 state, not the camera.
 
-Phone profile (`?lite=1`, 430×932 viewport, performance preset, render
-scale 0.75):
+Phone profile — the full query, because the flags are part of the answer:
+`?intro=0&drift=0&lite=1&campuslandscape=0&preset=performance`, 430×932
+viewport, performance preset, render scale 0.75, so the drawing buffer is
+322×699 and the water mask is 5.7 k px per frame instead of 16.4 k:
 
 | trajectory | before flip / jump | after flip / jump |
 |---|---|---|
