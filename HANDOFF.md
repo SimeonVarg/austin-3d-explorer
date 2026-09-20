@@ -30806,3 +30806,21 @@ Branch `acer/night-package`, PR #275. A third independent critic ran the whole p
 - **The reference corpus's own `sources.json` still said Dobie was demolished** while the package doc carried the correction — and `sources.json` is what the next gatherer opens first. Corrected at the source. All three folders' `sources.json` were also normalised to one schema (snake_case, `evidence`); `downtown/` had been camelCase. **Those files are git-ignored and live only on this machine** (`C:/Users/simip/Projects/austin-reference-images/_night/`), so the fix is in no commit — say so to whoever sets up a second machine.
 - **Smaller ones:** `night-compare.mjs`'s header said "nine runs kept" where there are ten; after a `--merge`, `sides[]` can hold two records under one key and `find()` could hand back the merged run's build and label instead of this shoot's (it prefers the record without `mergedFrom` now, which also un-breaks the load-asymmetry check on merged reports); the README's canonical `--selftest` line said "no GPU" and ran bare, and it does launch a SwiftShader Chrome, so it goes through `gpu-run.mjs` like everything else; a ratio with a `basemap` region on either side of the division prints with a `b` and a legend saying it is a true reading of the frame and not of anything we build. All ten kept reports carry `report.exit` now (six 0s, two 1s, two 2s).
 - **Still not fixed:** the `day`+`golden` coverage map over the whole route set (it hung on `campus-aerial/z16-p68` with three GPU lanes live and has not been retried), and the three `wc-elevated` `sky` regions are deliberately left undeclared — two did not move under `--break` and one moved by a single code, which is too small a signal to call either way. They print under `breakCoverage.undeclaredAndUnmoved` until somebody settles them with `--show-regions` in hand.
+
+### Merged, and re-verified on the merged result (2026-09-20)
+
+Branch `acer/night-package`, PR #275, merged by the lane that verified it. `origin/main` moved
+twice while this was being checked — once for PR #274's Capitol pavilions and once for PR #271's
+intro camera takeover, which changes `js/app.js` and `js/controls.js`, the two modules the harness
+waits on. Both were merged in and **everything was re-run on the merged tree, not on the branch in
+isolation**: `harness-drift` PASS (45 scripts, index and harness agree), `node --check` clean on
+`night-compare.mjs`, `--selftest` exit 0 (22 assertions, 6 JPEG-path, 7 sabotages all caught), the
+`wc-elevated` control **exit 0** at 0.002 / 0.003 / 0.005% of pixels over 16 luma, and the watched
+failure `--break --same 0.05` **exit 1** with 3 of 3 frames red — 8.155%, 3.662%, 7.096%, bright
+windows 13.3 → 1.8. Both sides reported the same `build.sha1` on every run, `verdict.uninterpretable`
+was empty and no load asymmetry fired, so the red is the sabotage and nothing else. The intro
+takeover changes did not move the night control: 0.005% is the same floor the pre-merge run measured.
+
+The merge also carries the data bot's two `2026-09-20` snapshot commits, which it pushed onto this
+branch; the only payload is an empty `diffs/2026-09-18_to_2026-09-20.geojson` and its
+`changed_count: 0` manifest entry.
