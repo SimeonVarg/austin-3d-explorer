@@ -14,55 +14,80 @@ returns to each building's own footprint, takes the ground from the class-2
 returns in a ring just outside it, and writes `ground_z`, `h_max`, `h_p99`,
 `h_med`, the roof steps off a 0.5 m raster, a flat/pitched verdict with a
 confidence, the point density, the acquisition dates and the City of Austin's
-own height. 537 of the 552 buildings in the model area got a real measurement,
-and the whole file is 350 KB.
+own height. **508 of the 552** buildings in the model area got a real
+measurement; the file is 374 KB and nothing in `js/` reads it.
 
-It reproduces what we already knew: Welch Hall 31.68 m against the repo's
-32.61, the Capitol 91.06 against 92.0, Jester 51.43 against 53.4, and the
-Austonian — the tallest thing in the model — 209.49 against the city's 210.31.
-Against the city layer as an independent source, the median disagreement is
-1.60 m over 475 buildings and 80% land within 5 m — and 1.27 m over the 285
-where the city's polygon is genuinely the same shape as ours.
+It reproduces what we already knew: the Capitol 91.06 m against 92.0, Jester
+51.43 against 53.4, the PCL 28.67 against 28.4, the UT Tower 99.36 (`h_max`,
+which catches the mast) and 91.96 (`h_p99`) against 93.6. Welch Hall reads 31.68
+against the repo's 32.61 — but that 32.61 in `docs/campus-truth/WEL.md` line 9 is
+itself the City of Austin layer, the same source as `city_h`, so it is one check
+and not two. Against the city layer the median disagreement is 1.27 m over the
+285 buildings where the city's polygon is genuinely the same shape as ours, and
+88% land within 5 m.
 
-Three things it found that we were wrong about:
+**A first revision of this bake shipped three wrong things. A verifier found all
+three by re-reading the point cloud, and this is the corrected pass.**
 
-  - **51 buildings postdate the flight**, including The Standard, both Unions,
-    Villas on Rio, Rambler, Icon and Moody Center. For those the lidar measures
-    the parking lot or the walk-up that used to be there, so the record carries
-    a `late_build` flag and that is the one flag that means "do not use this
-    height". 13 of the 15 unmeasurable buildings are the same story: the site
-    was open ground in 2017.
-  - **The city-coverage trust flag the scouting round proposed does not
-    predict a wrong height.** Measured over 475 buildings, low coverage is no
-    worse than full coverage. What it actually detects is that our footprint and
-    the city's are different shapes, and the failure runs in BOTH directions —
-    the city's polygon over the Paramount Theatre is 41× our footprint and
-    carries the height of the block behind it. So the file now records
-    `city_ratio` as well as `city_cover`.
-  - **The 2017 classifier missed some roofs entirely.** Signature 1909's roof,
-    73 m up, is labelled *ground* in this tile. The bake now measures a
-    non-vegetation surface (`h_nv`) alongside class 6; where they diverge it
-    says so instead of shipping a 6.89 m height for a 63 m building.
+  - **90 buildings had no footprint of their own and nobody checked.** All 76
+    downtown buildings are absent from `buildings.detailed.geojson` and get
+    matched by nearest centroid onto the tiled `data/outer_ring.geojson`. That
+    match landed on a 12.3 m² corner of the 4029 m² One American Center, a
+    99 m² corner of Frost Bank Tower, a 155 m² corner of The Austonian.
+    Twenty-three of those shipped a height, eight of them at `trust: fair` —
+    The Driskill at 25.89 m for a 50.81 m building, the Paramount at 17.90 m for
+    57.88 m. The target list carries a `footprint_area_m2` per building and the
+    bake was not reading it. It is now: `foot_ratio`, and outside 0.25–3.5 the
+    row ships **no height, no density and no roof form**. 30 refused, 20 more
+    flagged as fragments. Asserted on the shipped file: 0 violations.
+  - **"The 2017 classifier missed some roofs" was not true.** Signature 1909's
+    73 m "roof" is class 1 (unclassified) sitting over 6127 class-2 ground
+    returns **8 m below grade** and 51 class-7 noise points — an excavated pit
+    and a tower crane in February 2017. Skyloft is identical. Nothing is
+    promoted from non-class-6 returns any more, noise classes 7 and 18 are
+    dropped before anything is measured, and an excavation is detected directly
+    (`gnd_in_dz`, `why: construction_in_2017`). Both had been sitting in the
+    apartment accuracy table with a "+21.9 m, as expected" offset.
+  - **The flat/pitched call was confidently wrong on towers.** The Austonian —
+    a flat-roofed glass tower — shipped `pitched` at `roof_conf` 0.97 with both
+    split halves agreeing, because on a sliver footprint every return is a
+    facade return and max-wins rasterisation turns that into an 80° slope field.
+    Split-half agreement measures repeatability, not correctness: a biased
+    estimator agrees with itself. There are now guards on median slope (45°) and
+    raster fill (25%), and `roof_conf` is capped when the halves disagree. 111
+    verdicts have `split_agree` false and **none** now carries `roof_conf`
+    ≥ 0.70; 46 did before.
 
-And the ground under the model spans 127.8 m to 186.2 m — a 58.4 m fall from
-the Facilities Complex to Rainey Street, 36.5 m across campus alone. Terrain is
-deliberately off in `js/app.js`, so every building stands on one flat datum;
-that is now a measured number rather than a known unknown, and `ground_z` is
-what would fix it.
+Two smaller corrections. The ground spread is **49.7 m** (136.46–186.18 m), not
+58.4 — the old low reading was one 27 m² broken footprint. And `city_cover`
+below 0.90 is a weak flag, not a good one: read on its own it is 82% within 5 m
+against 88% for the same-shape group. `city_ratio` above 2 is the flag that
+matters (53% within 5 m, 21% off by more than 10 m).
 
-**Nothing in the renderer reads this file.** That is on purpose — the numbers
-should be argued with before anything moves on screen. Wiring it in is the next
-pass, and the obvious first customer is the 51 `late_build` buildings, where the
-model's current heights come from nowhere in particular.
+34 buildings postdate the flight and carry `late_build`; for those the lidar
+measures the parking lot that used to be there.
+
+The bake also reproduces from a clean checkout now. The 553-building target list
+is committed as `data/massing_targets.json` (119 KB, written only by
+`--write-targets`); without one the bake exits with an error instead of silently
+measuring a different set. The split-half RNG is seeded per building, so
+`--only` reproduces a full run exactly — 8 buildings, 297 fields, 0 differing.
+
+**Nothing in the renderer reads this file.** That is on purpose. Wiring it in is
+the next pass, and the obvious first customer is the 34 `late_build` buildings.
+The one that needs a person, not a bake: downtown has no per-building footprints
+at all, and until it does, 90 of the 552 are measured on the wrong patch of
+ground.
 
 Full writeup, accuracy tables, failure list and licence position:
 `docs/massing-from-lidar.md`.
 
 FLAGGED, NOT FIXED: `docs/campus-truth/*.md` calls the City of Austin footprint
 layer "public domain". The city catalogue says "See Terms of Use". It is one
-line in each of 16 building files (line 9), `docs/campus-truth/README.md` line
-35, and `HANDOFF.md` (line 30232 on `main` before this change, 30295 after it). The USGS lidar genuinely is public domain; the
-Austin layer is not, and nothing in this pass redistributes its polygons.
+line in each of 16 building files (line 9 of BAT, BTL, BUR, CAL, GAR, GOL, GRE,
+HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL), `docs/campus-truth/README.md` line
+35, and `HANDOFF.md`. The USGS lidar genuinely is public domain; the Austin
+layer is not, and nothing in this pass redistributes its polygons.
 
 ## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
 

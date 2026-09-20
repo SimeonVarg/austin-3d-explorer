@@ -13,9 +13,13 @@ What it measures, per building, from the 2017 USGS_LPC_TX_Central_B1 point cloud
   h_p99      99th percentile of the same - the robust roof/parapet height
   h_med      median - the height of the bulk of the roof surface
   levels     roof steps: modes of a 0.5 m max-height raster, as [height_m, % of cells]
-  roof       flat / pitched / mixed, from the slope histogram of that raster
-  roof_conf  0..1 confidence in that verdict (see ROOF_CONF in the code)
+  roof       flat / pitched / mixed, from the slope histogram of that raster,
+             or absent with roof_no saying which guard declined the call
+  roof_conf  0..1 confidence in that verdict, capped when the two random halves
+             of the points disagree or the footprint is a fragment
   n, d       class-6 point count inside the footprint, and points per m^2
+  foot_ratio our footprint's area over the inventory's own figure for the same
+             building. Outside 0.25-3.5 we publish no height at all
   city_h     City of Austin 2017 footprint height (ELEVATION - BASE_ELEVATION, ft->m)
   city_cover fraction of OUR footprint the city polygon covers, and
   city_ratio that polygon's area over ours. TRUST FLAGS, and they fail in
@@ -26,7 +30,7 @@ What it measures, per building, from the 2017 USGS_LPC_TX_Central_B1 point cloud
 
 It answers nothing about walls and nothing about night: lidar is nadir.
 
-Re-run:
+Re-run (the target list is committed, so this reproduces from a clean checkout):
     pip install --only-binary=:all: laspy lazrs numpy
     python scripts/bake_massing.py --plan            # node/download plan only
     python scripts/bake_massing.py                   # full bake, resumable
@@ -44,6 +48,12 @@ Gotchas that cost the scouting round real time - do not rediscover them:
     at this latitude or every area and density is 34% too small. Z is already
     true metres - never scale it.
   * 5 download workers, not 12 (12 gave 31 timeouts out of 92 nodes).
+  * A height with no footprint check is worthless. 90 of the model-area
+    buildings are absent from the detailed snapshot and get matched by nearest
+    centroid onto the tiled outer ring; that match landed on a 12 m^2 corner of
+    a 4029 m^2 tower and nothing downstream could see it. foot_ratio is the test.
+  * Non-class-6 returns are NOT a spare roof. Class 1 over a 2017 construction
+    site is the tower crane, and class 7 is noise. Neither is promoted to a height.
 """
 
 import argparse
@@ -58,6 +68,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+import zlib
 
 import numpy as np
 
@@ -75,6 +86,14 @@ FT = 0.3048
 
 OVERPASS = "https://overpass-api.de/api/interpreter"
 
+# The model-area target list, IN THE REPO, so this bake reproduces from a clean
+# checkout. It is an input, not an output: --write-targets regenerates it from
+# whatever curated inventory you point at, and that is the only thing that
+# writes it. data/massing.json remains this bake's single output file.
+TARGETS_FILE = "data/massing_targets.json"
+TARGET_KEYS = ("slug", "name", "area", "tier", "lng", "lat",
+               "footprint_area_m2", "height_m", "snapshot_ids")
+
 UA = {"User-Agent": "austin-3d-explorer/bake_massing (github SimeonVarg/austin-3d-explorer)"}
 
 # ---------------------------------------------------------------------------
@@ -90,9 +109,30 @@ FLAT_VERDICT = 55.0     # % flat cells at or above which the roof is called flat
 PITCH_VERDICT = 25.0    # % flat cells at or below which it is called pitched
 MIN_CELLS_FOR_ROOF = 120    # 30 m^2 of roof before any flat/pitched call is made
 MIN_D_FOR_ROOF = 1.0        # class-6 pts/m^2 below which no call is made
+MIN_FILL_FOR_ROOF = 25.0    # % of the raster's own bounding box that must carry a
+                            # return; below it the "roof" is scattered fragments
+MAX_SLOPE_FOR_ROOF = 45.0   # deg. A median cell-to-cell slope above this is not a
+                            # roof surface at all - it is a column of FACADE returns
+                            # rasterised in plan. Towers measured through a sliver
+                            # footprint read 70-80 deg and used to ship as "pitched".
+SPLIT_FAIL_CONF = 0.45      # roof_conf ceiling once the two random halves disagree
 CITY_TRUST = 0.90       # city polygon must cover this much of our footprint
 CITY_RATIO_MAX = 2.0    # ... and be no more than this many times its area
+# Our footprint area over the inventory's own footprint_area_m2 for the same
+# building. Inside FOOT_OK we say nothing; between FOOT_OK and FOOT_REFUSE the
+# footprint is a fragment (heights survive, area/density/roof do not); outside
+# FOOT_REFUSE we publish no height at all, because we cannot say what we measured.
+FOOT_OK = (0.5, 2.0)
+FOOT_REFUSE = (0.25, 3.5)
+FOOT_PART_CONF = 0.6    # roof_conf ceiling on a fragment of a footprint
+PIT_DEPTH = 2.0         # m. Class-2 ground INSIDE the footprint sitting this far
+                        # below the ring outside it is an excavated basement:
+                        # the site was under construction when the plane flew.
+LATE_GAP = 8.0          # m of disagreement between the model and the lidar before
+                        # we call the building late (either direction)
 CLASS_GROUND, CLASS_VEG_HI, CLASS_BUILDING, CLASS_WATER = 2, 5, 6, 9
+CLASS_NOISE = (7, 18)   # ASPRS low/high noise. Dropped before anything is measured:
+                        # a single class-7 return used to be able to set h_nv.
 
 
 def default_cache():
@@ -368,7 +408,7 @@ def load_targets(repo, snapshot, inventory_path=None, log=print):
             add(got[0]["properties"]["id"], polys,
                 slug=b.get("slug"), name=b.get("name"), area=b.get("area"),
                 tier=b.get("tier"), snapshot_ids=[f["properties"]["id"] for f in got],
-                inv_h=b.get("height_m"),
+                inv_h=b.get("height_m"), inv_area=b.get("footprint_area_m2"),
                 snap_h=got[0]["properties"].get("final_height"),
                 snap_floors=got[0]["properties"].get("num_floors"))
             matched += 1
@@ -383,7 +423,8 @@ def load_targets(repo, snapshot, inventory_path=None, log=print):
                 key = best[2].get("id") or ("inv:" + b["slug"])
                 add(key, best[1], slug=b.get("slug"), name=b.get("name"),
                     area=b.get("area"), tier=b.get("tier"), snapshot_ids=[],
-                    inv_h=b.get("height_m"), src_file=best[3])
+                    inv_h=b.get("height_m"), inv_area=b.get("footprint_area_m2"),
+                    src_file=best[3])
                 matched += 1
     if inv:
         log("  inventory footprints resolved: %d of %d" % (matched, len(inv)))
@@ -666,11 +707,24 @@ def roof_stats(h, lx, ly, gs=GRID):
             cells, round(100.0 * cells / (W * H), 1))
 
 
-def roof_verdict(flat_pct, cells, dens):
-    """flat / pitched / mixed with a confidence in 0..1, or (None, 0) when the
-    2017 density cannot support a call at this footprint size."""
-    if flat_pct is None or cells < MIN_CELLS_FOR_ROOF or dens < MIN_D_FOR_ROOF:
-        return None, 0.0
+def roof_verdict(flat_pct, cells, dens, fill=None, slope_med=None):
+    """flat / pitched / mixed with a confidence in 0..1, or (None, 0, reason)
+    when the 2017 density or the geometry cannot support a call.
+
+    Returns (verdict, conf, declined_because).
+    """
+    if flat_pct is None:
+        return None, 0.0, "no_slope"
+    if cells < MIN_CELLS_FOR_ROOF:
+        return None, 0.0, "roof_too_small"
+    if dens < MIN_D_FOR_ROOF:
+        return None, 0.0, "too_sparse"
+    if fill is not None and fill < MIN_FILL_FOR_ROOF:
+        return None, 0.0, "raster_patchy"
+    if slope_med is not None and slope_med > MAX_SLOPE_FOR_ROOF:
+        # 78 deg over a 0.5 m cell is 2.5 m of rise per cell. That is the side of
+        # a building seen from above, not its top.
+        return None, 0.0, "facade_not_roof"
     if flat_pct >= FLAT_VERDICT:
         v = "flat"
         margin = (flat_pct - FLAT_VERDICT) / (100.0 - FLAT_VERDICT)
@@ -684,7 +738,7 @@ def roof_verdict(flat_pct, cells, dens):
     size = min(1.0, cells / 600.0)          # 150 m^2 of roof = full size credit
     dscore = min(1.0, dens / 4.0)           # 4 pts/m^2 = full density credit
     conf = max(0.0, min(1.0, 0.25 + 0.75 * (0.45 * margin + 0.3 * size + 0.25 * dscore)))
-    return v, round(conf, 2)
+    return v, round(conf, 2), None
 
 
 def footprint_samples(t, n=22):
@@ -720,6 +774,14 @@ def measure(t, pts, city, oidx, rng):
     area = max(area, 1.0)
 
     res = dict(id=t["key"], area_m2=round(area, 1))
+    # Cross-check our footprint against the one the inventory measured for the
+    # SAME building. 90 of the model-area buildings are not in the detailed
+    # snapshot and are matched by nearest centroid onto data/outer_ring.geojson,
+    # which is drawn as tiles: that match can land on a 12 m^2 corner of a 4000
+    # m^2 tower. Without this test nothing downstream can tell.
+    if t.get("inv_area"):
+        res["inv_area_m2"] = t["inv_area"]
+        res["foot_ratio"] = round(area / float(t["inv_area"]), 3)
     for k in ("slug", "name", "apartment", "area", "tier", "snap_h", "snap_floors",
               "inv_h", "auth_h"):
         if t.get(k) not in (None, ""):
@@ -747,6 +809,15 @@ def measure(t, pts, city, oidx, rng):
         return res
 
     X, Y, Z, C = pts["x"], pts["y"], pts["z"], pts["c"]
+    # ASPRS noise classes go first, before ground, heights or h_nv see them.
+    keep = ~np.isin(C, CLASS_NOISE)
+    if not keep.all():
+        res["noise_n"] = int((~keep).sum())
+        X, Y, Z, C = X[keep], Y[keep], Z[keep], C[keep]
+    if len(Z) == 0:
+        res["trust"] = "none"
+        res["why"] = "no_points"
+        return res
     inb = in_polys(X, Y, polys_m)
 
     # ground: class 2 in the ring just outside the footprint
@@ -773,36 +844,41 @@ def measure(t, pts, city, oidx, rng):
     wat = int((inb & (C == CLASS_WATER)).sum())
     gnd_in = int((inb & (C == CLASS_GROUND)).sum())
 
-    # Everything inside the footprint that is not vegetation and not water. On a
-    # correctly classified building this is the same surface as class 6; where
-    # the 2017 classifier failed it is the ONLY record of the building. Signature
-    # 1909's roof, 73 m up, is classified as GROUND in this tile.
+    # Where the class-2 ground INSIDE the footprint sits relative to the ring
+    # outside it. A basement excavation reads several metres negative, and that
+    # is the one unambiguous signature of a construction site in this data.
+    if gnd_in >= 30:
+        res["gnd_in_dz"] = round(float(np.median(Z[inb & (C == CLASS_GROUND)])) - ground, 2)
+
+    # Every non-vegetation, non-water, non-noise return inside the footprint.
+    # DIAGNOSTIC ONLY. It is NOT a height: on a construction site it is the
+    # crane, and class 1 alone can carry it. Signature 1909 reads 74.68 m here
+    # off 2167 class-1 points whose median is 5.9 m BELOW grade, over 6127
+    # class-2 points sitting 8 m below grade in the pit. Nothing is promoted
+    # from this number - a building with no class-6 returns gets no height.
     nonveg = inb & ~np.isin(C, (3, 4, CLASS_VEG_HI, CLASS_WATER))
     h_nv = (float(np.percentile(Z[nonveg], 99)) - ground) if int(nonveg.sum()) >= 50 else None
     if h_nv is not None:
         res["h_nv"] = round(h_nv, 2)
 
     if n < 20:
-        # No class-6 points. Either nothing stood here in 2017, or the returns
-        # from what did stand here went into another class.
-        if h_nv is not None and h_nv > 3.0 and int(nonveg.sum()) >= 200:
-            bld = nonveg
-            n = int(bld.sum())
-            res["fallback"] = "unclassified"   # measured off non-vegetation returns
-        else:
-            res["n"] = n
-            res["d"] = round(n / area, 2)
-            if veg:
-                res["veg_n"] = veg
-            res["trust"] = "none"
-            res["why"] = (
-                "water" if wat > max(n, 10) else
-                # mostly ground returns and nothing above 3 m: open ground in 2017
-                "vacant_in_2017" if (gnd_in > 0.4 * max(inb.sum(), 1)
-                                     and (h_nv is None or h_nv <= 3.0)) else
-                "tree_cover" if veg > max(n, 10) else
-                "no_class6" if inb.sum() > 20 else "footprint_mismatch")
-            return res
+        # No class-6 points: nothing we can call a roof stood here in 2017.
+        res["n"] = n
+        res["d"] = round(n / area, 2)
+        if veg:
+            res["veg_n"] = veg
+        res["trust"] = "none"
+        pit = res.get("gnd_in_dz")
+        res["why"] = (
+            "water" if wat > max(n, 10) else
+            # ground inside the footprint sunk below the ground outside it
+            "construction_in_2017" if (pit is not None and pit < -PIT_DEPTH) else
+            # mostly ground returns and nothing above 3 m: open ground in 2017
+            "vacant_in_2017" if (gnd_in > 0.4 * max(inb.sum(), 1)
+                                 and (h_nv is None or h_nv <= 3.0)) else
+            "tree_cover" if veg > max(n, 10) else
+            "no_class6" if inb.sum() > 20 else "footprint_mismatch")
+        return assess(res)
 
     res["n"] = n
     res["d"] = round(n / area, 2)
@@ -824,22 +900,28 @@ def measure(t, pts, city, oidx, rng):
         res["flat_pct"] = flat_pct
     if fill is not None:
         res["fill"] = fill
-    v, conf = roof_verdict(flat_pct, cells, res["d"])
+    v, conf, declined = roof_verdict(flat_pct, cells, res["d"], fill, slope_med)
     if v:
         res["roof"] = v
         res["roof_conf"] = conf
+    elif declined:
+        res["roof_no"] = declined
 
-    # Split-half stability: does HALF this building's points give the same verdict?
-    # This is the honest answer to "at what size does 2017 density support a call".
+    # Split-half stability: does HALF this building's points give the same
+    # verdict? It measures REPEATABILITY, not correctness - a biased estimator
+    # agrees with itself perfectly - so it can only ever lower the confidence,
+    # never raise it. A verdict its own halves will not reproduce is capped.
     if v and n >= 60:
         idx = rng.permutation(n)
         agree = True
         for half in (idx[:n // 2], idx[n // 2:]):
-            _l, _s, fp, cl, _f = roof_stats(h[half], lx[half], ly[half])
-            hv, _c = roof_verdict(fp, cl, res["d"] / 2.0)
+            _l, hs, fp, cl, hf = roof_stats(h[half], lx[half], ly[half])
+            hv, _c, _d = roof_verdict(fp, cl, res["d"] / 2.0, hf, hs)
             if hv != v:
                 agree = False
         res["split_agree"] = bool(agree)
+        if not agree:
+            res["roof_conf"] = min(res["roof_conf"], SPLIT_FAIL_CONF)
 
     return assess(res)
 
@@ -850,10 +932,39 @@ def assess(res):
     Kept separate from the measurement so the thresholds above can be changed
     and re-applied to the cached results without re-reading a single point.
     """
+    # -- the footprint cross-check runs first and can veto everything else ----
+    fr = res.get("foot_ratio")
+    foot = None
+    if fr is not None:
+        if fr < FOOT_REFUSE[0] or fr > FOOT_REFUSE[1]:
+            foot = "footprint_mismatch"
+        elif fr < FOOT_OK[0] or fr > FOOT_OK[1]:
+            foot = "footprint_partial"
+    if foot == "footprint_mismatch":
+        # Our polygon is not this building. Whatever the returns inside it say,
+        # we cannot claim it is this building's roof - so we publish no height,
+        # no density and no roof form, only the two areas that prove the clash.
+        for k in ("h_max", "h_p99", "h_med", "h_nv", "levels", "roof", "roof_conf",
+                  "roof_no", "slope_med", "flat_pct", "fill", "split_agree", "d",
+                  "late_build", "gnd_in_dz"):
+            res.pop(k, None)
+        res["trust"] = "none"
+        res["why"] = "footprint_mismatch"
+        return res
     if res.get("h_max") is None:
+        # A failure row. Its reason came from measure(); add the footprint flag
+        # if there is one, because a fragment explains a lot of "nothing here".
+        if foot and foot not in (res.get("why") or ""):
+            res["why"] = ((res.get("why") + ",") if res.get("why") else "") + foot
         return res
     cc = res.get("city_cover")
     why = []
+    if foot:
+        why.append(foot)
+        # half a footprint is still a real roof, but area, density and the roof
+        # raster are all measured over the wrong extent: cap what we claim.
+        if res.get("roof_conf") is not None:
+            res["roof_conf"] = min(res["roof_conf"], FOOT_PART_CONF)
     # The flight is from 2017. A building the model says is much taller than
     # anything the lidar found on that footprint was built after the plane flew:
     # these heights are the SITE's 2017 heights, not this building's.
@@ -861,15 +972,21 @@ def assess(res):
     sh = max([v for v in (res.get("snap_h"), res.get("inv_h"), res.get("auth_h"))
               if v is not None] or [0])
     res.pop("late_build", None)
-    if sh and (sh - res["h_max"]) > 8.0:
+    if sh and (sh - res["h_max"]) > LATE_GAP:
         res["late_build"] = True
         why.append("built_after_2017")
-    if res.get("fallback"):
-        why.append("unclassified_returns")
-    # The 2017 classifier put some roofs in class 1 or 2. When the non-vegetation
-    # returns reach well above the class-6 surface, class 6 is not the whole roof.
+    elif sh and (res["h_max"] - sh) > LATE_GAP and not res.get("city_h"):
+        # The other direction, which nothing used to catch: the lidar reads far
+        # ABOVE everything the model claims, on a footprint the 2017 city layer
+        # does not carry either. Nothing here corroborates the height.
+        why.append("lidar_above_model")
+    # Non-vegetation returns reaching well above the class-6 roof. This is a
+    # QUESTION, not a correction: it is sometimes an unclassified roof and
+    # sometimes a crane, a neighbour's wall, or a stray class-1 return. East
+    # Campus Garage reads 63 m here against a class-6 roof of 22.05 m that
+    # agrees with the city's 19.54 m - there, h_nv is the wrong number.
     if res.get("h_nv") is not None and res["h_nv"] > res["h_max"] + 5.0:
-        why.append("taller_returns_unclassified")
+        why.append("returns_above_roof")
     if res.get("d", 0) < 1.0:
         why.append("sparse")
     fill = res.get("fill")
@@ -886,7 +1003,7 @@ def assess(res):
     n = res.get("n", 0)
     if not why and res.get("d", 0) >= 2.0 and n >= 200:
         res["trust"] = "good"
-    elif "sparse" in why or n < 60 or res.get("late_build") or res.get("fallback"):
+    elif "sparse" in why or n < 60 or res.get("late_build"):
         res["trust"] = "poor"
     else:
         res["trust"] = "fair"
@@ -915,7 +1032,12 @@ def main():
     ap.add_argument("--repo", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument("--snapshot", default=None, help="snapshot date (default: manifest latest)")
     ap.add_argument("--inventory", default=os.environ.get("AUSTIN_MASSING_INVENTORY"),
-                    help="model-area inventory.json (slug/name/tier per building)")
+                    help="model-area inventory.json (default: %s in the repo)" % TARGETS_FILE)
+    ap.add_argument("--write-targets", action="store_true",
+                    help="copy the --inventory list into %s (the committed input "
+                         "list) and stop" % TARGETS_FILE)
+    ap.add_argument("--all-snapshot", action="store_true",
+                    help="measure every feature in the snapshot instead of a target list")
     ap.add_argument("--cache", default=default_cache())
     ap.add_argument("--out", default=None)
     ap.add_argument("--depth", type=int, default=12)
@@ -944,9 +1066,31 @@ def main():
         print(*m, flush=True)
 
     log("snapshot %s | cache %s" % (snapshot, a.cache))
-    targets, feats, inv = load_targets(repo, snapshot, a.inventory, log)
-    if not targets:
-        log("no inventory given - falling back to every feature in the snapshot")
+    inv_path = a.inventory or os.path.join(repo, TARGETS_FILE)
+    if a.write_targets:
+        if not a.inventory or not os.path.exists(a.inventory):
+            sys.exit("--write-targets needs --inventory <curated inventory.json>")
+        src = json.load(open(a.inventory, encoding="utf-8"))
+        out = [dict((k, b.get(k)) for k in TARGET_KEYS if b.get(k) is not None)
+               for b in src]
+        tp = os.path.join(repo, TARGETS_FILE)
+        json.dump(out, open(tp, "w", encoding="utf-8"), separators=(",", ":"))
+        log("wrote %s (%d buildings, %.0f KB)"
+            % (tp, len(out), os.path.getsize(tp) / 1024.0))
+        return
+
+    if not a.all_snapshot and not os.path.exists(inv_path):
+        # Silence here used to mean "measure every feature in the snapshot",
+        # which produced a DIFFERENT target set with different ids and looked
+        # like a successful bake. It is an error now.
+        sys.exit("no target list at %s.\n"
+                 "  Run --write-targets --inventory <inventory.json> once, or pass\n"
+                 "  --all-snapshot to deliberately measure the whole snapshot."
+                 % inv_path)
+
+    targets, feats, inv = load_targets(repo, snapshot, None if a.all_snapshot else inv_path, log)
+    if a.all_snapshot:
+        log("--all-snapshot: every feature in the snapshot")
         for pid, f in feats.items():
             polys = geom_polys(f["geometry"])
             if not polys:
@@ -1019,7 +1163,6 @@ def main():
     bbox = (min(lons) - 0.002, min(lats) - 0.002, max(lons) + 0.002, max(lats) + 0.002)
     oidx = osm_index(load_osm(a.cache, bbox, log))
     city = None if a.no_city else CityFootprints(a.cache, log)
-    rng = np.random.default_rng(12345)
 
     todo = [t for t in targets if a.force or t["key"] not in done]
     log("to measure: %d" % len(todo))
@@ -1079,6 +1222,10 @@ def main():
             else:
                 pts = None
             try:
+                # Seeded from the building's own key, so --only <one building>
+                # reproduces the split-half result a full run gives it. A single
+                # shared generator advances in target order and does not.
+                rng = np.random.default_rng(zlib.crc32(t["key"].encode("utf-8")) ^ 0x3039)
                 r = measure(t, pts, city, oidx, rng)
             except Exception as e:
                 import traceback
@@ -1115,7 +1262,11 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
     for r in rows:
         assess(r)
     ok = [r for r in rows if r.get("h_p99") is not None]
-    gz = [r["ground_z"] for r in rows if r.get("ground_z") is not None]
+    # Ground statistics use only footprints that passed the cross-check. A 27 m^2
+    # sliver's ground ring is a real elevation somewhere, but it is not this
+    # building's, and one of them used to anchor the headline spread on its own.
+    gz = [r["ground_z"] for r in rows if r.get("ground_z") is not None
+          and "footprint_mismatch" not in (r.get("why") or "")]
     acq = [r["acq"] for r in rows if r.get("acq")]
     meta = dict(
         generated=_dt.datetime.utcnow().strftime("%Y-%m-%d"),
@@ -1130,27 +1281,51 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
                   height="ELEVATION - BASE_ELEVATION, feet converted to metres"),
         snapshot=snapshot,
         counts=dict(buildings=len(rows), measured=len(ok),
-                    failed=len(rows) - len(ok)),
+                    failed=len(rows) - len(ok),
+                    footprint_mismatch=sum(1 for r in rows
+                                           if "footprint_mismatch" in (r.get("why") or "")),
+                    footprint_partial=sum(1 for r in rows
+                                          if "footprint_partial" in (r.get("why") or ""))),
         ground=dict(min=round(min(gz), 2), max=round(max(gz), 2),
-                    spread=round(max(gz) - min(gz), 2)) if gz else None,
+                    spread=round(max(gz) - min(gz), 2), n=len(gz),
+                    basis="footprints that passed the foot_ratio cross-check") if gz else None,
         fields=dict(
             ground_z="median class-2 ground elevation, metres above the lidar datum",
+            gnd_in_dz="median class-2 height INSIDE the footprint relative to "
+                      "ground_z; a few metres negative is an excavated basement",
+            area_m2="area of OUR footprint polygon, EPSG:3857 corrected by cos(lat)",
+            inv_area_m2="the inventory's own footprint area for the same building",
+            foot_ratio="area_m2 / inv_area_m2. 0.5-2.0 is fine; outside that our "
+                       "polygon is a fragment or the wrong building, and outside "
+                       "0.25-3.5 no height is published at all",
             h_max="tallest class-6 point above ground_z, metres",
             h_p99="99th percentile of the same - the robust roof height",
             h_med="median class-6 height - the bulk roof surface",
             levels="[height_m, % of roof cells] roof steps, 0.5 m raster",
+            slope_med="median cell-to-cell slope of that raster, degrees",
+            flat_pct="% of raster cells below 10 deg",
+            fill="% of the raster's bounding box that carries any return",
             roof="flat / pitched / mixed from the slope histogram",
-            roof_conf="0..1 confidence in that verdict",
-            split_agree="both random halves of the points gave the same verdict",
+            roof_no="which guard declined a roof call: roof_too_small, too_sparse, "
+                    "raster_patchy, facade_not_roof, no_slope",
+            roof_conf="0..1 confidence in that verdict. Capped at 0.45 when "
+                      "split_agree is false and at 0.6 on a partial footprint, so "
+                      "the number can be read on its own",
+            split_agree="both random halves of the points gave the same verdict. "
+                        "This is REPEATABILITY, not correctness - a biased "
+                        "estimator agrees with itself - so it only lowers roof_conf",
             n="class-6 points inside the footprint", d="those points per m^2",
+            noise_n="ASPRS class 7/18 returns dropped before measuring",
             city_h="City of Austin 2017 footprint height, metres",
             city_cover="fraction of OUR footprint that city polygon covers",
             city_ratio="that city polygon's area divided by our footprint's. Above ~2 "
                        "the city polygon is a whole block and its height is "
                        "somebody else's building",
-            h_nv="99th percentile of every non-vegetation return inside the footprint; "
-                 "far above h_max means the 2017 classifier missed this roof",
-            fallback="height taken from non-vegetation returns because class 6 was empty",
+            h_nv="99th percentile of every non-vegetation, non-noise return inside "
+                 "the footprint. A QUESTION, never a height: well above h_max it "
+                 "is sometimes an unclassified roof and sometimes a crane, a "
+                 "neighbour's wall or a stray class-1 return. Nothing is derived "
+                 "from it",
             snap_h="the snapshot's own final_height, for comparison only",
             late_build="the snapshot height is >8 m above anything the 2017 lidar "
                        "found here: this building was built after the flight and "
@@ -1181,9 +1356,11 @@ def summary(rows, log):
     log("  roof:  %s" % dict(collections.Counter(r.get("roof") for r in rows)))
     fails = collections.Counter(r.get("why") for r in rows if r.get("h_p99") is None)
     log("  failures: %s" % dict(fails))
-    gz = [r["ground_z"] for r in rows if r.get("ground_z") is not None]
+    gz = [r["ground_z"] for r in rows if r.get("ground_z") is not None
+          and "footprint_mismatch" not in (r.get("why") or "")]
     if gz:
-        log("  ground: %.2f to %.2f m (spread %.2f m)" % (min(gz), max(gz), max(gz) - min(gz)))
+        log("  ground (trusted footprints, n=%d): %.2f to %.2f m (spread %.2f m)"
+            % (len(gz), min(gz), max(gz), max(gz) - min(gz)))
 
 
 if __name__ == "__main__":
