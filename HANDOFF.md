@@ -42,6 +42,7 @@ Guard: `scripts/verify/intro-interrupt.mjs`, 52 cases (7 inputs x 6 phases, 2
 synthetic instants, the deterministic tap, and the `none` / `home` / `tour`
 controls). It recycles its browser every 16 cases — a full matrix through one
 browser hit `net::ERR_INSUFFICIENT_RESOURCES` on case 50.
+
 ## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #277)
 
 The model has been guessing how tall buildings are — an Overture tag, a number
