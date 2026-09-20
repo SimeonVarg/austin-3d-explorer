@@ -252,22 +252,25 @@ hysteresis runs in the right direction.
 session, on the tree rebased onto `main` @ 87f6ec4** — the merged result, not
 the branch alone:
 
-| check | BEFORE (main's `js/lod.js`) | AFTER (this PR) |
+Two interleaved pairs, AFTER / BEFORE / AFTER / BEFORE:
+
+| check | BEFORE x2 | AFTER x2 |
 |---|---|---|
 | tier membership | fine 13/18 present, mid 6/7 | fine 11/16, mid 5/6, `caps still listed in a tier: none` |
-| **A — the roof caps are never dropped** | ***FAIL*** — `hidden at some altitude: drag-cap, wc-wall-cap, moody-roof` | **PASS** — all three drawn at all 30 poses |
-| B — every pose landed where it asked | PASS — worst miss 0.17% | FAIL — worst miss 111%, 2 of the 30 poses |
-| C — a band where fine is gone and mid is not | PASS — 4 poses, 399.6–699.2 m | PASS — identical, 399.6–699.2 m |
+| **A — the roof caps are never dropped** | ***FAIL, both runs*** — `hidden at some altitude: drag-cap, wc-wall-cap, moody-roof` | **PASS, both runs** — all three drawn at all 30 poses |
+| B — every pose landed where it asked | PASS 0.17% / FAIL 23% | FAIL 111% / PASS 0.17% |
+| C — a band where fine is gone and mid is not | PASS — 4 poses, 399.6–699.2 m | PASS — 399.6–699.2 m, 399.6–759.2 m |
 | D — the descent restores everything | FAIL — `visibility:none 1` | FAIL — `visibility:none 1`, identical |
-| E — hysteresis runs the right way | PASS — up 399.6 m, down 259.7 m | PASS — up 399.6 m, down 299.7 m |
-| no uncaught page errors | PASS | PASS |
-| | 4/6 | 4/6 |
+| E — hysteresis runs the right way | PASS, both — up 399.6 m, down 259.7 m | PASS, both — up 399.6 m, down 299.7 m then 259.7 m |
+| no uncaught page errors | PASS, both | PASS, both |
+| | 4/6, 3/6 | 4/6, 5/6 |
 
 **Check A is the whole point and it is unambiguous.** Same script, same server,
-minutes apart: on main the LOD hides all three caps at some altitude and the
-check names them; with this PR it never does, at any of 30 poses. BEFORE also
-passed the instrument check with a 0.17% worst miss, so that run's camera was
-accurate and its failure is the code's, not the harness's.
+minutes apart, twice each: on main the LOD hides all three caps at some
+altitude and the check names them, both times; with this PR it never does, at
+any of 30 poses, both times. The first BEFORE run also passed the instrument
+check with a 0.17% worst miss, so its camera was accurate and its failure is
+the code's, not the harness's.
 
 **Nothing regressed.** C, E and the page-error check pass on both sides, and
 the fine/mid band is identical to the metre.
@@ -285,20 +288,25 @@ as defects:
   both runs — `fineHidden 0, midHidden 0`. The check is over-strict; it should
   assert on the bookkeeping, not on raw visibility. Left as it is rather than
   loosened after seeing the result.
-- **B fails on the AFTER run only**, on 2 of 30 poses (the first rung, and one
-  mid-ladder), where the convergence poll gave up and the pose kept the previous
-  altitude. That is flakiness in my harness, not in `js/lod.js`; the BEFORE run
-  of the same script hit 30 of 30. Worth fixing before this gate is relied on.
+- **B fails on one run of each side** — AFTER-1 at 111% and BEFORE-2 at 23%,
+  while AFTER-2 and BEFORE-1 both hit 30 of 30 at 0.17%. Failing symmetrically
+  on both versions is what makes it harness flakiness rather than anything in
+  `js/lod.js`: a rung where the convergence poll gives up and the pose keeps the
+  previous altitude. Worth fixing before this gate is relied on for anything
+  finer than check A.
 
-**One honest limit on E.** There is a residual one-rung lag in this harness:
-the LOD's 140 ms debounce can fire before the controller re-syncs, so the fine
-tier is first seen hidden at 399.6 m when the threshold is 340 m. BEFORE and
-AFTER differ in where the tier comes back on the way down — 259.7 m vs 299.7 m
-— and 299.7 m is the one inside the documented ±8% band (290–340 m). That is
-the direction the `_tierHidden` fix predicts, but **one rung is exactly the
-size of the lag**, so from a single pair I cannot separate the fix from the
-artefact and I am not claiming it. What E does establish is that the hysteresis
-is exercised and runs the right way on both sides.
+**E, and a claim the second pair killed.** There is a residual one-rung lag in
+this harness — the LOD's 140 ms debounce can fire before the controller
+re-syncs, so the fine tier is first seen hidden at 399.6 m against a 340 m
+threshold. After the first pair it looked as though the `_tierHidden` fix had
+moved where the tier returns on the descent: BEFORE 259.7 m, AFTER 299.7 m, and
+only 299.7 m is inside the documented ±8% band. I wrote that down as suggestive
+and not proved, because one rung is exactly the size of the lag. **The second
+pair then gave 259.7 m for AFTER as well**, so across four runs the boundary is
+259.7 m three times and 299.7 m once, on both versions — it is run-to-run
+noise, not the fix. Recorded here rather than quietly dropped: the hysteresis
+change is **exercised and does not regress**, and that is the whole of what
+these runs establish about it.
 
 ## Backlog, most important first (files other lanes own)
 
