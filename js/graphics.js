@@ -112,7 +112,8 @@
   // A function, not a value: `urlPreset` cannot be resolved until PRESETS exists
   // further down, and a REJECTED ?preset= must not count as capture — otherwise
   // a typo silently freezes the auto-detect an ordinary visitor still wants.
-  const captureOn = () => Q.get('clip') === '1' || LABELS_URL === false || !!urlPreset;
+  // (The phone profile's own ?preset= is not a capture: see phoneDefault.)
+  const captureOn = () => Q.get('clip') === '1' || LABELS_URL === false || (!!urlPreset && !phoneDefault);
 
   // ── Settings ──────────────────────────────────────────────────────
   //
@@ -389,7 +390,27 @@
   const SETTINGS_REV = 2;
   const REV_RESET = { 2: ['dof'] };
 
-  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', autoDetected: false, rev: SETTINGS_REV });
+  // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
+  //
+  // `GFX.preset` is read by three other files as a GEOMETRY density key, not a
+  // menu label: js/slopes.js detail(), js/slopes-apartments.js detailNow() and
+  // js/roofs.js detail() each look it up in a byPreset table. Moving any slider
+  // used to rename the preset to 'custom', which none of those tables has, so
+  // each fell back to its default: FULL density for the authored apartments
+  // (1.0 — window reveals and sign dots back on) and the balanced 0.75 for the
+  // roof clutter. On `performance` that meant nudging Film grain dropped every
+  // authored building back to its legacy box while 196 of them were rebuilt at
+  // twice the detail — on a phone, +115 MB (js/mobile.js's table, 450 -> 565)
+  // on the profile that exists to stay under a memory ceiling. Measured by
+  // scripts/verify/audit-settings.mjs phase C.
+  //
+  // So a moved control now sets `custom` and leaves `preset` naming the preset
+  // it was moved from: the density readers keep the density that preset
+  // promised, and the menu still shows no preset lit. A value saved by the old
+  // code as preset 'custom' comes back as custom on top of `balanced` — which is
+  // exactly the density those readers were already falling back to for it, so
+  // nobody's scene changes on the upgrade.
+  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', custom: false, autoDetected: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
   let saved = null;
@@ -397,7 +418,8 @@
   let migrated = false;
   if (saved && typeof saved === 'object') {
     for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
-    if (saved.preset) GFX.preset = saved.preset;
+    if (saved.preset && PRESETS[saved.preset]) GFX.preset = saved.preset;
+    GFX.custom = !!saved.custom || (!!saved.preset && !PRESETS[saved.preset]);
     GFX.autoDetected = !!saved.autoDetected;
     const was = +saved.rev || 1;
     for (let r = was + 1; r <= SETTINGS_REV; r++) {
@@ -427,12 +449,36 @@
   // wearing the recording's settings, and the brief already flags that
   // stickiness as a live confusion. (This is not theoretical: applyGraphics()
   // saves on every change, so the first version of this block did exactly that.)
+  //
+  // EXCEPT ON THE PHONE PROFILE, where the flag is not a capture at all.
+  // js/mobile.js writes the phone's DEFAULT into the query string
+  // (`?lite=1&preset=performance`, with history.replaceState, so every reload
+  // and every restored tab carries it too). Read as a capture flag, that made a
+  // phone the one device where the menu could never be saved: every slider,
+  // tick box and preset a visitor set on a phone was gone on the next load,
+  // and the auto-detect was frozen as though a take were being filmed. Measured
+  // by scripts/verify/audit-settings.mjs phase B (nothing but the boot counter
+  // ever reached localStorage). So on the phone profile, the profile's preset
+  // is a default: it applies when this device has saved nothing, the menu
+  // saves, and what the visitor chose comes back. Any OTHER ?preset= on a
+  // phone is still a capture override, and so is the crash fallback
+  // (?lite=safe): a phone that has died twice gets `performance` whatever it
+  // saved. PHONE_PRESET must match LITE.profile.preset in js/mobile.js.
+  // (A hand-typed `?lite=1&preset=performance` cannot be told apart from the
+  // profile's own — after the first load the URL carries it either way — so
+  // on a device that has saved settings, those win. A fresh profile, which is
+  // what every harness context is, still gets `performance`.)
+  const PHONE_PRESET = 'performance';
   const URL_PRESET = Q.get('preset');
   const urlPreset = URL_PRESET && PRESETS[URL_PRESET] ? URL_PRESET : null;
-  if (urlPreset) {
+  const LITE_ON = window.LITE_PROFILE || {};
+  const phoneDefault = !!(urlPreset === PHONE_PRESET && LITE_ON.on && !LITE_ON.safe);
+  const hasSaved = !!(saved && typeof saved === 'object' && saved.preset);
+  if (urlPreset && (!phoneDefault || !hasSaved)) {
     Object.assign(GFX, PRESETS[urlPreset]);
     GFX.preset = urlPreset;
-  } else if (URL_PRESET) {
+    GFX.custom = false;
+  } else if (URL_PRESET && !urlPreset) {
     console.warn(`[graphics] ?preset=${URL_PRESET} is not a preset — keeping ${GFX.preset}. ` +
                  `Try: ${Object.keys(PRESETS).join(', ')}`);
   }
@@ -454,8 +500,9 @@
     //
     // It costs the menu its persistence for that one session, which is the right
     // trade: `?preset=` is a capture flag, and a capture session should leave no
-    // trace on the machine it was filmed on.
-    if (urlPreset) return;
+    // trace on the machine it was filmed on. (Not the phone profile's default,
+    // which is not a capture — see phoneDefault.)
+    if (urlPreset && !phoneDefault) return;
     try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
   }
   // Stamp the new revision straight away. Without this the migration re-runs on
@@ -655,7 +702,11 @@
 
     // Bloom asked for after the context was built without preserveDrawingBuffer
     // needs a reload to take effect. Say so rather than drawing nothing.
-    if (GFX.bloom > 0.01 && !bloomOK) markReload();
+    // Auto brightness is in the same position — aeMeter() reads the same
+    // buffer and does nothing without it — and used to give no sign at all:
+    // ticked on `performance` (built without the buffer) it sat at gain 1.00
+    // with the box checked and no "Reload to apply" (audit-settings.mjs, D).
+    if ((GFX.bloom > 0.01 || GFX.autoExposure) && !bloomOK) markReload();
 
     save();
     if (typeof window.updateSky === 'function' && _map)
@@ -1289,7 +1340,7 @@
     const fps = 1000 / med;
     GFX.autoDetected = true;
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
-    if (med > 21.5 && GFX.preset === 'balanced') {
+    if (med > 21.5 && GFX.preset === 'balanced' && !GFX.custom) {
       usePreset('performance', true);
       toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
         TOAST_PROBE_MS);
@@ -1349,6 +1400,7 @@
     const msaaWas = GFX.msaa;
     Object.assign(GFX, p);
     GFX.preset = name;
+    GFX.custom = false;
     if (!keepAuto) GFX.autoDetected = true;
     applyGraphics();
     syncMenu();
@@ -1428,7 +1480,9 @@
       '<button id="gfx-reset">Reset</button>';
     panel.appendChild(foot);
 
-    foot.querySelector('#gfx-reset').addEventListener('click', () => usePreset('balanced'));
+    // Reset means this device's default: `balanced`, or the phone profile's
+    // lighter preset on a phone (a heavier one is what that profile avoids).
+    foot.querySelector('#gfx-reset').addEventListener('click', () => usePreset(phoneDefault ? PHONE_PRESET : 'balanced'));
     foot.querySelector('#gfx-reload').addEventListener('click', () => location.reload());
     head.querySelector('#gfx-close').addEventListener('click', () => toggle(false));
     btn.addEventListener('click', () => toggle(panel.classList.contains('hidden')));
@@ -1489,7 +1543,7 @@
       cb.addEventListener('change', () => {
         cancelAutoDetect();
         GFX[s.key] = cb.checked;
-        GFX.preset = 'custom';
+        GFX.custom = true;      // `preset` keeps naming the base (see GFX)
         applyGraphics();
         syncPresetButtons();
         if (s.reload) markReload();
@@ -1510,7 +1564,7 @@
     rng.addEventListener('input', () => {
       cancelAutoDetect();
       GFX[s.key] = parseFloat(rng.value);
-      GFX.preset = 'custom';
+      GFX.custom = true;        // `preset` keeps naming the base (see GFX)
       val.textContent = fmt(GFX[s.key]);
       applyGraphics();
       syncPresetButtons();
@@ -1524,7 +1578,7 @@
   function syncPresetButtons() {
     if (!panel) return;
     for (const b of panel.querySelectorAll('.gfx-preset'))
-      b.classList.toggle('active', b.dataset.preset === GFX.preset);
+      b.classList.toggle('active', !GFX.custom && b.dataset.preset === GFX.preset);
   }
 
   function syncMenu() {
