@@ -88,8 +88,23 @@
       'props-construction', 'props-flat', 'props-pole', 'props-canopy',
       'trees-trunk', 'roofscape-minor', 'tower-detail', 'arts-panel',
       'arts-glass', 'moody-plant', 'places-glass', 'stadium-detail',
-      'drag-cap', 'wc-wall-cap',
     ],
+    // NOT IN HERE EITHER (2026-09-19): `drag-cap` and `wc-wall-cap`. They were,
+    // and they are the same bug as the three below, one pass over. Each is the
+    // ROOF of a building whose walls are pattern bands — the Drag's cap is the
+    // full footprint from the top wall band to the parapet (scripts/bake_drag.py
+    // cap()), and West Campus's is the crown band's own polygon (js/westcampus.js
+    // L_CAP: "on a full-footprint crown band the coping IS the roof plane"). With
+    // them in the fine tier, the only thing left over those roofs above the MID
+    // threshold was `roofscape-deck`, so once both tiers went the roof turned
+    // into the wall's window grid: scripts/verify/audit-lodcaps.mjs, West Campus
+    // at -97.74177,30.28025 from 170 m with the slider at 150 m —
+    // docs/shots/render-audit-lodcaps-wc-before.jpg. On `performance` (350 m,
+    // the phone default) that is any flight above ~380 m. `moody-roof` goes
+    // for the same reason: the arena's fascia is a pattern band over the whole
+    // 17,759 m^2 footprint and the cap above it only covers 15,303 m^2 of it, so
+    // hiding the roof left a ring of windows round the lid (only visible where
+    // the authored Moody mesh is off: ?slopes=0, ?apartments=0, ?lite=safe).
     // NOT IN HERE: `buildings-roof`, `parts-roof`, `outer-tower-roof`. They were,
     // and it is the bug Simeon reported as *"when i go up on low detail mode the
     // roofs of houses become windows this is pretty bad."*
@@ -102,11 +117,13 @@
     // shots/lod/detail-350.png against shots/lod/detail-1500.png.
     //
     // It is also the wrong thing to drop on its own terms: from altitude, roofs
-    // are most of what you are looking at. The seven that remain are real detail
-    // — canopy, roofscape, pitched roofs, the Moody roof, the arts cap.
+    // are most of what you are looking at. The six that remain are real detail
+    // — canopy, roofscape, pitched roofs, the arts cap. (`arts-cap` may stay:
+    // the bands it caps are flat-colour `arts-solid`, so dropping it shows the
+    // band's own colour on top, not a window grid.)
     mid: [
       'trees-canopy', 'roofscape-major', 'roofscape-deck',
-      'roofs-pitched', 'moody-roof', 'arts-cap',
+      'roofs-pitched', 'arts-cap',
       // The three.js layer (js/slopes.js) that is replacing the pitched-roof
       // slabs. Same tier as `roofs-pitched` on purpose: the real roofs and the
       // slabs go at the same altitude, whichever of them is drawing. Listing
@@ -125,6 +142,13 @@
   // (graphics.js does this for buildings-ao and the shadow layer) is not fought
   // over — we only ever restore a layer we ourselves hid.
   const _hidden = new Set();
+  // Each tier's own state, for the hysteresis. It used to be read off
+  // `_hidden.has(TIERS[tier][0])` — the FIRST id in the list — and that id
+  // only enters `_hidden` once its layer exists. `props-lit` and `trees-canopy`
+  // arrive after their own fetches, so until they land (or in any scene that
+  // lacks them) the tier always read "not hidden": no hysteresis at all, one
+  // threshold at +8 %, and a camera hovering on it toggles the whole tier.
+  const _tierHidden = { fine: false, mid: false };
 
   function distance() {
     const g = window.GFX;
@@ -139,12 +163,22 @@
       const a = window.__fly && window.__fly.eye().alt;
       if (isFinite(a) && a > 0) return a;
     } catch (e) {}
-    // No flight controller (a bare map or a shot script driving jumpTo): derive
-    // it the way atmosphere.js used to. This is the same closed form MapLibre
-    // uses internally, not an estimate.
+    // No flight controller (a bare map, an embed, or a shot script driving
+    // jumpTo). `cameraToCenterDistance / pixelsPerMeter` is the SLANT RANGE —
+    // eye to the look-at point down the view ray — not the height above it,
+    // and this used to return it as though it were the altitude. At the app's
+    // ordinary 70 deg pitch that over-reads by 1 / cos(70 deg) = 2.92x, so
+    // every tier dropped at about a third of the altitude it was meant to.
+    // cos(pitch) is the whole correction: measured against
+    // window.__fly.eye().alt over 16 poses at pitch 70 and 62, from 40 m to
+    // 900 m, it agrees to within 0.06 m (scripts/verify/audit-camera.mjs).
+    // NOT a defect anyone has seen on the site — index.html loads
+    // js/controls.js before js/app.js creates the map, so window.__fly is
+    // always there first and this branch does not run. It runs in harnesses
+    // and embeds, which is exactly where a 2.92x error is hardest to notice.
     try {
       const t = _map.transform;
-      const a = t.cameraToCenterDistance / t.pixelsPerMeter;
+      const a = (t.cameraToCenterDistance / t.pixelsPerMeter) * Math.cos((t.pitch || 0) * Math.PI / 180);
       if (isFinite(a) && a > 0) return a;
     } catch (e) {}
     return 0;
@@ -154,7 +188,7 @@
     if (!isFinite(D)) return false;
     const thr = tier === 'fine' ? D * LOD.fineAt : D;
     // Hysteresis: once hidden it takes a real move back inside to return.
-    const isHidden = _hidden.has(TIERS[tier][0]);
+    const isHidden = _tierHidden[tier];
     return isHidden ? alt > thr * (1 - LOD.hysteresis) : alt > thr * (1 + LOD.hysteresis);
   }
 
@@ -206,6 +240,7 @@
     const D = distance();
     for (const tier of ['fine', 'mid']) {
       const hide = wantHidden(tier, alt, D);
+      _tierHidden[tier] = hide;
       for (const id of TIERS[tier]) {
         if (!_map.getLayer(id)) continue;
         if (hide) {
