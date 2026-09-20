@@ -24,7 +24,8 @@ slug) where those exist:
 | Field | What it is |
 |---|---|
 | `area_m2` | Area of **our** footprint polygon (EPSG:3857, corrected by cos(lat)) |
-| `inv_area_m2`, `foot_ratio` | The target list's own footprint area for the same building, and ours over it. **0.5–2.0 is fine.** Outside that our polygon is a fragment; outside 0.25–3.5 no height is published at all |
+| `match` | How we found this building's footprint: `snapshot_id` (the target list names the snapshot feature — identity) or `centroid` (nearest polygon within 40 m — proximity). **Read it before `foot_ratio`**; 462 rows are `snapshot_id`, 90 are `centroid` |
+| `inv_area_m2`, `foot_ratio` | The target list's own footprint area for the same building, and ours over it. **0.5–2.0 is fine.** Outside that our polygon is a fragment; outside 0.25–3.5 no height is published at all. **An independent comparison only where `match` is `centroid`** — see below |
 | `ground_z` | Median class-2 (ground) elevation in a 14 m ring just outside the footprint, in metres above the lidar datum |
 | `gnd_in_dz` | Median class-2 height *inside* the footprint relative to `ground_z`. A few metres negative is an excavated basement |
 | `h_max` | Tallest class-6 (building) point inside the footprint, above `ground_z` |
@@ -34,7 +35,7 @@ slug) where those exist:
 | `slope_med`, `flat_pct`, `fill` | Median cell-to-cell slope of that raster in degrees, % of cells below 10°, and % of the raster's bounding box that carries any return |
 | `roof` | `flat` / `pitched` / `mixed`, from the slope histogram of that raster |
 | `roof_no` | Present *instead of* `roof` when a guard declined the call: `roof_too_small`, `too_sparse`, `raster_patchy`, `facade_not_roof`, `no_slope` |
-| `roof_conf` | 0..1 confidence. **Capped at 0.45 when `split_agree` is false and at 0.6 on a partial footprint**, so the number can be read on its own |
+| `roof_conf` | 0..1 confidence. **Capped at 0.45 when `split_agree` is false, at 0.6 on a partial footprint, and at 0.45 on a `late_build` row** (where the roof being described is the 2017 site's, not the building's), so the number can be read on its own |
 | `split_agree` | Both random halves of the points gave the same verdict. This is *repeatability*, not correctness — a biased estimator agrees with itself perfectly — so it only ever lowers `roof_conf` |
 | `n`, `d`, `noise_n` | Class-6 points inside the footprint, those points per m², and the ASPRS class 7/18 noise returns dropped before anything was measured |
 | `h_nv` | 99th percentile of every non-vegetation, non-noise return inside the footprint. **A question, never a height** — see below |
@@ -53,8 +54,43 @@ downtown ones among them — and get matched by nearest centroid onto
 their real footprint; they now ship with **no height at all**, and twenty more
 in the 0.25–0.5 band ship flagged. Nothing downstream could previously tell.
 
+#### …and it only tests those ninety. Read `match` first.
+
+`foot_ratio` is **not** an independent check on the other 462 buildings, and an
+earlier version of this page said it was. Where `match` is `snapshot_id` the
+target list *names* the snapshot feature we then measure, so its
+`footprint_area_m2` and our `area_m2` are the **same polygon put through two
+formulas** — theirs with 110540 m per degree, ours with 111320 — and the ratio
+collapses to that constant, 111320/110540 = **1.007**:
+
+| | rows | inside 1.000–1.015 | flagged by `foot_ratio` |
+|---|---:|---:|---:|
+| `match: snapshot_id` | 462 | 401 | **2** |
+| `match: centroid` | 90 | 16 | **48** |
+
+Recomputing four of them from the snapshot geometry gives our own number back,
+not an agreeing one: Battle Hall 1245.5 m² against the list's 1237, PCL 6987.2
+against 6940, The Castilian 2855.2 against 2836, Dobie 4997.9 against 4964 — all
+1.007. **A wrong `snapshot_ids` entry would sail through at 1.007 and ship
+`trust: good`.** The guard sits exactly where the known failure lives, which is
+the centroid set; it buys nothing on the id-matched set, and it should never be
+read as corroboration there.
+
+What *does* test an id-matched footprint is the **city polygon** — an outline
+somebody else drew, which is the only genuinely independent geometry the file
+carries. The mechanism is visible on the Paramount Theatre: our 111.8 m² sliver
+reads **41×** against the city's polygon, and a sliver cut from the wrong
+snapshot feature would read the same way. So `city_cover` and `city_ratio` are
+the footprint evidence for the 462, and `foot_ratio` is the footprint evidence
+for the 90. Neither covers a building the city layer does not carry.
+
 **`late_build`** marks the 34 buildings where the lidar is measuring whatever
-stood on the site in 2017 rather than what stands there now.
+stood on the site in 2017 rather than what stands there now. Ten of them used to
+ship a roof verdict at `roof_conf` ≥ 0.70 — The Standard flat at 0.92, Union on
+San Antonio flat at 0.88 — describing a roof that belonged to whatever the
+developer demolished. The verdict is repeatable and it is about the wrong
+building, so `roof_conf` is now capped at 0.45 on every `late_build` row. None
+is above it.
 
 **`city_ratio` above 2** means the city drew a whole block as one polygon that
 happens to contain us, and its height belongs to somebody else's building.
@@ -99,7 +135,15 @@ python scripts/bake_massing.py --plan     # how many octree nodes, how much to d
 python scripts/bake_massing.py            # the bake (resumable — safe to interrupt)
 python scripts/bake_massing.py --only welch-hall,the-castilian
 python scripts/bake_massing.py --osm-refresh   # re-match OSM ids only, no lidar work
+python scripts/bake_massing.py --check         # assert this page against the shipped file
 ```
+
+**`--check` is the evidence for this page.** Every claim below that can be
+stated as an invariant is an assertion in it, run against `data/massing.json`
+itself: 28 assertions, 0 failing. It is checked against deliberate damage too —
+raising one `late_build` roof to 0.92, corrupting one `match` value, and
+editing two meta counts makes exactly those four assertions fail, and nothing
+else, and the command exits 1.
 
 **That reproduces from a clean checkout.** The 553-building target list is
 committed as `data/massing_targets.json` (119 KB: slug, name, area, tier,
@@ -113,10 +157,34 @@ different ids and looked like a successful run.
 Downloaded octree nodes are cached **outside the repo** (`--cache`, default
 `%TEMP%/austin-massing-cache`, or `$AUSTIN_MASSING_CACHE`), and every measured
 building is cached too, so an interrupted run resumes without re-measuring
-anything. Each building's split-half test is seeded from its own key, so
+anything. Re-running against a full cache re-applies every trust threshold to
+the stored rows without touching a point — with one exception, which the code
+now states: the three failure reasons `measure()` reads off the raw returns
+(`tree_cover`, `vacant_in_2017`, `construction_in_2017`, 14 rows between them)
+are *carried through*, not re-derived, because nothing stored on a failure row
+could reconstruct them. Changing those thresholds needs `--force`.
+
+Each building's split-half test is seeded from its own key, so
 `--only <one building>` reproduces exactly what a full run gives it: re-running
-eight buildings with `--only --force` against the cache reproduced **297 of 297
-fields, 0 differing.**
+eight buildings with `--only --force` against the cache reproduced **317 of 317
+fields, 0 differing** — `osm` included.
+
+`osm` used to be the one field that could come out different, and it took two
+fixes to make that sentence true:
+
+1. **The Overpass extent is drawn round the whole target list, never round the
+   `--only` selection**, and the cached extract now records the bbox it was
+   fetched for. Keyed by directory alone, the first `--only` run to touch a
+   cache silently decided the extent for every full run after it.
+2. **A failed Overpass fetch is now an error, not a shrug.** Overpass answered
+   `504 Gateway Timeout` twice in a row while this was being checked. The old
+   code logged one line, returned an empty list, and wrote a completely
+   normal-looking `data/massing.json` with all 487 OSM join keys removed. Pass
+   `--no-osm` if you genuinely mean to publish without them.
+
+Measured, a narrow bbox was *not* what dropped an id: refetched for five
+buildings it returned 467 ways and matched all five exactly as the full
+9704-element extract does. The 504 was.
 
 ### Four traps that cost real hours
 
@@ -149,14 +217,20 @@ the USGS_LPC_TX_Central_B1_2017 flight (acquired 2017-02-16 to 2017-03-14).
 | `footprint_mismatch` (no height published) | 30 | our polygon is not this building |
 | `footprint_partial` (flagged, height kept) | 20 | our polygon is a fragment of it |
 | `late_build` (finished after the 2017 flight) | 34 | the height is the SITE's, not the building's |
-| City polygon covers <90% of our footprint | 106 | the city drew our building as several polygons |
-| City polygon more than 2× our footprint | 127 | the city polygon is a whole block |
+| City polygon covers <90% of our footprint | 127 | of which 106 carry the `city_polygon_is_part` flag |
+| City polygon more than 2× our footprint | 152 | of which 127 carry the `city_polygon_is_a_block` flag |
 | OSM id resolved | 487 | |
 | `data/apartments` slug joined | 43 | |
 | Class-6 density | 0.10–12.33 pts/m² | median 4.73 |
 
 **Nothing with a `foot_ratio` outside 0.25–3.5 ships a height, a density or a
 roof form. That assertion is checked on the shipped file: 0 rows violate it.**
+
+The last two rows are a *condition* counted over the file, not a flag count, and
+the two differ: a flag can only fire where the measurement it guards exists.
+`meta.conditions` and `meta.flags` in `data/massing.json` now carry both, so
+neither can be quoted under the other's name again — which is how this table
+came to report 106 and 127 for a file holding 127 and 152.
 
 ### The 44 it could not answer
 
@@ -270,12 +344,18 @@ scouting round proposed coverage; measured, it is `city_ratio` that separates a
 usable city height from an unusable one, and coverage only looks clean once you
 have already excluded the high-ratio buildings with the flag it cannot see.
 
-The clearest example is Red McCombs Red Zone: our footprint is right (2103 m²
-against the target list's 2089 m²) and the city's polygon is **19.0× that** —
-73.23 m for a 38.88 m building, because the polygon is the stadium. The
-Paramount Theatre used to be quoted here at 41×; that figure was inflated ten
-times over by **our own** 111.8 m² sliver, and against the real 1102 m²
-footprint the city polygon is 4.2×. The Paramount is now refused outright. The
+The clearest example is Red McCombs Red Zone: the city's polygon is **19.0×**
+our footprint — 73.23 m for a 38.88 m building, because the polygon is the
+stadium. Our own 2103 m² footprint is the snapshot's polygon for the feature the
+target list names (`match: snapshot_id`), so the list's 2089 m² is *that same
+polygon* and the 1.007 ratio between them is not evidence of anything; an
+earlier version of this paragraph offered it as evidence that "our footprint is
+right". What says our footprint is sane here is that it is the polygon the app
+itself draws, and that the 19× is a difference in *shape*, not in measurement.
+The Paramount Theatre used to be quoted here at 41×; that figure was inflated
+ten times over by **our own** 111.8 m² sliver, and against the real 1102 m²
+footprint the city polygon is 4.2×. The Paramount is a `centroid` row, which is
+why `foot_ratio` caught it at 0.101 and it is now refused outright. The
 conclusion survives the correction — 152 buildings have a `city_ratio` above 2,
 and 122 of them are still above 2× when the ratio is recomputed against the
 target list's own footprint area instead of ours — but the example did not.
@@ -342,13 +422,31 @@ Three guards close that, and all three are one-line taste constants:
   360 Condominiums at 50.7°, which used to ship `pitched` at 0.67.
 - `MIN_FILL_FOR_ROOF = 25%` — the raster must actually cover its own bounding
   box. 100 Congress used to ship a verdict at 14.3% fill.
-- `roof_conf` is now capped at 0.45 when the halves disagree and at 0.6 on a
-  partial footprint. **111 shipped verdicts have `split_agree` false; none of
-  them carries `roof_conf` ≥ 0.70.** Before, 46 did.
+- `roof_conf` is now capped at 0.45 when the halves disagree, at 0.6 on a
+  partial footprint, and at 0.45 on a `late_build` row. **111 shipped verdicts
+  have `split_agree` false; none of them carries `roof_conf` ≥ 0.70.** Before,
+  46 did. **31 shipped verdicts sit on a `late_build` row; none carries ≥ 0.70
+  either.** Before, 10 did, up to 1.00 — a perfectly repeatable reading of the
+  building that used to stand there.
+
+A fourth guard is *not* code, and it is worth being plain about. `roof_conf`
+answers "would this verdict survive being re-measured", and the three caps
+above are the only things that pull it down. It is silent about whether the
+polygon we rasterised is the right building at all — that question belongs to
+`match`, `foot_ratio` and `city_ratio`, and a reader who ignores them can still
+be handed a confident, repeatable, correct measurement of the wrong roof.
 
 Below ~200 m² and below ~1 pt/m² no call is made at all. Between those and about
 1000 m² a verdict is repeatable roughly seven or eight times in ten, which is
 worth acting on in aggregate and not worth acting on for one named building.
+
+The thinnest verdict still shipping is **The Quincy**: 1.11 pts/m² against a
+1.00 floor and 29.1% fill against a 25% floor, on a 2725 m² roof — both guards
+cleared by a hair, on a building the 2017 flight predates. It ships `flat`. Look
+at the row and the file tells you so itself: `roof_conf` 0.45, `split_agree`
+false, `trust: poor`, `why: built_after_2017`. That is the guards working as
+designed rather than a defect, but it is the row to look at first if a roof
+figure ever turns out to be wrong.
 
 ---
 
@@ -357,15 +455,42 @@ worth acting on in aggregate and not worth acting on for one named building.
 | Source | Position |
 |---|---|
 | **USGS 3DEP lidar** (`USGS_LPC_TX_Central_B1_2017_LAS_2019`, EPT on the AWS `usgs-lidar-public` bucket) | **US public domain.** Redistributable. Everything in `data/massing.json` derived from the point cloud is ours to ship. |
-| **City of Austin** `UTILITIESCOMMUNICATION_building_footprints_2017` | The city catalogue says **"See Terms of Use"** — *not* an explicit public-domain dedication. We store the derived height number and the OBJECTID, which are facts; we do not redistribute the polygons. |
+| **City of Austin** `UTILITIESCOMMUNICATION_building_footprints_2017` | **No licence grant of any kind, and certainly not a public-domain one.** We store the derived height number and the OBJECTID, which are facts; we do not redistribute the polygons. |
 | **OpenStreetMap** (ids only) | ODbL. Only the id string is kept, as a join key. |
 
-⚠️ **Seventeen tracked files describe that City of Austin layer as "public
+What the city layer actually says, checked 2026-09-20 against the live service
+and ArcGIS Online:
+
+- the FeatureServer (`services.arcgis.com/0L95CJ0VTaxqcmED/…/FeatureServer`,
+  and its layer 0) carries an **empty `copyrightText` and no `licenseInfo`
+  field at all**;
+- the City's own catalogue item for that service — AGOL item
+  `652d553ee993461289a2d68b464044dc`, owner `CTM.Publisher`, titled
+  `STRUCTURE_building_footprints_2017` — carries a **liability disclaimer** as
+  its licence text: informational purposes only, not a survey, no warranty of
+  accuracy from the City. That is a disclaimer of responsibility, not a grant
+  of rights;
+- the second AGOL item pointing at the same service
+  (`21c97031f02d40ddbc13fb37de2cab34`) is owned by a **UT Austin account**, not
+  the City, and has no licence text either.
+
+An earlier version of this page quoted the catalogue as saying *"See Terms of
+Use"*. **That string could not be confirmed** in either item or in the service
+metadata; the disclaimer above is what is actually there. The conclusion is
+unchanged and slightly stronger — silence is not a public-domain dedication.
+
+⚠️ **Twenty tracked files describe that City of Austin layer as "public
 domain":** `docs/campus-truth/*.md` line 9 in each of BAT, BTL, BUR, CAL, GAR,
-GOL, GRE, HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL, plus
-`docs/campus-truth/README.md` line 35, and a line in `HANDOFF.md`. That claim
-does not match the city catalogue. **Flagged, not fixed** — those files are not
-this bake's to edit.
+GOL, GRE, HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL (16), plus
+`docs/campus-truth/README.md` line 35, a line in `HANDOFF.md`,
+`docs/campus-detail-verdict.md` line 203, and **`data/campus_truth.json`**,
+which repeats `"… ArcGIS FeatureServer; public domain"` in its
+`austin_footprint_source` field for all 16 buildings. (The previous count here
+said seventeen and then listed eighteen; the two data-side claims were missed
+entirely.) Two further tracked files — `docs/walkways-widths.md` line 56 and
+`scripts/trace_walk_widths.py` line 28 — make the same claim about *City of
+Austin open data* in general, for the impervious-surface layer. **Flagged, not
+fixed** — none of those files is this bake's to edit.
 
 ---
 
@@ -382,9 +507,13 @@ this bake's to edit.
 - **Nothing under a tree.** Where a canopy closes over a small roof, the
   class-6 return count collapses and the bake declines to answer.
 - **Nothing about a building we pointed it at wrongly.** Thirty of the 552 were
-  measured on somebody else's patch of ground, and the only reason we know is
-  that the target list carries an independent footprint area. Fixing those means
-  giving downtown real per-building footprints; that is a separate job.
+  measured on somebody else's patch of ground. We know because those thirty are
+  `match: centroid` rows, where the target list's footprint area came off a
+  *different* polygon and disagreed with ours. On the 462 `match: snapshot_id`
+  rows that comparison is a polygon against itself and would not catch the same
+  mistake — there the check is `city_cover`/`city_ratio`, or nothing. Fixing the
+  thirty means giving downtown real per-building footprints; that is a separate
+  job, and it is also what would make the cross-check independent everywhere.
 - **No interiors, no floor lines.** Storey counts come from permits and
   appraisal records, not from here. Height ÷ storeys is the useful join, and
   the storey half of it is a different bake.

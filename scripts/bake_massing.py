@@ -18,8 +18,13 @@ What it measures, per building, from the 2017 USGS_LPC_TX_Central_B1 point cloud
   roof_conf  0..1 confidence in that verdict, capped when the two random halves
              of the points disagree or the footprint is a fragment
   n, d       class-6 point count inside the footprint, and points per m^2
+  match      how we found this building's footprint: "snapshot_id" (the
+             inventory names the snapshot feature) or "centroid" (nearest
+             polygon within 40 m). It decides what foot_ratio is worth
   foot_ratio our footprint's area over the inventory's own figure for the same
-             building. Outside 0.25-3.5 we publish no height at all
+             building. Outside 0.25-3.5 we publish no height at all. INDEPENDENT
+             ONLY WHEN match="centroid": on a snapshot_id row both numbers are
+             the same polygon measured two ways and the ratio is a constant 1.007
   city_h     City of Austin 2017 footprint height (ELEVATION - BASE_ELEVATION, ft->m)
   city_cover fraction of OUR footprint the city polygon covers, and
   city_ratio that polygon's area over ours. TRUST FLAGS, and they fail in
@@ -51,7 +56,9 @@ Gotchas that cost the scouting round real time - do not rediscover them:
   * A height with no footprint check is worthless. 90 of the model-area
     buildings are absent from the detailed snapshot and get matched by nearest
     centroid onto the tiled outer ring; that match landed on a 12 m^2 corner of
-    a 4029 m^2 tower and nothing downstream could see it. foot_ratio is the test.
+    a 4029 m^2 tower and nothing downstream could see it. foot_ratio is the test
+    FOR THOSE 90 ONLY - see the FOOT_OK comment. The other 462 are matched by
+    snapshot id, and there the ratio compares a polygon with itself.
   * Non-class-6 returns are NOT a spare roof. Class 1 over a 2017 construction
     site is the tower crane, and class 7 is noise. Neither is promoted to a height.
 """
@@ -116,14 +123,29 @@ MAX_SLOPE_FOR_ROOF = 45.0   # deg. A median cell-to-cell slope above this is not
                             # rasterised in plan. Towers measured through a sliver
                             # footprint read 70-80 deg and used to ship as "pitched".
 SPLIT_FAIL_CONF = 0.45      # roof_conf ceiling once the two random halves disagree
+LATE_CONF = 0.45        # roof_conf ceiling on a late_build row. The roof is real,
+                        # but it is the 2017 SITE's roof, not this building's:
+                        # ten rows used to ship a flat/pitched verdict at 0.75-1.00
+                        # describing whatever stood here before the tower did.
 CITY_TRUST = 0.90       # city polygon must cover this much of our footprint
 CITY_RATIO_MAX = 2.0    # ... and be no more than this many times its area
 # Our footprint area over the inventory's own footprint_area_m2 for the same
 # building. Inside FOOT_OK we say nothing; between FOOT_OK and FOOT_REFUSE the
 # footprint is a fragment (heights survive, area/density/roof do not); outside
 # FOOT_REFUSE we publish no height at all, because we cannot say what we measured.
+#
+# READ match FIRST. This ratio is only an INDEPENDENT comparison on the rows
+# matched by centroid (match="centroid"), where the inventory's area was
+# measured on a different polygon from ours. On a match="snapshot_id" row the
+# inventory names the very snapshot feature we measure, so both numbers describe
+# the SAME polygon and the ratio collapses to the two formulas' constant,
+# 111320/110540 = 1.007: 401 of 462 such rows sit inside 1.000-1.015 and only 2
+# are flagged, against 48 of the 90 centroid rows. It cannot catch a wrong
+# snapshot_id. What tests those footprints is the city polygon - city_cover and
+# city_ratio, an outline drawn by somebody else.
 FOOT_OK = (0.5, 2.0)
 FOOT_REFUSE = (0.25, 3.5)
+FOOT_CONST = (1.000, 1.015)   # the degenerate band: same polygon, two formulas
 FOOT_PART_CONF = 0.6    # roof_conf ceiling on a fragment of a footprint
 PIT_DEPTH = 2.0         # m. Class-2 ground INSIDE the footprint sitting this far
                         # below the ring outside it is an excavated basement:
@@ -409,6 +431,10 @@ def load_targets(repo, snapshot, inventory_path=None, log=print):
                 slug=b.get("slug"), name=b.get("name"), area=b.get("area"),
                 tier=b.get("tier"), snapshot_ids=[f["properties"]["id"] for f in got],
                 inv_h=b.get("height_m"), inv_area=b.get("footprint_area_m2"),
+                # The inventory NAMED these features, so its footprint_area_m2 is
+                # our own polygon measured with a different earth constant.
+                # foot_ratio cannot be an independent check here; record that.
+                match="snapshot_id",
                 snap_h=got[0]["properties"].get("final_height"),
                 snap_floors=got[0]["properties"].get("num_floors"))
             matched += 1
@@ -421,10 +447,12 @@ def load_targets(repo, snapshot, inventory_path=None, log=print):
                     best = (d, polys, props, src)
             if best and best[0] < 40.0:
                 key = best[2].get("id") or ("inv:" + b["slug"])
+                # Proximity, not identity: a different polygon supplies the area,
+                # so foot_ratio is a real cross-check on exactly these rows.
                 add(key, best[1], slug=b.get("slug"), name=b.get("name"),
                     area=b.get("area"), tier=b.get("tier"), snapshot_ids=[],
                     inv_h=b.get("height_m"), inv_area=b.get("footprint_area_m2"),
-                    src_file=best[3])
+                    match="centroid", src_file=best[3])
                 matched += 1
     if inv:
         log("  inventory footprints resolved: %d of %d" % (matched, len(inv)))
@@ -596,23 +624,78 @@ class CityFootprints(object):
 # OSM ids (join convenience only - never a source of truth here)
 # ---------------------------------------------------------------------------
 
-def load_osm(cache, bbox, log=print):
+def osm_bbox(targets):
+    """Overpass extent for a target list, padded. Always the FULL list."""
+    lons = [t["lon"] for t in targets]
+    lats = [t["lat"] for t in targets]
+    return (min(lons) - 0.002, min(lats) - 0.002, max(lons) + 0.002, max(lats) + 0.002)
+
+
+def load_osm(cache, bbox, log=print, required=True):
+    """The Overpass extract for bbox, cached.
+
+    Overpass answers 504 under load often enough to matter - it did it twice in
+    a row while this was being checked. That used to cost one log line and then
+    a normal-looking bake: every osm id in the run silently became null, and
+    data/massing.json was rewritten with 487 join keys removed and nothing in it
+    saying why. A run whose OSM fetch failed is now an ERROR unless --no-osm
+    says the operator meant it.
+    """
     path = os.path.join(cache, "osm_buildings.json")
+    bpath = path + ".bbox"
+    # The cache file used to be keyed by its directory alone, so the FIRST run to
+    # touch a cache froze the extent for every run after it. A --only run drew a
+    # bbox round its own handful of buildings, and every later full run silently
+    # matched OSM ids against that little window. The bbox the extract was
+    # fetched for is recorded next to it now, and a request outside it refetches.
+    if os.path.exists(path) and os.path.exists(bpath):
+        try:
+            old = json.load(open(bpath))
+            if not (old[0] <= bbox[0] and old[1] <= bbox[1]
+                    and old[2] >= bbox[2] and old[3] >= bbox[3]):
+                log("  osm cache covers %s, need %s - refetching"
+                    % (["%.4f" % v for v in old], ["%.4f" % v for v in bbox]))
+                os.remove(path)
+        except Exception:
+            pass
+    elif os.path.exists(path):
+        log("  osm cache has no recorded bbox (fetched by an older bake); "
+            "delete %s to be sure of its extent" % path)
     if not os.path.exists(path):
+        log("  overpass bbox %s" % ["%.4f" % v for v in bbox])
         q = ('[out:json][timeout:180];(way["building"](%f,%f,%f,%f);'
              'relation["building"](%f,%f,%f,%f););out geom;') % (
             bbox[1], bbox[0], bbox[3], bbox[2], bbox[1], bbox[0], bbox[3], bbox[2])
-        try:
-            req = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({"data": q}).encode(),
-                                         headers=UA)
-            d = urllib.request.urlopen(req, timeout=300).read()
-            open(path, "wb").write(d)
-        except Exception as e:
-            log("  overpass failed (%s) - osm ids will be null" % str(e)[:60])
+        last = None
+        for attempt, wait in enumerate((0, 15, 45)):
+            if wait:
+                time.sleep(wait)
+            try:
+                req = urllib.request.Request(
+                    OVERPASS, data=urllib.parse.urlencode({"data": q}).encode(), headers=UA)
+                d = urllib.request.urlopen(req, timeout=300).read()
+                open(path, "wb").write(d)
+                json.dump(list(bbox), open(bpath, "w"))
+                last = None
+                break
+            except Exception as e:
+                last = e
+                log("  overpass attempt %d failed (%s)" % (attempt + 1, str(e)[:60]))
+        if last is not None:
+            if required:
+                raise RuntimeError(
+                    "Overpass failed 3 times (%s). Every osm id in this run would "
+                    "be null and the output would look normal, so the bake stops "
+                    "here. Re-run it, or pass --no-osm if you mean to publish "
+                    "without join keys." % str(last)[:80])
+            log("  overpass failed - osm ids will be null (--no-osm)")
             return []
     try:
         j = json.load(open(path, encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        # This used to return [] in silence, which is indistinguishable from
+        # "no buildings here" and quietly drops every osm id in the run.
+        log("  osm cache unreadable (%s) - osm ids will be null" % str(e)[:60])
         return []
     out = []
     for e in j.get("elements", []):
@@ -779,11 +862,16 @@ def measure(t, pts, city, oidx, rng):
     # snapshot and are matched by nearest centroid onto data/outer_ring.geojson,
     # which is drawn as tiles: that match can land on a 12 m^2 corner of a 4000
     # m^2 tower. Without this test nothing downstream can tell.
+    #
+    # It is a test on THOSE rows. Where match="snapshot_id" the inventory's
+    # area was measured on the polygon we are measuring now, so the ratio is the
+    # two formulas' constant and proves nothing; `match` ships so a reader can
+    # tell the two cases apart instead of reading 1.007 as agreement.
     if t.get("inv_area"):
         res["inv_area_m2"] = t["inv_area"]
         res["foot_ratio"] = round(area / float(t["inv_area"]), 3)
     for k in ("slug", "name", "apartment", "area", "tier", "snap_h", "snap_floors",
-              "inv_h", "auth_h"):
+              "inv_h", "auth_h", "match"):
         if t.get(k) not in (None, ""):
             res["nbhd" if k == "area" else k] = t[k]
 
@@ -931,6 +1019,12 @@ def assess(res):
 
     Kept separate from the measurement so the thresholds above can be changed
     and re-applied to the cached results without re-reading a single point.
+
+    ONE EXCEPTION, and it is not re-derivable here: the failure reasons that
+    measure() decides from the raw returns - tree_cover, vacant_in_2017,
+    construction_in_2017 - are carried through, not recomputed. Nothing stored
+    on a failure row can reconstruct them (the points are gone), so changing
+    those thresholds needs --force, not a rewrite. 14 rows are in that state.
     """
     # -- the footprint cross-check runs first and can veto everything else ----
     fr = res.get("foot_ratio")
@@ -975,6 +1069,13 @@ def assess(res):
     if sh and (sh - res["h_max"]) > LATE_GAP:
         res["late_build"] = True
         why.append("built_after_2017")
+        # The roof verdict describes whatever stood on this site in 2017, not
+        # this building. It can be a perfectly repeatable reading of the wrong
+        # roof: the-standard shipped "flat" at 0.92 and union-on-san-antonio
+        # "flat" at 0.88 for buildings that did not exist when the plane flew.
+        # roof_conf is meant to be readable on its own, so cap it here too.
+        if res.get("roof_conf") is not None:
+            res["roof_conf"] = min(res["roof_conf"], LATE_CONF)
     elif sh and (res["h_max"] - sh) > LATE_GAP and not res.get("city_h"):
         # The other direction, which nothing used to catch: the lidar reads far
         # ABOVE everything the model claims, on a footprint the 2017 city layer
@@ -1047,11 +1148,16 @@ def main():
     ap.add_argument("--only", default=None, help="comma-separated ids or slugs")
     ap.add_argument("--plan", action="store_true", help="report the node plan and stop")
     ap.add_argument("--report", action="store_true", help="print the summary table from the cache")
+    ap.add_argument("--check", action="store_true",
+                    help="assert the published invariants on data/massing.json and stop")
     ap.add_argument("--force", action="store_true", help="re-measure cached buildings")
     ap.add_argument("--osm-refresh", action="store_true",
                     help="re-match OSM ids against the cached results and rewrite the output "
                          "(no lidar work; use after widening the Overpass bbox)")
     ap.add_argument("--no-city", action="store_true")
+    ap.add_argument("--no-osm", action="store_true",
+                    help="publish without OSM join keys instead of erroring when "
+                         "the Overpass fetch fails")
     a = ap.parse_args()
 
     repo = a.repo
@@ -1064,6 +1170,10 @@ def main():
 
     def log(*m):
         print(*m, flush=True)
+
+    if a.check:
+        log("checking %s" % out_path)
+        sys.exit(1 if check(out_path, log) else 0)
 
     log("snapshot %s | cache %s" % (snapshot, a.cache))
     inv_path = a.inventory or os.path.join(repo, TARGETS_FILE)
@@ -1102,6 +1212,17 @@ def main():
                                 name=f["properties"].get("name"), snapshot_ids=[pid]))
     attach_apartments(repo, targets, log)
 
+    # The Overpass extent is drawn round the WHOLE target list, never round the
+    # selection, so --only cannot fetch a different extract from a full run's.
+    #
+    # Measured, a narrow bbox was NOT what dropped an osm id: refetched for five
+    # buildings it returned 467 ways and matched all five exactly as the full
+    # 9704-element extract does (capitol w25758443, welch-hall None in both).
+    # The id that went missing went missing to an Overpass 504 - see load_osm.
+    # What a per-selection bbox really did was freeze a cache: the extract was
+    # keyed by its directory alone, so the first --only run to touch a cache
+    # decided the extent for every full run after it. Both ends are closed now.
+    all_targets = list(targets)
     if a.only:
         want = set(s.strip() for s in a.only.split(","))
         targets = [t for t in targets if t["key"] in want or t.get("slug") in want]
@@ -1128,10 +1249,8 @@ def main():
 
     if a.osm_refresh:
         done = {r["id"]: r for r in json.load(open(results_path))}
-        lons = [t["lon"] for t in targets]
-        lats = [t["lat"] for t in targets]
-        bbox = (min(lons) - 0.002, min(lats) - 0.002, max(lons) + 0.002, max(lats) + 0.002)
-        oidx = osm_index(load_osm(a.cache, bbox, log))
+        bbox = osm_bbox(all_targets)
+        oidx = osm_index(load_osm(a.cache, bbox, log, required=not a.no_osm))
         hit = 0
         for t in targets:
             r = done.get(t["key"])
@@ -1158,10 +1277,8 @@ def main():
         except Exception:
             done = {}
 
-    lons = [t["lon"] for t in targets]
-    lats = [t["lat"] for t in targets]
-    bbox = (min(lons) - 0.002, min(lats) - 0.002, max(lons) + 0.002, max(lats) + 0.002)
-    oidx = osm_index(load_osm(a.cache, bbox, log))
+    bbox = osm_bbox(all_targets)
+    oidx = osm_index(load_osm(a.cache, bbox, log, required=not a.no_osm))
     city = None if a.no_city else CityFootprints(a.cache, log)
 
     todo = [t for t in targets if a.force or t["key"] not in done]
@@ -1243,6 +1360,96 @@ def main():
     summary(rows, log)
 
 
+def check(path, log=print):
+    """Assert, on the SHIPPED file, every invariant this bake's page claims.
+
+    The page is not the evidence; this is. Each assertion below is a sentence
+    somewhere in docs/massing-from-lidar.md, and a page that drifts off the file
+    fails here rather than being believed. Returns the number of failures.
+    """
+    doc = json.load(open(path, encoding="utf-8"))
+    rows, meta = doc["buildings"], doc["meta"]
+    bad = []
+    ran = []
+
+    def want(cond, msg):
+        ran.append(msg)
+        log("  %s  %s" % ("ok  " if cond else "FAIL", msg))
+        if not cond:
+            bad.append(msg)
+
+    measured = [r for r in rows if r.get("h_p99") is not None]
+    want(all(r.get("match") in ("snapshot_id", "centroid") for r in rows),
+         "every row records how its footprint was matched")
+    want(not [r for r in rows
+              if r.get("foot_ratio") is not None
+              and not (FOOT_REFUSE[0] <= r["foot_ratio"] <= FOOT_REFUSE[1])
+              and any(r.get(k) is not None for k in ("h_max", "d", "roof"))],
+         "no height, density or roof form outside foot_ratio %s" % (FOOT_REFUSE,))
+    want(not [r for r in rows if r.get("split_agree") is False
+              and (r.get("roof_conf") or 0) >= 0.70],
+         "no roof verdict at conf >= 0.70 that its own halves will not reproduce")
+    want(not [r for r in rows if r.get("late_build")
+              and (r.get("roof_conf") or 0) >= 0.70],
+         "no roof verdict at conf >= 0.70 on a building the 2017 flight predates")
+    want(not [r for r in rows if "footprint_partial" in (r.get("why") or "")
+              and (r.get("roof_conf") or 0) > FOOT_PART_CONF],
+         "no roof verdict above %.2f on a fragment of a footprint" % FOOT_PART_CONF)
+    want(not [r for r in rows if "footprint_mismatch" in (r.get("why") or "")
+              and r.get("h_max") is not None],
+         "no height at all where the polygon is not the building")
+
+    # The counts the page quotes have to be the file's counts. A flag count and
+    # the count of rows meeting that flag's condition are DIFFERENT numbers and
+    # the page has already confused them once, so both are published and both
+    # are re-derived here.
+    cond = meta.get("conditions", {})
+    want(cond.get("city_cover_lt_0_90") == sum(
+        1 for r in rows if r.get("city_cover") is not None and r["city_cover"] < CITY_TRUST),
+         "meta.conditions.city_cover_lt_0_90 re-derives from the rows")
+    want(cond.get("city_ratio_gt_2") == sum(
+        1 for r in rows if r.get("city_ratio") is not None and r["city_ratio"] > CITY_RATIO_MAX),
+         "meta.conditions.city_ratio_gt_2 re-derives from the rows")
+    want(cond.get("late_build") == sum(1 for r in rows if r.get("late_build")),
+         "meta.conditions.late_build re-derives from the rows")
+    for k, v in (meta.get("flags") or {}).items():
+        n = sum(1 for r in rows if k in (r.get("why") or "").split(","))
+        want(v == n, "meta.flags.%s = %d re-derives from the rows" % (k, n))
+    c = meta.get("counts", {})
+    want(c.get("buildings") == len(rows) and c.get("measured") == len(measured),
+         "meta.counts matches the rows it describes")
+    want(c.get("match_snapshot_id", 0) + c.get("match_centroid", 0) == len(rows),
+         "every row is in one match class or the other")
+
+    # foot_ratio's reach. Not a pass/fail - a number the page must keep quoting
+    # correctly, because reading 1.007 as agreement is the mistake it invites.
+    snapm = [r for r in rows if r.get("match") == "snapshot_id" and r.get("foot_ratio")]
+    cent = [r for r in rows if r.get("match") == "centroid" and r.get("foot_ratio")]
+    inband = sum(1 for r in snapm if FOOT_CONST[0] <= r["foot_ratio"] <= FOOT_CONST[1])
+    log("  note  foot_ratio: snapshot_id %d/%d in the degenerate band %s (same "
+        "polygon, two formulas), %d flagged | centroid %d/%d in band, %d flagged"
+        % (inband, len(snapm), FOOT_CONST,
+           sum(1 for r in snapm if "footprint_" in (r.get("why") or "")),
+           sum(1 for r in cent if FOOT_CONST[0] <= r["foot_ratio"] <= FOOT_CONST[1]),
+           len(cent),
+           sum(1 for r in cent if "footprint_" in (r.get("why") or ""))))
+    want(inband > len(snapm) * 0.8,
+         "foot_ratio IS degenerate on the snapshot_id rows (so the page must not "
+         "cite it as agreement there)")
+
+    # The file itself
+    raw = io.open(path, "rb").read()
+    want(all(b < 128 for b in bytearray(raw)), "file is ASCII")
+    want(len(set(r["id"] for r in rows)) == len(rows), "no duplicate ids")
+    want(not [r for r in rows for v in r.values()
+              if isinstance(v, float) and v != v], "no NaN")
+    want(not [r for r in rows if "polys" in r or "geometry" in r],
+         "no polygons redistributed (city layer carries no licence grant)")
+    log("")
+    log("  %d assertions, %d failed" % (len(ran), len(bad)))
+    return len(bad)
+
+
 def write_out(path, rows, snapshot, depth, log, targets=None):
     # Re-attach the identity fields from the target list and re-apply the trust
     # thresholds, so a cached result measured under older thresholds is brought
@@ -1254,7 +1461,7 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
             if not t:
                 continue
             for k in ("slug", "name", "apartment", "tier", "snap_h", "snap_floors",
-                      "inv_h", "auth_h"):
+                      "inv_h", "auth_h", "match"):
                 if t.get(k) not in (None, "") and r.get(k) is None:
                     r[k] = t[k]
             if t.get("area") and not r.get("nbhd"):
@@ -1276,8 +1483,13 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
                     acquired=[min(a[0] for a in acq), max(a[1] for a in acq)] if acq else None,
                     depth=depth),
         city=dict(layer="City of Austin UTILITIESCOMMUNICATION_building_footprints_2017",
-                  licence="See Terms of Use (NOT public domain) - heights are facts, "
-                          "the polygons are not redistributed here",
+                  licence="NOT public domain, and no licence grant found. The "
+                          "FeatureServer carries an empty copyrightText and no "
+                          "licenseInfo; the City's own AGOL item for this service "
+                          "(652d553ee993461289a2d68b464044dc, owner CTM.Publisher) "
+                          "states only a liability disclaimer - informational "
+                          "purposes, no warranty of accuracy. Checked 2026-09-20. "
+                          "Heights are facts; the polygons are not redistributed here",
                   height="ELEVATION - BASE_ELEVATION, feet converted to metres"),
         snapshot=snapshot,
         counts=dict(buildings=len(rows), measured=len(ok),
@@ -1285,7 +1497,22 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
                     footprint_mismatch=sum(1 for r in rows
                                            if "footprint_mismatch" in (r.get("why") or "")),
                     footprint_partial=sum(1 for r in rows
-                                          if "footprint_partial" in (r.get("why") or ""))),
+                                          if "footprint_partial" in (r.get("why") or "")),
+                    match_snapshot_id=sum(1 for r in rows if r.get("match") == "snapshot_id"),
+                    match_centroid=sum(1 for r in rows if r.get("match") == "centroid")),
+        # A flag fires only where the measurement it guards exists, so its count
+        # is ALWAYS smaller than the count of rows meeting its condition. Both
+        # are published, because quoting one under the other's name is how the
+        # headline table came to say "cover below 0.90: 106" for a file with 127.
+        flags=dict((k, sum(1 for r in rows if k in (r.get("why") or "").split(",")))
+                   for k in sorted(set(w for r in rows
+                                       for w in (r.get("why") or "").split(",") if w))),
+        conditions=dict(
+            city_cover_lt_0_90=sum(1 for r in rows if (r.get("city_cover") is not None
+                                                       and r["city_cover"] < CITY_TRUST)),
+            city_ratio_gt_2=sum(1 for r in rows if (r.get("city_ratio") is not None
+                                                    and r["city_ratio"] > CITY_RATIO_MAX)),
+            late_build=sum(1 for r in rows if r.get("late_build"))),
         ground=dict(min=round(min(gz), 2), max=round(max(gz), 2),
                     spread=round(max(gz) - min(gz), 2), n=len(gz),
                     basis="footprints that passed the foot_ratio cross-check") if gz else None,
@@ -1294,10 +1521,19 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
             gnd_in_dz="median class-2 height INSIDE the footprint relative to "
                       "ground_z; a few metres negative is an excavated basement",
             area_m2="area of OUR footprint polygon, EPSG:3857 corrected by cos(lat)",
+            match="how this building's footprint was found: snapshot_id (the "
+                  "inventory names the snapshot feature - identity, not "
+                  "proximity) or centroid (nearest polygon within 40 m). It "
+                  "decides what foot_ratio is worth, so read it first",
             inv_area_m2="the inventory's own footprint area for the same building",
             foot_ratio="area_m2 / inv_area_m2. 0.5-2.0 is fine; outside that our "
                        "polygon is a fragment or the wrong building, and outside "
-                       "0.25-3.5 no height is published at all",
+                       "0.25-3.5 no height is published at all. AN INDEPENDENT "
+                       "COMPARISON ONLY WHERE match=centroid: on a snapshot_id "
+                       "row the inventory measured the polygon we measure, so "
+                       "the ratio is the two formulas' constant 1.007 and says "
+                       "nothing. There it is city_cover and city_ratio - an "
+                       "outline drawn by somebody else - that test the footprint",
             h_max="tallest class-6 point above ground_z, metres",
             h_p99="99th percentile of the same - the robust roof height",
             h_med="median class-6 height - the bulk roof surface",
@@ -1309,8 +1545,10 @@ def write_out(path, rows, snapshot, depth, log, targets=None):
             roof_no="which guard declined a roof call: roof_too_small, too_sparse, "
                     "raster_patchy, facade_not_roof, no_slope",
             roof_conf="0..1 confidence in that verdict. Capped at 0.45 when "
-                      "split_agree is false and at 0.6 on a partial footprint, so "
-                      "the number can be read on its own",
+                      "split_agree is false, at 0.6 on a partial footprint and at "
+                      "0.45 on a late_build row (where the roof is the 2017 "
+                      "SITE's, not this building's), so the number can be read "
+                      "on its own",
             split_agree="both random halves of the points gave the same verdict. "
                         "This is REPEATABILITY, not correctness - a biased "
                         "estimator agrees with itself - so it only lowers roof_conf",

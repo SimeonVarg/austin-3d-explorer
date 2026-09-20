@@ -15,7 +15,7 @@ returns in a ring just outside it, and writes `ground_z`, `h_max`, `h_p99`,
 `h_med`, the roof steps off a 0.5 m raster, a flat/pitched verdict with a
 confidence, the point density, the acquisition dates and the City of Austin's
 own height. **508 of the 552** buildings in the model area got a real
-measurement; the file is 374 KB and nothing in `js/` reads it.
+measurement; the file is 387 KB and nothing in `js/` reads it.
 
 It reproduces what we already knew: the Capitol 91.06 m against 92.0, Jester
 51.43 against 53.4, the PCL 28.67 against 28.4, the UT Tower 99.36 (`h_max`,
@@ -71,7 +71,69 @@ The bake also reproduces from a clean checkout now. The 553-building target list
 is committed as `data/massing_targets.json` (119 KB, written only by
 `--write-targets`); without one the bake exits with an error instead of silently
 measuring a different set. The split-half RNG is seeded per building, so
-`--only` reproduces a full run exactly — 8 buildings, 297 fields, 0 differing.
+`--only` reproduces a full run exactly — 8 buildings, **317 fields, 0
+differing**, `osm` included.
+
+### A second verifier read it, and four things did not survive
+
+A reader who re-ran everything rather than reading it confirmed the measurements
+(a cold-cache re-bake of seven buildings reproduced 268 of 269 committed fields;
+the cos(lat) correction, the ground medians and an independent USGS DEM all
+check out) and then found four places where the WRITING was ahead of the file.
+All four are closed, and `python scripts/bake_massing.py --check` now asserts
+the lot against the shipped file — **28 assertions, 0 failing**, and 4 failing
+when a mutated copy is fed to it on purpose.
+
+  - **`foot_ratio` was never an independent footprint check for 462 of the 552.**
+    This one matters most, because the page leaned on it. Where the target list
+    NAMES the snapshot feature we measure, its footprint area and ours are the
+    same polygon put through two formulas, and the ratio is a constant 1.007
+    (111320/110540). 401 of those 462 rows sit in that band and only 2 are
+    flagged, against 48 of the 90 matched by centroid. The flagship example was
+    circular: Red McCombs' "our footprint is right, 2103 m² against 2089" IS the
+    constant. Every row now ships `match` — `snapshot_id` or `centroid` — so the
+    two cases cannot be read as one, and the page says plainly that the guard
+    covers the 90 where the known failure lives and that the city polygon is
+    what tests the other 462.
+  - **`roof_conf` had no `late_build` cap**, although the page said the number
+    could be read on its own. Ten rows shipped a roof verdict at ≥ 0.70
+    describing whatever stood on the site in 2017 — The Standard flat at 0.92,
+    Union on San Antonio at 0.88, one at 1.00. Capped at 0.45; 18 rows changed
+    and nothing else in the file moved.
+  - **Two headline rows were flag counts wearing the condition's name.** "City
+    polygon covers <90%: 106" and "more than 2×: 127" are what the flags fire
+    on; over the file the conditions are **127** and **152**, and the page
+    contradicted itself 200 lines later. `meta.flags` and `meta.conditions` now
+    both ship, and `--check` re-derives every one of them.
+  - **The licence flag under-counted and the quote was not real.** It said
+    seventeen files and listed eighteen; it is **twenty**, and the two it missed
+    are data, not prose — `data/campus_truth.json` repeats the claim 16 times in
+    `austin_footprint_source`, and `docs/campus-detail-verdict.md` line 203
+    repeats it too. (Two more files, `docs/walkways-widths.md` line 56 and
+    `scripts/trace_walk_widths.py` line 28, make the same claim about a
+    different Austin layer.) The quoted *"See Terms of Use"* could not be
+    confirmed anywhere. What is actually there, checked against the live
+    service: empty `copyrightText`, no `licenseInfo`, and the City's own AGOL
+    item carrying a liability disclaimer. Still not public domain — it is worse,
+    there is no grant at all. **Flagged, not fixed**: none of those files is
+    this bake's to edit.
+
+And one defect the verifier attributed to the wrong cause. `--only` really did
+drop an OSM id, but not because the Overpass bbox was drawn round the selection:
+refetched for five buildings, the narrow extract returned 467 ways and matched
+all five exactly as the full 9704-element one does. **Overpass had answered
+`504 Gateway Timeout`** — it did it twice in a row during this pass. The old
+code logged one line, returned nothing, and wrote a perfectly normal-looking
+file with all 487 join keys silently removed. That is now an error with three
+retries, `--no-osm` to override; the extract also records the bbox it was
+fetched for, because keyed by directory alone the first `--only` run to touch a
+cache froze the extent for every full run after it.
+
+NOT REPRODUCED: the report that this bake, run from a detached background shell,
+exits 0 after `targets: 5` having written nothing. Run again from a detached
+background shell and in the foreground, the two outputs are byte-identical
+(8189 bytes). If it happens again, capture the log — nothing on the path from
+`targets:` to the first write can exit 0 without printing.
 
 **Nothing in the renderer reads this file.** That is on purpose. Wiring it in is
 the next pass, and the obvious first customer is the 34 `late_build` buildings.
@@ -82,12 +144,15 @@ ground.
 Full writeup, accuracy tables, failure list and licence position:
 `docs/massing-from-lidar.md`.
 
-FLAGGED, NOT FIXED: `docs/campus-truth/*.md` calls the City of Austin footprint
-layer "public domain". The city catalogue says "See Terms of Use". It is one
-line in each of 16 building files (line 9 of BAT, BTL, BUR, CAL, GAR, GOL, GRE,
-HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL), `docs/campus-truth/README.md` line
-35, and `HANDOFF.md`. The USGS lidar genuinely is public domain; the Austin
-layer is not, and nothing in this pass redistributes its polygons.
+FLAGGED, NOT FIXED: **twenty** tracked files call the City of Austin footprint
+layer "public domain" — line 9 of each of 16 campus-truth building files (BAT,
+BTL, BUR, CAL, GAR, GOL, GRE, HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL),
+`docs/campus-truth/README.md` line 35, `HANDOFF.md`,
+`docs/campus-detail-verdict.md` line 203, and `data/campus_truth.json` (16
+occurrences in `austin_footprint_source`). The service carries no licence grant
+at all; the City's own catalogue item for it carries a liability disclaimer. The
+USGS lidar genuinely is public domain; the Austin layer is not, and nothing in
+this pass redistributes its polygons.
 
 ## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
 
