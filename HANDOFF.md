@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #PRNUM)
+## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #277)
 
 The model has been guessing how tall buildings are — an Overture tag, a number
 read off a photograph, a floor count multiplied by a plausible storey height.
