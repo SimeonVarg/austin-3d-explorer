@@ -399,6 +399,19 @@ facade-atlas convention being applied only to facade atlases. Every walk
 the Capitol ground texture were ALSO being drawn as opaque sky mirrors since
 PR #267 and go back to being a tint on the deck under them.
 
+That is arithmetic, not a guess. The glass term on `main` is
+
+```
+glass = clamp((1.0 - mixedColor.a) * 255.0 / 64.0, 0.0, 1.0)
+```
+
+so it saturates at 1.0 — *full* glass — for every texel at alpha ≤ 191/255,
+and the result is written at the layer's own opacity rather than the texel's.
+Every ground overlay measures **max alpha 121** (table above), so every texel
+of every one of them was being shaded as a full sky mirror and written
+opaque. The creek's ripple is the one where that also collided with a depth
+tie; the walks just quietly turned blue.
+
 ![the campus walks by Turtle Pond, before and after](shots/water-flicker-walks.jpg)
 
 **This is the one thing in this branch that is a taste call, so it is flagged
