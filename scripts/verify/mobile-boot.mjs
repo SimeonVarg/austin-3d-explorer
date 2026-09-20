@@ -113,8 +113,22 @@ async function waitReveal(page) {
   // On a phone the authored buildings may land AFTER the veil (js/mobile.js
   // LITE.lateAuthored). Judge what the visit ends up showing, not the frame
   // the veil lifted on.
+  //
+  // WAIT FOR `readyToReveal()`, NOT FOR `.group`. The group object appears when
+  // the time-sliced build STARTS; `readyToReveal()` is false while `_building`
+  // is in flight and until the filters, rigs and sources have caught up. Those
+  // are not the same instant: on 2026-09-20, with three other GPU lanes on this
+  // machine, one apartment build took 223 s, and `legacy: a reload after
+  // recovery stays normal` read the scene 18 s after `.group` appeared, found
+  // 5 of the 7 named buildings and called it a fallback. It was not one — the
+  // same scenario is 3/3 green on reps of the same code — the instrument had
+  // simply looked too early. `readyToReveal()` is also what the round's brief
+  // says to wait on, and it returns true (rather than hanging) when the fetch
+  // genuinely failed, so a real failure still reaches the assertion.
   await page.waitForFunction(() => !(window.SLOPES && window.SLOPES.on) || !(window.APARTMENTS && window.APARTMENTS.on) ||
-    (window.slopesApartments && window.slopesApartments.group), null, { timeout: REVEAL_MS, polling: 500 }).catch(() => {});
+    (window.slopesApartments && (window.slopesApartments.readyToReveal
+      ? window.slopesApartments.readyToReveal()
+      : !!window.slopesApartments.group)), null, { timeout: REVEAL_MS, polling: 500 }).catch(() => {});
   return Date.now() - t0;
 }
 
@@ -300,7 +314,14 @@ S.legacy = () => withCtx(PHONE, async ctx => {
   check('legacy: an old auto-written ?lite=safe URL recovers by itself', isFull(s), `safe=${s.lite && s.lite.safe} search=${s.search}`);
   check('legacy: and the address bar is cleaned', s.search === '?drift=0', s.search);
   const r = await visit(page, '', { how: 'reload' });
-  check('legacy: a reload after recovery stays normal', isFull(r), r.search);
+  // Log the row, not just the URL. This check failed once on a loaded machine
+  // and the detail said only `?drift=0`, which is the part that was RIGHT —
+  // there was no way to tell a real fallback from a build that had not landed
+  // inside the settle window yet. Every other scenario logs its row; this one
+  // did not.
+  log('legacy: reload after recovery', JSON.stringify(short(r)));
+  check('legacy: a reload after recovery stays normal', isFull(r),
+    `safe=${r.lite && r.lite.safe} ${short(r).want} slopesOn=${r.slopesOn} ${r.search}`);
   // Hand-typed ?lite=safe: honoured, explained, one tap away from the full city.
   const h = await visit(page, '/?drift=0&lite=safe');
   log('legacy: hand-typed ?lite=safe', JSON.stringify(short(h)));
