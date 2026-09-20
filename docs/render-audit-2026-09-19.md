@@ -248,6 +248,32 @@ it asked for, and checks the caps are never dropped, that there is a band where
 fine is gone and mid is not, that the descent restores everything, and that the
 hysteresis runs in the right direction.
 
+**What it has actually returned so far — 2 of 6, and here is exactly which.**
+One run, on the tree rebased onto `main` @ 87f6ec4, i.e. on the merged result
+rather than the branch alone:
+
+| check | result |
+|---|---|
+| A — the roof caps are never dropped by the LOD | **PASS** — `drag-cap`, `wc-wall-cap`, `moody-roof` drawn at all 30 poses, and the header line reads `caps still listed in a tier: none` |
+| no uncaught page errors | **PASS** — none, so this PR's `js/lod.js` and `js/graphics.js` load clean on the merged tree |
+| B — every pose landed on the altitude it asked for | **FAIL** — worst miss 432%, see below |
+| C, D, E — the fine/mid band, the descent, the hysteresis | **FAIL**, and meaningless: they are all downstream of B |
+
+Check A is the fix in item 1, and it does not depend on B at all: the three
+caps are no longer members of any tier, so no altitude can hide them.
+
+Check B failed because **my own gate had the same disease as lod-check**, which
+is why it was written to check itself. `js/controls.js` only re-derives its eye
+state in `syncFromMap()`, which runs on the controller's tick, and the tick is
+driven by repaints — so once the map goes idle after a `jumpTo`, `__fly.eye()`
+can sit on the previous pose indefinitely. The first cut slept 1.2 s and read
+**126.8 m for all fifteen rungs of the climb**. It now holds `triggerRepaint()`
+in a poll and waits for the altitude to arrive. **That corrected version had not
+got a browser slot before this was written** — three lanes held all three for
+the last stretch — so C, D and E, including the hysteresis change, are
+**UNVERIFIED**. Re-run `audit-lodtiers.mjs` before trusting them. (The roof-cap
+fix itself is separately verified by picture, in item 1.)
+
 ## Backlog, most important first (files other lanes own)
 
 ### 1. On this laptop the desktop first load shows NO authored buildings, and never retries — `js/app.js` (intro)
