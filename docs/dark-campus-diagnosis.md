@@ -47,8 +47,10 @@ same: warm sun, cool shade and strong glare on windows.
    [section 5](#5-options-for-codex-measured-not-merged).
 5. **Checked and ruled out:** flipped normals, MapLibre's own light
    double-counting, the ground-shadow layer darkening walls, and a preset
-   quietly switching the lighting off. One real gap: the crash fallback
-   `?lite=safe` gets no sunlight at all
+   quietly switching the lighting off — all four presets were measured and hand
+   the shader identical lighting uniforms. One real gap, left for whoever owns
+   `js/mobile.js`: the crash fallback `?lite=safe` gets no citywide sunlight at
+   all, and a phone falls into it by itself after failed boots
    ([section 6](#6-profiles-and-presets)).
 
 ## 1. Which profile made the owner's frame
@@ -373,9 +375,16 @@ shade split the owner likes. Graded figures are the whole frame as displayed.
   51 %). A flat roof gets 2.5 times the direct light. The warm/cool split stays (lit
   walls R-B 44, shaded 12), but the sun is less orange than at 6 degrees
   (58 now) and the sunset glow in the sky drops (`u_sunPresence.y` 0.70 to
-  0.23). Glare moves with the sun. The hero timelapse still starts at
-  `TL_FROM = 0.50` in `js/app.js`, which says it is the hour the heroes were
-  shot at.
+  0.23). Glare moves with the sun.
+
+  **If you take this option, it is a two-line change, not one.** `js/app.js`
+  keeps its own hard-coded copy of the opening hour: `TL_FROM = 0.50`
+  (line 2468, commented "sunset — TOD_DEFAULT_P, the hour the heroes were shot
+  at"). The hero timelapse writes it straight into the slider and applies it
+  when it starts, and the CSS track markers are positioned from it. Change
+  `TOD_DEFAULT_P` alone and the hour will visibly jump from 0.47 back to 0.50
+  the moment the timelapse begins. Either move both, or decide deliberately
+  that the timelapse keeps starting at the hour the heroes were photographed.
 - **`ambient: .32 → .45`** (`SLOPES.sunlight`) keeps the sunset hour and lifts
   every shaded wall by about 10 luma (93 to 103 on the owner view). It
   flattens the picture a little: lit walls over shaded walls goes from 1.55 to
@@ -407,11 +416,14 @@ Show the owner the options image before choosing; none of these is merged.
   Nothing disables the lighting, but the detail drop changes how dark the
   city reads at the default hour (section 1).
 - **`?lite=safe` (crash fallback).** **The citywide sunlight is completely
-  off.** The extrusion shaders are patched, but without the three.js layer
-  `CityLighting.frame()` is never called, so `stats.draws` stays at 0 and
-  the old MapLibre light shows (right-hand image below). The code does
-  not say whether that is deliberate. It is the one profile where the
-  intended look silently disappears. Driving the sun uniforms without
+  off.** The mode is defined as "no three.js layer at all" (`js/mobile.js`).
+  The extrusion shaders are still patched, but `CityLighting.frame()` is driven
+  from that layer, so it is never called: `stats.draws` stays at 0 and the old
+  MapLibre light shows (right-hand image below). The code does not say whether
+  that is deliberate. It is the one profile where the intended look silently
+  disappears — and it matters more than a debug flag, because **a phone reaches
+  it on its own**: `js/mobile.js` counts boots that did not finish and falls
+  back to it without being asked. Driving the sun uniforms without
   three.js would need a small uniform driver outside `js/slopes.js`, which is
   outside this lane's files, so it is not done here.
 - **Presets — measured, not read off the source.** I switched presets in a live
