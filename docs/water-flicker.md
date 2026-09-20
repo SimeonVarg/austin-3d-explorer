@@ -494,3 +494,77 @@ VERIFY_URL=http://127.0.0.1:8621 VERIFY_GL=hardware \
 box masks). `water-look.mjs` takes the stills; `water-probe.mjs` runs one
 page snippet at one pose (it is how the clamp was read off the compiled
 programs).
+
+## Verified independently, on the merged result (2026-09-20)
+
+A second lane re-measured this branch **after merging `origin/main` into it**
+(main had moved on to `6bf494e`, which carries PR #276's new shadow bias and
+shadow-caster proxy in `js/city-lighting.js` — the same file this branch
+edits; the merge was clean and both halves survive it).
+
+Method: the same instrument, but both sides in ONE browser session, with
+`origin/main`'s `js/ground.js` and `js/city-lighting.js` routed in over the
+branch's for the "before" side, so the two halves of every row share a
+session, a GPU and a streaming state. Desktop 1280×800, `?intro=0&drift=0`,
+`cancelGraphicsAutoDetect()`, hardware GL (ANGLE/D3D11, RTX 3050 Ti), sides
+interleaved main → branch → main → branch.
+
+| trajectory (desktop) | main flip / jump | this branch flip / jump |
+|---|---|---|
+| `waller-translate-sunset` | **17.083 % / 37.133 %** | 0.002 % / 0.075 % |
+| `waller-rotate-sunset` | **20.769 % / 38.793 %** | 0.000 % / 0.000 % |
+| `waller-altitude-sunset` | **19.141 % / 37.578 %** | 0.020 % / 0.093 % |
+| `waller-translate-day` | 0.300 % / 0.133 % | 0.008 % / 0.038 % |
+| `waller-translate-night` | **17.217 % / 37.264 %** | 0.000 % / 0.000 % |
+| `waller-long-sunset` (30 frames, 60 m, crosses tiles) | **16.192 % / 33.716 %** | 1.696 % / 0.679 % |
+| `waller-channelbox-sunset` (box) | 3.554 % / 12.988 % | 2.056 % / 10.103 % |
+| `crossing-box-sunset` (box) | 1.485 % / 5.215 % | 0.545 % / 3.328 % |
+| `shoal-translate-sunset` | **15.040 % / 33.096 %** | 0.012 % / 0.960 % |
+| `lake-translate-sunset` | 0.000 % / 0.016 % | 0.000 % / 0.015 % |
+| `lake-translate-night` | 0.000 % / 0.000 % | 0.000 % / 0.000 % |
+| `pond-translate-sunset` | 0.000 % / 0.000 % | 0.000 % / 0.000 % |
+
+The phone profile, `?lite=1` (322×699 CSS, 241×524 backing store, preset
+`performance`, renderScale 0.75):
+
+| trajectory (`?lite=1`) | main | this branch |
+|---|---|---|
+| `waller-translate-sunset` | **18.212 % / 34.491 %** | 0.002 % / 0.264 % |
+| `waller-translate-day` | 0.100 % / 0.208 % | 0.000 % / 0.000 % |
+| `waller-translate-night` | **18.779 % / 35.548 %** | 0.000 % / 0.000 % |
+| `waller-rotate-sunset` | **10.308 % / 30.523 %** | 0.000 % / 0.000 % |
+| `waller-long-sunset` | **13.147 % / 35.490 %** | 2.155 % / 0.721 % |
+| `lake-translate-sunset` | 0.001 % / 0.049 % | 0.001 % / 0.047 % |
+
+Two interleaved branch reps agree to **≤ 0.07 points of flip on every row**,
+and four of main's rows reproduce the author's own session to three decimals
+(rotate 20.769, night 17.217, altitude 19.14, crossing-box 1.485 vs 1.490),
+across two sessions a day apart and across PR #276. Stop-go was 0.000 % on
+both sides of both trajectories that ran the stopped pass, desktop and lite.
+
+**The two stills the doc above says it never got.** `docs/shots/
+water-flicker-verify-overlays.jpg`: the Capitol grounds and a Waller crossing,
+main beside this branch at the same pose in the same browser session. The
+Capitol lawn is a desaturated teal wash before and grass after; at the
+crossing, the creek stops being painted across the roadway. Measured over all
+19 matched poses, the mean |Δluma| is **0.00 at all three lake poses**,
+0.02–0.15 at the three downtown-glass poses, 1.2–2.0 at the creek poses and
+2.7–5.7 at the Capitol. A diff map of the glass poses puts every changed pixel
+on ground overlays — far-field lawns and street surfaces — and none on a
+facade, a window or a glare: the sunlight and window glare of PR #267 are
+untouched, which is the thing this change was most at risk of moving.
+
+**Two defects found in the new instrument while verifying** (both fixed here):
+
+* `water-flicker.mjs` cleared `store.moving` but not `store.stopped` at the
+  top of a pass, so a trajectory carrying `"stopped": false` scored the
+  *previous* trajectory's stopped frames — a crash when the frame counts
+  differed and silently wrong stop-go numbers when they matched. No number in
+  the table above it was affected (no plan in this branch's runs used the
+  flag), but the next plan to use it would have been.
+* `?lite=1&campuslandscape=0&preset=performance` — the phone URL this repo's
+  verification has used for months — **no longer turns lite on.** Since PR
+  #276, `js/mobile.js` treats a `lite` flag arriving with exactly
+  `LITE.profile` as a URL it wrote itself and strips all three, leaving the
+  desktop profile. `?lite=1` alone is the one to use; the app then applies the
+  profile from the inside. The lite table above is `?lite=1`.

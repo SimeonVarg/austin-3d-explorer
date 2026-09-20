@@ -60,7 +60,13 @@ import path from 'node:path';
 
 const PLAN = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const OUT = path.resolve(process.argv[3] || 'water-flicker-out');
-const Q = (process.argv.find(a => a.startsWith('--q=')) || '').slice(4);
+// ';' is accepted in place of '&': a query with '&' in it does not survive
+// being passed through cmd.exe, which is how this runs on the Windows lane.
+// NOTE '?lite=1' ALONE is the phone profile now. Since PR #276 js/mobile.js
+// strips a lite flag that arrives with exactly LITE.profile beside it
+// (campuslandscape=0&preset=performance) as a URL it wrote itself, so the
+// old '?lite=1&campuslandscape=0&preset=performance' silently runs DESKTOP.
+const Q = (process.argv.find(a => a.startsWith('--q=')) || '').slice(4).replace(/;/g, '&');
 const SAVE = process.argv.includes('--save');
 const REPS = +((process.argv.find(a => a.startsWith('--reps=')) || '--reps=1').slice(7));
 fs.mkdirSync(OUT, { recursive: true });
@@ -74,6 +80,27 @@ const browser = await launch(chromium, { gl: process.env.VERIFY_GL || 'hardware'
 const page = await browser.newPage({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 page.on('console', msg => { if (msg.type() === 'error' && /city-lighting|WebGL/.test(msg.text())) console.log('CONSOLE', msg.text()); });
+
+// WF_MAIN=<dir> serves that directory's js/ground.js and js/city-lighting.js in
+// place of the checkout's. It is how the before/after tables in
+// docs/water-flicker.md were measured: both sides of every row then share one
+// browser, one GPU and one streaming state, and a row cannot be a difference
+// between two sessions (a cross-session pair was binned for exactly that —
+// a whole authored building present on one side and missing on the other).
+//   mkdir main && git show origin/main:js/ground.js > main/ground.js  (etc.)
+//   WF_MAIN=$PWD/main node water-flicker.mjs plan.json before/
+//            node water-flicker.mjs plan.json after/
+const WF_MAIN = process.env.WF_MAIN || '';
+if (WF_MAIN) {
+  for (const f of ['ground.js', 'city-lighting.js']) {
+    const body = fs.readFileSync(path.join(WF_MAIN, f), 'utf8');
+    await page.route('**/js/' + f, route => route.fulfill({
+      status: 200, contentType: 'application/javascript',
+      headers: { 'cache-control': 'no-store' }, body,
+    }));
+  }
+  console.log('WF_MAIN routing ON ->', WF_MAIN);
+}
 
 const url = SERVER + '/_harness.html?intro=0&drift=0' + (Q ? '&' + Q : '');
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -275,7 +302,11 @@ await page.evaluate(({ AMP, JUMP, ERODE }) => {
       return { maskPx: px };
     },
     async movingPass(tr, save) {
-      store.moving = []; const jpgs = [];
+      // Clear the STOPPED frames too: a trajectory with "stopped": false skips
+      // stoppedPass entirely, and a leftover array from the previous trajectory
+      // would be scored against this one's masks — a crash when the frame
+      // counts differ, silently wrong stop-go numbers when they match.
+      store.moving = []; store.stopped = []; const jpgs = [];
       m.jumpTo(lerpPose(tr.a, tr.b, 0)); await settle(2500);
       for (let i = 0; i < tr.frames; i++) {
         m.jumpTo(lerpPose(tr.a, tr.b, i / (tr.frames - 1)));
