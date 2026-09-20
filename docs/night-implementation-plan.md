@@ -478,6 +478,15 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 >
 > ![the Capitol dome gone, and --same 1% still passing](shots/night-break-capitol-noop.jpg)
 >
+> **Not yet run: the same sabotage over the whole route set at `day` and `golden`.** That is the
+> coverage map A9 actually needs — which of the sixteen poses a geometry regression can be *seen* at,
+> at the two regimes A9 shoots. It was started on 2026-09-21 and **hung**: with three GPU lanes on this
+> laptop, `campus-aerial/z16-p68` (the z16 pitch-68 aerial, by far the heaviest tile load in the file)
+> stopped producing frames for 25 minutes inside a per-pose wait whose own timeouts add to 75 seconds,
+> and the run was killed by PID. That is the machine, not the harness — but it is also the honest state
+> of this row: **the coverage map exists for `night` at five poses and nowhere else.** Whoever runs it
+> next wants a quiet machine and probably `--only` without `campus-aerial`.
+>
 > **The dome is gone and the assertion is green.** That is not a scene fact, it is an instrument fact:
 > at these poses the authored geometry is under one percent of the pixels, so a one-percent tolerance
 > is blind to all of it vanishing. A9's tolerance was a round number, never a derived one — §7.2 now
@@ -1069,8 +1078,15 @@ level is the §8 decision.
 > weak; the tolerance was too loose. Re-measured at the new tolerance, with no re-shoot:
 >
 > ```
-> night-compare.mjs --from <the --break slopes run> --same 0.05  ->  FAIL, exit 1
+> $ night-compare.mjs --out <the --break slopes run> --from <same> --same 0.05 --refs off
+> FAIL --same 0.05%: 2 frame(s) differ: night capitol/congress-30m 0.172%, night capitol/gate-1p7m 0.308%
+> --break coverage: the sabotage moved 2 of 2 (pose, regime) frames past --same
+> ... exit 1
 > ```
+>
+> That is the same frames, re-measured, no app loaded and nothing re-shot — and it is in the committed
+> report (`docs/night/harness-runs/same-break-slopes-capitol.report.json`, whose `verdict` is that
+> second pass and whose `shoot` block is the original `--same 1` run).
 >
 > **What a floor of zero does not mean.** It is a floor for *this* machine, quiet, at these two
 > regimes, between two loads of one build minutes apart. A run whose two sides hit different machine

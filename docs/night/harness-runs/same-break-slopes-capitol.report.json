@@ -6,7 +6,7 @@
   "dirty": true
  },
  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
- "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+ "localOverlay": null,
  "refs": "off",
  "tile": 560,
  "out": "<scratch>/lanes/night/rework3/break-capitol",
@@ -92,8 +92,8 @@
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
-    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
-    "count.buildings 366 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count."
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
+    "count.buildings 366 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count."
    ],
    "build": {
     "sha1": "4807b1680898",
@@ -140,8 +140,8 @@
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
-    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
-    "count.buildings 365 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count.",
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
+    "count.buildings 365 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count.",
     "--break slopes: every group removed from the slopes scene and slopes.add() stubbed (apartments, roofs, arches, art, dome, stadium, campus landscape)"
    ],
    "build": {
@@ -1141,8 +1141,11 @@
    "pctOverMax": 0.308
   },
   "same": {
-   "tolPct": 1,
-   "failing": []
+   "tolPct": 0.05,
+   "failing": [
+    "night capitol/congress-30m 0.172%",
+    "night capitol/gate-1p7m 0.308%"
+   ]
   },
   "breakCoverage": {
    "mode": "slopes",
@@ -1162,7 +1165,7 @@
      ],
      "trianglesA": 3560273,
      "pctOver": 0.172,
-     "reached": false
+     "reached": true
     },
     {
      "pose": "capitol/gate-1p7m",
@@ -1179,13 +1182,96 @@
      ],
      "trianglesA": 3560273,
      "pctOver": 0.308,
-     "reached": false
+     "reached": true
     }
-   ],
-   "noOpAt": [
-    "night capitol/congress-30m 0.172% (drawn: slopes-dome, campus-landscape, slopes-stadium, slopes-arches, slopes-art, slopes-apartments, slopes-tower, slopes-roofs)",
-    "night capitol/gate-1p7m 0.308% (drawn: slopes-dome, campus-landscape, slopes-stadium, slopes-arches, slopes-art, slopes-apartments, slopes-tower, slopes-roofs)"
    ]
   }
- }
+ },
+ "remeasured": "2026-09-20T09:43:28.808Z",
+ "remeasure": {
+  "when": "2026-09-20T09:43:28.808Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework3/break-capitol",
+   "--from",
+   "<scratch>/lanes/night/rework3/break-capitol",
+   "--same",
+   "0.05",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "34c9d50",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework3/break-capitol",
+  "from": "<scratch>/lanes/night/rework3/break-capitol",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T08:07:17.821Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework3/break-capitol",
+   "--only",
+   "capitol",
+   "--regimes",
+   "night",
+   "--a",
+   "",
+   "--b",
+   "",
+   "--break",
+   "slopes",
+   "--same",
+   "1",
+   "--refs",
+   "off"
+  ],
+  "harnessGit": {
+   "head": "9487d4f",
+   "dirty": true
+  },
+  "gl": "hardware",
+  "viewport": [
+   1440,
+   900
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T08:07:17.821Z",
+  "shootGit": {
+   "head": "9487d4f",
+   "dirty": true
+  },
+  "shotsFromThatShoot": 4,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "committedCopy": "The shoot ran with --same 1 and PASSED with 3,560,273 authored triangles removed and the Capitol dome visibly gone (0.172% and 0.308% of pixels). The same frames were then re-measured with --from --same 0.05, the tolerance derived from the measured day/golden floor of 0.000%, and the run goes RED: FAIL --same 0.05%, exit 1, both frames named, 'the sabotage moved 2 of 2 (pose, regime) frames past --same'. The verdict/remeasure blocks below are that second pass; the shoot's own settings are under `shoot`. Nothing was re-shot."
 }

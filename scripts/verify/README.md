@@ -850,8 +850,10 @@ two independent page loads, 16 poses x `day` and `golden` on a quiet machine: **
 on all 32 frames**, 24 of them byte-identical JPEGs, worst mean |delta luma| 0.021.
 The renderer is deterministic across loads at those regimes, so the A9 tolerance is
 **`--same 0.05`** -- ten times the largest reading ever taken from an unchanged build
-(0.005% at `night`, on a loaded machine) -- and at 0.05 the Capitol wipe is red. A
-tolerance nobody derived is a tolerance that hides whatever fits under it.
+(0.005% at `night`, on a loaded machine). Re-measured at 0.05 with `--from`, no app
+loaded and nothing re-shot, the Capitol wipe goes red: `FAIL --same 0.05%`, exit 1,
+both frames named. **A tolerance nobody derived is a tolerance that hides whatever
+fits under it.**
 
 **`count.buildings` is not a count.** It is incremented inside the time-sliced build
 and zeroed at the top of it, but the `APARTMENTS.on` poke can start a second build

@@ -15,7 +15,7 @@ is public). They carry no photograph: every one was shot `--refs off --local non
 |---|---|---|
 | `same-control.report.json` | A against B, no sabotage, `wc-elevated` + `capitol` at `night`, `--same 1` | **PASS**, exit 0. A/B pixels over 16 luma: min 0.000, median 0.003, max 0.005% over 5 frames |
 | `same-break-apartments.report.json` | the same five poses, `--break` (authored apartments removed), `--same 1` | **FAIL**, exit 1. `over-drag-wnw` 8.160%, `down-on-ion` 7.101%, `over-mlk-north` 3.650%; bright windows 13.349 → 1.850 |
-| `same-break-slopes-capitol.report.json` | `capitol` at `night`, `--break slopes` (**every** authored group removed), `--same 1` | **PASS**, exit 0 — and that is the finding, not a comfort. See below |
+| `same-break-slopes-capitol.report.json` | `capitol` at `night`, `--break slopes` (**every** authored group removed) | **PASS at `--same 1`**, exit 0 — that is the finding, not a comfort. Re-measured at the derived `--same 0.05` it is **FAIL, exit 1**, both frames named. See below |
 | `noise-floor-main-daygolden.report.json` | **A9's floor**: `main` @ `13741fa` against itself, two page loads, 16 poses × day and golden | **0.000% on all 32 frames**, 24 of them byte-identical JPEGs — this is where `--same 0.05` comes from |
 | `build-ab-c656249-vs-main-daygolden.report.json` | `c656249` against `13741fa` at the same 32 frames | day 0.612 / 8.216 / 13.504%, golden 0.003 / 1.802 / 5.672% — the shadow fix arriving. **Its side labels are wrong**; read `committedCopy` |
 | `baseline-c656249.report.json` | the §W0a baseline: 16 poses × 4 regimes on `main` @ `c656249`, one side | the three committed sheets in `docs/shots/` are re-derived from it bit-identically |
@@ -48,8 +48,14 @@ enormous signal. A9's tolerance is `--same 0.05` now, and at 0.05 the Capitol wi
 without re-shooting anything:
 
 ```bash
-node scripts/verify/night-compare.mjs --out <that run> --from <that run> --same 0.05 --refs off
+$ node scripts/verify/night-compare.mjs --out <that run> --from <that run> --same 0.05 --refs off
+FAIL --same 0.05%: 2 frame(s) differ: night capitol/congress-30m 0.172%, night capitol/gate-1p7m 0.308%
+--break coverage: the sabotage moved 2 of 2 (pose, regime) frames past --same
+... exit 1
 ```
+
+That run is what `same-break-slopes-capitol.report.json` now holds: its `verdict` is the 0.05
+re-measure, its `shoot` block is the original `--same 1` shoot, and no frame was taken twice.
 
 ## Reproducing them
 
