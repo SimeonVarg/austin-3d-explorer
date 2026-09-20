@@ -489,9 +489,11 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 >
 > **The dome is gone and the assertion is green.** That is not a scene fact, it is an instrument fact:
 > at these poses the authored geometry is under one percent of the pixels, so a one-percent tolerance
-> is blind to all of it vanishing. A9's tolerance was a round number, never a derived one — §7.2 now
-> derives it — and until it is derived, **`--same 1` is an assertion only where the subject is large in
-> the frame.** The harness now records, per shot, which slopes groups were on at that camera
+> is blind to all of it vanishing. **`--same 1` was an assertion only where the subject is large in the
+> frame** — and the fix turned out to be the tolerance, not the sabotage: §7.2 measures the floor at
+> **0.000%** and sets A9 to `--same 0.05`, at which these same two frames are red (`FAIL --same 0.05%`,
+> exit 1, re-measured with `--from` and nothing re-shot). The harness now records, per shot, which
+> slopes groups were on at that camera
 > (`shot.slopes`) and rolls it into `verdict.breakCoverage`, with the no-op poses named. Read that
 > block before quoting a pose as covered.
 

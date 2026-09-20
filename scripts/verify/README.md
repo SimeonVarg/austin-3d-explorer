@@ -104,9 +104,12 @@ node night-compare.mjs --break slopes --same 1 # EVERY authored group out of the
 removes geometry, so it can only go red at a pose where that geometry is a large
 share of the frame. **It came back green at the two Capitol poses with 3.56 M
 authored triangles removed and the dome visibly gone** (0.172% and 0.308% of pixels
-moved, against a 1% tolerance). Red somewhere is not red everywhere; the run's
-`verdict.breakCoverage` names the poses the sabotage could not move, and the kept
-reports are in `docs/night/harness-runs/`.
+moved, against the 1% tolerance it was run with; at the derived 0.05% it is red).
+Red somewhere is not red everywhere; the run's `verdict.breakCoverage` names the
+poses the sabotage could not move, and the kept reports are in
+`docs/night/harness-runs/`. **The whole route set at `day` and `golden` -- the
+coverage map A9 needs -- has not been run**: it hung on `campus-aerial/z16-p68`
+with three GPU lanes live on this laptop and was killed.
 
 This repo has shipped a guard that could not fail **four separate times** (the
 harness drifting from index.html, twice; a stale hand-maintained family list; a
