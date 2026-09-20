@@ -618,12 +618,18 @@ CAP_HIP_SIMPLIFY_M = 2.5  # wall jogs under this are pilasters and bays, not roo
                           # them is a fan of slivers at the crossing)
 
 
-def hip_rig(ring_ll, h, name, col):
-    """One wing's hip, in scripts/bake_roofs.py's `rig` schema, from its outline."""
+def hip_rig(ring_ll, h, name, col, poly_m=None, rise=None):
+    """One wing's hip, in scripts/bake_roofs.py's `rig` schema, from its outline.
+
+    `poly_m` skips the lng/lat step and hips a ring already in the bake's metre
+    frame (the pavilions' crest ring); `rise` overrides CAP_HIP_PITCH * run."""
     import bake_roofs as BR
     ring = ring_ll[:-1] if ring_ll[0] == ring_ll[-1] else list(ring_ll)
     lat0 = sum(q[1] for q in ring) / len(ring)
-    poly = BR.ccw(BR.clean(BR.simplify(BR.clean(BR.to_m(ring, lat0)), CAP_HIP_SIMPLIFY_M)))
+    if poly_m is not None:
+        poly = BR.ccw(BR.clean(list(poly_m)))
+    else:
+        poly = BR.ccw(BR.clean(BR.simplify(BR.clean(BR.to_m(ring, lat0)), CAP_HIP_SIMPLIFY_M)))
     if len(poly) < 3:
         return None
     mrays = BR.mitre_rays(poly)
@@ -643,10 +649,125 @@ def hip_rig(ring_ll, h, name, col):
         "caps": [round(c, 2) for c in pcaps],
         "spans": [[a, b] for (a, b) in spans],
         "d": round(d_use, 3), "run": round(d_use, 2),
-        "rise": round(CAP_HIP_PITCH * d_use, 3),
+        "rise": round(CAP_HIP_PITCH * d_use if rise is None else rise, 3),
         "base": round(h, 2), "steps": 0,
         "col": col, "lip": None, "deck": None,
     }
+
+
+# ── THE FOUR CORNER PAVILIONS' ROOFS ──────────────────────────────────
+# Measured off File:Texas_Capitol_Building_-_North.jpg at its 3840 px rendition
+# (Clairissa Simmons, CC BY 4.0), on the NE pavilion, whose north face is square
+# to that camera. That face is 21.5 m in the OSM part and spans 390 px, so
+# 18.1 px/m, and the same scale reads the vertical:
+#
+#     y 1617  parapet top = where the roof starts        0.00 m
+#     y 1578  the curb: top of the convex mansard       +2.15
+#     y 1550  top of the stone crest band on the curb   +3.69
+#     y 1515  apex of the shallow hip above it          +5.62
+#     y 1477  finial tip (not modelled)                 +7.72
+#
+# and the crest band spans 226 px = 12.46 m of that 21.5 m face, i.e. the curb
+# ring is the outline shrunk to 0.58 of itself. A 26 deg hip over a ring shrunk
+# that much rises 1.93 m, which is the 5.62 - 3.69 measured — so one shrink
+# fraction fits the plan AND the height, and the profile below is that one
+# number plus three heights.
+#
+# WHAT WAS THERE: one straight 16.7 deg hip, 2.07 m over the 13.8 m span — the
+# wings' pitch applied to a pavilion (2026-09-19). The real roof is 2.7x taller
+# and it is CURVED; from the north gardens and from the UT Tower the four
+# corners are the second thing you see after the dome. Before that it was a
+# four-step pyramid 6.8 m tall that the critics read as "separate towers"
+# (2026-09-03) — that was the STEP, not the height: this one is the same order
+# of height and reads as a roof because it is a curve under a crest.
+PAV_ROOF_PROFILE = True   # False -> the single 16.7 deg hip again
+PAV_MANSARD_RISE = 2.15   # m, parapet top -> curb
+PAV_MANSARD_BANDS = 4     # straight frusta the convex slope is cut into
+PAV_MANSARD_POWER = 1.8   # z(t) = rise * (1 - (1 - t)**power); 1.0 is a straight hip
+PAV_CURB_FRAC = 0.42      # the curb ring is the outline scaled by (1 - this) about its centroid
+PAV_CREST_H = 1.54        # m, the stone crest band standing on the curb
+PAV_CREST_BATTER = 0.10   # m it leans in over that height (a rig needs a run)
+PAV_HIP_RISE = 1.93       # m, the shallow hip above the crest
+# TASTE. The crest is granite in the photograph and its tone against the wall
+# measures 1.26/1.26/1.33 there, against our 1.26/1.20/1.35 — the colour is
+# right. But our roof metal (CAP_ROOF, off a nadir tile) is PALER than our
+# granite and the real metal is DARKER than the real stone, so the band that
+# reads as a thin light line on the building reads as a dark one here. False
+# paints the crest in the roof metal and the cap becomes one pale mass.
+PAV_CREST_STONE = True
+
+
+def ring_scale(poly, f):
+    """A closed ring scaled by `f` about its own centroid, in the metre frame."""
+    cx = sum(p[0] for p in poly) / len(poly)
+    cy = sum(p[1] for p in poly) / len(poly)
+    return [(cx + (p[0] - cx) * f, cy + (p[1] - cy) * f) for p in poly]
+
+
+def band_rig(poly, top, base_z, rise, col, deck, name, lat0):
+    """One frustum of the pavilion profile, in the same `rig` schema.
+
+    js/slopes-roofs.js offsets a profile point as `pts[k] + rays[k] * min(d,
+    caps[k])` and lifts it as `base + rise * d / d`, so a ray that is the whole
+    step from the base ring to the top ring, with d = 1 and every cap 1, lands
+    the ring exactly on `top`. The rays are not mitres and the caps are not
+    reach limits — nothing reads them that way here, because js/slopes-dome.js
+    emits these with `lines: false` and roofLines is the only caller that does.
+    """
+    k = math.cos(math.radians(lat0))
+    return {
+        "name": name,
+        "dpm": [1.0 / (M_LAT * k), 1.0 / M_LAT],
+        "pts": [[round(x, 2), round(y, 2)] for (x, y) in poly],
+        "rays": [[round(t[0] - p[0], 4), round(t[1] - p[1], 4)]
+                 for p, t in zip(poly, top)],
+        "caps": [1.0] * len(poly),
+        "spans": [[i, (i + 1) % len(poly)] for i in range(len(poly))],
+        "d": 1.0, "run": 1.0,
+        "rise": round(rise, 3),
+        "base": round(base_z, 2), "steps": 0,
+        "col": col, "lip": None, "deck": deck,
+    }
+
+
+def pavilion_rigs(ring_ll, h, tag, roof_col, stone_col):
+    """The convex mansard, its crest band and the hip on top, as `rig` entries."""
+    import bake_roofs as BR
+    ring = ring_ll[:-1] if ring_ll[0] == ring_ll[-1] else list(ring_ll)
+    lat0 = sum(q[1] for q in ring) / len(ring)
+    poly = BR.ccw(BR.clean(BR.simplify(BR.clean(BR.to_m(ring, lat0)),
+                                       CAP_HIP_SIMPLIFY_M)))
+    if len(poly) < 3:
+        return {}
+    out, N = {}, max(1, PAV_MANSARD_BANDS)
+
+    def z_at(t):
+        return PAV_MANSARD_RISE * (1.0 - (1.0 - t) ** PAV_MANSARD_POWER)
+
+    # the convex mansard, steep at the eave and flattening into the curb
+    for i in range(N):
+        t0, t1 = i / N, (i + 1) / N
+        r0, r1 = 1.0 - PAV_CURB_FRAC * t0, 1.0 - PAV_CURB_FRAC * t1
+        out["%s/mansard%d" % (tag, i)] = band_rig(
+            ring_scale(poly, r0), ring_scale(poly, r1),
+            h + z_at(t0), z_at(t1) - z_at(t0),
+            roof_col, roof_col, "Texas State Capitol pavilion mansard", lat0)
+    # the stone crest band on the curb
+    curb = ring_scale(poly, 1.0 - PAV_CURB_FRAC)
+    half = 0.5 * min(max(p[i] for p in curb) - min(p[i] for p in curb)
+                     for i in (0, 1))
+    crest_top = ring_scale(curb, 1.0 - PAV_CREST_BATTER / max(half, 1.0))
+    crest_col = stone_col if PAV_CREST_STONE else roof_col
+    out["%s/crest" % tag] = band_rig(
+        curb, crest_top, h + PAV_MANSARD_RISE, PAV_CREST_H,
+        crest_col, crest_col, "Texas State Capitol pavilion crest", lat0)
+    # the shallow hip above it: a real hip, to a ridge, so it has no deck
+    hip = hip_rig(ring, h + PAV_MANSARD_RISE + PAV_CREST_H,
+                  "Texas State Capitol pavilion hip", roof_col,
+                  poly_m=crest_top, rise=PAV_HIP_RISE)
+    if hip:
+        out["%s/hip" % tag] = hip
+    return out
 
 
 # ══════════════════════════════════════════════════════════ colour utils ══
@@ -1457,6 +1578,10 @@ def main():
     roof_c = colours(atlas_match(CAP_ROOF), atlas_match(CAP_ROOF))
     roof_col = [roof_c["rd"], roof_c["rg"],
                 adjust_light(lerp_hex(CAP_ROOF, "#ffcf94", 0.45), -0.12)]
+    # the pavilions' crest band is the wall's own granite, not the roof metal
+    stone_c = colours(atlas_match(GRANITE), atlas_match(GRANITE))
+    stone_col = [stone_c["wd"], stone_c["wg"],
+                 adjust_light(lerp_hex(GRANITE, "#ffcf94", 0.5), -0.10)]
     wings = {}
     for i, f in enumerate(parts_out):
         ring = f["geometry"]["coordinates"][0]
@@ -1477,6 +1602,14 @@ def main():
             ring = f["geometry"]["coordinates"][0]
             h = float(f["properties"]["h"])
             if abs(h - 32.0) >= 0.6 or not (CAP_PAVILION_M2[0] < area_m2(ring) < CAP_PAVILION_M2[1]):
+                continue
+            if PAV_ROOF_PROFILE:
+                got = pavilion_rigs(ring, h, "pavilion/%d" % i, roof_col, stone_col)
+                if got:
+                    for key in got:
+                        got[key]["kind"] = "pavilion"
+                    wings.update(got)
+                    npav += 1
                 continue
             r = hip_rig(ring, h, "Texas State Capitol pavilion %d" % i, roof_col)
             if r:

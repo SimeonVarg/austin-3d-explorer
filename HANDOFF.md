@@ -1,5 +1,159 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 20 2026 — Building heights are measured now, not guessed (`acer/massing-lidar`, PR #277)
+
+The model has been guessing how tall buildings are — an Overture tag, a number
+read off a photograph, a floor count multiplied by a plausible storey height.
+The USGS flew central Austin with a lidar scanner in February 2017 and put every
+return in a public bucket, so the heights were sitting there the whole time,
+free and unmeasured.
+
+`scripts/bake_massing.py` → `data/massing.json` (one bake, one output file, and
+nothing else writes it). It walks the 3DEP EPT octree, clips the class-6
+returns to each building's own footprint, takes the ground from the class-2
+returns in a ring just outside it, and writes `ground_z`, `h_max`, `h_p99`,
+`h_med`, the roof steps off a 0.5 m raster, a flat/pitched verdict with a
+confidence, the point density, the acquisition dates and the City of Austin's
+own height. **508 of the 552** buildings in the model area got a real
+measurement; the file is 387 KB and nothing in `js/` reads it.
+
+It reproduces what we already knew: the Capitol 91.06 m against 92.0, Jester
+51.43 against 53.4, the PCL 28.67 against 28.4, the UT Tower 99.36 (`h_max`,
+which catches the mast) and 91.96 (`h_p99`) against 93.6. Welch Hall reads 31.68
+against the repo's 32.61 — but that 32.61 in `docs/campus-truth/WEL.md` line 9 is
+itself the City of Austin layer, the same source as `city_h`, so it is one check
+and not two. Against the city layer the median disagreement is 1.27 m over the
+285 buildings where the city's polygon is genuinely the same shape as ours, and
+88% land within 5 m.
+
+**A first revision of this bake shipped three wrong things. A verifier found all
+three by re-reading the point cloud, and this is the corrected pass.**
+
+  - **90 buildings had no footprint of their own and nobody checked.** All 76
+    downtown buildings are absent from `buildings.detailed.geojson` and get
+    matched by nearest centroid onto the tiled `data/outer_ring.geojson`. That
+    match landed on a 12.3 m² corner of the 4029 m² One American Center, a
+    99 m² corner of Frost Bank Tower, a 155 m² corner of The Austonian.
+    Twenty-three of those shipped a height, eight of them at `trust: fair` —
+    The Driskill at 25.89 m for a 50.81 m building, the Paramount at 17.90 m for
+    57.88 m. The target list carries a `footprint_area_m2` per building and the
+    bake was not reading it. It is now: `foot_ratio`, and outside 0.25–3.5 the
+    row ships **no height, no density and no roof form**. 30 refused, 20 more
+    flagged as fragments. Asserted on the shipped file: 0 violations.
+  - **"The 2017 classifier missed some roofs" was not true.** Signature 1909's
+    73 m "roof" is class 1 (unclassified) sitting over 6127 class-2 ground
+    returns **8 m below grade** and 51 class-7 noise points — an excavated pit
+    and a tower crane in February 2017. Skyloft is identical. Nothing is
+    promoted from non-class-6 returns any more, noise classes 7 and 18 are
+    dropped before anything is measured, and an excavation is detected directly
+    (`gnd_in_dz`, `why: construction_in_2017`). Both had been sitting in the
+    apartment accuracy table with a "+21.9 m, as expected" offset.
+  - **The flat/pitched call was confidently wrong on towers.** The Austonian —
+    a flat-roofed glass tower — shipped `pitched` at `roof_conf` 0.97 with both
+    split halves agreeing, because on a sliver footprint every return is a
+    facade return and max-wins rasterisation turns that into an 80° slope field.
+    Split-half agreement measures repeatability, not correctness: a biased
+    estimator agrees with itself. There are now guards on median slope (45°) and
+    raster fill (25%), and `roof_conf` is capped when the halves disagree. 111
+    verdicts have `split_agree` false and **none** now carries `roof_conf`
+    ≥ 0.70; 46 did before.
+
+Two smaller corrections. The ground spread is **49.7 m** (136.46–186.18 m), not
+58.4 — the old low reading was one 27 m² broken footprint. And `city_cover`
+below 0.90 is a weak flag, not a good one: read on its own it is 82% within 5 m
+against 88% for the same-shape group. `city_ratio` above 2 is the flag that
+matters (53% within 5 m, 21% off by more than 10 m).
+
+34 buildings postdate the flight and carry `late_build`; for those the lidar
+measures the parking lot that used to be there.
+
+The bake also reproduces from a clean checkout now. The 553-building target list
+is committed as `data/massing_targets.json` (119 KB, written only by
+`--write-targets`); without one the bake exits with an error instead of silently
+measuring a different set. The split-half RNG is seeded per building, so
+`--only` reproduces a full run exactly — 8 buildings, **317 fields, 0
+differing**, `osm` included.
+
+### A second verifier read it, and four things did not survive
+
+A reader who re-ran everything rather than reading it confirmed the measurements
+(a cold-cache re-bake of seven buildings reproduced 268 of 269 committed fields;
+the cos(lat) correction, the ground medians and an independent USGS DEM all
+check out) and then found four places where the WRITING was ahead of the file.
+All four are closed, and `python scripts/bake_massing.py --check` now asserts
+the lot against the shipped file — **28 assertions, 0 failing**, and 4 failing
+when a mutated copy is fed to it on purpose.
+
+  - **`foot_ratio` was never an independent footprint check for 462 of the 552.**
+    This one matters most, because the page leaned on it. Where the target list
+    NAMES the snapshot feature we measure, its footprint area and ours are the
+    same polygon put through two formulas, and the ratio is a constant 1.007
+    (111320/110540). 401 of those 462 rows sit in that band and only 2 are
+    flagged, against 48 of the 90 matched by centroid. The flagship example was
+    circular: Red McCombs' "our footprint is right, 2103 m² against 2089" IS the
+    constant. Every row now ships `match` — `snapshot_id` or `centroid` — so the
+    two cases cannot be read as one, and the page says plainly that the guard
+    covers the 90 where the known failure lives and that the city polygon is
+    what tests the other 462.
+  - **`roof_conf` had no `late_build` cap**, although the page said the number
+    could be read on its own. Ten rows shipped a roof verdict at ≥ 0.70
+    describing whatever stood on the site in 2017 — The Standard flat at 0.92,
+    Union on San Antonio at 0.88, one at 1.00. Capped at 0.45; 18 rows changed
+    and nothing else in the file moved.
+  - **Two headline rows were flag counts wearing the condition's name.** "City
+    polygon covers <90%: 106" and "more than 2×: 127" are what the flags fire
+    on; over the file the conditions are **127** and **152**, and the page
+    contradicted itself 200 lines later. `meta.flags` and `meta.conditions` now
+    both ship, and `--check` re-derives every one of them.
+  - **The licence flag under-counted and the quote was not real.** It said
+    seventeen files and listed eighteen; it is **twenty**, and the two it missed
+    are data, not prose — `data/campus_truth.json` repeats the claim 16 times in
+    `austin_footprint_source`, and `docs/campus-detail-verdict.md` line 203
+    repeats it too. (Two more files, `docs/walkways-widths.md` line 56 and
+    `scripts/trace_walk_widths.py` line 28, make the same claim about a
+    different Austin layer.) The quoted *"See Terms of Use"* could not be
+    confirmed anywhere. What is actually there, checked against the live
+    service: empty `copyrightText`, no `licenseInfo`, and the City's own AGOL
+    item carrying a liability disclaimer. Still not public domain — it is worse,
+    there is no grant at all. **Flagged, not fixed**: none of those files is
+    this bake's to edit.
+
+And one defect the verifier attributed to the wrong cause. `--only` really did
+drop an OSM id, but not because the Overpass bbox was drawn round the selection:
+refetched for five buildings, the narrow extract returned 467 ways and matched
+all five exactly as the full 9704-element one does. **Overpass had answered
+`504 Gateway Timeout`** — it did it twice in a row during this pass. The old
+code logged one line, returned nothing, and wrote a perfectly normal-looking
+file with all 487 join keys silently removed. That is now an error with three
+retries, `--no-osm` to override; the extract also records the bbox it was
+fetched for, because keyed by directory alone the first `--only` run to touch a
+cache froze the extent for every full run after it.
+
+NOT REPRODUCED: the report that this bake, run from a detached background shell,
+exits 0 after `targets: 5` having written nothing. Run again from a detached
+background shell and in the foreground, the two outputs are byte-identical
+(8189 bytes). If it happens again, capture the log — nothing on the path from
+`targets:` to the first write can exit 0 without printing.
+
+**Nothing in the renderer reads this file.** That is on purpose. Wiring it in is
+the next pass, and the obvious first customer is the 34 `late_build` buildings.
+The one that needs a person, not a bake: downtown has no per-building footprints
+at all, and until it does, 90 of the 552 are measured on the wrong patch of
+ground.
+
+Full writeup, accuracy tables, failure list and licence position:
+`docs/massing-from-lidar.md`.
+
+FLAGGED, NOT FIXED: **twenty** tracked files call the City of Austin footprint
+layer "public domain" — line 9 of each of 16 campus-truth building files (BAT,
+BTL, BUR, CAL, GAR, GOL, GRE, HRH, JGB, LFH, MAI, PCL, SUT, UNB, WAG, WEL),
+`docs/campus-truth/README.md` line 35, `HANDOFF.md`,
+`docs/campus-detail-verdict.md` line 203, and `data/campus_truth.json` (16
+occurrences in `austin_footprint_source`). The service carries no licence grant
+at all; the City's own catalogue item for it carries a liability disclaimer. The
+USGS lidar genuinely is public domain; the Austin layer is not, and nothing in
+this pass redistributes its polygons.
+
 ## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
 
 Phones that had never crashed were being shown the safe fallback — The Standard
@@ -30522,6 +30676,14 @@ Done and live this round: Moody Center, 21 Rio (plus The Standard, Icon, Villas 
 Unfinished: branch `acer/match-dobie` (NOT merged, not verified) — stepped diamond plan, one glass ribbon + one spandrel band per storey, brown crown with corner shoulders. Its last render hung; re-verify before merging.
 
 Unfinished: branch `acer/slim-cells` (NOT merged) merges same-tone wall cells: 2.59M -> 2.20M triangles, 317 -> 269 MB. Needs a pixel check (?mergecells=0 vs default) and a phone-memory run (scripts/verify/mobile-budget.mjs). Next cut: balcony pickets draw hidden top/bottom faces (Union on San Antonio is 260k triangles). Phones fall back to plain boxes after two memory crashes (js/mobile.js).
+
+## 2026-09-20 — the creek's flicker fix verified and merged (PR #273, branch `acer/water-flicker`, now deleted)
+A second lane re-measured the branch on the MERGED result (origin/main `6bf494e`, i.e. with PR #276's new shadow bias and shadow-caster proxy in the same `js/city-lighting.js`) and merged it. Evidence: `docs/water-flicker.md`, section "Verified independently, on the merged result", and `docs/shots/water-flicker-verify-overlays.jpg`.
+- Desktop, water-masked flip%, main -> branch: translate 17.08 -> 0.002, rotate 20.77 -> 0.000, altitude 19.14 -> 0.020, night 17.22 -> 0.000, day 0.300 -> 0.008, 60 m tile-crossing run 16.19 -> 1.70, Shoal 15.04 -> 0.012. Lake and pond are 0.000 on both sides. `?lite=1`: 18.21 -> 0.002 (sunset), 18.78 -> 0.000 (night). Stop-go 0.000 % on both sides everywhere it was measured.
+- Nothing else moved: over 19 matched poses the mean |dluma| is 0.00 at all three lake poses and 0.02-0.15 at the three downtown-glass poses, and a diff map puts every changed pixel on a ground overlay, none on a facade, a window or a glare. `dark-campus.mjs` passes on the merged tree. The visible changes are the Capitol lawn (teal wash -> grass), the Speedway brick (grey -> warm brown) and the creek no longer painted across the roadway at crossings.
+- **`?lite=1&campuslandscape=0&preset=performance` no longer means lite.** Since PR #276, `js/mobile.js` treats a `lite` flag arriving with exactly `LITE.profile` beside it as a URL it wrote itself and strips all three, leaving the DESKTOP profile with no warning. Use `?lite=1` alone; the app applies the profile from the inside. Any phone-profile number taken with the old query after 2026-09-19 is a desktop number.
+- `water-flicker.mjs` gained `WF_MAIN=<dir>` (serve another checkout's `ground.js`/`city-lighting.js`), which is how both sides of a before/after row are measured in ONE browser session; and it no longer scores the previous trajectory's stopped frames when a trajectory carries `"stopped": false`.
+- Not done: `zfight.mjs` could not be run. Under SwiftShader with three lanes live it did not load the scene inside its own watchdog on three attempts, and its own guard printed `INVALID: 0 buildings ... the scene had not loaded`. Re-run it on a quiet machine. (The branch's own box-masked z-fight meter at a road crossing went 1.49 % -> 0.55 %.)
 
 ## 2026-09-19/20 — Night reference package, implementation plan and comparison harness (branch `acer/night-package`, PR #275)
 For Codex, who owns the integrated night renderer. Three new documents and one new instrument, all against `main` @ `c656249`. No renderer code was changed.

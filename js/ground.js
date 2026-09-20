@@ -316,6 +316,32 @@
     creekSheen: true,
     creekSheenOpacity: 1.0,   // the tile's own alpha peaks at 11%; this scales it
     creekSheenNightKeep: 0.7,
+    // THE CHANNEL IS NOT SUNK, AND THIS IS WHY THE CREEK FLICKERED
+    // (docs/water-flicker.md). MapLibre 5.24's fill-extrusion vertex shader
+    // clamps both ends of every prism at zero before anything else happens:
+    //
+    //     base=max(0.0,base)+...; height=max(0.0,height)+...;
+    //
+    // (read back off the compiled program, not remembered). So the 1.4-3.2 m
+    // cut the bake emits is drawn AT z=0: the water prism's top (-depth) and
+    // the sheen's top (-depth + 0.10) both land on exactly z=0, the "0.10 m
+    // proud" never reaches the GPU, and the two surfaces tie in the depth test
+    // on every frame. Which one wins a pixel is decided by rounding in two
+    // different triangulations, so it changes with every camera step:
+    // 19-24% of water pixels flipped per frame at the Waller Creek pose.
+    //
+    // So the lift is applied to the depth the renderer ACTUALLY draws — the
+    // clamped water top, max(top, 0) — not to the bake's negative number.
+    // 0.10 m is the bake's own sheen_m and the same "lift one, so the order is
+    // defined" rule as pathTexLift; it stays under the walk deck (pathRaise).
+    // Must stay below creekDeckLift, or the ripple paints over the bridges.
+    creekSheenLift: 0.10,
+    // The culvert/bridge decks clamp to z=0 for the same reason and tie with
+    // the water prism they span; the water then paints over the road at every
+    // crossing in a z-fight pattern (a fill cannot cover a 3D surface drawn
+    // after it). The deck top stands this far above the clamped grade: above
+    // the sheen, below the walks at pathRaise so a walk still crosses ON it.
+    creekDeckLift: 0.16,
 
     // ── The creek canopy ──────────────────────────────────────────────
     //
@@ -1484,6 +1510,19 @@
     return +(GROUND.texOpacity * GROUND.texStrength.paving * GROUND.texGroundOpacity *
              (1 - n * (1 - GROUND.texNightFade))).toFixed(3);
   }
+  /**
+   * Where the renderer REALLY draws a creek prism's top. MapLibre clamps a
+   * negative fill-extrusion base/height to zero in its vertex shader, so the
+   * cut channel is drawn flat at z=0 and every lift below has to be added to
+   * max(top, 0), never to the bake's negative number (docs/water-flicker.md).
+   */
+  const drawnTop = key => ['max', ['get', key], 0];
+  /** The ripple slab: from the drawn water top to creekSheenLift above it. */
+  function sheenBaseExpr() { return drawnTop('b'); }
+  function sheenTopExpr() { return ['+', drawnTop('b'), GROUND.creekSheenLift]; }
+  /** A culvert/bridge deck: above the sheen, so the road over it stays a road. */
+  function deckTopExpr() { return ['+', drawnTop('h'), GROUND.creekDeckLift]; }
+
   /** The ripple survives the night better than the ground grain: still water. */
   function sheenOpacity(p) {
     const n = nightAmt(p);
@@ -1849,7 +1888,10 @@
         paint: {
           'fill-extrusion-color': bankColour(p),
           'fill-extrusion-base': ['get', 'b'],
-          'fill-extrusion-height': ['get', 'h'],
+          // Lifted off the clamped z=0 the water prism also sits on, or the
+          // water ties with the deck and paints over the road in a z-fight
+          // pattern at every crossing (GROUND.creekDeckLift).
+          'fill-extrusion-height': deckTopExpr(),
           'fill-extrusion-opacity': 1,
           // ON: like a bank course and unlike everything else here, a deck has
           // a meaningful vertical face — the soffit is the only part of it that
@@ -2136,8 +2178,11 @@
         filter: ['all', ['==', ['get', 'k'], 'bank'], ['==', ['get', 'm'], 'sheen']],
         paint: {
           'fill-extrusion-pattern': TEX_IMG.water,
-          'fill-extrusion-base': ['get', 'b'],
-          'fill-extrusion-height': ['get', 'h'],
+          // NOT ['get','b'] / ['get','h']: those are below zero and MapLibre
+          // clamps them onto the water prism's own z=0 top, which is the
+          // flicker (GROUND.creekSheenLift, docs/water-flicker.md).
+          'fill-extrusion-base': sheenBaseExpr(),
+          'fill-extrusion-height': sheenTopExpr(),
           'fill-extrusion-opacity': sheenOpacity(p),
           // OFF. The slab is 0.10 m tall; a vertical gradient over 0.10 m
           // blacks out the only face anyone sees.
