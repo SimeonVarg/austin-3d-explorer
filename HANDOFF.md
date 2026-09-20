@@ -1,5 +1,59 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 19 2026 — Phones keep the real buildings (`acer/mobile-real-buildings`, PR #270, merged)
+
+Phones that had never crashed were being shown the safe fallback — The Standard
+as two plain pillars, campus as flat prisms — and stayed there. Two faults, both
+in `js/mobile.js`:
+
+  - the boot counter never cleared. It waited for the veil to read `gone` or
+    opacity `0`, but `js/app.js` REMOVES the veil ~1.15 s into its fade, so a 1 s
+    poll almost never saw either and returned early. Only a 120 s timer cleared
+    it, and iOS suspends timers in a background tab — so every visit shorter
+    than two minutes counted as a crash.
+  - the fallback was written INTO the URL (`lite=safe&slopes=0&...`), where
+    `lite=safe` means "forced by hand" and skips the counter. Reload, bookmark,
+    home-screen icon or restored tab kept the old scene permanently, and the
+    same URL shared forced it on whoever opened it.
+
+Now a boot is a RECORD, not a count: `pending` is set while a boot runs and the
+page is visible, and cleared by success or by every non-crash ending (pagehide,
+hidden, freeze). Two `pending` records left behind in a row — which is what a
+WebKit memory kill looks like and nothing else does — take the fallback, and the
+fallback is explicit, on-screen, one tap to undo, and never written to the
+address bar. Old pre-fix state (the integer counter, the auto-written URL) is
+recognised by its signature and cleaned. A lost WebGL context reloads the page
+once per `ctxReloadGapMs`. And a slow phone no longer gets the legacy scene:
+`js/app.js` used to give up on the authored buildings 90 s in and keep the
+prisms for the visit; on a phone (`LITE_PROFILE.lateAuthored`) it lifts the veil
+and lets the authored meshes land live.
+
+`scripts/verify/mobile-boot.mjs` is new and is the evidence: it drives the boot
+counter and the profile through the ways a phone really loads a page (returning
+visits, interrupted loads, backgrounding, a real renderer crash via
+`Page.crash`, pre-fix state, landscape, desktop, WebGL context loss) on an
+emulated iPhone. Full writeup and frames: `docs/mobile-real-buildings.md`;
+how to check a real handset: `docs/mobile-device-check.md`.
+
+NOT fixed here: the per-face merged cells experiment (`mobile-mergecells.mjs`)
+sparkled on 21 Rio and was left out.
+
+**Merging it found one more thing, in the instrument.** On the merge of
+`origin/main` (da895aa) the suite came back 36/37: `legacy: a reload after
+recovery stays normal` went red. Not a fallback and not the merge —
+`waitReveal()` waited for `slopesApartments.group`, which exists the moment the
+time-sliced apartment build STARTS, then slept a fixed 18 s. With three other
+GPU lanes on this machine that build was taking 91 s in the failing visit and
+223 s elsewhere in the same run, so the snapshot caught a half-built scene and
+counted 5 of the 7 named buildings. The scenario re-ran 3/3 green on the same
+code (builds 26-58 s). `waitReveal()` now waits for `readyToReveal()` — false
+while the build is in flight and until filters, rigs and sources catch up,
+which is what the brief says to wait on and what `js/app.js` itself uses — and
+the `legacy` reload logs its row, because when it failed the detail printed
+only `?drift=0`, the part that was right. **If a boot-suite assertion about
+authored buildings ever goes red on a loaded machine, check the build time
+before you believe it.**
+
 ## Sep 16 2026 — The phone shows the REAL buildings (`claude/mobile-buildings-*`)
 
 Reported, and by two people: after the Sep 15 phone fix the site ran but "still
