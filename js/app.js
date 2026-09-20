@@ -2103,6 +2103,16 @@ window.CityLighting.install(map);
       // The user drove under the veil (the takeover already cancelled us), or
       // something else placed the camera: either way the camera is theirs.
       if (!at(INTRO.start) || map.isEasing()) { cancel('moved under the veil'); return; }
+      // KNOWN RESIDUAL RACE, not fixed here. This test asks "has the camera
+      // moved?", which is a frame behind: an input that has ARRIVED but that no
+      // frame has rendered since has not moved anything yet. Measured once, at
+      // 2 fps: a wheel notch 392 ms before the lift with the next controller
+      // tick 695 ms later — the flight departed and the takeover cancelled it
+      // 300 ms into leg 1, 0.09 m along a cosine ease that starts at zero
+      // velocity. Nothing jumps and nothing is stranded, so it is cosmetic.
+      // Asking the controller what it is holding instead was tried and backed
+      // out: the state could not be reproduced on demand, so the fix could not
+      // be shown to work (docs/intro-interrupt.md).
       F.state = 'flying';
       leg(1);
     };

@@ -50,6 +50,11 @@
  * desktop 1280x800; joystick, touch-look — phone 390x844, touch, via CDP touch
  * events so the browser generates the real pointer + touch event pairs.
  *
+ * `key-tap-between-frames` is the deterministic form of the one thing a
+ * tick-driven takeover can miss: keydown and keyup in the SAME TASK during
+ * leg 2, so no frame renders while the key is down. It needs no slow machine
+ * and it asserts ownership only, not motion — there was no frame to move on.
+ *
  * CONTROL CASES: `none` (no input — the flight must still play and end exactly
  * on INTRO.end), `none-probe` (same, with the graphics auto-detect probe left
  * running, i.e. normal startup), `none-drift` (the idle drift left on, as in
@@ -79,6 +84,18 @@
  * during the flight, CDP input delivered up to ~1 s late, and the veil lifting
  * on its ceiling. Each case reports where its input actually LANDED; a phase
  * the input missed is reported as a note, not silently relabelled.
+ *
+ * The MAGNITUDE bars were the exception to that until 2026-09-20 and are not
+ * any more. A held key moves the camera by integrating frames, so "> 3 m" is a
+ * wall-clock bar wearing a metre sign: `key-w@veil` measured 3.64 m and 2.68 m
+ * on two runs of ONE build, and in the failing one CDP delivered the keyup
+ * 7.6 s after the keydown with two frames in between, a single 7,575 ms gap
+ * that js/controls.js refuses outright (DT_BAIL) — 0.000 s of motion was
+ * available. Each case now reports `integrableS`, the seconds the controller
+ * could actually integrate between the takeover and the end of the gesture,
+ * and under half a clamped frame of that the magnitude is reported as not
+ * measurable while the DIRECTION is still asserted. On the 52-case run this was
+ * written from it changes exactly one case.
  *
  * Browser count: ONE browser for the whole run, one page at a time. On the
  * owner's laptop wrap it in the lane GPU slot runner.
@@ -435,6 +452,23 @@ async function runCase(browser, spec) {
   } else if (spec.kind === 'none') {
     await page.waitForFunction(() => window.__ii && window.__ii.revealAt != null, null, { timeout: 150000 });
     await page.waitForTimeout(14500);
+  } else if (spec.kind === 'tap') {
+    await page.waitForFunction(() => {
+      const f = window.__intro && window.__intro.flight;
+      return f && f.state === 'flying' && f.leg === 2;
+    }, null, { timeout: 150000, polling: 'raf' });
+    await page.waitForTimeout(3000);              // 3 s into leg 2, as key-w@leg2
+    fired = await page.evaluate(() => {
+      const m = window.__map, c = m.getCenter();
+      const at = { lng: c.lng, lat: c.lat, z: m.getZoom(), b: m.getBearing(), p: m.getPitch(),
+                   t: performance.now(), easing: m.isEasing() };
+      // Both in one task: the browser cannot render between them.
+      const ev = (type, cancelable) => new KeyboardEvent(type, { code: 'KeyW', key: 'w', bubbles: true, cancelable });
+      document.body.dispatchEvent(ev('keydown', true));
+      document.body.dispatchEvent(ev('keyup', false));
+      return { synthetic: 'KeyW tap (no frame between down and up)', at };
+    });
+    await page.waitForTimeout(OBS_MS);
   } else if (spec.kind === 'home') {
     phaseOk = await waitPhase(page, 'leg1');
     fired = await fireInput(page, cdp, 'home', null);
@@ -523,6 +557,32 @@ function analyse(spec, d, fired, phaseOk, errors) {
     check('controller never takes the camera on its own', !F.some(f => f.t > reveal && f.fly && f.fly.driving),
           F.some(f => f.t > reveal && f.fly && f.fly.driving) ? 'driving went true with no input' : 'never drove');
     if (d.intro && d.intro.flight) check('flight state is done', d.intro.flight.state === 'done', `state ${d.intro.flight.state}`);
+    check('no page errors', res.errors.length === 0, res.errors.join(' | ') || 'none');
+    return res;
+  }
+  if (spec.kind === 'tap') {
+    // A tap with no frame inside it. The controller cannot MOVE on it — there
+    // was no frame to move on, and the key is gone by the next one — so this
+    // case asserts ownership only: the input was not dropped, and the flight
+    // did not carry on flying under it.
+    const at = fired.at;
+    const after = F.filter(f => f.t > at.t);
+    const last = after[after.length - 1] || null;
+    const take = (d.takeovers || []).find(x => x.t >= at.t - 1) || null;
+    check('the tap is not dropped: the controller announces a takeover', !!take,
+          take ? `+${Math.round(take.t - at.t)} ms` : 'no takeover on a tap the controller accepted');
+    check('the flight cancels on it', d.intro && d.intro.flight && d.intro.flight.state === 'cancelled' &&
+          d.intro.flight.cancelledBy === 'input',
+          d.intro && d.intro.flight ? `state ${d.intro.flight.state} by ${d.intro.flight.cancelledBy}` : 'no flight state');
+    const ran = last ? hdist({ lng: at.lng, lat: at.lat }, { lng: last.lng, lat: last.lat }) : null;
+    // The controller's own settle is metres. A leg still running is hundreds:
+    // measured 600-738 m over this same window without the latch.
+    check('the flight does not fly on under the tap', ran != null && ran < 80,
+          ran == null ? 'no frames after the tap' : `centre moved ${r2(ran)} m in ${r2((last.t - at.t) / 1000)} s`);
+    check('no ease is left running', !!last && !last.easing, last ? (last.easing ? 'still easing' : 'at rest') : 'no frames');
+    const dEnd = last ? hdist({ lng: last.lng, lat: last.lat }, { lng: INTRO_END.center[0], lat: INTRO_END.center[1] }) : null;
+    check('no jump to INTRO.end', dEnd == null || dEnd > 5, dEnd == null ? 'n/a' : `${r2(dEnd)} m from INTRO.end`);
+    res.effect = { movedM: r2(ran), dBearing: last ? r2(wrap180(last.b - at.b)) : null, dAltPct: 0 };
     check('no page errors', res.errors.length === 0, res.errors.join(' | ') || 'none');
     return res;
   }
@@ -665,14 +725,68 @@ function analyse(spec, d, fired, phaseOk, errors) {
   const dB = wrap180(at.b - ref.b);
   const dAltPct = (at.alt / ref.alt - 1) * 100;
   res.effect = { movedM: r2(mv), headingDeg: r2(hd), bearingDeg: r2(ref.b), dBearing: r2(dB), dAltPct: r2(dAltPct) };
+
+  /**
+   * HOW MUCH MOTION WAS EVEN POSSIBLE — the frame-relative half of the
+   * magnitude bars, which were wall-clock bars until this was written.
+   *
+   * A held key moves the camera by INTEGRATING FRAMES. js/controls.js clamps
+   * each frame to DT_MAX and refuses a gap over DT_BAIL outright (a tab-restore
+   * guard), so the motion a hold produces is set by the frames that rendered
+   * during it, not by how long it lasted. Under the veil on a loaded machine
+   * there may be none it is allowed to use.
+   *
+   * Measured, `key-w@veil`, 2026-09-20: CDP delivered the keyup 7,576 ms after
+   * the keydown, TWO frames rendered in that whole window, and the single gap
+   * between them was 7,575 ms — over DT_BAIL, so the controller integrated
+   * 0.000 s and the 2.68 m the camera moved was its settle. The bar was "> 3 m".
+   * The same case on the same build measured 3.64 m an hour earlier. That is a
+   * coin toss, not a check.
+   *
+   * So: report what was integrable, and when it is under half a clamped frame,
+   * say the magnitude is not measurable instead of failing an unreachable bar —
+   * the same treatment this file already gives a phase the input missed. The
+   * DIRECTION is still asserted whenever the camera moved at all, and every
+   * other check in the case (takeover, no cut, no resume, reach, sync) is
+   * untouched: a controller that had frames and did nothing still fails.
+   *
+   * The wheel and a look drag are impulses — one accumulator applied whole on
+   * the next frame the controller gets — so they do not scale with frame count
+   * and keep their fixed bars.
+   */
+  const CTL_DT_MAX = 0.10, CTL_DT_BAIL = 1.0;     // mirrors js/controls.js
+  // Only gaps with BOTH ends inside the window: a pair straddling the edge is
+  // mostly time outside it, and counting it was enough on its own to call a
+  // window with one 7.6 s gap in it "0.1 s integrable".
+  const winA = Math.max(tIn, tTake), winB = tEndIn + 300;
+  let integrableS = 0, prevT = null;
+  for (const f of F) {
+    if (prevT != null && prevT >= winA && f.t <= winB) {
+      const g = (f.t - prevT) / 1000;
+      if (g <= CTL_DT_BAIL) integrableS += Math.min(g, CTL_DT_MAX);
+    }
+    prevT = f.t;
+  }
+  res.integrableS = r2(integrableS);
+  const MEASURABLE = integrableS >= 0.05;
+  // Magnitude when the controller had frames to move on; direction always.
+  const rate = (name, magnitudeOk, dirOk, detail) => {
+    if (MEASURABLE) return check(name, magnitudeOk && dirOk, detail);
+    res.notes.push(`${name}: magnitude not measurable — ${r2(integrableS)} s was integrable ` +
+                   `between the takeover and the end of the gesture (${detail})`);
+    check(name + ' — direction only, too few frames for magnitude', dirOk, detail);
+  };
   if (spec.input === 'key-w' || spec.input === 'joystick' || spec.phase === 'reveal-exact' || spec.phase === 'boundary-exact') {
-    check('moves forward along the bearing it was facing', mv > 3 && Math.abs(wrap180(hd - ref.b)) < 25,
-          `moved ${r2(mv)} m heading ${r2(hd)} vs bearing ${r2(ref.b)}`);
+    rate('moves forward along the bearing it was facing', mv > 3,
+         mv <= 0.5 || Math.abs(wrap180(hd - ref.b)) < 25,
+         `moved ${r2(mv)} m heading ${r2(hd)} vs bearing ${r2(ref.b)}`);
   } else if (spec.input === 'key-arrow') {
-    check('strafes left of the bearing it was facing', mv > 3 && Math.abs(wrap180(hd - (ref.b - 90))) < 25,
-          `moved ${r2(mv)} m heading ${r2(hd)} vs bearing-90 ${r2(ref.b - 90)}`);
+    rate('strafes left of the bearing it was facing', mv > 3,
+         mv <= 0.5 || Math.abs(wrap180(hd - (ref.b - 90))) < 25,
+         `moved ${r2(mv)} m heading ${r2(hd)} vs bearing-90 ${r2(ref.b - 90)}`);
   } else if (spec.input === 'key-q') {
-    check('climbs in place', dAltPct > 5 && mv < 5, `alt ${r2(dAltPct)}%, moved ${r2(mv)} m`);
+    rate('climbs in place', dAltPct > 5, dAltPct >= 0 && mv < 5,
+         `alt ${r2(dAltPct)}%, moved ${r2(mv)} m`);
   } else if (wheel) {
     check('wheel climbs in place', dAltPct > 20 && mv < 5, `alt ${r2(dAltPct)}%, moved ${r2(mv)} m`);
   } else if (look) {
@@ -740,6 +854,15 @@ if (CONTROLS) {
   // introBusy note in js/app.js). Only a real test when the veil outlasts 25 s:
   // the result line prints the veil wait.
   specs.push({ id: 'none-drift', kind: 'none', drift: true });
+  // The takeover rides the controller's rAF tick, so the one thing that can
+  // defeat it is a gesture that begins and ends between two frames. This case
+  // is that, exactly and on any machine: keydown and keyup dispatched in the
+  // SAME TASK during leg 2, so no frame can render while the key is down. It
+  // is the deterministic form of the `key-w@leg2` flake that only appeared at
+  // 2 fps. Against the controller WITHOUT the input latch it fails 3 times in
+  // 3: nought takeovers, the flight still flying, the camera 600-738 m and
+  // ~90 degrees further on (docs/intro-interrupt.md).
+  specs.push({ id: 'key-tap-between-frames', kind: 'tap' });
   specs.push({ id: 'home', kind: 'home' });
   specs.push({ id: 'tour', kind: 'tour', query: '&tour=1' });
   specs.push({ id: 'autopilot', kind: 'tour', query: '&autopilot=1' });
@@ -775,8 +898,22 @@ console.log(`intro-interrupt: ${plan.length} cases against ${BASE}`);
 // instead of reporting forty "browser has been closed" failures.
 const MAX_MS = Math.max(600000, plan.length * 120000);
 let browser = await launch(chromium, { maxMs: MAX_MS });
+// One browser for the whole run is right for GPU-slot etiquette, but a page of
+// this city is ~300 MB of tiles and meshes and a full matrix is fifty of them
+// through one process tree. On a 52-case run case 50 came back with five
+// `net::ERR_INSUFFICIENT_RESOURCES` — the browser refusing new requests, not a
+// page fault; the same case passed on its own. Recycle before that point.
+// It costs a few seconds and never holds a second slot.
+const RECYCLE_EVERY = 16;
 const results = [];
 for (const spec of plan) {
+  if (results.length && results.length % RECYCLE_EVERY === 0) {
+    // __done() kills THIS browser only (chrome.mjs `reap`), never other lanes'.
+    // It returns undefined, so it is not a promise to catch on.
+    try { browser.__done(); } catch (e) {}
+    browser = await launch(chromium, { maxMs: MAX_MS });
+    console.log(`        - browser recycled after ${results.length} cases`);
+  }
   const t0 = Date.now();
   let r;
   for (let attempt = 1; attempt <= 2; attempt++) {

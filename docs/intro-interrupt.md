@@ -79,6 +79,106 @@ Two more found while building the fix:
   the thumb's first movement reached the page). A finger resting on the canvas
   has always counted; the joystick now does too.
 
+## The takeover a slow frame could swallow
+
+Caught on review, on the merged result, before this landed. Moving the cancel
+from a capture-phase DOM listener onto the controller's takeover bought the
+discrimination we wanted — a click on a panel no longer stops the flight — and
+quietly gave away the one property the DOM listener had for free: **a DOM
+listener cannot miss an event, and a tick can.** The takeover is decided from
+input *state* read once per animation frame, so a press and a release that both
+land inside one frame gap leave no state behind and the tick never learns they
+happened.
+
+That is not a thought experiment on this laptop. With other lanes rendering the
+opening flight was measured at 1.6–3.4 fps; frame gaps of **558, 642 and 776
+ms** are in one recorded run of `key-w@leg2`, and in another run of that case the
+takeover fired **7 ms** after the key went down but the next frame did not
+arrive for **776 ms**. Held a second, W missed the tick entirely in **2 runs out
+of 6**: `takeover: null`, the flight running to completion under the key, the
+camera 2,880 m further on. On `main` — where any `keydown` cancelled — that
+could not happen. It is a regression this change introduced, not machine noise.
+
+The limiting case of a long frame gap needs no slow machine at all: dispatch
+`keydown` and `keyup` **in the same task** and no frame can possibly render
+between them. That is the harness case `key-tap-between-frames`, fired 3 s into
+leg 2. Measured, three reps each, same browser session, `?apartments=0`,
+hardware GL:
+
+| controller | takeovers | flight state | camera over the next 2.5 s |
+|---|---|---|---|
+| without the latch | 0, 0, 0 | still `flying` | **+738 m / −100°**, +600 m / −88°, +716 m / −98° |
+| with the latch | 1, 1, 1 | `cancelled` by `input` | 3.5 m, 3.7 m, 0.8 m, no ease running |
+
+The fix is a one-bit latch in `js/controls.js`: `onKeyDown`, `onPointerDown`
+and `onJoyDown` set `inputLatch` once they have accepted the input (below every
+guard — R, a text field, a slider's own arrow keys and a non-primary mouse
+button all return before it), the tick ORs it into `inputActive` and clears it,
+and `clearInputs()` drops it so an alt-tab or the R reset can't leave a takeover
+armed to fire on the next frame. Only the transient inputs need it: the wheel, a
+pinch and a look drag accumulate into `wheelLogAcc` / `touchLogAcc` /
+`pendingYaw` / `pendingPitch`, which nothing but the tick clears, so they
+already survive any gap. The latch is consumed below the tick's two early
+returns, so the first frame and any tab-restore gap over `DT_BAIL` leave it
+armed rather than eating it.
+
+What it does *not* fix, and isn't meant to: if no frame renders while the key is
+down, the controller cannot *move* on that key — there was no frame to move on,
+and the key is gone by the next one. It takes the camera and stops the flight;
+it does not replay the motion. `key-tap-between-frames` asserts ownership only,
+for that reason.
+
+### The magnitude bars were wall-clock bars
+
+Separate from the fix, and found while sorting real failures from machine load.
+The suite's header says every check is frame- and event-relative. Six of them
+weren't: `mv > 3 m` for a held key, `dAltPct > 5` for Q. A held key moves the
+camera by *integrating frames* — `js/controls.js` clamps each frame to `DT_MAX`
+(0.10 s) and refuses a gap over `DT_BAIL` (1 s) — so what a hold is worth is set
+by the frames that rendered during it, not by how long it lasted.
+
+`key-w@veil` measured **3.64 m and 2.68 m on two runs of the same build**,
+against a fixed 3 m. In the failing one, CDP delivered the keyup **7,576 ms**
+after the keydown, **two frames** rendered in that whole window, and the one gap
+between them was **7,575 ms** — over `DT_BAIL`, so the controller was allowed to
+integrate **0.000 s** and the 2.68 m was its settle. The bar was unreachable by
+construction. That is a coin toss, not a check, and it is what put two of the
+five failures on the review run.
+
+Every case now reports `integrableS` — the seconds the controller could actually
+integrate between the takeover and the end of the gesture — and when that is
+under half a clamped frame the magnitude is reported as **not measurable**,
+which is the treatment this file already gives a phase the input missed. The
+direction is still asserted whenever the camera moved at all, and takeover, no
+cut, no resume, reach and sync are untouched: a controller that had frames and
+did nothing still fails. Re-analysed over the full 52-case dump, it changes
+exactly one case — the one with 0.000 s. The next lowest is 0.1 s and the
+highest 3.2 s. The wheel and a look drag keep their fixed bars: they are
+impulses applied whole on the next frame, so they do not scale with frame count.
+
+### The same race at the veil — known, not fixed
+
+`fly()` decides whether to depart by asking "has anything moved the camera off
+`INTRO.start`?". That is a frame behind for the same reason: an input that has
+*arrived* but that no frame has rendered since has not moved anything yet. Seen
+once, in the run recorded here: a wheel notch **392 ms before the lift** with the
+next controller tick **695 ms** after it, so the flight departed and the takeover
+cancelled it ~300 ms into leg 1. Leg 1 is a cosine ease starting at zero
+velocity, so 300 ms of it is **0.09 m**: nothing jumps, nothing is stranded, and
+the camera ends up where the takeover snapshot says it should. It is cosmetic,
+and it is 1 case in 52 at 2 fps.
+
+A fix was written — have `fly()` ask the controller what it is holding
+(`__fly.armed()`) instead of waiting to see the camera move — and **backed out
+again**. Twice-built attempts to reproduce the state on demand (a synchronous
+block through the veil lift) landed in a different state each time: once the
+controller's own tick got there first and cancelled normally, once the flight
+departed anyway. An unreproducible state means an unverifiable fix, and a
+takeover gate that can suppress the opening flight is not something to ship on
+reasoning alone. Whoever picks this up: the missing piece is a way to make the
+veil lift at a known instant with no animation frame after the input — a test
+hook on the gate's ceiling would give it.
+
 ## The fix
 
 - **Navigation input is defined by the controller, not by a list of DOM
@@ -87,6 +187,10 @@ Two more found while building the fix:
   `primeIntro()` cancels on that. So keys, drag-look, the wheel, pinch,
   tap-drag and the joystick count on every device, and a click on a panel or a
   key typed into a text field doesn't.
+- **A gesture that begins and ends between two frames still counts** — see
+  "The takeover a slow frame could swallow" below. The handlers that accept a
+  navigation input latch it; the tick folds that latch into `inputActive` and
+  clears it. The takeover can be one frame late, never skipped.
 - **Cancel keeps the camera.** If one of the intro's own legs is running it's
   stopped with `map.stop()`, which leaves MapLibre's transform on the last
   frame drawn. There is no `jumpTo` anywhere in the cancel path.
