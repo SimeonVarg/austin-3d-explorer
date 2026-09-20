@@ -739,3 +739,103 @@ Ground-only repairs can run with `python scripts/bake_ground.py --resolve-paveme
 A full ground regeneration runs that stage automatically. The road recipe no
 longer writes a second file as a side effect; run `python scripts/bake_roads.py`
 separately when road markings/tiles need rebuilding.
+
+## The night comparison harness: `night-compare.mjs` + `night-routes.json` (added September 19 2026)
+
+The instrument for the night renderer (`docs/night-implementation-plan.md`, W0 and
+§7). It is a **comparison** harness, not a gate: it shoots the same named poses
+at the same lighting regimes for one build, or for two builds or flag sets side
+by side, and writes labelled sheets plus a JSON report of measurements.
+
+`night-routes.json` holds 16 poses on 11 routes (plan §7.1): the downtown skyline
+from the south shore, Congress Avenue at 1.7 m, three generic elevated West Campus
+views that frame what the owner photographed (IMG_9964-9969), two West Campus
+streets at eye level, the Main Mall and Tower, the South Mall, the Guadalupe
+storefronts, the Capitol (30 m and down the avenue at 1.7 m), State Parking Garage
+R, Lady Bird Lake (aerial and from the Lamar bridge) and the campus aerial. A pose
+is `eye`/`target` (`[lng, lat, metres]`) or a plain `center/zoom/pitch/bearing`.
+The regimes are slider values: `blue` p .62 (sun −5.8°), `twilight` .69 (−12.1°),
+`night` 1.0 (−40°) by default, plus `early` .7222 (−15°, the owner's 20:36 series)
+and `day` .30 / `golden` .50 for the no-regression check (A9). Each pose carries
+named `regions` — `sky`, `wall`, `ground`, `water` feed the ratios; any other name
+(`dome`, `tower`) is measured and reported but not divided — and each route
+optional `refs` per regime (paths under `../austin-reference-images`, which is
+local and never committed).
+
+**Pitch cannot go above the horizon**, so a target above the eye clamps to 88°,
+and the map centre then lands about 28.6 × the eye height ahead: the subject sits
+high in the frame, not at its centre. Stand back far enough that it still fits.
+
+**A camera that reached its pose can still be facing a wall.** Two of the first
+sixteen were: the Capitol gate pose stood 41 m east of the Congress Ave centreline,
+inside the buildings, and a West Campus garage guess landed on an apartment facade.
+Both reported `camera ok` at every regime. Always look at `overview-A-*.jpg` before
+quoting a pose.
+
+**Matched poses for the owner's photographs are private.** They reveal where he
+took them. They live in `../austin-reference-images/_night/night-routes.local.json`
+(outside every repo), which the harness loads automatically and announces in
+capitals; `--local none` skips it. Never copy a pose from it into a tracked file,
+and never commit a sheet made with it.
+
+**On the Acer every run goes through the lanes' GPU-slot wrapper** (parallel
+hardware-GL Chromes have blue-screened it):
+
+```bash
+python scripts/serve.py 8661                       # from the repo root
+VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare -- \
+  node scripts/verify/night-compare.mjs --out <scratch>/run1
+
+# a flag against the build as shipped
+... night-compare.mjs --out <scratch>/flag --a '' --b '&someflag=1'
+# two builds (main on :8661, a branch worktree on :8662)
+... night-compare.mjs --out <scratch>/ab --a-site http://127.0.0.1:8661 --b-site http://127.0.0.1:8662
+# day and golden must not move (A9): exit 1 if any frame differs in >= 1% of pixels
+... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 1
+# the watched failure: side B has the authored apartments hidden in the page
+... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 1
+# change regions, then re-measure an old run without loading the app
+... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --show-regions
+```
+
+`gpu-run.mjs` is in the session's lanes scratch folder, not the repo. It holds one
+of three machine-wide browser slots and passes the exit code through. Elsewhere,
+run the command bare, one at a time.
+
+What a shot is: `index.html?intro=0&drift=0&clip=1<query>`, 1440×900 at DPR 1,
+hardware GL. The auto-detect probe is cancelled at once. The harness waits for
+the veil to lift and for the authored buildings (a built group **and**
+`readyToReveal()`). If the app gave up on them under load (`INTRO.authoredCeilingMs`),
+it switches them back on and says so; if they never arrive it exits 2. Each
+regime is applied once. Then, per pose: jumpTo, reset the auto-exposure meter,
+wait for tiles and idle, re-pose, settle 3 s, screenshot, 1 s, screenshot and
+keep the second. If the two differ in more than 0.25% of pixels by more than 24
+luma, it re-shoots up to twice and records the frame as unsettled if that does not
+help. The camera is checked against the pose (pitch; eye altitude via `__fly.eye()`).
+
+What it measures, per frame and per region, from the kept JPEG: `luma` (Rec.709
+on graded sRGB, 0–255, the unit of the plan's §1.4 tables) and linear `Y` (the
+unit for ratios): mean, p10/p50/p90, % over luma 120 and 200. Ratios are of
+median Y: `wall/sky`, `ground/sky`, `water/sky`, `wall/ground`. **Bright windows:**
+in the `wall` region, pixels with Y ≥ 4 × the region's median, luma ≥ 40 and
+R ≥ B (the `night-luma.mjs` warm/neutral split), as a %, with their mean colour;
+`absPct` is the plan's cruder "luma > 120, R ≥ B". These are pixel classes, not
+truth. **A pose with no `wall` region falls back to the whole frame, and then the
+number is not a window count at all** — at blue hour it is mostly sky and lit
+pavement (`wc-street/rio-grande-23rd` measured 38.9% that way, all of it road).
+The fallback sets `windows.fallback` in the report and prints `*` in the table and
+on the tile; give the pose a `wall` region rather than quoting a starred number.
+A/B: mean |Δluma| and % of pixels over 16 and 48, per frame. The thresholds are
+the constant blocks at the top of the script.
+
+Exit codes: **0** every shot taken and interpretable (and `--same` held); **1**
+`--same` failed; **2** cannot run or cannot interpret (bad arguments, app never
+ready, authored buildings missing, a pose not reached, a blank frame); **124** the
+watchdog.
+
+**Regions are drawn on one build's frames.** A change that moves a skyline or
+opens up a street can push a `wall` rectangle onto sky. `--show-regions` writes
+one `regions-<route>-<pose>.jpg` per pose: the frame with the rectangles drawn on
+a labelled 5% grid, so the next rectangle is read off the picture rather than
+guessed. Re-draw, then `--from` to re-measure the frames you already have — no app
+load, about a minute for a full run.

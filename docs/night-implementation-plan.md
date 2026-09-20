@@ -332,6 +332,46 @@ are the core. W8 and W9 follow.
   `scripts/verify/night-accept.mjs`.
 - Cost: none in the app.
 
+#### W0a. Built 2026-09-19: the comparison harness [M]
+
+The camera half of W0 exists: **`scripts/verify/night-compare.mjs` + `scripts/verify/night-routes.json`**
+(documented in `scripts/verify/README.md`). It shoots 16 named poses on 11 routes at named lighting
+regimes, for one build or for two builds/flag sets side by side, and writes labelled sheets plus a JSON
+report of per-region luminance, ratios and bright-window share. The named-measure half (linear Y by class
+mask, the data-side lit-unit counter, the regime-aware rewrites of `night-silhouette.mjs:53-59` and
+`night-lights.mjs:89`) is still to do; `night-accept.mjs` should read this harness's report rather than
+re-shoot.
+
+It is a **comparison instrument, not a gate**: nothing in it encodes the §7.2 targets, so it can measure
+a change without pre-judging it. `--same` is the only assertion, and it is the A9 no-regression check.
+
+**Baseline on `main` @ `c656249`** (run 2026-09-20 01:03 UTC, hardware GL, 1440×900 DPR 1, `?drift=0`,
+auto-detect cancelled, second screenshot kept; frames under
+`<scratch>/lanes/night/harness/baseline2/`, report `report.json`). Three sheets are committed as the
+before-picture for W1–W6; the rest stay in scratch.
+
+| | blue hour (p .62, sun −5.8°) | twilight (p .69, −12.1°) | full night (p 1, −40°) |
+|---|---|---|---|
+| ![](shots/night-baseline-wc-elevated.jpg) `wc-elevated/over-drag-wnw` | wall/sky **4.44**, ground/sky 7.59, bright windows **0%** | wall/sky **9.64**, ground/sky 11.7, windows **0%** | wall/sky 4.98, windows 13.3% |
+| ![](shots/night-baseline-skyline.jpg) `skyline-south-shore/shore-10m` | wall/sky 2.37, **water/sky 20.5** | wall/sky 2.13, **water/sky 22.9** | wall/sky 7.06, water/sky 1.75 |
+| ![](shots/night-baseline-congress.jpg) `congress-street/at-5th-1p7m` | wall/sky 4.69, ground/sky 5.04 | wall/sky 5.60, ground/sky 6.67 | wall/sky 6.16, ground/sky 2.33 |
+
+Read against §7.2 that is: **A1 fails everywhere** (target wall/sky ≤ 0.5 at blue hour; measured 0.6–14.2
+across the sixteen poses, and water/sky 16–24 where the lake is in frame, against a target of ≤ 1).
+**A2's wall/sky 3–7 at early night is already in range by accident** — not because the walls went dark but
+because the sky did, and at the same time ground/sky runs 1.7–90 and exceeds wall/sky in 10 of the 12 poses
+that measure both, so the pavement, not the building, is the brightest surface in the frame.
+**A3 fails**: at p 1 wall/sky is 0.6–10.7 against a target of ≥ 15, and the one pose that
+looks right (`lady-bird-lake/aerial-west-120m`, 10.7) gets there from altitude, not from dark walls.
+**§1.1's staggered clocks are visible in one column**: hero and arts windows are 0% at blue hour and
+twilight on the elevated West Campus poses and only appear at p 1, while the street lamps are already full
+on at p .62 — the sheets' top two rows have lit pavement under unlit buildings.
+
+Two cautions carried by the run: `wc-street/rio-grande-23rd` reads wall/sky **0.60** at blue hour, which is
+not a pass — it is a pose whose `wall` region is mostly shaded near-field facade; and the app had given up
+on the authored buildings under load on this visit (`INTRO.authoredCeilingMs`), so the harness switched them
+back on in the page and said so. Both are recorded in `report.json`.
+
 ### W1. One night clock with per-class on-curves [P]
 
 - **Evidence:** §1.1; dusk inversion [M] (lake 161 against sky 31; wall 139 against sky 32–96).
@@ -536,6 +576,15 @@ Each route runs at four sun elevations: **−5° (blue hour), −12° and −15�
 −40° (p=1, deep night)**. Day p .30 and golden p .50 are the no-regression checks. Settings: `?drift=0`,
 auto-detect cancelled, hardware GL, second screenshot kept, 3 reps.
 
+These are now poses in **`scripts/verify/night-routes.json`**, shot by `night-compare.mjs` (W0a): R1 →
+`wc-elevated` (3 poses), R2/R3 → `wc-street`, R4 → `congress-street` + `capitol`, R5 →
+`skyline-south-shore` + `lady-bird-lake`, R6 → `guadalupe-storefronts`, R7 → `main-mall-tower` +
+`south-mall`, R8 → `parking-structure`, R9 → `campus-aerial`. The regimes are named there too (`blue`,
+`twilight`, `early`, `night`, and `day`/`golden` for A9). Two are **not** in the tracked file: R10 (the
+393×852 `?lite=1` phone pass — the harness is fixed at 1440×900 and needs a viewport flag first) and the
+matched poses for the owner's photographs, which name a viewpoint and live in
+`../austin-reference-images/_night/night-routes.local.json` outside every repo.
+
 | route | path | what it judges | reference |
 |---|---|---|---|
 | R1 | WC elevated orbit, 70 m, around Rio Grande/San Antonio × 21st–24th (inventory views 03 and 04) | occupancy, crowns, podiums, pools | owner 9964–9968 (matched poses local only) |
@@ -604,6 +653,9 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
 - Reference package: `docs/night-reference-package.md`. Owner analysis (private, local):
   `austin-reference-images/_owner-phone/analysis/owner-photos.md`.
 - Baseline inventory and captures (local): `austin-reference-images/_night/_baseline-c656249/`.
+- The comparison harness and its `c656249` baseline (W0a): `scripts/verify/night-compare.mjs`,
+  `scripts/verify/night-routes.json`, `scripts/verify/README.md`; committed sheets
+  `docs/shots/night-baseline-{wc-elevated,skyline,congress}.jpg`.
 - MapLibre 5.24 shader source: the `maplibre-gl-dev.js` 5.24.0 build (fill-extrusion, pattern and circle
   programs) and the [CustomLayerInterface docs](https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/).
 - Mapbox GL JS v3 style spec, emissive-strength and flood-light properties (prior art only):

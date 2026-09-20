@@ -1,0 +1,252 @@
+{
+  "_readme": [
+    "Named camera routes for the night renderer, read by scripts/verify/night-compare.mjs.",
+    "A pose is either eye/target ([lng, lat, metres above ground] each; bearing and pitch are derived, pitch is clamped to the app's 88 deg and the zoom comes from the app's 58 deg vertical FOV) or a plain MapLibre pose (center, zoom, pitch, bearing).",
+    "Because pitch cannot go above the horizon, a target ABOVE the eye clamps to 88 deg: the map centre then lands about 28.6 x the eye height ahead, and the subject sits high in the frame rather than at its centre. Stand far enough back that it still fits.",
+    "regions: named rectangles [x0, y0, x1, y1] as fractions of the frame (0,0 = top left). A region may be one rectangle or a list of them; rectangles in one region must not overlap. sky/wall/ground/water feed the ratios; any other name (dome, tower) is measured and reported but not divided.",
+    "They were read off the 2026-09-19 baseline frames (1440x900) with night-compare --show-regions, which draws them on a labelled 5% grid. After editing them, re-measure an old run with --from instead of re-shooting it.",
+    "EVERY pose should carry a wall region: without one the bright-window measure falls back to the whole frame, where at blue hour it counts sky and lit pavement and is not a window count at all (it is then starred in the table).",
+    "regimes: slider values. p is canonical (it is what the owner drags); sunElev is what js/sky.js SUN_KEYS gives for that p at c656249, and night-compare warns when a build disagrees by more than 0.5 deg.",
+    "refs: optional reference photographs per regime, as paths under refRoot (a local, git-ignored folder; missing files are skipped). None of them may be committed.",
+    "West Campus elevated poses are GENERIC vantage points over public streets that frame the same buildings the owner photographed (IMG_9964-9969). The matched poses for those photographs stay in a local overlay file (see night-compare.mjs --local), never here."
+  ],
+  "version": 2,
+  "viewport": [1440, 900],
+  "refRoot": "../austin-reference-images",
+  "defaultRegimes": ["blue", "twilight", "night"],
+  "regimes": {
+    "day":      { "p": 0.30, "sunElev": 54.0, "note": "no-regression check (plan A9)" },
+    "golden":   { "p": 0.50, "sunElev": 6.0,  "note": "no-regression check (plan A9)" },
+    "blue":     { "p": 0.62, "sunElev": -5.8, "note": "blue hour; the inventory's p .62" },
+    "twilight": { "p": 0.69, "sunElev": -12.1, "note": "nautical twilight / early night; the inventory's p .69" },
+    "early":    { "p": 0.7222, "sunElev": -15.0, "note": "the owner's 20:36 elevated series (sun -14.5 to -15.2 deg)" },
+    "night":    { "p": 1.0,  "sunElev": -40.0, "note": "full night (p = 1)" }
+  },
+  "routes": [
+    {
+      "id": "skyline-south-shore",
+      "title": "Downtown skyline across Lady Bird Lake, from the south shore",
+      "plan": "R5",
+      "judges": "skyline occupancy, crowns and accents, water against sky",
+      "poses": [
+        { "id": "shore-10m", "eye": [-97.7465, 30.2612, 10], "target": [-97.7430, 30.2690, 80],
+          "regions": {
+            "sky":   [0.05, 0.02, 0.95, 0.10],
+            "wall":  [[0.04, 0.22, 0.26, 0.40], [0.62, 0.24, 0.95, 0.40]],
+            "water": [0.10, 0.62, 0.90, 0.95]
+          } }
+      ],
+      "refs": {
+        "blue": "_night/downtown/skyline-blue-hour__congress-view__cutrer-2012-07-31_2034.jpg",
+        "twilight": "_night/downtown/skyline-dusk-wide-pano__dimas-2016-11-23_1908.jpg",
+        "night": "_night/downtown/skyline-full-night__congress-view__cutrer-2012-07-31_2320.jpg"
+      }
+    },
+    {
+      "id": "congress-street",
+      "title": "Congress Avenue at street level, looking north to the Capitol",
+      "plan": "R4",
+      "judges": "downtown lamps, retail frontage, the dome against the sky",
+      "poses": [
+        { "id": "at-5th-1p7m", "eye": [-97.74285, 30.26790, 1.7], "target": [-97.74060, 30.27450, 30],
+          "regions": {
+            "sky":    [0.40, 0.02, 0.55, 0.20],
+            "wall":   [[0.02, 0.10, 0.25, 0.60], [0.72, 0.15, 0.98, 0.60]],
+            "ground": [0.20, 0.80, 0.80, 0.98]
+          } }
+      ],
+      "refs": {
+        "blue": "_night/landmarks-street/texas-capitol__congress-ave-bluehour-predawn__01.jpg",
+        "night": "_night/downtown/skyline-fullnight-wide__zykov-2012-10-10_0342.jpg"
+      }
+    },
+    {
+      "id": "wc-elevated",
+      "title": "West Campus from above, early night (the subjects of the owner's IMG_9964-9969)",
+      "plan": "R1",
+      "judges": "apartment window occupancy, crowns, podiums, pools",
+      "poses": [
+        { "id": "over-drag-wnw", "note": "80 m over the campus side of Guadalupe at 22nd, looking WNW across Icon and Moontower to Union on 24th and Villas on 24th (9964/9969 subjects)",
+          "eye": [-97.7412, 30.2858, 80], "target": [-97.7448, 30.2872, 45],
+          "regions": {
+            "sky":    [0.08, 0.04, 0.95, 0.25],
+            "wall":   [[0.19, 0.39, 0.30, 0.51], [0.73, 0.52, 0.91, 0.70]],
+            "ground": [0.50, 0.86, 0.66, 0.92]
+          } },
+        { "id": "over-mlk-north", "note": "80 m over MLK at Nueces, looking north up the Rio Grande corridor: 21 Rio, Villas on Rio, Signature 1909 (9965/9966 subjects)",
+          "eye": [-97.7445, 30.2806, 80], "target": [-97.7450, 30.2852, 30],
+          "regions": {
+            "sky":  [0.05, 0.03, 0.78, 0.30],
+            "wall": [[0.82, 0.35, 0.98, 0.62], [0.48, 0.40, 0.53, 0.57]]
+          } },
+        { "id": "down-on-ion", "note": "110 m over 22nd St, looking steeply down SSE onto Ion and the Callaway House (9967/9968 subjects)",
+          "eye": [-97.7437, 30.2860, 110], "target": [-97.74326, 30.28439, 25],
+          "regions": {
+            "sky":    [0.10, 0.01, 0.22, 0.06],
+            "wall":   [[0.22, 0.38, 0.38, 0.85], [0.49, 0.51, 0.64, 0.72]],
+            "ground": [0.69, 0.49, 0.735, 0.77]
+          } }
+      ],
+      "refs": {
+        "twilight": "_night/westcampus-campus/torre-westcampus-twilight_ca2020s-rambleratx-article.png"
+      }
+    },
+    {
+      "id": "wc-street",
+      "title": "West Campus streets at eye level",
+      "plan": "R2 / R3",
+      "judges": "street lamps, lobbies, garage decks, pavement light",
+      "poses": [
+        { "id": "rio-grande-23rd", "eye": [-97.74478, 30.28660, 1.7], "target": [-97.74455, 30.28950, 10],
+          "regions": {
+            "sky":    [0.49, 0.34, 0.53, 0.45],
+            "wall":   [[0.74, 0.26, 0.90, 0.49], [0.57, 0.03, 0.66, 0.31]],
+            "ground": [0.21, 0.67, 0.62, 0.91]
+          } },
+        { "id": "san-antonio-castilian", "note": "a near facade fills the left third of this frame at 1.7 m; the regions deliberately sit on the far side of the street",
+          "eye": [-97.74285, 30.28620, 1.7], "target": [-97.74250, 30.28850, 12],
+          "regions": {
+            "sky":    [0.42, 0.02, 0.52, 0.20],
+            "wall":   [[0.556, 0.03, 0.653, 0.26], [0.70, 0.24, 0.98, 0.48]],
+            "ground": [0.49, 0.62, 0.90, 0.89]
+          } }
+      ],
+      "refs": {
+        "blue": "_night/westcampus-campus/rambler-nueces-twilight_2023-rambleratx.jpg",
+        "twilight": "_night/westcampus-campus/waterloo-westcampus-duskblue_ca2022-rambleratx.jpg"
+      }
+    },
+    {
+      "id": "main-mall-tower",
+      "title": "Main Mall, looking up at the UT Tower",
+      "plan": "R7",
+      "judges": "the Tower's flood circuits kept, campus lamps",
+      "poses": [
+        { "id": "mall-1p7m", "eye": [-97.73940, 30.28400, 1.7], "target": [-97.73932, 30.28625, 60],
+          "regions": {
+            "sky":    [0.28, 0.03, 0.44, 0.22],
+            "wall":   [0.69, 0.23, 0.82, 0.48],
+            "tower":  [0.47, 0.14, 0.51, 0.34],
+            "ground": [0.05, 0.64, 0.36, 0.86]
+          } }
+      ],
+      "refs": {
+        "night": "_night/westcampus-campus/ut-tower-flawn-academic-night_2009-matthewrutledge.jpg"
+      }
+    },
+    {
+      "id": "south-mall",
+      "title": "South Mall from the Tower terrace, looking south",
+      "plan": "R7",
+      "judges": "campus lamps and walks, the Capitol on axis",
+      "poses": [
+        { "id": "terrace-4m", "eye": [-97.73942, 30.28530, 4], "target": [-97.73955, 30.28250, 2],
+          "regions": {
+            "sky":    [0.40, 0.16, 0.56, 0.22],
+            "wall":   [0.79, 0.33, 0.92, 0.51],
+            "ground": [0.21, 0.69, 0.76, 0.91]
+          } }
+      ],
+      "refs": {}
+    },
+    {
+      "id": "guadalupe-storefronts",
+      "title": "Guadalupe (the Drag) storefronts at 22nd, eye level",
+      "plan": "R6",
+      "judges": "storefronts against dark upstairs, pavement pools",
+      "poses": [
+        { "id": "drag-22nd-1p7m", "eye": [-97.74185, 30.28520, 1.7], "target": [-97.74175, 30.28800, 4],
+          "regions": {
+            "sky":    [0.50, 0.03, 0.72, 0.20],
+            "wall":   [0.18, 0.16, 0.29, 0.34],
+            "ground": [0.25, 0.62, 0.75, 0.90]
+          } }
+      ],
+      "refs": {
+        "twilight": "_night/westcampus-campus/drag-guadalupe-night_2009-bigbirdz.jpg",
+        "night": "_night/landmarks-street/guadalupe-drag__storefronts-full-night__01.jpg"
+      }
+    },
+    {
+      "id": "capitol",
+      "title": "The Capitol from Congress Avenue",
+      "plan": "R4",
+      "judges": "the floodlit dome and portico against the sky",
+      "poses": [
+        { "id": "congress-30m", "eye": [-97.74212, 30.26991, 30], "target": [-97.74040, 30.27470, 60],
+          "regions": {
+            "sky":    [0.32, 0.03, 0.50, 0.25],
+            "wall":   [0.583, 0.33, 0.667, 0.578],
+            "dome":   [0.485, 0.36, 0.535, 0.47],
+            "ground": [0.43, 0.69, 0.57, 0.87]
+          } },
+        { "id": "gate-1p7m", "note": "348 m down the Congress Ave centreline (derived from the two working poses: dlng/dlat 0.3409). The first try stood 41 m east of the centreline, inside the buildings, and photographed a blank wall at every regime.",
+          "eye": [-97.74156, 30.27155, 1.7], "target": [-97.74049, 30.27470, 45],
+          "regions": {
+            "sky":    [0.30, 0.04, 0.58, 0.28],
+            "wall":   [[0.08, 0.34, 0.26, 0.60], [0.64, 0.26, 0.78, 0.52]],
+            "dome":   [0.485, 0.375, 0.525, 0.46],
+            "ground": [0.25, 0.75, 0.75, 0.95]
+          } }
+      ],
+      "refs": {
+        "blue": "_night/landmarks-street/texas-capitol__congress-ave-bluehour-predawn__01.jpg",
+        "night": "_night/landmarks-street/texas-capitol__dome-floodlit-full-night-bw__01.jpg"
+      }
+    },
+    {
+      "id": "parking-structure",
+      "title": "A parking structure (State Parking Garage R, 29.9 m, wp dk06)",
+      "plan": "R8",
+      "judges": "the garage-deck class (GD): lit soffit bands",
+      "poses": [
+        { "id": "garage-r-west-100m", "note": "100 m due west of the deck's centroid (-97.73706, 30.27858) at 10 m, looking at deck mid-height. The inventory's own garage pose (130 m SSW, 22 m up) put an apartment facade across the near half; a West Campus guess landed on a facade. wall sits on the deck bands.",
+          "eye": [-97.73810, 30.27858, 10], "target": [-97.73706, 30.27858, 15],
+          "regions": {
+            "sky":    [0.30, 0.03, 0.62, 0.17],
+            "wall":   [0.20, 0.24, 0.62, 0.52],
+            "ground": [0.64, 0.59, 0.80, 0.67]
+          } }
+      ],
+      "refs": {
+        "night": "_night/landmarks-street/the-independent__crown-and-podium-garage-full-night__01.jpg"
+      }
+    },
+    {
+      "id": "lady-bird-lake",
+      "title": "Lady Bird Lake and downtown",
+      "plan": "R5",
+      "judges": "water against the sky, streaks under emitters, skyline",
+      "poses": [
+        { "id": "aerial-west-120m", "eye": [-97.7600, 30.2665, 120], "target": [-97.7455, 30.2625, 0],
+          "regions": {
+            "sky":    [0.34, 0.02, 0.60, 0.20],
+            "wall":   [[0.09, 0.32, 0.16, 0.51], [0.45, 0.355, 0.507, 0.49]],
+            "water":  [0.42, 0.545, 0.575, 0.69],
+            "ground": [0.14, 0.78, 0.29, 0.87]
+          } },
+        { "id": "lamar-bridge-8m", "eye": [-97.7565, 30.2648, 8], "target": [-97.7470, 30.2668, 80],
+          "regions": {
+            "sky":   [0.10, 0.02, 0.55, 0.12],
+            "wall":  [[0.52, 0.22, 0.60, 0.42], [0.38, 0.26, 0.43, 0.42]],
+            "water": [0.12, 0.56, 0.66, 0.90]
+          } }
+      ],
+      "refs": {
+        "blue": "_night/landmarks-street/downtown-skyline__town-lake-water-reflection-bluehour__01.jpg",
+        "night": "_night/downtown/lady-bird-lake-reflection-night__hargup-2015-07-09_2129.jpg"
+      }
+    },
+    {
+      "id": "campus-aerial",
+      "title": "Campus aerial, whole-frame ordering",
+      "plan": "R9",
+      "judges": "whole-frame ordering: the brightest things are lights",
+      "poses": [
+        { "id": "z16-p68", "note": "A9's whole-frame ordering check reads the frame, not a region; there is no single wall to draw on at this zoom.",
+          "center": [-97.7395, 30.2860], "zoom": 16.0, "pitch": 68, "bearing": 200 }
+      ],
+      "refs": {}
+    }
+  ]
+}
