@@ -219,8 +219,9 @@ In some page loads the south face read as shadowed up to about 48-52 m, with a
 slanted edge. It happens exactly when the authored apartments load (the app
 drops them for the visit when they miss the 90 s handoff ceiling, which on
 this loaded machine was about half the time). The caster is the authored
-**ICON** tower (2200 San Antonio St, 30 storeys, 93.6 m), about 390 m
-west-south-west of the Tower and within 15 m of the sun line through it. At 6
+**ICON** tower (`data/apartments/icon.json`: 30 storeys, tallest block 93.6 m),
+about 390 m west-south-west of the Tower. Followed 390 m from the shaft, the
+sun line at the default hour passes straight through the ICON's footprint. At 6
 degrees a 93.6 m building shades everything up to 93.6 - 390 x tan 6 = 52 m.
 
 I did not leave that as arithmetic. Rays cast from the shaft's south and west
@@ -290,9 +291,12 @@ frame, so the raw numbers sit a little lower than they look:
 ## 4. Other suspects, measured
 
 - **Normals.** Visible building pixels whose normal points away from the
-  camera: **0.000 %** of extrusion pixels and 0.1-0.2 % of mesh pixels. The
-  mesh figure is edge pixels plus the deliberately two-sided apartment
-  envelopes. The extrusion adapter's `(-x, y, z)` normal is correct for
+  camera: **0.000 %** of extrusion pixels and 0.1-0.2 % of mesh pixels across
+  the diagnostic views, 0.27 % over all building pixels at the verify script's
+  close pose (0.02 % on the phone, which renders fewer meshes). The mesh figure
+  is edge pixels plus the deliberately two-sided apartment
+  envelopes; it tracks how much of the frame is mesh edge, not a flip. The
+  extrusion adapter's `(-x, y, z)` normal is correct for
   MapLibre 5.24's inward-facing side normals (`perp = (p1 - p2)._perp()` on
   clockwise tile rings).
 - **Double lighting from MapLibre.** During the day `cityShade` returns
@@ -383,7 +387,12 @@ shade split the owner likes. Graded figures are the whole frame as displayed.
 
 **Recommendation for Codex:** try `TOD_DEFAULT_P = 0.47` first. It keeps the
 new lighting model, the warm sun, the cool shade and the glare, and fixes the
-brightness at its source instead of lifting the shade everywhere. If the
+brightness at its source instead of lifting the shade everywhere. It is also
+the only option that agrees with the direction already written down in
+`AGENTS.md` — "strong amber lower glazing ... while shaded masonry remains
+dark". Raising `ambient` brightens exactly the shaded masonry that line says to
+keep dark; moving the hour leaves the shade where it is and puts more of the
+city in the sun instead (sunlit walls on the owner's view 43 % → 78 %). If the
 opening shot must stay at sunset, use `ambient: .45` instead. Do not stack
 both, and do not use the saturation or shade-colour lines for this problem.
 Show the owner the options image before choosing; none of these is merged.
@@ -405,9 +414,38 @@ Show the owner the options image before choosing; none of these is merged.
   intended look silently disappears. Driving the sun uniforms without
   three.js would need a small uniform driver outside `js/slopes.js`, which is
   outside this lane's files, so it is not done here.
-- **Presets.** `performance`, `balanced`, `cinematic` and `ultra` all keep
-  `shadows: true` and window reflections at 100 %. The auto-detect probe only
-  ever downgrades to `performance`, so it cannot switch the sunlight off.
+- **Presets — measured, not read off the source.** I switched presets in a live
+  page through the same `usePreset` the menu uses, at one fixed camera and hour,
+  and read the uniforms the shader actually got. **All four are identical on
+  every lighting value:**
+
+  | | performance | balanced | cinematic | ultra |
+  |---|---|---|---|---|
+  | `u_sunlight` | 1, .32, 1.45, .90 | same | same | same |
+  | `u_shadowSettings` | 1, .0007, 0, .09 | same | same | same |
+  | `u_sunDirection` | -.965, -.241, .105 | same | same | same |
+  | `u_glassStrength` | 1 | 1 | 1 | 1 |
+  | `u_glassSun` | 3, 900, 24, .1 | same | same | same |
+  | `u_reflectionSky` | .45, 3, 1.5, .08 | same | same | same |
+  | `shadows` | true | true | true | true |
+  | `CityLighting` draws in the frame | 636 | 726 | 752 | 752 |
+  | shader failures | none | none | none | none |
+
+  What does differ is not lighting: render scale (0.75 / 1 / 1 / 1.5), auto
+  exposure (off / on / on / on), render distance (350 / 700 / 1100 / 1500 m),
+  field of view (58 / 58 / 62 / 62) and bloom (0 / .40 / .62 / .72). The
+  auto-detect probe's only move is `usePreset('performance')`
+  (`js/graphics.js`), and `performance` keeps `shadows: true` and the same
+  uniforms, **so the probe cannot switch the sunlight off.** The two real
+  consequences for how dark campus reads are the ones already named: auto
+  exposure is off on `performance` (and on the phone), so nothing lifts a dark
+  frame there, and the 350 m render distance drops the pitched roofs early.
+
+  I did not get a trustworthy per-preset facade luma out of this run: the
+  building mask returned too few pixels on two of the four presets, so those
+  numbers are not reported. Comparing luma across presets would be awkward
+  anyway, because cinematic and ultra change the field of view and therefore
+  the framing.
 - **Normal startup on this machine, which was under load.** The loading veil
   took 105-115 s. In every one of 4 startups the authored-apartment handoff hit
   its 90 s ceiling (`INTRO.authoredCeilingMs`), and the app kept the legacy
