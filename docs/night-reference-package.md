@@ -73,12 +73,45 @@ photographs** (`dobie-center-pool-twilight` and `ut-tower-all-seeing`, and the s
 is **no web photograph at all of early night at sun −15°** — that regime is carried entirely by the
 owner's IMG_9964–9969, and only by them.
 
-`scripts/verify/night-routes.json` binds one reference per route per regime, and as of 2026-09-20 it binds
-each photograph to **the regime its own entry above is tagged with**, leaving the row empty where the
-corpus has nothing. Four bindings had drifted off their tags (a blue-hour skyline on the twilight row, two
-rambleratx blue-hour frames on twilight rows, and the full-night Drag photo on the twilight row — where it
-was also the same picture as the night row, at lower resolution). An empty cell in that file is a fact
-about this corpus. A wrong one is a lie about the sky.
+`scripts/verify/night-routes.json` binds one reference per route per regime, leaving the row empty where
+the corpus has nothing. An empty cell in that file is a fact about this corpus. A wrong one is a lie
+about the sky.
+
+**Rewritten 2026-09-20.** This paragraph used to say the file binds each photograph "to the regime its
+own entry above is tagged with", and offered that as the guarantee. It is the wrong guarantee, and it was
+not even true: §1.2's table tags `rambler-nueces-twilight` flatly **blue hour** while the file had it on
+`wc-street`'s **twilight** row (sun −12.1°). The deeper problem is that a tag is a *word somebody wrote
+down* and a row is a *sun elevation*, and binding one to the other cannot be checked by agreeing with
+yourself.
+
+So it is checked against the sun instead. `scripts/verify/night-refmeasure.py --sun` computes the solar
+elevation at Austin from each photograph's own stated capture time and prints it beside the word and
+beside the row. **Run for the first time on 2026-09-20, over 46 photographs (24 with a usable clock), it
+found:**
+
+- **`lady-bird-lake-reflection-night__hargup` bound to `lady-bird-lake`'s `night` row while its own
+  timestamp (21:29, 2015-07-09) puts the sun at −10.8° — nautical twilight, 29° off the row.** Moved to
+  `twilight`. This was the worst binding in the file and nothing but arithmetic would have found it.
+- **`texas-capitol__congress-ave-bluehour-predawn` bound to the `blue` row of TWO routes
+  (`congress-street`, `capitol`) with a sky that measures median linear Y 0.0011 — sRGB code 3, black.**
+  Its camera clock says 06:06 (sun −10.8°, a sky that is not black); its photographer's caption says 5AM
+  (sun ≈ −21°, a sky that is). The pixels and the caption agree and the clock is wrong. Both rows are now
+  empty: the corpus has **no blue-hour photograph of the Capitol or of Congress Avenue**.
+- **`rambler-nueces` unbound from `wc-street`/`twilight`.** No clock, so this one was settled by looking
+  properly: direct orange solar glow on the right horizon, pink-lit cirrus, a bright blue zenith (sky
+  median linear Y 0.553) and a facade legible in ambient light — the sun at roughly 0 to −3°, about 10°
+  off the row. Its own source site called it golden hour and was closer to right than we were.
+- **Three tags in `sources.json` are wrong by the clock and are corrected in the table below**:
+  `skyline-dusk-wide-pano__dimas` (tagged blue hour; 19:08 on 2016-11-23 is 1 h 37 m after sunset, sun
+  **−20.9°**, full night), and **both Kotipalli dawn frames** (tagged blue hour; their EXIF puts the sun
+  at **+3.1° and +3.6°, above the horizon**). The Kotipalli pair is the interesting case: the pixels are
+  unmistakably blue hour, so it is the *clock* that is suspect — most likely a camera left an hour off,
+  which at 05:51 gives −7.8° and fits the frame. That conflict is recorded, not silently resolved, and
+  the landmarks-street gatherer had already flagged it independently.
+
+Two clock-vs-pixel conflicts remain open by design (the Kotipalli pair, and the 2019-08-11 Capitol
+shoot whose caption beats its EXIF). Where they conflict, **the pixels win and the reason is written
+down** — that is what §2 already says about this corpus's clocks, now applied to the bindings as well.
 
 **Downtown and the lake** (`_night/downtown/`)
 
@@ -120,7 +153,7 @@ about this corpus. A wrong one is a lie about the sky.
 | ut-tower-all-seeing_2014 | twilight | arch brightness only. **Heavy HDR: halos are processing** | Peter Hansen, CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:The_All_Seeing_Tower_(69275597).jpeg) |
 | ut-tower-full-orange_2007 | full night | third independent confirmation of the centre-column pattern | Allison Fang, CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:UT_tower_lit_entirely_in_orange.jpg) |
 | torre-westcampus-twilight | blue hour | bright lobby, lit glazed amenity box, mixed unit occupancy, rooftop strings. Real-estate grading | unattributed, **licence unknown** | [rambleratx](https://www.rambleratx.com/resources/best-apartments-in-west-campus-near-ut-austin/) |
-| rambler-nueces-twilight | blue hour | bright retail base, lit/dark checkerboard, bay windows reflect dusk. Trails | unattributed, **licence unknown** | same page |
+| rambler-nueces-twilight | **sunset (~0 to −3°)** [OBSERVED 2026-09-20; was tagged "blue hour"] | bright retail base, lit/dark checkerboard, bay windows reflect dusk. Trails | unattributed, **licence unknown** | same page |
 | waterloo-westcampus-duskblue | blue hour | unlit glass reads dark blue and reflective, not black; warm retail | unattributed, **licence unknown** | same page |
 
 **Landmarks and street** (`_night/landmarks-street/`)
@@ -173,7 +206,7 @@ The slider is `p`, and the sun track is `js/sky.js:49-56`. Clock times are for A
 | regime | sun elevation | slider p | owner evidence | web evidence |
 |---|---|---|---|---|
 | golden hour | +6° → 0° | .50 → .56 | 9962, 9963 (MEASURED) | frost dusk |
-| **blue hour** (civil twilight) | 0° → −6° | .56 → .622 | **none (gap)** | cutrer 20:34, mrlaugh 17:55, dimas, kotipalli ×2, argash, mayer, tower-orange-one, dean-keeton, torre, rambler, waterloo, capitol predawn |
+| **blue hour** (civil twilight) | 0° → −6° | .56 → .622 | **none (gap)** | **mrlaugh 17:55 (−5.9°, the only clock-confirmed one)**, waterloo, argash, mayer, tower-orange-one, dean-keeton, torre. Corrected out 2026-09-20 by `night-refmeasure.py --sun`: cutrer 20:34 is **−2.6°** (sunset), dimas is **−20.9°** (full night), kotipalli ×2 read **+3.1/+3.6°** (clock suspect, see §1.2), capitol predawn measures a **black sky** (deep night), rambler is a **sunset** frame |
 | twilight / early night (nautical to astronomical) | −6° → −18° | .622 → .756 | 9964–9969 at −14.5…−15.2° (MEASURED) | dobie-pool, all-seeing (HDR) |
 | full night | below −18° | > .756 | 9970 (−18.7°), 9971–72 (−26°) | most full-night rows |
 | deep night (late, occupancy decayed) | about −40…−50° | 1.00 (sun −40°) | 9977–9981 at 03:05 (MEASURED) | pellesten 04:15, zykov 03:42 |
@@ -505,35 +538,62 @@ Every bright thing in a night photo is either an **emitter** or a **receiver**.
 
 ## 5. Luminance ladders (targets as ratios; the display levels are the phone's, see §2)
 
-| regime | sky zenith | horizon ÷ zenith | unlit wall ÷ sky | unlit glass ÷ wall | lit window ÷ wall | lobby ÷ median window | under-lamp ÷ mid-span pavement | hot sources |
-|---|---|---|---|---|---|---|---|---|
-| golden | Y ≈ .42 (hazy) | — | shaded 0.12–0.45 | reflects 0.4–0.7 of the sky it faces | — | — | — | sunlit west faces ≈ sky |
-| blue hour | brightest broad surface | > 1 | **< ~0.5** (silhouette) | reflects the sky | interpolated | ≥ 1.5 | ~5 | lamps, signs, accents |
-| early night (−12…−19°) | Y .013 (sRGB 31) | ~1.9 | **4–7** | 0.4–0.6 | ~4–6 | 1.5–4 | ~5 | crowns clip; beacons |
-| full night (−19…−26°) | Y .003 (11) | — | ~9 | 0.4–0.6 | ~10 (Castilian ~.31 vs piers .03) | 0.6–4 | ~5 | lamps clip |
-| deep night (03:00) | Y ≤ .002 (≤ 7) | — | **~25–30** | — | ~9 (bright) | ≥ 1.4 (vs brightest) | ~5 | lobbies, lamps, garages |
+**Tagged per row from 2026-09-20.** This table and §6 were the only ones in the package without
+MEASURED/OBSERVED/RULE marks, which let `< ~0.5` read as a measurement when it was an impression. The
+last column now says where each row comes from. **The absolute `sky zenith` column is MEASURED only for
+the rows that carry it from the owner's phone at known settings — a web photograph's sRGB level is a
+function of the exposure the photographer chose, not of the sky, and no level in this package may be
+read off one.** Ratios inside one frame survive that; levels do not.
+
+| regime | sky zenith | horizon ÷ zenith | unlit wall ÷ sky | unlit glass ÷ wall | lit window ÷ wall | lobby ÷ median window | under-lamp ÷ mid-span pavement | hot sources | **source of this row** |
+|---|---|---|---|---|---|---|---|---|---|
+| golden | Y ≈ .42 (hazy) | — | shaded 0.12–0.45 | reflects 0.4–0.7 of the sky it faces | — | — | — | sunlit west faces ≈ sky | **MEASURED** — owner 9962, 9963 |
+| blue hour | brightest broad surface | > 1 | **< ~0.5** | reflects the sky | interpolated | ≥ 1.5 | ~5 | lamps, signs, accents | **the wall ratio is MEASURED 2026-09-20** at **0.12–0.23** over three web frames (`night-refmeasure.py`, regions in `night-ref-regions.json`); the rest of the row is **OBSERVED**, and the owner has no blue-hour frame at all (§1.1) |
+| early night (−12…−19°) | Y .013 (sRGB 31) | ~1.9 | **4–7** | 0.4–0.6 | ~4–6 | 1.5–4 | ~5 | crowns clip; beacons | **MEASURED** — owner 9964–9969 at −14.5…−15.2° |
+| full night (−19…−26°) | Y .003 (11) | — | ~9 | 0.4–0.6 | ~10 (Castilian ~.31 vs piers .03) | 0.6–4 | ~5 | lamps clip | **MEASURED** — owner 9970, 9971–72 |
+| deep night (03:00) | Y ≤ .002 (≤ 7) | — | **~25–30** | — | ~9 (bright) | ≥ 1.4 (vs brightest) | ~5 | lobbies, lamps, garages | **MEASURED** — owner 9977–9981 at 03:05. NOTE: the plan's A3 used to gate on this row's ratio; at 8 bits it cannot be measured on our frames (plan §7.2) |
+
+Water, measured 2026-09-20 and not previously in this table: **water ÷ the sky above it at blue hour is
+0.220, 0.254 and 0.266** across three independent web frames — about a **quarter**, not the "≤ 1" the
+plan's A1 asked for. [MEASURED]
 
 ## 6. Palette (sRGB, after the phone's warm white balance)
 
-| thing | colour |
-|---|---|
-| lit window, median | `#a29671`–`#b09b78`; bright `#d2bd9c`–`#e9d6ab`; dim/blinds `#5d523e`–`#898474` |
-| lobby / retail | `#e5c37f`–`#f6d792`, `#d7be98` |
-| crown / rooftop glass | clipped white fins; warm interior `#f2e2ba`, `#e5d3b5`, `#d4c19f`; glass box `#dfeedb` |
-| signage | `#bcdaee`, `#c2e7f0`, `#e8f2dc` |
-| garage / amenity LED | `#869aae`, `#8399a2` |
-| street lamps | heads `#eeeed9`–`#f0f0d8`; lit pavement `#9c8d73`; far old neighbourhoods `#d27e4d` |
-| festoons | `#917b41`–`#a4915c`, clipped core |
-| pool LEDs | green `#00c644` / `#709e5b`, purple `#914fc4` |
-| beacons | `#e30015`; rooftop red `#e0523c` |
-| accents | purple `#7464b1` `#941eff` `#8b50d2` `#290cea`; blue `#0287de` `#3b6d9f` `#595dae`; red `#e65f48` |
-| unlit walls | warm-grey `#453a2b` `#483f32` `#453d34` `#39342b`; cool `#2f3038` beside cool LEDs |
-| sky | `#1c1f24`/`#272c34` (20:36), `#080b10` (20:55), `#04050c`/black (03:05) |
+**Tagged per row from 2026-09-20** (see the note at the top of §5 for why). This whole table comes from
+the owner's phone — that is what the heading's "after the phone's warm white balance" means — so every
+hex was sampled off the HEIC originals after a P3→sRGB conversion. Which frame each colour came from is
+in `austin-reference-images/_owner-phone/analysis/owner-photos.md`, which is where to go before quoting
+one; it is not repeated per row here, because a per-row attribution written from memory rather than from
+that file would be worse than none.
+
+**These are hues and relationships, not levels.** §2 says the display values are phone-lifted, so a hex
+here is what to aim the colour at, and how bright to make it is the §8 question.
+
+| thing | colour | source |
+|---|---|---|
+| lit window, median | `#a29671`–`#b09b78`; bright `#d2bd9c`–`#e9d6ab`; dim/blinds `#5d523e`–`#898474` | MEASURED — owner phone frames |
+| lobby / retail | `#e5c37f`–`#f6d792`, `#d7be98` | MEASURED — owner phone frames |
+| crown / rooftop glass | clipped white fins; warm interior `#f2e2ba`, `#e5d3b5`, `#d4c19f`; glass box `#dfeedb` | MEASURED — owner phone frames |
+| signage | `#bcdaee`, `#c2e7f0`, `#e8f2dc` | MEASURED — owner phone frames |
+| garage / amenity LED | `#869aae`, `#8399a2` | MEASURED — owner phone frames |
+| street lamps | heads `#eeeed9`–`#f0f0d8`; lit pavement `#9c8d73`; far old neighbourhoods `#d27e4d` | MEASURED — owner phone frames |
+| festoons | `#917b41`–`#a4915c`, clipped core | MEASURED — owner phone frames |
+| pool LEDs | green `#00c644` / `#709e5b`, purple `#914fc4` | MEASURED — owner phone frames |
+| beacons | `#e30015`; rooftop red `#e0523c` | MEASURED — owner phone frames |
+| accents | purple `#7464b1` `#941eff` `#8b50d2` `#290cea`; blue `#0287de` `#3b6d9f` `#595dae`; red `#e65f48` | MEASURED — owner phone frames (the accent hues are West Campus tower accents in the elevated series) |
+| unlit walls | warm-grey `#453a2b` `#483f32` `#453d34` `#39342b`; cool `#2f3038` beside cool LEDs | MEASURED — owner phone frames |
+| sky | `#1c1f24`/`#272c34` (20:36), `#080b10` (20:55), `#04050c`/black (03:05) | MEASURED — owner phone frames at the three stated clock times; these are phone DISPLAY levels (§2), not absolute sky luminance |
 
 ## 7. Gaps (nothing below exists as evidence; do not invent it silently)
 
-- **No measured blue hour.** The owner has no frame between 19:27 and 20:36. The web blue-hour frames are
-  unmeasured and several are graded.
+- **No measured blue hour FROM THE OWNER.** He has no frame between 19:27 and 20:36. Narrowed
+  2026-09-20: eight web frames now carry numbers (`scripts/verify/night-refmeasure.py`, regions in
+  `scripts/verify/night-ref-regions.json`), which is enough to settle A1's two ratios and nothing else.
+  What is still missing is an **unlit wall at a clock-confirmed blue hour**: the only frames with a
+  genuinely unlit broad wall are the two rambleratx property photos, which carry no clock at all, and
+  Cutrer's 20:34, which its own clock puts at −2.6° — sunset, not blue hour. So A1's wall ratio rests on
+  three frames, none of them both clock-confirmed and cleanly unlit. One owner frame at 19:50 would close
+  this gap outright and is the single most valuable photograph he could take.
 - No night photo of the Pfluger, First Street or Lamar bridges.
 - No licensed Rainey St bar or porch photo, and nothing for the 2nd Street District.
 - No real parking garage (only the transit-canopy proxy and the owner's Zalat and Torre podiums), no gas
@@ -548,4 +608,12 @@ Every bright thing in a night photo is either an **emitter** or a **receiver**.
 - One damp-street sample (owner 03:05) and one predawn damp frame. No rain.
 - No late-night frame of the Icon crown.
 - Window counts exist for four facades only. Web occupancy is qualitative.
-- **Nobody measured the web photos.** Only the owner's frames carry numbers.
+- ~~**Nobody measured the web photos.**~~ **Partly closed 2026-09-20.** Eight now carry numbers
+  (`night-refmeasure.py`, above); the other 38 do not. What a web photograph can give is a **ratio inside
+  one frame**, because the camera chose an exposure and both regions moved with it. It cannot give a
+  level: the zykov deep-night frame measures a sky at sRGB 50–62 against §5's full-night 11, because it
+  was shot at ISO 3200 f/2 to make the street legible. Quote ratios from these; never levels.
+- **Nobody has cross-checked the corpus's regime WORDS against the sun** — now done for the 24
+  photographs that state a capture time (`night-refmeasure.py --sun`, results in §1.2). **22 of the 46
+  state no time at all**, so their regime remains one person's judgement by eye, and the three bindings
+  that were corrected were all found among the 24 that do.

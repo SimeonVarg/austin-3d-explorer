@@ -53,10 +53,20 @@
  *   --same <pct>           ASSERT: in every frame, fewer than <pct>% of pixels differ
  *                          between A and B by more than 16 luma. For "this change does
  *                          not move day/golden" (plan A9). Exit 1 when it does not hold.
- *   --break                sabotage side B in the page only (the authored apartments are
- *                          hidden). With --same it must go red: that is the watched failure.
+ *   --break                sabotage side B in the page only: the authored apartments are
+ *                          REMOVED FROM THE SLOPES SCENE (slopes.remove(group)), and the
+ *                          run dies if that does not hold at the first repaint and again
+ *                          at the end of the shoot. With --same it must go red: that is
+ *                          the watched failure. Do not sabotage with `group.visible =
+ *                          false` — js/slopes.js render() rewrites that flag on every
+ *                          child of root every frame (js/slopes.js:1030-1036), and the
+ *                          version of this flag that did so was green every time.
  *   --from <dir>           re-measure an earlier run's frames with the CURRENT regions
- *                          and rewrite its report and sheets. No app is loaded.
+ *                          and rewrite its report and sheets. No app is loaded. The
+ *                          shoot's settings keep the top-level names (when/args/gl/
+ *                          viewport/harnessGit describe the FRAMES); this pass's own
+ *                          settings — including --refs, which decides whether the sheets
+ *                          it rewrites carry photographs — go under `remeasure`.
  *   --show-regions         write regions-<route>-<pose>.jpg: side A's frame with the pose's
  *                          regions drawn on a labelled 5% grid, so the next rectangle is READ
  *                          OFF the frame. Poses with no regions get one too.
@@ -580,15 +590,67 @@ async function shootSide(browser, side, shots, log) {
   }
   const ok = await page.waitForFunction(() => !!(window.slopesApartments && window.slopesApartments.group) && window.slopesApartments.readyToReveal(), null, { timeout: WAIT.authoredMs }).then(() => true).catch(() => false);
   info.readyMs = Date.now() - t0;
-  info.apartments = await page.evaluate(() => { const A = window.slopesApartments; if (!A) return null; const c = A.count; return { group: !!A.group, buildings: c.buildings, done: c.done, triangles: c.triangles, slopesOn: window.SLOPES && window.SLOPES.on }; });
+  // `count.buildings` is NOT a count of what is standing in this frame. It is
+  // incremented per building inside the time-sliced build (js/slopes-apartments.js
+  // :2224) and zeroed by resetCount() at the top of build() — but the `!want &&
+  // _building` branch of applySlopesApartments releases the `_building` guard
+  // while the old build is STILL RUNNING ("the in-flight build discards itself on
+  // landing"), so the APARTMENTS.on poke can start a second build that counts on
+  // top of the first. Measured 2026-09-20 on one build at one port: 196 (clean,
+  // 0 reloads), 298, 323 and 363, while `triangles` stayed bit-identical at
+  // 2,600,942 and the catalog is 196 buildings (45 individual + 151 across five
+  // collections). So: `triangles` is the stable invariant and the thing to quote;
+  // `namesUnique` is the honest building count; `buildings` is kept raw because a
+  // value above `catalog` is the tell that two builds overlapped.
+  info.apartments = await page.evaluate(() => {
+    const A = window.slopesApartments; if (!A) return null; const c = A.count;
+    return { group: !!A.group, buildings: c.buildings, namesUnique: new Set(c.names || []).size,
+      catalog: A.data && A.data.buildings ? A.data.buildings.length : null,
+      done: c.done, triangles: c.triangles, slopesOn: window.SLOPES && window.SLOPES.on };
+  });
+  if (info.apartments && info.apartments.catalog && info.apartments.buildings > info.apartments.catalog)
+    info.warnings.push(`count.buildings ${info.apartments.buildings} exceeds the ${info.apartments.catalog}-building catalog: two builds overlapped and the counter accumulated. ${info.apartments.namesUnique} distinct buildings, ${info.apartments.triangles} triangles — quote the triangles, not the count.`);
   if (!ok) { await page.close(); return { info, fatal: `side ${side.key}: the authored buildings never became ready (group ${info.apartments && info.apartments.group}) after ${info.authoredReloads} reload(s); frames would show the fallback city. This is the machine being busy: check the GPU slots and run it again on a quieter machine.` }; }
   info.gfx = await page.evaluate(() => { const G = window.GFX || {}; return { preset: G.preset, bloom: G.bloom, godRays: G.godRays, autoExposure: G.autoExposure, renderScale: G.renderScale, filmic: G.filmic, exposure: G.exposure, stars: G.stars }; });
+  // ── --break: the sabotage, and the proof that it held ─────────────────────
+  // The FIRST version of this set `group.visible = false`, and it did nothing.
+  // js/slopes.js render() rewrites `g.visible` for EVERY child of root on every
+  // single frame from minzoom and the LOD tier (js/slopes.js:1030-1036 — the loop
+  // that exists precisely so lod.js never writes `visibility` on this layer), so
+  // the flag was back to true before the first screenshot. Measured 2026-09-20:
+  // `--break --same 1` came back PASS with A and B differing on 0.005% of pixels
+  // and the two frames visually identical. An assertion whose only sabotage is
+  // silently undone has never been shown able to go red.
+  // So the sabotage takes the group OUT of the scene, which that loop cannot undo
+  // (it only iterates the children that are there), and nothing re-adds it: the
+  // module still holds `_group`, so applySlopesApartments will not rebuild. The
+  // legacy prisms stay filtered out, so side B is a genuine hole where the
+  // authored city was — which is exactly the regression --same exists to catch.
+  const breakCheck = async where => page.evaluate(() => {
+    const A = window.slopesApartments, root = window.slopes && window.slopes.root;
+    const inScene = !!(root && A && A.group && root.children.indexOf(A.group) >= 0);
+    const drawn = (window.slopes.stats().groups || []).filter(g => g.visible).map(g => g.name);
+    return { inScene, groupVisible: !!(A && A.group && A.group.visible), drawnGroups: drawn };
+  }).then(r => ({ where, ...r }));
   if (BREAK && side.key === 'B') {
-    info.broken = await page.evaluate(() => { const g = window.slopesApartments.group; g.visible = false; window.__map.triggerRepaint(); return 'authored apartments hidden (group.visible = false)'; });
+    info.breakBefore = await breakCheck('before');
+    await page.evaluate(() => { const A = window.slopesApartments; window.slopes.remove(A.group); window.__map.triggerRepaint(); });
+    await sleep(1500);
+    await page.evaluate(() => window.__map.triggerRepaint());
+    await sleep(1500);
+    info.breakAfter = await breakCheck('after');
+    info.broken = 'authored apartments removed from the slopes scene (slopes.remove(group))';
     info.warnings.push('--break: ' + info.broken);
+    if (info.breakAfter.inScene || info.breakAfter.drawnGroups.includes('slopes-apartments')) {
+      await page.close();
+      return { info, fatal: `side B: --break did not hold. After slopes.remove(group) and two repaints the group is still ${info.breakAfter.inScene ? 'a child of slopes.root' : 'drawn'} (drawn groups: ${info.breakAfter.drawnGroups.join(', ')}). A sabotage that does not sabotage makes --same green for the wrong reason; fix the sabotage before trusting any --same result.` };
+    }
+    if (!info.breakBefore.inScene)
+      info.warnings.push('--break: the group was ALREADY not in the slopes scene before the sabotage — side B was never showing the authored city, so this run does not exercise --same either.');
+    log(`[B] --break: ${info.broken}; drawn groups before [${info.breakBefore.drawnGroups.join(', ')}] -> after [${info.breakAfter.drawnGroups.join(', ')}]`);
   }
   await sleep(3000);
-  log(`[${side.key}] ready in ${(info.readyMs / 1000).toFixed(1)} s (veil ${info.veil} at ${(info.veilMs / 1000).toFixed(1)} s, intro ${info.intro && info.intro.reason}${info.authoredReloads ? ', ' + info.authoredReloads + ' reload(s)' : ''}); ${info.apartments.buildings} authored buildings; preset ${info.gfx.preset}; build ${info.build.sha1 || info.build.error}`);
+  log(`[${side.key}] ready in ${(info.readyMs / 1000).toFixed(1)} s (veil ${info.veil} at ${(info.veilMs / 1000).toFixed(1)} s, intro ${info.intro && info.intro.reason}${info.authoredReloads ? ', ' + info.authoredReloads + ' reload(s)' : ''}); ${info.apartments.triangles} authored triangles (${info.apartments.namesUnique} distinct buildings of ${info.apartments.catalog}; raw counter ${info.apartments.buildings}); preset ${info.gfx.preset}; build ${info.build.sha1 || info.build.error}`);
 
   const helper = await browser.newPage({ viewport: { width: 64, height: 64 } });
   for (const g of REGIMES_USED) {
@@ -657,6 +719,15 @@ async function shootSide(browser, side, shots, log) {
     }
   }
   await helper.close();
+  // The sabotage is only evidence if it held for every frame, not just for the
+  // first repaint after it was applied.
+  if (BREAK && side.key === 'B') {
+    info.breakEnd = await breakCheck('end');
+    if (info.breakEnd.inScene || info.breakEnd.drawnGroups.includes('slopes-apartments')) {
+      await page.close();
+      return { info, fatal: `side B: --break was undone during the shoot (the group is back in the scene at the end). The frames are not a sabotaged side and --same cannot be read from them.` };
+    }
+  }
   await page.close();
   return { info };
 }
@@ -717,6 +788,12 @@ function tileLines(s, sideLabel) {
 
 async function sheets(helper, report, byKey) {
   const written = [];
+  // Every third-party / owner photograph actually composited into a sheet by
+  // THIS pass. None of these sheets may be committed, and the report is the only
+  // record of it in the folder, so it is written down and a marker file goes in
+  // beside them: a `--from` pass rewrites the sheets without touching the frames,
+  // so "the frames were shot with --refs off" says nothing about the sheets.
+  const refsUsed = new Set();
   const sides = report.sides.map(s => s.key);
   const tileH = Math.round(TILE_W * VH / VW);
   const put = async (name, spec) => { const b64 = await helper.evaluate(pageSheet, spec); fs.writeFileSync(path.join(OUT, name), Buffer.from(b64, 'base64')); written.push(name); };
@@ -731,6 +808,7 @@ async function sheets(helper, report, byKey) {
       const tiles = sides.map(k => { const s = byKey.get(`${k}|${P.key}|${g}`); return { src: s ? dataURL(path.join(OUT, s.file)) : null, lines: tileLines(s, k) }; });
       if (withRef) {
         const f = refFor(P, g);
+        if (f && typeof f === 'string') refsUsed.add(path.relative(REF_ROOT, f).split(path.sep).join('/'));
         tiles.push(f && typeof f === 'string' ? { src: dataURL(f), lines: [path.basename(f).slice(0, 70)] } : { src: null, lines: [f && f.missing ? 'missing: ' + path.basename(f.missing) : 'no reference for ' + g] });
       }
       return { head: '', tiles };
@@ -766,6 +844,12 @@ async function sheets(helper, report, byKey) {
           tileW: gw, tileH: gh, q: 0.85, rowHeadW: 0 });
     }
   }
+  report.referenceSheets = { refs: REFS_ON ? 'on' : 'off', composited: [...refsUsed].sort(),
+    mayBeCommitted: refsUsed.size === 0,
+    note: refsUsed.size ? 'sheet-*.jpg in this folder carry third-party or owner photographs. DO NOT COMMIT ANY SHEET FROM THIS FOLDER.' : 'no photograph was composited by this pass; the sheets are our renders only.' };
+  const marker = path.join(OUT, 'DO-NOT-COMMIT.txt');
+  if (refsUsed.size) fs.writeFileSync(marker, `night-compare.mjs composited ${refsUsed.size} reference photograph(s) into the sheets in this folder on ${new Date().toISOString()}:\n\n` + [...refsUsed].sort().map(r => '  ' + r).join('\n') + '\n\nDO NOT COMMIT sheet-*.jpg or overview-*.jpg from this folder. Cite the reference by path instead.\n');
+  else if (fs.existsSync(marker)) fs.unlinkSync(marker);
   return written;
 }
 
@@ -821,13 +905,32 @@ try {
   if (FROM) {
     if (path.resolve(FROM) !== path.resolve(OUT)) die('--from re-measures in place: pass the same folder as --out');
     report = readJSON(path.join(OUT, 'report.json'));
+    // PROVENANCE. `--from` used to overwrite `remeasured` and `routesFile` and
+    // nothing else, so `args`, `when`, `gl`, `viewport`, `localOverlay` and
+    // `harnessGit` still described the ORIGINAL shoot while the report and the
+    // SHEETS in the folder were this pass's. That is not a cosmetic slip: a
+    // `--from` run with references ON left `args: ... --refs off` sitting beside
+    // sheets with fifteen third-party photographs composited into them, and this
+    // report is the only in-folder record of whether a sheet may be committed
+    // (it may not). So: the shoot's settings stay where they are and keep their
+    // names — they are the truth about the FRAMES — and everything this pass
+    // decided is written under `remeasure`, including the two that changed
+    // meaning (routesFile and localOverlay pick the regions AND the references).
     report.remeasured = new Date().toISOString();
+    report.remeasure = { when: report.remeasured, args: argv, harnessGit: gitInfo(), out: OUT, from: FROM,
+      routesFile: ROUTES_FILE, localOverlay: localFile, refs: REFS_ON ? 'on' : 'off', tile: TILE_W,
+      params: { MEASURE, DIFF },
+      note: 'the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets.' };
+    const oldRefs = report.refs || (() => { const a = report.args || []; const i = a.indexOf('--refs'); return i >= 0 && a[i + 1] === 'off' ? 'off' : 'on'; })();
+    report.shoot = report.shoot || { when: report.when, args: report.args, harnessGit: report.harnessGit, gl: report.gl, viewport: report.viewport, routesFile: report.routesFile, localOverlay: report.localOverlay, refs: oldRefs };
     report.routesFile = ROUTES_FILE;
+    report.localOverlay = localFile;
     const keep = new Set(POSES.map(P => P.key));
     report.shots = report.shots.filter(s => keep.has(`${s.route}/${s.pose}`) && fs.existsSync(path.join(OUT, s.file)));
     log(`night-compare --from: re-measuring ${report.shots.length} frames in ${OUT}`);
   } else {
     report = { tool: 'scripts/verify/night-compare.mjs', when: new Date().toISOString(), harnessGit: gitInfo(), routesFile: ROUTES_FILE, localOverlay: localFile,
+      refs: REFS_ON ? 'on' : 'off', tile: TILE_W, out: OUT, broken: BREAK || undefined,
       viewport: [VW, VH], viewportOverridden: VP_OVERRIDDEN, dpr: 1, gl: GL, args: argv, params: { WAIT, SETTLE, CAMERA, MEASURE, DIFF }, regimes: Object.fromEntries(REGIMES_USED.map(g => [g, CFG.regimes[g]])),
       sides: [], shots: [] };
     log(`night-compare: ${POSES.length} poses x regimes [${REGIMES_USED.join(', ')}] x ${SIDES.length} side(s) = ${nShots} shots; ${VW}x${VH}${VP_OVERRIDDEN ? ' (--viewport override; the regions were read off ' + (CFG.viewport || [1440, 900]).join('x') + ')' : ''}; gl ${GL}; out ${OUT}`);

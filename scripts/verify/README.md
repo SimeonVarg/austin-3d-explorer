@@ -801,6 +801,38 @@ inside the buildings, and a West Campus garage guess landed on an apartment faca
 Both reported `camera ok` at every regime. Always look at `overview-A-*.jpg` before
 quoting a pose.
 
+**`--break` was green, and that is the most important thing this harness has
+learned about itself.** The flag exists so that `--same` -- the only assertion in
+the tool, and the whole of the A9 no-regression row -- can be shown to fail. It had
+never been run. Run for the first time on 2026-09-20 it came back `PASS --same 1%`,
+exit 0, with A and B differing on **0.005%** of pixels and every measured number
+identical on both sides. It had hidden the authored apartments with
+`group.visible = false`, and `js/slopes.js` `render()` rewrites `g.visible` for every
+child of `root` **on every frame** from minzoom and the LOD tier (`js/slopes.js:1030-1036`)
+-- so the flag was back to true before the first screenshot. `--break` now calls
+`slopes.remove(group)`, which that loop cannot undo, and the run **dies** if the
+group is back in the scene at the first repaint or at the end of the shoot. Both
+halves are now demonstrated on `wc-elevated/over-drag-wnw` at `night`: control
+**0.006%** (exit 0), sabotaged **8.162%** (exit 1), bright windows 13.349% -> 1.852%.
+**An assertion nobody has watched fail is not an assertion.**
+
+**`count.buildings` is not a count.** It is incremented inside the time-sliced build
+and zeroed at the top of it, but the `APARTMENTS.on` poke can start a second build
+that overlaps the first and counts on top of it. Measured on one build at one port:
+196 (clean), 298, 323, 363 -- with `triangles` bit-identical at 2,600,942 throughout
+and the catalogue holding exactly 196. **Quote `triangles`.** The harness now logs it
+first and warns when the raw counter exceeds `catalog`.
+
+**`--from` rewrites the sheets, so it records its own settings.** It used to
+overwrite only `remeasured` and `routesFile`, leaving `args`, `when`, `gl`,
+`viewport`, `localOverlay` and `harnessGit` describing the original shoot -- which
+once left `args: ... --refs off` sitting in a folder whose sheets had fifteen
+third-party photographs composited into them. The shoot's settings now keep the
+top-level names and also appear under `shoot`; the measuring pass writes `remeasure`
+(its own args, git, routes file, local overlay, `refs` and tile width) and
+`referenceSheets` (every photograph it composited, and `mayBeCommitted`). When it
+composites any, it also drops a `DO-NOT-COMMIT.txt` in the folder.
+
 **Matched poses for the owner's photographs are private.** They reveal where he
 took them. They live in `../austin-reference-images/_night/night-routes.local.json`
 (outside every repo), which the harness loads automatically and announces in
@@ -821,7 +853,8 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 ... night-compare.mjs --out <scratch>/ab --a-site http://127.0.0.1:8661 --b-site http://127.0.0.1:8662
 # day and golden must not move (A9): exit 1 if any frame differs in >= 1% of pixels
 ... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 1
-# the watched failure: side B has the authored apartments hidden in the page
+# the watched failure: side B has the authored apartments taken OUT OF THE SCENE in the page.
+# This must exit 1. It exited 0 until 2026-09-20 -- see "--break was green" below.
 ... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 1
 # change regions, then re-measure an old run without loading the app
 ... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --show-regions
@@ -832,6 +865,34 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 # what every flag does
 node scripts/verify/night-compare.mjs --help
 ```
+
+### `night-refmeasure.py` -- measuring the reference PHOTOGRAPHS (added September 20 2026)
+
+The package used to say, of itself, "Nobody measured the web photos", while the
+plan's A1 gated our renders on a number taken from looking at them. This puts the
+same rectangles on the photographs and divides them the same way (median linear Y).
+No browser, no server: Pillow and numpy.
+
+```bash
+python scripts/verify/night-refmeasure.py                       # the ratios
+python scripts/verify/night-refmeasure.py --sun                 # what regime each photo ACTUALLY is
+python scripts/verify/night-refmeasure.py --overlay <scratch>/ov  # rectangles drawn on the frames
+```
+
+Regions live in `night-ref-regions.json`; the photographs live outside the repo in
+`../austin-reference-images/_night/` and are never committed. **Read RATIOS off a web
+photograph, never levels** -- the camera chose an exposure and both regions moved
+with it. The zykov deep-night frame measures a sky at sRGB 50-62 against the
+package's full-night target of 11, purely because it was shot at ISO 3200 f/2.
+
+`--sun` is the part that found real defects. A regime tag is a word somebody wrote
+down; a row in `night-routes.json` is a sun elevation. `--sun` computes the elevation
+at Austin from each photograph's own stated capture time and prints it beside both.
+On its first run it found a frame bound **29 degrees** from its row
+(`lady-bird-lake-reflection-night__hargup`, 21:29 = sun -10.8 deg, sitting on `night`),
+and a pre-dawn Capitol frame with a **black sky** (median linear Y 0.0011, sRGB code 3)
+sitting on the **blue** row of two routes. 22 of the 46 photographs state no time at
+all, so half the corpus cannot be checked this way and stays a judgement by eye.
 
 `gpu-run.mjs` is in the session's lanes scratch folder, not the repo. It holds one
 of three machine-wide browser slots and passes the exit code through. Elsewhere,

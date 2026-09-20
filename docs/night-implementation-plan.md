@@ -217,6 +217,8 @@ the single clock (W1).
 | SG | sign | emitter + pier wash | on before sunset | cool white `#bcdaee`/`#c2e7f0`/`#e8f2dc`, or brand colour | clipped | washes its pier 4–6× over 3–4 floors | on facades (not screen text) |
 | SL | street lamp | head emitter + ground light | sun +2° → −6° (already) | head `#eeeed9`; pool warm-neutral; far neighbourhoods `#d27e4d` | head clips | at mapped poles and kerb lines; pool 5× under vs midway; full-cutoff | sprites + ground-light term |
 | WL | walkway/globe/bollard/festoon | emitter + small pool | as SL | warm; festoon `#917b41`–`#a4915c` | head clips | pools 2.6× under vs midway | props lamps |
+| EN | **entrance / doorway** (added 2026-09-20) | emitter + doorstep pool | on before sunset, on all night for a lobby door; residential doors follow LB | door glass warm `#e5c37f`–`#f6d792` as LB; transom the same, dimmer; canopy soffit cooler `#d7be98` | 0.6–1.0 (a doorway is a small lobby) | the lit thing is the **glazed leaf and its transom**, not the surround or the rail; canopy soffit washes down; a pool on the step/landing, 0.5–1× a WL pool | `js/entrances.js` — `data/entrances.geojson` already carries **1,413 `door`, 1,786 `glass`, 439 `transom`, 78 `canopy`, 33 `sign`** pieces as separate features, so this is a paint expression on `k`, not new geometry |
+| CY | **courtyard / amenity court** (added 2026-09-20) | receiver + WL emitters | as WL | paver warm-neutral under festoons; turf reads near-black beside it | — | the **surface contrast is the subject**: IMG_9971-72 measure a **15× paver-vs-turf albedo** under the same fixtures (D2), so a court lit as one flat material is wrong however bright it is | `js/campus-landscape.js` surfaces + WL fixtures; the West Campus amenity decks in `js/westcampus.js` |
 | FL | landmark floodlight | receiver lit by fixtures | as SL | stone white/cream (Tower white state), dome blown white | — | falloff from fixture positions | `js/tower.js` (keep); `js/capitol.js`, `js/slopes-dome.js` |
 | BC | obstruction beacon | emitter | from 0° | `#e30015` | point | 1–4 per tall roof; strings on masts | sprites |
 | UW | unlit wall / roof / ground | receiver | darkens with the sun, not p | warm-grey `#453a2b`–`#483f32`; cool near cool LEDs | wall 4–7× sky early, ~25–30× deep; glass 0.4–0.6× wall | albedo × (skyglow ambient + nearby spill) | all |
@@ -243,7 +245,25 @@ Each item here is a question whose answer changes the implementation. Nothing el
     already passes the raw colour as `v_cityAlbedo` (`:201`).
     - Style colours are stored **premultiplied** in 5.24 (the Color class comment says so), so the fragment
       must un-premultiply `rgb/a`.
-    - To verify with one test layer before relying on it.
+    - **It is not free until one more line changes, and W2 — which everything from W3 onward rests on —
+      rests on this.** (Named 2026-09-20; §9 used to hedge "must be verified on the real build" without
+      saying what the mechanism was.) The patched solid fragment at `js/city-lighting.js:215` is
+      `fragColor = vec4(cityShade(v_color.rgb/max(v_color.a,.0001), …) * v_color.a, v_color.a)`. It
+      writes the colour's alpha **straight to the output alpha** and premultiplies the RGB by it. So a
+      feature whose colour alpha carries an emissive code does not just carry data — it **renders
+      translucent at the blend stage**, by exactly the factor of the code. Alpha 0.35 meaning "emissive
+      0.35" is also a building you can see through.
+    - The fix is small and must be in the same commit as the channel: read the code from
+      `v_cityAlbedo.a` (the raw, un-premultiplied colour is already there) and write
+      `fragColor = vec4(shaded, 1.0)` for the patched path.
+    - The constraint that creates: forcing output alpha to 1.0 gives up per-feature *translucency* on
+      extrusions. Checked 2026-09-20 — no layer in `js/` passes an `rgba()`/`hsla()` to
+      `fill-extrusion-color`, and translucency is done with `fill-extrusion-opacity` (a uniform, not the
+      colour), which this patch does not touch. So nothing today loses anything. Anything that wants
+      translucency later must use `fill-extrusion-opacity`.
+    - Verify with one test layer before relying on it: **one feature at alpha 0.5 over a contrasting
+      background, screenshot-sampled at its centre.** If the background shows through, the second line
+      is missing. This is a pixel assertion, not a reading of the source.
 - **Three.js:** `aSurface.x` is a material kind (masonry 1–3, glass 4; `js/slopes.js:427-431`). A new kind
   (e.g. 5 = "window that can be lit") costs **0 bytes**. The vertex shader can skip `u_lightcolor` for it
   (`js/slopes.js:395-399`), following the DKR precedent (`js/slopes-stadium.js:361-362`). The unused
@@ -390,14 +410,70 @@ re-shoot.
 It is a **comparison instrument, not a gate**: nothing in it encodes the §7.2 targets, so it can measure
 a change without pre-judging it. `--same` is the only assertion, and it is the A9 no-regression check.
 
+> **`--same` could not go red until 2026-09-20, and nobody had checked.** The harness documents its own
+> sabotage — `--break`, "with `--same` it must go red: that is the watched failure" — and that line had
+> never been run: no `report.json` under `<scratch>/lanes/night/harness/*` carried either flag. Run for
+> the first time, it came back **`PASS --same 1%`, exit 0, A and B differing on 0.005% of pixels**, with
+> the sabotage dutifully recorded on side B and every measured number identical on both sides. The
+> assertion the whole A9 row rests on had no demonstrated ability to fail.
+>
+> **The mechanism.** `--break` set `slopesApartments.group.visible = false`. `js/slopes.js` `render()`
+> rewrites `g.visible` for **every child of `root`, on every single frame**, from the group's `minzoom`
+> and LOD tier (`js/slopes.js:1030-1036` — the loop that exists precisely so `js/lod.js` never writes
+> `visibility` on this layer). The flag was true again before the first screenshot. A sabotage the app
+> undoes is not a sabotage, and a green from it means nothing.
+>
+> **Fixed and demonstrated.** `--break` now takes the group **out of the scene** (`slopes.remove(group)`),
+> which that loop cannot undo, and the run **dies** if the group is back in the scene at the first
+> repaint or at the end of the shoot — a sabotage that does not hold is now a failure, not a pass.
+> Measured on `wc-elevated/over-drag-wnw` at `night`, one browser each:
+>
+> | run | A/B pixels over 16 luma | bright windows A → B | verdict |
+> |---|---|---|---|
+> | control, no sabotage | **0.006%** | 13.349% → 13.349% | `PASS --same 1%`, exit 0 |
+> | `--break` | **8.162%** | 13.349% → **1.852%** | `FAIL --same 1%`, exit 1 |
+>
+> Both halves now exist: the instrument goes green when nothing changed and red when the authored
+> apartments are gone. Until that pair had been run, the full-night A4/A5 numbers on the route named
+> after the authored apartments had no evidence they were measuring them.
+>
+> ![A as shipped beside B with the authored apartments removed](shots/night-break-ab.jpg)
+>
+> That is what a red `--break` looks like. The first version of the flag produced **two frames
+> indistinguishable from the left one** and called it a pass.
+
 **Baseline on `main` @ `c656249`**, at all four acceptance regimes. Blue hour, twilight and full night
-were shot 2026-09-20 01:03 UTC; **early night (sun −15°, the owner's 20:36) was shot 2026-09-20 05:20
-UTC** in the same worktree at the same settings, after `defaultRegimes` was corrected to include it.
-Settings both times: hardware GL, 1440×900 DPR 1, `?drift=0`, graphics auto-detect cancelled, second
-screenshot kept, 196 authored buildings confirmed built (not the legacy fallback). Frames under
+were shot 2026-09-20 01:03 UTC; **early night (sun −15°, the owner's 20:36) was shot 2026-09-20 05:02
+UTC**, after `defaultRegimes` was corrected to include it. Settings both times: hardware GL, 1440×900
+DPR 1, `?drift=0`, graphics auto-detect cancelled, second screenshot kept. Frames under
 `<scratch>/lanes/night/harness/baseline2/` and `…/early/`, reports `report.json`. Three sheets are
 committed as the before-picture for W1–W6; the rest stay in scratch, and none of the reference or
 owner-matched sheets may ever be committed.
+
+**Corrected 2026-09-20 — this paragraph used to say the two runs were "in the same worktree at the
+same settings … 196 authored buildings confirmed built (not the legacy fallback)". Both halves of that
+were wrong, and the reports say so.** The two shoots ran on **different harness commits** —
+`baseline2` on `03808c6` (dirty), which had no reload remedy at all and carries no `authoredReloads`
+field, and `early` on `0745d6b` (dirty), which reloaded twice before falling back to the poke. And
+**`baseline2` recorded 298 authored buildings, not 196.** The claim was quoted from `early` and
+attributed to both.
+
+What is actually true, and is the thing to quote from here on: **both runs report `triangles:
+2,600,942`, bit-identical**, which is the authored city and not the legacy fallback. `count.buildings`
+is not a count of anything stable. It is incremented per building inside the time-sliced build
+(`js/slopes-apartments.js:2224`) and zeroed by `resetCount()` at the top of `build()`, but the
+`!want && _building` branch of `applySlopesApartments` releases the in-flight guard while the old
+build is still running — "the in-flight build discards itself on landing" — so the `APARTMENTS.on`
+poke can start a second build that counts on top of the first. Measured on one build at one port:
+**196 (clean, 0 reloads), 298, 323 and 363**, with `triangles` unmoved throughout and the catalogue
+holding exactly 196 buildings (45 individual models + 151 across five collections). The harness now
+reports `triangles`, `namesUnique` and `catalog` beside the raw counter and warns when the counter
+exceeds the catalogue, because a value above 196 is the tell that two builds overlapped.
+
+And caution #3 below is corrected too: **both runs reached the authored buildings through the
+`APARTMENTS.on` poke** that `night-compare.mjs` itself calls unreliable — `baseline2` because its
+harness had no other remedy, `early` after two reloads timed out. The plan previously attributed the
+poke to the early run alone.
 
 The blue/twilight/night numbers below were **re-measured on 2026-09-20** with corrected region
 rectangles (see the caution at the end of this block), so a few of them differ from the first reading of
@@ -411,8 +487,34 @@ the same frames. No frame was re-shot to get them.
 
 Read against §7.2, over all sixteen committed poses:
 
-- **A1 fails everywhere.** Target wall/sky ≤ 0.5 at blue hour; measured **1.21–14.2**, and water/sky
-  16.2–20.5 where the lake is in frame, against a target of ≤ 1.
+- **A1 fails everywhere, and as of 2026-09-20 its target is measured rather than eyeballed.** Target
+  wall/sky ≤ 0.5 at blue hour; measured **1.21–14.2**, and water/sky 16.2–20.5 where the lake is in
+  frame. The target itself used to come only from looking at graded web photographs — §7 of the
+  reference package said outright "Nobody measured the web photos" — so the same rectangles were put on
+  the photographs and divided the same way (`scripts/verify/night-refmeasure.py`, regions in
+  `night-ref-regions.json`; medians of linear Y, the unit `night-compare` divides with):
+
+  | photograph | sun elevation | wall/sky | water/sky |
+  |---|---|---|---|
+  | `waterloo-westcampus-duskblue` (West Campus street) | no clock; orange still on the horizon, lamps just on | **0.132** | — |
+  | `skyline-blue-hour__congress-view__cutrer` 20:34 | **−2.6°** (7 min after sunset) | **0.122** | — |
+  | `rambler-nueces` (West Campus corner) | no clock; direct solar glow, sunset | **0.234** | — |
+  | `congressbridge-fullnight-view__mayer` | no clock; late blue hour, every tower lit | 0.75 † | — |
+  | `downtown-skyline__town-lake-water-reflection-bluehour` | no clock | — | **0.254** |
+  | `skyline-dusk-wide-pano__dimas` 19:08 | −20.9° (full night, **mis-tagged blue hour**) | — | 0.266 |
+  | `townlake-dawn-reflection__kotipalli` | clock says +3.6°, sky says blue hour (see below) | — | 0.220 |
+
+  † the only unlit-looking wall in that frame still contains lit windows, so 0.75 is an upper bound.
+
+  **The wall target of ≤ 0.5 survives**: three frames with a genuinely unlit broad wall give
+  **0.12–0.23**, well inside it. Our 1.21–14.2 is 5–100× the reference, which is the defect, and the
+  threshold was not the problem.
+  **The water target of ≤ 1 does not survive — it is about four times too loose.** Three independent
+  blue-hour water frames give **0.220, 0.254, 0.266**: real water at blue hour is about a **quarter** of
+  the sky above it, not equal to it. A1's water half is tightened to **≤ 0.35** on that evidence.
+  Every one of these is a ratio inside one frame, which is the only thing a graded web photograph can
+  honestly give — the camera chose an exposure and both regions moved with it. No absolute sRGB level
+  from any of them may be quoted, and §5's ladder must not be read off them.
 - **A2's target band is met by accident at early night.** Target 3–7; measured wall/sky **1.35–18.4** at
   −15°, with most poses inside the band — but not because the walls went dark. The sky did. At the same
   regime ground/sky runs **1.54–118** and **exceeds wall/sky in 10 of the 13 poses that measure both**, so
@@ -433,8 +535,14 @@ Read against §7.2, over all sixteen committed poses:
   twilight and early night** on every elevated West Campus pose and only appear at p 1, while the street
   lamps are 99.8% on by p .62 — the sheets' top three rows are lit pavement under unlit buildings. The
   new early-night column is the clearest statement of the defect in the whole package: at the exact sun
-  elevation of the owner's photographs, where his frames show a dense grid of lit windows, ours shows
-  none at all.
+  elevation of the owner's photographs, where his frames show a dense grid of lit windows, **not one
+  window in ours passes the bright-window test** (Y ≥ 4× the region median, luma ≥ 40, R ≥ B).
+  **Corrected 2026-09-20: this sentence used to read "ours shows none at all", and that is not what the
+  frame shows.** Our early-night frame draws a window grid on every facade — the geometry and the
+  per-building grids are there — and what is 0% is the *brightness* class. Those are two different
+  defects with two different fixes: nothing lit enough to read as a light is W6 (receivers, sky, night
+  light and exposure) plus W2's emissive channel, whereas no windows drawn at all would be W3
+  (occupancy). Merging them sends the reader to the wrong work item.
 - **The owner-matched comparison now exists** (local only, never committed). Shot at `early` from the
   overlay's four approximate camera matches for IMG_9964–9969: our frame is pale unlit slabs under a
   still-bright sky; his is dark walls, a black sky and lit units. Those poses carry no `wall` region yet,
@@ -463,6 +571,10 @@ Four cautions carried by these runs:
    pokes `APARTMENTS.on` back on if that fails; on the early run both reloads timed out and the poke
    worked, and an earlier attempt at the same run died outright with 30 `getLayer` null errors. Any run
    of this harness on a loaded machine is at risk, and `report.json` says which path it took.
+   **Corrected 2026-09-20: BOTH runs ended up on the poke**, not just the early one — `baseline2` ran
+   on a harness commit that had no reload remedy to try. That is also where its inflated building
+   counter came from, since the poke is what lets a second build overlap the first. A poked run's
+   frames are still our city (`triangles` is unmoved), but its counters are not to be quoted.
 4. **Every deep-night ratio in the table above is quantisation-limited.** At p 1 the `sky` median is
    sRGB code **3 or 4 of 255** in fourteen of the sixteen poses, so `wall/sky` and `ground/sky` there are
    quotients of two near-black 8-bit codes and one code either way moves them 25–50%. The harness marks
@@ -562,8 +674,25 @@ Four cautions carried by these runs:
 - **Signs (SG):** Moontower and The Standard become facade emitters (`js/westcampus.js:102-145`). The 48
   screen-text signs (`js/signs.js`) lose their unsourced ground pools; the pier wash comes from W5.
 - **Beacons (BC):** sprites, 1–4 on roofs above a height threshold (taste value).
+- **Entrances (EN)** — added 2026-09-20, because the owner's ask names "campus paths/**entrances**/
+  courtyards" and until now `entrance` appeared in this plan only as things to *delete*: a stale ramp
+  (§1.1), a `#9aa6da` pre-division to remove (W2) and 5,650–7,065 stacked circles to remove (W5 step 1).
+  Nothing lit a doorway.
+  - `js/entrances.js` is the renderer and it needs no bake change: `data/entrances.geojson` already
+    separates the pieces by `k`, so the emissive term goes on **`glass` (1,786), `door` (1,413) and
+    `transom` (439)** by a paint expression on `k`, with `canopy` (78) getting a dimmer soffit value.
+    `rail`, `step`, `surround` and `reveal` stay receivers — a lit handrail is the tell that a class was
+    applied to a whole feature collection instead of to the glazing.
+  - The doorstep pool is the W5 ground term at the entrance point, at 0.5–1× a WL pool. A campus door
+    is the one emitter at eye level on a path, which is why it matters out of proportion to its area.
+  - The `n` (leaf count) and `dt` (door type) fields already in the data give per-door variety for free.
+- **Courtyards (CY)** — also added 2026-09-20. The measured **15× paver-vs-turf albedo** from IMG_9971-72
+  is used as an argument in D2 and lights nothing; here it becomes the acceptance for an amenity court.
+  Fixtures are WL (festoons, bollards, globes); the surfaces are `js/campus-landscape.js`. A court whose
+  paving and turf read within 2× of each other under the same fixture is the defect, not the brightness.
 - **Cost:** data plus a few hundred sprites [E].
-- **Acceptance:** A3, A6 (spill), A7.
+- **Acceptance:** A3, A6 (spill), A7; **EN and CY are judged on R2/R3 and the campus paths at walking
+  height, where the owner will be standing.**
 - **Depends on:** W2; the halo parts depend on W7.
 
 ### W5. Street lighting from real sources, and light that adds [P]
@@ -665,6 +794,31 @@ Four cautions carried by these runs:
 A new per-vertex float attribute on the slopes geometry would cost about 12 bytes × vertex count. That is
 the one expensive option in this plan, and **nothing here needs it**.
 
+### 6.1 Effort, in sessions [E] (added 2026-09-20)
+
+"Cost" above is what a frame pays. This is what a *lane* pays, and until now the plan had none of it —
+W0–W9 carried dependency order, files, per-frame cost and acceptance, so a reader could tell what to do
+first but not what fits in one sitting. A **session** here is one uninterrupted lane on one machine,
+roughly what fits before the context has to be handed over: a few hours, one or two verification passes.
+These are estimates, not measurements; they are here so the next reader can plan, and they should be
+corrected against what the work actually took.
+
+| item | sessions | what makes it that size | the risk that doubles it |
+|---|---|---|---|
+| W0 instruments | **1** (harness exists; `night-accept.mjs` and the data-side lit-unit counter do not) | reading an existing `report.json` rather than re-shooting | the A3 re-expression is blocked on §8 and is not in this estimate |
+| W1 one clock | **1–2** | nine clocks to converge on one curve set; touches every renderer but changes no geometry | every "which clock won this pixel" question needs a frame, not an argument |
+| W2 emissive channel | **1–2** | three paths (pattern atlas, solid extrusions, three.js), each a small shader change | the alpha/blend trap in D1; budget the whole first session for the one-feature pixel test |
+| W3 occupancy | **3–5 — the largest item in the plan, and the highest value** | a per-unit model (seed, floor bias, per-building rate, complete-unit correlation) plus the atlas, plus A4's data-side counter, plus enough poses to show variety | A4/A5 cannot be settled from pixels (see §7.2), so the counter is not optional and is half the work |
+| W4 emitter classes | **2–3**, splittable one class at a time | LB, GD, CR, AC, PL, SG, BC, EN, CY — each is small; there are nine | the `places.geojson` close-hour field is a bake change and lands on its own clock |
+| W5 street lighting | **2–3** | a light list and a ground term replacing 5,650–7,065 stacked circles; 3.4–6.7 MB of texture to budget | the phone budget; this is the item most likely to need a second perf pass |
+| W6 receivers/sky | **1–2** | no new data; curve and exposure work | it is where "too dim" complaints land, so it re-opens §8 |
+| W7 halos | **1** | one sprite class with a radius rule | tuning against A7 by eye costs more frames than the code costs |
+| W8 water | **1** | streak sprites over the existing plane | wet streets are optional and are a second session if taken |
+| W9 retint cost | **1**, and it must be **last** and **alone** | timing needs a quiet machine and interleaved reps | sharing the machine invalidates the numbers — schedule it on its own |
+
+**If only one item is taken: W3.** It is the defect in every frame of the baseline, it is three to five
+sessions rather than one, and it cannot start until W2 lands.
+
 ---------------------------------------------------------------------------------------------------
 
 ## 7. Acceptance
@@ -738,9 +892,9 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 
 | id | measure | target | now (c656249) [M] |
 |---|---|---|---|
-| A1 | blue hour: median unlit wall at the roofline ÷ horizon sky; water ÷ sky above it | **≤ 0.5**; water ≤ 1 | wall 139 against sky 32–96 luma; lake 161 against 31: fails both |
+| A1 | blue hour: median unlit wall at the roofline ÷ horizon sky; water ÷ sky above it | wall **≤ 0.5** [M 2026-09-20]; water **≤ 0.35** [M 2026-09-20] | wall 139 against sky 32–96 luma; lake 161 against 31: fails both |
 | A2 | early night: unlit wall ÷ zenith sky; horizon ÷ zenith; unlit glass ÷ wall | 3–7; 1.6–2.2; 0.4–0.6 | twilight walls far above sky (W1) |
-| A3 | deep night: unlit wall ÷ sky; bright lit window ÷ wall; lobby ÷ median lit window | ≥ 15 (owner ~25–30); 6–10; 1.4–4 | 3.3×; not measured |
+| A3 | deep night: unlit wall against the sky — **see the box below; the ratio form is retired and the replacement's number is not set yet** | **UNSET.** Do not gate on the old "≥ 15": §W0a caution 4 shows it cannot be measured at 8 bits, and §9 does not license a replacement number that nobody has measured | 3.3×; unmeasurable in the ratio form |
 | A4 | occupancy (data **and** pixels): bright / dim share; per-floor SD ÷ binomial SD; complete-unit ratio ÷ chance; distinct patterns | early night 35–45% / 15–25%, deep night 4–12% / 5–8%; ≥ 1.5; ≥ 2; no two buildings identical | 45% everywhere (apartments); atlas bimodal 0/100% at walking height |
 | A5 | lit-window colour: cream/neutral share; warm; cool; saturated accents; mean hue | ≥ 60%; 10–25%; 5–15%; 1–7%; warm (b\* > 0) | khaki (158,136,105); lavender on Congress |
 | A6 | lamps: pavement under the head ÷ mid-span; half-intensity point ÷ spacing; kerb and pavement lit; mapped poles with a lamp within 5 m; lamps inside footprints | 3–7; 0.4–0.6; pavement ≥ 0.5× the carriageway under the same lamp; ≥ 90%; 0 | carriageway std 9 on 151; pavement 14 against 148; 2.2% within 15 m; 10 inside |
@@ -752,6 +906,42 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 
 The owner's display levels (reference §5) are phone-lifted. **The ratios are the acceptance.** Absolute
 level is the §8 decision.
+
+> #### A3, written out (added 2026-09-20, because the table used to print a number this document
+> #### elsewhere says cannot be measured)
+>
+> §W0a and §9 both concluded "A3 must be re-expressed before it can be used", and the table went on
+> printing **≥ 15** with no replacement, so a reader working from the table alone would have gated on it.
+> It is now UNSET, and this is what closing it takes. Nothing below is a measurement yet; it is the
+> instrument and the procedure, which is what was missing.
+>
+> **Why the ratio died.** At p = 1 the `sky` median is sRGB code 3 or 4 of 255 in fourteen of sixteen
+> poses. Every deep-night ratio is a quotient of two near-black 8-bit codes, one code moves it 25–50%,
+> and the best pose's 10.7 has a ±1-code band of 8.0–16.0 straddling the threshold. Re-running does not
+> fix a quantisation floor.
+>
+> **The instrument.** `night-compare.mjs` keeps a JPEG at quality `JPEG_Q`, which is right for every
+> other row and fatal for this one. A3 needs a **16-bit PNG** of the same pose — `page.screenshot({
+> type: 'png' })` plus a colour-managed read, or a float read out of the WebGL buffer before the grade —
+> so the sky has room below sRGB code 6. Until that frame exists, A3 has no instrument and no number
+> either way, and a `~`-marked ratio is not a substitute.
+>
+> **The region.** The same `wall` and `sky` rectangles the route already carries — but only on a pose
+> whose `sky` is at least 1% of the frame (`night-routes.json` flags the rest with `#`), and only where
+> the `wall` rectangle has been eyeballed to hold no lit window. Two poses today cannot meet the first
+> condition and are excluded from A3 by that alone.
+>
+> **The form.** A **difference in linear Y**, `wall − sky`, not a quotient: a difference does not blow up
+> when the denominator is one code above black, and it is the quantity the eye is actually judging (is
+> the wall separable from the sky behind it). Report it beside the absolute `sky` median, because a
+> difference met by lifting the wall and a difference met by darkening the sky are different pictures.
+>
+> **The number, and why it is not here.** §5's deep-night row (unlit wall ÷ sky ~25–30, sky Y ≤ .002)
+> is measured off the owner's frames, but §2 says those display levels are phone-lifted — so turning
+> that row into an absolute target is the §8 taste question wearing a different hat. **A3's threshold is
+> blocked on §8** and should be set from whichever of §8's two options he picks, off a 16-bit capture of
+> his matched poses. Anyone who needs a deep-night gate before then should use A8 (the brightest things
+> in the frame are lights), which is measurable today and is already passing.
 
 **A4 and A5 are the two rows that cannot be settled from pixels alone, and this repo has already proved
 it.** Both are written in the vocabulary of the warm/neutral split — "bright / dim share", "cream/neutral
@@ -803,7 +993,14 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
 ## 9. Risks
 
 - **MapLibre contract.** The patch targets 5.24's shader text and throws visibly on change. Pin the version.
-  The colour-alpha and alpha-code tricks must be verified on the real build before anything depends on them.
+  The colour-alpha and alpha-code tricks must be verified on the real build before anything depends on
+  them — and **for the colour-alpha trick the thing to verify now has a name** (added 2026-09-20; this
+  bullet used to hedge without saying what could go wrong). The patched solid fragment at
+  `js/city-lighting.js:215` writes `v_color.a` straight to the output alpha and premultiplies by it, so a
+  feature whose colour alpha carries data renders **translucent** unless the same commit forces the
+  patched path's output alpha to 1.0. W2 rests on that channel and everything from W3 onward rests on W2,
+  so this is the load-bearing line in D1. The test is one feature at alpha 0.5 over a contrasting
+  background, sampled at its centre — see D1.
 - **Concurrent edits.** The water lane has pending changes to `js/city-lighting.js` and `js/ground.js`.
   `js/drag.js` is frozen (#164). `js/slopes-stadium.js` and the stadium bake belong to the Acer DKR lane, and
   `js/stadium.js` to the Mac lane.
@@ -818,8 +1015,32 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
 - **The deep-night ratios are quantisation-limited** (§7.2, A3). At p 1 the sky median is 3 or 4 codes
   above black, so `wall/sky` there carries less than one significant figure. The harness prints the
   ±1-code band; the plan's A3 needs re-expressing before it can be a gate.
-- **The web references are unmeasured**, and the owner's are phone-processed (reference §2). Treat the
-  targets as ratios with ranges, not exact values.
+- **Most web references are still unmeasured** — eight of 46 now carry numbers (reference §7) — and the
+  owner's are phone-processed (reference §2). Treat the targets as ratios with ranges, not exact values,
+  and **never quote an absolute sRGB level off a web photograph**: it is a record of the exposure the
+  photographer chose. The deep-night zykov frame measures a sky at sRGB 50–62 against the package's own
+  full-night target of 11, for exactly that reason.
+- **Regime tags in the corpus are words, not sun elevations**, and on 2026-09-20 three bindings in
+  `night-routes.json` were found sitting up to 29° from the row they were on
+  (`scripts/verify/night-refmeasure.py --sun`; reference §1.2). **22 of the 46 photographs state no
+  capture time at all**, so that check cannot be run on half the corpus and those regimes remain one
+  person's judgement.
+
+### 9.1 Named deliverables that do NOT exist yet (2026-09-20)
+
+Kept in one list so that nothing in this plan reads as built when it is not:
+
+- `scripts/verify/night-accept.mjs` — W0's named deliverable. Not written. `night-compare.mjs` exists and
+  is a comparison instrument, not a gate; it encodes none of §7.2.
+- **The data-side lit-unit counter** that §7.2 calls "the primary instrument" for A4 and A5. Not written.
+  Until it is, A4 and A5 have only the corroborating half, and `docs/PASS_NIGHT.md` §4 is a three-rig
+  ledger of why the pixel half alone is not enough.
+- **The regime-aware rewrites** of `night-silhouette.mjs:53-59` and `night-lights.mjs:89`. Not done; both
+  still assume one hour.
+- **A `wall` region on the owner-matched overlay poses.** Without it the matched comparison is a picture
+  and not a number — it is the one comparison against measured evidence and it has no ratio.
+- **A frame time on a real phone.** None exists, for any item in this plan (see the bullet above).
+- **A3's replacement threshold**, which is blocked on §8 (see the box under §7.2).
 
 ---------------------------------------------------------------------------------------------------
 
