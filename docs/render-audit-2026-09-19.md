@@ -344,12 +344,13 @@ throughout. A quiet machine may stay inside 90 s. What is NOT
 load-dependent is the shape of the failure: a one-shot ceiling with no retry,
 on the single feature the app is for.
 
-**It is not a desktop-only failure, and it is not rare.** Four separate audit
+**It is not a desktop-only failure, and it is not rare.** Five separate audit
 scripts, each on its own fresh load, logged *"authored handoff timed out"* and
 had to switch the buildings back on before they could measure anything:
 `audit-motion.mjs --tests ae` (desktop, ready 190 s), `audit-dupes.mjs`
-(desktop), `audit-dupes-control.mjs` (desktop) and — the one that corrects the
-table above — `audit-motion.mjs --lite` (**the phone profile**, ready 156 s,
+(desktop), `audit-dupes-control.mjs` (desktop, again on a later run) and — the
+one that corrects the table above — `audit-motion.mjs --lite` (**the phone
+profile**, ready 156 s,
 and then all 196 buildings and 1,849,232 triangles arrived exactly as on any
 other run). The earlier phone rows in the table were loads that happened to
 come in under the ceiling; they are not a property of the profile. Whichever
@@ -561,10 +562,9 @@ blurrier", and I cannot separate the two from the numbers I have. **I am not
 claiming a far-cutoff defect from them** — only that the near cascade is doing
 real work at every pose, which is what having two of them is for.
 
-**Duplicate replacements — PROVISIONAL, not clean: one legacy prism found
-inside 196 authored footprints, and the probe failed its own control.** (Filed
-here because the finding is a near-negative, but read the caveat at the end of
-this item before using it.) `audit-dupes.mjs` looks straight down at every authored
+**Nothing is drawn twice, bar one: a single legacy prism inside 196 authored
+footprints — and the probe is now proved live, so that counts.** (Whether that
+one prism is *visible* is still open; see the end of this item.) `audit-dupes.mjs` looks straight down at every authored
 building (pitch 0 is the only angle at which `queryRenderedFeatures` answers
 for a fill-extrusion) and asks all **55** building-like fill-extrusion layers
 what they drew at a 5x5 grid inside the footprint, inset 1.5 m from the edge,
@@ -590,24 +590,48 @@ probe points inside **Jester East Hall**'s authored footprint. It is a
 separate OSM polygon that the authored building's `hideRings` does not cover,
 so the old prism is still drawn where the new mesh stands.
 
-**NOT YET PROVED, and the table above is therefore provisional.**
-`audit-dupes.mjs`'s own control — one point on an ordinary building, which must
-hit or the probe is blind — came back `[]`. A negative from an instrument that
-failed its own control is worth nothing. The probe was certainly not *wholly*
-blind (it returned 125 buildings' worth of hits at z18, and it named a feature
-by id), but "only one legacy prism in 196 footprints" is exactly the kind of
-clean negative a partly-blind probe produces, and it is not being claimed here
-as verified.
+**The probe is live — so the sweep counts. Whether the prism is VISIBLE is
+still unknown.** `audit-dupes.mjs` ended with `control hits: []`, its only
+assertion that it is not blind, so `audit-dupes-control.mjs` re-ran the control
+against six ordinary buildings with a 3x3 tap each:
 
-`audit-dupes-control.mjs` is written and committed to settle it: six ordinary
-campus buildings with a 3x3 tap each, so a point landing in a light well cannot
-be read as blindness, then a re-probe of Jester East and a mesh-on / mesh-off
-pair at two pitches — because whether the leftover prism is *visible* or buried
-inside the replacement is a separate question from whether it is drawn, and
-only the picture answers it. **It had not been run when this was written**: the
-machine's three browser slots were held by other lanes for the last stretch of
-the round. Whoever picks this up should run it first, before treating the table
-above as a result.
+| control point | answered |
+|---|---|
+| Belo Center | `buildings-3d` x9, `buildings-roof` x9, `campus-storeys` x36 |
+| Robert Lee Moore Hall | `ground-paths` x9, `ground-close-path-grain` x9, `ground-paths-texture` x6 — **ground only** |
+| Batts, Welch, Painter, Burdine | nothing |
+| | **2 of 6** |
+
+Belo Center settles the question the sweep needed settled: the probe returns
+fill-extrusions from the bulk building layers when a building is under the
+point, so it was not blind and the 196-footprint sweep is a real measurement.
+
+**The other four are my fault, not the app's.** I typed those coordinates from
+memory instead of sampling them, which is the one thing this repo's own method
+says never to do — and Robert Lee Moore proves it: the probe there was working
+perfectly and returned the *paths*, because the point I guessed is on a
+footpath beside the building rather than on it. A control built out of guessed
+coordinates is a weak control even when it passes. Re-site these six points off
+the real footprints before anyone leans on this again.
+
+**The mechanism behind the one hit is now exact, and it is a data gap:**
+`Jester East Hall`'s authored entry has **`hideRings: 0`** — no suppression
+rings at all, over a 46-point footprint. Nothing tells the renderer to stop
+drawing legacy polygons underneath it, so the separate OSM polygon
+"Longhorn Dining Facility" (`e88d1314`) keeps its extrusion inside the authored
+outline. Suggested fix, in the apartment data rather than any renderer: give
+Jester East a `hideRings` entry covering that polygon.
+
+**What I could NOT establish, stated because the pictures looked fine and were
+worthless.** The script took a mesh-on / mesh-off pair at Jester at two pitches
+to answer whether the leftover prism actually pokes out or is buried inside the
+replacement. Diffing the pairs afterwards: **0.0% of pixels differ** at both
+pitches — hiding the authored mesh changed nothing, so the authored mesh was
+not rendering in those frames at all, and the camera (zoom 17.2) was framed
+across half the campus rather than on the building. Two pictures that would
+have passed a glance and meant nothing. **The visibility question is open**;
+re-shoot it tight on Jester East, and assert the mesh is actually in the frame
+before believing either half of the pair.
 
 **Crossing a LOD threshold during a climb does not pop.** A scripted vertical
 climb, 528 frames, `renderDistance` 700 (thresholds 315 m fine / 700 m mid,
