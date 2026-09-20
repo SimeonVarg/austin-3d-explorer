@@ -132,7 +132,7 @@
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
-    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)"
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)"
    ],
    "build": {
     "sha1": "4807b1680898",
@@ -11648,5 +11648,6 @@
   "composited": [],
   "mayBeCommitted": true,
   "note": "no photograph was composited by this pass; the sheets are our renders only."
- }
+ },
+ "committedCopy": "6 of 70 shots removed before committing this report, and this file is therefore HAND-EDITED -- which it did not say until the fifth pass, in the file whose whole purpose is to account for where its shots came from. Reconcile it like this: merged[0] records the `early` run as shots: 22, replaced: 16, added: 6, and provenance says 48 + 16 = 64. The 16 REPLACED are the tracked poses' early column and they are here. The 6 ADDED are the local-overlay routes inventory-wc-elevated and owner-elevated, matched to the owner's own photographs -- they name a viewpoint, so they were removed by hand from `shots` and their frames were never copied out of scratch. That is why 48 + 16 + 6 = 70 and this file holds 64. The full 70-shot report and its frames stay in the session scratch folder. Nothing else was changed; absolute paths are rewritten. (early-regime-shoot.report.json is the same removal, disclosed there from the start; this file is the one that was not.)"
 }

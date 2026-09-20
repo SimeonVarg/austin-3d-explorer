@@ -72,7 +72,7 @@
       "id": "townlake-bluehour",
       "regime": "blue (tag) / UNCLOCKED: no capture time, so the regime is a judgement call",
       "license": "CC BY-SA 3.0",
-      "note": "Lamp head in frame top-left; the sky rectangle is kept clear of its flare. CORRECTED 2026-09-20: this photograph states no capture time, so --sun cannot check it and its 'blue hour' is a word in a filename. Its water/sky 0.254 is the closest thing the corpus has to a blue-hour water ratio and it is still an unclocked judgement call.",
+      "note": "Lamp head in frame top-left; the sky rectangle is kept clear of its flare. CORRECTED 2026-09-20: this photograph states no capture time, so --sun cannot check it and its 'blue hour' is a word in a filename. Its water/sky 0.254 is the closest thing the corpus has to a blue-hour water ratio and it is still an unclocked judgement call. CORRECTED AGAIN 2026-09-20, fifth pass: THIS IS THE SAME PHOTOGRAPH AS kotipalli-0651, at 3840x2490 against 7360x4773 -- greyscale correlation 0.99997 at 96x64, and reference package sec 1.2 lists it among the three files collected twice. This entry and that one were measured separately at 0.254 and 0.220 and BOTH were quoted as independent evidence for A1's water half. They are not. night-refmeasure.py now drops this lower-resolution copy from every table and aggregate and prints the group; the entry is kept because night-routes.json's lady-bird-lake/blue is bound to this file and the 0.254/0.220 spread is a useful measure of what a rectangle placement is worth (15%).",
       "regions": {
         "sky": [
           0.3,
@@ -93,7 +93,7 @@
       "id": "kotipalli-0651",
       "regime": "blue (tag) / UNRESOLVED: its own 06:51 stamp puts the sun at +3.6 deg, above the horizon",
       "license": "CC BY-SA 3.0",
-      "note": "06:51 dawn, described as the dusk blue hour reversed. CORRECTED 2026-09-20: its own clock puts the sun at +3.6 deg -- daylight, not twilight -- so either the stamp or the tag is wrong and nothing here settles which. Reference package section 1.2 already calls this clock suspect. Its water/sky 0.220 is kept as a water-against-sky ratio, but it is NOT evidence for a blue-hour target.",
+      "note": "06:51 dawn, described as the dusk blue hour reversed. CORRECTED 2026-09-20: its own clock puts the sun at +3.6 deg -- daylight, not twilight -- so either the stamp or the tag is wrong and nothing here settles which. Reference package section 1.2 already calls this clock suspect. Its water/sky 0.220 is kept as a water-against-sky ratio, but it is NOT evidence for a blue-hour target. AND 2026-09-20, fifth pass: townlake-bluehour is THIS SAME PHOTOGRAPH at 3840x2490 (correlation 0.99997). This is the copy night-refmeasure.py keeps, being the higher resolution of the two; A1's water half therefore rests on this frame and dimas, two photographs and not three.",
       "regions": {
         "sky": [
           0.42,

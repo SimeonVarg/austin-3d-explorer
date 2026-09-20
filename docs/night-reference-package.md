@@ -59,7 +59,7 @@ because three Commons files were collected twice (Cutrer 2012 full night, Kotipa
 
 - Licences: most are CC BY / BY-SA from Wikimedia Commons, and **three are public domain** —
   `maxxparten` predawn, `frost-tower__full-tower-bw` and `ut-tower-flawn-academic-night`, the last of
-  which is one of the twelve bound into `night-routes.json`. (Corrected 2026-09-21: this line said two,
+  which is one of the twelve bound into `night-routes.json`. (Corrected 2026-09-20: this line said two,
   counted out of the three `sources.json` files.)
 - `the-independent…` is **CC BY-NC-ND**, so it is reference only.
 - The three rambleratx.com property photos (Torre, Rambler, Waterloo) have **unknown licence**: reference
@@ -77,7 +77,7 @@ is **no web photograph at all of early night at sun −15°** — that regime is
 owner's IMG_9964–9969, and only by them.
 
 **And the twilight row is carried by one unclocked photograph. Do not calibrate A2 on it** (added
-2026-09-21, after opening the frame). `wc-elevated/twilight` is bound to `dobie-center-pool-twilight`,
+2026-09-20, after opening the frame). `wc-elevated/twilight` is bound to `dobie-center-pool-twilight`,
 which is the whole twilight row once `ut-tower-all-seeing` is disqualified as heavily HDR. It states no
 capture time, so `--sun` cannot settle it, and its sky is a luminous blue with full cloud detail and a
 faint warm band still on the horizon — that reads at or above the blue-hour boundary, not the −12°
@@ -567,26 +567,41 @@ read off one.** Ratios inside one frame survive that; levels do not.
 | regime | sky zenith | horizon ÷ zenith | unlit wall ÷ sky | unlit glass ÷ wall | lit window ÷ wall | lobby ÷ median window | under-lamp ÷ mid-span pavement | hot sources | **source of this row** |
 |---|---|---|---|---|---|---|---|---|---|
 | golden | Y ≈ .42 (hazy) | — | shaded 0.12–0.45 | reflects 0.4–0.7 of the sky it faces | — | — | — | sunlit west faces ≈ sky | **MEASURED** — owner 9962, 9963 |
-| blue hour | brightest broad surface | > 1 | **< ~0.5** | reflects the sky | interpolated | ≥ 1.5 | ~5 | lamps, signs, accents | **OBSERVED, not measured at blue hour — corrected 2026-09-21, see below.** The three web frames behind the old "MEASURED 0.12–0.23" are a sunset, a sunset and an unclocked frame. The corpus's one clock-confirmed blue hour (`mrlaugh` 17:55, sun −5.9°) measures **wall/sky 0.413**, and it is HDR-flagged, so it is a cross-check and not a target |
+| blue hour | brightest broad surface | > 1 | **< ~0.5** | reflects the sky | interpolated | ≥ 1.5 | ~5 | lamps, signs, accents | **OBSERVED, not measured at blue hour — corrected 2026-09-20, see below.** The three web frames behind the old "MEASURED 0.12–0.23" are a sunset, a sunset and an unclocked frame. The corpus's one clock-confirmed blue hour (`mrlaugh` 17:55, sun −5.9°) measures **wall/sky 0.413**, and it is HDR-flagged, so it is a cross-check and not a target |
 | early night (−12…−19°) | Y .013 (sRGB 31) | ~1.9 | **4–7** | 0.4–0.6 | ~4–6 | 1.5–4 | ~5 | crowns clip; beacons | **MEASURED** — owner 9964–9969 at −14.5…−15.2° |
 | full night (−19…−26°) | Y .003 (11) | — | ~9 | 0.4–0.6 | ~10 (Castilian ~.31 vs piers .03) | 0.6–4 | ~5 | lamps clip | **MEASURED** — owner 9970, 9971–72 |
 | deep night (03:00) | Y ≤ .002 (≤ 7) | — | **~25–30** | — | ~9 (bright) | ≥ 1.4 (vs brightest) | ~5 | lobbies, lamps, garages | **MEASURED** — owner 9977–9981 at 03:05. NOTE: the plan's A3 used to gate on this row's ratio; at 8 bits it cannot be measured on our frames (plan §7.2) |
 
-Water, measured 2026-09-20 and not previously in this table: **water ÷ the sky above it is 0.220, 0.254
-and 0.266** across three independent web frames — about a **quarter**, not the "≤ 1" the plan's A1 asked
-for.
+Water, measured 2026-09-20 and not previously in this table: **water ÷ the sky above it is 0.220 and
+0.266** across two independent web frames — about a **quarter**, not the "≤ 1" the plan's A1 asked for.
+(It said *three* frames and *0.220, 0.254, 0.266* until the fifth pass: two of those three are the same
+photograph. See below.)
 
-> **Corrected 2026-09-21: this said "at blue hour" and carried a bare [MEASURED] tag, and none of the
+> **Corrected 2026-09-20: this said "at blue hour" and carried a bare [MEASURED] tag, and none of the
 > three frames is a confirmed blue hour.** `night-refmeasure.py --sun` puts `kotipalli` at **+3.6°**
 > (above the horizon — either its clock or its tag is wrong, and §1.2 already called the clock suspect)
 > and `dimas` at **−20.9°**, which `night-routes.json`'s own `refNote` calls "full night … it stays
 > unbound"; `townlake` states no capture time at all. `night-ref-regions.json` has been corrected to say
 > so on each entry. What survives is arguably more useful than what was claimed: **water sits at about a
-> quarter of the sky above it across three very different skies — dawn, full night and an unclocked
-> dusk — and the three agree to within 0.046.** That is a stable ratio, not a blue-hour one. The plan's
+> quarter of the sky above it across two very different skies — a dawn frame and a full-night one — and
+> the two agree to within 0.046.** That is a stable ratio, not a blue-hour one. The plan's
 > A1 keeps ≤ 0.35 as an OBSERVED bound, because our render is at 161 against 31 and fails it by an order
 > of magnitude either way; it needs one clocked, non-HDR blue-hour frame with a water rectangle before
-> it can be tightened on evidence. [OBSERVED over three regimes; not blue hour]
+> it can be tightened on evidence. [OBSERVED over two regimes; not blue hour]
+>
+> > **Corrected again in the fifth pass: that was two photographs, not three.**
+> > `downtown-skyline__town-lake-water-reflection-bluehour__01.jpg` (3840×2490) and
+> > `townlake-dawn-reflection__kotipalli-2013-06-10_0651.jpg` (7360×4773) are one Commons picture at two
+> > resolutions — greyscale correlation **0.99997** at 96×64 — and §1.2 above already says as much in its
+> > list of the three files this corpus collected twice. `night-ref-regions.json` entered them as two
+> > independent `photos`, measured them separately at **0.254** and **0.220**, and both numbers were then
+> > quoted here and in the plan's A1 box as independent evidence; `--sun` printed one as UNCLOCKED and the
+> > other as "+3.6 deg = golden but tagged blue", for the same picture. The 15% spread between them is
+> > resampling and two independently-placed rectangles, which is worth knowing as a measure of how much a
+> > rectangle placement costs — and is worth nothing as a second observation.
+> > `night-refmeasure.py` now keeps the highest-resolution copy of a duplicate group, drops the rest from
+> > every table and aggregate, and prints the group first. The conclusion is unchanged; the amount of
+> > evidence behind it is halved.
 
 ## 6. Palette (sRGB, after the phone's warm white balance)
 

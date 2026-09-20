@@ -91,8 +91,8 @@
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
-    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
-    "count.buildings 366 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count."
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
+    "count.buildings 366 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count."
    ],
    "build": {
     "sha1": "4807b1680898",
@@ -139,8 +139,8 @@
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
-    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
-    "count.buildings 372 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count.",
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
+    "count.buildings 372 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count.",
     "--break: authored apartments removed from the slopes scene (slopes.remove(group))"
    ],
    "build": {
@@ -2122,12 +2122,154 @@
    "pctOverMax": 8.16
   },
   "same": {
-   "tolPct": 1,
+   "tolPct": 0.05,
    "failing": [
     "night wc-elevated/over-drag-wnw 8.16%",
     "night wc-elevated/over-mlk-north 3.65%",
     "night wc-elevated/down-on-ion 7.101%"
    ]
+  },
+  "breakCoverage": {
+   "mode": "apartments (this run predates --break taking a mode)",
+   "poses": [
+    {
+     "pose": "wc-elevated/over-drag-wnw",
+     "regime": "night",
+     "slopesRecorded": false,
+     "groupsDrawnA": null,
+     "trianglesA": null,
+     "pctOver": 8.16,
+     "reached": true
+    },
+    {
+     "pose": "wc-elevated/over-mlk-north",
+     "regime": "night",
+     "slopesRecorded": false,
+     "groupsDrawnA": null,
+     "trianglesA": null,
+     "pctOver": 3.65,
+     "reached": true
+    },
+    {
+     "pose": "wc-elevated/down-on-ion",
+     "regime": "night",
+     "slopesRecorded": false,
+     "groupsDrawnA": null,
+     "trianglesA": null,
+     "pctOver": 7.101,
+     "reached": true
+    },
+    {
+     "pose": "capitol/congress-30m",
+     "regime": "night",
+     "slopesRecorded": false,
+     "groupsDrawnA": null,
+     "trianglesA": null,
+     "pctOver": 0.025,
+     "reached": false
+    },
+    {
+     "pose": "capitol/gate-1p7m",
+     "regime": "night",
+     "slopesRecorded": false,
+     "groupsDrawnA": null,
+     "trianglesA": null,
+     "pctOver": 0.002,
+     "reached": false
+    }
+   ],
+   "note": "some of these frames were shot before night-compare recorded the per-shot `slopes` block, so `groupsDrawnA` is null \u2014 NOT an empty list. For those poses `pctOver` is the whole of the evidence: it is the measured share of the frame the sabotage moved, which is the thing that decides coverage anyway.",
+   "noOpAt": [
+    "night capitol/congress-30m 0.025% (drawn: not recorded in this run)",
+    "night capitol/gate-1p7m 0.002% (drawn: not recorded in this run)"
+   ]
   }
- }
+ },
+ "remeasured": "2026-09-20T10:30:59.816Z",
+ "remeasure": {
+  "when": "2026-09-20T10:30:59.816Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework4/break-apartments-0p05",
+   "--from",
+   "<scratch>/lanes/night/rework4/break-apartments-0p05",
+   "--same",
+   "0.05",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "1bc3948",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework4/break-apartments-0p05",
+  "from": "<scratch>/lanes/night/rework4/break-apartments-0p05",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T07:40:14.672Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/critic3/break",
+   "--only",
+   "wc-elevated,capitol",
+   "--regimes",
+   "night",
+   "--b",
+   "",
+   "--break",
+   "--same",
+   "1",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "9487d4f",
+   "dirty": false
+  },
+  "gl": "hardware",
+  "viewport": [
+   1440,
+   900
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T07:40:14.672Z",
+  "shootGit": {
+   "head": "9487d4f",
+   "dirty": false
+  },
+  "shotsFromThatShoot": 10,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "exit": 1,
+ "committedCopy": "The shoot ran with --same 1 and its three West Campus frames went red. It was then re-measured with --from --same 0.05 -- the tolerance derived from the measured day/golden floor of 0.000% -- and nothing was re-shot: same frames, same pixels, exit 1 either way. What the re-measure ADDS is verdict.breakCoverage, which names this run's own NO-OPS: at capitol/congress-30m the sabotage moved 0.025% of pixels and at capitol/gate-1p7m 0.002%, both under the tolerance, with A and B window shares and dome medians bit-identical. Three of its five (pose, regime) frames are evidence that --same can go red; the other two are evidence that it cannot be shown able to, there. The shoot predates the per-shot `slopes` block, so groupsDrawnA is null and NOT an empty list -- the coverage map says so itself. Absolute paths rewritten; nothing else changed."
 }

@@ -4,7 +4,7 @@ Written 2026-09-19 for Codex, who owns the integrated night renderer and the fin
 It is a plan only: nothing in it has been built. Evidence is in `docs/night-reference-package.md`, from the
 owner's photos and the web references.
 
-**Line numbers are against `main` @ `13741fa` (re-anchored 2026-09-21).** They were written against
+**Line numbers are against `main` @ `13741fa` (re-anchored 2026-09-20).** They were written against
 `c656249`, and `main` then changed six files this plan cites — `js/app.js`, `js/city-lighting.js`,
 `js/graphics.js`, `js/lod.js`, `js/mobile.js`, `js/slopes-dome.js` — so 23 of the 28 citations into
 those files had drifted and every one of them still looked right. The worst was D1's named risk,
@@ -18,6 +18,15 @@ Tags used throughout:
 - **[C]** read from code.
 - **[P]** proposed.
 - **[E]** an estimate that nobody has measured. Every [E] needs a measurement before it is quoted as fact.
+
+**A date in an [M] tag is the day the measurement was taken, and it is not a pass id.** Every
+pass on this package so far — the write-up, the three corrections and this one — ran on
+**2026-09-20**, and every kept `report.json` in `docs/night/harness-runs/` carries a `when` on
+that date, the latest at 09:43 Z. Until the fifth pass about twenty-five places in this package
+said **2026-09-21**, which was a day in the future when they were written and was contradicted by
+the report each of them cited. They are all 2026-09-20 now. Where the difference between passes
+is what matters, the passes are named in words — *the third pass*, *the fourth pass* — because a
+date cannot carry it.
 
 **Non-goals:**
 - No global brightness increase, and no "more bloom". Both were measured not to be the problem (§1.4).
@@ -451,11 +460,15 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 > That is what a red `--break` looks like. The first version of the flag produced **two frames
 > indistinguishable from the left one** and called it a pass.
 >
-> **The evidence is kept now (2026-09-21).** The paragraph above used to condemn the earlier state
+> **The evidence is kept now (2026-09-20).** The paragraph above used to condemn the earlier state
 > with "no `report.json` under `<scratch>/lanes/night/harness/*` carried either flag" — and after the
 > fix that sentence was still true, because the demonstration ran in a session scratch folder that gets
-> swept. Both reports are in the repo: **`docs/night/harness-runs/`**, unedited apart from having
-> absolute paths rewritten, shot `--refs off --local none` so they carry no photograph. The table above
+> swept. Both reports are in the repo: **`docs/night/harness-runs/`**, with absolute paths rewritten
+> and, where anything else was removed, a `committedCopy` field in the file saying what. Neither
+> carries a photograph. (That folder's own README used to make that claim for *all* of its reports,
+> on the grounds that "every one was shot `--refs off --local none`" — false for four of the ten by
+> their own recorded `args`, and corrected there in the fifth pass with a per-report table. No
+> photograph or overlay pose leaked; the sentence was wrong, not the files.) The table above
 > reproduces: an independent re-run on `9487d4f` got 0.005% for the control and 8.160% / 7.101% /
 > 3.650% for the sabotage, and re-measuring the frames in numpy outside the harness agreed with the
 > report to the 256-bin quantisation the tool documents.
@@ -480,7 +493,7 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 >
 > **Not yet run: the same sabotage over the whole route set at `day` and `golden`.** That is the
 > coverage map A9 actually needs — which of the sixteen poses a geometry regression can be *seen* at,
-> at the two regimes A9 shoots. It was started on 2026-09-21 and **hung**: with three GPU lanes on this
+> at the two regimes A9 shoots. It was started on 2026-09-20 and **hung**: with three GPU lanes on this
 > laptop, `campus-aerial/z16-p68` (the z16 pitch-68 aerial, by far the heaviest tile load in the file)
 > stopped producing frames for 25 minutes inside a per-pose wait whose own timeouts add to 75 seconds,
 > and the run was killed by PID. That is the machine, not the harness — but it is also the honest state
@@ -496,6 +509,64 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 > slopes groups were on at that camera
 > (`shot.slopes`) and rolls it into `verdict.breakCoverage`, with the no-op poses named. Read that
 > block before quoting a pose as covered.
+>
+> #### And then the red one turned out to be red for the wrong reason
+>
+> **Fifth pass.** An independent reader re-ran the command in the reproduce block on a busy laptop.
+> It came back exactly as advertised — `FAIL --same 0.05%`, exit 1, *"the sabotage moved 5 of 5
+> (pose, regime) frames past --same"*, `verdict.uninterpretable: []`, every frame `settled`, `camera
+> ok`, 196 buildings and 2,600,942 triangles on both sides, identical `grade`. Then they opened the
+> frames.
+>
+> ![side A, the unsabotaged control, is the broken one](shots/night-break-sideA-broken-drag.jpg)
+>
+> **Side A is the control.** Its tree canopies are bright unretinted green under a night sky, the
+> authored towers' lit window grids are absent (`windows.pct` **3.371%** against **13.349%** for the
+> same pose, regime and build in the kept baseline), and at `capitol/congress-30m` the Capitol dome is
+> **missing from A and present in B**. The 4× difference image is tree canopies and a dome: it is
+> dominated by A's defect, not by B's sabotage. The Capitol numbers say it arithmetically — 3.354% and
+> 1.117% in that run against **0.025% and 0.002%** at the same two poses in
+> `same-break-apartments.report.json`.
+>
+> The only trace anywhere in the report was **`tilesOk: false` on all five A shots against `tilesOk:
+> true` on all five B shots** — a field recorded per shot since the first version of the harness and
+> then dropped: it never reached `verdict`, the summary or the exit code. Both sides took 2 reloads
+> and the `APARTMENTS.on` poke, so the recovery path is not the discriminator here; the *load* is.
+>
+> **Fixed, and watched.** `tilesOk: false` is `uninterpretable` and exits 2, exactly as a camera miss
+> does; an A/B disagreement in `tilesOk` at the same (pose, regime), or two sides reaching ready by
+> different routes, is `verdict.loadAsymmetry` and also exits 2. The same frames re-measured with
+> `--from` after the fix are `exit 2` with all five A frames named, and they are kept as
+> `docs/night/harness-runs/same-break-apartments-loaded-machine.report.json`. **What it would have
+> cost:** the coverage map this section still owes — the whole route set at `day` and `golden` —
+> would, on a busy machine, have come back optimistically green-lit, `reached: true` at poses where
+> the sabotage did nothing.
+>
+> #### Nothing was watching the measuring half
+>
+> `--break` demonstrates that **`--same`** can go red. `--same` is `pageDiff`. The other half of the
+> instrument, **`pageMeasure`** — the region medians, the four ratios, the ±1-code quantisation band
+> and the bright-window share that every row of the A1–A5 table above is written in — had no
+> self-test, no synthetic frame with a known answer and no watched failure, while this document
+> already records four region rectangles that were sitting on the wrong subject and were caught only
+> by eye.
+>
+> **`node scripts/verify/night-compare.mjs --selftest`** (no server, no `--out`, no app) paints
+> synthetic piecewise-uniform frames whose every answer is arithmetic over a colour and a pixel
+> count, pushes them through the real `pageMeasure`/`pageDiff`, and asserts 22 numbers exactly —
+> including one strip per window criterion, each of which fails exactly one of the three tests, so
+> dropping any one of them moves the window share by a known amount. It then **sabotages the source
+> text of those two functions seven times** (the Rec.709 weights, `R >= B`, `luma >= 40`, `Y >= 4 ×
+> median`, the region rectangle, the band, the 16-luma diff threshold) and requires every one to be
+> caught; a sabotage whose target string is no longer in the source is a hard failure, not a skip. It
+> found a wrong expectation on its first run — two ratio literals off in the last place, re-derived
+> in Decimal arithmetic outside the harness before they were trusted.
+>
+> It also measured one thing worth keeping: the same frame through the **JPEG q90** path a shoot
+> actually uses reads a bright-window share of **23.46%** where the truth is 20.000%. A 200-luma step
+> across one pixel is JPEG's worst case and a real facade is kinder than that — but a window share
+> read off a q90 frame at a hard edge carries a percent-level error of its own, before the scene is
+> considered at all.
 
 **Baseline on `main` @ `c656249`**, at all four acceptance regimes. Blue hour, twilight and full night
 were shot 2026-09-20 01:03 UTC; **early night (sun −15°, the owner's 20:36) was shot 2026-09-20 05:02
@@ -506,7 +577,7 @@ at `docs/night/harness-runs/baseline-c656249.report.json`** so the numbers below
 folder. Three sheets are committed as the before-picture for W1–W6; the rest stay in scratch, and none
 of the reference or owner-matched sheets may ever be committed.
 
-**Corrected 2026-09-21 — where the committed sheets came from, and the report that had been edited by
+**Corrected 2026-09-20 — where the committed sheets came from, and the report that had been edited by
 hand.** This paragraph used to point at `baseline2/`'s report for numbers that were not in it: the
 `ratiosDark` and `ratioBands` the sheets print (`wall/sky 4.98~`, band `3.99–6.64`) lived in a later,
 unnamed `--from` folder, and that folder's own report still carried the *pre-fix* provenance —
@@ -576,7 +647,7 @@ Read against §7.2, over all sixteen committed poses:
   | `skyline-blue-hour__congress-view__cutrer` 20:34 | **−2.6°** (7 min after sunset) | **0.122** | — |
   | `rambler-nueces` (West Campus corner) | no clock; direct solar glow, sunset | **0.234** | — |
   | `congressbridge-fullnight-view__mayer` | no clock; late blue hour, every tower lit | 0.75 † | — |
-  | `downtown-skyline__town-lake-water-reflection-bluehour` | no clock | — | **0.254** |
+  | `downtown-skyline__town-lake-water-reflection-bluehour` | no clock | — | ~~**0.254**~~ **withdrawn: the same picture as the row below** |
   | `skyline-dusk-wide-pano__dimas` 19:08 | −20.9° (full night, **mis-tagged blue hour**) | — | 0.266 |
   | `townlake-dawn-reflection__kotipalli` | clock says +3.6°, sky says blue hour (see below) | — | 0.220 |
 
@@ -585,9 +656,20 @@ Read against §7.2, over all sixteen committed poses:
   **The wall target of ≤ 0.5 survives**: three frames with a genuinely unlit broad wall give
   **0.12–0.23**, well inside it. Our 1.21–14.2 is 5–100× the reference, which is the defect, and the
   threshold was not the problem.
-  **The water target of ≤ 1 does not survive — it is about four times too loose.** Three independent
-  blue-hour water frames give **0.220, 0.254, 0.266**: real water at blue hour is about a **quarter** of
-  the sky above it, not equal to it. A1's water half is tightened to **≤ 0.35** on that evidence.
+  **The water target of ≤ 1 does not survive — it is about four times too loose.** Water frames give
+  **0.220 and 0.266**: real water is about a **quarter** of the sky above it, not equal to it. A1's
+  water half is tightened to **≤ 0.35** on that evidence.
+  **Corrected in the fifth pass: that was written as THREE frames — 0.220, 0.254, 0.266 — and two of
+  them are one photograph.** `town-lake-water-reflection-bluehour` (3840×2490) and
+  `townlake-dawn-reflection__kotipalli` (7360×4773) are the same Commons picture at two resolutions
+  (greyscale correlation **0.99997** at 96×64; §1.2 of the reference package lists it among the three
+  files collected twice). The 0.254/0.220 spread between them is resampling and two
+  independently-placed rectangles — it is the measurement's own noise, not a second observation, and
+  15% is a useful thing to know about how much a rectangle placement is worth. So **the water half
+  rests on two photographs**, one of which (`dimas`) this same document calls full night and leaves
+  unbound. `night-refmeasure.py` now refuses to list two entries whose pixels are the same image.
+  ≤ 0.35 stands as an OBSERVED bound for the reason below — we miss it by an order of magnitude —
+  but it has half the evidence it was written with.
   Every one of these is a ratio inside one frame, which is the only thing a graded web photograph can
   honestly give — the camera chose an exposure and both regions moved with it. No absolute sRGB level
   from any of them may be quoted, and §5's ladder must not be read off them.
@@ -631,7 +713,7 @@ Read against §7.2, over all sixteen committed poses:
   <regime>` rather than borrowing a photograph of a different sky, and a deliberately unresolvable
   `NIGHT_REF_ROOT` prints `missing: <file>`. **None of those sheets may be committed.**
 
-  **Corrected 2026-09-21 — this used to read "the fifteen bound web photographs composite at the hours
+  **Corrected 2026-09-20 — this used to read "the fifteen bound web photographs composite at the hours
   their own package entries are tagged with", and neither half is true now.** Counted out of
   `night-routes.json` today: **12 distinct photographs across 20 (pose, regime) tiles** (14 at
   `af97f99`; it was never 15). And "at the hours their own entries are tagged with" was the binding rule
@@ -915,7 +997,7 @@ Each route runs at four sun elevations: **−5° (blue hour), −12° and −15�
 auto-detect cancelled, hardware GL, second screenshot kept, **one kept frame per (pose, regime, side) —
 there are no reps, and every baseline number below is a single reading.**
 
-> **Corrected 2026-09-21: this line said "3 reps" and the instrument cannot do reps.** `night-compare.mjs`
+> **Corrected 2026-09-20: this line said "3 reps" and the instrument cannot do reps.** `night-compare.mjs`
 > has no reps concept — `report.json` holds exactly one kept frame per (pose, regime, side), and
 > `SETTLE.retries` only re-shoots a frame that is still MOVING; it does not aggregate anything. So the
 > whole "now (`c656249`)" column in §7.2 and all three committed baseline sheets are **single readings**,
@@ -954,12 +1036,12 @@ phone run on its own confounds two different changes:
 | 1440×900 `?lite=1` (preset `performance`) | `r10-1440x900-lite` | 05:44 Z | `0745d6b` | 196, 0 reloads | 2.50 | **24.2%** |
 | 393×852 `?lite=1` | `r10-393x852-lite` | 05:41 Z | `0745d6b` | 196, 0 reloads | **10.2** | 7.6% |
 
-(The `report` column names files in **`docs/night/harness-runs/`**, committed 2026-09-21 so this table
+(The `report` column names files in **`docs/night/harness-runs/`**, committed 2026-09-20 so this table
 survives the scratch folder it was written from. The session temp directory those runs were made in gets
 swept, and this repo already has 149 doc citations pointing at frames that only ever existed inside a
 deleted worktree.)
 
-> **Corrected 2026-09-21. This paragraph used to say "quiet machine … 196 authored buildings confirmed
+> **Corrected 2026-09-20. This paragraph used to say "quiet machine … 196 authored buildings confirmed
 > on every leg. Three interleaved legs", and the reports it draws from say otherwise — the same three
 > claims §W0a had already corrected sixty lines earlier, left standing here.** The table above now
 > carries its own provenance, and the row that matters is the first one: leg 1 is **not one leg**. Its
@@ -1036,6 +1118,22 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 > `docs/night/harness-runs/build-ab-c656249-vs-main-daygolden.report.json` — and read its
 > `committedCopy` field, because that run was launched as something else and its side labels are wrong;
 > the per-side `build.sha1` is what identifies it.
+>
+> > **The confound this paragraph left out, added in the fifth pass.** Everything above is true and
+> > was re-checked. What it did not say is that **the two sides of that run did not load the same
+> > way**: side A took `authoredReloads: 2` and then the `APARTMENTS.on` poke — the path
+> > `night-compare.mjs`'s own comment calls unreliable — and carries all four load warnings, ready in
+> > **379,315 ms**; side B took **0 reloads**, no warnings, ready in **93,576 ms**. A rebuild landing
+> > after the one-shot regime retint leaves new meshes day-coloured, so an unknown part of these
+> > numbers is a difference between the two SIDES rather than between the two BUILDS. A9's own box
+> > sixty lines down already says a run whose two sides hit different machine load — *"the
+> > `INTRO.authoredCeilingMs` path, a reload, the `APARTMENTS.on` poke"* — **"is not this
+> > measurement"**, and this document applied that correctly to R10's leg 1 and not to this block.
+> > The harness now refuses such a run outright: an A/B whose sides reached ready by different routes
+> > is `verdict.loadAsymmetry` and **exit 2**, and of the ten kept reports this is the only one it
+> > catches. The day/golden direction is not in doubt — the noise floor at the same two regimes is
+> > 0.000% and the shadow fix is real and visible in the sheet — but **these particular percentages
+> > should be re-shot on a quiet machine before any of them is quoted as the size of the change.**
 
 | id | measure | target | now (c656249) [M] |
 |---|---|---|---|
@@ -1047,14 +1145,14 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 | A6 | lamps: pavement under the head ÷ mid-span; half-intensity point ÷ spacing; kerb and pavement lit; mapped poles with a lamp within 5 m; lamps inside footprints | 3–7; 0.4–0.6; pavement ≥ 0.5× the carriageway under the same lamp; ≥ 90%; 0 | carriageway std 9 on 151; pavement 14 against 148; 2.2% within 15 m; 10 inside |
 | A7 | halos: radius to 10% of core ÷ core radius; halo from windows; crown skirt | ≤ 4; 0; ≤ 2.5× sky at 1–4° | none |
 | A8 | the brightest things are lights (`night-luma.mjs` ordering) | pass | pass |
-| A9 | no regression: p .30 and .50 frames on R1–R9 | `--same 0.05` — **derived from a measured floor, see below** (PR #267 look intact) | floor **0.000%** on 32 of 32 frames [M 2026-09-21] |
+| A9 | no regression: p .30 and .50 frames on R1–R9 | `--same 0.05` — **derived from a measured floor, see below** (PR #267 look intact) | floor **0.000%** on 32 of 32 frames [M 2026-09-20] |
 | A10 | cost: night vs day forced-frame min (5 interleaved reps, desktop and lite, machine load logged); retint; phone heap at veil | ≤ +10%; ≤ main (aim ≤ 0.5 s); ≤ main + 10 MB | §1.5 |
 | A11 | water: streaks under emitters, no mirror skyline, dry by default | pass by eye plus a streak-mask check | flat plane |
 
 The owner's display levels (reference §5) are phone-lifted. **The ratios are the acceptance.** Absolute
 level is the §8 decision.
 
-> #### A9's tolerance, measured (2026-09-21)
+> #### A9's tolerance, measured (2026-09-20)
 >
 > A9's target was "within the noise floor of `main`" and its `now` column was a dash: nobody had
 > measured the floor, and the recipe in `scripts/verify/README.md` said `--same 1`, a round number
@@ -1100,7 +1198,7 @@ level is the §8 decision.
 
 > #### A1's evidence is not blue hour
 >
-> **Corrected 2026-09-21. Until now both halves of A1 were tagged `[M 2026-09-20]`, and the frames they
+> **Corrected in the fourth pass. Both halves of A1 were tagged `[M]` as measured, and the frames they
 > were measured on are frames this same package disqualifies.** The tag is off. The numbers are not.
 >
 > The **wall** half was measured on three frames: `waterloo` (no capture time at all, unknown licence),
@@ -1112,6 +1210,21 @@ level is the §8 decision.
 > `refNote` calls *"full night … it stays unbound"*. Two tracked files written in one commit said
 > opposite things about the same photograph; `night-ref-regions.json` has been corrected to agree with
 > the sun.
+>
+> > **And corrected again in the fifth pass: `townlake` and `kotipalli` are the SAME PHOTOGRAPH.**
+> > `downtown-skyline__town-lake-water-reflection-bluehour__01.jpg` (3840×2490) and
+> > `townlake-dawn-reflection__kotipalli-2013-06-10_0651.jpg` (7360×4773) are one Commons picture at
+> > two resolutions — greyscale correlation **0.99997** at 96×64, and §1.2 of the reference package
+> > says so itself in its list of files collected twice. They were entered in
+> > `night-ref-regions.json` as two independent `photos` and measured **water/sky 0.254 and 0.220**, a
+> > 15% spread that is resampling and two independently-placed rectangles and nothing else; `--sun`
+> > prints one as UNCLOCKED and the other as "+3.6 deg = golden but tagged blue", for the same
+> > picture. **So A1's water half rests on two photographs, not three** — the Kotipalli picture and
+> > `dimas` (which is itself full night and unbound) — and `lady-bird-lake/blue` is bound to the copy
+> > whose own clock puts the sun above the horizon. `night-refmeasure.py` now refuses to list two
+> > entries whose pixels are the same image: it keeps the highest-resolution copy, drops the rest and
+> > prints the group. Nothing here changes the conclusion below — we fail A1 by an order of magnitude
+> > either way — but it changes how much evidence A1 has, and two frames is not three.
 >
 > **The one clock-confirmed blue hour in the corpus has now been measured.** `mrlaugh 17:55` (sun
 > −5.9°) had no rectangles; it has them now, and it reads **wall/sky 0.413** — against 0.122, 0.132 and

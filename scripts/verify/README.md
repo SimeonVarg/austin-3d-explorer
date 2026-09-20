@@ -96,13 +96,32 @@ node night-silhouette.mjs --break  # building walls forced to #f2f2f2
 node westcampus-probe.mjs --break  # one of the three wc- layers hidden
 node walk.mjs                      # ships its own watched failure, see §145
 node coplanar.mjs --selftest       # eight assertions; makes itself fail
-node night-compare.mjs --break --same 1        # authored apartments out of the scene
-node night-compare.mjs --break slopes --same 1 # EVERY authored group out of the scene
+node night-compare.mjs --selftest  # the MEASURING half; 22 assertions, 7 sabotages
 ```
 
-`night-compare.mjs` is the newest of these and the one with a caveat: its `--break`
-removes geometry, so it can only go red at a pose where that geometry is a large
-share of the frame. **It came back green at the two Capitol poses with 3.56 M
+`night-compare.mjs` is the newest of these and the only one whose `--break` is not a
+bare one-liner: the tool takes no default `--out`, and `--break` sabotages side B, so
+it needs a side B. A served checkout and these exact two commands, which are the ones
+in the reproduce block below:
+
+```bash
+node night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night \
+  --a '' --b '' --break        --same 0.05 --refs off --local none   # -> exit 1
+node night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night \
+  --a '' --b '' --break slopes --same 0.05 --refs off --local none   # -> exit 1
+```
+
+> **Corrected in the fifth pass (2026-09-20). The two entries that used to sit in the
+> list above DID NOT RUN.** `node night-compare.mjs --break --same 1` dies with
+> `--out <dir> is required`, exit 2, and `node night-compare.mjs --break slopes --same 1`
+> dies with `--break sabotages side B; pass --b too`, exit 2 — the argument checks at
+> `night-compare.mjs:290` and `:317`, both long before a browser is launched. They also carried
+> `--same 1`, which is the tolerance this same file then proves is the one that hides
+> the sabotage at the Capitol. A lane copy-pasting the canonical watched failure got
+> either an argument error or, after fixing it up, a documented PASS.
+
+`--break` removes geometry, so it can only go red at a pose where that geometry is a
+large share of the frame. **It came back green at the two Capitol poses with 3.56 M
 authored triangles removed and the dome visibly gone** (0.172% and 0.308% of pixels
 moved, against the 1% tolerance it was run with; at the derived 0.05% it is red).
 Red somewhere is not red everywhere; the run's `verdict.breakCoverage` names the
@@ -110,6 +129,35 @@ poses the sabotage could not move, and the kept reports are in
 `docs/night/harness-runs/`. **The whole route set at `day` and `golden` -- the
 coverage map A9 needs -- has not been run**: it hung on `campus-aerial/z16-p68`
 with three GPU lanes live on this laptop and was killed.
+
+**And a red `--break` is not automatically red for the right reason.** Re-run on a
+busy laptop, the first of those two commands came back `FAIL --same 0.05%`, exit 1,
+"5 of 5 frames" — with the UNSABOTAGED side A the broken one: unretinted tree
+canopies, no lit window grid, the Capitol dome missing from the control and present
+in the sabotaged side. The diff was A's defect. The only trace in the whole report
+was `tilesOk: false` on all five A shots, a field that never reached the verdict.
+`tilesOk: false`, and an A/B disagreement in `tilesOk` or in the recovery path
+(reloads, the `APARTMENTS.on` poke), are `uninterpretable` and exit 2 now.
+**If one of these comes back exit 2, read `verdict.uninterpretable` and
+`verdict.loadAsymmetry` before you read anything else.** The picture and the two
+reports are in `docs/night/harness-runs/README.md`.
+
+**`--selftest` is the other half, and it was missing entirely.** `--break` only ever
+watched `--same` (`pageDiff`). `pageMeasure` — the region medians, the four ratios,
+the quantisation band and the bright-window share that the whole A1–A5 acceptance
+table is written in — had no self-test, no synthetic frame with a known answer and no
+watched failure, while the docs already record four region rectangles that were
+sitting on the wrong subject and were caught only by eye. `--selftest` paints
+synthetic frames whose every answer is arithmetic over a colour and a pixel count,
+pushes them through the real `pageMeasure`/`pageDiff`, asserts 22 numbers exactly,
+re-runs one through the JPEG path a shoot actually uses — and then sabotages the
+source text of those two functions seven times, one criterion each (the Rec.709
+weights, `R >= B`, `luma >= 40`, `Y >= 4 x median`, the region rectangle, the ±1-code
+band, the 16-luma diff threshold) and requires every one to be caught. A sabotage
+whose target string is no longer in the source is a hard failure, not a skip. It
+needs no server and no `--out`, and it caught a wrong expectation in its own first
+run. `node night-compare.mjs --selftest-break relk` runs one of them and prints
+every assertion, so a human can watch it fail.
 
 This repo has shipped a guard that could not fail **four separate times** (the
 harness drifting from index.html, twice; a stale hand-maintained family list; a
@@ -804,7 +852,8 @@ not bind a no-derivatives file at all**: `--refs on` composites the reference in
 sheet, which is a derivative. See the `_readme` and the `refNote` fields in
 `night-routes.json`.
 
-> **Superseded 2026-09-20, and this paragraph said the old rule until 2026-09-21.**
+> **Superseded 2026-09-20, and this paragraph went on saying the old rule for two
+> more passes on the same day.**
 > It used to read "bind a reference to the regime its own package entry is tagged
 > with". A package entry's regime is *a word somebody typed*; a row is *a sun
 > elevation*; agreeing with yourself is not a check. `night-refmeasure.py --sun`
@@ -848,7 +897,7 @@ folder is the same claim on trust it replaced.
 removes geometry, so it can only go red where that geometry is a large share of the
 frame -- at the two Capitol poses, `--break slopes` took **3,560,273 triangles** out
 (the dome visibly gone) and moved **0.172%** and **0.308%** of pixels: `PASS --same
-1%`. The fix was not a stronger sabotage. Measured 2026-09-21, `main` against itself,
+1%`. The fix was not a stronger sabotage. Measured 2026-09-20, `main` against itself,
 two independent page loads, 16 poses x `day` and `golden` on a quiet machine: **0.000%
 on all 32 frames**, 24 of them byte-identical JPEGs, worst mean |delta luma| 0.021.
 The renderer is deterministic across loads at those regimes, so the A9 tolerance is
@@ -899,9 +948,13 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 ... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 0.05
 # the watched failure: side B has the authored apartments taken OUT OF THE SCENE in the page.
 # This must exit 1. It exited 0 until 2026-09-20 -- see "--break was green" below.
-... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 0.05
+# An exit 2 here is the MACHINE, not the sabotage: read verdict.uninterpretable first.
+... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --a '' --b '' --break        --same 0.05 --refs off --local none
 # the stronger sabotage, for a pose the apartments are not in: the WHOLE authored scene
-... night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night --b '' --break slopes --same 0.05
+... night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night --a '' --b '' --break slopes --same 0.05 --refs off --local none
+# the MEASURING half, watched failing. No server, no --out, no app, no GPU: must exit 0
+node scripts/verify/night-compare.mjs --selftest
+node scripts/verify/night-compare.mjs --selftest-break relk   # watch one of the seven go red
 # fold another run's frames into this one's report, with its provenance
 ... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --merge <scratch>/run2 --refs off
 # change regions, then re-measure an old run without loading the app

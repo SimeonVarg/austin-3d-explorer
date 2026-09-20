@@ -93,6 +93,14 @@
  *                          regions drawn on a labelled 5% grid, so the next rectangle is READ
  *                          OFF the frame. Poses with no regions get one too.
  *   --gl hardware|swiftshader   default hardware (screenshots; see chrome.mjs).
+ *   --selftest             the MEASURING half, watched failing. No server, no --out, no app:
+ *                          it paints synthetic frames whose every answer is known from the
+ *                          SPEC, pushes them through the REAL pageMeasure/pageDiff, asserts
+ *                          each number exactly — and then sabotages those two functions, one
+ *                          criterion at a time, and requires the assertions to go RED. Exit 0
+ *                          only if the clean pass is perfect AND every sabotage was caught.
+ *   --selftest-break <n>   run one sabotage and print every assertion, so a human can watch
+ *                          it fail: luma warm minluma relk region diff (see selfTest below).
  *   --help                 print this block and exit 0.
  *
  * ── What each shot does ───────────────────────────────────────────────────
@@ -117,6 +125,29 @@
  * The camera is checked against what was asked (pitch, and eye altitude from
  * window.__fly.eye() for eye/target poses). A pose the camera did not reach is
  * "uninterpretable" and makes the run exit 2 (the frame is still written).
+ *
+ * So is a pose whose basemap tiles or authored sources had NOT all arrived
+ * (`tilesOk: false`), and so is an A/B run whose two sides did not reach the same
+ * state. Both were recorded per shot from the first version of this file and then
+ * DROPPED: `tilesOk` never reached `verdict`, the summary or the exit code, so a run
+ * whose basemap never finished loading came back complete, green and quotable. That
+ * is the worst shape a defect can take here, because a missing layer makes every
+ * metric look BETTER — cleaner sky, smaller diff, greener --same. Measured on this
+ * laptop on 2026-09-20: a `--break` run on a loaded machine came back `FAIL --same`
+ * with `verdict.uninterpretable: []` and every frame `camera ok, settled`, while the
+ * UNSABOTAGED side A was the broken one (unretinted tree canopies, no lit window
+ * grid, the Capitol dome missing) and the only trace anywhere in the report was
+ * `tilesOk: false` on all five A shots against `tilesOk: true` on all five B shots.
+ * The sabotage had nothing to do with why it went red. Now:
+ *   - any shot with tilesOk false is `uninterpretable` -> exit 2;
+ *   - A and B disagreeing on tilesOk at the same (pose, regime) is
+ *     `verdict.loadAsymmetry` -> exit 2;
+ *   - A and B reaching `ready` by different routes (a different number of reloads,
+ *     or one side taking the APARTMENTS.on poke and the other not) is the same,
+ *     because that is not one measurement taken twice. Of the nine runs kept in
+ *     docs/night/harness-runs/, exactly one trips it, and it is the one the plan
+ *     already had to explain: build-ab-c656249-vs-main-daygolden, A 2 reloads +
+ *     the poke against B 0 reloads, readyMs 379,315 against 93,576.
  *
  * Each shot also records which SLOPES GROUPS were submitted at that camera
  * (shot.slopes: the `visible` groups from slopes.stats() and the triangles the last
@@ -179,8 +210,14 @@
  *   0  every shot taken and interpretable (and --same held, when given)
  *   1  --same failed: A and B differ beyond tolerance in at least one frame
  *   2  cannot run or cannot interpret: bad arguments, the page never became ready,
- *      the authored buildings are missing, a pose not reached, a blank frame
+ *      the authored buildings are missing, a pose not reached, a blank frame,
+ *      tiles not all loaded at a pose, or the two sides loaded differently
  *   124 the chrome.mjs watchdog
+ *
+ * report.json records the exit code it earned, as `report.exit`. It did not, and
+ * the only other record of it was a log.txt that nobody committed — so a kept
+ * report saying "PASS, exit 0" in a table said it on the table's authority, not
+ * the artifact's.
  */
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';
@@ -244,6 +281,10 @@ if (has('help') || argv.includes('-h')) {
   console.log(block.replace(/^\/\*\*?/, '').replace(/\s*\*\/$/, '').replace(/^ ?\* ?/gm, ''));
   process.exit(0);
 }
+
+// --selftest needs no server, no --out and no app, so it comes before every other
+// argument check too. See selfTest() for what it asserts and how it is sabotaged.
+if (has('selftest') || has('selftest-break')) process.exit(await selfTest(arg('selftest-break', '') || null));
 
 const OUT = arg('out', null);
 if (!OUT) die('--out <dir> is required (see the header of this file)');
@@ -391,9 +432,9 @@ async function buildPrint(site) {
 
 // ── In-page helpers (the measuring page; no app loaded in it) ───────────────
 /** Decode a JPEG and measure it. Runs in the helper page. */
-function pageMeasure({ b64, regions, M }) {
+function pageMeasure({ b64, regions, M, mime }) {
   return (async () => {
-    const img = new Image(); img.src = 'data:image/jpeg;base64,' + b64; await img.decode();
+    const img = new Image(); img.src = 'data:' + (mime || 'image/jpeg') + ';base64,' + b64; await img.decode();
     const W = img.width, H = img.height;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
@@ -493,9 +534,9 @@ function pageMeasure({ b64, regions, M }) {
 }
 
 /** |delta luma| between two JPEGs of the same size. Runs in the helper page. */
-function pageDiff({ a, b, D }) {
+function pageDiff({ a, b, D, mime }) {
   return (async () => {
-    const load = async s => { const im = new Image(); im.src = 'data:image/jpeg;base64,' + s; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height); };
+    const load = async s => { const im = new Image(); im.src = 'data:' + (mime || 'image/jpeg') + ';base64,' + s; await im.decode(); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return x.getImageData(0, 0, c.width, c.height); };
     const A = await load(a), B = await load(b);
     if (A.width !== B.width || A.height !== B.height) return { error: 'size mismatch' };
     const da = A.data, db = B.data; let n = 0, s = 0, over = 0, big = 0;
@@ -585,6 +626,206 @@ function pageSheet({ title, colHeads, rows, tileW, tileH, q, rowHeadW }) {
     }
     return c.toDataURL('image/jpeg', q).split(',')[1];
   })();
+}
+
+// ── --selftest: the MEASURING half, watched failing ─────────────────────────
+// `--break` watches --same (pageDiff) go red. NOTHING watched pageMeasure — and
+// pageMeasure is the unit every acceptance row in docs/night-implementation-plan.md
+// §1.4 is written in: the region medians, the four ratios, the quantisation band and
+// the bright-window share. The repo's model for this is `coplanar.mjs --selftest`.
+//
+// The frames here are SYNTHETIC and piecewise-uniform, so every expected number is
+// arithmetic over a colour and a pixel count, checkable by hand: a region of 5,000
+// pixels with a 1,000-pixel warm strip in it is 20.000% bright window, and nothing
+// about that depends on a second copy of the measuring pipeline. They are painted in
+// the page with fillRect on integer rectangles and encoded LOSSLESSLY as PNG, then
+// pushed through the REAL pageMeasure and pageDiff, unmodified, exactly as a shoot
+// does. One case is re-encoded as JPEG q90 to prove the decode path the shoot
+// actually uses.
+//
+// Then each criterion the measurement rests on is sabotaged IN THE SOURCE TEXT of
+// those two functions, one at a time, and the assertions must go RED. A sabotage
+// whose target string is not found is a hard failure, never a skip: the first
+// version of --break was a sabotage that silently did nothing and stayed green for
+// weeks, and that is the mistake this file exists to not make twice.
+/** Paint a synthetic frame in the page and hand back lossless PNG (or JPEG) base64. */
+function pagePaint({ W, H, rects, mime, q }) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  for (const [x0, y0, x1, y1, col] of rects) { x.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; x.fillRect(x0, y0, x1 - x0, y1 - y0); }
+  return c.toDataURL(mime || 'image/png', q).split(',')[1];
+}
+
+// Everything selfTest needs lives INSIDE it: it is dispatched from the argument
+// block, before the module's later consts exist, so a module-scope helper here
+// would be a temporal-dead-zone crash rather than a self-test.
+async function selfTest(only) {
+  const SELF_LIN = Array.from({ length: 256 }, (_, i) => { const v = i / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  const SELF_ENC = y => Math.max(0, Math.min(255, Math.round(255 * (y <= 0.0031308 ? 12.92 * y : 1.055 * Math.pow(y, 1 / 2.4) - 0.055))));
+  const selfL = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const selfY = c => 0.2126 * SELF_LIN[c[0]] + 0.7152 * SELF_LIN[c[1]] + 0.0722 * SELF_LIN[c[2]];
+  const r4 = v => +v.toPrecision(4);
+  // ── The frame. Every strip isolates ONE of the three window criteria, so a
+  // sabotage of any one of them moves `windows.pct` by a known amount.
+  //   grey 24      base        R>=B yes, luma 24 < 40, Y < 4x median  -> excluded twice
+  //   255,220,160  WINDOW      warm, luma 223.109, Y 0.7499           -> the 1,000 px
+  //   grey 50      luma 50     fails ONLY Y >= 4 x the region median
+  //   90,100,130   pale masonry reflecting a blue sky: fails ONLY R >= B
+  //   180,0,0      luma 38.268 fails ONLY luma >= 40, and its Y is 0.0971
+  const G = v => [v, v, v];
+  const WIN = [255, 220, 160], MASONRY = [90, 100, 130], DARKRED = [180, 0, 0];
+  const FR = { W: 200, H: 100, rects: [
+    [0, 0, 200, 100, G(4)],            // sky, the whole frame, painted over below
+    [0, 50, 100, 100, G(24)],          // wall base                       2,600 px in `wall`
+    [100, 50, 200, 100, G(150)],       // ground                          5,000 px
+    [12, 50, 32, 100, WIN],            // the windows                     1,000 px = 20.000%
+    [32, 50, 40, 100, G(50)],            //                                 400 px
+    [40, 50, 50, 100, MASONRY],          //                                 500 px
+    [50, 50, 60, 100, DARKRED],          //                                 500 px
+  ] };
+  const REGIONS = { sky: [[0, 0, 1, 0.5]], wall: [[0, 0.5, 0.5, 1]], ground: [[0.5, 0.5, 1, 1]], dome: [[0, 0, 0.05, 0.05]] };
+  const FLAT = { W: 40, H: 40, rects: [[0, 0, 40, 40, G(3)]] };
+  const DA = { W: 200, H: 100, rects: [[0, 0, 200, 100, G(100)]] };
+  const DB = { W: 200, H: 100, rects: [[0, 0, 200, 100, G(100)], [0, 0, 200, 10, G(120)], [0, 10, 200, 15, G(200)]] };
+
+  // The reference answers: counted off the SPEC, grouped by colour, never decoded.
+  const paint = spec => { const b = new Array(spec.W * spec.H); for (const [x0, y0, x1, y1, col] of spec.rects) for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) b[y * spec.W + x] = col; return b; };
+  const count = (buf, W, H, rects) => { const m = new Map(); let n = 0; for (const [a, b, c, d] of rects) { const X0 = Math.floor(a * W), X1 = Math.min(W, Math.ceil(c * W)), Y0 = Math.floor(b * H), Y1 = Math.min(H, Math.ceil(d * H)); for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) { const k = buf[y * W + x].join(','); m.set(k, (m.get(k) || 0) + 1); n++; } } return { m, n }; };
+  const pct = ({ m, n }, f, bucket) => { const rows = [...m].map(([k, c]) => [bucket(k.split(',').map(Number)), c]).sort((a, b) => a[0] - b[0]); let acc = 0; for (const [v, c] of rows) { acc += c; if (acc >= f * n) return v; } return rows[rows.length - 1][0]; };
+  const bL = c => Math.min(255, selfL(c) | 0), bY = c => SELF_ENC(selfY(c));
+  const buf = paint(FR);
+  const cFrame = count(buf, FR.W, FR.H, [[0, 0, 1, 1]]);
+  const cWall = count(buf, FR.W, FR.H, REGIONS.wall);
+  const mean = ({ m, n }) => { let s = 0; for (const [k, c] of m) s += c * selfL(k.split(',').map(Number)); return +(s / n).toFixed(1); };
+  const hot = ({ m, n }, t) => { let s = 0; for (const [k, c] of m) if (selfL(k.split(',').map(Number)) > t) s += c; return +(100 * s / n).toFixed(3); };
+  const Y50 = c => r4(SELF_LIN[pct(c, 0.5, bY)]);
+  const wantY = { sky: r4(SELF_LIN[4]), wall: r4(SELF_LIN[24]), ground: r4(SELF_LIN[150]) };
+  const fromCode = c => { const v = Math.max(c, 1) / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const p3 = v => +v.toPrecision(3);
+
+  // ── The assertions. A literal is a number a reader can re-derive on paper; the
+  // rest are counted off the spec above.
+  const checks = (m, d) => [
+    ['frame luma mean', m.frame.luma.mean, mean(cFrame)],
+    ['frame luma p1/p10/p50/p90/p99', [m.frame.luma.p1, m.frame.luma.p10, m.frame.luma.p50, m.frame.luma.p90, m.frame.luma.p99], [4, 4, 4, 150, 223]],
+    ['frame luma std is not zero (not a blank frame)', m.frame.luma.std > MEASURE.blankStd, true],
+    ['frame hot120 % (the 1,000 window px + the 5,000 px of grey 150)', m.frame.hot120, 30],
+    ['frame hot200 % (the window px alone)', m.frame.hot200, 5],
+    ['region pixel counts sky/wall/ground/dome', [m.regions.sky.n, m.regions.wall.n, m.regions.ground.n, m.regions.dome.n], [10000, 5000, 5000, 50]],
+    ['region fractions sky/wall/dome', [m.regions.sky.frac, m.regions.wall.frac, m.regions.dome.frac], [0.5, 0.25, 0.0025]],
+    ['dome is the only region under 1% of the frame', m.smallRegions, ['dome']],
+    ['region median linear Y sky/wall/ground', [m.regions.sky.Y.p50, m.regions.wall.Y.p50, m.regions.ground.Y.p50], [wantY.sky, wantY.wall, wantY.ground]],
+    ['region medians as 8-bit sRGB codes', [m.regions.sky.code, m.regions.wall.code, m.regions.ground.code], [4, 24, 150]],
+    ['only the sky is under the minDenomCode floor', [!!m.regions.sky.dark, !!m.regions.wall.dark, !!m.regions.ground.dark], [true, false, false]],
+    // 0.009134 / 0.001214 = 7.5239, 0.305 / 0.001214 = 251.24, 0.009134 / 0.305 =
+    // 0.029948 — the medians are the r4-rounded linear Y of sRGB 24, 4 and 150, and
+    // the ratio is then printed to three significant figures. (These literals were
+    // wrong by one in the last place when this test was first written, and the test
+    // caught it; the values above were re-derived in Decimal arithmetic outside the
+    // harness before they were trusted.)
+    ['ratios wall/sky, ground/sky, wall/ground', [m.ratios['wall/sky'], m.ratios['ground/sky'], m.ratios['wall/ground']], [7.52, 251, 0.0299]],
+    ['no water region, so no water/sky', m.ratios['water/sky'] === undefined, true],
+    ['the two ratios over the dark sky are flagged', m.ratiosDark, ['wall/sky', 'ground/sky']],
+    ['wall/sky band at sky code 4 +/- 1', m.ratioBands['wall/sky'], [p3(wantY.wall / fromCode(5)), p3(wantY.wall / fromCode(3))]],
+    ['bright windows: exactly the 1,000 warm px of 5,000', m.windows.pct, 20],
+    ['...and the crude absolute count agrees here', m.windows.absPct, 20],
+    ['...measured in the wall region, not the whole frame', [m.windows.region, m.windows.fallback], ['wall', false]],
+    ['...and their mean colour is the strip itself', m.windows.rgb, WIN],
+    ['A/B: 10% of px 20 luma apart + 5% 100 apart = 15.000% over 16', d.pctOver, 15],
+    ['A/B: only the 5% is over 48', d.pctBig, 5],
+    ['A/B: mean |delta luma| = (0.10 x 20) + (0.05 x 100)', d.meanAbs, 7],
+  ];
+
+  // Sabotages: a textual patch on the REAL source of the two measuring functions.
+  const SAB = {
+    luma: ['pageMeasure: Rec.709 luma weights replaced by a flat mean', pageMeasure, [['0.2126 * R + 0.7152 * G + 0.0722 * B', '(R + G + B) / 3', 2]]],
+    warm: ['pageMeasure: the R >= B warm test dropped from the window rule', pageMeasure, [['if (R >= B && L >= M.minLuma && Y >= thr)', 'if (L >= M.minLuma && Y >= thr)', 1]]],
+    minluma: ['pageMeasure: the luma >= minLuma floor dropped from the window rule', pageMeasure, [['if (R >= B && L >= M.minLuma && Y >= thr)', 'if (R >= B && Y >= thr)', 1]]],
+    relk: ['pageMeasure: the Y >= relK x median test dropped from the window rule', pageMeasure, [['if (R >= B && L >= M.minLuma && Y >= thr)', 'if (R >= B && L >= M.minLuma)', 1]]],
+    region: ['pageMeasure: every region measured over the whole frame instead of its rectangle', pageMeasure, [['const s = stats(rects);', 'const s = stats([[0, 0, 1, 1]]);', 1]]],
+    band: ['pageMeasure: the +/- 1 code quantisation band collapsed onto the code itself', pageMeasure, [['fromCode(c + 1)', 'fromCode(c)', 1], ['fromCode(c - 1)', 'fromCode(c)', 1]]],
+    diff: ['pageDiff: the 16-luma difference threshold doubled', pageDiff, [['if (t > D.luma) over++;', 'if (t > D.luma * 2) over++;', 1]]],
+  };
+  const patch = name => {
+    const [why, fn, reps] = SAB[name];
+    let src = fn.toString();
+    for (const [from, to, n] of reps) {
+      const hits = src.split(from).length - 1;
+      if (hits !== n) throw new Error(`--selftest sabotage "${name}" cannot be applied: it expects ${n} occurrence(s) of\n    ${from}\nand the source has ${hits}. The code moved; fix the sabotage, do NOT skip it.`);
+      src = src.split(from).join(to);
+    }
+    return { why, fn: new Function('return (' + src + ')')() };
+  };
+
+  const browser = await launch(chromium, { gl: 'swiftshader', maxMs: 6 * 60000 });
+  let failed = 0;
+  try {
+    const p = await browser.newPage({ viewport: { width: 64, height: 64 } });
+    const png = async spec => p.evaluate(pagePaint, { ...spec, mime: 'image/png' });
+    const b64 = { fr: await png(FR), flat: await png(FLAT), da: await png(DA), db: await png(DB) };
+    const jpg = await p.evaluate(pagePaint, { ...FR, mime: 'image/jpeg', q: 0.9 });
+
+    const run = async (measureFn, diffFn) => ({
+      m: await p.evaluate(measureFn, { b64: b64.fr, regions: REGIONS, M: MEASURE, mime: 'image/png' }),
+      d: await p.evaluate(diffFn, { a: b64.da, b: b64.db, D: DIFF, mime: 'image/png' }),
+    });
+    const report = (title, rows) => {
+      let bad = 0;
+      console.log('\n' + title);
+      for (const [name, got, want] of rows) {
+        const ok = JSON.stringify(got) === JSON.stringify(want);
+        if (!ok) bad++;
+        console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name}\n${ok ? '' : `          got  ${JSON.stringify(got)}\n          want ${JSON.stringify(want)}\n`}`.replace(/\n$/, ''));
+      }
+      return bad;
+    };
+
+    // 1. the clean pass: every number exact.
+    const clean = await run(pageMeasure, pageDiff);
+    const cleanBad = report('--- selftest: the real pageMeasure/pageDiff on frames whose answers are known from the spec', checks(clean.m, clean.d));
+    if (cleanBad) { failed += cleanBad; console.log(`\n  ${cleanBad} assertion(s) FAILED on the UNSABOTAGED code. The instrument is wrong, or the expectations are. Stop here.`); }
+
+    // 2. the JPEG decode path the shoot actually uses, at the tolerance JPEG costs.
+    // The shoot's own frames are JPEG q90, and JPEG is not the arithmetic under test:
+    // 4:2:0 chroma subsampling bleeds colour across the 8x8 blocks at every strip
+    // edge, which is worth about a point on a 20-px-wide strip and a code on a flat
+    // region. So these are TOLERANCES, and the tolerance is the measured cost plus
+    // headroom, printed beside the number so it can never quietly become the answer.
+    const mj = await p.evaluate(pageMeasure, { b64: jpg, regions: REGIONS, M: MEASURE, mime: 'image/jpeg' });
+    const near = (name, got, want, tol) => [`${name} (got ${got}, want ${want} +/- ${tol})`, Math.abs(got - want) <= tol, true];
+    const jr = [
+      near('JPEG q90: frame mean luma', mj.frame.luma.mean, clean.m.frame.luma.mean, 0.5),
+      near('JPEG q90: the sky median, as an 8-bit code', mj.regions.sky.code, 4, 1),
+      near('JPEG q90: the ground median, as an 8-bit code', mj.regions.ground.code, 150, 1),
+      near('JPEG q90: the wall median, as an 8-bit code', mj.regions.wall.code, 24, 1.5),
+      // MEASURED, and the one number here worth remembering: 23.46 against a true
+      // 20.000. A 200-luma step across one pixel is the worst case JPEG has, and
+      // ringing round the bright strip makes warm bright pixels out of the grey
+      // beside it. A bright-window share read off a q90 frame at a hard facade edge
+      // carries a percent-level error of its own, on top of everything the scene does.
+      near('JPEG q90: the bright-window share of the wall', mj.windows.pct, 20, 4),
+      ['JPEG q90: still measured in the wall region', mj.windows.region, 'wall'],
+    ];
+    failed += report('--- selftest: the same frame through the JPEG path a shoot uses (chroma subsampling, so tolerances)', jr);
+
+    // 3. the watched failures. Every one of these MUST go red.
+    const names = only ? [only] : Object.keys(SAB);
+    for (const name of names) {
+      if (!SAB[name]) { console.error(`--selftest-break: unknown sabotage "${name}". Known: ${Object.keys(SAB).join(' ')}`); return 2; }
+      const { why, fn } = patch(name);
+      const got = name === 'diff' ? await run(pageMeasure, fn) : await run(fn, pageDiff);
+      const rows = checks(got.m, got.d);
+      const red = rows.filter(([, g, w]) => JSON.stringify(g) !== JSON.stringify(w));
+      if (only) report(`--- selftest-break ${name}: ${why}`, rows);
+      if (red.length) console.log(`\n  ok    --selftest-break ${name} (${why})\n        caught by ${red.length} assertion(s): ${red.map(r => r[0]).join('; ')}`);
+      else { failed++; console.log(`\n  FAIL  --selftest-break ${name} (${why})\n        EVERY assertion still passed. This criterion is not watched by anything.`); }
+    }
+    console.log(`\nselftest: ${failed ? failed + ' FAILED' : 'all passed'} (${checks(clean.m, clean.d).length} assertions, ${jr.length} JPEG-path assertions, ${names.length} watched failure(s))\n`);
+  } catch (e) {
+    console.error('night-compare --selftest: ' + (e && e.stack || e));
+    failed++;
+  } finally { await browser.__done(); }
+  return failed ? 2 : 0;
 }
 
 // ── Shooting (one side = one page load) ─────────────────────────────────────
@@ -1059,7 +1300,7 @@ try {
     for (const side of SIDES) {
       const r = await shootSide(browser, side, report.shots, log);
       report.sides.push(r.info);
-      if (r.fatal) { log('CANNOT RUN: ' + r.fatal); report.fatal = r.fatal; fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1)); exit = 2; break; }
+      if (r.fatal) { log('CANNOT RUN: ' + r.fatal); report.fatal = r.fatal; exit = 2; report.exit = exit; fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1)); break; }
     }
     // Shooting is the expensive half. Write the report before measuring, so that a
     // crash in the measuring half leaves a run that `--from` can pick up instead of
@@ -1072,10 +1313,44 @@ try {
     report.sheets = await sheets(helper, report, byKey);
     await helper.close();
     // Verdicts.
-    const bad = report.shots.filter(s => !s.camera.ok || s.blank);
+    // A frame is uninterpretable for THREE reasons, not one. The camera miss was the
+    // only one that reached this line; `tilesOk` was recorded per shot and then
+    // dropped, so a pose whose basemap and authored sources had not arrived was
+    // counted as a clean reading — and a missing layer makes every metric look
+    // better, which is this repo's own law. See the header.
+    const reasonsFor = s => {
+      const r = [];
+      if (s.blank) r.push('blank frame');
+      if (!s.camera.ok) r.push(...s.camera.off);
+      if (s.tilesOk === false) r.push(`tiles and/or the authored sources were NOT all loaded at this pose after ${(WAIT.tilesMs / 1000) | 0} s — a missing layer makes every number in this shot look better`);
+      return r;
+    };
+    const bad = report.shots.filter(s => reasonsFor(s).length);
     const unsettled = report.shots.filter(s => s.settle && !s.settle.settled);
-    const verdict = { uninterpretable: bad.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose}: ${s.blank ? 'blank frame' : ''}${s.camera.off.join('; ')}`), unsettled: unsettled.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose} ${s.settle.pctOver}%`) };
+    const verdict = { uninterpretable: bad.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose}: ${reasonsFor(s).join('; ')}`), unsettled: unsettled.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose} ${s.settle.pctOver}%`) };
     if (bad.length) exit = 2;
+    // An A/B run whose two sides did not reach the same STATE is not one measurement
+    // taken twice, whatever the two frames look like and however red or green --same
+    // comes back. The discriminator is recorded on both sides already — it just never
+    // left the per-side record.
+    const asym = [];
+    const sideRecs = k => report.sides.filter(s => s.key === k);
+    if (sideRecs('A').length === 1 && sideRecs('B').length === 1) {
+      const [sa] = sideRecs('A'), [sb] = sideRecs('B');
+      const path = s => `${s.authoredReloads || 0} reload(s)${s.authoredReenabled ? ' then the APARTMENTS.on poke (the path this file calls unreliable)' : ''}`;
+      if (path(sa) !== path(sb))
+        asym.push(`the two sides reached a ready page by DIFFERENT routes: A took ${path(sa)} (ready in ${Math.round((sa.readyMs || 0) / 1000)} s), B took ${path(sb)} (ready in ${Math.round((sb.readyMs || 0) / 1000)} s). A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so this is a difference between the two SIDES and not between the two builds.`);
+    }
+    for (const a of report.shots.filter(s => s.side === 'A')) {
+      const b = report.shots.find(s => s.side === 'B' && s.route === a.route && s.pose === a.pose && s.regime === a.regime);
+      if (b && a.tilesOk !== b.tilesOk && (a.tilesOk === false || b.tilesOk === false))
+        asym.push(`${a.regime} ${a.route}/${a.pose}: tiles/authored sources loaded on ${a.tilesOk ? 'A' : 'B'} but NOT on ${a.tilesOk ? 'B' : 'A'}. Whatever this pair measures, it is that difference.`);
+    }
+    if (asym.length) {
+      verdict.loadAsymmetry = asym;
+      verdict.uninterpretable.push(...asym.map(m => 'LOAD ASYMMETRY: ' + m));
+      exit = 2;
+    }
     const pairs = report.shots.filter(s => s.diffA);
     if (pairs.length) {
       const d = pairs.map(s => s.diffA.pctOver);
@@ -1098,24 +1373,40 @@ try {
     // shown able to go red there, whatever it did elsewhere in the same run.
     if (report.broken) {
       const bySide = k => report.shots.filter(s => s.side === k);
-      verdict.breakCoverage = { mode: report.broken, poses: bySide('A').map(a => {
+      // `--break` took no mode before 2026-09-20, so an older report carries
+      // `broken: true`. Say which sabotage that was rather than printing `true`.
+      const mode = report.broken === true ? 'apartments (this run predates --break taking a mode)' : report.broken;
+      verdict.breakCoverage = { mode, poses: bySide('A').map(a => {
         const b = report.shots.find(s => s.side === 'B' && s.route === a.route && s.pose === a.pose && s.regime === a.regime);
         const diff = b && b.diffA ? b.diffA.pctOver : (a.diffA ? a.diffA.pctOver : null);
-        return { pose: `${a.route}/${a.pose}`, regime: a.regime, groupsDrawnA: (a.slopes && a.slopes.groups) || [],
-          trianglesA: (a.slopes && a.slopes.triangles) ?? null, pctOver: diff,
+        // The per-shot `slopes` block is younger than some of these frames. "No
+        // groups drawn" and "nobody recorded which groups were drawn" are opposite
+        // facts and must not print the same: an empty list here would read as a pose
+        // the sabotage could not touch.
+        const rec = !!(a.slopes && (a.slopes.groups || a.slopes.error));
+        return { pose: `${a.route}/${a.pose}`, regime: a.regime,
+          slopesRecorded: rec, groupsDrawnA: rec ? (a.slopes.groups || []) : null,
+          trianglesA: rec ? (a.slopes.triangles ?? null) : null, pctOver: diff,
           reached: diff != null && SAME != null ? diff >= SAME : null };
       }) };
+      if (verdict.breakCoverage.poses.some(p => !p.slopesRecorded))
+        verdict.breakCoverage.note = 'some of these frames were shot before night-compare recorded the per-shot `slopes` block, so `groupsDrawnA` is null — NOT an empty list. For those poses `pctOver` is the whole of the evidence: it is the measured share of the frame the sabotage moved, which is the thing that decides coverage anyway.';
       const noop = verdict.breakCoverage.poses.filter(p => p.reached === false);
-      if (noop.length) verdict.breakCoverage.noOpAt = noop.map(p => `${p.regime} ${p.pose} ${p.pctOver}% (drawn: ${p.groupsDrawnA.join(', ') || 'nothing'})`);
+      if (noop.length) verdict.breakCoverage.noOpAt = noop.map(p => `${p.regime} ${p.pose} ${p.pctOver}% (drawn: ${p.slopesRecorded ? (p.groupsDrawnA.join(', ') || 'nothing') : 'not recorded in this run'})`);
     }
     report.verdict = verdict;
+    // The exit code is the verdict. It belongs IN the artifact, not only in a
+    // log.txt nobody commits: a kept report that a table calls "exit 0" should say
+    // so itself.
+    report.exit = exit;
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
     log('\n' + summarise(report));
     for (const s of report.sides) for (const w of s.warnings || []) log(`WARNING [${s.key}] ${w}`);
     for (const s of report.sides) if (s.pageErrors && s.pageErrors.length) log(`[${s.key}] ${s.pageErrors.length} page errors (first: ${s.pageErrors[0]})`);
     if (verdict.unsettled.length) log(`WARNING ${verdict.unsettled.length} frame(s) still changing after ${SETTLE.retries} re-shoots: ${verdict.unsettled.join(', ')}`);
     if (verdict.abDiff) log(`A/B: % of pixels differing by >${DIFF.luma} luma per frame: min ${verdict.abDiff.pctOverMin}, median ${verdict.abDiff.pctOverMedian}, max ${verdict.abDiff.pctOverMax} (${verdict.abDiff.frames} frames)`);
-    if (bad.length) log(`CANNOT INTERPRET ${bad.length} frame(s): ${verdict.uninterpretable.join(' | ')}`);
+    if (bad.length) log(`CANNOT INTERPRET ${bad.length} frame(s): ${bad.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose}: ${reasonsFor(s).join('; ')}`).join(' | ')}`);
+    if (verdict.loadAsymmetry) log(`LOAD ASYMMETRY (exit 2 — this is not an A/B measurement): ${verdict.loadAsymmetry.join(' | ')}`);
     if (SAME != null) log(verdict.same.failing.length ? `FAIL --same ${SAME}%: ${verdict.same.failing.length} frame(s) differ: ${verdict.same.failing.join(', ')}` : (pairs.length ? `PASS --same ${SAME}%: every A/B frame within tolerance` : 'CANNOT RUN --same: no pairs'));
     if (verdict.same && verdict.same.maskedByExitCode) log(`NOTE ${verdict.same.maskedByExitCode}`);
     if (verdict.breakCoverage) {

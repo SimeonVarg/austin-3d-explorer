@@ -211,6 +211,67 @@ def sun_report(root, routes_file):
     return rows
 
 
+# ── The same photograph, entered twice ──────────────────────────────────────
+# night-ref-regions.json listed `townlake-bluehour` (3840x2490) and `kotipalli-0651`
+# (7360x4773) as two `photos`. They are ONE Commons picture at two resolutions --
+# correlation 0.99997 on a 96x64 greyscale thumbnail -- and the reference package's
+# own sec 1.2 says as much in its list of files collected twice. Measured separately
+# they gave water/sky 0.254 and 0.220, and BOTH were then quoted, in the plan's A1 box
+# and in night-routes.json's lady-bird-lake refNote, as independent evidence: "with
+# dimas (0.266) and kotipalli (0.220) it is what A1's water half is now measured from".
+# A1's water half rested on two photographs, not three, and the 15% spread between the
+# two entries is resampling and two independently-placed rectangles, nothing else.
+# --sun made it worse by printing one as UNCLOCKED and the other as "+3.6 deg = golden
+# but tagged blue" -- for the same picture.
+#
+# So this tool no longer lists an image twice. It fingerprints every file it is about
+# to measure, keeps the HIGHEST-RESOLUTION member of each duplicate group, drops the
+# rest from the table and from every aggregate, and prints the group first so the
+# collapse is the first thing read. The listing still exits 0: a documented command
+# that exits 2 for ever is a broken gate, and the fix belongs in the regions file.
+DUP_CORR = 0.999
+
+
+def fingerprint(path):
+    """96x64 greyscale, mean removed, unit variance. Resolution-independent."""
+    im = Image.open(path)
+    try:
+        im.draft("L", (96, 64))     # DCT-scaled decode: the 7360x4773 file without the memory
+    except Exception:
+        pass
+    g = np.asarray(im.convert("L").resize((96, 64), Image.BILINEAR), dtype=np.float64)
+    g -= g.mean()
+    s = g.std()
+    return g / s if s else g
+
+
+def duplicate_groups(items):
+    """items: [(id, path, (W, H))] -> [[id, ...]], each group ordered highest-resolution first."""
+    fps, size = {}, {}
+    for i, p, wh in items:
+        try:
+            fps[i] = fingerprint(p)
+            size[i] = wh[0] * wh[1]
+        except Exception:
+            pass
+    groups, seen = [], set()
+    ids = list(fps)
+    for a in ids:
+        if a in seen:
+            continue
+        g = [a]
+        seen.add(a)
+        for b in ids:
+            if b in seen:
+                continue
+            if float((fps[a] * fps[b]).mean()) >= DUP_CORR:
+                g.append(b)
+                seen.add(b)
+        if len(g) > 1:
+            groups.append(sorted(g, key=lambda i: -size[i]))
+    return groups
+
+
 def linear_Y(rgb8):
     """sRGB 8-bit -> linear relative luminance, per pixel. The unit every ratio uses."""
     c = rgb8.astype(np.float64) / 255.0
@@ -309,10 +370,38 @@ def main():
             print("\nwrote " + args.json)
         return
     rows, results, missing = [], [], []
+    # Refuse to list the same picture twice. See DUP_CORR above.
+    onDisk = []
+    for p in cfg["photos"]:
+        path = os.path.join(root, p["file"].lstrip("/"))
+        if os.path.exists(path):
+            with Image.open(path) as im:
+                onDisk.append((p["id"], path, im.size))
+    dups = duplicate_groups(onDisk)
+    dropped, dupOf = {}, {}
+    if dups:
+        byId = {i: (p, wh) for i, p, wh in onDisk}
+        print("THE SAME PHOTOGRAPH, ENTERED MORE THAN ONCE. Refusing to list it twice:\n")
+        for g in dups:
+            keep = g[0]
+            for i in g:
+                w, h = byId[i][1]
+                if i == keep:
+                    print("  %-22s %5dx%-5d  KEPT (highest resolution)" % (i, w, h))
+                else:
+                    dropped[i] = keep
+                    dupOf.setdefault(keep, []).append(i)
+                    print("  %-22s %5dx%-5d  dropped: the same pixels as %s" % (i, w, h, keep))
+        print("\n  A spread between two entries that are one picture is resampling and two\n"
+              "  independently-placed rectangles, not two observations. Fix\n"
+              "  night-ref-regions.json; until then the dropped rows are in no table and no\n"
+              "  aggregate below.\n")
     for p in cfg["photos"]:
         path = os.path.join(root, p["file"].lstrip("/"))
         if not os.path.exists(path):
             missing.append(p["file"])
+            continue
+        if p["id"] in dropped:
             continue
         img = Image.open(path)
         m = measure(img, p["regions"])
@@ -322,7 +411,8 @@ def main():
                 ratios[f"{num}/{den}"] = round(m[num]["Ymedian"] / m[den]["Ymedian"], 3)
         results.append({"id": p["id"], "file": p["file"], "regime": p.get("regime"),
                         "license": p.get("license"), "size": list(img.size),
-                        "regions": m, "ratios": ratios, "note": p.get("note")})
+                        "regions": m, "ratios": ratios, "note": p.get("note"),
+                        "duplicatesCollapsedIntoThis": dupOf.get(p["id"])})
         rows.append((p["id"], p.get("regime", ""),
                      " ".join(f"{k} {v}" for k, v in ratios.items()) or "-",
                      " ".join(f"{k} Y {m[k]['Ymedian']:.4f}" for k in sorted(m))))
@@ -349,8 +439,11 @@ def main():
         print("\nNOT ON DISK (austin-reference-images is local and git-ignored):")
         for f in missing:
             print("  " + f)
+    print("\n%d entries in night-ref-regions.json, %d on disk, %d DISTINCT photographs listed."
+          % (len(cfg["photos"]), len(onDisk), len(rows)))
     if args.json:
-        json.dump({"refRoot": root, "photos": results, "missing": missing},
+        json.dump({"refRoot": root, "photos": results, "missing": missing,
+                   "duplicateGroups": dups, "duplicateCorrelationFloor": DUP_CORR},
                   open(args.json, "w", encoding="utf-8"), indent=1)
         print("\nwrote " + args.json)
 

@@ -1,15 +1,16 @@
 {
  "tool": "scripts/verify/night-compare.mjs",
- "when": "2026-09-20T07:23:23.869Z",
+ "when": "2026-09-20T09:51:55.014Z",
  "harnessGit": {
-  "head": "9487d4f",
+  "head": "1bc3948",
   "dirty": false
  },
  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
  "localOverlay": null,
  "refs": "off",
  "tile": 560,
- "out": "<scratch>/lanes/night/critic3/control",
+ "out": "<scratch>/lanes/night/critic3/run/break",
+ "broken": "apartments",
  "viewport": [
   1440,
   900
@@ -19,15 +20,18 @@
  "gl": "hardware",
  "args": [
   "--out",
-  "<scratch>/lanes/night/critic3/control",
+  "<scratch>/lanes/night/critic3/run/break",
   "--only",
   "wc-elevated,capitol",
   "--regimes",
   "night",
+  "--a",
+  "",
   "--b",
   "",
+  "--break",
   "--same",
-  "1",
+  "0.05",
   "--refs",
   "off",
   "--local",
@@ -85,32 +89,35 @@
    "site": "http://127.0.0.1:8661",
    "query": "",
    "label": "as shipped",
-   "pageErrors": [],
+   "pageErrors": [
+    "Cannot read properties of null (reading 'getLayer')",
+    "Cannot read properties of null (reading 'getLayer')"
+   ],
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
     "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
-    "count.buildings 371 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count."
+    "count.buildings 276 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count."
    ],
    "build": {
-    "sha1": "4807b1680898",
+    "sha1": "ae7b2be0ceaf",
     "scripts": 42
    },
    "url": "http://127.0.0.1:8661/index.html?intro=0&drift=0&clip=1",
    "veil": "lifted",
-   "veilMs": 105233,
+   "veilMs": 100562,
    "intro": {
     "reason": "ceiling",
-    "waitedMs": 92438,
+    "waitedMs": 90337,
     "modelFallback": "authored handoff timed out",
     "missingAtLift": []
    },
    "authoredReloads": 2,
    "authoredReenabled": true,
-   "readyMs": 361343,
+   "readyMs": 406047,
    "apartments": {
     "group": true,
-    "buildings": 371,
+    "buildings": 276,
     "namesUnique": 196,
     "catalog": 196,
     "done": true,
@@ -132,33 +139,34 @@
    "key": "B",
    "site": "http://127.0.0.1:8661",
    "query": "",
-   "label": "as shipped",
+   "label": "as shipped [--break apartments]",
    "pageErrors": [],
    "warnings": [
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
     "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
     "still off after reloading; switched back on in the page as a last resort (this path is unreliable \u2014 see the comment in this file)",
-    "count.buildings 344 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count."
+    "count.buildings 287 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles \u2014 quote the triangles, not the count.",
+    "--break apartments: authored apartments removed from the slopes scene (slopes.remove(group))"
    ],
    "build": {
-    "sha1": "4807b1680898",
+    "sha1": "ae7b2be0ceaf",
     "scripts": 42
    },
    "url": "http://127.0.0.1:8661/index.html?intro=0&drift=0&clip=1",
    "veil": "lifted",
-   "veilMs": 110521,
+   "veilMs": 100380,
    "intro": {
     "reason": "ceiling",
-    "waitedMs": 91041,
+    "waitedMs": 92822,
     "modelFallback": "authored handoff timed out",
     "missingAtLift": []
    },
    "authoredReloads": 2,
    "authoredReenabled": true,
-   "readyMs": 433213,
+   "readyMs": 390253,
    "apartments": {
     "group": true,
-    "buildings": 344,
+    "buildings": 287,
     "namesUnique": 196,
     "catalog": 196,
     "done": true,
@@ -174,6 +182,82 @@
     "filmic": 0.65,
     "exposure": 1.03,
     "stars": 1
+   },
+   "breakBefore": {
+    "where": "before",
+    "inScene": true,
+    "groupVisible": true,
+    "drawnGroups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "rootChildren": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "addStubbed": false
+   },
+   "breakAfter": {
+    "where": "after",
+    "inScene": false,
+    "groupVisible": true,
+    "drawnGroups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "rootChildren": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "addStubbed": false
+   },
+   "breakMode": "apartments",
+   "broken": "authored apartments removed from the slopes scene (slopes.remove(group))",
+   "breakEnd": {
+    "where": "end",
+    "inScene": false,
+    "groupVisible": true,
+    "drawnGroups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "rootChildren": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "addStubbed": false
    }
   }
  ],
@@ -201,13 +285,26 @@
     "ok": true,
     "off": []
    },
-   "tilesOk": true,
-   "waitMs": 13295,
+   "tilesOk": false,
+   "waitMs": 48274,
    "ae": {
-    "gain": 1.0033294541003839,
-    "luma": 0.1144944460784313
+    "gain": 1.2,
+    "luma": 0.028086891095767952
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3562577
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -217,52 +314,52 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 18.6,
-      "std": 21.37,
-      "p1": 3,
-      "p10": 4,
-      "p50": 15,
-      "p90": 27,
-      "p99": 107
+      "mean": 24.9,
+      "std": 23.11,
+      "p1": 2,
+      "p10": 3,
+      "p50": 19,
+      "p90": 52,
+      "p99": 100
      },
      "Y": {
-      "mean": 0.01196,
+      "mean": 0.01657,
       "p10": 0.001214,
-      "p50": 0.005182,
-      "p90": 0.01229
+      "p50": 0.006995,
+      "p90": 0.0356
      },
      "rgb": [
-      18,
-      18,
-      25
+      22,
+      25,
+      33
      ],
-     "hot120": 0.278,
-     "hot200": 0.002
+     "hot120": 0.699,
+     "hot200": 0.09
     },
     "regions": {
      "sky": {
       "n": 236817,
       "luma": {
-       "mean": 4,
-       "std": 2.43,
-       "p1": 3,
-       "p10": 3,
-       "p50": 4,
-       "p90": 4,
-       "p99": 5
+       "mean": 4.2,
+       "std": 2.71,
+       "p1": 2,
+       "p10": 2,
+       "p50": 3,
+       "p90": 5,
+       "p99": 7
       },
       "Y": {
-       "mean": 0.001265,
+       "mean": 0.001346,
        "p10": 0.0009106,
        "p50": 0.001214,
-       "p90": 0.001518
+       "p90": 0.001821
       },
       "rgb": [
        3,
        4,
-       10
+       12
       ],
-      "hot120": 0.011,
+      "hot120": 0.014,
       "hot200": 0.003,
       "frac": 0.1827,
       "code": 4,
@@ -271,76 +368,76 @@
      "wall": {
       "n": 59292,
       "luma": {
-       "mean": 29.6,
-       "std": 29.85,
-       "p1": 11,
-       "p10": 16,
-       "p50": 17,
-       "p90": 103,
-       "p99": 110
+       "mean": 33,
+       "std": 22.06,
+       "p1": 4,
+       "p10": 8,
+       "p50": 27,
+       "p90": 57,
+       "p99": 91
       },
       "Y": {
-       "mean": 0.02433,
-       "p10": 0.005605,
-       "p50": 0.006049,
-       "p90": 0.1356
+       "mean": 0.02191,
+       "p10": 0.002732,
+       "p50": 0.01161,
+       "p90": 0.04231
       },
       "rgb": [
-       31,
-       29,
-       30
+       27,
+       34,
+       37
       ],
-      "hot120": 0.002,
-      "hot200": 0,
+      "hot120": 0.439,
+      "hot200": 0.039,
       "frac": 0.0457,
-      "code": 18
+      "code": 28
      },
      "ground": {
       "n": 15257,
       "luma": {
-       "mean": 67,
-       "std": 50.04,
-       "p1": 11,
-       "p10": 16,
-       "p50": 58,
-       "p90": 149,
-       "p99": 182
+       "mean": 89.2,
+       "std": 54.25,
+       "p1": 26,
+       "p10": 34,
+       "p50": 75,
+       "p90": 181,
+       "p99": 216
       },
       "Y": {
-       "mean": 0.09619,
-       "p10": 0.005182,
-       "p50": 0.04374,
-       "p90": 0.3095
+       "mean": 0.1528,
+       "p10": 0.01681,
+       "p50": 0.07421,
+       "p90": 0.4735
       },
       "rgb": [
-       83,
-       64,
-       47
+       106,
+       87,
+       66
       ],
-      "hot120": 16.877,
-      "hot200": 0,
+      "hot120": 24.717,
+      "hot200": 6.2,
       "frac": 0.0118,
-      "code": 59
+      "code": 77
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.006049,
+     "medianY": 0.01161,
      "relK": 4,
-     "pct": 13.349,
-     "absPct": 0.002,
+     "pct": 3.371,
+     "absPct": 0.439,
      "rgb": [
-      110,
-      105,
-      95
+      93,
+      91,
+      64
      ]
     },
     "ratios": {
-     "wall/sky": 4.98,
-     "ground/sky": 36,
-     "wall/ground": 0.138
+     "wall/sky": 9.56,
+     "ground/sky": 61.1,
+     "wall/ground": 0.156
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -349,12 +446,12 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      3.99,
-      6.64
+      7.65,
+      12.8
      ],
      "ground/sky": [
-      28.8,
-      48
+      48.9,
+      81.5
      ]
     }
    },
@@ -383,13 +480,26 @@
     "ok": true,
     "off": []
    },
-   "tilesOk": true,
-   "waitMs": 15953,
+   "tilesOk": false,
+   "waitMs": 48102,
    "ae": {
-    "gain": 1.0200466772196977,
-    "luma": 0.1118232990196079
+    "gain": 1,
+    "luma": 0.1193277434640525
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3562577
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -399,42 +509,42 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 18.1,
-      "std": 17.96,
+      "mean": 19.4,
+      "std": 17.82,
       "p1": 3,
-      "p10": 4,
-      "p50": 16,
-      "p90": 29,
-      "p99": 107
+      "p10": 3,
+      "p50": 15,
+      "p90": 41,
+      "p99": 72
      },
      "Y": {
-      "mean": 0.009988,
+      "mean": 0.01049,
       "p10": 0.001214,
-      "p50": 0.005605,
-      "p90": 0.01298
+      "p50": 0.004777,
+      "p90": 0.02315
      },
      "rgb": [
-      17,
-      18,
+      16,
+      20,
       25
      ],
-     "hot120": 0.161,
+     "hot120": 0.23,
      "hot200": 0.002
     },
     "regions": {
      "sky": {
       "n": 255636,
       "luma": {
-       "mean": 4.9,
-       "std": 2.87,
+       "mean": 4.8,
+       "std": 2.72,
        "p1": 3,
        "p10": 3,
        "p50": 4,
        "p90": 8,
-       "p99": 12
+       "p99": 11
       },
       "Y": {
-       "mean": 0.001545,
+       "mean": 0.001513,
        "p10": 0.0009106,
        "p50": 0.001214,
        "p90": 0.002732
@@ -442,9 +552,9 @@
       "rgb": [
        3,
        5,
-       13
+       12
       ],
-      "hot120": 0.007,
+      "hot120": 0.004,
       "hot200": 0,
       "frac": 0.1973,
       "code": 4,
@@ -453,47 +563,47 @@
      "wall": {
       "n": 67545,
       "luma": {
-       "mean": 34,
-       "std": 33.72,
-       "p1": 10,
-       "p10": 15,
-       "p50": 18,
-       "p90": 104,
-       "p99": 114
+       "mean": 23.1,
+       "std": 14.99,
+       "p1": 2,
+       "p10": 6,
+       "p50": 19,
+       "p90": 40,
+       "p99": 68
       },
       "Y": {
-       "mean": 0.03102,
-       "p10": 0.005182,
-       "p50": 0.006512,
-       "p90": 0.1413
+       "mean": 0.01155,
+       "p10": 0.002125,
+       "p50": 0.006995,
+       "p90": 0.02315
       },
       "rgb": [
-       36,
-       33,
-       34
+       20,
+       23,
+       33
       ],
-      "hot120": 0.038,
-      "hot200": 0,
+      "hot120": 0.249,
+      "hot200": 0.001,
       "frac": 0.0521,
-      "code": 19
+      "code": 20
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.006512,
+     "medianY": 0.006995,
      "relK": 4,
-     "pct": 17.847,
-     "absPct": 0.038,
+     "pct": 1.442,
+     "absPct": 0.216,
      "rgb": [
-      110,
-      105,
-      98
+      85,
+      80,
+      68
      ]
     },
     "ratios": {
-     "wall/sky": 5.36
+     "wall/sky": 5.76
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -501,8 +611,8 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      4.29,
-      7.15
+      4.61,
+      7.68
      ]
     }
    },
@@ -531,13 +641,26 @@
     "ok": true,
     "off": []
    },
-   "tilesOk": true,
-   "waitMs": 9503,
+   "tilesOk": false,
+   "waitMs": 48346,
    "ae": {
     "gain": 1,
-    "luma": 0.13165574428104573
+    "luma": 0.12373932924836617
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3562577
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -547,42 +670,42 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 21.7,
-      "std": 19.76,
-      "p1": 4,
-      "p10": 11,
-      "p50": 17,
-      "p90": 28,
-      "p99": 111
+      "mean": 19.4,
+      "std": 17.61,
+      "p1": 2,
+      "p10": 3,
+      "p50": 15,
+      "p90": 42,
+      "p99": 74
      },
      "Y": {
-      "mean": 0.01289,
-      "p10": 0.003677,
-      "p50": 0.005605,
-      "p90": 0.01229
+      "mean": 0.01037,
+      "p10": 0.001214,
+      "p50": 0.004777,
+      "p90": 0.02416
      },
      "rgb": [
-      22,
-      21,
-      28
+      17,
+      20,
+      24
      ],
-     "hot120": 0.084,
-     "hot200": 0.001
+     "hot120": 0.244,
+     "hot200": 0.003
     },
     "regions": {
      "sky": {
       "n": 44200,
       "luma": {
        "mean": 19.8,
-       "std": 5.72,
+       "std": 5.39,
        "p1": 12,
        "p10": 14,
        "p50": 19,
        "p90": 25,
-       "p99": 28
+       "p99": 27
       },
       "Y": {
-       "mean": 0.00774,
+       "mean": 0.007644,
        "p10": 0.004777,
        "p50": 0.006995,
        "p90": 0.01033
@@ -592,7 +715,7 @@
        19,
        41
       ],
-      "hot120": 0.052,
+      "hot120": 0.048,
       "hot200": 0,
       "frac": 0.0341,
       "code": 20
@@ -600,76 +723,76 @@
      "wall": {
       "n": 139149,
       "luma": {
-       "mean": 25.9,
-       "std": 26.94,
-       "p1": 11,
-       "p10": 16,
-       "p50": 17,
-       "p90": 25,
-       "p99": 114
+       "mean": 15.5,
+       "std": 16.57,
+       "p1": 2,
+       "p10": 3,
+       "p50": 10,
+       "p90": 26,
+       "p99": 76
       },
       "Y": {
-       "mean": 0.01974,
-       "p10": 0.005182,
-       "p50": 0.005605,
-       "p90": 0.009721
+       "mean": 0.008187,
+       "p10": 0.001214,
+       "p50": 0.003347,
+       "p90": 0.01096
       },
       "rgb": [
-       28,
-       25,
-       29
+       15,
+       15,
+       20
       ],
-      "hot120": 0.052,
-      "hot200": 0,
+      "hot120": 0.353,
+      "hot200": 0.005,
       "frac": 0.1074,
-      "code": 17
+      "code": 11
      },
      "ground": {
       "n": 16632,
       "luma": {
        "mean": 14,
-       "std": 16.75,
+       "std": 14.7,
        "p1": 2,
-       "p10": 5,
-       "p50": 11,
-       "p90": 23,
-       "p99": 108
+       "p10": 3,
+       "p50": 6,
+       "p90": 24,
+       "p99": 70
       },
       "Y": {
-       "mean": 0.007691,
-       "p10": 0.001821,
-       "p50": 0.003347,
-       "p90": 0.008568
+       "mean": 0.006759,
+       "p10": 0.001214,
+       "p50": 0.002125,
+       "p90": 0.009134
       },
       "rgb": [
+       12,
        14,
-       14,
-       17
+       18
       ],
       "hot120": 0.234,
       "hot200": 0,
       "frac": 0.0128,
-      "code": 11
+      "code": 7
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.005605,
+     "medianY": 0.003347,
      "relK": 4,
-     "pct": 9.419,
-     "absPct": 0.052,
+     "pct": 3.141,
+     "absPct": 0.344,
      "rgb": [
-      114,
-      109,
-      96
+      87,
+      70,
+      52
      ]
     },
     "ratios": {
-     "wall/sky": 0.801,
-     "ground/sky": 0.478,
-     "wall/ground": 1.67
+     "wall/sky": 0.478,
+     "ground/sky": 0.304,
+     "wall/ground": 1.58
     },
     "ratiosSmall": [],
     "ratiosDark": [],
@@ -700,13 +823,26 @@
     "ok": true,
     "off": []
    },
-   "tilesOk": true,
-   "waitMs": 16470,
+   "tilesOk": false,
+   "waitMs": 48121,
    "ae": {
     "gain": 0.85,
-    "luma": 0.2529809730392157
+    "luma": 0.2579736748366012
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3562577
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -716,34 +852,34 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 44.3,
+      "mean": 45.4,
       "std": 46.67,
       "p1": 3,
       "p10": 3,
-      "p50": 20,
-      "p90": 122,
+      "p50": 24,
+      "p90": 123,
       "p99": 163
      },
      "Y": {
-      "mean": 0.05657,
+      "mean": 0.05789,
       "p10": 0.001214,
-      "p50": 0.007499,
-      "p90": 0.2016
+      "p50": 0.009134,
+      "p90": 0.2051
      },
      "rgb": [
-      52,
-      43,
-      38
+      54,
+      44,
+      34
      ],
-     "hot120": 10.771,
-     "hot200": 0.002
+     "hot120": 10.783,
+     "hot200": 0
     },
     "regions": {
      "sky": {
       "n": 51480,
       "luma": {
        "mean": 3.2,
-       "std": 2.11,
+       "std": 1.9,
        "p1": 3,
        "p10": 3,
        "p50": 3,
@@ -751,7 +887,7 @@
        "p99": 4
       },
       "Y": {
-       "mean": 0.001025,
+       "mean": 0.001014,
        "p10": 0.0009106,
        "p50": 0.0009106,
        "p90": 0.001214
@@ -761,7 +897,7 @@
        3,
        7
       ],
-      "hot120": 0.012,
+      "hot120": 0.004,
       "hot200": 0,
       "frac": 0.0397,
       "code": 3,
@@ -770,63 +906,63 @@
      "wall": {
       "n": 27328,
       "luma": {
-       "mean": 14.6,
-       "std": 14.11,
-       "p1": 3,
-       "p10": 4,
-       "p50": 7,
-       "p90": 38,
-       "p99": 59
+       "mean": 16.3,
+       "std": 15.79,
+       "p1": 2,
+       "p10": 3,
+       "p50": 9,
+       "p90": 43,
+       "p99": 65
       },
       "Y": {
-       "mean": 0.006588,
+       "mean": 0.007965,
        "p10": 0.001214,
-       "p50": 0.002428,
-       "p90": 0.02029
+       "p50": 0.002732,
+       "p90": 0.02519
       },
       "rgb": [
-       14,
-       14,
-       19
+       18,
+       16,
+       14
       ],
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0211,
-      "code": 8
+      "code": 9
      },
      "dome": {
       "n": 7227,
       "luma": {
-       "mean": 37.3,
-       "std": 26.31,
+       "mean": 27.2,
+       "std": 20.58,
        "p1": 9,
        "p10": 11,
-       "p50": 24,
-       "p90": 75,
-       "p99": 80
+       "p50": 20,
+       "p90": 61,
+       "p99": 95
       },
       "Y": {
-       "mean": 0.02775,
+       "mean": 0.01706,
        "p10": 0.003677,
-       "p50": 0.009721,
-       "p90": 0.07227
+       "p50": 0.008023,
+       "p90": 0.04971
       },
       "rgb": [
-       39,
-       36,
-       47
+       26,
+       26,
+       41
       ],
-      "hot120": 0,
+      "hot120": 0.125,
       "hot200": 0,
       "frac": 0.0056,
       "small": true,
-      "code": 25
+      "code": 22
      },
      "ground": {
       "n": 32724,
       "luma": {
        "mean": 139.8,
-       "std": 19.02,
+       "std": 18.87,
        "p1": 82,
        "p10": 116,
        "p50": 140,
@@ -856,20 +992,20 @@
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.002428,
+     "medianY": 0.002732,
      "relK": 4,
-     "pct": 4.98,
+     "pct": 11.582,
      "absPct": 0,
      "rgb": [
-      55,
-      47,
-      43
+      64,
+      51,
+      35
      ]
     },
     "ratios": {
-     "wall/sky": 2.67,
+     "wall/sky": 3,
      "ground/sky": 302,
-     "wall/ground": 0.00884
+     "wall/ground": 0.00995
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -878,8 +1014,8 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      2,
-      4
+      2.25,
+      4.5
      ],
      "ground/sky": [
       226,
@@ -912,13 +1048,26 @@
     "ok": true,
     "off": []
    },
-   "tilesOk": true,
-   "waitMs": 7394,
+   "tilesOk": false,
+   "waitMs": 48243,
    "ae": {
     "gain": 0.85,
-    "luma": 0.37286645996731993
+    "luma": 0.37646859803921534
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3562577
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -928,42 +1077,42 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 73.7,
-      "std": 67.76,
+      "mean": 74,
+      "std": 67.58,
       "p1": 2,
       "p10": 3,
-      "p50": 49,
+      "p50": 42,
       "p90": 156,
       "p99": 162
      },
      "Y": {
-      "mean": 0.1391,
+      "mean": 0.1393,
       "p10": 0.0009106,
-      "p50": 0.0319,
+      "p50": 0.02416,
       "p90": 0.3419
      },
      "rgb": [
       89,
-      71,
-      54
+      72,
+      52
      ],
-     "hot120": 44.517,
+     "hot120": 44.501,
      "hot200": 0
     },
     "regions": {
      "sky": {
       "n": 87668,
       "luma": {
-       "mean": 4,
-       "std": 5.69,
+       "mean": 4.2,
+       "std": 7.04,
        "p1": 2,
        "p10": 3,
        "p50": 3,
        "p90": 4,
-       "p99": 18
+       "p99": 33
       },
       "Y": {
-       "mean": 0.001471,
+       "mean": 0.001738,
        "p10": 0.0009106,
        "p50": 0.0009106,
        "p90": 0.001214
@@ -973,7 +1122,7 @@
        4,
        8
       ],
-      "hot120": 0.001,
+      "hot120": 0.029,
       "hot200": 0,
       "frac": 0.0676,
       "code": 3,
@@ -982,57 +1131,57 @@
      "wall": {
       "n": 108342,
       "luma": {
-       "mean": 34.2,
-       "std": 43.83,
-       "p1": 2,
-       "p10": 4,
-       "p50": 11,
+       "mean": 34.9,
+       "std": 43.84,
+       "p1": 1,
+       "p10": 3,
+       "p50": 9,
        "p90": 119,
        "p99": 129
       },
       "Y": {
-       "mean": 0.04281,
+       "mean": 0.04339,
        "p10": 0.001214,
-       "p50": 0.003347,
+       "p50": 0.002732,
        "p90": 0.1946
       },
       "rgb": [
-       42,
-       33,
-       27
+       43,
+       34,
+       24
       ],
-      "hot120": 8.452,
+      "hot120": 8.388,
       "hot200": 0,
       "frac": 0.0836,
-      "code": 11
+      "code": 9
      },
      "dome": {
       "n": 4466,
       "luma": {
-       "mean": 18.1,
-       "std": 3.11,
-       "p1": 9,
-       "p10": 18,
-       "p50": 18,
-       "p90": 18,
-       "p99": 22
+       "mean": 27.8,
+       "std": 6.97,
+       "p1": 8,
+       "p10": 16,
+       "p50": 29,
+       "p90": 34,
+       "p99": 36
       },
       "Y": {
-       "mean": 0.006209,
-       "p10": 0.006049,
-       "p50": 0.006049,
-       "p90": 0.006049
+       "mean": 0.0124,
+       "p10": 0.005182,
+       "p50": 0.01298,
+       "p90": 0.01681
       },
       "rgb": [
-       15,
        19,
-       18
+       31,
+       19
       ],
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0034,
       "small": true,
-      "code": 18
+      "code": 30
      },
      "ground": {
       "n": 129600,
@@ -1068,20 +1217,20 @@
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.003347,
+     "medianY": 0.002732,
      "relK": 4,
-     "pct": 26.162,
-     "absPct": 8.452,
+     "pct": 25.763,
+     "absPct": 8.388,
      "rgb": [
-      130,
-      99,
-      65
+      133,
+      100,
+      62
      ]
     },
     "ratios": {
-     "wall/sky": 3.68,
+     "wall/sky": 3,
      "ground/sky": 386,
-     "wall/ground": 0.00952
+     "wall/ground": 0.00777
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -1090,8 +1239,8 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      2.76,
-      5.51
+      2.25,
+      4.5
      ],
      "ground/sky": [
       290,
@@ -1125,12 +1274,24 @@
     "off": []
    },
    "tilesOk": true,
-   "waitMs": 13608,
+   "waitMs": 9242,
    "ae": {
-    "gain": 1.003549707143137,
-    "luma": 0.11445854983660125
+    "gain": 1.0696818321831838,
+    "luma": 0.10448509395424835
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 961635
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -1140,52 +1301,52 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 18.6,
-      "std": 21.36,
+      "mean": 18,
+      "std": 16.75,
       "p1": 3,
-      "p10": 4,
-      "p50": 15,
-      "p90": 27,
-      "p99": 107
+      "p10": 3,
+      "p50": 16,
+      "p90": 33,
+      "p99": 85
      },
      "Y": {
-      "mean": 0.01196,
+      "mean": 0.00952,
       "p10": 0.001214,
-      "p50": 0.005182,
-      "p90": 0.01229
+      "p50": 0.005605,
+      "p90": 0.016
      },
      "rgb": [
-      18,
-      18,
-      25
+      17,
+      17,
+      26
      ],
-     "hot120": 0.278,
-     "hot200": 0.001
+     "hot120": 0.49,
+     "hot200": 0.004
     },
     "regions": {
      "sky": {
       "n": 236817,
       "luma": {
-       "mean": 3.9,
-       "std": 2.32,
+       "mean": 4,
+       "std": 2.46,
        "p1": 3,
        "p10": 3,
        "p50": 4,
-       "p90": 4,
-       "p99": 5
+       "p90": 5,
+       "p99": 6
       },
       "Y": {
-       "mean": 0.001257,
+       "mean": 0.001297,
        "p10": 0.0009106,
        "p50": 0.001214,
-       "p90": 0.001518
+       "p90": 0.001821
       },
       "rgb": [
        3,
        4,
        10
       ],
-      "hot120": 0.011,
+      "hot120": 0.012,
       "hot200": 0.003,
       "frac": 0.1827,
       "code": 4,
@@ -1194,76 +1355,76 @@
      "wall": {
       "n": 59292,
       "luma": {
-       "mean": 29.6,
-       "std": 29.85,
-       "p1": 11,
-       "p10": 16,
-       "p50": 17,
-       "p90": 103,
-       "p99": 110
+       "mean": 22.9,
+       "std": 14.5,
+       "p1": 3,
+       "p10": 6,
+       "p50": 20,
+       "p90": 42,
+       "p99": 67
       },
       "Y": {
-       "mean": 0.02433,
-       "p10": 0.005605,
-       "p50": 0.006049,
-       "p90": 0.1356
+       "mean": 0.01121,
+       "p10": 0.002125,
+       "p50": 0.007499,
+       "p90": 0.02416
       },
       "rgb": [
-       31,
-       29,
-       30
+       21,
+       23,
+       29
       ],
-      "hot120": 0.002,
-      "hot200": 0,
+      "hot120": 0.28,
+      "hot200": 0.002,
       "frac": 0.0457,
-      "code": 18
+      "code": 21
      },
      "ground": {
       "n": 15257,
       "luma": {
-       "mean": 67,
-       "std": 50.09,
-       "p1": 11,
-       "p10": 16,
-       "p50": 58,
-       "p90": 149,
-       "p99": 182
+       "mean": 72.6,
+       "std": 53.33,
+       "p1": 13,
+       "p10": 18,
+       "p50": 63,
+       "p90": 160,
+       "p99": 195
       },
       "Y": {
-       "mean": 0.09631,
-       "p10": 0.005182,
-       "p50": 0.04374,
-       "p90": 0.3095
+       "mean": 0.1125,
+       "p10": 0.006049,
+       "p50": 0.05286,
+       "p90": 0.3613
       },
       "rgb": [
-       83,
-       64,
-       47
+       90,
+       70,
+       51
       ],
-      "hot120": 16.91,
-      "hot200": 0,
+      "hot120": 19.368,
+      "hot200": 0.21,
       "frac": 0.0118,
-      "code": 59
+      "code": 65
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.006049,
+     "medianY": 0.007499,
      "relK": 4,
-     "pct": 13.349,
-     "absPct": 0.002,
+     "pct": 1.854,
+     "absPct": 0.28,
      "rgb": [
-      110,
-      105,
-      95
+      104,
+      80,
+      58
      ]
     },
     "ratios": {
-     "wall/sky": 4.98,
-     "ground/sky": 36,
-     "wall/ground": 0.138
+     "wall/sky": 6.18,
+     "ground/sky": 43.5,
+     "wall/ground": 0.142
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -1272,20 +1433,20 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      3.99,
-      6.64
+      4.94,
+      8.24
      ],
      "ground/sky": [
-      28.8,
-      48
+      34.8,
+      58.1
      ]
     }
    },
    "blank": false,
    "diffA": {
-    "meanAbs": 0.007,
-    "pctOver": 0.005,
-    "pctBig": 0.001
+    "meanAbs": 7.498,
+    "pctOver": 14.733,
+    "pctBig": 1.858
    }
   },
   {
@@ -1312,12 +1473,24 @@
     "off": []
    },
    "tilesOk": true,
-   "waitMs": 18422,
+   "waitMs": 10321,
    "ae": {
-    "gain": 1.0200466772196977,
-    "luma": 0.1118232990196079
+    "gain": 1.0574202857284474,
+    "luma": 0.10622021323529425
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 961635
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -1327,42 +1500,42 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 18.1,
-      "std": 17.95,
+      "mean": 17.3,
+      "std": 14.13,
       "p1": 3,
-      "p10": 4,
+      "p10": 3,
       "p50": 16,
-      "p90": 29,
-      "p99": 107
+      "p90": 30,
+      "p99": 61
      },
      "Y": {
-      "mean": 0.009982,
+      "mean": 0.008078,
       "p10": 0.001214,
       "p50": 0.005605,
-      "p90": 0.01298
+      "p90": 0.0137
      },
      "rgb": [
+      15,
       17,
-      18,
       25
      ],
-     "hot120": 0.16,
-     "hot200": 0.001
+     "hot120": 0.207,
+     "hot200": 0.004
     },
     "regions": {
      "sky": {
       "n": 255636,
       "luma": {
-       "mean": 4.9,
-       "std": 2.86,
+       "mean": 5,
+       "std": 3.05,
        "p1": 3,
        "p10": 3,
        "p50": 4,
        "p90": 8,
-       "p99": 12
+       "p99": 13
       },
       "Y": {
-       "mean": 0.001544,
+       "mean": 0.001605,
        "p10": 0.0009106,
        "p50": 0.001214,
        "p90": 0.002732
@@ -1381,47 +1554,47 @@
      "wall": {
       "n": 67545,
       "luma": {
-       "mean": 34,
-       "std": 33.72,
-       "p1": 10,
-       "p10": 15,
-       "p50": 18,
-       "p90": 104,
-       "p99": 114
+       "mean": 24,
+       "std": 11.82,
+       "p1": 4,
+       "p10": 12,
+       "p50": 20,
+       "p90": 42,
+       "p99": 49
       },
       "Y": {
-       "mean": 0.03102,
-       "p10": 0.005182,
-       "p50": 0.006512,
-       "p90": 0.1413
+       "mean": 0.01104,
+       "p10": 0.004025,
+       "p50": 0.007499,
+       "p90": 0.02519
       },
       "rgb": [
-       36,
-       33,
-       34
+       21,
+       24,
+       36
       ],
-      "hot120": 0.038,
+      "hot120": 0.071,
       "hot200": 0,
       "frac": 0.0521,
-      "code": 19
+      "code": 21
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.006512,
+     "medianY": 0.007499,
      "relK": 4,
-     "pct": 17.847,
-     "absPct": 0.038,
+     "pct": 0.403,
+     "absPct": 0.052,
      "rgb": [
-      110,
-      105,
-      98
+      92,
+      85,
+      79
      ]
     },
     "ratios": {
-     "wall/sky": 5.36
+     "wall/sky": 6.18
     },
     "ratiosSmall": [],
     "ratiosDark": [
@@ -1429,16 +1602,16 @@
     ],
     "ratioBands": {
      "wall/sky": [
-      4.29,
-      7.15
+      4.94,
+      8.24
      ]
     }
    },
    "blank": false,
    "diffA": {
-    "meanAbs": 0.003,
-    "pctOver": 0.003,
-    "pctBig": 0
+    "meanAbs": 5.055,
+    "pctOver": 7.634,
+    "pctBig": 0.101
    }
   },
   {
@@ -1465,12 +1638,24 @@
     "off": []
    },
    "tilesOk": true,
-   "waitMs": 10234,
+   "waitMs": 6686,
    "ae": {
-    "gain": 1,
-    "luma": 0.13165574428104573
+    "gain": 1.029163644659341,
+    "luma": 0.11041084722222265
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 961635
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -1480,129 +1665,129 @@
     "frame": {
      "n": 1296000,
      "luma": {
-      "mean": 21.7,
-      "std": 19.76,
-      "p1": 4,
-      "p10": 11,
-      "p50": 17,
+      "mean": 16.6,
+      "std": 13.41,
+      "p1": 3,
+      "p10": 5,
+      "p50": 15,
       "p90": 28,
-      "p99": 111
+      "p99": 67
      },
      "Y": {
-      "mean": 0.01289,
-      "p10": 0.003677,
-      "p50": 0.005605,
+      "mean": 0.007532,
+      "p10": 0.001518,
+      "p50": 0.005182,
       "p90": 0.01229
      },
      "rgb": [
-      22,
-      21,
-      28
+      15,
+      16,
+      23
      ],
-     "hot120": 0.084,
-     "hot200": 0.001
+     "hot120": 0.213,
+     "hot200": 0.004
     },
     "regions": {
      "sky": {
       "n": 44200,
       "luma": {
-       "mean": 19.9,
-       "std": 6.16,
-       "p1": 12,
+       "mean": 20.7,
+       "std": 5.77,
+       "p1": 13,
        "p10": 14,
-       "p50": 19,
-       "p90": 25,
-       "p99": 28
+       "p50": 20,
+       "p90": 26,
+       "p99": 29
       },
       "Y": {
-       "mean": 0.007841,
+       "mean": 0.008214,
        "p10": 0.004777,
-       "p50": 0.006995,
-       "p90": 0.01033
+       "p50": 0.007499,
+       "p90": 0.01161
       },
       "rgb": [
-       14,
-       19,
-       41
+       15,
+       20,
+       43
       ],
-      "hot120": 0.066,
-      "hot200": 0.02,
+      "hot120": 0.045,
+      "hot200": 0,
       "frac": 0.0341,
-      "code": 20
+      "code": 21
      },
      "wall": {
       "n": 139149,
       "luma": {
-       "mean": 25.9,
-       "std": 26.94,
-       "p1": 11,
-       "p10": 16,
-       "p50": 17,
-       "p90": 25,
-       "p99": 114
+       "mean": 14,
+       "std": 13.6,
+       "p1": 3,
+       "p10": 4,
+       "p50": 11,
+       "p90": 21,
+       "p99": 69
       },
       "Y": {
-       "mean": 0.01974,
-       "p10": 0.005182,
-       "p50": 0.005605,
-       "p90": 0.009721
+       "mean": 0.006534,
+       "p10": 0.001518,
+       "p50": 0.003677,
+       "p90": 0.008023
       },
       "rgb": [
-       28,
-       25,
-       29
+       14,
+       14,
+       18
       ],
-      "hot120": 0.052,
+      "hot120": 0.341,
       "hot200": 0,
       "frac": 0.1074,
-      "code": 17
+      "code": 12
      },
      "ground": {
       "n": 16632,
       "luma": {
-       "mean": 14,
-       "std": 16.75,
+       "mean": 11.2,
+       "std": 12.27,
        "p1": 2,
-       "p10": 5,
-       "p50": 11,
-       "p90": 23,
-       "p99": 108
+       "p10": 4,
+       "p50": 6,
+       "p90": 18,
+       "p99": 58
       },
       "Y": {
-       "mean": 0.007691,
-       "p10": 0.001821,
-       "p50": 0.003347,
-       "p90": 0.008568
+       "mean": 0.005059,
+       "p10": 0.001518,
+       "p50": 0.002125,
+       "p90": 0.006512
       },
       "rgb": [
-       14,
-       14,
-       17
+       11,
+       11,
+       15
       ],
-      "hot120": 0.234,
+      "hot120": 0.253,
       "hot200": 0,
       "frac": 0.0128,
-      "code": 11
+      "code": 7
      }
     },
     "smallRegions": [],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.005605,
+     "medianY": 0.003677,
      "relK": 4,
-     "pct": 9.419,
-     "absPct": 0.052,
+     "pct": 2.496,
+     "absPct": 0.327,
      "rgb": [
-      114,
-      109,
-      96
+      89,
+      72,
+      60
      ]
     },
     "ratios": {
-     "wall/sky": 0.801,
-     "ground/sky": 0.478,
-     "wall/ground": 1.67
+     "wall/sky": 0.49,
+     "ground/sky": 0.283,
+     "wall/ground": 1.73
     },
     "ratiosSmall": [],
     "ratiosDark": [],
@@ -1610,9 +1795,9 @@
    },
    "blank": false,
    "diffA": {
-    "meanAbs": 0.003,
-    "pctOver": 0.003,
-    "pctBig": 0
+    "meanAbs": 5.74,
+    "pctOver": 9.96,
+    "pctBig": 0.174
    }
   },
   {
@@ -1639,12 +1824,24 @@
     "off": []
    },
    "tilesOk": true,
-   "waitMs": 18094,
+   "waitMs": 12583,
    "ae": {
     "gain": 0.85,
-    "luma": 0.25298768464052285
+    "luma": 0.2529809730392157
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 961635
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -1663,7 +1860,7 @@
       "p99": 163
      },
      "Y": {
-      "mean": 0.05657,
+      "mean": 0.05656,
       "p10": 0.001214,
       "p50": 0.007499,
       "p90": 0.2016
@@ -1681,7 +1878,7 @@
       "n": 51480,
       "luma": {
        "mean": 3.2,
-       "std": 1.92,
+       "std": 1.96,
        "p1": 3,
        "p10": 3,
        "p50": 3,
@@ -1689,7 +1886,7 @@
        "p99": 4
       },
       "Y": {
-       "mean": 0.001015,
+       "mean": 0.001017,
        "p10": 0.0009106,
        "p50": 0.0009106,
        "p90": 0.001214
@@ -1735,8 +1932,8 @@
      "dome": {
       "n": 7227,
       "luma": {
-       "mean": 37.3,
-       "std": 26.31,
+       "mean": 37,
+       "std": 26.15,
        "p1": 9,
        "p10": 11,
        "p50": 24,
@@ -1744,13 +1941,13 @@
        "p99": 80
       },
       "Y": {
-       "mean": 0.02775,
+       "mean": 0.02734,
        "p10": 0.003677,
        "p50": 0.009721,
        "p90": 0.07227
       },
       "rgb": [
-       39,
+       38,
        36,
        47
       ],
@@ -1827,9 +2024,9 @@
    },
    "blank": false,
    "diffA": {
-    "meanAbs": 0.004,
-    "pctOver": 0.002,
-    "pctBig": 0
+    "meanAbs": 3.622,
+    "pctOver": 3.354,
+    "pctBig": 0.1
    }
   },
   {
@@ -1856,12 +2053,24 @@
     "off": []
    },
    "tilesOk": true,
-   "waitMs": 5978,
+   "waitMs": 5620,
    "ae": {
     "gain": 0.85,
-    "luma": 0.37287579330065324
+    "luma": 0.37286645996731993
    },
    "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 961635
+   },
    "settle": {
     "pctOver": 0,
     "retries": 0,
@@ -1890,15 +2099,15 @@
       71,
       54
      ],
-     "hot120": 44.517,
-     "hot200": 0.001
+     "hot120": 44.516,
+     "hot200": 0
     },
     "regions": {
      "sky": {
       "n": 87668,
       "luma": {
        "mean": 4,
-       "std": 5.71,
+       "std": 5.79,
        "p1": 2,
        "p10": 3,
        "p50": 3,
@@ -1906,7 +2115,7 @@
        "p99": 18
       },
       "Y": {
-       "mean": 0.001476,
+       "mean": 0.001488,
        "p10": 0.0009106,
        "p50": 0.0009106,
        "p90": 0.001214
@@ -1916,7 +2125,7 @@
        4,
        8
       ],
-      "hot120": 0.003,
+      "hot120": 0.005,
       "hot200": 0,
       "frac": 0.0676,
       "code": 3,
@@ -2044,9 +2253,9 @@
    },
    "blank": false,
    "diffA": {
-    "meanAbs": 0.001,
-    "pctOver": 0,
-    "pctBig": 0
+    "meanAbs": 1.312,
+    "pctOver": 1.117,
+    "pctBig": 0.297
    }
   }
  ],
@@ -2066,18 +2275,226 @@
   "overview-B-1.jpg"
  ],
  "verdict": {
-  "uninterpretable": [],
+  "uninterpretable": [
+   "A night wc-elevated/over-drag-wnw: tiles and/or the authored sources were NOT all loaded at this pose after 45 s \u2014 a missing layer makes every number in this shot look better",
+   "A night wc-elevated/over-mlk-north: tiles and/or the authored sources were NOT all loaded at this pose after 45 s \u2014 a missing layer makes every number in this shot look better",
+   "A night wc-elevated/down-on-ion: tiles and/or the authored sources were NOT all loaded at this pose after 45 s \u2014 a missing layer makes every number in this shot look better",
+   "A night capitol/congress-30m: tiles and/or the authored sources were NOT all loaded at this pose after 45 s \u2014 a missing layer makes every number in this shot look better",
+   "A night capitol/gate-1p7m: tiles and/or the authored sources were NOT all loaded at this pose after 45 s \u2014 a missing layer makes every number in this shot look better",
+   "LOAD ASYMMETRY: night wc-elevated/over-drag-wnw: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "LOAD ASYMMETRY: night wc-elevated/over-mlk-north: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "LOAD ASYMMETRY: night wc-elevated/down-on-ion: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "LOAD ASYMMETRY: night capitol/congress-30m: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "LOAD ASYMMETRY: night capitol/gate-1p7m: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference."
+  ],
   "unsettled": [],
+  "loadAsymmetry": [
+   "night wc-elevated/over-drag-wnw: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "night wc-elevated/over-mlk-north: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "night wc-elevated/down-on-ion: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "night capitol/congress-30m: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference.",
+   "night capitol/gate-1p7m: tiles/authored sources loaded on B but NOT on A. Whatever this pair measures, it is that difference."
+  ],
   "abDiff": {
    "frames": 5,
-   "pctOverMin": 0,
-   "pctOverMedian": 0.003,
-   "pctOverMax": 0.005
+   "pctOverMin": 1.117,
+   "pctOverMedian": 7.634,
+   "pctOverMax": 14.733
   },
   "same": {
-   "tolPct": 1,
-   "failing": []
+   "tolPct": 0.05,
+   "failing": [
+    "night wc-elevated/over-drag-wnw 14.733%",
+    "night wc-elevated/over-mlk-north 7.634%",
+    "night wc-elevated/down-on-ion 9.96%",
+    "night capitol/congress-30m 3.354%",
+    "night capitol/gate-1p7m 1.117%"
+   ],
+   "maskedByExitCode": "exit 2 (cannot interpret) outranks exit 1, so this --same FAILURE is not in the exit code \u2014 read verdict.same.failing"
+  },
+  "breakCoverage": {
+   "mode": "apartments",
+   "poses": [
+    {
+     "pose": "wc-elevated/over-drag-wnw",
+     "regime": "night",
+     "slopesRecorded": true,
+     "groupsDrawnA": [
+      "campus-landscape",
+      "slopes-dome",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3562577,
+     "pctOver": 14.733,
+     "reached": true
+    },
+    {
+     "pose": "wc-elevated/over-mlk-north",
+     "regime": "night",
+     "slopesRecorded": true,
+     "groupsDrawnA": [
+      "campus-landscape",
+      "slopes-dome",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3562577,
+     "pctOver": 7.634,
+     "reached": true
+    },
+    {
+     "pose": "wc-elevated/down-on-ion",
+     "regime": "night",
+     "slopesRecorded": true,
+     "groupsDrawnA": [
+      "campus-landscape",
+      "slopes-dome",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3562577,
+     "pctOver": 9.96,
+     "reached": true
+    },
+    {
+     "pose": "capitol/congress-30m",
+     "regime": "night",
+     "slopesRecorded": true,
+     "groupsDrawnA": [
+      "campus-landscape",
+      "slopes-dome",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3562577,
+     "pctOver": 3.354,
+     "reached": true
+    },
+    {
+     "pose": "capitol/gate-1p7m",
+     "regime": "night",
+     "slopesRecorded": true,
+     "groupsDrawnA": [
+      "campus-landscape",
+      "slopes-dome",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3562577,
+     "pctOver": 1.117,
+     "reached": true
+    }
+   ]
   }
  },
- "committedCopy": "The control for same-break-apartments: the same five poses, the same two sides, NO sabotage. PASS --same 1%, exit 0, A/B pixels over 16 luma min 0.000 / median 0.003 / max 0.005 over 5 frames. Both sides took 2 reloads then the APARTMENTS.on poke, symmetrically, and every shot has tilesOk true, so it is clean under the load-asymmetry rule added in the fifth pass. It predates the report.exit field, so its exit 0 is read off an empty verdict.uninterpretable and an empty verdict.same.failing. Absolute paths rewritten; nothing else changed."
+ "remeasured": "2026-09-20T10:30:13.307Z",
+ "remeasure": {
+  "when": "2026-09-20T10:30:13.307Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework4/critic-break-rerun",
+   "--from",
+   "<scratch>/lanes/night/rework4/critic-break-rerun",
+   "--same",
+   "0.05",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "1bc3948",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework4/critic-break-rerun",
+  "from": "<scratch>/lanes/night/rework4/critic-break-rerun",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T09:51:55.014Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/critic3/run/break",
+   "--only",
+   "wc-elevated,capitol",
+   "--regimes",
+   "night",
+   "--a",
+   "",
+   "--b",
+   "",
+   "--break",
+   "--same",
+   "0.05",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "1bc3948",
+   "dirty": false
+  },
+  "gl": "hardware",
+  "viewport": [
+   1440,
+   900
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T09:51:55.014Z",
+  "shootGit": {
+   "head": "1bc3948",
+   "dirty": false
+  },
+  "shotsFromThatShoot": 10,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "exit": 2,
+ "committedCopy": "THE RUN THAT WENT RED FOR THE WRONG REASON. An independent critic re-ran the package's own documented sabotage on a busy laptop on 2026-09-20 and it came back FAIL --same 0.05%, exit 1, 'the sabotage moved 5 of 5 (pose, regime) frames past --same' -- and verdict.uninterpretable was EMPTY, every frame camera ok and settled, both sides 196 buildings and 2,600,942 triangles, identical grade. Then they opened the frames: side A, the UNSABOTAGED control, was the broken one. Its tree canopies were bright unretinted green under a night sky, the authored towers' lit window grids were absent (windows.pct 3.371% against 13.349% for the same pose, regime and build in the kept baseline), and at capitol/congress-30m the Capitol dome is MISSING from A and present in B. The diff image is dominated by A's defect, not by B's sabotage: the two Capitol poses read 3.354% and 1.117% here against 0.025% and 0.002% in same-break-apartments.report.json at the same poses. The only trace anywhere in the report was tilesOk:false on all five A shots against tilesOk:true on all five B shots -- a field that was recorded per shot and then never reached verdict, the summary or the exit code. Both sides took 2 reloads and the APARTMENTS.on poke, so the recovery path is NOT the discriminator here; the load is. THIS FILE IS THE SAME FRAMES RE-MEASURED WITH --from AFTER THE FIX, and nothing was re-shot: it is now exit 2, with all five A frames in verdict.uninterpretable and the five-pose verdict.loadAsymmetry beside them, and verdict.same.maskedByExitCode saying in the file that the --same failure is no longer what the exit code reports. Absolute paths rewritten; nothing else changed."
 }
