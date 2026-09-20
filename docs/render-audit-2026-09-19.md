@@ -385,6 +385,18 @@ buildings, on a device that has never once crashed. Suspected fix: treat "the
 element existed and is now gone" as the signal, or clear on the app's own
 reveal.
 
+**FIXED ON MAIN BEFORE THIS BRANCH LANDED (2026-09-20, re-measured while merging
+`origin/main` in).** PR #270 rewrote this: a boot is now a RECORD, not a count —
+`flyover.boot` holds `{v:2, n, pending, safeAt}` — and the success signal is no
+longer the veil's CSS. Re-running `audit-settings.mjs` phase B on the merged tree
+leaves `{"v":2,"n":0,"pending":null,"safeAt":null}`: the count is cleared. The
+defect above is history; it is kept here because the fix it argues for is the one
+main made, and because the BEFORE numbers elsewhere in this document were taken
+on a build that still had it. The phase B check now asserts `n === 0` rather than
+the bare string `"1"`/`"0"`, and deliberately does not assert on `pending`, which
+`js/mobile.js` only drops after a 15 s settle — asserting it made the check race
+that timer (two runs of the identical merged build disagreed).
+
 ### 3. 280 window bands are dropped across the authored corpus — the apartment data + `js/slopes-apartments.js`
 
 MEASURED: one fresh load logs **280** `... that storey's windows are DROPPED;

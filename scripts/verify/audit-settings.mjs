@@ -254,10 +254,33 @@ if (PHASES.includes('B')) {
   // uncleared boots put the third on the safe profile (?slopes=0). Record the
   // count the page left behind, then clear it so the reloads below test the
   // SETTINGS and not the crash counter.
+  //
+  // THE COUNT IS A FIELD, NOT THE WHOLE VALUE (2026-09-20, merging main). This
+  // read used to assert the raw string was '0' or absent. On main since PR #270
+  // a boot is a RECORD -- `{v:2,n,pending,safeAt}` -- because a bare count could
+  // not tell a crash from a backgrounded tab ("A BOOT IS A RECORD, NOT A COUNT",
+  // js/mobile.js L34). The COUNT is `n`, and that is what this asserts.
+  //
+  // It deliberately does NOT assert `pending` is null. `pending` is the in-flight
+  // marker, and js/mobile.js only drops it once the page has also stayed visible
+  // for `settleMs` = 15 s AFTER the reveal -- so at this instant, a few hundred ms
+  // after the city appears, a live `pending` is correct behaviour and not a stale
+  // count. Asserting on it made this check a race against that timer: two runs of
+  // the same merged build gave pending null and pending set. That is the same trap
+  // PR #270 fixed on the other side ("The boot check looked at the phone 18 s too
+  // early"); it is recorded in the detail instead. The old bare '0' is still
+  // accepted so the check reads either schema.
   const boot1 = await page.evaluate(() => { try { return localStorage.getItem('flyover.boot'); } catch (e) { return 'threw'; } });
   report.B.bootCounterAfterCityShown = boot1;
-  check('B', 'phone: boot counter cleared once the city is shown (js/mobile.js)', boot1 === '0' || boot1 === null, { 'flyover.boot': boot1 });
-  await page.evaluate(() => { try { localStorage.setItem('flyover.boot', '0'); } catch (e) {} });
+  const bootRecord = (raw) => {
+    if (raw == null || raw === '0') return { n: 0, pending: null };  // absent, or the pre-#270 count
+    let o = null; try { o = JSON.parse(raw); } catch (e) { return null; }
+    return (o && typeof o === 'object') ? { n: o.n | 0, pending: o.pending || null } : null;
+  };
+  const bootRec = bootRecord(boot1);
+  check('B', 'phone: boot counter cleared once the city is shown (js/mobile.js)', !!bootRec && bootRec.n === 0,
+    { 'flyover.boot': boot1, count: bootRec && bootRec.n, pendingStillSettling: !!(bootRec && bootRec.pending) });
+  await page.evaluate(() => { try { localStorage.removeItem('flyover.boot'); } catch (e) {} });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitCity(page, false);
   await openMenu(page);
@@ -267,7 +290,7 @@ if (PHASES.includes('B')) {
   check('B', 'phone: Trees survives reload', near(b2.gfx.treeDensity, 0.8), { got: b2.gfx.treeDensity });
   await page.click('#gfx-panel .gfx-preset[data-preset="balanced"]');
   await page.waitForTimeout(800);
-  await page.evaluate(() => { try { localStorage.setItem('flyover.boot', '0'); } catch (e) {} });
+  await page.evaluate(() => { try { localStorage.removeItem('flyover.boot'); } catch (e) {} });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitCity(page, false);
   await openMenu(page);
