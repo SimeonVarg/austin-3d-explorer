@@ -23,7 +23,7 @@ row: the same four poses on this branch.
 |---|---|
 | **Which water** | **Waller Creek and Shoal Creek** — the creek channel's water (same layers in both). Not Lady Bird Lake, not the ponds: both measure zero before and after. |
 | **Which layer** | `ground-creek-sheen` (the ripple slab) against `ground-channel`'s water prism under it; and `ground-deck` (the culvert and bridge decks) against the same water prism. |
-| **Mechanism** | Coplanar surfaces. MapLibre 5.24 **clamps every fill-extrusion base and height at zero** in its vertex shader. The bake cuts the channel 1.4–3.2 m *below* zero, so the water prism's top, the sheen's top (meant to be 0.10 m above it) and every deck's top are all drawn at exactly z = 0 and tie in the depth test. Which one wins a pixel is rounding in two different triangulations, and it changes with every camera step. |
+| **Mechanism** | Coplanar surfaces. MapLibre 5.24 **clamps every fill-extrusion base and height at zero** in its vertex shader. The bake cuts the channel 1.4–3.1 m *below* zero, so the water prism's top, the sheen's top (meant to be 0.10 m above it) and every deck's top are all drawn at exactly z = 0 and tie in the depth test. Which one wins a pixel is rounding in two different triangulations, and it changes with every camera step. |
 | **Why it got loud now** | Since PR #267 the sheen is not an 11 % tint any more: the pattern path in `js/city-lighting.js` shades every texel with alpha < 1 as *glass* and writes it out at the layer's opacity, i.e. opaque. The ripple slab became a full-strength sky mirror by day and a near-black lid at night, so the tie became a flicker between two very different colours. |
 | **Why it is intermittent** | It depends on the time of day. At noon (p 0.25) the mirror and the water happen to land within a few luma of each other and the metric reads 0.30 % flip; at sunset and at night they are far apart and it reads 17–21 %. |
 | **Not the cause** | The two camera-following shadow maps (shadows off: no change), the city-wide ground grain (`ground-base-texture` off: no change), anything cached against camera travel (stop-and-go difference **0.000 %** at every pose, every run), Lady Bird Lake and the ponds (zero). |
@@ -114,7 +114,7 @@ or stopped, so this is a pose-dependent depth tie, not a stale cache.
 base=max(0.0,base)+base_terrain3d_offset;height=max(0.0,height)+height_terrain3d_offset;
 ```
 
-`data/ground.geojson` gives the water prisms `b` −3.7…−2.3, `h` −3.1…−1.4 and
+`data/ground.geojson` gives the water prisms `b` −3.7…−2.0, `h` −3.1…−1.4 and
 the sheens `h = water top + 0.10` (−3.0…−1.3): every one of them clamps to 0.
 So does every bank course and every culvert deck (`h` −0.04). The "0.10 m
 proud" in `scripts/bake_ground.py` (`CHANNEL.sheen_m`) never reaches the GPU.
@@ -173,14 +173,29 @@ Stop-go was **0.000 % in every cell** of that table.
    is split by it and windows, glare and the sunlight on every opaque surface
    go down exactly the path they did before.
 
-   *Scope of that measurement, stated:* it enumerates the images those layers
-   reference, not every image loaded in the style. One string in the layers'
-   pattern expressions, `water`, does resolve to a loaded basemap sprite whose
-   alpha spans 0–255 — but it is the *input* side of a `match` (the ground
-   class), never a pattern that gets drawn; the image actually drawn for that
-   class is `gnd-tex-water`, at 2–29. A whole-style enumeration was written
-   into the stills harness to close even that gap and did not get a GPU slot
-   before the round ended.
+   That was then checked against the **whole style** rather than a
+   hand-listed set, by walking every loaded image and every
+   `fill-extrusion-pattern` expression in the running app after a 13-pose
+   tour (so the atlases had all loaded):
+
+   * **708** images loaded, **24** `fill-extrusion-pattern` layers, **52**
+     images reachable from those layers' expressions.
+   * Of those 52: 23 on the overlay side with **max alpha 121**, 28 on the
+     facade side with **min alpha 191**, and **exactly one** image whose
+     alpha crosses the threshold — `water`.
+   * `water` is not a pattern that gets drawn. It is the *input* side of a
+     `match` on the ground class:
+     `["match", ["get","s"], … "water", "gnd-tex-water", "creek",
+     "gnd-tex-water", "pond", "gnd-tex-water", …]`. It only appeared in the
+     first sweep because the basemap sprite happens to contain an icon of the
+     same name. The image actually drawn for that class is `gnd-tex-water`,
+     at alpha 2–29.
+   * 233 of the 708 images in the style do straddle the line, but 232 of them
+     are basemap sprite icons (`bank`, `bakery`, `airport_11`, …) that no
+     fill-extrusion can reach. They are drawn by symbol layers, which this
+     shader patch never touches.
+
+   So no image any fill-extrusion can draw is split by the threshold.
 
 (1) alone removes the flicker (the "sheen lifted" arm above). (2) is what
 keeps the water looking like water: without it the lifted sheen is a
@@ -309,8 +324,13 @@ at the Congress Avenue bridge, sunset, day and night, desktop and phone
 profile, and Turtle Pond. **Zero flicker before and after** (every row under
 0.02 % flip except the tower-crown mask artefact above). The lake is the
 basemap's flat `water` fill: a 2D layer drawn once, with nothing coplanar on
-it, so it has nothing to tie with. Nothing was changed there and the stills
-below show it is unchanged.
+it, so it has nothing to tie with. Nothing in this branch touches it and the
+stills above show it unchanged.
+
+One caveat so the stills are not over-read: the *water* at Turtle Pond is
+unchanged, but the **walks around it are not** — they are `ground-paths-texture`
+and they go from sky-blue to stone with every other overlay. That is the
+declared side effect below, not something that happened to the pond.
 
 ## What it looks like
 
