@@ -1,0 +1,302 @@
+{
+ "committedCopy": "The desktop leg of the §1.5 cost baseline: scripts/verify/night-perf-ab.mjs, no extra query, 5 interleaved reps, 1440x900 hardware GL (RTX 3050 Ti, D3D11), DPR 1, ?intro=0&drift=0, graphics auto-detect cancelled. Run 2026-09-19 through the session GPU-slot runner against a local scripts/serve.py on 127.0.0.1:8661 at the night-package branch, on a machine other lanes were loading (CPU ~88%, 3 GPU slots busy) - which is why the reps spread as widely as they do and why the MINIMUM is the reading. This is the harness output verbatim; nothing was edited, and it holds no path, no pose coordinate and no photograph. The apartments block records that js/app.js INTRO.authoredCeilingMs fired on this loaded machine and the script re-enabled APARTMENTS.on in-page so the frames measured the normal scene.",
+ "label": "desktop",
+ "extra": "",
+ "reps": 5,
+ "when": "2026-09-19T11:18:11.717Z",
+ "runs": [
+  {
+   "rep": 0,
+   "view": "campus-aerial",
+   "hour": "day",
+   "forcedMin": 46.2,
+   "forcedMed": 55.3,
+   "forcedP90": 67.9,
+   "fps": 5,
+   "p50": 126,
+   "p95": 217.1,
+   "dropped": 346
+  },
+  {
+   "rep": 0,
+   "view": "campus-aerial",
+   "hour": "night",
+   "forcedMin": 47.9,
+   "forcedMed": 54.9,
+   "forcedP90": 63,
+   "fps": 5.7,
+   "p50": 108.1,
+   "p95": 215.9,
+   "dropped": 329
+  },
+  {
+   "rep": 0,
+   "view": "wc-elev-north",
+   "hour": "day",
+   "forcedMin": 36.8,
+   "forcedMed": 44.9,
+   "forcedP90": 53.9,
+   "fps": 3.1,
+   "p50": 234.1,
+   "p95": 2123.4,
+   "dropped": 335
+  },
+  {
+   "rep": 0,
+   "view": "wc-elev-north",
+   "hour": "night",
+   "forcedMin": 35.5,
+   "forcedMed": 44.6,
+   "forcedP90": 56.3,
+   "fps": 4.4,
+   "p50": 144,
+   "p95": 252.1,
+   "dropped": 324
+  },
+  {
+   "rep": 1,
+   "view": "campus-aerial",
+   "hour": "night",
+   "forcedMin": 45.9,
+   "forcedMed": 54.8,
+   "forcedP90": 69.7,
+   "fps": 3.9,
+   "p50": 145.9,
+   "p95": 269.6,
+   "dropped": 346
+  },
+  {
+   "rep": 1,
+   "view": "campus-aerial",
+   "hour": "day",
+   "forcedMin": 44.6,
+   "forcedMed": 53.5,
+   "forcedP90": 64.2,
+   "fps": 5.7,
+   "p50": 108,
+   "p95": 180.1,
+   "dropped": 328
+  },
+  {
+   "rep": 1,
+   "view": "wc-elev-north",
+   "hour": "night",
+   "forcedMin": 30.1,
+   "forcedMed": 36.1,
+   "forcedP90": 41.1,
+   "fps": 5.4,
+   "p50": 144,
+   "p95": 198,
+   "dropped": 299
+  },
+  {
+   "rep": 1,
+   "view": "wc-elev-north",
+   "hour": "day",
+   "forcedMin": 29.3,
+   "forcedMed": 37.6,
+   "forcedP90": 44.4,
+   "fps": 5.7,
+   "p50": 125.9,
+   "p95": 269.6,
+   "dropped": 294
+  },
+  {
+   "rep": 2,
+   "view": "campus-aerial",
+   "hour": "day",
+   "forcedMin": 38.2,
+   "forcedMed": 49.5,
+   "forcedP90": 56.7,
+   "fps": 5.9,
+   "p50": 107.5,
+   "p95": 199,
+   "dropped": 314
+  },
+  {
+   "rep": 2,
+   "view": "campus-aerial",
+   "hour": "night",
+   "forcedMin": 59.7,
+   "forcedMed": 71.4,
+   "forcedP90": 95.7,
+   "fps": 4.2,
+   "p50": 143,
+   "p95": 197.9,
+   "dropped": 389
+  },
+  {
+   "rep": 2,
+   "view": "wc-elev-north",
+   "hour": "day",
+   "forcedMin": 31.2,
+   "forcedMed": 37.7,
+   "forcedP90": 44.6,
+   "fps": 5.4,
+   "p50": 126.5,
+   "p95": 288.9,
+   "dropped": 295
+  },
+  {
+   "rep": 2,
+   "view": "wc-elev-north",
+   "hour": "night",
+   "forcedMin": 37.2,
+   "forcedMed": 44.2,
+   "forcedP90": 50.5,
+   "fps": 4.4,
+   "p50": 161.9,
+   "p95": 354.9,
+   "dropped": 321
+  },
+  {
+   "rep": 3,
+   "view": "campus-aerial",
+   "hour": "night",
+   "forcedMin": 56.6,
+   "forcedMed": 65.4,
+   "forcedP90": 75.4,
+   "fps": 3.9,
+   "p50": 144,
+   "p95": 217.9,
+   "dropped": 376
+  },
+  {
+   "rep": 3,
+   "view": "campus-aerial",
+   "hour": "day",
+   "forcedMin": 46.1,
+   "forcedMed": 55.2,
+   "forcedP90": 61.4,
+   "fps": 5.2,
+   "p50": 125.1,
+   "p95": 180,
+   "dropped": 336
+  },
+  {
+   "rep": 3,
+   "view": "wc-elev-north",
+   "hour": "night",
+   "forcedMin": 43.9,
+   "forcedMed": 58.2,
+   "forcedP90": 71.1,
+   "fps": 3.4,
+   "p50": 198,
+   "p95": 232.6,
+   "dropped": 348
+  },
+  {
+   "rep": 3,
+   "view": "wc-elev-north",
+   "hour": "day",
+   "forcedMin": 29.3,
+   "forcedMed": 37.4,
+   "forcedP90": 45.2,
+   "fps": 6.2,
+   "p50": 108.6,
+   "p95": 270,
+   "dropped": 291
+  },
+  {
+   "rep": 4,
+   "view": "campus-aerial",
+   "hour": "day",
+   "forcedMin": 53.5,
+   "forcedMed": 61.7,
+   "forcedP90": 82.9,
+   "fps": 1.1,
+   "p50": 198,
+   "p95": 2898.8,
+   "dropped": 387
+  },
+  {
+   "rep": 4,
+   "view": "campus-aerial",
+   "hour": "night",
+   "forcedMin": 50.8,
+   "forcedMed": 58.6,
+   "forcedP90": 65,
+   "fps": 4.5,
+   "p50": 128.1,
+   "p95": 216.1,
+   "dropped": 347
+  },
+  {
+   "rep": 4,
+   "view": "wc-elev-north",
+   "hour": "day",
+   "forcedMin": 30.2,
+   "forcedMed": 36.2,
+   "forcedP90": 45.7,
+   "fps": 5.1,
+   "p50": 143.9,
+   "p95": 216,
+   "dropped": 305
+  },
+  {
+   "rep": 4,
+   "view": "wc-elev-north",
+   "hour": "night",
+   "forcedMin": 35.2,
+   "forcedMed": 44.4,
+   "forcedP90": 50.6,
+   "fps": 5.1,
+   "p50": 143.6,
+   "p95": 215.9,
+   "dropped": 320
+  }
+ ],
+ "bootS": 106.2,
+ "apartments": {
+  "before": {
+   "on": false,
+   "group": false
+  },
+  "groupAfter": true
+ },
+ "gfx": {
+  "preset": "balanced",
+  "renderScale": 1,
+  "bloom": 0.4,
+  "godRays": 0.5,
+  "autoExposure": true,
+  "lite": {
+   "on": false,
+   "safe": false,
+   "applied": [],
+   "crashes": 0
+  },
+  "dpr": 1,
+  "canvas": [
+   1440,
+   900
+  ],
+  "gl": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU (0x000025A0) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+ },
+ "retint": [
+  {
+   "from": 0.3,
+   "to": 1,
+   "syncMs": 2263,
+   "toIdleMs": 17667
+  },
+  {
+   "from": 1,
+   "to": 0.3,
+   "syncMs": 2256,
+   "toIdleMs": 19921
+  },
+  {
+   "from": 0.3,
+   "to": 1,
+   "syncMs": 2132,
+   "toIdleMs": 21474
+  },
+  {
+   "from": 1,
+   "to": 0.3,
+   "syncMs": 2465,
+   "toIdleMs": 20101
+  }
+ ]
+}

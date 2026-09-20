@@ -173,8 +173,13 @@ Measured, E1 at p=1, changing only the light colour to white:
 
 ### 1.5 Cost baselines [M]
 
-All from `night-perf-ab.mjs`: 5 interleaved reps, minimum reported, 1440×900 hardware GL. The machine
-was loaded by other lanes.
+All from `scripts/verify/night-perf-ab.mjs`: 5 interleaved reps, minimum reported, 1440×900 hardware GL.
+The machine was loaded by other lanes. **The two runs are committed** —
+`docs/night/harness-runs/night-perf-ab-desktop.json` and `night-perf-ab-lite.json`, the harness output
+verbatim — so every number below can be re-read, and the run re-made, without this session's scratch
+folder. Read their `committedCopy` first. (Until 2026-09-20 the `[M]` on this heading rested on a script
+that was not in the repo and two result files that were about to be swept — measured, but not by anything
+anyone else could reach. The tag is the same; what changed is that it now has an artifact behind it.)
 
 | setting | view | day min ms | night min ms | reading |
 |---|---|---|---|---|
@@ -183,8 +188,13 @@ was loaded by other lanes.
 | `?lite=1` (performance, 0.75 scale, no bloom) | WC elevated | 11.0 | 9.7 | no night cost |
 | `?lite=1` | campus aerial | 22.1 | 14.5 | no night cost |
 
-- **Retint to night:** 1.25–3.17 s of synchronous main thread per `applyTimeOfDay` (desktop), and
-  0.97–1.29 s under `?lite=1` (`js/timeofday.js:379-482`).
+- **Retint to night:** 2.13–2.47 s of synchronous main thread per `applyTimeOfDay` (desktop), and
+  0.97–1.29 s under `?lite=1` (`js/timeofday.js:379-482`) — the `retint` block of the two committed
+  reports, four applications each, day→night and back, twice. **Corrected 2026-09-20:** the desktop
+  figure here used to read `1.25–3.17 s`, which was the `applyMs` spread across the 36 retints of the
+  same night's capture sweep, not anything in either report; that log was a scratch file and is gone.
+  Both readings are real and the wider one is the better guide to the spread, but only the narrow one
+  has an artifact, so it is the one quoted.
 - **Phone memory:** `scripts/verify/mobile-budget.mjs` read a 1,035 MB JS heap for the full scene before the
   slopes geometry was indexed (HANDOFF, 2026-09-15). `js/mobile.js` now keeps the authored buildings under
   the `performance` preset.
@@ -591,8 +601,14 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 > and the `APARTMENTS.on` poke, so the recovery path is not the discriminator here; the *load* is.
 >
 > **Fixed, and watched.** `tilesOk: false` is `uninterpretable` and exits 2, exactly as a camera miss
-> does; an A/B disagreement in `tilesOk` at the same (pose, regime), or two sides reaching ready by
-> different routes, is `verdict.loadAsymmetry` and also exits 2. The same frames re-measured with
+> does; an A/B disagreement in `tilesOk` at the same (pose, regime) is `verdict.loadAsymmetry` and also
+> exits 2. Two sides reaching ready by different routes is the same verdict **only when they are two
+> builds** — `night-compare.mjs:1455-1474` demotes it to `verdict.loadAsymmetryWarning`, printed in full
+> and not in the exit code, when both sides carry the same `build.sha1` and the same site, because in a
+> `--break` run both sides are the same build by construction and side B, shot second on a machine side
+> A has just loaded twice, reloads more often for that reason alone. *(Narrowed 2026-09-20; this passage
+> stated the pre-narrowing rule until then. `scripts/verify/README.md` has the incident and the one risk
+> the narrowing leaves open.)* The same frames re-measured with
 > `--from` after the fix are `exit 2` with all five A frames named, and they are kept as
 > `docs/night/harness-runs/same-break-apartments-loaded-machine.report.json`. **What it would have
 > cost:** the coverage map this section still owes — the whole route set at `day` and `golden` —
@@ -1213,8 +1229,15 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 > > `INTRO.authoredCeilingMs` path, a reload, the `APARTMENTS.on` poke"* — **"is not this
 > > measurement"**, and this document applied that correctly to R10's leg 1 and not to this block.
 > > The harness now refuses such a run outright: an A/B whose sides reached ready by different routes
-> > is `verdict.loadAsymmetry` and **exit 2**, and of the ten kept reports this is the only one it
-> > catches. The day/golden direction is not in doubt — the noise floor at the same two regimes is
+> > **and were served two different builds** is `verdict.loadAsymmetry` and **exit 2**. That is this
+> > run — A `4807b1680898`, B `ae7b2be0ceaf` — and **of the ten kept reports it is the only one the
+> > different-routes clause catches**; where the two sides carry the same `build.sha1` and the same
+> > site, the clause is demoted to `verdict.loadAsymmetryWarning` and leaves the exit code alone
+> > (`night-compare.mjs:1455-1474`, narrowed 2026-09-20). Two of the ten carry `verdict.loadAsymmetry`
+> > in all: this one, which also trips the `build.sha1`-mismatch clause, and
+> > `same-break-apartments-loaded-machine`, which trips the `tilesOk` clause at all five of its poses
+> > and whose two sides in fact loaded symmetrically.
+> > The day/golden direction is not in doubt — the noise floor at the same two regimes is
 > > 0.000% and the shadow fix is real and visible in the sheet — but **these particular percentages
 > > should be re-shot on a quiet machine before any of them is quoted as the size of the change.**
 

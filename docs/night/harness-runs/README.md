@@ -1,5 +1,13 @@
 # The `--break` / `--same` runs, kept
 
+> **Two files here are not `night-compare.mjs` reports.** `night-perf-ab-desktop.json` and
+> `night-perf-ab-lite.json` are the output of `scripts/verify/night-perf-ab.mjs`, the frame-cost
+> A/B behind `docs/night-implementation-plan.md` §1.5 and acceptance row A10. They have no
+> `verdict`, no shots and no exit code, and **every count of "the ten kept reports" below means
+> the ten `*.report.json` files, not these.** They are here for the same reason the others are:
+> §1.5 was tagged `[M]` and cited a script and two result files that existed only in a session
+> scratch folder that was about to be swept (added 2026-09-20).
+
 `docs/night-implementation-plan.md` §W0a says `--same` — the assertion in
 `scripts/verify/night-compare.mjs` that guards A9 — can go red, and quotes numbers for it.
 Those numbers used to have **no surviving artifact anywhere**: the plan itself condemned the

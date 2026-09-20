@@ -287,7 +287,9 @@ Sources with no light:
   exposure 1.03). Per shot: pose, `applyTimeOfDay(p, force)`, idle (cap 30 s), re-pose, 3 s,
   screenshot, 1 s, screenshot again (second kept, JPEG q86). Stats are computed on the JPEG (post
   CSS grade, i.e. what a viewer sees). Scripts: `LANES/night/code/night-capture.mjs`,
-  `night-sweep-core.mjs`, `night-perf-ab.mjs`, `lamp_audit.py`.
+  `night-sweep-core.mjs`, `lamp_audit.py`, and `night-perf-ab.mjs` — the last of these is committed at
+  `scripts/verify/night-perf-ab.mjs`, with its two runs at `docs/night/harness-runs/night-perf-ab-*.json`;
+  the rest are still scratch-only.
 - **The machine was loaded** by other lanes' browsers the whole time (all 3 GPU slots busy; CPU
   88% at the start of the perf run). Boot took 87-344 s.
 - **The authored-apartment handoff timed out in 4 of 5 boots.** `js/app.js:1946-1963` switches
@@ -442,7 +444,9 @@ aerial frame). (The campus-aerial p=0.62 split read 86.9 vs 89.0 — AE drift, n
 
 ### 5.5 Frame time, night vs day
 
-Method (`LANES/night/code/night-perf-ab.mjs`): one headless hardware-GL Chrome per mode (ANGLE /
+Method (`scripts/verify/night-perf-ab.mjs`, committed 2026-09-20; runs at
+`docs/night/harness-runs/night-perf-ab-desktop.json` and `night-perf-ab-lite.json`): one headless
+hardware-GL Chrome per mode (ANGLE /
 D3D11 on the RTX 3050 Ti Laptop GPU), 1440x900 dsf 1, `?intro=0&drift=0`, auto-detect cancelled,
 authored apartments re-enabled and built before timing. Hours p=0.30 (day, sun +54°) and p=1.00
 (night), order counterbalanced on alternate reps, 5 reps. Per run: retint + idle + 2.5 s, pose +
@@ -454,7 +458,8 @@ idle + 1.5 s, then
 were held by other lanes' browsers the whole time; 1.8 GB of 15.4 GB RAM free.** Absolute
 numbers are therefore pessimistic; read the day/night difference within a session, not the fps.
 
-Desktop (`balanced`: renderScale 1, bloom 0.40, god rays 0.5, AE on), `perf-desktop.json`:
+Desktop (`balanced`: renderScale 1, bloom 0.40, god rays 0.5, AE on),
+`docs/night/harness-runs/night-perf-ab-desktop.json`:
 
 | view | hour | FORCED min ms [5 reps] | FORCED median-of-40, min [reps] | SWEEP fps [reps] | rAF p50 ms [reps] |
 |---|---|---|---|---|---|
@@ -474,7 +479,8 @@ One-off retint, same session: day -> night **2,263 / 2,132 ms** synchronous, nig
 2,256 / 2,465 ms; `idle` did not arrive within the 20 s cap in 3 of 4 (17.7-21.5 s).
 Boot to ready 106 s (the authored-apartment ceiling fired; re-enabled in page).
 
-`?lite=1` (`perf-lite.json`, run 2026-09-19 08:28-08:39 CDT; the first attempt at 06:40 died
+`?lite=1` (`docs/night/harness-runs/night-perf-ab-lite.json`, run 2026-09-19 08:28-08:39 CDT; the
+first attempt at 06:40 died
 at boot and a second was cut off by the usage limit, neither produced data). Page reported
 `preset performance, renderScale 0.75, bloom 0, godRays 0, autoExposure false,
 campuslandscape=0`, canvas 1080x675, same GPU/ANGLE string, same poses, hours, method and 5

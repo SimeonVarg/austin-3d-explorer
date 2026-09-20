@@ -131,6 +131,19 @@ node night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night
 > exit 2. That had happened once, in `build-ab-c656249-vs-main-daygolden`, and was caught
 > by hand off the build printed on the overview sheet.
 >
+> **The residual risk, written down rather than left to be rediscovered:** the demotion is
+> gated on `build.sha1` and site but **not on the query**, so the commonest real run — one
+> checkout, `--a '' --b '?someflag=1'` — has the same `build.sha1` on both sides and an
+> asymmetric reload there is demoted to a warning too, even though the two sides genuinely
+> are two configurations. A flag that changes how the page loads would be invisible to the
+> exit code. Nothing is silent about it: the warning prints in full, and `tilesOk: false` on
+> any shot and an A/B `tilesOk` disagreement at the same (pose, regime) both still exit 2 —
+> so a load difference that actually cost the run a layer is still caught. **Checked in the
+> code, 2026-09-20:** the per-side authored-triangle count is printed and stored in the
+> report, but nothing compares the two sides' counts and nothing exits on them, so it is a
+> reading for a human, not a gate. If you are A/B-ing a flag that changes how the page loads,
+> compare the two `sides[].apartments.triangles` yourself before trusting an exit 1.
+>
 > Both commands above were then run **verbatim** through `gpu-run.mjs` on a quiet machine
 > against this branch: **exit 1 and exit 1**, three of three and two of two poses red — and
 > again on the branch with `origin/main` merged in, which matters because that merge carries
