@@ -23,7 +23,7 @@ A further ~118 MB is safe to add: `data/imagery_cache/ data/osm_cache/
 data/dkr_aerial.png data/dkr_aerial_geo.png data/capitol_aerial.png` — no code
 loads any of them.
 
-## 2. Merged this round (nine PRs)
+## 2. Merged this round (ten PRs)
 
 | PR | What it was, in one line | Doc |
 |---|---|---|
@@ -71,7 +71,9 @@ loads any of them.
    parked as reversible one-line comparisons in `docs/dark-campus-diagnosis.md`
    for Codex to choose from.
 
-## 3. Night package (PR #275)
+| #275 | **Night package:** references, plan and a comparison harness that can be watched failing | `docs/night-reference-package.md`, `docs/night-implementation-plan.md` |
+
+## 3. Night package (PR #275, merged as `3354fa2`)
 
 `docs/night-reference-package.md`, `docs/night-implementation-plan.md`,
 `scripts/verify/night-compare.mjs` + `night-routes.json` (16 poses, 11 routes,
