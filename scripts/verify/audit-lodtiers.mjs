@@ -60,8 +60,15 @@ console.log(`[tiers] fine absent: ${present.fineAll.filter(i => !present.fine.in
 console.log(`[tiers] mid absent:  ${present.midAll.filter(i => !present.mid.includes(i)).join(', ') || '-'}`);
 console.log(`[tiers] caps still listed in a tier: ${CAPS.filter(c => present.fineAll.includes(c) || present.midAll.includes(c)).join(', ') || 'none'}`);
 
+// A FIXED SLEEP AFTER jumpTo IS NOT ENOUGH, and getting this wrong is the whole
+// reason lod-check.mjs is unreliable. js/controls.js only re-derives its eye
+// state in syncFromMap(), which runs on the controller's tick — and the tick is
+// driven by repaints. Once the map goes idle after a jump it stops painting, so
+// `__fly.eye().alt` can sit on the PREVIOUS pose indefinitely. A first cut of
+// this script slept 1.2 s and read 126.8 m for all fifteen rungs of the climb.
+// So: keep asking for a repaint and wait for the altitude to actually arrive.
 async function at(alt) {
-  await page.evaluate(async (alt) => {
+  await page.evaluate((alt) => {
     const m = window.__map, rad = x => x * Math.PI / 180;
     const lng = -97.7434, lat = 30.2857, pitch = 70, bearing = 200;
     const Dd = alt / Math.cos(rad(pitch)), lead = Dd * Math.sin(rad(pitch));
@@ -69,9 +76,13 @@ async function at(alt) {
     const clng = lng + lead * Math.sin(rad(bearing)) / (111320 * Math.cos(rad(lat)));
     const zoom = Math.log2(40075016.686 * Math.cos(rad(clat)) / (512 * (Dd / m.transform.cameraToCenterDistance)));
     m.jumpTo({ center: [clng, clat], zoom, pitch, bearing });
-    await new Promise(r => setTimeout(r, 700));
   }, alt);
-  await page.waitForTimeout(500);       // > LOD.settleMs (140) plus a repaint
+  await page.waitForFunction((want) => {
+    window.__map.triggerRepaint();
+    const e = window.__fly && window.__fly.eye();
+    return !!e && Math.abs(e.alt - want) / want < 0.01;
+  }, alt, { timeout: 25000, polling: 120 }).catch(() => {});   // a miss is check B's to report, not an exception
+  await page.waitForTimeout(600);       // > LOD.settleMs (140) plus a repaint
   return await page.evaluate(() => {
     const t = window.LOD_TIERS, m = window.__map, e = window.__fly ? window.__fly.eye() : null;
     const hid = ids => ids.filter(id => m.getLayer(id) && window.LOD_isHidden(id));

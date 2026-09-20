@@ -370,9 +370,22 @@ Between +0.15° and +0.10° the shadows **go out**: the share of the frame they
 are worth falls from 19.4% to 3.8% and their mean depth from 19.2 to 0.78 — a
 25x collapse across one notch — and the city jumps 78.75 → 90.52 because it is
 simply no longer shaded. There is no ramp; it is a cliff five hundredths of a
-degree wide, and the sun is still above the horizon when it happens. The step
-Simeon would see is not a brightening, it is every shadow in the city
-disappearing at once, a quarter of a degree early.
+degree wide, and the sun is still above the horizon when it happens.
+
+**What it looks like, which is worse than the numbers suggested.** Three
+frames, each one notch of the slider apart:
+
+![The city flips from fully shaded to full golden sun one notch before the
+horizon](shots/render-audit-sunset-shadows-quit.jpg)
+
+At +0.15° the *entire block* is in shade — cold and flat, as though the sun
+had already set. One notch later, at +0.10°, every west-facing wall is in warm
+golden light and the shadows are gone. At the horizon it still looks like that.
+So it is not a brightening step to explain away: at a grazing sun the cascade
+is throwing one city-wide shadow over everything, and then it stops. **The
+sun appears to come back out as it sets** — the one moment of the day the app
+has to get right, running backwards. That is the thing to put in front of the
+owner, and the frame above is the whole argument.
 
 **Not for this PR.** Lighting is Codex's, and the owner likes the current
 sunlight. What is wanted here is the owner's eye on a real defect, not a tune —
