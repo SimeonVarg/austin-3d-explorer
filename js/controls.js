@@ -314,6 +314,36 @@ function initControls(map, scene) {
   let pendingYaw = 0, pendingPitch = 0, wheelLogAcc = 0, touchLogAcc = 0;  // yaw/pitch in DEGREES
   let lastTs = null, rafId = null, wasDriving = false, simTime = 0;
 
+  /**
+   * AN INPUT THAT ARRIVED SINCE THE LAST TICK, EVEN IF IT IS ALREADY OVER.
+   *
+   * The tick reads input as STATE — which keys are down right now, is a finger
+   * on the canvas right now — and that is what decides `driving`, and so what
+   * fires `flycam:takeover`. State is the right model for motion: you move for
+   * as long as you hold. It is the wrong model for OWNERSHIP, because a whole
+   * gesture can begin and end between two frames and leave no state behind, and
+   * the tick then never learns it happened.
+   *
+   * That is not theoretical. On this laptop with other lanes rendering, the
+   * opening flight was measured at 1.6-3.4 fps, and frame gaps of 558, 642 and
+   * 776 ms are in one recorded run of the interrupt suite. A gap longer than
+   * the press swallows it whole. The interrupt suite caught it as `key-w@leg2` failing
+   * 2 runs in 6 with `takeover: null` — a full second of W held during the
+   * flight, ignored, the flight running to completion underneath it. The old
+   * cancel was a capture-phase DOM listener, which cannot miss an event; it was
+   * replaced (rightly) by the takeover so that a click on a panel no longer
+   * counts, and the "cannot miss" half was lost with it.
+   *
+   * So: the handlers that ACCEPT a navigation input latch it, the tick folds
+   * the latch into `inputActive` and clears it. The takeover can then be late
+   * by one frame, but it can never be skipped. Only the transient inputs need
+   * this — a key or a pointer whose release wipes the state. The wheel, a pinch
+   * and a look drag accumulate into wheelLogAcc / touchLogAcc / pendingYaw /
+   * pendingPitch, which nothing but the tick itself clears, so they already
+   * survive any gap.
+   */
+  let inputLatch = false;
+
   const keys = Object.create(null);
   const keyDown = code => !!keys[code];
   let sprintHeld = false;
@@ -996,7 +1026,17 @@ function initControls(map, scene) {
   const altFloorMin = () => Math.max(ALT_MIN, dMin() * Math.cos(rad(pitch)));
 
   // ── Read/write the MapLibre pose ──────────────────────────────────
-  function syncFromMap() {
+  // `keepInput` is for the TAKEOVER frame (see the tick): the pose is re-read
+  // from the map, but the look/wheel/pinch that made this a driving frame is the
+  // user's first input and must be applied, not thrown away. It used to be
+  // zeroed here, so the first wheel notch from rest (after any idle spell, the
+  // opening flight, the R ease, the tour) only took the camera and did nothing:
+  // measured with one notch from rest, +0% altitude before, +54% after
+  // (docs/intro-interrupt.md). A drag was unaffected, because its press takes
+  // the camera a frame before its first movement. On an idle frame there is
+  // nothing to keep — any pending input would have made it a driving frame —
+  // so the idle path is unchanged.
+  function syncFromMap(keepInput) {
     const c = map.getCenter();
     bearing = map.getBearing();
     pitch = clamp(map.getPitch(), PITCH_MIN, PITCH_MAX);
@@ -1007,7 +1047,7 @@ function initControls(map, scene) {
     eye.lng = c.lng - lead * Math.sin(rad(bearing)) / mLon(eye.lat);
     altUser = alt; altFloor = 0;
     vel.e = 0; vel.n = 0;
-    pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
+    if (!keepInput) pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
   }
 
   let lastWrite = null;
@@ -1202,7 +1242,8 @@ function initControls(map, scene) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     try { canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } catch (err) {}
     canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    syncInputActive();
+    inputLatch = true;           // a press on the canvas is a takeover, even if
+    syncInputActive();           // the release lands before the next frame
     e.preventDefault();
 
     if (pointerCount() >= 2) { lookPointerId = null; tapDragId = null; rebasePinch(); return; }
@@ -1356,6 +1397,7 @@ function initControls(map, scene) {
     if (e.code === 'KeyR') { goHome(); e.preventDefault(); return; }
     if (MOVE_CODES.indexOf(e.code) === -1) return;
     keys[e.code] = true;
+    inputLatch = true;           // below every guard above: this key is ours
     e.preventDefault();
     markFlying();
   }
@@ -1395,6 +1437,10 @@ function initControls(map, scene) {
     canvasPointers.clear();
     lookPointerId = null; tapDragId = null; pinchDist = null;
     pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
+    // The unconsumed latch goes too. An alt-tab, or the R reset (goHome calls
+    // this before its own easeTo), must not leave a takeover armed to fire on
+    // the next frame and steal the camera back from whatever follows.
+    inputLatch = false;
     vel.e = 0; vel.n = 0;
     lastTs = null;
     // Hand the camera back level and at base FOV: goHome()'s easeTo (and any
@@ -1469,7 +1515,17 @@ function initControls(map, scene) {
     // any time the camera rests over a rooftop — the floor is a standing
     // response, not an intent — and the controller would then own the camera
     // permanently and stomp on every external animation.
-    const inputActive = fwd !== 0 || strafe !== 0 || vertKey !== 0 ||
+    // A thumb resting on the joystick counts, exactly as a finger resting on
+    // the canvas (lookPointerId) always has: grabbing the stick is taking the
+    // camera. Without it the takeover waited for the thumb to leave the
+    // deadzone, and the opening flight kept flying under a held stick
+    // (docs/intro-interrupt.md).
+    // Consumed HERE, below the two early returns above, so a frame the tick
+    // refuses to integrate (the first one, and any tab-restore gap over
+    // DT_BAIL) leaves the latch armed for the next one instead of eating it.
+    const latched = inputLatch; inputLatch = false;
+    const inputActive = latched ||
+                        fwd !== 0 || strafe !== 0 || vertKey !== 0 || joyActive() ||
                         lookPointerId !== null || tapDragId !== null || pointerCount() >= 2 ||
                         pendingYaw !== 0 || pendingPitch !== 0 ||
                         wheelLogAcc !== 0 || touchLogAcc !== 0;
@@ -1493,8 +1549,15 @@ function initControls(map, scene) {
       wasDriving = false; syncFromMap(); return;
     }
     if (!wasDriving) {
+      // TAKEOVER. Say so first, so anything flying the camera on a script can
+      // stand down on the frame it is showing and disarm whatever it had queued
+      // (js/app.js's opening flight listens for this; docs/intro-interrupt.md).
+      // Only then stop the running ease and re-read the pose: stop() leaves the
+      // transform on the last frame drawn, so the eye starts exactly where the
+      // user was looking, with zero velocity, and the input is applied on top.
+      try { window.dispatchEvent(new Event('flycam:takeover')); } catch (e) {}
       if (map.isEasing && map.isEasing()) map.stop();
-      syncFromMap();
+      syncFromMap(true);
       wasDriving = true;
     } else if (!realDrive && map.isEasing && map.isEasing()) {
       // Yield rule: only decaying effects were holding ownership and something
@@ -1777,6 +1840,7 @@ function initControls(map, scene) {
     try { joystickBase.setPointerCapture && joystickBase.setPointerCapture(e.pointerId); } catch (err) {}
     const r = joystickBase.getBoundingClientRect();
     joyOx = r.left + r.width / 2; joyOy = r.top + r.height / 2;
+    inputLatch = true;           // grabbing the stick is taking the camera
     syncInputActive();
     e.preventDefault(); e.stopPropagation();
     markFlying();
@@ -1820,6 +1884,9 @@ function initControls(map, scene) {
     eye: () => ({ lng: eye.lng, lat: eye.lat, alt, altUser, altFloor,
                   vE: vel.e, vN: vel.n, bearing, pitch, driving: wasDriving }),
     roofAt: (lng, lat, r) => maxHeightIn(lng, lat, r == null ? R_CAM : r),
+    // The pose R returns to, so a verification can assert the reset lands there.
+    home: () => (HOME ? { center: HOME.center.slice(), zoom: HOME.zoom,
+                          bearing: HOME.bearing, pitch: HOME.pitch } : null),
     indexed: () => gridBuilt,
     gridBytes: () => (grid ? grid.byteLength : 0),
     // The fence, in degrees, and how much of the outer ring the incremental
