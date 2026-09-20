@@ -48,8 +48,8 @@ looks at water pixels:
 * **JUMP** — |Δluma| ≥ 12 on a water pixel between consecutive frames.
 * **STOP-GO** — every pose is rendered twice, once *in flight* (one `jumpTo`
   and one rendered frame per pose, no waiting — how `js/controls.js` drives
-  the camera) and once *stopped* (idle + settle, screenshot twice).
-  |moving − stopped| ≥ 12 on water means the picture depends on whether the
+  the camera) and once *stopped* (idle + settle, screenshot twice). A water
+  pixel with |moving − stopped| ≥ 12 means the picture depends on whether the
   camera is moving at all: the fingerprint of shadow maps, proxies, LOD.
 * Every metric is computed on the moving sequence AND on the stopped
   sequence at the same poses; the stopped sequence is the control.
