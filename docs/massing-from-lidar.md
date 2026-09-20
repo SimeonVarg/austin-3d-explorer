@@ -369,7 +369,7 @@ target list's own footprint area instead of ours — but the example did not.
 |---|---:|---|---:|
 | westcampus | 176 | 150.8 – 184.4 m | 33.6 m |
 | campus | 169 | 149.7 – 186.2 m | 36.5 m |
-| downtown | 76 | 127.8 – 176.1 m | 48.2 m |
+| downtown | 76 | 127.8 – 176.1 m † | 48.2 m |
 | guadalupe | 73 | 167.4 – 183.7 m | 16.2 m |
 | other | 58 | 152.4 – 185.2 m | 32.8 m |
 
@@ -378,6 +378,18 @@ The headline figure used to be 58.4 m. It was anchored on a single reading of
 second-lowest reading in the whole model is 136.46 m, so 49.7 m is the
 defensible number. (The 127.8 m still appears in the downtown row, because that
 row is computed over every row that has a `ground_z`.)
+
+† Both ends of the downtown row are soft, and only the low end was called out
+before. The 176.1 m high end is One American Center, whose `ground_n` is **0** —
+no class-2 ground return was found near it, so `ground_z` fell back to the 2nd
+percentile of every return inside a 12.3 m² sliver sitting over a tower. That is
+a roof, not the ground. Seven of the 76 downtown rows are fallbacks like that.
+The highest downtown ground with real class-2 evidence under it is the
+**Governor's Mansion at 167.24 m** (`ground_n` 13 460), and the evidenced
+downtown range is **136.5 – 167.2 m**. The 49.7 m headline is unaffected: it is
+taken across the whole model, from The Catherine's 136.46 m to campus's
+186.18 m, and both of those readings have thousands of ground points behind
+them.
 
 `js/app.js` disables terrain on purpose — it culled buildings and made them
 float on slopes — so every building in the model stands on one flat datum. That
@@ -436,9 +448,16 @@ polygon we rasterised is the right building at all — that question belongs to
 `match`, `foot_ratio` and `city_ratio`, and a reader who ignores them can still
 be handed a confident, repeatable, correct measurement of the wrong roof.
 
-Below ~200 m² and below ~1 pt/m² no call is made at all. Between those and about
-1000 m² a verdict is repeatable roughly seven or eight times in ten, which is
-worth acting on in aggregate and not worth acting on for one named building.
+The size floor is on the roof raster, not the footprint, and it is much lower
+than the table above might suggest: `MIN_CELLS_FOR_ROOF` is 120 cells on the
+0.5 m grid, so a building needs **30 m² of roof** before any flat or pitched
+call is made. Nothing in the model was ever declined for `roof_too_small` — the
+smallest footprint carrying a roof call is **73.7 m²** (1Up Repairs, flat, 0.78)
+and every one of the 28 buildings under 200 m² got a verdict. The density floor
+is real: below **1 pt/m²** no call is made, and the thinnest one that still
+ships sits at 1.11. Up to about 1000 m² a verdict is repeatable roughly seven or
+eight times in ten, which is worth acting on in aggregate and not worth acting
+on for one named building.
 
 The thinnest verdict still shipping is **The Quincy**: 1.11 pts/m² against a
 1.00 floor and 29.1% fill against a 25% floor, on a 2725 m² roof — both guards
