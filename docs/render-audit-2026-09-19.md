@@ -248,31 +248,57 @@ it asked for, and checks the caps are never dropped, that there is a band where
 fine is gone and mid is not, that the descent restores everything, and that the
 hysteresis runs in the right direction.
 
-**What it has actually returned so far — 2 of 6, and here is exactly which.**
-One run, on the tree rebased onto `main` @ 87f6ec4, i.e. on the merged result
-rather than the branch alone:
+**What it returned, AFTER against BEFORE, interleaved on one server in one
+session, on the tree rebased onto `main` @ 87f6ec4** — the merged result, not
+the branch alone:
 
-| check | result |
-|---|---|
-| A — the roof caps are never dropped by the LOD | **PASS** — `drag-cap`, `wc-wall-cap`, `moody-roof` drawn at all 30 poses, and the header line reads `caps still listed in a tier: none` |
-| no uncaught page errors | **PASS** — none, so this PR's `js/lod.js` and `js/graphics.js` load clean on the merged tree |
-| B — every pose landed on the altitude it asked for | **FAIL** — worst miss 432%, see below |
-| C, D, E — the fine/mid band, the descent, the hysteresis | **FAIL**, and meaningless: they are all downstream of B |
+| check | BEFORE (main's `js/lod.js`) | AFTER (this PR) |
+|---|---|---|
+| tier membership | fine 13/18 present, mid 6/7 | fine 11/16, mid 5/6, `caps still listed in a tier: none` |
+| **A — the roof caps are never dropped** | ***FAIL*** — `hidden at some altitude: drag-cap, wc-wall-cap, moody-roof` | **PASS** — all three drawn at all 30 poses |
+| B — every pose landed where it asked | PASS — worst miss 0.17% | FAIL — worst miss 111%, 2 of the 30 poses |
+| C — a band where fine is gone and mid is not | PASS — 4 poses, 399.6–699.2 m | PASS — identical, 399.6–699.2 m |
+| D — the descent restores everything | FAIL — `visibility:none 1` | FAIL — `visibility:none 1`, identical |
+| E — hysteresis runs the right way | PASS — up 399.6 m, down 259.7 m | PASS — up 399.6 m, down 299.7 m |
+| no uncaught page errors | PASS | PASS |
+| | 4/6 | 4/6 |
 
-Check A is the fix in item 1, and it does not depend on B at all: the three
-caps are no longer members of any tier, so no altitude can hide them.
+**Check A is the whole point and it is unambiguous.** Same script, same server,
+minutes apart: on main the LOD hides all three caps at some altitude and the
+check names them; with this PR it never does, at any of 30 poses. BEFORE also
+passed the instrument check with a 0.17% worst miss, so that run's camera was
+accurate and its failure is the code's, not the harness's.
 
-Check B failed because **my own gate had the same disease as lod-check**, which
-is why it was written to check itself. `js/controls.js` only re-derives its eye
-state in `syncFromMap()`, which runs on the controller's tick, and the tick is
-driven by repaints — so once the map goes idle after a `jumpTo`, `__fly.eye()`
-can sit on the previous pose indefinitely. The first cut slept 1.2 s and read
-**126.8 m for all fifteen rungs of the climb**. It now holds `triggerRepaint()`
-in a poll and waits for the altitude to arrive. **That corrected version had not
-got a browser slot before this was written** — three lanes held all three for
-the last stretch — so C, D and E, including the hysteresis change, are
-**UNVERIFIED**. Re-run `audit-lodtiers.mjs` before trusting them. (The roof-cap
-fix itself is separately verified by picture, in item 1.)
+**Nothing regressed.** C, E and the page-error check pass on both sides, and
+the fine/mid band is identical to the metre.
+
+Two failures that are the *checks'*, not the app's, stated so nobody reads them
+as defects:
+
+- **D fails identically on both sides**, so it cannot be this change. The one
+  layer left at `visibility: none` is a symbol layer, and the gate loads with
+  `?clip=1`, which is capture mode — `js/graphics.js:642` hides every symbol
+  layer that is not in `CAPTURE.keepLabels`, and `props-art-label` is the only
+  symbol layer in either tier. `js/lod.js` then correctly refuses to force it
+  back, which is its documented contract (`js/lod.js:139-143`: "we only ever
+  restore a layer we ourselves hid"). The LOD's own bookkeeping was clean on
+  both runs — `fineHidden 0, midHidden 0`. The check is over-strict; it should
+  assert on the bookkeeping, not on raw visibility. Left as it is rather than
+  loosened after seeing the result.
+- **B fails on the AFTER run only**, on 2 of 30 poses (the first rung, and one
+  mid-ladder), where the convergence poll gave up and the pose kept the previous
+  altitude. That is flakiness in my harness, not in `js/lod.js`; the BEFORE run
+  of the same script hit 30 of 30. Worth fixing before this gate is relied on.
+
+**One honest limit on E.** There is a residual one-rung lag in this harness:
+the LOD's 140 ms debounce can fire before the controller re-syncs, so the fine
+tier is first seen hidden at 399.6 m when the threshold is 340 m. BEFORE and
+AFTER differ in where the tier comes back on the way down — 259.7 m vs 299.7 m
+— and 299.7 m is the one inside the documented ±8% band (290–340 m). That is
+the direction the `_tierHidden` fix predicts, but **one rung is exactly the
+size of the lag**, so from a single pair I cannot separate the fix from the
+artefact and I am not claiming it. What E does establish is that the hysteresis
+is exercised and runs the right way on both sides.
 
 ## Backlog, most important first (files other lanes own)
 
@@ -510,8 +536,9 @@ not a fix.
 **The two-cascade shadows do not show a seam while you travel, but they do
 shimmer.** 360 frames straight ahead at 1.2 m per frame at the low pose, 432 m
 of travel, recorded as a screencast of the composited page
-(`audit-motion.mjs --tests shadow`, `shadowSize` 1536, `shadowMaps` 2 the whole
-way):
+(`audit-motion.mjs --tests shadow`; `js/slopes.js:198` — `shadowRadii`
+**[240, 1400]**, `shadowSize` 1536, `shadowSnap` 20 m, `shadowDistance` 1500 —
+and `shadowMaps` read 2 the whole way):
 
 - **No seam.** Nothing in any diff has the structure of a line or a ring at a
   cascade boundary.
