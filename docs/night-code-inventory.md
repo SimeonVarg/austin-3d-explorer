@@ -48,7 +48,7 @@ says everything should use. The others each carry their own ramp in p:
 | Consumer | Ramp | file:line |
 |---|---|---|
 | Street-lamp pools/heads, tower pool, entrance pools | `skyBodies(p).lamps`: smoothstep sun +2° -> -6° (p .54 -> .622) | `js/sky.js:253`, `js/night.js:740-742`, entrances pool uses the same |
-| Sky darkness, AE target, OSM-label dim | `skyBodies(p).night`: linear sun +1° -> -31° (p .55 -> .90) | `js/sky.js:249`, `js/graphics.js:837`, `js/timeofday.js:468` |
+| Sky darkness, AE target, OSM-label dim | `skyBodies(p).night`: linear sun +1° -> -31° (p .55 -> .90) | `js/sky.js:249`, `js/graphics.js:888`, `js/timeofday.js:468` |
 | Stars | smoothstep sun -7° -> -18° | `js/sky.js:257` |
 | Facade-atlas lit windows (city, outer towers, WC fill-extrusion, places, drag, moody) | `night=(p-.55)/.45`, pane mix `min(1,night*1.3)` -> full at p≈.90 | `js/facades.js:1969`, `:2158`; `js/places.js:325`; `js/drag.js:579`; `js/moody.js:523` |
 | Facade-atlas WALL darkening | `max(night, -sunElev/9)` (sun-driven) | `js/facades.js:1971-1976` |
@@ -86,17 +86,17 @@ path in the three.js layer.
   Two files know this and pre-divide their night hexes by it — but by the OLD light `#9aa6da`
   (`js/tower.js:322,447,531-542`; `js/entrances.js:51,603`), which no longer matches `#8fa0e0`
   (R 0.93x, G 0.96x, B 1.03x of what they were calibrated against). Nobody else compensates.
-- **Hour grade** (`js/timeofday.js:73-103` via `js/graphics.js:849-873`): night exposure 0.95,
+- **Hour grade** (`js/timeofday.js:73-103` via `js/graphics.js:900-924`): night exposure 0.95,
   contrast 1.08, saturation 0.88, vignette 0.38 (blue-black `[3,6,20]` a .74,
-  `js/graphics.js:882-888`), filmic tone LUT 0.65 (`js/graphics.js:701-709`, toe floor 0.010).
+  `js/graphics.js:933-939`), filmic tone LUT 0.65 (`js/graphics.js:752-760`, toe floor 0.010).
 - **Auto-exposure** (balanced+): meters the raw GL frame, target 0.135 at night, gain clamp
-  0.85-1.20, ±17% dead zone (`js/graphics.js:794-846`). Open loop, EMA 900 ms.
-- **Bloom** (`js/graphics.js:1034-1068`): the GL canvas is drawn into a 256-px-wide canvas with
+  0.85-1.20, ±17% dead zone (`js/graphics.js:845-897`). Open loop, EMA 900 ms.
+- **Bloom** (`js/graphics.js:1085-1119`): the GL canvas is drawn into a 256-px-wide canvas with
   `brightness(thr) contrast(4) blur()`, `thr = 0.50-0.04*bloom` (`:1055`). At balanced
   (bloom 0.40) only raw values above 0.375/0.484 = **0.775 (luma ~198)** survive, then added
   back at alpha 0.31 (`:1065`). It is resolution-independent of the windows (a 1-2 px pane is
   averaged away at 256 px wide).
-- **God rays / flare**: only when the sun disc is live (`js/graphics.js:1007`); off at night.
+- **God rays / flare**: only when the sun disc is live (`js/graphics.js:1058`); off at night.
 - **Depth fog** `aerial-fog` (`js/sky.js:419-468`, `:556-561`): night DIST 2100 m, MAX 0.46,
   colour = mix(horizon `#2c3a63`, zenith `#040713`, 0.22). A real lerp, so distant lit windows
   are pulled toward dark blue.
@@ -111,8 +111,8 @@ path in the three.js layer.
 Layers: `buildings-3d`, `parts-3d`, `outer-tower`, `outer-midrise`, `wc-wall`, `drag-wall`,
 `arts-panel`, `moody-wall`, `heroes-*`, `places-glass` (the atlases of arts/heroes/drag/moody/
 places are their own painters, same shape). All go through the city-lighting shader patch
-(`js/city-lighting.js:192-223`), which at night is a no-op: `cityShade()` returns the original
-colour when `u_sunPresence.x <= 0` (`js/city-lighting.js:61`).
+(`js/city-lighting.js:240-271`), which at night is a no-op: `cityShade()` returns the original
+colour when `u_sunPresence.x <= 0` (`js/city-lighting.js:73`).
 
 `js/facades.js` — the atlas painter for city buildings, outer towers (`tg`, 10 baked buckets,
 `js/facades.js:3295-3298`, `data/outer_tower_palette.json`) and the downtown streetwall (`mh`,
@@ -290,7 +290,7 @@ Sources with no light:
   `night-sweep-core.mjs`, `night-perf-ab.mjs`, `lamp_audit.py`.
 - **The machine was loaded** by other lanes' browsers the whole time (all 3 GPU slots busy; CPU
   88% at the start of the perf run). Boot took 87-344 s.
-- **The authored-apartment handoff timed out in 4 of 5 boots.** `js/app.js:1945-1950` switches
+- **The authored-apartment handoff timed out in 4 of 5 boots.** `js/app.js:1946-1963` switches
   `APARTMENTS.on=false` for the visit if the three.js apartments are not ready 90 s after boot
   (`INTRO.authoredCeilingMs`, `:1793`). Under this load that fired every time except the first
   test boot (87 s). Run A and run B therefore show West Campus as LEGACY prisms with the blurred
@@ -583,7 +583,7 @@ in the named capture (a judgement from looking), **[H]** hypothesis, not verifie
     p99 42). `dk` has occupancy 0 and no ceiling light (`js/facades.js:2029-2045`); the owner's
     Castilian podium (IMG_9970) is a lit cool-white deck with visible fixtures.
 15. **Glass reflection vanishes at night instead of mixing with interior light.** [C]
-    `cityShade()` returns the original colour at `u_sunPresence <= 0` (`js/city-lighting.js:61`),
+    `cityShade()` returns the original colour at `u_sunPresence <= 0` (`js/city-lighting.js:73`),
     and between sun 0° and -6° it LERPS lit panes toward the reflected sky (`:78`) rather than
     adding interior light to reflection.
 16. **Ground pools with no source.** [C] 48 brand-coloured sign pools at sign anchors, text
@@ -597,7 +597,7 @@ in the named capture (a judgement from looking), **[H]** hypothesis, not verifie
     `?lite=1` session (lighter machine load) — every facade atlas, basemap layer, prop,
     ground and stadium expression is rewritten on the heavy path (`js/timeofday.js:379-482`).
 18. **Slow machines lose the authored apartments at night and day alike.** [M] The 90 s authored
-    handoff ceiling (`js/app.js:1945-1950`) fired in 4 of 5 boots here; run B's West Campus at
+    handoff ceiling (`js/app.js:1946-1963`) fired in 4 of 5 boots here; run B's West Campus at
     night is legacy prisms with blurred scatter windows (compare `captures-B/04-*` and
     `captures-C/04-*`). Not a night defect, but it decides which night renderer a visitor gets.
 19. **Stale/duplicate constants** [C]: `#9aa6da` pre-division (defect 3); `props` and

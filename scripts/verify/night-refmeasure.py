@@ -68,6 +68,14 @@ REGIONS = os.path.join(HERE, "night-ref-regions.json")
 # measured and printed but not divided (same rule as night-compare.mjs).
 RATIOS = [("wall", "sky"), ("water", "sky"), ("wall", "ground")]
 
+# --sun flags a binding whose photograph's own clock falls OUTSIDE the BAND of the row
+# it sits on (BANDS below), not merely far from that row's nominal elevation: `night`
+# spans -90 to -19, so -31.6 deg on a -40 deg row is correct and -10.8 deg is not. It
+# is a reading aid, not a gate. Some gaps are deliberate -- capitol/night is bound
+# 29.2 deg off its own clock because its sky is black and its camera clock is wrong --
+# and the point of the flag is that a deliberate gap should LOOK deliberate, with the
+# refNote that accepts it printed underneath, instead of looking like every correct row.
+
 
 # ── Sun elevation at Austin, from a photograph's own stated capture time ─────
 LAT, LON = 30.2672, -97.7431            # Congress Ave at the river; the corpus is all within 3 km
@@ -163,7 +171,7 @@ def claimed_band(tag):
 
 def sun_report(root, routes_file):
     """Every photograph's stated time -> sun elevation, beside its word and its binding."""
-    bound = {}                                    # file -> [(route, regime, regimeSunElev)]
+    bound, notes = {}, {}                         # file -> [(route, regime, regimeSunElev)]
     try:
         cfg = json.load(open(routes_file, encoding="utf-8"))
         regs = cfg.get("regimes", {})
@@ -171,6 +179,8 @@ def sun_report(root, routes_file):
             for g, f in (rt.get("refs") or {}).items():
                 bound.setdefault(f.lstrip("/"), []).append(
                     (rt["id"], g, (regs.get(g) or {}).get("sunElev")))
+                if rt.get("refNote"):
+                    notes.setdefault(f.lstrip("/"), {})[rt["id"]] = rt["refNote"]
     except Exception as e:
         print("  (could not read %s: %s)" % (routes_file, e))
     rows = []
@@ -182,8 +192,22 @@ def sun_report(root, routes_file):
             dt = parse_when(it.get("date"))
             elev = round(sun_elevation(dt), 1) if dt else None
             key = "_night/%s/%s" % (sub, it.get("file"))
+            # The row a photograph is bound to IS a sun elevation. If its own clock puts
+            # it far from that elevation, say so HERE, on the row, with the size of the
+            # gap -- not only in a summary at the bottom. An ACCEPTED mismatch (capitol/
+            # night is one: a black sky whatever the camera clock says) must read as
+            # accepted, with the refNote that accepts it, and not like every correct row.
+            gaps = []
+            for rt, g, ge in bound.get(key, []):
+                if elev is None or g not in BANDS or band_of(elev) == g:
+                    continue          # the clock lands inside the band the row IS
+                gaps.append({"route": rt, "regime": g, "rowSunElev": ge, "band": BANDS[g],
+                             "clockBand": band_of(elev),
+                             "delta": round(abs(elev - ge), 1) if ge is not None else None,
+                             "refNote": (notes.get(key) or {}).get(rt)})
             rows.append({"file": key, "date": it.get("date"), "sunElev": elev,
-                         "taggedRegime": it.get("regime"), "boundTo": bound.get(key, [])})
+                         "taggedRegime": it.get("regime"), "boundTo": bound.get(key, []),
+                         "sunGaps": gaps})
     return rows
 
 
@@ -233,12 +257,29 @@ def main():
         print("sun elevation at Austin from each photograph's OWN stated capture time")
         print("(no time stated = the tag is still a judgement call; see the file's notes)\n")
         print("%-8s  %-16s  %-34s  %s" % ("sun", "stated", "tagged", "bound to"))
+        print("(! on a binding = this photograph's own clock falls OUTSIDE that row's sun-elevation\n"
+              " band. A wide band is not a gap: `night` is -90 to -19, so -31.6 on a -40 row is fine.)\n")
         for r in sorted(rows, key=lambda r: (r["sunElev"] is None, -(r["sunElev"] or 0))):
-            b = ", ".join("%s/%s (%s deg)" % (x[0], x[1], x[2]) for x in r["boundTo"]) or "-"
+            gapof = {(g["route"], g["regime"]): g for g in r.get("sunGaps") or []}
+            b = ", ".join("%s%s/%s (%s deg)%s" % (
+                "! " if (x[0], x[1]) in gapof else "", x[0], x[1], x[2],
+                "  <-- clock is %s, %s deg off this row" % (gapof[(x[0], x[1])]["clockBand"],
+                                                            gapof[(x[0], x[1])]["delta"])
+                if (x[0], x[1]) in gapof else "")
+                for x in r["boundTo"]) or "-"
             print("%-8s  %-16s  %-34s  %s" % (
                 ("%+.1f" % r["sunElev"]) if r["sunElev"] is not None else "  -",
                 r["date"] or "-", str(r["taggedRegime"])[:34], b))
             print("          %s" % r["file"])
+            for g in r.get("sunGaps") or []:
+                if g["refNote"]:
+                    print("          the %s refNote is the argument for keeping it. Read it and"
+                          " decide: %s" % (g["route"],
+                          g["refNote"][:260] + ("..." if len(g["refNote"]) > 260 else "")))
+                else:
+                    print("          NOT EXPLAINED: %s/%s is the %s band %s and this clock is %s."
+                          " The route has no refNote. Write one, or rebind it."
+                          % (g["route"], g["regime"], g["regime"], g["band"], g["clockBand"]))
         misbound, mistagged = [], []
         for r in rows:
             if r["sunElev"] is None:

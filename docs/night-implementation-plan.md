@@ -2,7 +2,16 @@
 
 Written 2026-09-19 for Codex, who owns the integrated night renderer and the final lighting calibration.
 It is a plan only: nothing in it has been built. Evidence is in `docs/night-reference-package.md`, from the
-owner's photos and the web references. Line numbers are against `main` @ `c656249`.
+owner's photos and the web references.
+
+**Line numbers are against `main` @ `13741fa` (re-anchored 2026-09-21).** They were written against
+`c656249`, and `main` then changed six files this plan cites — `js/app.js`, `js/city-lighting.js`,
+`js/graphics.js`, `js/lod.js`, `js/mobile.js`, `js/slopes-dome.js` — so 23 of the 28 citations into
+those files had drifted and every one of them still looked right. The worst was D1's named risk,
+`js/city-lighting.js:215`, which on today's `main` is unrelated shadow-proxy code; it is `:263` now.
+Each one was re-anchored by matching the exact source line, not by eye. **The baseline frames and every
+number in §7.2 are still of `c656249`** — the shoot has not been repeated — and §7.2 says what changed
+underneath them.
 
 Tags used throughout:
 - **[M]** measured: pixels, data or timing, with the method named.
@@ -38,7 +47,7 @@ disk or licence rules kept it out, and Codex owns the renderer it describes: han
 list of line numbers while the reading sat in a git-ignored folder on one laptop was simply a mistake.
 
 **Where the rest of the baseline evidence is (local, not tracked):**
-`C:/Users/simip/Projects/austin-reference-images/_night/_baseline-c656249/` holds:
+`<projects>/austin-reference-images/_night/_baseline-c656249/` holds:
 - `captures-C/`: 12 views × blue hour, twilight and full night, plus the `E1` and `E7` experiments;
 - `captures-B/`;
 - `sweep.json`, `perf-*.json`;
@@ -60,7 +69,7 @@ by the lamps only. Every other consumer carries its own ramp in p:
 | consumer | ramp | where |
 |---|---|---|
 | street/tower/entrance pools | sun +2° → −6° | `js/sky.js:253`, `js/night.js:740-742` |
-| sky darkness, auto-exposure target, label dim | sun +1° → −31° | `js/sky.js:249`, `js/graphics.js:837`, `js/timeofday.js:468` |
+| sky darkness, auto-exposure target, label dim | sun +1° → −31° | `js/sky.js:249`, `js/graphics.js:888`, `js/timeofday.js:468` |
 | stars | sun −7° → −18° | `js/sky.js:257` |
 | facade-atlas lit windows | `(p−.55)/.45`, full at p≈.90 | `js/facades.js:1969`, `:2158`; `js/places.js:325`; `js/drag.js:579`; `js/moody.js:523` |
 | facade-atlas wall darkening | `max(night, −sun/9)` | `js/facades.js:1971-1976` |
@@ -79,7 +88,7 @@ At p .62 [M]:
 
 Both MapLibre's extrusion shader and the slopes shader compute `colour × directional × u_lightcolor`
 (`js/slopes.js:392-404`). They transcribe MapLibre, and at night `cityShade()` is a no-op
-(`js/city-lighting.js:61`).
+(`js/city-lighting.js:73`).
 
 So every lit window, sign band and floodlit wall is multiplied by the night light
 `#8fa0e0` = (0.561, 0.627, 0.878) (`js/timeofday.js:81`). The one exception is the DKR mesh
@@ -143,10 +152,10 @@ Measured, E1 at p=1, changing only the light colour to white:
   | 07 South Mall | 93.8 / 185 | 67.5 / 128 | 12.7 / 79 |
 
   - Pixels above luma 200 at p=1: **≤ 0.001% in all 12 views**.
-  - Bloom's pre-grade threshold is about 0.775, or luma ~198 (`js/graphics.js:1034-1068`), so it has nothing
+  - Bloom's pre-grade threshold is about 0.775, or luma ~198 (`js/graphics.js:1085-1119`), so it has nothing
     to act on.
   - Auto-exposure sits on its clamps: **gain 1.20 at blue hour in 10 of 12 views, and 0.85 at full night in
-    11 of 12** (`js/graphics.js:794-846`).
+    11 of 12** (`js/graphics.js:845-897`).
 - **Other night state** [C][M]:
   - The night light points up from below the ground (z = −0.803, the sun at −40°), not from the moon
     (`js/timeofday.js:409-420`).
@@ -232,7 +241,7 @@ the single clock (W1).
 Each item here is a question whose answer changes the implementation. Nothing else was researched.
 
 **D1. How to get an emissive term into MapLibre's extrusions without forking MapLibre.** [C] + [P]
-- `js/city-lighting.js:191-216` already rewrites MapLibre 5.24's fill-extrusion shaders, and it throws
+- `js/city-lighting.js:239-264` already rewrites MapLibre 5.24's fill-extrusion shaders, and it throws
   visibly if the contract changes.
 - Read in the 5.24 build (`maplibre-gl-dev.js`):
   - **Pattern walls:** lighting is applied in the fragment as `fragColor=mixedColor*v_lighting`. The atlas
@@ -247,7 +256,7 @@ Each item here is a question whose answer changes the implementation. Nothing el
       must un-premultiply `rgb/a`.
     - **It is not free until one more line changes, and W2 — which everything from W3 onward rests on —
       rests on this.** (Named 2026-09-20; §9 used to hedge "must be verified on the real build" without
-      saying what the mechanism was.) The patched solid fragment at `js/city-lighting.js:215` is
+      saying what the mechanism was.) The patched solid fragment at `js/city-lighting.js:263` is
       `fragColor = vec4(cityShade(v_color.rgb/max(v_color.a,.0001), …) * v_color.a, v_color.a)`. It
       writes the colour's alpha **straight to the output alpha** and premultiplies the RGB by it. So a
       feature whose colour alpha carries an emissive code does not just carry data — it **renders
@@ -319,7 +328,7 @@ Each item here is a question whose answer changes the implementation. Nothing el
 
 **D4. Halos as authored sprites, not frame bloom.** [C] + [P]
 - MapLibre draws into the 8-bit default framebuffer. The current bloom copies the GL canvas into a
-  256-px-wide 2D canvas with `brightness/contrast/blur` every frame (`js/graphics.js:1034-1068`), so it
+  256-px-wide 2D canvas with `brightness/contrast/blur` every frame (`js/graphics.js:1085-1119`), so it
   cannot see anything above 1.0. A 1–2 px window averages away at that width.
 - The target halo is small and fixed: ≤ 4× the core radius, 10× drop [M, reference §4.7]. Only small
   emitters and crowns get one.
@@ -441,14 +450,70 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 >
 > That is what a red `--break` looks like. The first version of the flag produced **two frames
 > indistinguishable from the left one** and called it a pass.
+>
+> **The evidence is kept now (2026-09-21).** The paragraph above used to condemn the earlier state
+> with "no `report.json` under `<scratch>/lanes/night/harness/*` carried either flag" — and after the
+> fix that sentence was still true, because the demonstration ran in a session scratch folder that gets
+> swept. Both reports are in the repo: **`docs/night/harness-runs/`**, unedited apart from having
+> absolute paths rewritten, shot `--refs off --local none` so they carry no photograph. The table above
+> reproduces: an independent re-run on `9487d4f` got 0.005% for the control and 8.160% / 7.101% /
+> 3.650% for the sabotage, and re-measuring the frames in numpy outside the harness agreed with the
+> report to the 256-bin quantisation the tool documents.
+>
+> #### And then the sabotage was run somewhere the apartments are not, and `--same` did not notice
+>
+> `--break` removes the authored **West Campus apartments**. At a pose they are not in, it is a
+> measured no-op — so the three `wc-elevated` reds above say nothing about the other thirteen poses.
+> `--break` now takes a mode, and **`--break slopes` empties the whole authored scene** (apartments,
+> roofs, arches, art, the Capitol dome, the Tower, the stadium, the campus landscape) and stubs
+> `slopes.add()` so nothing can creep back in mid-shoot. Run at the two Capitol poses at `night`:
+>
+> | | |
+> |---|---|
+> | authored triangles removed | **3,560,273** — every group in the scene |
+> | sabotage held | yes: root empty and `add` stubbed at the first repaint **and** at the end of the shoot |
+> | `capitol/congress-30m` | A/B pixels over 16 luma **0.172%** |
+> | `capitol/gate-1p7m` | **0.308%** |
+> | verdict | **`PASS --same 1%`, exit 0** |
+>
+> ![the Capitol dome gone, and --same 1% still passing](shots/night-break-capitol-noop.jpg)
+>
+> **The dome is gone and the assertion is green.** That is not a scene fact, it is an instrument fact:
+> at these poses the authored geometry is under one percent of the pixels, so a one-percent tolerance
+> is blind to all of it vanishing. A9's tolerance was a round number, never a derived one — §7.2 now
+> derives it — and until it is derived, **`--same 1` is an assertion only where the subject is large in
+> the frame.** The harness now records, per shot, which slopes groups were on at that camera
+> (`shot.slopes`) and rolls it into `verdict.breakCoverage`, with the no-op poses named. Read that
+> block before quoting a pose as covered.
 
 **Baseline on `main` @ `c656249`**, at all four acceptance regimes. Blue hour, twilight and full night
 were shot 2026-09-20 01:03 UTC; **early night (sun −15°, the owner's 20:36) was shot 2026-09-20 05:02
 UTC**, after `defaultRegimes` was corrected to include it. Settings both times: hardware GL, 1440×900
-DPR 1, `?drift=0`, graphics auto-detect cancelled, second screenshot kept. Frames under
-`<scratch>/lanes/night/harness/baseline2/` and `…/early/`, reports `report.json`. Three sheets are
-committed as the before-picture for W1–W6; the rest stay in scratch, and none of the reference or
-owner-matched sheets may ever be committed.
+DPR 1, `?drift=0`, graphics auto-detect cancelled, second screenshot kept, **one kept frame per (pose,
+regime) — no reps**. Frames under `<scratch>/lanes/night/harness/baseline2/`; **the report is committed
+at `docs/night/harness-runs/baseline-c656249.report.json`** so the numbers below outlive the scratch
+folder. Three sheets are committed as the before-picture for W1–W6; the rest stay in scratch, and none
+of the reference or owner-matched sheets may ever be committed.
+
+**Corrected 2026-09-21 — where the committed sheets came from, and the report that had been edited by
+hand.** This paragraph used to point at `baseline2/`'s report for numbers that were not in it: the
+`ratiosDark` and `ratioBands` the sheets print (`wall/sky 4.98~`, band `3.99–6.64`) lived in a later,
+unnamed `--from` folder, and that folder's own report still carried the *pre-fix* provenance —
+`--refs off --show-regions`, `--out …/baseline2`, harness `03808c6`, no `remeasure` block. Worse,
+`baseline2/report.json` held all four regimes while its `when`/`args`/`harnessGit` described only the
+01:03 Z blue/twilight/night shoot: the sixteen `early` shots had been **merged in by hand**, under a
+`mergedFrom` key `night-compare.mjs` never writes, and the `early` run's side block — 196 buildings,
+two reloads then the poke — had been dropped on the floor. Every `early` number quoted from that file
+sat under the wrong build.
+
+So the merge is now something the tool does. **`night-compare.mjs --from <dir> --merge <other>`** folds
+another run in with its provenance intact: every imported shot carries `mergedFrom`, the other run's
+side block and settings land in `merged[]`, a hand-written `mergedFrom` is preserved as `mergedByHand`,
+and a new top-level `provenance` block says how many of the shots the top-level fields actually
+describe (**48 of 64** here). `baseline2` was rebuilt that way and re-measured with the current
+harness, and the three committed sheets it produces are **bit-identical** to the ones already in
+`docs/shots/` — mean |Δ| 0.000, 0.000% of pixels over 16 luma on all three. The sheets were always the
+right pictures; the file that was supposed to account for them was not.
 
 **Corrected 2026-09-20 — this paragraph used to say the two runs were "in the same worktree at the
 same settings … 196 authored buildings confirmed built (not the legacy fallback)". Both halves of that
@@ -550,10 +615,19 @@ Read against §7.2, over all sixteen committed poses:
 
 - **The reference column has now been run too**, for the first time (2026-09-20). The committed baseline
   was shot with `--refs off --local none`, so `refFor()`, the reference tiles and the `missing:` path had
-  never produced a frame in either direction. All three branches are now exercised: the fifteen bound web
-  photographs composite at the hours their own package entries are tagged with, an unbound row prints
-  `no reference for <regime>` rather than borrowing a photograph of a different sky, and a deliberately
-  unresolvable `NIGHT_REF_ROOT` prints `missing: <file>`. **None of those sheets may be committed.**
+  never produced a frame in either direction. All three branches are now exercised: the bound web
+  photographs composite onto the rows they are bound to, an unbound row prints `no reference for
+  <regime>` rather than borrowing a photograph of a different sky, and a deliberately unresolvable
+  `NIGHT_REF_ROOT` prints `missing: <file>`. **None of those sheets may be committed.**
+
+  **Corrected 2026-09-21 — this used to read "the fifteen bound web photographs composite at the hours
+  their own package entries are tagged with", and neither half is true now.** Counted out of
+  `night-routes.json` today: **12 distinct photographs across 20 (pose, regime) tiles** (14 at
+  `af97f99`; it was never 15). And "at the hours their own entries are tagged with" was the binding rule
+  the very next commit retired: `hargup` is deliberately bound to `twilight` while its own `sources.json`
+  says "full night", because its pixels and its −10.8° clock both say twilight and its `refNote` says so.
+  The rule now is the pixels, checked against the clock, with the argument written into the `refNote` —
+  see `scripts/verify/README.md`.
 
 Four cautions carried by these runs:
 
@@ -616,7 +690,7 @@ Four cautions carried by these runs:
 
 - **Evidence:** §1.2; the E1 A/B [M].
 - **Files:**
-  - `js/city-lighting.js:84-89,191-216`: alpha code for emissive panes; per-feature colour alpha for solids,
+  - `js/city-lighting.js:96-101,191-216`: alpha code for emissive panes; per-feature colour alpha for solids,
     un-premultiplied.
   - The atlas painters that call `glassRect` (`js/facades.js:2162` and the band atlases).
   - `js/slopes.js:392-404` (kind 5), `js/slopes.js:410-450` (fragment).
@@ -734,7 +808,7 @@ Four cautions carried by these runs:
     ground. Its **colour** is decided with the owner (§8).
   - `js/sky.js:419-468`: fog toward skyglow, not `#2c3a63`.
   - `js/sky.js:1245-1256,1519-1521`: stars and skyglow.
-  - `js/graphics.js:794-846`: auto-exposure retargeted per regime, or held at night. It currently pins at
+  - `js/graphics.js:845-897`: auto-exposure retargeted per regime, or held at night. It currently pins at
     0.85 and darkens the night 15% [M].
   - `scripts/bake_detail.py:night_wall()` (`:1091-1098`, its own output) and the WC tier-four ramp, which is
     duplicated in `js/westcampus.js:535-583`, `js/slopes-apartments.js:488-493` and
@@ -748,7 +822,7 @@ Four cautions carried by these runs:
 ### W7. Restrained halos [P]
 
 - **Files:** a new sprite module inside the slopes scene (D4), e.g. `js/night-emitters.js` (heads, festoons,
-  beacons, sign letters, crown skirts). In `js/graphics.js:1034-1068`, turn bloom off at night, or restrict it
+  beacons, sign letters, crown skirts). In `js/graphics.js:1085-1119`, turn bloom off at night, or restrict it
   to the sprite layer if that proves to be needed.
 - **Cost:** proportional to halo area [E]. Minus one canvas readback per frame at night on `balanced` [E].
 - **Phone:** the same sprites, smaller, near-field only.
@@ -827,7 +901,21 @@ sessions rather than one, and it cannot start until W2 lands.
 
 Each route runs at four sun elevations: **−5° (blue hour), −12° and −15° (early night, the owner's 20:36),
 −40° (p=1, deep night)**. Day p .30 and golden p .50 are the no-regression checks. Settings: `?drift=0`,
-auto-detect cancelled, hardware GL, second screenshot kept, 3 reps.
+auto-detect cancelled, hardware GL, second screenshot kept, **one kept frame per (pose, regime, side) —
+there are no reps, and every baseline number below is a single reading.**
+
+> **Corrected 2026-09-21: this line said "3 reps" and the instrument cannot do reps.** `night-compare.mjs`
+> has no reps concept — `report.json` holds exactly one kept frame per (pose, regime, side), and
+> `SETTLE.retries` only re-shoots a frame that is still MOVING; it does not aggregate anything. So the
+> whole "now (`c656249`)" column in §7.2 and all three committed baseline sheets are **single readings**,
+> against `scripts/verify/README.md`'s own law ("take the minimum of interleaved reps, never one
+> reading … a whole theory was built on a single sample and was wrong"). Two things follow, and both
+> are now written into the harness's own header. **One:** where a number has to survive that law, run
+> the harness N times into N `--out` folders and take the minimum across them — do not quote a spread
+> this tool did not produce. **Two:** the A/B diff inside ONE run is the exception the law does not
+> reach, because both sides are shot in the same browser minutes apart under the same machine load;
+> that is what makes `--same` a tighter test than comparing two separate runs, and it is why A9's
+> tolerance could be measured (below) from a single A-against-A run.
 
 These are now poses in **`scripts/verify/night-routes.json`**, shot by `night-compare.mjs` (W0a): R1 →
 `wc-elevated` (3 poses), R2/R3 → `wc-street`, R4 → `congress-street` + `capitol`, R5 →
@@ -846,15 +934,39 @@ they survive the resize onto entirely different subjects. Run it once with `--sh
 them before quoting any ratio from a portrait frame. The frames are honest at any size; the rectangles
 are not.
 
-**R10 has now been run** (2026-09-20, quiet machine, `early` and `night`, R1+R2's five poses, 196
-authored buildings confirmed on every leg). Three interleaved legs, because one phone run on its own
-confounds two different changes:
+**R10 has now been run** (2026-09-20, `early` and `night`, R1+R2's five poses). Three legs, because one
+phone run on its own confounds two different changes:
 
-| leg | `wall/sky`, `san-antonio-castilian` early | bright windows, `over-mlk-north` night |
-|---|---|---|
-| 1440×900 as shipped (preset `balanced`) | 2.58 | 17.8% |
-| 1440×900 `?lite=1` (preset `performance`) | 2.50 | **24.2%** |
-| 393×852 `?lite=1` | **10.2** | 7.6% |
+| leg | report | shot | harness | authored | `wall/sky`, `san-antonio-castilian` early | bright windows, `over-mlk-north` night |
+|---|---|---|---|---|---|---|
+| 1440×900 as shipped (preset `balanced`) | `early-regime-shoot` (early) and `baseline-c656249` (night) | 05:02 Z and **01:03 Z** | `0745d6b` and **`03808c6`** | 196 after 2 reloads; **298** after none | 2.58 | 17.8% |
+| 1440×900 `?lite=1` (preset `performance`) | `r10-1440x900-lite` | 05:44 Z | `0745d6b` | 196, 0 reloads | 2.50 | **24.2%** |
+| 393×852 `?lite=1` | `r10-393x852-lite` | 05:41 Z | `0745d6b` | 196, 0 reloads | **10.2** | 7.6% |
+
+(The `report` column names files in **`docs/night/harness-runs/`**, committed 2026-09-21 so this table
+survives the scratch folder it was written from. The session temp directory those runs were made in gets
+swept, and this repo already has 149 doc citations pointing at frames that only ever existed inside a
+deleted worktree.)
+
+> **Corrected 2026-09-21. This paragraph used to say "quiet machine … 196 authored buildings confirmed
+> on every leg. Three interleaved legs", and the reports it draws from say otherwise — the same three
+> claims §W0a had already corrected sixty lines earlier, left standing here.** The table above now
+> carries its own provenance, and the row that matters is the first one: leg 1 is **not one leg**. Its
+> `early` column comes from the 05:02 Z run on `0745d6b` (196 buildings, two reloads then the poke) and
+> its `night` column from the 01:03 Z run on `03808c6` (**298**, a harness with no reload remedy at
+> all, straight to the poke). So leg 1 differs from legs 2 and 3 by harness commit, by authored-recovery
+> path and by **4.7 hours** — three confounds inside the one comparison this table exists to
+> de-confound. Both cited reports also carry the `INTRO.authoredCeilingMs` load warning, so "quiet
+> machine" was never true of leg 1 either.
+>
+> **What survives it.** Legs 2 and 3 were shot three minutes apart on the same harness commit with no
+> reloads on either, so the 393×852-versus-1440×900 comparison — the aspect finding, the one R10 exists
+> for — is clean. The `?lite=1`-versus-as-shipped comparison in the first two rows is the one that is
+> confounded, and the bright-window column is where it bites: **17.8% → 24.2% is not purely the preset**
+> until leg 1's night column is re-shot on `0745d6b`. The conclusion below (that `?lite=1` lifts the
+> window share by about a third at full night on every pose) rests on five poses' worth of the same
+> comparison and is directionally safe; the individual number is not, and it is quoted here as the
+> confounded reading it is.
 
 - **`?lite=1` is a different renderer, not a smaller window.** It reports preset `performance`: bloom 0
   (from 0.4), god rays 0 (from 0.5), auto-exposure **off**, render scale 0.75, stars 0.5. At the same
@@ -888,24 +1000,117 @@ viewpoint — and live in `../austin-reference-images/_night/night-routes.local.
 | R9 | campus aerial z16 pitch 68 (view 12) | whole-frame ordering, cost | — |
 | R10 | R1 + R2 at 393×852 with `?lite=1` | phone path | — |
 
-### 7.2 Measurements (linear Y from the graded frame; report min/median/max over reps)
+### 7.2 Measurements (linear Y from the graded frame; **one reading each — this harness has no reps**)
+
+> **The `now (c656249)` column is of a build `main` has moved past, and at day it has visibly moved.**
+> `main` went from `c656249` to `13741fa` while this document was being reviewed, changing six of the
+> files it cites — among them `js/city-lighting.js`'s shadow-acne fix, which `docs/dark-campus-diagnosis.md`
+> measures as lifting sun-facing campus visibility from 0.77–0.82 to 0.93–0.95. Run through this
+> harness, one browser, sixteen poses, the two builds side by side at the A9 regimes:
+>
+> ![c656249 beside main at day, and the difference](shots/night-daybaseline-c656249-vs-main.jpg)
+>
+> | regime | A/B pixels over 16 luma, across 16 poses |
+> |---|---|
+> | day | min **0.612%**, median **8.216%**, max **13.504%** |
+> | golden | min 0.003%, median 1.802%, max 5.672% |
+>
+> Everything the sun lights is **5–9% brighter in the midtones** on `main`, the sky is untouched, and
+> both frames were fully settled (`pctOver` 0, no re-shoots) with identical GFX presets and identical
+> authored triangles. That is the shadow fix arriving, not noise — and it is a good change, the one the
+> owner's daylight work was for. What it means here is only this: **the numbers in the `now` column are
+> a `c656249` reading**, the three committed sheets are `c656249` pictures, and neither has been
+> re-shot. The night regimes have not been compared across the two builds yet; `js/slopes-dome.js`
+> changed the Capitol cupola, so `capitol` is the pose to check first. Report:
+> `docs/night/harness-runs/build-ab-c656249-vs-main-daygolden.report.json` — and read its
+> `committedCopy` field, because that run was launched as something else and its side labels are wrong;
+> the per-side `build.sha1` is what identifies it.
 
 | id | measure | target | now (c656249) [M] |
 |---|---|---|---|
-| A1 | blue hour: median unlit wall at the roofline ÷ horizon sky; water ÷ sky above it | wall **≤ 0.5** [M 2026-09-20]; water **≤ 0.35** [M 2026-09-20] | wall 139 against sky 32–96 luma; lake 161 against 31: fails both |
-| A2 | early night: unlit wall ÷ zenith sky; horizon ÷ zenith; unlit glass ÷ wall | 3–7; 1.6–2.2; 0.4–0.6 | twilight walls far above sky (W1) |
+| A1 | blue hour: median unlit wall at the roofline ÷ horizon sky; water ÷ sky above it | wall **≤ 0.5**; water **≤ 0.35** — both **[OBSERVED, not measured at blue hour](#a1s-evidence-is-not-blue-hour)** | wall 139 against sky 32–96 luma; lake 161 against 31: fails both |
+| A2 | early night: unlit wall ÷ zenith sky; horizon ÷ zenith; unlit glass ÷ wall | 3–7; 1.6–2.2; 0.4–0.6 — **[M] from the owner's −15° frames; the harness's `twilight` ROW is not calibrated** (reference §1.1: one unclocked photograph carries it) | twilight walls far above sky (W1) |
 | A3 | deep night: unlit wall against the sky — **see the box below; the ratio form is retired and the replacement's number is not set yet** | **UNSET.** Do not gate on the old "≥ 15": §W0a caution 4 shows it cannot be measured at 8 bits, and §9 does not license a replacement number that nobody has measured | 3.3×; unmeasurable in the ratio form |
 | A4 | occupancy (data **and** pixels): bright / dim share; per-floor SD ÷ binomial SD; complete-unit ratio ÷ chance; distinct patterns | early night 35–45% / 15–25%, deep night 4–12% / 5–8%; ≥ 1.5; ≥ 2; no two buildings identical | 45% everywhere (apartments); atlas bimodal 0/100% at walking height |
 | A5 | lit-window colour: cream/neutral share; warm; cool; saturated accents; mean hue | ≥ 60%; 10–25%; 5–15%; 1–7%; warm (b\* > 0) | khaki (158,136,105); lavender on Congress |
 | A6 | lamps: pavement under the head ÷ mid-span; half-intensity point ÷ spacing; kerb and pavement lit; mapped poles with a lamp within 5 m; lamps inside footprints | 3–7; 0.4–0.6; pavement ≥ 0.5× the carriageway under the same lamp; ≥ 90%; 0 | carriageway std 9 on 151; pavement 14 against 148; 2.2% within 15 m; 10 inside |
 | A7 | halos: radius to 10% of core ÷ core radius; halo from windows; crown skirt | ≤ 4; 0; ≤ 2.5× sky at 1–4° | none |
 | A8 | the brightest things are lights (`night-luma.mjs` ordering) | pass | pass |
-| A9 | no regression: p .30 and .50 frames on R1–R9 | within the noise floor of `main` (PR #267 look intact) | — |
+| A9 | no regression: p .30 and .50 frames on R1–R9 | `--same 0.05` — **derived from a measured floor, see below** (PR #267 look intact) | floor **0.000%** on 32 of 32 frames [M 2026-09-21] |
 | A10 | cost: night vs day forced-frame min (5 interleaved reps, desktop and lite, machine load logged); retint; phone heap at veil | ≤ +10%; ≤ main (aim ≤ 0.5 s); ≤ main + 10 MB | §1.5 |
 | A11 | water: streaks under emitters, no mirror skyline, dry by default | pass by eye plus a streak-mask check | flat plane |
 
 The owner's display levels (reference §5) are phone-lifted. **The ratios are the acceptance.** Absolute
 level is the §8 decision.
+
+> #### A9's tolerance, measured (2026-09-21)
+>
+> A9's target was "within the noise floor of `main`" and its `now` column was a dash: nobody had
+> measured the floor, and the recipe in `scripts/verify/README.md` said `--same 1`, a round number
+> nothing was derived from. **It has been measured.** `main` @ `13741fa` against itself — two
+> independent page loads in one browser, 16 poses × `day` and `golden`, hardware GL, 1440×900, quiet
+> machine, both sides reporting the same build sha, 0 reloads and 2,600,942 authored triangles:
+>
+> | | |
+> |---|---|
+> | A/B pixels over 16 luma | **0.000% on all 32 frames** — min, median and max |
+> | frame pairs that are byte-identical JPEGs | **24 of 32** |
+> | worst mean \|Δ luma\| on the other eight | **0.021** |
+> | frames still moving after the settle check | 0 |
+>
+> **The renderer is deterministic across page loads at these two regimes.** So the floor is not "about
+> a percent" — it is zero, and `--same 1` was two orders of magnitude looser than the thing it was
+> meant to bound. **A9 is `--same 0.05`**: ten times the largest reading ever taken from an unchanged
+> build anywhere in this harness (0.005% at `night`, five frames, on a machine under load), and still
+> twenty times tighter than the old number.
+>
+> That one change is also what rescues the Capitol problem in §W0a. The total authored-scene wipe that
+> `PASS`ed at 1% moved **0.172%** and **0.308%** — comfortably red at 0.05%. The sabotage was never too
+> weak; the tolerance was too loose. Re-measured at the new tolerance, with no re-shoot:
+>
+> ```
+> night-compare.mjs --from <the --break slopes run> --same 0.05  ->  FAIL, exit 1
+> ```
+>
+> **What a floor of zero does not mean.** It is a floor for *this* machine, quiet, at these two
+> regimes, between two loads of one build minutes apart. A run whose two sides hit different machine
+> load — the `INTRO.authoredCeilingMs` path, a reload, the `APARTMENTS.on` poke — is not this
+> measurement, and the report says which path each side took. Check that before quoting 0.000% as
+> yours. And the same instrument measured **0.612–13.504% at `day`** between `c656249` and `13741fa`
+> above: against a floor of zero, that is not noise, it is the shadow fix, and it is exactly the size
+> of thing A9 now catches.
+
+> #### A1's evidence is not blue hour
+>
+> **Corrected 2026-09-21. Until now both halves of A1 were tagged `[M 2026-09-20]`, and the frames they
+> were measured on are frames this same package disqualifies.** The tag is off. The numbers are not.
+>
+> The **wall** half was measured on three frames: `waterloo` (no capture time at all, unknown licence),
+> `cutrer 20:34` — which `night-refmeasure.py --sun` itself prints as **sun −2.6°, sunset**, and which
+> §1.2 of the reference package lists as *corrected out* of blue hour — and `rambler`, which the same
+> commit re-tagged a **sunset** frame. The **water** half, which *tightened* the target from ≤ 1 to
+> ≤ 0.35, was measured on `townlake` (no clock), `kotipalli` (its own stamp puts the sun at **+3.6°**,
+> above the horizon) and `dimas`, which `--sun` puts at **−20.9°** and which `night-routes.json`'s own
+> `refNote` calls *"full night … it stays unbound"*. Two tracked files written in one commit said
+> opposite things about the same photograph; `night-ref-regions.json` has been corrected to agree with
+> the sun.
+>
+> **The one clock-confirmed blue hour in the corpus has now been measured.** `mrlaugh 17:55` (sun
+> −5.9°) had no rectangles; it has them now, and it reads **wall/sky 0.413** — against 0.122, 0.132 and
+> 0.234 from the three disqualified frames. That is the useful part: a real blue-hour sky is *dimmer
+> relative to the wall* than a sunset sky is, so the sunset frames were making the target look far
+> easier to meet than blue hour does. It still is not a measurement of the target, because `mrlaugh`'s
+> own `sources.json` entry flags it **heavy HDR**, and §2 of the reference package forbids calibrating
+> on an HDR frame — that is the rule that disqualifies `ut-tower-all-seeing` for twilight. It is a
+> cross-check, and it is tagged as one in `night-ref-regions.json`.
+>
+> **So the thresholds stay where they are, as OBSERVED values, and here is why that is not a dodge:**
+> nothing we render is anywhere near them. Our blue-hour wall is 139 luma against a 32–96 sky and the
+> lake is 161 against 31 — we fail A1 by roughly an order of magnitude, at ≤ 0.5 or at ≤ 0.35 or at
+> anything in between. The tolerance is not load-bearing at this distance. It becomes load-bearing the
+> moment W1 lands, and **before it does, A1 needs one clock-confirmed, non-HDR blue-hour photograph
+> with a wall and a water rectangle on it** — the corpus does not contain one today. That is a
+> gathering task, not a measuring one.
 
 > #### A3, written out (added 2026-09-20, because the table used to print a number this document
 > #### elsewhere says cannot be measured)
@@ -996,7 +1201,7 @@ the 2026 photos (warm-neutral white, not sodium, not blue). Stars stay subdued i
   The colour-alpha and alpha-code tricks must be verified on the real build before anything depends on
   them — and **for the colour-alpha trick the thing to verify now has a name** (added 2026-09-20; this
   bullet used to hedge without saying what could go wrong). The patched solid fragment at
-  `js/city-lighting.js:215` writes `v_color.a` straight to the output alpha and premultiplies by it, so a
+  `js/city-lighting.js:263` writes `v_color.a` straight to the output alpha and premultiplies by it, so a
   feature whose colour alpha carries data renders **translucent** unless the same commit forces the
   patched path's output alpha to 1.0. W2 rests on that channel and everything from W3 onward rests on W2,
   so this is the load-bearing line in D1. The test is one feature at alpha 0.5 over a contrasting

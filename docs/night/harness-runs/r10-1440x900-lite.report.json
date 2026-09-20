@@ -1,0 +1,1720 @@
+{
+ "tool": "scripts/verify/night-compare.mjs",
+ "when": "2026-09-20T05:44:34.737Z",
+ "harnessGit": {
+  "head": "0745d6b",
+  "dirty": true
+ },
+ "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+ "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+ "viewport": [
+  1440,
+  900
+ ],
+ "viewportOverridden": false,
+ "dpr": 1,
+ "gl": "hardware",
+ "args": [
+  "--out",
+  "<scratch>/lanes/night/harness/lite-landscape",
+  "--a",
+  "lite=1",
+  "--only",
+  "wc-elevated,wc-street",
+  "--regimes",
+  "early,night",
+  "--refs",
+  "off"
+ ],
+ "params": {
+  "WAIT": {
+   "styleMs": 180000,
+   "veilMs": 300000,
+   "authoredMs": 600000,
+   "authoredReloads": 2,
+   "regimeIdleMs": 30000,
+   "tilesMs": 45000,
+   "idleMs": 20000,
+   "settleMs": 3000,
+   "secondShotMs": 1000
+  },
+  "SETTLE": {
+   "luma": 24,
+   "maxPct": 0.25,
+   "retries": 2,
+   "waitMs": 3000
+  },
+  "CAMERA": {
+   "pitchTol": 0.6,
+   "altTolAbs": 1.5,
+   "altTolRel": 0.05,
+   "zoomTol": 0.02
+  },
+  "MEASURE": {
+   "relK": 4,
+   "minLuma": 40,
+   "absLuma": 120,
+   "hotLuma": 120,
+   "veryHotLuma": 200,
+   "blankStd": 1,
+   "minRegionFrac": 0.01
+  },
+  "DIFF": {
+   "luma": 16,
+   "lumaBig": 48
+  }
+ },
+ "regimes": {
+  "early": {
+   "p": 0.7222,
+   "sunElev": -15,
+   "note": "the owner's 20:36 elevated series (sun -14.5 to -15.2 deg)"
+  },
+  "night": {
+   "p": 1,
+   "sunElev": -40,
+   "note": "full night (p = 1)"
+  }
+ },
+ "sides": [
+  {
+   "key": "A",
+   "site": "http://127.0.0.1:8661",
+   "query": "&lite=1",
+   "label": "&lite=1",
+   "pageErrors": [],
+   "warnings": [],
+   "build": {
+    "sha1": "4807b1680898",
+    "scripts": 42
+   },
+   "url": "http://127.0.0.1:8661/index.html?intro=0&drift=0&clip=1&lite=1",
+   "veil": "lifted",
+   "veilMs": 40472,
+   "intro": {
+    "reason": "ceiling",
+    "waitedMs": 34446,
+    "modelFallback": null,
+    "missingAtLift": []
+   },
+   "authoredReloads": 0,
+   "readyMs": 40512,
+   "apartments": {
+    "group": true,
+    "buildings": 196,
+    "done": true,
+    "triangles": 1849232,
+    "slopesOn": true
+   },
+   "gfx": {
+    "preset": "performance",
+    "bloom": 0,
+    "godRays": 0,
+    "autoExposure": false,
+    "renderScale": 0.75,
+    "filmic": 0.65,
+    "exposure": 1.03,
+    "stars": 0.5
+   }
+  }
+ ],
+ "shots": [
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "over-drag-wnw",
+   "regime": "early",
+   "p": 0.7222,
+   "sunElev": -15,
+   "file": "frames/A-wc-elevated-over-drag-wnw-early.jpg",
+   "camera": {
+    "want": {
+     "pitch": 84.72,
+     "zoom": 15.944,
+     "eyeAlt": 80
+    },
+    "got": {
+     "pitch": 84.72,
+     "bearing": -65.91,
+     "zoom": 15.944,
+     "eyeAlt": 79.91
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 8705,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(1.024)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 45.5,
+      "std": 26.47,
+      "p1": 12,
+      "p10": 13,
+      "p50": 42,
+      "p90": 81,
+      "p99": 104
+     },
+     "Y": {
+      "mean": 0.03691,
+      "p10": 0.005182,
+      "p50": 0.02519,
+      "p90": 0.08438
+     },
+     "rgb": [
+      47,
+      44,
+      59
+     ],
+     "hot120": 0.442,
+     "hot200": 0.005
+    },
+    "regions": {
+     "sky": {
+      "n": 236817,
+      "luma": {
+       "mean": 16.1,
+       "std": 3.33,
+       "p1": 12,
+       "p10": 12,
+       "p50": 14,
+       "p90": 21,
+       "p99": 24
+      },
+      "Y": {
+       "mean": 0.006608,
+       "p10": 0.005182,
+       "p50": 0.006049,
+       "p90": 0.009721
+      },
+      "rgb": [
+       9,
+       14,
+       54
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.1827
+     },
+     "wall": {
+      "n": 59292,
+      "luma": {
+       "mean": 63.1,
+       "std": 19.07,
+       "p1": 25,
+       "p10": 37,
+       "p50": 70,
+       "p90": 83,
+       "p99": 92
+      },
+      "Y": {
+       "mean": 0.0552,
+       "p10": 0.0185,
+       "p50": 0.06301,
+       "p90": 0.0865
+      },
+      "rgb": [
+       70,
+       62,
+       59
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0457
+     },
+     "ground": {
+      "n": 15257,
+      "luma": {
+       "mean": 95.9,
+       "std": 43.56,
+       "p1": 40,
+       "p10": 44,
+       "p50": 88,
+       "p90": 164,
+       "p99": 196
+      },
+      "Y": {
+       "mean": 0.1524,
+       "p10": 0.02624,
+       "p50": 0.1022,
+       "p90": 0.3813
+      },
+      "rgb": [
+       117,
+       93,
+       64
+      ],
+      "hot120": 27.364,
+      "hot200": 0.393,
+      "frac": 0.0118
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.06301,
+     "relK": 4,
+     "pct": 0,
+     "absPct": 0,
+     "rgb": null
+    },
+    "ratios": {
+     "wall/sky": 10.4,
+     "ground/sky": 16.9,
+     "wall/ground": 0.617
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "over-mlk-north",
+   "regime": "early",
+   "p": 0.7222,
+   "sunElev": -15,
+   "file": "frames/A-wc-elevated-over-mlk-north-early.jpg",
+   "camera": {
+    "want": {
+     "pitch": 84.41,
+     "zoom": 16.028,
+     "eyeAlt": 80
+    },
+    "got": {
+     "pitch": 84.41,
+     "bearing": -5.4,
+     "zoom": 16.028,
+     "eyeAlt": 79.91
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 8916,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(1.024)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 43.7,
+      "std": 24.4,
+      "p1": 12,
+      "p10": 13,
+      "p50": 42,
+      "p90": 74,
+      "p99": 105
+     },
+     "Y": {
+      "mean": 0.03366,
+      "p10": 0.005182,
+      "p50": 0.02519,
+      "p90": 0.07036
+     },
+     "rgb": [
+      44,
+      42,
+      57
+     ],
+     "hot120": 0.397,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 255636,
+      "luma": {
+       "mean": 18.4,
+       "std": 5.83,
+       "p1": 12,
+       "p10": 12,
+       "p50": 15,
+       "p90": 27,
+       "p99": 32
+      },
+      "Y": {
+       "mean": 0.008111,
+       "p10": 0.005182,
+       "p50": 0.006512,
+       "p90": 0.0137
+      },
+      "rgb": [
+       10,
+       17,
+       59
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.1973
+     },
+     "wall": {
+      "n": 67545,
+      "luma": {
+       "mean": 63.9,
+       "std": 19.14,
+       "p1": 27,
+       "p10": 37,
+       "p50": 62,
+       "p90": 87,
+       "p99": 109
+      },
+      "Y": {
+       "mean": 0.05652,
+       "p10": 0.01938,
+       "p50": 0.04971,
+       "p90": 0.09759
+      },
+      "rgb": [
+       68,
+       63,
+       64
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0521
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.04971,
+     "relK": 4,
+     "pct": 0,
+     "absPct": 0,
+     "rgb": null
+    },
+    "ratios": {
+     "wall/sky": 7.63
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "down-on-ion",
+   "regime": "early",
+   "p": 0.7222,
+   "sunElev": -15,
+   "file": "frames/A-wc-elevated-down-on-ion-early.jpg",
+   "camera": {
+    "want": {
+     "pitch": 65.08,
+     "zoom": 17.681,
+     "eyeAlt": 110
+    },
+    "got": {
+     "pitch": 65.08,
+     "bearing": 166.63,
+     "zoom": 17.681,
+     "eyeAlt": 109.88
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 5312,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(1.024)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 60,
+      "std": 22.89,
+      "p1": 16,
+      "p10": 32,
+      "p50": 56,
+      "p90": 87,
+      "p99": 121
+     },
+     "Y": {
+      "mean": 0.0532,
+      "p10": 0.016,
+      "p50": 0.04092,
+      "p90": 0.09759
+     },
+     "rgb": [
+      65,
+      58,
+      62
+     ],
+     "hot120": 1.203,
+     "hot200": 0.006
+    },
+    "regions": {
+     "sky": {
+      "n": 44200,
+      "luma": {
+       "mean": 38.2,
+       "std": 4.57,
+       "p1": 30,
+       "p10": 32,
+       "p50": 37,
+       "p90": 44,
+       "p99": 49
+      },
+      "Y": {
+       "mean": 0.02241,
+       "p10": 0.01681,
+       "p50": 0.02217,
+       "p90": 0.02843
+      },
+      "rgb": [
+       28,
+       36,
+       87
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0341
+     },
+     "wall": {
+      "n": 139149,
+      "luma": {
+       "mean": 72.4,
+       "std": 19.79,
+       "p1": 40,
+       "p10": 45,
+       "p50": 78,
+       "p90": 95,
+       "p99": 108
+      },
+      "Y": {
+       "mean": 0.07198,
+       "p10": 0.02843,
+       "p50": 0.07819,
+       "p90": 0.117
+      },
+      "rgb": [
+       82,
+       70,
+       66
+      ],
+      "hot120": 0.508,
+      "hot200": 0,
+      "frac": 0.1074
+     },
+     "ground": {
+      "n": 16632,
+      "luma": {
+       "mean": 56.6,
+       "std": 17.82,
+       "p1": 26,
+       "p10": 39,
+       "p50": 51,
+       "p90": 84,
+       "p99": 100
+      },
+      "Y": {
+       "mean": 0.04512,
+       "p10": 0.02122,
+       "p50": 0.0331,
+       "p90": 0.09084
+      },
+      "rgb": [
+       63,
+       55,
+       52
+      ],
+      "hot120": 0.469,
+      "hot200": 0,
+      "frac": 0.0128
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.07819,
+     "relK": 4,
+     "pct": 0,
+     "absPct": 0.508,
+     "rgb": null
+    },
+    "ratios": {
+     "wall/sky": 3.53,
+     "ground/sky": 1.49,
+     "wall/ground": 2.36
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-street",
+   "pose": "rio-grande-23rd",
+   "regime": "early",
+   "p": 0.7222,
+   "sunElev": -15,
+   "file": "frames/A-wc-street-rio-grande-23rd-early.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 3.95,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 6369,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(1.024)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 109.3,
+      "std": 72.03,
+      "p1": 7,
+      "p10": 26,
+      "p50": 73,
+      "p90": 199,
+      "p99": 206
+     },
+     "Y": {
+      "mean": 0.2481,
+      "p10": 0.01096,
+      "p50": 0.07036,
+      "p90": 0.5841
+     },
+     "rgb": [
+      128,
+      107,
+      74
+     ],
+     "hot120": 45.11,
+     "hot200": 9.445
+    },
+    "regions": {
+     "sky": {
+      "n": 7107,
+      "luma": {
+       "mean": 13.7,
+       "std": 4.64,
+       "p1": 12,
+       "p10": 12,
+       "p50": 13,
+       "p90": 13,
+       "p99": 40
+      },
+      "Y": {
+       "mean": 0.00552,
+       "p10": 0.004777,
+       "p50": 0.005182,
+       "p90": 0.005182
+      },
+      "rgb": [
+       7,
+       12,
+       48
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0055,
+      "small": true
+     },
+     "wall": {
+      "n": 80829,
+      "luma": {
+       "mean": 49.4,
+       "std": 25.39,
+       "p1": 4,
+       "p10": 16,
+       "p50": 44,
+       "p90": 90,
+       "p99": 94
+      },
+      "Y": {
+       "mean": 0.03974,
+       "p10": 0.005182,
+       "p50": 0.02624,
+       "p90": 0.1046
+      },
+      "rgb": [
+       53,
+       48,
+       47
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0624
+     },
+     "ground": {
+      "n": 127656,
+      "luma": {
+       "mean": 199.8,
+       "std": 4.97,
+       "p1": 186,
+       "p10": 192,
+       "p50": 200,
+       "p90": 205,
+       "p99": 206
+      },
+      "Y": {
+       "mean": 0.5897,
+       "p10": 0.5457,
+       "p50": 0.5972,
+       "p90": 0.624
+      },
+      "rgb": [
+       236,
+       196,
+       131
+      ],
+      "hot120": 100,
+      "hot200": 54.379,
+      "frac": 0.0985
+     }
+    },
+    "smallRegions": [
+     "sky"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.02624,
+     "relK": 4,
+     "pct": 9.581,
+     "absPct": 0,
+     "rgb": [
+      101,
+      91,
+      86
+     ]
+    },
+    "ratios": {
+     "wall/sky": 5.06,
+     "ground/sky": 115,
+     "wall/ground": 0.0439
+    },
+    "ratiosSmall": [
+     "wall/sky",
+     "ground/sky"
+    ]
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-street",
+   "pose": "san-antonio-castilian",
+   "regime": "early",
+   "p": 0.7222,
+   "sunElev": -15,
+   "file": "frames/A-wc-street-san-antonio-castilian-early.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 7.54,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 3339,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(1.024)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 59.2,
+      "std": 54.85,
+      "p1": 6,
+      "p10": 12,
+      "p50": 29,
+      "p90": 153,
+      "p99": 185
+     },
+     "Y": {
+      "mean": 0.09035,
+      "p10": 0.004025,
+      "p50": 0.0137,
+      "p90": 0.3231
+     },
+     "rgb": [
+      69,
+      57,
+      50
+     ],
+     "hot120": 20.793,
+     "hot200": 0.019
+    },
+    "regions": {
+     "sky": {
+      "n": 23490,
+      "luma": {
+       "mean": 13.7,
+       "std": 1.49,
+       "p1": 12,
+       "p10": 12,
+       "p50": 13,
+       "p90": 14,
+       "p99": 15
+      },
+      "Y": {
+       "mean": 0.005391,
+       "p10": 0.005182,
+       "p50": 0.005182,
+       "p90": 0.006049
+      },
+      "rgb": [
+       7,
+       12,
+       50
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0181
+     },
+     "wall": {
+      "n": 116667,
+      "luma": {
+       "mean": 39.8,
+       "std": 23.33,
+       "p1": 14,
+       "p10": 20,
+       "p50": 28,
+       "p90": 78,
+       "p99": 96
+      },
+      "Y": {
+       "mean": 0.02855,
+       "p10": 0.007499,
+       "p50": 0.01298,
+       "p90": 0.07619
+      },
+      "rgb": [
+       51,
+       37,
+       31
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.09
+     },
+     "ground": {
+      "n": 143613,
+      "luma": {
+       "mean": 150.9,
+       "std": 17.89,
+       "p1": 113,
+       "p10": 125,
+       "p50": 152,
+       "p90": 173,
+       "p99": 181
+      },
+      "Y": {
+       "mean": 0.3212,
+       "p10": 0.2122,
+       "p50": 0.3185,
+       "p90": 0.4287
+      },
+      "rgb": [
+       179,
+       147,
+       107
+      ],
+      "hot120": 94.865,
+      "hot200": 0,
+      "frac": 0.1108
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.01298,
+     "relK": 4,
+     "pct": 23.689,
+     "absPct": 0,
+     "rgb": [
+      83,
+      76,
+      66
+     ]
+    },
+    "ratios": {
+     "wall/sky": 2.5,
+     "ground/sky": 61.5,
+     "wall/ground": 0.0408
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "over-drag-wnw",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-wc-elevated-over-drag-wnw-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 84.72,
+     "zoom": 15.944,
+     "eyeAlt": 80
+    },
+    "got": {
+     "pitch": 84.72,
+     "bearing": -65.91,
+     "zoom": 15.944,
+     "eyeAlt": 79.91
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 8193,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 18.7,
+      "std": 20.34,
+      "p1": 3,
+      "p10": 4,
+      "p50": 16,
+      "p90": 31,
+      "p99": 104
+     },
+     "Y": {
+      "mean": 0.01141,
+      "p10": 0.001214,
+      "p50": 0.005182,
+      "p90": 0.01444
+     },
+     "rgb": [
+      18,
+      18,
+      25
+     ],
+     "hot120": 0.208,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 236817,
+      "luma": {
+       "mean": 3.9,
+       "std": 1.04,
+       "p1": 3,
+       "p10": 3,
+       "p50": 4,
+       "p90": 4,
+       "p99": 5
+      },
+      "Y": {
+       "mean": 0.001195,
+       "p10": 0.0009106,
+       "p50": 0.001214,
+       "p90": 0.001518
+      },
+      "rgb": [
+       3,
+       4,
+       10
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.1827
+     },
+     "wall": {
+      "n": 59292,
+      "luma": {
+       "mean": 30.3,
+       "std": 28.26,
+       "p1": 14,
+       "p10": 16,
+       "p50": 17,
+       "p90": 95,
+       "p99": 107
+      },
+      "Y": {
+       "mean": 0.02354,
+       "p10": 0.005605,
+       "p50": 0.006049,
+       "p90": 0.117
+      },
+      "rgb": [
+       32,
+       30,
+       31
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0457
+     },
+     "ground": {
+      "n": 15257,
+      "luma": {
+       "mean": 62.4,
+       "std": 46.95,
+       "p1": 13,
+       "p10": 17,
+       "p50": 52,
+       "p90": 142,
+       "p99": 181
+      },
+      "Y": {
+       "mean": 0.08386,
+       "p10": 0.005605,
+       "p50": 0.0356,
+       "p90": 0.2789
+      },
+      "rgb": [
+       76,
+       60,
+       44
+      ],
+      "hot120": 13.391,
+      "hot200": 0,
+      "frac": 0.0118
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.006049,
+     "relK": 4,
+     "pct": 16.749,
+     "absPct": 0,
+     "rgb": [
+      95,
+      90,
+      81
+     ]
+    },
+    "ratios": {
+     "wall/sky": 4.98,
+     "ground/sky": 29.3,
+     "wall/ground": 0.17
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "over-mlk-north",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-wc-elevated-over-mlk-north-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 84.41,
+     "zoom": 16.028,
+     "eyeAlt": 80
+    },
+    "got": {
+     "pitch": 84.41,
+     "bearing": -5.4,
+     "zoom": 16.028,
+     "eyeAlt": 79.91
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 10315,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 17.8,
+      "std": 17.15,
+      "p1": 3,
+      "p10": 4,
+      "p50": 16,
+      "p90": 30,
+      "p99": 102
+     },
+     "Y": {
+      "mean": 0.009441,
+      "p10": 0.001214,
+      "p50": 0.005605,
+      "p90": 0.0137
+     },
+     "rgb": [
+      17,
+      18,
+      24
+     ],
+     "hot120": 0.168,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 255636,
+      "luma": {
+       "mean": 4.8,
+       "std": 2.29,
+       "p1": 3,
+       "p10": 3,
+       "p50": 4,
+       "p90": 8,
+       "p99": 11
+      },
+      "Y": {
+       "mean": 0.001486,
+       "p10": 0.0009106,
+       "p50": 0.001214,
+       "p90": 0.002732
+      },
+      "rgb": [
+       3,
+       5,
+       12
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.1973
+     },
+     "wall": {
+      "n": 67545,
+      "luma": {
+       "mean": 34.4,
+       "std": 29.62,
+       "p1": 13,
+       "p10": 16,
+       "p50": 18,
+       "p90": 95,
+       "p99": 108
+      },
+      "Y": {
+       "mean": 0.02766,
+       "p10": 0.005182,
+       "p50": 0.006512,
+       "p90": 0.117
+      },
+      "rgb": [
+       37,
+       34,
+       34
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0521
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.006512,
+     "relK": 4,
+     "pct": 24.246,
+     "absPct": 0,
+     "rgb": [
+      87,
+      83,
+      75
+     ]
+    },
+    "ratios": {
+     "wall/sky": 5.36
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-elevated",
+   "pose": "down-on-ion",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-wc-elevated-down-on-ion-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 65.08,
+     "zoom": 17.681,
+     "eyeAlt": 110
+    },
+    "got": {
+     "pitch": 65.08,
+     "bearing": 166.63,
+     "zoom": 17.681,
+     "eyeAlt": 109.88
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 6395,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 22.7,
+      "std": 20.1,
+      "p1": 4,
+      "p10": 12,
+      "p50": 17,
+      "p90": 31,
+      "p99": 110
+     },
+     "Y": {
+      "mean": 0.01356,
+      "p10": 0.004025,
+      "p50": 0.005605,
+      "p90": 0.01521
+     },
+     "rgb": [
+      23,
+      22,
+      28
+     ],
+     "hot120": 0.045,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 44200,
+      "luma": {
+       "mean": 19.6,
+       "std": 4.37,
+       "p1": 12,
+       "p10": 14,
+       "p50": 19,
+       "p90": 25,
+       "p99": 27
+      },
+      "Y": {
+       "mean": 0.00745,
+       "p10": 0.004777,
+       "p50": 0.006995,
+       "p90": 0.01033
+      },
+      "rgb": [
+       14,
+       19,
+       41
+      ],
+      "hot120": 0.009,
+      "hot200": 0,
+      "frac": 0.0341
+     },
+     "wall": {
+      "n": 139149,
+      "luma": {
+       "mean": 27.5,
+       "std": 27.74,
+       "p1": 13,
+       "p10": 16,
+       "p50": 17,
+       "p90": 78,
+       "p99": 112
+      },
+      "Y": {
+       "mean": 0.02134,
+       "p10": 0.005182,
+       "p50": 0.005605,
+       "p90": 0.07819
+      },
+      "rgb": [
+       30,
+       27,
+       30
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.1074
+     },
+     "ground": {
+      "n": 16632,
+      "luma": {
+       "mean": 15.1,
+       "std": 18.53,
+       "p1": 3,
+       "p10": 5,
+       "p50": 11,
+       "p90": 24,
+       "p99": 107
+      },
+      "Y": {
+       "mean": 0.00889,
+       "p10": 0.001821,
+       "p50": 0.003677,
+       "p90": 0.009721
+      },
+      "rgb": [
+       15,
+       15,
+       18
+      ],
+      "hot120": 0.216,
+      "hot200": 0,
+      "frac": 0.0128
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.005605,
+     "relK": 4,
+     "pct": 12.514,
+     "absPct": 0,
+     "rgb": [
+      104,
+      98,
+      86
+     ]
+    },
+    "ratios": {
+     "wall/sky": 0.801,
+     "ground/sky": 0.526,
+     "wall/ground": 1.52
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-street",
+   "pose": "rio-grande-23rd",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-wc-street-rio-grande-23rd-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 3.95,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 4297,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 88.1,
+      "std": 73.71,
+      "p1": 3,
+      "p10": 14,
+      "p50": 53,
+      "p90": 184,
+      "p99": 192
+     },
+     "Y": {
+      "mean": 0.1877,
+      "p10": 0.004777,
+      "p50": 0.0356,
+      "p90": 0.491
+     },
+     "rgb": [
+      102,
+      86,
+      65
+     ],
+     "hot120": 44.325,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 7107,
+      "luma": {
+       "mean": 4,
+       "std": 2.52,
+       "p1": 2,
+       "p10": 3,
+       "p50": 4,
+       "p90": 4,
+       "p99": 14
+      },
+      "Y": {
+       "mean": 0.001269,
+       "p10": 0.0009106,
+       "p50": 0.001214,
+       "p90": 0.001214
+      },
+      "rgb": [
+       3,
+       4,
+       9
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0055,
+      "small": true
+     },
+     "wall": {
+      "n": 80829,
+      "luma": {
+       "mean": 20,
+       "std": 21.18,
+       "p1": 2,
+       "p10": 6,
+       "p50": 16,
+       "p90": 19,
+       "p99": 107
+      },
+      "Y": {
+       "mean": 0.01263,
+       "p10": 0.001821,
+       "p50": 0.005182,
+       "p90": 0.006995
+      },
+      "rgb": [
+       19,
+       20,
+       27
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0624
+     },
+     "ground": {
+      "n": 127656,
+      "luma": {
+       "mean": 185.2,
+       "std": 6.19,
+       "p1": 167,
+       "p10": 176,
+       "p50": 186,
+       "p90": 191,
+       "p99": 193
+      },
+      "Y": {
+       "mean": 0.4964,
+       "p10": 0.4452,
+       "p50": 0.5029,
+       "p90": 0.5333
+      },
+      "rgb": [
+       217,
+       181,
+       129
+      ],
+      "hot120": 100,
+      "hot200": 0,
+      "frac": 0.0985
+     }
+    },
+    "smallRegions": [
+     "sky"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.005182,
+     "relK": 4,
+     "pct": 7.115,
+     "absPct": 0,
+     "rgb": [
+      96,
+      92,
+      79
+     ]
+    },
+    "ratios": {
+     "wall/sky": 4.27,
+     "ground/sky": 414,
+     "wall/ground": 0.0103
+    },
+    "ratiosSmall": [
+     "wall/sky",
+     "ground/sky"
+    ]
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "wc-street",
+   "pose": "san-antonio-castilian",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-wc-street-san-antonio-castilian-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 7.54,
+     "zoom": 20.103,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 3395,
+   "ae": {
+    "gain": 1,
+    "luma": null
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 38.7,
+      "std": 47.52,
+      "p1": 3,
+      "p10": 3,
+      "p50": 13,
+      "p90": 125,
+      "p99": 159
+     },
+     "Y": {
+      "mean": 0.0513,
+      "p10": 0.0009106,
+      "p50": 0.004391,
+      "p90": 0.2086
+     },
+     "rgb": [
+      44,
+      38,
+      34
+     ],
+     "hot120": 11.549,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 23490,
+      "luma": {
+       "mean": 3.3,
+       "std": 1.46,
+       "p1": 3,
+       "p10": 3,
+       "p50": 3,
+       "p90": 4,
+       "p99": 4
+      },
+      "Y": {
+       "mean": 0.001005,
+       "p10": 0.0009106,
+       "p50": 0.0009106,
+       "p90": 0.001214
+      },
+      "rgb": [
+       2,
+       3,
+       7
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0181
+     },
+     "wall": {
+      "n": 116667,
+      "luma": {
+       "mean": 20.8,
+       "std": 20.21,
+       "p1": 6,
+       "p10": 8,
+       "p50": 14,
+       "p90": 57,
+       "p99": 95
+      },
+      "Y": {
+       "mean": 0.01222,
+       "p10": 0.002428,
+       "p50": 0.004777,
+       "p90": 0.04231
+      },
+      "rgb": [
+       23,
+       20,
+       23
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.09
+     },
+     "ground": {
+      "n": 143613,
+      "luma": {
+       "mean": 122.3,
+       "std": 21.89,
+       "p1": 76,
+       "p10": 91,
+       "p50": 124,
+       "p90": 150,
+       "p99": 159
+      },
+      "Y": {
+       "mean": 0.2075,
+       "p10": 0.107,
+       "p50": 0.2051,
+       "p90": 0.3095
+      },
+      "rgb": [
+       143,
+       119,
+       89
+      ],
+      "hot120": 55.279,
+      "hot200": 0,
+      "frac": 0.1108
+     }
+    },
+    "smallRegions": [],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.004777,
+     "relK": 4,
+     "pct": 13.123,
+     "absPct": 0,
+     "rgb": [
+      78,
+      67,
+      59
+     ]
+    },
+    "ratios": {
+     "wall/sky": 5.25,
+     "ground/sky": 225,
+     "wall/ground": 0.0233
+    },
+    "ratiosSmall": []
+   },
+   "blank": false
+  }
+ ],
+ "sheets": [
+  "sheet-wc-elevated-over-drag-wnw.jpg",
+  "sheet-wc-elevated-over-mlk-north.jpg",
+  "sheet-wc-elevated-down-on-ion.jpg",
+  "sheet-wc-street-rio-grande-23rd.jpg",
+  "sheet-wc-street-san-antonio-castilian.jpg",
+  "overview-A-1.jpg"
+ ],
+ "verdict": {
+  "uninterpretable": [],
+  "unsettled": []
+ },
+ "committedCopy": "Committed copy of a scratch run, absolute paths rewritten; nothing else changed."
+}

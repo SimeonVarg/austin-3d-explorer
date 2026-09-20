@@ -96,7 +96,17 @@ node night-silhouette.mjs --break  # building walls forced to #f2f2f2
 node westcampus-probe.mjs --break  # one of the three wc- layers hidden
 node walk.mjs                      # ships its own watched failure, see §145
 node coplanar.mjs --selftest       # eight assertions; makes itself fail
+node night-compare.mjs --break --same 1        # authored apartments out of the scene
+node night-compare.mjs --break slopes --same 1 # EVERY authored group out of the scene
 ```
+
+`night-compare.mjs` is the newest of these and the one with a caveat: its `--break`
+removes geometry, so it can only go red at a pose where that geometry is a large
+share of the frame. **It came back green at the two Capitol poses with 3.56 M
+authored triangles removed and the dome visibly gone** (0.172% and 0.308% of pixels
+moved, against a 1% tolerance). Red somewhere is not red everywhere; the run's
+`verdict.breakCoverage` names the poses the sabotage could not move, and the kept
+reports are in `docs/night/harness-runs/`.
 
 This repo has shipped a guard that could not fail **four separate times** (the
 harness drifting from index.html, twice; a stale hand-maintained family list; a
@@ -781,15 +791,28 @@ which straddles the plan's A3 target of ≥ 15. A ratio is the wrong question at
 night; the frames are fine, the division is not.
 
 Each route takes optional `refs` per regime (paths under `../austin-reference-images`,
-local, never committed). **Bind a reference to the regime its own package entry is
-tagged with, not to the row that happens to be free.** Four of the first sixteen
-bindings had drifted — a blue-hour skyline on a twilight row, two blue-hour property
-photos on twilight rows, and a full-night photo on a twilight row where it was also
-the same picture as the night row at lower resolution — so three sheets showed the
-wrong hour and one showed the same photograph twice. An empty cell is a fact about
-the corpus. And **do not bind a no-derivatives file at all**: `--refs on` composites
-the reference into a sheet, which is a derivative. See the `_readme` and the
-`refNote` fields in `night-routes.json`.
+local, never committed). **Bind a reference to the regime its own PIXELS are, and
+write down why in its `refNote`.** Four of the first sixteen bindings had drifted —
+a blue-hour skyline on a twilight row, two blue-hour property photos on twilight
+rows, and a full-night photo on a twilight row where it was also the same picture as
+the night row at lower resolution — so three sheets showed the wrong hour and one
+showed the same photograph twice. An empty cell is a fact about the corpus. And **do
+not bind a no-derivatives file at all**: `--refs on` composites the reference into a
+sheet, which is a derivative. See the `_readme` and the `refNote` fields in
+`night-routes.json`.
+
+> **Superseded 2026-09-20, and this paragraph said the old rule until 2026-09-21.**
+> It used to read "bind a reference to the regime its own package entry is tagged
+> with". A package entry's regime is *a word somebody typed*; a row is *a sun
+> elevation*; agreeing with yourself is not a check. `night-refmeasure.py --sun`
+> computes the elevation from each photograph's own stated clock, and on 46
+> photographs it found eleven where the word and the clock disagree and one bound to
+> a row 29° away from its own clock. The rule is therefore: **the pixels decide, the
+> clock checks, and the `refNote` records the argument.** `hargup` is the worked
+> example — its `sources.json` says "full night", its clock says −10.8°, its sky is
+> not black, and it is deliberately bound to `twilight` with the reason written
+> down. A binding that disagrees with its own tag is fine. A binding nobody
+> explained is not.
 
 **Pitch cannot go above the horizon**, so a target above the eye clamps to 88°,
 and the map centre then lands about 28.6 × the eye height ahead: the subject sits
@@ -814,7 +837,21 @@ child of `root` **on every frame** from minzoom and the LOD tier (`js/slopes.js:
 group is back in the scene at the first repaint or at the end of the shoot. Both
 halves are now demonstrated on `wc-elevated/over-drag-wnw` at `night`: control
 **0.006%** (exit 0), sabotaged **8.162%** (exit 1), bright windows 13.349% -> 1.852%.
-**An assertion nobody has watched fail is not an assertion.**
+**An assertion nobody has watched fail is not an assertion.** Both reports are kept in
+`docs/night/harness-runs/`, because a demonstration that lives in a swept scratch
+folder is the same claim on trust it replaced.
+
+**...and the floor is zero, so `--same 1` was never the right number.** `--break`
+removes geometry, so it can only go red where that geometry is a large share of the
+frame -- at the two Capitol poses, `--break slopes` took **3,560,273 triangles** out
+(the dome visibly gone) and moved **0.172%** and **0.308%** of pixels: `PASS --same
+1%`. The fix was not a stronger sabotage. Measured 2026-09-21, `main` against itself,
+two independent page loads, 16 poses x `day` and `golden` on a quiet machine: **0.000%
+on all 32 frames**, 24 of them byte-identical JPEGs, worst mean |delta luma| 0.021.
+The renderer is deterministic across loads at those regimes, so the A9 tolerance is
+**`--same 0.05`** -- ten times the largest reading ever taken from an unchanged build
+(0.005% at `night`, on a loaded machine) -- and at 0.05 the Capitol wipe is red. A
+tolerance nobody derived is a tolerance that hides whatever fits under it.
 
 **`count.buildings` is not a count.** It is incremented inside the time-sliced build
 and zeroed at the top of it, but the `APARTMENTS.on` poke can start a second build
@@ -851,11 +888,17 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 ... night-compare.mjs --out <scratch>/flag --a '' --b '&someflag=1'
 # two builds (main on :8661, a branch worktree on :8662)
 ... night-compare.mjs --out <scratch>/ab --a-site http://127.0.0.1:8661 --b-site http://127.0.0.1:8662
-# day and golden must not move (A9): exit 1 if any frame differs in >= 1% of pixels
-... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 1
+# day and golden must not move (A9): exit 1 if any frame differs in >= 0.05% of pixels.
+# 0.05 is MEASURED, not chosen: main against itself over 16 poses x day and golden is
+# 0.000% on all 32 frames, 24 of them byte-identical JPEGs. See "the floor is zero" below.
+... night-compare.mjs --out <scratch>/a9 --regimes day,golden --b-site http://127.0.0.1:8662 --same 0.05
 # the watched failure: side B has the authored apartments taken OUT OF THE SCENE in the page.
 # This must exit 1. It exited 0 until 2026-09-20 -- see "--break was green" below.
-... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 1
+... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --b '' --break --same 0.05
+# the stronger sabotage, for a pose the apartments are not in: the WHOLE authored scene
+... night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night --b '' --break slopes --same 0.05
+# fold another run's frames into this one's report, with its provenance
+... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --merge <scratch>/run2 --refs off
 # change regions, then re-measure an old run without loading the app
 ... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --show-regions
 # R10, the phone pass (the regions were read off landscape frames: re-read them first)

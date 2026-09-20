@@ -1,0 +1,1191 @@
+{
+ "tool": "scripts/verify/night-compare.mjs",
+ "when": "2026-09-20T08:07:17.821Z",
+ "harnessGit": {
+  "head": "9487d4f",
+  "dirty": true
+ },
+ "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+ "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+ "refs": "off",
+ "tile": 560,
+ "out": "<scratch>/lanes/night/rework3/break-capitol",
+ "broken": "slopes",
+ "viewport": [
+  1440,
+  900
+ ],
+ "viewportOverridden": false,
+ "dpr": 1,
+ "gl": "hardware",
+ "args": [
+  "--out",
+  "<scratch>/lanes/night/rework3/break-capitol",
+  "--only",
+  "capitol",
+  "--regimes",
+  "night",
+  "--a",
+  "",
+  "--b",
+  "",
+  "--break",
+  "slopes",
+  "--same",
+  "1",
+  "--refs",
+  "off"
+ ],
+ "params": {
+  "WAIT": {
+   "styleMs": 180000,
+   "veilMs": 300000,
+   "authoredMs": 600000,
+   "authoredReloads": 2,
+   "regimeIdleMs": 30000,
+   "tilesMs": 45000,
+   "idleMs": 20000,
+   "settleMs": 3000,
+   "secondShotMs": 1000
+  },
+  "SETTLE": {
+   "luma": 24,
+   "maxPct": 0.25,
+   "retries": 2,
+   "waitMs": 3000
+  },
+  "CAMERA": {
+   "pitchTol": 0.6,
+   "altTolAbs": 1.5,
+   "altTolRel": 0.05,
+   "zoomTol": 0.02
+  },
+  "MEASURE": {
+   "relK": 4,
+   "minLuma": 40,
+   "absLuma": 120,
+   "hotLuma": 120,
+   "veryHotLuma": 200,
+   "blankStd": 1,
+   "minRegionFrac": 0.01,
+   "minDenomCode": 6
+  },
+  "DIFF": {
+   "luma": 16,
+   "lumaBig": 48
+  }
+ },
+ "regimes": {
+  "night": {
+   "p": 1,
+   "sunElev": -40,
+   "note": "full night (p = 1)"
+  }
+ },
+ "sides": [
+  {
+   "key": "A",
+   "site": "http://127.0.0.1:8661",
+   "query": "",
+   "label": "as shipped",
+   "pageErrors": [],
+   "warnings": [
+    "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
+    "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
+    "count.buildings 366 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count."
+   ],
+   "build": {
+    "sha1": "4807b1680898",
+    "scripts": 42
+   },
+   "url": "http://127.0.0.1:8661/index.html?intro=0&drift=0&clip=1",
+   "veil": "lifted",
+   "veilMs": 102454,
+   "intro": {
+    "reason": "ceiling",
+    "waitedMs": 90658,
+    "modelFallback": "authored handoff timed out",
+    "missingAtLift": []
+   },
+   "authoredReloads": 2,
+   "authoredReenabled": true,
+   "readyMs": 354466,
+   "apartments": {
+    "group": true,
+    "buildings": 366,
+    "namesUnique": 196,
+    "catalog": 196,
+    "done": true,
+    "triangles": 2600942,
+    "slopesOn": true
+   },
+   "gfx": {
+    "preset": "balanced",
+    "bloom": 0.4,
+    "godRays": 0.5,
+    "autoExposure": true,
+    "renderScale": 1,
+    "filmic": 0.65,
+    "exposure": 1.03,
+    "stars": 1
+   }
+  },
+  {
+   "key": "B",
+   "site": "http://127.0.0.1:8661",
+   "query": "",
+   "label": "as shipped [--break slopes]",
+   "pageErrors": [],
+   "warnings": [
+    "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 1 of 2)",
+    "the app had switched the authored buildings off for this visit (INTRO.authoredCeilingMs under load); reloading (attempt 2 of 2)",
+    "still off after reloading; switched back on in the page as a last resort (this path is unreliable — see the comment in this file)",
+    "count.buildings 365 exceeds the 196-building catalog: two builds overlapped and the counter accumulated. 196 distinct buildings, 2600942 triangles — quote the triangles, not the count.",
+    "--break slopes: every group removed from the slopes scene and slopes.add() stubbed (apartments, roofs, arches, art, dome, stadium, campus landscape)"
+   ],
+   "build": {
+    "sha1": "4807b1680898",
+    "scripts": 42
+   },
+   "url": "http://127.0.0.1:8661/index.html?intro=0&drift=0&clip=1",
+   "veil": "lifted",
+   "veilMs": 108581,
+   "intro": {
+    "reason": "ceiling",
+    "waitedMs": 91841,
+    "modelFallback": "authored handoff timed out",
+    "missingAtLift": []
+   },
+   "authoredReloads": 2,
+   "authoredReenabled": true,
+   "readyMs": 382130,
+   "apartments": {
+    "group": true,
+    "buildings": 365,
+    "namesUnique": 196,
+    "catalog": 196,
+    "done": true,
+    "triangles": 2600942,
+    "slopesOn": true
+   },
+   "gfx": {
+    "preset": "balanced",
+    "bloom": 0.4,
+    "godRays": 0.5,
+    "autoExposure": true,
+    "renderScale": 1,
+    "filmic": 0.65,
+    "exposure": 1.03,
+    "stars": 1
+   },
+   "breakBefore": {
+    "where": "before",
+    "inScene": true,
+    "groupVisible": true,
+    "drawnGroups": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "rootChildren": [
+     "campus-landscape",
+     "slopes-dome",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "addStubbed": false
+   },
+   "breakAfter": {
+    "where": "after",
+    "inScene": false,
+    "groupVisible": true,
+    "drawnGroups": [],
+    "rootChildren": [],
+    "addStubbed": true
+   },
+   "breakMode": "slopes",
+   "broken": "every group removed from the slopes scene and slopes.add() stubbed (apartments, roofs, arches, art, dome, stadium, campus landscape)",
+   "breakEnd": {
+    "where": "end",
+    "inScene": false,
+    "groupVisible": true,
+    "drawnGroups": [],
+    "rootChildren": [],
+    "addStubbed": true
+   }
+  }
+ ],
+ "shots": [
+  {
+   "side": "A",
+   "route": "capitol",
+   "pose": "congress-30m",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-capitol-congress-30m-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 15.962,
+     "eyeAlt": 30
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 17.34,
+     "zoom": 15.962,
+     "eyeAlt": 29.97
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 23635,
+   "ae": {
+    "gain": 0.85,
+    "luma": 0.25298768464052285
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "slopes-dome",
+     "campus-landscape",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3560273
+   },
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 44.3,
+      "std": 46.67,
+      "p1": 3,
+      "p10": 3,
+      "p50": 20,
+      "p90": 122,
+      "p99": 163
+     },
+     "Y": {
+      "mean": 0.05656,
+      "p10": 0.001214,
+      "p50": 0.007499,
+      "p90": 0.2016
+     },
+     "rgb": [
+      52,
+      43,
+      38
+     ],
+     "hot120": 10.771,
+     "hot200": 0.001
+    },
+    "regions": {
+     "sky": {
+      "n": 51480,
+      "luma": {
+       "mean": 3.2,
+       "std": 2.11,
+       "p1": 3,
+       "p10": 3,
+       "p50": 3,
+       "p90": 4,
+       "p99": 4
+      },
+      "Y": {
+       "mean": 0.001025,
+       "p10": 0.0009106,
+       "p50": 0.0009106,
+       "p90": 0.001214
+      },
+      "rgb": [
+       2,
+       3,
+       7
+      ],
+      "hot120": 0.012,
+      "hot200": 0,
+      "frac": 0.0397,
+      "code": 3,
+      "dark": true
+     },
+     "wall": {
+      "n": 27328,
+      "luma": {
+       "mean": 14.6,
+       "std": 14.11,
+       "p1": 3,
+       "p10": 4,
+       "p50": 7,
+       "p90": 38,
+       "p99": 59
+      },
+      "Y": {
+       "mean": 0.006588,
+       "p10": 0.001214,
+       "p50": 0.002428,
+       "p90": 0.02029
+      },
+      "rgb": [
+       14,
+       14,
+       19
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0211,
+      "code": 8
+     },
+     "dome": {
+      "n": 7227,
+      "luma": {
+       "mean": 37.3,
+       "std": 26.31,
+       "p1": 9,
+       "p10": 11,
+       "p50": 24,
+       "p90": 75,
+       "p99": 80
+      },
+      "Y": {
+       "mean": 0.02775,
+       "p10": 0.003677,
+       "p50": 0.009721,
+       "p90": 0.07227
+      },
+      "rgb": [
+       39,
+       36,
+       47
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0056,
+      "small": true,
+      "code": 25
+     },
+     "ground": {
+      "n": 32724,
+      "luma": {
+       "mean": 139.8,
+       "std": 19.02,
+       "p1": 82,
+       "p10": 116,
+       "p50": 140,
+       "p90": 161,
+       "p99": 165
+      },
+      "Y": {
+       "mean": 0.2743,
+       "p10": 0.1812,
+       "p50": 0.2747,
+       "p90": 0.3663
+      },
+      "rgb": [
+       170,
+       135,
+       95
+      ],
+      "hot120": 86.881,
+      "hot200": 0,
+      "frac": 0.0253,
+      "code": 143
+     }
+    },
+    "smallRegions": [
+     "dome"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.002428,
+     "relK": 4,
+     "pct": 4.98,
+     "absPct": 0,
+     "rgb": [
+      55,
+      47,
+      43
+     ]
+    },
+    "ratios": {
+     "wall/sky": 2.67,
+     "ground/sky": 302,
+     "wall/ground": 0.00884
+    },
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      2,
+      4
+     ],
+     "ground/sky": [
+      226,
+      453
+     ]
+    }
+   },
+   "blank": false
+  },
+  {
+   "side": "A",
+   "route": "capitol",
+   "pose": "gate-1p7m",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/A-capitol-gate-1p7m-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.104,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 16.46,
+     "zoom": 20.104,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 7644,
+   "ae": {
+    "gain": 0.85,
+    "luma": 0.37287987826797353
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [
+     "slopes-dome",
+     "campus-landscape",
+     "slopes-stadium",
+     "slopes-arches",
+     "slopes-art",
+     "slopes-apartments",
+     "slopes-tower",
+     "slopes-roofs"
+    ],
+    "triangles": 3560273
+   },
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 73.7,
+      "std": 67.76,
+      "p1": 2,
+      "p10": 3,
+      "p50": 49,
+      "p90": 156,
+      "p99": 162
+     },
+     "Y": {
+      "mean": 0.1391,
+      "p10": 0.0009106,
+      "p50": 0.0319,
+      "p90": 0.3419
+     },
+     "rgb": [
+      89,
+      71,
+      54
+     ],
+     "hot120": 44.516,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 87668,
+      "luma": {
+       "mean": 4,
+       "std": 5.7,
+       "p1": 2,
+       "p10": 3,
+       "p50": 3,
+       "p90": 4,
+       "p99": 18
+      },
+      "Y": {
+       "mean": 0.001473,
+       "p10": 0.0009106,
+       "p50": 0.0009106,
+       "p90": 0.001214
+      },
+      "rgb": [
+       3,
+       4,
+       8
+      ],
+      "hot120": 0.001,
+      "hot200": 0,
+      "frac": 0.0676,
+      "code": 3,
+      "dark": true
+     },
+     "wall": {
+      "n": 108342,
+      "luma": {
+       "mean": 34.2,
+       "std": 43.83,
+       "p1": 2,
+       "p10": 4,
+       "p50": 11,
+       "p90": 119,
+       "p99": 129
+      },
+      "Y": {
+       "mean": 0.04281,
+       "p10": 0.001214,
+       "p50": 0.003347,
+       "p90": 0.1946
+      },
+      "rgb": [
+       42,
+       33,
+       27
+      ],
+      "hot120": 8.452,
+      "hot200": 0,
+      "frac": 0.0836,
+      "code": 11
+     },
+     "dome": {
+      "n": 4466,
+      "luma": {
+       "mean": 18.1,
+       "std": 3.11,
+       "p1": 9,
+       "p10": 18,
+       "p50": 18,
+       "p90": 18,
+       "p99": 22
+      },
+      "Y": {
+       "mean": 0.006209,
+       "p10": 0.006049,
+       "p50": 0.006049,
+       "p90": 0.006049
+      },
+      "rgb": [
+       15,
+       19,
+       18
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0034,
+      "small": true,
+      "code": 18
+     },
+     "ground": {
+      "n": 129600,
+      "luma": {
+       "mean": 157.4,
+       "std": 4.31,
+       "p1": 144,
+       "p10": 151,
+       "p50": 158,
+       "p90": 162,
+       "p99": 163
+      },
+      "Y": {
+       "mean": 0.3472,
+       "p10": 0.3185,
+       "p50": 0.3515,
+       "p90": 0.3712
+      },
+      "rgb": [
+       190,
+       153,
+       110
+      ],
+      "hot120": 100,
+      "hot200": 0,
+      "frac": 0.1,
+      "code": 160
+     }
+    },
+    "smallRegions": [
+     "dome"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.003347,
+     "relK": 4,
+     "pct": 26.162,
+     "absPct": 8.452,
+     "rgb": [
+      130,
+      99,
+      65
+     ]
+    },
+    "ratios": {
+     "wall/sky": 3.68,
+     "ground/sky": 386,
+     "wall/ground": 0.00952
+    },
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      2.76,
+      5.51
+     ],
+     "ground/sky": [
+      290,
+      579
+     ]
+    }
+   },
+   "blank": false
+  },
+  {
+   "side": "B",
+   "route": "capitol",
+   "pose": "congress-30m",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/B-capitol-congress-30m-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 15.962,
+     "eyeAlt": 30
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 17.34,
+     "zoom": 15.962,
+     "eyeAlt": 29.97
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 23206,
+   "ae": {
+    "gain": 0.85,
+    "luma": 0.25261098284313727
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [],
+    "triangles": 0
+   },
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 44.2,
+      "std": 46.66,
+      "p1": 3,
+      "p10": 3,
+      "p50": 20,
+      "p90": 122,
+      "p99": 163
+     },
+     "Y": {
+      "mean": 0.05647,
+      "p10": 0.001214,
+      "p50": 0.007499,
+      "p90": 0.2016
+     },
+     "rgb": [
+      52,
+      43,
+      38
+     ],
+     "hot120": 10.771,
+     "hot200": 0.001
+    },
+    "regions": {
+     "sky": {
+      "n": 51480,
+      "luma": {
+       "mean": 3.2,
+       "std": 2.15,
+       "p1": 3,
+       "p10": 3,
+       "p50": 3,
+       "p90": 4,
+       "p99": 4
+      },
+      "Y": {
+       "mean": 0.001028,
+       "p10": 0.0009106,
+       "p50": 0.0009106,
+       "p90": 0.001214
+      },
+      "rgb": [
+       2,
+       3,
+       7
+      ],
+      "hot120": 0.012,
+      "hot200": 0,
+      "frac": 0.0397,
+      "code": 3,
+      "dark": true
+     },
+     "wall": {
+      "n": 27328,
+      "luma": {
+       "mean": 14.6,
+       "std": 14.11,
+       "p1": 3,
+       "p10": 4,
+       "p50": 7,
+       "p90": 38,
+       "p99": 59
+      },
+      "Y": {
+       "mean": 0.006588,
+       "p10": 0.001214,
+       "p50": 0.002428,
+       "p90": 0.02029
+      },
+      "rgb": [
+       14,
+       14,
+       19
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0211,
+      "code": 8
+     },
+     "dome": {
+      "n": 7227,
+      "luma": {
+       "mean": 25.4,
+       "std": 16.7,
+       "p1": 9,
+       "p10": 11,
+       "p50": 20,
+       "p90": 57,
+       "p99": 75
+      },
+      "Y": {
+       "mean": 0.0137,
+       "p10": 0.003677,
+       "p50": 0.008023,
+       "p90": 0.04231
+      },
+      "rgb": [
+       23,
+       25,
+       42
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0056,
+      "small": true,
+      "code": 22
+     },
+     "ground": {
+      "n": 32724,
+      "luma": {
+       "mean": 139.8,
+       "std": 19.02,
+       "p1": 82,
+       "p10": 116,
+       "p50": 140,
+       "p90": 161,
+       "p99": 165
+      },
+      "Y": {
+       "mean": 0.2743,
+       "p10": 0.1812,
+       "p50": 0.2747,
+       "p90": 0.3663
+      },
+      "rgb": [
+       170,
+       135,
+       95
+      ],
+      "hot120": 86.881,
+      "hot200": 0,
+      "frac": 0.0253,
+      "code": 143
+     }
+    },
+    "smallRegions": [
+     "dome"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.002428,
+     "relK": 4,
+     "pct": 4.98,
+     "absPct": 0,
+     "rgb": [
+      55,
+      47,
+      43
+     ]
+    },
+    "ratios": {
+     "wall/sky": 2.67,
+     "ground/sky": 302,
+     "wall/ground": 0.00884
+    },
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      2,
+      4
+     ],
+     "ground/sky": [
+      226,
+      453
+     ]
+    }
+   },
+   "blank": false,
+   "diffA": {
+    "meanAbs": 0.092,
+    "pctOver": 0.172,
+    "pctBig": 0.102
+   }
+  },
+  {
+   "side": "B",
+   "route": "capitol",
+   "pose": "gate-1p7m",
+   "regime": "night",
+   "p": 1,
+   "sunElev": -40,
+   "file": "frames/B-capitol-gate-1p7m-night.jpg",
+   "camera": {
+    "want": {
+     "pitch": 88,
+     "zoom": 20.104,
+     "eyeAlt": 1.7
+    },
+    "got": {
+     "pitch": 88,
+     "bearing": 16.46,
+     "zoom": 20.104,
+     "eyeAlt": 1.7
+    },
+    "ok": true,
+    "off": []
+   },
+   "tilesOk": true,
+   "waitMs": 8127,
+   "ae": {
+    "gain": 0.85,
+    "luma": 0.371311560457516
+   },
+   "grade": "url(\"#a3d-tone\") saturate(0.88)",
+   "slopes": {
+    "groups": [],
+    "triangles": 0
+   },
+   "settle": {
+    "pctOver": 0,
+    "retries": 0,
+    "settled": true
+   },
+   "metrics": {
+    "frame": {
+     "n": 1296000,
+     "luma": {
+      "mean": 73.5,
+      "std": 67.85,
+      "p1": 2,
+      "p10": 3,
+      "p50": 42,
+      "p90": 156,
+      "p99": 162
+     },
+     "Y": {
+      "mean": 0.1389,
+      "p10": 0.0009106,
+      "p50": 0.02416,
+      "p90": 0.3419
+     },
+     "rgb": [
+      89,
+      71,
+      53
+     ],
+     "hot120": 44.516,
+     "hot200": 0
+    },
+    "regions": {
+     "sky": {
+      "n": 87668,
+      "luma": {
+       "mean": 3.9,
+       "std": 5.24,
+       "p1": 2,
+       "p10": 3,
+       "p50": 3,
+       "p90": 4,
+       "p99": 18
+      },
+      "Y": {
+       "mean": 0.001404,
+       "p10": 0.0009106,
+       "p50": 0.0009106,
+       "p90": 0.001214
+      },
+      "rgb": [
+       3,
+       4,
+       8
+      ],
+      "hot120": 0.001,
+      "hot200": 0,
+      "frac": 0.0676,
+      "code": 3,
+      "dark": true
+     },
+     "wall": {
+      "n": 108342,
+      "luma": {
+       "mean": 34.2,
+       "std": 43.83,
+       "p1": 2,
+       "p10": 4,
+       "p50": 11,
+       "p90": 119,
+       "p99": 129
+      },
+      "Y": {
+       "mean": 0.04281,
+       "p10": 0.001214,
+       "p50": 0.003347,
+       "p90": 0.1946
+      },
+      "rgb": [
+       42,
+       33,
+       27
+      ],
+      "hot120": 8.452,
+      "hot200": 0,
+      "frac": 0.0836,
+      "code": 11
+     },
+     "dome": {
+      "n": 4466,
+      "luma": {
+       "mean": 18.1,
+       "std": 3.11,
+       "p1": 9,
+       "p10": 18,
+       "p50": 18,
+       "p90": 18,
+       "p99": 22
+      },
+      "Y": {
+       "mean": 0.006209,
+       "p10": 0.006049,
+       "p50": 0.006049,
+       "p90": 0.006049
+      },
+      "rgb": [
+       15,
+       19,
+       18
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0034,
+      "small": true,
+      "code": 18
+     },
+     "ground": {
+      "n": 129600,
+      "luma": {
+       "mean": 157.4,
+       "std": 4.31,
+       "p1": 144,
+       "p10": 151,
+       "p50": 158,
+       "p90": 162,
+       "p99": 163
+      },
+      "Y": {
+       "mean": 0.3472,
+       "p10": 0.3185,
+       "p50": 0.3515,
+       "p90": 0.3712
+      },
+      "rgb": [
+       190,
+       153,
+       110
+      ],
+      "hot120": 100,
+      "hot200": 0,
+      "frac": 0.1,
+      "code": 160
+     }
+    },
+    "smallRegions": [
+     "dome"
+    ],
+    "windows": {
+     "region": "wall",
+     "fallback": false,
+     "medianY": 0.003347,
+     "relK": 4,
+     "pct": 26.162,
+     "absPct": 8.452,
+     "rgb": [
+      130,
+      99,
+      65
+     ]
+    },
+    "ratios": {
+     "wall/sky": 3.68,
+     "ground/sky": 386,
+     "wall/ground": 0.00952
+    },
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      2.76,
+      5.51
+     ],
+     "ground/sky": [
+      290,
+      579
+     ]
+    }
+   },
+   "blank": false,
+   "diffA": {
+    "meanAbs": 0.207,
+    "pctOver": 0.308,
+    "pctBig": 0.296
+   }
+  }
+ ],
+ "referenceSheets": {
+  "refs": "off",
+  "composited": [],
+  "mayBeCommitted": true,
+  "note": "no photograph was composited by this pass; the sheets are our renders only."
+ },
+ "sheets": [
+  "sheet-capitol-congress-30m.jpg",
+  "sheet-capitol-gate-1p7m.jpg",
+  "overview-A-1.jpg",
+  "overview-B-1.jpg"
+ ],
+ "verdict": {
+  "uninterpretable": [],
+  "unsettled": [],
+  "abDiff": {
+   "frames": 2,
+   "pctOverMin": 0.172,
+   "pctOverMedian": 0.308,
+   "pctOverMax": 0.308
+  },
+  "same": {
+   "tolPct": 1,
+   "failing": []
+  },
+  "breakCoverage": {
+   "mode": "slopes",
+   "poses": [
+    {
+     "pose": "capitol/congress-30m",
+     "regime": "night",
+     "groupsDrawnA": [
+      "slopes-dome",
+      "campus-landscape",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3560273,
+     "pctOver": 0.172,
+     "reached": false
+    },
+    {
+     "pose": "capitol/gate-1p7m",
+     "regime": "night",
+     "groupsDrawnA": [
+      "slopes-dome",
+      "campus-landscape",
+      "slopes-stadium",
+      "slopes-arches",
+      "slopes-art",
+      "slopes-apartments",
+      "slopes-tower",
+      "slopes-roofs"
+     ],
+     "trianglesA": 3560273,
+     "pctOver": 0.308,
+     "reached": false
+    }
+   ],
+   "noOpAt": [
+    "night capitol/congress-30m 0.172% (drawn: slopes-dome, campus-landscape, slopes-stadium, slopes-arches, slopes-art, slopes-apartments, slopes-tower, slopes-roofs)",
+    "night capitol/gate-1p7m 0.308% (drawn: slopes-dome, campus-landscape, slopes-stadium, slopes-arches, slopes-art, slopes-apartments, slopes-tower, slopes-roofs)"
+   ]
+  }
+ }
+}

@@ -53,14 +53,36 @@
  *   --same <pct>           ASSERT: in every frame, fewer than <pct>% of pixels differ
  *                          between A and B by more than 16 luma. For "this change does
  *                          not move day/golden" (plan A9). Exit 1 when it does not hold.
- *   --break                sabotage side B in the page only: the authored apartments are
- *                          REMOVED FROM THE SLOPES SCENE (slopes.remove(group)), and the
- *                          run dies if that does not hold at the first repaint and again
- *                          at the end of the shoot. With --same it must go red: that is
- *                          the watched failure. Do not sabotage with `group.visible =
- *                          false` — js/slopes.js render() rewrites that flag on every
- *                          child of root every frame (js/slopes.js:1030-1036), and the
- *                          version of this flag that did so was green every time.
+ *   --break [what]         sabotage side B in the page only, and die if the sabotage does
+ *                          not hold at the first repaint and again at the end of the
+ *                          shoot. With --same it must go red: that is the watched failure.
+ *                            apartments  (the default, and what a bare --break means)
+ *                                        slopes.remove(slopesApartments.group) — the
+ *                                        authored West Campus city, and nothing else.
+ *                            slopes      every child of slopes.root removed AND
+ *                                        slopes.add() stubbed out so nothing can be
+ *                                        re-added mid-shoot: apartments, roofs, arches,
+ *                                        art, the Capitol dome, the stadium, the campus
+ *                                        landscape. Use it at a pose the apartments are
+ *                                        not in: a sabotage that is a NO-OP at a pose is
+ *                                        a pose --same has not been shown able to fail at.
+ *                          Do not sabotage with `group.visible = false` — js/slopes.js
+ *                          render() rewrites that flag on every child of root every frame
+ *                          (js/slopes.js:1030-1036), and the version of this flag that did
+ *                          so was green every time.
+ *   --merge <dir>          (with --from) fold ANOTHER run's frames into this one's report:
+ *                          its frames are copied in if they are not already there, every
+ *                          imported shot is tagged `mergedFrom`, its side block is carried
+ *                          over with the regimes it covers, and the whole thing is recorded
+ *                          under `merged[]`. A shot already present at the same (side,
+ *                          pose, regime) is REPLACED and counted. This exists because the
+ *                          merge was once done by hand, in an editor: the result was a
+ *                          64-shot report whose top-level when/args/harnessGit described
+ *                          only 48 of them and whose `sides` array had lost the other
+ *                          run's build, reload count and warnings entirely, while the
+ *                          docs quoted numbers out of it under the wrong build. A merge
+ *                          the tool performs cannot lose that; a merge an editor performs
+ *                          always can.
  *   --from <dir>           re-measure an earlier run's frames with the CURRENT regions
  *                          and rewrite its report and sheets. No app is loaded. The
  *                          shoot's settings keep the top-level names (when/args/gl/
@@ -95,6 +117,25 @@
  * The camera is checked against what was asked (pitch, and eye altitude from
  * window.__fly.eye() for eye/target poses). A pose the camera did not reach is
  * "uninterpretable" and makes the run exit 2 (the frame is still written).
+ *
+ * Each shot also records which SLOPES GROUPS were submitted at that camera
+ * (shot.slopes: the `visible` groups from slopes.stats() and the triangles the last
+ * frame drew for them). Read it as "the renderer had this geometry switched on
+ * here", NOT as "this geometry fills the frame" — at the two Capitol poses all
+ * eight groups are on and 3.56 M triangles are drawn, and removing every one of
+ * them moves 0.2–0.3% of pixels. That is why verdict.breakCoverage reports the
+ * measured A/B percentage per pose beside the group list: SHARE OF THE FRAME is
+ * what decides whether --same can go red, and only the sabotage measures it.
+ *
+ * THERE ARE NO REPS. One kept frame per (pose, regime, side), and report.json
+ * holds exactly that: SETTLE.retries re-shoots a frame that is still MOVING, it
+ * does not average anything. Every number out of one run is a single reading.
+ * Where scripts/verify/README.md's law asks for the minimum of interleaved reps,
+ * run the whole thing N times into N --out folders and take the minimum across
+ * them; do not quote a spread this tool did not produce. The A/B diff inside ONE
+ * run is the exception the tool is built for: both sides are shot in the same
+ * browser minutes apart, which is what makes --same a tighter test than comparing
+ * two separate runs.
  *
  * ── What it measures ──────────────────────────────────────────────────────
  *
@@ -207,6 +248,8 @@ if (has('help') || argv.includes('-h')) {
 const OUT = arg('out', null);
 if (!OUT) die('--out <dir> is required (see the header of this file)');
 const FROM = arg('from', null);
+const MERGE = arg('merge', null);
+if (MERGE && !FROM) die('--merge folds another run into THIS run\'s report: pass --from <this run> too');
 const ROUTES_FILE = path.resolve(arg('routes', path.join(HERE, 'night-routes.json')));
 const LOCAL_ARG = arg('local', null);
 const ONLY = arg('only', null) ? arg('only').split(',').map(s => s.trim()).filter(Boolean) : null;
@@ -215,7 +258,11 @@ const REFS_ON = arg('refs', 'on') !== 'off';
 const TILE_W = Math.max(200, Math.min(1440, +arg('tile', 560) || 560));
 const SAME = has('same') ? Number(arg('same')) : null;
 if (SAME != null && !(SAME >= 0)) die('--same needs a percentage, e.g. --same 1');
-const BREAK = has('break');
+// --break takes an optional mode. A bare `--break`, or `--break` followed by the
+// next flag, means `apartments` — what the flag has always meant.
+const BREAK_MODES = ['apartments', 'slopes'];
+const BREAK = has('break') ? (arg('break', '') || 'apartments') : null;
+if (BREAK && !BREAK_MODES.includes(BREAK)) die(`--break takes ${BREAK_MODES.join(' or ')} (got "${BREAK}")`);
 const SHOW_REGIONS = has('show-regions');
 const GL = arg('gl', 'hardware');
 const DEFAULT_SITE = (process.env.VERIFY_URL || process.env.SITE || BASE).replace(/\/+$/, '');
@@ -224,7 +271,7 @@ const SIDES = [{ key: 'A', site: (arg('a-site', '') || DEFAULT_SITE).replace(/\/
 if (has('b') || has('b-site')) SIDES.push({ key: 'B', site: (arg('b-site', '') || DEFAULT_SITE).replace(/\/+$/, ''), query: normQ(arg('b', '')), label: arg('b-label', '') });
 for (const s of SIDES) {
   if (!s.label) s.label = (s.site !== DEFAULT_SITE ? s.site.replace(/^https?:\/\//, '') + ' ' : '') + (s.query || 'as shipped');
-  if (BREAK && s.key === 'B') s.label += ' [--break]';
+  if (BREAK && s.key === 'B') s.label += ` [--break ${BREAK}]`;
 }
 if (BREAK && SIDES.length < 2) die('--break sabotages side B; pass --b too');
 if (SAME != null && SIDES.length < 2 && !FROM) die('--same compares A with B; pass --b too');
@@ -626,28 +673,52 @@ async function shootSide(browser, side, shots, log) {
   // module still holds `_group`, so applySlopesApartments will not rebuild. The
   // legacy prisms stay filtered out, so side B is a genuine hole where the
   // authored city was — which is exactly the regression --same exists to catch.
+  // `--break slopes` goes further: it empties slopes.root AND stubs slopes.add(),
+  // because the groups are built lazily — campus-landscape on zoom, roofs and the
+  // dome as their data lands — so a clear on its own gets quietly undone the first
+  // time the camera reaches a pose whose data had not loaded yet. With add() stubbed
+  // the scene cannot refill, and the end-of-shoot check proves it did not.
   const breakCheck = async where => page.evaluate(() => {
     const A = window.slopesApartments, root = window.slopes && window.slopes.root;
     const inScene = !!(root && A && A.group && root.children.indexOf(A.group) >= 0);
     const drawn = (window.slopes.stats().groups || []).filter(g => g.visible).map(g => g.name);
-    return { inScene, groupVisible: !!(A && A.group && A.group.visible), drawnGroups: drawn };
+    return { inScene, groupVisible: !!(A && A.group && A.group.visible), drawnGroups: drawn,
+      rootChildren: root ? root.children.map(c => c.name || '(unnamed)') : null,
+      addStubbed: !!(window.slopes && window.slopes.__breakStub) };
   }).then(r => ({ where, ...r }));
   if (BREAK && side.key === 'B') {
     info.breakBefore = await breakCheck('before');
-    await page.evaluate(() => { const A = window.slopesApartments; window.slopes.remove(A.group); window.__map.triggerRepaint(); });
+    await page.evaluate(mode => {
+      const S = window.slopes;
+      if (mode === 'slopes') {
+        for (const child of S.root.children.slice()) S.remove(child);
+        S.add = () => {}; S.__breakStub = true;          // nothing may re-enter the scene
+      } else {
+        S.remove(window.slopesApartments.group);
+      }
+      window.__map.triggerRepaint();
+    }, BREAK);
     await sleep(1500);
     await page.evaluate(() => window.__map.triggerRepaint());
     await sleep(1500);
     info.breakAfter = await breakCheck('after');
-    info.broken = 'authored apartments removed from the slopes scene (slopes.remove(group))';
-    info.warnings.push('--break: ' + info.broken);
-    if (info.breakAfter.inScene || info.breakAfter.drawnGroups.includes('slopes-apartments')) {
+    info.breakMode = BREAK;
+    info.broken = BREAK === 'slopes'
+      ? 'every group removed from the slopes scene and slopes.add() stubbed (apartments, roofs, arches, art, dome, stadium, campus landscape)'
+      : 'authored apartments removed from the slopes scene (slopes.remove(group))';
+    info.warnings.push(`--break ${BREAK}: ` + info.broken);
+    const stillThere = BREAK === 'slopes'
+      ? (info.breakAfter.rootChildren && info.breakAfter.rootChildren.length) || info.breakAfter.drawnGroups.length
+      : info.breakAfter.inScene || info.breakAfter.drawnGroups.includes('slopes-apartments');
+    if (stillThere) {
       await page.close();
-      return { info, fatal: `side B: --break did not hold. After slopes.remove(group) and two repaints the group is still ${info.breakAfter.inScene ? 'a child of slopes.root' : 'drawn'} (drawn groups: ${info.breakAfter.drawnGroups.join(', ')}). A sabotage that does not sabotage makes --same green for the wrong reason; fix the sabotage before trusting any --same result.` };
+      return { info, fatal: `side B: --break ${BREAK} did not hold. After the removal and two repaints the scene still holds [${(info.breakAfter.rootChildren || []).join(', ')}] and draws [${info.breakAfter.drawnGroups.join(', ')}]. A sabotage that does not sabotage makes --same green for the wrong reason; fix the sabotage before trusting any --same result.` };
     }
-    if (!info.breakBefore.inScene)
+    if (BREAK === 'apartments' && !info.breakBefore.inScene)
       info.warnings.push('--break: the group was ALREADY not in the slopes scene before the sabotage — side B was never showing the authored city, so this run does not exercise --same either.');
-    log(`[B] --break: ${info.broken}; drawn groups before [${info.breakBefore.drawnGroups.join(', ')}] -> after [${info.breakAfter.drawnGroups.join(', ')}]`);
+    if (!info.breakBefore.drawnGroups.length)
+      info.warnings.push('--break: NOTHING was drawn from the slopes scene before the sabotage, so at the page-load camera there was nothing to take away. Per-pose coverage is in each shot\'s `slopes` block; read it before quoting this run as evidence that --same can fail.');
+    log(`[B] --break ${BREAK}: ${info.broken}; drawn groups before [${info.breakBefore.drawnGroups.join(', ')}] -> after [${info.breakAfter.drawnGroups.join(', ')}]`);
   }
   await sleep(3000);
   log(`[${side.key}] ready in ${(info.readyMs / 1000).toFixed(1)} s (veil ${info.veil} at ${(info.veilMs / 1000).toFixed(1)} s, intro ${info.intro && info.intro.reason}${info.authoredReloads ? ', ' + info.authoredReloads + ' reload(s)' : ''}); ${info.apartments.triangles} authored triangles (${info.apartments.namesUnique} distinct buildings of ${info.apartments.catalog}; raw counter ${info.apartments.buildings}); preset ${info.gfx.preset}; build ${info.build.sha1 || info.build.error}`);
@@ -687,7 +758,15 @@ async function shootSide(browser, side, shots, log) {
         m.jumpTo(pose);
         await new Promise(r => setTimeout(r, W.settleMs));
         const e = window.__fly && window.__fly.eye ? window.__fly.eye() : null;
-        return { waitMs: Math.round(performance.now() - t), tilesOk,
+        // Which authored geometry is actually on screen at THIS camera. A pose with
+        // no groups drawn is a pose --break cannot move, however red it goes elsewhere.
+        let sl = null;
+        try {
+          const s = window.slopes && window.slopes.stats ? window.slopes.stats() : null;
+          const gs = ((s && s.groups) || []).filter(g => g.visible);
+          sl = { groups: gs.map(g => g.name), triangles: gs.reduce((a, g) => a + (g.triangles || 0), 0) };
+        } catch (err) { sl = { error: String(err && err.message || err) }; }
+        return { waitMs: Math.round(performance.now() - t), tilesOk, slopes: sl,
           got: { pitch: +m.getPitch().toFixed(2), bearing: +m.getBearing().toFixed(2), zoom: +m.getZoom().toFixed(3), eyeAlt: e ? +e.alt.toFixed(2) : null },
           ae: window.__ae ? window.__ae() : null, grade: document.getElementById('map') ? document.getElementById('map').style.filter : null };
       }, { cam: P.cam, W: WAIT });
@@ -712,7 +791,7 @@ async function shootSide(browser, side, shots, log) {
       }
       fs.writeFileSync(file, cur);
       const shot = { side: side.key, route: P.route, pose: P.pose, regime: g, p: R.p, sunElev: rg.sunElev, file: path.relative(OUT, file).split(path.sep).join('/'),
-        camera: { want, got: st.got, ok: !off.length, off }, tilesOk: st.tilesOk, waitMs: st.waitMs, ae: st.ae, grade: st.grade,
+        camera: { want, got: st.got, ok: !off.length, off }, tilesOk: st.tilesOk, waitMs: st.waitMs, ae: st.ae, grade: st.grade, slopes: st.slopes,
         settle: { pctOver: settle.pctOver, retries: tries, settled: settle.pctOver <= SETTLE.maxPct } };
       shots.push(shot);
       log(`[${side.key}] ${g.padEnd(8)} ${P.key.padEnd(44)} ${off.length ? 'CAMERA OFF (' + off.join('; ') + ')' : 'camera ok'}${st.tilesOk ? '' : ', tiles NOT all loaded'}${shot.settle.settled ? '' : `, UNSETTLED ${settle.pctOver}%`} (${(st.waitMs / 1000).toFixed(1)} s)`);
@@ -723,9 +802,12 @@ async function shootSide(browser, side, shots, log) {
   // first repaint after it was applied.
   if (BREAK && side.key === 'B') {
     info.breakEnd = await breakCheck('end');
-    if (info.breakEnd.inScene || info.breakEnd.drawnGroups.includes('slopes-apartments')) {
+    const back = BREAK === 'slopes'
+      ? (info.breakEnd.rootChildren && info.breakEnd.rootChildren.length) || info.breakEnd.drawnGroups.length || !info.breakEnd.addStubbed
+      : info.breakEnd.inScene || info.breakEnd.drawnGroups.includes('slopes-apartments');
+    if (back) {
       await page.close();
-      return { info, fatal: `side B: --break was undone during the shoot (the group is back in the scene at the end). The frames are not a sabotaged side and --same cannot be read from them.` };
+      return { info, fatal: `side B: --break ${BREAK} was undone during the shoot (at the end the scene holds [${(info.breakEnd.rootChildren || []).join(', ')}] and draws [${info.breakEnd.drawnGroups.join(', ')}]${BREAK === 'slopes' && !info.breakEnd.addStubbed ? ', and slopes.add is no longer stubbed' : ''}). The frames are not a sabotaged side and --same cannot be read from them.` };
     }
   }
   await page.close();
@@ -794,7 +876,11 @@ async function sheets(helper, report, byKey) {
   // beside them: a `--from` pass rewrites the sheets without touching the frames,
   // so "the frames were shot with --refs off" says nothing about the sheets.
   const refsUsed = new Set();
-  const sides = report.sides.map(s => s.key);
+  // One column per SIDE, not per side RECORD: a --merge adds the other run's side
+  // block (same key) so its build, reloads and warnings are not lost, and that must
+  // not turn into a duplicate column. It did, once: a merged baseline drew side A
+  // twice, 1132 px wide, and nothing in the sheet said why.
+  const sides = [...new Set(report.sides.map(s => s.key))];
   const tileH = Math.round(TILE_W * VH / VW);
   const put = async (name, spec) => { const b64 = await helper.evaluate(pageSheet, spec); fs.writeFileSync(path.join(OUT, name), Buffer.from(b64, 'base64')); written.push(name); };
   const sideLabel = k => { const s = report.sides.find(x => x.key === k); return `${k}: ${s ? s.label : ''}`; };
@@ -925,9 +1011,45 @@ try {
     report.shoot = report.shoot || { when: report.when, args: report.args, harnessGit: report.harnessGit, gl: report.gl, viewport: report.viewport, routesFile: report.routesFile, localOverlay: report.localOverlay, refs: oldRefs };
     report.routesFile = ROUTES_FILE;
     report.localOverlay = localFile;
+    // --merge: fold another run in, with its provenance, before measuring.
+    if (MERGE) {
+      const src = path.resolve(MERGE);
+      const sr = readJSON(path.join(src, 'report.json'));
+      const key = s => `${s.side}|${s.route}/${s.pose}|${s.regime}`;
+      const here = new Map(report.shots.map(s => [key(s), s]));
+      let copied = 0, replaced = 0, added = 0;
+      const imported = [];
+      for (const s of sr.shots || []) {
+        const dst = path.join(OUT, s.file);
+        if (!fs.existsSync(dst)) {
+          const from = path.join(src, s.file);
+          if (!fs.existsSync(from)) { log(`--merge: SKIPPED ${key(s)} — its frame is gone from ${src}`); continue; }
+          fs.mkdirSync(path.dirname(dst), { recursive: true });
+          fs.copyFileSync(from, dst); copied++;
+        }
+        const tagged = Object.assign({}, s, { mergedFrom: src, mergedWhen: sr.when });
+        if (here.has(key(s))) { report.shots[report.shots.indexOf(here.get(key(s)))] = tagged; replaced++; }
+        else { report.shots.push(tagged); added++; }
+        imported.push(key(s));
+      }
+      const regimes = [...new Set((sr.shots || []).map(s => s.regime))];
+      for (const si of sr.sides || []) report.sides.push(Object.assign({}, si, { mergedFrom: src, mergedRegimes: regimes }));
+      report.merged = (report.merged || []).concat([{ dir: src, when: sr.when, harnessGit: sr.harnessGit, args: sr.args,
+        gl: sr.gl, viewport: sr.viewport, regimes, shots: imported.length, framesCopied: copied, replaced, added,
+        note: 'these shots were made by that run, not by the one the top-level when/args/harnessGit describe; every one of them carries mergedFrom.' }]);
+      if (report.mergedFrom) { report.mergedByHand = report.mergedFrom; delete report.mergedFrom;
+        log('--merge: this report carried a hand-written `mergedFrom` key the tool never writes; it is kept as `mergedByHand` and the shots have been re-imported properly.'); }
+      log(`--merge: ${imported.length} shots from ${src} (${regimes.join(', ')}); ${copied} frame(s) copied, ${replaced} replaced, ${added} added; its side block and settings are under report.merged[].`);
+    }
     const keep = new Set(POSES.map(P => P.key));
     report.shots = report.shots.filter(s => keep.has(`${s.route}/${s.pose}`) && fs.existsSync(path.join(OUT, s.file)));
-    log(`night-compare --from: re-measuring ${report.shots.length} frames in ${OUT}`);
+    // A report whose shots are not all accounted for by the run its top-level fields
+    // describe is a report a reader will mis-attribute. Say so, in the file.
+    const unaccounted = report.shots.filter(s => !s.mergedFrom).length;
+    report.provenance = { shootWhen: (report.shoot || report).when, shootGit: (report.shoot || report).harnessGit,
+      shotsFromThatShoot: unaccounted, shotsMergedIn: report.shots.length - unaccounted,
+      note: report.shots.length - unaccounted ? 'shots with a `mergedFrom` were taken by a DIFFERENT run on a DIFFERENT harness commit; read report.merged[] before quoting any number as this shoot\'s.' : 'every shot in this report came from the shoot the top-level fields describe.' };
+    log(`night-compare --from: re-measuring ${report.shots.length} frames in ${OUT}` + (report.provenance.shotsMergedIn ? ` (${report.provenance.shotsMergedIn} of them merged in from another run)` : ''));
   } else {
     report = { tool: 'scripts/verify/night-compare.mjs', when: new Date().toISOString(), harnessGit: gitInfo(), routesFile: ROUTES_FILE, localOverlay: localFile,
       refs: REFS_ON ? 'on' : 'off', tile: TILE_W, out: OUT, broken: BREAK || undefined,
@@ -964,6 +1086,27 @@ try {
       verdict.same = { tolPct: SAME, failing: over.map(s => `${s.regime} ${s.route}/${s.pose} ${s.diffA.pctOver}%`) };
       if (!pairs.length) { verdict.same.error = 'no A/B pairs to compare'; exit = Math.max(exit, 2); }
       else if (over.length && exit === 0) exit = 1;
+      // Exit codes are scalar and 2 ("cannot interpret") outranks 1 ("--same
+      // failed"), so a run that does both reports only the 2. Say so in the
+      // report and in the log rather than letting the regression hide behind it.
+      else if (over.length && exit === 2) {
+        verdict.same.maskedByExitCode = 'exit 2 (cannot interpret) outranks exit 1, so this --same FAILURE is not in the exit code — read verdict.same.failing';
+      }
+    }
+    // Which poses the sabotage could even reach. A pose with no slopes groups drawn
+    // on side A is a pose where --break is a measured no-op: --same has not been
+    // shown able to go red there, whatever it did elsewhere in the same run.
+    if (report.broken) {
+      const bySide = k => report.shots.filter(s => s.side === k);
+      verdict.breakCoverage = { mode: report.broken, poses: bySide('A').map(a => {
+        const b = report.shots.find(s => s.side === 'B' && s.route === a.route && s.pose === a.pose && s.regime === a.regime);
+        const diff = b && b.diffA ? b.diffA.pctOver : (a.diffA ? a.diffA.pctOver : null);
+        return { pose: `${a.route}/${a.pose}`, regime: a.regime, groupsDrawnA: (a.slopes && a.slopes.groups) || [],
+          trianglesA: (a.slopes && a.slopes.triangles) ?? null, pctOver: diff,
+          reached: diff != null && SAME != null ? diff >= SAME : null };
+      }) };
+      const noop = verdict.breakCoverage.poses.filter(p => p.reached === false);
+      if (noop.length) verdict.breakCoverage.noOpAt = noop.map(p => `${p.regime} ${p.pose} ${p.pctOver}% (drawn: ${p.groupsDrawnA.join(', ') || 'nothing'})`);
     }
     report.verdict = verdict;
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
@@ -974,6 +1117,12 @@ try {
     if (verdict.abDiff) log(`A/B: % of pixels differing by >${DIFF.luma} luma per frame: min ${verdict.abDiff.pctOverMin}, median ${verdict.abDiff.pctOverMedian}, max ${verdict.abDiff.pctOverMax} (${verdict.abDiff.frames} frames)`);
     if (bad.length) log(`CANNOT INTERPRET ${bad.length} frame(s): ${verdict.uninterpretable.join(' | ')}`);
     if (SAME != null) log(verdict.same.failing.length ? `FAIL --same ${SAME}%: ${verdict.same.failing.length} frame(s) differ: ${verdict.same.failing.join(', ')}` : (pairs.length ? `PASS --same ${SAME}%: every A/B frame within tolerance` : 'CANNOT RUN --same: no pairs'));
+    if (verdict.same && verdict.same.maskedByExitCode) log(`NOTE ${verdict.same.maskedByExitCode}`);
+    if (verdict.breakCoverage) {
+      const reached = verdict.breakCoverage.poses.filter(p => p.reached === true).length;
+      log(`--break coverage: the sabotage moved ${reached} of ${verdict.breakCoverage.poses.length} (pose, regime) frames past --same`);
+      if (verdict.breakCoverage.noOpAt) log(`  NO-OP (--same cannot be shown able to fail here): ${verdict.breakCoverage.noOpAt.join(' | ')}`);
+    }
     log(`sheets: ${report.sheets.length} in ${OUT}; report: ${path.join(OUT, 'report.json')}; exit ${exit}`);
   }
 } catch (e) {
