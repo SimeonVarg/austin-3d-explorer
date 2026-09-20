@@ -448,8 +448,16 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 >
 > | run | A/B pixels over 16 luma | bright windows A → B | verdict |
 > |---|---|---|---|
-> | control, no sabotage | **0.006%** | 13.349% → 13.349% | `PASS --same 1%`, exit 0 |
-> | `--break` | **8.162%** | 13.349% → **1.852%** | `FAIL --same 1%`, exit 1 |
+> | control, no sabotage | **0.005%** | 13.349% → 13.349% | `PASS`, exit 0 (`--same 1`) |
+> | `--break` | **8.16%** | 13.349% → **1.85%** | `FAIL`, exit 1 (`--same 0.05`) |
+>
+> **Corrected 2026-09-20 (sixth pass): this table used to read 0.006%, 8.162% and 1.852%, and no
+> kept report holds any of those three numbers.** They came from the first demonstration, whose
+> scratch folder was swept before the reports were kept. The numbers above are read straight out of
+> `docs/night/harness-runs/same-control.report.json` (`diffA.pctOver` 0.005) and
+> `same-break-apartments.report.json` (8.16, `windows.pct` 13.349 → 1.85) — the files this section
+> tells you to read. A third-decimal difference is not the point; quoting a figure no artifact holds
+> is, in a document whose whole argument is that a claim without an artifact is a claim on trust.
 >
 > Both halves now exist: the instrument goes green when nothing changed and red when the authored
 > apartments are gone. Until that pair had been run, the full-night A4/A5 numbers on the route named
@@ -499,6 +507,55 @@ a change without pre-judging it. `--same` is the only assertion, and it is the A
 > and the run was killed by PID. That is the machine, not the harness — but it is also the honest state
 > of this row: **the coverage map exists for `night` at five poses and nowhere else.** Whoever runs it
 > next wants a quiet machine and probably `--only` without `campus-aerial`.
+>
+> #### And then the Capitol numbers turned out to be MapLibre's, not ours
+>
+> **Sixth pass, 2026-09-20.** The `--break slopes` run above is the one that finally says what the
+> Capitol rectangles were on, and it had been saying it for five passes without being read. With the
+> whole authored scene deleted — 3,560,273 triangles, every group gone, the dome visibly out of the
+> frame — **side A and side B are bit-identical on every measured number at both poses**: `sky` code
+> 3 = 3, `wall` code 8 = 8, `ground` code 143 = 143, every ratio, and the bright-window share. Only
+> `dome` moved, at one of the two poses, by three codes.
+>
+> A sabotage that removes the entire city and moves no measured number is not a fact about the city.
+> The `wall` rectangle at `congress-30m` sat on a tower at x 0.583–0.667 and the pair at `gate-1p7m`
+> on the buildings flanking the avenue; the `ground` rectangles sat on Congress Avenue. **All of them
+> are MapLibre fill-extrusions and road, lit and graded by our style and drawn by the basemap.** At
+> the Capitol we author the Capitol and nothing else: **0.394%** of the frame at `congress-30m` and
+> **0.430%** at `gate-1p7m`, measured as the A-vs-B mask of that run (pixels the sabotage changed by
+> more than 3 of 255 on any channel; at the 16-luma threshold `--same` uses it is 0.172% and 0.308%). The `gate-1p7m` `dome` rectangle was worse
+> — it sat *below* the dome, on the dark ridge in front of it, which is why it read 18 = 18.
+>
+> **Fixed at both ends.** `wall` and `dome` at both poses are re-read off the A-vs-B mask of that
+> very run — 92–96% of each rectangle is pixels the sabotage changed by more than 3 of 255 on any
+> channel, 86–91% at a threshold of 6; the old rectangles are kept under the names
+> `downtown` and `flanking` and declared `basemap`, so their readings survive and cannot be mistaken
+> for ours. `night-routes.json` regions now carry a `regionSubjects` declaration (`authored` /
+> `basemap` / `sky`, or undeclared), and `--break` reports per pose **which measured numbers moved**:
+> pixels moving past tolerance while not one measured number moves is `measuredNothingAt` → exit 2,
+> and a region declared `authored` that survives `--break slopes` is `authoredRegionsNotOnSubject` →
+> exit 2. Watched failing on the old rectangles before it was trusted: both guards fire, exit 2.
+> Re-measured with the rectangles on the subject, the same frames give `wall` code **71 → 28** and
+> `dome` **76 → 20** at `congress-30m`, `wall` **72 → 9** and `dome` **76 → 6** at `gate-1p7m`.
+>
+> **What it cost in this document.** Every Capitol `wall/sky` in the baseline was a reading of a
+> basemap tower. Re-measured on the Capitol's own floodlit masonry (`--from`, no frame re-shot):
+>
+> | pose | regime | was (basemap tower) | is (our Capitol) |
+> |---|---|---|---|
+> | `capitol/congress-30m` | blue | 1.21 | **8.92** |
+> | `capitol/gate-1p7m` | blue | 2.21 | **8.64** |
+> | `capitol/congress-30m` | twilight | 1.07 | **16.3** |
+> | `capitol/gate-1p7m` | twilight | 1.93 | **15.3** |
+> | `capitol/congress-30m` | early | 1.35 | **20.6** |
+> | `capitol/gate-1p7m` | early | 2.72 | **20.4** |
+> | `capitol/congress-30m` | night | 2.67 | **69.2** |
+> | `capitol/gate-1p7m` | night | 3.68 | **71.2** |
+>
+> Both rectangles are under 1% of the frame and print with `#`; a closer Capitol pose is the only way
+> to do better, and it would re-shoot every kept run that holds a Capitol frame. The A1/A2/A3 ranges
+> below are re-stated from the re-measured report. `ground/sky` at the Capitol is unchanged and is
+> now labelled `basemap`: it was never a reading of anything we draw.
 >
 > **The dome is gone and the assertion is green.** That is not a scene fact, it is an instrument fact:
 > at these poses the authored geometry is under one percent of the pixels, so a one-percent tolerance
@@ -594,8 +651,22 @@ side block and settings land in `merged[]`, a hand-written `mergedFrom` is prese
 and a new top-level `provenance` block says how many of the shots the top-level fields actually
 describe (**48 of 64** here). `baseline2` was rebuilt that way and re-measured with the current
 harness, and the three committed sheets it produces are **bit-identical** to the ones already in
-`docs/shots/` — mean |Δ| 0.000, 0.000% of pixels over 16 luma on all three. The sheets were always the
-right pictures; the file that was supposed to account for them was not.
+`docs/shots/`. The sheets were always the right pictures; the file that was supposed to account for
+them was not.
+
+**Corrected 2026-09-20 (sixth pass): "bit-identical" was supported here by "mean |Δ| 0.000, 0.000% of
+pixels over 16 luma", which is a statement about PIXELS and cannot establish it about BYTES**, and no
+artifact anywhere held either figure. Re-derived from the re-measured report on 2026-09-20 and hashed,
+the three files are byte-for-byte the committed ones:
+
+| sheet | SHA-1 | bytes |
+|---|---|---|
+| `docs/shots/night-baseline-wc-elevated.jpg` | `3db0353dd1afd69f08bedf91ef61dae0d8aee8ed` | 145,035 |
+| `docs/shots/night-baseline-skyline.jpg` | `947376ef6500013434dfa7a0a123b329b6ada858` | 103,393 |
+| `docs/shots/night-baseline-congress.jpg` | `5773a3fd4507365586b0be53d05649aa227bb3aa` | 114,441 |
+
+None of the three is a Capitol sheet, which is why the sixth pass's Capitol re-aim leaves them
+unchanged — and that is the reason the hashes are worth printing rather than asserting.
 
 **Corrected 2026-09-20 — this paragraph used to say the two runs were "in the same worktree at the
 same settings … 196 authored buildings confirmed built (not the legacy fallback)". Both halves of that
@@ -635,7 +706,7 @@ the same frames. No frame was re-shot to get them.
 Read against §7.2, over all sixteen committed poses:
 
 - **A1 fails everywhere, and as of 2026-09-20 its target is measured rather than eyeballed.** Target
-  wall/sky ≤ 0.5 at blue hour; measured **1.21–14.2**, and water/sky 16.2–20.5 where the lake is in
+  wall/sky ≤ 0.5 at blue hour; measured **1.43–14.2**, and water/sky 16.2–20.5 where the lake is in
   frame. The target itself used to come only from looking at graded web photographs — §7 of the
   reference package said outright "Nobody measured the web photos" — so the same rectangles were put on
   the photographs and divided the same way (`scripts/verify/night-refmeasure.py`, regions in
@@ -654,7 +725,7 @@ Read against §7.2, over all sixteen committed poses:
   † the only unlit-looking wall in that frame still contains lit windows, so 0.75 is an upper bound.
 
   **The wall target of ≤ 0.5 survives**: three frames with a genuinely unlit broad wall give
-  **0.12–0.23**, well inside it. Our 1.21–14.2 is 5–100× the reference, which is the defect, and the
+  **0.12–0.23**, well inside it. Our 1.43–14.2 is 6–100× the reference, which is the defect, and the
   threshold was not the problem.
   **The water target of ≤ 1 does not survive — it is about four times too loose.** Water frames give
   **0.220 and 0.266**: real water is about a **quarter** of the sky above it, not equal to it. A1's
@@ -673,14 +744,21 @@ Read against §7.2, over all sixteen committed poses:
   Every one of these is a ratio inside one frame, which is the only thing a graded web photograph can
   honestly give — the camera chose an exposure and both regions moved with it. No absolute sRGB level
   from any of them may be quoted, and §5's ladder must not be read off them.
-- **A2's target band is met by accident at early night.** Target 3–7; measured wall/sky **1.35–18.4** at
+- **A2's target band is met by accident at early night.** Target 3–7; measured wall/sky **2.15–20.6** at
   −15°, with most poses inside the band — but not because the walls went dark. The sky did. At the same
   regime ground/sky runs **1.54–118** and **exceeds wall/sky in 10 of the 13 poses that measure both**, so
   the pavement, not the building, is the brightest surface in the frame. The ratio is in range and the
   picture is wrong, which is exactly why A2 cannot be read on its own.
-- **A3 fails, and A3 also cannot be settled by this instrument.** At p 1 wall/sky is **0.80–10.7**
-  against a target of ≥ 15, and the one pose that looks right (`lady-bird-lake/aerial-west-120m`, 10.7)
-  gets there from altitude, not from dark walls. Deep night's ground/sky spread is **0.48–599**.
+- **A3 fails at fourteen of sixteen poses, and A3 also cannot be settled by this instrument.** At p 1
+  wall/sky is **0.80–71.2** against a target of ≥ 15. **Two poses clear it and both are the Capitol**
+  (69.2 and 71.2), on rectangles re-aimed onto its floodlit masonry in the sixth pass — which is the
+  right answer and not a pass mark: the Capitol is a floodlit monument, so a wall an order of
+  magnitude over the sky is what the scene should give there, and it says nothing about the unlit
+  residential walls A3 is written about. Of the other fourteen the best is
+  `lady-bird-lake/aerial-west-120m` at **10.7**, and it gets there from altitude, not from dark walls.
+  Deep night's ground/sky spread is **0.48–599**.
+  **Corrected 2026-09-20 (sixth pass): this bullet read "0.80–10.7" and "A3 fails" flatly, because
+  both Capitol readings were of a MapLibre tower.** See the Capitol box in §W0a.
   But **at p 1 the `sky` median is sRGB code 3 or 4 out of 255 in fourteen of the sixteen poses**, so
   every deep-night ratio is a quotient of two near-black 8-bit codes: one code either way moves it
   25–50%, and the aerial pose's 10.7 has a band of **8.0–16.0**, which straddles the ≥ 15 target. The
@@ -746,7 +824,12 @@ Four cautions carried by these runs:
    sRGB code **3 or 4 of 255** in fourteen of the sixteen poses, so `wall/sky` and `ground/sky` there are
    quotients of two near-black 8-bit codes and one code either way moves them 25–50%. The harness marks
    them `~` and prints the ±1-code band beside them from 2026-09-20. Read `wall/sky 4.98` as
-   **4.0–6.6**, and `10.7` on the aerial pose as **8.0–16.0**. The blue-hour, twilight and early-night
+   **4.0–6.6**, `10.7` on the aerial pose as **8.0–16.0**, and the two Capitol readings — the only two
+   over ≥ 15 — as **51.9–104** and **53.4–107**. Those two clear the old target at every corner of
+   their band, which is the one deep-night conclusion the quantisation floor does NOT dissolve, and
+   they are also the two smallest `wall` regions in the file (# at 0.08% and 0.16% of the frame,
+   1,100 and 2,112 px). The
+   blue-hour, twilight and early-night
    numbers are unaffected — their skies are nowhere near black — so the A1 and A2 readings stand as
    written; it is A3 that needs a different question (see §7.2).
 
@@ -1253,8 +1336,11 @@ level is the §8 decision.
 >
 > **Why the ratio died.** At p = 1 the `sky` median is sRGB code 3 or 4 of 255 in fourteen of sixteen
 > poses. Every deep-night ratio is a quotient of two near-black 8-bit codes, one code moves it 25–50%,
-> and the best pose's 10.7 has a ±1-code band of 8.0–16.0 straddling the threshold. Re-running does not
-> fix a quantisation floor.
+> and the best RESIDENTIAL pose's 10.7 has a ±1-code band of 8.0–16.0 straddling the threshold.
+> Re-running does not fix a quantisation floor. (The two Capitol poses read 69.2 and 71.2 after the
+> sixth-pass re-aim, bands 51.9–104 and 53.4–107, so they clear ≥ 15 whatever the last code does —
+> but they are a floodlit monument measured over 1,100 and 2,112 wall pixels, and A3 is a question about
+> unlit residential walls. They do not settle it either.)
 >
 > **The instrument.** `night-compare.mjs` keeps a JPEG at quality `JPEG_Q`, which is right for every
 > other row and fatal for this one. A3 needs a **16-bit PNG** of the same pose — `page.screenshot({

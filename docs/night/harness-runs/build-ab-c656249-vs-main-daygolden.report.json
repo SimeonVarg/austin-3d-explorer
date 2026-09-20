@@ -350,9 +350,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 175633,
+    "sha1": "535e1f82e566"
+   }
   },
   {
    "side": "A",
@@ -532,9 +537,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 209809,
+    "sha1": "8a8ff3d63b34"
+   }
   },
   {
    "side": "A",
@@ -714,9 +724,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 322689,
+    "sha1": "226b9010f02e"
+   }
   },
   {
    "side": "A",
@@ -867,9 +886,17 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 325987,
+    "sha1": "789dbd5c47f0"
+   }
   },
   {
    "side": "A",
@@ -1049,9 +1076,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 443459,
+    "sha1": "00ddbda228a0"
+   }
   },
   {
    "side": "A",
@@ -1237,9 +1273,14 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 162795,
+    "sha1": "69e56ede013f"
+   }
   },
   {
    "side": "A",
@@ -1415,9 +1456,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 156217,
+    "sha1": "41ca2bc73080"
+   }
   },
   {
    "side": "A",
@@ -1627,9 +1673,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 166839,
+    "sha1": "b402d7215d8a"
+   }
   },
   {
    "side": "A",
@@ -1805,9 +1856,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 131135,
+    "sha1": "a08b5b6c91f3"
+   }
   },
   {
    "side": "A",
@@ -1983,9 +2039,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 146642,
+    "sha1": "481c81f1a74b"
+   }
   },
   {
    "side": "A",
@@ -2090,6 +2151,62 @@
       "code": 155
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 109,
+       "std": 43.89,
+       "p1": 34,
+       "p10": 61,
+       "p50": 101,
+       "p90": 203,
+       "p99": 214
+      },
+      "Y": {
+       "mean": 0.191,
+       "p10": 0.04971,
+       "p50": 0.1356,
+       "p90": 0.5972
+      },
+      "rgb": [
+       134,
+       102,
+       105
+      ],
+      "hot120": 31.273,
+      "hot200": 10.818,
+      "frac": 0.0008,
+      "small": true,
+      "code": 103
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 105.6,
+       "std": 51.6,
+       "p1": 42,
+       "p10": 72,
+       "p50": 74,
+       "p90": 198,
+       "p99": 207
+      },
+      "Y": {
+       "mean": 0.1922,
+       "p10": 0.06663,
+       "p50": 0.07036,
+       "p90": 0.5711
+      },
+      "rgb": [
+       111,
+       103,
+       115
+      ],
+      "hot120": 25.318,
+      "hot200": 6.624,
+      "frac": 0.0009,
+      "small": true,
+      "code": 75
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 132.7,
@@ -2115,34 +2232,6 @@
       "hot200": 0.845,
       "frac": 0.0211,
       "code": 132
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 157.7,
-       "std": 51.01,
-       "p1": 44,
-       "p10": 74,
-       "p50": 187,
-       "p90": 207,
-       "p99": 215
-      },
-      "Y": {
-       "mean": 0.3942,
-       "p10": 0.07036,
-       "p50": 0.5089,
-       "p90": 0.6376
-      },
-      "rgb": [
-       150,
-       158,
-       174
-      ],
-      "hot120": 73.046,
-      "hot200": 21.655,
-      "frac": 0.0056,
-      "small": true,
-      "code": 189
      },
      "ground": {
       "n": 32724,
@@ -2173,27 +2262,50 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.2307,
+     "medianY": 0.1356,
      "relK": 4,
-     "pct": 0,
-     "absPct": 15.222,
-     "rgb": null
+     "pct": 1.364,
+     "absPct": 21.091,
+     "rgb": [
+      219,
+      200,
+      207
+     ]
     },
     "ratios": {
-     "wall/sky": 0.704,
+     "wall/sky": 0.414,
      "ground/sky": 0.751,
-     "wall/ground": 0.937
+     "wall/ground": 0.551
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 148534,
+    "sha1": "0276997d9c84"
+   }
   },
   {
    "side": "A",
@@ -2298,6 +2410,62 @@
       "code": 155
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 102.5,
+       "std": 34.22,
+       "p1": 31,
+       "p10": 62,
+       "p50": 100,
+       "p90": 140,
+       "p99": 186
+      },
+      "Y": {
+       "mean": 0.1595,
+       "p10": 0.04971,
+       "p50": 0.1329,
+       "p90": 0.2705
+      },
+      "rgb": [
+       130,
+       95,
+       94
+      ],
+      "hot120": 24.242,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 102
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 91.9,
+       "std": 40.42,
+       "p1": 30,
+       "p10": 67,
+       "p50": 69,
+       "p90": 169,
+       "p99": 180
+      },
+      "Y": {
+       "mean": 0.1371,
+       "p10": 0.05781,
+       "p50": 0.06125,
+       "p90": 0.4072
+      },
+      "rgb": [
+       100,
+       89,
+       97
+      ],
+      "hot120": 22.765,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 70
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 133.5,
@@ -2323,34 +2491,6 @@
       "hot200": 10.267,
       "frac": 0.0836,
       "code": 127
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 134.2,
-       "std": 18.28,
-       "p1": 67,
-       "p10": 115,
-       "p50": 144,
-       "p90": 145,
-       "p99": 152
-      },
-      "Y": {
-       "mean": 0.2491,
-       "p10": 0.1746,
-       "p50": 0.2874,
-       "p90": 0.2874
-      },
-      "rgb": [
-       128,
-       141,
-       85
-      ],
-      "hot120": 71.451,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 146
      },
      "ground": {
       "n": 129600,
@@ -2381,27 +2521,46 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.2122,
+     "medianY": 0.1329,
      "relK": 4,
      "pct": 0,
-     "absPct": 34.086,
+     "absPct": 16.146,
      "rgb": null
     },
     "ratios": {
-     "wall/sky": 0.647,
+     "wall/sky": 0.405,
      "ground/sky": 0.365,
-     "wall/ground": 1.78
+     "wall/ground": 1.11
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 183677,
+    "sha1": "3350c7a0b8b7"
+   }
   },
   {
    "side": "A",
@@ -2581,9 +2740,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 116552,
+    "sha1": "46b5f695d8c7"
+   }
   },
   {
    "side": "A",
@@ -2785,9 +2949,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 235453,
+    "sha1": "9fdc161b942b"
+   }
   },
   {
    "side": "A",
@@ -2962,9 +3131,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 172494,
+    "sha1": "cb20e7c37cd0"
+   }
   },
   {
    "side": "A",
@@ -3144,9 +3318,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 511239,
+    "sha1": "e0cec415b339"
+   }
   },
   {
    "side": "A",
@@ -3321,9 +3500,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 166506,
+    "sha1": "a64844819c8a"
+   }
   },
   {
    "side": "A",
@@ -3503,9 +3687,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 186280,
+    "sha1": "da1b1de47891"
+   }
   },
   {
    "side": "A",
@@ -3685,9 +3874,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 256099,
+    "sha1": "d82b6b4b74cf"
+   }
   },
   {
    "side": "A",
@@ -3838,9 +4036,17 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 275222,
+    "sha1": "d471110afccf"
+   }
   },
   {
    "side": "A",
@@ -4020,9 +4226,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 406441,
+    "sha1": "3dd34f5b4f78"
+   }
   },
   {
    "side": "A",
@@ -4204,9 +4419,14 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 151795,
+    "sha1": "ff1a1bc069bc"
+   }
   },
   {
    "side": "A",
@@ -4386,9 +4606,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 129204,
+    "sha1": "275707fd4cde"
+   }
   },
   {
    "side": "A",
@@ -4594,9 +4819,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 123082,
+    "sha1": "b4a7425d9e1a"
+   }
   },
   {
    "side": "A",
@@ -4772,9 +5002,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 107335,
+    "sha1": "488f59f0b371"
+   }
   },
   {
    "side": "A",
@@ -4950,9 +5185,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 121466,
+    "sha1": "420351ff3b92"
+   }
   },
   {
    "side": "A",
@@ -5057,6 +5297,62 @@
       "code": 153
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 79.3,
+       "std": 42.24,
+       "p1": 25,
+       "p10": 55,
+       "p50": 67,
+       "p90": 185,
+       "p99": 198
+      },
+      "Y": {
+       "mean": 0.1096,
+       "p10": 0.03955,
+       "p50": 0.05781,
+       "p90": 0.491
+      },
+      "rgb": [
+       88,
+       77,
+       76
+      ],
+      "hot120": 11.273,
+      "hot200": 0.455,
+      "frac": 0.0008,
+      "small": true,
+      "code": 68
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 100.4,
+       "std": 46.6,
+       "p1": 37,
+       "p10": 71,
+       "p50": 73,
+       "p90": 184,
+       "p99": 190
+      },
+      "Y": {
+       "mean": 0.168,
+       "p10": 0.0648,
+       "p50": 0.06848,
+       "p90": 0.4851
+      },
+      "rgb": [
+       104,
+       99,
+       102
+      ],
+      "hot120": 25.318,
+      "hot200": 0.091,
+      "frac": 0.0009,
+      "small": true,
+      "code": 74
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 107.5,
@@ -5082,34 +5378,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 103
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 139.9,
-       "std": 52.87,
-       "p1": 30,
-       "p10": 67,
-       "p50": 175,
-       "p90": 190,
-       "p99": 197
-      },
-      "Y": {
-       "mean": 0.3158,
-       "p10": 0.05781,
-       "p50": 0.4397,
-       "p90": 0.5271
-      },
-      "rgb": [
-       129,
-       142,
-       154
-      ],
-      "hot120": 61.519,
-      "hot200": 0.498,
-      "frac": 0.0056,
-      "small": true,
-      "code": 177
      },
      "ground": {
       "n": 32724,
@@ -5140,27 +5408,50 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.1356,
+     "medianY": 0.05781,
      "relK": 4,
-     "pct": 0,
-     "absPct": 1.866,
-     "rgb": null
+     "pct": 1.273,
+     "absPct": 1.273,
+     "rgb": [
+      199,
+      186,
+      185
+     ]
     },
     "ratios": {
-     "wall/sky": 0.426,
+     "wall/sky": 0.182,
      "ground/sky": 0.786,
-     "wall/ground": 0.542
+     "wall/ground": 0.231
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 122733,
+    "sha1": "96f790b06d40"
+   }
   },
   {
    "side": "A",
@@ -5265,6 +5556,62 @@
       "code": 154
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 69.8,
+       "std": 33.48,
+       "p1": 21,
+       "p10": 54,
+       "p50": 61,
+       "p90": 74,
+       "p99": 177
+      },
+      "Y": {
+       "mean": 0.0802,
+       "p10": 0.0382,
+       "p50": 0.04817,
+       "p90": 0.07036
+      },
+      "rgb": [
+       81,
+       67,
+       67
+      ],
+      "hot120": 8.475,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 62
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 117.3,
+       "std": 39.56,
+       "p1": 25,
+       "p10": 67,
+       "p50": 124,
+       "p90": 164,
+       "p99": 171
+      },
+      "Y": {
+       "mean": 0.2169,
+       "p10": 0.05781,
+       "p50": 0.2232,
+       "p90": 0.3813
+      },
+      "rgb": [
+       147,
+       110,
+       100
+      ],
+      "hot120": 52.506,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 130
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 105,
@@ -5290,34 +5637,6 @@
       "hot200": 0.24,
       "frac": 0.0836,
       "code": 90
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 83.2,
-       "std": 30.22,
-       "p1": 28,
-       "p10": 63,
-       "p50": 64,
-       "p90": 116,
-       "p99": 155
-      },
-      "Y": {
-       "mean": 0.1039,
-       "p10": 0.05127,
-       "p50": 0.05286,
-       "p90": 0.1812
-      },
-      "rgb": [
-       86,
-       86,
-       48
-      ],
-      "hot120": 9.561,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 65
      },
      "ground": {
       "n": 129600,
@@ -5348,31 +5667,50 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.1022,
+     "medianY": 0.04817,
      "relK": 4,
-     "pct": 2.609,
-     "absPct": 21.927,
+     "pct": 0.284,
+     "absPct": 0.284,
      "rgb": [
-      224,
-      174,
-      123
+      175,
+      163,
+      163
      ]
     },
     "ratios": {
-     "wall/sky": 0.316,
+     "wall/sky": 0.149,
      "ground/sky": 0.288,
-     "wall/ground": 1.1
+     "wall/ground": 0.518
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 168479,
+    "sha1": "12cbe7439504"
+   }
   },
   {
    "side": "A",
@@ -5552,9 +5890,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 110069,
+    "sha1": "12e96cac4944"
+   }
   },
   {
    "side": "A",
@@ -5756,9 +6099,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 202015,
+    "sha1": "7f6c4089bf4e"
+   }
   },
   {
    "side": "A",
@@ -5933,9 +6281,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 133035,
+    "sha1": "04943d841197"
+   }
   },
   {
    "side": "A",
@@ -6115,9 +6468,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 409546,
+    "sha1": "d6d2c96b569e"
+   }
   },
   {
    "side": "B",
@@ -6292,13 +6650,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.685,
     "pctOver": 5.836,
     "pctBig": 0.039
+   },
+   "frame": {
+    "bytes": 153590,
+    "sha1": "37a38cdc1fd9"
    }
   },
   {
@@ -6479,13 +6842,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.45,
     "pctOver": 6.411,
     "pctBig": 0.068
+   },
+   "frame": {
+    "bytes": 190046,
+    "sha1": "0901cf6d3750"
    }
   },
   {
@@ -6666,13 +7034,22 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 6.034,
     "pctOver": 13.504,
     "pctBig": 1.294
+   },
+   "frame": {
+    "bytes": 311127,
+    "sha1": "f2ee5bf1e2b9"
    }
   },
   {
@@ -6824,13 +7201,21 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 5.082,
     "pctOver": 13.042,
     "pctBig": 0.965
+   },
+   "frame": {
+    "bytes": 309179,
+    "sha1": "a6066b534be4"
    }
   },
   {
@@ -7011,13 +7396,22 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.272,
     "pctOver": 8.342,
     "pctBig": 0.241
+   },
+   "frame": {
+    "bytes": 420310,
+    "sha1": "9bfec955a6b7"
    }
   },
   {
@@ -7204,13 +7598,18 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.29,
     "pctOver": 2.556,
     "pctBig": 0.07
+   },
+   "frame": {
+    "bytes": 157998,
+    "sha1": "a1da314b9bb5"
    }
   },
   {
@@ -7387,13 +7786,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.607,
     "pctOver": 6.182,
     "pctBig": 0.024
+   },
+   "frame": {
+    "bytes": 137154,
+    "sha1": "92ed6ea4e843"
    }
   },
   {
@@ -7604,13 +8008,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.645,
     "pctOver": 8.216,
     "pctBig": 1.153
+   },
+   "frame": {
+    "bytes": 151479,
+    "sha1": "570ce8c8767d"
    }
   },
   {
@@ -7791,13 +8200,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.451,
     "pctOver": 2.766,
     "pctBig": 0.192
+   },
+   "frame": {
+    "bytes": 128864,
+    "sha1": "a9d42022cde3"
    }
   },
   {
@@ -7974,13 +8388,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.198,
     "pctOver": 4.05,
     "pctBig": 0.113
+   },
+   "frame": {
+    "bytes": 136449,
+    "sha1": "8959cb86cb9e"
    }
   },
   {
@@ -8086,6 +8505,62 @@
       "code": 155
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 121.4,
+       "std": 39.6,
+       "p1": 45,
+       "p10": 65,
+       "p50": 120,
+       "p90": 202,
+       "p99": 215
+      },
+      "Y": {
+       "mean": 0.2269,
+       "p10": 0.05613,
+       "p50": 0.2016,
+       "p90": 0.5972
+      },
+      "rgb": [
+       151,
+       113,
+       113
+      ],
+      "hot120": 53.182,
+      "hot200": 10.364,
+      "frac": 0.0008,
+      "small": true,
+      "code": 124
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 154.4,
+       "std": 34.63,
+       "p1": 55,
+       "p10": 106,
+       "p50": 156,
+       "p90": 197,
+       "p99": 208
+      },
+      "Y": {
+       "mean": 0.3546,
+       "p10": 0.15,
+       "p50": 0.3467,
+       "p90": 0.5647
+      },
+      "rgb": [
+       178,
+       148,
+       151
+      ],
+      "hot120": 83.485,
+      "hot200": 5.898,
+      "frac": 0.0009,
+      "small": true,
+      "code": 159
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 145.8,
@@ -8111,34 +8586,6 @@
       "hot200": 1.27,
       "frac": 0.0211,
       "code": 150
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 170.6,
-       "std": 37.95,
-       "p1": 57,
-       "p10": 118,
-       "p50": 188,
-       "p90": 208,
-       "p99": 216
-      },
-      "Y": {
-       "mean": 0.4386,
-       "p10": 0.1912,
-       "p50": 0.5149,
-       "p90": 0.6376
-      },
-      "rgb": [
-       167,
-       170,
-       184
-      ],
-      "hot120": 89.429,
-      "hot200": 22.361,
-      "frac": 0.0056,
-      "small": true,
-      "code": 190
      },
      "ground": {
       "n": 32724,
@@ -8169,31 +8616,50 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.305,
+     "medianY": 0.2016,
      "relK": 4,
      "pct": 0,
-     "absPct": 39.139,
+     "absPct": 43.273,
      "rgb": null
     },
     "ratios": {
-     "wall/sky": 0.93,
+     "wall/sky": 0.615,
      "ground/sky": 0.751,
-     "wall/ground": 1.24
+     "wall/ground": 0.819
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 6.016,
     "pctOver": 12.782,
     "pctBig": 0.239
+   },
+   "frame": {
+    "bytes": 129595,
+    "sha1": "e3df5e87291c"
    }
   },
   {
@@ -8299,6 +8765,62 @@
       "code": 155
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 116.2,
+       "std": 30.71,
+       "p1": 43,
+       "p10": 75,
+       "p50": 119,
+       "p90": 148,
+       "p99": 186
+      },
+      "Y": {
+       "mean": 0.1993,
+       "p10": 0.07227,
+       "p50": 0.1981,
+       "p90": 0.305
+      },
+      "rgb": [
+       150,
+       107,
+       103
+      ],
+      "hot120": 48.011,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 123
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 141.6,
+       "std": 31.2,
+       "p1": 45,
+       "p10": 99,
+       "p50": 149,
+       "p90": 171,
+       "p99": 180
+      },
+      "Y": {
+       "mean": 0.2948,
+       "p10": 0.1301,
+       "p50": 0.314,
+       "p90": 0.4233
+      },
+      "rgb": [
+       168,
+       134,
+       135
+      ],
+      "hot120": 77.485,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 152
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 138.5,
@@ -8324,34 +8846,6 @@
       "hot200": 10.359,
       "frac": 0.0836,
       "code": 138
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 134.3,
-       "std": 18.17,
-       "p1": 66,
-       "p10": 115,
-       "p50": 144,
-       "p90": 145,
-       "p99": 151
-      },
-      "Y": {
-       "mean": 0.2495,
-       "p10": 0.1779,
-       "p50": 0.2874,
-       "p90": 0.2874
-      },
-      "rgb": [
-       128,
-       141,
-       85
-      ],
-      "hot120": 71.541,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 146
      },
      "ground": {
       "n": 129600,
@@ -8382,31 +8876,50 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.2542,
+     "medianY": 0.1981,
      "relK": 4,
      "pct": 0,
-     "absPct": 48.602,
+     "absPct": 40.483,
      "rgb": null
     },
     "ratios": {
-     "wall/sky": 0.775,
+     "wall/sky": 0.604,
      "ground/sky": 0.365,
-     "wall/ground": 2.13
+     "wall/ground": 1.66
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.267,
     "pctOver": 5.99,
     "pctBig": 0.261
+   },
+   "frame": {
+    "bytes": 166015,
+    "sha1": "55badda78c07"
    }
   },
   {
@@ -8587,13 +9100,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.315,
     "pctOver": 0.612,
     "pctBig": 0.001
+   },
+   "frame": {
+    "bytes": 113594,
+    "sha1": "2a00b123e87f"
    }
   },
   {
@@ -8796,13 +9314,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 4.536,
     "pctOver": 11.704,
     "pctBig": 2.997
+   },
+   "frame": {
+    "bytes": 194141,
+    "sha1": "967c420677b8"
    }
   },
   {
@@ -8978,13 +9501,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.918,
     "pctOver": 8.55,
     "pctBig": 0.036
+   },
+   "frame": {
+    "bytes": 129445,
+    "sha1": "f6a2ccd14b19"
    }
   },
   {
@@ -9165,13 +9693,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 5.114,
     "pctOver": 10.459,
     "pctBig": 1.546
+   },
+   "frame": {
+    "bytes": 492770,
+    "sha1": "e52c2d226987"
    }
   },
   {
@@ -9347,13 +9880,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.319,
     "pctOver": 3.245,
     "pctBig": 0.014
+   },
+   "frame": {
+    "bytes": 156720,
+    "sha1": "9febf4777e54"
    }
   },
   {
@@ -9534,13 +10072,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.248,
     "pctOver": 0.048,
     "pctBig": 0.005
+   },
+   "frame": {
+    "bytes": 186263,
+    "sha1": "01f9866fe2b9"
    }
   },
   {
@@ -9721,13 +10264,22 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.81,
     "pctOver": 1.704,
     "pctBig": 0.02
+   },
+   "frame": {
+    "bytes": 257506,
+    "sha1": "59d3d6bbb2ac"
    }
   },
   {
@@ -9879,13 +10431,21 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.04,
     "pctOver": 5.672,
     "pctBig": 0.109
+   },
+   "frame": {
+    "bytes": 278443,
+    "sha1": "bd9eada95d52"
    }
   },
   {
@@ -10066,13 +10626,22 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.542,
     "pctOver": 1.802,
     "pctBig": 0.07
+   },
+   "frame": {
+    "bytes": 405127,
+    "sha1": "a8c652340403"
    }
   },
   {
@@ -10255,13 +10824,18 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.079,
     "pctOver": 0.119,
     "pctBig": 0.016
+   },
+   "frame": {
+    "bytes": 151959,
+    "sha1": "3d38251332d6"
    }
   },
   {
@@ -10442,13 +11016,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.134,
     "pctOver": 2.36,
     "pctBig": 0.001
+   },
+   "frame": {
+    "bytes": 129361,
+    "sha1": "6b2a6ca8f3d5"
    }
   },
   {
@@ -10655,13 +11234,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.903,
     "pctOver": 1.138,
     "pctBig": 0.325
+   },
+   "frame": {
+    "bytes": 123321,
+    "sha1": "a6721c7a0a8c"
    }
   },
   {
@@ -10838,13 +11422,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.005,
     "pctOver": 0.003,
     "pctBig": 0.001
+   },
+   "frame": {
+    "bytes": 107344,
+    "sha1": "7ca822fd0b42"
    }
   },
   {
@@ -11021,13 +11610,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.058,
     "pctOver": 0.128,
     "pctBig": 0.002
+   },
+   "frame": {
+    "bytes": 121510,
+    "sha1": "906440be79b3"
    }
   },
   {
@@ -11133,6 +11727,62 @@
       "code": 157
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 82.3,
+       "std": 43,
+       "p1": 26,
+       "p10": 58,
+       "p50": 70,
+       "p90": 190,
+       "p99": 202
+      },
+      "Y": {
+       "mean": 0.1172,
+       "p10": 0.04374,
+       "p50": 0.06125,
+       "p90": 0.521
+      },
+      "rgb": [
+       91,
+       80,
+       79
+      ],
+      "hot120": 11.091,
+      "hot200": 3,
+      "frac": 0.0008,
+      "small": true,
+      "code": 70
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 133.7,
+       "std": 41.79,
+       "p1": 45,
+       "p10": 75,
+       "p50": 139,
+       "p90": 189,
+       "p99": 195
+      },
+      "Y": {
+       "mean": 0.2789,
+       "p10": 0.07036,
+       "p50": 0.2789,
+       "p90": 0.5149
+      },
+      "rgb": [
+       161,
+       127,
+       116
+      ],
+      "hot120": 62.523,
+      "hot200": 0.091,
+      "frac": 0.0009,
+      "small": true,
+      "code": 144
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 110.9,
@@ -11158,34 +11808,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 106
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 151.5,
-       "std": 49.47,
-       "p1": 32,
-       "p10": 71,
-       "p50": 181,
-       "p90": 196,
-       "p99": 203
-      },
-      "Y": {
-       "mean": 0.3623,
-       "p10": 0.06301,
-       "p50": 0.4735,
-       "p90": 0.5647
-      },
-      "rgb": [
-       145,
-       152,
-       161
-      ],
-      "hot120": 72.686,
-      "hot200": 5.078,
-      "frac": 0.0056,
-      "small": true,
-      "code": 183
      },
      "ground": {
       "n": 32724,
@@ -11216,31 +11838,54 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.1441,
+     "medianY": 0.06125,
      "relK": 4,
-     "pct": 0,
-     "absPct": 3.162,
-     "rgb": null
+     "pct": 1.091,
+     "absPct": 1.091,
+     "rgb": [
+      207,
+      190,
+      187
+     ]
     },
     "ratios": {
-     "wall/sky": 0.427,
+     "wall/sky": 0.182,
      "ground/sky": 0.79,
-     "wall/ground": 0.541
+     "wall/ground": 0.23
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 4.424,
     "pctOver": 3.795,
     "pctBig": 0.197
+   },
+   "frame": {
+    "bytes": 120860,
+    "sha1": "afb8f9b00787"
    }
   },
   {
@@ -11346,6 +11991,62 @@
       "code": 153
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 69,
+       "std": 32.52,
+       "p1": 21,
+       "p10": 54,
+       "p50": 61,
+       "p90": 72,
+       "p99": 176
+      },
+      "Y": {
+       "mean": 0.07772,
+       "p10": 0.0382,
+       "p50": 0.04817,
+       "p90": 0.06663
+      },
+      "rgb": [
+       80,
+       66,
+       66
+      ],
+      "hot120": 8.097,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 62
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 118.4,
+       "std": 38.56,
+       "p1": 32,
+       "p10": 67,
+       "p50": 126,
+       "p90": 163,
+       "p99": 170
+      },
+      "Y": {
+       "mean": 0.2197,
+       "p10": 0.05781,
+       "p50": 0.227,
+       "p90": 0.3763
+      },
+      "rgb": [
+       149,
+       111,
+       100
+      ],
+      "hot120": 53.759,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 131
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 104.4,
@@ -11371,34 +12072,6 @@
       "hot200": 0.305,
       "frac": 0.0836,
       "code": 90
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 82.8,
-       "std": 29.76,
-       "p1": 28,
-       "p10": 63,
-       "p50": 64,
-       "p90": 115,
-       "p99": 155
-      },
-      "Y": {
-       "mean": 0.1027,
-       "p10": 0.05127,
-       "p50": 0.05286,
-       "p90": 0.1746
-      },
-      "rgb": [
-       86,
-       86,
-       47
-      ],
-      "hot120": 9.27,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 65
      },
      "ground": {
       "n": 129600,
@@ -11429,35 +12102,54 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.1022,
+     "medianY": 0.04817,
      "relK": 4,
-     "pct": 2.628,
-     "absPct": 21.805,
+     "pct": 0.379,
+     "absPct": 0.379,
      "rgb": [
-      224,
-      175,
-      124
+      177,
+      162,
+      167
      ]
     },
     "ratios": {
-     "wall/sky": 0.321,
+     "wall/sky": 0.151,
      "ground/sky": 0.292,
-     "wall/ground": 1.1
+     "wall/ground": 0.518
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.154,
     "pctOver": 3.557,
     "pctBig": 0.018
+   },
+   "frame": {
+    "bytes": 161806,
+    "sha1": "049a552ef00c"
    }
   },
   {
@@ -11638,13 +12330,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 0.3,
     "pctOver": 0.317,
     "pctBig": 0.03
+   },
+   "frame": {
+    "bytes": 109169,
+    "sha1": "ea8f6acfbca3"
    }
   },
   {
@@ -11847,13 +12544,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 2.458,
     "pctOver": 4.033,
     "pctBig": 0.169
+   },
+   "frame": {
+    "bytes": 191448,
+    "sha1": "8517932c1f0a"
    }
   },
   {
@@ -12029,13 +12731,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.647,
     "pctOver": 2.332,
     "pctBig": 0.04
+   },
+   "frame": {
+    "bytes": 125920,
+    "sha1": "893ca8da8106"
    }
   },
   {
@@ -12216,13 +12923,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.353,
     "pctOver": 1.095,
     "pctBig": 0.118
+   },
+   "frame": {
+    "bytes": 413505,
+    "sha1": "23ddecf7aaee"
    }
   }
  ],
@@ -12233,35 +12945,28 @@
   "note": "no photograph was composited by this pass; the sheets are our renders only."
  },
  "sheets": [
-  "sheet-skyline-south-shore-shore-10m.jpg",
-  "sheet-congress-street-at-5th-1p7m.jpg",
-  "sheet-wc-elevated-over-drag-wnw.jpg",
-  "sheet-wc-elevated-over-mlk-north.jpg",
-  "sheet-wc-elevated-down-on-ion.jpg",
-  "sheet-wc-street-rio-grande-23rd.jpg",
-  "sheet-wc-street-san-antonio-castilian.jpg",
-  "sheet-main-mall-tower-mall-1p7m.jpg",
-  "sheet-south-mall-terrace-4m.jpg",
-  "sheet-guadalupe-storefronts-drag-22nd-1p7m.jpg",
-  "sheet-capitol-congress-30m.jpg",
-  "sheet-capitol-gate-1p7m.jpg",
-  "sheet-parking-structure-garage-r-west-100m.jpg",
-  "sheet-lady-bird-lake-aerial-west-120m.jpg",
-  "sheet-lady-bird-lake-lamar-bridge-8m.jpg",
-  "sheet-campus-aerial-z16-p68.jpg",
   "overview-A-1.jpg",
   "overview-A-2.jpg",
   "overview-B-1.jpg",
   "overview-B-2.jpg"
  ],
  "verdict": {
-  "uninterpretable": [],
+  "uninterpretable": [
+   "LOAD ASYMMETRY: the two sides reached a ready page by DIFFERENT routes: A took 2 reload(s) then the APARTMENTS.on poke (the path this file calls unreliable) (ready in 379 s), B took 0 reload(s) (ready in 94 s). A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so this is a difference between the two SIDES and not between the two builds.",
+   "LOAD ASYMMETRY: both sides were shot against http://127.0.0.1:8661 (as shipped) and were served DIFFERENT builds: A 4807b1680898, B ae7b2be0ceaf. A rebuild landed in the served checkout between the two sides, so whatever this run measured, it is not the difference the flags describe. build.sha1 is the fingerprint of index.html plus every local script it loads."
+  ],
   "unsettled": [],
+  "loadAsymmetry": [
+   "the two sides reached a ready page by DIFFERENT routes: A took 2 reload(s) then the APARTMENTS.on poke (the path this file calls unreliable) (ready in 379 s), B took 0 reload(s) (ready in 94 s). A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so this is a difference between the two SIDES and not between the two builds.",
+   "both sides were shot against http://127.0.0.1:8661 (as shipped) and were served DIFFERENT builds: A 4807b1680898, B ae7b2be0ceaf. A rebuild landed in the served checkout between the two sides, so whatever this run measured, it is not the difference the flags describe. build.sha1 is the fingerprint of index.html plus every local script it loads."
+  ],
   "abDiff": {
    "frames": 32,
    "pctOverMin": 0.003,
    "pctOverMedian": 3.795,
-   "pctOverMax": 13.504
+   "pctOverMax": 13.504,
+   "byteIdenticalPairs": 0,
+   "meanAbsZeroPairs": 0
   },
   "same": {
    "tolPct": 1,
@@ -12292,8 +12997,94 @@
     "golden lady-bird-lake/aerial-west-120m 4.033%",
     "golden lady-bird-lake/lamar-bridge-8m 2.332%",
     "golden campus-aerial/z16-p68 1.095%"
-   ]
+   ],
+   "maskedByExitCode": "exit 2 (cannot interpret) outranks exit 1, so this --same FAILURE is not in the exit code \u2014 read verdict.same.failing"
   }
  },
- "committedCopy": "READ THE LABELS WITH CARE. This run was launched as a NOISE FLOOR -- main against itself at day and golden -- and both sides carry the label 'as shipped'. They are not the same build. The merge of origin/main into this branch landed in the served worktree while side A was shooting, so side A's page had already loaded c656249's js and side B loaded 13741fa's. The harness's own per-side build.sha1 is what caught it: A 4807b168 against B ae7b2be0, with identical GFX presets and identical authored triangles. So this is not a noise floor; it is an unplanned but valid c656249-vs-main A/B at day and golden, shot in one browser 25 minutes apart, and it is kept for that. The real noise floor is noise-floor-main-daygolden.report.json. AND THE TWO SIDES DID NOT LOAD THE SAME WAY. Side A took authoredReloads 2 and then the APARTMENTS.on poke -- the path night-compare.mjs's own comment calls unreliable -- and carries all four load warnings, ready in 379,315 ms. Side B took 0 reloads, no warnings, ready in 93,576 ms. A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so some unknown part of this A/B is a difference between the two SIDES rather than between the two builds. Everything the plan says about it is still true and still checked -- both frames fully settled, identical GFX presets, identical 2,600,942 authored triangles, 0 re-shoots -- but the recovery path is not identical, and the plan's own A9 box says a run like that 'is not this measurement'. Under the load-asymmetry rule added in the fifth pass this run is exit 2, and it is the only one of the ten kept here that the rule catches. Read the day/golden numbers as the shadow fix arriving WITH that confound attached, not as a clean two-build A/B."
+ "committedCopy": "READ THE LABELS WITH CARE. This run was launched as a NOISE FLOOR -- main against itself at day and golden -- and both sides carry the label 'as shipped'. They are not the same build. The merge of origin/main into this branch landed in the served worktree while side A was shooting, so side A's page had already loaded c656249's js and side B loaded 13741fa's. The harness's own per-side build.sha1 is what caught it: A 4807b168 against B ae7b2be0, with identical GFX presets and identical authored triangles. So this is not a noise floor; it is an unplanned but valid c656249-vs-main A/B at day and golden, shot in one browser 25 minutes apart, and it is kept for that. The real noise floor is noise-floor-main-daygolden.report.json. AND THE TWO SIDES DID NOT LOAD THE SAME WAY. Side A took authoredReloads 2 and then the APARTMENTS.on poke -- the path night-compare.mjs's own comment calls unreliable -- and carries all four load warnings, ready in 379,315 ms. Side B took 0 reloads, no warnings, ready in 93,576 ms. A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so some unknown part of this A/B is a difference between the two SIDES rather than between the two builds. Everything the plan says about it is still true and still checked -- both frames fully settled, identical GFX presets, identical 2,600,942 authored triangles, 0 re-shoots -- but the recovery path is not identical, and the plan's own A9 box says a run like that 'is not this measurement'. Under the load-asymmetry rule added in the fifth pass this run is exit 2, and it is the only one of the ten kept here that the rule catches. Read the day/golden numbers as the shadow fix arriving WITH that confound attached, not as a clean two-build A/B. ||| SIXTH PASS, 2026-09-20 -- RE-MEASURED, NOT RE-SHOT. The two Capitol poses' `wall` and `dome` rectangles were on MapLibre's own fill-extrusions, not on anything we author: `--break slopes` deleted 3,560,273 triangles and every measured number at both poses came back bit-identical. wall and dome are now read off the A-vs-B mask of that run (92-96% of each rectangle is pixels the sabotage changed by more than 3 of 255 on any channel; 86-91% at a threshold of 6), the old rectangles are kept as `downtown`/`flanking` and declared `basemap`, and every kept report was re-measured from its OWN frames with --from against the corrected night-routes.json. No frame in this file was taken again; the frames are byte-for-byte the ones the shoot produced. Capitol numbers before and after are tabulated in docs/night-implementation-plan.md sec W0a. Every shot also gained `frame.bytes`/`frame.sha1`, and `report.exit` now exists in all ten files. It had never actually been re-measured under the loadAsymmetry rule the folder README says makes it exit 2, so the file said nothing of the kind. It has been now: `exit: 2` is in this file, with TWO asymmetry lines -- the reload path, and the new one, that both sides were shot against the same site and query and served DIFFERENT builds (A 4807b1680898, B ae7b2be0ceaf). That second line is the rebuild-landed-mid-run verdict, which until now was a thing a human had spotted off the overview sheet.",
+ "remeasured": "2026-09-20T11:59:39.727Z",
+ "remeasure": {
+  "when": "2026-09-20T11:59:39.727Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework5/remeasure/build-ab-c656249-vs-main-daygolden",
+   "--from",
+   "<scratch>/lanes/night/rework5/remeasure/build-ab-c656249-vs-main-daygolden",
+   "--refs",
+   "off",
+   "--local",
+   "none",
+   "--same",
+   "1"
+  ],
+  "harnessGit": {
+   "head": "46697d2",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework5/remeasure/build-ab-c656249-vs-main-daygolden",
+  "from": "<scratch>/lanes/night/rework5/remeasure/build-ab-c656249-vs-main-daygolden",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T08:22:33.879Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework3/noise-daygolden",
+   "--regimes",
+   "day,golden",
+   "--a",
+   "",
+   "--b",
+   "",
+   "--same",
+   "1",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "9487d4f",
+   "dirty": true
+  },
+  "gl": "hardware",
+  "viewport": [
+   1440,
+   900
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T08:22:33.879Z",
+  "shootGit": {
+   "head": "9487d4f",
+   "dirty": true
+  },
+  "shotsFromThatShoot": 64,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "exit": 2
 }

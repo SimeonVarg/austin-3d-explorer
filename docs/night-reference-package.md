@@ -54,8 +54,19 @@ no late-night frame of the Icon crown.
 
 There are 46 retained files: 19 downtown, 14 West Campus/campus and 13 landmarks/street. 43 are unique,
 because three Commons files were collected twice (Cutrer 2012 full night, Kotipalli 2013-06-10 and the Drag
-2009). Each folder has `sources.json` (URL, credit, licence, date, regime, processing flags, evidence),
-`notes.md` and `contact-sheet.jpg`.
+2009). Each folder has `sources.json`, `notes.md` and `contact-sheet.jpg`.
+
+**`sources.json` schema, fixed 2026-09-20.** One JSON array of objects, keys in this order, all
+`snake_case`: `file`, `source_page`, `direct_image_url`, `author_credit`, `license`, `date`, `regime`,
+`processing_flags` (a list), `evidence` (a string). `scripts/verify/night-refmeasure.py` reads `file`,
+`date` and `regime`; everything else is for a human. Until 2026-09-20 `downtown/sources.json` used
+`sourcePage` / `directImageUrl` / `author` / `processingFlags` while the other two used snake_case, and
+`westcampus-campus` used `evidence` where the other two used `evidences` — three folders, two spellings
+of the same schema, with nothing to say which was right. All three now match.
+**And a correction has to land in the file, not only here.** `westcampus-campus`'s Dobie entry went on
+saying the tower "was demolished ... it is not a photo of the current building" for as long as §1.2 and
+the struck row below carried the opposite. `sources.json` is what the next gatherer opens first, so a
+correction that stops at this document has not been made.
 
 - Licences: most are CC BY / BY-SA from Wikimedia Commons, and **three are public domain** —
   `maxxparten` predawn, `frost-tower__full-tower-bw` and `ut-tower-flawn-academic-night`, the last of

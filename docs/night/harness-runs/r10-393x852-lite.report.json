@@ -6,7 +6,7 @@
   "dirty": true
  },
  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
- "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+ "localOverlay": null,
  "viewport": [
   393,
   852
@@ -208,7 +208,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1834
+      "frac": 0.1834,
+      "code": 18
      },
      "wall": {
       "n": 15620,
@@ -234,7 +235,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0466
+      "frac": 0.0466,
+      "code": 68
      },
      "ground": {
       "n": 4060,
@@ -260,7 +262,8 @@
       ],
       "hot120": 33.99,
       "hot200": 0,
-      "frac": 0.0121
+      "frac": 0.0121,
+      "code": 107
      }
     },
     "smallRegions": [],
@@ -278,9 +281,20 @@
      "ground/sky": 24.3,
      "wall/ground": 0.393
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 48671,
+    "sha1": "57cdac20903e"
+   }
   },
   {
    "side": "A",
@@ -368,7 +382,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1987
+      "frac": 0.1987,
+      "code": 19
      },
      "wall": {
       "n": 17850,
@@ -394,7 +409,8 @@
       ],
       "hot120": 0.123,
       "hot200": 0,
-      "frac": 0.0533
+      "frac": 0.0533,
+      "code": 64
      }
     },
     "smallRegions": [],
@@ -414,9 +430,19 @@
     "ratios": {
      "wall/sky": 7.87
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 45479,
+    "sha1": "133e2dfaafeb"
+   }
   },
   {
    "side": "A",
@@ -504,7 +530,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0348
+      "frac": 0.0348,
+      "code": 40
      },
      "wall": {
       "n": 36528,
@@ -530,7 +557,8 @@
       ],
       "hot120": 6.187,
       "hot200": 0,
-      "frac": 0.1091
+      "frac": 0.1091,
+      "code": 85
      },
      "ground": {
       "n": 4320,
@@ -556,7 +584,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0129
+      "frac": 0.0129,
+      "code": 48
      }
     },
     "smallRegions": [],
@@ -574,9 +603,20 @@
      "ground/sky": 1.39,
      "wall/ground": 3.07
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 74985,
+    "sha1": "91e33fa3730b"
+   }
   },
   {
    "side": "A",
@@ -665,7 +705,8 @@
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0057,
-      "small": true
+      "small": true,
+      "code": 16
      },
      "wall": {
       "n": 21248,
@@ -691,7 +732,8 @@
       ],
       "hot120": 1.177,
       "hot200": 0,
-      "frac": 0.0635
+      "frac": 0.0635,
+      "code": 57
      },
      "ground": {
       "n": 33372,
@@ -717,7 +759,8 @@
       ],
       "hot120": 100,
       "hot200": 66.454,
-      "frac": 0.0997
+      "frac": 0.0997,
+      "code": 204
      }
     },
     "smallRegions": [
@@ -744,9 +787,16 @@
     "ratiosSmall": [
      "wall/sky",
      "ground/sky"
-    ]
+    ],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 35381,
+    "sha1": "09f7126207c2"
+   }
   },
   {
    "side": "A",
@@ -834,7 +884,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0184
+      "frac": 0.0184,
+      "code": 16
      },
      "wall": {
       "n": 30438,
@@ -860,7 +911,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0909
+      "frac": 0.0909,
+      "code": 65
      },
      "ground": {
       "n": 37422,
@@ -886,7 +938,8 @@
       ],
       "hot120": 100,
       "hot200": 0,
-      "frac": 0.1118
+      "frac": 0.1118,
+      "code": 175
      }
     },
     "smallRegions": [],
@@ -904,9 +957,16 @@
      "ground/sky": 82.7,
      "wall/ground": 0.123
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 35608,
+    "sha1": "0631a1650847"
+   }
   },
   {
    "side": "A",
@@ -994,7 +1054,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1834
+      "frac": 0.1834,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 15620,
@@ -1020,7 +1082,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0466
+      "frac": 0.0466,
+      "code": 18
      },
      "ground": {
       "n": 4060,
@@ -1046,7 +1109,8 @@
       ],
       "hot120": 13.399,
       "hot200": 0,
-      "frac": 0.0121
+      "frac": 0.0121,
+      "code": 75
      }
     },
     "smallRegions": [],
@@ -1068,9 +1132,32 @@
      "ground/sky": 58,
      "wall/ground": 0.086
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      3.99,
+      6.64
+     ],
+     "ground/sky": [
+      46.4,
+      77.3
+     ]
+    },
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 36900,
+    "sha1": "25702b3910e5"
+   }
   },
   {
    "side": "A",
@@ -1158,7 +1245,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1987
+      "frac": 0.1987,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 17850,
@@ -1184,7 +1273,8 @@
       ],
       "hot120": 0.039,
       "hot200": 0,
-      "frac": 0.0533
+      "frac": 0.0533,
+      "code": 19
      }
     },
     "smallRegions": [],
@@ -1204,9 +1294,26 @@
     "ratios": {
      "wall/sky": 5.36
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      4.29,
+      7.15
+     ]
+    },
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 35991,
+    "sha1": "eb0a31f8d81d"
+   }
   },
   {
    "side": "A",
@@ -1294,7 +1401,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0348
+      "frac": 0.0348,
+      "code": 18
      },
      "wall": {
       "n": 36528,
@@ -1320,7 +1428,8 @@
       ],
       "hot120": 0.003,
       "hot200": 0,
-      "frac": 0.1091
+      "frac": 0.1091,
+      "code": 17
      },
      "ground": {
       "n": 4320,
@@ -1346,7 +1455,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0129
+      "frac": 0.0129,
+      "code": 17
      }
     },
     "smallRegions": [],
@@ -1368,9 +1478,20 @@
      "ground/sky": 0.927,
      "wall/ground": 1
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 58728,
+    "sha1": "6abfd6891c31"
+   }
   },
   {
    "side": "A",
@@ -1459,7 +1580,9 @@
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0057,
-      "small": true
+      "small": true,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 21248,
@@ -1485,7 +1608,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0635
+      "frac": 0.0635,
+      "code": 17
      },
      "ground": {
       "n": 33372,
@@ -1511,7 +1635,8 @@
       ],
       "hot120": 100,
       "hot200": 0,
-      "frac": 0.0997
+      "frac": 0.0997,
+      "code": 190
      }
     },
     "smallRegions": [
@@ -1538,9 +1663,28 @@
     "ratiosSmall": [
      "wall/sky",
      "ground/sky"
-    ]
+    ],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      3.69,
+      6.16
+     ],
+     "ground/sky": [
+      339,
+      565
+     ]
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 28291,
+    "sha1": "f478f065b9cf"
+   }
   },
   {
    "side": "A",
@@ -1628,7 +1772,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0184
+      "frac": 0.0184,
+      "code": 3,
+      "dark": true
      },
      "wall": {
       "n": 30438,
@@ -1654,7 +1800,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0909
+      "frac": 0.0909,
+      "code": 18
      },
      "ground": {
       "n": 37422,
@@ -1680,7 +1827,8 @@
       ],
       "hot120": 97.149,
       "hot200": 0,
-      "frac": 0.1118
+      "frac": 0.1118,
+      "code": 152
      }
     },
     "smallRegions": [],
@@ -1702,9 +1850,28 @@
      "ground/sky": 345,
      "wall/ground": 0.0193
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      4.98,
+      9.96
+     ],
+     "ground/sky": [
+      259,
+      517
+     ]
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 28290,
+    "sha1": "08428771234d"
+   }
   }
  ],
  "sheets": [
@@ -1713,16 +1880,99 @@
   "sheet-wc-elevated-down-on-ion.jpg",
   "sheet-wc-street-rio-grande-23rd.jpg",
   "sheet-wc-street-san-antonio-castilian.jpg",
-  "overview-A-1.jpg",
-  "regions-wc-elevated-over-drag-wnw.jpg",
-  "regions-wc-elevated-over-mlk-north.jpg",
-  "regions-wc-elevated-down-on-ion.jpg",
-  "regions-wc-street-rio-grande-23rd.jpg",
-  "regions-wc-street-san-antonio-castilian.jpg"
+  "overview-A-1.jpg"
  ],
  "verdict": {
   "uninterpretable": [],
   "unsettled": []
  },
- "committedCopy": "Committed copy of a scratch run, absolute paths rewritten; nothing else changed."
+ "committedCopy": "Committed copy of a scratch run, absolute paths rewritten; nothing else changed. ||| SIXTH PASS, 2026-09-20: re-measured with --from against the corrected night-routes.json (no Capitol pose in this run, so no number moved); it gained `report.exit`, and `frame.bytes`/`frame.sha1` on every shot.",
+ "remeasured": "2026-09-20T12:20:17.913Z",
+ "remeasure": {
+  "when": "2026-09-20T12:20:17.913Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework5/remeasure/r10-393x852-lite",
+   "--from",
+   "<scratch>/lanes/night/rework5/remeasure/r10-393x852-lite",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "46697d2",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework5/remeasure/r10-393x852-lite",
+  "from": "<scratch>/lanes/night/rework5/remeasure/r10-393x852-lite",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T05:41:51.431Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/harness/r10",
+   "--viewport",
+   "393x852",
+   "--a",
+   "lite=1",
+   "--only",
+   "wc-elevated,wc-street",
+   "--regimes",
+   "early,night",
+   "--refs",
+   "off",
+   "--show-regions"
+  ],
+  "harnessGit": {
+   "head": "0745d6b",
+   "dirty": true
+  },
+  "gl": "hardware",
+  "viewport": [
+   393,
+   852
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T05:41:51.431Z",
+  "shootGit": {
+   "head": "0745d6b",
+   "dirty": true
+  },
+  "shotsFromThatShoot": 10,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "referenceSheets": {
+  "refs": "off",
+  "composited": [],
+  "mayBeCommitted": true,
+  "note": "no photograph was composited by this pass; the sheets are our renders only."
+ },
+ "exit": 0
 }

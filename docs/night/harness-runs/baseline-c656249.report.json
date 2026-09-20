@@ -338,9 +338,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 127385,
+    "sha1": "51f7fc8ab9d6"
+   }
   },
   {
    "side": "A",
@@ -507,9 +512,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 151847,
+    "sha1": "5cbfece7bf87"
+   }
   },
   {
    "side": "A",
@@ -672,9 +682,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 270925,
+    "sha1": "6aed579b7540"
+   }
   },
   {
    "side": "A",
@@ -808,9 +827,17 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 245948,
+    "sha1": "f37c429fe3dc"
+   }
   },
   {
    "side": "A",
@@ -973,9 +1000,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 373437,
+    "sha1": "386668d98851"
+   }
   },
   {
    "side": "A",
@@ -1148,9 +1184,14 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 114042,
+    "sha1": "3ae6d8f0d816"
+   }
   },
   {
    "side": "A",
@@ -1317,9 +1358,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 111666,
+    "sha1": "651bd72cac0c"
+   }
   },
   {
    "side": "A",
@@ -1512,9 +1558,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 123534,
+    "sha1": "f1b311e1cf74"
+   }
   },
   {
    "side": "A",
@@ -1677,9 +1728,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 105711,
+    "sha1": "b5c3b44f152a"
+   }
   },
   {
    "side": "A",
@@ -1842,9 +1898,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 114097,
+    "sha1": "bda4a5636d1b"
+   }
   },
   {
    "side": "A",
@@ -1936,6 +1997,62 @@
       "code": 35
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 102.7,
+       "std": 25.49,
+       "p1": 35,
+       "p10": 81,
+       "p50": 101,
+       "p90": 134,
+       "p99": 145
+      },
+      "Y": {
+       "mean": 0.1659,
+       "p10": 0.1022,
+       "p50": 0.15,
+       "p90": 0.2705
+      },
+      "rgb": [
+       167,
+       87,
+       70
+      ],
+      "hot120": 28.545,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 108
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 107.3,
+       "std": 21.97,
+       "p1": 51,
+       "p10": 77,
+       "p50": 103,
+       "p90": 138,
+       "p99": 143
+      },
+      "Y": {
+       "mean": 0.1767,
+       "p10": 0.09084,
+       "p50": 0.1529,
+       "p90": 0.2831
+      },
+      "rgb": [
+       171,
+       91,
+       82
+      ],
+      "hot120": 31.307,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 109
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 37.7,
@@ -1961,34 +2078,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 39
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 88.4,
-       "std": 22.42,
-       "p1": 39,
-       "p10": 66,
-       "p50": 84,
-       "p90": 122,
-       "p99": 142
-      },
-      "Y": {
-       "mean": 0.1234,
-       "p10": 0.06848,
-       "p50": 0.107,
-       "p90": 0.2195
-      },
-      "rgb": [
-       146,
-       71,
-       88
-      ],
-      "hot120": 11.858,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 92
      },
      "ground": {
       "n": 32724,
@@ -2019,31 +2108,46 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.02029,
+     "medianY": 0.15,
      "relK": 4,
-     "pct": 0.446,
-     "absPct": 0,
-     "rgb": [
-      102,
-      82,
-      66
-     ]
+     "pct": 0,
+     "absPct": 28.545,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 1.21,
+     "wall/sky": 8.92,
      "ground/sky": 38.3,
-     "wall/ground": 0.0315
+     "wall/ground": 0.233
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 118689,
+    "sha1": "d8b1075afa9c"
+   }
   },
   {
    "side": "A",
@@ -2135,6 +2239,62 @@
       "code": 32
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 92.5,
+       "std": 23.61,
+       "p1": 32,
+       "p10": 55,
+       "p50": 92,
+       "p90": 122,
+       "p99": 131
+      },
+      "Y": {
+       "mean": 0.1334,
+       "p10": 0.04817,
+       "p50": 0.1248,
+       "p90": 0.2159
+      },
+      "rgb": [
+       150,
+       79,
+       59
+      ],
+      "hot120": 11.269,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 99
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 94.4,
+       "std": 28.08,
+       "p1": 34,
+       "p10": 44,
+       "p50": 96,
+       "p90": 127,
+       "p99": 133
+      },
+      "Y": {
+       "mean": 0.1404,
+       "p10": 0.0319,
+       "p50": 0.1329,
+       "p90": 0.2346
+      },
+      "rgb": [
+       149,
+       81,
+       68
+      ],
+      "hot120": 20.468,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 102
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 75,
@@ -2160,34 +2320,6 @@
       "hot200": 0.129,
       "frac": 0.0836,
       "code": 50
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 79.6,
-       "std": 12.95,
-       "p1": 26,
-       "p10": 71,
-       "p50": 76,
-       "p90": 98,
-       "p99": 100
-      },
-      "Y": {
-       "mean": 0.08407,
-       "p10": 0.06663,
-       "p50": 0.07421,
-       "p90": 0.1274
-      },
-      "rgb": [
-       89,
-       81,
-       38
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 77
      },
      "ground": {
       "n": 129600,
@@ -2218,31 +2350,46 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.0319,
+     "medianY": 0.1248,
      "relK": 4,
-     "pct": 27.347,
-     "absPct": 20.002,
-     "rgb": [
-      203,
-      151,
-      87
-     ]
+     "pct": 0,
+     "absPct": 11.269,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 2.21,
+     "wall/sky": 8.64,
      "ground/sky": 43.2,
-     "wall/ground": 0.0511
+     "wall/ground": 0.2
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 113795,
+    "sha1": "6f45d5838fce"
+   }
   },
   {
    "side": "A",
@@ -2409,9 +2556,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 109145,
+    "sha1": "92095265582e"
+   }
   },
   {
    "side": "A",
@@ -2606,9 +2758,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 173068,
+    "sha1": "95e61053366c"
+   }
   },
   {
    "side": "A",
@@ -2774,9 +2931,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 108624,
+    "sha1": "8b591f30fe06"
+   }
   },
   {
    "side": "A",
@@ -2943,9 +3105,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 404564,
+    "sha1": "a54be94706af"
+   }
   },
   {
    "side": "A",
@@ -3111,9 +3278,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 123494,
+    "sha1": "cdc8f9bcc3c1"
+   }
   },
   {
    "side": "A",
@@ -3280,9 +3452,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 131213,
+    "sha1": "8a17c1b9abc6"
+   }
   },
   {
    "side": "A",
@@ -3445,9 +3622,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 249314,
+    "sha1": "f3bb3479c682"
+   }
   },
   {
    "side": "A",
@@ -3581,9 +3767,17 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 229187,
+    "sha1": "1caf55646816"
+   }
   },
   {
    "side": "A",
@@ -3746,9 +3940,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 337427,
+    "sha1": "48d1a29e5425"
+   }
   },
   {
    "side": "A",
@@ -3921,9 +4124,14 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 107819,
+    "sha1": "03c6ad258aee"
+   }
   },
   {
    "side": "A",
@@ -4090,9 +4298,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 98805,
+    "sha1": "4337d505170c"
+   }
   },
   {
    "side": "A",
@@ -4285,9 +4498,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 107666,
+    "sha1": "57c279b788d7"
+   }
   },
   {
    "side": "A",
@@ -4450,9 +4668,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 94190,
+    "sha1": "9e174053a88c"
+   }
   },
   {
    "side": "A",
@@ -4615,9 +4838,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 109801,
+    "sha1": "16b31c3672d0"
+   }
   },
   {
    "side": "A",
@@ -4709,6 +4937,62 @@
       "code": 21
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 91,
+       "std": 23.65,
+       "p1": 32,
+       "p10": 58,
+       "p50": 94,
+       "p90": 119,
+       "p99": 130
+      },
+      "Y": {
+       "mean": 0.1225,
+       "p10": 0.04667,
+       "p50": 0.1221,
+       "p90": 0.1981
+      },
+      "rgb": [
+       134,
+       80,
+       71
+      ],
+      "hot120": 9.364,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 98
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 93.7,
+       "std": 24.12,
+       "p1": 44,
+       "p10": 54,
+       "p50": 97,
+       "p90": 122,
+       "p99": 131
+      },
+      "Y": {
+       "mean": 0.1285,
+       "p10": 0.03955,
+       "p50": 0.1301,
+       "p90": 0.2086
+      },
+      "rgb": [
+       130,
+       84,
+       82
+      ],
+      "hot120": 12.795,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 101
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 20.5,
@@ -4734,34 +5018,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 22
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 69.9,
-       "std": 25,
-       "p1": 22,
-       "p10": 45,
-       "p50": 61,
-       "p90": 107,
-       "p99": 127
-      },
-      "Y": {
-       "mean": 0.07541,
-       "p10": 0.02956,
-       "p50": 0.04971,
-       "p90": 0.159
-      },
-      "rgb": [
-       90,
-       62,
-       86
-      ],
-      "hot120": 3.971,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 63
      },
      "ground": {
       "n": 32724,
@@ -4792,31 +5048,46 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.008023,
+     "medianY": 0.1221,
      "relK": 4,
-     "pct": 0.446,
-     "absPct": 0,
-     "rgb": [
-      72,
-      59,
-      58
-     ]
+     "pct": 0,
+     "absPct": 9.364,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 1.07,
+     "wall/sky": 16.3,
      "ground/sky": 76.2,
-     "wall/ground": 0.014
+     "wall/ground": 0.214
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 113483,
+    "sha1": "07eea80b78f8"
+   }
   },
   {
    "side": "A",
@@ -4908,6 +5179,62 @@
       "code": 21
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 87.8,
+       "std": 24.06,
+       "p1": 30,
+       "p10": 39,
+       "p50": 91,
+       "p90": 114,
+       "p99": 125
+      },
+      "Y": {
+       "mean": 0.1155,
+       "p10": 0.02416,
+       "p50": 0.1144,
+       "p90": 0.1812
+      },
+      "rgb": [
+       131,
+       77,
+       63
+      ],
+      "hot120": 6.723,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 95
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 88.2,
+       "std": 30.32,
+       "p1": 23,
+       "p10": 29,
+       "p50": 94,
+       "p90": 118,
+       "p99": 125
+      },
+      "Y": {
+       "mean": 0.1201,
+       "p10": 0.01444,
+       "p50": 0.1195,
+       "p90": 0.1981
+      },
+      "rgb": [
+       126,
+       79,
+       70
+      ],
+      "hot120": 8.772,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 97
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 60.9,
@@ -4933,34 +5260,6 @@
       "hot200": 0.011,
       "frac": 0.0836,
       "code": 32
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 66.3,
-       "std": 10.02,
-       "p1": 19,
-       "p10": 62,
-       "p50": 64,
-       "p90": 78,
-       "p99": 81
-      },
-      "Y": {
-       "mean": 0.05732,
-       "p10": 0.04971,
-       "p50": 0.05286,
-       "p90": 0.08022
-      },
-      "rgb": [
-       68,
-       69,
-       38
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 65
      },
      "ground": {
       "n": 129600,
@@ -4991,31 +5290,46 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.01444,
+     "medianY": 0.1144,
      "relK": 4,
-     "pct": 30.818,
-     "absPct": 19.585,
-     "rgb": [
-      178,
-      134,
-      81
-     ]
+     "pct": 0,
+     "absPct": 6.723,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 1.93,
+     "wall/sky": 15.3,
      "ground/sky": 80.5,
-     "wall/ground": 0.0239
+     "wall/ground": 0.189
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 107894,
+    "sha1": "96d2c55e57b1"
+   }
   },
   {
    "side": "A",
@@ -5182,9 +5496,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 102875,
+    "sha1": "cc0639b748ad"
+   }
   },
   {
    "side": "A",
@@ -5379,9 +5698,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 163067,
+    "sha1": "e0e6272c3f04"
+   }
   },
   {
    "side": "A",
@@ -5547,9 +5871,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 106649,
+    "sha1": "8923b2d02e1a"
+   }
   },
   {
    "side": "A",
@@ -5716,9 +6045,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 379659,
+    "sha1": "269917f501c6"
+   }
   },
   {
    "side": "A",
@@ -5897,9 +6231,14 @@
       1.4,
       2.33
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 124463,
+    "sha1": "0a45d4fb851c"
+   }
   },
   {
    "side": "A",
@@ -6079,9 +6418,14 @@
       1.75,
       3.5
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 129354,
+    "sha1": "81df1cebb0a3"
+   }
   },
   {
    "side": "A",
@@ -6261,9 +6605,18 @@
       28.8,
       48
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 152074,
+    "sha1": "45c878e96753"
+   }
   },
   {
    "side": "A",
@@ -6409,9 +6762,17 @@
       4.29,
       7.15
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 145176,
+    "sha1": "01c43426df0c"
+   }
   },
   {
    "side": "A",
@@ -6578,9 +6939,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 208164,
+    "sha1": "abc8fcc19a01"
+   }
   },
   {
    "side": "A",
@@ -6766,9 +7136,14 @@
       228,
       381
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 81653,
+    "sha1": "6ca9db3e11c3"
+   }
   },
   {
    "side": "A",
@@ -6948,9 +7323,14 @@
       119,
       237
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 73686,
+    "sha1": "e92bb9d04cd9"
+   }
   },
   {
    "side": "A",
@@ -7160,9 +7540,14 @@
       53.4,
       107
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 64985,
+    "sha1": "670912a7688c"
+   }
   },
   {
    "side": "A",
@@ -7342,9 +7727,14 @@
       4.62,
       9.23
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 50772,
+    "sha1": "f019514dcb98"
+   }
   },
   {
    "side": "A",
@@ -7524,9 +7914,14 @@
       248,
       495
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 74807,
+    "sha1": "c800693c473c"
+   }
   },
   {
    "side": "A",
@@ -7619,6 +8014,62 @@
       "dark": true
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 63.1,
+       "std": 19.38,
+       "p1": 19,
+       "p10": 25,
+       "p50": 70,
+       "p90": 77,
+       "p99": 80
+      },
+      "Y": {
+       "mean": 0.05542,
+       "p10": 0.01033,
+       "p50": 0.06301,
+       "p90": 0.07619
+      },
+      "rgb": [
+       74,
+       60,
+       61
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 71
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 61.7,
+       "std": 24.51,
+       "p1": 10,
+       "p10": 16,
+       "p50": 75,
+       "p90": 77,
+       "p99": 82
+      },
+      "Y": {
+       "mean": 0.05616,
+       "p10": 0.005605,
+       "p50": 0.07227,
+       "p90": 0.07619
+      },
+      "rgb": [
+       70,
+       59,
+       63
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 76
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 14.6,
@@ -7644,34 +8095,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 8
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 37.3,
-       "std": 26.31,
-       "p1": 9,
-       "p10": 11,
-       "p50": 24,
-       "p90": 75,
-       "p99": 80
-      },
-      "Y": {
-       "mean": 0.02775,
-       "p10": 0.003677,
-       "p50": 0.009721,
-       "p90": 0.07227
-      },
-      "rgb": [
-       39,
-       36,
-       47
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 25
      },
      "ground": {
       "n": 32724,
@@ -7702,43 +8125,58 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.002428,
+     "medianY": 0.06301,
      "relK": 4,
-     "pct": 4.98,
+     "pct": 0,
      "absPct": 0,
-     "rgb": [
-      55,
-      47,
-      43
-     ]
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 2.67,
+     "wall/sky": 69.2,
      "ground/sky": 302,
-     "wall/ground": 0.00884
+     "wall/ground": 0.229
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
     ],
     "ratioBands": {
      "wall/sky": [
-      2,
-      4
+      51.9,
+      104
      ],
      "ground/sky": [
       226,
       453
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 93998,
+    "sha1": "f76e6af8e4ce"
+   }
   },
   {
    "side": "A",
@@ -7831,6 +8269,62 @@
       "dark": true
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 64.8,
+       "std": 20.85,
+       "p1": 4,
+       "p10": 23,
+       "p50": 71,
+       "p90": 77,
+       "p99": 82
+      },
+      "Y": {
+       "mean": 0.05898,
+       "p10": 0.009721,
+       "p50": 0.0648,
+       "p90": 0.07619
+      },
+      "rgb": [
+       78,
+       61,
+       61
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 72
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 62.2,
+       "std": 27.29,
+       "p1": 0,
+       "p10": 4,
+       "p50": 75,
+       "p90": 77,
+       "p99": 83
+      },
+      "Y": {
+       "mean": 0.05859,
+       "p10": 0.001518,
+       "p50": 0.07227,
+       "p90": 0.07619
+      },
+      "rgb": [
+       74,
+       59,
+       60
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 76
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 34.2,
@@ -7856,34 +8350,6 @@
       "hot200": 0,
       "frac": 0.0836,
       "code": 11
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 18.1,
-       "std": 3.11,
-       "p1": 9,
-       "p10": 18,
-       "p50": 18,
-       "p90": 18,
-       "p99": 22
-      },
-      "Y": {
-       "mean": 0.006209,
-       "p10": 0.006049,
-       "p50": 0.006049,
-       "p90": 0.006049
-      },
-      "rgb": [
-       15,
-       19,
-       18
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 18
      },
      "ground": {
       "n": 129600,
@@ -7914,43 +8380,58 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.003347,
+     "medianY": 0.0648,
      "relK": 4,
-     "pct": 26.162,
-     "absPct": 8.452,
-     "rgb": [
-      130,
-      99,
-      65
-     ]
+     "pct": 0,
+     "absPct": 0,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 3.68,
+     "wall/sky": 71.2,
      "ground/sky": 386,
-     "wall/ground": 0.00952
+     "wall/ground": 0.184
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
     ],
     "ratioBands": {
      "wall/sky": [
-      2.76,
-      5.51
+      53.4,
+      107
      ],
      "ground/sky": [
       290,
       579
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 87176,
+    "sha1": "ef8bd7ac9676"
+   }
   },
   {
    "side": "A",
@@ -8130,9 +8611,14 @@
       449,
       899
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 81996,
+    "sha1": "9420382e9e66"
+   }
   },
   {
    "side": "A",
@@ -8345,9 +8831,14 @@
       2.25,
       4.5
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 114432,
+    "sha1": "03eb976ddb46"
+   }
   },
   {
    "side": "A",
@@ -8526,9 +9017,14 @@
       1.4,
       2.33
      ]
-    }
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 97559,
+    "sha1": "cf3f31ea3d14"
+   }
   },
   {
    "side": "A",
@@ -8695,9 +9191,14 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 229603,
+    "sha1": "083a489d0c81"
+   }
   },
   {
    "side": "A",
@@ -8863,11 +9364,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 123009,
+    "sha1": "fea2103ddc93"
+   }
   },
   {
    "side": "A",
@@ -9034,11 +9540,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 122365,
+    "sha1": "e56ba816ade7"
+   }
   },
   {
    "side": "A",
@@ -9201,11 +9712,20 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 243044,
+    "sha1": "b07de077a20f"
+   }
   },
   {
    "side": "A",
@@ -9339,11 +9859,19 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 221830,
+    "sha1": "f27f25387b50"
+   }
   },
   {
    "side": "A",
@@ -9506,11 +10034,20 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 324319,
+    "sha1": "bd14fe400d3a"
+   }
   },
   {
    "side": "A",
@@ -9683,11 +10220,16 @@
      "ground/sky"
     ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 104550,
+    "sha1": "175a6dfc1a10"
+   }
   },
   {
    "side": "A",
@@ -9854,11 +10396,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 96179,
+    "sha1": "79c473bb522a"
+   }
   },
   {
    "side": "A",
@@ -10051,11 +10598,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 106113,
+    "sha1": "0beb30580590"
+   }
   },
   {
    "side": "A",
@@ -10218,11 +10770,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 90317,
+    "sha1": "8c2f27fce36e"
+   }
   },
   {
    "side": "A",
@@ -10385,11 +10942,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 107031,
+    "sha1": "1ae99b13bd0e"
+   }
   },
   {
    "side": "A",
@@ -10481,6 +11043,62 @@
       "code": 16
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 84.2,
+       "std": 23.27,
+       "p1": 29,
+       "p10": 46,
+       "p50": 88,
+       "p90": 110,
+       "p99": 121
+      },
+      "Y": {
+       "mean": 0.1043,
+       "p10": 0.03071,
+       "p50": 0.107,
+       "p90": 0.1683
+      },
+      "rgb": [
+       120,
+       75,
+       69
+      ],
+      "hot120": 1.545,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 92
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 85.7,
+       "std": 25.22,
+       "p1": 35,
+       "p10": 42,
+       "p50": 92,
+       "p90": 113,
+       "p99": 121
+      },
+      "Y": {
+       "mean": 0.1084,
+       "p10": 0.02624,
+       "p50": 0.1144,
+       "p90": 0.1746
+      },
+      "rgb": [
+       115,
+       78,
+       78
+      ],
+      "hot120": 1.633,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 95
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 20,
@@ -10506,34 +11124,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 20
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 61.1,
-       "std": 25.8,
-       "p1": 19,
-       "p10": 36,
-       "p50": 50,
-       "p90": 99,
-       "p99": 118
-      },
-      "Y": {
-       "mean": 0.0608,
-       "p10": 0.02122,
-       "p50": 0.03689,
-       "p90": 0.1329
-      },
-      "rgb": [
-       69,
-       57,
-       82
-      ],
-      "hot120": 0.706,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 54
      },
      "ground": {
       "n": 32724,
@@ -10564,33 +11154,48 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.006995,
+     "medianY": 0.107,
      "relK": 4,
-     "pct": 0.446,
-     "absPct": 0,
-     "rgb": [
-      58,
-      48,
-      51
-     ]
+     "pct": 0,
+     "absPct": 1.545,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 1.35,
+     "wall/sky": 20.6,
      "ground/sky": 95.9,
-     "wall/ground": 0.0141
+     "wall/ground": 0.215
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 110724,
+    "sha1": "786038f87228"
+   }
   },
   {
    "side": "A",
@@ -10682,6 +11287,62 @@
       "code": 15
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 80.2,
+       "std": 23.1,
+       "p1": 24,
+       "p10": 31,
+       "p50": 84,
+       "p90": 104,
+       "p99": 114
+      },
+      "Y": {
+       "mean": 0.09569,
+       "p10": 0.01681,
+       "p50": 0.09759,
+       "p90": 0.15
+      },
+      "rgb": [
+       118,
+       71,
+       60
+      ],
+      "hot120": 0.095,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 88
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 79.9,
+       "std": 29.38,
+       "p1": 15,
+       "p10": 22,
+       "p50": 87,
+       "p90": 107,
+       "p99": 115
+      },
+      "Y": {
+       "mean": 0.09842,
+       "p10": 0.009721,
+       "p50": 0.1022,
+       "p90": 0.159
+      },
+      "rgb": [
+       111,
+       72,
+       66
+      ],
+      "hot120": 0.125,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 90
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 55.7,
@@ -10707,34 +11368,6 @@
       "hot200": 0,
       "frac": 0.0836,
       "code": 30
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 55.8,
-       "std": 8.35,
-       "p1": 14,
-       "p10": 53,
-       "p50": 53,
-       "p90": 65,
-       "p99": 69
-      },
-      "Y": {
-       "mean": 0.04071,
-       "p10": 0.03689,
-       "p50": 0.03689,
-       "p90": 0.05448
-      },
-      "rgb": [
-       56,
-       58,
-       33
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 54
      },
      "ground": {
       "n": 129600,
@@ -10765,33 +11398,48 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.01298,
+     "medianY": 0.09759,
      "relK": 4,
-     "pct": 29.357,
-     "absPct": 19.496,
-     "rgb": [
-      166,
-      124,
-      76
-     ]
+     "pct": 0,
+     "absPct": 0.095,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 2.72,
+     "wall/sky": 20.4,
      "ground/sky": 110,
-     "wall/ground": 0.0246
+     "wall/ground": 0.185
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 105525,
+    "sha1": "f19092cfca89"
+   }
   },
   {
    "side": "A",
@@ -10958,11 +11606,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 100851,
+    "sha1": "4c9d8e279fc4"
+   }
   },
   {
    "side": "A",
@@ -11157,11 +11810,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 153728,
+    "sha1": "d49eba9fd2d0"
+   }
   },
   {
    "side": "A",
@@ -11327,11 +11985,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 106328,
+    "sha1": "8ec1d47a2643"
+   }
   },
   {
    "side": "A",
@@ -11498,11 +12161,16 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
    "blank": false,
    "mergedFrom": "<scratch>/lanes\\night\\harness\\early",
-   "mergedWhen": "2026-09-20T05:02:24.198Z"
+   "mergedWhen": "2026-09-20T05:02:24.198Z",
+   "frame": {
+    "bytes": 357123,
+    "sha1": "c5015b5a1f0c"
+   }
   }
  ],
  "sheets": [
@@ -11529,25 +12197,25 @@
   "uninterpretable": [],
   "unsettled": []
  },
- "remeasured": "2026-09-20T08:35:41.460Z",
+ "remeasured": "2026-09-20T11:57:10.987Z",
  "remeasure": {
-  "when": "2026-09-20T08:35:41.460Z",
+  "when": "2026-09-20T11:57:10.987Z",
   "args": [
    "--out",
-   "<scratch>/lanes/night/harness/baseline2",
+   "<scratch>/lanes/night/rework5/remeasure/baseline-c656249",
    "--from",
-   "<scratch>/lanes/night/harness/baseline2",
+   "<scratch>/lanes/night/rework5/remeasure/baseline-c656249",
    "--refs",
    "off",
    "--local",
    "none"
   ],
   "harnessGit": {
-   "head": "9487d4f",
+   "head": "46697d2",
    "dirty": true
   },
-  "out": "<scratch>/lanes/night/harness/baseline2",
-  "from": "<scratch>/lanes/night/harness/baseline2",
+  "out": "<scratch>/lanes/night/rework5/remeasure/baseline-c656249",
+  "from": "<scratch>/lanes/night/rework5/remeasure/baseline-c656249",
   "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
   "localOverlay": null,
   "refs": "off",
@@ -11649,5 +12317,6 @@
   "mayBeCommitted": true,
   "note": "no photograph was composited by this pass; the sheets are our renders only."
  },
- "committedCopy": "6 of 70 shots removed before committing this report, and this file is therefore HAND-EDITED -- which it did not say until the fifth pass, in the file whose whole purpose is to account for where its shots came from. Reconcile it like this: merged[0] records the `early` run as shots: 22, replaced: 16, added: 6, and provenance says 48 + 16 = 64. The 16 REPLACED are the tracked poses' early column and they are here. The 6 ADDED are the local-overlay routes inventory-wc-elevated and owner-elevated, matched to the owner's own photographs -- they name a viewpoint, so they were removed by hand from `shots` and their frames were never copied out of scratch. That is why 48 + 16 + 6 = 70 and this file holds 64. The full 70-shot report and its frames stay in the session scratch folder. Nothing else was changed; absolute paths are rewritten. (early-regime-shoot.report.json is the same removal, disclosed there from the start; this file is the one that was not.)"
+ "committedCopy": "6 of 70 shots removed before committing this report, and this file is therefore HAND-EDITED -- which it did not say until the fifth pass, in the file whose whole purpose is to account for where its shots came from. Reconcile it like this: merged[0] records the `early` run as shots: 22, replaced: 16, added: 6, and provenance says 48 + 16 = 64. The 16 REPLACED are the tracked poses' early column and they are here. The 6 ADDED are the local-overlay routes inventory-wc-elevated and owner-elevated, matched to the owner's own photographs -- they name a viewpoint, so they were removed by hand from `shots` and their frames were never copied out of scratch. That is why 48 + 16 + 6 = 70 and this file holds 64. The full 70-shot report and its frames stay in the session scratch folder. Nothing else was changed; absolute paths are rewritten. (early-regime-shoot.report.json is the same removal, disclosed there from the start; this file is the one that was not.) ||| SIXTH PASS, 2026-09-20 -- RE-MEASURED, NOT RE-SHOT. The two Capitol poses' `wall` and `dome` rectangles were on MapLibre's own fill-extrusions, not on anything we author: `--break slopes` deleted 3,560,273 triangles and every measured number at both poses came back bit-identical. wall and dome are now read off the A-vs-B mask of that run (92-96% of each rectangle is pixels the sabotage changed by more than 3 of 255 on any channel; 86-91% at a threshold of 6), the old rectangles are kept as `downtown`/`flanking` and declared `basemap`, and every kept report was re-measured from its OWN frames with --from against the corrected night-routes.json. No frame in this file was taken again; the frames are byte-for-byte the ones the shoot produced. Capitol numbers before and after are tabulated in docs/night-implementation-plan.md sec W0a. Every shot also gained `frame.bytes`/`frame.sha1`, and `report.exit` now exists in all ten files. The three committed sheets re-derive from this file BIT-IDENTICALLY, re-checked by SHA-1 on 2026-09-20 after the re-measure: night-baseline-wc-elevated 3db0353dd1afd69f08bedf91ef61dae0d8aee8ed (145,035 B), night-baseline-skyline 947376ef6500013434dfa7a0a123b329b6ada858 (103,393 B), night-baseline-congress 5773a3fd4507365586b0be53d05649aa227bb3aa (114,441 B). None of the three is a Capitol sheet, which is why the Capitol re-aim leaves them untouched.",
+ "exit": 0
 }

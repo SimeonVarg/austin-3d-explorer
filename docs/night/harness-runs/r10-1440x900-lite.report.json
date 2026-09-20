@@ -6,7 +6,7 @@
   "dirty": true
  },
  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
- "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+ "localOverlay": null,
  "viewport": [
   1440,
   900
@@ -205,7 +205,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1827
+      "frac": 0.1827,
+      "code": 18
      },
      "wall": {
       "n": 59292,
@@ -231,7 +232,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0457
+      "frac": 0.0457,
+      "code": 71
      },
      "ground": {
       "n": 15257,
@@ -257,7 +259,8 @@
       ],
       "hot120": 27.364,
       "hot200": 0.393,
-      "frac": 0.0118
+      "frac": 0.0118,
+      "code": 90
      }
     },
     "smallRegions": [],
@@ -275,9 +278,20 @@
      "ground/sky": 16.9,
      "wall/ground": 0.617
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 177828,
+    "sha1": "4ec1a82e0afd"
+   }
   },
   {
    "side": "A",
@@ -365,7 +379,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1973
+      "frac": 0.1973,
+      "code": 19
      },
      "wall": {
       "n": 67545,
@@ -391,7 +406,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0521
+      "frac": 0.0521,
+      "code": 63
      }
     },
     "smallRegions": [],
@@ -407,9 +423,19 @@
     "ratios": {
      "wall/sky": 7.63
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 165793,
+    "sha1": "1e1f0cd4d9c3"
+   }
   },
   {
    "side": "A",
@@ -497,7 +523,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0341
+      "frac": 0.0341,
+      "code": 41
      },
      "wall": {
       "n": 139149,
@@ -523,7 +550,8 @@
       ],
       "hot120": 0.508,
       "hot200": 0,
-      "frac": 0.1074
+      "frac": 0.1074,
+      "code": 79
      },
      "ground": {
       "n": 16632,
@@ -549,7 +577,8 @@
       ],
       "hot120": 0.469,
       "hot200": 0,
-      "frac": 0.0128
+      "frac": 0.0128,
+      "code": 51
      }
     },
     "smallRegions": [],
@@ -567,9 +596,20 @@
      "ground/sky": 1.49,
      "wall/ground": 2.36
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 254066,
+    "sha1": "1904fc8781f8"
+   }
   },
   {
    "side": "A",
@@ -658,7 +698,8 @@
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0055,
-      "small": true
+      "small": true,
+      "code": 16
      },
      "wall": {
       "n": 80829,
@@ -684,7 +725,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0624
+      "frac": 0.0624,
+      "code": 45
      },
      "ground": {
       "n": 127656,
@@ -710,7 +752,8 @@
       ],
       "hot120": 100,
       "hot200": 54.379,
-      "frac": 0.0985
+      "frac": 0.0985,
+      "code": 203
      }
     },
     "smallRegions": [
@@ -737,9 +780,16 @@
     "ratiosSmall": [
      "wall/sky",
      "ground/sky"
-    ]
+    ],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 97468,
+    "sha1": "a13a3505b59b"
+   }
   },
   {
    "side": "A",
@@ -827,7 +877,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0181
+      "frac": 0.0181,
+      "code": 16
      },
      "wall": {
       "n": 116667,
@@ -853,7 +904,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.09
+      "frac": 0.09,
+      "code": 30
      },
      "ground": {
       "n": 143613,
@@ -879,7 +931,8 @@
       ],
       "hot120": 94.865,
       "hot200": 0,
-      "frac": 0.1108
+      "frac": 0.1108,
+      "code": 153
      }
     },
     "smallRegions": [],
@@ -901,9 +954,16 @@
      "ground/sky": 61.5,
      "wall/ground": 0.0408
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 86988,
+    "sha1": "32c348266dcd"
+   }
   },
   {
    "side": "A",
@@ -991,7 +1051,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1827
+      "frac": 0.1827,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 59292,
@@ -1017,7 +1079,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0457
+      "frac": 0.0457,
+      "code": 18
      },
      "ground": {
       "n": 15257,
@@ -1043,7 +1106,8 @@
       ],
       "hot120": 13.391,
       "hot200": 0,
-      "frac": 0.0118
+      "frac": 0.0118,
+      "code": 53
      }
     },
     "smallRegions": [],
@@ -1065,9 +1129,32 @@
      "ground/sky": 29.3,
      "wall/ground": 0.17
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      3.99,
+      6.64
+     ],
+     "ground/sky": [
+      23.5,
+      39.1
+     ]
+    },
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 126877,
+    "sha1": "c0ddaa9589c9"
+   }
   },
   {
    "side": "A",
@@ -1155,7 +1242,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1973
+      "frac": 0.1973,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 67545,
@@ -1181,7 +1270,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0521
+      "frac": 0.0521,
+      "code": 19
      }
     },
     "smallRegions": [],
@@ -1201,9 +1291,26 @@
     "ratios": {
      "wall/sky": 5.36
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      4.29,
+      7.15
+     ]
+    },
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 124399,
+    "sha1": "fa403cdb51e8"
+   }
   },
   {
    "side": "A",
@@ -1291,7 +1398,8 @@
       ],
       "hot120": 0.009,
       "hot200": 0,
-      "frac": 0.0341
+      "frac": 0.0341,
+      "code": 20
      },
      "wall": {
       "n": 139149,
@@ -1317,7 +1425,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.1074
+      "frac": 0.1074,
+      "code": 17
      },
      "ground": {
       "n": 16632,
@@ -1343,7 +1452,8 @@
       ],
       "hot120": 0.216,
       "hot200": 0,
-      "frac": 0.0128
+      "frac": 0.0128,
+      "code": 12
      }
     },
     "smallRegions": [],
@@ -1365,9 +1475,20 @@
      "ground/sky": 0.526,
      "wall/ground": 1.52
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [],
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 177358,
+    "sha1": "1e41bf481250"
+   }
   },
   {
    "side": "A",
@@ -1456,7 +1577,9 @@
       "hot120": 0,
       "hot200": 0,
       "frac": 0.0055,
-      "small": true
+      "small": true,
+      "code": 4,
+      "dark": true
      },
      "wall": {
       "n": 80829,
@@ -1482,7 +1605,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0624
+      "frac": 0.0624,
+      "code": 16
      },
      "ground": {
       "n": 127656,
@@ -1508,7 +1632,8 @@
       ],
       "hot120": 100,
       "hot200": 0,
-      "frac": 0.0985
+      "frac": 0.0985,
+      "code": 188
      }
     },
     "smallRegions": [
@@ -1535,9 +1660,28 @@
     "ratiosSmall": [
      "wall/sky",
      "ground/sky"
-    ]
+    ],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      3.41,
+      5.69
+     ],
+     "ground/sky": [
+      331,
+      552
+     ]
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 82462,
+    "sha1": "705f888c3b02"
+   }
   },
   {
    "side": "A",
@@ -1625,7 +1769,9 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.0181
+      "frac": 0.0181,
+      "code": 3,
+      "dark": true
      },
      "wall": {
       "n": 116667,
@@ -1651,7 +1797,8 @@
       ],
       "hot120": 0,
       "hot200": 0,
-      "frac": 0.09
+      "frac": 0.09,
+      "code": 15
      },
      "ground": {
       "n": 143613,
@@ -1677,7 +1824,8 @@
       ],
       "hot120": 55.279,
       "hot200": 0,
-      "frac": 0.1108
+      "frac": 0.1108,
+      "code": 125
      }
     },
     "smallRegions": [],
@@ -1699,9 +1847,28 @@
      "ground/sky": 225,
      "wall/ground": 0.0233
     },
-    "ratiosSmall": []
+    "ratiosSmall": [],
+    "ratiosDark": [
+     "wall/sky",
+     "ground/sky"
+    ],
+    "ratioBands": {
+     "wall/sky": [
+      3.93,
+      7.87
+     ],
+     "ground/sky": [
+      169,
+      338
+     ]
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 76057,
+    "sha1": "d1897699e270"
+   }
   }
  ],
  "sheets": [
@@ -1716,5 +1883,90 @@
   "uninterpretable": [],
   "unsettled": []
  },
- "committedCopy": "Committed copy of a scratch run, absolute paths rewritten; nothing else changed."
+ "committedCopy": "Committed copy of a scratch run, absolute paths rewritten; nothing else changed. ||| SIXTH PASS, 2026-09-20: re-measured with --from against the corrected night-routes.json (no Capitol pose in this run, so no number moved); it gained `report.exit`, and `frame.bytes`/`frame.sha1` on every shot.",
+ "remeasured": "2026-09-20T12:20:05.075Z",
+ "remeasure": {
+  "when": "2026-09-20T12:20:05.075Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/rework5/remeasure/r10-1440x900-lite",
+   "--from",
+   "<scratch>/lanes/night/rework5/remeasure/r10-1440x900-lite",
+   "--refs",
+   "off",
+   "--local",
+   "none"
+  ],
+  "harnessGit": {
+   "head": "46697d2",
+   "dirty": true
+  },
+  "out": "<scratch>/lanes/night/rework5/remeasure/r10-1440x900-lite",
+  "from": "<scratch>/lanes/night/rework5/remeasure/r10-1440x900-lite",
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": null,
+  "refs": "off",
+  "tile": 560,
+  "params": {
+   "MEASURE": {
+    "relK": 4,
+    "minLuma": 40,
+    "absLuma": 120,
+    "hotLuma": 120,
+    "veryHotLuma": 200,
+    "blankStd": 1,
+    "minRegionFrac": 0.01,
+    "minDenomCode": 6
+   },
+   "DIFF": {
+    "luma": 16,
+    "lumaBig": 48
+   }
+  },
+  "note": "the top-level when/args/gl/viewport/harnessGit describe the SHOOT that made the frames; these describe the pass that measured them and rewrote the sheets."
+ },
+ "shoot": {
+  "when": "2026-09-20T05:44:34.737Z",
+  "args": [
+   "--out",
+   "<scratch>/lanes/night/harness/lite-landscape",
+   "--a",
+   "lite=1",
+   "--only",
+   "wc-elevated,wc-street",
+   "--regimes",
+   "early,night",
+   "--refs",
+   "off"
+  ],
+  "harnessGit": {
+   "head": "0745d6b",
+   "dirty": true
+  },
+  "gl": "hardware",
+  "viewport": [
+   1440,
+   900
+  ],
+  "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
+  "localOverlay": "<reference-images>\\_night\\night-routes.local.json",
+  "refs": "off"
+ },
+ "provenance": {
+  "shootWhen": "2026-09-20T05:44:34.737Z",
+  "shootGit": {
+   "head": "0745d6b",
+   "dirty": true
+  },
+  "shotsFromThatShoot": 10,
+  "shotsMergedIn": 0,
+  "note": "every shot in this report came from the shoot the top-level fields describe."
+ },
+ "referenceSheets": {
+  "refs": "off",
+  "composited": [],
+  "mayBeCommitted": true,
+  "note": "no photograph was composited by this pass; the sheets are our renders only."
+ },
+ "exit": 0
 }

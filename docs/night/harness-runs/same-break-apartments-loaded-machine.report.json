@@ -453,9 +453,18 @@
       48.9,
       81.5
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 175968,
+    "sha1": "ed4cf75b6a2c"
+   }
   },
   {
    "side": "A",
@@ -614,9 +623,17 @@
       4.61,
       7.68
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 175038,
+    "sha1": "e586a1ffb59e"
+   }
   },
   {
    "side": "A",
@@ -796,9 +813,18 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 219919,
+    "sha1": "71bbdd206777"
+   }
   },
   {
    "side": "A",
@@ -904,6 +930,62 @@
       "dark": true
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 34.2,
+       "std": 19.94,
+       "p1": 23,
+       "p10": 24,
+       "p50": 27,
+       "p90": 86,
+       "p99": 89
+      },
+      "Y": {
+       "mean": 0.02231,
+       "p10": 0.01033,
+       "p50": 0.01161,
+       "p90": 0.09759
+      },
+      "rgb": [
+       32,
+       33,
+       52
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 28
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 21.1,
+       "std": 12.46,
+       "p1": 11,
+       "p10": 16,
+       "p50": 19,
+       "p90": 22,
+       "p99": 97
+      },
+      "Y": {
+       "mean": 0.01003,
+       "p10": 0.005605,
+       "p50": 0.006995,
+       "p90": 0.009134
+      },
+      "rgb": [
+       16,
+       20,
+       43
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 20
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 16.3,
@@ -929,34 +1011,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 9
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 27.2,
-       "std": 20.58,
-       "p1": 9,
-       "p10": 11,
-       "p50": 20,
-       "p90": 61,
-       "p99": 95
-      },
-      "Y": {
-       "mean": 0.01706,
-       "p10": 0.003677,
-       "p50": 0.008023,
-       "p90": 0.04971
-      },
-      "rgb": [
-       26,
-       26,
-       41
-      ],
-      "hot120": 0.125,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 22
      },
      "ground": {
       "n": 32724,
@@ -987,43 +1041,62 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.002732,
+     "medianY": 0.01161,
      "relK": 4,
-     "pct": 11.582,
+     "pct": 12,
      "absPct": 0,
      "rgb": [
-      64,
-      51,
-      35
+      114,
+      82,
+      65
      ]
     },
     "ratios": {
-     "wall/sky": 3,
+     "wall/sky": 12.7,
      "ground/sky": 302,
-     "wall/ground": 0.00995
+     "wall/ground": 0.0423
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
     ],
     "ratioBands": {
      "wall/sky": [
-      2.25,
-      4.5
+      9.56,
+      19.1
      ],
      "ground/sky": [
       226,
       453
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 98908,
+    "sha1": "7f55dc8ef9e6"
+   }
   },
   {
    "side": "A",
@@ -1129,6 +1202,62 @@
       "dark": true
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 18.9,
+       "std": 26.98,
+       "p1": 6,
+       "p10": 6,
+       "p50": 8,
+       "p90": 89,
+       "p99": 90
+      },
+      "Y": {
+       "mean": 0.0159,
+       "p10": 0.002125,
+       "p50": 0.002732,
+       "p90": 0.1046
+      },
+      "rgb": [
+       20,
+       18,
+       27
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 9
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 5.5,
+       "std": 1.07,
+       "p1": 0,
+       "p10": 4,
+       "p50": 5,
+       "p90": 6,
+       "p99": 7
+      },
+      "Y": {
+       "mean": 0.001679,
+       "p10": 0.001518,
+       "p50": 0.001821,
+       "p90": 0.002125
+      },
+      "rgb": [
+       4,
+       5,
+       15
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 6
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 34.9,
@@ -1154,34 +1283,6 @@
       "hot200": 0,
       "frac": 0.0836,
       "code": 9
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 27.8,
-       "std": 6.97,
-       "p1": 8,
-       "p10": 16,
-       "p50": 29,
-       "p90": 34,
-       "p99": 36
-      },
-      "Y": {
-       "mean": 0.0124,
-       "p10": 0.005182,
-       "p50": 0.01298,
-       "p90": 0.01681
-      },
-      "rgb": [
-       19,
-       31,
-       19
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 30
      },
      "ground": {
       "n": 129600,
@@ -1212,6 +1313,7 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
@@ -1219,12 +1321,12 @@
      "fallback": false,
      "medianY": 0.002732,
      "relK": 4,
-     "pct": 25.763,
-     "absPct": 8.388,
+     "pct": 12.5,
+     "absPct": 0,
      "rgb": [
-      133,
-      100,
-      62
+      122,
+      83,
+      61
      ]
     },
     "ratios": {
@@ -1232,7 +1334,10 @@
      "ground/sky": 386,
      "wall/ground": 0.00777
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
@@ -1246,9 +1351,24 @@
       290,
       579
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
-   "blank": false
+   "blank": false,
+   "frame": {
+    "bytes": 91025,
+    "sha1": "55d9b40e8cef"
+   }
   },
   {
    "side": "B",
@@ -1440,13 +1560,22 @@
       34.8,
       58.1
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 7.498,
     "pctOver": 14.733,
     "pctBig": 1.858
+   },
+   "frame": {
+    "bytes": 112563,
+    "sha1": "a650c1e1741f"
    }
   },
   {
@@ -1605,13 +1734,21 @@
       4.94,
       8.24
      ]
-    }
+    },
+    "regionSubjects": {
+     "wall": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 5.055,
     "pctOver": 7.634,
     "pctBig": 0.101
+   },
+   "frame": {
+    "bytes": 113298,
+    "sha1": "c2ac79eb6b19"
    }
   },
   {
@@ -1791,13 +1928,22 @@
     },
     "ratiosSmall": [],
     "ratiosDark": [],
-    "ratioBands": {}
+    "ratioBands": {},
+    "regionSubjects": {
+     "wall": "authored",
+     "ground": "authored"
+    },
+    "ratiosBasemap": []
    },
    "blank": false,
    "diffA": {
     "meanAbs": 5.74,
     "pctOver": 9.96,
     "pctBig": 0.174
+   },
+   "frame": {
+    "bytes": 166309,
+    "sha1": "d7ea28422319"
    }
   },
   {
@@ -1903,6 +2049,62 @@
       "dark": true
      },
      "wall": {
+      "n": 1100,
+      "luma": {
+       "mean": 63.1,
+       "std": 19.31,
+       "p1": 19,
+       "p10": 25,
+       "p50": 70,
+       "p90": 77,
+       "p99": 80
+      },
+      "Y": {
+       "mean": 0.05539,
+       "p10": 0.01033,
+       "p50": 0.06301,
+       "p90": 0.07619
+      },
+      "rgb": [
+       74,
+       60,
+       61
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0008,
+      "small": true,
+      "code": 71
+     },
+     "dome": {
+      "n": 1102,
+      "luma": {
+       "mean": 61.7,
+       "std": 24.51,
+       "p1": 10,
+       "p10": 16,
+       "p50": 75,
+       "p90": 77,
+       "p99": 82
+      },
+      "Y": {
+       "mean": 0.05616,
+       "p10": 0.005605,
+       "p50": 0.07227,
+       "p90": 0.07619
+      },
+      "rgb": [
+       70,
+       59,
+       63
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0009,
+      "small": true,
+      "code": 76
+     },
+     "downtown": {
       "n": 27328,
       "luma": {
        "mean": 14.6,
@@ -1928,34 +2130,6 @@
       "hot200": 0,
       "frac": 0.0211,
       "code": 8
-     },
-     "dome": {
-      "n": 7227,
-      "luma": {
-       "mean": 37,
-       "std": 26.15,
-       "p1": 9,
-       "p10": 11,
-       "p50": 24,
-       "p90": 75,
-       "p99": 80
-      },
-      "Y": {
-       "mean": 0.02734,
-       "p10": 0.003677,
-       "p50": 0.009721,
-       "p90": 0.07227
-      },
-      "rgb": [
-       38,
-       36,
-       47
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0056,
-      "small": true,
-      "code": 25
      },
      "ground": {
       "n": 32724,
@@ -1986,47 +2160,62 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.002428,
+     "medianY": 0.06301,
      "relK": 4,
-     "pct": 4.98,
+     "pct": 0,
      "absPct": 0,
-     "rgb": [
-      55,
-      47,
-      43
-     ]
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 2.67,
+     "wall/sky": 69.2,
      "ground/sky": 302,
-     "wall/ground": 0.00884
+     "wall/ground": 0.229
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
     ],
     "ratioBands": {
      "wall/sky": [
-      2,
-      4
+      51.9,
+      104
      ],
      "ground/sky": [
       226,
       453
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "downtown": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 3.622,
     "pctOver": 3.354,
     "pctBig": 0.1
+   },
+   "frame": {
+    "bytes": 93933,
+    "sha1": "1d6993b3576c"
    }
   },
   {
@@ -2132,6 +2321,62 @@
       "dark": true
      },
      "wall": {
+      "n": 2112,
+      "luma": {
+       "mean": 65,
+       "std": 20.59,
+       "p1": 4,
+       "p10": 23,
+       "p50": 71,
+       "p90": 77,
+       "p99": 82
+      },
+      "Y": {
+       "mean": 0.05913,
+       "p10": 0.009721,
+       "p50": 0.0648,
+       "p90": 0.07619
+      },
+      "rgb": [
+       78,
+       61,
+       61
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0016,
+      "small": true,
+      "code": 72
+     },
+     "dome": {
+      "n": 2394,
+      "luma": {
+       "mean": 62.2,
+       "std": 27.29,
+       "p1": 0,
+       "p10": 4,
+       "p50": 75,
+       "p90": 77,
+       "p99": 83
+      },
+      "Y": {
+       "mean": 0.05859,
+       "p10": 0.001518,
+       "p50": 0.07227,
+       "p90": 0.07619
+      },
+      "rgb": [
+       74,
+       59,
+       60
+      ],
+      "hot120": 0,
+      "hot200": 0,
+      "frac": 0.0018,
+      "small": true,
+      "code": 76
+     },
+     "flanking": {
       "n": 108342,
       "luma": {
        "mean": 34.2,
@@ -2157,34 +2402,6 @@
       "hot200": 0,
       "frac": 0.0836,
       "code": 11
-     },
-     "dome": {
-      "n": 4466,
-      "luma": {
-       "mean": 18.1,
-       "std": 3.11,
-       "p1": 9,
-       "p10": 18,
-       "p50": 18,
-       "p90": 18,
-       "p99": 22
-      },
-      "Y": {
-       "mean": 0.006209,
-       "p10": 0.006049,
-       "p50": 0.006049,
-       "p90": 0.006049
-      },
-      "rgb": [
-       15,
-       19,
-       18
-      ],
-      "hot120": 0,
-      "hot200": 0,
-      "frac": 0.0034,
-      "small": true,
-      "code": 18
      },
      "ground": {
       "n": 129600,
@@ -2215,47 +2432,62 @@
      }
     },
     "smallRegions": [
+     "wall",
      "dome"
     ],
     "windows": {
      "region": "wall",
      "fallback": false,
-     "medianY": 0.003347,
+     "medianY": 0.0648,
      "relK": 4,
-     "pct": 26.162,
-     "absPct": 8.452,
-     "rgb": [
-      130,
-      99,
-      65
-     ]
+     "pct": 0,
+     "absPct": 0,
+     "rgb": null
     },
     "ratios": {
-     "wall/sky": 3.68,
+     "wall/sky": 71.2,
      "ground/sky": 386,
-     "wall/ground": 0.00952
+     "wall/ground": 0.184
     },
-    "ratiosSmall": [],
+    "ratiosSmall": [
+     "wall/sky",
+     "wall/ground"
+    ],
     "ratiosDark": [
      "wall/sky",
      "ground/sky"
     ],
     "ratioBands": {
      "wall/sky": [
-      2.76,
-      5.51
+      53.4,
+      107
      ],
      "ground/sky": [
       290,
       579
      ]
-    }
+    },
+    "regionSubjects": {
+     "sky": "sky",
+     "wall": "authored",
+     "dome": "authored",
+     "flanking": "basemap",
+     "ground": "basemap"
+    },
+    "ratiosBasemap": [
+     "ground/sky",
+     "wall/ground"
+    ]
    },
    "blank": false,
    "diffA": {
     "meanAbs": 1.312,
     "pctOver": 1.117,
     "pctBig": 0.297
+   },
+   "frame": {
+    "bytes": 87107,
+    "sha1": "41b973a84da5"
    }
   }
  ],
@@ -2299,7 +2531,9 @@
    "frames": 5,
    "pctOverMin": 1.117,
    "pctOverMedian": 7.634,
-   "pctOverMax": 14.733
+   "pctOverMax": 14.733,
+   "byteIdenticalPairs": 0,
+   "meanAbsZeroPairs": 0
   },
   "same": {
    "tolPct": 0.05,
@@ -2331,7 +2565,22 @@
      ],
      "trianglesA": 3562577,
      "pctOver": 14.733,
-     "reached": true
+     "reached": true,
+     "movedMeasured": [
+      "wall code 28 -> 21 (authored)",
+      "ground code 77 -> 65 (authored)",
+      "wall/sky 9.56 -> 6.18",
+      "ground/sky 61.1 -> 43.5",
+      "wall/ground 0.156 -> 0.142",
+      "windows 3.371% -> 1.854%"
+     ],
+     "unmovedMeasured": [
+      "sky code 4 (subject undeclared)"
+     ],
+     "authoredUnmoved": [],
+     "undeclaredUnmoved": [
+      "sky"
+     ]
     },
     {
      "pose": "wc-elevated/over-mlk-north",
@@ -2349,7 +2598,19 @@
      ],
      "trianglesA": 3562577,
      "pctOver": 7.634,
-     "reached": true
+     "reached": true,
+     "movedMeasured": [
+      "wall code 20 -> 21 (authored)",
+      "wall/sky 5.76 -> 6.18",
+      "windows 1.442% -> 0.403%"
+     ],
+     "unmovedMeasured": [
+      "sky code 4 (subject undeclared)"
+     ],
+     "authoredUnmoved": [],
+     "undeclaredUnmoved": [
+      "sky"
+     ]
     },
     {
      "pose": "wc-elevated/down-on-ion",
@@ -2367,7 +2628,22 @@
      ],
      "trianglesA": 3562577,
      "pctOver": 9.96,
-     "reached": true
+     "reached": true,
+     "movedMeasured": [
+      "sky code 20 -> 21 (subject undeclared)",
+      "wall code 11 -> 12 (authored)",
+      "wall/sky 0.478 -> 0.49",
+      "ground/sky 0.304 -> 0.283",
+      "wall/ground 1.58 -> 1.73",
+      "windows 3.141% -> 2.496%"
+     ],
+     "unmovedMeasured": [
+      "ground code 7 (authored)"
+     ],
+     "authoredUnmoved": [
+      "ground"
+     ],
+     "undeclaredUnmoved": []
     },
     {
      "pose": "capitol/congress-30m",
@@ -2385,7 +2661,22 @@
      ],
      "trianglesA": 3562577,
      "pctOver": 3.354,
-     "reached": true
+     "reached": true,
+     "movedMeasured": [
+      "wall code 28 -> 71 (authored)",
+      "dome code 20 -> 76 (authored)",
+      "downtown code 9 -> 8 (basemap)",
+      "wall/sky 12.7 -> 69.2",
+      "wall/ground 0.0423 -> 0.229",
+      "windows 12% -> 0%"
+     ],
+     "unmovedMeasured": [
+      "sky code 3 (sky)",
+      "ground code 143 (basemap)",
+      "ground/sky 302"
+     ],
+     "authoredUnmoved": [],
+     "undeclaredUnmoved": []
     },
     {
      "pose": "capitol/gate-1p7m",
@@ -2403,32 +2694,54 @@
      ],
      "trianglesA": 3562577,
      "pctOver": 1.117,
-     "reached": true
+     "reached": true,
+     "movedMeasured": [
+      "wall code 9 -> 72 (authored)",
+      "dome code 6 -> 76 (authored)",
+      "flanking code 9 -> 11 (basemap)",
+      "wall/sky 3 -> 71.2",
+      "wall/ground 0.00777 -> 0.184",
+      "windows 12.5% -> 0%"
+     ],
+     "unmovedMeasured": [
+      "sky code 3 (sky)",
+      "ground code 160 (basemap)",
+      "ground/sky 386"
+     ],
+     "authoredUnmoved": [],
+     "undeclaredUnmoved": []
     }
-   ]
+   ],
+   "undeclaredAndUnmoved": {
+    "regions": [
+     "wc-elevated/over-drag-wnw.sky",
+     "wc-elevated/over-mlk-north.sky"
+    ],
+    "note": "these regions have no `regionSubjects` entry in night-routes.json and did not move under this sabotage. That is either correct (they are on the basemap or the sky) or the defect this block exists to catch. Declare them once you know which."
+   }
   }
  },
- "remeasured": "2026-09-20T10:30:13.307Z",
+ "remeasured": "2026-09-20T11:58:29.452Z",
  "remeasure": {
-  "when": "2026-09-20T10:30:13.307Z",
+  "when": "2026-09-20T11:58:29.452Z",
   "args": [
    "--out",
-   "<scratch>/lanes/night/rework4/critic-break-rerun",
+   "<scratch>/lanes/night/rework5/remeasure/same-break-apartments-loaded-machine",
    "--from",
-   "<scratch>/lanes/night/rework4/critic-break-rerun",
-   "--same",
-   "0.05",
+   "<scratch>/lanes/night/rework5/remeasure/same-break-apartments-loaded-machine",
    "--refs",
    "off",
    "--local",
-   "none"
+   "none",
+   "--same",
+   "0.05"
   ],
   "harnessGit": {
-   "head": "1bc3948",
+   "head": "46697d2",
    "dirty": true
   },
-  "out": "<scratch>/lanes/night/rework4/critic-break-rerun",
-  "from": "<scratch>/lanes/night/rework4/critic-break-rerun",
+  "out": "<scratch>/lanes/night/rework5/remeasure/same-break-apartments-loaded-machine",
+  "from": "<scratch>/lanes/night/rework5/remeasure/same-break-apartments-loaded-machine",
   "routesFile": "<worktree>\\scripts\\verify\\night-routes.json",
   "localOverlay": null,
   "refs": "off",
@@ -2496,5 +2809,5 @@
   "note": "every shot in this report came from the shoot the top-level fields describe."
  },
  "exit": 2,
- "committedCopy": "THE RUN THAT WENT RED FOR THE WRONG REASON. An independent critic re-ran the package's own documented sabotage on a busy laptop on 2026-09-20 and it came back FAIL --same 0.05%, exit 1, 'the sabotage moved 5 of 5 (pose, regime) frames past --same' -- and verdict.uninterpretable was EMPTY, every frame camera ok and settled, both sides 196 buildings and 2,600,942 triangles, identical grade. Then they opened the frames: side A, the UNSABOTAGED control, was the broken one. Its tree canopies were bright unretinted green under a night sky, the authored towers' lit window grids were absent (windows.pct 3.371% against 13.349% for the same pose, regime and build in the kept baseline), and at capitol/congress-30m the Capitol dome is MISSING from A and present in B. The diff image is dominated by A's defect, not by B's sabotage: the two Capitol poses read 3.354% and 1.117% here against 0.025% and 0.002% in same-break-apartments.report.json at the same poses. The only trace anywhere in the report was tilesOk:false on all five A shots against tilesOk:true on all five B shots -- a field that was recorded per shot and then never reached verdict, the summary or the exit code. Both sides took 2 reloads and the APARTMENTS.on poke, so the recovery path is NOT the discriminator here; the load is. THIS FILE IS THE SAME FRAMES RE-MEASURED WITH --from AFTER THE FIX, and nothing was re-shot: it is now exit 2, with all five A frames in verdict.uninterpretable and the five-pose verdict.loadAsymmetry beside them, and verdict.same.maskedByExitCode saying in the file that the --same failure is no longer what the exit code reports. Absolute paths rewritten; nothing else changed."
+ "committedCopy": "THE RUN THAT WENT RED FOR THE WRONG REASON. An independent critic re-ran the package's own documented sabotage on a busy laptop on 2026-09-20 and it came back FAIL --same 0.05%, exit 1, 'the sabotage moved 5 of 5 (pose, regime) frames past --same' -- and verdict.uninterpretable was EMPTY, every frame camera ok and settled, both sides 196 buildings and 2,600,942 triangles, identical grade. Then they opened the frames: side A, the UNSABOTAGED control, was the broken one. Its tree canopies were bright unretinted green under a night sky, the authored towers' lit window grids were absent (windows.pct 3.371% against 13.349% for the same pose, regime and build in the kept baseline), and at capitol/congress-30m the Capitol dome is MISSING from A and present in B. The diff image is dominated by A's defect, not by B's sabotage: the two Capitol poses read 3.354% and 1.117% here against 0.025% and 0.002% in same-break-apartments.report.json at the same poses. The only trace anywhere in the report was tilesOk:false on all five A shots against tilesOk:true on all five B shots -- a field that was recorded per shot and then never reached verdict, the summary or the exit code. Both sides took 2 reloads and the APARTMENTS.on poke, so the recovery path is NOT the discriminator here; the load is. THIS FILE IS THE SAME FRAMES RE-MEASURED WITH --from AFTER THE FIX, and nothing was re-shot: it is now exit 2, with all five A frames in verdict.uninterpretable and the five-pose verdict.loadAsymmetry beside them, and verdict.same.maskedByExitCode saying in the file that the --same failure is no longer what the exit code reports. Absolute paths rewritten; nothing else changed. ||| SIXTH PASS, 2026-09-20 -- RE-MEASURED, NOT RE-SHOT. The two Capitol poses' `wall` and `dome` rectangles were on MapLibre's own fill-extrusions, not on anything we author: `--break slopes` deleted 3,560,273 triangles and every measured number at both poses came back bit-identical. wall and dome are now read off the A-vs-B mask of that run (92-96% of each rectangle is pixels the sabotage changed by more than 3 of 255 on any channel; 86-91% at a threshold of 6), the old rectangles are kept as `downtown`/`flanking` and declared `basemap`, and every kept report was re-measured from its OWN frames with --from against the corrected night-routes.json. No frame in this file was taken again; the frames are byte-for-byte the ones the shoot produced. Capitol numbers before and after are tabulated in docs/night-implementation-plan.md sec W0a. Every shot also gained `frame.bytes`/`frame.sha1`, and `report.exit` now exists in all ten files."
 }

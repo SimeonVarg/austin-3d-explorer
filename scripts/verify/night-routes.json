@@ -5,11 +5,13 @@
     "Because pitch cannot go above the horizon, a target ABOVE the eye clamps to 88 deg: the map centre then lands about 28.6 x the eye height ahead, and the subject sits high in the frame rather than at its centre. Stand far enough back that it still fits.",
     "regions: named rectangles [x0, y0, x1, y1] as fractions of the frame (0,0 = top left). A region may be one rectangle or a list of them; rectangles in one region must not overlap. sky/wall/ground/water feed the ratios; any other name (dome, tower) is measured and reported but not divided.",
     "They were read off the 2026-09-19 baseline frames (1440x900) with night-compare --show-regions, which draws them on a labelled 5% grid. After editing them, re-measure an old run with --from instead of re-shooting it.",
+    "regionSubjects: WHOSE geometry a rectangle is on -- 'authored' (the slopes scene draws it; --break slopes MUST move its numbers), 'basemap' (MapLibre's own fill-extrusion or road, lit and graded by our style: a true reading of the frame and not of anything we build, and every ratio that touches one prints with a b), or 'sky'. A region with no entry is UNDECLARED, which is a third value and not a synonym for authored: night-compare lists it under verdict.breakCoverage.undeclaredAndUnmoved whenever a sabotage fails to move it. Declare a region only from a --break run that measured it, never by eye off a still: at the two Capitol poses four rectangles read as buildings and pavement of our city for a week and were MapLibre's, and it took deleting 3,560,273 triangles and watching every number stand still to find out.",
     "EVERY pose should carry a wall region: without one the bright-window measure falls back to the whole frame, where at blue hour it counts sky and lit pavement and is not a window count at all (it is then starred in the table).",
     "Region SIZE is part of the answer. A region under 1% of the frame (MEASURE.minRegionFrac) is measured and divided as usual and then flagged with # in the table and `small` in the report: a median over four thousand pixels of a gradient sky is a number, not a measurement of the sky. Two poses cannot do better and say so below.",
     "regimes: slider values. p is canonical (it is what the owner drags); sunElev is what js/sky.js SUN_KEYS gives for that p at c656249, and night-compare warns when a build disagrees by more than 0.5 deg.",
     "defaultRegimes carries all four acceptance elevations of docs/night-implementation-plan.md sec 7.1, INCLUDING `early` (-15 deg). `early` is the only regime the owner's own photographs measure (IMG_9964-9969 at 20:36, sun -14.5 to -15.2), so a run that skips it has no measured evidence to be compared against. Use --regimes to shoot fewer.",
     "refs: optional reference photographs per regime, as paths under refRoot (a local, git-ignored folder; missing files are skipped). None of them may be committed.",
+    "refExceptions: { \"<regime>\": \"<why>\" } on a route DECLARES a binding whose photograph's own clock falls outside that row's sun-elevation band and which we keep anyway. night-refmeasure.py --sun prints a declared gap as DEFENDED and exits 0; an undeclared one prints UNEXPLAINED and exits 1, and an exception naming a regime the route does not bind is called out as stale. There is exactly one in the file (capitol/night). Do not use refNote for this: nearly every route has one, so every gap read as accepted.",
     "A ref is bound to the regime its own package entry tags it with (docs/night-reference-package.md sec 1.2 and each folder's sources.json), never to the regime whose row happens to be empty. Where the corpus has no photograph of a regime the row is left out, and the note below says so: an empty cell is evidence about the corpus, a wrong cell is a lie about the sky. Only ONE ref fits a regime row, so a second photograph of the same regime is named in the route's refNote rather than bound.",
     "Licence: no ref may be committed, and a ref under a NO-DERIVATIVES licence is not wired here at all, because --refs on composites it into a sheet (which is a derivative). the-independent__crown-and-podium-garage (CC BY-NC-ND) is therefore named in parking-structure.refNote and not bound.",
     "West Campus elevated poses are GENERIC vantage points over public streets that frame the same buildings the owner photographed (IMG_9964-9969). The matched poses for those photographs stay in a local overlay file (see night-compare.mjs --local), never here."
@@ -76,21 +78,25 @@
             "sky":    [0.08, 0.04, 0.95, 0.25],
             "wall":   [[0.19, 0.39, 0.30, 0.51], [0.73, 0.52, 0.91, 0.70]],
             "ground": [0.455, 0.825, 0.60, 0.905]
-          } },
+          },
+          "regionSubjects": { "wall": "authored", "ground": "authored" } },
         { "id": "over-mlk-north", "note": "80 m over MLK at Nueces, looking north up the Rio Grande corridor: 21 Rio, Villas on Rio, Signature 1909 (9965/9966 subjects)",
           "eye": [-97.7445, 30.2806, 80], "target": [-97.7450, 30.2852, 30],
           "regions": {
             "sky":  [0.05, 0.03, 0.78, 0.30],
             "wall": [[0.82, 0.35, 0.98, 0.62], [0.48, 0.40, 0.53, 0.57]]
-          } },
+          },
+          "regionSubjects": { "wall": "authored" } },
         { "id": "down-on-ion", "note": "110 m over 22nd St, looking steeply down SSE onto Ion and the Callaway House (9967/9968 subjects)",
           "eye": [-97.7437, 30.2860, 110], "target": [-97.74326, 30.28439, 25],
           "regions": {
             "sky":    [0.03, 0.015, 0.62, 0.072],
             "wall":   [[0.22, 0.38, 0.38, 0.85], [0.49, 0.51, 0.64, 0.72]],
             "ground": [0.69, 0.49, 0.735, 0.77]
-          } }
+          },
+          "regionSubjects": { "wall": "authored", "ground": "authored" } }
       ],
+      "regionNote": "The three `wall` regions and the two `ground` regions are declared `authored` on the measurement: `--break slopes` at night moved wall 18->21, 19->21 and 17->12 and ground 59->65 and 11->7, and the bright-window share collapsed 13.349 -> 1.850, 17.847 -> 0.403 and 9.419 -> 2.496. The three `sky` regions are deliberately left UNDECLARED: two of them did not move (which is consistent with sky and also with a rectangle on a basemap wall), and down-on-ion's moved by one code, which is too small a signal to call either way. They will keep printing under breakCoverage.undeclaredAndUnmoved until somebody runs --break with --show-regions in hand and settles it.",
       "refNote": "torre sat on `twilight` until 2026-09-20 on the strength of its FILE NAME; its sources.json reads 'twilight / blue hour' and the package's own table (sec 1.2) calls it blue hour, so it moves to `blue`. `twilight` now carries the Dobie pool frame, one of only two photographs in the corpus that any gatherer tagged plainly twilight, and the only close-up of a West Campus residential curtain wall with per-unit colour variety (the package used to discount it on a false claim that the tower was demolished; it was renovated as Dobie Twenty21). The corpus has no full-night West Campus apartment photograph.",
       "refs": {
         "blue": "_night/westcampus-campus/torre-westcampus-twilight_ca2020s-rambleratx-article.png",
@@ -184,22 +190,31 @@
       "judges": "the floodlit dome and portico against the sky",
       "poses": [
         { "id": "congress-30m", "eye": [-97.74212, 30.26991, 30], "target": [-97.74040, 30.27470, 60],
+          "note": "REGIONS RE-AIMED 2026-09-20 and the old ones kept under honest names. Everything we author at this pose is the Capitol itself, and it is 0.394% of the frame (the A-vs-B mask of the --break slopes run, at a per-channel difference over 3 of 255): the wide pale building under the dome, the towers either side of Congress and the pavement are all MapLibre fill-extrusions and road lit by our style. The old `wall` sat on the tower at x 0.583-0.667 and the old `ground` on the pavement, so `--break slopes` removed 3,560,273 triangles and every region median, every ratio and the window share came back bit-identical. wall and dome are now read off the A-vs-B mask of that very run: 95.7% of wall and 93.2% of dome are pixels the sabotage changed by more than 3 of 255 on any channel (90.6% and 88.0% at a threshold of 6).",
           "regions": {
-            "sky":    [0.32, 0.03, 0.50, 0.25],
-            "wall":   [0.583, 0.33, 0.667, 0.578],
-            "dome":   [0.485, 0.36, 0.535, 0.47],
-            "ground": [0.43, 0.69, 0.57, 0.87]
-          } },
-        { "id": "gate-1p7m", "note": "348 m down the Congress Ave centreline (derived from the two working poses: dlng/dlat 0.3409). The first try stood 41 m east of the centreline, inside the buildings, and photographed a blank wall at every regime.",
+            "sky":      [0.32, 0.03, 0.50, 0.25],
+            "wall":     [0.4910, 0.4244, 0.5215, 0.4511],
+            "dome":     [0.4931, 0.3922, 0.5194, 0.4233],
+            "downtown": [0.583, 0.33, 0.667, 0.578],
+            "ground":   [0.43, 0.69, 0.57, 0.87]
+          },
+          "regionSubjects": { "sky": "sky", "wall": "authored", "dome": "authored", "downtown": "basemap", "ground": "basemap" } },
+        { "id": "gate-1p7m", "note": "348 m down the Congress Ave centreline (derived from the two working poses: dlng/dlat 0.3409). The first try stood 41 m east of the centreline, inside the buildings, and photographed a blank wall at every regime. REGIONS RE-AIMED 2026-09-20, same reason as congress-30m: the old `wall` was two rectangles on the buildings flanking the avenue, which are MapLibre's, and the old `dome` sat BELOW the dome on the dark ridge in front of it and did not move by one code when the Capitol was deleted. wall and dome are now read off the A-vs-B mask: 92.2% of wall and 94.4% of dome are pixels the sabotage changed by more than 3 of 255 on any channel (86.3% and 89.6% at a threshold of 6). flanking keeps the old pair under a name that says whose they are.",
           "eye": [-97.74156, 30.27155, 1.7], "target": [-97.74049, 30.27470, 45],
           "regions": {
-            "sky":    [0.30, 0.04, 0.58, 0.28],
-            "wall":   [[0.08, 0.34, 0.26, 0.60], [0.64, 0.26, 0.78, 0.52]],
-            "dome":   [0.485, 0.375, 0.525, 0.46],
-            "ground": [0.25, 0.75, 0.75, 0.95]
-          } }
+            "sky":      [0.30, 0.04, 0.58, 0.28],
+            "wall":     [0.4979, 0.3344, 0.5424, 0.3678],
+            "dome":     [0.5007, 0.2856, 0.5396, 0.3322],
+            "flanking": [[0.08, 0.34, 0.26, 0.60], [0.64, 0.26, 0.78, 0.52]],
+            "ground":   [0.25, 0.75, 0.75, 0.95]
+          },
+          "regionSubjects": { "sky": "sky", "wall": "authored", "dome": "authored", "flanking": "basemap", "ground": "basemap" } }
       ],
-      "refNote": "blue is EMPTY from 2026-09-20, for the reason written out on congress-street: the pre-dawn Capitol frame that sat here measures a black sky (median linear Y 0.0011, sRGB code 3) and is deep night, not blue hour. night keeps its B&W companion from the same shoot, which IS full night by its pixels whatever its camera clock says. The corpus has no blue-hour photograph of the Capitol. EXPECTED, so the next reader does not chase it: night-refmeasure.py --sun prints this binding under 'BOUND TO A ROW ITS OWN CLOCK PUTS IT OUTSIDE OF', 29.2 deg off, on every run. That line is the flag working, not an open defect -- the gap is deliberate and this note is the argument that accepts it, which is why --sun prints this refNote underneath it instead of 'NOT EXPLAINED'.",
+      "regionNote": "Both poses give a SMALL-REGION reading of our geometry and cannot do better from where they stand: the whole Capitol is 0.394% of the frame at congress-30m and 0.430% at gate-1p7m (the A-vs-B mask of the --break slopes run, at a per-channel difference over 3 of 255), so as the harness counts them wall is 1,100 px (0.08%) and 2,112 px (0.16%) and dome 1,102 px (0.09%) and 2,394 px (0.18%) and print with the # flag. They are a flat floodlit stone surface, which is what makes a median over a thousand pixels of it worth having (unlike a thousand pixels of a gradient sky), but if A1 or A3 ever has to REST on this route, the fix is a closer pose, not a bigger rectangle -- and a closer pose re-shoots every kept run that holds a capitol frame.",
+      "refNote": "blue is EMPTY from 2026-09-20, for the reason written out on congress-street: the pre-dawn Capitol frame that sat here measures a black sky (median linear Y 0.0011, sRGB code 3) and is deep night, not blue hour. night keeps its B&W companion from the same shoot, which IS full night by its pixels whatever its camera clock says. The corpus has no blue-hour photograph of the Capitol. EXPECTED, so the next reader does not chase it: night-refmeasure.py --sun prints this binding under 'BOUND TO A ROW ITS OWN CLOCK PUTS IT OUTSIDE OF', 29.2 deg off, on every run. That line is the flag working, not an open defect. From 2026-09-20 what accepts it is this route's refExceptions.night entry, and --sun prints it as DEFENDED and exits 0; without that entry it prints UNEXPLAINED and exits 1. It used to be THIS refNote that made the gap look accepted, which could not work -- most routes have a refNote, so every gap looked accepted and a real regression would have printed exactly like this one. The refNote is still the long argument; the exception is the declaration.",
+      "refExceptions": {
+        "night": "the B&W dome frame's camera clock (2019-08-11 ~06:06) puts the sun at -10.8 deg, 29.2 deg off this row, and the clock is wrong: the photographer's own caption says 5AM (about -21 deg) and the frame's sky measures sRGB code 3, which is black. Pixels and caption agree against the clock, so the binding stands and the gap is expected on every --sun run. The long argument is in this route's refNote."
+      },
       "refs": {
         "night": "_night/landmarks-street/texas-capitol__dome-floodlit-full-night-bw__01.jpg"
       }

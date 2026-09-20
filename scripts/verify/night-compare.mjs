@@ -143,11 +143,24 @@
  *   - A and B disagreeing on tilesOk at the same (pose, regime) is
  *     `verdict.loadAsymmetry` -> exit 2;
  *   - A and B reaching `ready` by different routes (a different number of reloads,
- *     or one side taking the APARTMENTS.on poke and the other not) is the same,
- *     because that is not one measurement taken twice. Of the nine runs kept in
- *     docs/night/harness-runs/, exactly one trips it, and it is the one the plan
- *     already had to explain: build-ab-c656249-vs-main-daygolden, A 2 reloads +
- *     the poke against B 0 reloads, readyMs 379,315 against 93,576.
+ *     or one side taking the APARTMENTS.on poke and the other not) is the same —
+ *     BUT ONLY WHEN THE TWO SIDES ARE TWO BUILDS. The reload path discriminates
+ *     between builds; in a run where both sides are served the same build.sha1
+ *     from the same site there is no second build for it to be evidence about,
+ *     and side B, shot second on a machine side A has just hammered, reloads more
+ *     often for that reason alone. Both canonical watched failures in
+ *     scripts/verify/README.md came back exit 2 on a loaded laptop from A 0
+ *     reloads against B 2, identical build.sha1, identical triangle counts and
+ *     tilesOk true on every shot. So: two builds -> `verdict.loadAsymmetry`, exit
+ *     2; one build -> `verdict.loadAsymmetryWarning`, logged, no exit change.
+ *     Of the ten runs kept in docs/night/harness-runs/, the one this was written
+ *     for is a genuine two-build run: build-ab-c656249-vs-main-daygolden, A 2
+ *     reloads + the poke against B 0 reloads, readyMs 379,315 against 93,576.
+ *   - both sides served the same site and query and NOT the same build.sha1 is
+ *     `verdict.loadAsymmetry` too -> exit 2. That is a rebuild landing in the
+ *     served checkout between side A and side B, and it has happened: it was
+ *     caught by hand, off the build printed on the overview sheet, and nothing in
+ *     the verdict would have said a word.
  *
  * Each shot also records which SLOPES GROUPS were submitted at that camera
  * (shot.slopes: the `visible` groups from slopes.stats() and the triangles the last
@@ -157,6 +170,27 @@
  * them moves 0.2–0.3% of pixels. That is why verdict.breakCoverage reports the
  * measured A/B percentage per pose beside the group list: SHARE OF THE FRAME is
  * what decides whether --same can go red, and only the sabotage measures it.
+ *
+ * AND SHARE OF THE FRAME IS STILL NOT THE SAME QUESTION AS "did the instrument
+ * notice". `pctOver` counts PIXELS; A1-A5 are written in region medians, ratios
+ * and the bright-window share. At the two Capitol poses the sabotage removed
+ * 3,560,273 triangles, took the dome visibly out of the frame, moved 0.172% and
+ * 0.308% of the pixels — and every region code, every ratio and the window share
+ * came back BIT-IDENTICAL, because the wall, ground and sky rectangles were on
+ * MapLibre's own extrusions and road. Five runs went past that. So
+ * verdict.breakCoverage now carries, per pose, `movedMeasured` and
+ * `unmovedMeasured` — which numbers moved and which did not — and:
+ *   - pixels moved past tolerance and NOT ONE measured number moved is
+ *     `measuredNothingAt` -> exit 2. The rectangles are not on what was removed.
+ *   - a region declared `regionSubjects: authored` in night-routes.json that does
+ *     not move under `--break slopes` (which empties the WHOLE authored scene) is
+ *     `authoredRegionsNotOnSubject` -> exit 2.
+ *   - a region with NO declared subject that did not move is listed under
+ *     `undeclaredAndUnmoved`: either it is basemap or sky, or it is the next
+ *     instance of this defect. Declare it once a sabotage has told you which.
+ * A ratio with a `basemap` region on either side of the division prints with a
+ * `b` in the summary and the tiles: a true reading of the frame, and not a
+ * reading of anything we author.
  *
  * THERE ARE NO REPS. One kept frame per (pose, regime, side), and report.json
  * holds exactly that: SETTLE.retries re-shoots a frame that is still MOVING, it
@@ -354,6 +388,13 @@ if (VP_ARG) {
 }
 const VP_OVERRIDDEN = !!VP_ARG;
 
+// A region's declared subject, from night-routes.json `regionSubjects`:
+//   authored  the slopes scene draws it. `--break slopes` MUST move its numbers.
+//   basemap   MapLibre's own fill-extrusion or road, lit and graded by our style.
+//             `--break` cannot move it, and no number taken from it is our geometry.
+//   sky       the sky dome. Not geometry; `--break` cannot move it either.
+// Undeclared means nobody has run a sabotage over it yet — reported, never assumed.
+const SUBJECT_KINDS = ['authored', 'basemap', 'sky'];
 function validRect(r) { return Array.isArray(r) && r.length === 4 && r.every(v => typeof v === 'number' && v >= 0 && v <= 1) && r[2] > r[0] && r[3] > r[1]; }
 function rectsOf(spec) { return validRect(spec) ? [spec] : (Array.isArray(spec) && spec.every(validRect) ? spec : null); }
 
@@ -395,10 +436,19 @@ for (const r of CFG.routes || []) {
       if (!rs) die(`${key}: region ${name} is not [x0,y0,x1,y1] (fractions) or a list of them`);
       regions[name] = rs;
     }
+    // WHOSE geometry the rectangle is on. Undeclared is a real third value and not a
+    // synonym for `authored`: at the two Capitol poses four rectangles measured
+    // MapLibre's own extrusions and pavement for a week, and nothing could say so,
+    // because nothing had ever been asked to. See --break's movedMeasured.
+    const subjects = Object.assign({}, r.regionSubjects || {}, p.regionSubjects || {});
+    for (const [name, v] of Object.entries(subjects)) {
+      if (!SUBJECT_KINDS.includes(v)) die(`${key}: regionSubjects.${name} is "${v}"; it takes ${SUBJECT_KINDS.join(', ')}`);
+      if (!regions[name]) die(`${key}: regionSubjects names "${name}", which is not one of this pose's regions (${Object.keys(regions).join(', ') || 'none'})`);
+    }
     const regimes = REGIMES_ARG || p.regimes || r.regimes || CFG.defaultRegimes;
     for (const g of regimes) if (!CFG.regimes[g]) die(`${key}: unknown regime ${g}`);
     POSES.push({ route: r.id, pose: p.id, key, title: r.title, local: !!r.local, cam, eye: p.eye || null, target: p.target || null,
-      regions, regimes, refs: Object.assign({}, r.refs || {}, p.refs || {}) });
+      regions, subjects, regimes, refs: Object.assign({}, r.refs || {}, p.refs || {}) });
   }
 }
 if (!POSES.length) die('no poses selected' + (ONLY ? ` by --only ${ONLY.join(',')}` : ''));
@@ -1071,7 +1121,20 @@ async function analyse(helper, report) {
     const P = POSES.find(q => q.route === s.route && q.pose === s.pose);
     const regions = P ? P.regions : {};
     const buf = fs.readFileSync(path.join(OUT, s.file));
+    // The bytes on disk, so a claim about them has an artifact. "24 of the 32 are
+    // byte-identical JPEGs" was written about the A9 noise floor and no field in any
+    // report could support it: it was true (re-measured 2026-09-20: 24 of 32 pairs
+    // share a SHA-1, and 26 of 32 have meanAbs 0 — the two are different counts) but
+    // it rested on a shell command in a lost scratch folder.
+    s.frame = { bytes: buf.length, sha1: crypto.createHash('sha1').update(buf).digest('hex').slice(0, 12) };
     s.metrics = await helper.evaluate(pageMeasure, { b64: buf.toString('base64'), regions, M: MEASURE });
+    // Carry the declared subject of each region into the metrics, and mark every
+    // ratio that has a `basemap` region on either side of the division. Those are
+    // readings of MapLibre's own extrusion or road under our lighting — real
+    // numbers about the frame, and NOT numbers about the city we build.
+    const subj = (P && P.subjects) || {};
+    if (Object.keys(subj).length) s.metrics.regionSubjects = subj;
+    s.metrics.ratiosBasemap = Object.keys(s.metrics.ratios || {}).filter(k => k.split('/').some(n => subj[n] === 'basemap'));
     s.blank = s.metrics.frame.luma.std < MEASURE.blankStd;
     byKey.set(`${s.side}|${s.route}/${s.pose}|${s.regime}`, s);
   }
@@ -1092,7 +1155,8 @@ function tileLines(s, sideLabel) {
   const r = m.ratios;
   const small = new Set(m.ratiosSmall || []);
   const dark = new Set(m.ratiosDark || []);
-  const rs = Object.entries(r).map(([k, v]) => `${k} ${fmt(v)}${small.has(k) ? '#' : ''}${dark.has(k) ? '~' : ''}`).join('  ');
+  const base = new Set(m.ratiosBasemap || []);
+  const rs = Object.entries(r).map(([k, v]) => `${k} ${fmt(v)}${small.has(k) ? '#' : ''}${dark.has(k) ? '~' : ''}${base.has(k) ? 'b' : ''}`).join('  ');
   L.push(`mean ${m.frame.luma.mean}  p99 ${m.frame.luma.p99}  win ${m.windows.pct}%${m.windows.fallback ? '*' : ''}${rs ? '  ' + rs : ''}`);
   if (m.windows.fallback) L.push('* no wall region: whole-frame count, not windows');
   if (dark.size) {
@@ -1124,7 +1188,11 @@ async function sheets(helper, report, byKey) {
   const sides = [...new Set(report.sides.map(s => s.key))];
   const tileH = Math.round(TILE_W * VH / VW);
   const put = async (name, spec) => { const b64 = await helper.evaluate(pageSheet, spec); fs.writeFileSync(path.join(OUT, name), Buffer.from(b64, 'base64')); written.push(name); };
-  const sideLabel = k => { const s = report.sides.find(x => x.key === k); return `${k}: ${s ? s.label : ''}`; };
+  // A --merge appends the other run's side blocks under the SAME key, so a bare
+  // find() can hand back the merged run's label and build instead of this shoot's.
+  // Prefer the record this shoot wrote; fall back to whatever is there.
+  const sideRec = k => report.sides.find(x => x.key === k && !x.mergedFrom) || report.sides.find(x => x.key === k);
+  const sideLabel = k => { const s = sideRec(k); return `${k}: ${s ? s.label : ''}`; };
   // per pose: rows = regimes, cols = sides (+ ref)
   for (const P of POSES) {
     const regs = REGIME_ORDER.filter(g => P.regimes.includes(g) && sides.some(k => byKey.get(`${k}|${P.key}|${g}`)));
@@ -1149,7 +1217,7 @@ async function sheets(helper, report, byKey) {
     const poses = POSES.filter(P => report.shots.some(s => s.side === k && s.route === P.route && s.pose === P.pose));
     for (let i = 0, n = 1; i < poses.length; i += OV_ROWS, n++) {
       const rows = poses.slice(i, i + OV_ROWS).map(P => ({ head: P.route + '\n' + P.pose, tiles: regs.map(g => { const s = byKey.get(`${k}|${P.key}|${g}`); return { src: s ? dataURL(path.join(OUT, s.file)) : null, lines: s ? [`${g} p${s.p}  mean ${s.metrics.frame.luma.mean}  win ${s.metrics.windows.pct}%`] : ['(not shot)'] }; }) }));
-      await put(`overview-${k}-${n}.jpg`, { title: `${sideLabel(k)} — ${report.when.slice(0, 16).replace('T', ' ')} — build ${(report.sides.find(x => x.key === k).build || {}).sha1 || '?'}`, colHeads: regs, rows, tileW: ovW, tileH: ovH, q: SHEET_Q, rowHeadW: 170 });
+      await put(`overview-${k}-${n}.jpg`, { title: `${sideLabel(k)} — ${report.when.slice(0, 16).replace('T', ' ')} — build ${((sideRec(k) || {}).build || {}).sha1 || '?'}`, colHeads: regs, rows, tileW: ovW, tileH: ovH, q: SHEET_Q, rowHeadW: 170 });
     }
   }
   if (SHOW_REGIONS) {
@@ -1180,23 +1248,68 @@ async function sheets(helper, report, byKey) {
   return written;
 }
 
+/**
+ * Which MEASURED numbers moved between an A shot and its B, and which did not.
+ * The measured numbers are exactly the ones the acceptance table and the sheets
+ * quote: every region's median as an 8-bit sRGB code, every ratio, and the
+ * bright-window share. Frame-wide means are deliberately NOT in here — at the
+ * Capitol the frame mean moved by 0.1 while every region number stood still, and
+ * a test that counted that as movement would have gone on passing.
+ */
+function measuredDelta(a, b, P) {
+  if (!b || !a.metrics || !b.metrics) return { movedMeasured: null, unmovedMeasured: null };
+  const subj = n => (P && P.subjects && P.subjects[n]) || null;
+  const moved = [], still = [], authoredUnmoved = [], undeclaredUnmoved = [];
+  const num = v => (v == null ? 'n/a' : String(v));
+  for (const n of Object.keys(a.metrics.regions || {})) {
+    const ra = a.metrics.regions[n], rb = (b.metrics.regions || {})[n];
+    if (!rb) continue;
+    const tag = subj(n) ? ` (${subj(n)})` : ' (subject undeclared)';
+    if (Math.round(ra.code) !== Math.round(rb.code)) moved.push(`${n} code ${Math.round(ra.code)} -> ${Math.round(rb.code)}${tag}`);
+    else {
+      still.push(`${n} code ${Math.round(ra.code)}${tag}`);
+      if (subj(n) === 'authored') authoredUnmoved.push(n);
+      else if (!subj(n)) undeclaredUnmoved.push(n);
+    }
+  }
+  for (const k of Object.keys(a.metrics.ratios || {})) {
+    const va = a.metrics.ratios[k], vb = (b.metrics.ratios || {})[k];
+    if (va !== vb) moved.push(`${k} ${num(va)} -> ${num(vb)}`); else still.push(`${k} ${num(va)}`);
+  }
+  const wa = (a.metrics.windows || {}).pct, wb = (b.metrics.windows || {}).pct;
+  if (wa !== wb) moved.push(`windows ${num(wa)}% -> ${num(wb)}%`); else still.push(`windows ${num(wa)}%`);
+  return { movedMeasured: moved, unmovedMeasured: still, authoredUnmoved, undeclaredUnmoved };
+}
+
 function summarise(report) {
   const lines = [];
   const pad = (s, n) => String(s).padEnd(n);
   lines.push(pad('side', 5) + pad('regime', 9) + pad('route/pose', 44) + pad('mean', 7) + pad('p99', 5) + pad('win%', 8) + pad('wall/sky', 10) + pad('grnd/sky', 10) + pad('water/sky', 10) + 'vs A');
-  let anyFallback = false, anySmall = false, anyDark = false;
+  let anyFallback = false, anySmall = false, anyDark = false, anyBase = false;
   for (const s of report.shots) {
     const m = s.metrics, r = m.ratios;
     const small = new Set(m.ratiosSmall || []);
     const dark = new Set(m.ratiosDark || []);
-    const rf = k => fmt(r[k]) + (small.has(k) ? '#' : '') + (dark.has(k) ? '~' : '');
+    const base = new Set(m.ratiosBasemap || []);
+    const rf = k => fmt(r[k]) + (small.has(k) ? '#' : '') + (dark.has(k) ? '~' : '') + (base.has(k) ? 'b' : '');
     if (m.windows.fallback) anyFallback = true;
     if (m.smallRegions && m.smallRegions.length) anySmall = true;
     if (dark.size) anyDark = true;
+    if (base.size) anyBase = true;
     lines.push(pad(s.side, 5) + pad(s.regime, 9) + pad(`${s.route}/${s.pose}`, 44) + pad(m.frame.luma.mean, 7) + pad(m.frame.luma.p99, 5) + pad(m.windows.pct + (m.windows.fallback ? '*' : ''), 9) +
       pad(rf('wall/sky'), 10) + pad(rf('ground/sky'), 10) + pad(rf('water/sky'), 10) + (s.diffA ? `${s.diffA.pctOver}% >${DIFF.luma}` : ''));
   }
   if (anyFallback) lines.push('* the pose has no `wall` region, so win% counts the whole frame (sky and pavement included). Not a window count.');
+  if (anyBase) {
+    lines.push('b marks a ratio with a region declared `basemap` in night-routes.json on one side of the division: MapLibre\'s own fill-extrusion or road, lit and graded by our style. It is a true reading of the frame and it is NOT a reading of geometry we author, so it cannot answer "how bright is our building".');
+    const seen = new Set();
+    for (const s of report.shots) {
+      const k = `${s.route}/${s.pose}`, sub = s.metrics.regionSubjects;
+      if (!sub || seen.has(k)) continue;
+      seen.add(k);
+      lines.push('    ' + pad(k, 44) + Object.entries(sub).map(([n, v]) => `${n}=${v}`).join(', '));
+    }
+  }
   if (anySmall) {
     lines.push(`# marks a ratio with a region under ${(MEASURE.minRegionFrac * 100).toFixed(0)}% of the frame on one side. Every small region, ratio or not (dome and tower are named features and are never divided):`);
     const seen = new Set();
@@ -1334,12 +1447,43 @@ try {
     // comes back. The discriminator is recorded on both sides already — it just never
     // left the per-side record.
     const asym = [];
-    const sideRecs = k => report.sides.filter(s => s.key === k);
+    // A --merge appends the other run's side blocks under the same key, so "the
+    // shoot's own side A" is the record WITHOUT a mergedFrom. It used to be
+    // whichever came first, which after a merge is not necessarily this shoot's.
+    const sideRecs = k => report.sides.filter(s => s.key === k && !s.mergedFrom);
+    const buildOf = k => { const [s] = sideRecs(k); return s && s.build && s.build.sha1 || null; };
     if (sideRecs('A').length === 1 && sideRecs('B').length === 1) {
       const [sa] = sideRecs('A'), [sb] = sideRecs('B');
       const path = s => `${s.authoredReloads || 0} reload(s)${s.authoredReenabled ? ' then the APARTMENTS.on poke (the path this file calls unreliable)' : ''}`;
-      if (path(sa) !== path(sb))
-        asym.push(`the two sides reached a ready page by DIFFERENT routes: A took ${path(sa)} (ready in ${Math.round((sa.readyMs || 0) / 1000)} s), B took ${path(sb)} (ready in ${Math.round((sb.readyMs || 0) / 1000)} s). A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so this is a difference between the two SIDES and not between the two builds.`);
+      // The reload path discriminates between two BUILDS. In a --break run, and in
+      // any run where both sides are served the same build, there is no second build
+      // for it to discriminate: side B is simply shot second, on a machine that has
+      // been busy for however long side A took, and it reloads more often for that
+      // reason alone. Both canonical watched failures in scripts/verify/README.md
+      // came back exit 2 on a loaded laptop from A 0 reloads vs B 2, with identical
+      // build.sha1, identical triangle counts and tilesOk true on every shot. So the
+      // rule is gated on the thing it is actually about.
+      const sameBuild = buildOf('A') && buildOf('A') === buildOf('B');
+      const sameSite = sa.site === sb.site;
+      if (path(sa) !== path(sb)) {
+        const msg = `the two sides reached a ready page by DIFFERENT routes: A took ${path(sa)} (ready in ${Math.round((sa.readyMs || 0) / 1000)} s), B took ${path(sb)} (ready in ${Math.round((sb.readyMs || 0) / 1000)} s). A rebuild landing after the one-shot regime retint leaves new meshes day-coloured, so this is a difference between the two SIDES and not between the two builds.`;
+        if (sameBuild && sameSite) {
+          verdict.loadAsymmetryWarning = [`${msg} DEMOTED TO A WARNING: both sides were served the same build (${buildOf('A')}) from the same site, so there is no second build for the reload path to be evidence about — and side B, shot second on a machine side A has just loaded twice, reloads more often for that reason alone. Read the per-shot tilesOk instead.`];
+        } else asym.push(msg);
+      }
+    }
+    // Both sides served the same site and the same query, and the fingerprint of the
+    // build they were served is NOT the same: a rebuild landed between side A and
+    // side B and the run is comparing two builds while calling them one. This has
+    // happened once and was caught by hand, off the overview sheet.
+    // The side blocks, not the CLI: a `--from` re-measure of a kept report has to be
+    // able to reach this verdict too, and its own argv carries no --b at all.
+    if (sideRecs('A').length === 1 && sideRecs('B').length === 1) {
+      const [sa] = sideRecs('A'), [sb] = sideRecs('B');
+      if (sa.site === sb.site && (sa.query || '') === (sb.query || '')
+          && buildOf('A') && buildOf('B') && buildOf('A') !== buildOf('B')) {
+        asym.push(`both sides were shot against ${sa.site}${sa.query || ' (as shipped)'} and were served DIFFERENT builds: A ${buildOf('A')}, B ${buildOf('B')}. A rebuild landed in the served checkout between the two sides, so whatever this run measured, it is not the difference the flags describe. build.sha1 is the fingerprint of index.html plus every local script it loads.`);
+      }
     }
     for (const a of report.shots.filter(s => s.side === 'A')) {
       const b = report.shots.find(s => s.side === 'B' && s.route === a.route && s.pose === a.pose && s.regime === a.regime);
@@ -1355,6 +1499,12 @@ try {
     if (pairs.length) {
       const d = pairs.map(s => s.diffA.pctOver);
       verdict.abDiff = { frames: pairs.length, pctOverMin: Math.min(...d), pctOverMedian: d.slice().sort((a, b) => a - b)[d.length >> 1], pctOverMax: Math.max(...d) };
+      // Two different counts that have been quoted as one. A pair can decode to the
+      // same pixels and still encode to different bytes, and it does: in the A9
+      // noise floor, 26 of 32 pairs have meanAbs 0 and only 24 share a SHA-1.
+      const byteSame = pairs.filter(s => { const a = report.shots.find(x => x.side === 'A' && x.route === s.route && x.pose === s.pose && x.regime === s.regime); return a && a.frame && s.frame && a.frame.sha1 === s.frame.sha1; });
+      verdict.abDiff.byteIdenticalPairs = pairs.every(s => s.frame) ? byteSame.length : null;
+      verdict.abDiff.meanAbsZeroPairs = pairs.filter(s => s.diffA.meanAbs === 0).length;
     }
     if (SAME != null) {
       const over = pairs.filter(s => s.diffA.pctOver >= SAME);
@@ -1384,15 +1534,51 @@ try {
         // facts and must not print the same: an empty list here would read as a pose
         // the sabotage could not touch.
         const rec = !!(a.slopes && (a.slopes.groups || a.slopes.error));
-        return { pose: `${a.route}/${a.pose}`, regime: a.regime,
+        const e = { pose: `${a.route}/${a.pose}`, regime: a.regime,
           slopesRecorded: rec, groupsDrawnA: rec ? (a.slopes.groups || []) : null,
           trianglesA: rec ? (a.slopes.triangles ?? null) : null, pctOver: diff,
           reached: diff != null && SAME != null ? diff >= SAME : null };
+        // WHICH measured numbers the sabotage moved. `pctOver` counts PIXELS; the
+        // acceptance table is written in region medians, ratios and the bright-window
+        // share, and those are a different question. At the two Capitol poses the
+        // pixel count said the sabotage landed (0.172% and 0.308%, both over
+        // tolerance) while every region code, every ratio and the window share came
+        // back bit-identical — because the wall, ground and sky rectangles were on
+        // MapLibre's extrusions and road, not on ours. Five runs passed over that.
+        Object.assign(e, measuredDelta(a, b, POSES.find(P => P.key === e.pose)));
+        return e;
       }) };
       if (verdict.breakCoverage.poses.some(p => !p.slopesRecorded))
         verdict.breakCoverage.note = 'some of these frames were shot before night-compare recorded the per-shot `slopes` block, so `groupsDrawnA` is null — NOT an empty list. For those poses `pctOver` is the whole of the evidence: it is the measured share of the frame the sabotage moved, which is the thing that decides coverage anyway.';
       const noop = verdict.breakCoverage.poses.filter(p => p.reached === false);
       if (noop.length) verdict.breakCoverage.noOpAt = noop.map(p => `${p.regime} ${p.pose} ${p.pctOver}% (drawn: ${p.slopesRecorded ? (p.groupsDrawnA.join(', ') || 'nothing') : 'not recorded in this run'})`);
+      // The instrument check. A pose where the sabotage moved pixels past tolerance
+      // and NOT ONE measured number is a pose whose rectangles are not on the
+      // geometry that was removed, whatever the exit code says about --same.
+      const blind = verdict.breakCoverage.poses.filter(p => p.reached === true && p.movedMeasured && !p.movedMeasured.length);
+      if (blind.length) {
+        verdict.breakCoverage.measuredNothingAt = blind.map(p =>
+          `${p.regime} ${p.pose}: the sabotage moved ${p.pctOver}% of the PIXELS and NOT ONE measured number — every region median, every ratio and the bright-window share are identical A to B. The rectangles at this pose are not on the geometry --break ${mode} removed. Unmoved: ${p.unmovedMeasured.join('; ')}`);
+        verdict.uninterpretable.push(...verdict.breakCoverage.measuredNothingAt.map(m => 'BREAK MEASURED NOTHING: ' + m));
+        exit = 2;
+      }
+      // A region DECLARED `authored` that survives `--break slopes` is either
+      // mis-declared or mis-aimed. Only `slopes` empties the whole authored scene,
+      // so only `slopes` can make this claim.
+      if (mode === 'slopes') {
+        const off = [];
+        for (const p of verdict.breakCoverage.poses) for (const r of (p.authoredUnmoved || []))
+          off.push(`${p.regime} ${p.pose}: region "${r}" is declared subject "authored" in night-routes.json and did not move when the whole slopes scene was removed`);
+        if (off.length) {
+          verdict.breakCoverage.authoredRegionsNotOnSubject = off;
+          verdict.uninterpretable.push(...off.map(m => 'REGION OFF ITS SUBJECT: ' + m));
+          exit = 2;
+        }
+      }
+      const undecl = new Set();
+      for (const p of verdict.breakCoverage.poses) for (const r of (p.undeclaredUnmoved || [])) undecl.add(`${p.pose}.${r}`);
+      if (undecl.size) verdict.breakCoverage.undeclaredAndUnmoved = { regions: [...undecl].sort(),
+        note: 'these regions have no `regionSubjects` entry in night-routes.json and did not move under this sabotage. That is either correct (they are on the basemap or the sky) or the defect this block exists to catch. Declare them once you know which.' };
     }
     report.verdict = verdict;
     // The exit code is the verdict. It belongs IN the artifact, not only in a
@@ -1404,15 +1590,25 @@ try {
     for (const s of report.sides) for (const w of s.warnings || []) log(`WARNING [${s.key}] ${w}`);
     for (const s of report.sides) if (s.pageErrors && s.pageErrors.length) log(`[${s.key}] ${s.pageErrors.length} page errors (first: ${s.pageErrors[0]})`);
     if (verdict.unsettled.length) log(`WARNING ${verdict.unsettled.length} frame(s) still changing after ${SETTLE.retries} re-shoots: ${verdict.unsettled.join(', ')}`);
-    if (verdict.abDiff) log(`A/B: % of pixels differing by >${DIFF.luma} luma per frame: min ${verdict.abDiff.pctOverMin}, median ${verdict.abDiff.pctOverMedian}, max ${verdict.abDiff.pctOverMax} (${verdict.abDiff.frames} frames)`);
+    if (verdict.abDiff) log(`A/B: % of pixels differing by >${DIFF.luma} luma per frame: min ${verdict.abDiff.pctOverMin}, median ${verdict.abDiff.pctOverMedian}, max ${verdict.abDiff.pctOverMax} (${verdict.abDiff.frames} frames); ${verdict.abDiff.meanAbsZeroPairs} pair(s) with mean|d| 0, ${verdict.abDiff.byteIdenticalPairs == null ? '?' : verdict.abDiff.byteIdenticalPairs} byte-identical`);
     if (bad.length) log(`CANNOT INTERPRET ${bad.length} frame(s): ${bad.map(s => `${s.side} ${s.regime} ${s.route}/${s.pose}: ${reasonsFor(s).join('; ')}`).join(' | ')}`);
     if (verdict.loadAsymmetry) log(`LOAD ASYMMETRY (exit 2 — this is not an A/B measurement): ${verdict.loadAsymmetry.join(' | ')}`);
+    if (verdict.loadAsymmetryWarning) log(`WARNING load asymmetry, same build both sides (NOT exit 2): ${verdict.loadAsymmetryWarning.join(' | ')}`);
     if (SAME != null) log(verdict.same.failing.length ? `FAIL --same ${SAME}%: ${verdict.same.failing.length} frame(s) differ: ${verdict.same.failing.join(', ')}` : (pairs.length ? `PASS --same ${SAME}%: every A/B frame within tolerance` : 'CANNOT RUN --same: no pairs'));
     if (verdict.same && verdict.same.maskedByExitCode) log(`NOTE ${verdict.same.maskedByExitCode}`);
     if (verdict.breakCoverage) {
       const reached = verdict.breakCoverage.poses.filter(p => p.reached === true).length;
       log(`--break coverage: the sabotage moved ${reached} of ${verdict.breakCoverage.poses.length} (pose, regime) frames past --same`);
+      for (const p of verdict.breakCoverage.poses) {
+        if (!p.movedMeasured) continue;
+        log(`  ${p.regime} ${p.pose}: pixels ${p.pctOver}% | measured numbers MOVED ${p.movedMeasured.length}/${p.movedMeasured.length + p.unmovedMeasured.length}` +
+          (p.movedMeasured.length ? `: ${p.movedMeasured.join('; ')}` : '') +
+          (p.unmovedMeasured.length ? `\n      still: ${p.unmovedMeasured.join('; ')}` : ''));
+      }
       if (verdict.breakCoverage.noOpAt) log(`  NO-OP (--same cannot be shown able to fail here): ${verdict.breakCoverage.noOpAt.join(' | ')}`);
+      if (verdict.breakCoverage.measuredNothingAt) log(`  THE SABOTAGE MOVED NO MEASURED NUMBER AT THIS POSE (exit 2 — the instrument, not the scene): ${verdict.breakCoverage.measuredNothingAt.join(' | ')}`);
+      if (verdict.breakCoverage.authoredRegionsNotOnSubject) log(`  REGION OFF ITS SUBJECT (exit 2): ${verdict.breakCoverage.authoredRegionsNotOnSubject.join(' | ')}`);
+      if (verdict.breakCoverage.undeclaredAndUnmoved) log(`  undeclared and unmoved (declare regionSubjects or re-aim): ${verdict.breakCoverage.undeclaredAndUnmoved.regions.join(', ')}`);
     }
     log(`sheets: ${report.sheets.length} in ${OUT}; report: ${path.join(OUT, 'report.json')}; exit ${exit}`);
   }

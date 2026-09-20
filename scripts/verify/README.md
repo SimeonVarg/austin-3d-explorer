@@ -111,6 +111,34 @@ node night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night
   --a '' --b '' --break slopes --same 0.05 --refs off --local none   # -> exit 1
 ```
 
+> **Both of these returned exit 2, not exit 1, when an independent reader ran them on a
+> loaded laptop (2026-09-20), and the sabotage had nothing to do with it.**
+> `verdict.loadAsymmetry` fired on a reload-count difference alone — A 0 reloads against
+> B 2 in one, A 1 against B 2 in the other — with **the same `build.sha1` on both sides,
+> the same 2,600,942 authored triangles and `tilesOk: true` on every shot.** The rule was
+> written for a run comparing two BUILDS, where the reload path says which build a mesh
+> was built under. In a `--break` run both sides are the same build by construction, so it
+> had nothing to discriminate; and side B is shot second, on a machine side A has just
+> loaded twice, which makes it systematically likelier to reload. A documented watched
+> failure that returns the wrong code on a busy machine teaches lanes to ignore the code.
+>
+> **Now:** the reload-path rule fires only when the two sides differ in `build.sha1` or in
+> site. Same build, different reload paths is `verdict.loadAsymmetryWarning` — printed in
+> full, not in the exit code. `tilesOk: false` and an A/B `tilesOk` disagreement are
+> untouched and still exit 2; they are about the frame, not about the route to it.
+> **And the converse is a verdict now too:** both sides on the same site and query and
+> NOT the same `build.sha1` means a rebuild landed mid-run, which is `loadAsymmetry` and
+> exit 2. That had happened once, in `build-ab-c656249-vs-main-daygolden`, and was caught
+> by hand off the build printed on the overview sheet.
+>
+> Both commands above were then run **verbatim** through `gpu-run.mjs` on a quiet machine
+> against this branch: **exit 1 and exit 1**, three of three and two of two poses red.
+> Both runs happened to load symmetrically (0 reloads on both sides), so they demonstrate
+> the exit code and not the gate. The gate itself was watched both ways on those same
+> frames with `--from`, side B's reload count edited by hand in the report: same
+> `build.sha1` → **exit 1** plus the warning; a different `build.sha1` → **exit 2** with
+> both asymmetry lines.
+
 > **Corrected in the fifth pass (2026-09-20). The two entries that used to sit in the
 > list above DID NOT RUN.** `node night-compare.mjs --break --same 1` dies with
 > `--out <dir> is required`, exit 2, and `node night-compare.mjs --break slopes --same 1`
@@ -129,6 +157,36 @@ poses the sabotage could not move, and the kept reports are in
 `docs/night/harness-runs/`. **The whole route set at `day` and `golden` -- the
 coverage map A9 needs -- has not been run**: it hung on `campus-aerial/z16-p68`
 with three GPU lanes live on this laptop and was killed.
+
+**And "the sabotage moved pixels here" is not "the instrument noticed".** That same
+green Capitol run is the one that finally said what the Capitol rectangles were on,
+and it had been saying it for five passes. Delete the entire authored scene -- 3.56 M
+triangles, the dome visibly out of the frame -- and at both Capitol poses **every
+measured number came back bit-identical**: `sky` code 3 = 3, `wall` code 8 = 8,
+`ground` code 143 = 143, all three ratios, and the bright-window share. Only `dome`
+moved, at one of the two poses, by three codes. The `wall` and `ground` rectangles
+were on MapLibre's own fill-extrusions and road; at the Capitol we author the Capitol
+and nothing else, **0.394%** and **0.430%** of the frame (pixels the sabotage changed by more than
+3 of 255 on any channel; 0.172% and 0.308% at the 16-luma threshold `--same` uses).
+
+So `pctOver` (pixels) and the acceptance table (region medians, ratios, window share)
+are two different questions, and `verdict.breakCoverage` answers both now, per pose:
+
+- `movedMeasured` / `unmovedMeasured` -- which measured numbers changed A to B, with
+  each region's declared subject beside it;
+- **pixels over tolerance and NOT ONE measured number moved** is `measuredNothingAt`
+  -> **exit 2**. The rectangles are not on what was removed;
+- a region declared `regionSubjects: "authored"` in `night-routes.json` that survives
+  `--break slopes` (the mode that empties the WHOLE authored scene) is
+  `authoredRegionsNotOnSubject` -> **exit 2**;
+- a region with **no** declared subject that did not move is listed under
+  `undeclaredAndUnmoved`. Undeclared is a third value, not a synonym for authored:
+  declare it from a sabotage that measured it, never by eye off a still.
+
+`regionSubjects` takes `authored`, `basemap` or `sky`. A ratio with a `basemap` region
+on either side of the division prints with a `b` and is a true reading of the frame
+that is **not** a reading of anything we build. Both new guards were watched failing on
+the old Capitol rectangles before they were trusted: exit 2, both blocks populated.
 
 **And a red `--break` is not automatically red for the right reason.** Re-run on a
 busy laptop, the first of those two commands came back `FAIL --same 0.05%`, exit 1,
@@ -952,9 +1010,11 @@ VERIFY_URL=http://127.0.0.1:8661 node <lanes>/gpu-run.mjs --label night-compare 
 ... night-compare.mjs --out <scratch>/break --only wc-elevated --regimes night --a '' --b '' --break        --same 0.05 --refs off --local none
 # the stronger sabotage, for a pose the apartments are not in: the WHOLE authored scene
 ... night-compare.mjs --out <scratch>/brk2  --only capitol      --regimes night --a '' --b '' --break slopes --same 0.05 --refs off --local none
-# the MEASURING half, watched failing. No server, no --out, no app, no GPU: must exit 0
-node scripts/verify/night-compare.mjs --selftest
-node scripts/verify/night-compare.mjs --selftest-break relk   # watch one of the seven go red
+# the MEASURING half, watched failing. No server, no --out and no app -- but it DOES launch
+# a Chrome (SwiftShader) to run the real pageMeasure/pageDiff, so on the Acer it takes a GPU
+# slot like everything else. It must exit 0. (This line used to say "no GPU" and run bare.)
+node <lanes>/gpu-run.mjs --label night-selftest -- node scripts/verify/night-compare.mjs --selftest
+node <lanes>/gpu-run.mjs --label night-selftest -- node scripts/verify/night-compare.mjs --selftest-break relk
 # fold another run's frames into this one's report, with its provenance
 ... night-compare.mjs --out <scratch>/run1 --from <scratch>/run1 --merge <scratch>/run2 --refs off
 # change regions, then re-measure an old run without loading the app
@@ -994,6 +1054,25 @@ On its first run it found a frame bound **29 degrees** from its row
 and a pre-dawn Capitol frame with a **black sky** (median linear Y 0.0011, sRGB code 3)
 sitting on the **blue** row of two routes. 22 of the 46 photographs state no time at
 all, so half the corpus cannot be checked this way and stays a judgement by eye.
+
+**`--sun` is a gate from 2026-09-20; it used to print and exit 0.** One binding in the
+file is a deliberate, argued exception — `capitol/night`, 29.2 degrees off its own
+camera clock, kept because the frame's sky measures sRGB code 3 and the photographer's
+caption contradicts the clock. It printed under `BOUND TO A ROW ITS OWN CLOCK PUTS IT
+OUTSIDE OF` and exited 0, which is exactly what the next real regression would have
+done. The difference is DECLARED now: a route carries
+`refExceptions: { "<regime>": "<why>" }`, a declared gap prints **DEFENDED** and exits
+0, an undeclared one prints **UNEXPLAINED** and exits **1**, and an exception naming a
+regime the route does not bind is called out as stale. `refNote` cannot do this job —
+nearly every route has one, so every gap read as accepted. Watched failing both ways:
+with the exception removed, exit 1. What this gate does **not** cover, deliberately, is
+`THE WORD AND THE CLOCK DISAGREE` — eleven `sources.json` regime tags against their own
+clocks, mostly on photographs nothing is bound to. Those are printed, not gated.
+
+`sources.json` schema (all three folders, fixed 2026-09-20): one array, snake_case,
+`file`, `source_page`, `direct_image_url`, `author_credit`, `license`, `date`,
+`regime`, `processing_flags` (list), `evidence` (string). `downtown/` used camelCase
+and `westcampus-campus/` used `evidences` until then.
 
 `gpu-run.mjs` is in the session's lanes scratch folder, not the repo. It holds one
 of three machine-wide browser slots and passes the exit code through. Elsewhere,

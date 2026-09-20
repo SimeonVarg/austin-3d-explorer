@@ -39,6 +39,9 @@ Usage
 -----
   python scripts/verify/night-refmeasure.py                 # measure, print a table
   python scripts/verify/night-refmeasure.py --sun           # sun elevation vs tag vs binding
+                                                            # exit 0 every out-of-band binding is
+                                                            # declared in a route's refExceptions;
+                                                            # exit 1 one is not (see below)
   python scripts/verify/night-refmeasure.py --overlay DIR   # ALSO write <id>.jpg with the
                                                             # rectangles drawn, so the next
                                                             # rectangle is read off the frame
@@ -70,11 +73,25 @@ RATIOS = [("wall", "sky"), ("water", "sky"), ("wall", "ground")]
 
 # --sun flags a binding whose photograph's own clock falls OUTSIDE the BAND of the row
 # it sits on (BANDS below), not merely far from that row's nominal elevation: `night`
-# spans -90 to -19, so -31.6 deg on a -40 deg row is correct and -10.8 deg is not. It
-# is a reading aid, not a gate. Some gaps are deliberate -- capitol/night is bound
-# 29.2 deg off its own clock because its sky is black and its camera clock is wrong --
-# and the point of the flag is that a deliberate gap should LOOK deliberate, with the
-# refNote that accepts it printed underneath, instead of looking like every correct row.
+# spans -90 to -19, so -31.6 deg on a -40 deg row is correct and -10.8 deg is not.
+#
+# IT IS A GATE NOW (2026-09-20). It used to print the whole section and exit 0, so the
+# one defended exception in the file and the next real regression printed the same and
+# scored the same. The difference between them is not something a reader can infer, so
+# it is DECLARED: a route carries `refExceptions: { "<regime>": "<why>" }` in
+# night-routes.json naming the binding it accepts and the argument for it. A gap with
+# an exception prints as DEFENDED and costs nothing; a gap WITHOUT one prints as
+# UNEXPLAINED and exits 1.
+#
+# `refNote` used to stand in for this and could not: it is the route's general note,
+# most routes have one, and "this route has a note" is not "this note defends this
+# binding". Every gap looked defended because every gap had a note.
+#
+# What this gate does NOT cover, so nobody reads it as covering it: THE WORD AND THE
+# CLOCK DISAGREE, which is a sources.json `regime` tag against the same photograph's
+# clock. Eleven of those stand, most on photographs nothing is bound to, and several
+# are already corrected in prose in docs/night-reference-package.md. They are a
+# separate job and they are printed, not gated.
 
 
 # ── Sun elevation at Austin, from a photograph's own stated capture time ─────
@@ -172,15 +189,26 @@ def claimed_band(tag):
 def sun_report(root, routes_file):
     """Every photograph's stated time -> sun elevation, beside its word and its binding."""
     bound, notes = {}, {}                         # file -> [(route, regime, regimeSunElev)]
+    excs = {}                                     # route -> {regime: why this gap is accepted}
     try:
         cfg = json.load(open(routes_file, encoding="utf-8"))
         regs = cfg.get("regimes", {})
         for rt in cfg.get("routes", []):
+            if rt.get("refExceptions"):
+                excs[rt["id"]] = rt["refExceptions"]
             for g, f in (rt.get("refs") or {}).items():
                 bound.setdefault(f.lstrip("/"), []).append(
                     (rt["id"], g, (regs.get(g) or {}).get("sunElev")))
                 if rt.get("refNote"):
                     notes.setdefault(f.lstrip("/"), {})[rt["id"]] = rt["refNote"]
+        # An exception naming a regime this route does not bind is a stale exception,
+        # and a stale exception is how a real gap gets waved through later.
+        for rid, m in excs.items():
+            rt = next((x for x in cfg.get("routes", []) if x["id"] == rid), {})
+            for g in m:
+                if g not in (rt.get("refs") or {}):
+                    print("  (night-routes.json: %s.refExceptions names regime '%s', which that "
+                          "route does not bind. Remove it.)" % (rid, g))
     except Exception as e:
         print("  (could not read %s: %s)" % (routes_file, e))
     rows = []
@@ -204,6 +232,7 @@ def sun_report(root, routes_file):
                 gaps.append({"route": rt, "regime": g, "rowSunElev": ge, "band": BANDS[g],
                              "clockBand": band_of(elev),
                              "delta": round(abs(elev - ge), 1) if ge is not None else None,
+                             "exception": (excs.get(rt) or {}).get(g),
                              "refNote": (notes.get(key) or {}).get(rt)})
             rows.append({"file": key, "date": it.get("date"), "sunElev": elev,
                          "taggedRegime": it.get("regime"), "boundTo": bound.get(key, []),
@@ -333,14 +362,20 @@ def main():
                 r["date"] or "-", str(r["taggedRegime"])[:34], b))
             print("          %s" % r["file"])
             for g in r.get("sunGaps") or []:
-                if g["refNote"]:
-                    print("          the %s refNote is the argument for keeping it. Read it and"
-                          " decide: %s" % (g["route"],
-                          g["refNote"][:260] + ("..." if len(g["refNote"]) > 260 else "")))
+                if g["exception"]:
+                    print("          DEFENDED: %s.refExceptions.%s accepts this binding -- %s"
+                          % (g["route"], g["regime"], g["exception"]))
+                    if g["refNote"]:
+                        print("          (the %s refNote carries the long argument: %s)"
+                              % (g["route"],
+                                 g["refNote"][:220] + ("..." if len(g["refNote"]) > 220 else "")))
                 else:
-                    print("          NOT EXPLAINED: %s/%s is the %s band %s and this clock is %s."
-                          " The route has no refNote. Write one, or rebind it."
-                          % (g["route"], g["regime"], g["regime"], g["band"], g["clockBand"]))
+                    print("          UNEXPLAINED: %s/%s is the %s band %s and this clock is %s."
+                          " Add %s.refExceptions.%s in night-routes.json with the argument, or"
+                          " rebind it. A refNote is NOT enough: most routes have one, so every"
+                          " gap used to look defended."
+                          % (g["route"], g["regime"], g["regime"], g["band"], g["clockBand"],
+                             g["route"], g["regime"]))
         misbound, mistagged = [], []
         for r in rows:
             if r["sunElev"] is None:
@@ -352,11 +387,19 @@ def main():
             cb = claimed_band(r["taggedRegime"])
             if cb and cb != r["actualBand"]:
                 mistagged.append((r, cb))
+        unexplained = []
         if misbound:
             print("\nBOUND TO A ROW ITS OWN CLOCK PUTS IT OUTSIDE OF:")
             for r, rt, g in misbound:
-                print("  %+.1f deg (%s)  %s\n      -> %s/%s, which is the %s band %s"
-                      % (r["sunElev"], r["actualBand"], r["file"], rt, g, g, BANDS[g]))
+                why = next((x["exception"] for x in (r.get("sunGaps") or [])
+                            if x["route"] == rt and x["regime"] == g), None)
+                print("  %-11s %+.1f deg (%s)  %s\n      -> %s/%s, which is the %s band %s"
+                      % ("DEFENDED" if why else "UNEXPLAINED",
+                         r["sunElev"], r["actualBand"], r["file"], rt, g, g, BANDS[g]))
+                if why:
+                    print("      accepted by %s.refExceptions.%s: %s" % (rt, g, why))
+                else:
+                    unexplained.append((r["file"], rt, g))
         if mistagged:
             print("\nTHE WORD AND THE CLOCK DISAGREE (one of the two is wrong; say which):")
             for r, cb in mistagged:
@@ -368,7 +411,19 @@ def main():
         if args.json:
             json.dump(rows, open(args.json, "w", encoding="utf-8"), indent=1)
             print("\nwrote " + args.json)
-        return
+        # The gate. A DEFENDED gap costs nothing; an UNEXPLAINED one is the next real
+        # regression, and until 2026-09-20 the two printed the same and scored the
+        # same (exit 0). The WORD-AND-CLOCK list above is a sources.json tagging
+        # question, mostly on photographs nothing is bound to, and is NOT gated here.
+        if unexplained:
+            print("\nFAIL: %d binding(s) sit outside their row's sun-elevation band with no"
+                  " refExceptions entry in night-routes.json:" % len(unexplained))
+            for f, rt, g in unexplained:
+                print("  %s\n      -> %s/%s" % (f, rt, g))
+            return 1
+        print("PASS: every binding outside its row's band is declared in a route's"
+              " refExceptions.")
+        return 0
     rows, results, missing = [], [], []
     # Refuse to list the same picture twice. See DUP_CORR above.
     onDisk = []
@@ -449,4 +504,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)
