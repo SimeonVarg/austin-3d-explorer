@@ -372,37 +372,6 @@
       "kind": "flat",
       "field": "mech",
       "_src": "the mall's high-bay walls above the deck, grey in the nadir (S7); unphotographed from the ground"
-    },
-    "curtainFlank": {
-      "kind": "bays",
-      "bay": 30,
-      "field": "spandrel",
-      "window": {
-        "h": 1.45,
-        "sill": 1.15,
-        "offsets": [
-          [
-            -3.03,
-            1.6
-          ],
-          [
-            -0.83,
-            1.6
-          ],
-          [
-            0.83,
-            1.6
-          ],
-          [
-            3.03,
-            1.6
-          ]
-        ]
-      },
-      "glass": "glassTeal",
-      "frame": "spandrel",
-      "reveal": 0.05,
-      "_src": "2026-09-19: the flank rule. On every flank the photographs show the same four panes per storey, grouped 1 | 2 | 1: southwest-elevation__02 (both flanks of the face it looks at: pane, dark strip, a pair on a thin mullion, dark strip, pane) and north-corner__01 (the NW flank's vertical lines divide it about 1 : 2 : 1.1). Pane 1.6 m wide off southwest-elevation__02 (75 px against its 123 px / 2.63 m storey at 2x), 0.06 m mullion inside the pair, 0.6 m strip between groups; glass 1.45 m on a 1.15 m sill as the curtain skin (that photograph's profile: 32-35 px glass, 27-28 px spandrel per 61.5 px storey). Centred on the run: 7.66 m of the 8.1-9.4 m flanks. bay 30 = one bay per face, so the offsets are metres from the run's midpoint. The recessed middle runs and the jogs keep `curtain`."
     }
   },
   "blocks": [
@@ -833,12 +802,68 @@
           31.15
         ],
         [
+          52.58,
+          29.76
+        ],
+        [
+          50.97,
+          29.76
+        ],
+        [
+          49.36,
+          29.76
+        ],
+        [
+          49.36,
+          28.38
+        ],
+        [
+          47.74,
+          28.38
+        ],
+        [
+          47.74,
+          26.99
+        ],
+        [
+          46.13,
+          26.99
+        ],
+        [
           46.13,
           25.6
         ],
         [
           43.98,
           25.66
+        ],
+        [
+          42.16,
+          25.66
+        ],
+        [
+          42.16,
+          23.87
+        ],
+        [
+          40.33,
+          23.87
+        ],
+        [
+          40.33,
+          22.08
+        ],
+        [
+          38.5,
+          22.08
+        ],
+        [
+          38.5,
+          20.29
+        ],
+        [
+          36.68,
+          20.29
         ],
         [
           36.68,
@@ -849,8 +874,64 @@
           16.1
         ],
         [
+          35.48,
+          16.1
+        ],
+        [
+          35.48,
+          14.61
+        ],
+        [
+          33.82,
+          14.61
+        ],
+        [
+          33.82,
+          13.12
+        ],
+        [
+          32.16,
+          13.12
+        ],
+        [
+          32.16,
+          11.63
+        ],
+        [
+          30.5,
+          11.63
+        ],
+        [
           30.5,
           10.14
+        ],
+        [
+          29.01,
+          10.14
+        ],
+        [
+          29.01,
+          11.78
+        ],
+        [
+          29.01,
+          13.43
+        ],
+        [
+          27.52,
+          13.43
+        ],
+        [
+          27.52,
+          15.07
+        ],
+        [
+          26.03,
+          15.07
+        ],
+        [
+          26.03,
+          16.71
         ],
         [
           24.54,
@@ -861,6 +942,34 @@
           18.74
         ],
         [
+          24.45,
+          20.46
+        ],
+        [
+          22.79,
+          20.46
+        ],
+        [
+          22.79,
+          22.18
+        ],
+        [
+          21.13,
+          22.18
+        ],
+        [
+          21.13,
+          23.9
+        ],
+        [
+          19.48,
+          23.9
+        ],
+        [
+          19.48,
+          25.62
+        ],
+        [
           17.82,
           25.62
         ],
@@ -869,8 +978,56 @@
           25.79
         ],
         [
+          15.64,
+          27.35
+        ],
+        [
+          14.02,
+          27.35
+        ],
+        [
+          14.02,
+          28.91
+        ],
+        [
+          12.41,
+          28.91
+        ],
+        [
+          12.41,
+          30.47
+        ],
+        [
+          10.79,
+          30.47
+        ],
+        [
+          10.79,
+          32.03
+        ],
+        [
           9.17,
           32.03
+        ],
+        [
+          9.17,
+          33.95
+        ],
+        [
+          11.05,
+          33.95
+        ],
+        [
+          12.94,
+          33.95
+        ],
+        [
+          12.94,
+          35.88
+        ],
+        [
+          14.82,
+          35.88
         ],
         [
           14.82,
@@ -881,6 +1038,34 @@
           37.94
         ],
         [
+          19.32,
+          37.94
+        ],
+        [
+          19.32,
+          39.66
+        ],
+        [
+          21.07,
+          39.66
+        ],
+        [
+          21.07,
+          41.38
+        ],
+        [
+          22.82,
+          41.38
+        ],
+        [
+          22.82,
+          43.09
+        ],
+        [
+          24.57,
+          43.09
+        ],
+        [
           24.57,
           44.81
         ],
@@ -889,8 +1074,64 @@
           47.58
         ],
         [
+          26.07,
+          47.58
+        ],
+        [
+          26.07,
+          49.06
+        ],
+        [
+          27.58,
+          49.06
+        ],
+        [
+          27.58,
+          50.55
+        ],
+        [
+          29.09,
+          50.55
+        ],
+        [
+          29.09,
+          52.04
+        ],
+        [
+          30.6,
+          52.04
+        ],
+        [
           30.6,
           53.52
+        ],
+        [
+          32.12,
+          53.52
+        ],
+        [
+          32.12,
+          52.0
+        ],
+        [
+          32.12,
+          50.47
+        ],
+        [
+          33.64,
+          50.47
+        ],
+        [
+          33.64,
+          48.95
+        ],
+        [
+          35.17,
+          48.95
+        ],
+        [
+          35.17,
+          47.42
         ],
         [
           36.69,
@@ -901,12 +1142,68 @@
           44.99
         ],
         [
+          36.89,
+          43.22
+        ],
+        [
+          38.53,
+          43.22
+        ],
+        [
+          38.53,
+          41.45
+        ],
+        [
+          40.18,
+          41.45
+        ],
+        [
+          40.18,
+          39.67
+        ],
+        [
+          41.83,
+          39.67
+        ],
+        [
+          41.83,
+          37.9
+        ],
+        [
           43.47,
           37.9
         ],
         [
           46.42,
           38.23
+        ],
+        [
+          46.42,
+          36.46
+        ],
+        [
+          47.96,
+          36.46
+        ],
+        [
+          47.96,
+          34.69
+        ],
+        [
+          49.5,
+          34.69
+        ],
+        [
+          49.5,
+          32.92
+        ],
+        [
+          51.04,
+          32.92
+        ],
+        [
+          51.04,
+          31.15
         ]
       ],
       "z0": 15.8,
@@ -918,91 +1215,45 @@
           "skin": "curtain"
         }
       ],
-      "_faces_src": "every one of the 20 edges wears the curtain wall: S6 shows the same module and the same spandrel line turning every corner and running through the fold, and the tower stands free above the podium on all four sides. 2026-09-19: the eight flank runs (edges 0, 4, 5, 9, 10, 14, 15, 19) wear curtainFlank; the four recessed middle runs and the eight jogs keep curtain.",
+      "_faces_src": "every facet wears the curtain wall: S6 shows the same module and the same spandrel line turning every corner and running through the fold, and the tower stands free above the podium on all four sides. 2026-09-19: one band of `curtain` over the whole stepped ring. bay 1.79 m against a 1.38-2.97 m facet means Math.round(len/bay) = one pane per facet on 98 of the 102 (the four 1.38 m facets fall inside the tiler's 0.05 m end margin and go blank).",
       "roofTone": "roofGrey",
-      "_plan_checked_2026_09_19": "OSM way 516187626's jogged diamond checked against roof-aerial__01 (Esri z21, 0.0645 m/px): after a best-fit shift of 5.8 m west and 1.7 m south for the roof's lean (the imagery is not a true ortho), 0.33 deg and scale 0.995, the parapet's edge lies a median 0.06 m from this ring and 90% of the ring is within 0.3 m of it. A staircase of 1.5 m orthogonal steps on every diagonal run (tried on acer/match-dobie) fits worse - median 0.10 m, 77% within 0.3 m, and it needs a 3% scale to do that - and it breaks the flanks, which southwest-elevation__01/02 show as flat planes carrying pairs of wide panes. Traced perpendicular to the NW and NE edges, every run is face-parallel; the only orthogonal pieces are OSM's two ~2 m jogs per face.",
-      "faces": {
-        "0": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "4": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "5": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "9": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "10": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "14": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "15": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        },
-        "19": {
-          "bands": [
-            {
-              "z0": 15.8,
-              "z1": 80.22,
-              "skin": "curtainFlank"
-            }
-          ]
-        }
-      }
+      "_plan_src_2026_09_19": "2026-09-19 (second pass): OSM way 516187626's diamond with every diagonal run turned into a staircase of ~1.5 m orthogonal steps, outer corners left on OSM's line - 102 facets, 173.9 m perimeter against OSM's 128.8 m, facet length min 1.38 median 1.65 max 2.97 m. Straight off roof-aerial__01 (Esri z21, 0.0645 m/px): at 3x nearest-neighbour the parapet's treads measure 20-30 source px (1.3-1.9 m) and are plainly orthogonal, which is real geometry and not the 1-px staircase a raster puts on a diagonal line; the same stepping shows on all four edges and is what notes.md describes. The FIRST pass on acer/match-dobie rejected this on a best-fit distance (OSM median 0.06 m, staircase 0.10 m) - but the staircase's own deviation from the mean diagonal is only about 0.5 m, so at 0.0645 m/px that test could not separate the two hypotheses it was asked about, and the picture can. The facets face the street grid two ways per face, which is what gives the chevrons (notes.md: 'not painted on'). The WIP's ring was not a simple polygon: at each of the four corner tips it ran out to the tip and straight back along the same line (shapely: Self-intersection[51.04 31.15]), a zero-width sliver. Repaired here by turning the corner on the tip's own axis, so the tip keeps OSM's coordinate (bbox still 43.4 m across) and reads as a ~1.5 m square nib. MEASURED, the same image: an outer-edge trace of the parapet, fitted to a straight chord per face and with gross outliers dropped, leaves a residual of 0.56 m RMS on the NE face, 0.69 m on the SE and 1.24 m on the NW (the last is the noisiest trace). A straight ring cannot depart from the edge by that much AND lie a median 0.06 m from it with 90% inside 0.3 m, which is what the first pass reported - that trace was reading a smoothed edge. A 1.5 m staircase departs from its own chord by 0.53 m peak, 0.31 m RMS, so the real serration is at least this deep and probably deeper; the 1.5 m step is a lower bound on the serration, not a fitted period."
     },
     {
       "id": "crown",
-      "_src": "the parapet band 80.22 to 81.2 on the tower's own plan, red-brown (skins.crown). Its roof plant stops at 82.0, the snapshot's final_height.",
+      "_src": "the parapet band 80.22 to 81.2 on the tower's own stepped plan, red-brown (skins.crown). Its roof plant stops at 82.0, the snapshot's final_height.",
       "plan": [
         [
           52.58,
           31.15
+        ],
+        [
+          52.58,
+          29.76
+        ],
+        [
+          50.97,
+          29.76
+        ],
+        [
+          49.36,
+          29.76
+        ],
+        [
+          49.36,
+          28.38
+        ],
+        [
+          47.74,
+          28.38
+        ],
+        [
+          47.74,
+          26.99
+        ],
+        [
+          46.13,
+          26.99
         ],
         [
           46.13,
@@ -1013,6 +1264,34 @@
           25.66
         ],
         [
+          42.16,
+          25.66
+        ],
+        [
+          42.16,
+          23.87
+        ],
+        [
+          40.33,
+          23.87
+        ],
+        [
+          40.33,
+          22.08
+        ],
+        [
+          38.5,
+          22.08
+        ],
+        [
+          38.5,
+          20.29
+        ],
+        [
+          36.68,
+          20.29
+        ],
+        [
           36.68,
           18.5
         ],
@@ -1021,8 +1300,64 @@
           16.1
         ],
         [
+          35.48,
+          16.1
+        ],
+        [
+          35.48,
+          14.61
+        ],
+        [
+          33.82,
+          14.61
+        ],
+        [
+          33.82,
+          13.12
+        ],
+        [
+          32.16,
+          13.12
+        ],
+        [
+          32.16,
+          11.63
+        ],
+        [
+          30.5,
+          11.63
+        ],
+        [
           30.5,
           10.14
+        ],
+        [
+          29.01,
+          10.14
+        ],
+        [
+          29.01,
+          11.78
+        ],
+        [
+          29.01,
+          13.43
+        ],
+        [
+          27.52,
+          13.43
+        ],
+        [
+          27.52,
+          15.07
+        ],
+        [
+          26.03,
+          15.07
+        ],
+        [
+          26.03,
+          16.71
         ],
         [
           24.54,
@@ -1033,6 +1368,34 @@
           18.74
         ],
         [
+          24.45,
+          20.46
+        ],
+        [
+          22.79,
+          20.46
+        ],
+        [
+          22.79,
+          22.18
+        ],
+        [
+          21.13,
+          22.18
+        ],
+        [
+          21.13,
+          23.9
+        ],
+        [
+          19.48,
+          23.9
+        ],
+        [
+          19.48,
+          25.62
+        ],
+        [
           17.82,
           25.62
         ],
@@ -1041,8 +1404,56 @@
           25.79
         ],
         [
+          15.64,
+          27.35
+        ],
+        [
+          14.02,
+          27.35
+        ],
+        [
+          14.02,
+          28.91
+        ],
+        [
+          12.41,
+          28.91
+        ],
+        [
+          12.41,
+          30.47
+        ],
+        [
+          10.79,
+          30.47
+        ],
+        [
+          10.79,
+          32.03
+        ],
+        [
           9.17,
           32.03
+        ],
+        [
+          9.17,
+          33.95
+        ],
+        [
+          11.05,
+          33.95
+        ],
+        [
+          12.94,
+          33.95
+        ],
+        [
+          12.94,
+          35.88
+        ],
+        [
+          14.82,
+          35.88
         ],
         [
           14.82,
@@ -1053,6 +1464,34 @@
           37.94
         ],
         [
+          19.32,
+          37.94
+        ],
+        [
+          19.32,
+          39.66
+        ],
+        [
+          21.07,
+          39.66
+        ],
+        [
+          21.07,
+          41.38
+        ],
+        [
+          22.82,
+          41.38
+        ],
+        [
+          22.82,
+          43.09
+        ],
+        [
+          24.57,
+          43.09
+        ],
+        [
           24.57,
           44.81
         ],
@@ -1061,8 +1500,64 @@
           47.58
         ],
         [
+          26.07,
+          47.58
+        ],
+        [
+          26.07,
+          49.06
+        ],
+        [
+          27.58,
+          49.06
+        ],
+        [
+          27.58,
+          50.55
+        ],
+        [
+          29.09,
+          50.55
+        ],
+        [
+          29.09,
+          52.04
+        ],
+        [
+          30.6,
+          52.04
+        ],
+        [
           30.6,
           53.52
+        ],
+        [
+          32.12,
+          53.52
+        ],
+        [
+          32.12,
+          52.0
+        ],
+        [
+          32.12,
+          50.47
+        ],
+        [
+          33.64,
+          50.47
+        ],
+        [
+          33.64,
+          48.95
+        ],
+        [
+          35.17,
+          48.95
+        ],
+        [
+          35.17,
+          47.42
         ],
         [
           36.69,
@@ -1073,12 +1568,68 @@
           44.99
         ],
         [
+          36.89,
+          43.22
+        ],
+        [
+          38.53,
+          43.22
+        ],
+        [
+          38.53,
+          41.45
+        ],
+        [
+          40.18,
+          41.45
+        ],
+        [
+          40.18,
+          39.67
+        ],
+        [
+          41.83,
+          39.67
+        ],
+        [
+          41.83,
+          37.9
+        ],
+        [
           43.47,
           37.9
         ],
         [
           46.42,
           38.23
+        ],
+        [
+          46.42,
+          36.46
+        ],
+        [
+          47.96,
+          36.46
+        ],
+        [
+          47.96,
+          34.69
+        ],
+        [
+          49.5,
+          34.69
+        ],
+        [
+          49.5,
+          32.92
+        ],
+        [
+          51.04,
+          32.92
+        ],
+        [
+          51.04,
+          31.15
         ]
       ],
       "z0": 80.22,
@@ -1272,7 +1823,9 @@
     "DONE 2026-09-05: the five monitors are gable roof items now (pitch unmeasured, 40 degrees) (was: The mall's high-bay monitors are drawn as flat boxes; they are pitched ridges in S7.)",
     "Google Earth's mesh (S7) reads this tower about 8 m lower than 82.0 at what looked like a matched camera. It was NOT possible to settle that inside this pass: the app's own field of view is 58 deg against Google Earth's 35, so the two frames are only comparable after a scale about the principal point, and the rescale did not come out self-consistent against the pool as a check feature. What IS settled is that this file draws the height the app already carries — at the same pose, our mesh's top and `?apartments=0`'s prism top are the same line. If the 82.0 is wrong the fix belongs in scripts/hero_overrides.json, which this file does not own.",
     "The tenant planters on the terrace are six boxes on a 56 m run; S6 shows them at a closer spacing.",
-    "2026-09-19, photographs vs this file, not drawn: (1) the upper storeys' brown spandrel panels - in southwest-elevation__02 a single column of them on each flank and the central column of the middle run, not a random peppering; (2) small projecting folds about every 1.9 m along each face's recessed middle run (0.2-0.3 m bumps on the aerial's parapet trace) and a salient of about 1 m at its centre on the NE face; (3) the tower roof carries ONE small diamond penthouse at the centre in roof-aerial__01, not the 2 x 2 bulkheads drawn; (4) the slim roof mast."
+    "2026-09-19, photographs vs this file, not drawn: (1) the upper storeys' brown spandrel panels - in southwest-elevation__02 a single column of them on each flank and the central column of the middle run, not a random peppering; (2) small projecting folds about every 1.9 m along each face's recessed middle run (0.2-0.3 m bumps on the aerial's parapet trace) and a salient of about 1 m at its centre on the NE face; (3) the tower roof carries ONE small diamond penthouse at the centre in roof-aerial__01, not the 2 x 2 bulkheads drawn; (4) the slim roof mast.",
+    "2026-09-19, MEASURED BUT NOT DRAWN - the crown is stepped, and this file still draws it level. Skyline profile read off southwest-elevation__02 (parapet only: sky = b>r+25 and b>90, facade = 12 consecutive rows below brightness 150, which excludes the 2007 dish farm and the masts): the tower spans x 575-1310, and the outer ~190 px at the right end sit flat at y 143-149 while the near corner (x 750-770, the fold spine) sits at y 179. The near corner is the point perspective must make HIGHEST on a level parapet, and it is 35 px LOWER, so the outer shoulder is real: 35 px on a 61.5 px storey = about 1.5-1.7 m. north-corner__01 measures the same thing from the opposite side: tower x 177-363, the left outer run flat at y 45-48 against the middle of the silhouette at y 51-55, on an 18 px storey - 0.5 storey, about 1.3 m. The WIP's 4.4 m shoulder blocks, 3.6 m square at the four diamond corners and rising to 82.52, are the wrong size AND the wrong shape - the photograph's shoulder is low and wide, about a quarter of each face - and they broke the 82.0 final_height, so they are not drawn here. What a correct version needs: the parapet height as a function of position along each face (shoulder, step down, run of small peaks, taller peak at the centre), off southwest-elevation__02 and north-corner__01 together.",
+    "2026-09-19: the tower roof carries ONE small diamond penthouse at its centre in roof-aerial__01, not the 2 x 2 bulkheads drawn, and a slim mast. The 2007 dish farm in southwest-elevation__02 is gone by 2019; model the 2019 roof."
   ],
-  "_evidence_2026_09_19": "docs/shots/dobie-twenty21-wip-eval.jpg: per reference photograph (southwest-elevation__02, north-corner__01, oblique-above-north__01) the photo beside three renders from one camera - main, the WIP acer/match-dobie 142c642 (staircase plan, storefront ribbon bands, corner shoulders), and this file - plus the roof from 260 m."
+  "_evidence_2026_09_19": "docs/shots/dobie-twenty21-wip-eval.jpg: the first pass's sheet (photo | main | WIP | flank-rule version). docs/shots/dobie-twenty21-stepped-plan.jpg: this file - per reference photograph, the photo beside main and beside the stepped plan, plus the roof from 260 m."
 }
