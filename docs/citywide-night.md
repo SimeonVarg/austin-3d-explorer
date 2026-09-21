@@ -143,3 +143,28 @@ Verification tooling is excluded from the data workflow's push trigger so a
 browser-check edit cannot create a new city snapshot behind a visual comparison.
 Pipeline script edits still trigger a bake; workflow-only edits use the existing
 manual dispatch when a rebuild is wanted.
+
+## Matched comparisons
+
+Left is main `2ad3307`; right is the completed lighting code `282e9c2`.
+Both use the same camera, 1440 x 900 viewport and normal balanced preset,
+including automatic exposure. These are illustrative public views, not calibrated
+matches to private photographs. The [capture provenance](verification/city-night-comparisons.json)
+records runtime fingerprints, camera checks, exposure, loaded geometry and source
+frame hashes. All eight frames of the final twilight/night capture passed camera,
+loaded-source, nonblank and settling checks with no browser errors. A larger
+24-view sweep timed out and its partial frames are not used in these comparisons.
+
+![West Campus at twilight, before and after](shots/city-night-west-campus.jpg)
+
+![Waterloo at night, before and after](shots/city-night-waterloo.jpg)
+
+![Downtown at night, before and after](shots/city-night-downtown.jpg)
+
+![Rio Grande at night, before and after](shots/city-night-street.jpg)
+
+The downtown image also exposes the next limitation: repeated distant facade
+patterns and approximate building silhouettes. Lighting does not establish
+architectural accuracy; the queued reference pass owns that work. The final
+`night-lights.mjs` run passed all 12 state assertions, with 5,026 generated lights,
+all three tiers present and no point-cap trimming.

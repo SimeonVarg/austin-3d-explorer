@@ -1,0 +1,426 @@
+{
+  "baselineCommit": "2ad3307",
+  "currentCodeCommit": "282e9c2",
+  "baselineBuild": {
+    "sha1": "334232b9b581",
+    "scripts": 42
+  },
+  "currentBuild": {
+    "sha1": "cef3fa0aa47a",
+    "scripts": 43
+  },
+  "graphics": {
+    "preset": "balanced",
+    "bloom": 0.4,
+    "godRays": 0.5,
+    "autoExposure": true,
+    "renderScale": 1,
+    "filmic": 0.65,
+    "exposure": 1.03,
+    "stars": 1
+  },
+  "viewport": [
+    1440,
+    900
+  ],
+  "gl": "hardware",
+  "note": "Original screenshots from separate retained runs, with identical cameras and balanced graphics settings, including automatic exposure. Composites are uniformly resized and labelled without colour edits. The interrupted 24-view sweep is not used for these comparisons. Baseline metadata includes the full earlier A/B run; only its clean-main A frames are used here.",
+  "comparisons": [
+    {
+      "image": "city-night-west-campus.jpg",
+      "route": "wc-elevated",
+      "pose": "over-drag-wnw",
+      "regime": "twilight",
+      "before": {
+        "file": "frames/A-wc-elevated-over-drag-wnw-twilight.jpg",
+        "p": 0.69,
+        "camera": {
+          "want": {
+            "pitch": 84.72,
+            "zoom": 15.944,
+            "eyeAlt": 80
+          },
+          "got": {
+            "pitch": 84.72,
+            "bearing": -65.91,
+            "zoom": 15.944,
+            "eyeAlt": 79.91
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 1.2,
+          "luma": 0.23130625653594797
+        },
+        "frame": {
+          "bytes": 248083,
+          "sha1": "87d71849a648"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      },
+      "after": {
+        "file": "frames/A-wc-elevated-over-drag-wnw-twilight.jpg",
+        "p": 0.69,
+        "camera": {
+          "want": {
+            "pitch": 84.72,
+            "zoom": 15.944,
+            "eyeAlt": 80
+          },
+          "got": {
+            "pitch": 84.72,
+            "bearing": -65.91,
+            "zoom": 15.944,
+            "eyeAlt": 79.91
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 1.19439425116446,
+          "luma": 0.16230475911242384
+        },
+        "frame": {
+          "bytes": 227060,
+          "sha1": "844245407d42"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      }
+    },
+    {
+      "image": "city-night-waterloo.jpg",
+      "route": "waterloo-check",
+      "pose": "south-east",
+      "regime": "night",
+      "before": {
+        "file": "frames/A-waterloo-check-south-east-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 82.01,
+            "zoom": 16.723,
+            "eyeAlt": 70.5
+          },
+          "got": {
+            "pitch": 82.01,
+            "bearing": -30.38,
+            "zoom": 16.723,
+            "eyeAlt": 70.42
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 1,
+          "luma": 0.14173540277777744
+        },
+        "frame": {
+          "bytes": 192657,
+          "sha1": "1e331538eaf5"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      },
+      "after": {
+        "file": "frames/A-waterloo-check-south-east-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 82.01,
+            "zoom": 16.723,
+            "eyeAlt": 70.5
+          },
+          "got": {
+            "pitch": 82.01,
+            "bearing": -30.38,
+            "zoom": 16.723,
+            "eyeAlt": 70.42
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 0.9011709239426549,
+          "luma": 0.1843028517631284
+        },
+        "frame": {
+          "bytes": 232253,
+          "sha1": "647ef93cc91a"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      }
+    },
+    {
+      "image": "city-night-downtown.jpg",
+      "route": "skyline-south-shore",
+      "pose": "shore-10m",
+      "regime": "night",
+      "before": {
+        "file": "frames/A-skyline-south-shore-shore-10m-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 88,
+            "zoom": 17.547,
+            "eyeAlt": 10
+          },
+          "got": {
+            "pitch": 88,
+            "bearing": 21.32,
+            "zoom": 17.547,
+            "eyeAlt": 9.99
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 1.2,
+          "luma": 0.07781968627451004
+        },
+        "frame": {
+          "bytes": 124499,
+          "sha1": "5fb8bb577644"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      },
+      "after": {
+        "file": "frames/A-skyline-south-shore-shore-10m-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 88,
+            "zoom": 17.547,
+            "eyeAlt": 10
+          },
+          "got": {
+            "pitch": 88,
+            "bearing": 21.32,
+            "zoom": 17.547,
+            "eyeAlt": 9.99
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 1.1343434978268567,
+          "luma": 0.09644518841046487
+        },
+        "frame": {
+          "bytes": 140159,
+          "sha1": "72a8255550c1"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      }
+    },
+    {
+      "image": "city-night-street.jpg",
+      "route": "wc-street",
+      "pose": "rio-grande-23rd",
+      "regime": "night",
+      "before": {
+        "file": "frames/A-wc-street-rio-grande-23rd-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 88,
+            "zoom": 20.103,
+            "eyeAlt": 1.7
+          },
+          "got": {
+            "pitch": 88,
+            "bearing": 3.95,
+            "zoom": 20.103,
+            "eyeAlt": 1.7
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 0.85,
+          "luma": 0.3846075612745104
+        },
+        "frame": {
+          "bytes": 81116,
+          "sha1": "ad56dabb378c"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      },
+      "after": {
+        "file": "frames/A-wc-street-rio-grande-23rd-night.jpg",
+        "p": 1,
+        "camera": {
+          "want": {
+            "pitch": 88,
+            "zoom": 20.103,
+            "eyeAlt": 1.7
+          },
+          "got": {
+            "pitch": 88,
+            "bearing": 3.95,
+            "zoom": 20.103,
+            "eyeAlt": 1.7
+          },
+          "ok": true,
+          "off": []
+        },
+        "ae": {
+          "gain": 0.861055282837899,
+          "luma": 0.19659531050586088
+        },
+        "frame": {
+          "bytes": 92693,
+          "sha1": "36b6ccbd6408"
+        },
+        "tilesOk": true,
+        "settle": {
+          "pctOver": 0,
+          "retries": 0,
+          "settled": true
+        }
+      }
+    }
+  ],
+  "baselineCapture": {
+    "when": "2026-09-21T07:11:21.909Z",
+    "exit": 0,
+    "verdict": {
+      "uninterpretable": [],
+      "unsettled": [],
+      "abDiff": {
+        "frames": 18,
+        "pctOverMin": 3.433,
+        "pctOverMedian": 52.775,
+        "pctOverMax": 79.296,
+        "byteIdenticalPairs": 0,
+        "meanAbsZeroPairs": 0
+      }
+    },
+    "side": {
+      "key": "A",
+      "site": "http://127.0.0.1:8462",
+      "query": "&preset=balanced&labels=0",
+      "label": "Main before night pass",
+      "pageErrors": [],
+      "warnings": [],
+      "build": {
+        "sha1": "334232b9b581",
+        "scripts": 42
+      },
+      "url": "http://127.0.0.1:8462/index.html?intro=0&drift=0&clip=1&preset=balanced&labels=0",
+      "veil": "lifted",
+      "veilMs": 36709,
+      "intro": {
+        "reason": "ceiling",
+        "waitedMs": 29250,
+        "modelFallback": null,
+        "missingAtLift": []
+      },
+      "authoredReloads": 0,
+      "readyMs": 36813,
+      "apartments": {
+        "group": true,
+        "buildings": 196,
+        "namesUnique": 196,
+        "catalog": 196,
+        "done": true,
+        "triangles": 2621200,
+        "slopesOn": true
+      },
+      "gfx": {
+        "preset": "balanced",
+        "bloom": 0.4,
+        "godRays": 0.5,
+        "autoExposure": true,
+        "renderScale": 1,
+        "filmic": 0.65,
+        "exposure": 1.03,
+        "stars": 1
+      }
+    }
+  },
+  "currentCapture": {
+    "when": "2026-09-21T16:45:41.018Z",
+    "exit": 0,
+    "verdict": {
+      "uninterpretable": [],
+      "unsettled": []
+    },
+    "side": {
+      "key": "A",
+      "site": "http://127.0.0.1:8461",
+      "query": "&preset=balanced&labels=0",
+      "label": "Night lighting",
+      "pageErrors": [],
+      "warnings": [],
+      "build": {
+        "sha1": "cef3fa0aa47a",
+        "scripts": 43
+      },
+      "url": "http://127.0.0.1:8461/index.html?intro=0&drift=0&clip=1&preset=balanced&labels=0",
+      "veil": "lifted",
+      "veilMs": 50179,
+      "intro": {
+        "reason": "ceiling",
+        "waitedMs": 43740,
+        "modelFallback": null,
+        "missingAtLift": []
+      },
+      "authoredReloads": 0,
+      "readyMs": 50206,
+      "apartments": {
+        "group": true,
+        "buildings": 196,
+        "namesUnique": 196,
+        "catalog": 196,
+        "done": true,
+        "triangles": 2621216,
+        "slopesOn": true
+      },
+      "gfx": {
+        "preset": "balanced",
+        "bloom": 0.4,
+        "godRays": 0.5,
+        "autoExposure": true,
+        "renderScale": 1,
+        "filmic": 0.65,
+        "exposure": 1.03,
+        "stars": 1
+      }
+    }
+  }
+}
