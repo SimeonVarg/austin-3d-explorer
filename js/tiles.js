@@ -77,6 +77,61 @@
     }
   }
 
+  // MapLibre repeats its variable-zoom calculation for the same tile distance
+  // across dozens of sources. Cache exact inputs, never rounded camera values
+  // or tile IDs: this saves trig/log work without changing tile selection.
+  const TILE_LOD_CACHE = { on: true, maxDistances: 4096, maxZooms: 8,
+    stats: { calls: 0, hits: 0, sources: 0 } };
+  window.TILE_LOD_CACHE = TILE_LOD_CACHE;
+  function memoTileZoom(original, tune = TILE_LOD_CACHE) {
+    let lastG, lastV, lastFov;
+    let tables = new Map();
+    return function (zoom, distance, g, v, fov) {
+      tune.stats.calls++;
+      if (!tune.on) return original(zoom, distance, g, v, fov);
+      if (g !== lastG || v !== lastV || fov !== lastFov) {
+        tables.clear(); lastG = g; lastV = v; lastFov = fov;
+      }
+      let table = tables.get(zoom);
+      if (!table) {
+        if (tables.size >= tune.maxZooms) tables.clear();
+        table = new Map(); tables.set(zoom, table);
+      }
+      if (table.has(distance)) { tune.stats.hits++; return table.get(distance); }
+      const result = original(zoom, distance, g, v, fov);
+      if (table.size >= tune.maxDistances) table.clear();
+      table.set(distance, result);
+      return result;
+    };
+  }
+  window.initTileLodCache = function initTileLodCache(map) {
+    if (map.__tileLodCache || !TILE_LOD_CACHE.on) return;
+    // The public API supplies the exact default function, not our own copy of
+    // its math. Guard the version whose defaults and source contract we checked.
+    if (maplibregl.version !== '5.24.0' || !map.setSourceTileLodParams) return;
+    map.__tileLodCache = true;
+    const seen = new WeakSet();
+    let shared;
+    function attach(id) {
+      const source = map.getSource(id);
+      if (!source || seen.has(source)) return;
+      seen.add(source);
+      if (source.calculateTileZoom) return; // preserve deliberate custom LOD
+      if (!shared) {
+        // MapLibre 5.24.0's defaults: Te(9.314, 3). This sets the same function
+        // through the supported setter so later library changes fail closed.
+        map.setSourceTileLodParams(9.314, 3, id);
+        shared = memoTileZoom(source.calculateTileZoom);
+      }
+      source.calculateTileZoom = shared;
+      TILE_LOD_CACHE.stats.sources++;
+    }
+    for (const id of Object.keys(map.getStyle().sources)) attach(id);
+    const onData = e => { if (e.sourceId) attach(e.sourceId); };
+    map.on('sourcedata', onData);
+    map.once('remove', () => map.off('sourcedata', onData));
+  };
+
   // Taste/behaviour block — one edit to turn the whole thing off.
   const TILES = {
     // Master switch. `?tiles=0` forces it off for an A/B without editing code.

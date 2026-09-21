@@ -1401,8 +1401,8 @@
    * carry their own setting; stadium/deck/DKR remain at 1.
    *
    * `st`, `dk` and the `s?` DKR tiles are drawn by their own routines and are
-   * looked up here too, so they resolve through SPECS.mh's mul of 1 rather than
-   * needing a special case — but the lookup is by FAMILY, not by spec, because
+   * looked up here too; without a window-grid spec they retain a multiplier
+   * of 1. The lookup is by FAMILY, not by the fallback spec, because
    * drawTile branches to those routines before it ever asks for a grid.
    */
   function mulOf(fam) {
@@ -1949,8 +1949,8 @@
 
   /** Draw one (family, bucket) tile for time-of-day p into a canvas ctx. */
   function drawTile(ctx, fam, bucketIdx, p) {
-    // Drawing units across one repeat. TILE for every template, TILE*mul for a
-    // measured building — see the MEASURED_MUL block. Every px constant in this
+    // Drawing units across one repeat. Window templates and measured families
+    // both expand by their multiplier. Every px constant in this
     // function keeps its meaning because a drawing unit is the same number of
     // metres at every mul; only how many of them fit changes.
     const T = tileUnitsOf(fam);
@@ -2210,8 +2210,8 @@
     }
     _canvas = c.el; _ctx = c.ctx;
     _mottle = null;
-    // Everything below draws in T-unit space (64 for a template, 64*mul for a
-    // measured building); the transform puts it on RESF texels at the SAME
+    // Everything below draws in T-unit space (64*mul drawing units);
+    // the transform puts it on RESF texels at the SAME
     // texels-per-unit either way. Every rect in this file is on integer
     // coordinates, so at an integer SCALE they stay pixel-aligned and nothing
     // gains an AA fringe.

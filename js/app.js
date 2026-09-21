@@ -489,6 +489,7 @@ window.CityLighting.install(map);
       // logs "image not found" and paints the walls transparent.
       step('facades',  () => initFacades(map, p));
       step('buildings',() => addBuildingLayers(scene));
+      step('tile-lod', () => window.initTileLodCache?.(map));
       // After the buildings exist (initGround inserts itself UNDER them) and
       // before shadows, so the swept shadows land on the real surfaces.
       step('ground',   () => { if (typeof initGround === 'function') initGround(map); });
