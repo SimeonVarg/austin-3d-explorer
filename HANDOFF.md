@@ -1,5 +1,22 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Union daylight motion (`codex/window-renderer-attribution`, PR #280)
+
+Matched the new narrow-angle daytime reference and isolated the authored model.
+Four-sample edge smoothing reduces registered temporal variation about 68% on
+Union's wide wall and 62% on its narrow wall, without a consistent timing penalty
+in four interleaved day/night runs at the tested small desktop viewport. The
+final application's saved-settings migration reproduces the experiment.
+[Motion evidence and limits](docs/union-window-motion.md).
+
+The default is bounded to 600,000 desktop framebuffer pixels; preserve custom
+choices and previous phone/large-framebuffer defaults. Existing inherited presets
+adopt it on reload. Narrow-wall shimmer and remaining idle pauses are still open;
+this is a partial improvement, not a declaration that motion is solved. Downtown
+remains queued afterward. Primary checkout and parked implementation files were
+untouched. Verification browsers are closed at the end of the pass.
+
+
 ## Sep 21 2026 - Motion investigation (`codex/window-motion-stability`)
 
 Confirmed PR #279's four changed runtime files on production. Tested and rejected
