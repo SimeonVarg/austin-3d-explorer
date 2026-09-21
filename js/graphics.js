@@ -338,19 +338,28 @@
   //
   // The slider stays in SCHEMA and the whole implementation stays. Turning it
   // back on is one value here.
+  // Union's thin facade details alias during rotation without coverage samples.
+  // Verified on the 732x672 desktop framebuffer; retain a bounded default rather
+  // than extending that timing result to large displays or the phone profile.
+  const EDGE_SMOOTHING = { maxDefaultPixels: 600000 };
+  function defaultMSAA(scale) {
+    const ratio=(window.devicePixelRatio||1)*scale;
+    const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
+    return !window.LITE_PROFILE?.on && pixels>0 && pixels<=EDGE_SMOOTHING.maxDefaultPixels;
+  }
   const PRESETS = {
     performance: {
-      renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
+      renderScale: 0.75, msaa: defaultMSAA(0.75), bloom: 0, godRays: 0, flare: 0, dof: 0,
       ...GRADE, autoExposure: false, grain: 0, renderDistance: 350,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
-      renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
+      renderScale: 1.0, msaa: defaultMSAA(1.0), bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
       ...GRADE, autoExposure: true, grain: 0, renderDistance: 700,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
     cinematic: {
-      renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0,
+      renderScale: 1.0, msaa: defaultMSAA(1.0), bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0,
       ...GRADE, autoExposure: true, grain: 0, renderDistance: 1100,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
@@ -387,7 +396,7 @@
   // re-run the probe and can drop a good machine to `performance`.
   //
   //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
-  const SETTINGS_REV = 2;
+  const SETTINGS_REV = 3;
   const REV_RESET = { 2: ['dof'] };
 
   // ── `preset` is the preset the settings came FROM; `custom` says they moved ──
@@ -430,6 +439,13 @@
       }
     }
     GFX.rev = SETTINGS_REV;
+    // Custom settings may contain a deliberate Smooth edges override. Leave
+    // those alone. Inherited preset defaults follow the current viewport budget
+    // on every boot, including a later reload on a larger display.
+    if (!GFX.custom) {
+      const msaa=GFX.preset==='ultra'||defaultMSAA(GFX.renderScale);
+      if(GFX.msaa!==msaa){GFX.msaa=msaa;migrated=true;}
+    }
   }
 
   // ?preset=cinematic|balanced|performance|ultra — set the look from the URL
