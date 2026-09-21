@@ -196,3 +196,13 @@ owner's local exterior references to improve night colour and building accuracy,
 with matched before/after views. Verify public building data before changing
 geometry. Reference links, photographs and private camera details stay local.
 This is queued after the current shared lighting pass; see `QUEUE.md`.
+
+## Window stability and idle motion - September 21, 2026
+
+The user reports middle-distance window flicker, interference patterns on walls
+at grazing angles, and roughly once-per-second pauses during idle rotation.
+Prioritize these shared rendering defects before the queued downtown geometry
+pass. Keep building-specific facade designs while improving consistency of
+quality. Verify motion in the actual city at the affected distances and angles;
+a clean still image is insufficient evidence that flicker is fixed.
+
