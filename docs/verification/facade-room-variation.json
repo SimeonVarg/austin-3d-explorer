@@ -1,0 +1,465 @@
+{
+  "settings": {
+    "gl": "hardware",
+    "cpuThrottle": 1,
+    "cpuProfiler": false,
+    "viewport": [
+      651,
+      598
+    ],
+    "dpr": 1.5,
+    "preset": "performance",
+    "renderScale": 0.75,
+    "labels": true,
+    "rotationSeconds": 12,
+    "interleavedRepetitions": 3
+  },
+  "filterChecks": {
+    "changedDetected": true,
+    "changedRepaired": true,
+    "lateDetected": true,
+    "lateRepaired": true
+  },
+  "lod": {
+    "compared": 2000,
+    "stats": {
+      "calls": 83554,
+      "hits": 81537,
+      "sources": 34
+    },
+    "buildings": 196,
+    "done": true,
+    "canvas": [
+      732,
+      672
+    ],
+    "preset": "performance"
+  },
+  "tileKeysEqual": true,
+  "errors": [],
+  "runs": [
+    {
+      "mode": "uncached",
+      "frames": 248,
+      "medianMs": 36,
+      "p95Ms": 108.19999999998254,
+      "over100ms": 23,
+      "longTasks": 90,
+      "lod": {
+        "calls": 214354,
+        "hits": 0,
+        "sources": 34
+      }
+    },
+    {
+      "mode": "cached",
+      "frames": 297,
+      "medianMs": 35.90000000002328,
+      "p95Ms": 90,
+      "over100ms": 4,
+      "longTasks": 97,
+      "lod": {
+        "calls": 255533,
+        "hits": 251215,
+        "sources": 34
+      }
+    },
+    {
+      "mode": "uncached",
+      "frames": 271,
+      "medianMs": 36,
+      "p95Ms": 92.40000000002328,
+      "over100ms": 12,
+      "longTasks": 101,
+      "lod": {
+        "calls": 232716,
+        "hits": 0,
+        "sources": 34
+      }
+    },
+    {
+      "mode": "cached",
+      "frames": 247,
+      "medianMs": 53.90000000002328,
+      "p95Ms": 90.79999999998836,
+      "over100ms": 0,
+      "longTasks": 122,
+      "lod": {
+        "calls": 215542,
+        "hits": 211859,
+        "sources": 34
+      }
+    },
+    {
+      "mode": "uncached",
+      "frames": 152,
+      "medianMs": 74,
+      "p95Ms": 108.90000000002328,
+      "over100ms": 15,
+      "longTasks": 142,
+      "lod": {
+        "calls": 133880,
+        "hits": 0,
+        "sources": 34
+      }
+    },
+    {
+      "mode": "cached",
+      "frames": 209,
+      "medianMs": 55,
+      "p95Ms": 90.20000000001164,
+      "over100ms": 3,
+      "longTasks": 123,
+      "lod": {
+        "calls": 184691,
+        "hits": 181421,
+        "sources": 34
+      }
+    }
+  ],
+  "visualSettings": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "dpr": 1,
+    "preset": "balanced",
+    "secondScreenshots": true,
+    "autoExposure": true
+  },
+  "visual": {
+    "variants": [
+      {
+        "variant": "before",
+        "loaded": {
+          "buildings": 196,
+          "done": true,
+          "gl": 16384
+        },
+        "shots": [
+          {
+            "name": "aerospace-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.73755,
+                  "lat": 30.29112
+                },
+                "zoom": 18.2,
+                "pitch": 62,
+                "bearing": 15
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 3,
+                "cols": 2,
+                "w": 20,
+                "h": 17,
+                "mul": 1,
+                "tileUnits": 64,
+                "want": 0.498046875,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 2.7486572265625,
+                "bayDrawnM": 4.12298583984375,
+                "repeatM": 8.2459716796875,
+                "zoom": 18
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 10675908
+            },
+            "motion": {
+              "inBox": 15456,
+              "crawling": 561,
+              "crawlPct": 3.629658385093168,
+              "movedPct": 68.41356107660455,
+              "flipsPerPixel": 0.38218167701863354,
+              "clusters": []
+            }
+          },
+          {
+            "name": "aerospace-day",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.73755,
+                  "lat": 30.29112
+                },
+                "zoom": 18.2,
+                "pitch": 62,
+                "bearing": 15
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 3,
+                "cols": 2,
+                "w": 20,
+                "h": 17,
+                "mul": 1,
+                "tileUnits": 64,
+                "want": 0.498046875,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 2.7486572265625,
+                "bayDrawnM": 4.12298583984375,
+                "repeatM": 8.2459716796875,
+                "zoom": 18
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 10675908
+            }
+          },
+          {
+            "name": "campus-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.7395,
+                  "lat": 30.286
+                },
+                "zoom": 16,
+                "pitch": 68,
+                "bearing": -160
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 10,
+                "cols": 7,
+                "w": 6,
+                "h": 5,
+                "mul": 1,
+                "tileUnits": 64,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 32.98388671875,
+                "zoom": 16
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 10675908
+            }
+          },
+          {
+            "name": "downtown-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.743,
+                  "lat": 30.268
+                },
+                "zoom": 15.8,
+                "pitch": 65,
+                "bearing": 170.00000000000003
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 10,
+                "cols": 7,
+                "w": 6,
+                "h": 5,
+                "mul": 1,
+                "tileUnits": 64,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 32.98388671875,
+                "zoom": 16
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 10675908
+            }
+          }
+        ]
+      },
+      {
+        "variant": "after",
+        "loaded": {
+          "buildings": 196,
+          "done": true,
+          "gl": 16384
+        },
+        "shots": [
+          {
+            "name": "aerospace-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.73755,
+                  "lat": 30.29112
+                },
+                "zoom": 18.2,
+                "pitch": 62,
+                "bearing": 15
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 10,
+                "cols": 7,
+                "w": 24,
+                "h": 20,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 32.98388671875,
+                "zoom": 18
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 43853508
+            },
+            "motion": {
+              "inBox": 15456,
+              "crawling": 67,
+              "crawlPct": 0.4334886128364389,
+              "movedPct": 62.04710144927537,
+              "flipsPerPixel": 0.12383540372670808,
+              "clusters": []
+            }
+          },
+          {
+            "name": "aerospace-day",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.73755,
+                  "lat": 30.29112
+                },
+                "zoom": 18.2,
+                "pitch": 62,
+                "bearing": 15
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 10,
+                "cols": 7,
+                "w": 24,
+                "h": 20,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 32.98388671875,
+                "zoom": 18
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 43853508
+            }
+          },
+          {
+            "name": "campus-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.7395,
+                  "lat": 30.286
+                },
+                "zoom": 16,
+                "pitch": 68,
+                "bearing": -160
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 40,
+                "cols": 28,
+                "w": 6,
+                "h": 5,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 131.935546875,
+                "zoom": 16
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 43853508
+            }
+          },
+          {
+            "name": "downtown-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.743,
+                  "lat": 30.268
+                },
+                "zoom": 15.8,
+                "pitch": 65,
+                "bearing": 170.00000000000003
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 40,
+                "cols": 28,
+                "w": 6,
+                "h": 5,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 131.935546875,
+                "zoom": 16
+              },
+              "audit": true,
+              "images": 708,
+              "atlasBytes": 43853508
+            }
+          }
+        ]
+      }
+    ],
+    "checks": [],
+    "errors": []
+  },
+  "limitations": [
+    "Distant and oblique flicker not resolved.",
+    "Remaining idle pauses and physical-phone memory need follow-up.",
+    "Timing compares tile cache on/off with other current fixes enabled."
+  ]
+}
