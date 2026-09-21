@@ -1,0 +1,351 @@
+{
+  "date": "2026-09-21",
+  "base": "4c5ee8c650b247e6f36a843165cf5d025ba70c68",
+  "settings": {
+    "viewport": [
+      651,
+      598
+    ],
+    "dpr": 1.5,
+    "renderScale": 0.75,
+    "preset": "performance",
+    "gl": "hardware",
+    "cpuThrottle": 1,
+    "cpuSampling": false,
+    "durationSeconds": 12,
+    "interleavedReps": 3
+  },
+  "views": [
+    {
+      "name": "day",
+      "p": 0.25,
+      "equal": true,
+      "buildings": 196,
+      "tiles": true,
+      "errors": [],
+      "glError": 0
+    },
+    {
+      "name": "sunset",
+      "p": 0.5,
+      "equal": true,
+      "buildings": 196,
+      "tiles": true,
+      "errors": [],
+      "glError": 0
+    },
+    {
+      "name": "night",
+      "p": 0.71,
+      "equal": true,
+      "buildings": 196,
+      "tiles": true,
+      "errors": [],
+      "glError": 0
+    }
+  ],
+  "errors": [],
+  "runs": [
+    {
+      "mode": "uncached",
+      "frames": 645,
+      "medianMs": 17.79999999998836,
+      "p95Ms": 18.60000000000582,
+      "over100ms": 0,
+      "cpu": {
+        "task": 11.079398999999999,
+        "script": 10.738299
+      },
+      "textureReads": 410448
+    },
+    {
+      "mode": "cached",
+      "frames": 668,
+      "medianMs": 17.70000000001164,
+      "p95Ms": 18.300000000017462,
+      "over100ms": 0,
+      "cpu": {
+        "task": 11.012068000000001,
+        "script": 10.681085999999999
+      },
+      "textureReads": 0
+    },
+    {
+      "mode": "uncached",
+      "frames": 671,
+      "medianMs": 17.89999999999418,
+      "p95Ms": 18.29999999998836,
+      "over100ms": 0,
+      "cpu": {
+        "task": 10.962408,
+        "script": 10.628133999999996
+      },
+      "textureReads": 437085
+    },
+    {
+      "mode": "cached",
+      "frames": 673,
+      "medianMs": 17.89999999999418,
+      "p95Ms": 18.29999999998836,
+      "over100ms": 0,
+      "cpu": {
+        "task": 10.944278999999995,
+        "script": 10.605335000000004
+      },
+      "textureReads": 0
+    },
+    {
+      "mode": "uncached",
+      "frames": 673,
+      "medianMs": 17.79999999998836,
+      "p95Ms": 18.300000000017462,
+      "over100ms": 0,
+      "cpu": {
+        "task": 10.919676000000003,
+        "script": 10.589858
+      },
+      "textureReads": 439854
+    },
+    {
+      "mode": "cached",
+      "frames": 670,
+      "medianMs": 17.70000000001164,
+      "p95Ms": 18.300000000017462,
+      "over100ms": 0,
+      "cpu": {
+        "task": 10.775013999999999,
+        "script": 10.423000999999992
+      },
+      "textureReads": 0
+    }
+  ],
+  "cpuReductionPercent": 1.324782896488905,
+  "acceptanceThresholdPercent": 3,
+  "decision": "Rejected: less than 3 percent CPU reduction and no meaningful frame-time improvement.",
+  "windowCoverage": {
+    "decision": "Rejected: no reduction in the existing temporal crawl measure at either pose.",
+    "variants": [
+      {
+        "variant": "filter-off",
+        "loaded": {
+          "buildings": 196,
+          "done": true,
+          "gl": 16384,
+          "filter": false,
+          "tagged": 363808
+        },
+        "shots": [
+          {
+            "name": "west-campus-mid-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.746,
+                  "lat": 30.2868
+                },
+                "zoom": 17.4,
+                "pitch": 72,
+                "bearing": -70
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 20,
+                "cols": 14,
+                "w": 12,
+                "h": 10,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 65.9677734375,
+                "zoom": 17
+              },
+              "audit": true,
+              "samples": 0,
+              "canvas": [
+                732,
+                672
+              ],
+              "images": 708,
+              "atlasBytes": 169058176
+            },
+            "motion": {
+              "inBox": 260414,
+              "crawling": 770,
+              "crawlPct": 0.29568302779420463,
+              "movedPct": 7.917777078037279,
+              "flipsPerPixel": 0.020175566597801963,
+              "clusters": []
+            }
+          },
+          {
+            "name": "idle-mid-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.7434,
+                  "lat": 30.2857
+                },
+                "zoom": 16.5,
+                "pitch": 74,
+                "bearing": -110.00000000000001
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 40,
+                "cols": 28,
+                "w": 6,
+                "h": 5,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 131.935546875,
+                "zoom": 16
+              },
+              "audit": true,
+              "samples": 0,
+              "canvas": [
+                732,
+                672
+              ],
+              "images": 708,
+              "atlasBytes": 169058176
+            },
+            "motion": {
+              "inBox": 260414,
+              "crawling": 1496,
+              "crawlPct": 0.5744698825715975,
+              "movedPct": 12.600705031219519,
+              "flipsPerPixel": 0.03520932054344236,
+              "clusters": []
+            }
+          }
+        ]
+      },
+      {
+        "variant": "filter-on",
+        "loaded": {
+          "buildings": 196,
+          "done": true,
+          "gl": 16384,
+          "filter": true,
+          "tagged": 363808
+        },
+        "shots": [
+          {
+            "name": "west-campus-mid-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.746,
+                  "lat": 30.2868
+                },
+                "zoom": 17.4,
+                "pitch": 72,
+                "bearing": -70
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 20,
+                "cols": 14,
+                "w": 12,
+                "h": 10,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 65.9677734375,
+                "zoom": 17
+              },
+              "audit": true,
+              "samples": 0,
+              "canvas": [
+                732,
+                672
+              ],
+              "images": 708,
+              "atlasBytes": 169058176
+            },
+            "motion": {
+              "inBox": 260414,
+              "crawling": 771,
+              "crawlPct": 0.29606703172640486,
+              "movedPct": 8.28104479789873,
+              "flipsPerPixel": 0.020329168170682067,
+              "clusters": []
+            }
+          },
+          {
+            "name": "idle-mid-night",
+            "state": {
+              "camera": {
+                "center": {
+                  "lng": -97.7434,
+                  "lat": 30.2857
+                },
+                "zoom": 16.5,
+                "pitch": 74,
+                "bearing": -110.00000000000001
+              },
+              "tiles": true,
+              "grid": {
+                "rows": 40,
+                "cols": 28,
+                "w": 6,
+                "h": 5,
+                "mul": 4,
+                "tileUnits": 256,
+                "want": 0.5126953125,
+                "baseWant": 0.51,
+                "curtain": true,
+                "measured": false,
+                "colsMeasured": false,
+                "clamp": [],
+                "pitchDrawnM": 3.298388671875,
+                "bayDrawnM": 4.711983816964286,
+                "repeatM": 131.935546875,
+                "zoom": 16
+              },
+              "audit": true,
+              "samples": 0,
+              "canvas": [
+                732,
+                672
+              ],
+              "images": 708,
+              "atlasBytes": 169058176
+            },
+            "motion": {
+              "inBox": 260414,
+              "crawling": 1513,
+              "crawlPct": 0.5809979494190021,
+              "movedPct": 12.975492869046978,
+              "flipsPerPixel": 0.036134770020045004,
+              "clusters": []
+            }
+          }
+        ]
+      }
+    ],
+    "errors": []
+  }
+}

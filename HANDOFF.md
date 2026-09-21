@@ -1,5 +1,21 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Motion investigation (`codex/window-motion-stability`)
+
+Confirmed PR #279's four changed runtime files on production. Tested and rejected
+two follow-ups: pane-only coverage filtering did not reduce the measured flicker;
+a texture-binding state cache preserved identical day/sunset/night screenshots
+but improved minimum CPU task time only 1.325%, below its 3% bar. Both experiments
+were removed. No runtime changes ship in this pass. The dirty primary checkout
+remains untouched. Details and measurements: [motion investigation](docs/window-motion-investigation.md).
+
+Next: attribute narrow-angle flicker separately to authored geometry, fallback
+textures and overlapping legacy layers with matched moving crops. Whole-facade
+minification is a candidate only after attribution; do not repeat the rejected
+pane-only filter or infer temporal stability from a cleaner still. Remaining
+idle pauses and downtown work stay open. Verification browsers are closed at
+the end of this pass; the lighting worktree is the continuation checkout.
+
 ## Sep 21 2026 - Facade variation and idle rendering work (`codex/facade-consistency`, PR #279)
 
 Corrected the fallback facade probability hash and enlarged room-pattern repeats
