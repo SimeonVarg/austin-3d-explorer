@@ -2463,10 +2463,31 @@
     if (geo && APTS.hidePrecinct) for (const id of HIDE_LAYERS.precinct) plan.push([id, ['>', ['distance', geo], 0]]);
     return plan;
   }
-  /** the planned layers that exist but do not carry our clause yet (a layer that booted after us) */
+  // Keep the applied plan, including layers that have not arrived yet. Polling
+  // used to rebuild it and deep-clone/stringify 195-footprint filters every
+  // half-second, causing periodic pauses during otherwise steady camera motion.
+  let _expectedFilters = null;
+  let _filterChecks = new WeakMap();
+  /** Existing planned layers that have lost our clause. */
   function filtersMissing() {
     if (!_map || !_data) return [];
-    return filterPlan().filter(([id, clause]) => _map.getLayer(id) && JSON.stringify(_map.getFilter(id) || null).indexOf(JSON.stringify(clause)) < 0).map(p => p[0]);
+    const missing = [];
+    for (const [id, clause] of (_expectedFilters || filterPlan())) {
+      const layer = _map.getLayer(id);
+      if (!layer) continue;
+      // MapLibre 5.24 getFilter() deep-clones; getLayer().filter retains the
+      // reference replaced by setFilter(). Cache only when that field exists,
+      // and fall back to the public getter if a future layer API omits it.
+      const stable = 'filter' in layer;
+      const filter = stable ? layer.filter : _map.getFilter(id);
+      let check = stable && _filterChecks.get(layer);
+      if (!check || check.filter !== filter || check.clause !== clause) {
+        check = { filter, clause, missing: JSON.stringify(filter || null).indexOf(JSON.stringify(clause)) < 0 };
+        if (stable) _filterChecks.set(layer, check);
+      }
+      if (check.missing) missing.push(id);
+    }
+    return missing;
   }
   /**
    * Our clause taken back out of a filter, wherever another pass has since
@@ -2489,6 +2510,8 @@
     const map = _map;
     if (!map) return;
     const plan = filterPlan();
+    _expectedFilters = plan;
+    _filterChecks = new WeakMap();
     if (on) {
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
@@ -2713,8 +2736,8 @@
       let n = 0;
       const tick = () => {
         n++;
-        // 500 ms, not 150: each tick re-serialises every planned filter (the
-        // roofscape clause carries 195 footprints) — profiled at 1.7 s a load.
+        // Keep watching for late/replaced layers. Unchanged layer/filter
+        // references are cheap; only changed filters need a deep check.
         if (n > 120 + 240) return;
         setTimeout(tick, n < 120 ? 500 : 1000);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;

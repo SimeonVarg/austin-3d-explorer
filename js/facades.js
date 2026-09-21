@@ -440,9 +440,11 @@
   // the same on both axes and an aspect in tile pixels IS an aspect in metres.
   //
   // The derivation is exact at REF_ZOOM by construction, and that is checked
-  // rather than asserted: `gridFromSpec(specOf(fam), REF_ZOOM)` reproduces
-  // every one of `rows/cols/w/h` for all five families, so nothing about the
-  // z<=16 render moves. facadeGridAudit re-runs it at init.
+  // rather than asserted: the pitch and glazing share derive from the
+  // original templates; larger repeats hold more independently lit rooms.
+  // More rooms per repeat, at the same texels/metre. A tiny repeat can hold
+  // only one room-pair at close zoom, turning occupancy into endless stripes.
+  const TEMPLATE_MUL = 4;
   function specOfTemplate(fam, g) {
     return {
       base: fam,
@@ -452,11 +454,7 @@
       aspect: g.h / g.w,              // opening height / width
       curtain: !!g.curtain,
       measured: false,
-      // A TEMPLATE IS NEVER GROWN. It is the fallback for the ~180 buildings
-      // nobody has photographed, it is what campusmeter.mjs parses out of this
-      // file as its held-out oracle, and bake_facades.py transcribes it — so
-      // its bytes stay exactly what they were.
-      mul: 1,
+      mul: TEMPLATE_MUL,
     };
   }
 
@@ -709,13 +707,12 @@
     // the seven templates, deliberately: a bespoke grid that reads as
     // scaffolding is exactly as wrong as a template that does, and a guard the
     // new path can skip is a guard the new path will eventually break.
-    const all = Object.entries(GRIDS).concat(Object.entries(measuredGridTable()));
+    const templates = Object.entries(GRIDS).map(([fam, g]) => [fam, g ? gridFor(fam) : null]);
+    const all = templates.concat(Object.entries(measuredGridTable()));
     for (const [fam, g] of all) {
       if (!g) continue;
-      // `tileUnits` is TILE for a template and TILE*mul for a measured family
-      // (see MEASURED_MUL). Using TILE here would read a 4x tile's glazing as a
-      // sixteenth of what it is, and the audit would call every measured
-      // building unglazed.
+      // Audit the actual repeat size for templates and measured families.
+      // Using TILE here would inflate a 4x repeat's glazing sixteenfold.
       const T = g.tileUnits || TILE;
       const glaze = (g.rows * g.cols * g.w * g.h) / (T * T);
       const pier = T / g.cols - g.w, spandrel = T / g.rows - g.h;
@@ -1400,19 +1397,19 @@
   /** The spec for a family, measured or template. One lookup, one fallback. */
   function specFor(fam) { return MEASURED_SPECS[fam] || SPECS[fam] || SPECS.mh; }
   /**
-   * This family's tile size in template tiles. 1 for every template and for
-   * stadium/deck/DKR, MEASURED_MUL for a measured building. See MEASURED_MUL.
+   * This family's repeat multiplier. Window templates and measured buildings
+   * carry their own setting; stadium/deck/DKR remain at 1.
    *
    * `st`, `dk` and the `s?` DKR tiles are drawn by their own routines and are
-   * looked up here too, so they resolve through SPECS.mh's mul of 1 rather than
-   * needing a special case — but the lookup is by FAMILY, not by spec, because
+   * looked up here too; without a window-grid spec they retain a multiplier
+   * of 1. The lookup is by FAMILY, not by the fallback spec, because
    * drawTile branches to those routines before it ever asks for a grid.
    */
   function mulOf(fam) {
-    const s = MEASURED_SPECS[fam];
+    const s = MEASURED_SPECS[fam] || SPECS[fam];
     return (s && s.mul > 1) ? s.mul : 1;
   }
-  /** Drawing units across one repeat for this family. `TILE` for a template. */
+  /** Drawing units across one repeat, enlarged without enlarging the windows. */
   function tileUnitsOf(fam) { return TILE * mulOf(fam); }
   /** The grid a family draws AT THE ZOOM THE ATLAS IS CURRENTLY ANCHORED AT. */
   function gridFor(fam) { return gridAt(fam, _zAnchor); }
@@ -1723,7 +1720,10 @@
   function hash01(a, b, c) {
     let x = (a * 374761393 + b * 668265263 + c * 2147483647) | 0;
     x = (x ^ (x >> 13)) * 1274126177;
-    return ((x ^ (x >> 16)) >>> 0) / 4294967295;
+    // Zero-fill the final shift: a sign-preserving shift cancels the sign
+    // bit in the XOR and confines every roll to [0, 0.5]. That over-lights
+    // rooms, removes cooler tones and biases the shared material scatter.
+    return ((x ^ (x >>> 16)) >>> 0) / 4294967295;
   }
 
   function css(rgb, alpha) {
@@ -1949,8 +1949,8 @@
 
   /** Draw one (family, bucket) tile for time-of-day p into a canvas ctx. */
   function drawTile(ctx, fam, bucketIdx, p) {
-    // Drawing units across one repeat. TILE for every template, TILE*mul for a
-    // measured building — see the MEASURED_MUL block. Every px constant in this
+    // Drawing units across one repeat. Window templates and measured families
+    // both expand by their multiplier. Every px constant in this
     // function keeps its meaning because a drawing unit is the same number of
     // metres at every mul; only how many of them fit changes.
     const T = tileUnitsOf(fam);
@@ -2185,7 +2185,7 @@
   // is what keeps a three-tier atlas from costing three times the repaint.
   let _rawKey = null, _raw = null;
 
-  /** Texels per repeat in the NEAR tier for one family. `RES` for a template. */
+  /** Texels per repeat in the NEAR tier for one family. */
   function famRes(fam) { return RES * mulOf(fam); }
 
   /** Draw (fam, bucket, p) once into a famRes x famRes buffer, mottle applied. */
@@ -2210,8 +2210,8 @@
     }
     _canvas = c.el; _ctx = c.ctx;
     _mottle = null;
-    // Everything below draws in T-unit space (64 for a template, 64*mul for a
-    // measured building); the transform puts it on RESF texels at the SAME
+    // Everything below draws in T-unit space (64*mul drawing units);
+    // the transform puts it on RESF texels at the SAME
     // texels-per-unit either way. Every rect in this file is on integer
     // coordinates, so at an integer SCALE they stay pixel-aligned and nothing
     // gains an AA fringe.

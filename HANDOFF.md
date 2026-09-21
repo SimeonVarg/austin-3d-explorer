@@ -1,5 +1,30 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Facade variation and idle rendering work (`codex/facade-consistency`, PR #279)
+
+Corrected the fallback facade probability hash and enlarged room-pattern repeats
+at the existing texel density. Aerospace now has varied room occupancy instead
+of an almost uniformly lit grid; authored buildings keep their individual facades.
+Matched day/night evidence and limitations: [facade report](docs/facade-room-variation.md).
+
+Removed repeated deep filter serialization from the periodic authored-building
+guard, retaining overwrite and late-layer repair. Shared exact-input tile-detail
+calculations across default MapLibre sources, with bounded caches and a version
+guard. This preserves the library's calculations rather than reducing detail.
+Final integrated verification is recorded in the facade report before merge.
+
+The new user reports of middle/far flicker, grazing-angle interference and idle
+pauses are the highest-priority follow-up. These are not declared solved by the
+room-pattern correction or CPU caches. A four-sample MSAA trial made still edges
+cleaner but did not establish a motion improvement; no preset changed. Inspect
+both authored meshes and fallback textures. Physical phone memory remains open:
+the larger atlas is a material memory tradeoff documented in the report.
+
+Downtown remains queued behind that motion pass. The isolated outer bake plus
+facade bake reproduces the current 9,149-feature outer GeoJSON and tower palette
+as identical parsed JSON. Geometry changes must also rebuild the normal PMTiles
+path. Preserve the dirty primary checkout and the parked Drag decision PR #164.
+
 ## Sep 21 2026 - Downtown reference baseline (`codex/downtown-reference-fit`)
 
 Inspected the two newly supplied images and the existing local owner set, and
