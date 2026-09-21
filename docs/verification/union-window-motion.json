@@ -1,0 +1,399 @@
+{
+  "viewport": {
+    "css": [
+      651,
+      598
+    ],
+    "dpr": 1.5,
+    "renderScale": 0.75,
+    "framebuffer": [
+      732,
+      672
+    ]
+  },
+  "method": {
+    "frames": 17,
+    "bearingStart": 115,
+    "bearingStep": 0.06,
+    "zoom": 16.8,
+    "pitch": 70,
+    "dayP": 0.25,
+    "registeredPlaneSize": [
+      200,
+      200
+    ],
+    "resample": "bicubic",
+    "gaussianBlur": 1.5,
+    "hardwareGL": true,
+    "cpuThrottling": false
+  },
+  "registered": {
+    "msaa0": {
+      "long": {
+        "temporalStd": 3.7897806336291997,
+        "temporalSecondDifference": 2.8110216666666665,
+        "mean": 77.86856666666667
+      },
+      "short": {
+        "temporalStd": 13.183971699590513,
+        "temporalSecondDifference": 9.970962777777778,
+        "mean": 77.22919411764705
+      }
+    },
+    "msaa4": {
+      "long": {
+        "temporalStd": 1.2014603871387552,
+        "temporalSecondDifference": 2.043625,
+        "mean": 77.54190637254902
+      },
+      "short": {
+        "temporalStd": 4.969853413464453,
+        "temporalSecondDifference": 6.452569444444444,
+        "mean": 76.79900735294117
+      }
+    }
+  },
+  "timing": {
+    "runs": [
+      {
+        "aa": false,
+        "state": {
+          "count": 196,
+          "tiles": true,
+          "samples": 0,
+          "canvas": [
+            732,
+            672
+          ],
+          "failures": []
+        },
+        "states": [
+          {
+            "p": 0.25,
+            "frames": 621,
+            "median": 18,
+            "p95": 35.89999999999418,
+            "over100": 1,
+            "cpu": 11.585988999999998
+          },
+          {
+            "p": 0.71,
+            "frames": 645,
+            "median": 18,
+            "p95": 18.10000000000582,
+            "over100": 1,
+            "cpu": 11.348862000000004
+          }
+        ]
+      },
+      {
+        "aa": true,
+        "state": {
+          "count": 196,
+          "tiles": true,
+          "samples": 4,
+          "canvas": [
+            732,
+            672
+          ],
+          "failures": []
+        },
+        "states": [
+          {
+            "p": 0.25,
+            "frames": 643,
+            "median": 18,
+            "p95": 18.5,
+            "over100": 0,
+            "cpu": 11.717690000000001
+          },
+          {
+            "p": 0.71,
+            "frames": 631,
+            "median": 18,
+            "p95": 18.10000000000582,
+            "over100": 1,
+            "cpu": 11.302360999999998
+          }
+        ]
+      },
+      {
+        "aa": false,
+        "state": {
+          "count": 196,
+          "tiles": true,
+          "samples": 0,
+          "canvas": [
+            732,
+            672
+          ],
+          "failures": []
+        },
+        "states": [
+          {
+            "p": 0.25,
+            "frames": 636,
+            "median": 18,
+            "p95": 35.79999999998836,
+            "over100": 0,
+            "cpu": 11.715216000000002
+          },
+          {
+            "p": 0.71,
+            "frames": 646,
+            "median": 18,
+            "p95": 18.10000000000582,
+            "over100": 0,
+            "cpu": 11.397285999999994
+          }
+        ]
+      },
+      {
+        "aa": true,
+        "state": {
+          "count": 196,
+          "tiles": true,
+          "samples": 4,
+          "canvas": [
+            732,
+            672
+          ],
+          "failures": []
+        },
+        "states": [
+          {
+            "p": 0.25,
+            "frames": 629,
+            "median": 18,
+            "p95": 36,
+            "over100": 0,
+            "cpu": 11.859815999999999
+          },
+          {
+            "p": 0.71,
+            "frames": 651,
+            "median": 18,
+            "p95": 18.10000000000582,
+            "over100": 0,
+            "cpu": 11.661528999999994
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "integrated": {
+    "state": {
+      "gfx": {
+        "renderScale": 0.75,
+        "msaa": true,
+        "bloom": 0,
+        "godRays": 0,
+        "flare": 0,
+        "dof": 0,
+        "windowReflections": 1,
+        "exposure": 1.03,
+        "contrast": 1.06,
+        "saturation": 1,
+        "filmic": 0.65,
+        "vignette": 1,
+        "autoExposure": false,
+        "grain": 0,
+        "renderDistance": 350,
+        "ao": false,
+        "shadows": true,
+        "clouds": 0.4,
+        "stars": 0.5,
+        "fov": 58,
+        "treeDensity": 0.52,
+        "outerDensity": 0.45,
+        "preset": "performance",
+        "custom": false,
+        "autoDetected": true,
+        "rev": 3
+      },
+      "requested": true,
+      "samples": 4,
+      "count": 196,
+      "saved": {
+        "renderScale": 0.75,
+        "msaa": true,
+        "bloom": 0,
+        "godRays": 0,
+        "flare": 0,
+        "dof": 0,
+        "windowReflections": 1,
+        "exposure": 1.03,
+        "contrast": 1.06,
+        "saturation": 1,
+        "filmic": 0.65,
+        "vignette": 1,
+        "autoExposure": false,
+        "grain": 0,
+        "renderDistance": 350,
+        "ao": false,
+        "shadows": true,
+        "clouds": 0.4,
+        "stars": 0.5,
+        "fov": 58,
+        "treeDensity": 0.52,
+        "outerDensity": 0.45,
+        "preset": "performance",
+        "custom": false,
+        "autoDetected": true,
+        "rev": 3
+      },
+      "failures": []
+    },
+    "frames": {
+      "variant": "msaa4",
+      "first": {
+        "long": [
+          [
+            328.8127256193286,
+            165.93761428328958
+          ],
+          [
+            444.58554528561643,
+            162.72212366183453
+          ],
+          [
+            440.486291559694,
+            258.63355822502126
+          ],
+          [
+            330.8769506489499,
+            267.82274155401416
+          ]
+        ],
+        "short": [
+          [
+            313.60681527591356,
+            162.1321697957724
+          ],
+          [
+            328.17844994436877,
+            165.91074948057425
+          ],
+          [
+            330.276829330013,
+            267.746236466289
+          ],
+          [
+            316.30749958520624,
+            256.940523340766
+          ]
+        ],
+        "canvas": [
+          732,
+          672
+        ],
+        "bearing": 114.99999999999999,
+        "visible": true
+      },
+      "count": 17
+    },
+    "errors": []
+  },
+  "integratedRegistered": {
+    "msaa4": {
+      "long": {
+        "temporalStd": 1.2014608106523783,
+        "temporalSecondDifference": 2.043626111111111,
+        "mean": 77.54190637254902
+      },
+      "short": {
+        "temporalStd": 4.969853413464453,
+        "temporalSecondDifference": 6.452569444444444,
+        "mean": 76.79900735294117
+      }
+    }
+  },
+  "integratedFrameComparison": [
+    {
+      "frame": 0,
+      "meanAbsoluteDifference": 0.0033858232500650533,
+      "maxDifference": 34.0
+    },
+    {
+      "frame": 1,
+      "meanAbsoluteDifference": 0.005220530835284933,
+      "maxDifference": 41.0
+    },
+    {
+      "frame": 2,
+      "meanAbsoluteDifference": 0.0033609200169138695,
+      "maxDifference": 41.0
+    },
+    {
+      "frame": 3,
+      "meanAbsoluteDifference": 0.003893036039552433,
+      "maxDifference": 40.0
+    },
+    {
+      "frame": 4,
+      "meanAbsoluteDifference": 0.003987058450429352,
+      "maxDifference": 31.0
+    },
+    {
+      "frame": 5,
+      "meanAbsoluteDifference": 0.005716562581316679,
+      "maxDifference": 36.0
+    },
+    {
+      "frame": 6,
+      "meanAbsoluteDifference": 0.007475035779339058,
+      "maxDifference": 38.0
+    },
+    {
+      "frame": 7,
+      "meanAbsoluteDifference": 0.0042401566159250585,
+      "maxDifference": 36.0
+    },
+    {
+      "frame": 8,
+      "meanAbsoluteDifference": 0.006190740469685142,
+      "maxDifference": 36.0
+    },
+    {
+      "frame": 9,
+      "meanAbsoluteDifference": 0.005284567720530835,
+      "maxDifference": 33.0
+    },
+    {
+      "frame": 10,
+      "meanAbsoluteDifference": 0.004457678734061931,
+      "maxDifference": 33.0
+    },
+    {
+      "frame": 11,
+      "meanAbsoluteDifference": 0.0017650801782461618,
+      "maxDifference": 34.0
+    },
+    {
+      "frame": 12,
+      "meanAbsoluteDifference": 0.0034656152419984387,
+      "maxDifference": 36.0
+    },
+    {
+      "frame": 13,
+      "meanAbsoluteDifference": 0.004612180425448868,
+      "maxDifference": 40.0
+    },
+    {
+      "frame": 14,
+      "meanAbsoluteDifference": 0.0035327015027322405,
+      "maxDifference": 36.0
+    },
+    {
+      "frame": 15,
+      "meanAbsoluteDifference": 0.001848938004163414,
+      "maxDifference": 31.0
+    },
+    {
+      "frame": 16,
+      "meanAbsoluteDifference": 0.00757109110720791,
+      "maxDifference": 35.0
+    }
+  ]
+}
