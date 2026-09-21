@@ -108,7 +108,7 @@
     if (map.__tileLodCache || !TILE_LOD_CACHE.on) return;
     // The public API supplies the exact default function, not our own copy of
     // its math. Guard the version whose defaults and source contract we checked.
-    if (maplibregl.version !== '5.24.0' || !map.setSourceTileLodParams) return;
+    if (maplibregl.getVersion?.() !== '5.24.0' || !map.setSourceTileLodParams) return;
     map.__tileLodCache = true;
     const seen = new WeakSet();
     let shared;
