@@ -1,5 +1,21 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Downtown reference baseline (`codex/downtown-reference-fit`)
+
+Inspected the two newly supplied images and the existing local owner set, and
+saved two initial approximately aligned application baselines from `6b64a04`.
+Both loaded all 196 authored buildings with no page errors. No skyline geometry
+or rendering changes in this pass. Private comparison images and camera records
+remain outside the repository. See [the audit](docs/downtown-reference-audit.md)
+for verified architect sources, visible defects and the next implementation.
+
+Waterline and Sixth and Guadalupe are the first geometry targets: their generic
+taper-and-mast recipes visibly contradict the distinctive crowns and stacked
+volumes. Resolve plan orientation and final dimensions before rebuilding; the
+normal tile path and fallback must remain consistent. The original raw outer
+input is available read-only in the primary checkout. The wider downtown work
+and prior campus backlog remain open.
+
 ## Sep 21 2026 - Shared sky fill and citywide night (`codex/sky-fill-night`, PR #278)
 
 Completed the accepted sky-fill continuation and shared night materials across
