@@ -734,6 +734,7 @@
 
   /** The palette at hour p, blended day→golden→night like every other colour. */
   function paletteAt(p) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = clamp01(p);
     const a = p <= 0.5 ? SURF.day : SURF.golden;
     const b = p <= 0.5 ? SURF.golden : SURF.night;
@@ -744,7 +745,7 @@
     // day and golden, fading to zero exactly as the night table takes over,
     // so a saturated lawn cannot glow after dark. One hook here covers every
     // consumer (initial build and applyGroundColors both read paletteAt).
-    const lw = 1 - nightAmt(p);
+    const lw = 1 - clamp01((p - 0.5) / 0.5);
     if (lw > 0 && GROUND.lushWeight) {
       for (const k in GROUND.lushWeight) {
         if (out[k]) out[k] = lushify(out[k], GROUND.lushWeight[k] * lw);
@@ -753,7 +754,7 @@
     return out;
   }
   /** How far into night we are — the same second half of the palette blend. */
-  const nightAmt = p => clamp01((clamp01(p) - 0.5) / 0.5);
+  const nightAmt = p => clamp01((clamp01(window.CityNight?.materialP(p) ?? p) - 0.5) / 0.5);
 
   // ── QUEUE J5: saturation over the green band (see GROUND.lushSat) ───
   /** hex → [h 0..360, s 0..1, l 0..1]. Only the lush dial reads these. */
@@ -1621,7 +1622,7 @@
    * makes everything look fine at a glance.
    */
   function trioAt(t, p) {
-    const q = clamp01(p);
+    const q = clamp01(window.CityNight?.materialP(p) ?? p);
     return q <= 0.5 ? lerpHex(t[0], t[1], q / 0.5) : lerpHex(t[1], t[2], (q - 0.5) / 0.5);
   }
   function depthColour(p) {

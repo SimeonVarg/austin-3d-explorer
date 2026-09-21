@@ -568,6 +568,7 @@
   const _combos = [];          // [{id, fam, wd, wg, wn}]
 
   function lerpAt(c, p) {
+    p = window.CityNight?.materialP(p) ?? p;
     return p <= 0.5 ? mix(c.wd, c.wg, p / 0.5) : mix(c.wg, c.wn, (p - 0.5) / 0.5);
   }
 
@@ -576,7 +577,7 @@
    * SUN (so the skyline silhouettes correctly through dusk); interiors follow
    * the HOUR (lights come up as the sky finishes darkening, not at sunset). */
   function lightAt(p, wall) {
-    const night = Math.max(0, (p - 0.55) / 0.45);
+    const night = (window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.55) / 0.45));
     const sunElev = (typeof window.skyBodies === 'function')
       ? window.skyBodies(p).sun.elev : (0.5 - p) * 100;
     const dark = Math.max(night, Math.min(1, Math.max(0, -sunElev / 9)));
@@ -673,6 +674,7 @@
   // ── layers ──────────────────────────────────────────────────────────
   /** ['interpolate', p, wd, wg, wn] — the shape timeofday.js bakes with. */
   function bakedColor(p) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#888888'],

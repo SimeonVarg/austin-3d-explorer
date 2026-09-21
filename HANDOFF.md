@@ -1,5 +1,32 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Shared sky fill and citywide night (`codex/sky-fill-night`, PR #278)
+
+Completed the accepted sky-fill continuation and shared night materials across
+both renderers. Lit rooms retain source colour, closed storefronts stay dark,
+Waterloo/Union rooftop fixtures and Frost crown light are active, and streets
+follow camera travel. All material paths use the same dusk clock; DKR compiles
+with its retained compatibility uniform. Street pools now reach raised paving
+without painting through building walls, and their reduced spread/strength keeps
+road markings readable. Desktop loading deadlines no longer discard a healthy
+196-building authored build that finishes late.
+
+Evidence and four matched before/after views: [citywide-night](docs/citywide-night.md).
+Desktop/lite real-render checks pass, including unchanged sunset pixels, visible
+emission, DKR, and zero measured light overlap on the tested walls. Deliberately
+breaking emission fails its assertion; disabling depth restores the wall defect.
+Eight final twilight/night views are loaded, settled and camera-checked. All eight
+CPU checks and all 12 streetlight state assertions pass. Latest main `2ad3307` is
+included. Physical iPhone testing and broader desktop context restoration remain
+open; the timing report isolates shared night-source cost, not whole-app FPS.
+
+The owner-photo downtown colour/building-accuracy follow-up is now first in
+`QUEUE.md`. Private references remain outside the repository. Before moving
+massing, resolve footprint identity and the 2017 acquisition-date limitation.
+The prior broad campus/architecture backlog is not declared finished by this pass.
+Verification scripts and workflow-only edits no longer trigger automatic data
+rebakes; actual pipeline edits and manual dispatch still do.
+
 ## Sep 20 2026 — The opening flight stops where you are (`acer/intro-keep-camera`, PR #271)
 
 Moving during the intro used to teleport you behind campus. Any mousedown,

@@ -114,6 +114,7 @@
 
   /** ['interpolate', p, day, golden, night] — the shape js/timeofday.js bakes with. */
   function tod(p, d, g, n) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', d], '#888888'],
@@ -132,6 +133,7 @@
 
   /** The same day -> golden -> night ramp scripts/bake_arts.py bakes into wd/wg/wn. */
   function ramp(day, golden, night, p) {
+    p = window.CityNight?.materialP(p) ?? p;
     return p <= 0.5 ? mix(day, golden, p / 0.5) : mix(golden, night, (p - 0.5) / 0.5);
   }
 
@@ -238,7 +240,7 @@
   };
   window.ARTS_SOFTEN = ARTS_SOFTEN;
   /** 0 before dusk, 1 at full night. */
-  const nightAt = p => Math.max(0, (p - 0.62) / 0.38);
+  const nightAt = p => window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.62) / 0.38);
 
   /**
    * The Ransom Center's etched-glass panel grid, at time-of-day p.

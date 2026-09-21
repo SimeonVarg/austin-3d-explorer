@@ -656,7 +656,7 @@ and guard rail.
 | `byPreset` | performance 0.5 | geometry density per graphics preset (reserved) |
 | `balconies`, `signs`, `deck`, `reveals` | `true` | draw those features at all |
 | `reveal` | `0.12` | m a window sits behind its wall |
-| `nightLit`, `nightLitTone` | `0.45`, `#d9b46a` | the share of windows lit after dark, and their tone |
+| `nightLit`, `nightLitTone` | `0.45`, `#eadfc8` | fallback share/tone when the shared city night profiles are disabled |
 | `signDot`, `signProud` | `0.18`, `0.06` | the dot font's stroke, and how proud of the wall the letters stand |
 | `parapetT` | `0.25` | parapet thickness |
 | `floorSlack` | `1.0` | a band that starts within this of the floor line below it keeps that storey's windows, clipped to the band; beyond it the storey is dropped — either way the boot log names the band |
@@ -714,3 +714,26 @@ The whole slopes layer was ~74,000 triangles before it.
 - `applyWestcampusSettings()` (the westcampus perf A/B, nothing on the site)
   rewrites buildings-3d's filter from its own snapshot and would drop this
   generator's clause; the next `applySlopesApartments()` puts it back.
+
+
+## Shared night profiles
+
+The default night renderer uses `CityNight` for authored apartments and the
+shared building shader for both authored meshes and MapLibre facades.
+An optional building-level `night` object accepts `occupancy` (0–1, an artistic
+visible-room fraction, not a tenancy estimate), `unitBays` (adjacent panes per
+home), and `fixtures`. Unspecified buildings receive a stable profile derived
+from their own ID; windows keep that pattern while the camera and hour change.
+
+Each fixture has `position: [u,v,z]` in the same building frame as its blocks,
+`radius` in metres, `power`, a hex `colour`, and optional half-width `size`.
+The closest eight within 350 metres illuminate surfaces with bounded downlight
+falloff. These lights do not cast separate shadow maps. Use them on open decks;
+do not place them against enclosing walls that would require an occlusion test.
+Position and colour are editable in the JSON, with defaults in `js/city-night.js`.
+
+A storefront skin can override `nightOccupancy` and `nightTone`, for example a
+bright amenity pavilion. A sign can set `light: "#fff2d5"` to make its lettering
+an actual night source while retaining its daytime tone. Explicit authored
+window `lit` flags continue to work. The generic outer-ring facade atlas still
+uses material profiles rather than a surveyed occupancy for every building.

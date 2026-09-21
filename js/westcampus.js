@@ -146,6 +146,7 @@
   const hx3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   /** The day->golden->night ramp every other colour in the scene uses. */
   function rampAt(trio, p) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
     const A = hx3(trio[p <= 0.5 ? 0 : 1]), B = hx3(trio[p <= 0.5 ? 1 : 2]);
@@ -160,6 +161,7 @@
   }
   /** ['interpolate', p, day, golden, night] — the shape timeofday.js bakes with. */
   function tod(p, d, g, n) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', d], '#9a9a9a'],

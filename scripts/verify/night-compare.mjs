@@ -452,6 +452,10 @@ for (const r of CFG.routes || []) {
   }
 }
 if (!POSES.length) die('no poses selected' + (ONLY ? ` by --only ${ONLY.join(',')}` : ''));
+if (ONLY) for (const key of ONLY) {
+  if (!POSES.some(p => p.key === key || p.route === key))
+    die(`--only selected an unknown route or pose: ${key}`);
+}
 const REGIME_ORDER = Object.keys(CFG.regimes);
 const REGIMES_USED = REGIME_ORDER.filter(g => POSES.some(p => p.regimes.includes(g)));
 

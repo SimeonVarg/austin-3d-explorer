@@ -280,6 +280,41 @@
           } }
       ],
       "refs": {}
+    },
+    {
+      "id": "dkr-check",
+      "title": "DKR bowl",
+      "poses": [
+        {
+          "id": "bowl",
+          "center": [
+            -97.7323,
+            30.2835
+          ],
+          "zoom": 17.4,
+          "pitch": 65,
+          "bearing": 170
+        }
+      ]
+    },
+    {
+      "id": "waterloo-check",
+      "title": "Waterloo upper facade",
+      "poses": [
+        {
+          "id": "south-east",
+          "eye": [
+            -97.743465,
+            30.287271,
+            70.5
+          ],
+          "target": [
+            -97.744121,
+            30.288244,
+            53
+          ]
+        }
+      ]
     }
   ]
 }

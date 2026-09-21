@@ -361,6 +361,7 @@
 
   /** ['interpolate', p, day, golden, night] — the shape js/timeofday.js bakes with. */
   function tod(p, d, g, n) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', d], '#888888'],
@@ -379,6 +380,7 @@
 
   /** The same day -> golden -> night ramp scripts/bake_heroes.py bakes into wd/wg/wn. */
   function ramp(day, golden, night, p) {
+    p = window.CityNight?.materialP(p) ?? p;
     return p <= 0.5 ? mix(day, golden, p / 0.5) : mix(golden, night, (p - 0.5) / 0.5);
   }
   /** wall_ramp() from the bake, so a tile and its building's flat bands agree. */
@@ -455,7 +457,7 @@
     return { width: T, height: T, data: new Uint8Array(img.data.buffer.slice(0)) };
   }
   /** 0 before dusk, 1 at full night. Same threshold js/arts.js uses. */
-  const nightAt = p => Math.max(0, (p - 0.62) / 0.38);
+  const nightAt = p => window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.62) / 0.38);
 
   /**
    * The CLUSTER walk. Deterministic per row: emit runs of `stoneRun` slots

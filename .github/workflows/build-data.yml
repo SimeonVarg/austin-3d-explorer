@@ -10,8 +10,9 @@ on:
   workflow_dispatch:      # manual "Run workflow" button
   push:
     paths:
-      - "scripts/**"      # rebuild when the pipeline or overrides change
-      - ".github/workflows/build-data.yml"
+      - "scripts/**"      # rebuild when pipeline inputs change
+      - "!scripts/verify/**" # browser checks do not change the source data
+      # Workflow-only edits can use workflow_dispatch when a rebuild is wanted.
 
 permissions:
   contents: write         # allow the action to commit the baked data

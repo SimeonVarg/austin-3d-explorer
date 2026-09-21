@@ -126,7 +126,7 @@
     // it never flickers, and the tone they take. The rest go the glass's own
     // night colour. 0.45 is the share the West Campus facade atlas draws.
     nightLit: 0.45,
-    nightLitTone: '#d9b46a',
+    nightLitTone: '#eadfc8',
     // Sign lettering: a 5x7 dot font, one quad per dot, standing this far
     // proud of the wall. The dot is the letter's stroke width.
     signDot: 0.18,
@@ -657,7 +657,7 @@
     // take the skin's reveal and its glass
     const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, nightTone:w.nightTone, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
@@ -737,11 +737,14 @@
         let drawn;
         if (win) {
           const pane = win.tone ? P[win.tone] || glass : glass;
-          const col = win.lit ? [pane[0], pane[1], APTS.nightLitTone] : pane.slice();
+          const col = win.lit ? [pane[0], pane[1], win.nightTone || APTS.nightLitTone] : pane.slice();
           // Explicit opening tones also describe garage mouths and masonry
           // recesses. Only an actual window inherits the glass material.
           if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
           else if(pane.surface)col.surface=pane.surface;
+          // A closed room must not inherit a storefront's luminous night tone.
+          // Undefined occupancy and non-glass openings retain authored colours.
+          if(window.CityNight?.tune.on&&win.lit===false&&col.surface?.[0]===4)col[2]=window.CityNight.tune.unlitGlass;
           drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
@@ -940,7 +943,8 @@
             const T = win.accent.tones, k = Math.floor(h01(key, 'accent', ci, storey) * T.length) % T.length;
             accent = Object.assign({}, win.accent, { tone: T[k] });
           }
-          out.push({ s0, s1, z0: zb, z1: zt, lit: h01(key, 'lit', fi, ci, pi) < APTS.nightLit, frame, spandrel: sp, arch: win.arch, mullion: win.mullion, head: win.head || null, accent });
+          const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,ci):{lit:h01(key,'lit',fi,ci,pi)<APTS.nightLit};
+          out.push({ s0, s1, z0: zb, z1: zt, ...room, frame, spandrel: sp, arch: win.arch, mullion: win.mullion, head: win.head || null, accent });
         }
       }
     }
@@ -1102,18 +1106,30 @@
     const zTop = ctx.z1 - fascia;
     const windows = [];
     const transom = spec.transom != null ? spec.transom : 0.72;
+    const nightRoom=(z,i)=>{
+      if(!window.CityNight?.tune.on)return {lit:true};
+      const all=ctx.allFloors||ctx.floors;
+      let fi=0;for(let k=0;k<all.length;k++)if(all[k]<=z)fi=k;
+      const room=window.CityNight.room(key,fi,i);
+      // Shop windows and amenity rooms have their own operating pattern.
+      const occ=spec.nightOccupancy??(ctx.z0<window.CityNight.tune.storefrontMaxBase?window.CityNight.tune.commercialOccupancy:null);
+      if(occ!=null)room.lit=window.CityNight.hash(key,'public-room',fi,Math.floor(i/2))<occ;
+      if(spec.nightTone)room.nightTone=spec.nightTone;
+      return room;
+    };
     for (let i = 0; i < n; i++) {
       const s0 = i * mod + mw / 2, s1 = (i + 1) * mod - mw / 2;
       if(spec.horizontalPitch>0){
         for(let z=ctx.z0+plinth;z<zTop;z+=spec.horizontalPitch){
           const top=Math.min(zTop,z+spec.horizontalPitch);
-          if(top-z>mw)windows.push({s0,s1,z0:z+mw/2,z1:top-mw/2,lit:true});
+          if(top-z>mw)windows.push({s0,s1,z0:z+mw/2,z1:top-mw/2,...nightRoom(z,i)});
         }
         continue;
       }
       const zt = ctx.z0 + plinth + (zTop - ctx.z0 - plinth) * transom;
-      windows.push({ s0, s1, z0: ctx.z0 + plinth, z1: zt - mw / 2, lit: true });
-      windows.push({ s0, s1, z0: zt + mw / 2, z1: zTop, lit: true });
+      const room=nightRoom(ctx.z0,i);
+      windows.push({ s0, s1, z0: ctx.z0 + plinth, z1: zt - mw / 2, ...room });
+      windows.push({ s0, s1, z0: zt + mw / 2, z1: zTop, ...room });
     }
     return {
       rows: () => [zTop],
@@ -1190,7 +1206,9 @@
     for (let fi = 0; fi < rows; fi++) for (let j = 0; j < n; j++) {
       const s0 = j * mod + mod * (FI + WI), z0 = floors[fi] + FLOOR * (FI + ST);
       if (z0 + FLOOR * WS > ctx.z1 + 1e-6) continue;
-      windows.push({ s0, s1: s0 + mod * WS, z0, z1: z0 + FLOOR * WS, lit: h01(key, 'lit', fi, j) < APTS.nightLit });
+      const storey=ctx.allFloors?ctx.allFloors.indexOf(floors[fi]):fi;
+      const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,j):{lit:h01(key,'lit',fi,j)<APTS.nightLit};
+      windows.push({ s0, s1: s0 + mod * WS, z0, z1: z0 + FLOOR * WS, ...room });
     }
     return {
       rows: (z0, z1) => { const out = []; for (const f of floors) for (const q of [0, FI, FI + ST, FI + ST + WS, 1 - FI]) { const z = f + FLOOR * q; if (z > z0 && z < z1) out.push(z); } return out; },
@@ -1396,7 +1414,8 @@
   /** Dot-matrix lettering on a wall; horizontal (reads along s) or vertical (letters stacked, top first). */
   function sign(B, W, spec, P) {
     const dot = spec.dot || APTS.signDot, gap = spec.gap != null ? spec.gap : dot;   // letter gap
-    const col = P[spec.tone || 'sign'];
+    const base = P[spec.tone || 'sign'];
+    const col = spec.light ? window.CityNight.emissive(base,spec.light) : base;
     const text = (spec.text || '').toUpperCase();
     const proud = APTS.signProud;
     const letterW = 5 * dot, letterH = 7 * dot;
@@ -2031,10 +2050,12 @@
   // fraction of that, which is the difference between a stutter and none.
   function* buildingOne(B, spec) {
     const S = window.slopes;
+    window.CityNight?.register(spec);
     const P = palette(spec);
     const ring = spec.footprint.ring;
     const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
     const F = frameFor(obb);
+    window.CityNight?.registerFixtures(spec,F);
     const ringUV = ring.slice(0, ring.length - 1).map(F.toUV);
     console.log('[slopes-apartments] ' + spec.name + ': obb L=' + F.L.toFixed(1) + ' W=' + F.W.toFixed(1) + ', +u at bearing ' + F.bearing.toFixed(1) + '°');
     const key = spec.id || spec.name;
@@ -2220,6 +2241,11 @@
         const c = rectRing(it.plan).map(p => F.at(p[0], p[1], z1));
         B.polygon(c, col, [0, 0, 1], 'xy');
       }
+    }
+    // Tiny luminous fixture faces are part of the existing building draw.
+    for(const f of spec.night?.fixtures||[]){
+      const [u,v,z]=f.position,r=f.size??window.CityNight.tune.fixtureSize,col=window.CityNight.emissive(['#d8d8d4','#d8d8d4',f.colour||'#fff0da']);
+      B.polygon([[u-r,v-r],[u+r,v-r],[u+r,v+r],[u-r,v+r]].map(p=>F.at(...p,z)),col,[0,0,1],'xy');
     }
     count.buildings++;
     count.names.push(spec.name);

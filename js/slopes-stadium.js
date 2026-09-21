@@ -359,7 +359,7 @@
     mat.vertexShader=mat.vertexShader.replace('attribute float aFacet;',
       'attribute float aFacet; attribute float aStadiumLight; uniform float u_dkrNightStart; uniform float u_dkrNightFull;');
     mat.vertexShader=mat.vertexShader.replace('v_color = vec4(lit * k, 1.0) * u_opacity;',
-      'lit = mix(lit, max(lit, cNight * aStadiumLight), smoothstep(u_dkrNightStart, u_dkrNightFull, u_p)); v_color = vec4(lit * k, 1.0) * u_opacity;');
+      'lit = mix(lit, max(lit, cNight * aStadiumLight), u_nightLamps >= 0.0 ? u_nightLamps : smoothstep(u_dkrNightStart, u_dkrNightFull, u_p)); v_color = vec4(lit * k, 1.0) * u_opacity;');
     for(const [name,b] of [['structure',B],['rows',R],['far-seating',F],['rails',rails]]){
       const geo=b.geometry(),pos=geo.attributes.position,cn=geo.attributes.cNight;
       const illumination=new Float32Array(pos.count);

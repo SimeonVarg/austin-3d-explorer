@@ -914,6 +914,7 @@ window.CityLighting.install(map);
   const hx3 = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
   // Same day→golden→night ramp every other colour in the scene uses.
   const rampAt = (trio, p) => {
+    p = window.CityNight?.materialP(p) ?? p;
     const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
     const A = hx3(trio[p <= 0.5 ? 0 : 1]), B = hx3(trio[p <= 0.5 ? 1 : 2]);
     return '#' + [0,1,2].map(i =>
@@ -932,9 +933,12 @@ window.CityLighting.install(map);
   // night trio onto each feature and this blends between two of them. The input
   // to `interpolate` is a plain number, which is a legal expression: it just
   // evaluates the blend once per feature instead of per zoom level.
-  const detailColourAt = p => (p <= 0.5
+  const detailColourAt = p => {
+    p = window.CityNight?.materialP(p) ?? p;
+    return (p <= 0.5
     ? ['interpolate', ['linear'], p / 0.5, 0, ['get', 'cd'], 1, ['get', 'cg']]
     : ['interpolate', ['linear'], (p - 0.5) / 0.5, 0, ['get', 'cg'], 1, ['get', 'cn']]);
+  };
   // `pier`, `lintel`, `shop`, `gate` and `canopy` are the arcade around the
   // concourse — see the ARCADE block in scripts/bake_stadium.py. They ride this
   // layer rather than the wall layer because they are materials, not facades:
@@ -1180,7 +1184,7 @@ window.CityLighting.install(map);
    * a separate pass (MAC_QUEUE M1c).
    */
   const fieldColourAt = p => {
-    const night = Math.max(0, (p - 0.62) / 0.38);
+    const night = window.CityNight?.tune.on ? window.CityNight.lamps(p) : Math.max(0, (p - 0.62) / 0.38);
     const k = 1 - 0.42 * night;            // was raster-brightness-max
     const s = 1 - 0.10 * night;            // was raster-saturation
     const dim = hex => {
@@ -1791,7 +1795,7 @@ window.CityLighting.install(map);
     needs: ['austin-outer', 'austin-buildings', 'austin-ground', 'austin-roads'],
     minVeilMs: 7000,   // unchanged from the old `maxVeilMs`: the phone path
     maxVeilMs: 18000,  // tile deadline; authored model handoff has its own fallback
-    authoredCeilingMs: 90000, // terminal failure: keep a stable legacy scene for this visit
+    authoredCeilingMs: 90000, // release the veil; allow the authored build to land afterward
     gatePollMs: 200,   // how often the gate is re-asked
     gateHolds: 2,      // consecutive passes required before departure
     // Hold the veil until the authored apartments have built. Measured
@@ -1899,7 +1903,7 @@ window.CityLighting.install(map);
     // The reel and live-here paths always wait for the authored apartments
     // (their first frame is West Campus); the plain intro waits when
     // INTRO.waitAuthored says so — see the note on that constant.
-    // `let`: a phone past INTRO.authoredCeilingMs stops waiting (see tick).
+    // `let`: past INTRO.authoredCeilingMs, reveal while the build continues.
     let waitAuthored = doReelGate || liveHere || INTRO.waitAuthored !== false;
     const gate = () => introGate(waitAuthored);
 
@@ -1948,25 +1952,13 @@ window.CityLighting.install(map);
     const tick = () => {
       const ms = performance.now() - t0;
       if(waitAuthored && ms>=INTRO.authoredCeilingMs && window.APARTMENTS?.on && !window.slopesApartments?.readyToReveal()) {
-        if (window.LITE_PROFILE?.lateAuthored) {
-          // A PHONE (js/mobile.js) does not get the legacy scene for the visit:
-          // a slow phone is where the authored build takes longest, and the
-          // old prisms are the defect it would show (The Standard as two
-          // pillars; docs/mobile-real-buildings.md). Lift the veil on the
-          // prisms and let the build land live — its filters follow the group,
-          // so the swap is never a hole. Desktop keeps the stable fallback.
-          waitAuthored = false;
-          dbg.waitAuthored = false;
-          dbg.modelLate = 'authored handoff past the ceiling; landing after reveal';
-          console.warn('[intro] authored handoff past the ceiling; the phone keeps building after reveal');
-        } else {
-        // A failed source must not hold the app forever or swap geometry after
-        // release. Disable this replacement for the visit; a reload retries it.
-        window.APARTMENTS.on=false;
-        window.applySlopesApartments?.(map);
-        dbg.modelFallback='authored handoff timed out';
-        console.warn('[intro] authored handoff timed out; keeping legacy buildings for this visit');
-        }
+        // A deadline bounds the veil, not the lifetime of a healthy build.
+        // Keep the legacy scene visible until the authored group's normal
+        // atomic handoff. Busy desktops need the same recovery as phones.
+        waitAuthored = false;
+        dbg.waitAuthored = false;
+        dbg.modelLate = 'authored handoff past the ceiling; landing after reveal';
+        console.warn('[intro] authored handoff past the ceiling; keeping the build after reveal');
       }
       const g = gate();
       holds = g.missing.length ? 0 : holds + 1;

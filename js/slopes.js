@@ -338,6 +338,8 @@
     uniform float u_opacity;
     uniform float u_roof_shade;
     uniform float u_p;
+    uniform float u_materialP;
+    uniform float u_nightLamps;
     uniform float u_facet_on;
     uniform float u_facet_ambient;
     uniform float u_facet_lo;
@@ -356,9 +358,10 @@
     varying vec3 v_normal;
     varying vec4 v_surface;
     varying vec3 v_albedo;
+    varying vec3 v_night;
     void main() {
-      vec3 color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0)
-                                : mix(cGold, cNight, (u_p - 0.5) * 2.0);
+      vec3 color = (u_materialP <= 0.5) ? mix(cDay, cGold, u_materialP * 2.0)
+                                : mix(cGold, cNight, (u_materialP - 0.5) * 2.0);
       vec3 n = normalize(normal);
       float az = abs(n.z);
       // "Sloped" = carries no vertical gradient (aGrad.y == 0: roofs, domes,
@@ -383,8 +386,8 @@
         float flat_ = A + (1.0 - A) * max(0.0, sinE);
         float t = clamp((lit / max(flat_, 1e-4) - u_facet_lo) / (u_facet_hi - u_facet_lo), 0.0, 1.0);
         float m = mix(u_facet_lo, u_facet_hi, t);
-        color = (u_p <= 0.5) ? mix(cDay, cGold, u_p * 2.0) * m
-                             : mix(cGold * m, cNight, (u_p - 0.5) * 2.0);
+        color = (u_materialP <= 0.5) ? mix(cDay, cGold, u_materialP * 2.0) * m
+                             : mix(cGold * m, cNight, (u_materialP - 0.5) * 2.0);
         nl = vec3(0.0, 0.0, 1.0);
       }
       float colorvalue = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
@@ -403,7 +406,7 @@
       float k = sloped ? u_roof_shade : 1.0;
       v_color = vec4(lit * k, 1.0) * u_opacity;
       v_pos = position; v_normal = normal; v_surface = aSurface;
-      v_albedo = cDay;
+      v_albedo = cDay; v_night = cNight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
   const FRAG = `
@@ -412,12 +415,14 @@
     varying vec3 v_normal;
     varying vec4 v_surface;
     varying vec3 v_albedo;
+    varying vec3 v_night;
     uniform vec4 u_surfaceStyle;
     uniform vec3 u_surfaceRange;
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
     uniform vec4 u_surfaceHorizon;
     uniform float u_p;
+    uniform float u_nightWallAmbient;
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
@@ -426,6 +431,10 @@
       vec3 col=v_color.rgb;
       float kind=v_surface.x;
       col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0)*v_color.a;
+      col=mix(col,max(col,v_albedo*u_nightWallAmbient),u_cityNight.x*(1.0-step(3.5,kind)));
+      col=cityCrown(col,v_pos,v_normal);
+      col=cityLocalLight(col,v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0);
+      col=cityEmission(col,v_night,kind>3.5&&kind<5.5?1.0:0.0);
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=v_surface.w;
@@ -1064,6 +1073,9 @@
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
+      U.u_materialP.value=window.CityNight?.materialP(U.u_p.value)??U.u_p.value;
+      U.u_nightLamps.value=window.CityNight?.tune.on?window.CityNight.lamps(U.u_p.value):-1;
+      U.u_nightWallAmbient.value=window.CityNight?.tune.wallAmbient??0;
       const hour=U.u_p.value,sa=hexToRgb01(surf.sky[hour<=.5?0:1]),sb=hexToRgb01(surf.sky[hour<=.5?1:2]),st=hour<=.5?hour*2:(hour-.5)*2;
       U.u_surfaceSky.value.set(...sa.map((v,i)=>v+(sb[i]-v)*st));
       const sunlight=SLOPES.sunlight,body=window.skyBodies?.(hour)?.sun;
@@ -1260,11 +1272,19 @@
     _eye4 = new T.Vector4();
 
     U = {
+      // Subclasses copy the uniform dictionary before their first render.
+      // Allocate shared city values now so those copies keep the same holders.
+      u_citySkyFill:{value:new T.Vector2()},u_cityNight:{value:new T.Vector4()},
+      u_cityCrown:{value:new T.Vector4()},u_cityCrownColour:{value:new T.Vector4()},
+      ...Object.fromEntries(Array.from({length:8},(_,i)=>[
+        ['u_cityFixture'+i,{value:new T.Vector4()}],
+        ['u_cityFixtureColour'+i,{value:new T.Vector4()}],
+      ]).flat()),
       u_lightpos: { value: new T.Vector3(0, 0, 1) },
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
       u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
-      u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
+      u_materialP:{value:.5},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},
       u_sunsetColour:{value:new T.Vector3()},u_groundColour:{value:new T.Vector3()},

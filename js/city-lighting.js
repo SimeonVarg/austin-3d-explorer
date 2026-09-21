@@ -1,20 +1,26 @@
-/** Shared sunlight for the authored meshes AND MapLibre's city extrusions.
- * The adapter targets the pinned MapLibre 5.24 extrusion shader contracts.
+/** Shared lighting for authored meshes and MapLibre city layers.
+ * The adapter targets the pinned MapLibre 5.24 extrusion and ground-circle contracts.
  * It does not replace geometry, style filters, picking, LOD or texture atlases.
  * A changed upstream contract fails visibly in diagnostics instead of silently
  * reverting half the city. Both renderers consume the same GLSL and uniforms.
  */
 (function () {
   'use strict';
-  const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, failures:[], glassImages:0};
+  const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, poolPrograms:0, poolDraws:0, failures:[], glassImages:0};
   let frame=null, serial=0, fallbackShadow=null;
   // Pattern texels below this alpha are translucent overlays, not glass-coded
   // facade texels (which are 191..255). Anything between the two bands works.
   const OVERLAY_ALPHA=0.70;
+  // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
+  // Shared by both building renderers; zeroes reproduce the previous balance.
+  const balance={skyFill:0.12,roofFill:0.08};
   const uniforms = `
     uniform vec3 u_eye;
     uniform vec4 u_sunlight;
     uniform float u_glassStrength;
+    uniform vec2 u_citySkyFill;
+    uniform vec4 u_cityNight;
+    uniform vec4 u_cityCrown, u_cityCrownColour;
     uniform vec3 u_sunDirection, u_sunColour, u_shadeColour;
     uniform vec3 u_skyZenith, u_skyHorizon, u_sunsetColour, u_groundColour;
     uniform vec4 u_glassSun, u_reflectionSky;
@@ -22,10 +28,42 @@
     uniform sampler2D u_sunShadow0, u_sunShadow1;
     uniform mat4 u_sunShadowMatrix0, u_sunShadowMatrix1;
     uniform vec4 u_shadowSettings;
+    ${Array.from({length:8},(_,i)=>`uniform vec4 u_cityFixture${i}, u_cityFixtureColour${i};`).join('\n')}
   `;
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
+    vec3 fixtureLight(vec3 pos,vec3 normal,vec4 fixture,vec4 colour) {
+      if(fixture.w<=0.0)return vec3(0.0);
+      vec3 delta=fixture.xyz-pos;float dist=length(delta);
+      if(dist>=fixture.w)return vec3(0.0);
+      float falloff=1.0-dist/fixture.w;falloff*=falloff;
+      // Downlights: stop above the fixture and keep the beam off rear faces.
+      float cone=smoothstep(${window.CityNight?.tune.downlightCone[0]??-.05},${window.CityNight?.tune.downlightCone[1]??.25},delta.z/max(dist,.01));
+      return colour.rgb*colour.a*falloff*cone*max(0.0,dot(normal,delta/max(dist,.01)));
+    }
+    vec3 cityLocalLight(vec3 base,vec3 reflectance,vec3 pos,vec3 normal,float glass) {
+      if(u_cityNight.x<=0.0||glass>.5)return base;
+      vec3 light=vec3(0.0),n=normalize(normal);
+      ${Array.from({length:8},(_,i)=>`light+=fixtureLight(pos,n,u_cityFixture${i},u_cityFixtureColour${i});`).join('\n')}
+      return displayColour(linearColour(base)+linearColour(reflectance)*light*u_cityNight.x*(1.0-glass));
+    }
+    // A named architectural crown, bounded to its existing model footprint and
+    // height. Both renderers see the same volume; no screen-space glow decal.
+    vec3 cityCrown(vec3 base,vec3 pos,vec3 normal) {
+      if(u_cityNight.x<=0.0||u_cityCrown.w<=0.0)return base;
+      float footprint=1.0-step(u_cityCrown.w,length(pos.xy-u_cityCrown.xy));
+      float height=step(u_cityCrown.z,pos.z)*(1.0-step(u_cityCrownColour.w,pos.z));
+      if(footprint*height<=0.0)return base;
+      return mix(base,max(base,u_cityCrownColour.rgb*(${(window.CityNight?.crown.ambient??.4).toFixed(3)}+${(1-(window.CityNight?.crown.ambient??.4)).toFixed(3)}*max(0.0,dot(normalize(normal),normalize(vec3(${(window.CityNight?.crown.direction??[.3,-.6,.7]).join(',')})))))),footprint*height*u_cityNight.x);
+    }
+    // A window is a source, not a wall painted yellow under blue moonlight.
+    // Only semantically tagged glass / light fixtures enter this path.
+    vec3 cityEmission(vec3 base,vec3 source,float mask) {
+      if(u_cityNight.x<=0.0||mask<=0.0)return base;
+      float lit=smoothstep(u_cityNight.z,u_cityNight.w,dot(source,vec3(.2126,.7152,.0722)));
+      return mix(base,max(base,source*u_cityNight.y),u_cityNight.x*mask*lit);
+    }
     vec3 reflectedSky(vec3 r) {
       float height=smoothstep(0.0,u_reflectionSky.x,max(r.z,0.0));
       vec3 sky=mix(u_skyHorizon,u_skyZenith,height);
@@ -77,7 +115,8 @@
       vec3 n=normalize(normal),view=normalize(u_eye-pos);
       float facing=max(dot(n,u_sunDirection),0.0);
       float visibility=sunlightVisibility(pos,n);
-      vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*u_sunlight.y+
+      float skyFill=u_citySkyFill.x+u_citySkyFill.y*max(n.z,0.0);
+      vec3 diffuse=linearColour(albedo)*(linearColour(u_shadeColour)*(u_sunlight.y+skyFill)+
         linearColour(u_sunColour)*facing*visibility*u_sunlight.z);
       if(glass>0.0) {
         vec3 reflected=reflect(-view,n);
@@ -232,18 +271,35 @@
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
     gl.bindTexture(gl.TEXTURE_2D,oldTexture);
     const originals={},shaders=new WeakMap(),programs=new WeakMap(),locations=new WeakMap();
+    const groundLights=new Set(['night-streetlight-pool','night-streetlight-core',
+      'night-tower-pool-fill','entrances-pool','signs-ground-glow','props-lit','props-lit-core']);
+    const depthPool=id=>window.NIGHT_TUNE?.DEPTH_POOLS!==false&&groundLights.has(id);
+    const painter=map.painter,drawFunctions=painter.drawFunctions;
+    // MapLibre treats circles after its first 3D layer as painter-ordered 2D
+    // overlays, with depth testing disabled. A ground glow then crosses walls.
+    // These seven ground-light layers use the existing 3D depth range, read-only.
+    painter.drawFunctions={...drawFunctions,circle(...args){
+      const p=args[0],layer=args[2],original=p.getDepthModeForSublayer;
+      if(!depthPool(layer.id))return drawFunctions.circle(...args);
+      p.getDepthModeForSublayer=()=>({...p.getDepthModeFor3D(),mask:false});
+      try{return drawFunctions.circle(...args);}finally{p.getDepthModeForSublayer=original;}
+    }};
     let current=null;
     const fail=message=>{stats.failures.push(message);console.error('[city-lighting]',message);};
     const wrap=(name,fn)=>{originals[name]=gl[name];gl[name]=fn(originals[name].bind(gl));};
     const replace=(source,from,to)=>{
-      if(!source.includes(from))throw new Error('MapLibre extrusion shader contract changed: '+from);
+      if(!source.includes(from))throw new Error('MapLibre lighting shader contract changed: '+from);
       return source.replace(from,to);
     };
     const varying='vec3 v_cityPos; out vec3 v_cityNormal; out vec4 v_cityAlbedo;';
     wrap('shaderSource',native=>(shader,source)=>{
       let kind=null;
       try {
-        if(source.includes('in vec4 a_normal_ed;')) {
+        if(source.includes('uniform bool u_pitch_with_map;')&&source.includes('circle_center')) {
+          kind='pool-vertex';
+          source=source.replace(/void main\(\s*(?:void)?\s*\)/,'uniform float u_cityPoolLift; void main()');
+          source=replace(source,'float ele=get_elevation(circle_center);','float ele=get_elevation(circle_center)+u_cityPoolLift;');
+        } else if(source.includes('in vec4 a_normal_ed;')) {
           kind=source.includes('out vec4 v_lighting;')?'pattern-vertex':'solid-vertex';
           source=replace(source,'void main()',`uniform mat4 u_cityTileToLocal; out ${varying}\nvoid main()`);
           source=replace(source,'vec2 posInTile=a_pos+u_fill_translate;',`vec2 posInTile=a_pos+u_fill_translate;
@@ -271,8 +327,13 @@
             const output=pattern?`if(mixedColor.a<${OVERLAY_ALPHA.toFixed(3)}){fragColor=mixedColor*v_lighting;}else{
               float glass=clamp((1.0-mixedColor.a)*255.0/64.0,0.0,1.0);
               vec3 cityBase=mixedColor.rgb;
-              fragColor=vec4(cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass)*v_lighting.a,v_lighting.a);}`
-              :`fragColor=vec4(cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);`;
+              vec3 shaded=cityShade(cityBase*v_lighting.rgb/max(v_lighting.a,.0001),cityBase,v_cityPos,v_cityNormal,glass);
+              shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
+              shaded=cityLocalLight(shaded,min(cityBase*4.0,vec3(1.0)),v_cityPos,v_cityNormal,glass);
+              fragColor=vec4(cityEmission(shaded,cityBase,glass)*v_lighting.a,v_lighting.a);}`
+              :`vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
+              shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
+              fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);`;
             source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output);
             stats.fragmentShaders++;
           }
@@ -290,6 +351,10 @@
       const attached=gl.getAttachedShaders(program),kinds=attached.map(s=>shaders.get(s));
       if(!kinds.some(k=>k?.endsWith('-vertex')))return;
       if(!gl.getProgramParameter(program,gl.LINK_STATUS)){fail(gl.getProgramInfoLog(program));return;}
+      if(kinds.includes('pool-vertex')){
+        programs.set(program,{poolLift:gl.getUniformLocation(program,'u_cityPoolLift')});
+        stats.poolPrograms++;return;
+      }
       const u={};
       for(const name of [...uniforms.matchAll(/uniform \w+ ([^;]+);/g)].flatMap(m=>m[1].split(',').map(s=>s.trim())))u[name]=gl.getUniformLocation(program,name);
       u.u_cityTileToLocal=gl.getUniformLocation(program,'u_cityTileToLocal');
@@ -300,7 +365,7 @@
     });
     wrap('getUniformLocation',native=>(program,name)=>{
       const loc=native(program,name);
-      if(loc&&name==='u_projection_matrix'&&programs.has(program))locations.set(loc,programs.get(program));
+      if(loc&&name==='u_projection_matrix'&&programs.get(program)?.u)locations.set(loc,programs.get(program));
       return loc;
     });
     wrap('useProgram',native=>program=>{current=programs.get(program)||null;return native(program);});
@@ -317,6 +382,10 @@
     // them: Three and MapLibre both cache their own texture bindings.
     const units=[gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-2,gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)-1];
     function draw(native,args) {
+      if(current?.poolLift){
+        gl.uniform1f(current.poolLift,depthPool(painter.id)?(window.NIGHT_TUNE?.POOL_ELEVATION_M??0.25):0);
+        stats.poolDraws++;return native(...args);
+      }
       if(!current||!frame)return native(...args);
       const p=current,u=p.u;
       if(p.serial!==serial) {
@@ -353,10 +422,27 @@
         return native(id,bandGlassImage(id,image),...rest);
       };
     }
-    map.on('remove',()=>{for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
+    map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,glassRect,glassColour,install,stats,shadowProxy,
     setBuildings(features){buildings=features;proxyDirty=true;},
-    frame(U,inverse,textures){frame={U,inverse,textures:textures||[fallbackShadow,fallbackShadow]};serial++;}
+    frame(U,inverse,textures){
+      // Before either renderer draws. Materials retain this shared U object.
+      U.u_citySkyFill??={value:new THREE.Vector2()};
+      U.u_citySkyFill.value.set(balance.skyFill,balance.roofFill);
+      U.u_cityNight??={value:new THREE.Vector4()};
+      const night=window.CityNight,t=night?.tune;
+      U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));
+      const fixtures=t?.on&&U.u_cityNight.value.x>0?night.nearest(U.u_eye.value):[];
+      U.u_cityCrown??={value:new THREE.Vector4()};U.u_cityCrownColour??={value:new THREE.Vector4()};
+      const crown=t?.on?night.crown:null;
+      if(crown&&window.slopes){const pos=window.slopes.toLocal(...crown.center,0);U.u_cityCrown.value.set(pos.x,pos.y,crown.base,crown.radius);U.u_cityCrownColour.value.set(...crown.colour,crown.top);}
+      else U.u_cityCrown.value.set(0,0,0,0);
+      for(let i=0;i<8;i++){
+        const pos=U['u_cityFixture'+i]??={value:new THREE.Vector4()},col=U['u_cityFixtureColour'+i]??={value:new THREE.Vector4()},f=fixtures[i];
+        if(f){pos.value.set(...f.position,f.radius);col.value.set(...f.colour.map(c=>Math.pow(c,2.2)),f.power*(t.fixtureGain??1));}else{pos.value.set(0,0,0,0);col.value.set(0,0,0,0);}
+      }
+      frame={U,inverse,textures:textures||[fallbackShadow,fallbackShadow]};serial++;
+    }
   };
 })();

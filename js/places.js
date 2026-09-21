@@ -322,7 +322,7 @@
   /** The light at hour p, derived the way js/drag.js and js/facades.js derive it
    * so this module and the rest of the city agree about when dusk is. */
   function lightAt(p, wall) {
-    const night = Math.max(0, (p - 0.55) / 0.45);
+    const night = (window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.55) / 0.45));
     const sunElev = (typeof window.skyBodies === 'function')
       ? window.skyBodies(p).sun.elev : (0.5 - p) * 100;
     const dark = Math.max(night, Math.min(1, Math.max(0, -sunElev / 9)));
@@ -417,6 +417,7 @@
   // ── layers ──────────────────────────────────────────────────────────
   /** ['interpolate', p, wd, wg, wn] — the shape timeofday.js bakes with. */
   function bakedColor(p) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#888888'],

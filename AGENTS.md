@@ -188,3 +188,11 @@ and stadium exterior/wall visibility. Capture initial loading as well as settled
 day/night views. Substantial matched-camera before/after evidence is required;
 small cosmetic changes and prior passing tests do not establish acceptance.
 Work starts on `codex/campus-bug-ground-pass`. Existing bake ownership remains.
+
+## Downtown follow-up - September 21, 2026
+
+The next visual pass expands downtown beyond silhouette-only work: use the
+owner's local exterior references to improve night colour and building accuracy,
+with matched before/after views. Verify public building data before changing
+geometry. Reference links, photographs and private camera details stay local.
+This is queued after the current shared lighting pass; see `QUEUE.md`.

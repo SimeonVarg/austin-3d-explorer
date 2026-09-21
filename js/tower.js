@@ -637,6 +637,7 @@
   const css = (c, a) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a == null ? 1 : a})`;
 
   function rampAt(trio, p) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     return p <= 0.5 ? mix(hx(trio[0]), hx(trio[1]), p / 0.5)
                     : mix(hx(trio[1]), hx(trio[2]), (p - 0.5) / 0.5);
@@ -644,6 +645,7 @@
 
   /** ['interpolate', p, day, golden, night] — timeofday.js's own shape. */
   function bakedColor(p) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#cbc0aa'],

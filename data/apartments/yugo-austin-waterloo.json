@@ -3,8 +3,12 @@
   "id": "57d4d01d-0a57-4b46-b2a8-02fcaf77f81a",
   "name": "Yugo Austin Waterloo",
   "materials": {
-    "brick": "brick", "brickFrame": "brick", "brickLight": "brick",
-    "glass": "glass", "curtainGlass": "glass", "crownGlass": "glass"
+    "brick": "brick",
+    "brickFrame": "brick",
+    "brickLight": "brick",
+    "glass": "glass",
+    "curtainGlass": "glass",
+    "crownGlass": "glass"
   },
   "aliases": [
     "Waterloo",
@@ -291,7 +295,9 @@
       "mullionW": 0.08,
       "fascia": 0.3,
       "fasciaTone": "frameDark",
-      "_src": "the top two floors: a continuous green-teal glazed amenity band, slender mullions, dark cap (01, 02, crown-detail)"
+      "_src": "the top two floors: a continuous green-teal glazed amenity band, slender mullions, dark cap (01, 02, crown-detail)",
+      "nightOccupancy": 0.78,
+      "nightTone": "#d1e6df"
     },
     "blade": {
       "kind": "bays",
@@ -640,7 +646,8 @@
                   "z0": 96.4,
                   "dot": 0.19,
                   "gap": 0.2,
-                  "tone": "signBronze"
+                  "tone": "signBronze",
+                  "light": "#fff2d5"
                 }
               ]
             }
@@ -691,5 +698,33 @@
   "deck": {
     "z": 0,
     "items": []
+  },
+  "night": {
+    "occupancy": 0.32,
+    "unitBays": 2,
+    "note": "Night reference: dark blade, varied warm residential rooms, cooler amenity glazing and warm-white lettering. Occupancy is an approximate appearance setting, not a measured tenancy rate.",
+    "fixtures": [
+      {
+        "position": [
+          10,
+          5,
+          98
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      },
+      {
+        "position": [
+          23,
+          5,
+          98
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      }
+    ],
+    "fixtureNote": "Approximate amenity downlights on the authored roof/terrace. Position and falloff are appearance estimates; not surveyed fixture locations."
   }
 }

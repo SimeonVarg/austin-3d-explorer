@@ -1712,6 +1712,7 @@
 
   // ── pattern drawing ───────────────────────────────────────────────
   function lerpHexAt(bucket, p) {
+    p=window.CityNight?.materialP(p)??p;
     return p <= 0.5
       ? mix(bucket.wd, bucket.wg, p / 0.5)
       : mix(bucket.wg, bucket.wn, (p - 0.5) / 0.5);
@@ -1966,7 +1967,7 @@
     // already 8° below the horizon — measured as an INVERTED dusk silhouette
     // (sky luma 75.7 against wall 88.5), the city glowing against a darker sky.
     // Walls follow the sun; windows follow the hour.
-    const night = Math.max(0, (p - 0.55) / 0.45);
+    const night = (window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.55) / 0.45));
     const sunElev = (typeof window.skyBodies === 'function') ? window.skyBodies(p).sun.elev : (0.5 - p) * 100;
     const dark = Math.max(night, Math.min(1, Math.max(0, -sunElev / 9)));
     const golden = 1 - Math.abs(p - 0.5) / 0.5;     // peaks at golden hour
@@ -2145,10 +2146,10 @@
         ctx.fillStyle = css(mix(wall, [0, 0, 0], 0.30), 0.7 * (1 - dark * 0.6));
         ctx.fillRect(x, y - dkRow, g.w, dkRow);
 
-        const roll = hash01(seed, r, c);
+        const roll = hash01(seed, r, Math.floor(c / 2));
         const isLit = night > 0.05 && roll < occupancy;
         if (isLit) {
-          let tone = pickTone(hash01(seed + 1009, r, c) * warmBias);
+          let tone = pickTone(hash01(seed + 1009, r, Math.floor(c / 2)) * warmBias);
           const bRoll = hash01(seed + 2003, r, c);
           let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
           if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {
@@ -3366,6 +3367,7 @@
   /** The baked day/golden/night trio, ridden with the rest of the city rather
    * than inventing a second dusk. Same shape as js/drag.js's bakedColor. */
   function csColor(p) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#b7a98f'],

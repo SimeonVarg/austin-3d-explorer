@@ -504,6 +504,7 @@
    *  the shape js/places.js already uses, so this pass and the shopfronts agree
    *  about when dusk is. `night` may be an expression, not just ['get','wn']. */
   function ramp(p, night) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = clamp01(p);
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#888888'],
@@ -568,6 +569,7 @@
    * bright at night (that is the entire point of them). `mat` separates them.
    */
   function portalColor(p) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = clamp01(p);
     // There is no arithmetic on colours inside a style expression, so the mix
     // is done HERE, per stop, against the band tones the bake actually wrote —
@@ -606,6 +608,7 @@
    * entrances-wordmark against entrances-portal in the same frame.
    */
   function wordmarkColor(p, which) {
+    p = window.CityNight?.materialP(p) ?? p;
     const W = ENT.wordmark;
     const day = which === 'halo' ? W.dayHalo : W.dayColor;
     const night = which === 'halo' ? W.nightHalo : W.nightColor;

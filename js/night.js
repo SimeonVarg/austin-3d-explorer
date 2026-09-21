@@ -12,9 +12,8 @@
  *
  * Road geometry comes from `querySourceFeatures` on the Liberty basemap, which
  * only returns features for LOADED tiles — so generation waits for `idle` and
- * clips to the baked-buildings bounding box (the camera fence covers the same
- * area, so those tiles are resident at spawn). Points are computed once and
- * deduplicated on a metric grid, because tile borders return the same road
+ * clips to the city bounds rather than the campus-only building source.
+ * Nearby points accumulate as the camera moves and are deduplicated on a metric grid, because tile borders return the same road
  * twice.
  *
  * Public (window) API:
@@ -68,6 +67,11 @@
     DEDUPE_GRID_M: 28,        // no two lamps closer than ~this; also merges
                               // dual-carriageway twin lines into one lamp run
                               // (was 32)
+    VIEW_RADIUS_M: 2200,
+    PAVEMENT_POOLS: true,
+    DEPTH_POOLS: true,       // ground light shares the buildings' depth buffer
+    POOL_ELEVATION_M: 0.25,  // just above the 0.22 m pavement slabs
+    CITY_BOUNDS: {w:-97.80,s:30.24,e:-97.70,n:30.34},
     FENCE_PAD_M: 150,         // beyond the buildings bbox, streets stay dark
 
     // ── Warm everywhere; the "cooler" end is WHITER, never bluer ──────
@@ -143,21 +147,23 @@
     // Both apply to EVERY tier, because the fault is the fixture, not the road:
     // "not just on big roads any road with that big light".
     //
-    // One line each to overrule. 1.0 / 1.0 restores the PR #97 look exactly.
-    LAMP_DIM: 0.62,      // multiplies every lamp opacity below
-    LAMP_SPREAD: 1.5,    // multiplies every lamp's ground radius
+    // With emissive windows and citywide coverage, the previous .62 / 1.5
+    // flooded roads and spilled across the lake. Matched on/off captures
+    // retain local pools at .18 / .85 (docs/citywide-night.md).
+    LAMP_DIM: 0.18,      // multiplies every lamp opacity below
+    LAMP_SPREAD: 0.85,    // multiplies every lamp's ground radius
 
     // Pool: the soft ground glow. Core: the small bright lamp head inside it.
     // One warm colour per tier; the edge end is derived from it by `cooler()`.
-    COLOR_MAJOR_CORE: '#ffa63f',   // luma 177
-    COLOR_MINOR_CORE: '#ffbc6c',   // luma 197
-    COLOR_WALK_CORE:  '#ffcf90',   // luma 213
+    COLOR_MAJOR_CORE: '#efd6ad',
+    COLOR_MINOR_CORE: '#efdebf',
+    COLOR_WALK_CORE:  '#eee2cb',
     // The head was `#ffe6b4` (luma 232) — close enough to white that the middle
     // of every fixture went achromatic, and an achromatic hot centre inside a
     // warm ring is the exact signature of a sun. A sodium/3000K head is amber
     // all the way through, so the head now sits just above the walk tier's own
     // colour instead of on top of white.
-    HEAD_COLOR_CORE:  '#ffd79c',   // luma 218
+    HEAD_COLOR_CORE:  '#fff0d6',
     // These are the PEAK alphas at a lamp's centre, before LAMP_DIM. With the
     // blur at 1.0 they are reached only at the centre POINT, so the mean alpha
     // across a pool is far below the number here — which is the fade.
@@ -170,6 +176,7 @@
 
     // ── SIZE IS AUTHORED IN METRES ON THE GROUND, not in pixels ───────
     //
+    // Historical measurements below predate the .85 spread above.
     // The old curve was `[13, 2.8, 15, 7.5, 17, 19, 19.5, 44]` px, and a px
     // curve hides what it is asking for. Converted at this latitude it reads:
     //
@@ -365,7 +372,7 @@
   const SCENE_LAT = 30.285;
   const mPerPx = z => 156543.03392 * Math.cos(SCENE_LAT * Math.PI / 180) / Math.pow(2, z);
 
-  let _points = null;      // generated once
+  let _points = null;      // refreshed on travel; retained within the view radius
   let _tries = 0;
   let _lastP = 0;
 
@@ -411,33 +418,9 @@
     return ['interpolate', ['exponential', 1.7], ['zoom'], ...stops];
   }
 
-  /**
-   * ── THESE POOLS ONLY EVER REACH THE CARRIAGEWAY, AND THAT IS STRUCTURAL ──
-   *
-   * Measured layer order in the built style, and it is worth writing down
-   * because it explains why the fix above lights the ROAD and not the KERB:
-   *
-   *     116 ground-road (fill)              <- the carriageway, under the pools
-   *     134 night-streetlight-pool          <- here
-   *     138 buildings-shadow / 139 buildings-3d
-   *     144 ground-paths (fill-extrusion)   <- the PAVEMENT, OVER the pools
-   *     145 ground-paths-texture … 150 ground-depth
-   *
-   * The ground is not one layer, and half of it is drawn AFTER the buildings.
-   * A single light layer cannot be before the carriageway's half and after the
-   * pavement's half, so no position in this file lights both.
-   *
-   * Moving these three to just after the ground stack WAS tried and it works:
-   * the pavement lights up, and the aerial frame is unchanged because circle
-   * layers depth-test, so towers still occlude the pools behind them. It is
-   * NOT shipped, because `scripts/verify/night-lights.mjs` gates on
-   * `poolIdx < buildingsIdx` — a layer-INDEX assertion standing in for an
-   * occlusion property — and that file belongs to another lane. See HANDOFF:
-   * the pavement's light is waiting on that one assertion being re-expressed
-   * in pixels. `js/props.js` does make the move, because nothing gates the
-   * order of its walkway lamps, and a walkway lamp lighting the walkway it
-   * stands on is the right half of this to have.
-   */
+  // Streetlight pools originally preceded ground-paths and illuminated only
+  // carriageways. restackPools shares the props lamps' post-ground anchor;
+  // PAVEMENT_POOLS allows the occlusion/sidewalk comparison without reloading.
 
   // ── Colour. Warm core → whiter edge, at constant luma ─────────────────
   function hexToRgb(hex) {
@@ -459,6 +442,18 @@
   function cooler(hex, amount) {
     const c = hexToRgb(hex), L = luma(c);
     return toHex(c.map(v => v * (1 - amount) + L * amount));
+  }
+
+  let poolAnchor;
+  function restackPools(map) {
+    // The raised paths are above the original lamp layer. Draw ground light
+    // after those paths, before street furniture; building depth still occludes it.
+    const anchor = LIGHTS.PAVEMENT_POOLS
+      ? ['props-cons','props-line','props-furn','props-lamp','props-art'].find(id=>map.getLayer(id))
+      : ['buildings-shadow','buildings-3d'].find(id=>map.getLayer(id));
+    if(!anchor||anchor===poolAnchor)return;
+    for(const id of [POOL,CORE])if(map.getLayer(id))map.moveLayer(id,anchor);
+    poolAnchor=anchor;
   }
 
   function addLayers(map) {
@@ -544,28 +539,6 @@
     return 1 - u * u * (3 - 2 * u);
   }
 
-  function buildingsBbox(map) {
-    const src = map.getSource('austin-buildings');
-    if (!src) return null;
-    // In this MapLibre build `_data` is a truthy wrapper WITHOUT `.features`
-    // (measured), so take whichever candidate actually carries the geometry.
-    const data = [src._data, src.serialize && src.serialize().data]
-      .find(d => d && typeof d !== 'string' && d.features && d.features.length);
-    if (!data) return null;
-    let w = 180, s = 90, e = -180, n = -90;
-    const walk = cs => {
-      for (const c of cs) {
-        if (typeof c[0] === 'number') {
-          if (c[0] < w) w = c[0]; if (c[0] > e) e = c[0];
-          if (c[1] < s) s = c[1]; if (c[1] > n) n = c[1];
-        } else walk(c);
-      }
-    };
-    for (const f of data.features) if (f.geometry) walk(f.geometry.coordinates);
-    const padLng = LIGHTS.FENCE_PAD_M / mLon((s + n) / 2), padLat = LIGHTS.FENCE_PAD_M / M_LAT;
-    return { w: w - padLng, s: s - padLat, e: e + padLng, n: n + padLat };
-  }
-
   /** Place points every `spacing` metres along a coordinate array. */
   function sampleLine(coords, spacing, emit) {
     let rem = spacing * 0.5;
@@ -590,16 +563,16 @@
   // just leaves `_points` null and no log at all, which reads exactly like
   // "the tiles were not resident yet". Twenty minutes went into that once.
   // Anything that goes wrong in generation says so, loudly, from here on.
-  function generate(map) {
-    try { generateInner(map); }
+  function generate(map, extend=false) {
+    try { generateInner(map, extend); }
     catch (err) {
       console.error('[night] streetlight generation FAILED:', err && err.stack || err);
       window.__nightLights = { count: 0, error: String(err) };
     }
   }
 
-  function generateInner(map) {
-    if (_points) return;
+  function generateInner(map, extend=false) {
+    if (_points && !extend) return;
     const style = map.getStyle();
     const vecSrc = Object.keys(style.sources).find(id => style.sources[id].type === 'vector');
     if (!vecSrc) return;
@@ -608,18 +581,25 @@
     catch (err) { feats = []; }
     if (!feats || !feats.length) {
       // Tiles not resident yet — try again on a later idle.
-      if (++_tries <= LIGHTS.IDLE_RETRIES) map.once('idle', () => generate(map));
+      if (++_tries <= LIGHTS.IDLE_RETRIES) map.once('idle', () => generate(map, extend));
       else console.warn('[night] no transportation features found; streetlights skipped');
       return;
     }
 
-    const bbox = buildingsBbox(map);
+    _tries = 0;
+    const bbox = LIGHTS.CITY_BOUNDS;
     const headEdge = cooler(LIGHTS.HEAD_COLOR_CORE, LIGHTS.EDGE_DESAT);
-    const seen = new Set();
-    const features = [];
+    const center=map.getCenter();
+    const nearby=(lng,lat)=>Math.hypot((lng-center.lng)*mLon(center.lat),(lat-center.lat)*M_LAT)<LIGHTS.VIEW_RADIUS_M;
+    const features = _points ? _points.features.filter(f=>nearby(...f.geometry.coordinates)) : [];
+    const previousTotal=_points?.features.length??0;
+    const priorCount=features.length;
+    const gridKey=(lng,lat)=>Math.round(lng*mLon(lat)/LIGHTS.DEDUPE_GRID_M)+':'+Math.round(lat*M_LAT/LIGHTS.DEDUPE_GRID_M);
+    const seen = new Set(features.map(f=>gridKey(...f.geometry.coordinates)));
     let trimmed = false;
-    let warmSum = 0;
+    let warmSum = features.reduce((sum,f)=>sum+f.properties.w,0);
     const emitFor = pass => (lng, lat) => {
+      if(!nearby(lng,lat))return;
       if (bbox && (lng < bbox.w || lng > bbox.e || lat < bbox.s || lat > bbox.n)) return;
       const key = Math.round(lng * mLon(lat) / LIGHTS.DEDUPE_GRID_M) + ':' +
                   Math.round(lat * M_LAT / LIGHTS.DEDUPE_GRID_M);
@@ -669,6 +649,7 @@
       }
     }
 
+    if(_points&&features.length===priorCount&&features.length===previousTotal)return;
     _points = { type: 'FeatureCollection', features };
     const srcObj = map.getSource(SRC);
     if (srcObj) srcObj.setData(_points);
@@ -727,12 +708,18 @@
     // guards it) and re-arms its own retry if the tiles genuinely are not
     // resident yet, so an early timer attempt costs one cheap query.
     map.once('idle', () => generate(map));
+    // Discover roads when their tiles arrive after travelling out of campus.
+    // Existing points survive; one bounded refresh per move, no per-frame query.
+    let pending,coverageDirty=false;
+    map.on('moveend',()=>{coverageDirty=true;clearTimeout(pending);pending=setTimeout(()=>generate(map,true),800);});
+    map.on('idle',()=>{if(coverageDirty){coverageDirty=false;generate(map,true);}});
     setTimeout(() => generate(map), IDLE_FALLBACK_MS);
   };
 
   // Called from timeofday's heavy path. p: 0 day … 1 night.
   window.applyNightLayer = function applyNightLayer(map, p) {
     if (!map || !map.getLayer) return;
+    restackPools(map);
     _lastP = p == null ? _lastP : p;
     // One schedule for every artificial light in the scene — see LIGHTS above
     // and SKY_TUNE.DUSK in js/sky.js. The p-ramp is only reached if sky.js is

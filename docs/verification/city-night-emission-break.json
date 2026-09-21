@@ -1,0 +1,56 @@
+{
+  "when": "2026-09-21T08:58:22.302Z",
+  "site": "http://127.0.0.1:8461",
+  "broken": true,
+  "lite": true,
+  "checks": [
+    {
+      "name": "night sources preserve sunset pixels",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        },
+        "toggle": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        }
+      }
+    },
+    {
+      "name": "window emission changes the actual night image",
+      "ok": false,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        },
+        "effect": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        }
+      }
+    },
+    {
+      "name": "no browser or shader errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "perf": [],
+  "loaded": {
+    "buildMs": 129420.8,
+    "buildings": 196,
+    "group": true,
+    "intro": {
+      "reason": "ceiling",
+      "modelLate": "authored handoff past the ceiling; landing after reveal"
+    }
+  }
+}
