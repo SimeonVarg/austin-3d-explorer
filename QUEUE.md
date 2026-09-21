@@ -1,14 +1,6 @@
 # QUEUE — Acer lane
 
-## NEXT - Window stability and idle pauses (2026-09-21)
-
-Investigate middle/far window flicker and grazing-angle wall interference during
-idle rotation. Verify temporal stability and frame pauses in the actual city.
-PR #279 addresses fallback room variation and repeated CPU calculations; it does
-not establish that flicker or every pause is fixed. Preserve facade differences
-that belong to the buildings. Continue downtown reference work after this fix.
-
-## Downtown night fidelity from owner photographs (2026-09-21)
+## NEXT - Downtown night fidelity from owner photographs (2026-09-21)
 
 After the active sky-fill/night pass, use the owner's two newly supplied late-night
 rooftop photographs and the other owner photographs in the local reference folder
