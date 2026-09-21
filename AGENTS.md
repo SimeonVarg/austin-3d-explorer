@@ -206,3 +206,9 @@ pass. Keep building-specific facade designs while improving consistency of
 quality. Verify motion in the actual city at the affected distances and angles;
 a clean still image is insufficient evidence that flicker is fixed.
 
+
+The user supplied Union on 24th daylight examples on September 21: broad lines
+on a narrow wall and curved patterns on the wider face move vertically during
+rotation. Include this side-on daytime view in reproduction and acceptance;
+night emission tests alone do not cover the reported defect.
+
