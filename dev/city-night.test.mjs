@@ -1,0 +1,20 @@
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const context={window:{skyBodies:p=>({sun:{elev:6-(p-.5)*100},lamps:Math.max(0,Math.min(1,(p-.54)/.08))})},location:{search:''},URLSearchParams};
+vm.runInNewContext(readFileSync(new URL('../js/city-night.js',import.meta.url),'utf8'),context);
+const n=context.window.CityNight;
+n.register({id:'one',category:'apartment'});n.register({id:'two',category:'apartment'});
+assert.notEqual(n.profiles.get('one').occupancy,n.profiles.get('two').occupancy);
+assert.deepEqual(n.room('one|tower|east|skin',4,2),n.room('one|tower|east|skin',4,3));
+assert.deepEqual(n.room('one|tower|east|skin',4,2),n.room('one|tower|east|other-skin',4,2));
+assert.deepEqual(n.room('one|tower|east|skin',4,2),n.room('one|tower|east|skin',4,2));
+const floors=Array.from({length:30},(_,f)=>Array.from({length:30},(_,b)=>n.room('one|tower|east',f,b).lit).filter(Boolean).length);
+assert.ok(new Set(floors).size>5,'neighboring seeds must not produce identical occupancy stripes');
+for(let p=0;p<=.56;p+=.01)assert.equal(n.materialP(p),p);
+let last=0;for(let p=0;p<=1;p+=.001){const value=n.materialP(p);assert.ok(value>=last&&value<=1);last=value;}
+assert.equal(n.materialP(1),1);
+n.register({id:'empty',night:{occupancy:0}});assert.ok(Array.from({length:50},(_,b)=>!n.room('empty|x|n',2,b).lit).every(Boolean));
+n.registerFixtures({id:'one',night:{fixtures:[{position:[1,2,3]}]}},{at:(...p)=>p});assert.equal(n.nearest({x:0,y:0,z:0}).length,1);assert.equal(n.nearest({x:1000,y:0,z:0}).length,0);
+n.tune.on=false;assert.equal(n.materialP(.69),.69);
+console.log('PASS stable rooms, varied buildings and floors, skin continuity, daytime identity, monotonic dusk, fixture range');

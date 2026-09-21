@@ -1,5 +1,18 @@
 # QUEUE — Acer lane
 
+## NEXT - Downtown night fidelity from owner photographs (2026-09-21)
+
+After the active sky-fill/night pass, use the owner's two newly supplied late-night
+rooftop photographs and the other owner photographs in the local reference folder
+to improve downtown colour, lighting, and building geometry. Keep the original
+app rendering as a baseline, match each reference camera as closely as the evidence
+allows, and deliver substantial same-camera before/after screenshots. State any
+remaining camera mismatch. Research public building dimensions and facade/roof
+references where the comparison exposes inaccurate massing; validate footprint
+identity and acquisition dates before applying lidar heights. Private photo links,
+images, timestamps and exact viewpoints stay in the local reference folder.
+
+
 ## CAMPUS DETAIL PASS — SHIPPED 2026-08-27 (`docs/campus-detail-verdict.md`)
 
 The three pieces (entrances, facades, walkways) were integrated, re-measured on

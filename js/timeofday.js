@@ -78,7 +78,7 @@
       // roof #10121d renders #312c1b (measured), which put an olive tarp over
       // the whole night city. At ~0 the baked colours come through, and after
       // dark there's no sun to model anyway — the windows are the light source.
-      lightColor: '#8fa0e0', lightIntensity: 0.04, lightPosition: [1.4, 300, 60],
+      lightColor: '#adb4c4', lightIntensity: 0.04, lightPosition: [1.4, 300, 60],
       ground: '#090b12', park: '#0b120e', road: '#2a2519', roadCasing: '#0b0d13',
       water: '#070f1e',
       // "at night the trees are an ugly gray fix that." They were, and it is a
@@ -145,15 +145,15 @@
   const ROUTES = {
     sky: [
       [0.00, '#5d94cf'], [0.25, '#5a8ec6'], [0.40, '#5f7ba8'], [0.50, '#6a2a4a'],
-      [0.60, '#3a1c48'], [0.72, '#10173a'], [1.00, '#040713'],
+      [0.60, '#3a1c48'], [0.72, '#10173a'], [1.00, '#111820'],
     ],
     horizon: [
       [0.00, '#c8e0f0'], [0.25, '#d8e3ec'], [0.40, '#f4d2a6'], [0.50, '#ffb45e'],
-      [0.60, '#b0526a'], [0.72, '#3a4780'], [1.00, '#2c3a63'],
+      [0.60, '#b0526a'], [0.72, '#3a4780'], [1.00, '#29313c'],
     ],
     fog: [
       [0.00, '#c4dcee'], [0.25, '#d4e0ea'], [0.40, '#f2cfa2'], [0.50, '#ffb45e'],
-      [0.60, '#965460'], [0.72, '#33406e'], [1.00, '#3a4a72'],
+      [0.60, '#965460'], [0.72, '#33406e'], [1.00, '#2a3440'],
     ],
     skyBlend: [[0.00, 0.72], [0.40, 0.80], [0.50, 0.86], [0.72, 0.70], [1.00, 0.60]],
   };
@@ -173,7 +173,7 @@
     p = clamp01(p);
     let a, b, t;
     if (p <= 0.5) { a = PRESETS.day;    b = PRESETS.golden; t = p / 0.5; }
-    else          { a = PRESETS.golden; b = PRESETS.night;  t = (p - 0.5) / 0.5; }
+    else          { a = PRESETS.golden; b = PRESETS.night;  t = ((window.CityNight?.materialP(p)??p) - 0.5) / 0.5; }
     const out = {};
     for (const k of Object.keys(a)) {
       const av = a[k], bv = b[k];
@@ -206,6 +206,7 @@
   // Per-feature baked colour, blended for the current hour. The interpolate
   // input is the CONSTANT p — output still varies per feature via ['get'].
   function bakedColor(p, dayProp, goldenProp, nightProp) {
+    p=window.CityNight?.materialP(p)??p;
     p = clamp01(p);
     return ['interpolate', ['linear'], p,
       0,   ['to-color', ['get', dayProp],    '#888888'],
@@ -413,8 +414,11 @@
       // polar = 90 - elevation.
       let pos = s.lightPosition;
       if (typeof window.skyBodies === 'function') {
-        const sun = window.skyBodies(p).sun;
-        pos = [1.25, ((sun.az % 360) + 360) % 360, clamp01((90 - sun.elev) / 180) * 180];
+        const bodies = window.skyBodies(p), sun = bodies.sun;
+        const nightMix=window.CityNight?.tune.on?window.CityNight.smooth(-2,-8,sun.elev):0;
+        const az=sun.az+(bodies.moon.az-sun.az)*nightMix;
+        const elev=sun.elev+(Math.max(8,bodies.moon.elev)-sun.elev)*nightMix;
+        pos = [1.25, ((az % 360) + 360) % 360, clamp01((90 - elev) / 180) * 180];
       }
       map.setLight({ anchor:'map', color:s.lightColor, intensity:s.lightIntensity, position:pos });
     }

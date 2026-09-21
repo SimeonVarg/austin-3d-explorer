@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const source = fs.readFileSync(new URL('../../js/slopes-apartments.js', import.meta.url), 'utf8');
 const body = source.slice(source.indexOf('  function windowsFromBays('), source.indexOf('\n  /**', source.indexOf('  function windowsFromBays(')));
-const windows = new Function('APTS', 'h01', body + '\nreturn windowsFromBays;')({nightLit: 0.5}, () => 0.25);
+const windows = new Function('APTS', 'h01', 'window', body + '\nreturn windowsFromBays;')({nightLit: 0.5}, () => 0.25, {});
 const spec = {bay: 1.575, windowRule: 'checker', window: {w: 1, h: 1.65, sill: 0.7, frame: {w: 0.35, h: 0, tone: 'glass'}}};
 const ctx = {len: 12.6, z0: 0, z1: 11.2, floors: [0, 2.8, 5.6, 8.4], allFloors: [0, 2.8, 5.6, 8.4]};
 const generate = (s, c) => windows(s, c, {}, 'test');

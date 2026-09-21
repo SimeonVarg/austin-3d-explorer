@@ -499,6 +499,7 @@
   let _tileColours = null;   // image id -> {wd, wg, wn}, read from the baked data
 
   function lerpAt(trio, p) {
+    p = window.CityNight?.materialP(p) ?? p;
     return p <= 0.5 ? mix(trio.wd, trio.wg, p / 0.5) : mix(trio.wg, trio.wn, (p - 0.5) / 0.5);
   }
 
@@ -520,7 +521,7 @@
     // (sun-elevation-driven) drops the wall. Riding one schedule for both left
     // walls golden-lit while the sun was already 8 degrees below the horizon —
     // an inverted dusk silhouette, the city glowing against a darker sky.
-    const night = Math.max(0, (p - 0.55) / 0.45);
+    const night = (window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.55) / 0.45));
     const sunElev = (typeof window.skyBodies === 'function') ? window.skyBodies(p).sun.elev : (0.5 - p) * 100;
     const dark = Math.max(night, Math.min(1, Math.max(0, -sunElev / 9)));
     const golden = 1 - Math.abs(p - 0.5) / 0.5;
@@ -559,6 +560,7 @@
   // ── layers ─────────────────────────────────────────────────────────
   /** ['interpolate', p, day, golden, night] — the shape timeofday.js bakes with. */
   function tod(p) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', 'wd'], '#888888'],

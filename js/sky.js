@@ -69,6 +69,7 @@
   // Exposed as window.SKY_TUNE so any value can be overruled live from the
   // console with a one-line edit.
   const SKY_TUNE = {
+    CITY_STARS: 0.18, NIGHT_CLOUD_FADE: 0.62,
     // Clouds: each lobe's radial gradient is offset toward the lighting body
     // and falls off into a shaded base colour, so day clouds get a bright top
     // over a soft grey base and a low golden sun lights their undersides.
@@ -1338,6 +1339,10 @@
     const redraw = () => updateSky(map, _p);
     map.on('move', redraw);
     map.on('resize', redraw);
+    // Bloom must sample the completed GL frame. Sampling in updateSky (which
+    // runs before the map draws on a time/camera change) preserved the previous
+    // sunset glow over a night sky until the next input.
+    map.on('render',()=>{if(window.skyFrame&&typeof window.renderFX==='function')window.renderFX(map,window.skyFrame);});
     resize();
     redraw();
   };
@@ -1486,7 +1491,7 @@
       : p <= BELT.P1 ? (p - BELT.P0) / (BELT.P1 - BELT.P0)
       : 1 - (p - BELT.P1) / (BELT.P2 - BELT.P1);
 
-    const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
+    const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * SKY_TUNE.NIGHT_CLOUD_FADE);
     // The clouds are the one shared colour: they are lit by whatever is up, so
     // they cross-fade rather than switch (QUEUE Y20).
     const cloudLight = HO.ON ? mix(sunHalo, moonHalo, moonMix) : haloCol;
@@ -1764,7 +1769,7 @@
         const q = memoOn ? pvec(s.v) : project(s.az, s.elev);
         if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
         drawn++;
-        let a = B.stars * s.mag;
+        let a = B.stars * s.mag * SKY_TUNE.CITY_STARS;
         // Twinkle rides the existing redraw (camera moves, the auto cycle) —
         // deliberately NO dedicated loop, so a parked sky stays free and
         // simply holds still. Phase from the star's azimuth, rate from its
@@ -1899,19 +1904,16 @@
     // pass: registering its own map.on('move') would recompute an identical
     // projection and could land either side of this one, so god rays would lag
     // the sun by a frame while turning. Publishing the frame and calling
-    // straight through makes the ordering impossible to get wrong.
+    // after the completed map render keeps bloom synchronized with the scene.
     window.skyFrame = {
       W, H, dpr, horizonPx: hzPx,
       sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
       moonUp: useMoon, colour: coreCol, haloColour: haloCol,
       golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,
     };
-    if (typeof window.renderFX === 'function') window.renderFX(map, window.skyFrame);
+    // The render listener consumes this after MapLibre and the custom layers draw.
 
-    // G10. Note this INCLUDES renderFX (and therefore graphics.js's aeMeter),
-    // because that is what a caller actually pays for calling updateSky. The
-    // sky's own canvas pass is `ms - the post-process`, which graphics.js
-    // publishes separately.
+    // Sky preparation only; renderFX now runs after the completed map frame.
     const _ms = performance.now() - _t0;
     SKY_METER.calls++;
     SKY_METER.ms += _ms;

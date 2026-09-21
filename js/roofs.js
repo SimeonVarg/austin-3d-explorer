@@ -106,6 +106,7 @@
    * the ramp the rest of the scene uses.
    */
   function bakedColor(p) {
+    p = window.CityNight?.materialP(p) ?? p;
     p = clamp01(p);
     return ['interpolate', ['linear'], p,
       0,   ['to-color', ['get', 'rd'], '#8a8a82'],

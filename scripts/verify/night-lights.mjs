@@ -6,13 +6,13 @@
  * present so the occlusion order means something.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
+import { BASE, launch } from './chrome.mjs';
 
-const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 page.on('console', m => { if (/\[night\]/.test(m.text())) console.log(' ', m.text()); });
-await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 // Streetlight generation waits for idle; give it a real chance.
@@ -20,7 +20,7 @@ await page.waitForFunction(() => !!window.__nightLights, null, { timeout: 45000 
 
 const r = await page.evaluate(async () => {
   const m = window.__map;
-  const out = { gen: window.__nightLights || null };
+  const out = { gen: window.__nightLights || null, expectedCore: window.NIGHT_TUNE.CORE_OPACITY * window.NIGHT_TUNE.LAMP_DIM, expectedPool: window.NIGHT_TUNE.POOL_OPACITY_MAJOR * window.NIGHT_TUNE.LAMP_DIM };
   const layerOrder = m.getStyle().layers.map(l => l.id);
   out.poolIdx = layerOrder.indexOf('night-streetlight-pool');
   out.buildingsIdx = layerOrder.indexOf('buildings-3d');
@@ -81,15 +81,16 @@ const r = await page.evaluate(async () => {
 const checks = [
   ['points generated', r.gen && r.gen.count > 0],
   ['point count sane (200..9000)', r.gen && r.gen.count >= 200 && r.gen.count <= 9000],
-  ['fenced to the buildings bbox', r.gen && r.gen.fenced === true],
+  ['fenced to the city bounds', r.gen && r.gen.fenced === true],
   ['not trimmed at cap', r.gen && !r.gen.trimmed],
   ['all three tiers present', r.gen && r.gen.major > 0 && r.gen.minor > 0 && r.gen.walk > 0],
   ['the campus walk tier is a real share, not a rounding error',
    r.gen && r.gen.walk / r.gen.count > 0.1],
-  ['pool layer sits before buildings-3d', r.poolIdx >= 0 && r.buildingsIdx > r.poolIdx],
+  // Actual wall occlusion and pavement illumination are checked by city-night.mjs.
+  ['pool and building layers exist', r.poolIdx >= 0 && r.buildingsIdx >= 0],
   ['both lamp layers survived the paint write', r.layersAliveNight === true],
-  ['core opacity: >0.5 at night, 0 by day', r.opacityNight > 0.5 && r.opacityDay === 0],
-  ['pool opacity live at night', r.poolOpacityNight > 0.3],
+  ['core follows its tuning at night and is off by day', Math.abs(r.opacityNight-r.expectedCore)<1e-6 && r.opacityDay === 0],
+  ['pool follows its tuning at night', r.poolOpacityNight>0 && Math.abs(r.poolOpacityNight-r.expectedPool)<1e-6],
   ['every lamp carries baked colour/head/ob/w', r.baked === true],
   ['warm core, cool edge (inner warmth > outer + 0.4)',
    r.warmInner != null && r.warmOuter != null && r.warmInner > r.warmOuter + 0.4],

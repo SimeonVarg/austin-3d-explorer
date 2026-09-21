@@ -555,6 +555,7 @@
 
   /** ['interpolate', p, wd, wg, wn] — the same shape timeofday.js bakes with. */
   function bakedColor(p, d, g, n) {
+    p=window.CityNight?.materialP(p)??p;
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', d], '#888888'],

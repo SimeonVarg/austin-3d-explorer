@@ -1,0 +1,116 @@
+{
+  "when": "2026-09-21T09:02:32.870Z",
+  "site": "http://127.0.0.1:8461",
+  "broken": false,
+  "lite": true,
+  "checks": [
+    {
+      "name": "night sources preserve sunset pixels",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        },
+        "toggle": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        }
+      }
+    },
+    {
+      "name": "window emission changes the actual night image",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 187866,
+          "fraction": 0
+        },
+        "effect": {
+          "changed": 5890,
+          "n": 187866,
+          "fraction": 0.031352133967828134
+        }
+      }
+    },
+    {
+      "name": "DKR and shared shaders compile at twilight",
+      "ok": true,
+      "detail": {
+        "stadium": {
+          "done": true,
+          "sections": 88,
+          "rows": 4028,
+          "portals": 82,
+          "triangles": 118638,
+          "warnings": []
+        },
+        "nightClock": 1,
+        "failures": [],
+        "cityFailures": [],
+        "gl": 0
+      }
+    },
+    {
+      "name": "no browser or shader errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "perf": {
+    "rows": [
+      {
+        "rep": 0,
+        "on": false,
+        "ms": 41.0291666664804
+      },
+      {
+        "rep": 0,
+        "on": true,
+        "ms": 44.18333333327124
+      },
+      {
+        "rep": 1,
+        "on": true,
+        "ms": 42.625
+      },
+      {
+        "rep": 1,
+        "on": false,
+        "ms": 45.395833333333336
+      },
+      {
+        "rep": 2,
+        "on": false,
+        "ms": 39.42500000012418
+      },
+      {
+        "rep": 2,
+        "on": true,
+        "ms": 42.541666666666664
+      }
+    ],
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU (0x000025A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "viewport": [
+      393,
+      852
+    ],
+    "preset": "performance",
+    "renderScale": 0.75,
+    "cpuThrottle": 1,
+    "note": "One hardware browser; actual map.redraw plus gl.finish; one warmup pair discarded, three interleaved pairs. Isolates shared night sources at a fixed night scene, not total main-vs-branch cost."
+  },
+  "loaded": {
+    "buildMs": 117466.3,
+    "buildings": 196,
+    "group": true,
+    "intro": {
+      "reason": "ceiling",
+      "modelLate": "authored handoff past the ceiling; landing after reveal"
+    }
+  }
+}

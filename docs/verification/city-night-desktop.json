@@ -1,0 +1,194 @@
+{
+  "when": "2026-09-21T08:50:53.155Z",
+  "site": "http://127.0.0.1:8461",
+  "broken": false,
+  "lite": false,
+  "checks": [
+    {
+      "name": "night sources preserve sunset pixels",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 1296000,
+          "fraction": 0
+        },
+        "toggle": {
+          "changed": 0,
+          "n": 1296000,
+          "fraction": 0
+        }
+      }
+    },
+    {
+      "name": "window emission changes the actual night image",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 1296000,
+          "fraction": 0
+        },
+        "effect": {
+          "changed": 55691,
+          "n": 1296000,
+          "fraction": 0.04297145061728395
+        }
+      }
+    },
+    {
+      "name": "DKR and shared shaders compile at twilight",
+      "ok": true,
+      "detail": {
+        "stadium": {
+          "done": true,
+          "sections": 88,
+          "rows": 4028,
+          "portals": 82,
+          "triangles": 118638,
+          "warnings": []
+        },
+        "nightClock": 1,
+        "failures": [],
+        "cityFailures": [],
+        "gl": 0
+      }
+    },
+    {
+      "name": "street lamps illuminate ground without painting over walls",
+      "ok": true,
+      "detail": {
+        "control": {
+          "changed": 0,
+          "n": 1296000,
+          "fraction": 0
+        },
+        "overlayWalls": [
+          {
+            "changed": 877,
+            "n": 47817,
+            "fraction": 0.018340757471192255
+          },
+          {
+            "changed": 0,
+            "n": 32760,
+            "fraction": 0
+          }
+        ],
+        "source": {
+          "changed": 607829,
+          "n": 1296000,
+          "fraction": 0.46900385802469136
+        },
+        "walls": [
+          {
+            "changed": 0,
+            "n": 47817,
+            "fraction": 0
+          },
+          {
+            "changed": 0,
+            "n": 32760,
+            "fraction": 0
+          }
+        ],
+        "pavement": {
+          "changed": 18538,
+          "n": 1296000,
+          "fraction": 0.014304012345679013
+        },
+        "order": [
+          "ground-paths-casing",
+          "ground-paths",
+          "ground-paths-texture",
+          "night-streetlight-pool",
+          "night-streetlight-core",
+          "props-cons"
+        ]
+      }
+    },
+    {
+      "name": "wall check detects disabled depth testing",
+      "ok": true,
+      "detail": [
+        {
+          "changed": 877,
+          "n": 47817,
+          "fraction": 0.018340757471192255
+        },
+        {
+          "changed": 0,
+          "n": 32760,
+          "fraction": 0
+        }
+      ]
+    },
+    {
+      "name": "raised pavements receive the lamp layer",
+      "ok": true,
+      "detail": {
+        "changed": 18538,
+        "n": 1296000,
+        "fraction": 0.014304012345679013
+      }
+    },
+    {
+      "name": "no browser or shader errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "perf": {
+    "rows": [
+      {
+        "rep": 0,
+        "on": false,
+        "ms": 93.88749999987583
+      },
+      {
+        "rep": 0,
+        "on": true,
+        "ms": 101.23750000012417
+      },
+      {
+        "rep": 1,
+        "on": true,
+        "ms": 95.92916666654249
+      },
+      {
+        "rep": 1,
+        "on": false,
+        "ms": 99.06666666672875
+      },
+      {
+        "rep": 2,
+        "on": false,
+        "ms": 104.51666666691501
+      },
+      {
+        "rep": 2,
+        "on": true,
+        "ms": 100.78750000024836
+      }
+    ],
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU (0x000025A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "viewport": [
+      1440,
+      900
+    ],
+    "preset": "balanced",
+    "renderScale": 1,
+    "cpuThrottle": 1,
+    "note": "One hardware browser; actual map.redraw plus gl.finish; one warmup pair discarded, three interleaved pairs. Isolates shared night sources at a fixed night scene, not total main-vs-branch cost."
+  },
+  "loaded": {
+    "buildMs": 136548.5,
+    "buildings": 196,
+    "group": true,
+    "intro": {
+      "reason": "ceiling",
+      "modelLate": "authored handoff past the ceiling; landing after reveal"
+    }
+  }
+}

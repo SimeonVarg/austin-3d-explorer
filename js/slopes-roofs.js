@@ -1011,7 +1011,7 @@
   function capWrap(inner) {
     const tone = ROOFS.capShade.tone;
     const p = (Array.isArray(inner) && inner[0] === 'interpolate' && typeof inner[2] === 'number') ? inner[2]
-            : (typeof window.__todCurrentP === 'number' ? clamp01(window.__todCurrentP) : 0.5);
+            : (typeof window.__todCurrentP === 'number' ? clamp01(window.CityNight?.materialP(window.__todCurrentP) ?? window.__todCurrentP) : 0.5);
     const ch = (prop, i) => ['*', tone, ['at', i, ['to-rgba', ['to-color', ['get', prop], '#888888']]]];
     const col = prop => ['rgb', ch(prop, 0), ch(prop, 1), ch(prop, 2)];
     const shade = ['interpolate', ['linear'], p, 0, col('wd'), 0.5, col('wg'), 1, col('wn')];

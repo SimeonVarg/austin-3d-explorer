@@ -3876,5 +3876,30 @@
     "The pool, the grill pergola and the dog run's extents are inferred from the amenity photographs' proportions, not measured on a plan. Their tones and their existence are sourced; their metres are not.",
     "The floorplate topology is visible in construction imagery; exact final setbacks and amenity layouts remain derived. Unphotographed elevations repeat the photographed facade module.",
     "Fine metal seam spacing and curved corner details remain approximate."
-  ]
+  ],
+  "night": {
+    "fixtures": [
+      {
+        "position": [
+          8,
+          27,
+          25
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      },
+      {
+        "position": [
+          24,
+          27,
+          25
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      }
+    ],
+    "fixtureNote": "Approximate amenity downlights on the authored roof/terrace. Position and falloff are appearance estimates; not surveyed fixture locations."
+  }
 }

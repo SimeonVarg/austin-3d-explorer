@@ -1354,5 +1354,50 @@
     "slabTone": "courtFlute",
     "railTone": "courtFrame",
     "_src": "The corner stacks' slabs: the critic's reference frame, scratchpad apts/judge/union/A_tower.png (Google Earth 3D at the sw pose: center -97.74525 30.287604, bearing 45, tilt 55, d=280), 2026-09-06 corner_zoom shows each floor's slab as a light band about a quarter of the floor pitch tall (0.61 of 3.26 - the slab and its solid upstand read as one light mass, as 21 Rio's do) with a thin dark rail on top; the projection 1.2 m is a read at the corner, not a measurement (the stack is edge-on to this camera)."
+  },
+  "night": {
+    "fixtures": [
+      {
+        "position": [
+          27,
+          18,
+          102
+        ],
+        "colour": "#e8f0e8",
+        "radius": 15,
+        "power": 1.6
+      },
+      {
+        "position": [
+          51,
+          27,
+          102
+        ],
+        "colour": "#e8f0e8",
+        "radius": 15,
+        "power": 1.6
+      },
+      {
+        "position": [
+          30,
+          33,
+          23
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      },
+      {
+        "position": [
+          49,
+          33,
+          23
+        ],
+        "colour": "#fff0da",
+        "radius": 15,
+        "power": 1.6
+      }
+    ],
+    "fixtureNote": "Approximate amenity downlights on the authored roof/terrace. Position and falloff are appearance estimates; not surveyed fixture locations."
   }
 }

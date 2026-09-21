@@ -244,6 +244,7 @@
   const rgb2hex = (r,g,b) => '#' + [r,g,b].map(v =>
     Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
   function pick(triple, p) {
+    p = window.CityNight?.materialP(p) ?? p;
     const a = p <= 0.5 ? triple[0] : triple[1];
     const b = p <= 0.5 ? triple[1] : triple[2];
     const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
@@ -493,7 +494,8 @@
 
     // Lamps come on through dusk on the same ramp as night.js's streetlights,
     // so the two tiers arrive together rather than in two visible waves.
-    const t = clamp01((p - PROPS.nightStart) / (PROPS.nightFull - PROPS.nightStart));
+    const t = window.CityNight?.tune.on ? window.CityNight.lamps(p)
+      : clamp01((p - PROPS.nightStart) / (PROPS.nightFull - PROPS.nightStart));
     set(LIT, 'circle-opacity', PROPS.litOpacity * t);
     set(LIT_CORE, 'circle-opacity', PROPS.litCoreOpacity * t);
   };

@@ -1088,8 +1088,11 @@
     // this a bloom and not a haze — without the crush, shadows lift as much as
     // highlights.
     if (wantBloom) {
-      const bh = Math.max(48, Math.round(BLOOM_W * F.H / Math.max(1, F.W)));
-      if (bloomCv.width !== BLOOM_W || bloomCv.height !== bh) { bloomCv.width = BLOOM_W; bloomCv.height = bh; }
+      const nt=window.CityNight?.tune;
+      const night=nt?.on?window.CityNight.lamps(window.__todCurrentP??.5):0;
+      const bw=Math.round(BLOOM_W+((nt?.bloomWidth??BLOOM_W)-BLOOM_W)*night);
+      const bh = Math.max(48, Math.round(bw * F.H / Math.max(1, F.W)));
+      if (bloomCv.width !== bw || bloomCv.height !== bh) { bloomCv.width = bw; bloomCv.height = bh; }
       const a = GFX.bloom;
       // `contrast(4)` maps out = 4*in - 1.5, so after `brightness(t)` only inputs
       // above 0.375/t survive at all. That threshold is the difference between a
@@ -1103,13 +1106,15 @@
       //               that checks day and golden separately.
       // ~0.48 keeps the top fifth of the range. The bleaching turned out to be
       // the alpha (0.89, now 0.4), not the threshold.
-      const thr = 0.50 - 0.04 * a;
-      const blur = (2.2 + 4.0 * a).toFixed(2);   // in 256-px space: ~10x that on screen
+      const dayThreshold=0.50-0.04*a;
+      const thr=dayThreshold+((nt?.bloomBrightness??dayThreshold)-dayThreshold)*night;
+      const dayBlur=2.2+4.0*a;
+      const blur=(dayBlur+((nt?.bloomBlur??dayBlur)-dayBlur)*night).toFixed(2);   // in 256-px space: ~10x that on screen
       bloomCtx.setTransform(1, 0, 0, 1, 0, 0);
       bloomCtx.globalCompositeOperation = 'source-over';
-      bloomCtx.clearRect(0, 0, BLOOM_W, bh);
+      bloomCtx.clearRect(0, 0, bw, bh);
       bloomCtx.filter = `brightness(${thr.toFixed(2)}) contrast(4) saturate(1.3) blur(${blur}px)`;
-      try { bloomCtx.drawImage(mapCanvas, 0, 0, BLOOM_W, bh); } catch (e) { bloomOK = false; }
+      try { bloomCtx.drawImage(mapCanvas, 0, 0, bw, bh); } catch (e) { bloomOK = false; }
       bloomCtx.filter = 'none';
       // 0.45 + 0.75a put cinematic at 0.89 and buried the city under its own
       // highlights. Bloom is a highlight lift, not a second exposure.
