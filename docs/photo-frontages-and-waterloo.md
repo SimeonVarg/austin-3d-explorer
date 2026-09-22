@@ -70,6 +70,11 @@ The harness and index load the same 46 scripts. Flat upper sign bands and the
 retained blank blade still produce the existing floor-alignment diagnostics;
 they intentionally contain no upper windows.
 
+The GitHub data workflow passed and added its September 22 snapshot. Its raw,
+enriched, rendered-building and rendered-part JSON are identical as parsed data
+to September 20; roof anchors change only their snapshot label. The date change
+does not introduce additional building geometry into this frontage pass.
+
 Shop dimensions and Waterloo's terrace split/windscreen height are exterior-photo
 estimates, not surveyed dimensions. The glass windscreen uses the existing
 reflective glazing material, without physically transparent refraction. Rooftop
