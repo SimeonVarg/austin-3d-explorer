@@ -910,16 +910,24 @@
   function installRoofUndersides(map, gj) {
     const roofs = gj.features.filter(f => f.properties.b === 'gdc' &&
       f.properties.cap === 1 && f.geometry.type === 'Polygon');
-    let group = null, tries = 0;
+    let group = null, tries = 0, timer = null, removed = false;
+    map.once('remove', () => {
+      removed = true;
+      clearTimeout(timer);
+      if (group) {
+        window.slopes.remove(group);
+        group.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
+        group = null;
+      }
+    });
     const apply = () => {
       const S = window.slopes, T = window.THREE;
-      if (!S?.root || !T) return;
+      if (removed || !S?.root || !T) return;
       if (!window.SLOPES.on || !HEROES.on) {
         if (group) S.remove(group);
-        group = null;
         return;
       }
-      if (group) return;
+      if (group) { if (!group.parent) S.add(group); return; }
       const B = S.build();
       for (const f of roofs) {
         const p = f.properties;
@@ -940,8 +948,9 @@
       map.triggerRepaint();
     };
     const boot = () => {
+      if (removed) return;
       if (!window.slopes?.root) {
-        if (++tries < 500) return setTimeout(boot, 120);
+        if (++tries < 500) { timer = setTimeout(boot, 120); return; }
         if (window.SLOPES?.on) console.warn('[heroes] roof underside renderer unavailable');
         return;
       }
