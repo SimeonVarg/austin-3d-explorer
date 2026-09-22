@@ -253,19 +253,25 @@
       proxyMap=map;
       map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId))proxyDirty=true;});
       map.on('moveend',()=>{proxyDirty=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
     const built=window.slopesApartments?.count.buildings||0;
     if(proxyBuilt!==built)proxyDirty=true;
     if(proxyDirty&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>{
-      proxyTimer=null;proxyDirty=false;proxyBuilt=built;
+      proxyTimer=null;
+      // A restored context briefly has no style while MapLibre rebuilds it.
+      // Keep the rebuild pending; neither discard the existing proxy nor read
+      // layers until the replacement style is available.
+      const style=map.getStyle()?.layers;
+      if(!style){proxyDirty=true;return;}
+      proxyDirty=false;proxyBuilt=built;
       const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
       const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
       const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
       const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
       // The displayed base layer suppresses parent prisms with detailed parts,
       // and replaced prisms by id (see casterSources).
-      const style=map.getStyle().layers,hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
+      const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
       const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
       stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
       for(const source of casterSources) {

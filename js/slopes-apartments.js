@@ -2556,9 +2556,19 @@
   // half-second, causing periodic pauses during otherwise steady camera motion.
   let _expectedFilters = null;
   let _filterChecks = new WeakMap();
+  const _removedMaps = new WeakSet(), _watchedMaps = new WeakSet();
+  let _lateTimer = null, _bootTimer = null, _pendingApply = false;
+  const _fetchTimers = new Set();
+  let _fetchClosed = false;
+  function mapStyleAvailable(map = _map) {
+    // MapLibre clears its public style reference during context recovery.
+    // isStyleLoaded() also waits for sources, which must NOT block installing
+    // replacement filters while tiles are loading. No getStyle() serialization.
+    return !!map && !_removedMaps.has(map) && (!('style' in map) || !!map.style);
+  }
   /** Existing planned layers that have lost our clause. */
   function filtersMissing() {
-    if (!_map || !_data) return [];
+    if (!mapStyleAvailable() || !_data) return [];
     const missing = [];
     for (const [id, clause] of (_expectedFilters || filterPlan())) {
       const layer = _map.getLayer(id);
@@ -2596,7 +2606,8 @@
   }
   function setFilters(on) {
     const map = _map;
-    if (!map) return;
+    if (!mapStyleAvailable(map)) { _pendingApply = true; return; }
+    _pendingApply = false;
     const plan = filterPlan();
     _expectedFilters = plan;
     _filterChecks = new WeakMap();
@@ -2675,6 +2686,7 @@
   // authored name with its mesh, and restore the snapshot label with fallback.
   const _labelFields = new Map();
   function setLabels(on) {
+    if (!mapStyleAvailable()) { _pendingApply = true; return; }
     const entries = on ? _data.buildings.filter(b => b.labelOverride && b.id).flatMap(b => [b.id, b.name]) : [];
     for (const id of ['buildings-labels-major', 'buildings-labels-mid', 'buildings-labels']) {
       if (!_map.getLayer(id)) continue;
@@ -2714,7 +2726,7 @@
   }
   window.applySlopesApartments = function applySlopesApartments(map) {
     map = map || _map;
-    if (!map || !_data) return;
+    if (!map || _removedMaps.has(map) || !_data) return;
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
     if (want && !_group && !_building) { startBuild(map); }
@@ -2728,6 +2740,7 @@
 
   window.slopesApartments = {
     readyToReveal() {
+      if (!mapStyleAvailable()) return false;
       if(!count.done)return false;
       if(_building)return false;   // time-sliced build still in flight
       if(!_group)return true; // explicit fetch failure keeps the fallback usable
@@ -2773,7 +2786,8 @@
     let timer;
     return Promise.race([S.fetchJSON(url),new Promise((_,reject)=>{
       timer=setTimeout(()=>reject(new Error(url+': model download timed out')),APTS.fetchTimeoutMs);
-    })]).finally(()=>clearTimeout(timer));
+      _fetchTimers.add(timer);
+    })]).finally(()=>{ clearTimeout(timer); _fetchTimers.delete(timer); });
   }
   // Start the 41 downloads the moment js/slopes.js can fetch, not when the
   // building layers exist: measured 2026-09-15 they began at 7.5 s and ended at
@@ -2782,6 +2796,7 @@
     if (_fetching) return _fetching;
     _fetching = (async () => {
           const idx = await fetchModel(S,APTS.index);
+          if (_fetchClosed) return replacementCatalog(idx, [], []);
           // Fetch independent files together; serial fetches left obsolete models visible.
           const [individual, bundles] = await Promise.all([
             Promise.all((idx.buildings || []).map(async f => {
@@ -2800,20 +2815,38 @@
         })();
     return _fetching;
   }
+  function watchMapRemoval(map) {
+    if (_watchedMaps.has(map)) return;
+    _watchedMaps.add(map);
+    map.once('remove', () => {
+      _removedMaps.add(map);
+      _fetchClosed = true;
+      clearTimeout(_lateTimer); clearInterval(_bootTimer);
+      _lateTimer = _bootTimer = null;
+      for (const timer of _fetchTimers) clearTimeout(timer);
+      _fetchTimers.clear();
+      _building = null; // a pending build disposes itself instead of attaching
+      dropGroup();
+      _map = null;
+    });
+  }
   async function boot() {
     const map = window.__map, S = window.slopes;
+    if (map && _removedMaps.has(map)) return true;
+    if (map) watchMapRemoval(map);
     if (S && S.fetchJSON) startFetch(S);
     if (!map || !S || !S.root) return false;
     _map = map;
     if (!_data) {
       try { _data = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
     }
+    if (_removedMaps.has(map)) return true; // fetch completed after removal
     // The mesh needs data and a scene root, not the building layers: start it
     // now (measured 2026-09-15: waiting for the layers put the build at ~9 s
     // instead of ~2.5 s). The filters that hide the legacy prisms wait for the
     // layers below, as before.
     if (window.SLOPES.on && APTS.on && !_group && !_building) startBuild(map);
-    if (!map.getLayer('buildings-3d')) return false;
+    if (!mapStyleAvailable(map) || !map.getLayer('buildings-3d')) return false;
     if (window.WESTCAMPUS && window.WESTCAMPUS.on && !map.getLayer('wc-wall') && !window.__wcSkipped) return false;
     S.onSwitch(() => window.applySlopesApartments(map));
     // after any pass that rewrites a layer we filter — the slopes settings,
@@ -2834,15 +2867,18 @@
     // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
     // fetch) gets its clause when it appears, and a pass that has not been
     // hooked above (it booted after us) has its rewrite undone: a light poll,
-    // every 150 ms for the first minute, then every second for five
+    // every 500 ms for the first minute, then every second for four
     (function late() {
       let n = 0;
       const tick = () => {
+        if (_removedMaps.has(map)) return;
         n++;
         // Keep watching for late/replaced layers. Unchanged layer/filter
         // references are cheap; only changed filters need a deep check.
         if (n > 120 + 240) return;
-        setTimeout(tick, n < 120 ? 500 : 1000);
+        _lateTimer = setTimeout(tick, n < 120 ? 500 : 1000);
+        if (!mapStyleAvailable(map)) return;
+        if (_pendingApply) window.applySlopesApartments(map);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
         setLabels(true);
         for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
@@ -2856,7 +2892,7 @@
   (function poll() {
     if (new URLSearchParams(location.search).get('slopes') === '0') return;   // the layer is out; so is this
     let n = 0, busy = false;
-    const t = setInterval(async () => {
+    const t = _bootTimer = setInterval(async () => {
       if (busy) return;
       busy = true;
       let done = false;
