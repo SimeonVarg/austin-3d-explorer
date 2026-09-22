@@ -256,3 +256,13 @@ courtyard, Waterline, Sixth and Guadalupe, Wukasch/Barefoot, and University
 Co-op. Implementation proceeds on `codex/photo-five-realism`; the selection
 checkpoint above is satisfied for these five. Preserve the full photo backlog
 and require substantial matched application views before claiming completion.
+
+## Next photo pass - September 22, 2026
+
+The user approved continuing with GDC, Welch's remaining angles, and connected
+Guadalupe/apartment coverage. Prioritize materials, window depth, entrances and
+surrounding detail. Use bounded agents with separate file ownership. Follow this
+photo pass with physical-phone performance/reliability checks before substantial
+additional geometry; desktop emulation does not establish physical-phone results.
+Glare and idle-spin work remain later. The new implementation branch is
+`codex/campus-photo-depth`.
