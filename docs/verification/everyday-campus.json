@@ -168,7 +168,14 @@
     "Photographic views are approximate, not calibrated",
     "Physical phone not tested",
     "Sutton view elevated; Goldsmith close views use 1.7m eye",
-    "Facade warning inventory predates this pass; no console errors",
+    "507 facade warnings in both arms; one Goldsmith trim warning changes with the cornice height (trim has no intended windows); no console errors",
     "Goldsmith pavilion/loggia and clerestory remain unresolved"
-  ]
+  ],
+  "ci": {
+    "run": 35704290561,
+    "codeCommit": "63aca22c76f27b4412d10be3466c48799be0467e",
+    "result": "success",
+    "generatedChanges": false
+  },
+  "previewBrowser": "Not validated: Vercel authentication page"
 }
