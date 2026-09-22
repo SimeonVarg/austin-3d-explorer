@@ -239,3 +239,13 @@ Use bounded subagents where useful. Photo sources, private camera metadata and
 owner imagery remain local. Existing shipped work is a baseline, not grounds to
 remove remaining visual acceptance tasks. Older routing/import/Drag work remains
 parked. Do not resume motion work ahead of this order without a new direction.
+
+## Photo realism acceptance - September 21, 2026
+
+The user rejected the visual fidelity of PR #281. Blocky traced lettering and
+simplified storefront surfaces do not satisfy photo matching. A passing build
+or a changed silhouette is not visual acceptance: preserve actual sign shapes,
+material character, depth, glazing and the surrounding architectural detail.
+Before the next implementation, select five owner photos with the strongest
+current-city mismatches and show the choices to the user. Await feedback before
+starting work on those five. Keep the photographs and source identities private.
