@@ -82,7 +82,7 @@
     facadeFilter:{
       // Bounded desktop rollout; physical phone memory acceptance is open.
       on:q.has('facadefilter')?q.get('facadefilter')==='1':!window.LITE_PROFILE?.on,
-      buildings:['Union on 24th','21 Rio'],
+      buildings:['Union on 24th','21 Rio','The Standard','Villas on Rio','Yugo Austin Waterloo'],
       fadeStart:.3,fadeEnd:.8,nightFadeStart:.4,nightFadeEnd:.5,minArea:40,
       texelMetres:.25,maxDimension:256,maxBytes:16*1024*1024,anisotropy:4
     },
@@ -783,27 +783,11 @@
       }
     }
     if(filterRects&&filterRects.length>1) {
-      const filtered=window.FacadeFilter.createFace({THREE:window.THREE,rects:filterRects,len,z0,z1,options:APTS.facadeFilter});
-      if(filtered) {
-        filtered.len=len;filtered.z0=z0;filtered.z1= z1;
-        let geom,mat;
-        try {
-          const T=window.THREE,S=window.slopes,fb=S.build();
-          faceQuad(fb,W,0,len,z0,z1,0,filterRects[0][4]);
-          geom=fb.geometry();
-          geom.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
-          mat=S.facadeMaterial(filtered,APTS.facadeFilter);
-          const m=new T.Mesh(geom,mat);
-          m.name='filtered-facade';
-          m.userData.facadeFace=filtered;
-          m.userData.disposeFacade=()=>{filtered.dispose();mat.dispose();};
-          B.filtered.push(m);
-        } catch(e) {
-          // Until attached, no group disposal can reach these allocations.
-          filtered.dispose();geom?.dispose();mat?.dispose();
-          throw e;
-        }
-      }
+      const face={W,len,z0,z1,rects:filterRects};
+      // Plan the selected facades together: early buildings must not consume
+      // the texture allowance and silently exclude later ones.
+      if(B.filterPending)B.filterPending.push(face);
+      else addFilteredFace(B,face,APTS.facadeFilter);
     }
     // reveals: four strips per window, joining the recessed pane to the plane
     for (const w of windows) {
@@ -2378,6 +2362,31 @@
    * the veil lifts on the tiles and the apartments land while the intro is
    * still downtown. Returns a Promise of the group.
    */
+  // Proxy colours come from the final authored cells, including window frames.
+  function addFilteredFace(B,{W,len,z0,z1,rects},options) {
+    const filtered=window.FacadeFilter.createFace({THREE:window.THREE,rects,len,z0,z1,options});
+    if(filtered) {
+      filtered.len=len;filtered.z0=z0;filtered.z1= z1;
+      let geom,mat;
+      try {
+        const T=window.THREE,S=window.slopes,fb=S.build();
+        faceQuad(fb,W,0,len,z0,z1,0,rects[0][4]);
+        geom=fb.geometry();
+        geom.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
+        mat=S.facadeMaterial(filtered,APTS.facadeFilter);
+        const m=new T.Mesh(geom,mat);
+        m.name='filtered-facade';
+        m.userData.facadeFace=filtered;
+        m.userData.disposeFacade=()=>{filtered.dispose();mat.dispose();};
+        B.filtered.push(m);
+      } catch(e) {
+        // Until attached, no group disposal can reach these allocations.
+        filtered.dispose();geom?.dispose();mat?.dispose();
+        throw e;
+      }
+    }
+  }
+
   // Equal-resolution array layers keep independent mip chains while sharing
   // one draw. Every triangle retains its authored normal, size and UVs.
   function batchFiltered(meshes) {
@@ -2436,6 +2445,7 @@
     _failed.clear();
     const B = S.build();
     B.filtered=[];
+    B.filterPending=[];
     _built = [];
     let sliceT0 = performance.now(), slices = 1;
     // Yield through a MessageChannel, not setTimeout: a hidden or background
@@ -2452,6 +2462,7 @@
       sliceT0 = performance.now(); slices++;
     };
     for (const spec of _data.buildings) {
+      const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
@@ -2459,12 +2470,23 @@
         while (!r.done) { await pause(); r = it.next(); }
         _built.push(r.value);
       }
-      catch (e) { console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); }
+      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); }
       await pause();
     }
     count.buildSlices = slices;
     let geom;
     try {
+      count.filterCandidates=B.filterPending.length;
+      const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:APTS.facadeFilter});
+      count.filterResolutionLevel=plan?.resolutionLevel??0;
+      count.filterPlannedBytes=plan?.bytes??0;
+      if(plan)for(const entry of plan.faces) {
+        addFilteredFace(B,entry.face,entry.options);
+        // Release authored cell staging as soon as it has been rasterized.
+        entry.face.rects=null;
+        await pause();
+      }
+      B.filterPending.length=0;
       count.filteredFaces=B.filtered.length;
       B.filtered=batchFiltered(B.filtered);
       count.filteredBatches=B.filtered.length;
@@ -2835,7 +2857,9 @@
     if (want && !_group && !_building) { startBuild(map); }
     else if (want && _group && _lastDetail !== detailNow()) { dropGroup(); startBuild(map); }
     else if (!want && _group) { dropGroup(); }
-    else if (!want && _building) { _building = null; }   // the in-flight build discards itself on landing
+    // Keep ownership while an off-state build finishes. Its completion checks
+    // the latest intent and disposes when still off; an off/on toggle must not
+    // start a competing allocator while the first build is yielding.
     setFilters(want && !!_group);
     setLabels(want && !!_group);
     map.triggerRepaint();

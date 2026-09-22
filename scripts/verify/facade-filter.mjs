@@ -84,6 +84,7 @@ assert.equal(groups[0].textures.day.colorSpace, '');
 assert.equal(smallA.data.day.buffer, groups[0].textures.day.image.data.buffer);
 assert.equal(smallA.data.day.byteOffset, 4);
 assert.notEqual(smallA.textures, originalA);
+assert.equal(originalA.day.image.data, null); // no retained duplicate CPU buffers
 assert.equal(disposed - beforeBatch.disposed, 9); // old textures all released
 assert.equal(F.bytes, beforeBatch.bytes); assert.equal(F.count, 3);
 assert.throws(() => F.createBatch({ THREE: arrayTHREE, faces: [smallA] }), /unbatched/);
@@ -106,6 +107,48 @@ assert.equal(retry.textures, retryTextures); assert.equal(retry.data.day, retryP
 assert.equal(F.bytes, retry.bytes); assert.equal(F.count, 1);
 assert.throws(() => F.createBatch({ THREE: arrayTHREE, faces: [retry, retry] }), /distinct/);
 F.reset(); assert.equal(F.bytes, 0);
+// Whole-set planning reduces resolution fairly instead of dropping later faces.
+// Two 4x4 faces cost 504 bytes; 120 bytes holds both at 2x2 with full mip chains.
+const candidates = [
+  { len: 1, z0: 10, z1: 11, rects: [[0, .3, 10, 11, red], [.3, 1, 10, 11, blue]] },
+  { len: 1, z0: 10, z1: 11, rects: [[0, 1, 10, 11, shop]] }
+];
+const beforePlan = created;
+const fullPlan = F.planFaces({ faces: candidates, options: { maxBytes: 504 } });
+assert.equal(fullPlan.resolutionLevel, 0); assert.equal(fullPlan.bytes, 504);
+const plan = F.planFaces({ faces: candidates, options: { maxBytes: 120 } });
+assert.equal(plan.resolutionLevel, 1); assert.equal(plan.bytes, 120);
+assert.equal(plan.faces.length, 2); assert.equal(plan.faces[0].face, candidates[0]);
+assert.equal(plan.faces[0].width, 2); assert.equal(plan.faces[1].height, 2);
+assert.equal(created, beforePlan); assert.equal(F.bytes, 0); // pure planning
+const reversePlan = F.planFaces({ faces: [...candidates].reverse(), options: { maxBytes: 120 } });
+for (const entry of plan.faces) {
+  const reversed = reversePlan.faces.find(other => other.face === entry.face);
+  assert.equal(reversed.width, entry.width); assert.equal(reversed.height, entry.height);
+}
+const plannedFaces = plan.faces.map(entry => F.createFace({ ...entry.face, THREE, options: entry.options }));
+assert.ok(plannedFaces.every(Boolean)); assert.equal(F.bytes, plan.bytes);
+assert.deepEqual(Array.from(plannedFaces[0].data.day.slice(0, 8)), [153, 0, 102, 77, 0, 0, 255, 0]);
+assert.equal(plannedFaces[1].data.day[3], 255);
+const plannedGroups = F.createBatch({ THREE: arrayTHREE, faces: plannedFaces });
+assert.equal(plannedGroups.length, 1); assert.equal(plannedGroups[0].textures.day.image.depth, 2);
+assert.equal(F.bytes, 120); plannedGroups[0].dispose(); assert.equal(F.bytes, 0);
+const held = create();
+assert.equal(F.planFaces({ faces: candidates, options: { maxBytes: 35 } }), null);
+const smallest = F.planFaces({ faces: candidates, options: { maxBytes: 36 } });
+assert.equal(smallest.bytes, 24); assert.equal(smallest.availableBytes, 24);
+assert.equal(smallest.faces[0].width, 1); assert.equal(smallest.faces[1].height, 1);
+held.dispose();
+assert.equal(F.planFaces({ faces: [], options: { maxBytes: 0 } }).bytes, 0);
+for (const resolutionLevel of [-1, .5, 10, NaN]) {
+  assert.equal(F.planFaces({ faces: candidates, options: { resolutionLevel } }), null);
+}
+assert.equal(F.planFaces({ faces: [{ len: 0, z0: 0, z1: 1 }] }), null);
+assert.equal(F.planFaces({ faces: candidates, options: { maxBytes: Infinity } }), null);
+// Explicit per-face levels remain tunable; defaults are untouched.
+const custom = F.planFaces({ faces: [{ ...candidates[0], options: { resolutionLevel: 1 } }, candidates[1]] });
+assert.equal(custom.faces[0].width, 2); assert.equal(custom.faces[1].width, 4);
+assert.equal(F.tune.texelMetres, .25); assert.equal(F.tune.maxBytes, 16 * 1024 * 1024);
 // Exercise the actual apartment tiler with only the renderer boundary stubbed.
 // Expose its private entry point at the IIFE boundary; its implementation is
 // executed unchanged. A valid authored skin need not define palette.wall.
@@ -146,8 +189,10 @@ window.THREE = { ...THREE,
 };
 window.slopes = { build: builder, facadeMaterial: face => ({ face, dispose() { materialDisposals++; } }) };
 vm.runInNewContext(apartments.slice(0, close) +
-  'window.testTileFace = tileFace; window.testBatchFiltered = batchFiltered; window.testEmptyBuild = () => { _data = {buildings: []}; return build(); };\n' + apartments.slice(close),
-  { window, location: window.location, URLSearchParams, performance });
+  'window.testTileFace = tileFace; window.testBatchFiltered = batchFiltered; window.testBuildingPromise = () => _building; window.testEmptyBuild = () => { _data = {buildings: []}; return build(); };\n' +
+  'window.testDeferredBuild = specs => { _data = {buildings: specs}; buildingOne = function* (B, spec) { tileFace(B,spec.face,spec.skin,spec.palette); return spec; }; return build(); };\n' + apartments.slice(close),
+  { window, location: window.location, URLSearchParams, performance: { now: () => 0 },
+    document: { getElementById: () => null, hidden: false }, console });
 window.APARTMENTS.facadeFilter.minArea = 0;
 window.APARTMENTS.facadeFilter.maxDimension = 2;
 window.APARTMENTS.reveals = false;
@@ -227,5 +272,66 @@ window.THREE.Group = class { constructor() { throw new Error('forced group failu
 const beforeGroup = geometryDisposals;
 await assert.rejects(window.testEmptyBuild(), /forced group failure/);
 assert.equal(geometryDisposals - beforeGroup, 1);
+assert.equal(F.count, 0); assert.equal(F.bytes, 0);
+// Exercise the actual asynchronous build's staging/planning/batching lifecycle.
+// Only building geometry generation is stubbed; it calls the real tileFace.
+window.THREE.Group = class { constructor() { this.userData = {}; this.children = []; } add(child) { this.children.push(child); } };
+window.APARTMENTS.facadeFilter.buildings = ['first', 'last'];
+window.APARTMENTS.facadeFilter.maxBytes = 24; // both faces must become 1x1
+const buildSpecs = ['first', 'last'].map(name => ({ name, face: faceSpec, skin, palette }));
+let capturedBuilder;
+const originalBuild = window.slopes.build;
+window.slopes.build = () => {
+  const value = originalBuild();
+  if (!capturedBuilder) capturedBuilder = value;
+  return value;
+};
+const deferredGroup = await window.testDeferredBuild(buildSpecs);
+assert.equal(capturedBuilder.filterPending.length, 0);
+assert.equal(deferredGroup.children.length, 2); // original city + shared batch
+assert.equal(F.count, 2); assert.equal(F.bytes, 24);
+const deferredBatch = deferredGroup.children[1];
+assert.equal(deferredBatch.material.face.faces.length, 2);
+assert.equal(deferredBatch.material.face.width, 1);
+for (const mesh of deferredGroup.children) { mesh.geometry.dispose(); mesh.userData.disposeFacade?.(); }
+assert.equal(F.bytes, 0);
+// Reject the second proxy's material: both its allocations and the already
+// attached first proxy must be released by the enclosing build failure path.
+let materialAttempt = 0;
+window.slopes.facadeMaterial = face => {
+  if (++materialAttempt === 2) throw new Error('forced deferred material failure');
+  return goodMaterial(face);
+};
+await assert.rejects(window.testDeferredBuild(buildSpecs), /forced deferred material failure/);
+assert.equal(F.count, 0); assert.equal(F.bytes, 0);
+window.slopes.facadeMaterial = goodMaterial;
+// An impossible budget preserves authored geometry and allocates no subset.
+window.APARTMENTS.facadeFilter.maxBytes = 23;
+const noFilterGroup = await window.testDeferredBuild(buildSpecs);
+assert.equal(noFilterGroup.children.length, 1); assert.equal(F.count, 0);
+noFilterGroup.children[0].geometry.dispose();
+window.slopes.build = originalBuild;
+// Real apply off/on during the first async pause must keep the same in-flight
+// build. Competing builds would plan against the same unreserved allowance.
+window.APARTMENTS.facadeFilter.maxBytes = 24;
+window.SLOPES = { on: true };
+const applyMap = { triggerRepaint() {} };
+let builderStarts = 0, attached = 0;
+window.slopes.build = () => { builderStarts++; return originalBuild(); };
+window.slopes.add = () => { attached++; };
+window.slopes.remove = () => {};
+window.THREE.Group.prototype.traverse = function (visit) { visit(this); this.children.forEach(visit); };
+window.applySlopesApartments(applyMap);
+const inFlight = window.testBuildingPromise();
+assert.ok(inFlight); assert.equal(builderStarts, 1); assert.equal(F.bytes, 0);
+window.SLOPES.on = false; window.applySlopesApartments(applyMap);
+assert.equal(window.testBuildingPromise(), inFlight);
+window.SLOPES.on = true; window.applySlopesApartments(applyMap);
+assert.equal(window.testBuildingPromise(), inFlight);
+assert.equal(builderStarts, 1); assert.equal(F.bytes, 0);
+await inFlight;
+assert.equal(attached, 1); assert.equal(builderStarts, 3); // one city + two proxy builders
+assert.equal(F.count, 2); assert.equal(F.bytes, 24);
+window.SLOPES.on = false; window.applySlopesApartments(applyMap);
 assert.equal(F.count, 0); assert.equal(F.bytes, 0);
 console.log('Facade filter: area, masks, coverage, budget, disposal and actual tiler integration pass.');

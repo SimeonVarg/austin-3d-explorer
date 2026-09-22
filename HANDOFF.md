@@ -1,5 +1,38 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Wider apartment window coverage (`codex/window-coverage`)
+
+The hourly continuation is deleted at the user's request. Finish this pass and
+stop; do not start the next queued task or recreate scheduled continuation.
+
+PR #295 extends desktop daytime filtering to The Standard, Villas on Rio and
+Yugo Austin Waterloo while retaining Union on 24th and 21 Rio. Shared planning
+fits all 178 eligible facade sections in 24 batches within the existing 16 MiB
+limit: 8,154,336 GPU texture bytes versus 14,705,940 for the earlier two-building
+configuration. This is texture storage, not total browser memory. Obsolete CPU
+image buffers are released after packing. Off/on during a yielding build retains
+one build owner; budget, failure cleanup and lifecycle regression checks pass.
+
+[Matched motion and verification](docs/window-coverage.md) record about 66%,
+60% and 67% lower narrow-wall temporal second difference on the three added
+buildings. Earlier Union/Rio gains remain intact. The Standard's close broad
+wall and tested night facade pixels match exactly; grazing close detail still
+filters. Waterloo's narrow wall becomes lighter (+6.69/255 mean RGB).
+
+All accepted visual runs use the complete ready 196-building city with normal
+tiles, indexed geometry and no veil. Owner references and camera positions stay
+outside git. Phone filtering remains off; physical iPhone Safari/Chrome memory
+and performance, citywide/nighttime shimmer, unidentified narrow-wall examples,
+production recovery-event delay and explicit Play/Stop responsiveness stay open.
+Only HANDOFF overlaps parked PRs #189/#164; their implementation assertions are
+unaffected. Dirty primary checkout and Mac-owned files remain untouched.
+
+Final verification includes integrated main b1e7c1c and runtime 5fe8df8. Native
+hardware-GL ABBA runs at small/large viewports pass; minimum mean frame time is
+17.985->17.933 ms small and 18.433->18.725 ms large (+1.6%, accepted for coverage).
+No frames exceed 100 ms. Area, budget, real tiler, failure cleanup, lifecycle,
+material and harness checks pass. Browser and owned server 8478 are stopped.
+
 ## Sep 22 2026 - Filtered apartment windows (`codex/window-stability`)
 
 PR #294 merged as 70ec2cc after green checks. The production index and all

@@ -1,0 +1,459 @@
+{
+  "baselineCaptureCommit": "2856a10",
+  "integratedMain": "b1e7c1c",
+  "candidateRuntimeCommit": "5fe8df8",
+  "sourceSHA256": {
+    "index.html": "F0E0A4D930C2CD7492A82B276DA0F929CC6F6F87D131FCD42F87793C46A9AD9D",
+    "slopes.js": "2D3EE84A1E789C7E4DEE8E15B8C8C34E342EB5798E17D41082510F18BB171527",
+    "slopes-apartments.js": "131DCA58E7121B2482100C4A79270F4C945D1753D65664F04A429F119EB8B4B2",
+    "facade-filter.js": "6522E218A9F57CEA575233D535F9D942995CE3CC6A1AE4E83ABDE5696A9CF799"
+  },
+  "candidateReady": {
+    "buildings": 196,
+    "ready": true,
+    "tiles": true,
+    "indexed": true,
+    "veil": false,
+    "candidates": 178,
+    "faces": 178,
+    "batches": 24,
+    "resolution": 1,
+    "plannedBytes": 8154336,
+    "bytes": 8154336,
+    "msaa": true,
+    "samples": 4,
+    "width": 732,
+    "height": 672,
+    "dpr": 1.5,
+    "scale": 0.75
+  },
+  "baselineReadiness": {
+    "buildings": 196,
+    "ready": true,
+    "normalTiles": true,
+    "indexed": true,
+    "veil": false,
+    "filteredFaces": 89,
+    "filteredBatches": 12,
+    "bytes": 14705940,
+    "viewport": [
+      651,
+      598
+    ],
+    "dpr": 1.5,
+    "renderScale": 0.75,
+    "MSAASamples": 4
+  },
+  "motion": {
+    "method": "17 matched second screenshots; native 732x672 framebuffer; hardware GL, CPU1x, fixed exposure1 and daytime; 0.06 degree bearing steps. Facades projected to 200x200 by homography, bicubic resampling, then Gaussian1.5 before temporal metrics. MeanRGB is RGB average; meanLuminance is Rec709-weighted encoded RGB.",
+    "newTargets": {
+      "baseline-standard": {
+        "west": {
+          "meanRGB": 107.36353039215686,
+          "meanLuminance": 106.00784285764709,
+          "std": 1.6279023893590399,
+          "secondDifference": 2.663211111111111
+        },
+        "north": {
+          "meanRGB": 91.14880098039215,
+          "meanLuminance": 90.18157782823528,
+          "std": 7.4515710018315495,
+          "secondDifference": 15.341206666666666
+        }
+      },
+      "baseline-villas": {
+        "a": {
+          "meanRGB": 109.3002681372549,
+          "meanLuminance": 107.88340893705879,
+          "std": 0.9947362315028029,
+          "secondDifference": 1.109385
+        },
+        "b": {
+          "meanRGB": 114.6819112745098,
+          "meanLuminance": 113.080475682647,
+          "std": 1.7863252987060108,
+          "secondDifference": 1.5495866666666667
+        }
+      },
+      "baseline-waterloo": {
+        "west": {
+          "meanRGB": 84.59412401960785,
+          "meanLuminance": 85.27583856000001,
+          "std": 0.46211268273832123,
+          "secondDifference": 0.397635
+        },
+        "north": {
+          "meanRGB": 55.3365112745098,
+          "meanLuminance": 54.55008537764706,
+          "std": 2.7658860701365304,
+          "secondDifference": 2.0107505555555556
+        }
+      },
+      "candidate-standard": {
+        "west": {
+          "meanRGB": 107.3635843137255,
+          "meanLuminance": 106.00787835029413,
+          "std": 1.6278528237748677,
+          "secondDifference": 2.662306666666667
+        },
+        "north": {
+          "meanRGB": 93.43322696078431,
+          "meanLuminance": 92.32396603647058,
+          "std": 3.9586485539717056,
+          "secondDifference": 5.261078888888889
+        }
+      },
+      "candidate-villas": {
+        "a": {
+          "meanRGB": 109.30515392156863,
+          "meanLuminance": 107.8887706802941,
+          "std": 0.9933786838616228,
+          "secondDifference": 1.1069927777777777
+        },
+        "b": {
+          "meanRGB": 111.90671470588235,
+          "meanLuminance": 110.4639803985294,
+          "std": 1.116831987609564,
+          "secondDifference": 0.6255994444444445
+        }
+      },
+      "candidate-waterloo": {
+        "west": {
+          "meanRGB": 84.59412401960785,
+          "meanLuminance": 85.27583856000001,
+          "std": 0.46211268273832123,
+          "secondDifference": 0.397635
+        },
+        "north": {
+          "meanRGB": 62.0276568627451,
+          "meanLuminance": 61.234409456176465,
+          "std": 2.0635386100994975,
+          "secondDifference": 0.6668377777777778
+        }
+      }
+    },
+    "priorPilotRegression": {
+      "shipped-batch-final": {
+        "long": {
+          "meanRGB": 76.65442352941176,
+          "meanLuminance": 74.98300864588232,
+          "std": 1.0123701886129064,
+          "secondDifference": 1.592725
+        },
+        "short": {
+          "meanRGB": 73.47463529411765,
+          "meanLuminance": 72.10154180735293,
+          "std": 3.0173221428594927,
+          "secondDifference": 1.2931266666666668
+        }
+      },
+      "shipped-rio-final": {
+        "long": {
+          "meanRGB": 103.65021372549019,
+          "meanLuminance": 102.69694055411763,
+          "std": 1.8376826345381756,
+          "secondDifference": 1.0637344444444445
+        },
+        "short": {
+          "meanRGB": 112.0595274509804,
+          "meanLuminance": 111.27807738970586,
+          "std": 0.7286678127685756,
+          "secondDifference": 0.7016366666666667
+        }
+      },
+      "candidate-batch-final": {
+        "long": {
+          "meanRGB": 76.573275,
+          "meanLuminance": 74.90381770205882,
+          "std": 1.0257602916656423,
+          "secondDifference": 1.6098277777777779
+        },
+        "short": {
+          "meanRGB": 73.54144460784313,
+          "meanLuminance": 72.16686295735293,
+          "std": 3.008821881219875,
+          "secondDifference": 1.2893822222222222
+        }
+      },
+      "candidate-rio-final": {
+        "long": {
+          "meanRGB": 103.66763137254902,
+          "meanLuminance": 102.70335218735293,
+          "std": 1.8375609415850296,
+          "secondDifference": 1.0632822222222222
+        },
+        "short": {
+          "meanRGB": 112.06343676470588,
+          "meanLuminance": 111.28230016176464,
+          "std": 0.7285524547337293,
+          "secondDifference": 0.7014066666666666
+        }
+      }
+    }
+  },
+  "performance": {
+    "method": "10 second continuous motion ABBA, shipped2 targets then candidate5 then5 then2; rebuild and complete-ready gate per arm; hardware GL CPU1x; best interleaved reps; no speedup claim.",
+    "small": {
+      "errors": [],
+      "cpuThrottle": 1,
+      "gl": "hardware",
+      "viewport": {
+        "width": 651,
+        "height": 598
+      },
+      "dpr": 1.5,
+      "before": {
+        "count": 196,
+        "ready": true,
+        "tiles": true,
+        "indexed": true,
+        "veil": false
+      },
+      "arms": [
+        {
+          "on": false,
+          "configuration": {
+            "faces": 89,
+            "batches": 12,
+            "bytes": 14705940,
+            "samples": 4
+          },
+          "render": {
+            "frame": 1829,
+            "calls": 71,
+            "triangles": 2333685,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 552,
+          "mean": 18.13586956521739,
+          "p50": 18,
+          "p95": 18.100000000034925,
+          "over100": 0
+        },
+        {
+          "on": true,
+          "configuration": {
+            "faces": 178,
+            "batches": 24,
+            "bytes": 8154336,
+            "samples": 4
+          },
+          "render": {
+            "frame": 2467,
+            "calls": 83,
+            "triangles": 2333863,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 557,
+          "mean": 18.035906642728904,
+          "p50": 18,
+          "p95": 18.100000000034925,
+          "over100": 0
+        },
+        {
+          "on": true,
+          "configuration": {
+            "faces": 178,
+            "batches": 24,
+            "bytes": 8154336,
+            "samples": 4
+          },
+          "render": {
+            "frame": 3100,
+            "calls": 83,
+            "triangles": 2333863,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 558,
+          "mean": 17.932795698924732,
+          "p50": 18,
+          "p95": 18.100000000034925,
+          "over100": 0
+        },
+        {
+          "on": false,
+          "configuration": {
+            "faces": 89,
+            "batches": 12,
+            "bytes": 14705940,
+            "samples": 4
+          },
+          "render": {
+            "frame": 3691,
+            "calls": 71,
+            "triangles": 2333685,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 557,
+          "mean": 17.984739676840217,
+          "p50": 18,
+          "p95": 18.100000000034925,
+          "over100": 0
+        }
+      ],
+      "after": {
+        "count": 196,
+        "ready": true,
+        "tiles": true,
+        "indexed": true,
+        "veil": false
+      }
+    },
+    "large": {
+      "errors": [],
+      "cpuThrottle": 1,
+      "gl": "hardware",
+      "viewport": {
+        "width": 1536,
+        "height": 864
+      },
+      "dpr": 1.5,
+      "before": {
+        "count": 196,
+        "ready": true,
+        "tiles": true,
+        "indexed": true,
+        "veil": false
+      },
+      "arms": [
+        {
+          "on": false,
+          "configuration": {
+            "faces": 89,
+            "batches": 12,
+            "bytes": 14705940,
+            "samples": 0
+          },
+          "render": {
+            "frame": 738,
+            "calls": 85,
+            "triangles": 2449761,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 520,
+          "mean": 19.264423076923077,
+          "p50": 18,
+          "p95": 35.80000000000291,
+          "over100": 0
+        },
+        {
+          "on": true,
+          "configuration": {
+            "faces": 178,
+            "batches": 24,
+            "bytes": 8154336,
+            "samples": 0
+          },
+          "render": {
+            "frame": 1307,
+            "calls": 97,
+            "triangles": 2449939,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 522,
+          "mean": 19.218007662835255,
+          "p50": 18,
+          "p95": 35.5,
+          "over100": 0
+        },
+        {
+          "on": true,
+          "configuration": {
+            "faces": 178,
+            "batches": 24,
+            "bytes": 8154336,
+            "samples": 0
+          },
+          "render": {
+            "frame": 1889,
+            "calls": 97,
+            "triangles": 2449939,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 535,
+          "mean": 18.724859813084144,
+          "p50": 18,
+          "p95": 18.20000000001164,
+          "over100": 0
+        },
+        {
+          "on": false,
+          "configuration": {
+            "faces": 89,
+            "batches": 12,
+            "bytes": 14705940,
+            "samples": 0
+          },
+          "render": {
+            "frame": 2495,
+            "calls": 85,
+            "triangles": 2449761,
+            "points": 0,
+            "lines": 0
+          },
+          "frames": 543,
+          "mean": 18.432780847145487,
+          "p50": 18,
+          "p95": 18.10000000000582,
+          "over100": 0
+        }
+      ],
+      "after": {
+        "count": 196,
+        "ready": true,
+        "tiles": true,
+        "indexed": true,
+        "veil": false
+      }
+    }
+  },
+  "appearance": {
+    "StandardNight": {
+      "samples": 4,
+      "maskPixels": 7242,
+      "changedPixels": 0,
+      "maxDifference": 0
+    },
+    "StandardNear": {
+      "samples": 4,
+      "broadMaskPixels": 28739,
+      "broadChangedPixels": 0,
+      "narrowMaskPixels": 7123,
+      "narrowChangedPixels": 3228,
+      "narrowMaxDifference": 40,
+      "narrowMeanAbsoluteDifference": 0.9092142824,
+      "visualVerdict": "Broad face unchanged; grazing face still filtered while window/panel layout and silhouette remain intact."
+    }
+  },
+  "limits": [
+    "Only five selected authored apartment buildings, daytime. Citywide shimmer remains open.",
+    "Physical iPhone Safari/Chrome performance and memory acceptance remains open; no device.",
+    "Production recovery-event delay remains unresolved."
+  ],
+  "largeFreshDefaultReady": {
+    "buildings": 196,
+    "ready": true,
+    "tiles": true,
+    "indexed": true,
+    "veil": false,
+    "candidates": 178,
+    "faces": 178,
+    "batches": 24,
+    "resolution": 1,
+    "plannedBytes": 8154336,
+    "bytes": 8154336,
+    "msaa": false,
+    "samples": 0,
+    "width": 1728,
+    "height": 972,
+    "dpr": 1.5,
+    "scale": 0.75
+  }
+}

@@ -14,7 +14,10 @@
     const cap = 2 ** Math.floor(Math.log2(Math.min(512, options.maxDimension)));
     if (!(len > 0 && height > 0 && options.texelMetres > 0 && cap >= 1) ||
         !Number.isFinite(len + height + options.texelMetres + cap)) return null;
-    const size = m => Math.min(cap, 2 ** Math.ceil(Math.log2(Math.max(1, m / options.texelMetres))));
+    const level = options.resolutionLevel ?? 0;
+    if (!Number.isInteger(level) || level < 0 || level > 9) return null;
+    const size = m => Math.max(1, Math.min(cap,
+      2 ** Math.ceil(Math.log2(Math.max(1, m / options.texelMetres)))) / 2 ** level);
     return { width: size(len), height: size(height) };
   }
   function textureBytes(width, height) {
@@ -29,6 +32,36 @@
     if (typeof hex !== 'string' || !/^#[0-9a-f]{6}$/i.test(hex)) return null;
     const n = parseInt(hex.slice(1), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  /** Plan the whole candidate set before allocating any textures. Every face
+   * gets the same additional downsample level, independent of input order.
+   * Each level halves both POT axes (minimum 1); area integration still uses
+   * the original rectangles. This is opt-in: existing createFace is unchanged.
+   * The plan does not reserve memory; consume it synchronously before other
+   * allocations. Existing live arrays retain their full budget charge.
+   */
+  function planFaces({ faces, options = {} }) {
+    const config = Object.assign({}, tune, options);
+    if (!Array.isArray(faces) || !Number.isFinite(config.maxBytes) || config.maxBytes < 0) return null;
+    const availableBytes = config.maxBytes - liveBytes;
+    if (availableBytes < faces.length * 12) return null;
+    const configs = faces.map(face => Object.assign({}, config, face?.options,
+      { maxBytes: config.maxBytes }));
+    if (faces.some((face, i) => !face || !Number.isFinite(face.z0 + face.z1) ||
+        !dimensions(face.len, face.z1 - face.z0, configs[i]))) return null;
+    for (let resolutionLevel = 0; resolutionLevel <= 9; resolutionLevel++) {
+      const planned = faces.map((face, i) => {
+        const selected = Object.assign({}, configs[i], {
+          resolutionLevel: Math.min(9, (configs[i].resolutionLevel ?? 0) + resolutionLevel)
+        });
+        const dim = dimensions(face.len, face.z1 - face.z0, selected);
+        return { face, ...dim, bytes: textureBytes(dim.width, dim.height), options: selected };
+      });
+      const bytes = planned.reduce((sum, entry) => sum + entry.bytes, 0);
+      if (bytes <= availableBytes) return { faces: planned, bytes, availableBytes, resolutionLevel };
+    }
+    return null;
   }
 
   /** Rectangles must partition the face. No geometry, lighting or camera state.
@@ -199,12 +232,17 @@
           face.data[name] = group.textures[name].image.data.subarray(layer * layerSize, (layer + 1) * layerSize);
         }
         batches.set(face, { release });
-        Object.values(oldTextures).forEach(texture => texture.dispose());
+        Object.values(oldTextures).forEach(texture => {
+          texture.dispose();
+          // createFace's disposal closure retains these texture objects. Drop
+          // their obsolete CPU buffers after ownership moved to packed views.
+          texture.image.data = null;
+        });
       });
     }
     return groups;
   }
   function reset() { for (const face of [...live]) face.dispose(); }
-  window.FacadeFilter = { tune, rasterizeFace, createFace, createBatch, reset,
+  window.FacadeFilter = { tune, planFaces, rasterizeFace, createFace, createBatch, reset,
     get bytes() { return liveBytes; }, get count() { return live.size; } };
 }());
