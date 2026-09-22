@@ -1,6 +1,5 @@
 # Austin 3D Explorer — Full Handoff
 
-<<<<<<< HEAD
 ## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283 OPEN)
 
 GDC now has literal unequal recessed window pairs, projecting shades, deeper
@@ -45,7 +44,6 @@ running; private diagnostic records remain outside Git.
 Physical-phone performance/reliability remains the next acceptance step before
 substantial new geometry; desktop emulation does not establish mobile hardware
 memory headroom or thermal behavior. Follow the remaining AGENTS.md priorities.
-=======
 ## Sep 22 2026 - Downtown balcony depth (`codex/downtown-geometry`)
 
 Waterline's residential elevations now have cut balcony volumes, decks, guards,
@@ -108,7 +106,6 @@ No timer or exposure behavior was changed. A rejected incomplete profiled run
 is excluded. Physical-phone results are not established. The 242-case pixel
 regression, deliberate failing wrap-index sabotage, syntax and harness checks
 pass. Primary checkout and other lanes remain untouched.
->>>>>>> origin/main
 
 ## Sep 22 2026 - Five approved architectural targets (`codex/photo-five-realism`, PR #282)
 

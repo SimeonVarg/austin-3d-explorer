@@ -96,8 +96,10 @@ after (ranges 42.16–45.74 and 43.96–48.04). Minimum per-run pan render p95 w
 20.5 ms before and 20.1 ms after (ranges 20.5–21.3 and 20.1–21.5). These runs
 show similar rendering performance, not a performance improvement. They do not
 test the separate automatic idle-spin defect.
-These timings measure the architectural changes; the subsequent recovery guards
-are verified separately with fault injection and normal full-city rendering.
+This A/B swaps eight architectural assets against the earlier baseline while
+keeping the other runtime modules current in both arms. It is not a whole-PR
+comparison against current main. The subsequent recovery guards are verified
+separately with fault injection and normal full-city rendering.
 
 After forced CDP garbage collection, minimum JS heap was 79.94 MB before and
 82.26 MB after. Retained Three.js geometry buffers were 274.56 MB before and
