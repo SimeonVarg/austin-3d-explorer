@@ -266,3 +266,13 @@ photo pass with physical-phone performance/reliability checks before substantial
 additional geometry; desktop emulation does not establish physical-phone results.
 Glare and idle-spin work remain later. The new implementation branch is
 `codex/campus-photo-depth`.
+
+## Everyday campus and parallel repairs - September 22, 2026
+
+The user now prioritizes everyday campus implementation while more Guadalupe
+photographs are forthcoming. Start with connected smaller buildings, entrances,
+courtyards, paths and planting; stop expanding the storefront pass. Parallel
+bounded work on other queued defects is authorized, including idle-spin pauses.
+The campus lane starts on `codex/everyday-campus`; idle motion uses its own lane.
+Physical-phone acceptance remains open. Do not present desktop emulation as a
+physical-phone result or repeat the same storefront pictures as new progress.
