@@ -1,0 +1,453 @@
+{
+  "base": "3a2a389",
+  "date": "2026-09-22",
+  "settings": {
+    "cpuThrottle": 1,
+    "gl": "hardware",
+    "preset": "balanced",
+    "startupIdleHoldOnly": true,
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "dpr": 1,
+    "samplingProfiler": false,
+    "nativeIdleLegMs": 12000,
+    "postBeginWaitSeconds": 39,
+    "note": "Initial synchronous TOD runs before the 39-second observation wait; total wall duration varies. Frame counts and task totals are not throughput comparisons."
+  },
+  "runs": [
+    {
+      "arm": "baseline",
+      "autoExposure": true,
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "medianMs": 36,
+        "p95Ms": 89.90000000000873,
+        "gaps": [
+          3718.2000000029802,
+          3680.0999999940395
+        ],
+        "todCalls": [
+          3531.4000000059605,
+          3654,
+          3603.5999999940395
+        ]
+      },
+      "events": [
+        {
+          "name": "movestart",
+          "msAfterStart": 3532.8,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 15560.8,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 19279.0,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 31280.1,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 34960.2,
+          "drift": true
+        }
+      ]
+    },
+    {
+      "arm": "kernel",
+      "autoExposure": true,
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "medianMs": 36,
+        "p95Ms": 72.10000000000582,
+        "gaps": [
+          1706.8999999910593,
+          1573.6000000089407
+        ],
+        "todCalls": [
+          1593.8999999910593,
+          1617.3999999910593,
+          1513.9000000059605
+        ]
+      },
+      "events": [
+        {
+          "name": "movestart",
+          "msAfterStart": 1595.0,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 13619.1,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 15326.0,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 27346.2,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 28919.8,
+          "drift": true
+        }
+      ]
+    },
+    {
+      "arm": "kernel",
+      "autoExposure": true,
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "medianMs": 36,
+        "p95Ms": 72,
+        "gaps": [
+          1625.7999999970198,
+          1582.2999999970198
+        ],
+        "todCalls": [
+          1725.5999999940395,
+          1555.7999999970198,
+          1499.7000000029802
+        ]
+      },
+      "events": [
+        {
+          "name": "movestart",
+          "msAfterStart": 1726.7,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 13758.1,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 15383.9,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 27391.8,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 28974.1,
+          "drift": true
+        }
+      ]
+    },
+    {
+      "arm": "baseline",
+      "autoExposure": true,
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "medianMs": 36,
+        "p95Ms": 90,
+        "gaps": [
+          4179.4000000059605,
+          3755.8999999910593
+        ],
+        "todCalls": [
+          3616,
+          4128,
+          3702.5999999940395
+        ]
+      },
+      "events": [
+        {
+          "name": "movestart",
+          "msAfterStart": 3617.0,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 15632.0,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 19811.4,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 31840.6,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 35596.5,
+          "drift": true
+        }
+      ]
+    },
+    {
+      "arm": "kernel-ae-off",
+      "autoExposure": false,
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "medianMs": 18,
+        "p95Ms": 36.5,
+        "gaps": [
+          1594.4000000059605,
+          1915.5999999940395
+        ],
+        "todCalls": [
+          1581.7999999970198,
+          1518.7000000029802,
+          1855.5999999940395
+        ]
+      },
+      "events": [
+        {
+          "name": "movestart",
+          "msAfterStart": 1583.0,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 13592.4,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 15186.8,
+          "drift": true
+        },
+        {
+          "name": "moveend",
+          "msAfterStart": 27191.6,
+          "drift": true
+        },
+        {
+          "name": "movestart",
+          "msAfterStart": 29107.2,
+          "drift": true
+        }
+      ]
+    }
+  ],
+  "atlasComparisons": [
+    {
+      "hourFraction": 0.25,
+      "imageCount": 708,
+      "beforeDigest": "445ccdb5dbe0832838a162512872ae4d112880c02e4f02b7ef97ded3d041e1c5",
+      "afterDigest": "445ccdb5dbe0832838a162512872ae4d112880c02e4f02b7ef97ded3d041e1c5",
+      "changedImages": [],
+      "extraImages": [],
+      "ready": [
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        },
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        }
+      ],
+      "screenshotMeanAbsoluteRGB": 7.32421875e-05
+    },
+    {
+      "hourFraction": 0.62,
+      "imageCount": 708,
+      "beforeDigest": "94f8d286a2c9de8958ef80d7e641bf2d0825faf7327d531395c1d6178e7d98cb",
+      "afterDigest": "94f8d286a2c9de8958ef80d7e641bf2d0825faf7327d531395c1d6178e7d98cb",
+      "changedImages": [],
+      "extraImages": [],
+      "ready": [
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        },
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        }
+      ],
+      "screenshotMeanAbsoluteRGB": 0.0
+    },
+    {
+      "hourFraction": 0.97,
+      "imageCount": 708,
+      "beforeDigest": "076298b56aed6e915fcb6ecf1eb70b7fd95bf5cab7dae3b698b7ded7113ddad2",
+      "afterDigest": "076298b56aed6e915fcb6ecf1eb70b7fd95bf5cab7dae3b698b7ded7113ddad2",
+      "changedImages": [],
+      "extraImages": [],
+      "ready": [
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        },
+        {
+          "buildings": 196,
+          "ready": true,
+          "tiles": true,
+          "veil": false,
+          "indexed": true,
+          "driving": false,
+          "preset": "balanced",
+          "on": true,
+          "hook": true
+        }
+      ],
+      "screenshotMeanAbsoluteRGB": 0.0014195963541666667
+    }
+  ],
+  "pageErrors": []
+}
