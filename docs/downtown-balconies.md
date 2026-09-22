@@ -31,7 +31,12 @@ unsupported-crown rejection, deterministic replacement and unrelated-feature
 preservation pass. The 9,135 unrelated outer-ring features are unchanged.
 Material partition/reset and harness checks also pass.
 
-Normal PMTiles and larger-screen night verification are pending the data build.
+The cloud data build passed. Normal PMTiles also pass at 1920 by 1200 in both
+daylight and night: all 196 buildings are ready, the new balcony roles are loaded,
+and the four second screenshots show no browser or shader errors.
+
+![Normal tiles in daylight and night](../shots/downtown-balconies/normal-tiles.jpg)
+
 This is a reference-supported architectural approximation. Fine railing detail,
 exact glazing reflections, Sixth's broad cheek proportions, wider city facade
 defects and physical-phone performance remain open. No owner-photo import or

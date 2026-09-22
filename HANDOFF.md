@@ -10,7 +10,9 @@ cheek widths remain. All 9,135 unrelated outer features are preserved.
 
 Matched full-city second screenshots load all 196 authored buildings. Geometry,
 deliberate sabotage, deterministic replacement, material and harness checks pass.
-Normal tiles and larger-screen night checks are pending. See
+PR #286 includes the successful cloud data build. Normal tiles pass at 1920 by
+1200 in daylight and night, with all 196 buildings ready and new balcony parts
+present. Browser and shader checks report no errors. See
 [comparisons and limits](docs/downtown-balconies.md).
 
 PR #283 remains a separate draft: its actual full-city context-loss/recovery
