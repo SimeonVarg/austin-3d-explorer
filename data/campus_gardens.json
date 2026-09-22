@@ -26,54 +26,7 @@
     {
       "name": "Goldsmith Box Courtyard",
       "building": "GOL",
-      "beds": [
-        [
-          18.6,
-          28.5,
-          31.6,
-          38.8
-        ],
-        [
-          32.1,
-          41.9,
-          31.6,
-          38.8
-        ],
-        [
-          18.6,
-          28.5,
-          42.3,
-          49.6
-        ],
-        [
-          32.1,
-          41.9,
-          42.3,
-          49.6
-        ]
-      ],
-      "benches": [
-        [
-          25.3,
-          40.5,
-          90
-        ],
-        [
-          35.1,
-          40.5,
-          90
-        ],
-        [
-          30.3,
-          34.6,
-          0
-        ],
-        [
-          30.3,
-          46.9,
-          0
-        ]
-      ],
+      "benches": [],
       "livingWall": [
         [
           17.5,
@@ -84,8 +37,341 @@
           46.0
         ]
       ],
-      "note": "Four planted panels separated by the court's cross paths; divided studio glazing encloses the court. Living-wall extent is approximate.",
-      "courtPaving": 0.035
+      "note": "Four lawn panels retain the mapped cross paths and court boundary. The central shallow tiled basin, low stone coping, stone seats, timber benches and four fan palms follow exterior references; small dimensions and plant positions are interpreted, not surveyed.",
+      "courtPaving": 0.035,
+      "lawns": [
+        [
+          18.6,
+          28.5,
+          31.6,
+          38.8
+        ],
+        [
+          32.1,
+          41.9,
+          31.6,
+          38.8
+        ],
+        [
+          18.6,
+          28.5,
+          42.3,
+          49.6
+        ],
+        [
+          32.1,
+          41.9,
+          42.3,
+          49.6
+        ]
+      ],
+      "courtDetails": {
+        "pool": {
+          "center": [
+            30.28,
+            40.66
+          ],
+          "outer": 3.1,
+          "inner": 2.5,
+          "rimHeight": 0.27,
+          "rimShoulder": 0.22,
+          "waterHeight": 0.075,
+          "floorHeight": 0.046,
+          "tileWidth": 0.105,
+          "tileRowHeight": 0.035,
+          "joint": 0.005,
+          "shoulderInset": 0.025,
+          "crestInset": 0.1,
+          "tileAccentEvery": 3,
+          "tileAccentRow": 1
+        },
+        "paving": {
+          "rects": [
+            [
+              28.5,
+              32.1,
+              30.48,
+              50.85
+            ],
+            [
+              17.48,
+              43.08,
+              38.8,
+              42.3
+            ]
+          ],
+          "unit": [
+            0.68,
+            0.48
+          ],
+          "joint": 0.016,
+          "base": 0.036,
+          "height": 0.068,
+          "minFlagArea": 0.015,
+          "rowScales": [
+            1,
+            0.85,
+            1.2,
+            0.95
+          ],
+          "widthScales": [
+            1,
+            0.7,
+            1.35,
+            0.85,
+            1.1
+          ]
+        },
+        "woodSeats": {
+          "positions": [
+            [
+              19.15,
+              35.3,
+              270
+            ],
+            [
+              19.15,
+              46.15,
+              270
+            ],
+            [
+              41.3,
+              35.3,
+              90
+            ],
+            [
+              41.3,
+              46.15,
+              90
+            ]
+          ],
+          "length": 2.15,
+          "width": 0.54,
+          "seat": 0.47,
+          "back": 0.94,
+          "leg": 0.075,
+          "slat": 0.055,
+          "gap": 0.05,
+          "rail": 0.075,
+          "arm": 0.69,
+          "base": 0.055,
+          "armOverhang": 0.06,
+          "backBottomOffset": 0.09
+        },
+        "stoneSeats": {
+          "positions": [
+            [
+              26.0,
+              38.48,
+              0
+            ],
+            [
+              34.6,
+              38.48,
+              0
+            ]
+          ],
+          "length": 1.75,
+          "width": 0.49,
+          "seat": 0.5,
+          "slab": 0.12,
+          "foot": 0.48,
+          "waist": 0.22,
+          "supportSpacing": 1.1,
+          "base": 0.055,
+          "supportDepth": 0.74,
+          "supportProfile": [
+            [
+              0.055,
+              1
+            ],
+            [
+              0.14,
+              1
+            ],
+            [
+              0.28,
+              0.4583333
+            ],
+            [
+              0.38,
+              0.85
+            ]
+          ]
+        },
+        "palms": {
+          "positions": [
+            [
+              22.2,
+              35.0,
+              10.6
+            ],
+            [
+              38.45,
+              35.0,
+              10.9
+            ],
+            [
+              22.2,
+              46.65,
+              8.6
+            ],
+            [
+              38.45,
+              46.65,
+              9.0
+            ]
+          ],
+          "trunkRadius": 0.23,
+          "trunkSides": 9,
+          "ringPitch": 0.14,
+          "ringDepth": 0.022,
+          "crownRadius": 2.05,
+          "fanRays": 7,
+          "fanSpread": 0.58,
+          "skirtDrop": 1.85,
+          "base": 0.055,
+          "ringStart": 0.12,
+          "ringTopGap": 0.4,
+          "petioleRadius": 0.018,
+          "petioleSides": 5,
+          "petioleBaseOffset": -0.1,
+          "fanBaseRadius": 0.4,
+          "fanEdgeDrop": 0.17,
+          "fanLevels": [
+            {
+              "count": 7,
+              "offset": 0.0,
+              "pitch": 68,
+              "length": 1.45,
+              "base": -0.9
+            },
+            {
+              "count": 9,
+              "offset": 0.42,
+              "pitch": 17,
+              "length": 1.85,
+              "base": -0.25
+            },
+            {
+              "count": 11,
+              "offset": 0.16,
+              "pitch": -28,
+              "length": 1.7,
+              "base": -0.4
+            }
+          ],
+          "crownTop": 0.35,
+          "treePhase": 0.17,
+          "variationPhase": 2.399,
+          "pitchVariation": 11,
+          "lengthVariation": 0.13,
+          "tipDroop": 0.25,
+          "splitAt": 0.47,
+          "tipGap": 0.16,
+          "bladeFold": 0.028,
+          "skirtLayers": 2,
+          "skirtFronds": 19,
+          "skirtPhase": 0.5,
+          "skirtVariation": 0.2,
+          "skirtLayerDrop": 0.27,
+          "skirtRadius": 0.91,
+          "skirtProfile": [
+            [
+              0.4,
+              -0.08,
+              0.105
+            ],
+            [
+              1.0,
+              -0.45,
+              0.17
+            ],
+            [
+              0.78,
+              -0.85,
+              0.1
+            ],
+            [
+              0.55,
+              -1.0,
+              0.008
+            ]
+          ]
+        },
+        "colours": {
+          "stone": [
+            "#c5bca7",
+            "#cab794",
+            "#25251f"
+          ],
+          "stoneShade": [
+            "#a9a28f",
+            "#b8a381",
+            "#1b201c"
+          ],
+          "paving": [
+            "#afa99a",
+            "#b8ab93",
+            "#24271e"
+          ],
+          "joint": [
+            "#999788",
+            "#a69b86",
+            "#20241c"
+          ],
+          "tileBlue": [
+            "#477c7b",
+            "#637e68",
+            "#142529"
+          ],
+          "tileGold": [
+            "#b0a261",
+            "#b4a16e",
+            "#252719"
+          ],
+          "water": [
+            "#496b5d",
+            "#697858",
+            "#102123"
+          ],
+          "wood": [
+            "#96764e",
+            "#ae8754",
+            "#29251b"
+          ],
+          "woodEnd": [
+            "#786044",
+            "#977344",
+            "#211d16"
+          ],
+          "palmTrunk": [
+            "#77614b",
+            "#927451",
+            "#1f2119"
+          ],
+          "palmRings": [
+            "#63543f",
+            "#7b6648",
+            "#191e17"
+          ],
+          "palmLeaf": [
+            "#536f47",
+            "#777a4b",
+            "#10231a"
+          ],
+          "palmLeafLight": [
+            "#6e8354",
+            "#8c8753",
+            "#182b1a"
+          ],
+          "palmDry": [
+            "#92835d",
+            "#a58c59",
+            "#29271d"
+          ]
+        }
+      }
     },
     {
       "name": "Gearing courtyard",

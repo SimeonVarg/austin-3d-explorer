@@ -1,5 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
+<<<<<<< HEAD
 ## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283 OPEN)
 
 GDC now has literal unequal recessed window pairs, projecting shades, deeper
@@ -44,6 +45,70 @@ running; private diagnostic records remain outside Git.
 Physical-phone performance/reliability remains the next acceptance step before
 substantial new geometry; desktop emulation does not establish mobile hardware
 memory headroom or thermal behavior. Follow the remaining AGENTS.md priorities.
+=======
+## Sep 22 2026 - Downtown balcony depth (`codex/downtown-geometry`)
+
+Waterline's residential elevations now have cut balcony volumes, decks, guards,
+substantial jambs and grouped frames; crown supports and canopy are thicker.
+Sixth and Guadalupe has coherent recessed doors, partitions and projecting slab
+edges. Existing heights, lower Waterline supports and shader-compatible Sixth
+cheek widths remain. All 9,135 unrelated outer features are preserved.
+
+Matched full-city second screenshots load all 196 authored buildings. Geometry,
+deliberate sabotage, deterministic replacement, material and harness checks pass.
+PR #286 includes the successful cloud data build. Normal tiles pass at 1920 by
+1200 in daylight and night, with all 196 buildings ready and new balcony parts
+present. Browser and shader checks report no errors. See
+[comparisons and limits](docs/downtown-balconies.md).
+
+PR #283 remains a separate draft: its actual full-city context-loss/recovery
+verification is unresolved. No shared runtime file was changed here. Sixth's
+cheek width correction must coordinate with its shader after that ownership
+clears. Owner imagery and camera positions stay local; physical-phone acceptance
+and the broader photo backlog remain open. The dirty primary is untouched.
+
+## Sep 22 2026 - Everyday campus (`codex/everyday-campus`)
+
+Goldsmith now has separate courtyard window registers, curved arch surrounds,
+recessed green doors and a detailed court with four lawns, a tiled pool, stone
+seats, timber benches, layered palms and flagstone paths. Its West Mall entry
+has grouped glazing and lanterns. Sutton now has red divided sashes, pale upper
+surrounds, green rails, a teal entrance and projecting bracketed eaves. An
+explicit Sutton-only replacement flag removes the old arcade panels only after
+its replacement mesh succeeds; failure, rebuild and scene reset restore fallback.
+
+Matched second screenshots use the real index with all 196 buildings and normal
+loaded tiles. Goldsmith close views verify a 1.7 m eye, Sutton uses an elevated
+northeast view, and the courtyard also passes at 2560 by 1440. Rejected displaced
+Sutton cameras are excluded. Both bakes repeat byte-identically; all other 35
+campus models, existing roofs/heights/footprints and landscape inventory remain
+unchanged. Garden malformed-feature rejection, arcade lifecycle/disposal/cache,
+syntax and harness checks pass. See [comparisons and limits](docs/everyday-campus.md).
+
+This pass uses curated exterior references, not another owner-photo import.
+Goldsmith pavilion/loggia/clerestory massing, fine Sutton ornament and physical
+phone acceptance remain open. Owner references and camera records stay local.
+PR #283 remains a separate draft with its integration reset verification open;
+this pass does not claim that work shipped. The dirty primary checkout, parked
+Drag files and legacy Mac stadium lane remain untouched.
+
+## Sep 22 2026 - Idle repaint cost (`codex/idle-spin-fix`)
+
+The actual full-city idle driver stalled during synchronous facade repainting.
+Optimized the shared wrapped blur traversal and bounded wrap-index scratch,
+preserving exact RGBA output. Two interleaved repetitions reduced the minimum
+native leg pause from 3.680 s to 1.574 s (57%); all retained runs loaded 196
+buildings and settled tiles. All 708 actual atlas images match at three hours;
+matched second city screenshots remain identical at the illustrated hour.
+See [evidence, settings and limits](docs/idle-repaint-cost.md).
+
+This is partial: roughly 1.5 s of synchronous repaint remains, median frames
+stay 36 ms, and exposure-meter GPU readbacks are a separate measured hotspot.
+No timer or exposure behavior was changed. A rejected incomplete profiled run
+is excluded. Physical-phone results are not established. The 242-case pixel
+regression, deliberate failing wrap-index sabotage, syntax and harness checks
+pass. Primary checkout and other lanes remain untouched.
+>>>>>>> origin/main
 
 ## Sep 22 2026 - Five approved architectural targets (`codex/photo-five-realism`, PR #282)
 
