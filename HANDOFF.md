@@ -1,5 +1,31 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - DKR north concourse (`codex/dkr-north-facade`)
+
+Replaced the uniform north glass grid with open concourse galleries, recessed
+rails and floors, substantial brick piers and a divided glazed top row. Paired
+brick stair shafts and a raised glazed bridge now frame the central recess.
+Public exterior photographs and an aerial support this composition; small
+dimensions remain approximate and the overall height envelope is unchanged.
+The first oblique browser views exposed overly deep piers; shortening them to
+facade piers restores the gallery sightlines, now covered by a regression check.
+
+[Matched city views](docs/dkr-north-facade.md) cover this change. The final four
+poses reached all 196 authored buildings with normal tiles and matched loaded
+asset hashes. Bridge collision now permits the ground approach while preserving
+its upper volume and the solid recessed rear wall. Focused geometry/collision
+checks, their deliberate failure controls, tower geometry, roof exclusion,
+style recovery and harness parity pass. A fresh full-city keyboard walk at 1.7 m
+cleared the bridge with the complete camera footprint and stopped stably at the
+existing bowl. The deeper recess is not an accessible stadium interior.
+
+Broader DKR proportions and fine materials remain approximate. Continue with the
+remaining generalized visual defects next; do not infer new DKR heights from an
+uncertain photo comparison. Physical iPhone Safari/Chrome performance and memory
+acceptance and the production recovery-event delay remain open. Hourly
+continuation remains active. The primary dirty checkout and Mac-owned files are
+untouched; only this shared handoff overlaps parked PRs #189/#164.
+
 ## Sep 22 2026 - Detached DKR roof equipment (`codex/dkr-detached-elements`)
 
 The north tower pass merged as PR #287 (`f6f4e1c`). Its remaining floating dark

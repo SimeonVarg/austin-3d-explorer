@@ -907,11 +907,11 @@ function initControls(map, scene) {
     // footprint heightfield treats the bowl as a tall solid building.
     // Sample the same camera footprint against the live mesh surface instead.
     const stadium = window.slopesStadium;
-    if (stadium && stadium.heightAt(lng, lat) !== undefined) {
+    if (stadium && stadium.heightAt(lng, lat, alt) !== undefined) {
       let top = 0;
       for (const [dx, dy] of [[0,0],[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1],[-1,0],[1,0]]) {
         const x = lng + dx * r / mLon(lat), y = lat + dy * r / M_LAT;
-        const h = stadium.heightAt(x, y);
+        const h = stadium.heightAt(x, y, alt);
         if (h === undefined) {
           // Boundary queries retain the original field for neighbouring buildings.
           return Math.max(top, outerHeightIn(lng, lat, r), gridBuilt ? gridHeightAt(lng, lat, r) : 0);
