@@ -1,5 +1,30 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Everyday campus (`codex/everyday-campus`)
+
+Goldsmith now has separate courtyard window registers, curved arch surrounds,
+recessed green doors and a detailed court with four lawns, a tiled pool, stone
+seats, timber benches, layered palms and flagstone paths. Its West Mall entry
+has grouped glazing and lanterns. Sutton now has red divided sashes, pale upper
+surrounds, green rails, a teal entrance and projecting bracketed eaves. An
+explicit Sutton-only replacement flag removes the old arcade panels only after
+its replacement mesh succeeds; failure, rebuild and scene reset restore fallback.
+
+Matched second screenshots use the real index with all 196 buildings and normal
+loaded tiles. Goldsmith close views verify a 1.7 m eye, Sutton uses an elevated
+northeast view, and the courtyard also passes at 2560 by 1440. Rejected displaced
+Sutton cameras are excluded. Both bakes repeat byte-identically; all other 35
+campus models, existing roofs/heights/footprints and landscape inventory remain
+unchanged. Garden malformed-feature rejection, arcade lifecycle/disposal/cache,
+syntax and harness checks pass. See [comparisons and limits](docs/everyday-campus.md).
+
+This pass uses curated exterior references, not another owner-photo import.
+Goldsmith pavilion/loggia/clerestory massing, fine Sutton ornament and physical
+phone acceptance remain open. Owner references and camera records stay local.
+PR #283 remains a separate draft with its integration reset verification open;
+this pass does not claim that work shipped. The dirty primary checkout, parked
+Drag files and legacy Mac stadium lane remain untouched.
+
 ## Sep 22 2026 - Idle repaint cost (`codex/idle-spin-fix`)
 
 The actual full-city idle driver stalled during synchronous facade repainting.

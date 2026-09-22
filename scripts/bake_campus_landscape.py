@@ -82,6 +82,144 @@ for t in trees:
  t[2]=round(radius,2);clear_trees.append(t)
 trees=clear_trees
 
+def compile_court_details(config, frame, court):
+ """Small court solids share one material batch; all dimensions live in profiles."""
+ from shapely.geometry import Polygon, box
+ from shapely.ops import triangulate, unary_union
+ batches={}
+ def xyz(p):
+  u,v,z=p
+  return [round(frame['o'][0]+(u*frame['ax']-v*frame['ay'])/frame['mx'],9),
+          round(frame['o'][1]+(u*frame['ay']+v*frame['ax'])/frame['my'],9),round(z,4)]
+ def face(points,tone,double=False):
+  batch=batches.setdefault(tone,dict(kind='detailMesh',colour=config['colours'][tone],vertices=[],triangles=[]))
+  start=len(batch['vertices']);batch['vertices'].extend(xyz(p)for p in points)
+  for i in range(1,len(points)-1):
+   tri=[start,start+i,start+i+1];batch['triangles'].append(tri)
+   if double:batch['triangles'].append(tri[::-1])
+ def quad(a,b,c,d,tone):face([a,b,c,d],tone)
+ def rotated_box(u,v,w,d,z0,z1,tone,angle=0):
+  a=math.radians(angle);cs=math.cos(a);sn=math.sin(a)
+  r=[(u+x*cs-y*sn,v+x*sn+y*cs)for x,y in [(-w/2,-d/2),(w/2,-d/2),(w/2,d/2),(-w/2,d/2)]]
+  face([[x,y,z1]for x,y in r],tone)
+  for i in range(4):
+   x,y=r[i];x1,y1=r[(i+1)%4];quad([x,y,z0],[x1,y1,z0],[x1,y1,z1],[x,y,z1],tone)
+ def cylinder(a,b,r,tone,n=9):
+  axis=[b[i]-a[i]for i in range(3)];length=math.sqrt(sum(x*x for x in axis));axis=[x/length for x in axis]
+  up=[1,0,0]if abs(axis[2])>.9 else [0,0,1]
+  cross=lambda p,q:[p[1]*q[2]-p[2]*q[1],p[2]*q[0]-p[0]*q[2],p[0]*q[1]-p[1]*q[0]]
+  side=cross(axis,up);norm=math.sqrt(sum(x*x for x in side));side=[x/norm for x in side];other=cross(axis,side)
+  ring=lambda p:[[p[k]+r*(math.cos(i/n*math.tau)*side[k]+math.sin(i/n*math.tau)*other[k])for k in range(3)]for i in range(n)]
+  ra,rb=ring(a),ring(b)
+  for i in range(n):quad(ra[i],ra[(i+1)%n],rb[(i+1)%n],rb[i],tone)
+ pool=config['pool'];u,v=pool['center'];outer=pool['outer']/2;inner=pool['inner']/2
+ pool_polygon=box(u-outer,v-outer,u+outer,v+outer)
+ paving=config['paving'];cross=unary_union([box(a,c,b,d)for a,b,c,d in paving['rects']]).intersection(court).difference(pool_polygon)
+ # Individual irregular-course flags leave visible dark joints at walking height.
+ pw,ph=paving['unit'];x0,y0,x1,y1=cross.bounds
+ row=0;y=y0
+ while y<y1:
+  rowHeight=ph*paving['rowScales'][row%len(paving['rowScales'])]
+  x=x0-(row%2)*pw/2;column=0
+  while x<x1:
+   flagWidth=pw*paving['widthScales'][(column+row)%len(paving['widthScales'])]
+   g=box(x+paving['joint']/2,y+paving['joint']/2,x+flagWidth-paving['joint']/2,y+rowHeight-paving['joint']/2).intersection(cross)
+   pieces=[g]if g.geom_type=='Polygon'else list(getattr(g,'geoms',[]))
+   for piece in pieces:
+    if piece.geom_type!='Polygon' or piece.area<paving['minFlagArea']:continue
+    for tri in triangulate(piece):
+     if not piece.covers(tri.representative_point()):continue
+     face([[a,b,paving['height']]for a,b in list(tri.exterior.coords)[:-1]],'paving')
+   x+=flagWidth;column+=1
+  y+=rowHeight;row+=1
+ for part in ([cross]if cross.geom_type=='Polygon'else cross.geoms):
+  for tri in triangulate(part):
+   if part.covers(tri.representative_point()):face([[a,b,paving['base']]for a,b in list(tri.exterior.coords)[:-1]],'joint')
+ # Four concentric coping contours give a sloped shoulder and an inset basin.
+ def square(r,z):return [[u-r,v-r,z],[u+r,v-r,z],[u+r,v+r,z],[u-r,v+r,z]]
+ rings=[square(outer,paving['height']),square(outer-pool['shoulderInset'],pool['rimShoulder']),square(outer-pool['crestInset'],pool['rimHeight']),square(inner,pool['rimShoulder'])]
+ for a,b in zip(rings,rings[1:]):
+  for i in range(4):j=(i+1)%4;quad(a[i],a[j],b[j],b[i],'stone')
+ floor=pool['floorHeight'];top=pool['rimShoulder'];tile=pool['tileWidth'];step=pool['tileRowHeight'];gap=pool['joint']
+ # Exposed blue/ochre mosaic courses on all four inner basin walls.
+ n=math.ceil(pool['inner']/tile);nr=math.ceil((top-floor)/step)
+ for side in range(4):
+  def wall(s,z):
+   return ([u-inner+s,v-inner,z],[u+inner,v-inner+s,z],[u+inner-s,v+inner,z],[u-inner,v+inner-s,z])[side]
+  for j in range(nr):
+   for i in range(n):
+    a=i*pool['inner']/n+gap/2;b=(i+1)*pool['inner']/n-gap/2;lo=floor+j*(top-floor)/nr+gap/2;hi=floor+(j+1)*(top-floor)/nr-gap/2
+    quad(wall(b,lo),wall(a,lo),wall(a,hi),wall(b,hi),'tileGold'if j%pool['tileAccentEvery']==pool['tileAccentRow'] else 'tileBlue')
+ face(square(inner,pool['waterHeight']),'water')
+ # Separate carved-support stone seats sit on the lawn margins beside the pool.
+ seats=config['stoneSeats']
+ for x,y,angle in seats['positions']:
+  rotated_box(x,y,seats['length'],seats['width'],seats['seat']-seats['slab'],seats['seat'],'stone',angle)
+  for offset in [-seats['supportSpacing']/2,seats['supportSpacing']/2]:
+   levels=[(z,seats['foot']*width)for z,width in seats['supportProfile']]
+   for (za,wa),(zb,wb)in zip(levels,levels[1:]):
+    a=[[x+offset-wa/2,y-seats['width']*seats['supportDepth']/2,za],[x+offset+wa/2,y-seats['width']*seats['supportDepth']/2,za],[x+offset+wa/2,y+seats['width']*seats['supportDepth']/2,za],[x+offset-wa/2,y+seats['width']*seats['supportDepth']/2,za]]
+    b=[[x+offset-wb/2,y-seats['width']*seats['supportDepth']/2,zb],[x+offset+wb/2,y-seats['width']*seats['supportDepth']/2,zb],[x+offset+wb/2,y+seats['width']*seats['supportDepth']/2,zb],[x+offset-wb/2,y+seats['width']*seats['supportDepth']/2,zb]]
+    for i in range(4):j=(i+1)%4;quad(a[i],a[j],b[j],b[i],'stoneShade')
+ # Timber benches have actual vertical back slats, arm rails and open legs.
+ seat=config['woodSeats']
+ for x,y,angle in seat['positions']:
+  a=math.radians(angle);cs=math.cos(a);sn=math.sin(a)
+  def part(px,py,w,d,z0,z1,tone='wood'):
+   rotated_box(x+px*cs-py*sn,y+px*sn+py*cs,w,d,z0,z1,tone,angle)
+  for xx in [-seat['length']/2+seat['leg'],seat['length']/2-seat['leg']]:
+   for yy in [-seat['width']/2+seat['leg']/2,seat['width']/2-seat['leg']/2]:part(xx,yy,seat['leg'],seat['leg'],seat['base'],seat['back']if yy<0 else seat['arm'],'woodEnd')
+   part(xx,0,seat['rail'],seat['width']+seat['armOverhang'],seat['arm']-seat['slat'],seat['arm'])
+  n=math.floor(seat['width']/(seat['slat']+seat['gap']))
+  for i in range(n):part(0,(i-(n-1)/2)*(seat['slat']+seat['gap']),seat['length'],seat['slat'],seat['seat']-seat['slat'],seat['seat'])
+  for z in [seat['seat']+seat['backBottomOffset'],seat['back']-seat['rail']]:part(0,-seat['width']/2,seat['length'],seat['rail'],z,z+seat['rail'])
+  n=math.floor((seat['length']-2*seat['rail'])/(seat['slat']+seat['gap']))
+  for i in range(n):part((i-(n-1)/2)*(seat['slat']+seat['gap']),-seat['width']/2,seat['slat'],seat['slat'],seat['seat']+seat['backBottomOffset'],seat['back'])
+ # Four fan palms are court-specific photo interpretations, not inventory trees.
+ palm=config['palms']
+ for x,y,h in palm['positions']:
+  cylinder([x,y,palm['base']],[x,y,h],palm['trunkRadius'],'palmTrunk',palm['trunkSides'])
+  z=palm['ringStart']
+  while z<h-palm['ringTopGap']:
+   cylinder([x,y,z],[x,y,z+palm['ringDepth']],palm['trunkRadius']+palm['ringDepth'],'palmRings',palm['trunkSides']);z+=palm['ringPitch']
+  # Staggered upright, spreading and drooping fans form a crown volume.
+  # Split outer blades leave air between tips instead of one flat umbrella.
+  for layer,level in enumerate(palm['fanLevels']):
+   n=level['count']
+   for i in range(n):
+    angle=(i+level['offset'])/n*math.tau+x*palm['treePhase'];dx,dy=math.cos(angle),math.sin(angle);sx,sy=-dy,dx
+    variation=math.sin(i*palm['variationPhase']+x+y)
+    pitch=math.radians(level['pitch']+variation*palm['pitchVariation'])
+    length=level['length']*(1+variation*palm['lengthVariation'])
+    base=[x+dx*palm['fanBaseRadius'],y+dy*palm['fanBaseRadius'],h+level['base']]
+    cylinder([x,y,h+palm['petioleBaseOffset']],base,palm['petioleRadius'],'palmLeaf',palm['petioleSides'])
+    def blade(t,f):
+     spread=t*palm['fanSpread'];distance=length*f
+     forward=distance*math.cos(spread)
+     return [base[0]+dx*forward*math.cos(pitch)+sx*distance*math.sin(spread),
+             base[1]+dy*forward*math.cos(pitch)+sy*distance*math.sin(spread),
+             min(h+palm['crownTop'],base[2]+forward*math.sin(pitch)-palm['tipDroop']*f*f-palm['fanEdgeDrop']*abs(t)*f)]
+    for j in range(palm['fanRays']):
+     ta=-1+2*j/palm['fanRays'];tb=-1+2*(j+1)/palm['fanRays']
+     ma=blade(ta,palm['splitAt']);mb=blade(tb,palm['splitAt'])
+     gap=palm['tipGap']/palm['fanRays'];tipa=blade(ta+gap,1);tipb=blade(tb-gap,1)
+     # A raised centre crease keeps each narrow blade from being a flat sheet.
+     mid=blade((ta+tb)/2,1);mid[2]=min(h+palm['crownTop'],mid[2]+palm['bladeFold'])
+     tone='palmLeaf'if (j+i+layer)%3 else 'palmLeafLight'
+     face([base,ma,mb],tone,True)
+     face([ma,tipa,mid,mb],tone,True);face([mb,mid,tipb],tone,True)
+  # Old fronds curve down around the trunk in two overlapping dry skirts.
+  for layer in range(palm['skirtLayers']):
+   for i in range(palm['skirtFronds']):
+    angle=(i+layer*palm['skirtPhase'])/palm['skirtFronds']*math.tau;dx,dy=math.cos(angle),math.sin(angle);sx,sy=-dy,dx
+    variation=math.sin(i*palm['variationPhase']+x);drop=palm['skirtDrop']*(1+variation*palm['skirtVariation'])
+    points=[]
+    for radial,zoff,width in palm['skirtProfile']:
+     z=h+zoff*drop-layer*palm['skirtLayerDrop'];rad=radial*palm['skirtRadius']
+     points.append(([x+dx*rad+sx*width,y+dy*rad+sy*width,z],[x+dx*rad-sx*width,y+dy*rad-sy*width,z]))
+    for j in range(len(points)-1):face([points[j][0],points[j][1],points[j+1][1],points[j+1][0]],'palmDry',True)
+ return list(batches.values())
+
 def compile_gardens():
  from shapely.ops import transform, unary_union
  from shapely.geometry import Polygon, LineString
@@ -121,7 +259,18 @@ def compile_gardens():
    def rect(b):
     a,c,d,e=b;return local(Polygon([ll(a,d),ll(c,d),ll(c,e),ll(a,e)]))
    if p.get('courtPaving'):
-    for hole in hall['footprint']['holes']:emit(local(Polygon(hole)),'pave',height=p['courtPaving'])
+    for hole in hall['footprint']['holes']:
+     paving=local(Polygon(hole))
+     if p.get('courtDetails'):
+      pool=p['courtDetails']['pool'];u,v=pool['center'];r=pool['outer']/2
+      paving=paving.difference(rect([u-r,u+r,v-r,v+r]))
+     emit(paving,'pave',height=p['courtPaving'])
+   if p.get('courtDetails'):
+    def uv(ll):
+     x=(ll[0]-F['o'][0])*F['mx'];y=(ll[1]-F['o'][1])*F['my']
+     return [x*F['ax']+y*F['ay'],-x*F['ay']+y*F['ax']]
+    court=unary_union([Polygon([uv(q)for q in hole])for hole in hall['footprint']['holes']])
+    out['features'].extend(compile_court_details(p['courtDetails'],F,court))
    for b in p.get('beds',[]):
     g=rect(b).difference(blocked);emit(g,'bed',plants=True);emit(g.buffer(T['edgeWidth']).difference(g),'stone',height=T['bedEdgeHeight'])
    for b in p.get('lawns',[]):emit(rect(b).difference(blocked),'lawn')
