@@ -27,13 +27,24 @@ LANDMARKS = {
         "lit": ["#97978b","#78959f","#b4a680"],
         "frame": "#a7afb0", "slab": "#afb9bd", "canopy": "#c3beb0",
         "crown_core_inset": 3.4, "crown_overhang": 2.0,
-        "crown_slab": 0.85, "support_width": 1.05,
+        "crown_slab": 1.15, "support_width": 1.05, "crown_support_width": 1.8,
         "support_lean": 2.2, "support_steps": 12,
         "floor_band": 0.28, "frame_width": 0.24, "face_depth": 0.28,
         "terrace_rail": 1.15,
         "backing_inset": 0.85,
         "sky_column_night": "#dcc68e", "crown_column_night": "#a1967e",
         "crown_canopy_night": "#847d6b",
+        "residential_detail": {
+            "depth": 2.4, "pier": 0.65, "beam": 0.65,
+            "slab": 0.24, "rail": 1.05, "rail_depth": 0.18,
+            "back_thickness": 0.2, "room_side_inset": 0.3,
+            "room_front_offset": 0.1, "room_bottom": 0.5, "room_top": 0.35,
+            "jamb_projection": 0.2, "frame_projection": 0.22, "frame_depth": 0.65,
+            "frame": "#c1c4be", "recess": "#263d4c", "rail_glass": "#526a75",
+            "groups": [0,2,5,8,11,14,17,20,23,26,29,31,33],
+            "south": [[0.04,0.21],[0.25,0.42],[0.46,0.64],[0.68,0.82]],
+            "east": [[0.28,0.40],[0.69,0.81]],
+        },
     },
     "Sixth and Guadalupe": {
         "key": "sixth-guadalupe", "center": [-97.74669,30.269654], "bearing":18.0,
@@ -46,6 +57,10 @@ LANDMARKS = {
         "frame":"#577083","slab":"#65727a","canopy":"#8b9ca6",
         "floor_band":0.30,"frame_width":0.22,"face_depth":0.28,
         "balcony_depth":2.4,"balcony_left":7.4,"balcony_right":9.6,
+        "balcony_back":"#3b4b56","balcony_spandrel":"#72828a",
+        "balcony_door":"#617682","balcony_pier":"#8c969b",
+        "balcony_spandrel_height":0.42,"balcony_spandrel_depth":0.38,
+        "balcony_back_half_depth":0.12,"balcony_back_bottom":0.42,"balcony_back_top":0.12,
         "rail_height":1.1,"rail_thickness":0.14,
         "crown_band_height":3.0,"crown_blue":"#2865dc",
         "crown_day":"#7a98ae","crown_overhang":0.7,"crown_backing_inset":0.85,
@@ -117,7 +132,7 @@ def build_landmark(bake, name, height=None, fade=0):
     def random(key):
         return int(hashlib.sha256((cfg["key"]+key).encode()).hexdigest()[:8],16)/0xffffffff
 
-    def skin(r,z0,z1,floors,bay,glass,lit,occupancy,role,skip_north=False):
+    def skin(r,z0,z1,floors,bay,glass,lit,occupancy,role,skip_north=False,skip_sides=()):
         x0,x1,y0,y1=r
         dz=(z1-z0)/floors
         depth=cfg["face_depth"]
@@ -125,7 +140,7 @@ def build_landmark(bake, name, height=None, fade=0):
             z=z0+row*dz
             slab(r,z,cfg["slab"],role+"-floor")
             for side,length in enumerate((x1-x0,y1-y0,x1-x0,y1-y0)):
-                if side==2 and skip_north:
+                if side in skip_sides or (side==2 and skip_north):
                     continue
                 cols=max(1,round(length/bay))
                 for col in range(cols):
@@ -141,7 +156,7 @@ def build_landmark(bake, name, height=None, fade=0):
                     box(rect,z+0.50,z+dz-0.32,glass,role+"-pane",lit)
         # Major vertical divisions are geometry, not a repeated atlas texture.
         for side,length in enumerate((x1-x0,y1-y0,x1-x0,y1-y0)):
-            if side==2 and skip_north:
+            if side in skip_sides or (side==2 and skip_north):
                 continue
             cols=max(1,round(length/bay))
             for col in range(cols+1):
@@ -153,7 +168,7 @@ def build_landmark(bake, name, height=None, fade=0):
                 box(rect,z0,z1,cfg["frame"],role+"-mullion")
 
     def supports(r,z0,z1,role,lean=0):
-        x0,x1,y0,y1=r;w=cfg["support_width"]
+        x0,x1,y0,y1=r;w=cfg.get("crown_support_width",cfg["support_width"]) if role=="crown-column" else cfg["support_width"]
         for side in (y0,y1):
             for j in range(5):
                 x=x0+w+(x1-x0-2*w)*j/4
@@ -187,8 +202,46 @@ def build_landmark(bake, name, height=None, fade=0):
         ring(office,office_top+0.8,office_top+0.8+cfg["terrace_rail"],cfg["frame"],"sky-rail",0.25)
         box(expand(res,-8),office_top,res_base,cfg["glass"][2],"sky-lobby")
         supports(res,office_top+0.8,res_base,"sky-column",cfg["support_lean"])
-        box(expand(res,-cfg["backing_inset"]),res_base,res_top,cfg["glass"][2],"residential")
-        skin(res,res_base,res_top,cfg["floors"][2],cfg["bays"][2],cfg["glass"][2],cfg["lit"][2],cfg["occupancy"][2],"residential")
+        # The south face has broad balcony stacks, while the east face has
+        # narrower recesses between glass fields. Cut the backing too: dark
+        # rectangles on an uncut wall do not establish balcony depth.
+        from shapely.geometry import box as shape_box
+        detail=cfg["residential_detail"]
+        x0,x1,y0,y1=res; depth=detail["depth"]
+        backing=shape_box(*[x0+cfg["backing_inset"],y0+cfg["backing_inset"],
+                            x1-cfg["backing_inset"],y1-cfg["backing_inset"]])
+        fields=[]
+        for side, intervals in ((0,detail["south"]),(1,detail["east"])):
+            length=(x1-x0) if side==0 else (y1-y0)
+            for start,end in intervals:
+                a,b=start*length,end*length
+                cut=(shape_box(x0+a,y0-1,x0+b,y0+depth) if side==0 else
+                     shape_box(x1-depth,y0+a,x1+1,y0+b))
+                backing=backing.difference(cut)
+                fields.append((side,a,b))
+        poly(list(backing.exterior.coords),res_base,res_top,cfg["glass"][2],"residential")
+        skin(res,res_base,res_top,cfg["floors"][2],cfg["bays"][2],cfg["glass"][2],cfg["lit"][2],cfg["occupancy"][2],"residential",skip_sides=(0,1))
+        dz=(res_top-res_base)/cfg["floors"][2]
+        for side,a,b in fields:
+            def face_rect(start,end,inset,thickness):
+                return ([x0+start,x0+end,y0+inset,y0+inset+thickness] if side==0 else
+                        [x1-inset-thickness,x1-inset,y0+start,y0+end])
+            box(face_rect(a,b,depth,detail["back_thickness"]),res_base,res_top,detail["recess"],"balcony-back-pane")
+            for row in range(cfg["floors"][2]):
+                z=res_base+row*dz
+                box(face_rect(a,b,0,depth),z,z+detail["slab"],detail["frame"],"balcony-deck")
+                box(face_rect(a,b,0,detail["rail_depth"]),z+detail["slab"],z+detail["rail"],detail["rail_glass"],"balcony-guard-pane")
+                if random(f"recess/{side}/{a}/{row}")<cfg["occupancy"][2]:
+                    box(face_rect(a+detail["room_side_inset"],b-detail["room_side_inset"],depth-detail["room_front_offset"],detail["back_thickness"]),z+detail["room_bottom"],z+dz-detail["room_top"],
+                        cfg["glass"][2],"balcony-room-pane",cfg["lit"][2])
+            for edge in (a,b):
+                box(face_rect(edge-detail["pier"]/2,edge+detail["pier"]/2,-detail["jamb_projection"],depth+detail["jamb_projection"]),
+                    res_base,res_top,detail["frame"],"balcony-jamb")
+        # Broad multi-storey frames are real geometry; fine glass mullions
+        # remain on the existing filtered facade path.
+        for row in detail["groups"]:
+            z=min(res_top-detail["beam"],res_base+row*dz)
+            ring(expand(res,detail["frame_projection"]),z,z+detail["beam"],detail["frame"],"residential-frame",detail["frame_depth"])
         slab(res,res_top,cfg["canopy"],"crown-seat",0.6)
         box(expand(res,-cfg["crown_core_inset"]),res_top,top-cfg["crown_slab"],cfg["glass"][2],"crown-glass")
         supports(res,res_top+0.6,top-cfg["crown_slab"],"crown-column",cfg["support_lean"])
@@ -230,16 +283,25 @@ def build_landmark(bake, name, height=None, fade=0):
         dz=(res_top-res_base)/cfg["floors"][1]
         for row in range(cfg["floors"][1]):
             z=res_base+row*dz
+            # Preserve cheek widths shared with the current window shader.
+            # The balconies read as a continuous recessed stack.
+            # An opaque shaded spandrel/backing preserves that depth without
+            # relying on the distant reflective-glass shader's flat grid.
+            box([left,right,back-cfg["balcony_back_half_depth"],back+cfg["balcony_back_half_depth"]],
+                z+cfg["balcony_back_bottom"],z+dz-cfg["balcony_back_top"],
+                cfg["balcony_back"],"balcony-recess-divider")
+            box([left,right,y1-cfg["balcony_spandrel_depth"],y1],
+                z,z+cfg["balcony_spandrel_height"],
+                cfg["balcony_spandrel"],"balcony-spandrel-rail")
             # skin() already emits the floor plate through the open balcony;
             # a second coplanar slab here would shimmer at grazing angles.
             box([left,right,y1-.20,y1+.20],z+cfg["rail_height"],z+cfg["rail_height"]+cfg["rail_thickness"],cfg["frame"],"balcony-rail")
             for col in range(9):
                 a=left+(right-left)*col/9;b=left+(right-left)*(col+1)/9
-                box([a,a+cfg["frame_width"],back,y1],z,z+dz,cfg["frame"],"balcony-divider")
-                if random(f"balcony/{row}/{col}")<cfg["occupancy"][1]:
-                    box([a+.3,b-.3,back-.2,back+.2],z+.45,z+dz-.35,cfg["glass"][1],"balcony-pane",cfg["lit"][1])
-        # Broad curtain-wall cheek strips flank the dark balcony stack. One
-        # stops below the crown, matching the asymmetric upper elevation.
+                box([a,a+cfg["frame_width"],back,y1],z,z+dz,cfg["balcony_pier"],"balcony-pier")
+                lit=cfg["lit"][1] if random(f"balcony/{row}/{col}")<cfg["occupancy"][1] else cfg["balcony_back"]
+                box([a+.3,b-.3,back-.2,back+.2],z+.45,z+dz-.35,cfg["balcony_door"],"balcony-door",lit)
+        # Keep the existing unequal cheeks in sync with the shared shader.
         box([x0,left,y1-.3,y1+.3],res_base,res_top-2.0,cfg["glass"][0],"north-west-cheek")
         box([right,x1,y1-.3,y1+.3],res_base,res_top-13.5,cfg["glass"][0],"north-east-cheek")
         crown=expand(res,cfg["crown_overhang"])
@@ -260,7 +322,9 @@ def validate_landmark(features, height):
     """
     from shapely.geometry import Polygon
     from shapely.strtree import STRtree
-    decorative=("-pane","-mullion","-floor","-rail","-fin","-cheek","-divider","-blue-edge")
+    # Balcony decks/jambs and grouped facade frames attach to the tower's
+    # floor plates, like the existing balcony rails and curtain-wall mullions.
+    decorative=("-pane","-mullion","-floor","-rail","-fin","-cheek","-divider","-blue-edge","-deck","-jamb","-frame","-door","-pier")
     structural=[]
     for f in features:
         p=f["properties"];q=Polygon(f["geometry"]["coordinates"][0])
