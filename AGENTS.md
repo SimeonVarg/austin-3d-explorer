@@ -212,3 +212,8 @@ on a narrow wall and curved patterns on the wider face move vertically during
 rotation. Include this side-on daytime view in reproduction and acceptance;
 night emission tests alone do not cover the reported defect.
 
+
+The September 21 follow-up also shows the moving facade pattern on 21 Rio and
+additional tall, narrow wall views whose building identities are not yet confirmed.
+Include these alongside Union on 24th in motion verification. A partial improvement
+on Union alone is not acceptance of the citywide window-stability request.
