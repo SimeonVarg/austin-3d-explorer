@@ -2114,22 +2114,25 @@ window.CityLighting.install(map);
 
   // ── Idle cinema ───────────────────────────────────────────────────
   // After DRIFT.idleMs of input silence the camera begins a slow orbital
-  // drift and the hour creeps forward — an unattended screen becomes a
-  // screensaver of the city instead of a frozen frame. Any input (or any
+  // drift while preserving the selected lighting. The time slider's Play
+  // button owns automatic day/night changes. Any input (or any
   // camera movement that isn't ours) returns control instantly.
   // ?drift=0 disables it for scripted runs against index.html.
   const DRIFT = {
     idleMs: 25000,      // input silence before the drift starts
     stepMs: 12000,      // one easing leg
     bearingStep: 13,    // degrees per leg, clockwise toward the sun's set point
-    pStep: 0.010,       // hour creep per leg (bounces at 0 and 1)
+    pStep: 0,           // optional hour creep; 0 keeps idle motion repaint-free
     zoomBreathe: 0.05,  // gentle alternating zoom in/out per leg
+    zoomMargin: 0.001, // keep automatic breathing inside one atlas zoom band
   };
   function initIdleCinema() {
     if (new URLSearchParams(window.location.search).get('drift') === '0') return;
     const preview = new URLSearchParams(window.location.search);
     if (preview.get('livehere') === '1' && preview.get('walk') !== '0') return;
-    let idleTimer = null, legTimer = null, drifting = false, legIx = 0, pDir = 1;
+    let idleTimer = null, legFrame = null, drifting = false, legIx = 0, pDir = 1;
+    let generation = 0, target = null, zoomStart = 0, zoomOther = 0;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const banner = document.getElementById('diff-banner');
     // Never while the opening flight is primed under the veil or flying. The
     // countdown starts at load, so a veil that outlasts idleMs (a slow network,
@@ -2143,27 +2146,45 @@ window.CityLighting.install(map);
       return !!f && (f.state === 'primed' || f.state === 'flying');
     };
     const canRun = () => document.visibilityState === 'visible' &&
+                         !reducedMotion.matches &&
                          (!banner || banner.classList.contains('hidden')) &&
                          !introBusy() &&
                          !(window.__fly && window.__fly.eye().driving) &&
                          !(map.isEasing && map.isEasing());
     const stop = () => {
-      if (drifting && map.isEasing && map.isEasing()) map.stop();
+      const wasDrifting = drifting;
       drifting = false;
-      clearTimeout(legTimer);
+      generation++;
+      target = null;
+      if (legFrame != null) cancelAnimationFrame(legFrame);
+      legFrame = null;
+      // stop() emits moveend synchronously; invalidate our completion first.
+      if (wasDrifting && map.isEasing && map.isEasing()) map.stop();
     };
     const rearm = () => { stop(); clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); };
     const begin = () => {
       if (!canRun()) { clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); return; }
       drifting = true;
+      generation++;
       legIx = 0;
+      zoomStart = zoomOther = map.getZoom();
+      const band = map.transform && map.transform.tileZoom;
+      // Crossing an integer changes the facade atlas. Keep the small breath
+      // within the starting band, choosing the inward direction at its edge.
+      if (band === Math.floor(zoomStart)) {
+        const up = zoomStart + DRIFT.zoomBreathe;
+        const down = zoomStart - DRIFT.zoomBreathe;
+        if (up < band + 1 - DRIFT.zoomMargin) zoomOther = up;
+        else if (down >= band + DRIFT.zoomMargin) zoomOther = down;
+      }
       leg();
     };
     const leg = () => {
       if (!drifting) return;
-      // The hour creeps unless the auto day-cycle is already driving it.
+      // Optional legacy clock creep is separate from the normal camera orbit.
+      // Explicit day-cycle playback always owns its clock without competition.
       const play = document.getElementById('tod-play');
-      if (!(play && play.classList.contains('playing'))) {
+      if (DRIFT.pStep !== 0 && !(play && play.classList.contains('playing'))) {
         let p = (window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P) + pDir * DRIFT.pStep;
         if (p >= 1) { p = 1; pDir = -1; } else if (p <= 0) { p = 0; pDir = 1; }
         const sl = document.getElementById('tod-slider');
@@ -2171,19 +2192,42 @@ window.CityLighting.install(map);
         applyTimeOfDay(map, p);
       }
       legIx++;
-      map.easeTo({
+      target = {
         bearing: map.getBearing() - DRIFT.bearingStep,
-        zoom: map.getZoom() + (legIx % 2 ? DRIFT.zoomBreathe : -DRIFT.zoomBreathe),
+        zoom: legIx % 2 ? zoomOther : zoomStart,
+      };
+      map.easeTo({
+        bearing: target.bearing,
+        zoom: target.zoom,
         duration: DRIFT.stepMs,
         easing: t => t,                       // linear: constant, calm
-      }, { drift: true });
-      legTimer = setTimeout(leg, DRIFT.stepMs + 60);
+      }, { drift: true, driftGeneration: generation, driftLeg: legIx });
     };
+    map.on('moveend', e => {
+      if (!drifting || !target || !e || !e.drift ||
+          e.driftGeneration !== generation || e.driftLeg !== legIx) return;
+      if (legFrame != null) return;
+      const bearingError = ((map.getBearing() - target.bearing + 540) % 360) - 180;
+      if (Math.abs(bearingError) > 0.0001 || Math.abs(map.getZoom() - target.zoom) > 0.0001) {
+        rearm();
+        return;
+      }
+      const completed = generation;
+      // Yield one frame so even a synchronous completion cannot recurse.
+      legFrame = requestAnimationFrame(() => {
+        legFrame = null;
+        if (!drifting || generation !== completed) return;
+        if (!canRun()) { rearm(); return; }
+        leg();
+      });
+    });
     // Camera movement that is NOT drift-tagged re-arms the countdown; our own
     // legs are tagged so the drift cannot reset itself.
     map.on('movestart', e => { if (!e || !e.drift) rearm(); });
     ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(t =>
       window.addEventListener(t, rearm, { capture: true, passive: true }));
+    document.addEventListener('visibilitychange', rearm);
+    reducedMotion.addEventListener('change', rearm);
     rearm();
   }
 
