@@ -51,6 +51,9 @@ The central approach admits walkers beneath the overhead bridge while retaining
 collision above it and at the recessed rear wall. Existing bowl geometry occupies
 the deeper recess and stops further movement before that wall. This is a bounded
 clearance rule for the bridge; the stadium is not a fully navigable interior.
+A fresh complete-city keyboard walk at 1.7 m eye height moved beneath the bridge
+with the entire camera collision footprint clear of its front edge, then stopped
+stably at the existing bowl. The camera stayed at walking height throughout.
 
 Broader tower-to-wall proportions, fine material detail and interior furnishings
 remain approximate. This pass makes no performance claim. Physical iPhone Safari

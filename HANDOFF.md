@@ -15,7 +15,9 @@ poses reached all 196 authored buildings with normal tiles and matched loaded
 asset hashes. Bridge collision now permits the ground approach while preserving
 its upper volume and the solid recessed rear wall. Focused geometry/collision
 checks, their deliberate failure controls, tower geometry, roof exclusion,
-style recovery and harness parity pass.
+style recovery and harness parity pass. A fresh full-city keyboard walk at 1.7 m
+cleared the bridge with the complete camera footprint and stopped stably at the
+existing bowl. The deeper recess is not an accessible stadium interior.
 
 Broader DKR proportions and fine materials remain approximate. Continue with the
 remaining generalized visual defects next; do not infer new DKR heights from an
