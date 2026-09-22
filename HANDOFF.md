@@ -32,18 +32,22 @@ Only this shared handoff document overlaps the parked PRs; none of their code or
 data assertions are changed. Private photos, reference identities and camera
 records remain outside tracked files. No automation was recreated.
 
-PR #283 remains open and unmerged. The final full-city recovery probe reached
-196 ready, indexed, tiled buildings with no uncaught page errors, but observed
-no context-loss event after invoking WEBGL_lose_context during active time-of-day
-playback. The bounded integration gate failed; recovery is unverified. Callback,
-style-loading and GL-state regression tests pass, including broken-guard checks,
-and all finished geometry, evidence and fixes are saved on the branch. Do not
-merge this PR until the integration gate passes. No further recovery loop is
-running; private diagnostic records remain outside Git.
+The full-city recovery gate now passes after integrating main `c1953e3`.
+The reusable `scripts/verify/device-recovery.mjs` verifies actual connected-canvas
+loss/restoration during time-of-day playback, exactly one app reload, all 196
+buildings ready again, movement, and portrait/landscape/2560 x 1440 recovery.
+No page or console errors occurred. It catches incorrect screenshot dimensions
+and extra reloads; the earlier no-event attempts are rejected, not passing data.
+The report links the retained large-screen second screenshot. Focused recovery,
+material, cache and harness regression tests pass.
+The deliberate missing-injection run reaches 196 buildings and fails the
+observed-loss assertion with exit 1, proving this gate rejects the old ambiguity.
 
-Physical-phone performance/reliability remains the next acceptance step before
-substantial new geometry; desktop emulation does not establish mobile hardware
-memory headroom or thermal behavior. Follow the remaining AGENTS.md priorities.
+Physical iPhone Safari and Chrome acceptance remains open because no device was
+available. Desktop touch emulation establishes neither mobile GPU performance,
+thermal behavior nor memory headroom. The large resize retains the touch graphics
+profile. Private diagnostics remain outside Git; the dirty primary is untouched.
+
 ## Sep 22 2026 - Downtown balcony depth (`codex/downtown-geometry`)
 
 Waterline's residential elevations now have cut balcony volumes, decks, guards,

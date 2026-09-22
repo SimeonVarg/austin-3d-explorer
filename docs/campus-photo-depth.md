@@ -116,19 +116,25 @@ camera limits and collision system active. All views have 196 ready buildings,
 loaded vector sources and no page/shader errors. Raised white letter faces and
 green sides are visible from this oblique view; the typeface remains approximate.
 
-The final full-city context-recovery integration gate is **not passed**. With
-active time-of-day playback, the complete city was ready, indexed and tiled, and
-`WEBGL_lose_context` was available. The test requested loss and restoration but
-observed no `webglcontextlost` event before its 45-second deadline. No uncaught
-page errors were recorded. The preceding attempt had the same outcome. This is
-an unverified recovery sequence, not evidence that restoration succeeds or that
-a physical phone is reliable. The branch remains on open PR #283; do not merge
-until this integration gate is reproduced and passes. Local diagnostic records
-and failed attempts are retained outside Git.
+The final full-city context-recovery integration gate now passes on current main
+integrated into `codex/campus-photo-depth`. The reusable
+`scripts/verify/device-recovery.mjs` observes actual loss on the connected shared
+MapLibre/Three.js canvas during active time-of-day playback, actual restoration,
+and exactly one application recovery reload. All 196 authored buildings return
+ready, indexed and tiled; movement resumes. Portrait (390 x 844 DPR3), landscape
+(844 x 390 DPR3) and large (2560 x 1440 DPR1) second screenshots pass with no page,
+console or shader errors. The large view retains the recovered touch graphics
+profile; it is not a fresh desktop-default benchmark.
 
-Focused regression tests pass for the callback, style-loading and GL-state
-failures found in earlier attempts, including deliberate broken-guard controls.
-The tests do not substitute for the failed integration gate.
+Earlier probes that saw no loss event remain rejected attempts. The new probe
+asserts canvas identity, records direct canvas events outside the reloading page,
+and rejects extra reloads, partial cities and incorrect capture dimensions.
+These results establish desktop Chromium recovery, not iPhone hardware behavior.
+Focused callback, style-loading and GL-state regression tests also pass.
+The deliberate `--break-injection` run reaches the complete city but exits 1
+with `No actual context-loss event observed`, as required.
+
+![Full city after context recovery and large-screen resize](../shots/campus-photo-depth/recovered-large.jpg)
 
 ## Remaining fidelity and device work
 
@@ -136,8 +142,9 @@ These are approximate architectural models, not photogrammetry. Fine masonry,
 shop displays, sign fidelity, planting and unphotographed elevations remain less
 specific than the references. The full owner-photo backlog remains open.
 
-Physical-phone acceptance requires an actual device: open the normal production
-site with its default graphics, wait for the complete city, walk through campus
+The target phone browsers are iPhone Safari and Chrome; no physical device was
+available for this pass. Physical-phone acceptance requires an actual device:
+open the normal production site with its default graphics, wait for the complete city, walk through campus
 and Guadalupe, rotate to landscape, switch away and return, then reload. Record
 the phone, browser and OS, missing buildings, context loss, page reloads and
 visible stalls. Desktop mobile emulation cannot establish phone memory headroom,
