@@ -20,7 +20,7 @@
   // Facade-sized geometry establishes the silhouette. Subpixel floor edges and
   // mullions use integrated pixel coverage instead of binary triangle hits.
   // These are the same fitted storey zones as downtown_landmarks.py.
-  const landmarkMaterials={reflection:.32,frameWidth:.24,
+  const landmarkMaterials={reflection:.32,frameWidth:.24,frameShade:.6,
     waterline:{center:[-97.739542,30.261083],colour:[.686,.725,.741],zones:[[9.144,50,12,3.3],[50,177,27,3.6],[187,302,33,3.15]],band:.28},
     sixth:{center:[-97.74669,30.269654],colour:[.396,.447,.478],zones:[[18.7,119,22,3.1],[126,257,37,3.2]],band:.30},
     bearing:18,nightFrame:[.055,.07,.085],balconyShade:.58,balconyRail:.14,balconyRailHeight:1.1};
@@ -397,7 +397,7 @@
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
               float recess=mix(1.0,${landmarkMaterials.balconyShade.toFixed(3)},landmarkBalcony(v_cityPos,normalize(v_cityNormal))*glass);
               vec3 albedo=mix(v_cityAlbedo.rgb*recess,grid.rgb,grid.a);
-              vec3 original=mix(v_color.rgb/max(v_color.a,.0001)*recess,grid.rgb*.6,grid.a);
+              vec3 original=mix(v_color.rgb/max(v_color.a,.0001)*recess,grid.rgb*${landmarkMaterials.frameShade.toFixed(3)},grid.a);
               vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               if(glass>.5)shaded=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);

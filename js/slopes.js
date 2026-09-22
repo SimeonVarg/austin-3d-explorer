@@ -515,8 +515,8 @@
           vec2 streakUV=uv*u_weatherScale.xy;
           float resolved=1.0-smoothstep(.25,1.0,max(fwidth(streakUV.x),fwidth(streakUV.y)));
           float streak=mix(.5,surfaceNoise(streakUV),resolved);
-          float patch=surfaceNoise(uv*u_weatherScale.zw);
-          col*=1.0-strength*nearDetail*(u_weatherTone.x*streak*patch+u_weatherTone.y*patch);
+          float weatherPatch=surfaceNoise(uv*u_weatherScale.zw);
+          col*=1.0-strength*nearDetail*(u_weatherTone.x*streak*weatherPatch+u_weatherTone.y*weatherPatch);
         } else if(kind<3.5) {
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(v_surface.yz,vec2(.01));
