@@ -339,6 +339,15 @@
   //     wall never gets the vertical gradient. Kept, because parity with the
   //     wall next door matters more than tidiness.
   const VERT = `
+    #ifdef FACADE_FILTER
+    varying vec2 v_faceUV;
+    #ifdef FACADE_FILTER_ARRAY
+    attribute float faceLayer;
+    attribute vec2 faceSize;
+    varying float v_faceLayer;
+    varying vec2 v_faceSize;
+    #endif
+    #endif
     uniform vec3 u_lightpos;
     uniform vec3 u_lightcolor;
     uniform float u_lightintensity;
@@ -413,11 +422,40 @@
       // At the default 1.0 this is an exact multiply by one.
       float k = sloped ? u_roof_shade : 1.0;
       v_color = vec4(lit * k, 1.0) * u_opacity;
+      #ifdef FACADE_FILTER
+      v_faceUV = uv;
+      #ifdef FACADE_FILTER_ARRAY
+      v_faceLayer=faceLayer; v_faceSize=faceSize;
+      #endif
+      #endif
       v_pos = position; v_normal = normal; v_surface = aSurface;
       v_albedo = cDay; v_night = cNight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`;
   const FRAG = `
+    #ifdef FACADE_FILTER
+    varying vec2 v_faceUV;
+    #ifdef FACADE_FILTER_ARRAY
+    varying float v_faceLayer;
+    varying vec2 v_faceSize;
+    uniform highp sampler2DArray u_faceDay;
+    uniform highp sampler2DArray u_faceGold;
+    uniform highp sampler2DArray u_faceNight;
+    #else
+    uniform sampler2D u_faceDay;
+    uniform sampler2D u_faceGold;
+    uniform sampler2D u_faceNight;
+    #endif
+    uniform vec2 u_faceSize;
+    uniform vec2 u_faceFade;
+    uniform vec2 u_faceNightFade;
+    uniform float u_faceEnabled;
+    uniform float u_materialP;
+    uniform vec3 u_lightpos;
+    uniform vec3 u_lightcolor;
+    uniform float u_lightintensity;
+    uniform float u_opacity;
+    #endif
     varying vec4 v_color;
     varying vec3 v_pos;
     varying vec3 v_normal;
@@ -452,20 +490,60 @@
         mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
     }
     void main() {
-      vec3 col=v_color.rgb;
-      float kind=v_surface.x;
+      vec4 baseColor=v_color, surface=v_surface;
+      vec3 albedo=v_albedo, night=v_night;
+      float faceMix=1.0;
+      #ifdef FACADE_FILTER
+      #ifdef FACADE_FILTER_ARRAY
+      vec2 footprint=fwidth(v_faceUV*v_faceSize);
+      #else
+      vec2 footprint=fwidth(v_faceUV*u_faceSize);
+      #endif
+      faceMix=u_faceEnabled*smoothstep(u_faceFade.x,u_faceFade.y,max(footprint.x,footprint.y));
+      faceMix*=1.0-smoothstep(u_faceNightFade.x,u_faceNightFade.y,u_p);
+      if(faceMix<=0.0)discard;
+      #ifdef FACADE_FILTER_ARRAY
+      vec3 faceCoord=vec3(v_faceUV,v_faceLayer);
+      vec4 day=texture(u_faceDay,faceCoord);
+      vec4 gold=texture(u_faceGold,faceCoord);
+      vec4 dark=texture(u_faceNight,faceCoord);
+      #else
+      vec4 day=texture2D(u_faceDay,v_faceUV);
+      vec4 gold=texture2D(u_faceGold,v_faceUV);
+      vec4 dark=texture2D(u_faceNight,v_faceUV);
+      #endif
+      albedo=day.rgb; night=dark.rgb;
+      vec3 color=u_materialP<=.5?mix(day.rgb,gold.rgb,u_materialP*2.0):mix(gold.rgb,dark.rgb,(u_materialP-.5)*2.0);
+      float value=dot(color,vec3(.2126,.7152,.0722));
+      float directional=mix(1.0-u_lightintensity,max(1.0-value+u_lightintensity,1.0),clamp(dot(normalize(v_normal),u_lightpos),0.0,1.0));
+      baseColor=vec4(clamp((color+vec3(.03))*directional*u_lightcolor,mix(vec3(0),vec3(.3),vec3(1)-u_lightcolor),vec3(1)),1)*u_opacity;
+      surface=vec4(0);
+      #endif
+      vec3 col=baseColor.rgb;
+      float kind=surface.x;
       bool shop=kind>5.5&&kind<6.5;
       float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
-      float glassResponse=glazing*(shop?1.0:clamp(v_surface.w,0.0,1.0));
-      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,glassResponse)*v_color.a;
+      float glassResponse=glazing*(shop?1.0:clamp(surface.w,0.0,1.0));
+      #ifdef FACADE_FILTER
+      glazing=gold.a;
+      glassResponse=day.a;
+      #endif
+      col=cityShade(col/max(baseColor.a,.0001),albedo,v_pos,v_normal,glassResponse)*baseColor.a;
       float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;
-      col=mix(col,max(col,v_albedo*u_nightWallAmbient),u_cityNight.x*opaqueWall);
+      #ifdef FACADE_FILTER
+      opaqueWall=1.0-glazing;
+      #endif
+      col=mix(col,max(col,albedo*u_nightWallAmbient),u_cityNight.x*opaqueWall);
       col=cityCrown(col,v_pos,v_normal);
-      col=cityLocalLight(col,v_albedo,v_pos,v_normal,glazing);
-      col=cityEmission(col,v_night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
+      col=cityLocalLight(col,albedo,v_pos,v_normal,glazing);
+      #ifdef FACADE_FILTER
+      col=cityEmission(col,night,glazing);
+      #else
+      col=cityEmission(col,night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
+      #endif
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
-        float strength=v_surface.w;
+        float strength=surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
         if(glazing>.5) {
           if(u_sunlight.x<.5) {
@@ -478,7 +556,7 @@
             // Ray/box intersection exposes side walls and ceiling as the eye
             // moves past. Glass stays opaque in the shared depth buffer.
             vec3 tangent=normalize(vec3(-n.y,n.x,0.0));
-            vec2 size=max(v_surface.yz,vec2(.01));
+            vec2 size=max(surface.yz,vec2(.01));
             vec2 uv=vec2(dot(v_pos,tangent),v_pos.z)/size;
             vec3 p=vec3(fract(uv)-vec2(.5,0.0),0.0);
             vec3 ray=vec3(-dot(view,tangent)/size.x,-view.z/size.y,-max(abs(dot(view,n)),.001));
@@ -507,7 +585,7 @@
                 step(abs(hit.z/u_shopRoom.x+.5),u_shopCeiling.w*.5);
               room=mix(room,u_shopLight*u_shopStyle.w,fixture);
             }
-            float lit=smoothstep(u_cityNight.z,u_cityNight.w,dot(v_night,vec3(.2126,.7152,.0722)));
+            float lit=smoothstep(u_cityNight.z,u_cityNight.w,dot(night,vec3(.2126,.7152,.0722)));
             room*=mix(1.0,mix(u_shopClosedAmbient,1.0,lit),u_cityNight.x);
             float facing=1.0-u_shopRoom.z*pow(1.0-abs(dot(n,view)),3.0);
             col=mix(col,room,u_shopRoom.y*facing*nearDetail*strength);
@@ -522,7 +600,7 @@
           col*=1.0-strength*nearDetail*faceWeight*(u_weatherTone.x*streak*weatherPatch+u_weatherTone.y*weatherPatch);
         } else if(kind<3.5) {
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
-          vec2 size=max(v_surface.yz,vec2(.01));
+          vec2 size=max(surface.yz,vec2(.01));
           vec2 cell=uv/size;
           if(kind<2.5)cell.x+=mod(floor(cell.y),2.0)*.5;
           vec2 edge=(.5-abs(fract(cell)-.5))*size;
@@ -536,7 +614,7 @@
           col*=1.0+strength*nearDetail*(tile*u_surfaceStyle.z*u_surfaceNoise.y+grain*u_surfaceStyle.z*grainFade-joint*u_surfaceStyle.y*resolved);
         }
       }
-      gl_FragColor=vec4(col,v_color.a);
+      gl_FragColor=vec4(col,baseColor.a*faceMix);
     }`;
 
   // ── State ───────────────────────────────────────────────────────────────
@@ -589,6 +667,9 @@
       const scissor=gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
+      // Filtering changes coverage, not the building's shadow geometry.
+      const filtered=(window.slopesApartments?.group?.children||[]).filter(o=>o.userData?.disposeFacade&&o.visible);
+      for(const o of filtered)o.visible=false;
       try {
         scene.overrideMaterial=_sunShadow.depth;
         if(proxy){scene.add(proxy);proxy.visible=true;}
@@ -606,6 +687,7 @@
         _sunShadow.key=key;
         _sunShadow.updates++;
       } finally {
+        for(const o of filtered)o.visible=true;
         if(proxy){scene.remove(proxy);proxy.visible=false;}
         scene.overrideMaterial=override;renderer.setRenderTarget(target);renderer.setClearColor(clear,alpha);
         renderer.setViewport(...viewport);renderer.setScissor(...scissor);renderer.setScissorTest(scissorTest);
@@ -693,6 +775,22 @@
       vertexShader: VERT, fragmentShader: FRAG,
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
+    });
+  }
+  // Continuous, filtered wall overlay. Close geometry remains the depth
+  // source; projected metres per pixel select the representation per fragment.
+  function facadeMaterial(face, tune) {
+    const T=window.THREE;
+    return new T.ShaderMaterial({
+      defines:face.faces?{FACADE_FILTER:1,FACADE_FILTER_ARRAY:1}:{FACADE_FILTER:1},
+      uniforms:{...U,
+        u_faceDay:{value:face.textures.day},u_faceGold:{value:face.textures.gold},u_faceNight:{value:face.textures.night},
+        u_faceSize:{value:new T.Vector2(face.len||1,face.faces?1:face.z1-face.z0)},
+        u_faceFade:{value:new T.Vector2(tune.fadeStart,tune.fadeEnd)},
+        u_faceNightFade:{value:new T.Vector2(tune.nightFadeStart,tune.nightFadeEnd)},u_faceEnabled:{value:1}},
+      vertexShader:VERT,fragmentShader:FRAG,side:T.FrontSide,
+      transparent:true,depthTest:true,depthWrite:false,
+      polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
     });
   }
   /**
@@ -1422,7 +1520,7 @@
   };
 
   window.slopes = {
-    toLocal, toLngLat, project, raycast, material, colour, add, remove, detail,
+    toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
     onSwitch, build, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
