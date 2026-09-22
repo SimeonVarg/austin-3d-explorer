@@ -15,6 +15,14 @@ OUT = ROOT / 'data/stadium.mesh.json'
 LOWER = dict(rows=54, run=40.5, base=1.2, rise=21.6)
 WEST = dict(rows=55, run=43.0, base=28.0, rise=28.6)
 WRAP = dict(rows=35, run=27.3, base=25.0, rise=15.4)
+# North lantern towers: visible composition, not surveyed facade dimensions.
+OFFICE_TOWER = dict(facets=8, plinth=2.4, lowerTopShare=0.62,
+                    lanternBaseShare=0.88, lowerFloors=5, windowsPerFace=2,
+                    windowShare=0.66, windowHeightShares=[0.38, 0.70, 0.38, 0.70, 0.70],
+                    upperWindowShare=0.64, recess=0.24,
+                    sill=0.16, ledge=0.28, ledgeProjection=0.18,
+                    lanternRadiusShare=0.96, mullion=0.065, upperDivisions=6,
+                    capProjection=0.5, capThickness=0.45)
 PALETTE = {
     'concrete': ['#bcb7aa', '#c2af92', '#34363b'],
     'riser': ['#77776e', '#80796b', '#252b32'],
@@ -91,8 +99,10 @@ def main():
             'aerial': 'UT Athletics DJI_0226.jpg, August 2022: empty bowl, north/east wrap, distinct west upper deck, south Longhorn assembly. Viewed 2026-09-09.',
             'south': 'Populous 20211007_DIG_2395_MAS.jpg: glazed towers with rust framing, stepped club terraces and Longhorn balcony. Viewed 2026-09-09.',
             'board': 'UT Athletics facility page specifies 160 by 44 feet for the 2021 south board; 48.768 by 13.4112 m. Retrieved 2026-09-09.',
+            'northTowers': 'Public north tower street exterior (Ajay Suresh, December 2025) and stadium context aerial: masonry shaft with paired punched windows, tall glazed bays, round glazed lantern and overhanging pale cap. Reviewed September 2026. Facade subdivisions and recess depths are approximations; existing tower anchors, radius and height retained.',
             'derived': 'Deck rows, elevations, facade bays and supports are reference-led approximations within the registered footprint. Vertical dimensions carry roughly 3 m uncertainty; detailed section boundaries and seat-colour allocation are not surveyed. No claim of a current 2026 aerial survey.'},
         palette=PALETTE, sections=sections,
+        officeTower=OFFICE_TOWER,
         field=dict(width=48.768, length=109.728, apronWidth=68.4, apronLength=123.2),
         board=dict(width=48.768,height=13.4112,base=22.5,y=-93.5,curve=0.002),
         south=dict(towerX=34,towerY=-94,towerWidth=12,towerDepth=13,towerHeight=39,

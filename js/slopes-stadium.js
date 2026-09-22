@@ -191,7 +191,61 @@
     const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
   }
+  function officeTower(B,t) {
+    const s=data.officeTower, h=t.height;
+    const ring=(radius,n=s.facets)=>Array.from({length:n},(_,i)=>
+      [t.x+radius*Math.cos(i*2*Math.PI/n),t.y+radius*Math.sin(i*2*Math.PI/n)]);
+    const q=ring(t.radius), lower=h*s.lowerTopShare, lantern=h*s.lanternBaseShare;
+    slab(B,q,0,s.plinth,'stone');
+    // Each opening is a real hole in the masonry plane, with recessed glazing
+    // and four reveal faces. There is no coincident glass behind solid walls.
+    for(let i=0;i<q.length;i++){
+      const a=q[i],b=q[(i+1)%q.length],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      const normal=[(b[1]-a[1])/length,(a[0]-b[0])/length,0];
+      const p=(u,z,depth=0)=>[lerp(a[0],b[0],u)-normal[0]*depth,lerp(a[1],b[1],u)-normal[1]*depth,z];
+      const panel=(u0,u1,z0,z1,key,depth=0)=>{
+        if(z1<=z0)return;
+        quad(B,p(u0,z0,depth),p(u1,z0,depth),p(u1,z1,depth),p(u0,z1,depth),key,normal);
+      };
+      const opening=(u0,u1,z0,z1,share,heightShare,divisions)=>{
+        const edge=(u1-u0)*(1-share)/2,lo=u0+edge,hi=u1-edge;
+        const bottom=z0+(z1-z0)*(1-heightShare)/2,top=z1-(z1-z0)*(1-heightShare)/2;
+        panel(u0,lo,z0,z1,'brick');panel(hi,u1,z0,z1,'brick');
+        panel(lo,hi,z0,bottom,'brick');panel(lo,hi,top,z1,'brick');
+        panel(lo,hi,bottom,top,'glass',s.recess);
+        const corners=[[lo,bottom],[hi,bottom],[hi,top],[lo,top]];
+        for(let j=0;j<4;j++){
+          const c=corners[j],d=corners[(j+1)%4];
+          quad(B,p(...c),p(...d),p(...d,s.recess),p(...c,s.recess),'stone');
+          beam(B,p(...c,s.recess),p(...d,s.recess),s.mullion,'stone');
+        }
+        beam(B,p((lo+hi)/2,bottom,s.recess),p((lo+hi)/2,top,s.recess),s.mullion,'stone');
+        for(let j=1;j<divisions;j++){
+          const z=lerp(bottom,top,j/divisions);
+          beam(B,p(lo,z,s.recess),p(hi,z,s.recess),s.mullion,'stone');
+        }
+        // Projecting sill gives the punched lower windows a readable shadow.
+        if(heightShare<1)beam(B,p(lo,bottom,-s.sill/2),p(hi,bottom,-s.sill/2),s.sill,'stone');
+      };
+      for(let floor=0;floor<s.lowerFloors;floor++){
+        const z0=lerp(s.plinth,lower,floor/s.lowerFloors),z1=lerp(s.plinth,lower,(floor+1)/s.lowerFloors);
+        for(let bay=0;bay<s.windowsPerFace;bay++)opening(bay/s.windowsPerFace,(bay+1)/s.windowsPerFace,z0,z1,s.windowShare,s.windowHeightShares[floor],2);
+      }
+      opening(0,1,lower,lantern,s.upperWindowShare,1,s.upperDivisions);
+    }
+    slab(B,ring(t.radius+s.ledgeProjection),lower-s.ledge,lower,'stone');
+    slab(B,ring(t.radius+s.ledgeProjection),lantern-s.ledge,lantern,'stone');
+    const glassRing=ring(t.radius*s.lanternRadiusShare,TUNE.towerSegments);
+    for(let i=0;i<glassRing.length;i++){
+      const a=glassRing[i],b=glassRing[(i+1)%glassRing.length];
+      quad(B,[...a,lantern],[...b,lantern],[...b,h],[...a,h],'glass');
+      beam(B,[...a,lantern],[...a,h],s.mullion,'stone');
+      beam(B,[...a,(lantern+h)/2],[...b,(lantern+h)/2],s.mullion,'stone');
+    }
+    slab(B,ring(t.radius+s.capProjection,TUNE.towerSegments),h,h+s.capThickness,'stone');
+  }
   function tower(B,R,t) {
+    if(t.kind==='office'){officeTower(B,t);return;}
     const n=TUNE.towerSegments,ring=r=>Array.from({length:n},(_,i)=>[t.x+r*Math.cos(i*2*Math.PI/n),t.y+r*Math.sin(i*2*Math.PI/n)]);
     if(t.kind==='ramp'){
       // Open helical walkway and guard, not stacked filled discs.
@@ -204,15 +258,6 @@
         beam(R,p(i,t.radius,z+1),p(i+1,t.radius,zz+1),0.06);
       }
       for(let i=0;i<8;i++){const p=ring(t.radius-0.5)[i*4];box(B,p[0],p[1],0.65,0.65,0,t.height,'stone');}
-    }else{
-      const q=ring(t.radius);
-      for(let i=0;i<n;i++){
-        const a=q[i],b=q[(i+1)%n],c=i%8<3?'glass':'brick';
-        quad(B,[...a,0],[...b,0],[...b,t.height],[...a,t.height],c,[(a[0]-t.x)/t.radius,(a[1]-t.y)/t.radius,0]);
-      }
-      for(let z=4.6;z<t.height;z+=4.6){
-        const a=ring(t.radius+0.08);for(let i=0;i<n;i++){const b=a[(i+1)%n];quad(B,[...a[i],z],[...b,z],[...b,z+0.32],[...a[i],z+0.32],'stone');}
-      }
     }
     slab(B,ring(t.radius+0.5),t.height,t.height+0.45,'stone');
   }
