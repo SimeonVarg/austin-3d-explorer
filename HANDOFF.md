@@ -1,5 +1,32 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Five approved architectural targets (`codex/photo-five-realism`, PR #282)
+
+Implemented the approved follow-up after the rejection of PR #281's fidelity.
+Welch now has a lower central courtyard projection, structural steel shade roofs,
+split terrace levels, stairs, rails and historic facade detail. Other wings keep
+their heights; selective roof replacement preserves siblings and failed fallbacks.
+Co-op and Wukasch/Barefoot have recessed, subdivided shopfronts, projecting canopy
+detail and solid shaped signs; Barefoot uses its public brand mark. Waterline and
+Sixth and Guadalupe now have dedicated offset volumes, transition terraces and
+distinct crowns with scoped glass and night materials. Fine tower bands use
+filtered coverage to avoid broken diagonal patterns from subpixel geometry.
+
+Fourteen matched before/after views load all 196 authored buildings, preserve
+camera/FOV/exposure, and keep the second settled screenshot. Geometry, roof and
+frontage fallback, deterministic bake, material state and harness checks pass.
+The full data workflow and PMTiles rebuild pass. See [the five comparisons,
+verification settings and limits](docs/photo-five-realism.md).
+
+This ships an architectural improvement, not a declaration of photorealism or
+user acceptance. Surrounding Welch wings/glazing, masonry character, planting,
+shop displays and fine night lighting still differ from the references. The full
+photo backlog, GDC, connected Guadalupe/apartment coverage, physical-phone
+performance and citywide motion defects remain open in the AGENTS.md order.
+Private imagery, source identities and camera records remain outside Git.
+Parked Drag/campus experiment files and the dirty primary checkout are untouched.
+No continuation automation was recreated.
+
 ## Sep 21 2026 - Guadalupe frontages and Waterloo crown (`codex/owner-photo-fit`)
 
 Completed the first implementation from the expanded photo review: Potbelly,

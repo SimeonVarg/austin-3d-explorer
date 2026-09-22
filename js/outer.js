@@ -260,6 +260,8 @@
   const L_MID = 'outer-midrise';
   const L_MID_ROOF = 'outer-midrise-roof';
   const L_DETAIL = 'outer-detail';
+  const L_LANDMARK_GLASS = 'outer-landmark-glass';
+  const L_LANDMARK_LIGHT = 'outer-landmark-light';
   const DATA = 'data/outer_ring.geojson';
   const TOWER_PALETTE = 'data/outer_tower_palette.json';
 
@@ -278,6 +280,11 @@
   // so they share ONE layer. Three layers would be three more draw calls over
   // the whole ring to express a difference only the bake cares about.
   const IS_DETAIL = ['has', 'k'];
+  // Explicit material semantics: these are real glazing/fixtures from the
+  // landmark bake. Their color is not a request to make masonry luminous.
+  const IS_LANDMARK_LIGHT = ['all', IS_DETAIL, ['==', ['get', 'lmEmit'], 1]];
+  const IS_LANDMARK_GLASS = ['all', IS_DETAIL, ['==', ['get', 'lmGlass'], 1], ['!=', ['get', 'lmEmit'], 1]];
+  const IS_FLAT_DETAIL = ['all', IS_DETAIL, ['!=', ['get', 'lmThin'], 1], ['any', ['!=', ['get', 'lm'], 'sixth-guadalupe'], ['all', ['!=', ['get', 'part'], 'balcony-rail'], ['!=', ['get', 'part'], 'balcony-divider']]], ['!=', ['get', 'lmGlass'], 1], ['!=', ['get', 'lmEmit'], 1]];
   const IS_WALL = ['!', IS_DETAIL];
   const IS_TOWER = ['all', ['==', ['get', 't'], 1], IS_WALL];
   // `t=2` is the downtown STREETWALL (scripts/bake_outer.py:MIDRISE_H). It is
@@ -677,7 +684,7 @@
     map.addLayer({
       id: L_DETAIL, type: 'fill-extrusion', source: SRC, ...outerLP,
       minzoom: OUTER.minZoom,
-      filter: IS_DETAIL,
+      filter: IS_FLAT_DETAIL,
       paint: {
         'fill-extrusion-color': bakedColor(p),
         'fill-extrusion-height': ['get', 'h'],
@@ -686,6 +693,20 @@
         'fill-extrusion-vertical-gradient': true,
       },
     }, beforeId());
+
+    for (const [id, filter] of [[L_LANDMARK_GLASS, IS_LANDMARK_GLASS], [L_LANDMARK_LIGHT, IS_LANDMARK_LIGHT]]) {
+      map.addLayer({
+        id, type: 'fill-extrusion', source: SRC, ...outerLP,
+        minzoom: OUTER.minZoom, filter,
+        paint: {
+          'fill-extrusion-color': bakedColor(p),
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-base': BASE,
+          'fill-extrusion-opacity': OUTER.opacity,
+          'fill-extrusion-vertical-gradient': false,
+        },
+      }, beforeId());
+    }
 
     // 3. A parapet cap on the towers only, using app.js's shared geometry rule
     //    so the ring cannot drift from the core's. Without it the window
@@ -798,8 +819,9 @@
       // the hour by the same expression the ring does. Miss this and every
       // tower keeps a daylit hat after dark — the §35 item 1 failure, on 146
       // features instead of one stadium.
-      if (map.getLayer(L_DETAIL))
-        map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', bakedColor(p));
+      for (const id of [L_DETAIL, L_LANDMARK_GLASS, L_LANDMARK_LIGHT]) {
+        if (map.getLayer(id)) map.setPaintProperty(id, 'fill-extrusion-color', bakedColor(p));
+      }
     } catch (e) {}
     try {
       // BOTH parapets, or the mid-rise keeps a daylit roof after dark — the
@@ -840,7 +862,7 @@
     // L_MID is not in the pitch fade either, for the same reason as L_DETAIL:
     // it is downtown, it is 725 features, and it cannot mass into a plane.
     const ROOFS = [L_TOWER_ROOF, L_MID_ROOF];
-    for (const id of [L_FLAT, L_TOWER, L_MID, L_TOWER_ROOF, L_MID_ROOF, L_DETAIL]) {
+    for (const id of [L_FLAT, L_TOWER, L_MID, L_TOWER_ROOF, L_MID_ROOF, L_DETAIL, L_LANDMARK_GLASS, L_LANDMARK_LIGHT]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', OUTER.on ? 'visible' : 'none');

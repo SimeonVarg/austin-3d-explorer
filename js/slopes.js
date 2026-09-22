@@ -202,6 +202,14 @@
       grain:.035, reflection:.42, near:25, far:120,
       grainScale:36,tileVariation:1.5,reflectionBase:.35,skyLow:.7,skyHigh:1.15,horizonLow:-.4,horizonHigh:.6,
       sky:['#7e9fab','#b19b7d','#101922']},
+    // Opt-in shallow shop interiors. Shelf/depth dimensions are metres; ceiling
+    // lights and shelfTop are room fractions. No mesh or texture per pane.
+    // This is a display approximation, not a tenant interior reconstruction.
+    weathering: {streakX:12,streakY:.6,broadX:.8,broadY:1.2,darkening:.62,grain:.06,flatStrength:.10},
+    storefront: {on:true,depth:3.8,interior:.78,fresnel:.85,shelfPitch:.85,
+      shelfThickness:.035,merchWidth:.48,merchHeight:.45,lightPower:.78,
+      wall:'#171d1b',floor:'#101311',merch:'#35392e',light:'#e7dfbe',
+      sideShade:.68,ceilingShade:.72,lightWidth:.14,lightLength:.62,shelfTop:.55,closedAmbient:.06},
     // ?slopesdebug=1 adds the proof scene (see debugScene below). Nothing
     // debug is ever drawn without it.
     debug: q.get('slopesdebug') === '1',
@@ -421,31 +429,96 @@
     uniform vec3 u_surfaceSky;
     uniform vec3 u_surfaceNoise;
     uniform vec4 u_surfaceHorizon;
+    uniform vec4 u_weatherScale;
+    uniform vec3 u_weatherTone;
+    uniform vec4 u_shopRoom;
+    uniform vec4 u_shopStyle;
+    uniform vec4 u_shopCeiling;
+    uniform float u_shopShelfTop;
+    uniform float u_shopClosedAmbient;
+    uniform vec3 u_shopWall;
+    uniform vec3 u_shopFloor;
+    uniform vec3 u_shopMerch;
+    uniform vec3 u_shopLight;
     uniform float u_p;
     uniform float u_nightWallAmbient;
     ${window.CityLighting.uniforms}
     #include <packing>
     ${window.CityLighting.glsl}
     float hashCell(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float surfaceNoise(vec2 p) {
+      vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+      return mix(mix(hashCell(i),hashCell(i+vec2(1,0)),f.x),
+        mix(hashCell(i+vec2(0,1)),hashCell(i+vec2(1,1)),f.x),f.y);
+    }
     void main() {
       vec3 col=v_color.rgb;
       float kind=v_surface.x;
-      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0)*v_color.a;
-      col=mix(col,max(col,v_albedo*u_nightWallAmbient),u_cityNight.x*(1.0-step(3.5,kind)));
+      bool shop=kind>5.5&&kind<6.5;
+      float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
+      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,glazing)*v_color.a;
+      float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;
+      col=mix(col,max(col,v_albedo*u_nightWallAmbient),u_cityNight.x*opaqueWall);
       col=cityCrown(col,v_pos,v_normal);
-      col=cityLocalLight(col,v_albedo,v_pos,v_normal,kind>3.5&&kind<4.5?1.0:0.0);
-      col=cityEmission(col,v_night,kind>3.5&&kind<5.5?1.0:0.0);
+      col=cityLocalLight(col,v_albedo,v_pos,v_normal,glazing);
+      col=cityEmission(col,v_night,((kind>3.5&&kind<5.5)||shop)?1.0:0.0);
       if(kind>.5 && u_surfaceRange.x>.5) {
         vec3 n=normalize(v_normal),view=normalize(u_eye-v_pos);
         float strength=v_surface.w;
         float nearDetail=1.0-smoothstep(u_surfaceRange.y,u_surfaceRange.z,distance(u_eye,v_pos));
-        if(kind>3.5 && kind<4.5) {
+        if(glazing>.5) {
           if(u_sunlight.x<.5) {
           float fresnel=pow(1.0-abs(dot(n,view)),3.0);
           float daylight=1.0-smoothstep(.5,.95,u_p);
           vec3 reflection=u_surfaceSky*mix(u_surfaceHorizon.x,u_surfaceHorizon.y,smoothstep(u_surfaceHorizon.z,u_surfaceHorizon.w,reflect(-view,n).z));
           col=mix(col,reflection,u_surfaceStyle.w*mix(u_surfaceNoise.z,1.0,fresnel)*strength*daylight);
           }
+          if(shop&&u_shopRoom.y>0.0) {
+            // Ray/box intersection exposes side walls and ceiling as the eye
+            // moves past. Glass stays opaque in the shared depth buffer.
+            vec3 tangent=normalize(vec3(-n.y,n.x,0.0));
+            vec2 size=max(v_surface.yz,vec2(.01));
+            vec2 uv=vec2(dot(v_pos,tangent),v_pos.z)/size;
+            vec3 p=vec3(fract(uv)-vec2(.5,0.0),0.0);
+            vec3 ray=vec3(-dot(view,tangent)/size.x,-view.z/size.y,-max(abs(dot(view,n)),.001));
+            vec2 wall=step(vec2(0.0),ray.xy)-vec2(.5,0.0);
+            vec2 safeRay=mix(vec2(-1.0),vec2(1.0),step(vec2(0.0),ray.xy))*max(abs(ray.xy),vec2(.000001));
+            vec2 t=(wall-p.xy)/safeRay;
+            float back=u_shopRoom.x/-ray.z;
+            float travel=min(back,min(t.x,t.y));
+            vec3 hit=p+ray*travel;
+            bool backWall=back<=min(t.x,t.y);
+            bool horizontal=t.y<min(back,t.x);
+            vec3 room=u_shopWall*(backWall?1.0:u_shopCeiling.x);
+            if(horizontal)room=ray.y<0.0?u_shopFloor:u_shopWall*u_shopCeiling.y;
+            if(backWall) {
+              float row=fract(hit.y*size.y/u_shopRoom.w)*u_shopRoom.w;
+              float aa=max(fwidth(row),.001);
+              float shelf=1.0-smoothstep(u_shopStyle.x-aa,u_shopStyle.x+aa,row);
+              float rack=hit.x*size.x/(u_shopStyle.y*2.0);
+              float garment=step(abs(fract(rack)-.5),0.25)*
+                step(u_shopStyle.x,row)*step(row,u_shopStyle.z);
+              room=mix(room,u_shopMerch,garment*step(hit.y,u_shopShelfTop));
+              room=mix(room,u_shopFloor,shelf*step(hit.y,u_shopShelfTop));
+            }
+            if(horizontal&&ray.y>0.0) {
+              float fixture=step(abs(hit.x),u_shopCeiling.z*.5)*
+                step(abs(hit.z/u_shopRoom.x+.5),u_shopCeiling.w*.5);
+              room=mix(room,u_shopLight*u_shopStyle.w,fixture);
+            }
+            float lit=smoothstep(u_cityNight.z,u_cityNight.w,dot(v_night,vec3(.2126,.7152,.0722)));
+            room*=mix(1.0,mix(u_shopClosedAmbient,1.0,lit),u_cityNight.x);
+            float facing=1.0-u_shopRoom.z*pow(1.0-abs(dot(n,view)),3.0);
+            col=mix(col,room,u_shopRoom.y*facing*nearDetail*strength);
+          }
+        } else if(kind>6.5&&kind<7.5) {
+          vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
+          vec2 streakUV=uv*u_weatherScale.xy;
+          float resolved=1.0-smoothstep(.25,1.0,max(fwidth(streakUV.x),fwidth(streakUV.y)));
+          float streak=mix(.5,surfaceNoise(streakUV),resolved);
+          float weatherPatch=surfaceNoise(uv*u_weatherScale.zw);
+          float faceWeight=abs(n.z)>.65?u_weatherTone.z:1.0;
+          col*=1.0-strength*nearDetail*faceWeight*(u_weatherTone.x*streak*weatherPatch+u_weatherTone.y*weatherPatch);
         } else if(kind<3.5) {
           vec2 uv=abs(n.z)>.65?v_pos.xy:vec2(dot(v_pos.xy,normalize(vec2(-n.y,n.x))),v_pos.z);
           vec2 size=max(v_surface.yz,vec2(.01));
@@ -1073,6 +1146,16 @@
       U.u_surfaceStyle.value.set(surf.joint,surf.jointShade,surf.grain,surf.reflection);
       U.u_surfaceNoise.value.set(surf.grainScale,surf.tileVariation,surf.reflectionBase);
       U.u_surfaceHorizon.value.set(surf.skyLow,surf.skyHigh,surf.horizonLow,surf.horizonHigh);
+      const weather=SLOPES.weathering;
+      U.u_weatherScale.value.set(weather.streakX,weather.streakY,weather.broadX,weather.broadY);
+      U.u_weatherTone.value.set(weather.darkening,weather.grain,weather.flatStrength);
+      const shop=SLOPES.storefront;
+      U.u_shopRoom.value.set(shop.depth,shop.on?shop.interior:0,shop.fresnel,shop.shelfPitch);
+      U.u_shopStyle.value.set(shop.shelfThickness,shop.merchWidth,shop.merchHeight,shop.lightPower);
+      U.u_shopShelfTop.value=shop.shelfTop;
+      U.u_shopClosedAmbient.value=shop.closedAmbient;
+      U.u_shopCeiling.value.set(shop.sideShade,shop.ceilingShade,shop.lightWidth,shop.lightLength);
+      for(const key of ['Wall','Floor','Merch','Light'])U['u_shop'+key].value.set(...hexToRgb01(shop[key.toLowerCase()]));
       U.u_materialP.value=window.CityNight?.materialP(U.u_p.value)??U.u_p.value;
       U.u_nightLamps.value=window.CityNight?.tune.on?window.CityNight.lamps(U.u_p.value):-1;
       U.u_nightWallAmbient.value=window.CityNight?.tune.wallAmbient??0;
@@ -1284,6 +1367,9 @@
       u_eye: {value:new T.Vector3()}, u_surfaceRange:{value:new T.Vector3(1,25,120)},
       u_surfaceStyle:{value:new T.Vector4()},u_surfaceSky:{value:new T.Vector3()},
       u_surfaceNoise:{value:new T.Vector3()},u_surfaceHorizon:{value:new T.Vector4()},
+      u_weatherScale:{value:new T.Vector4()},u_weatherTone:{value:new T.Vector3()},
+      u_shopClosedAmbient:{value:.06},u_shopShelfTop:{value:.55},u_shopRoom:{value:new T.Vector4()},u_shopStyle:{value:new T.Vector4()},u_shopCeiling:{value:new T.Vector4()},
+      u_shopWall:{value:new T.Vector3()},u_shopFloor:{value:new T.Vector3()},u_shopMerch:{value:new T.Vector3()},u_shopLight:{value:new T.Vector3()},
       u_materialP:{value:.5},u_nightLamps:{value:-1},u_nightWallAmbient:{value:0},u_glassStrength:{value:1},u_sunlight:{value:new T.Vector4()},u_sunDirection:{value:new T.Vector3()},
       u_sunColour:{value:new T.Vector3()},u_shadeColour:{value:new T.Vector3()},
       u_skyZenith:{value:new T.Vector3()},u_skyHorizon:{value:new T.Vector3()},

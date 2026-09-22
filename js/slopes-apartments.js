@@ -80,7 +80,7 @@
     buildSliceMs: 150,
     buildSliceMsLive: 12,
     materials:{
-      on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],
+      on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],shopGlass:[6,3.2,3.4,1],agedConcrete:[7,1,1,1],
       stoneKeys:['stone','trim','precast','coping','white','limestone'],brickKeys:['brick'],glassKeys:['glass','darkGlass'],
       concreteKeys:['pave','concrete','roofFlat'],brickRedRatio:1.16
     },
@@ -657,7 +657,7 @@
     // take the skin's reveal and its glass
     const revealOf = w => wantReveals() ? (w.reveal != null ? w.reveal : reveal) : 0;
     const windows = (skin.windows || []).filter(w => w.s1 > 0 && w.s0 < len && w.z1 > z0 && w.z0 < z1)
-      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, nightTone:w.nightTone, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
+      .map(w => ({ s0: Math.max(0, w.s0), s1: Math.min(len, w.s1), z0: Math.max(z0, w.z0), z1: Math.min(z1, w.z1), lit: w.lit, nightTone:w.nightTone, frame: w.frame, spandrel: w.spandrel, reveal: w.reveal, revealTone: w.revealTone, tone: w.tone, arch: w.arch, mullion: w.mullion, head: w.head, accent: w.accent, zTop: w.z1 }))
       .filter(w => rectInCut(w.s0, w.s1, w.z0, w.z1, cut));
     // THE FRAME. A window's `frame: { w, h, tone }` is a picture frame round
     // the opening — Signature 1909's white precast surround on every panel
@@ -744,7 +744,7 @@
           else if(pane.surface)col.surface=pane.surface;
           // A closed room must not inherit a storefront's luminous night tone.
           // Undefined occupancy and non-glass openings retain authored colours.
-          if(window.CityNight?.tune.on&&win.lit===false&&col.surface?.[0]===4)col[2]=window.CityNight.tune.unlitGlass;
+          if(window.CityNight?.tune.on&&win.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
           drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
@@ -1362,7 +1362,7 @@
       const s0 = (o.s0 || 0) - sOff, s1 = (o.s1 != null ? o.s1 : (o.s0 || 0) + (o.w || 3.0)) - sOff;
       const oz0 = o.z0 != null ? o.z0 : z0, oz1 = o.z1 != null ? o.z1 : z1;
       list.push({ s0, s1, z0: Math.max(z0, oz0), z1: Math.min(z1, oz1), reveal: o.d != null ? o.d : APTS.openingD,
-                  tone: o.glass || o.tone || 'wall', revealTone: o.glass ? (o.tone || null) : null, lit: !!(o.glass && o.lit), opening: true });
+                  tone: o.glass || o.tone || 'wall', revealTone: o.glass ? (o.tone || null) : null, lit: !!(o.glass && o.lit), arch: o.arch, mullion: o.mullion, opening: true });
     }
     if (APTS.balconies) for (const bs of band.balconies || []) {
       if (!(bs.inset > 0)) continue;
@@ -1411,8 +1411,41 @@
   }
 
   // ── signs ────────────────────────────────────────────────────────────
-  /** Dot-matrix lettering on a wall; horizontal (reads along s) or vertical (letters stacked, top first). */
+  /** Solid vector contours, with counter holes and actual side walls. */
+  function outlineSign(B, W, spec, P) {
+    const T = window.THREE, col = P[spec.tone || 'sign'];
+    const width = spec.w, height = spec.h, depth = spec.depth ?? APTS.signProud, off = spec.off ?? 0;
+    if (!(width > 0 && height > 0 && depth >= 0) || !col) throw Error('Invalid outline sign dimensions/tone');
+    const rd = (-W.N[1] * W.T[0] + W.N[0] * W.T[1]) >= 0 ? 1 : -1;
+    const center = spec.s ?? ((spec.s0 || 0) + width / 2);
+    const at = (p, d) => W.at(center + rd * (p[0] - .5) * width, d, spec.z0 + p[1] * height);
+    for (const poly of spec.outline.polygons) {
+      const rings = [poly.outer, ...(poly.holes || [])];
+      if (rings.some(r => r.length < 3 || r.some(p => p.length !== 2 || !p.every(Number.isFinite)))) throw Error('Invalid outline contour');
+      const flat = rings.flat(), shape = rings.map(r => r.map(p => new T.Vector2(p[0], p[1])));
+      const indices = T.ShapeUtils.triangulateShape(shape[0], shape.slice(1));
+      for (const t of indices) {
+        B.tri(...t.map(i => at(flat[i], off + depth)), col, W.N);
+        if (off > 0) B.tri(...t.map(i => at(flat[i], off)), col, W.N.map(v => -v));
+      }
+      // Faces keep the material lit as solid lettering, including hole walls.
+      for (let ri = 0; ri < rings.length; ri++) {
+        const ring = rings[ri], area = ring.reduce((v,a,i) => { const b=ring[(i+1)%ring.length]; return v+a[0]*b[1]-b[0]*a[1]; },0);
+        for (let i = 0; i < ring.length; i++) {
+          const a = ring[i], b = ring[(i+1)%ring.length];
+          const dx = (b[0]-a[0])*width, dz = (b[1]-a[1])*height;
+          const side = (area > 0 ? 1 : -1) * (ri ? -1 : 1);
+          const normal = [side*dz*rd*W.T[0], side*dz*rd*W.T[1], -side*dx];
+          B.quad(at(a,off),at(b,off),at(b,off+depth),at(a,off+depth),col,normal);
+        }
+      }
+    }
+    count.signs++;
+  }
+
+  /** Vector contours when supplied; legacy dot lettering for existing models. */
   function sign(B, W, spec, P) {
+    if (spec.outline?.polygons) return outlineSign(B, W, spec, P);
     const dot = spec.dot || APTS.signDot, gap = spec.gap != null ? spec.gap : dot;   // letter gap
     const base = P[spec.tone || 'sign'];
     const col = spec.light ? window.CityNight.emissive(base,spec.light) : base;
@@ -2048,10 +2081,21 @@
   // A generator: it yields once per block so build() can hand the main thread
   // back mid-building. One building is ~270 ms of geometry; a block is a
   // fraction of that, which is the difference between a stutter and none.
+  function validateDetailMeshes(spec, P) {
+    for (const mesh of spec.detailMeshes || []) {
+      if (!P[mesh.tone] || !Array.isArray(mesh.vertices) || !Array.isArray(mesh.triangles) ||
+          mesh.vertices.some(p => !Array.isArray(p) || p.length !== 3 || !p.every(Number.isFinite)) ||
+          mesh.triangles.some(t => !Array.isArray(t) || t.length !== 3 || t.some(i => !Number.isInteger(i) || i < 0 || i >= mesh.vertices.length))) {
+        throw Error('Invalid detail mesh: ' + mesh.id);
+      }
+    }
+  }
+
   function* buildingOne(B, spec) {
     const S = window.slopes;
     window.CityNight?.register(spec);
     const P = palette(spec);
+    validateDetailMeshes(spec, P); // fail before emitting any part of this model
     const ring = spec.footprint.ring;
     const obb = spec.frame && spec.frame.obb ? spec.frame.obb : obbOf(ring);
     const F = frameFor(obb);
@@ -2228,6 +2272,17 @@
           roofBox([a, a + w, b, b + d], it.h, it.tone);
         }
       }
+    }
+
+    // Small authored structural meshes: sloping canopies, curved rails and
+    // brackets that cannot be represented honestly by stacked extrusion boxes.
+    for (const mesh of spec.detailMeshes || []) {
+      const col = P[mesh.tone], vertices = mesh.vertices;
+      const points = vertices.map(p => F.at(...p));
+      for (const tri of mesh.triangles || []) {
+        B.tri(points[tri[0]], points[tri[1]], points[tri[2]], col);
+      }
+      for (const p of vertices) top = Math.max(top, p[2]);
     }
 
     // ── the deck: boxes on a roof, each from the JSON with its source ──
@@ -2412,6 +2467,7 @@
    * roofs) and is written into HANDOFF.md for the roofs lane.
    */
   const _rigStash = {};
+  const excludedRoofKeys = () => new Set(okBuildings().flatMap(b => b.excludeRoofIds || []));
   function stashRigs(on) {
     const R = window.slopesRoofs;
     const roofs = R && R.data && R.data.roofs;
@@ -2419,7 +2475,10 @@
     let n = 0;
     if (on) {
       const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
-      for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0])) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
+      const exact = excludedRoofKeys();
+      // Restore a selective roof if its replacement failed during a rebuild.
+      for (const k of Object.keys(_rigStash)) if (!ids.has(k.split('/')[0]) && !exact.has(k)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
+      for (const k of Object.keys(roofs)) if (ids.has(k.split('/')[0]) || exact.has(k)) { _rigStash[k] = roofs[k]; delete roofs[k]; n++; }
     } else {
       for (const k of Object.keys(_rigStash)) { roofs[k] = _rigStash[k]; delete _rigStash[k]; n++; }
     }
@@ -2431,7 +2490,8 @@
     const R = window.slopesRoofs, roofs = R && R.data && R.data.roofs;
     if (!roofs || !_data) return [];
     const ids = new Set((_data.replacedBuildingIds || []).filter(id => !_data.buildings.some(b => b.id === id && b.preserveRoof)));
-    return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]));
+    const exact = excludedRoofKeys();
+    return Object.keys(roofs).filter(k => ids.has(k.split('/')[0]) || exact.has(k));
   }
   function filterPlan() {
     const bad = _failed.size ? _data.buildings.filter(b => _failed.has(b.id || b.name)) : [];
