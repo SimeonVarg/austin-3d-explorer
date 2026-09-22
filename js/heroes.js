@@ -904,6 +904,53 @@
     return 'rebuilt with ' + extra.length + ' hero volumes';
   }
 
+  // Fill-extrusions have no bottom face. Reuse the baked roof rings so the
+  // oversails stay solid when viewed from the pavement, without duplicating
+  // their plan or guessing new building heights.
+  function installRoofUndersides(map, gj) {
+    const roofs = gj.features.filter(f => f.properties.b === 'gdc' &&
+      f.properties.cap === 1 && f.geometry.type === 'Polygon');
+    let group = null, tries = 0;
+    const apply = () => {
+      const S = window.slopes, T = window.THREE;
+      if (!S?.root || !T) return;
+      if (!window.SLOPES.on || !HEROES.on) {
+        if (group) S.remove(group);
+        group = null;
+        return;
+      }
+      if (group) return;
+      const B = S.build();
+      for (const f of roofs) {
+        const p = f.properties;
+        const points = f.geometry.coordinates[0].slice(0, -1).map(ll => {
+          const v = S.toLocal(ll[0], ll[1], p.base);
+          return [v.x, v.y, v.z];
+        });
+        B.polygon(points, [p.wd, p.wg, p.wn], [0, 0, -1], 'xy');
+      }
+      group = new T.Group();
+      group.name = 'heroes-roof-undersides';
+      group.userData.minzoom = HEROES.minZoom;
+      const mesh = new T.Mesh(B.geometry(), S.material());
+      mesh.name = 'gdc-roof-undersides';
+      group.add(mesh);
+      S.add(group);
+      window.__heroes.roofUndersides = { roofs: roofs.length, triangles: B.triangles };
+      map.triggerRepaint();
+    };
+    const boot = () => {
+      if (!window.slopes?.root) {
+        if (++tries < 500) return setTimeout(boot, 120);
+        if (window.SLOPES?.on) console.warn('[heroes] roof underside renderer unavailable');
+        return;
+      }
+      window.slopes.onSwitch(apply);
+      apply();
+    };
+    boot();
+  }
+
   let _added = false;
 
   window.initHeroes = async function initHeroes(map) {
@@ -1002,6 +1049,7 @@
     const col = extendCollision(map, gj);
     window.__heroes = { features: gj.features.length, replaced: gone.length,
                         heights: gj.heroHeights || {}, collision: col, composed };
+    installRoofUndersides(map, gj);
     console.log('[heroes]', gj.features.length, 'band features over', gone.length,
                 'replaced buildings; collision', col, '; composed', composed);
   };

@@ -397,7 +397,7 @@
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,${campusMaterials.gdcReflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,v_cityAlbedo.rgb,v_cityPos,v_cityNormal,1.0);
-              fragColor=vec4(cityEmission(shaded,v_color.rgb/max(v_color.a,.0001),1.0)*v_color.a,v_color.a);
+              fragColor=vec4(cityEmission(shaded,v_cityAlbedo.rgb,1.0)*v_color.a,v_color.a);
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);

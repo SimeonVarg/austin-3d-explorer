@@ -1820,13 +1820,13 @@
         2
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "White-painted brick frontage adjoining Potbelly with a shallow inset, silver mullions, high transoms and central paired entrance doors. Separate raised letters retain the low restaurant roof line. Footprint retained; framing dimensions approximate.",
+      "observations": "White-painted brick frontage adjoining Potbelly with a shallow inset, silver mullions, high transoms and central paired entrance doors. Separate raised letters retain the low restaurant roof line. Footprint retained; framing dimensions approximate. Letter height fills the sign fascia; solid white caps sit on deep green channel sides with a uniform per-glyph backing rim. Exact small sign dimensions remain approximate.",
       "colours": {
         "wall": "#e1e0d6",
         "signboard": "#e1e0d6",
         "trim": "#ebeae0",
         "metal": "#c7ceca",
-        "letters": "#e1e4d7",
+        "letters": "#f4f4ed",
         "dark": "#d1cfc2",
         "glass": "#283e3d",
         "letterShadow": "#326444"
@@ -1893,22 +1893,26 @@
           {
             "asset": "wingstop",
             "s": 0.5,
-            "w": 0.9,
-            "z0": 4.37,
-            "h": 0.75,
+            "w": 0.885,
+            "z0": 4.24,
+            "h": 1.02,
             "tone": "letterShadow",
-            "off": 0.025,
-            "depth": 0.105
+            "off": 0.04,
+            "depth": 0.24,
+            "outlineBuffer": {
+              "distance": 0.028,
+              "segments": 3
+            }
           },
           {
             "asset": "wingstop",
             "s": 0.5,
             "w": 0.885,
-            "z0": 4.39,
-            "h": 0.72,
+            "z0": 4.24,
+            "h": 1.02,
             "tone": "letters",
-            "off": 0.131,
-            "depth": 0.025
+            "off": 0.282,
+            "depth": 0.028
           }
         ]
       }

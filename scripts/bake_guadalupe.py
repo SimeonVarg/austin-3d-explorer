@@ -54,6 +54,27 @@ def vector_sign(name,w,h,s,z,tone,depth,off=0):
     return dict(outline=load_sign(name),w=w,h=h,s=s,z0=z,depth=depth,off=off,tone=tone)
 
 
+def buffer_sign_outline(outline,width,height,distance,segments):
+    """Uniform metre-space rim around each glyph, including its counters.
+
+    Scaling a whole word to make a backing shifts each letter sideways and
+    creates uneven hairline borders. Offset each closed glyph instead.
+    """
+    from shapely.geometry import Polygon
+    from shapely.affinity import scale
+    polygons=[]
+    for p in outline['polygons']:
+        shape=scale(Polygon(p['outer'],p.get('holes',[])),xfact=width,yfact=height,origin=(0,0))
+        shape=shape.buffer(distance,quad_segs=segments)
+        shape=scale(shape,xfact=1/width,yfact=1/height,origin=(0,0))
+        parts=list(shape.geoms) if shape.geom_type=='MultiPolygon' else [shape]
+        for part in parts:
+            if part.is_empty or not part.is_valid:raise ValueError('Invalid buffered sign contour')
+            coords=lambda ring:[[round(x,7),round(y,7)] for x,y in list(ring.coords)[:-1]]
+            polygons.append(dict(outer=coords(part.exterior),holes=[coords(r) for r in part.interiors]))
+    return dict(polygons=polygons)
+
+
 def detailed_barefoot(base,blocks,plan,p,meshes):
     c=p['photoDetail'];edge=p['frontEdges'][0]
     f=FrontDetails(plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])],blocks,'barefoot',meshes);L=f.length
@@ -284,7 +305,11 @@ def detailed_row_shop(base, blocks, plan, p, meshes):
     for spec in c['signs']:
         s=copy.deepcopy(spec);name=s.pop('asset',None)
         if name:s['outline']=vector_sign(name,1,1,0,0,'letters',0)['outline']
-        s['s']*=L;s['w']*=L;signs.append(s)
+        s['s']*=L;s['w']*=L
+        rim=s.pop('outlineBuffer',None)
+        if rim:
+            s['outline']=buffer_sign_outline(s['outline'],s['w'],s['h'],rim['distance'],rim['segments'])
+        signs.append(s)
     # Thin surface relief follows the brick header and continuous roof line.
     for z in c.get('courses',[]):f.box('brick-course',0,L,0,c['courseDepth'],z,z+c['courseHeight'],'trim')
 
