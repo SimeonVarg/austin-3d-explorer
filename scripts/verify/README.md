@@ -76,6 +76,21 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 `movement.mjs`, `dusk.mjs` and `banding.mjs` accept `--report` to print the
 table without failing.
 
+### Full-city context recovery
+
+`VERIFY_URL=http://127.0.0.1:8442 node device-recovery.mjs --out <outside-repo-directory>`
+loads the normal city with the natural touch performance profile. It requires
+all 196 buildings before injecting actual shared-canvas context loss during
+time-of-day playback, observes restoration and one recovery reload, and checks
+resumed keyboard and touch-joystick movement plus portrait, landscape and
+2560 x 1440 DPR1 captures.
+Console errors, extra reloads, wrong viewport metrics and partial cities fail.
+`--break-injection` deliberately omits loss and must exit 1 with
+`No actual context-loss event observed`. Reports and second screenshots go to
+the required external scratch directory. This is desktop Chromium emulation,
+not physical iPhone, memory, thermal or performance acceptance. The large view
+retains the touch graphics profile; it is not a fresh desktop-default session.
+
 ### Exit codes mean something
 
 `0` the assertions passed. `1` an assertion failed. `2` the script could not

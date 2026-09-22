@@ -1,0 +1,30 @@
+// Scoped material overrides must survive the actual pane tiler without
+// changing global material defaults or turning masonry openings into glass.
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const src=fs.readFileSync(new URL('../../js/slopes-apartments.js',import.meta.url),'utf8');
+const at=src.lastIndexOf('})();');
+const location={search:'?slopes=0'};
+const window={location,GFX:{preset:'balanced'}};
+const scope=vm.createContext({window,location,URLSearchParams,console});
+vm.runInContext(src.slice(0,at)+'window.test={palette,tileFace,APTS};'+src.slice(at),scope);
+const {palette,tileFace,APTS}=window.test;
+const colours={wall:['#9a8060','#9a8060','#191919'],glass:['#394a4e','#394a4e','#151515']};
+const before=JSON.stringify(APTS.materials);
+const tuned=palette({colours,materials:{glass:{type:'glass',strength:.22}}});
+const normal=palette({colours});
+assert.equal(tuned.glass.surface[3],.22);
+assert.equal(normal.glass.surface[3],1);
+assert.equal(JSON.stringify(APTS.materials),before,'override must not mutate a shared default');
+const cells=[];
+const B={quad(...a){cells.push(a[4]);}};
+const W={N:[0,1,0],at:(s,d,z)=>[s,d,z]};
+tileFace(B,{W,len:2,z0:0,z1:3},{rows:()=>[],cols:()=>[],reveal:0,glass:'glass',windows:[{s0:0,s1:2,z0:0,z1:3}]},tuned);
+assert.equal(cells[0].surface[3],.22,'implicit window tone must retain its authored glass response');
+cells.length=0;
+tileFace(B,{W,len:2,z0:0,z1:3},{rows:()=>[],cols:()=>[],reveal:0,glass:'glass',windows:[{s0:0,s1:2,z0:0,z1:3,tone:'wall'}]},tuned);
+assert.notEqual(cells[0].surface[0],4,'explicit masonry opening stays opaque');
+for(const strength of [NaN,Infinity,-1,2])assert.throws(()=>palette({colours,materials:{glass:{type:'glass',strength}}}),/Invalid material/);
+assert.throws(()=>palette({colours,materials:{glass:{type:'glass',scale:[0,1]}}}),/Invalid material/);
+console.log('PASS: authored pane response survives tiling; ordinary glass and opaque openings preserved; invalid parameters rejected');

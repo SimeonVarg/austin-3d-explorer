@@ -351,7 +351,7 @@
   const L = {
     solid: 'heroes-solid', lime: 'heroes-lime', brick: 'heroes-brick',
     nbrick: 'heroes-nbrick', glass: 'heroes-glass', glassb: 'heroes-glassb',
-    glassc: 'heroes-glassc', lattice: 'heroes-lattice', cap: 'heroes-cap',
+    glassc: 'heroes-glassc', gdcGlass:'heroes-gdc-glass', lattice: 'heroes-lattice', cap: 'heroes-cap',
   };
   const IMG = {
     lime: 'heroes-img-lime', brick: 'heroes-img-brick', nbrick: 'heroes-img-nbrick',
@@ -860,7 +860,7 @@
     let n = 0;
     for (const f of gj.features) {
       const p = f.properties;
-      if (p.b !== 'gdc') continue;
+      if (p.b !== 'gdc' || p.authoredFacade === 1) continue;
       if (p.cap === 1) { paint(p, PALETTE.gdcFascia, true); n++; }        // the roof plane
       else if (p.lyr === 'solid' && p.base === 0) { paint(p, PALETTE.gdcBase); n++; }
       else if (p.lyr === 'glass') { p.lyr = 'glassb'; paint(p, PALETTE.gdcGlass); n++; }  // the atrium
@@ -902,6 +902,62 @@
       parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) },
     });
     return 'rebuilt with ' + extra.length + ' hero volumes';
+  }
+
+  // Fill-extrusions have no bottom face. Reuse the baked roof rings so the
+  // oversails stay solid when viewed from the pavement, without duplicating
+  // their plan or guessing new building heights.
+  function installRoofUndersides(map, gj) {
+    const roofs = gj.features.filter(f => f.properties.b === 'gdc' &&
+      f.properties.cap === 1 && f.geometry.type === 'Polygon');
+    let group = null, tries = 0, timer = null, removed = false;
+    map.once('remove', () => {
+      removed = true;
+      clearTimeout(timer);
+      if (group) {
+        window.slopes.remove(group);
+        group.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
+        group = null;
+      }
+    });
+    const apply = () => {
+      const S = window.slopes, T = window.THREE;
+      if (removed || !S?.root || !T) return;
+      if (!window.SLOPES.on || !HEROES.on) {
+        if (group) S.remove(group);
+        return;
+      }
+      if (group) { if (!group.parent) S.add(group); return; }
+      const B = S.build();
+      for (const f of roofs) {
+        const p = f.properties;
+        const points = f.geometry.coordinates[0].slice(0, -1).map(ll => {
+          const v = S.toLocal(ll[0], ll[1], p.base);
+          return [v.x, v.y, v.z];
+        });
+        B.polygon(points, [p.wd, p.wg, p.wn], [0, 0, -1], 'xy');
+      }
+      group = new T.Group();
+      group.name = 'heroes-roof-undersides';
+      group.userData.minzoom = HEROES.minZoom;
+      const mesh = new T.Mesh(B.geometry(), S.material());
+      mesh.name = 'gdc-roof-undersides';
+      group.add(mesh);
+      S.add(group);
+      window.__heroes.roofUndersides = { roofs: roofs.length, triangles: B.triangles };
+      map.triggerRepaint();
+    };
+    const boot = () => {
+      if (removed) return;
+      if (!window.slopes?.root) {
+        if (++tries < 500) { timer = setTimeout(boot, 120); return; }
+        if (window.SLOPES?.on) console.warn('[heroes] roof underside renderer unavailable');
+        return;
+      }
+      window.slopes.onSwitch(apply);
+      apply();
+    };
+    boot();
   }
 
   let _added = false;
@@ -973,6 +1029,7 @@
     }, anchor);
 
     add(L.solid, 'solid', { 'fill-extrusion-color': wallColor(p) });
+    add(L.gdcGlass, 'gdc-glass', { 'fill-extrusion-color': wallColor(p) });
     add(L.lime, 'lime', { 'fill-extrusion-pattern': IMG.lime });
     add(L.brick, 'brick', { 'fill-extrusion-pattern': IMG.brick });
     add(L.nbrick, 'nbrick', { 'fill-extrusion-pattern': IMG.nbrick });
@@ -1001,6 +1058,7 @@
     const col = extendCollision(map, gj);
     window.__heroes = { features: gj.features.length, replaced: gone.length,
                         heights: gj.heroHeights || {}, collision: col, composed };
+    installRoofUndersides(map, gj);
     console.log('[heroes]', gj.features.length, 'band features over', gone.length,
                 'replaced buildings; collision', col, '; composed', composed);
   };
@@ -1027,6 +1085,7 @@
     _lastAnchor = az;
     try {
       if (map.getLayer(L.solid)) map.setPaintProperty(L.solid, 'fill-extrusion-color', wallColor(p));
+      if (map.getLayer(L.gdcGlass)) map.setPaintProperty(L.gdcGlass, 'fill-extrusion-color', wallColor(p));
     } catch (e) {}
     try {
       if (map.getLayer(L.cap)) map.setPaintProperty(L.cap, 'fill-extrusion-color', capColor(p));

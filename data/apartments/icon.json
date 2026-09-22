@@ -169,9 +169,18 @@
       "hex": "#e4e4e0"
     },
     "crownGlass": {
-      "hex": "#6f8e9a"
+      "hex": "#34494d"
     },
-    "_src2026": "Sampled from icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: tower field #d0cecc in shade, lifted to the daylight white; grey piers #bbbbbb; floor ledges #b5b8b5; taupe window heads #746052; the podium's accent panels rust #95654f, brown #6d5a4f, olive #77705f, violet-grey #7c7583, pale grey #aaa8a9, blue-grey #7084a0, taupe #897366. The old wall was tan (#c5b597); every photograph shows white."
+    "_src2026": "Sampled from icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: tower field #d0cecc in shade, lifted to the daylight white; grey piers #bbbbbb; floor ledges #b5b8b5; taupe window heads #746052; the podium's accent panels rust #95654f, brown #6d5a4f, olive #77705f, violet-grey #7c7583, pale grey #aaa8a9, blue-grey #7084a0, taupe #897366. The old wall was tan (#c5b597); every photograph shows white.",
+    "crownClerestory": {
+      "hex": "#ccd7cc"
+    },
+    "guardMetal": {
+      "hex": "#b0b8b1"
+    },
+    "glassEdge": {
+      "hex": "#b9ceca"
+    }
   },
   "skins": {
     "wall": {
@@ -347,6 +356,34 @@
       "mullionW": 0.14,
       "reveal": 0.15,
       "_src": "owner crown photo: a faceted glass room with slim white mullions ~1.1 m apart and a white head band"
+    },
+    "crownRoom": {
+      "kind": "flat",
+      "field": "crownGlass",
+      "fins": {
+        "pitch": 1.1,
+        "w": 0.145,
+        "d": 0.18,
+        "tone": "crownFrame"
+      }
+    },
+    "crownClerestory": {
+      "kind": "flat",
+      "field": "crownClerestory",
+      "fins": {
+        "pitch": 1.1,
+        "w": 0.145,
+        "d": 0.18,
+        "tone": "crownFrame"
+      }
+    },
+    "guardMetal": {
+      "kind": "flat",
+      "field": "guardMetal"
+    },
+    "glassEdge": {
+      "kind": "flat",
+      "field": "glassEdge"
     }
   },
   "blocks": [
@@ -408,7 +445,7 @@
         }
       ],
       "roofTone": "roofFlat",
-      "parapet": 0.6,
+      "parapet": 0.16,
       "parapetTone": "white",
       "_src": "reference; dimensions are derived, see sources.dimensions"
     },
@@ -425,13 +462,18 @@
       "bands": [
         {
           "z0": 87.12,
+          "z1": 92.55,
+          "skin": "crownRoom"
+        },
+        {
+          "z0": 92.55,
           "z1": 93.6,
-          "skin": "crownGlass"
+          "skin": "crownClerestory"
         }
       ],
       "roofTone": "roofFlat",
       "chamfer": 3.5,
-      "_src": "2026-09-16: moved WEST. The owner's dusk aerial (camera south-east of the tower, looking north-west: sunset on the left, Moontower right) shows the glass room over the west ~70% with a railed terrace and pool on the east and south; it was drawn over the east. Set back ~3.5 m from the south edge; the bigger chamfer stands in for its curved south-east corner."
+      "_src": "Faceted crown retained at its existing size and height. Dark lower glazing and pale upper infill share continuous projecting vertical fins; minor dimensions are approximate."
     },
     {
       "id": "podium-ledge",
@@ -452,6 +494,1640 @@
       ],
       "roofTone": "roofFlat",
       "_src": "reference; dimensions are derived, see sources.dimensions"
+    },
+    {
+      "id": "crown-guard-1",
+      "plan": [
+        1.0975,
+        1.1425,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-2",
+      "plan": [
+        2.5286,
+        2.5736,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-3",
+      "plan": [
+        3.9597,
+        4.0047,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-4",
+      "plan": [
+        5.3908,
+        5.4358,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-5",
+      "plan": [
+        6.8219,
+        6.8669,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-6",
+      "plan": [
+        8.2531,
+        8.2981,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-7",
+      "plan": [
+        9.6842,
+        9.7292,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-8",
+      "plan": [
+        11.1153,
+        11.1603,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-9",
+      "plan": [
+        12.5464,
+        12.5914,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-10",
+      "plan": [
+        13.9775,
+        14.0225,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-11",
+      "plan": [
+        15.4086,
+        15.4536,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-12",
+      "plan": [
+        16.8397,
+        16.8847,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-13",
+      "plan": [
+        18.2708,
+        18.3158,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-14",
+      "plan": [
+        19.7019,
+        19.7469,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-15",
+      "plan": [
+        21.1331,
+        21.1781,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-16",
+      "plan": [
+        22.5642,
+        22.6092,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-17",
+      "plan": [
+        23.9953,
+        24.0403,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-18",
+      "plan": [
+        25.4264,
+        25.4714,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-19",
+      "plan": [
+        26.8575,
+        26.9025,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-20",
+      "plan": [
+        1.109,
+        26.891,
+        1.109,
+        1.131
+      ],
+      "z0": 88.198,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 88.198,
+          "z1": 88.22,
+          "skin": "glassEdge"
+        }
+      ],
+      "roofTone": "glassEdge"
+    },
+    {
+      "id": "crown-guard-21",
+      "plan": [
+        1.109,
+        26.891,
+        1.109,
+        1.131
+      ],
+      "z0": 87.28,
+      "z1": 87.325,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 87.325,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-22",
+      "plan": [
+        26.8575,
+        26.9025,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-23",
+      "plan": [
+        26.8575,
+        26.9025,
+        2.5586,
+        2.6036
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-24",
+      "plan": [
+        26.8575,
+        26.9025,
+        4.0196,
+        4.0646
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-25",
+      "plan": [
+        26.8575,
+        26.9025,
+        5.4807,
+        5.5257
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-26",
+      "plan": [
+        26.8575,
+        26.9025,
+        6.9417,
+        6.9867
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-27",
+      "plan": [
+        26.8575,
+        26.9025,
+        8.4028,
+        8.4478
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-28",
+      "plan": [
+        26.8575,
+        26.9025,
+        9.8638,
+        9.9088
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-29",
+      "plan": [
+        26.8575,
+        26.9025,
+        11.3249,
+        11.3699
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-30",
+      "plan": [
+        26.8575,
+        26.9025,
+        12.7859,
+        12.8309
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-31",
+      "plan": [
+        26.8575,
+        26.9025,
+        14.247,
+        14.292
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-32",
+      "plan": [
+        26.8575,
+        26.9025,
+        15.708,
+        15.753
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-33",
+      "plan": [
+        26.8575,
+        26.9025,
+        17.1691,
+        17.2141
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-34",
+      "plan": [
+        26.8575,
+        26.9025,
+        18.6301,
+        18.6751
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-35",
+      "plan": [
+        26.8575,
+        26.9025,
+        20.0912,
+        20.1362
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-36",
+      "plan": [
+        26.8575,
+        26.9025,
+        21.5522,
+        21.5972
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-37",
+      "plan": [
+        26.8575,
+        26.9025,
+        23.0133,
+        23.0583
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-38",
+      "plan": [
+        26.8575,
+        26.9025,
+        24.4743,
+        24.5193
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-39",
+      "plan": [
+        26.8575,
+        26.9025,
+        25.9354,
+        25.9804
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-40",
+      "plan": [
+        26.8575,
+        26.9025,
+        27.3964,
+        27.4414
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-41",
+      "plan": [
+        26.8575,
+        26.9025,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-42",
+      "plan": [
+        26.869,
+        26.891,
+        1.109,
+        28.891
+      ],
+      "z0": 88.198,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 88.198,
+          "z1": 88.22,
+          "skin": "glassEdge"
+        }
+      ],
+      "roofTone": "glassEdge"
+    },
+    {
+      "id": "crown-guard-43",
+      "plan": [
+        26.869,
+        26.891,
+        1.109,
+        28.891
+      ],
+      "z0": 87.28,
+      "z1": 87.325,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 87.325,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-44",
+      "plan": [
+        26.8575,
+        26.9025,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-45",
+      "plan": [
+        25.4264,
+        25.4714,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-46",
+      "plan": [
+        23.9953,
+        24.0403,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-47",
+      "plan": [
+        22.5642,
+        22.6092,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-48",
+      "plan": [
+        21.1331,
+        21.1781,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-49",
+      "plan": [
+        19.7019,
+        19.7469,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-50",
+      "plan": [
+        18.2708,
+        18.3158,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-51",
+      "plan": [
+        16.8397,
+        16.8847,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-52",
+      "plan": [
+        15.4086,
+        15.4536,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-53",
+      "plan": [
+        13.9775,
+        14.0225,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-54",
+      "plan": [
+        12.5464,
+        12.5914,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-55",
+      "plan": [
+        11.1153,
+        11.1603,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-56",
+      "plan": [
+        9.6842,
+        9.7292,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-57",
+      "plan": [
+        8.2531,
+        8.2981,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-58",
+      "plan": [
+        6.8219,
+        6.8669,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-59",
+      "plan": [
+        5.3908,
+        5.4358,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-60",
+      "plan": [
+        3.9597,
+        4.0047,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-61",
+      "plan": [
+        2.5286,
+        2.5736,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-62",
+      "plan": [
+        1.0975,
+        1.1425,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-63",
+      "plan": [
+        1.109,
+        26.891,
+        28.869,
+        28.891
+      ],
+      "z0": 88.198,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 88.198,
+          "z1": 88.22,
+          "skin": "glassEdge"
+        }
+      ],
+      "roofTone": "glassEdge"
+    },
+    {
+      "id": "crown-guard-64",
+      "plan": [
+        1.109,
+        26.891,
+        28.869,
+        28.891
+      ],
+      "z0": 87.28,
+      "z1": 87.325,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 87.325,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-65",
+      "plan": [
+        1.0975,
+        1.1425,
+        28.8575,
+        28.9025
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-66",
+      "plan": [
+        1.0975,
+        1.1425,
+        27.3964,
+        27.4414
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-67",
+      "plan": [
+        1.0975,
+        1.1425,
+        25.9354,
+        25.9804
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-68",
+      "plan": [
+        1.0975,
+        1.1425,
+        24.4743,
+        24.5193
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-69",
+      "plan": [
+        1.0975,
+        1.1425,
+        23.0133,
+        23.0583
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-70",
+      "plan": [
+        1.0975,
+        1.1425,
+        21.5522,
+        21.5972
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-71",
+      "plan": [
+        1.0975,
+        1.1425,
+        20.0912,
+        20.1362
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-72",
+      "plan": [
+        1.0975,
+        1.1425,
+        18.6301,
+        18.6751
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-73",
+      "plan": [
+        1.0975,
+        1.1425,
+        17.1691,
+        17.2141
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-74",
+      "plan": [
+        1.0975,
+        1.1425,
+        15.708,
+        15.753
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-75",
+      "plan": [
+        1.0975,
+        1.1425,
+        14.247,
+        14.292
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-76",
+      "plan": [
+        1.0975,
+        1.1425,
+        12.7859,
+        12.8309
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-77",
+      "plan": [
+        1.0975,
+        1.1425,
+        11.3249,
+        11.3699
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-78",
+      "plan": [
+        1.0975,
+        1.1425,
+        9.8638,
+        9.9088
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-79",
+      "plan": [
+        1.0975,
+        1.1425,
+        8.4028,
+        8.4478
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-80",
+      "plan": [
+        1.0975,
+        1.1425,
+        6.9417,
+        6.9867
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-81",
+      "plan": [
+        1.0975,
+        1.1425,
+        5.4807,
+        5.5257
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-82",
+      "plan": [
+        1.0975,
+        1.1425,
+        4.0196,
+        4.0646
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-83",
+      "plan": [
+        1.0975,
+        1.1425,
+        2.5586,
+        2.6036
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-84",
+      "plan": [
+        1.0975,
+        1.1425,
+        1.0975,
+        1.1425
+      ],
+      "z0": 87.28,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 88.22,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
+    },
+    {
+      "id": "crown-guard-85",
+      "plan": [
+        1.109,
+        1.131,
+        1.109,
+        28.891
+      ],
+      "z0": 88.198,
+      "z1": 88.22,
+      "bands": [
+        {
+          "z0": 88.198,
+          "z1": 88.22,
+          "skin": "glassEdge"
+        }
+      ],
+      "roofTone": "glassEdge"
+    },
+    {
+      "id": "crown-guard-86",
+      "plan": [
+        1.109,
+        1.131,
+        1.109,
+        28.891
+      ],
+      "z0": 87.28,
+      "z1": 87.325,
+      "bands": [
+        {
+          "z0": 87.28,
+          "z1": 87.325,
+          "skin": "guardMetal"
+        }
+      ],
+      "roofTone": "guardMetal"
     }
   ],
   "open": [
@@ -486,5 +2162,33 @@
       }
     ]
   },
-  "labelOverride": true
+  "labelOverride": true,
+  "crownDetail": {
+    "clerestoryHeight": 1.05,
+    "finPitch": 1.1,
+    "finWidth": 0.145,
+    "finDepth": 0.18,
+    "curbHeight": 0.16,
+    "guardHeight": 1.1,
+    "guardInset": 0.12,
+    "postPitch": 1.45,
+    "postWidth": 0.045,
+    "edgeWidth": 0.022,
+    "mountHeight": 0.045,
+    "glassStrength": 0.35,
+    "lowerGlass": "#34494d",
+    "clerestory": "#ccd7cc",
+    "guardMetal": "#b0b8b1",
+    "glassEdge": "#b9ceca"
+  },
+  "materials": {
+    "crownGlass": {
+      "type": "glass",
+      "strength": 0.35
+    },
+    "crownClerestory": "plain",
+    "crownFrame": "plain",
+    "guardMetal": "plain",
+    "glassEdge": "plain"
+  }
 }

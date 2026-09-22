@@ -16,7 +16,8 @@
   const balance={skyFill:0.12,roofFill:0.08};
   // Opt-in material layers keep ordinary solid extrusions on their original
   // path. No color/luma heuristic can turn an unrelated wall into a light.
-  const solidSurfaceFor=id=>id==='outer-landmark-glass'?1:id==='outer-landmark-light'?2:0;
+  const solidSurfaceFor=id=>id==='outer-landmark-glass'?1:id==='outer-landmark-light'?2:id==='heroes-gdc-glass'?3:0;
+  const campusMaterials={gdcReflection:.35};
   // Facade-sized geometry establishes the silhouette. Subpixel floor edges and
   // mullions use integrated pixel coverage instead of binary triangle hits.
   // These are the same fitted storey zones as downtown_landmarks.py.
@@ -252,19 +253,25 @@
       proxyMap=map;
       map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId))proxyDirty=true;});
       map.on('moveend',()=>{proxyDirty=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
     const built=window.slopesApartments?.count.buildings||0;
     if(proxyBuilt!==built)proxyDirty=true;
     if(proxyDirty&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>{
-      proxyTimer=null;proxyDirty=false;proxyBuilt=built;
+      proxyTimer=null;
+      // A restored context briefly has no style while MapLibre rebuilds it.
+      // Keep the rebuild pending; neither discard the existing proxy nor read
+      // layers until the replacement style is available.
+      const style=map.getStyle()?.layers;
+      if(!style){proxyDirty=true;return;}
+      proxyDirty=false;proxyBuilt=built;
       const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
       const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
       const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
       const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
       // The displayed base layer suppresses parent prisms with detailed parts,
       // and replaced prisms by id (see casterSources).
-      const style=map.getStyle().layers,hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
+      const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
       const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
       stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
       for(const source of casterSources) {
@@ -392,6 +399,11 @@
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);
+              }else if(u_citySolidSurface>2.5){
+              vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,${campusMaterials.gdcReflection.toFixed(3)});
+              shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
+              shaded=cityLocalLight(shaded,v_cityAlbedo.rgb,v_cityPos,v_cityNormal,1.0);
+              fragColor=vec4(cityEmission(shaded,v_cityAlbedo.rgb,1.0)*v_color.a,v_color.a);
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
@@ -464,7 +476,7 @@
       if(u.u_citySolidSurface&&p.solidSurface!==surface){
         gl.uniform1f(u.u_citySolidSurface,surface);p.solidSurface=surface;
       }
-      if(surface===1)stats.solidGlassDraws++;
+      if(surface===1||surface===3)stats.solidGlassDraws++;
       if(surface===2)stats.solidLightDraws++;
       if(p.serial!==serial) {
         for(const [name,slot] of Object.entries(u)) {
@@ -502,7 +514,7 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.

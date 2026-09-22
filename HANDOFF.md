@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283)
+
+GDC now has literal unequal recessed window pairs, projecting shades, deeper
+rust entrance screens, occupied night panes and the missing undersides of its
+three existing roof slabs. Welch has deeper divided historic windows, distinct
+laboratory glazing, a recessed terrace entrance and fuller planting. Potbelly,
+Wingstop and Miss Behavin now form detailed connected frontages with recessed
+glazing, gates/canopies and shaped raised lettering. Icon's existing crown has
+pale fins/infill, restrained glazing and an open terrace edge. The apartment
+coverage review confirmed existing models rather than adding duplicate towers.
+
+Eleven matched full-city camera pairs load all 196 authored buildings and preserve
+exposure/FOV. GDC roof rays, deterministic bakes, non-target geometry preservation,
+material dispatch, frontage/roof fallback, lifecycle cleanup and harness checks
+pass. Details, final device evidence and limitations are in
+[the comparison report](docs/campus-photo-depth.md).
+
+Device verification exposed style reads during WebGL context loss. Apartment
+label/filter callbacks, collision scans and deferred rendering work now wait
+while MapLibre has no style; map removal cancels owned queued work. This preserves normal loading and
+replacement fallback instead of treating partially loaded sources as a failure.
+
+GDC uses verified public exterior references; no owner-phone image was confidently
+identified as GDC. Additional owner Welch angles remain unconfirmed. Small
+dimensions, fine materials, signs and interiors remain approximations; this is
+not a claim that the full photo collection or visual backlog is complete.
+
+The primary dirty checkout and parked Drag/campus experiment files are untouched.
+Only this shared handoff document overlaps the parked PRs; none of their code or
+data assertions are changed. Private photos, reference identities and camera
+records remain outside tracked files. No automation was recreated.
+
+The full-city recovery gate now passes after integrating main `c1953e3`.
+The reusable `scripts/verify/device-recovery.mjs` verifies actual connected-canvas
+loss/restoration during time-of-day playback, exactly one app reload, all 196
+buildings ready again, keyboard and touch-joystick movement, and
+portrait/landscape/2560 x 1440 recovery.
+No page or console errors occurred. It catches incorrect screenshot dimensions
+and extra reloads; the earlier no-event attempts are rejected, not passing data.
+The report links the retained large-screen second screenshot. Focused recovery,
+material, cache and harness regression tests pass.
+The deliberate missing-injection run reaches 196 buildings and fails the
+observed-loss assertion with exit 1, proving this gate rejects the old ambiguity.
+
+Physical iPhone Safari and Chrome acceptance remains open because no device was
+available. Desktop touch emulation establishes neither mobile GPU performance,
+thermal behavior nor memory headroom. The large resize retains the touch graphics
+profile. Private diagnostics remain outside Git; the dirty primary is untouched.
+
 ## Sep 22 2026 - Downtown balcony depth (`codex/downtown-geometry`)
 
 Waterline's residential elevations now have cut balcony volumes, decks, guards,

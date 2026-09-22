@@ -32,7 +32,8 @@
   const TUCK_POLL_MS = 250;       // outer's layers arrive after a network fetch
   const TUCK_TRIES = 240;         // ~60 s, then give up (?outer=0 has no ring)
 
-  let _feats = null, _map = null, _lastP = null, _timer = null;
+  let _feats = null, _map = null, _lastP = null, _timer = null, _tuckTimer = null;
+  const _removedMaps = new WeakSet(), _watchedMaps = new WeakSet();
 
   // The sun comes from sky.js — ONE arc shared by the shadows, MapLibre's light
   // and the visible disc. This file used to walk its own (az 150→245) while
@@ -111,6 +112,15 @@
 
   window.initShadows = function initShadows(map, features, p) {
     _map = map;
+    if (!_watchedMaps.has(map)) {
+      _watchedMaps.add(map);
+      map.once('remove', () => {
+        _removedMaps.add(map);
+        clearTimeout(_timer); clearTimeout(_tuckTimer);
+        _timer = _tuckTimer = null;
+        if (_map === map) _map = null;
+      });
+    }
     _feats = features;
     _lastP = p;
     if (!map.getSource(SRC)) map.addSource(SRC, { type: 'geojson', data: build(p) });
@@ -140,12 +150,15 @@
       // shots/f/smear/fix-A-before.jpg vs fix-B-after.jpg.
       let tuckTries = 0;
       (function tuck() {
-        if (!_map || !_map.getLayer(LAYER)) return;
+        _tuckTimer = null;
+        if (_removedMaps.has(map)) return;
+        if (!map.style) { _tuckTimer = setTimeout(tuck, TUCK_POLL_MS); return; }
+        if (!map.getLayer(LAYER)) return;
         if (_map.getLayer(RING_BOTTOM)) {
           try { _map.moveLayer(LAYER, RING_BOTTOM); } catch (e) {}
           return;
         }
-        if (++tuckTries < TUCK_TRIES) setTimeout(tuck, TUCK_POLL_MS);
+        if (++tuckTries < TUCK_TRIES) _tuckTimer = setTimeout(tuck, TUCK_POLL_MS);
       })();
     }
   };
@@ -153,12 +166,20 @@
   // Re-casting 2.4k hulls costs a few ms; debounce so dragging the slider (or
   // the auto day/night cycle) stays smooth and only settles on a new sun.
   window.updateShadows = function updateShadows(map, p) {
-    if (!_feats || !map.getLayer(LAYER)) return;
+    if (!_feats || !map || _removedMaps.has(map)) return;
+    if (!map.style) {
+      clearTimeout(_timer);
+      _timer = setTimeout(() => { _timer = null; window.updateShadows(map, p); }, 140);
+      return;
+    }
+    if (!map.getLayer(LAYER)) return;
     try { map.setPaintProperty(LAYER, 'fill-opacity', shadowOpacity(p)); } catch (e) {}
     if (_lastP != null && Math.abs(p - _lastP) < 0.04) return;
     if (_timer) clearTimeout(_timer);
     _timer = setTimeout(() => {
       _timer = null;
+      if (_removedMaps.has(map)) return;
+      if (!map.style) { window.updateShadows(map, p); return; }
       _lastP = p;
       const src = map.getSource(SRC);
       if (src) src.setData(build(p));
