@@ -114,6 +114,8 @@
     // ONE build instead of on two checkouts — the shape js/outer.js established.
     on: q.get('heroes') !== '0',
     minZoom: 14,
+    // Raster detail only: keep the logical 64-unit repeat and authored layouts.
+    textureScale: 4,
 
     // ── EER limestone ────────────────────────────────────────────────────
     // A 64 px tile covers 30-59 m of wall at the zooms this app flies, so nine
@@ -406,7 +408,7 @@
   // Same defect js/facades.js's own header spends four hundred words on, and
   // this file's EER comment already names it: "fill-extrusion-pattern has no
   // vertical anchor and its world scale halves at every integer zoom". These
-  // seven tiles are registered with no `pixelRatio`, so displaySize is T and one
+  // seven tiles previously used pixelRatio 1. Their displaySize remains T: one
   // repeat covers `T * 67551 / 2^tileZoom` metres of wall -- 32.98 m at z17,
   // and 1.03 m by z22. EER's nine rows are a 3.7 m floor at z17 and a 12 cm
   // floor at walking height.
@@ -417,12 +419,14 @@
   // (`window.facadeZoomAnchor`) rather than keeping a second one, so the two
   // passes cannot drift apart about what zoom the city is at.
   //
-  // HERO_REF_ZOOM is 17 and not 16 because these tiles are pixelRatio 1 where
-  // the facade atlas is pixelRatio 2: displaySize T at z17 is the same 32.98 m
+  // HERO_REF_ZOOM is 17 and not 16 because these tiles keep displaySize 64 where
+  // the facade atlas uses 32: displaySize T at z17 is the same 32.98 m
   // of wall as the atlas's displaySize 32 at z16. Every authored count in
   // HEROES is a count AT THAT ZOOM, and clamping the anchor there means this
   // can only ever coarsen a wall, never densify one.
   const T = 64;
+  const TEXTURE_SCALE = HEROES.textureScale;
+  const TEXTURE_SIZE = T * TEXTURE_SCALE;
   const HERO_REF_ZOOM = 17;
   const heroRepeatM = z => T * 67551 / Math.pow(2, z);
   const HERO_REF_M = heroRepeatM(HERO_REF_ZOOM);         // 32.98 m
@@ -444,17 +448,18 @@
   function ctx2d() {
     if (!_ctx) {
       const c = document.createElement('canvas');
-      c.width = c.height = T;
+      c.width = c.height = TEXTURE_SIZE;
       // willReadFrequently: this canvas is read back with getImageData on every
       // quantised time-of-day tick and never composited from a GPU surface.
       _ctx = c.getContext('2d', { willReadFrequently: true });
+      _ctx.setTransform(TEXTURE_SCALE, 0, 0, TEXTURE_SCALE, 0, 0);
     }
     return _ctx;
   }
   const css = v => `rgb(${v.map(x => Math.round(Math.max(0, Math.min(255, x)))).join(',')})`;
   function grab(ctx) {
-    const img = ctx.getImageData(0, 0, T, T);
-    return { width: T, height: T, data: new Uint8Array(img.data.buffer.slice(0)) };
+    const img = ctx.getImageData(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+    return { width: TEXTURE_SIZE, height: TEXTURE_SIZE, data: new Uint8Array(img.data.buffer.slice(0)) };
   }
   /** 0 before dusk, 1 at full night. Same threshold js/arts.js uses. */
   const nightAt = p => window.CityNight?.lamps(p) ?? Math.max(0, (p - 0.62) / 0.38);
@@ -683,7 +688,7 @@
     for (const id of Object.keys(TILES)) {
       try {
         if (map.hasImage && map.hasImage(id)) map.updateImage(id, TILES[id](p));
-        else map.addImage(id, TILES[id](p));
+        else map.addImage(id, TILES[id](p), { pixelRatio: TEXTURE_SCALE });
       } catch (e) { /* already registered, or the canvas is gone */ }
     }
   }
@@ -1068,8 +1073,8 @@
 
   // js/timeofday.js quantises p to 1/128 and skips its expensive path between
   // ticks. A module that wraps applyTimeOfDay does NOT inherit that decision, so
-  // the same quantisation is repeated here — six 64 px canvases redrawn and
-  // re-uploaded at 60 fps would be 360 texture uploads a second for a colour
+  // the same quantisation is repeated here — seven backing images redrawn and
+  // re-uploaded at 60 fps would be 420 texture uploads a second for a colour
   // change nobody can see.
   let _lastPq = null;
   const PQ = 128;
@@ -1108,7 +1113,7 @@
 
     // Crossing an integer zoom changes what these tiles should draw, the same
     // way crossing an hour does. Cheap to test (one integer compare) and the
-    // redraw behind it is six 64 px canvases, so it can hang off `zoom`
+    // redraw behind it is seven backing images, so it can hang off `zoom`
     // directly without a debounce of its own.
     if (!map.__heroesZoomWatch) {
       map.__heroesZoomWatch = true;
