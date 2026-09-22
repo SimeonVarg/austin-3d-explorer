@@ -498,10 +498,12 @@
       if (k[0] === '_') continue;                       // a `_src` note beside a colour, not a colour
       const v = spec.colours[k];
       const hexes = Array.isArray(v) ? v : (v && v.hex);
-      out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes : ramp(hexes[0])) : ramp(hexes);
+      out[k] = Array.isArray(hexes) ? (hexes.length === 3 ? hexes.slice() : ramp(hexes[0])) : ramp(hexes);
       const M=APTS.materials;
       if(M.on){
-        let kind=spec.materials?.[k];
+        const authored=spec.materials?.[k];
+        const override=authored&&typeof authored==='object'?authored:null;
+        let kind=override?override.type:authored;
         if(!kind&&(M.glassKeys.includes(k)||/glass|glaz|window/i.test(k)))kind='glass';
         if(!kind&&M.brickKeys.includes(k))kind='brick';
         if(!kind&&M.stoneKeys.includes(k))kind='stone';
@@ -509,7 +511,20 @@
         if(!kind&&k==='wall'){
           const c=out[k][0];kind=parseInt(c.slice(1,3),16)>parseInt(c.slice(3,5),16)*M.brickRedRatio?'brick':'stone';
         }
-        if(kind&&M[kind])out[k].surface=M[kind];
+        if(kind&&M[kind]){
+          const surface=M[kind].slice();
+          if(override){
+            if(override.strength!=null){
+              if(!Number.isFinite(override.strength)||override.strength<0||override.strength>1)throw Error('Invalid material strength: '+k);
+              surface[3]=override.strength;
+            }
+            if(override.scale!=null){
+              if(!Array.isArray(override.scale)||override.scale.length!==2||override.scale.some(v=>!Number.isFinite(v)||v<=0))throw Error('Invalid material scale: '+k);
+              surface[1]=override.scale[0];surface[2]=override.scale[1];
+            }
+          }
+          out[k].surface=surface;
+        }
       }
     }
     Object.defineProperty(out,'_surfaceGlass',{value:APTS.materials.on?APTS.materials.glass:null});
@@ -740,8 +755,8 @@
           const col = win.lit ? [pane[0], pane[1], win.nightTone || APTS.nightLitTone] : pane.slice();
           // Explicit opening tones also describe garage mouths and masonry
           // recesses. Only an actual window inherits the glass material.
-          if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
-          else if(pane.surface)col.surface=pane.surface;
+          if(pane.surface)col.surface=pane.surface;
+          else if(!win.tone&&P._surfaceGlass)col.surface=P._surfaceGlass;
           // A closed room must not inherit a storefront's luminous night tone.
           // Undefined occupancy and non-glass openings retain authored colours.
           if(window.CityNight?.tune.on&&win.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;

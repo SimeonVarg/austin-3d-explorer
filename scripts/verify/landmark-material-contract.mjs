@@ -46,13 +46,13 @@ const wrapStart=lighting.indexOf('    let activeSolidSurface=0;');
 const wrapEnd=lighting.indexOf('    let current=null;',wrapStart);
 vm.runInContext(lighting.slice(wrapStart,wrapEnd),scope);
 const draw=id=>scope.painter.drawFunctions.fillExtrusion(null,null,{id});
-draw('outer-landmark-glass');draw('outer-landmark-light');draw('outer-detail');draw('buildings-3d');
-assert.deepEqual(values,[1,2,0],'shared program must reset after a semantic layer; unchanged ordinary draws do no uniform write');
+draw('outer-landmark-glass');draw('outer-landmark-light');draw('heroes-gdc-glass');draw('outer-detail');draw('buildings-3d');
+assert.deepEqual(values,[1,2,3,0],'shared program must reset after a semantic layer; unchanged ordinary draws do no uniform write');
 assert.throws(()=>scope.painter.drawFunctions.fillExtrusion(null,null,{id:'outer-landmark-light',throw:true}));
 assert.equal(vm.runInContext('activeSolidSurface',scope),0,'failed draws restore prior semantic state');
 
 // The ordinary solid path is deliberately the previous shader expression.
-const ordinary=lighting.split('if(u_citySolidSurface<.5){')[1].split('}else{')[0].replace(/\s+/g,'');
+const ordinary=lighting.split('if(u_citySolidSurface<.5){')[1].split('}else')[0].replace(/\s+/g,'');
 const expected=`vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
 shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
 fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);`.replace(/\s+/g,'');

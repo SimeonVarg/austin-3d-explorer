@@ -1456,14 +1456,21 @@
         2
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "White-painted brick one-storey frontage with a deep recessed entrance, a separate high transom and dark green metal framing. Storefront proportions are approximate; footprint retained.",
+      "observations": "White-painted brick frontage with deep entrance court, separate open high transom, dark structural posts and an independent iron gate. Door and transom framing sit at separate depths. Footprint and roof height retained; small architectural dimensions remain approximate.",
       "colours": {
         "wall": "#e1e0d6",
         "signboard": "#e1e0d6",
         "trim": "#e7e5d9",
-        "metal": "#333c37",
-        "letters": "#c5a152",
-        "dark": "#d1cfc2"
+        "metal": "#28322d",
+        "letters": "#d4ad55",
+        "dark": "#d1cfc2",
+        "glass": "#253630",
+        "entryGlass": "#23312c",
+        "floor": "#b1b0a4",
+        "soffit": "#c5c5b8",
+        "plaque": "#354742",
+        "plaqueEdge": "#caa75d",
+        "smallLetters": "#d8ded0"
       },
       "ground": 4.1,
       "shopBay": 2.5,
@@ -1474,52 +1481,302 @@
         "transom": 0.78,
         "reveal": 0.32
       },
-      "frontage": {
-        "bands": [
+      "special": "potbelly-photo",
+      "materials": {
+        "wall": "brick",
+        "trim": "brick",
+        "metal": "plain",
+        "dark": "plain",
+        "glass": "shopGlass",
+        "signboard": "plain",
+        "letters": "plain",
+        "awning": "plain",
+        "roof": "plain",
+        "accent": "plain",
+        "entryGlass": "shopGlass",
+        "floor": "plain",
+        "soffit": "plain",
+        "plaque": "plain",
+        "plaqueEdge": "plain",
+        "smallLetters": "plain"
+      },
+      "photoDetail": {
+        "sill": 0.06,
+        "shopTop": 4.08,
+        "frameWidth": 0.065,
+        "frameDepth": 0.075,
+        "frameProud": 0.018,
+        "shopLit": true,
+        "handleWidth": 0.026,
+        "handleDepth": 0.18,
+        "handleBottom": 0.85,
+        "handleTop": 1.42,
+        "courseDepth": 0.022,
+        "courseHeight": 0.065,
+        "mouth": [
+          0.06,
+          0.94
+        ],
+        "transom": 3.12,
+        "entryDepth": 1.5,
+        "floorProud": 0.1,
+        "backPosts": [
+          0,
+          0.24,
+          0.48,
+          0.66,
+          1
+        ],
+        "backTransom": 2.62,
+        "upperPosts": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "upperPostWidth": 0.17,
+        "upperPostDepth": 0.2,
+        "beamHeight": 0.21,
+        "gate": [
+          0.69,
+          1
+        ],
+        "gateInset": 0.45,
+        "wallDepth": 0.06,
+        "gatePost": 0.065,
+        "gateTop": 2.75,
+        "gateRails": [
+          0.15,
+          1.25,
+          1.54,
+          2.52
+        ],
+        "gateBar": 0.022,
+        "gatePitch": 0.13,
+        "gateRingRadius": 0.095,
+        "gateRingZ": 1.395,
+        "ringSegments": 20,
+        "courses": [
+          4.1,
+          5.36
+        ],
+        "signs": [
           {
-            "z0": 0,
-            "z1": 4.1,
-            "skin": "wall",
-            "openings": [
-              {
-                "s0": 0.06,
-                "s1": 0.93,
-                "z0": 0.1,
-                "z1": 3.25,
-                "d": 1.0,
-                "glass": "glass",
-                "tone": "metal"
-              },
-              {
-                "s0": 0.06,
-                "s1": 0.93,
-                "z0": 3.35,
-                "z1": 4.03,
-                "d": 0.32,
-                "glass": "glass",
-                "tone": "metal"
-              }
-            ]
+            "outline": {
+              "polygons": [
+                {
+                  "outer": [
+                    [
+                      0.06,
+                      0
+                    ],
+                    [
+                      0.03,
+                      0.08
+                    ],
+                    [
+                      0.04,
+                      0.19
+                    ],
+                    [
+                      0,
+                      0.27
+                    ],
+                    [
+                      0,
+                      0.73
+                    ],
+                    [
+                      0.04,
+                      0.81
+                    ],
+                    [
+                      0.03,
+                      0.92
+                    ],
+                    [
+                      0.06,
+                      1
+                    ],
+                    [
+                      0.17,
+                      0.94
+                    ],
+                    [
+                      0.83,
+                      0.94
+                    ],
+                    [
+                      0.94,
+                      1
+                    ],
+                    [
+                      0.97,
+                      0.92
+                    ],
+                    [
+                      0.96,
+                      0.81
+                    ],
+                    [
+                      1,
+                      0.73
+                    ],
+                    [
+                      1,
+                      0.27
+                    ],
+                    [
+                      0.96,
+                      0.19
+                    ],
+                    [
+                      0.97,
+                      0.08
+                    ],
+                    [
+                      0.94,
+                      0
+                    ],
+                    [
+                      0.83,
+                      0.06
+                    ],
+                    [
+                      0.17,
+                      0.06
+                    ]
+                  ],
+                  "holes": []
+                }
+              ]
+            },
+            "s": 0.5,
+            "w": 0.65,
+            "z0": 4.14,
+            "h": 1.2,
+            "tone": "plaqueEdge",
+            "off": 0.025,
+            "depth": 0.065
           },
           {
-            "z0": 4.1,
-            "z1": 5.38,
-            "skin": "wall",
-            "signs": [
-              {
-                "text": "POTBELLY",
-                "s": 0.5,
-                "z0": 4.48,
-                "dot": 0.12,
-                "gap": 0.12,
-                "tone": "letters"
-              }
-            ]
+            "outline": {
+              "polygons": [
+                {
+                  "outer": [
+                    [
+                      0.06,
+                      0
+                    ],
+                    [
+                      0.03,
+                      0.08
+                    ],
+                    [
+                      0.04,
+                      0.19
+                    ],
+                    [
+                      0,
+                      0.27
+                    ],
+                    [
+                      0,
+                      0.73
+                    ],
+                    [
+                      0.04,
+                      0.81
+                    ],
+                    [
+                      0.03,
+                      0.92
+                    ],
+                    [
+                      0.06,
+                      1
+                    ],
+                    [
+                      0.17,
+                      0.94
+                    ],
+                    [
+                      0.83,
+                      0.94
+                    ],
+                    [
+                      0.94,
+                      1
+                    ],
+                    [
+                      0.97,
+                      0.92
+                    ],
+                    [
+                      0.96,
+                      0.81
+                    ],
+                    [
+                      1,
+                      0.73
+                    ],
+                    [
+                      1,
+                      0.27
+                    ],
+                    [
+                      0.96,
+                      0.19
+                    ],
+                    [
+                      0.97,
+                      0.08
+                    ],
+                    [
+                      0.94,
+                      0
+                    ],
+                    [
+                      0.83,
+                      0.06
+                    ],
+                    [
+                      0.17,
+                      0.06
+                    ]
+                  ],
+                  "holes": []
+                }
+              ]
+            },
+            "s": 0.5,
+            "w": 0.628,
+            "z0": 4.17,
+            "h": 1.14,
+            "tone": "plaque",
+            "off": 0.091,
+            "depth": 0.04
           },
           {
-            "z0": 5.38,
-            "z1": 5.5,
-            "skin": "metal"
+            "asset": "potbelly",
+            "s": 0.5,
+            "w": 0.565,
+            "z0": 4.48,
+            "h": 0.57,
+            "tone": "letters",
+            "off": 0.14,
+            "depth": 0.075
+          },
+          {
+            "asset": "sandwich-works",
+            "s": 0.5,
+            "w": 0.44,
+            "z0": 4.25,
+            "h": 0.13,
+            "tone": "smallLetters",
+            "off": 0.14,
+            "depth": 0.025
           }
         ]
       }
@@ -1563,14 +1820,16 @@
         2
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Low white-painted brick shop adjoining Potbelly at the same roof line; full-height silver-framed glazing and high transoms. Removed unsupported second-floor windows. Heights are estimated from the adjoining doorway proportions; footprint retained.",
+      "observations": "White-painted brick frontage adjoining Potbelly with a shallow inset, silver mullions, high transoms and central paired entrance doors. Separate raised letters retain the low restaurant roof line. Footprint retained; framing dimensions approximate.",
       "colours": {
         "wall": "#e1e0d6",
         "signboard": "#e1e0d6",
         "trim": "#ebeae0",
-        "metal": "#ced2cd",
-        "letters": "#588462",
-        "dark": "#d1cfc2"
+        "metal": "#c7ceca",
+        "letters": "#e1e4d7",
+        "dark": "#d1cfc2",
+        "glass": "#283e3d",
+        "letterShadow": "#326444"
       },
       "ground": 4.1,
       "shopBay": 1.44,
@@ -1581,65 +1840,253 @@
         "transom": 0.7,
         "reveal": 0.16
       },
-      "frontage": {
-        "bands": [
+      "special": "wingstop-photo",
+      "materials": {
+        "wall": "brick",
+        "trim": "brick",
+        "metal": "plain",
+        "dark": "plain",
+        "glass": "shopGlass",
+        "signboard": "plain",
+        "letters": "plain",
+        "awning": "plain",
+        "roof": "plain",
+        "accent": "plain",
+        "letterShadow": "plain"
+      },
+      "photoDetail": {
+        "sill": 0.06,
+        "shopTop": 4.08,
+        "frameWidth": 0.065,
+        "frameDepth": 0.075,
+        "frameProud": 0.018,
+        "shopLit": true,
+        "handleWidth": 0.026,
+        "handleDepth": 0.18,
+        "handleBottom": 0.85,
+        "handleTop": 1.42,
+        "courseDepth": 0.022,
+        "courseHeight": 0.065,
+        "mouth": [
+          0.045,
+          0.955
+        ],
+        "windowDepth": 0.18,
+        "transom": 2.69,
+        "posts": [
+          0,
+          0.26,
+          0.44,
+          0.61,
+          0.78,
+          1
+        ],
+        "doorHandles": [
+          0.595,
+          0.625
+        ],
+        "courses": [
+          4.1,
+          5.36
+        ],
+        "signs": [
           {
-            "z0": 0,
-            "z1": 0.08,
-            "skin": "trim"
+            "asset": "wingstop",
+            "s": 0.5,
+            "w": 0.9,
+            "z0": 4.37,
+            "h": 0.75,
+            "tone": "letterShadow",
+            "off": 0.025,
+            "depth": 0.105
           },
           {
-            "z0": 0.08,
-            "z1": 4.12,
-            "skin": "shop",
-            "openings": [
-              {
-                "s0": 0.38,
-                "s1": 0.72,
-                "z0": 0.08,
-                "z1": 2.9,
-                "d": 0.18,
-                "glass": "glass",
-                "tone": "metal"
-              }
-            ]
-          },
-          {
-            "z0": 4.12,
-            "z1": 5.38,
-            "skin": "wall",
-            "signs": [
-              {
-                "text": "WINGSTOP",
-                "s": 0.5,
-                "z0": 4.43,
-                "dot": 0.12,
-                "gap": 0.12,
-                "tone": "letters"
-              }
-            ]
-          },
-          {
-            "z0": 5.38,
-            "z1": 5.5,
-            "skin": "metal"
+            "asset": "wingstop",
+            "s": 0.5,
+            "w": 0.885,
+            "z0": 4.39,
+            "h": 0.72,
+            "tone": "letters",
+            "off": 0.131,
+            "depth": 0.025
           }
         ]
       }
     },
     {
       "id": "267d6b29-7936-4304-9950-a1f6a20056f4",
-      "name": "Guadalupe storefront 267d6b29",
+      "name": "Miss Behavin",
       "height": 9.9,
       "floors": 2,
       "frontEdges": [
         3
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Mapped footprint and road-facing walls retained. Storefront openings, trim and rear walls are simplified architectural approximations; this profile does not certify a current tenant.",
+      "observations": "Two-storey brown-brick frontage immediately north of Wingstop. Ground displays have painted white timber plinths and an inset central door. A broad dark upper window and red-rafter eave sit above a slender steel canopy. Surveyed footprint and full building height retained; facade subdivisions and small trim dimensions approximate.",
       "colours": {
-        "wall": "#d8c5a2",
-        "signboard": "#50554f"
+        "wall": "#756c58",
+        "signboard": "#eceee5",
+        "trim": "#b6aa8c",
+        "glass": "#344139",
+        "entryGlass": "#22312d",
+        "upperGlass": "#24302e",
+        "metal": "#252d29",
+        "displayTrim": "#d3d4c9",
+        "panelEdge": "#9c9f95",
+        "stoneTrim": "#c1b9a0",
+        "soffit": "#d4d2c3",
+        "terracotta": "#87564a",
+        "letters": "#272b28"
+      },
+      "labelOverride": true,
+      "special": "miss-behavin-photo",
+      "materials": {
+        "wall": "brick",
+        "trim": "brick",
+        "metal": "plain",
+        "dark": "plain",
+        "glass": "shopGlass",
+        "signboard": "plain",
+        "letters": "plain",
+        "awning": "plain",
+        "roof": "plain",
+        "accent": "plain",
+        "entryGlass": "shopGlass",
+        "upperGlass": "glass",
+        "displayTrim": "plain",
+        "panelEdge": "plain",
+        "stoneTrim": "plain",
+        "soffit": "plain",
+        "terracotta": "plain"
+      },
+      "photoDetail": {
+        "sill": 0.06,
+        "shopTop": 3.65,
+        "frameWidth": 0.065,
+        "frameDepth": 0.075,
+        "frameProud": 0.018,
+        "shopLit": true,
+        "handleWidth": 0.026,
+        "handleDepth": 0.18,
+        "handleBottom": 0.85,
+        "handleTop": 1.42,
+        "courseDepth": 0.022,
+        "courseHeight": 0.065,
+        "mouth": [
+          0.05,
+          0.95
+        ],
+        "displayBays": [
+          [
+            0.1,
+            0.34
+          ],
+          [
+            0.62,
+            0.91
+          ]
+        ],
+        "bulkhead": 0.63,
+        "windowDepth": 0.18,
+        "entry": [
+          0.34,
+          0.62
+        ],
+        "entryDepth": 0.86,
+        "handleSpacing": 0.18,
+        "upperMouth": [
+          0.085,
+          0.93
+        ],
+        "upperBottom": 5.05,
+        "upperTop": 8.52,
+        "upperTransom": 7.75,
+        "upperPosts": [
+          0,
+          0.33,
+          0.67,
+          1
+        ],
+        "upperDepth": 0.25,
+        "upperFrame": 0.07,
+        "upperProud": 0.008,
+        "panelDepth": 0.06,
+        "panelInsets": [
+          0.08,
+          0.135
+        ],
+        "panelRail": 0.019,
+        "panelRelief": 0.025,
+        "eaveZ": 8.95,
+        "eaveDepth": 0.9,
+        "eaveThickness": 0.1,
+        "eaveFascia": 0.12,
+        "eaveCap": 0.085,
+        "rafterPitch": 1.1,
+        "rafterWidth": 0.13,
+        "rafterHeight": 0.3,
+        "sillProud": 0.075,
+        "sillThickness": 0.1,
+        "canopy": {
+          "z": 3.88,
+          "depth": 1.58,
+          "thickness": 0.075,
+          "fasciaDepth": 0.065,
+          "fasciaHeight": 0.1,
+          "soffitThickness": 0.035,
+          "rafterPitch": 1.03,
+          "rafterWidth": 0.045,
+          "rafterHeight": 0.13,
+          "tieCount": 2,
+          "tieWidth": 0.045,
+          "tieRise": -1.0
+        },
+        "signs": [
+          {
+            "outline": {
+              "polygons": [
+                {
+                  "outer": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      1,
+                      0
+                    ],
+                    [
+                      1,
+                      1
+                    ],
+                    [
+                      0,
+                      1
+                    ]
+                  ],
+                  "holes": []
+                }
+              ]
+            },
+            "s": 0.5,
+            "w": 0.88,
+            "z0": 4.02,
+            "h": 0.78,
+            "tone": "signboard",
+            "off": 0.025,
+            "depth": 0.045
+          },
+          {
+            "asset": "miss-behavin",
+            "s": 0.5,
+            "w": 0.8,
+            "z0": 4.15,
+            "h": 0.48,
+            "tone": "letters",
+            "off": 0.072,
+            "depth": 0.018
+          }
+        ]
       }
     },
     {

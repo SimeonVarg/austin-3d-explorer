@@ -351,7 +351,7 @@
   const L = {
     solid: 'heroes-solid', lime: 'heroes-lime', brick: 'heroes-brick',
     nbrick: 'heroes-nbrick', glass: 'heroes-glass', glassb: 'heroes-glassb',
-    glassc: 'heroes-glassc', lattice: 'heroes-lattice', cap: 'heroes-cap',
+    glassc: 'heroes-glassc', gdcGlass:'heroes-gdc-glass', lattice: 'heroes-lattice', cap: 'heroes-cap',
   };
   const IMG = {
     lime: 'heroes-img-lime', brick: 'heroes-img-brick', nbrick: 'heroes-img-nbrick',
@@ -860,7 +860,7 @@
     let n = 0;
     for (const f of gj.features) {
       const p = f.properties;
-      if (p.b !== 'gdc') continue;
+      if (p.b !== 'gdc' || p.authoredFacade === 1) continue;
       if (p.cap === 1) { paint(p, PALETTE.gdcFascia, true); n++; }        // the roof plane
       else if (p.lyr === 'solid' && p.base === 0) { paint(p, PALETTE.gdcBase); n++; }
       else if (p.lyr === 'glass') { p.lyr = 'glassb'; paint(p, PALETTE.gdcGlass); n++; }  // the atrium
@@ -973,6 +973,7 @@
     }, anchor);
 
     add(L.solid, 'solid', { 'fill-extrusion-color': wallColor(p) });
+    add(L.gdcGlass, 'gdc-glass', { 'fill-extrusion-color': wallColor(p) });
     add(L.lime, 'lime', { 'fill-extrusion-pattern': IMG.lime });
     add(L.brick, 'brick', { 'fill-extrusion-pattern': IMG.brick });
     add(L.nbrick, 'nbrick', { 'fill-extrusion-pattern': IMG.nbrick });
@@ -1027,6 +1028,7 @@
     _lastAnchor = az;
     try {
       if (map.getLayer(L.solid)) map.setPaintProperty(L.solid, 'fill-extrusion-color', wallColor(p));
+      if (map.getLayer(L.gdcGlass)) map.setPaintProperty(L.gdcGlass, 'fill-extrusion-color', wallColor(p));
     } catch (e) {}
     try {
       if (map.getLayer(L.cap)) map.setPaintProperty(L.cap, 'fill-extrusion-color', capColor(p));

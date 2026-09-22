@@ -16,7 +16,8 @@
   const balance={skyFill:0.12,roofFill:0.08};
   // Opt-in material layers keep ordinary solid extrusions on their original
   // path. No color/luma heuristic can turn an unrelated wall into a light.
-  const solidSurfaceFor=id=>id==='outer-landmark-glass'?1:id==='outer-landmark-light'?2:0;
+  const solidSurfaceFor=id=>id==='outer-landmark-glass'?1:id==='outer-landmark-light'?2:id==='heroes-gdc-glass'?3:0;
+  const campusMaterials={gdcReflection:.35};
   // Facade-sized geometry establishes the silhouette. Subpixel floor edges and
   // mullions use integrated pixel coverage instead of binary triangle hits.
   // These are the same fitted storey zones as downtown_landmarks.py.
@@ -392,6 +393,11 @@
               vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);
+              }else if(u_citySolidSurface>2.5){
+              vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,${campusMaterials.gdcReflection.toFixed(3)});
+              shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
+              shaded=cityLocalLight(shaded,v_cityAlbedo.rgb,v_cityPos,v_cityNormal,1.0);
+              fragColor=vec4(cityEmission(shaded,v_color.rgb/max(v_color.a,.0001),1.0)*v_color.a,v_color.a);
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
@@ -464,7 +470,7 @@
       if(u.u_citySolidSurface&&p.solidSurface!==surface){
         gl.uniform1f(u.u_citySolidSurface,surface);p.solidSurface=surface;
       }
-      if(surface===1)stats.solidGlassDraws++;
+      if(surface===1||surface===3)stats.solidGlassDraws++;
       if(surface===2)stats.solidLightDraws++;
       if(p.serial!==serial) {
         for(const [name,slot] of Object.entries(u)) {
@@ -502,7 +508,7 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.

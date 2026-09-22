@@ -456,7 +456,8 @@
       float kind=v_surface.x;
       bool shop=kind>5.5&&kind<6.5;
       float glazing=((kind>3.5&&kind<4.5)||shop)?1.0:0.0;
-      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,glazing)*v_color.a;
+      float glassResponse=glazing*(shop?1.0:clamp(v_surface.w,0.0,1.0));
+      col=cityShade(col/max(v_color.a,.0001),v_albedo,v_pos,v_normal,glassResponse)*v_color.a;
       float opaqueWall=(kind<3.5||kind>6.5)?1.0:0.0;
       col=mix(col,max(col,v_albedo*u_nightWallAmbient),u_cityNight.x*opaqueWall);
       col=cityCrown(col,v_pos,v_normal);

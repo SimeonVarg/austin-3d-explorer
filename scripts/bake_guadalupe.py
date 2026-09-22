@@ -203,6 +203,92 @@ def detailed_coop(base,blocks,plan,p,meshes):
             panel['faces']['0']['bands'][0]['signs'].append(dict(outline={'polygons':[{'outer':poly,'holes':[]}]},w=pw,h=ph,s=s-start,z0=c['bannerBottom']+c['bannerFigureBottom'],depth=c['bannerLetterDepth'],off=0,tone='jersey'+str(j%2)))
 
 
+def detailed_row_shop(base, blocks, plan, p, meshes):
+    """Individually measured storefront layers on the connected retail row."""
+    c=p['photoDetail'];edge=p['frontEdges'][0]
+    f=FrontDetails(plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])],blocks,p['special'],meshes);L=f.length
+    base['parapet']=0
+    a,b=[s*L for s in c['mouth']];w=b-a
+    opening=lambda lo,hi,z0,z1,d,glass,tone:dict(s0=lo,s1=hi,z0=z0,z1=z1,d=d,glass=glass,tone=tone,lit=c['shopLit'])
+    openings=[]
+    if p['special']=='potbelly-photo':
+        openings=[opening(a,b,c['sill'],c['transom'],c['entryDepth'],'entryGlass','wall'),
+                  opening(a,b,c['transom'],c['shopTop'],c['entryDepth'],None,'soffit')]
+        # Deep court, with the glass door at the back and the gate standing
+        # independently near its mouth. Upper posts span the open transom.
+        f.box('court-floor',a,b,-c['entryDepth'],c['floorProud'],0,c['sill'],'floor')
+        for q in c['backPosts']:
+            s=a+w*q;f.box('back-frame',s-c['frameWidth']/2,s+c['frameWidth']/2,-c['entryDepth'],-c['entryDepth']+c['frameDepth'],c['sill'],c['transom'],'metal')
+        f.box('back-transom',a,b,-c['entryDepth'],-c['entryDepth']+c['frameDepth'],c['backTransom'],c['backTransom']+c['frameWidth'],'metal')
+        for q in c['upperPosts']:
+            s=a+w*q;f.box('upper-post',s-c['upperPostWidth']/2,s+c['upperPostWidth']/2,-c['upperPostDepth'],c['frameProud'],c['transom'],c['shopTop'],'metal')
+        f.box('transom-beam',a,b,-c['upperPostDepth'],c['frameProud'],c['transom']-c['beamHeight'],c['transom'],'metal')
+        ga,gb=[a+v*w for v in c['gate']];d=-c['gateInset']
+        f.box('court-side-wall',ga,b,-c['entryDepth'],-c['entryDepth']+c['wallDepth'],c['sill'],c['transom'],'wall')
+        for s in [ga,gb]:
+            f.box('gate-post',s-c['gatePost']/2,s+c['gatePost']/2,d,d+c['gatePost'],c['sill'],c['gateTop'],'metal')
+        for z in c['gateRails']:
+            f.box('gate-rail',ga,gb,d,d+c['gateBar'],z,z+c['gateBar'],'metal')
+        n=max(1,round((gb-ga)/c['gatePitch']))
+        for i in range(1,n):
+            s=ga+(gb-ga)*i/n;f.box('gate-picket',s-c['gateBar']/2,s+c['gateBar']/2,d,d+c['gateBar'],c['sill'],c['gateTop']-c['gatePost'],'metal')
+        # Circular gate ornaments use smooth vector contours, not dot glyphs.
+        rings=[]
+        for i in range(n):
+            cx=(i+.5)/n;r=c['gateRingRadius'];cy=c['gateRingZ']
+            outer=[[cx+r*math.cos(t)/(gb-ga),(cy+r*math.sin(t)-c['sill'])/(c['gateTop']-c['sill'])]for t in [j*2*math.pi/c['ringSegments']for j in range(c['ringSegments'])]]
+            inner=[[cx+(r-c['gateBar'])*math.cos(t)/(gb-ga),(cy+(r-c['gateBar'])*math.sin(t)-c['sill'])/(c['gateTop']-c['sill'])]for t in [j*2*math.pi/c['ringSegments']for j in range(c['ringSegments'])]]
+            rings.append(dict(outer=outer,holes=[inner]))
+        gateSign=dict(outline={'polygons':rings},w=gb-ga,h=c['gateTop']-c['sill'],s=(ga+gb)/2,z0=c['sill'],depth=c['gateBar'],off=d,tone='metal')
+        csigns=[gateSign]
+    elif p['special']=='wingstop-photo':
+        openings=[opening(a,b,c['sill'],c['shopTop'],c['windowDepth'],'glass','wall')];csigns=[]
+        for q in c['posts']:
+            s=a+w*q;f.box('silver-mullion',s-c['frameWidth']/2,s+c['frameWidth']/2,-c['windowDepth'],c['frameProud'],c['sill'],c['shopTop'],'metal')
+        f.box('silver-transom',a,b,-c['windowDepth'],c['frameProud'],c['transom'],c['transom']+c['frameWidth'],'metal')
+        for q in c['doorHandles']:
+            s=a+w*q;f.box('door-pull',s-c['handleWidth']/2,s+c['handleWidth']/2,-c['windowDepth']+c['frameDepth'],-c['windowDepth']+c['handleDepth'],c['handleBottom'],c['handleTop'],'metal')
+    else:
+        csigns=[]
+        for lo,hi in c['displayBays']:
+            da,db=lo*L,hi*L
+            openings.append(opening(da,db,c['bulkhead'],c['shopTop'],c['windowDepth'],'glass','displayTrim'))
+            # Painted timber panels and double perimeter mouldings distinguish
+            # these displays from the adjoining aluminium restaurant front.
+            f.box('display-plinth',da,db,0,c['panelDepth'],0,c['bulkhead'],'displayTrim')
+            for inset in c['panelInsets']:
+                z0=inset;z1=c['bulkhead']-inset;ra=da+inset;rb=db-inset;t=c['panelRail']
+                for lo,hi in [(ra,ra+t),(rb-t,rb)]:f.box('panel-side',lo,hi,c['panelDepth'],c['panelDepth']+c['panelRelief'],z0,z1,'panelEdge')
+                for z in [z0,z1-t]:f.box('panel-rail',ra,rb,c['panelDepth'],c['panelDepth']+c['panelRelief'],z,z+t,'panelEdge')
+            for s in [da,db]:f.box('display-frame',s-c['frameWidth']/2,s+c['frameWidth']/2,-c['windowDepth'],c['frameProud'],c['bulkhead'],c['shopTop'],'displayTrim')
+        da,db=[v*L for v in c['entry']];mid=(da+db)/2
+        openings.append(opening(da,db,c['sill'],c['shopTop'],c['entryDepth'],'entryGlass','displayTrim'))
+        for s in [da,db]:f.box('entry-frame',s-c['frameWidth']/2,s+c['frameWidth']/2,-c['entryDepth'],-c['entryDepth']+c['frameDepth'],c['sill'],c['shopTop'],'metal')
+        s=da+c['handleSpacing'];f.box('door-pull',s-c['handleWidth']/2,s+c['handleWidth']/2,-c['entryDepth']+c['frameDepth'],-c['entryDepth']+c['handleDepth'],c['handleBottom'],c['handleTop'],'metal')
+        ua,ub=[v*L for v in c['upperMouth']]
+        openings.append(opening(ua,ub,c['upperBottom'],c['upperTop'],c['upperDepth'],'upperGlass','metal'))
+        for q in c['upperPosts']:
+            s=ua+(ub-ua)*q;f.box('upper-mullion',s-c['upperFrame']/2,s+c['upperFrame']/2,-c['upperDepth'],c['upperProud'],c['upperBottom'],c['upperTop'],'metal')
+        f.box('upper-transom',ua,ub,-c['upperDepth'],c['upperProud'],c['upperTransom'],c['upperTransom']+c['upperFrame'],'metal')
+        f.canopy(a,b,c['canopy'])
+        z=c['eaveZ'];d=c['eaveDepth']
+        f.box('eave-soffit',0,L,0,d,z-c['eaveThickness'],z,'soffit')
+        f.box('tile-fascia',0,L,d-c['eaveFascia'],d,z,z+c['eaveCap'],'terracotta')
+        n=max(1,round(L/c['rafterPitch']))
+        for i in range(n+1):
+            s=L*i/n;f.box('red-rafter',max(0,s-c['rafterWidth']/2),min(L,s+c['rafterWidth']/2),0,d,z-c['rafterHeight'],z-c['eaveThickness'],'terracotta')
+        f.box('upper-sill',ua,ub,0,c['sillProud'],c['upperBottom']-c['sillThickness'],c['upperBottom'],'stoneTrim')
+    # A single flat wall skin prevents accidental repeated generic shop bays.
+    base['faces'][str(edge)]={'bands':[band(0,p['height'],'wall',openings=openings,signs=csigns)]}
+    signs=base['faces'][str(edge)]['bands'][0]['signs']
+    for spec in c['signs']:
+        s=copy.deepcopy(spec);name=s.pop('asset',None)
+        if name:s['outline']=vector_sign(name,1,1,0,0,'letters',0)['outline']
+        s['s']*=L;s['w']*=L;signs.append(s)
+    # Thin surface relief follows the brick header and continuous roof line.
+    for z in c.get('courses',[]):f.box('brick-course',0,L,0,c['courseDepth'],z,z+c['courseHeight'],'trim')
+
+
 def lettering(text, width, s, z, tone, config, serif=False):
     rows=config['bitmaps'][('serif:' if serif else '')+text]
     return dict(bitmap=rows,bitmapRuns=True,dot=width/len(rows[0]),s=s,z0=z,tone=tone)
@@ -332,6 +418,7 @@ def make_building(p, feature, config, roofs):
     detailMeshes=[]
     if p.get('special')=='barefoot-photo':detailed_barefoot(base,blocks,plan,p,detailMeshes)
     if p.get('special')=='coop-photo':detailed_coop(base,blocks,plan,p,detailMeshes)
+    if p.get('special') in ['potbelly-photo','wingstop-photo','miss-behavin-photo']:detailed_row_shop(base,blocks,plan,p,detailMeshes)
     return dict(id=p['id'],name=p['name'],category='guadalupe',replaceFrontage=True,aliases=p.get('aliases',[]),labelOverride=p.get('labelOverride',False),
                 sources=dict(reference=p['source'],observations=p['observations'],footprint='data/snapshots/'+config['snapshot']+'/buildings.detailed.geojson',dimensions='Footprints retained. Heights, facade subdivisions, sign sizing and unphotographed elevations are approximate unless explicitly measured in the source.'),
                 footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,blocks=blocks,preserveRoof=keep_roof,preserveRoofscape=t['retainSurveyedRoofs'] and aligned,

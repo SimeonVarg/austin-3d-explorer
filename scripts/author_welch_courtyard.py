@@ -18,14 +18,23 @@ T = dict(terrace=3.1, slab=.32, parapet=.84, railRadius=.032,
          canopyWest=52.0, canopyEast=70.1, canopyLow=6.65,
          canopyHigh=8.75, canopyThickness=.09, roofPitch=22,
          archSegments=20, archJoint=.012, archBand=.18,
-         archProjection=.075, roundSegments=8)
+         archProjection=.075, roundSegments=8,
+         historicWidth=1.72, historicHeight=3.5, historicSill=.65,
+         historicReveal=.34, historicFrame=.075, historicMullion=.038,
+         sillProject=.17, sillHeight=.14, labBay=5.8, labWidth=1.35,
+         labHeight=2.55, labSill=.7, labReveal=.38,
+         entranceWidth=5.6, entranceHeight=3.1, entranceDepth=.62,
+         shrubSegments=7, shrubRings=5, historicGlassStrength=.22, labGlassStrength=.16)
 COLOURS = dict(courtBrick='#b99b80', courtStone='#b69c80',
                courtTrim='#dfded3', courtGlass='#394a4e',
                courtConcrete='#aaa697', courtPave='#9b9789',
                courtSteel='#353c3c', courtRoof='#424b4b',
                courtLeaf='#536147', courtSoil='#615b49',
                courtFurniture='#58625b', courtRoofTile='#945e47',
-               courtArchBrick='#aa8a70', courtArchBrickLight='#b3987b')
+               courtArchBrick='#aa8a70', courtArchBrickLight='#b3987b',
+               historicSill='#9e8065', labBrick='#c1a68c',
+               labGlass='#2b3635', courtLeafLight='#66704b',
+               courtLeafShade='#38492f', courtDoor='#37413e')
 M = {}
 
 
@@ -146,6 +155,104 @@ def plant(x,y,z,scale=1):
         polyhedron('courtLeaf',pts,[(0,1,2,3,4),(4,3,2,1,0)])
 
 
+def wall_box(tone,a,b,s0,s1,d0,d1,z0,z1):
+    """Closed local-wall box, positive depth toward the courtyard/outside."""
+    length=math.dist(a,b);tx,ty=(b[0]-a[0])/length,(b[1]-a[1])/length
+    def at(s,d,z):return (a[0]+tx*s+ty*d,a[1]+ty*s-tx*d,z)
+    pts=[at(s,d,z) for z in [z0,z1] for s,d in [(s0,d0),(s1,d0),(s1,d1),(s0,d1)]]
+    # The (along,out,height) coordinate frame has negative determinant.
+    faces=[(3,2,1,0),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]
+    polyhedron(tone,pts,[tuple(reversed(f)) for f in faces])
+
+
+def shrub(x,y,z,sx,sy,sz,seed):
+    """Bounded overlapping leafy masses with deterministic irregular outline."""
+    n,rings=T['shrubSegments'],T['shrubRings']
+    for clump in range(3):
+        dx=math.cos(clump*2.4+seed)*sx*.27;dy=math.sin(clump*2.4+seed)*sy*.27
+        pts=[(x+dx,y+dy,z)]
+        for k in range(1,rings):
+            p=-math.pi/2+math.pi*k/rings
+            for j in range(n):
+                th=j*2*math.pi/n
+                r=1+.11*math.sin(j*2.7+k*3.1+seed+clump)
+                pts.append((x+dx+sx*.72*r*math.cos(p)*math.cos(th),
+                            y+dy+sy*.72*r*math.cos(p)*math.sin(th),z+sz*(1+math.sin(p))*.5))
+        pts.append((x+dx,y+dy,z+sz));top=len(pts)-1
+        faces=[(0,1+(j+1)%n,1+j) for j in range(n)]
+        for k in range(rings-2):
+            faces.extend((1+k*n+j,1+k*n+(j+1)%n,1+(k+1)*n+(j+1)%n,1+(k+1)*n+j) for j in range(n))
+        faces.extend((top,1+(rings-2)*n+j,1+(rings-2)*n+(j+1)%n) for j in range(n))
+        polyhedron(['courtLeaf','courtLeafLight','courtLeafShade'][clump],pts,faces)
+
+
+def deepen_court(d,base,upper,h):
+    """Complete visible historic wings, modern lab and terrace entrance."""
+    historic=dict(kind='bays',field='courtBrick',bay=T['bay'],glass='courtGlass',
+        frame='courtBrick',reveal=T['historicReveal'],window=dict(
+        w=T['historicWidth'],h=T['historicHeight'],sill=T['historicSill'],
+        frame=dict(w=T['historicFrame'],tone='courtTrim'),
+        mullion=dict(cols=[1/3,2/3],rows=[.2,.4,.6,.82],w=T['historicMullion'],tone='courtTrim')))
+    d['skins']['welch']=copy.deepcopy(historic)
+    d['skins']['courtWindow']['reveal']=T['historicReveal']
+    d['skins']['courtWindow']['frame']='courtBrick'
+    d['skins']['courtWindow']['window']['frame']['w']=T['historicFrame']
+    d['skins']['courtWindow']['window']['mullion']['w']=T['historicMullion']
+    d['skins']['basement'].update(glass='courtGlass',reveal=T['historicReveal'],frame='stone')
+    d['skins']['courtLab']=dict(kind='bays',field='labBrick',bay=T['labBay'],
+        glass='labGlass',frame='labBrick',reveal=T['labReveal'],window=dict(
+        w=T['labWidth'],h=T['labHeight'],sill=T['labSill'],
+        frame=dict(w=.065,tone='courtDoor'),head=dict(h=.58,tone='stone'),
+        mullion=dict(rows=[.18,.82],w=.04,tone='courtDoor')))
+    for i in [6,7,8,9]:
+        upper['faces']['h0.'+str(i-2)]=dict(bands=[dict(z0=T['projectionTop'],z1=18.2,skin='courtLab')])
+    # The visible historic court elevations have deep brick jambs and separate
+    # projecting sill blocks, not a bright frame pasted onto a uniform plane.
+    for i in [0,1,2,3,4,5,10,11,12,13,14,15,16]:
+        a,b=h[i],h[(i+1)%len(h)];length=math.dist(a,b)
+        central=i in [0,1,16];n=max(1,round(length/T['bay']));mod=length/n
+        width=T['windowWidth'] if central else T['historicWidth']
+        height=T['windowHeight'] if central else T['historicHeight']
+        for floor in ([7.8] if central else [3.1,7.8,12.5]):
+            for j in range(n):
+                c=(j+.5)*mod
+                if c-width/2<.05 or c+width/2>length-.05:continue
+                z=floor+T['historicSill']
+                wall_box('historicSill',a,b,c-width/2-.09,c+width/2+.09,-.035,T['sillProject'],z-T['sillHeight'],z)
+                # A shallow soldier-course lintel keeps material/scale distinct
+                # from the modern wing's large pale precast heads.
+                wall_box('courtArchBrick',a,b,c-width/2-.06,c+width/2+.06,.005,.06,z+height,z+height+.17)
+        if not central and length>3:
+            for z in [12.35,17.65]:
+                wall_box('historicSill',a,b,.02,length-.02,.01,.2,z,z+.18)
+    # Recessed, full-height glazed entry seen under the far shade roof.
+    # Width stays inside the surveyed east court wall; no extra building mass.
+    i=8;a,b=h[i],h[i+1];length=math.dist(a,b);c=length*.53
+    s0,s1=c-T['entranceWidth']/2,c+T['entranceWidth']/2;z0=T['terrace'];z1=z0+T['entranceHeight']
+    door=dict(s0=s0,s1=s1,z0=z0,z1=z1,d=T['entranceDepth'],glass='labGlass',tone='courtDoor',lit=False,
+              mullion=dict(cols=[.2,.4,.6,.8],rows=[.78],w=.065,tone='courtDoor'))
+    d['skins']['courtLabEntry']={**copy.deepcopy(d['skins']['courtLab']),'windowSkip':[[s0,s1]]}
+    base['faces']['h0.8']=dict(bands=[dict(z0=0,z1=7.8,skin='courtLabEntry',openings=[door]),
+                                             dict(z0=7.8,z1=T['projectionTop'],skin='courtLab')])
+    wall_box('courtDoor',a,b,s0-.1,s1+.1,-.05,.09,z1,z1+.13)
+    wall_box('courtConcrete',a,b,s0-.25,s1+.25,.01,2.7,z0-.13,z0)
+    for s in [c-.12,c+.12]:
+        wall_box('courtTrim',a,b,s-.022,s+.022,-T['entranceDepth']+.08,-T['entranceDepth']+.13,z0+.8,z0+1.45)
+    # The under-terrace historic wall is occupied by dark recessed doors and
+    # windows. They remain behind the slab and columns rather than filling it.
+    a,b=h[0],h[1];length=math.dist(a,b);lower=[]
+    for j in range(4):
+        c=(j+.5)*length/4
+        lower.append(dict(s0=c-1.22,s1=c+1.22,z0=.25,z1=2.8,d=.45,glass='labGlass',tone='courtBrick',lit=False,
+                          mullion=dict(cols=[.5],rows=[.78],w=.065,tone='courtDoor')))
+    base['faces']['h0.0']['bands'][0]['openings']=lower
+    # Bushes soften the photographed terrace edge and planted lower court.
+    # Keep the walking route and stair clear; existing spiky plants survive.
+    for x,y,z,sx,sy,sz,seed in [(29,121,.16,1.7,1.5,3.4,1),(30.5,120,.16,1.25,1.1,2.7,4),
+        (35.3,122.8,3.66,.82,.58,1.25,2),(68.4,123.4,3.66,.78,.55,1.15,6),
+        (35.7,118,3.66,.68,.5,1.1,8)]:shrub(x,y,z,sx,sy,sz,seed)
+
+
 def main():
     d=json.loads(PATH.read_text(encoding='utf-8'));base=d['blocks'][0]
     base['z1']=T['projectionTop']
@@ -154,7 +261,10 @@ def main():
     for face in base['faces'].values():
         face['bands']=[{**b,'z1':min(b['z1'],T['projectionTop'])} for b in face['bands'] if b['z0']<T['projectionTop']]
     d['colours'].update({k:{'hex':v} for k,v in COLOURS.items()})
-    d.setdefault('materials',{}).update(dict(courtBrick='brick',courtStone='stone',courtConcrete='agedConcrete',courtPave='concrete',courtGlass='glass'))
+    d.setdefault('materials',{}).update(dict(courtBrick='brick',courtStone='stone',courtConcrete='agedConcrete',courtPave='concrete',courtGlass='glass',
+        labBrick='brick',labGlass='glass',historicSill='brick'))
+    d['materials']['courtGlass']=dict(type='glass',strength=T['historicGlassStrength'])
+    d['materials']['labGlass']=dict(type='glass',strength=T['labGlassStrength'])
     d['skins'].update(courtBrick=dict(kind='flat',field='courtBrick'),
        courtWindow=dict(kind='bays',field='courtBrick',bay=T['bay'],glass='courtGlass',frame='courtTrim',reveal=.22,
         window=dict(w=T['windowWidth'],h=T['windowHeight'],sill=T['windowSill'],frame=dict(w=.085,tone='courtTrim'),
@@ -241,9 +351,10 @@ def main():
     for x,y,r,height in [(78,129,.55,4.2),(80.5,130,.42,3.0)]:
         rod('metal',[x,y,18.2],[x,y,18.2+height],r,12)
         for j in range(1,5):turned('metal',x,y,18.2+j*height/5,[(0,r+.045),(.07,r+.045)],12)
+    deepen_court(d,base,upper,h)
     d['detailMeshes']=list(M.values())
     d['courtyardParameters']=T
-    d['sources']['courtyard']='Existing footprint fixes courtyard edges. Exterior architectural evidence informs lower historic projection, masonry arches/balustrade, steel shade canopies and a split-level terrace; small dimensions remain approximate.'
+    d['sources']['courtyard']='Existing footprint fixes courtyard edges. Exterior architectural evidence informs lower historic projection, masonry arches/balustrade, deep multipane historic windows, contrasting narrow laboratory openings, recessed terrace entrance, steel shade canopies and a planted split-level terrace; small dimensions remain approximate.'
     d['open']=['Unphotographed elevations and small dimensions remain approximate.',
                'Historic sculpted ornament and planting are simplified. The court is a geometry approximation; no camera calibration or whole-building height inference was used.']
     for m in d['detailMeshes']:

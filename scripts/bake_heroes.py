@@ -233,10 +233,10 @@ EER_CAGE_BASE = 9.6
 EER_CAGE_TOP = 30.70
 
 # ── GDC ───────────────────────────────────────────────────────────────
-# 7 floors (UT record GDC-0152, 239,778 GSF, 2010). No photograph here gives a
-# frontal face to measure a floor off, so the floor height is the campus figure
-# this pass measured on EER, minus the difference between a wet-lab building and
-# an office/teaching building: 4.10 m. 7 x 4.10 = 28.7, plus a 0.8 m roof plane.
+# Retained height calibration from the earlier UT-record floor-count estimate:
+# 7 x 4.10 = 28.7 plus a 0.8 m roof. The facade references show SIX visible
+# levels, so GDC_FACADE uses ground + five upper rows; that photo evidence does
+# not independently establish a replacement total height or basement elevation.
 GDC_H = 29.5
 # THE OVERSAIL. Pelli's roof plane hangs past the wall on every side and the
 # footprint traces the ROOF, not the wall -- so the wall bands inset and the roof
@@ -355,6 +355,24 @@ GDC_ATRIUM_ROOF = True
 # the centimetre, so every door the entrances bake seats on that plane seats on
 # it still, and v is still the ring's own notch for the same reason.
 GDC_GLASS_T = 0.80
+
+# Exterior module proportions from the architect's facade and entrance views.
+# These are facade controls, not a change to the surveyed roof/massing envelope.
+GDC_FACADE = dict(
+    rows=5, ground=4.60, wall_top=28.70, pair_pitch=6.5,
+    narrow_width=1.15, minimum_narrow=0.70, wide_ratio=2.0, pier=1.48,
+    core_recess=0.92, glass_recess=0.34, glass_thickness=0.28,
+    window_height=3.25, sill_height=0.20, ledge_projection=0.15,
+    rib_width=0.22, rib_projection=0.16, rib_centres=(0.27, 0.73),
+    shade_projection=0.64, shade_height=0.86, shade_member=0.085,
+    shade_blades=5, shade_verticals=2, lattice_member=0.055, corner_glass=1.85,
+    ground_pier=0.64, ground_sill=0.22,
+    atrium_bay=2.15, atrium_rows=5, atrium_post=0.14, atrium_screen_depth=0.66,
+    atrium_screen_height=0.62, entrance_height=3.10, entrance_canopy=1.05,
+    entrance_rail_height=0.18,
+    brick="#cdac85", stone="#eee5d2", screen="#965a3d",
+    glass="#42566d", frame="#526068",
+)
 
 # ── NHB ───────────────────────────────────────────────────────────────
 # 7 storeys (CO Architects / Architizer; UT's record says 9 floors and NHB is
@@ -561,6 +579,113 @@ def build_eer(out, stats):
     HERO_HEIGHTS["eer"] = EER_H
 
 
+def gdc_piece(out, stats, bounds, base, top, part, color, layer=SOLID, **extra):
+    """Literal facade geometry bypasses the older painted-window atlas."""
+    wg, wn = wall_ramp(color)
+    props = dict(b="gdc", band=part, part=part, lyr=layer, cap=0,
+                 authoredFacade=1, wd=color, wg=wg, wn=wn,
+                 base=round(base, 3), h=round(top, 3))
+    props.update(extra)
+    out.append(feat(frame_rect("gdc", *bounds), props))
+    stats["gdc_facade_parts"] += 1
+
+
+def gdc_face(out, stats, tag, axis, plane, normal, lo, hi, shaded=True):
+    """One wall: t runs along it; positive d points OUT of the building.
+
+    The backing core is deeper than the panes. Piers/spandrels surround actual
+    openings, so neither a brick rectangle nor a patterned glass atlas can hide
+    the unequal panes. The open shades have a front, depth and end returns.
+    """
+    c = GDC_FACADE
+
+    def put(t0, t1, d0, d1, z0, z1, part, color, layer=SOLID, **extra):
+        a, b = sorted((plane + normal * d0, plane + normal * d1))
+        bounds = (t0, t1, a, b) if axis == "u" else (a, b, t0, t1)
+        gdc_piece(out, stats, bounds, z0, z1, part, color, layer,
+                  face=tag, **extra)
+
+    count = max(1, round((hi - lo - 2 * c["corner_glass"]) / c["pair_pitch"]))
+    pitch = (hi - lo - 2 * c["corner_glass"]) / count
+    # Fix the ratio, fit both panes and their two piers to the wall's own span.
+    narrow = min(c["narrow_width"], (pitch - 2 * c["pier"]) / (1 + c["wide_ratio"]))
+    narrow = max(c["minimum_narrow"], narrow)
+    wide = narrow * c["wide_ratio"]
+    pier = (pitch - narrow - wide) / 2
+    openings = [(lo, lo + c["corner_glass"], "corner")]
+    piers = []
+    start = lo + c["corner_glass"]
+    for pair in range(count):
+        t = start + pair * pitch
+        piers.append((t, t + pier))
+        openings.append((t + pier, t + pier + wide, "wide"))
+        piers.append((t + pier + wide, t + 2 * pier + wide))
+        openings.append((t + 2 * pier + wide, t + pitch, "narrow"))
+    openings.append((hi - c["corner_glass"], hi, "corner"))
+
+    def shade(a, b, top):
+        # End returns + an open front grille, with the glazing visible through
+        # it. The same boxes occur above the stone ground-storey openings.
+        low = top - c["shade_height"]
+        depth, member = c["shade_projection"], c["shade_member"]
+        for edge in (a, b-member):
+            put(edge, edge+member, -c["glass_recess"], depth,
+                low, top, "shade-return", c["screen"])
+        for blade in range(c["shade_blades"]):
+            zz = low + blade*(c["shade_height"]-member)/(c["shade_blades"]-1)
+            back = 0 if blade in (0, c["shade_blades"]-1) else depth-member
+            put(a, b, back, depth, zz, zz+member, "shade-blade", c["screen"])
+        for j in range(1, c["shade_verticals"]+1):
+            centre = a + (b-a)*j/(c["shade_verticals"]+1)
+            put(centre-c["lattice_member"]/2, centre+c["lattice_member"]/2,
+                depth-member, depth, low, top, "shade-lattice", c["screen"])
+
+    for a, b in piers:
+        put(a, b, -c["core_recess"], 0, c["ground"], c["wall_top"],
+            "masonry", c["brick"])
+        # The photographed piers have two projecting brick ribs, with a groove
+        # between them. Keep those vertical runs continuous across the spandrel.
+        for fraction in c["rib_centres"]:
+            centre = a + (b-a)*fraction
+            put(centre-c["rib_width"]/2, centre+c["rib_width"]/2,
+                0, c["rib_projection"], c["ground"], c["wall_top"],
+                "masonry-rib", c["brick"])
+        centre = (a+b)/2
+        put(centre-c["ground_pier"]/2, centre+c["ground_pier"]/2,
+            -c["core_recess"], 0, 0, c["ground"], "ground-stone", c["stone"])
+
+    floor_pitch = (c["wall_top"] - c["ground"]) / c["rows"]
+    for row in range(c["rows"]):
+        z = c["ground"] + row * floor_pitch
+        bottom = z + c["sill_height"]
+        top = bottom + c["window_height"]
+        # These broad masonry bands survive distance without a mesh of tiny
+        # brick joints. The paired opening rhythm remains separate geometry.
+        if row == c["rows"]-1:
+            top = c["wall_top"]  # clear top-storey ribbon beneath the roof
+        else:
+            put(lo, hi, -c["core_recess"], 0, top, z+floor_pitch,
+                "masonry-spandrel", c["brick"])
+        put(lo, hi, -c["core_recess"], c["ledge_projection"], z, bottom,
+            "stone-sill", c["stone"])
+        for a, b, kind in openings:
+            put(a, b, -c["glass_recess"]-c["glass_thickness"], -c["glass_recess"],
+                bottom, top, "window", c["glass"], "gdc-glass",
+                opening=kind, row=row, openingWidth=round(b-a, 3))
+            if shaded and row != c["rows"]-1:
+                shade(a, b, top)
+
+    # Ground-level glazing is a separate, taller module set behind stone piers.
+    for a, b, kind in openings:
+        put(a, b, -c["glass_recess"]-c["glass_thickness"], -c["glass_recess"],
+            c["ground_sill"], c["ground"]-c["sill_height"],
+            "ground-window", c["glass"], "gdc-glass")
+        if shaded:
+            shade(a, b, c["ground"]-c["sill_height"])
+    put(lo, hi, -c["core_recess"], 0, 0, c["ground_sill"],
+        "ground-plinth", c["stone"])
+
+
 def build_gdc(out, stats):
     """Two brick bars, each under its own roof, and a canyon between them.
 
@@ -582,9 +707,22 @@ def build_gdc(out, stats):
                                      ("nbar", GDC_NBAR, GDC_NBAR_H)):
         for name, b, h, inset, mat, layer, cap in BANDS["gdc"]:
             top = H if cap else h
+            # Recess the opaque backing behind the authored panes, while the
+            # exterior wall and unchanged cantilevered roof stay in place.
+            if not cap:
+                inset += GDC_FACADE["core_recess"]
+                layer = SOLID
             r = frame_rect("gdc", u0 + inset, u1 - inset, v0 + inset, v1 - inset)
             out.append(feat(r, band_props("gdc", tag + "_" + name, mat, layer, b, top, cap)))
             stats["gdc_bands"] += 1
+        u0, u1, v0, v1 = u0+P, u1-P, v0+P, v1-P
+        for face, axis, plane, normal, lo, hi in (
+            ("v0", "u", v0, -1, u0, u1), ("v1", "u", v1, 1, u0, u1),
+            ("u0", "v", u0, -1, v0, v1), ("u1", "v", u1, 1, v0, v1),
+        ):
+            gdc_face(out, stats, tag+"_"+face, axis, plane, normal, lo, hi,
+                     shaded=(face == "u1" or (face == "v0" and tag == "sbar")
+                             or (face == "v1" and tag == "nbar")))
 
     # The link. Inset in u only (it has two end walls of its own); in v it runs
     # wall-face to wall-face between the bars.
@@ -599,7 +737,9 @@ def build_gdc(out, stats):
     au0, au1, av0, av1 = GDC_ATRIUM
     gx1 = au1 - GDC_OVERSAIL - GDC_ATRIUM_RECESS      # outer glass face
     gx0 = gx1 - GDC_GLASS_T
-    pr = band_props("gdc", "atrium", "gdc_glass", GLASS, 0.0, GDC_LINK_WALL_TOP, 0)
+    pr = band_props("gdc", "atrium", "gdc_glass", "gdc-glass", 0.0, GDC_LINK_WALL_TOP, 0)
+    pr.update(authoredFacade=1, part="atrium-glass", wd=GDC_FACADE["glass"])
+    pr["wg"], pr["wn"] = wall_ramp(pr["wd"])
     # ?wallplane=0 puts the atrium back where main draws it: the same 0.80 m
     # wall, standing on the ring's own end instead of 3.40 m behind it.
     pr["wp0"] = frame_rect("gdc", au1 - GDC_GLASS_T, au1, av0, av1)
@@ -607,6 +747,34 @@ def build_gdc(out, stats):
     pr["wpd"] = [round(o[1][0] - o[0][0], 7), round(o[1][1] - o[0][1], 7)]
     out.append(feat(frame_rect("gdc", gx0, gx1, av0, av1), pr))
     stats["gdc_bands"] += 1
+
+    # Speedway entrance: an open metal grille projects ahead of the subdivided
+    # atrium glazing. Its floor bands belong to the hall, not to the brick bars.
+    c = GDC_FACADE
+    def entry(v0, v1, d0, d1, z0, z1, part, color):
+        gdc_piece(out, stats, (gx1+d0, gx1+d1, v0, v1), z0, z1,
+                  part, color)
+    count = max(1, round((av1-av0)/c["atrium_bay"]))
+    for i in range(count+1):
+        v = av0 + (av1-av0)*i/count
+        entry(v-c["atrium_post"]/2, v+c["atrium_post"]/2, 0, c["atrium_post"],
+              0, GDC_LINK_WALL_TOP, "atrium-post", c["frame"])
+    for row in range(1, c["atrium_rows"]):
+        z = GDC_LINK_WALL_TOP*row/c["atrium_rows"]
+        entry(av0, av1, 0, c["atrium_screen_depth"], z, z+c["shade_member"],
+              "atrium-rail", c["frame"])
+        for blade in range(c["shade_blades"]):
+            zz = z + blade*(c["atrium_screen_height"]-c["shade_member"])/(c["shade_blades"]-1)
+            entry(av0, av1, c["atrium_screen_depth"]-c["shade_member"],
+                  c["atrium_screen_depth"], zz, zz+c["shade_member"],
+                  "atrium-screen", c["frame"])
+    # Door-height head/canopy and paired leaves establish a human-scale entry.
+    middle = (av0+av1)/2
+    for v in (middle-c["atrium_bay"], middle, middle+c["atrium_bay"]):
+        entry(v-c["atrium_post"]/2, v+c["atrium_post"]/2, 0, c["atrium_post"]*2,
+              0, c["entrance_height"], "door-frame", c["frame"])
+    entry(av0, av1, 0, c["entrance_canopy"], c["entrance_height"],
+          c["entrance_height"]+c["entrance_rail_height"], "entrance-head", c["stone"])
 
     # The atrium roof: the link's roof plane, carried west over the atrium to the
     # glass wall. Below it is the atrium; above it, between the bars' own roofs,
