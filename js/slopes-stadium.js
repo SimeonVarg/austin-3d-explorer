@@ -385,7 +385,9 @@
   }
   const tag=['!=',['literal','dkr-mesh'],['literal','dkr-mesh']];
   function filter(on) {
-    if(!map)return;
+    // Context restoration briefly detaches the style. Keep our saved clauses
+    // until a later styledata event can apply or remove them safely.
+    if(!map?.style)return;
     // Remove only OUR clause. Other generators may have changed a shared
     // building filter since boot; restoring a snapshot would erase their work.
     const strip=(f,clause)=>{
@@ -452,7 +454,7 @@
   };
   async function boot(){
     if(booting)return;map=window.__map;
-    if(!map||!window.slopes?.root||!map.getLayer('stadium-seating'))return;
+    if(!map?.style||!window.slopes?.root||!map.getLayer('stadium-seating'))return;
     booting=true;
     try{
       data=await window.slopes.fetchJSON(TUNE.url);
@@ -464,8 +466,9 @@
       // rewritten by other generators after our asynchronous boot.
       let pending=false;
       map.on('styledata',()=>{
-        if(pending||!TUNE.on||!window.SLOPES.on)return;
-        pending=true;requestAnimationFrame(()=>{pending=false;if(TUNE.on&&window.SLOPES.on)filter(true);});
+        const on=TUNE.on&&window.SLOPES.on;
+        if(pending||!map?.style||(!on&&!saved.size))return;
+        pending=true;requestAnimationFrame(()=>{pending=false;filter(TUNE.on&&window.SLOPES.on);});
       });
       const original=window.applySlopesSettings;
       if(typeof original==='function')window.applySlopesSettings=function(){const r=original.apply(this,arguments);apply();return r;};

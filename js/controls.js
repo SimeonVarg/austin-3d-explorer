@@ -1485,6 +1485,9 @@ function initControls(map, scene) {
     if (lastTs === null) { lastTs = ts; return; }
     const dtRaw = (ts - lastTs) / 1000;
     lastTs = ts;
+    // Context loss temporarily clears MapLibre's style. Keep the clock current
+    // but pause collision/source scans and movement until the style returns.
+    if (!map.style) return;
     if (dtRaw > DT_BAIL) return;                  // tab restore: never integrate a huge step
     const dt = Math.min(dtRaw, DT_MAX);
     const t0 = performance.now();

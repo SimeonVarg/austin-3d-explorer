@@ -25,7 +25,7 @@ const listeners={},installed={on:true,stats:{calls:0,hits:0,sources:0},maxDistan
 let version='5.24.0';
 const scope=vm.createContext({window:{},maplibregl:{getVersion:()=>version},TILE_LOD_CACHE:installed,memoTileZoom:fn=>memo(fn,installed)});
 vm.runInContext(source.slice(initStart,initEnd),scope);
-const map={getSource:id=>sources[id],getStyle:()=>({sources}),setSourceTileLodParams:(a,b,id)=>{assert.equal(a,9.314);assert.equal(b,3);sources[id].calculateTileZoom=original;},on:(event,fn)=>{listeners[event]=fn;},once:()=>{},off:()=>{}};
+const map={style:{},getSource:id=>sources[id],getStyle:()=>({sources}),setSourceTileLodParams:(a,b,id)=>{assert.equal(a,9.314);assert.equal(b,3);sources[id].calculateTileZoom=original;},on:(event,fn)=>{listeners[event]=fn;},once:()=>{},off:()=>{}};
 scope.window.initTileLodCache(map);
 assert.equal(installed.stats.sources,1);
 assert.equal(sources.custom.calculateTileZoom,custom);

@@ -113,6 +113,9 @@
     const seen = new WeakSet();
     let shared;
     function attach(id) {
+      // Do not mark a source seen while MapLibre has detached its style.
+      // A later sourcedata event retries the same id after restoration.
+      if (!map.style) return;
       const source = map.getSource(id);
       if (!source || seen.has(source)) return;
       seen.add(source);
@@ -126,7 +129,7 @@
       source.calculateTileZoom = shared;
       TILE_LOD_CACHE.stats.sources++;
     }
-    for (const id of Object.keys(map.getStyle().sources)) attach(id);
+    if (map.style) for (const id of Object.keys(map.getStyle().sources)) attach(id);
     const onData = e => { if (e.sourceId) attach(e.sourceId); };
     map.on('sourcedata', onData);
     map.once('remove', () => map.off('sourcedata', onData));

@@ -374,6 +374,11 @@
 
   let _points = null;      // refreshed on travel; retained within the view radius
   let _tries = 0;
+  const _generationState = new WeakMap();
+  const generationState = map => {
+    if (!_generationState.has(map)) _generationState.set(map, {removed:false,retry:null,extend:false});
+    return _generationState.get(map);
+  };
   let _lastP = 0;
 
   function tierMatch(major, minor, walk) {
@@ -564,6 +569,17 @@
   // "the tiles were not resident yet". Twenty minutes went into that once.
   // Anything that goes wrong in generation says so, loudly, from here on.
   function generate(map, extend=false) {
+    const state = generationState(map);
+    if (state.removed) return;
+    if (!map.style) {
+      state.extend ||= extend;
+      if (!state.retry) state.retry = setTimeout(() => {
+        state.retry = null;
+        const retryExtend = state.extend; state.extend = false;
+        generate(map, retryExtend);
+      }, 800);
+      return;
+    }
     try { generateInner(map, extend); }
     catch (err) {
       console.error('[night] streetlight generation FAILED:', err && err.stack || err);
@@ -711,14 +727,23 @@
     // Discover roads when their tiles arrive after travelling out of campus.
     // Existing points survive; one bounded refresh per move, no per-frame query.
     let pending,coverageDirty=false;
-    map.on('moveend',()=>{coverageDirty=true;clearTimeout(pending);pending=setTimeout(()=>generate(map,true),800);});
-    map.on('idle',()=>{if(coverageDirty){coverageDirty=false;generate(map,true);}});
-    setTimeout(() => generate(map), IDLE_FALLBACK_MS);
+    const state = generationState(map);
+    const onMove = () => {if(state.removed)return;coverageDirty=true;clearTimeout(pending);pending=setTimeout(()=>generate(map,true),800);};
+    const onIdle = () => {if(coverageDirty){coverageDirty=false;generate(map,true);}};
+    map.on('moveend',onMove);
+    map.on('idle',onIdle);
+    const fallback = setTimeout(() => generate(map), IDLE_FALLBACK_MS);
+    map.once('remove', () => {
+      state.removed = true;
+      clearTimeout(pending); clearTimeout(fallback); clearTimeout(state.retry);
+      state.retry = null;
+      map.off('moveend',onMove); map.off('idle',onIdle);
+    });
   };
 
   // Called from timeofday's heavy path. p: 0 day … 1 night.
   window.applyNightLayer = function applyNightLayer(map, p) {
-    if (!map || !map.getLayer) return;
+    if (!map || !map.style || generationState(map).removed) return;
     restackPools(map);
     _lastP = p == null ? _lastP : p;
     // One schedule for every artificial light in the scene — see LIGHTS above

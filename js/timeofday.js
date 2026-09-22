@@ -533,8 +533,12 @@
    * js/arts.js:376-378 documents the opposite belief in a comment, and it is
    * wrong. Route every UI path through the wrapper chain and there is no delay.
    */
-  const retint = (map, p, force) =>
+  const retint = (map, p, force) => {
+    // The wrapper chain reads MapLibre layers. Context recovery temporarily
+    // clears the style; the playback clock can keep running without retinting.
+    if (!map?.style) return;
     (window.applyTimeOfDay || applyTimeOfDay)(map, p, force);
+  };
 
   function initTimeOfDayUI(map, defaultP) {
     const slider = document.getElementById('tod-slider');
@@ -557,8 +561,13 @@
       p += _autoDir * dt * AUTO_PER_MS;
       if (p >= 1) { p=1; _autoDir=-1; } else if (p <= 0) { p=0; _autoDir=1; }
       if (slider) slider.value = String(p);
-      retint(map, p);
-      _autoRaf = requestAnimationFrame(step);
+      try {
+        retint(map, p);
+      } finally {
+        // A failing downstream retint must not strand the active play button
+        // with no future frame to resume after recovery.
+        _autoRaf = requestAnimationFrame(step);
+      }
     };
     _autoRaf = requestAnimationFrame(step);
   }

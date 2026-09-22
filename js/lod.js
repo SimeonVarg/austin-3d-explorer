@@ -137,6 +137,7 @@
   window.LOD_TIERS = TIERS;
 
   let _map = null, _timer = null;
+  const _removedMaps = new WeakSet();
   // What WE last set each layer to. Any layer we have never hidden is left
   // completely alone, so a module that hides its own layer for its own reasons
   // (graphics.js does this for buildings-ao and the shadow layer) is not fought
@@ -235,7 +236,8 @@
   window.LOD_isHidden = id => _hidden.has(id);
 
   function apply() {
-    if (!_map || !_map.getStyle) return;
+    if (!_map || _removedMaps.has(_map)) return;
+    if (!_map.style) { schedule(); return; }
     const alt = altitude();
     const D = distance();
     for (const tier of ['fine', 'mid']) {
@@ -257,7 +259,7 @@
   }
 
   function schedule() {
-    if (_timer) return;
+    if (_timer || !_map || _removedMaps.has(_map)) return;
     _timer = setTimeout(() => { _timer = null; apply(); }, LOD.settleMs);
   }
 
@@ -270,6 +272,12 @@
     // easeTo, and it is debounced, so the cost is one evaluation per settle.
     map.on('move', schedule);
     map.on('zoom', schedule);
+    map.once('remove', () => {
+      _removedMaps.add(map);
+      clearTimeout(_timer); _timer = null;
+      map.off('move', schedule); map.off('zoom', schedule);
+      if (_map === map) _map = null;
+    });
     apply();
   };
 
