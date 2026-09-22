@@ -45,7 +45,8 @@ DEDUP. The new box swallows both the core snapshot and the Capitol Complex
     — rejected by the core for not being fully inside, and possibly present in
     the Capitol's OSM bake — is caught by overlap rather than by a rectangle
 
-Usage:  python scripts/bake_outer.py [snapshot-date]
+    Usage:  python scripts/bake_outer.py [snapshot-date]
+            python scripts/bake_outer.py --landmarks-only [--check]
 """
 import json
 import math
@@ -53,6 +54,8 @@ import colorsys
 import hashlib
 import os
 import sys
+
+from downtown_landmarks import LANDMARKS, build_landmark, patch_landmarks
 
 from shapely.geometry import shape, Polygon
 from shapely.strtree import STRtree
@@ -400,8 +403,8 @@ CROWNS = {
     "The Austonian":        {"r": "taper", "mast": 1.35},
     "The Republic":         {"r": "taper"},
     "ATX Tower":            {"r": "taper"},
-    "Sixth and Guadalupe":  {"r": "taper", "mast": 1.30},
-    "Waterline":            {"r": "taper", "mast": 1.45},
+    "Sixth and Guadalupe":  {"r": "landmark"},
+    "Waterline":            {"r": "landmark"},
     "One American Center":  {"r": "taper", "steps": 3},
     # THE OWL. Frost Bank Tower's crown is four glass gables rising off the
     # shaft's corners around a stepped centre — the most recognisable roofline
@@ -787,7 +790,7 @@ def piece(ring_m, b, h, base_hex, fade, kind=None, tower=False, roof_hex=None,
             "properties": props}
 
 
-def downtown_detail(out, rep):
+def downtown_detail(out, rep, use_landmarks=True):
     """PASS D — turn each downtown tower from one prism into a building, and
     put the parks back on the ground beside it.
 
@@ -829,6 +832,23 @@ def downtown_detail(out, rep):
             seen_names.add(name)
         mine = []
         parts.append((f, mine))
+
+        if name in LANDMARKS:
+            if use_landmarks:
+                # Dedicated massing replaces the complete previous recipe,
+                # including its crown/mast. Keep the original rank slot.
+                solids = build_landmark(sys.modules[__name__], name, h, fade)
+                rank = f["properties"].get("d", 0)
+                f.update(solids[0])
+                f["properties"]["d"] = rank
+                for solid in solids[1:]:
+                    emit(mine, solid)
+                n["curated"] += 1
+                n["landmarks"] = n.get("landmarks", 0) + 1
+                continue
+            # Exact replay of the prior recipes lets --landmarks-only replace
+            # their pieces without changing any neighboring baked feature.
+            recipe = {"r": "taper", "mast": 1.45 if name == "Waterline" else 1.30}
 
         # ── 1. the podium height ──────────────────────────────────────
         # THE TEST IS ON THE NUMBER, NOT ON WHICH RULE SET IT. The first
@@ -1059,6 +1079,8 @@ def downtown_detail(out, rep):
     for f in out:
         if not f.get("_dt"):
             continue
+        if use_landmarks and f.get("_name") in LANDMARKS:
+            continue  # the dedicated model includes its own ground plane
         if f["_h"] < DT["retail_min_building_h_m"] or f["_area"] < DT["retail_min_area_m2"]:
             continue
         band = offset_ring(f["_m"], DT["retail_out_m"])
@@ -1145,7 +1167,9 @@ def downtown_detail(out, rep):
     for f in add:
         p = f["properties"]
         b = p.get("b", 0)
-        if p.get("k") != "c" or b <= 0.05:
+        # Landmark terraces rest on sparse columns; their builder validates
+        # actual structural contact instead of this broad-area support rule.
+        if p.get("k") != "c" or b <= 0.05 or p.get("lm"):
             continue
         try:
             q = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
@@ -1696,4 +1720,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--landmarks-only" in sys.argv:
+        print(json.dumps(patch_landmarks(sys.modules[__name__], OUT, "--check" in sys.argv), indent=2))
+    else:
+        main()

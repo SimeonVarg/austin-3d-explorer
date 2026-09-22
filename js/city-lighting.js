@@ -6,7 +6,7 @@
  */
 (function () {
   'use strict';
-  const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, poolPrograms:0, poolDraws:0, failures:[], glassImages:0};
+  const stats = {vertexShaders:0, fragmentShaders:0, programs:0, draws:0, poolPrograms:0, poolDraws:0, solidGlassDraws:0, solidLightDraws:0, failures:[], glassImages:0};
   let frame=null, serial=0, fallbackShadow=null;
   // Pattern texels below this alpha are translucent overlays, not glass-coded
   // facade texels (which are 191..255). Anything between the two bands works.
@@ -14,12 +14,24 @@
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
   const balance={skyFill:0.12,roofFill:0.08};
+  // Opt-in material layers keep ordinary solid extrusions on their original
+  // path. No color/luma heuristic can turn an unrelated wall into a light.
+  const solidSurfaceFor=id=>id==='outer-landmark-glass'?1:id==='outer-landmark-light'?2:0;
+  // Facade-sized geometry establishes the silhouette. Subpixel floor edges and
+  // mullions use integrated pixel coverage instead of binary triangle hits.
+  // These are the same fitted storey zones as downtown_landmarks.py.
+  const landmarkMaterials={reflection:.32,frameWidth:.24,
+    waterline:{center:[-97.739542,30.261083],colour:[.686,.725,.741],zones:[[9.144,50,12,3.3],[50,177,27,3.6],[187,302,33,3.15]],band:.28},
+    sixth:{center:[-97.74669,30.269654],colour:[.396,.447,.478],zones:[[18.7,119,22,3.1],[126,257,37,3.2]],band:.30},
+    bearing:18,nightFrame:[.055,.07,.085]};
   const uniforms = `
     uniform vec3 u_eye;
     uniform vec4 u_sunlight;
     uniform float u_glassStrength;
     uniform vec2 u_citySkyFill;
     uniform vec4 u_cityNight;
+    uniform float u_citySolidSurface;
+    uniform vec4 u_cityLandmarkOrigins;
     uniform vec4 u_cityCrown, u_cityCrownColour;
     uniform vec3 u_sunDirection, u_sunColour, u_shadeColour;
     uniform vec3 u_skyZenith, u_skyHorizon, u_sunsetColour, u_groundColour;
@@ -33,6 +45,34 @@
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
+    // Integral of a periodic unit-height strip; the difference at pixel
+    // boundaries preserves area even when several strips fit inside a pixel.
+    float stripIntegral(float x,float width){return floor(x)*width+min(fract(x),width);}
+    float stripCoverage(float position,float pitch,float width){
+      float x=position/pitch,w=width/pitch,dx=max(fwidth(position)/pitch,.0001);
+      return clamp((stripIntegral(x+.5*dx,w)-stripIntegral(x-.5*dx,w))/dx,0.0,1.0);
+    }
+    vec4 landmarkGrid(vec3 pos,vec3 normal){
+      if(abs(normal.z)>.5)return vec4(0.0);
+      bool waterline=length(pos.xy-u_cityLandmarkOrigins.xy)<length(pos.xy-u_cityLandmarkOrigins.zw);
+      vec4 zone=vec4(0.0);
+      if(waterline){
+        ${landmarkMaterials.waterline.zones.map(z=>`if(pos.z>=${z[0].toFixed(3)}&&pos.z<${z[1].toFixed(3)})zone=vec4(${z[0].toFixed(3)},${((z[1]-z[0])/z[2]).toFixed(6)},${z[3].toFixed(3)},${landmarkMaterials.waterline.band.toFixed(3)});`).join('\n')}
+      }else{
+        ${landmarkMaterials.sixth.zones.map(z=>`if(pos.z>=${z[0].toFixed(3)}&&pos.z<${z[1].toFixed(3)})zone=vec4(${z[0].toFixed(3)},${((z[1]-z[0])/z[2]).toFixed(6)},${z[3].toFixed(3)},${landmarkMaterials.sixth.band.toFixed(3)});`).join('\n')}
+      }
+      if(zone.y<=0.0)return vec4(0.0);
+      vec2 d=pos.xy-(waterline?u_cityLandmarkOrigins.xy:u_cityLandmarkOrigins.zw);
+      float c=${Math.cos(landmarkMaterials.bearing*Math.PI/180).toFixed(8)},s=${Math.sin(landmarkMaterials.bearing*Math.PI/180).toFixed(8)};
+      vec2 local=vec2(c*d.x-s*d.y,s*d.x+c*d.y);
+      vec2 n=vec2(c*normal.x-s*normal.y,s*normal.x+c*normal.y);
+      float along=abs(n.x)>abs(n.y)?local.y:local.x;
+      float horizontal=stripCoverage(pos.z-zone.x,zone.y,zone.w);
+      float vertical=stripCoverage(along,zone.z,${landmarkMaterials.frameWidth.toFixed(3)});
+      float coverage=horizontal+vertical-horizontal*vertical;
+      vec3 tint=waterline?vec3(${landmarkMaterials.waterline.colour.join(',')}):vec3(${landmarkMaterials.sixth.colour.join(',')});
+      return vec4(mix(tint,vec3(${landmarkMaterials.nightFrame.join(',')}),u_cityNight.x),coverage);
+    }
     vec3 fixtureLight(vec3 pos,vec3 normal,vec4 fixture,vec4 colour) {
       if(fixture.w<=0.0)return vec3(0.0);
       vec3 delta=fixture.xyz-pos;float dist=length(delta);
@@ -275,10 +315,17 @@
       'night-tower-pool-fill','entrances-pool','signs-ground-glow','props-lit','props-lit-core']);
     const depthPool=id=>window.NIGHT_TUNE?.DEPTH_POOLS!==false&&groundLights.has(id);
     const painter=map.painter,drawFunctions=painter.drawFunctions;
+    let activeSolidSurface=0;
     // MapLibre treats circles after its first 3D layer as painter-ordered 2D
     // overlays, with depth testing disabled. A ground glow then crosses walls.
     // These seven ground-light layers use the existing 3D depth range, read-only.
-    painter.drawFunctions={...drawFunctions,circle(...args){
+    // MapLibre 5.24 dispatches the style type fill-extrusion through the
+    // camelCase fillExtrusion method; a hyphenated property is never called.
+    painter.drawFunctions={...drawFunctions,fillExtrusion(...args){
+      const previous=activeSolidSurface;
+      activeSolidSurface=solidSurfaceFor(args[2]?.id);
+      try{return drawFunctions.fillExtrusion(...args);}finally{activeSolidSurface=previous;}
+    },circle(...args){
       const p=args[0],layer=args[2],original=p.getDepthModeForSublayer;
       if(!depthPool(layer.id))return drawFunctions.circle(...args);
       p.getDepthModeForSublayer=()=>({...p.getDepthModeFor3D(),mask:false});
@@ -331,9 +378,21 @@
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               shaded=cityLocalLight(shaded,min(cityBase*4.0,vec3(1.0)),v_cityPos,v_cityNormal,glass);
               fragColor=vec4(cityEmission(shaded,cityBase,glass)*v_lighting.a,v_lighting.a);}`
-              :`vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
+              :`if(u_citySolidSurface<.5){
+              vec3 shaded=cityShade(v_color.rgb/max(v_color.a,.0001),v_cityAlbedo.rgb,v_cityPos,v_cityNormal,0.0);
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
-              fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);`;
+              fragColor=vec4(cityLocalLight(shaded,min(v_cityAlbedo.rgb*4.0,vec3(1.0)),v_cityPos,v_cityNormal,0.0)*v_color.a,v_color.a);
+              }else{
+              float glass=1.0-step(1.5,u_citySolidSurface);
+              vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
+              vec3 albedo=mix(v_cityAlbedo.rgb,grid.rgb,grid.a);
+              vec3 original=mix(v_color.rgb/max(v_color.a,.0001),grid.rgb*.6,grid.a);
+              vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
+              shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
+              if(glass>.5)shaded=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);
+              else shaded=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
+              fragColor=vec4(shaded*v_color.a,v_color.a);
+              }`;
             source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output);
             stats.fragmentShaders++;
           }
@@ -388,9 +447,17 @@
       }
       if(!current||!frame)return native(...args);
       const p=current,u=p.u;
+      // A shader program is shared by many layers. Reset the semantic on
+      // every layer transition, including the first ordinary draw afterward.
+      const surface=activeSolidSurface;
+      if(u.u_citySolidSurface&&p.solidSurface!==surface){
+        gl.uniform1f(u.u_citySolidSurface,surface);p.solidSurface=surface;
+      }
+      if(surface===1)stats.solidGlassDraws++;
+      if(surface===2)stats.solidLightDraws++;
       if(p.serial!==serial) {
         for(const [name,slot] of Object.entries(u)) {
-          if(!slot||name.startsWith('u_sunShadow')&&!name.includes('Matrix')||name==='u_cityTileToLocal')continue;
+          if(!slot||name.startsWith('u_sunShadow')&&!name.includes('Matrix')||name==='u_cityTileToLocal'||name==='u_citySolidSurface')continue;
           const v=frame.U[name]?.value;if(v==null)continue;
           if(typeof v==='number')gl.uniform1f(slot,v);
           else if(v.isMatrix4)gl.uniformMatrix4fv(slot,false,v.elements);
@@ -424,7 +491,7 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,glassRect,glassColour,install,stats,shadowProxy,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
@@ -433,6 +500,10 @@
       U.u_cityNight??={value:new THREE.Vector4()};
       const night=window.CityNight,t=night?.tune;
       U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));
+      if(window.slopes&&!U.u_cityLandmarkOrigins){
+        const a=window.slopes.toLocal(...landmarkMaterials.waterline.center,0),b=window.slopes.toLocal(...landmarkMaterials.sixth.center,0);
+        U.u_cityLandmarkOrigins={value:new THREE.Vector4(a.x,a.y,b.x,b.y)};
+      }
       const fixtures=t?.on&&U.u_cityNight.value.x>0?night.nearest(U.u_eye.value):[];
       U.u_cityCrown??={value:new THREE.Vector4()};U.u_cityCrownColour??={value:new THREE.Vector4()};
       const crown=t?.on?night.crown:null;

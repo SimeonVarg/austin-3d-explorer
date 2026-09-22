@@ -368,7 +368,7 @@
   "buildings": [
     {
       "id": "be85876f-a01d-46e9-b27e-9043f56d9147",
-      "name": "M\u00c3\u00b6ge Tee",
+      "name": "MÃ¶ge Tee",
       "height": 12.2,
       "floors": 2,
       "frontEdges": [
@@ -443,7 +443,7 @@
     },
     {
       "id": "14973f85-3c67-41a7-a2da-28bc19be5099",
-      "name": "Ph\u00e1\u00bb\u0178 Th\u00c3\u00a1is\u00c6\u00a1n",
+      "name": "Phá»Ÿ ThÃ¡isÆ¡n",
       "height": 6.0,
       "floors": 1,
       "frontEdges": [
@@ -1105,15 +1105,28 @@
         6
       ],
       "source": "https://www.universitycoop.com/pages/store-hours",
-      "observations": "2025 owner photograph: dark two-level shop base, cream facade with a taller center entry, dark canopy frames and serif CO-OP letters. Service footprint retained; heights and widths inferred from door scale.",
+      "observations": "Smooth pale cladding with a raised serif-lettered centre, deep framed two-level portal, independent low window groups, framed metal awnings and small dentil cornices. Original typographic banners and jersey silhouettes preserve colour balance without embedding photographic advertising. Door and panel proportions are approximate; footprint and existing overall height retained.",
       "colours": {
-        "wall": "#d7cbb1",
-        "trim": "#e4d7bc",
-        "metal": "#353c3a",
+        "wall": "#dedbd0",
+        "trim": "#e7e3d7",
+        "metal": "#343834",
         "dark": "#343835",
-        "signboard": "#cbbc99"
+        "signboard": "#cbbc99",
+        "lowerWall": "#a59f92",
+        "portalTrim": "#8e8a7f",
+        "portalFloor": "#b9b3a5",
+        "soffit": "#686960",
+        "glass": "#34463e",
+        "entryGlass": "#18231d",
+        "handle": "#9a9c90",
+        "letters": "#282b26",
+        "joint": "#bcb9ae",
+        "banner": "#32362e",
+        "bannerLetters": "#deded1",
+        "jersey0": "#a55330",
+        "jersey1": "#c5bea8"
       },
-      "special": "coop",
+      "special": "coop-photo",
       "wingHeight": 7.45,
       "centerPlan": [
         0.977,
@@ -1148,6 +1161,225 @@
         "coopBaseline": 6.4,
         "theWidthRatio": 0.145,
         "theBaseline": 8.1
+      },
+      "materials": {
+        "wall": "plain",
+        "trim": "plain",
+        "metal": "plain",
+        "dark": "plain",
+        "signboard": "plain",
+        "lowerWall": "plain",
+        "portalTrim": "plain",
+        "portalFloor": "plain",
+        "soffit": "plain",
+        "glass": "shopGlass",
+        "entryGlass": "shopGlass",
+        "handle": "plain",
+        "letters": "plain",
+        "joint": "plain",
+        "banner": "plain",
+        "bannerLetters": "plain",
+        "jersey0": "plain",
+        "jersey1": "plain"
+      },
+      "photoDetail": {
+        "mainEdge": 2,
+        "center": [
+          0.435,
+          0.815
+        ],
+        "portalSide": 2.65,
+        "portalTop": 5.94,
+        "basePortalDepth": 1.78,
+        "doorSill": 0.06,
+        "lowerTop": 3.5,
+        "wingWindows": [
+          [
+            0.12,
+            0.381
+          ],
+          [
+            0.852,
+            0.963
+          ]
+        ],
+        "windowPitch": 1.5,
+        "mullion": 0.075,
+        "windowSill": 0.28,
+        "windowTop": 3.12,
+        "windowDepth": 0.34,
+        "frameProud": 0.04,
+        "transom": 2.63,
+        "canopyMargin": 0.25,
+        "canopy": {
+          "z": 3.36,
+          "depth": 1.03,
+          "thickness": 0.075,
+          "fasciaDepth": 0.1,
+          "fasciaHeight": 0.2,
+          "soffitThickness": 0.035,
+          "rafterPitch": 0.82,
+          "rafterWidth": 0.065,
+          "rafterHeight": 0.24,
+          "tieCount": 4,
+          "tieWidth": 0.045,
+          "tieRise": 0.82
+        },
+        "centerDepth": 1.48,
+        "centerProjection": 0.32,
+        "portalDepth": 1.15,
+        "doorTop": 2.76,
+        "upperBottom": 3.19,
+        "portalPanes": 4,
+        "lintelHeight": 0.22,
+        "jambWidth": 0.22,
+        "portalProud": 0.18,
+        "frameDepth": 0.095,
+        "handleSpacing": 0.16,
+        "handleWidth": 0.045,
+        "handleDepth": 0.24,
+        "handleBottom": 0.95,
+        "handleTop": 1.65,
+        "portalCanopy": {
+          "z": 3.08,
+          "depth": 1.08,
+          "thickness": 0.075,
+          "fasciaDepth": 0.1,
+          "fasciaHeight": 0.2,
+          "soffitThickness": 0.035,
+          "rafterPitch": 0.82,
+          "rafterWidth": 0.065,
+          "rafterHeight": 0.24,
+          "tieCount": 4,
+          "tieWidth": 0.045,
+          "tieRise": 0.7
+        },
+        "signWidth": 7.6,
+        "signHeight": 1.32,
+        "signBottom": 6.38,
+        "theWidth": 1.63,
+        "theHeight": 0.5,
+        "theBottom": 8.02,
+        "letterDepth": 0.105,
+        "corniceSteps": [
+          [
+            0,
+            0.26,
+            0.11
+          ],
+          [
+            0.11,
+            0.36,
+            0.13
+          ],
+          [
+            0.24,
+            0.17,
+            0.14
+          ]
+        ],
+        "dentilPitch": 0.42,
+        "dentilWidth": 0.19,
+        "dentilDepth": 0.18,
+        "dentilDrop": 0.41,
+        "dentilHeight": 0.15,
+        "panelJoints": [
+          3.5,
+          5.13,
+          6.6
+        ],
+        "jointDepth": 0.012,
+        "jointWidth": 0.035,
+        "panelPitch": 2.75,
+        "banners": [
+          [
+            0.03,
+            0.431
+          ],
+          [
+            0.82,
+            0.995
+          ]
+        ],
+        "bannerBottom": 3.55,
+        "bannerTop": 6.18,
+        "bannerDepth": 0.045,
+        "bannerText": [
+          [
+            "shop-like-it-matters",
+            0.51,
+            4.97,
+            0.37
+          ],
+          [
+            "only-at-the-co-op",
+            0.46,
+            4.34,
+            0.31
+          ]
+        ],
+        "bannerTextCenter": 0.72,
+        "bannerLetterDepth": 0.009,
+        "bannerFigureCount": 2,
+        "bannerFigureStart": 0.125,
+        "bannerFigureStep": 0.18,
+        "bannerFigureWidth": 0.2,
+        "bannerFigureHeight": 1.78,
+        "bannerFigureBottom": 0.15,
+        "jerseyOutline": [
+          [
+            0.02,
+            0.64
+          ],
+          [
+            0.17,
+            0.94
+          ],
+          [
+            0.37,
+            1
+          ],
+          [
+            0.5,
+            0.88
+          ],
+          [
+            0.63,
+            1
+          ],
+          [
+            0.83,
+            0.94
+          ],
+          [
+            0.98,
+            0.64
+          ],
+          [
+            0.83,
+            0.52
+          ],
+          [
+            0.73,
+            0.7
+          ],
+          [
+            0.76,
+            0.02
+          ],
+          [
+            0.24,
+            0.02
+          ],
+          [
+            0.27,
+            0.7
+          ],
+          [
+            0.17,
+            0.52
+          ]
+        ]
       }
     },
     {
@@ -1528,140 +1760,178 @@
         4
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Red-brick retail facade with three broad display bays, recessed central entry, low tile bulkheads, continuous deep metal canopy and raised curved central parapet. Upper wall carries signs and decorative brick rather than residential windows. Footprint and maximum height retained; lettering and brick ornament simplified.",
+      "observations": "Red-brick Wukasch storefront with subdivided display glazing, deep central double-door vestibule, terracotta base, substantial metal canopy, diagonal tension ties, wood signboards, diamond infill, public-brand outlined sign and corbelled brick relief. Footprint and peak height retained; detailed proportions are approximate.",
       "colours": {
-        "wall": "#8c4e3f",
-        "trim": "#aa745e",
+        "wall": "#845347",
+        "trim": "#aa816e",
         "signboard": "#ad8965",
-        "metal": "#424c49",
+        "metal": "#505958",
         "dark": "#916655",
-        "glass": "#455958",
-        "letters": "#ded8c7"
+        "glass": "#354745",
+        "letters": "#e9e5d8",
+        "soffit": "#7b8280",
+        "entryGlass": "#222c29",
+        "handle": "#9ca29d",
+        "tile": "#936b5b",
+        "woodFrame": "#604238",
+        "wood0": "#a18160",
+        "wood1": "#aa8a6a",
+        "wood2": "#947555",
+        "stoneTrim": "#cfc3a7",
+        "diamond": "#a58367",
+        "logo": "#bc8074",
+        "logoEdge": "#8e5147",
+        "nameInk": "#514b42",
+        "relief0": "#9d7861",
+        "relief1": "#ad896f",
+        "relief2": "#916b55"
       },
       "ground": 3.85,
       "tuning": {
         "parapet": 0
       },
-      "frontage": {
-        "bodyHeight": 6.1,
-        "crown": {
-          "base": 6.1,
-          "rise": 0.9,
-          "depth": 0.42,
-          "from": 0.3,
-          "to": 0.7,
-          "segments": 18,
-          "tone": "wall",
-          "minimumSlopeRise": 0.05
+      "special": "barefoot-photo",
+      "materials": {
+        "wall": "brick",
+        "trim": "brick",
+        "signboard": "plain",
+        "metal": "plain",
+        "dark": "plain",
+        "glass": "shopGlass",
+        "letters": "plain",
+        "soffit": "plain",
+        "entryGlass": "shopGlass",
+        "handle": "plain",
+        "tile": "tile",
+        "woodFrame": "plain",
+        "wood0": "wood",
+        "wood1": "wood",
+        "wood2": "wood",
+        "stoneTrim": "plain",
+        "diamond": "plain",
+        "logo": "plain",
+        "logoEdge": "plain",
+        "nameInk": "plain",
+        "relief0": "plain",
+        "relief1": "plain",
+        "relief2": "plain"
+      },
+      "photoDetail": {
+        "shoulder": 6.1,
+        "displayBays": [
+          [
+            0.035,
+            0.295
+          ],
+          [
+            0.705,
+            0.965
+          ]
+        ],
+        "displayPanes": 3,
+        "mullion": 0.065,
+        "plinth": 0.45,
+        "shopTop": 3.73,
+        "windowDepth": 0.2,
+        "frameDepth": 0.09,
+        "frameProud": 0.045,
+        "transom": 2.93,
+        "tileProud": 0.035,
+        "entry": [
+          0.365,
+          0.635
+        ],
+        "doorWidth": 0.96,
+        "doorSill": 0.04,
+        "entryDepth": 0.92,
+        "handleSpacing": 0.16,
+        "handleWidth": 0.045,
+        "handleDepth": 0.22,
+        "handleBottom": 0.96,
+        "handleTop": 1.64,
+        "canopyEnds": [
+          0.012,
+          0.988
+        ],
+        "canopy": {
+          "z": 3.94,
+          "depth": 1.62,
+          "thickness": 0.075,
+          "fasciaDepth": 0.1,
+          "fasciaHeight": 0.2,
+          "soffitThickness": 0.035,
+          "rafterPitch": 0.82,
+          "rafterWidth": 0.065,
+          "rafterHeight": 0.24,
+          "tieCount": 9,
+          "tieWidth": 0.045,
+          "tieRise": 0.95
         },
-        "bands": [
-          {
-            "z0": 0,
-            "z1": 3.85,
-            "skin": "wall",
-            "openings": [
-              {
-                "s0": 0.035,
-                "s1": 0.295,
-                "z0": 0.48,
-                "z1": 3.65,
-                "d": 0.22,
-                "glass": "glass",
-                "tone": "metal"
-              },
-              {
-                "s0": 0.365,
-                "s1": 0.635,
-                "z0": 0.05,
-                "z1": 3.65,
-                "d": 0.72,
-                "glass": "glass",
-                "tone": "metal"
-              },
-              {
-                "s0": 0.705,
-                "s1": 0.965,
-                "z0": 0.48,
-                "z1": 3.65,
-                "d": 0.22,
-                "glass": "glass",
-                "tone": "metal"
-              }
-            ],
-            "canopies": [
-              {
-                "s0": 0.012,
-                "s1": 0.988,
-                "z": 3.94,
-                "d": 1.6,
-                "t": 0.18,
-                "tone": "metal",
-                "soffitTone": "metal"
-              }
-            ]
-          },
-          {
-            "z0": 3.85,
-            "z1": 6.1,
-            "skin": "wall",
-            "signs": [
-              {
-                "text": "CAMPUS",
-                "s": 0.166,
-                "z0": 4.57,
-                "dot": 0.135,
-                "gap": 0.135,
-                "tone": "letters"
-              },
-              {
-                "text": "BAREFOOT",
-                "s": 0.5,
-                "z0": 4.38,
-                "dot": 0.125,
-                "gap": 0.125,
-                "tone": "letters"
-              },
-              {
-                "text": "WUKASCH",
-                "s": 0.5,
-                "z0": 5.58,
-                "dot": 0.065,
-                "gap": 0.065,
-                "tone": "letters"
-              },
-              {
-                "text": "OUTFITTER",
-                "s": 0.835,
-                "z0": 4.57,
-                "dot": 0.105,
-                "gap": 0.105,
-                "tone": "letters"
-              }
-            ],
-            "fins": [
-              {
-                "pitch": 0.31,
-                "w": 0.14,
-                "d": 0.095,
-                "z0": 5.67,
-                "z1": 5.98,
-                "tone": "trim",
-                "from": 0.02,
-                "to": 0.28
-              },
-              {
-                "pitch": 0.31,
-                "w": 0.14,
-                "d": 0.095,
-                "z0": 5.67,
-                "z1": 5.98,
-                "tone": "trim",
-                "from": 0.72,
-                "to": 0.98
-              }
-            ]
-          }
-        ]
+        "woodPanels": [
+          [
+            "campus",
+            0.035,
+            0.293
+          ],
+          [
+            "outfitter",
+            0.707,
+            0.965
+          ]
+        ],
+        "panelBottom": 4.22,
+        "panelTop": 5.48,
+        "panelRim": 0.065,
+        "panelDepth": 0.09,
+        "plankCount": 5,
+        "plankProud": 0.022,
+        "plankJoint": 0.012,
+        "panelTextWidth": 0.88,
+        "panelTextHeight": 0.64,
+        "panelTextBottom": 0.3,
+        "letterDepth": 0.055,
+        "diamondPanel": [
+          0.325,
+          0.675
+        ],
+        "diamondBottom": 4.13,
+        "diamondTop": 5.62,
+        "diamondRim": 0.085,
+        "diamondDepth": 0.035,
+        "diamondProud": 0.014,
+        "diamondPitch": 0.57,
+        "diamondJoint": 0.014,
+        "logoCenter": 0.5,
+        "logoWidth": 4.3,
+        "logoHeight": 2.76,
+        "logoBottom": 3.87,
+        "logoDepth": 0.065,
+        "logoOff": 0.1,
+        "logoFaceDepth": 0.015,
+        "nameTablet": {
+          "width": 2.4,
+          "height": 0.28,
+          "bottom": 6.65,
+          "depth": 0.095,
+          "textWidth": 0.9,
+          "textHeight": 0.205,
+          "textBottom": 0.035
+        },
+        "arch": [
+          0.3,
+          0.7
+        ],
+        "archRise": 0.9,
+        "archDepth": 0.42,
+        "archSegments": 24,
+        "reliefRows": 4,
+        "reliefPitch": 0.3,
+        "reliefWidth": 0.14,
+        "reliefHeight": 0.085,
+        "reliefDepth": 0.12,
+        "reliefTopInset": 0.15,
+        "reliefRowPitch": 0.1,
+        "reliefTaper": 0.1
       }
     },
     {

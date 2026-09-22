@@ -249,3 +249,10 @@ material character, depth, glazing and the surrounding architectural detail.
 Before the next implementation, select five owner photos with the strongest
 current-city mismatches and show the choices to the user. Await feedback before
 starting work on those five. Keep the photographs and source identities private.
+
+
+The five-photo selection was approved ("do it") on September 21: Welch's
+courtyard, Waterline, Sixth and Guadalupe, Wukasch/Barefoot, and University
+Co-op. Implementation proceeds on `codex/photo-five-realism`; the selection
+checkpoint above is satisfied for these five. Preserve the full photo backlog
+and require substantial matched application views before claiming completion.

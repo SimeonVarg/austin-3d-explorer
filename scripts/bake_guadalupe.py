@@ -12,6 +12,197 @@ from neighborhood_geometry import local_frame, band, rect, validate
 ROOT=Path(__file__).resolve().parents[1]
 
 
+class FrontDetails:
+    """Small architectural solids in metres along/out from a real wall."""
+    def __init__(self, a, b, blocks, prefix, meshes):
+        self.a=a;self.length=math.dist(a,b)
+        self.tx=(b[0]-a[0])/self.length;self.ty=(b[1]-a[1])/self.length
+        self.blocks=blocks;self.prefix=prefix;self.serial=0;self.meshes=meshes
+
+    def beam(self,label,s,d0,z0,d1,z1,width,tone):
+        def point(d,z):return [self.a[0]+self.tx*s+self.ty*d,self.a[1]+self.ty*s-self.tx*d,z]
+        a,b=point(d0,z0),point(d1,z1);dy,dz=d1-d0,z1-z0;length=math.hypot(dy,dz)
+        U=[self.tx*width/2,self.ty*width/2,0]
+        V=[self.ty*dz/length*width/2,-self.tx*dz/length*width/2,-dy/length*width/2]
+        vertices=[[round(p[k]+u*U[k]+v*V[k],5)for k in range(3)]for p in [a,b]for u,v in [(-1,-1),(1,-1),(1,1),(-1,1)]]
+        triangles=[[0,2,1],[0,3,2],[4,5,6],[4,6,7],[0,1,5],[0,5,4],[1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]]
+        self.serial+=1;self.meshes.append(dict(id=f'{self.prefix}-{label}-{self.serial}',tone=tone,vertices=vertices,triangles=[[a,c,b]for a,b,c in triangles]))
+
+    def box(self, label, s0, s1, d0, d1, z0, z1, tone, signs=None):
+        def p(s,d):return [round(self.a[0]+self.tx*s+self.ty*d,4),round(self.a[1]+self.ty*s-self.tx*d,4)]
+        self.serial+=1;z0,z1=round(z0,3),round(z1,3)
+        item=dict(id=f'{self.prefix}-{label}-{self.serial}',plan=dict(ring=[p(s0,d1),p(s1,d1),p(s1,d0),p(s0,d0)]),z0=z0,z1=z1,bands=[band(z0,z1,tone)],roofTone=tone)
+        if signs:item['faces']={'0':dict(bands=[band(z0,z1,tone,signs=signs)])}
+        self.blocks.append(item);return item
+
+    def canopy(self, s0, s1, c):
+        z,d,t=c['z'],c['depth'],c['thickness']
+        self.box('canopy-deck',s0,s1,0,d,z-t,z,'metal')
+        self.box('canopy-fascia',s0,s1,d-c['fasciaDepth'],d,z-c['fasciaHeight'],z,'metal')
+        self.box('canopy-soffit',s0,s1,0,d-c['fasciaDepth'],z-t-c['soffitThickness'],z-t,'soffit')
+        n=max(2,round((s1-s0)/c['rafterPitch']))
+        for i in range(n+1):
+            s=s0+(s1-s0)*i/n;w=c['rafterWidth']
+            self.box('canopy-rafter',s-w/2,s+w/2,0,d,z-c['rafterHeight'],z-t,'metal')
+        for i in range(c['tieCount']):
+            s=s0+(s1-s0)*(i+.5)/c['tieCount'];w=c['tieWidth']
+            self.beam('canopy-tie',s,0,z+c['tieRise'],d,z,w,'metal')
+
+
+def vector_sign(name,w,h,s,z,tone,depth,off=0):
+    from sign_outlines import load_sign
+    return dict(outline=load_sign(name),w=w,h=h,s=s,z0=z,depth=depth,off=off,tone=tone)
+
+
+def detailed_barefoot(base,blocks,plan,p,meshes):
+    c=p['photoDetail'];edge=p['frontEdges'][0]
+    f=FrontDetails(plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])],blocks,'barefoot',meshes);L=f.length
+    base['z1']=c['shoulder'];base['bands']=[band(0,c['shoulder'],'wall')];base['parapet']=0
+    openings=[]
+    for lo,hi in c['displayBays']:
+        a,b=lo*L,hi*L
+        count=c['displayPanes'];step=(b-a)/count
+        for i in range(count):
+            openings.append(dict(s0=a+i*step+c['mullion']/2,s1=a+(i+1)*step-c['mullion']/2,z0=c['plinth'],z1=c['shopTop'],d=c['windowDepth'],glass='glass',tone='metal'))
+            # The inset shop glass has real thin mullions, not opaque brick
+            # between panes. A continuous horizontal transom gives it scale.
+        f.box('display-transom',a,b,-c['windowDepth'], -c['windowDepth']+c['frameDepth'],c['transom'],c['transom']+c['mullion'],'metal')
+        f.box('tile-bulkhead',a,b,0,c['tileProud'],0,c['plinth'],'tile')
+        for i in range(1,count):
+            s=a+i*step;f.box('display-mullion',s-c['mullion']/2,s+c['mullion']/2,-c['windowDepth'],c['frameProud'],c['plinth'],c['shopTop'],'metal')
+    a,b=[v*L for v in c['entry']];mid=(a+b)/2
+    # The continuous recess contains separate door/sidelight frames; its
+    # mouth has no false masonry piers between the inset door panes.
+    openings.append(dict(s0=a,s1=b,z0=c['doorSill'],z1=c['shopTop'],d=c['entryDepth'],glass='entryGlass',tone='metal'))
+    for s in [a,mid-c['doorWidth'],mid,mid+c['doorWidth'],b]:
+        f.box('entry-frame',s-c['mullion']/2,s+c['mullion']/2,-c['entryDepth'],-c['entryDepth']+c['frameDepth'],c['doorSill'],c['shopTop'],'metal')
+    for s in [mid-c['handleSpacing'],mid+c['handleSpacing']]:
+        f.box('door-pull',s-c['handleWidth']/2,s+c['handleWidth']/2,-c['entryDepth']+c['frameDepth'],-c['entryDepth']+c['handleDepth'],c['handleBottom'],c['handleTop'],'handle')
+    base['faces'][str(edge)]={'bands':[band(0,c['shopTop'],'wall',openings=openings),band(c['shopTop'],c['shoulder'],'wall',signs=[])]}
+    f.canopy(c['canopyEnds'][0]*L,c['canopyEnds'][1]*L,c['canopy'])
+    # Distinct wood signboards, their raised rails and individual planks.
+    for name,lo,hi in c['woodPanels']:
+        a,b=lo*L,hi*L;z0,z1=c['panelBottom'],c['panelTop'];rim=c['panelRim']
+        f.box('wood-frame',a-rim,b+rim,0,c['panelDepth'],z0-rim,z1+rim,'woodFrame')
+        count=c['plankCount'];step=(z1-z0)/count
+        for row in range(count):
+            f.box('wood-plank',a,b,c['panelDepth'],c['panelDepth']+c['plankProud'],z0+row*step+c['plankJoint']/2,z0+(row+1)*step-c['plankJoint']/2,'wood'+str(row%3))
+        # Font contours stand ahead of the individual wooden boards.
+        s=vector_sign(name,(b-a)*c['panelTextWidth'],c['panelTextHeight'],(a+b)/2,z0+c['panelTextBottom'],'letters',c['letterDepth'],c['panelDepth']+c['plankProud'])
+        base['faces'][str(edge)]['bands'][1]['signs'].append(s)
+    # Terracotta diamond infill, with cream perimeter frame beneath the arch.
+    a,b=[v*L for v in c['diamondPanel']];z0,z1=c['diamondBottom'],c['diamondTop'];rim=c['diamondRim']
+    f.box('diamond-frame',a-rim,b+rim,0,c['diamondDepth'],z0-rim,z1+rim,'stoneTrim')
+    f.box('diamond-bed',a,b,c['diamondDepth'],c['diamondDepth']+c['diamondProud'],z0,z1,'tile')
+    from shapely.geometry import Polygon,box
+    clip=box(a,z0,b,z1);pitch=c['diamondPitch'];polys=[]
+    for row in range(-1,math.ceil((z1-z0)/pitch)+2):
+        for col in range(-1,math.ceil((b-a)/pitch)+2):
+            x=a+col*pitch+(row%2)*pitch/2;y=z0+row*pitch/2;r=pitch/2-c['diamondJoint']
+            tile=Polygon([(x-r,y),(x,y+r),(x+r,y),(x,y-r)]).intersection(clip)
+            if tile.geom_type=='Polygon' and tile.area>0:
+                polys.append({'outer':[[(x-a)/(b-a),(y-z0)/(z1-z0)]for x,y in list(tile.exterior.coords)[:-1]],'holes':[]})
+    base['faces'][str(edge)]['bands'][1]['signs'].append(dict(outline={'polygons':polys},w=b-a,h=z1-z0,s=(a+b)/2,z0=z0,depth=c['diamondProud'],off=c['diamondDepth']+c['diamondProud'],tone='diamond'))
+    # The public brand mark retains its real lettering, footprints and wings.
+    # The plaque contour and raised white logo share the same transform.
+    s=L*c['logoCenter'];w,h=c['logoWidth'],c['logoHeight']
+    base['faces'][str(edge)]['bands'][1]['signs'].append(vector_sign('barefoot-plaque',w,h,s,c['logoBottom'],'logo',c['logoDepth'],c['logoOff']))
+    base['faces'][str(edge)]['bands'][1]['signs'].append(vector_sign('barefoot-logo',w,h,s,c['logoBottom'],'letters',c['letterDepth'],c['logoOff']+c['logoDepth']+c['logoFaceDepth']))
+    name=c['nameTablet'];a=s-name['width']/2;b=s+name['width']/2
+    f.box('name-tablet',a,b,0,name['depth'],name['bottom'],name['bottom']+name['height'],'stoneTrim',signs=[vector_sign('wukasch',name['width']*name['textWidth'],name['textHeight'],name['width']/2,name['bottom']+name['textBottom'],'nameInk',c['letterDepth'])])
+    # Staggered projecting brick relief follows both shoulders and the arch.
+    start,end=[v*L for v in c['arch']]
+    def top(s):return c['shoulder']+c['archRise']*math.sin(math.pi*(s-start)/(end-start)) if start<s<end else c['shoulder']
+    for row in range(c['reliefRows']):
+        n=round(L/c['reliefPitch'])
+        for i in range(n):
+            s=(i+.5+(row%2)*.5)*L/n
+            if s> L-c['reliefWidth']:continue
+            z=top(s)-c['reliefTopInset']-row*c['reliefRowPitch']
+            f.box('brick-relief',s-c['reliefWidth']/2,s+c['reliefWidth']/2,0,c['reliefDepth']*(1-row*c['reliefTaper']),z-c['reliefHeight'],z,'relief'+str((i+row)%3))
+    # Retain the supported curved crown, but remove its old pixel lettering.
+    crown=dict(frontEdges=[edge],frontage=dict(bands=base['faces'][str(edge)]['bands'],crown=dict(base=c['shoulder'],rise=c['archRise'],depth=c['archDepth'],**{'from':c['arch'][0],'to':c['arch'][1]},segments=c['archSegments'],tone='wall',minimumSlopeRise=.05)))
+    # Crown only: authored_frontage expects normalized details; the finished
+    # metre-based facade remains intact while a temporary carrier gets its roof.
+    temporary={'faces':{}};crown['frontage']['bands']=[]
+    authored_frontage(temporary,blocks,plan,crown,{})
+
+
+def detailed_coop(base,blocks,plan,p,meshes):
+    c=p['photoDetail'];edge=c['mainEdge'];a,b=plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])]
+    f=FrontDetails(a,b,blocks,'coop',meshes);L=f.length
+    base['z1']=p['wingHeight'];base['bands']=[band(0,p['wingHeight'],'wall')];base['parapet']=0
+    # Side/service returns are quiet masonry; the storefront belongs to the
+    # long street edge, not to every east-pointing edge of the rear plan.
+    base['faces']={};low,high=[v*L for v in c['center']];width=high-low
+    openings=[]
+    for lo,hi in c['wingWindows']:
+        start,end=lo*L,hi*L
+        n=max(2,round((end-start)/c['windowPitch']));step=(end-start)/n
+        for i in range(n):
+            openings.append(dict(s0=start+i*step+c['mullion']/2,s1=start+(i+1)*step-c['mullion']/2,z0=c['windowSill'],z1=c['windowTop'],d=c['windowDepth'],glass='glass',tone='metal'))
+        f.box('wing-window-head',start,end,-c['windowDepth'],c['frameProud'],c['transom'],c['transom']+c['mullion'],'metal')
+        f.canopy(start-c['canopyMargin'],end+c['canopyMargin'],c['canopy'])
+    # This underlying opening clears the rear wall behind the projecting
+    # centre portal. Otherwise a shallow base pane fills the apparent recess.
+    portal=dict(s0=low+c['portalSide'],s1=high-c['portalSide'],z0=c['doorSill'],z1=c['lowerTop'],d=c['basePortalDepth'],glass='entryGlass',tone='lowerWall')
+    openings.append(portal)
+    upperPortal={**portal,'z0':c['lowerTop'],'z1':c['portalTop']}
+    base['faces'][str(edge)]={'bands':[band(0,c['lowerTop'],'lowerWall',openings=openings),band(c['lowerTop'],p['wingHeight'],'wall',openings=[upperPortal])]}
+    # Main smooth-clad centre, with an actual deep portal and independent
+    # lintel, jambs, upper transom, lower doors, pull handles and canopy.
+    center=f.box('raised-entry',low,high,-c['centerDepth'],c['centerProjection'],0,p['height'],'wall')
+    cf=FrontDetails(center['plan']['ring'][0],center['plan']['ring'][1],blocks,'coop-portal',meshes)
+    pa,pb=c['portalSide'],width-c['portalSide'];span=pb-pa;mid=(pa+pb)/2
+    # Cut a single full-height void. Subdividing the cut itself would leave
+    # thin cream masonry piers projecting across the depth of the vestibule.
+    inner=[dict(s0=pa,s1=pb,z0=c['doorSill'],z1=c['portalTop']-c['lintelHeight'],d=c['portalDepth'],glass='entryGlass',tone='portalTrim')]
+    center['faces']={'0':dict(bands=[band(0,c['portalTop'],'wall',openings=inner),band(c['portalTop'],p['height'],'wall',signs=[vector_sign('co-op',c['signWidth'],c['signHeight'],width/2,c['signBottom'],'letters',c['letterDepth']),vector_sign('the',c['theWidth'],c['theHeight'],width/2,c['theBottom'],'letters',c['letterDepth'])])])}
+    for s in [pa,pb]:
+        cf.box('portal-jamb',s-c['jambWidth']/2,s+c['jambWidth']/2,-c['portalDepth'],c['portalProud'],0,c['portalTop'],'portalTrim')
+    cf.box('portal-lintel',pa-c['jambWidth'],pb+c['jambWidth'],-c['portalDepth'],c['portalProud'],c['portalTop']-c['lintelHeight'],c['portalTop'],'portalTrim')
+    cf.box('portal-floor',pa,pb,-c['portalDepth'],c['portalProud'],0,c['doorSill'],'portalFloor')
+    for i in range(1,c['portalPanes']):
+        s=pa+span*i/c['portalPanes']
+        cf.box('portal-mullion',s-c['mullion']/2,s+c['mullion']/2,-c['portalDepth'],-c['portalDepth']+c['frameDepth'],c['doorSill'],c['portalTop']-c['lintelHeight'],'metal')
+    cf.box('portal-door-head',pa,pb,-c['portalDepth'],-c['portalDepth']+c['frameDepth'],c['doorTop'],c['upperBottom'],'metal')
+    for s in [mid-c['handleSpacing'],mid+c['handleSpacing']]:
+        cf.box('door-pull',s-c['handleWidth']/2,s+c['handleWidth']/2,-c['portalDepth']+c['frameDepth'],-c['portalDepth']+c['handleDepth'],c['handleBottom'],c['handleTop'],'handle')
+    cf.canopy(pa-c['canopyMargin'],pb+c['canopyMargin'],c['portalCanopy'])
+    # Cream horizontal/vertical cladding joints are sparse and shallow, not
+    # the inherited rough stone-brick texture. Cornices have cast dentils.
+    def cornice(g,s0,s1,z):
+        for drop,depth,height in c['corniceSteps']:
+            g.box('cornice',s0,s1,0,depth,z-drop-height,z-drop,'trim')
+        n=max(1,round((s1-s0)/c['dentilPitch']))
+        for i in range(n):
+            s=s0+(s1-s0)*(i+.5)/n
+            g.box('dentil',s-c['dentilWidth']/2,s+c['dentilWidth']/2,0,c['dentilDepth'],z-c['dentilDrop']-c['dentilHeight'],z-c['dentilDrop'],'trim')
+    cornice(f,0,low,p['wingHeight']);cornice(f,high,L,p['wingHeight']);cornice(cf,0,width,p['height'])
+    for s0,s1 in [(0,low),(high,L)]:
+        for z in c['panelJoints']:
+            f.box('cladding-joint',s0,s1,0,c['jointDepth'],z,z+c['jointWidth'],'joint')
+        n=max(1,round((s1-s0)/c['panelPitch']))
+        for i in range(1,n):
+            s=s0+(s1-s0)*i/n
+            f.box('cladding-joint',s-c['jointWidth']/2,s+c['jointWidth']/2,0,c['jointDepth'],c['lowerTop'],p['wingHeight']-c['dentilDrop'],'joint')
+    # The banner artwork is intentionally original vector/typographic work;
+    # the owner's photographs are never embedded as building textures.
+    for i,(lo,hi) in enumerate(c['banners']):
+        start,end=lo*L,hi*L;w=end-start
+        panel=f.box('banner',start,end,0,c['bannerDepth'],c['bannerBottom'],c['bannerTop'],'banner')
+        rows=[]
+        for name,ratio,z,h in c['bannerText']:
+            rows.append(vector_sign(name,w*ratio,h,w*c['bannerTextCenter'],z,'bannerLetters',c['bannerLetterDepth']))
+        panel['faces']={'0':dict(bands=[band(c['bannerBottom'],c['bannerTop'],'banner',signs=rows)])}
+        # Three broad jersey-colour shapes carry the burnt orange/cream
+        # balance of the ads without tracing or publishing owner images.
+        for j in range(c['bannerFigureCount']):
+            s=start+w*(c['bannerFigureStart']+j*c['bannerFigureStep'])
+            poly=c['jerseyOutline'];pw=w*c['bannerFigureWidth'];ph=c['bannerFigureHeight']
+            panel['faces']['0']['bands'][0]['signs'].append(dict(outline={'polygons':[{'outer':poly,'holes':[]}]},w=pw,h=ph,s=s-start,z0=c['bannerBottom']+c['bannerFigureBottom'],depth=c['bannerLetterDepth'],off=0,tone='jersey'+str(j%2)))
+
+
 def lettering(text, width, s, z, tone, config, serif=False):
     rows=config['bitmaps'][('serif:' if serif else '')+text]
     return dict(bitmap=rows,bitmapRuns=True,dot=width/len(rows[0]),s=s,z0=z,tone=tone)
@@ -27,7 +218,7 @@ def authored_frontage(base, blocks, plan, spec, config):
         center=sign.pop('s')*span
         # The renderer centres bitmap signs with s, but horizontal text uses
         # s0. Resolve the authored centre before handing it to that contract.
-        if 'bitmap' in sign:sign['s']=center
+        if 'bitmap' in sign or 'outline' in sign:sign['s']=center
         else:sign['s0']=center-(len(sign['text'])*(5*sign['dot']+sign['gap'])-sign['gap'])/2
 
     for edge in spec['frontEdges']:
@@ -138,9 +329,13 @@ def make_building(p, feature, config, roofs):
         for edge in fronts:
             a,b=plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])];length=((b[0]-a[0])**2+(b[1]-a[1])**2)**.5
             base['faces'][str(edge)]=dict(bands=[band(0,h,'bar-window',canopies=[dict(s0=c['awningEnd'],s1=length-c['awningEnd'],z=c['awningHeight'],d=c['awningDepth'],t=c['awningThickness'],tone='awning')])])
+    detailMeshes=[]
+    if p.get('special')=='barefoot-photo':detailed_barefoot(base,blocks,plan,p,detailMeshes)
+    if p.get('special')=='coop-photo':detailed_coop(base,blocks,plan,p,detailMeshes)
     return dict(id=p['id'],name=p['name'],category='guadalupe',replaceFrontage=True,aliases=p.get('aliases',[]),labelOverride=p.get('labelOverride',False),
                 sources=dict(reference=p['source'],observations=p['observations'],footprint='data/snapshots/'+config['snapshot']+'/buildings.detailed.geojson',dimensions='Footprints retained. Heights, facade subdivisions, sign sizing and unphotographed elevations are approximate unless explicitly measured in the source.'),
-                footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,blocks=blocks,preserveRoof=keep_roof,preserveRoofscape=t['retainSurveyedRoofs'] and aligned)
+                footprint=footprint,frame=dict(obb=f),levels=dict(floors=floors),colours=colours,skins=skins,blocks=blocks,preserveRoof=keep_roof,preserveRoofscape=t['retainSurveyedRoofs'] and aligned,
+                **({'detailMeshes':detailMeshes,'materials':p['materials']}if p.get('photoDetail') else {}))
 
 
 def main():
