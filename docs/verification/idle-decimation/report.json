@@ -1,0 +1,386 @@
+{
+  "settings": {
+    "cpuThrottle": 1,
+    "gl": "hardware",
+    "preset": "balanced",
+    "startupIdleHoldOnly": true
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "dpr": 1,
+  "secondsPerArm": 39,
+  "runtimeErrors": [],
+  "arms": [
+    {
+      "arm": "baseline-1",
+      "sourceHash": "5090af850b060f3b45303269c6cc2ff5c5c01f73ab522bfa5ecfaf7d83febf0f",
+      "ready": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "afterStop": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "frames": 1136,
+        "medianMs": 18.09999999999127,
+        "p95Ms": 54,
+        "over100": 32,
+        "longTasks": 57,
+        "gaps": [
+          1557,
+          1536.699999988079
+        ],
+        "todCalls": [
+          1529.7999999821186,
+          1491.5,
+          1461.9000000059605
+        ],
+        "taskSeconds": 40.692965
+      }
+    },
+    {
+      "arm": "candidate-1",
+      "sourceHash": "fb62c939296742da440c31e33215ab8266f63454a0c658f27976018376b7e989",
+      "ready": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "afterStop": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "frames": 1171,
+        "medianMs": 18.09999999999127,
+        "p95Ms": 54,
+        "over100": 30,
+        "longTasks": 47,
+        "gaps": [
+          1549,
+          1482.0999999940395
+        ],
+        "todCalls": [
+          1433.800000011921,
+          1466.6000000238419,
+          1409.5
+        ],
+        "taskSeconds": 40.572931
+      }
+    },
+    {
+      "arm": "candidate-2",
+      "sourceHash": "fb62c939296742da440c31e33215ab8266f63454a0c658f27976018376b7e989",
+      "ready": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "afterStop": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "frames": 1168,
+        "medianMs": 18,
+        "p95Ms": 54,
+        "over100": 28,
+        "longTasks": 50,
+        "gaps": [
+          1508.199999988079,
+          1459
+        ],
+        "todCalls": [
+          1444.699999988079,
+          1439.4000000059605,
+          1401.5
+        ],
+        "taskSeconds": 40.59447
+      }
+    },
+    {
+      "arm": "baseline-2",
+      "sourceHash": "5090af850b060f3b45303269c6cc2ff5c5c01f73ab522bfa5ecfaf7d83febf0f",
+      "ready": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "before": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "afterStop": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "final": {
+        "buildings": 196,
+        "ready": true,
+        "tiles": true,
+        "veil": false,
+        "indexed": true,
+        "driving": false,
+        "preset": "balanced",
+        "on": true,
+        "hook": true
+      },
+      "summary": {
+        "frames": 1152,
+        "medianMs": 18.09999999999127,
+        "p95Ms": 54,
+        "over100": 29,
+        "longTasks": 50,
+        "gaps": [
+          1578.5999999940395,
+          1515.4000000059605
+        ],
+        "todCalls": [
+          1443.9000000059605,
+          1512,
+          1438.7000000178814
+        ],
+        "taskSeconds": 40.57105
+      }
+    }
+  ],
+  "atlas": {
+    "equalAll318ImagesAtAll3Hours": true,
+    "runtimeErrors": [],
+    "ready": {
+      "buildings": 196,
+      "ready": true,
+      "tiles": true,
+      "veil": false,
+      "indexed": true,
+      "driving": false,
+      "preset": "balanced",
+      "on": true,
+      "hook": true
+    },
+    "final": {
+      "buildings": 196,
+      "ready": true,
+      "tiles": true,
+      "veil": false,
+      "indexed": true,
+      "driving": false,
+      "preset": "balanced",
+      "on": true,
+      "hook": true
+    },
+    "samples": [
+      {
+        "hour": 0.3,
+        "duration": 1365.5999999940395,
+        "images": 318,
+        "mode": "baseline"
+      },
+      {
+        "hour": 0.62,
+        "duration": 1405.0999999940395,
+        "images": 318,
+        "mode": "baseline"
+      },
+      {
+        "hour": 0.9,
+        "duration": 1388.5,
+        "images": 318,
+        "mode": "baseline"
+      },
+      {
+        "hour": 0.3,
+        "duration": 1342.699999988079,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.62,
+        "duration": 1345.699999988079,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.9,
+        "duration": 1327.5999999940395,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.3,
+        "duration": 1293.0999999940395,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.62,
+        "duration": 1346.4000000059605,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.9,
+        "duration": 1343,
+        "images": 318,
+        "mode": "candidate"
+      },
+      {
+        "hour": 0.3,
+        "duration": 1340.5999999940395,
+        "images": 318,
+        "mode": "baseline"
+      },
+      {
+        "hour": 0.62,
+        "duration": 1385.199999988079,
+        "images": 318,
+        "mode": "baseline"
+      },
+      {
+        "hour": 0.9,
+        "duration": 1379.199999988079,
+        "images": 318,
+        "mode": "baseline"
+      }
+    ]
+  },
+  "fixedFrameDifference": {
+    "meanAbsoluteRGB": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "boundingBox": null
+  },
+  "candidateSHA256": "fb62c939296742da440c31e33215ab8266f63454a0c658f27976018376b7e989"
+}
