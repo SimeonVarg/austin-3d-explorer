@@ -415,9 +415,16 @@
   const GL_TEX = 'capitol-ground-texture';
   const GL_PATH = 'capitol-ground-paths';
 
+  // Context recovery can detach the style or leave its JSON not loaded yet.
+  // Check the cheap readiness bit, not isStyleLoaded(), which also waits for
+  // source tiles and would suppress ordinary color updates while they stream.
+  function paintStyleReady(map) {
+    return !!map?.style && map.style._loaded !== false;
+  }
+
   /** Copy one paint property from the shared layer to its Capitol twin. */
   function mirror(map, from, fromProp, to, toProp) {
-    if (!map.getLayer(from) || !map.getLayer(to)) return;
+    if (!paintStyleReady(map) || !map.getLayer(from) || !map.getLayer(to)) return;
     try {
       const v = map.getPaintProperty(from, fromProp);
       if (v !== undefined) map.setPaintProperty(to, toProp, v);
@@ -425,6 +432,7 @@
   }
 
   function mirrorGround(map) {
+    if (!paintStyleReady(map)) return;
     mirror(map, 'ground-areas', 'fill-color', GL_AREA, 'fill-extrusion-color');
     mirror(map, 'ground-areas', 'fill-opacity', GL_AREA, 'fill-extrusion-opacity');
     mirror(map, 'ground-texture', 'fill-pattern', GL_TEX, 'fill-extrusion-pattern');
@@ -524,6 +532,7 @@
    * js/app.js and this reads it back out of the style rather than restating it.
    */
   function mirrorTrees(map) {
+    if (!paintStyleReady(map)) return;
     for (const base of ['trees-canopy', 'trees-trunk']) {
       const twin = base + '-capitol';
       if (!map.getLayer(base) || !map.getLayer(twin)) continue;
@@ -602,7 +611,7 @@
   };
 
   window.applyCapitolColors = function applyCapitolColors(map, p) {
-    if (!map || !map.getLayer) return;
+    if (!paintStyleReady(map)) return;
     // The ground twins are mirrored on EVERY time-of-day change, not just at
     // init. This is the whole reason a clone is allowed to exist here: get it
     // wrong and the Capitol keeps a daylit lawn after dark, which is §35 item
@@ -627,6 +636,7 @@
 
   /** Re-read CAPITOL after a live edit. */
   window.applyCapitolSettings = function applyCapitolSettings(map) {
+    if (!paintStyleReady(map)) return;
     if (!map.getLayer(DOME_LAYER)) return;
     try {
       map.setLayoutProperty(DOME_LAYER, 'visibility', CAPITOL.on ? 'visible' : 'none');

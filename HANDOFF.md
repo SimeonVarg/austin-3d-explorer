@@ -1,5 +1,50 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283 OPEN)
+
+GDC now has literal unequal recessed window pairs, projecting shades, deeper
+rust entrance screens, occupied night panes and the missing undersides of its
+three existing roof slabs. Welch has deeper divided historic windows, distinct
+laboratory glazing, a recessed terrace entrance and fuller planting. Potbelly,
+Wingstop and Miss Behavin now form detailed connected frontages with recessed
+glazing, gates/canopies and shaped raised lettering. Icon's existing crown has
+pale fins/infill, restrained glazing and an open terrace edge. The apartment
+coverage review confirmed existing models rather than adding duplicate towers.
+
+Eleven matched full-city camera pairs load all 196 authored buildings and preserve
+exposure/FOV. GDC roof rays, deterministic bakes, non-target geometry preservation,
+material dispatch, frontage/roof fallback, lifecycle cleanup and harness checks
+pass. Details, final device evidence and limitations are in
+[the comparison report](docs/campus-photo-depth.md).
+
+Device verification exposed style reads during WebGL context loss. Apartment
+label/filter callbacks, collision scans and deferred rendering work now wait
+while MapLibre has no style; map removal cancels owned queued work. This preserves normal loading and
+replacement fallback instead of treating partially loaded sources as a failure.
+
+GDC uses verified public exterior references; no owner-phone image was confidently
+identified as GDC. Additional owner Welch angles remain unconfirmed. Small
+dimensions, fine materials, signs and interiors remain approximations; this is
+not a claim that the full photo collection or visual backlog is complete.
+
+The primary dirty checkout and parked Drag/campus experiment files are untouched.
+Only this shared handoff document overlaps the parked PRs; none of their code or
+data assertions are changed. Private photos, reference identities and camera
+records remain outside tracked files. No automation was recreated.
+
+PR #283 remains open and unmerged. The final full-city recovery probe reached
+196 ready, indexed, tiled buildings with no uncaught page errors, but observed
+no context-loss event after invoking WEBGL_lose_context during active time-of-day
+playback. The bounded integration gate failed; recovery is unverified. Callback,
+style-loading and GL-state regression tests pass, including broken-guard checks,
+and all finished geometry, evidence and fixes are saved on the branch. Do not
+merge this PR until the integration gate passes. No further recovery loop is
+running; private diagnostic records remain outside Git.
+
+Physical-phone performance/reliability remains the next acceptance step before
+substantial new geometry; desktop emulation does not establish mobile hardware
+memory headroom or thermal behavior. Follow the remaining AGENTS.md priorities.
+
 ## Sep 22 2026 - Five approved architectural targets (`codex/photo-five-realism`, PR #282)
 
 Implemented the approved follow-up after the rejection of PR #281's fidelity.

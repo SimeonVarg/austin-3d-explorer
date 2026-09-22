@@ -535,8 +535,9 @@
    */
   const retint = (map, p, force) => {
     // The wrapper chain reads MapLibre layers. Context recovery temporarily
-    // clears the style; the playback clock can keep running without retinting.
-    if (!map?.style) return;
+    // clears the style, then reloads its JSON. Match MapLibre 5.24's
+    // Style._checkLoaded gate, without waiting for source tiles to finish.
+    if (!map?.style?._loaded) return;
     (window.applyTimeOfDay || applyTimeOfDay)(map, p, force);
   };
 

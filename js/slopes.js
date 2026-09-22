@@ -558,6 +558,8 @@
   function updateSunShadows() {
     const s=SLOPES.sunlight,T=window.THREE;
     U.u_shadowSettings.value.x=0;
+    const gl=renderer?.getContext();
+    if(!gl||gl.isContextLost())return;
     if(!s.on||!s.shadows||window.GFX?.shadows===false||U.u_sunDirection.value.z<=0||!window.slopesApartments?.count.done)return;
     // No new per-frame scene traversal or geometry. Render the existing mesh
     // scene from the sun only when the hour or completed building set changes.
@@ -583,8 +585,9 @@
       // MapLibre owns canvas sizing. Three's default viewport is stale unless
       // explicitly restored after leaving an offscreen target (setSize is
       // intentionally forbidden in this shared canvas).
-      const gl=renderer.getContext(),viewport=gl.getParameter(gl.VIEWPORT);
+      const viewport=gl.getParameter(gl.VIEWPORT);
       const scissor=gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
+      if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
       try {
         scene.overrideMaterial=_sunShadow.depth;
@@ -1097,7 +1100,7 @@
     prerender(gl,args) { this.render(gl,args,true); },
     render(gl, args, prepareOnly=false) {
       // The switch, read LIVE every frame — never cached at onAdd.
-      if (!SLOPES.on || !scene) return;
+      if (!SLOPES.on || !scene || gl.isContextLost()) return;
       // Each generator's group carries the minzoom and the LOD tier of the
       // fill-extrusion layer it replaces (userData.minzoom, userData.lod), so
       // the roofs go at the altitude js/lod.js drops `roofs-pitched` while the
@@ -1187,6 +1190,7 @@
       U.u_groundColour.value.set(...hexToRgb01(sunlight.ground));
       renderer.resetState();
       updateSunShadows();
+      if(gl.isContextLost())return;
       window.CityLighting.frame(U,camera.projectionMatrixInverse,_sunShadow?.targets.map(t=>renderer.properties.get(t.texture).__webglTexture));
       if(prepareOnly)return;
       renderer.render(scene, camera);
