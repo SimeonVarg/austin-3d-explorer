@@ -1,5 +1,35 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Continuous idle motion (`codex/idle-continuous-time`)
+
+Idle rotation preserves the selected lighting by default; the slider and Play
+still control the day/night cycle. This removes the synchronous repaint between
+camera legs. Completion events continue on the next animation frame; input,
+stale events and duplicate completions cannot restart cancelled motion. Zoom
+breathing stays inside one integer atlas band, and hidden/reduced-motion pages
+stop idle drift. Optional clock creep remains parameterized as DRIFT.pStep.
+
+Four interleaved full-city runs (196 authored buildings, normal tiles, indexed,
+ready, no veil) measured handoff pauses of 1484.1–1604.4 ms before versus
+36.8–73.6 ms after: a 97.5% reduction comparing minima. No candidate idle time
+repaints or runtime errors. General frame rate still varies. The fixed-exposure
+matched second views are pixel-identical; this fixes motion, not appearance.
+[Evidence and limits](docs/idle-continuous-motion.md) include actual relative
+motion traces. Driver tests, both deliberate failure controls, syntax and
+harness parity passed against current main.
+
+Explicit time playback retains its expensive synchronous repaint; a browser
+Stop-click actionability timeout is recorded rather than counted as a UI pass.
+The bounded follow-up validated the Stop handler via DOM click and reduced
+motion in the full city. The 27-second zoom-boundary run, input takeover and
+manual slider passed. All capture browsers and owned server 8477 are stopped.
+Physical iPhone Safari/Chrome acceptance and the production recovery-event
+delay remain open. Next visual priority is citywide window flicker/grazing-angle
+patterns. Dirty primary and Mac bake files remain untouched. Only HANDOFF
+overlaps parked PRs #189/#164; their implementation assertions are unaffected.
+Private photographs, source links and camera positions remain outside git.
+Hourly continuation stays active.
+
 ## Sep 22 2026 - Facade resize cost (`codex/idle-repaint-followup`)
 
 Added an exact four-sample path for 2x facade downsampling. Four interleaved
