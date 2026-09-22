@@ -162,6 +162,20 @@ try{
   report.movementMetres=Math.hypot((movementEnd.lng-movementStart.lng)*111320*Math.cos(movementStart.lat*Math.PI/180),
     (movementEnd.lat-movementStart.lat)*111320);
   assert.ok(report.movementMetres>=.5,'Movement did not resume after recovery');
+  await ready('before-touch');
+  const joy=await page.locator('#joystick-base').boundingBox();
+  assert.ok(joy&&joy.width>0&&joy.height>0,'visible touch joystick required');
+  const touchStart=await page.evaluate(()=>window.__fly.eye());
+  const point={x:joy.x+joy.width/2,y:joy.y+joy.height/2,id:1};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});
+  try{
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...point,y:point.y-joy.height*.3}]});
+    await sleep(1000);
+  }finally{await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+  const touchEnd=await page.evaluate(()=>window.__fly.eye());
+  report.touchMovementMetres=Math.hypot((touchEnd.lng-touchStart.lng)*111320*Math.cos(touchStart.lat*Math.PI/180),
+    (touchEnd.lat-touchStart.lat)*111320);
+  assert.ok(report.touchMovementMetres>=.5,'Touch joystick did not resume after recovery');
   await secondShot('recovered-portrait');
   await page.setViewportSize({width:844,height:390});await secondShot('recovered-landscape');
   await cdp.send('Emulation.setDeviceMetricsOverride',{width:2560,height:1440,deviceScaleFactor:1,mobile:false});

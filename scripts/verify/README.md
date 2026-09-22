@@ -82,7 +82,8 @@ table without failing.
 loads the normal city with the natural touch performance profile. It requires
 all 196 buildings before injecting actual shared-canvas context loss during
 time-of-day playback, observes restoration and one recovery reload, and checks
-resumed movement plus portrait, landscape and 2560 x 1440 DPR1 captures.
+resumed keyboard and touch-joystick movement plus portrait, landscape and
+2560 x 1440 DPR1 captures.
 Console errors, extra reloads, wrong viewport metrics and partial cities fail.
 `--break-injection` deliberately omits loss and must exit 1 with
 `No actual context-loss event observed`. Reports and second screenshots go to

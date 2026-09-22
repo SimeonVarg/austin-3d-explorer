@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283 OPEN)
+## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283)
 
 GDC now has literal unequal recessed window pairs, projecting shades, deeper
 rust entrance screens, occupied night panes and the missing undersides of its
@@ -35,7 +35,8 @@ records remain outside tracked files. No automation was recreated.
 The full-city recovery gate now passes after integrating main `c1953e3`.
 The reusable `scripts/verify/device-recovery.mjs` verifies actual connected-canvas
 loss/restoration during time-of-day playback, exactly one app reload, all 196
-buildings ready again, movement, and portrait/landscape/2560 x 1440 recovery.
+buildings ready again, keyboard and touch-joystick movement, and
+portrait/landscape/2560 x 1440 recovery.
 No page or console errors occurred. It catches incorrect screenshot dimensions
 and extra reloads; the earlier no-event attempts are rejected, not passing data.
 The report links the retained large-screen second screenshot. Focused recovery,

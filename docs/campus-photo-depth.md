@@ -121,7 +121,7 @@ integrated into `codex/campus-photo-depth`. The reusable
 `scripts/verify/device-recovery.mjs` observes actual loss on the connected shared
 MapLibre/Three.js canvas during active time-of-day playback, actual restoration,
 and exactly one application recovery reload. All 196 authored buildings return
-ready, indexed and tiled; movement resumes. Portrait (390 x 844 DPR3), landscape
+ready, indexed and tiled; keyboard and touch-joystick movement resume. Portrait (390 x 844 DPR3), landscape
 (844 x 390 DPR3) and large (2560 x 1440 DPR1) second screenshots pass with no page,
 console or shader errors. The large view retains the recovered touch graphics
 profile; it is not a fresh desktop-default benchmark.
