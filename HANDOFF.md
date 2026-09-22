@@ -2,8 +2,9 @@
 
 ## Sep 22 2026 - Wider apartment window coverage (`codex/window-coverage`)
 
-The hourly continuation is deleted at the user's request. Finish this pass and
-stop; do not start the next queued task or recreate scheduled continuation.
+PR #295 merged as e9ade58 after green checks. The completed branch is deleted.
+The hourly continuation is deleted at the user's request. This pass is complete;
+stop here and do not start the next task or recreate scheduled continuation.
 
 PR #295 extends desktop daytime filtering to The Standard, Villas on Rio and
 Yugo Austin Waterloo while retaining Union on 24th and 21 Rio. Shared planning
