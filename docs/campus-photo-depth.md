@@ -153,6 +153,19 @@ thermal behavior or mobile GPU performance.
 Citywide moving window patterns, idle pauses, DKR and further glare refinement
 remain separate queued work.
 
+## Production recovery follow-up
+
+PR #283 merged as `7cf7d3a`; deployed runtime and target geometry match that
+revision. The standard production run failed its 15-second observed-loss deadline.
+A separate diagnostic with a 90-second event bound observed the direct loss event
+about 15.9 seconds after the request, then restoration and exactly one reload.
+All 196 buildings became ready again; keyboard and touch movement, portrait,
+landscape and 2560 x 1440 second captures completed with no page or console errors.
+This confirms eventual recovery in that desktop Chromium run, not a pass of the
+original timing gate. The event-delivery delay remains unresolved; no timing
+threshold or runtime behavior was changed to hide it. Private diagnostic records
+remain outside Git. Physical iPhone Safari/Chrome acceptance remains open.
+
 ## Matched application comparisons
 
 ### GDC window depth and roof undersides
