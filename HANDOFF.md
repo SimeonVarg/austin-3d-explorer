@@ -1,5 +1,26 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Detached DKR roof equipment (`codex/dkr-detached-elements`)
+
+The north tower pass merged as PR #287 (`f6f4e1c`). Its remaining floating dark
+boxes were traced to old roofscape equipment: the parent roof intersected the
+stadium replacement mask and was hidden, while two units beyond its north edge
+survived. The renderer now expands only its roofscape exclusion by 5.3 m to cover
+the old roof extent. Building/parts masks and collision bounds are unchanged.
+
+[The matched comparison](docs/dkr-detached-roof-equipment.md) records the normal
+complete-city result. The geometry regression checks every roofscape feature and
+allows exactly the two detached units to change; its zero-margin mutation fails.
+Filter coexistence, style-loss cleanup and tower geometry remain covered.
+
+DKR's generic north facade and tower-to-wall proportions remain unfinished;
+do not infer a new building height from the uncertain reference comparison.
+Next exterior work should address that composition with adequate reference
+evidence, then continue the generalized visual defects. Physical iPhone
+performance/memory and the production recovery-event delay remain open. Hourly
+continuation remains active. The dirty primary and Mac-owned bake are untouched;
+only this shared handoff overlaps parked PRs #189/#164.
+
 ## Sep 22 2026 - DKR north lantern towers (`codex/dkr-exterior-refinement`)
 
 Replaced four striped north office towers with faceted masonry shafts, paired
