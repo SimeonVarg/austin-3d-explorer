@@ -217,3 +217,25 @@ The September 21 follow-up also shows the moving facade pattern on 21 Rio and
 additional tall, narrow wall views whose building identities are not yet confirmed.
 Include these alongside Union on 24th in motion verification. A partial improvement
 on Union alone is not acceptance of the citywide window-stability request.
+
+## Active work order - September 21, 2026 (latest user direction)
+
+This order supersedes earlier motion-first and downtown-later notes:
+1. Owner-photo matching across the full reference collection, including newly
+   added Guadalupe, GDC, Welch angles and campus views of apartment rooftops.
+   Fold Guadalupe realism and missing-apartment coverage into this first pass.
+   Retain matched application baselines and deliver before/after comparisons.
+2. Everyday campus and walking-height detail.
+3. Dedicated downtown geometry, starting with Waterline and Sixth and Guadalupe.
+4. Device reliability and physical-phone/large-screen performance and memory.
+5. DKR exterior refinement.
+6. Remaining generalized visual defects.
+7. Consistent facade quality while preserving architectural differences.
+8. Idle-spin pauses.
+9. Citywide window flicker and grazing-angle patterns.
+10. Further photo-based sunlight and glare refinement.
+
+Use bounded subagents where useful. Photo sources, private camera metadata and
+owner imagery remain local. Existing shipped work is a baseline, not grounds to
+remove remaining visual acceptance tasks. Older routing/import/Drag work remains
+parked. Do not resume motion work ahead of this order without a new direction.

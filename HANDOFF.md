@@ -1,5 +1,22 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Photo-first reprioritization (`codex/idle-pause-profile`)
+
+User supplied a new explicit order; see AGENTS.md's latest work-order section.
+Start with the full owner-photo set and new Guadalupe/GDC/Welch/apartment-rooftop
+references. Guadalupe coverage joins that pass. Then campus detail, downtown
+geometry, device checks, DKR, general defects, facade quality, idle pauses,
+window stability, and further glare refinement. Prior motion-first notes below
+are historical. Two bounded read-only agents are locating the new photo source
+and mapping GDC/Welch/Guadalupe model ownership.
+
+Idle profiling made no runtime changes. Two attempted normal-idle runs failed
+full-city readiness; diagnostics showed 12 authored buildings and readyToReveal
+false despite no page errors. Those runs are rejected as performance evidence.
+Scratch checkpoint/scripts are in austin-lighting-scratch/idle-pause-profile.
+Browsers and server were closed. Preserve this issue for its new queue position.
+
+
 ## Sep 21 2026 - Union daylight motion (`codex/window-renderer-attribution`, PR #280)
 
 Matched the new narrow-angle daytime reference and isolated the authored model.
