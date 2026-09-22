@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
-const source=fs.readFileSync(new URL('../../js/heroes.js',import.meta.url),'utf8');
+const source=fs.readFileSync(new URL('../../js/heroes.js',import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const begin=source.indexOf('  function installRoofUndersides(map, gj) {');
 const end=source.indexOf('\n  let _added = false;',begin);
 assert(begin>=0&&end>begin,'actual installer boundary must exist');
@@ -14,9 +14,20 @@ if(process.argv.includes('--break')){
   assert(installer.includes(original),'toggle sabotage still targets the real branch');
   installer=installer.replace(original,'if (group) S.remove(group); group = null;\n        return;');
 }
+for(const building of ['nhb']) if(process.argv.includes('--break-'+building)){
+  const original="f.properties.b === '"+building+"'";
+  assert(installer.includes(original),'omission control targets the actual '+building+' selector');
+  installer=installer.replace(original,'false');
+}
 const gj=JSON.parse(fs.readFileSync(new URL('../../data/heroes.geojson',import.meta.url),'utf8'));
-const roofs=gj.features.filter(f=>f.properties.b==='gdc'&&f.properties.cap===1&&f.geometry.type==='Polygon');
-assert.equal(roofs.length,3,'three current GDC roof slabs establish this contract');
+// Explicit expected parts avoid silently including solid parapets or the NHB
+// louvre sitting on the deck. These are the four exposed roof planes.
+const roofs=gj.features.filter(({properties:p})=>
+  (p.b==='gdc'&&p.cap===1)||(p.b==='nhb'&&p.band==='deck'));
+assert.equal(roofs.length,4);
+assert.equal(roofs.filter(f=>f.properties.b==='gdc').length,3);
+assert.ok(roofs.every(f=>f.geometry.type==='Polygon'&&f.geometry.coordinates.length===1),
+  'these exposed roofs must have simple rings, without courtyard holes');
 const plain=v=>JSON.parse(JSON.stringify(v));
 
 function fixture(late=false){
@@ -58,8 +69,9 @@ function fixture(late=false){
 const live=fixture();
 assert.equal(live.count.builds,1);
 assert.equal(live.root.children.length,1);
-assert.equal(live.polygons.length,3);
-assert.equal(live.window.__heroes.roofUndersides.triangles,6);
+assert.equal(live.polygons.length,4,'NHB deck and the three existing GDC caps');
+assert.equal(live.window.__heroes.roofUndersides.triangles,
+  roofs.reduce((n,f)=>n+f.geometry.coordinates[0].length-3,0));
 for(let i=0;i<roofs.length;i++){
   const roof=roofs[i],emitted=live.polygons[i];
   assert.deepEqual(emitted.normal,[0,0,-1],'undersides must face down');
@@ -103,4 +115,4 @@ cancelled.slopes.root=cancelled.root;staleCallback();
 assert.equal(cancelled.count.builds,0,'even an already-queued boot must respect removed');
 assert.equal(cancelled.hooks.length,0);
 assert.equal(cancelled.root.children.length,0);
-console.log('PASS: three downward roof caps; retained toggles; disposal; late boot and cancellation');
+console.log('PASS: four downward roof caps (GDC, NHB); retained toggles; disposal; late boot and cancellation');
