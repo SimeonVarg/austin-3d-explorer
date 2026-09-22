@@ -276,3 +276,9 @@ bounded work on other queued defects is authorized, including idle-spin pauses.
 The campus lane starts on `codex/everyday-campus`; idle motion uses its own lane.
 Physical-phone acceptance remains open. Do not present desktop emulation as a
 physical-phone result or repeat the same storefront pictures as new progress.
+
+## Device acceptance targets - September 22, 2026
+
+Target iPhone Safari and Chrome for physical-device acceptance. A physical device
+is not currently available; continue desktop recovery and viewport verification,
+but keep iPhone performance, thermal behavior and memory headroom unverified.
