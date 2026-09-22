@@ -2331,18 +2331,18 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset, roofscapeOnly = false) {
+  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = okBuildings().filter(b => !roofscapeOnly || !b.preserveRoofscape);
-    const key = inset + '|' + buildings.map(b => b.name).join('|');
+    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage));
+    const key = inset + '|' + frontageOnly + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
     // A building may add `hideRings`: outlines it replaces beyond its own
     // footprint (Moody's two snapshot roof plates, whose deck items stood
     // 20-38 m outside the drum and floated at 24 m once the plates went).
     const rings = [];
-    for (const b of buildings) rings.push(b.footprint && b.footprint.ring, ...(b.hideRings || []));
+    for (const b of buildings) rings.push(b.footprint && b.footprint.ring, ...(frontageOnly ? [] : (b.hideRings || [])));
     for (const ring of rings) {
       if (!ring || ring.length < 4) continue;
       const pts = ring.slice(0, ring.length - 1);
@@ -2446,15 +2446,28 @@
     // Every complete authored model replaces older Drag facade/cap geometry.
     // Restricting this to the new street shops left PCL and Texas Union drawing
     // two different elevations and roofs in the same place.
-    if (gone.length) for (const id of ['drag-wall','drag-cap','drag-detail']) {
+    if (gone.length) for (const id of ['drag-wall','drag-cap']) {
       plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', gone]]]]);
     }
     // Street shops explicitly replace their old frontage and door skins. Keep
     // pools and unrelated entrances; these sources share a building id (bid).
-    const frontages = _data.buildings.filter(b => b.replaceFrontage).map(b => b.id);
+    const frontages = okBuildings().filter(b => b.replaceFrontage).map(b => b.id);
     if (frontages.length) for (const id of ['places-solid','places-glass','places-entry','places-label','entrances-portal','entrances-glass','entrances-detail','entrances-mullion','entrances-inscription','entrances-wordmark']) {
       plan.push([id, ['!', ['in', ['get', 'bid'], ['literal', frontages]]]]);
     }
+    // Drag cornices/course bands deliberately have no bid. Their polygons
+    // contain the old building footprint, so the id clause above cannot hide
+    // them when an authored shop is lower. An inset masks that filled trim
+    // without catching a neighbour's proud cornice across the party wall.
+    // Use only successful frontage replacements, preserving campus detail
+    // and every failed model's legacy fallback. Cached with the other masks.
+    const frontageGeo = hideGeometry(APTS.roofscapeInset, false, true);
+    const detailClauses = [];
+    if (gone.length) detailClauses.push(['!', ['in', ['get', 'bid'], ['literal', gone]]]);
+    if (frontageGeo) detailClauses.push(['>', ['distance', frontageGeo], 0]);
+    // One planned clause per layer: setFilters must retain both the id and
+    // geometry exclusions as one unit when applying, repairing or restoring.
+    if (detailClauses.length) plan.push(['drag-detail', detailClauses.length === 1 ? detailClauses[0] : ['all', ...detailClauses]]);
     const geo = APTS.hideRoofscape && hideGeometry(APTS.roofscapeInset, true);
     if (geo) for (const id of HIDE_LAYERS.roofscape) plan.push([id, ['>', ['distance', geo], 0]]);
     const geoW = APTS.hideRoofscape && hideGeometry(0);
@@ -2513,6 +2526,21 @@
     _expectedFilters = plan;
     _filterChecks = new WeakMap();
     if (on) {
+      // A rebuild can lose the last successful replacement for a layer.
+      // Restore its fallback even though no new clause visits that layer.
+      // Strip only our saved clause, preserving filters added by other passes.
+      const planned = new Set(plan.map(([id]) => id));
+      for (const id of Object.keys(_clauses)) {
+        if (planned.has(id)) continue;
+        if (map.getLayer(id)) {
+          const f = map.getFilter(id) || null, g = stripClause(f, _clauses[id]);
+          if (!sameJSON(f, g)) {
+            try { map.setFilter(id, g); }
+            catch (e) { console.warn('[slopes-apartments] restore filter', id, e); continue; }
+          }
+        }
+        delete _clauses[id];
+      }
       for (const [id, clause] of plan) {
         if (!map.getLayer(id)) continue;
         let f = map.getFilter(id) || null;

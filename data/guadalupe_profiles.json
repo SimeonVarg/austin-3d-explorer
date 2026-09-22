@@ -1224,10 +1224,72 @@
         2
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Mapped footprint and road-facing walls retained. Storefront openings, trim and rear walls are simplified architectural approximations; this profile does not certify a current tenant.",
+      "observations": "White-painted brick one-storey frontage with a deep recessed entrance, a separate high transom and dark green metal framing. Storefront proportions are approximate; footprint retained.",
       "colours": {
-        "wall": "#b89e7f",
-        "signboard": "#50554f"
+        "wall": "#e1e0d6",
+        "signboard": "#e1e0d6",
+        "trim": "#e7e5d9",
+        "metal": "#333c37",
+        "letters": "#c5a152",
+        "dark": "#d1cfc2"
+      },
+      "ground": 4.1,
+      "shopBay": 2.5,
+      "tuning": {
+        "parapet": 0.1,
+        "bulkhead": 0.1,
+        "fascia": 0.12,
+        "transom": 0.78,
+        "reveal": 0.32
+      },
+      "frontage": {
+        "bands": [
+          {
+            "z0": 0,
+            "z1": 4.1,
+            "skin": "wall",
+            "openings": [
+              {
+                "s0": 0.06,
+                "s1": 0.93,
+                "z0": 0.1,
+                "z1": 3.25,
+                "d": 1.0,
+                "glass": "glass",
+                "tone": "metal"
+              },
+              {
+                "s0": 0.06,
+                "s1": 0.93,
+                "z0": 3.35,
+                "z1": 4.03,
+                "d": 0.32,
+                "glass": "glass",
+                "tone": "metal"
+              }
+            ]
+          },
+          {
+            "z0": 4.1,
+            "z1": 5.38,
+            "skin": "wall",
+            "signs": [
+              {
+                "text": "POTBELLY",
+                "s": 0.5,
+                "z0": 4.48,
+                "dot": 0.12,
+                "gap": 0.12,
+                "tone": "letters"
+              }
+            ]
+          },
+          {
+            "z0": 5.38,
+            "z1": 5.5,
+            "skin": "metal"
+          }
+        ]
       }
     },
     {
@@ -1263,16 +1325,74 @@
     {
       "id": "81f43505-cabd-41a3-ae0f-b18cd34a2084",
       "name": "Wingstop",
-      "height": 9.6,
-      "floors": 2,
+      "height": 5.5,
+      "floors": 1,
       "frontEdges": [
         2
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Mapped footprint and road-facing walls retained. Storefront openings, trim and rear walls are simplified architectural approximations; this profile does not certify a current tenant.",
+      "observations": "Low white-painted brick shop adjoining Potbelly at the same roof line; full-height silver-framed glazing and high transoms. Removed unsupported second-floor windows. Heights are estimated from the adjoining doorway proportions; footprint retained.",
       "colours": {
-        "wall": "#b6bead",
-        "signboard": "#50554f"
+        "wall": "#e1e0d6",
+        "signboard": "#e1e0d6",
+        "trim": "#ebeae0",
+        "metal": "#ced2cd",
+        "letters": "#588462",
+        "dark": "#d1cfc2"
+      },
+      "ground": 4.1,
+      "shopBay": 1.44,
+      "tuning": {
+        "parapet": 0.1,
+        "bulkhead": 0.05,
+        "fascia": 0.1,
+        "transom": 0.7,
+        "reveal": 0.16
+      },
+      "frontage": {
+        "bands": [
+          {
+            "z0": 0,
+            "z1": 0.08,
+            "skin": "trim"
+          },
+          {
+            "z0": 0.08,
+            "z1": 4.12,
+            "skin": "shop",
+            "openings": [
+              {
+                "s0": 0.38,
+                "s1": 0.72,
+                "z0": 0.08,
+                "z1": 2.9,
+                "d": 0.18,
+                "glass": "glass",
+                "tone": "metal"
+              }
+            ]
+          },
+          {
+            "z0": 4.12,
+            "z1": 5.38,
+            "skin": "wall",
+            "signs": [
+              {
+                "text": "WINGSTOP",
+                "s": 0.5,
+                "z0": 4.43,
+                "dot": 0.12,
+                "gap": 0.12,
+                "tone": "letters"
+              }
+            ]
+          },
+          {
+            "z0": 5.38,
+            "z1": 5.5,
+            "skin": "metal"
+          }
+        ]
       }
     },
     {
@@ -1403,16 +1523,145 @@
       "id": "b7dece1c-bb39-4ca3-94c1-739467c3520e",
       "name": "Wukasch Building",
       "height": 7.0,
-      "floors": 2,
+      "floors": 1,
       "frontEdges": [
         4
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Mapped footprint and road-facing walls retained. Storefront openings, trim and rear walls are simplified architectural approximations; this profile does not certify a current tenant.",
+      "observations": "Red-brick retail facade with three broad display bays, recessed central entry, low tile bulkheads, continuous deep metal canopy and raised curved central parapet. Upper wall carries signs and decorative brick rather than residential windows. Footprint and maximum height retained; lettering and brick ornament simplified.",
       "colours": {
-        "wall": "#b98d65",
-        "trim": "#d9c6a0",
-        "signboard": "#5e5b4e"
+        "wall": "#8c4e3f",
+        "trim": "#aa745e",
+        "signboard": "#ad8965",
+        "metal": "#424c49",
+        "dark": "#916655",
+        "glass": "#455958",
+        "letters": "#ded8c7"
+      },
+      "ground": 3.85,
+      "tuning": {
+        "parapet": 0
+      },
+      "frontage": {
+        "bodyHeight": 6.1,
+        "crown": {
+          "base": 6.1,
+          "rise": 0.9,
+          "depth": 0.42,
+          "from": 0.3,
+          "to": 0.7,
+          "segments": 18,
+          "tone": "wall",
+          "minimumSlopeRise": 0.05
+        },
+        "bands": [
+          {
+            "z0": 0,
+            "z1": 3.85,
+            "skin": "wall",
+            "openings": [
+              {
+                "s0": 0.035,
+                "s1": 0.295,
+                "z0": 0.48,
+                "z1": 3.65,
+                "d": 0.22,
+                "glass": "glass",
+                "tone": "metal"
+              },
+              {
+                "s0": 0.365,
+                "s1": 0.635,
+                "z0": 0.05,
+                "z1": 3.65,
+                "d": 0.72,
+                "glass": "glass",
+                "tone": "metal"
+              },
+              {
+                "s0": 0.705,
+                "s1": 0.965,
+                "z0": 0.48,
+                "z1": 3.65,
+                "d": 0.22,
+                "glass": "glass",
+                "tone": "metal"
+              }
+            ],
+            "canopies": [
+              {
+                "s0": 0.012,
+                "s1": 0.988,
+                "z": 3.94,
+                "d": 1.6,
+                "t": 0.18,
+                "tone": "metal",
+                "soffitTone": "metal"
+              }
+            ]
+          },
+          {
+            "z0": 3.85,
+            "z1": 6.1,
+            "skin": "wall",
+            "signs": [
+              {
+                "text": "CAMPUS",
+                "s": 0.166,
+                "z0": 4.57,
+                "dot": 0.135,
+                "gap": 0.135,
+                "tone": "letters"
+              },
+              {
+                "text": "BAREFOOT",
+                "s": 0.5,
+                "z0": 4.38,
+                "dot": 0.125,
+                "gap": 0.125,
+                "tone": "letters"
+              },
+              {
+                "text": "WUKASCH",
+                "s": 0.5,
+                "z0": 5.58,
+                "dot": 0.065,
+                "gap": 0.065,
+                "tone": "letters"
+              },
+              {
+                "text": "OUTFITTER",
+                "s": 0.835,
+                "z0": 4.57,
+                "dot": 0.105,
+                "gap": 0.105,
+                "tone": "letters"
+              }
+            ],
+            "fins": [
+              {
+                "pitch": 0.31,
+                "w": 0.14,
+                "d": 0.095,
+                "z0": 5.67,
+                "z1": 5.98,
+                "tone": "trim",
+                "from": 0.02,
+                "to": 0.28
+              },
+              {
+                "pitch": 0.31,
+                "w": 0.14,
+                "d": 0.095,
+                "z0": 5.67,
+                "z1": 5.98,
+                "tone": "trim",
+                "from": 0.72,
+                "to": 0.98
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -1433,16 +1682,99 @@
     {
       "id": "3b9b52a7-aa0d-419e-a39e-7d838074ad06",
       "name": "Sweetgreen",
-      "height": 11.3,
-      "floors": 2,
+      "height": 7.6,
+      "floors": 1,
       "frontEdges": [
         3
       ],
       "source": "data/snapshots/2026-09-12/buildings.detailed.geojson; data/osm_cache/roads.json; Esri World Imagery",
-      "observations": "Mapped footprint and road-facing walls retained. Storefront openings, trim and rear walls are simplified architectural approximations; this profile does not certify a current tenant.",
+      "observations": "Dark green ground frontage with recessed entrance beneath a tall pale vertical screen and dark rectangular sign panel. The screened upper zone has no exposed upper-storey window grid. Height and screen spacing are approximate; footprint retained.",
       "colours": {
-        "wall": "#d6c29e",
-        "signboard": "#50554f"
+        "wall": "#cfcec3",
+        "signboard": "#244236",
+        "trim": "#e1e2d9",
+        "metal": "#35483c",
+        "letters": "#d4dacb",
+        "dark": "#344a3d",
+        "screen": "#cbd0c6"
+      },
+      "ground": 3.2,
+      "shopBay": 2.9,
+      "tuning": {
+        "parapet": 0.1
+      },
+      "frontage": {
+        "bands": [
+          {
+            "z0": 0,
+            "z1": 3.2,
+            "skin": "dark",
+            "openings": [
+              {
+                "s0": 0.08,
+                "s1": 0.43,
+                "z0": 0.14,
+                "z1": 2.77,
+                "d": 0.24,
+                "glass": "glass",
+                "tone": "metal"
+              },
+              {
+                "s0": 0.58,
+                "s1": 0.96,
+                "z0": 0.05,
+                "z1": 3.08,
+                "d": 0.85,
+                "glass": "glass",
+                "tone": "metal"
+              }
+            ]
+          },
+          {
+            "z0": 3.2,
+            "z1": 7.48,
+            "skin": "screen",
+            "fins": [
+              {
+                "pitch": 0.15,
+                "w": 0.027,
+                "d": 0.055,
+                "tone": "trim"
+              },
+              {
+                "pitch": 1.55,
+                "w": 0.06,
+                "d": 0.1,
+                "tone": "trim"
+              }
+            ]
+          },
+          {
+            "z0": 7.48,
+            "z1": 7.6,
+            "skin": "trim"
+          }
+        ],
+        "panels": [
+          {
+            "s0": 0.2,
+            "s1": 0.84,
+            "z0": 4.82,
+            "z1": 5.91,
+            "depth": 0.18,
+            "tone": "signboard",
+            "signs": [
+              {
+                "text": "sweetgreen",
+                "s": 0.5,
+                "z0": 5.15,
+                "dot": 0.105,
+                "gap": 0.105,
+                "tone": "letters"
+              }
+            ]
+          }
+        ]
       }
     },
     {
