@@ -2,6 +2,10 @@
 
 ## Sep 22 2026 - Filtered apartment windows (`codex/window-stability`)
 
+PR #294 merged as 70ec2cc after green checks. The production index and all
+three changed runtime scripts match the verified source. The completed branch
+was deleted; the lighting checkout is clean on the merged main history.
+
 Desktop defaults now filter the authored window patterns on Union on 24th and
 21 Rio at subpixel distances. Original recessed geometry supplies close views,
 night windows and shadows. This is a bounded repair, not citywide acceptance.
