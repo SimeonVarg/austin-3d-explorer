@@ -1,5 +1,27 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Facade resize cost (`codex/idle-repaint-followup`)
+
+Added an exact four-sample path for 2x facade downsampling. Four interleaved
+native idle runs in the complete 196-building city reduce minimum rotation-leg
+pause from 1515.4 to 1459 ms (3.7%); minimum synchronous time update falls from
+1438.7 to 1401.5 ms. Median/p95 frame times remain about 18/54 ms. This is a
+small improvement, not a fix for the remaining roughly 1.5-second idle pause.
+[Matched second views and measurements](docs/idle-decimation-cost.md) retain
+the evidence. All 318 registered atlas images match at three time fractions;
+fixed-exposure second screenshots are pixel-identical. Normal tiles, indexed
+geometry, no veil, full readiness and zero runtime errors pass on every arm.
+The 1,054-case exact RGBA test, deliberate failure control, syntax and harness
+parity pass against current main. No new retained cache or taste changes.
+
+Continue the larger idle repaint work next. A private mottle-loop experiment
+is promising in isolation but remains unimplemented and has no city acceptance.
+Physical iPhone Safari/Chrome acceptance, citywide flicker/grazing patterns and
+the production recovery-event delay remain open. Dirty primary and Mac-owned
+files are untouched; only HANDOFF overlaps parked PRs #189/#164. Both capture
+browsers and owned server 8476 are stopped. Private references and camera data
+remain outside git. Hourly continuation stays active.
+
 ## Sep 22 2026 - Campus facade definition (`codex/facade-definition`)
 
 Raised the backing resolution of seven NHB/GDC/EER facade patterns from 64 to

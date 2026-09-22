@@ -2254,6 +2254,24 @@
     const out = res / div;
     const d = new Uint8ClampedArray(out * out * 4);
     const area = div * div;
+    // The current far tier is always a 2x reduction. Read its four pixels
+    // directly instead of walking two nested sample loops for every output.
+    // These small integer sums and the final clamped assignment are identical
+    // to the generic path, including alpha and half-integer rounding.
+    if (div === 2) {
+      const stride = res * 4;
+      let o = 0;
+      for (let y = 0; y < res; y += 2) {
+        let i = y * stride;
+        for (let x = 0; x < out; x++, i += 8, o += 4) {
+          d[o] = (src[i] + src[i + 4] + src[i + stride] + src[i + stride + 4]) / 4;
+          d[o + 1] = (src[i + 1] + src[i + 5] + src[i + stride + 1] + src[i + stride + 5]) / 4;
+          d[o + 2] = (src[i + 2] + src[i + 6] + src[i + stride + 2] + src[i + stride + 6]) / 4;
+          d[o + 3] = (src[i + 3] + src[i + 7] + src[i + stride + 3] + src[i + stride + 7]) / 4;
+        }
+      }
+      return d;
+    }
     for (let y = 0; y < out; y++) {
       for (let x = 0; x < out; x++) {
         let r = 0, g = 0, b = 0, a = 0;
