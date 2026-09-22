@@ -282,3 +282,12 @@ physical-phone result or repeat the same storefront pictures as new progress.
 Target iPhone Safari and Chrome for physical-device acceptance. A physical device
 is not currently available; continue desktop recovery and viewport verification,
 but keep iPhone performance, thermal behavior and memory headroom unverified.
+
+## Continued implementation - September 22, 2026
+
+The user authorized moving to the next actionable priority and an hourly
+continuation in the current task: finish the active pass, then start the next
+unfinished priority. DKR exterior refinement follows the desktop recovery pass;
+physical-phone acceptance and the production recovery-event delay remain open.
+This supersedes the earlier request to remove hourly continuation. Continue using
+the isolated lighting checkout and preserve the dirty primary checkout.
