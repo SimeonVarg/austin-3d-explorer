@@ -1,5 +1,22 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Idle repaint cost (`codex/idle-spin-fix`)
+
+The actual full-city idle driver stalled during synchronous facade repainting.
+Optimized the shared wrapped blur traversal and bounded wrap-index scratch,
+preserving exact RGBA output. Two interleaved repetitions reduced the minimum
+native leg pause from 3.680 s to 1.574 s (57%); all retained runs loaded 196
+buildings and settled tiles. All 708 actual atlas images match at three hours;
+matched second city screenshots remain identical at the illustrated hour.
+See [evidence, settings and limits](docs/idle-repaint-cost.md).
+
+This is partial: roughly 1.5 s of synchronous repaint remains, median frames
+stay 36 ms, and exposure-meter GPU readbacks are a separate measured hotspot.
+No timer or exposure behavior was changed. A rejected incomplete profiled run
+is excluded. Physical-phone results are not established. The 242-case pixel
+regression, deliberate failing wrap-index sabotage, syntax and harness checks
+pass. Primary checkout and other lanes remain untouched.
+
 ## Sep 22 2026 - Five approved architectural targets (`codex/photo-five-realism`, PR #282)
 
 Implemented the approved follow-up after the rejection of PR #281's fidelity.
