@@ -19,6 +19,9 @@
     surfaceOffset: 0.035, farStripeEvery: 3,
     fieldHeight: 0.25, fieldLineWidth: 0.105,
     collisionCell: 5, collisionMargin: 0.15,
+    // The replaced north roof reaches local y146.2; its detached units sit
+    // beyond the mesh's y141 bounds. Expand only the old roofscape mask.
+    roofscapeNorthMargin: 5.3,
     nightStart: 0.58, nightFull: 0.92, lowerSpill: 0.92, upperSpill: 0.62,
   };
   let data, map, group, origin, east, north, lastNear, lastRail;
@@ -424,8 +427,9 @@
     count.sections=data.sections.length;count.triangles=B.triangles+R.triangles+F.triangles+rails.triangles;
     S.add(group);lastNear=lastRail=null;updateLOD();
   }
-  function replacementPolygon() {
-    const [a,b,c,d]=data.bounds;
+  function replacementPolygon(roofscape=false) {
+    const [a,b,c,northEdge]=data.bounds;
+    const d=northEdge+(roofscape?TUNE.roofscapeNorthMargin:0);
     return {type:'Polygon',coordinates:[[[a,b],[c,b],[c,d],[a,d],[a,b]].map(p=>ll(...p))]};
   }
   const tag=['!=',['literal','dkr-mesh'],['literal','dkr-mesh']];
@@ -445,7 +449,7 @@
     for(const id of [...LEGACY,...VOLUMES]){
       if(!map.getLayer(id))continue;
       if(on){
-        const clause=LEGACY.includes(id)?tag:['>', ['distance',replacementPolygon()],0];
+        const clause=LEGACY.includes(id)?tag:['>', ['distance',replacementPolygon(id.startsWith('roofscape-'))],0];
         const orig=map.getFilter(id)||null;
         saved.set(id,clause);
         if(strip(orig,clause)!==orig)continue;
