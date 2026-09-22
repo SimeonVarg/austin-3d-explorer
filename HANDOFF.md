@@ -1,5 +1,32 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 21 2026 - Guadalupe frontages and Waterloo crown (`codex/owner-photo-fit`)
+
+Completed the first implementation from the expanded photo review: Potbelly,
+Wingstop, Sweetgreen and Wukasch now have distinct storefront proportions,
+glazing, signs and rooflines; Waterloo has a stepped northern crown and open
+southern terrace instead of the continuous glazed lid. Existing footprint,
+northern roof and blade heights are retained. All references were reviewed
+locally; source imagery, links and camera records remain outside tracked files.
+
+The shared renderer removes overlapping untagged old shop cornices only where
+an authored frontage built successfully. Failed replacements retain their
+fallback, including when the last replacement for an entire layer fails.
+The Drag/campus experiment files and the dirty primary checkout were untouched.
+
+Full-city verification loaded all 196 authored buildings, checked finite meshes
+and replacement filters, and captured matched daylight, rooftop and night views.
+Frontage filter/fallback and cache regressions pass. See the committed
+[comparison images and limits](docs/photo-frontages-and-waterloo.md).
+
+This completes one photo-supported pass, not the complete photo backlog. Continue
+photo matching and missing apartment coverage before the later work order in
+AGENTS.md. GDC identification, Welch's other angles, downtown geometry, physical
+phone/large-screen checks and the previously reported motion defects remain open.
+Do not infer GDC's identity from an unconfirmed photograph or raise all of Welch
+from an uncertain comparison. No hourly continuation automation was recreated.
+
+
 ## Sep 21 2026 - Photo-first reprioritization (`codex/idle-pause-profile`)
 
 User supplied a new explicit order; see AGENTS.md's latest work-order section.

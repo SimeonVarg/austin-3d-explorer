@@ -8,7 +8,8 @@
     "brickLight": "brick",
     "glass": "glass",
     "curtainGlass": "glass",
-    "crownGlass": "glass"
+    "crownGlass": "glass",
+    "terraceGlass": "glass"
   },
   "aliases": [
     "Waterloo",
@@ -134,7 +135,7 @@
       "hex": "#6a9fb3"
     },
     "crownGlass": {
-      "hex": "#4f9489"
+      "hex": "#425d63"
     },
     "frameDark": {
       "hex": "#1c1f21"
@@ -154,7 +155,13 @@
     "stone": {
       "hex": "#c9bd9f"
     },
-    "_src": "notes.md samples: brick darkest #222023 / mid #413d3e, white glazed brick #bdb8b4-#bfbcbb; the rest read off the photographs by eye: tan field, darker bronze sub-panel, light greige east field, cream blade, bronze wordmark, sky-blue south curtain wall, green-teal crown glass (crown-detail)."
+    "_src": "notes.md samples: brick darkest #222023 / mid #413d3e, white glazed brick #bdb8b4-#bfbcbb; the rest read off the photographs by eye: tan field, darker bronze sub-panel, light greige east field, cream blade, bronze wordmark, sky-blue south curtain wall, green-teal crown glass (crown-detail).",
+    "terracePaving": {
+      "hex": "#9c988c"
+    },
+    "terraceGlass": {
+      "hex": "#486465"
+    }
   },
   "skins": {
     "lobby": {
@@ -295,8 +302,8 @@
       "mullionW": 0.08,
       "fascia": 0.3,
       "fasciaTone": "frameDark",
-      "_src": "the top two floors: a continuous green-teal glazed amenity band, slender mullions, dark cap (01, 02, crown-detail)",
-      "nightOccupancy": 0.78,
+      "_src": "Glazed enclosed northern amenity volume. The south end is a lower open terrace, not a second enclosed glazed floor.",
+      "nightOccupancy": 0.34,
       "nightTone": "#d1e6df"
     },
     "blade": {
@@ -395,10 +402,8 @@
         56.5
       ],
       "z0": 17.641,
-      "z1": 95.4,
+      "z1": 89.179,
       "roofTone": "roof",
-      "parapet": 0.6,
-      "parapetTone": "frameDark",
       "faces": {
         "v1": {
           "bands": [
@@ -406,16 +411,6 @@
               "z0": 17.641,
               "z1": 89.179,
               "skin": "north"
-            },
-            {
-              "z0": 89.179,
-              "z1": 92.29,
-              "skin": "crown"
-            },
-            {
-              "z0": 92.29,
-              "z1": 95.4,
-              "skin": "crown"
             }
           ]
         },
@@ -425,20 +420,51 @@
               "z0": 17.641,
               "z1": 89.179,
               "skin": "west"
-            },
-            {
-              "z0": 89.179,
-              "z1": 92.29,
-              "skin": "crown"
-            },
-            {
-              "z0": 92.29,
-              "z1": 95.4,
-              "skin": "crown"
             }
           ]
         },
         "v0": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "east"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "east"
+            }
+          ]
+        }
+      },
+      "overrides": [
+        {
+          "region": [
+            3.4,
+            3.4,
+            36.0,
+            47.0
+          ],
+          "bands": [
+            {
+              "z0": 17.641,
+              "z1": 89.179,
+              "skin": "westBronze"
+            }
+          ]
+        },
+        {
+          "region": [
+            3.4,
+            3.4,
+            1,
+            7.5
+          ],
           "bands": [
             {
               "z0": 17.641,
@@ -554,67 +580,136 @@
               "z0": 86.069,
               "z1": 89.179,
               "skin": "curtain"
-            },
-            {
-              "z0": 89.179,
-              "z1": 92.29,
-              "skin": "crown"
-            },
-            {
-              "z0": 92.29,
-              "z1": 95.4,
-              "skin": "crown"
             }
           ]
         },
-        "u1": {
-          "bands": [
-            {
-              "z0": 17.641,
-              "z1": 89.179,
-              "skin": "east"
-            },
-            {
-              "z0": 89.179,
-              "z1": 92.29,
-              "skin": "crown"
-            },
-            {
-              "z0": 92.29,
-              "z1": 95.4,
-              "skin": "crown"
-            }
-          ]
-        }
-      },
-      "overrides": [
         {
           "region": [
             3.4,
-            3.4,
-            36.0,
-            47.0
+            10.5,
+            1,
+            1
           ],
           "bands": [
             {
               "z0": 17.641,
+              "z1": 20.752,
+              "skin": "curtain"
+            },
+            {
+              "z0": 20.752,
+              "z1": 23.862,
+              "skin": "curtain"
+            },
+            {
+              "z0": 23.862,
+              "z1": 26.972,
+              "skin": "curtain"
+            },
+            {
+              "z0": 26.972,
+              "z1": 30.083,
+              "skin": "curtain"
+            },
+            {
+              "z0": 30.083,
+              "z1": 33.193,
+              "skin": "curtain"
+            },
+            {
+              "z0": 33.193,
+              "z1": 36.303,
+              "skin": "curtain"
+            },
+            {
+              "z0": 36.303,
+              "z1": 39.414,
+              "skin": "curtain"
+            },
+            {
+              "z0": 39.414,
+              "z1": 42.524,
+              "skin": "curtain"
+            },
+            {
+              "z0": 42.524,
+              "z1": 45.634,
+              "skin": "curtain"
+            },
+            {
+              "z0": 45.634,
+              "z1": 48.745,
+              "skin": "curtain"
+            },
+            {
+              "z0": 48.745,
+              "z1": 51.855,
+              "skin": "curtain"
+            },
+            {
+              "z0": 51.855,
+              "z1": 54.966,
+              "skin": "curtain"
+            },
+            {
+              "z0": 54.966,
+              "z1": 58.076,
+              "skin": "curtain"
+            },
+            {
+              "z0": 58.076,
+              "z1": 61.186,
+              "skin": "curtain"
+            },
+            {
+              "z0": 61.186,
+              "z1": 64.297,
+              "skin": "curtain"
+            },
+            {
+              "z0": 64.297,
+              "z1": 67.407,
+              "skin": "curtain"
+            },
+            {
+              "z0": 67.407,
+              "z1": 70.517,
+              "skin": "curtain"
+            },
+            {
+              "z0": 70.517,
+              "z1": 73.628,
+              "skin": "curtain"
+            },
+            {
+              "z0": 73.628,
+              "z1": 76.738,
+              "skin": "curtain"
+            },
+            {
+              "z0": 76.738,
+              "z1": 79.848,
+              "skin": "curtain"
+            },
+            {
+              "z0": 79.848,
+              "z1": 82.959,
+              "skin": "curtain"
+            },
+            {
+              "z0": 82.959,
+              "z1": 86.069,
+              "skin": "curtain"
+            },
+            {
+              "z0": 86.069,
               "z1": 89.179,
-              "skin": "westBronze"
-            },
-            {
-              "z0": 89.179,
-              "z1": 92.29,
-              "skin": "crown"
-            },
-            {
-              "z0": 92.29,
-              "z1": 95.4,
-              "skin": "crown"
+              "skin": "curtain"
             }
           ]
         }
       ],
-      "_src": "the tower covers the whole site (satellite); each face its own field (notes.md table). West face set 3.4 m back so the blade stands proud."
+      "_src": "Existing footprint and floor grid retained. The south-west glazed corner turns onto the south elevation; the remaining south face has punched windows, not a full-width curtain wall."
     },
     {
       "id": "blade",
@@ -693,11 +788,770 @@
       ],
       "roofTone": "metal",
       "_src": "one silver mechanical enclosure at the north-west corner of the roof (notes.md)"
+    },
+    {
+      "id": "crown-north",
+      "plan": [
+        3.4,
+        26.9,
+        20,
+        56.5
+      ],
+      "z0": 89.179,
+      "z1": 95.4,
+      "bands": [
+        {
+          "z0": 89.179,
+          "z1": 92.29,
+          "skin": "crown"
+        },
+        {
+          "z0": 92.29,
+          "z1": 95.4,
+          "skin": "crown"
+        }
+      ],
+      "roofTone": "roof",
+      "parapet": 0.3,
+      "parapetTone": "frameDark",
+      "_src": "Enclosed two-storey northern crown, with lower open terrace to the south. Split position is an approximate exterior-photo proportion, not a surveyed dimension."
+    },
+    {
+      "id": "terrace-south",
+      "plan": [
+        3.4,
+        26.9,
+        1,
+        20
+      ],
+      "z0": 89.179,
+      "z1": 92.29,
+      "roofTone": "terracePaving",
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "west"
+            }
+          ]
+        },
+        "u1": {
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "east"
+            }
+          ]
+        },
+        "v0": {
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "east"
+            }
+          ]
+        },
+        "v1": {
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "metal"
+            }
+          ]
+        }
+      },
+      "overrides": [
+        {
+          "region": [
+            3.4,
+            3.4,
+            1,
+            7.5
+          ],
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "curtain"
+            }
+          ]
+        },
+        {
+          "region": [
+            3.4,
+            10.5,
+            1,
+            1
+          ],
+          "bands": [
+            {
+              "z0": 89.179,
+              "z1": 92.29,
+              "skin": "curtain"
+            }
+          ]
+        }
+      ],
+      "_src": "The lower south terrace is open to the sky over the residential facade, with the glazed corner continuing below its guardrail."
+    },
+    {
+      "id": "roof-screen-step",
+      "plan": [
+        5.5,
+        11.5,
+        28,
+        47
+      ],
+      "z0": 95.4,
+      "z1": 97,
+      "bands": [
+        {
+          "z0": 95.4,
+          "z1": 97,
+          "skin": "metal"
+        }
+      ],
+      "roofTone": "metal",
+      "_src": "Lower dark screen in front of the retained taller north roof enclosure; approximate proportions from exterior crown views."
     }
   ],
   "deck": {
-    "z": 0,
-    "items": []
+    "z": 92.29,
+    "items": [
+      {
+        "plan": [
+          3.425,
+          26.875,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0.12,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          26.875,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 1.025,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          26.875,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 2.05,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          4.800294117647058,
+          4.870294117647059,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          6.175588235294118,
+          6.245588235294118,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          7.550882352941176,
+          7.620882352941177,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          8.926176470588235,
+          8.996176470588235,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          10.301470588235293,
+          10.371470588235294,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          11.676764705882352,
+          11.746764705882352,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          13.05205882352941,
+          13.12205882352941,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          14.42735294117647,
+          14.49735294117647,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          15.802647058823528,
+          15.872647058823528,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          17.177941176470586,
+          17.247941176470587,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          18.55323529411765,
+          18.62323529411765,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          19.928529411764707,
+          19.998529411764707,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          21.303823529411765,
+          21.373823529411766,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          22.679117647058824,
+          22.749117647058824,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          24.054411764705883,
+          24.124411764705883,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          25.42970588235294,
+          25.49970588235294,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.448,
+          26.852,
+          1.05,
+          1.11
+        ],
+        "z0": 0.15,
+        "h": 1.9,
+        "tone": "terraceGlass"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          1.0450000000000002,
+          19.995
+        ],
+        "z0": 0.12,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          1.0450000000000002,
+          19.995
+        ],
+        "z0": 1.025,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          1.0450000000000002,
+          19.995
+        ],
+        "z0": 2.05,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          2.3935714285714287,
+          2.463571428571429
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          3.7421428571428574,
+          3.8121428571428577
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          5.090714285714286,
+          5.1607142857142865
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          6.439285714285715,
+          6.509285714285715
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          7.787857142857143,
+          7.857857142857143
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          9.136428571428572,
+          9.206428571428573
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          10.485000000000001,
+          10.555000000000001
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          11.83357142857143,
+          11.90357142857143
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          13.182142857142859,
+          13.252142857142859
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          14.530714285714286,
+          14.600714285714286
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          15.879285714285716,
+          15.949285714285717
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          17.227857142857143,
+          17.297857142857143
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          18.576428571428576,
+          18.646428571428576
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.805,
+          26.875,
+          19.925,
+          19.995
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          26.81,
+          26.87,
+          1.068,
+          19.972
+        ],
+        "z0": 0.15,
+        "h": 1.9,
+        "tone": "terraceGlass"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          1.0450000000000002,
+          7.485
+        ],
+        "z0": 0.12,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          1.0450000000000002,
+          7.485
+        ],
+        "z0": 1.025,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          1.0450000000000002,
+          7.485
+        ],
+        "z0": 2.05,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          1.0450000000000002,
+          1.115
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          2.319,
+          2.3890000000000002
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          3.593,
+          3.6630000000000003
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          4.867,
+          4.937
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          6.141,
+          6.211
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          7.415,
+          7.485
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.43,
+          3.4899999999999998,
+          1.068,
+          7.462
+        ],
+        "z0": 0.15,
+        "h": 1.9,
+        "tone": "terraceGlass"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          19.515,
+          19.995
+        ],
+        "z0": 0.12,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          19.515,
+          19.995
+        ],
+        "z0": 1.025,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          19.515,
+          19.995
+        ],
+        "z0": 2.05,
+        "h": 0.07,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          19.515,
+          19.585
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.425,
+          3.495,
+          19.925,
+          19.995
+        ],
+        "z0": 0,
+        "h": 2.05,
+        "tone": "frameDark"
+      },
+      {
+        "plan": [
+          3.43,
+          3.4899999999999998,
+          19.538,
+          19.972
+        ],
+        "z0": 0.15,
+        "h": 1.9,
+        "tone": "terraceGlass"
+      }
+    ],
+    "_src": "Open-to-sky south terrace with a two-panel-high tinted glass windscreen. Height 2.05 m and rail spacing are appearance estimates from exterior views. Glass uses the existing reflective material proxy. No neighboring rooftop court or pool has been copied."
   },
   "night": {
     "occupancy": 0.32,
@@ -708,21 +1562,21 @@
         "position": [
           10,
           5,
-          98
+          92.41000000000001
         ],
         "colour": "#fff0da",
-        "radius": 15,
-        "power": 1.6
+        "radius": 9,
+        "power": 0.55
       },
       {
         "position": [
           23,
           5,
-          98
+          92.41000000000001
         ],
         "colour": "#fff0da",
-        "radius": 15,
-        "power": 1.6
+        "radius": 9,
+        "power": 0.55
       }
     ],
     "fixtureNote": "Approximate amenity downlights on the authored roof/terrace. Position and falloff are appearance estimates; not surveyed fixture locations."

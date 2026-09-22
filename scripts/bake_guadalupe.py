@@ -5,6 +5,7 @@ authoring process. Real footprint edges determine shopfronts, never rear walls.
 """
 import copy
 import json
+import math
 from pathlib import Path
 from neighborhood_geometry import local_frame, band, rect, validate
 
@@ -16,14 +17,76 @@ def lettering(text, width, s, z, tone, config, serif=False):
     return dict(bitmap=rows,bitmapRuns=True,dot=width/len(rows[0]),s=s,z0=z,tone=tone)
 
 
+def authored_frontage(base, blocks, plan, spec, config):
+    """Street elevations with individual shop proportions, on real edges.
+
+    Horizontal positions are fractions of an edge; heights/depths are metres.
+    This deliberately leaves unseen party walls and the surveyed plan alone.
+    """
+    def position_sign(sign,span):
+        center=sign.pop('s')*span
+        # The renderer centres bitmap signs with s, but horizontal text uses
+        # s0. Resolve the authored centre before handing it to that contract.
+        if 'bitmap' in sign:sign['s']=center
+        else:sign['s0']=center-(len(sign['text'])*(5*sign['dot']+sign['gap'])-sign['gap'])/2
+
+    for edge in spec['frontEdges']:
+        a,b=plan['ring'][edge],plan['ring'][(edge+1)%len(plan['ring'])]
+        length=math.dist(a,b);tx,ty=(b[0]-a[0])/length,(b[1]-a[1])/length
+        bands=copy.deepcopy(spec['frontage']['bands'])
+        for row in bands:
+            for key in ['openings','canopies']:
+                for item in row.get(key,[]):
+                    item['s0']*=length;item['s1']*=length
+            for sign in row.get('signs',[]):
+                position_sign(sign,length)
+            for fin in row.get('fins',[]) if isinstance(row.get('fins'),list) else [row['fins']] if row.get('fins') else []:
+                for key in ['from','to']:
+                    if key in fin:fin[key]*=length
+                if 'at' in fin:fin['at']=[s*length for s in fin['at']]
+        base['faces'][str(edge)]={'bands':bands}
+        for i,panel in enumerate(spec['frontage'].get('panels',[])):
+            s0,s1=panel['s0']*length,panel['s1']*length;d=panel['depth']
+            ring=[[a[0]+tx*s0+ty*d,a[1]+ty*s0-tx*d],
+                  [a[0]+tx*s1+ty*d,a[1]+ty*s1-tx*d],
+                  [a[0]+tx*s1,a[1]+ty*s1],
+                  [a[0]+tx*s0,a[1]+ty*s0]]
+            signs=copy.deepcopy(panel.get('signs',[]))
+            for sign in signs:position_sign(sign,s1-s0)
+            low,high,tone=panel['z0'],panel['z1'],panel['tone']
+            blocks.append(dict(id=f'front-panel-{edge}-{i}',plan=dict(ring=ring),z0=low,z1=high,bands=[band(low,high,tone)],roofTone=tone,faces={'0':dict(bands=[band(low,high,tone,signs=signs)])}))
+        c=spec['frontage'].get('crown')
+        if not c:continue
+        # A low brick parapet with a broad circular-looking central arch. Each
+        # segment has a genuinely sloping top, not a stack of square steps.
+        def strip(s0,s1):
+            return dict(ring=[[a[0]+tx*s0,a[1]+ty*s0],
+                              [a[0]+tx*s1,a[1]+ty*s1],
+                              [a[0]+tx*s1-ty*c['depth'],a[1]+ty*s1+tx*c['depth']],
+                              [a[0]+tx*s0-ty*c['depth'],a[1]+ty*s0+tx*c['depth']]])
+        start,end=c['from']*length,c['to']*length
+        for i in range(c['segments']):
+            s0=start+(end-start)*i/c['segments'];s1=start+(end-start)*(i+1)/c['segments']
+            z0=round(c['base']+c['rise']*math.sin(math.pi*i/c['segments']),3)
+            z1=round(c['base']+c['rise']*math.sin(math.pi*(i+1)/c['segments']),3)
+            low,high=min(z0,z1),max(z0,z1);shape=strip(s0,s1)
+            if low>c['base']:
+                blocks.append(dict(id=f'crown-{edge}-{i}-base',plan=shape,z0=c['base'],z1=low,bands=[band(c['base'],low,c['tone'])],roofTone=c['tone']))
+            if high-low>c['minimumSlopeRise']:
+                blocks.append(dict(id=f'crown-{edge}-{i}-slope',plan=shape,z0=low,z1=high,bands=[band(low,high,c['tone'])],roofTone=c['tone'],rake=dict(face='3' if z1>z0 else '1')))
+            elif high>low:
+                blocks.append(dict(id=f'crown-{edge}-{i}-crest',plan=shape,z0=low,z1=high,bands=[band(low,high,c['tone'])],roofTone=c['tone']))
+
+
 def make_building(p, feature, config, roofs):
-    t=config['detail'];f,plan,footprint=local_frame(feature['geometry'],p.get('angle',t['angle']))
+    t={**config['detail'],**p.get('tuning',{})};f,plan,footprint=local_frame(feature['geometry'],p.get('angle',t['angle']))
     colours=copy.deepcopy(config['colours']);colours.update({k:dict(hex=v) for k,v in p.get('colours',{}).items()})
     skins={k:dict(kind='flat',field=k) for k in colours}
     h,ground=p['height'],p.get('ground',t['shopHeight'])
     floors=[0,ground]+[ground+(h-ground)*i/(p['floors']-1) for i in range(1,p['floors'])] if p['floors']>1 else [0,h]
     skins['shop']=dict(kind='storefront',glass='glass',frame='metal',reveal=t['reveal'],mullion=p.get('shopBay',t['shopBay']),mullionW=t['mullion'],transom=t['transom'],fascia=t['fascia'],fasciaTone='signboard')
     skins['upper']=dict(kind='bays',windowRule=t['windowRule'],field='wall',bay=p.get('bay',t['upperBay']),glass='glass',frame='trim',reveal=t['upperReveal'],window=dict(w=t['upperWindow'],h=t['upperWindowHeight'],sill=t['upperSill'],frame=dict(w=t['upperFrame'],tone='trim')))
+    skins.update(copy.deepcopy(p.get('skins',{})))
     base=dict(id='street-building',plan=plan,z0=0,z1=h,bands=[band(0,h,'wall')],roofTone='roof',parapet=t['parapet'],parapetTone='trim',faces={})
     fronts=p['frontEdges']
     for edge in fronts:
@@ -40,7 +103,11 @@ def make_building(p, feature, config, roofs):
             bands[1]['canopies']=[dict(s0=t['awningEnd'],s1=max(t['awningEnd']+t['awningMinimum'],length-t['awningEnd']),z=t['awningHeight'],d=p['canopy'],t=t['awningThickness'],tone='awning',soffitTone='dark')]
         base['faces'][str(edge)]=dict(bands=bands)
     blocks=[base]
-    aligned=abs(h-feature['properties']['final_height'])<0.05 and not p.get('special')
+    if p.get('frontage'):
+        base['z1']=p['frontage'].get('bodyHeight',h)
+        base['bands']=[band(0,base['z1'],'wall')]
+        authored_frontage(base,blocks,plan,p,config)
+    aligned=abs(base['z1']-feature['properties']['final_height'])<0.05 and not p.get('special')
     rigs=[r for k,r in roofs.items()if k.startswith(p['id']+'/')]
     keep_roof=bool(rigs) and p.get('preserveRoof',t['retainSurveyedRoofs'] and aligned)
     if keep_roof:
