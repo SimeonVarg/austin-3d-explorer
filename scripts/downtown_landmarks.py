@@ -48,7 +48,7 @@ LANDMARKS = {
         "balcony_depth":2.4,"balcony_left":7.4,"balcony_right":9.6,
         "rail_height":1.1,"rail_thickness":0.14,
         "crown_band_height":3.0,"crown_blue":"#2865dc",
-        "crown_day":"#7a98ae","crown_overhang":0.7,
+        "crown_day":"#7a98ae","crown_overhang":0.7,"crown_backing_inset":0.85,
         "support_width":1.3,"terrace_rail":1.15,
         "backing_inset":0.85,
     },
@@ -243,7 +243,7 @@ def build_landmark(bake, name, height=None, fade=0):
         box([x0,left,y1-.3,y1+.3],res_base,res_top-2.0,cfg["glass"][0],"north-west-cheek")
         box([right,x1,y1-.3,y1+.3],res_base,res_top-13.5,cfg["glass"][0],"north-east-cheek")
         crown=expand(res,cfg["crown_overhang"])
-        box(crown,res_top,top,cfg["canopy"],"crown-screen")
+        box(expand(crown,-cfg["crown_backing_inset"]),res_top,top,cfg["canopy"],"crown-screen")
         ring(expand(crown,.20),top-cfg["crown_band_height"],top,cfg["crown_day"],"crown-blue-edge",.35,cfg["crown_blue"])
     validate_landmark(out, cfg["height"])
     return out
