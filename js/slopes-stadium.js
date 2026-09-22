@@ -12,6 +12,14 @@
     chairbackRows: 18,
     arcSegments: 5, facadeFloor: 4.6, facadeGlassShare: 0.70,
     facadePierWidth: 1.15, facadePierDepth: 0.7, facadeBand: 0.55, facadeWallDepth: 0.55,
+    // North facade composition follows exterior references; dimensions are approximate.
+    north: {bay: 8.5, depth: 4.2, pier: 1.8, pierDepth: 0.85, projection: 0.35, slab: 0.48,
+      levelShares: [0, 0.22, 0.44, 0.67], glassBaseShare: 0.88,
+      railHeight: 1.1, railLines: 4, railWidth: 0.055, railSetback: 0.7, railPostPitch: 2.1,
+      glassRecess: 0.32, glassDivisions: 4, mullion: 0.075, coping: 0.55, windowPitch: 2.1,
+      entrance: {shaftX: 15, shaftWidth: 8, shaftDepth: 6, windowWidth: 2.2,
+        front: 133.3, entryDepth: 9, plinth: 2.5, crown: 3.2,
+        bridgeSetback: 1.5, bridgeBaseShare: 0.64, bridgeTopShare: 0.91, bridgeDivisions: 10, backWallDepth: 0.35}},
     supportPitch: 13, supportWidth: 0.65,
     towerSegments: 32, rampTurns: 3, rampSegments: 96,
     boardSegments: 24, boardBorder: 0.65,
@@ -47,11 +55,11 @@
   const colour = key=>TUNE.flat ? data.palette.concrete : key==='glass'
     ? window.CityLighting.glassColour(data.palette.glass)
     : (data.palette[key] || data.palette.concrete);
-  function collisionTri(a,b,c) {
+  function collisionTri(a,b,c,clearance=-Infinity) {
     const den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);
     if(Math.abs(den)<0.01)return;
     const cell=TUNE.collisionCell;
-    const tri={a,b,c,den};
+    const tri={a,b,c,den,clearance};
     const minX=Math.floor(Math.min(a[0],b[0],c[0])/cell),maxX=Math.floor(Math.max(a[0],b[0],c[0])/cell);
     const minY=Math.floor(Math.min(a[1],b[1],c[1])/cell),maxY=Math.floor(Math.max(a[1],b[1],c[1])/cell);
     for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
@@ -63,12 +71,12 @@
       [want[0]*east[0]+want[1]*north[0],want[0]*east[1]+want[1]*north[1],want[2]]);
     if(solid){collisionTri(a,b,c);collisionTri(a,c,d);}
   }
-  function slab(B,poly,z0,z1,key='concrete',side=key) {
+  function slab(B,poly,z0,z1,key='concrete',side=key,clearance=-Infinity) {
     const top=poly.map(p=>[p[0],p[1],z1]);
     B.polygon(top.map(point),colour(key),up,'xy');
     // Collision triangulation must respect concave plans (Longhorn terrace).
     const T=window.THREE, shape=poly.map(p=>new T.Vector2(...p));
-    for(const [i,j,k] of T.ShapeUtils.triangulateShape(shape,[]))collisionTri(top[i],top[j],top[k]);
+    for(const [i,j,k] of T.ShapeUtils.triangulateShape(shape,[]))collisionTri(top[i],top[j],top[k],clearance);
     for(let i=0;i<poly.length;i++){
       const a=poly[i],b=poly[(i+1)%poly.length];
       quad(B,[...a,z0],[...b,z0],[...b,z1],[...a,z1],side);
@@ -194,6 +202,73 @@
     const inside=a.map((v,i)=>v-outward[i]*5),insideB=b.map((v,i)=>v-outward[i]*5);
     slab(B,[a,b,insideB,inside],height-0.5,height,'stone');
   }
+  function northFacade(B,R,a,b,height,outward) {
+    const s=TUNE.north,len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    const n=Math.max(1,Math.round(len/s.bay)),normal=[...outward,0];
+    const at=(u,z,depth=0)=>[lerp(a[0],b[0],u)-outward[0]*depth,lerp(a[1],b[1],u)-outward[1]*depth,z];
+    const panel=(u,v,z0,z1,key,depth=0)=>quad(B,at(u,z0,depth),at(v,z0,depth),at(v,z1,depth),at(u,z1,depth),key,normal);
+    const volume=(u,v,z0,z1,front,back,key)=>slab(B,
+      [at(u,0,front),at(v,0,front),at(v,0,back),at(u,0,back)].map(p=>p.slice(0,2)),z0,z1,key);
+    // The north enclosure is an open concourse, not a stack of glass panes.
+    // A recessed rear wall keeps the galleries distinct from holes into the bowl.
+    panel(0,1,0,height,'riser',s.depth);
+    const levels=s.levelShares.map(z=>z*height),top=s.glassBaseShare*height;
+    for(const z of [...levels,top])volume(0,1,z,z+s.slab,0,s.depth,'concrete');
+    for(let i=0;i<=n;i++){
+      const u=i/n,half=s.pier/len/2;
+      volume(Math.max(0,u-half),Math.min(1,u+half),0,height,-s.projection,s.pierDepth,'brick');
+    }
+    for(let i=0;i<n;i++){
+      const u=i/n+s.pier/len/2,v=(i+1)/n-s.pier/len/2;
+      for(const z of levels.slice(1)){
+        const base=z+s.slab;
+        for(let k=1;k<=s.railLines;k++)beam(R,at(u,base+k*s.railHeight/s.railLines,s.railSetback),at(v,base+k*s.railHeight/s.railLines,s.railSetback),s.railWidth,'steel');
+        const posts=Math.max(1,Math.ceil((v-u)*len/s.railPostPitch));
+        for(let k=0;k<=posts;k++)beam(R,at(lerp(u,v,k/posts),base,s.railSetback),at(lerp(u,v,k/posts),base+s.railHeight,s.railSetback),s.railWidth,'steel');
+      }
+      // The broad divided-glass top register is visible in the recent corner view.
+      panel(u,v,top+s.slab,height-s.coping,'glass',s.glassRecess);
+      for(let k=1;k<s.glassDivisions;k++)beam(B,at(lerp(u,v,k/s.glassDivisions),top+s.slab,s.glassRecess-s.mullion),at(lerp(u,v,k/s.glassDivisions),height-s.coping,s.glassRecess-s.mullion),s.mullion,'stone');
+    }
+    volume(0,1,height-s.coping,height,-s.projection,s.depth,'stone');
+  }
+  function northEntrance(B,R,height) {
+    const s=TUNE.north,e=s.entrance,y=e.front;
+    // Two planar brick stair shafts and a raised glazed bridge frame the entry.
+    // Keep the existing envelope: the references establish composition, not height.
+    for(const sign of [-1,1]){
+      const x=sign*e.shaftX,left=x-e.shaftWidth/2,right=x+e.shaftWidth/2;
+      const lo=x-e.windowWidth/2,hi=x+e.windowWidth/2;
+      const panel=(a,b,z0,z1,key,yy=y)=>quad(B,[a,yy,z0],[b,yy,z0],[b,yy,z1],[a,yy,z1],key,[0,1,0]);
+      box(B,(left+lo)/2,y-e.shaftDepth/2,lo-left,e.shaftDepth,0,height,'brick');
+      box(B,(hi+right)/2,y-e.shaftDepth/2,right-hi,e.shaftDepth,0,height,'brick');
+      panel(lo,hi,e.plinth,height-e.crown,'glass',y-s.glassRecess);
+      quad(B,[lo,y,e.plinth],[lo,y-s.glassRecess,e.plinth],[lo,y-s.glassRecess,height-e.crown],[lo,y,height-e.crown],'stone');
+      quad(B,[hi,y,e.plinth],[hi,y-s.glassRecess,e.plinth],[hi,y-s.glassRecess,height-e.crown],[hi,y,height-e.crown],'stone');
+      box(B,x,y-e.shaftDepth/2,e.shaftWidth,e.shaftDepth,0,e.plinth,'stone');
+      box(B,x,y-e.shaftDepth/2,e.shaftWidth,e.shaftDepth,height-e.crown,height,'brick');
+      box(B,x,y-e.shaftDepth/2,e.shaftWidth+s.projection,e.shaftDepth+s.projection,height-s.coping,height,'stone');
+      for(let z=e.plinth+s.windowPitch;z<height-e.crown;z+=s.windowPitch)beam(B,[lo,y-s.glassRecess+s.mullion,z],[hi,y-s.glassRecess+s.mullion,z],s.mullion,'stone');
+      beam(B,[x,y-s.glassRecess+s.mullion,e.plinth],[x,y-s.glassRecess+s.mullion,height-e.crown],s.mullion,'stone');
+    }
+    const half=e.shaftX-e.shaftWidth/2,back=y-e.entryDepth;
+    const z0=height*e.bridgeBaseShare,z1=height*e.bridgeTopShare,front=y-e.bridgeSetback;
+    box(B,0,back-e.backWallDepth/2,half*2,e.backWallDepth,0,height,'brick');
+    const poly=[[-half,front],[half,front],[half,back],[-half,back]];
+    // Both overhead slabs belong to one bridge volume. Only an eye safely
+    // below its underside can pass; ordinary slabs retain solid collision.
+    slab(B,poly,z0,z0+s.slab,'stone','stone',z0);
+    slab(B,poly,z1-s.slab,z1,'stone','stone',z0);
+    quad(B,[-half,front,z0+s.slab],[half,front,z0+s.slab],[half,front,z1-s.slab],[-half,front,z1-s.slab],'glass',[0,1,0]);
+    for(let i=0;i<=e.bridgeDivisions;i++){
+      const x=lerp(-half,half,i/e.bridgeDivisions);
+      beam(B,[x,front+s.mullion,z0+s.slab],[x,front+s.mullion,z1-s.slab],s.mullion,'stone');
+    }
+    for(let z=z0+s.windowPitch;z<z1-s.slab;z+=s.windowPitch)beam(B,[-half,front+s.mullion,z],[half,front+s.mullion,z],s.mullion,'stone');
+    // Side returns close the bridge while the space beneath remains recessed.
+    for(const x of [-half,half])quad(B,[x,front,z0],[x,back,z0],[x,back,z1],[x,front,z1],'glass');
+  }
+
   function officeTower(B,t) {
     const s=data.officeTower, h=t.height;
     const ring=(radius,n=s.facets)=>Array.from({length:n},(_,i)=>
@@ -364,8 +439,13 @@
     for(let i=1;i<=8;i++){const a=Math.PI/2+i/8*Math.PI/2;front.push([-34.2+67.8*Math.cos(a),61.6+67.8*Math.sin(a)]);}
     for(let i=0;i<front.length-1;i++){
       const a=front[i],b=front[i+1],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy);
-      facade(B,a,b,31,[dy/l,-dx/l]);
+      if(a[1]===129.4&&b[1]===129.4){
+        const edge=TUNE.north.entrance.shaftX+TUNE.north.entrance.shaftWidth/2;
+        northFacade(B,R,a,[edge,a[1]],31,[0,1]);
+        northFacade(B,R,[-edge,b[1]],b,31,[0,1]);
+      }else northFacade(B,R,a,b,31,[dy/l,-dx/l]);
     }
+    northEntrance(B,R,31);
     for(const t of data.towers)tower(B,R,t);
     // West press/suite strip and its open light gantry.
     box(B,-120,0,5,152,43,55,'stone');
@@ -380,7 +460,6 @@
       beam(B,[101,y,40.4],[101,y,45.2],0.45,'stone');
       box(B,100.5,y,0.8,5.3,44.5,45.2,'light');
     }
-    text(B,'TEXAS LONGHORNS',56,2.2,(x,z)=>[-x,129.5,6.8+z],'stone');
   }
   function dispose() {
     if(!group)return;
@@ -483,13 +562,14 @@
     if(on&&!group)build();else if(!on&&group)dispose();
     filter(on);map.triggerRepaint();
   }
-  function heightAt(lng,lat) {
+  function heightAt(lng,lat,eyeAltitude=Infinity) {
     if(!group||!filtered)return undefined;
     const [x,y]=uv(lng,lat),b=data.bounds;
     if(x<b[0]||x>b[2]||y<b[1]||y>b[3])return undefined;
     let top=0;
     for(const t of collision.get(Math.floor(x/TUNE.collisionCell)+','+Math.floor(y/TUNE.collisionCell))||[]){
-      const {a,b,c,den}=t;
+      const {a,b,c,den,clearance}=t;
+      if(eyeAltitude<clearance-TUNE.collisionMargin)continue;
       const u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/den;
       const v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/den;
       if(u>=-1e-6&&v>=-1e-6&&u+v<=1+1e-6)top=Math.max(top,u*a[2]+v*b[2]+(1-u-v)*c[2]);
