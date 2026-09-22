@@ -23,7 +23,7 @@
   const landmarkMaterials={reflection:.32,frameWidth:.24,
     waterline:{center:[-97.739542,30.261083],colour:[.686,.725,.741],zones:[[9.144,50,12,3.3],[50,177,27,3.6],[187,302,33,3.15]],band:.28},
     sixth:{center:[-97.74669,30.269654],colour:[.396,.447,.478],zones:[[18.7,119,22,3.1],[126,257,37,3.2]],band:.30},
-    bearing:18,nightFrame:[.055,.07,.085]};
+    bearing:18,nightFrame:[.055,.07,.085],balconyShade:.58,balconyRail:.14,balconyRailHeight:1.1};
   const uniforms = `
     uniform vec3 u_eye;
     uniform vec4 u_sunlight;
@@ -52,6 +52,12 @@
       float x=position/pitch,w=width/pitch,dx=max(fwidth(position)/pitch,.0001);
       return clamp((stripIntegral(x+.5*dx,w)-stripIntegral(x-.5*dx,w))/dx,0.0,1.0);
     }
+    float landmarkBalcony(vec3 pos,vec3 normal){
+      vec2 d=pos.xy-u_cityLandmarkOrigins.zw;
+      float c=${Math.cos(landmarkMaterials.bearing*Math.PI/180).toFixed(8)},s=${Math.sin(landmarkMaterials.bearing*Math.PI/180).toFixed(8)};
+      vec2 local=vec2(c*d.x-s*d.y,s*d.x+c*d.y);
+      return step(126.0,pos.z)*(1.0-step(257.0,pos.z))*step(-20.6,local.x)*(1.0-step(10.4,local.x))*step(32.0,local.y)*step(.5,s*normal.x+c*normal.y);
+    }
     vec4 landmarkGrid(vec3 pos,vec3 normal){
       if(abs(normal.z)>.5)return vec4(0.0);
       bool waterline=length(pos.xy-u_cityLandmarkOrigins.xy)<length(pos.xy-u_cityLandmarkOrigins.zw);
@@ -69,6 +75,10 @@
       float along=abs(n.x)>abs(n.y)?local.y:local.x;
       float horizontal=stripCoverage(pos.z-zone.x,zone.y,zone.w);
       float vertical=stripCoverage(along,zone.z,${landmarkMaterials.frameWidth.toFixed(3)});
+      if(landmarkBalcony(pos,normal)>.5){
+        horizontal=max(horizontal,stripCoverage(pos.z-zone.x-${landmarkMaterials.balconyRailHeight.toFixed(3)},zone.y,${landmarkMaterials.balconyRail.toFixed(3)}));
+        vertical=stripCoverage(local.x+20.6,31.0/9.0,${landmarkMaterials.frameWidth.toFixed(3)});
+      }
       float coverage=horizontal+vertical-horizontal*vertical;
       vec3 tint=waterline?vec3(${landmarkMaterials.waterline.colour.join(',')}):vec3(${landmarkMaterials.sixth.colour.join(',')});
       return vec4(mix(tint,vec3(${landmarkMaterials.nightFrame.join(',')}),u_cityNight.x),coverage);
@@ -385,8 +395,9 @@
               }else{
               float glass=1.0-step(1.5,u_citySolidSurface);
               vec4 grid=glass>.5?landmarkGrid(v_cityPos,normalize(v_cityNormal)):vec4(0.0);
-              vec3 albedo=mix(v_cityAlbedo.rgb,grid.rgb,grid.a);
-              vec3 original=mix(v_color.rgb/max(v_color.a,.0001),grid.rgb*.6,grid.a);
+              float recess=mix(1.0,${landmarkMaterials.balconyShade.toFixed(3)},landmarkBalcony(v_cityPos,normalize(v_cityNormal))*glass);
+              vec3 albedo=mix(v_cityAlbedo.rgb*recess,grid.rgb,grid.a);
+              vec3 original=mix(v_color.rgb/max(v_color.a,.0001)*recess,grid.rgb*.6,grid.a);
               vec3 shaded=cityShade(original,albedo,v_cityPos,v_cityNormal,glass*(1.0-grid.a)*${landmarkMaterials.reflection.toFixed(3)});
               shaded=cityCrown(shaded,v_cityPos,v_cityNormal);
               if(glass>.5)shaded=cityEmission(shaded,v_cityAlbedo.rgb,1.0-grid.a);

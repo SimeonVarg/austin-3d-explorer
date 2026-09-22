@@ -284,7 +284,7 @@
   // landmark bake. Their color is not a request to make masonry luminous.
   const IS_LANDMARK_LIGHT = ['all', IS_DETAIL, ['==', ['get', 'lmEmit'], 1]];
   const IS_LANDMARK_GLASS = ['all', IS_DETAIL, ['==', ['get', 'lmGlass'], 1], ['!=', ['get', 'lmEmit'], 1]];
-  const IS_FLAT_DETAIL = ['all', IS_DETAIL, ['!=', ['get', 'lmThin'], 1], ['!=', ['get', 'lmGlass'], 1], ['!=', ['get', 'lmEmit'], 1]];
+  const IS_FLAT_DETAIL = ['all', IS_DETAIL, ['!=', ['get', 'lmThin'], 1], ['any', ['!=', ['get', 'lm'], 'sixth-guadalupe'], ['all', ['!=', ['get', 'part'], 'balcony-rail'], ['!=', ['get', 'part'], 'balcony-divider']]], ['!=', ['get', 'lmGlass'], 1], ['!=', ['get', 'lmEmit'], 1]];
   const IS_WALL = ['!', IS_DETAIL];
   const IS_TOWER = ['all', ['==', ['get', 't'], 1], IS_WALL];
   // `t=2` is the downtown STREETWALL (scripts/bake_outer.py:MIDRISE_H). It is

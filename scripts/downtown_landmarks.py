@@ -47,7 +47,7 @@ LANDMARKS = {
         "floor_band":0.30,"frame_width":0.22,"face_depth":0.28,
         "balcony_depth":2.4,"balcony_left":7.4,"balcony_right":9.6,
         "rail_height":1.1,"rail_thickness":0.14,
-        "crown_band_height":1.0,"crown_blue":"#2865dc",
+        "crown_band_height":3.0,"crown_blue":"#2865dc",
         "crown_day":"#7a98ae","crown_overhang":0.7,
         "support_width":1.3,"terrace_rail":1.15,
         "backing_inset":0.85,

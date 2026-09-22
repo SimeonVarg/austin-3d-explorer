@@ -13,6 +13,7 @@ function evalFilter(e,p){
   const [op,...a]=e;
   if(op==='get')return p[a[0]];
   if(op==='has')return Object.hasOwn(p,a[0]);
+  if(op==='any')return a.some(x=>evalFilter(x,p));
   if(op==='all')return a.every(x=>evalFilter(x,p));
   if(op==='==')return evalFilter(a[0],p)===evalFilter(a[1],p);
   if(op==='!=')return evalFilter(a[0],p)!==evalFilter(a[1],p);
@@ -21,7 +22,7 @@ function evalFilter(e,p){
 const counts=[0,0,0];
 for(const {properties:p} of data.features){
   const matches=Array.from(filterScope.filters,f=>evalFilter(f,p));
-  assert.equal(matches.filter(Boolean).length,Object.hasOwn(p,'k')&&p.lmThin!==1?1:0,'each detail gets exactly one material');
+  assert.equal(matches.filter(Boolean).length,Object.hasOwn(p,'k')&&p.lmThin!==1&&!(p.lm==='sixth-guadalupe'&&['balcony-rail','balcony-divider'].includes(p.part))?1:0,'each detail gets exactly one material');
   if(!p.lm&&p.k)assert.deepEqual(matches,[true,false,false],'unrelated detail retains its original layer');
   matches.forEach((yes,i)=>{if(yes)counts[i]++;});
 }
