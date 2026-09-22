@@ -291,3 +291,10 @@ unfinished priority. DKR exterior refinement follows the desktop recovery pass;
 physical-phone acceptance and the production recovery-event delay remain open.
 This supersedes the earlier request to remove hourly continuation. Continue using
 the isolated lighting checkout and preserve the dirty primary checkout.
+
+## Stop scheduled continuation - September 22, 2026
+
+The user requested deletion of the hourly continuation and completion of the
+current window-coverage pass only. The automation has been deleted. Finish and
+verify that bounded pass, then stop; do not recreate scheduled continuation or
+start another queued pass without a new request.
