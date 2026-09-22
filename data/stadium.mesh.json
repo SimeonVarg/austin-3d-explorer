@@ -24,6 +24,7 @@
     "aerial": "UT Athletics DJI_0226.jpg, August 2022: empty bowl, north/east wrap, distinct west upper deck, south Longhorn assembly. Viewed 2026-09-09.",
     "south": "Populous 20211007_DIG_2395_MAS.jpg: glazed towers with rust framing, stepped club terraces and Longhorn balcony. Viewed 2026-09-09.",
     "board": "UT Athletics facility page specifies 160 by 44 feet for the 2021 south board; 48.768 by 13.4112 m. Retrieved 2026-09-09.",
+    "northTowers": "Public north tower street exterior (Ajay Suresh, December 2025) and stadium context aerial: masonry shaft with paired punched windows, tall glazed bays, round glazed lantern and overhanging pale cap. Reviewed September 2026. Facade subdivisions and recess depths are approximations; existing tower anchors, radius and height retained.",
     "derived": "Deck rows, elevations, facade bays and supports are reference-led approximations within the registered footprint. Vertical dimensions carry roughly 3 m uncertainty; detailed section boundaries and seat-colour allocation are not surveyed. No claim of a current 2026 aerial survey."
   },
   "palette": {
@@ -2482,6 +2483,32 @@
       "tier": "south-chairback"
     }
   ],
+  "officeTower": {
+    "facets": 8,
+    "plinth": 2.4,
+    "lowerTopShare": 0.62,
+    "lanternBaseShare": 0.88,
+    "lowerFloors": 5,
+    "windowsPerFace": 2,
+    "windowShare": 0.66,
+    "windowHeightShares": [
+      0.38,
+      0.7,
+      0.38,
+      0.7,
+      0.7
+    ],
+    "upperWindowShare": 0.64,
+    "recess": 0.24,
+    "sill": 0.16,
+    "ledge": 0.28,
+    "ledgeProjection": 0.18,
+    "lanternRadiusShare": 0.96,
+    "mullion": 0.065,
+    "upperDivisions": 6,
+    "capProjection": 0.5,
+    "capThickness": 0.45
+  },
   "field": {
     "width": 48.768,
     "length": 109.728,

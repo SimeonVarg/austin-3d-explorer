@@ -1,5 +1,26 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - DKR north lantern towers (`codex/dkr-exterior-refinement`)
+
+Replaced four striped north office towers with faceted masonry shafts, paired
+recessed windows, tall glazed bays and round glazed lantern caps. Public exterior
+and aerial references support the composition; anchors, radius and heights remain
+unchanged. Small dimensions are approximate. The mesh bake owns all editable
+facade choices and remains the sole writer of `data/stadium.mesh.json`.
+
+Matched complete-city views and verification are recorded in
+[the tower comparison](docs/dkr-north-towers.md). The surrounding north facade,
+floating stadium element and overall tower-to-wall proportions still need work;
+this is a bounded tower improvement, not completion of DKR. Next DKR work should
+resolve those visible exterior defects with suitable reference evidence before
+moving to remaining generalized visual defects. Keep the production recovery-event
+delay and physical iPhone acceptance open.
+
+Hourly continuation is active in the current task under the latest authorization.
+The dirty primary checkout is untouched. No private references or camera records
+are tracked. Only this shared handoff overlaps parked PRs #189 and #164; none of
+their runtime or bake files are changed.
+
 ## Sep 22 2026 - Campus facade depth (`codex/campus-photo-depth`, PR #283)
 
 GDC now has literal unequal recessed window pairs, projecting shades, deeper
