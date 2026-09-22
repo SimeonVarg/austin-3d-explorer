@@ -89,7 +89,15 @@ def bake(p):
   face['bands']=[band(0,ground,'entry')]+[x for x in face['bands']if x['z0']>=ground]
   b.setdefault('faces',{})[str(edge)]=face
  source=f"https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/{p['code']}/"
- return dict(name=p['name'],id=id,code=p['code'],replaceFrontage=p.get('replaceFrontage',False),sources={'reference':source,'footprint':f'data/snapshots/{SNAP}/buildings.detailed.geojson','dimensions':'Existing footprint and roof alignment retained. Window spacing, wall colours, trim and unphotographed sides are photo-derived approximations. Goldsmith roof subdivided around its mapped open courtyard.','observations':p['observations']},footprint=dict(ring=ring,holes=holes),frame={'obb':F},levels={'floors':floors},colours=palette,skins=skins,blocks=blocks,preserveRoof=bool(rigs) and not bool(p.get('roofWings')) and not bool(p.get('ownHip')),open=['Small carved ornament and unphotographed elevation details remain simplified.'])
+ model=dict(name=p['name'],id=id,code=p['code'],replaceFrontage=p.get('replaceFrontage',False),sources={'reference':source,'footprint':f'data/snapshots/{SNAP}/buildings.detailed.geojson','dimensions':'Existing footprint and roof alignment retained. Window spacing, wall colours, trim and unphotographed sides are photo-derived approximations. Goldsmith roof subdivided around its mapped open courtyard.','observations':p['observations']},footprint=dict(ring=ring,holes=holes),frame={'obb':F},levels={'floors':floors},colours=palette,skins=skins,blocks=blocks,preserveRoof=bool(rigs) and not bool(p.get('roofWings')) and not bool(p.get('ownHip')),open=['Small carved ornament and unphotographed elevation details remain simplified.'])
+
+ if p['code']=='GOL':
+  from campus_goldsmith import refine
+  model=refine(model,p)
+ elif p['code']=='SUT':
+  from campus_sutton import refine
+  model=refine(model,p)
+ return model
 
 buildings=[bake(p)for p in PROFILES['buildings']]
 assert len({b['id']for b in buildings})==len(buildings)

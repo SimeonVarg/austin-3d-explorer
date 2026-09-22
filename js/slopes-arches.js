@@ -103,6 +103,34 @@
   let _filtered = false;
   const _orig = {};
   const count = { arches: 0, triangles: 0, ms: 0, done: false };
+  let _frontageGroup, _frontageData, _frontageRoot, _frontageActive, _frontageKey = '', _builtFrontageKey = '';
+  let _frontageIds = new Set();
+
+  // The apartment mesh lands asynchronously. Retire only successfully built
+  // frontages attached to the current scene, never merely downloaded models.
+  // Cache by group identity so ordinary render frames do no building scans.
+  function syncFrontages() {
+    const A = window.slopesApartments, group = A && A.group, data = A && A.data, root = window.slopes.root;
+    const active = !!(window.SLOPES.on && window.APARTMENTS && window.APARTMENTS.on &&
+      group && root && group.parent === root);
+    if (group === _frontageGroup && data === _frontageData && root === _frontageRoot && active === _frontageActive) return false;
+    _frontageGroup = group; _frontageData = data; _frontageRoot = root; _frontageActive = active;
+    const built = new Set(active ? A.built.map(b => b.id) : []);
+    _frontageIds = new Set(active && data ? data.buildings.filter(b => b.replaceArcades && built.has(b.id)).map(b => b.id) : []);
+    _frontageKey = [..._frontageIds].sort().join('|');
+    return true;
+  }
+
+  function refreshFrontages() {
+    if (syncFrontages()) window.applySlopesArches();
+  }
+
+  function dropGroup() {
+    if (!_group) return;
+    window.slopes.remove(_group);
+    _group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    _group = null;
+  }
 
   function arcPts(a, n, sw, from, to) {
     // u = half*cos θ (+ sw), z = spring + rise*sin θ, θ from `from` to `to`
@@ -274,6 +302,7 @@
     const seg = Math.max(6, Math.round(ARCHES.segments * S.detail()));
     let n = 0;
     for (const eid of Object.keys(_data)) {
+      if (_frontageIds.has(_data[eid].bid)) continue;
       try { archOne(B, _data[eid], seg); n++; }
       catch (e) { console.warn('[slopes-arches] eid', eid, e); }
     }
@@ -286,6 +315,7 @@
     g.add(mesh);
     count.arches = n; count.triangles = B.triangles; count.ms = +(performance.now() - t0).toFixed(1);
     _lastDetail = S.detail();
+    _builtFrontageKey = _frontageKey;
     return g;
   }
 
@@ -311,16 +341,17 @@
     map = map || _map;
     if (!map || !_data) return;
     const S = window.slopes;
+    syncFrontages();
     const want = !!(window.SLOPES.on && ARCHES.on);
     if (want && !_group) { _group = build(); S.add(_group); }
-    else if (want && _group && _lastDetail !== S.detail()) { S.remove(_group); _group = build(); S.add(_group); }
-    else if (!want && _group) { S.remove(_group); _group = null; }
+    else if (want && _group && (_lastDetail !== S.detail() || _builtFrontageKey !== _frontageKey || _group.parent !== S.root)) { dropGroup(); _group = build(); S.add(_group); }
+    else if (!want && _group) { dropGroup(); }
     setFilters(want);
     map.triggerRepaint();
   };
 
   window.slopesArches = {
-    rebuild() { if (_group) { window.slopes.remove(_group); _group = null; } window.applySlopesArches(); },
+    rebuild() { dropGroup(); window.applySlopesArches(); },
     at(ref) { return _data ? Object.keys(_data).filter(k => _data[k].ref === ref).map(k => ({ eid: +k, ..._data[k] })) : []; },
     get count() { return { ...count }; },
     get group() { return _group; },
@@ -374,6 +405,9 @@
     count.done = true;
     if (!arches || !Object.keys(arches).length) { console.warn('[slopes-arches] entrances.geojson carries no arches — chords stay'); return true; }
     _data = arches;
+    // Rebuild on the next rendered frame after async replacement or fallback.
+    // This also covers replacements loaded before this pass and scene resets.
+    map.on('render', refreshFrontages);
     S.onSwitch(() => window.applySlopesArches(map));
     const orig = window.applySlopesSettings;
     if (typeof orig === 'function' && !orig.__archesHooked) {

@@ -1,0 +1,174 @@
+{
+  "baseline": "1372df62cd2865e741e7260dd213b7850c533a7f",
+  "profile": "balanced",
+  "normalTiles": true,
+  "autoDetectCancelled": true,
+  "drift": false,
+  "wayfinding": false,
+  "autoExposure": false,
+  "geometry": {
+    "goldsmithDetailTriangles": 1104,
+    "suttonDetailTriangles": 23292,
+    "courtDetailTriangles": 17230,
+    "otherCampusModelsUnchanged": 35,
+    "existingTreesUnchanged": 3001
+  },
+  "checks": [
+    "harness-drift",
+    "campus-court-detail",
+    "arches-replacement",
+    "repeat bakes byte-identical",
+    "non-target models, heights, footprints, roofs and landscape unchanged"
+  ],
+  "shots": [
+    {
+      "stage": "before",
+      "view": "goldsmith-court",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 70,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "29a811758eee270285e6e41a2db1bed6a5bfc8c4cc3e7e6f9dfbdf2da913acc6"
+    },
+    {
+      "stage": "before",
+      "view": "goldsmith-entry",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 60,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "981e68b5eba2af9d0eb6e6280ccbe0cbf73950ecf79f83db60546f7724cb69ca"
+    },
+    {
+      "stage": "before",
+      "view": "campus-connected",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 50,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "9b2f48f4e78b6e6ecdeb6b16031c0f64dd4bd17dc78b51cec56fb31e0fc4ff38"
+    },
+    {
+      "stage": "after-final",
+      "view": "goldsmith-court",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 70,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "90ce58d264b545d62dfa2699560c87ba91e9c453325538c92c4e11271ac4b54f"
+    },
+    {
+      "stage": "after-final",
+      "view": "goldsmith-entry",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 60,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "e5ee35e1b95ee58b77fbe96618e31f23d287c11c02304b19f69bb05a59e03386"
+    },
+    {
+      "stage": "after-final",
+      "view": "campus-connected",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 50,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "ea058758b619a83abd138510e27dc97711806a311733c083c609a15aefaec225"
+    },
+    {
+      "stage": "before-arcade",
+      "view": "sutton-northeast",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 65,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "7bce6da50aa8bd07f0a95da3dc72329377bbe269f8372c243af2ae4565e78d7a"
+    },
+    {
+      "stage": "after-arcade",
+      "view": "sutton-northeast",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 65,
+      "viewport": [
+        1440,
+        1080
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "55df418d95bd71fcf2fcde840b20cc36065cd4f401c1a6752ba66136c727c729"
+    },
+    {
+      "stage": "after-large",
+      "view": "goldsmith-court",
+      "buildings": 196,
+      "ready": true,
+      "tilesLoaded": true,
+      "fov": 70,
+      "viewport": [
+        2560,
+        1440
+      ],
+      "consoleErrors": 0,
+      "secondScreenshot": true,
+      "sha256": "59ccab9bfb2efb43294fa0703a8134f011c0b32733fbdc0661ccda3b77c084cf"
+    }
+  ],
+  "runtimeSha256": {
+    "data/campus_buildings.json": "845c24d45b0fc7164341580b628d17d8f0ca0b31071038aae7c1efd3d5860899",
+    "data/campus_landscape.json": "37bf4bf4012d98e11223f3052a051fdb9e29e7f90d5aed8a21f4ed7cc10062b0",
+    "data/campus_gardens.json": "52101dfef00bcc32aa9dc63c77a665846da5ad5423eb74220114c771489bbd5e",
+    "js/campus-landscape.js": "7244eeaf327d5ed3d799498ea81d843adb6b0576ccf03ea7c58fa7d648587990",
+    "js/slopes-arches.js": "176081d5fdb20c1d3d3bfe69156e7b9e3b56d0e78847f9a779131d73ebcb34a8"
+  },
+  "limits": [
+    "Photographic views are approximate, not calibrated",
+    "Physical phone not tested",
+    "Sutton view elevated; Goldsmith close views use 1.7m eye",
+    "Facade warning inventory predates this pass; no console errors",
+    "Goldsmith pavilion/loggia and clerestory remain unresolved"
+  ]
+}

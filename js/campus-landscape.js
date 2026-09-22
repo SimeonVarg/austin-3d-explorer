@@ -96,6 +96,26 @@
    crown(B,[x,y,z*.5+(f.height??C.gardenHeights.bed)],[r,r,z*.5],i,C.gardens.hedge,C.shrubQuality);
   }
  }
+ // Validate the entire authored feature before emitting any geometry. A bad
+ // court detail must not discard the remaining gardens or leave a partial mesh.
+ function detailMesh(B,f){
+  const vertices=f.vertices,triangles=f.triangles,col=f.colour;
+  if(!Array.isArray(vertices)||!vertices.length||!Array.isArray(triangles)||
+     !Array.isArray(col)||col.length!==3||!col.every(c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c))||
+     !vertices.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite))||
+     !triangles.every(t=>Array.isArray(t)&&t.length===3&&t.every(i=>Number.isInteger(i)&&i>=0&&i<vertices.length)))return false;
+  const points=vertices.map(ll=>{const p=slopes.toLocal(...ll);return [p.x,p.y,p.z]});
+  if(!points.every(p=>p.every(Number.isFinite)))return false;
+  // A collapsed face produces an undefined normal. Reject it before any
+  // triangles are appended so a malformed detail cannot poison the batch.
+  if(!triangles.every(([a,b,c])=>{
+   const u=points[b].map((v,i)=>v-points[a][i]),v=points[c].map((v,i)=>v-points[a][i]);
+   const area=Math.hypot(u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]);
+   return Number.isFinite(area)&&area>0;
+  }))return false;
+  for(const [a,b,c]of triangles)B.tri(points[a],points[b],points[c],col);
+  return true;
+ }
  function buildGardens(B){
   count.gardens=0;
   for(const place of data.gardens.places||[])for(const f of place.features||[]){
@@ -108,6 +128,7 @@
     }
     if(f.plants)shrubs(B,f);
    }
+   if(f.kind==='detailMesh')detailMesh(B,f);
    if(f.kind==='beam'){const a=slopes.toLocal(...f.a),b=slopes.toLocal(...f.b);stem(B,[a.x,a.y,a.z],[b.x,b.y,b.z],f.radius,f.radius,f.colour);}
    if(f.kind==='bench'){
     const T=data.gardens.detail,p=slopes.toLocal(...f.at,0),a=f.bearing||0,base=f.base||0;
