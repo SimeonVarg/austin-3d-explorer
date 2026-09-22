@@ -908,8 +908,11 @@
   // oversails stay solid when viewed from the pavement, without duplicating
   // their plan or guessing new building heights.
   function installRoofUndersides(map, gj) {
-    const roofs = gj.features.filter(f => f.properties.b === 'gdc' &&
-      f.properties.cap === 1 && f.geometry.type === 'Polygon');
+    // Select exposed slabs, not every cap: NHB's louvre rests on the deck
+    // rather than forming a ceiling.
+    const roofs = gj.features.filter(f => f.geometry.type === 'Polygon' && (
+      (f.properties.b === 'gdc' && f.properties.cap === 1) ||
+      (f.properties.b === 'nhb' && f.properties.band === 'deck')));
     let group = null, tries = 0, timer = null, removed = false;
     map.once('remove', () => {
       removed = true;
@@ -941,7 +944,7 @@
       group.name = 'heroes-roof-undersides';
       group.userData.minzoom = HEROES.minZoom;
       const mesh = new T.Mesh(B.geometry(), S.material());
-      mesh.name = 'gdc-roof-undersides';
+      mesh.name = 'hero-roof-undersides';
       group.add(mesh);
       S.add(group);
       window.__heroes.roofUndersides = { roofs: roofs.length, triangles: B.triangles };

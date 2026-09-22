@@ -1,5 +1,24 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - NHB roof underside (`codex/hero-roof-undersides`)
+
+Closed the sky gap below NHB's cantilevered roof deck using the existing shared
+hero underside renderer. The face follows the baked outline, elevation and
+palette; the existing three GDC caps and all bake outputs remain unchanged.
+[Matched city views](docs/hero-roof-undersides.md) show the repair. Final second
+frames reached all 196 buildings with normal tiles and matched loaded hashes.
+GDC regression and NHB night views pass; actual mesh ray checks, lifecycle and
+geometry assertions, deliberate failure controls and harness parity pass.
+
+EER was investigated but excluded because its surrounding glazing concealed
+the proposed underside in the tested views. Do not claim an EER visual repair.
+The remaining generalized visual defects are not all resolved by this bounded
+fix. Continue with facade quality while preserving distinct architecture next.
+Physical iPhone Safari/Chrome performance and memory acceptance, citywide window
+motion defects and the production recovery-event delay remain open. Hourly
+continuation stays active. The dirty primary checkout and Mac-owned files are
+untouched; only this shared handoff overlaps parked PRs #189/#164.
+
 ## Sep 22 2026 - DKR north concourse (`codex/dkr-north-facade`)
 
 Replaced the uniform north glass grid with open concourse galleries, recessed
