@@ -79,6 +79,13 @@
     // they are short so a rebuild (a detail change) does not stutter the frame.
     buildSliceMs: 150,
     buildSliceMsLive: 12,
+    facadeFilter:{
+      // Bounded desktop rollout; physical phone memory acceptance is open.
+      on:q.has('facadefilter')?q.get('facadefilter')==='1':!window.LITE_PROFILE?.on,
+      buildings:['Union on 24th','21 Rio'],
+      fadeStart:.3,fadeEnd:.8,nightFadeStart:.4,nightFadeEnd:.5,minArea:40,
+      texelMetres:.25,maxDimension:256,maxBytes:16*1024*1024,anisotropy:4
+    },
     materials:{
       on:true,stone:[1,.82,.34,.68],brick:[2,.25,.078,.65],concrete:[3,1.25,.72,.7],glass:[4,1,1,1],shopGlass:[6,3.2,3.4,1],agedConcrete:[7,1,1,1],
       stoneKeys:['stone','trim','precast','coping','white','limestone'],brickKeys:['brick'],glassKeys:['glass','darkGlass'],
@@ -666,6 +673,10 @@
    */
   function tileFace(B, face, skin, P, opts) {
     const { W, len, z0, z1, cut } = face;
+    // Complex cut/arched openings keep their geometric representation. The
+    // filtered sheet covers only a completely tiled rectangular facade.
+    const filterRects=B.allowFilter&&!cut&&len*(z1-z0)>=APTS.facadeFilter.minArea&&
+      !(skin.windows||[]).some(w=>w.arch||w.mullion||w.tone||w.reveal>1)?[]:null;
     const reveal = wantReveals() ? (skin.reveal != null ? skin.reveal : APTS.reveal) : 0;
     // an opening's own depth and tone (a band's `openings`: a garage mouth, an
     // entry court, a loggia) ride on the window record; the skin's windows
@@ -761,11 +772,37 @@
           // Undefined occupancy and non-glass openings retain authored colours.
           if(window.CityNight?.tune.on&&win.lit===false&&(col.surface?.[0]===4||col.surface?.[0]===6))col[2]=window.CityNight.tune.unlitGlass;
           drawn = faceCell(B, W, sa, sb, za, zb, -revealOf(win), col, cut);
+          if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         } else {
           const fr = frBand.length ? frBand.find(f => sm > f.s0 && sm < f.s1) : null;
-          drawn = faceCell(B, W, sa, sb, za, zb, 0, fr ? fr.col : (skin.tone(zm, sm, r, c) || P.wall), cut);
+          const col=fr?fr.col:(skin.tone(zm,sm,r,c)||P.wall);
+          drawn = faceCell(B, W, sa, sb, za, zb, 0, col, cut);
+          if(filterRects&&drawn)filterRects.push([sa,sb,za,zb,col]);
         }
         if (drawn) count.cells++;
+      }
+    }
+    if(filterRects&&filterRects.length>1) {
+      const filtered=window.FacadeFilter.createFace({THREE:window.THREE,rects:filterRects,len,z0,z1,options:APTS.facadeFilter});
+      if(filtered) {
+        filtered.len=len;filtered.z0=z0;filtered.z1= z1;
+        let geom,mat;
+        try {
+          const T=window.THREE,S=window.slopes,fb=S.build();
+          faceQuad(fb,W,0,len,z0,z1,0,filterRects[0][4]);
+          geom=fb.geometry();
+          geom.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
+          mat=S.facadeMaterial(filtered,APTS.facadeFilter);
+          const m=new T.Mesh(geom,mat);
+          m.name='filtered-facade';
+          m.userData.facadeFace=filtered;
+          m.userData.disposeFacade=()=>{filtered.dispose();mat.dispose();};
+          B.filtered.push(m);
+        } catch(e) {
+          // Until attached, no group disposal can reach these allocations.
+          filtered.dispose();geom?.dispose();mat?.dispose();
+          throw e;
+        }
       }
     }
     // reveals: four strips per window, joining the recessed pane to the plane
@@ -2341,12 +2378,64 @@
    * the veil lifts on the tiles and the apartments land while the intro is
    * still downtown. Returns a Promise of the group.
    */
+  // Equal-resolution array layers keep independent mip chains while sharing
+  // one draw. Every triangle retains its authored normal, size and UVs.
+  function batchFiltered(meshes) {
+    const F=window.FacadeFilter,T=window.THREE,S=window.slopes;
+    if(!meshes.length||!F.createBatch||!T.DataArrayTexture)return meshes;
+    const byFace=new Map(meshes.map(m=>[m.userData.facadeFace,m]));
+    const groups=F.createBatch({THREE:T,faces:[...byFace.keys()]}),result=[];
+    try {
+      for(const group of groups) {
+        let geometry,material;
+        try {
+          const sources=group.faces.map(f=>byFace.get(f).geometry);
+          const total=sources.reduce((n,g)=>n+g.attributes.position.count,0);
+          geometry=new T.BufferGeometry();
+          for(const name of Object.keys(sources[0].attributes)) {
+            const first=sources[0].attributes[name],array=new first.array.constructor(total*first.itemSize);
+            let offset=0;
+            for(const source of sources){array.set(source.attributes[name].array,offset);offset+=source.attributes[name].array.length;}
+            geometry.setAttribute(name,new T.BufferAttribute(array,first.itemSize,first.normalized));
+          }
+          const layers=new Float32Array(total),sizes=new Float32Array(total*2),indices=[];
+          let vertex=0;
+          sources.forEach((source,layer)=>{
+            const face=group.faces[layer],n=source.attributes.position.count;
+            layers.fill(layer,vertex,vertex+n);
+            for(let i=vertex;i<vertex+n;i++){sizes[i*2]=face.len;sizes[i*2+1]=face.z1-face.z0;}
+            const index=source.index?.array;
+            if(index)for(const i of index)indices.push(vertex+i);
+            else for(let i=0;i<n;i++)indices.push(vertex+i);
+            vertex+=n;
+          });
+          geometry.setAttribute('faceLayer',new T.BufferAttribute(layers,1));
+          geometry.setAttribute('faceSize',new T.BufferAttribute(sizes,2));
+          geometry.setIndex(indices);
+          material=S.facadeMaterial(group,APTS.facadeFilter);
+          const mesh=new T.Mesh(geometry,material);
+          mesh.name='filtered-facade';
+          mesh.userData.disposeFacade=()=>{group.dispose();material.dispose();};
+          result.push(mesh);
+        } catch(e) {geometry?.dispose();material?.dispose();throw e;}
+      }
+    } catch(e) {
+      for(const mesh of result){mesh.geometry.dispose();mesh.material.dispose();}
+      for(const group of groups)group.dispose();
+      throw e;
+    }
+    // Batch ownership now replaces individual textures/materials/geometries.
+    for(const mesh of meshes){mesh.geometry.dispose();mesh.material.dispose();}
+    return result;
+  }
+
   async function build() {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
     resetCount();
     _failed.clear();
     const B = S.build();
+    B.filtered=[];
     _built = [];
     let sliceT0 = performance.now(), slices = 1;
     // Yield through a MessageChannel, not setTimeout: a hidden or background
@@ -2363,6 +2452,7 @@
       sliceT0 = performance.now(); slices++;
     };
     for (const spec of _data.buildings) {
+      B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
         let r = it.next();
@@ -2373,19 +2463,32 @@
       await pause();
     }
     count.buildSlices = slices;
-    const geom = B.geometry();
-    const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
-    mesh.name = 'apartments';
-    const g = new T.Group();
-    g.name = 'slopes-apartments';
-    _builtFrame = S.frames;
-    g.userData.lod = APTS.lod;
-    g.userData.minzoom = APTS.minzoom;
-    g.add(mesh);
-    count.triangles = B.triangles;
-    count.ms = +(performance.now() - t0).toFixed(1);
-    _lastDetail = detailNow();
-    return g;
+    let geom;
+    try {
+      count.filteredFaces=B.filtered.length;
+      B.filtered=batchFiltered(B.filtered);
+      count.filteredBatches=B.filtered.length;
+      geom = B.geometry();
+      const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
+      mesh.name = 'apartments';
+      const g = new T.Group();
+      g.userData.lod = APTS.lod;
+      g.userData.minzoom = APTS.minzoom;
+      g.name = 'slopes-apartments';
+      _builtFrame = S.frames;
+      g.add(mesh);
+      for(const m of B.filtered)g.add(m);
+      count.triangles = B.triangles;
+      count.ms = +(performance.now() - t0).toFixed(1);
+      _lastDetail = detailNow();
+      return g;
+    } catch(e) {
+      // A failed final mesh/group assembly must not strand face textures in
+      // FacadeFilter's live allocation set. The shared slopes material stays.
+      geom?.dispose();
+      for(const m of B.filtered) { m.geometry.dispose();m.userData.disposeFacade(); }
+      throw e;
+    }
   }
 
   /**
@@ -2702,7 +2805,7 @@
   function dropGroup() {
     if (!_group) return;
     window.slopes.remove(_group);
-    _group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); });
     _group = null; // The shared slopes material belongs to the scene.
   }
   // The build is async (time-sliced, see build()). `_building` is the one in
@@ -2713,10 +2816,10 @@
   function startBuild(map) {
     const S = window.slopes;
     const p = _building = build().then(g => {
-      if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); return; } // superseded
+      if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; } // superseded
       _building = null;
       const want = !!(window.SLOPES.on && APTS.on);
-      if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); return; }
+      if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; }
       _group = g; S.add(_group);
       setFilters(true); setLabels(true);
       (map || _map).triggerRepaint();

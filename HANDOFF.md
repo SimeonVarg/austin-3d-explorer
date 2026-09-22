@@ -1,5 +1,35 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Filtered apartment windows (`codex/window-stability`)
+
+Desktop defaults now filter the authored window patterns on Union on 24th and
+21 Rio at subpixel distances. Original recessed geometry supplies close views,
+night windows and shadows. This is a bounded repair, not citywide acceptance.
+[Matched motion and evidence](docs/filtered-window-motion.md) document about
+80% less narrow-wall temporal second difference at Union and 33% at Rio;
+narrow-wall mean brightness falls about 4.3% and 2.7%. Close geometry remains
+visually unchanged and 22,592 night facade-mask pixels match exactly.
+
+The rejected one-draw-per-face version was replaced by texture-array batching:
+89 faces in 12 draws, 14,705,940 GPU texture bytes including mipmaps, plus CPU
+arrays and temporary allocations. Interleaved native/hardware-GL ten-second
+runs at 651x598 and 1536x864 CSS pixels, DPR1.5, show no measured regression
+comparing minimum runs. All visual/performance checks use the complete ready
+196-building city with normal tiles, indexed geometry and no veil. No runtime
+errors. Area integration, real tiler, desktop/phone defaults, explicit switches,
+merged attributes, allocation failures, disposal, material response, lifecycle,
+syntax and harness parity pass. The deliberate point-sampling defect fails.
+
+Phone defaults remain off. Physical iPhone Safari/Chrome performance and memory,
+citywide and nighttime flicker, unidentified narrow-wall examples, production
+recovery-event delay and explicit Play/Stop responsiveness remain open. Next
+window work should extend coverage with bounded memory and matched motion,
+not treat this two-building rollout as completion. Main was integrated through
+a75731d6 before final verification. Only HANDOFF overlaps parked PRs #189/#164;
+their implementation assertions are unaffected. Dirty primary and Mac-owned
+files remain untouched. Owner references and camera data remain outside git.
+Capture browser and owned server 8478 are stopped. Hourly continuation stays active.
+
 ## Sep 22 2026 - Continuous idle motion (`codex/idle-continuous-time`)
 
 Idle rotation preserves the selected lighting by default; the slider and Play
