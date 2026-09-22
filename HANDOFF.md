@@ -1,5 +1,26 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Downtown balcony depth (`codex/downtown-geometry`)
+
+Waterline's residential elevations now have cut balcony volumes, decks, guards,
+substantial jambs and grouped frames; crown supports and canopy are thicker.
+Sixth and Guadalupe has coherent recessed doors, partitions and projecting slab
+edges. Existing heights, lower Waterline supports and shader-compatible Sixth
+cheek widths remain. All 9,135 unrelated outer features are preserved.
+
+Matched full-city second screenshots load all 196 authored buildings. Geometry,
+deliberate sabotage, deterministic replacement, material and harness checks pass.
+PR #286 includes the successful cloud data build. Normal tiles pass at 1920 by
+1200 in daylight and night, with all 196 buildings ready and new balcony parts
+present. Browser and shader checks report no errors. See
+[comparisons and limits](docs/downtown-balconies.md).
+
+PR #283 remains a separate draft: its actual full-city context-loss/recovery
+verification is unresolved. No shared runtime file was changed here. Sixth's
+cheek width correction must coordinate with its shader after that ownership
+clears. Owner imagery and camera positions stay local; physical-phone acceptance
+and the broader photo backlog remain open. The dirty primary is untouched.
+
 ## Sep 22 2026 - Everyday campus (`codex/everyday-campus`)
 
 Goldsmith now has separate courtyard window registers, curved arch surrounds,
