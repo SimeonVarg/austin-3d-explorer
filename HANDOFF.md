@@ -1,5 +1,27 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 22 2026 - Campus facade definition (`codex/facade-definition`)
+
+Raised the backing resolution of seven NHB/GDC/EER facade patterns from 64 to
+256 pixels while preserving the logical repeat, authored layouts and colors.
+[Matched city views](docs/hero-facade-definition.md) show sharper square windows,
+reveals, clustered slots and mullions. All three exact matched second views
+loaded 196 authored buildings with normal tiles, indexed geometry and no veil;
+loaded asset hashes match and no runtime errors were reported. NHB night and
+middle-distance still checks pass, with the lower middle-distance view partly
+obscured. Real-canvas registration/mask/day-night checks, both deliberate failure
+controls, roof lifecycle, syntax and harness parity pass against current main.
+
+Seven raw RGBA images increase from 112 KiB to 1.75 MiB, excluding atlas copies.
+Physical iPhone Safari/Chrome memory/performance acceptance stays open. This
+sharpens existing patterns rather than adding missing modeled facade details.
+Citywide motion flicker and grazing-angle patterns remain open. Next priority:
+the remaining idle-spin pauses (earlier repaint optimization was only partial).
+Keep the unresolved production recovery-event delay open. Hourly continuation
+stays active. Dirty primary checkout and Mac-owned files are untouched; shared
+HANDOFF is the only overlap with parked PRs #189/#164. Capture browser and owned
+server 8475 are stopped. Private reference and pose data remain outside git.
+
 ## Sep 22 2026 - NHB roof underside (`codex/hero-roof-undersides`)
 
 Closed the sky gap below NHB's cantilevered roof deck using the existing shared
