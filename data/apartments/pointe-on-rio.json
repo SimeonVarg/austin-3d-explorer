@@ -6,7 +6,8 @@
     "reference": "https://www.rhodepartners.com/the-pointe-on-rio",
     "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
     "alias": "https://www.rhodepartners.com/west-campus-student-housing lists Tradition of Rio (formerly Pointe on Rio).",
-    "roof": "https://www.rhodepartners.com/the-pointe-on-rio, Pointe on Rio 024-aerial.jpg; room dimensions and unphotographed courtyard depths are derived."
+    "roof": "https://www.rhodepartners.com/the-pointe-on-rio, Pointe on Rio 024-aerial.jpg; room dimensions and unphotographed courtyard depths are derived.",
+    "facade": "Rhode Partners, The Pointe on Rio: south elevation and street-corner photographs. Discrete oxblood panels, twelve south bays and recessed stone colonnade; fine dimensions remain photo-derived."
   },
   "footprint": {
     "ring": [
@@ -86,7 +87,7 @@
       "hex": "#c5b597"
     },
     "stone": {
-      "hex": "#ded8c9"
+      "hex": "#8e8c84"
     },
     "trim": {
       "hex": "#dfdbcf"
@@ -107,7 +108,7 @@
       "hex": "#596264"
     },
     "white": {
-      "hex": "#e0e5e3"
+      "hex": "#dbe0e2"
     },
     "dark": {
       "hex": "#353c3e"
@@ -116,7 +117,7 @@
       "hex": "#9b6e57"
     },
     "wood": {
-      "hex": "#885041"
+      "hex": "#60352e"
     },
     "water": {
       "hex": "#458c95"
@@ -128,7 +129,10 @@
       "hex": "#aea58f"
     },
     "rail": {
-      "hex": "#566165"
+      "hex": "#7b8180"
+    },
+    "oxblood": {
+      "hex": "#622423"
     }
   },
   "skins": {
@@ -190,16 +194,19 @@
         "frame": {
           "w": 0.08,
           "tone": "trim"
+        },
+        "accent": {
+          "w": 0.36,
+          "gap": 0.08,
+          "side": "left",
+          "tones": [
+            "oxblood"
+          ]
         }
       },
       "glass": "glass",
       "frame": "frame",
-      "reveal": 0.24,
-      "strip": {
-        "w": 0.5,
-        "tone": "wood",
-        "at": "joints"
-      }
+      "reveal": 0.24
     },
     "roofroom": {
       "kind": "bays",
@@ -209,6 +216,62 @@
         "w": 2.8,
         "h": 1.2,
         "sill": 0.3
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "doorsPlain": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 3.3,
+      "window": {
+        "w": 1.8,
+        "h": 2.44,
+        "sill": 0.12,
+        "frame": {
+          "w": 0.08,
+          "tone": "trim"
+        }
+      },
+      "glass": "glass",
+      "frame": "frame",
+      "reveal": 0.24
+    },
+    "doorsSouth": {
+      "kind": "bays",
+      "field": "white",
+      "bay": 3.3,
+      "window": {
+        "w": 1.5,
+        "h": 2.44,
+        "sill": 0.12,
+        "frame": {
+          "w": 0.08,
+          "tone": "trim"
+        },
+        "accent": {
+          "w": 0.36,
+          "gap": 0.08,
+          "side": "left",
+          "tones": [
+            "oxblood"
+          ]
+        },
+        "cols": [
+          0.041666666666666664,
+          0.125,
+          0.20833333333333334,
+          0.2916666666666667,
+          0.375,
+          0.4583333333333333,
+          0.5416666666666666,
+          0.625,
+          0.7083333333333334,
+          0.7916666666666666,
+          0.875,
+          0.9583333333333334
+        ]
       },
       "glass": "glass",
       "frame": "frame",
@@ -229,7 +292,59 @@
         }
       ],
       "roofTone": "roofFlat",
-      "_src": "reference; dimensions are derived, see sources.dimensions"
+      "_src": "reference; dimensions are derived, see sources.dimensions",
+      "faces": {
+        "5": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 3.7,
+              "skin": "glass",
+              "inset": {
+                "d": 0.5,
+                "tone": "stone",
+                "columns": {
+                  "pitch": 6.3,
+                  "on": "joints",
+                  "w": 0.85,
+                  "d": 0.55,
+                  "tone": "stone"
+                }
+              }
+            },
+            {
+              "z0": 3.7,
+              "z1": 4.2,
+              "skin": "stone"
+            }
+          ]
+        },
+        "6": {
+          "bands": [
+            {
+              "z0": 0,
+              "z1": 3.7,
+              "skin": "glass",
+              "inset": {
+                "d": 0.5,
+                "tone": "stone",
+                "columns": {
+                  "pitch": 6.3,
+                  "on": "joints",
+                  "w": 0.85,
+                  "d": 0.55,
+                  "tone": "stone"
+                }
+              }
+            },
+            {
+              "z0": 3.7,
+              "z1": 4.2,
+              "skin": "stone"
+            }
+          ]
+        }
+      }
     },
     {
       "id": "residential",
@@ -256,7 +371,7 @@
             89.941
           ],
           [
-            0.0,
+            0,
             89.821
           ],
           [
@@ -265,7 +380,7 @@
           ],
           [
             36.913,
-            0.0
+            0
           ],
           [
             36.656,
@@ -533,51 +648,55 @@
             {
               "z0": 4.2,
               "z1": 19.7,
-              "skin": "doors",
+              "skin": "doorsSouth",
               "balconies": [
                 {
-                  "s0": 0.8018637699070724,
-                  "s1": 2.6018637699070726
+                  "s0": 0.81,
+                  "s1": 2.31
                 },
                 {
-                  "s0": 4.205591309721217,
-                  "s1": 6.0055913097212175
+                  "s0": 3.9301,
+                  "s1": 5.4301
                 },
                 {
-                  "s0": 7.609318849535361,
-                  "s1": 9.409318849535362
+                  "s0": 7.0502,
+                  "s1": 8.5502
                 },
                 {
-                  "s0": 11.013046389349507,
-                  "s1": 12.813046389349507
+                  "s0": 10.1703,
+                  "s1": 11.6703
                 },
                 {
-                  "s0": 14.416773929163652,
-                  "s1": 16.21677392916365
+                  "s0": 13.2904,
+                  "s1": 14.7904
                 },
                 {
-                  "s0": 17.8205014689778,
-                  "s1": 19.620501468977796
+                  "s0": 16.4105,
+                  "s1": 17.9105
                 },
                 {
-                  "s0": 21.224229008791944,
-                  "s1": 23.02422900879194
+                  "s0": 19.5305,
+                  "s1": 21.0305
                 },
                 {
-                  "s0": 24.62795654860609,
-                  "s1": 26.427956548606087
+                  "s0": 22.6506,
+                  "s1": 24.1506
                 },
                 {
-                  "s0": 28.03168408842023,
-                  "s1": 29.83168408842023
+                  "s0": 25.7707,
+                  "s1": 27.2707
                 },
                 {
-                  "s0": 31.435411628234377,
-                  "s1": 33.235411628234374
+                  "s0": 28.8908,
+                  "s1": 30.3908
                 },
                 {
-                  "s0": 34.839139168048526,
-                  "s1": 36.63913916804852
+                  "s0": 32.0109,
+                  "s1": 33.5109
+                },
+                {
+                  "s0": 35.131,
+                  "s1": 36.631
                 }
               ]
             }
@@ -681,6 +800,78 @@
               ]
             }
           ]
+        },
+        "h0.0": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h0.1": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h0.2": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h0.3": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h1.0": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h1.1": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h1.2": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
+        },
+        "h1.3": {
+          "bands": [
+            {
+              "z0": 4.2,
+              "z1": 19.7,
+              "skin": "doorsPlain"
+            }
+          ]
         }
       },
       "_src": "reference; dimensions are derived, see sources.dimensions"
@@ -690,8 +881,8 @@
       "plan": [
         3,
         10,
-        6,
-        12
+        13.5,
+        19.5
       ],
       "z0": 19.7,
       "z1": 22.1,
@@ -840,10 +1031,36 @@
     "proj": 0.18,
     "slabT": 0.1,
     "railH": 1.05,
-    "railT": 0.025,
-    "railPitch": 0.16,
-    "railPost": 0.018,
+    "railT": 0.035,
+    "railPitch": 1.8,
+    "railPost": 0.025,
     "slabTone": "trim",
     "railTone": "rail"
+  },
+  "materials": {
+    "white": {
+      "type": "concrete",
+      "strength": 0.12,
+      "scale": [
+        3.3,
+        3.1
+      ]
+    },
+    "stone": {
+      "type": "stone",
+      "strength": 0.42,
+      "scale": [
+        1.1,
+        0.45
+      ]
+    },
+    "oxblood": {
+      "type": "concrete",
+      "strength": 0.1,
+      "scale": [
+        0.3,
+        2.44
+      ]
+    }
   }
 }
