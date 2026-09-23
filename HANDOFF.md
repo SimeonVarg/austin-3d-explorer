@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Inspire on 22nd rooftop, Waterloo brown strip (`astra/open-1`)
+
+First open-ended pipeline run. Codex rebuilt Inspire on 22nd's rooftop pool
+terrace (pergola, glass rails), crown, facade bands and podium from reference
+photographs, and warmed Waterloo's `tan`/`bronze` palette after the owner noted
+the day facade had gone uniform. The reference still shows filled brown panels
+across Waterloo's central bays, wider than the current piers; that is queued.
+One load each on the merged result: desktop ready 50.0 s, phone 41.5 s (single
+samples on a busy machine), 196 buildings, 0 errors; triangles desktop +7.5k,
+phone +6.4k.
+
 ## Sep 23 2026 - Yugo Austin Waterloo rebuilt from references (`astra/yugo-waterloo`)
 
 Finished the existing `data/apartments/yugo-austin-waterloo.json` rebuild:
