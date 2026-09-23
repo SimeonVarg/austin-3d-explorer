@@ -1,5 +1,35 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Yugo Austin Waterloo rebuilt from references (`astra/yugo-waterloo`)
+
+Finished the existing `data/apartments/yugo-austin-waterloo.json` rebuild:
+paired opaque/glazed bays, recessed blade slots, podium detail and revised crown.
+Repaired overlapping WATERLOO letter outlines and duplicate contour endpoints;
+the illuminated rims now use a continuous 0.11 m width for distance readability.
+The footprint and floor heights remain unchanged. No shared renderer edits.
+
+Verified the served real application with hardware Chrome, desktop balanced and
+the automatic phone performance profile. All 196 authored buildings loaded;
+the final checks and baseline checks reported no page or console errors.
+Captured matched day/night second screenshots and a 16-frame daytime orbit,
+using the actual `origin/main` Waterloo file for the before views, then restored
+the rebuild. The browser was closed after each bounded run; no server was started.
+
+Authored apartment triangle counts: desktop 3,047,203 -> 3,065,417;
+phone detail 0.5: 2,126,175 -> 2,136,393 (+10,218, 0.48%). Fine lettering and
+relief are skipped below the existing 0.6 sign cutoff. The final rim-width edit
+changes only those skipped sign contours; the measured phone geometry is unchanged.
+PR #295's default desktop filtering remains active: 178 -> 183 filtered faces
+with only Waterloo swapped. No new broad moving facade bands were visible in
+the sampled orbit. Phones retain their existing filter-off default.
+
+Local pipeline evidence contains labelled photo/before/after day and night JPEGs
+and an animated comparison, each under 1 MB. Remaining: simplified interiors,
+reflection colours and crown rooftop detail; fine frame/sign edges still alias.
+This is bounded desktop motion evidence, not physical-phone acceptance or a
+citywide flicker verdict. Made headless through the owner's Codex pipeline;
+the Claude lane committed and merged it.
+
 ## Sep 23 2026 - Yugo Austin Nueces rebuilt from references (`astra/yugo-nueces`)
 
 Codex rebuilt `data/apartments/yugo-austin-nueces.json` headless from its
