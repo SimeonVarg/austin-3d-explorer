@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Waterloo band, Villas on 24th, Pointe on Rio (`astra/open-2`)
+
+Second open-ended pipeline run. Waterloo's central bays now carry a filled warm
+brown panel band (the previous pass only warmed the piers). Villas on 24th: two-
+floor paired portrait windows, darker glazed corner, taller glazed entrance,
+folded podium screen. Pointe on Rio: discrete oxblood panels instead of
+full-height stripes, twelve bays, stone colonnade base, corrected rooftop setback.
+One load each on the merged result: desktop ready 41.3 s, phone 33.4 s, 196
+buildings, 0 errors; triangles desktop -36k, phone -32k. Open: Villas' screen
+transparency and glazing interiors, Pointe's corner windows.
+
 ## Sep 23 2026 - Inspire on 22nd rooftop, Waterloo brown strip (`astra/open-1`)
 
 First open-ended pipeline run. Codex rebuilt Inspire on 22nd's rooftop pool
