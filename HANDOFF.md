@@ -31459,3 +31459,10 @@ takeover changes did not move the night control: 0.005% is the same floor the pr
 The merge also carries the data bot's two `2026-09-20` snapshot commits, which it pushed onto this
 branch; the only payload is an empty `diffs/2026-09-18_to_2026-09-20.geojson` and its
 `changed_count: 0` manifest entry.
+## Sep 23 2026 - Icon podium, entrance and sign (`astra/open-3`)
+
+Codex rebuilt `data/apartments/icon.json` headless from reference photographs (deeper podium windows, recessed entrance, coloured panels, curtains and blinds, planting, vertical ICON sign); a second short run verified it after the first run's capture browser hung. Fresh hardware-Chromium loads of both origin/main's Icon and the edited Icon built all 196 catalogue entries, with Icon present, no missing replacements, and zero page or console errors. The original edit was restored byte-for-byte after the temporary baseline swap. Harness drift passed (47 scripts).
+
+Phone profile (390 x 844, DPR 1, touch, performance preset): authored-apartment triangles 2,110,907 before -> 2,115,389 after (+4,482, +0.21%). This is desktop emulation, not physical-phone performance. Fine signs are skipped at this profile. Balanced triangles: 3,037,299 -> 3,045,153 (+7,854).
+
+Two labelled local-only photo/before/after comparisons were delivered to the pipeline, using identical app cameras/settings and the second screenshot of each pair. Photo alignment remains approximate. The podium, recessed entrance, curtains/blinds, vents, planters and vertical sign render, but pale walls remain too grey, glazing lacks the photographed reflections, and the lobby and trees remain simplified. Verification is complete; photographic acceptance remains for owner review. The Claude lane committed and merged it.
