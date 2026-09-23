@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Yugo Austin Rio rebuilt from photos (`astra/yugo-rio`)
+
+Codex rebuilt `data/apartments/yugo-austin-rio.json` headless from two owner
+street photographs and the local reference pack: dark grey, white and pale-green
+panel facade, green corner block, recessed glazing, terrace rails, "yugo" and
+"Austin Rio" signs as polygon shapes, glazed ground floor, night lighting.
+352 KB served. Checked on the merged result, one load each: desktop ready 40.2 s,
+phone 33.6 s, 196 buildings, 0 errors; triangles desktop +18k, phone -3.6k (the
+brief now asks for phone-light models). Open: sky, reflections and lobby
+interiors are approximate.
+
 ## Sep 23 2026 - 2400 Nueces rebuilt from photos (`astra/west-campus-dusk`)
 
 Codex rebuilt `data/apartments/2400-nueces.json` headless from two owner street
