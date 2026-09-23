@@ -151,6 +151,10 @@
        polls for the panel, so position in this list does not matter. KEEP IN
        SYNC WITH _harness.html. -->
   <script src="js/feedback.js"></script>
+  <!-- "Graphics acceleration is off" notice (js/gpu-hint.js header). Self-
+       booting off window.__map; stands down under navigator.webdriver, so the
+       harness never sees it. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/gpu-hint.js"></script>
   <!-- Render distance (docs: js/lod.js header). Self-booting; needs the tag in
        BOTH files or the harness measures a scene the site does not serve. -->
   <script src="js/lod.js"></script>

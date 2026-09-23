@@ -91,6 +91,20 @@ the required external scratch directory. This is desktop Chromium emulation,
 not physical iPhone, memory, thermal or performance acceptance. The large view
 retains the touch graphics profile; it is not a fresh desktop-default session.
 
+### The "graphics acceleration is off" notice
+
+`VERIFY_URL=http://127.0.0.1:8442 node gpu-hint.mjs --out <outside-repo-directory>`
+checks `js/gpu-hint.js` in six cases across a hardware and a SwiftShader
+browser: no notice on a real GPU, no notice and **no GL query at all** under
+`navigator.webdriver` (every other script in this directory), none with
+`?gpuhint=0`, a notice on the real software-renderer path with the webdriver
+flag hidden (then dismiss, reload, still gone), and `?gpuhint=1` at 1440x900
+and 390x844, inside the frame and clear of the title pill and buttons.
+`--break` reports a GPU renderer string to the page and must exit 1.
+
+The notice stands down under `navigator.webdriver` on purpose: this suite runs
+SwiftShader for exact pixels, and a card over the city would move every one.
+
 ### Exit codes mean something
 
 `0` the assertions passed. `1` an assertion failed. `2` the script could not

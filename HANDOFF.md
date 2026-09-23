@@ -1,5 +1,29 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - "Graphics acceleration is off" notice (`claude/gpu-off-hint`)
+
+A browser with graphics acceleration switched off still runs WebGL, on a
+software renderer, and the city then draws about one frame every three seconds
+with nothing on screen saying why. New `js/gpu-hint.js` reads the map's own
+WebGL renderer once the map exists; if it is a software one (SwiftShader,
+Microsoft Basic Render Driver, WARP, llvmpipe, "Software") it shows a small
+dismissible card, in the house notice style, saying so in plain words and how
+to switch acceleration on in the detected browser (Chrome, Edge, Brave, Opera,
+Firefox, Safari, phones, or a generic line), with a Copy button for the
+settings address. A dismissal is remembered in localStorage. Notice only: no
+preset or quality setting changes. It stands down under `navigator.webdriver`
+before touching the GL context, so the SwiftShader pixel suite is unaffected;
+`?gpuhint=0` hides it, `?gpuhint=1` forces it on. Every wording, colour and
+position is in the `GPU_HINT` block at the top of the file.
+
+New gate `scripts/verify/gpu-hint.mjs` (README section added): hardware GL -> no
+notice; SwiftShader under webdriver -> no notice and no GL query; SwiftShader
+with webdriver hidden -> notice, dismissal survives a reload; `?gpuhint=1` at
+1440x900 and 390x844 -> inside the frame, clear of the title pill and buttons.
+`--break` exits 1. Also run: `harness-drift` PASS. `sky.mjs` hits its 300 s
+watchdog under SwiftShader both with and without `js/gpu-hint.js` (blocked at the
+network, same build), so that timeout predates this change.
+
 ## Sep 23 2026 - Waterloo band, Villas on 24th, Pointe on Rio (`astra/open-2`)
 
 Second open-ended pipeline run. Waterloo's central bays now carry a filled warm
