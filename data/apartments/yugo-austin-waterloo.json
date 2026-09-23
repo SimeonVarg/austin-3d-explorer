@@ -182,7 +182,7 @@
           [-0.68,1.43]
         ],
         "frame": {"w":0.065,"h":0.065,"tone":"frameDark"},
-        "accent": {"w":1.28,"gap":0.12,"side":"right","tones":["charPanel"]}
+        "accent": {"w":1.28,"gap":0.12,"side":"right","tones":["tan"]}
       },
       "glass": "glass",
       "frame": "frameDark",
@@ -200,7 +200,7 @@
           [-0.68,1.43]
         ],
         "frame": {"w":0.065,"h":0.065,"tone":"frameDark"},
-        "accent": {"w":1.28,"gap":0.12,"side":"right","tones":["charPanel"]}
+        "accent": {"w":1.28,"gap":0.12,"side":"right","tones":["bronze"]}
       },
       "glass": "glass",
       "frame": "frameDark",
