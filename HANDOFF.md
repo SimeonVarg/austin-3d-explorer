@@ -1,5 +1,16 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - The Rambler's pool courtyard (`astra/west-campus-dusk-3`)
+
+Codex rebuilt the courtyard of `data/apartments/rambler.json` headless from
+reference photographs: white panel facade over the brick base, timber soffit,
+recessed windows, pool deck and turf, loungers, planters, outdoor TV wall. Outer
+elevations unchanged. The Claude lane reformatted the file from one line to the
+indented layout the other authored files use (data arrays stay on one line;
+content identical). Checked on the merged result, one load each: desktop ready
+41.2 s, phone 33.5 s, 196 buildings, 0 errors; triangles desktop +20k, phone
++7.6k. Open: lighting, reflections and furniture are simplified.
+
 ## Sep 23 2026 - Yugo Austin Rio rebuilt from photos (`astra/yugo-rio`)
 
 Codex rebuilt `data/apartments/yugo-austin-rio.json` headless from two owner
