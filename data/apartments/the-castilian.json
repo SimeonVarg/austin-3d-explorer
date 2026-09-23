@@ -476,6 +476,34 @@
       "frame": "sill",
       "reveal": 0.42
     },
+    "northPanel": {
+      "_src": "north end wall: the same single centred column of stair-landing windows as the south end, over the same floors (the earlier model had it on both end walls from S6 and S8). No logo here: no reference shows the top of the north end.",
+      "kind": "flat",
+      "field": "endPale",
+      "window": {
+        "cols": [
+          0.5
+        ],
+        "w": 1.15,
+        "h": 1.73,
+        "sill": 0.56,
+        "mullion": {
+          "cols": [
+            0.32
+          ],
+          "w": 0.055,
+          "tone": "amenityFrame"
+        },
+        "head": {
+          "h": 0.09,
+          "d": 0.2,
+          "tone": "sill"
+        }
+      },
+      "glass": "glass",
+      "frame": "sill",
+      "reveal": 0.42
+    },
     "entry": {
       "kind": "storefront",
       "mullion": 1.35,
@@ -949,6 +977,27 @@
           "skin": "end"
         }
       ],
+      "faces": {
+        "u0": {
+          "bands": [
+            {
+              "z0": 25.6,
+              "z1": 28.3,
+              "skin": "end"
+            },
+            {
+              "z0": 28.3,
+              "z1": 57.5,
+              "skin": "northPanel"
+            },
+            {
+              "z0": 57.5,
+              "z1": 60.3,
+              "skin": "end"
+            }
+          ]
+        }
+      },
       "roofTone": "coping"
     },
     {

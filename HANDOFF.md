@@ -1,5 +1,27 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - The Castilian rebuilt from photos (`claude/castilian-astra`)
+
+Codex's rebuild of `data/apartments/the-castilian.json` (commit 55d932a, made in a
+one-file, 90-minute head-to-head that the owner judged against real photographs)
+plus one Claude fix: the tower's north end wall had lost its centred column of
+stair-landing windows (the earlier model had it on both ends, sources S6/S8); it
+now uses a `northPanel` skin matching the south end, without the logo.
+
+Checked in the real app (all 196 buildings, balanced preset, app shadows) from
+the photo cameras: the facade, fins, "American Campus" logo and vertical sign
+match Codex's own renders. Load A/B (3 interleaved reps, fresh browser, cache
+off, machine busy: CPU 20-76%): desktop ready 40.3 s tag vs 42.1 s, phone
+34.6 s vs 36.5 s; the spreads (9-14 s) exceed both gaps, so no measurable cost.
++77,811 triangles on desktop, +9,301 on the phone profile, 0 console errors. The
+file is 1.59 MB raw, about 195 KB gzipped.
+
+Known and not introduced here: the phone profile's detail level (0.5) is below
+the sign cutoff (0.6), so no building's signs are built on phones; map name
+labels draw over authored buildings. Introduced and open: the folded garage fins
+shimmer (moire) at about 130 m because their meshes have no distance
+simplification.
+
 ## Sep 22 2026 - Wider apartment window coverage (`codex/window-coverage`)
 
 PR #295 merged as e9ade58 after green checks. The completed branch is deleted.
