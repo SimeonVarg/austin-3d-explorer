@@ -1,5 +1,21 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - 2400 Nueces rebuilt from photos (`astra/west-campus-dusk`)
+
+Codex rebuilt `data/apartments/2400-nueces.json` headless from two owner street
+photographs at dusk: four-level garage with recessed open parking and a patterned
+screen wall, ribbon windows in red-brown masonry, full-height corner glazing,
+three balcony stacks per elevation, and vector EXIT/ENTRANCE lettering. Footprint,
+courts and height are unchanged. 27 KB -> 781 KB (762 KB served).
+
+Checked on the merged result (main with the Castilian): one load each, desktop
+balanced preset ready 44.3 s, phone profile ready 34.4 s, all 196 buildings,
+0 console and page errors. Triangles: desktop 2,999,633, phone 2,122,607, about
++190k on BOTH (the phone profile does not simplify this model). Fine for one
+building; if more models get this depth, phones need per-building simplification.
+Open: garage screen colours are simpler than the photo's multicoloured strips;
+garage lighting is faint at night.
+
 ## Sep 23 2026 - The Castilian rebuilt from photos (`claude/castilian-astra`)
 
 Codex's rebuild of `data/apartments/the-castilian.json` (commit 55d932a, made in a
