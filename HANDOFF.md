@@ -1,5 +1,15 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Yugo Austin Nueces rebuilt from references (`astra/yugo-nueces`)
+
+Codex rebuilt `data/apartments/yugo-austin-nueces.json` headless from its
+reference photographs: stepped massing, grey siding and white panels, pale-green
+corner bays, black side wing, glazing, polygon "yugo Austin Nueces" branding,
+roof terraces and night lighting. 370 KB served. Checked on the merged result,
+one load each: desktop ready 41.3 s, phone 34.1 s, 196 buildings, 0 errors;
+triangles desktop +9k, phone -0.4k. Open: the existing street trees are
+oversized and hide the sign; fine seams alias; unseen elevations are inferred.
+
 ## Sep 23 2026 - The Rambler's pool courtyard (`astra/west-campus-dusk-3`)
 
 Codex rebuilt the courtyard of `data/apartments/rambler.json` headless from
