@@ -27,18 +27,18 @@
  *   every footprint in the box           a minimum-area cull that GROWS with
  *                                          distance: 33,307 of 40,656 dropped
  *
- * THE ONE EXCEPTION is downtown towers (`t=1`, at or above 40 m). They keep the
- * core's facade pattern and a roof cap, because the skyline silhouette is the
- * entire reason the box reaches south to the lake.
+ * Downtown towers (`t=1`, at or above 40 m) and streetwall (`t=2`, at least
+ * 8 m tall and 150 m2 in the downtown box) keep facade patterns. Towers also
+ * keep a roof cap. Smaller distant buildings remain flat background.
  *
  * They used to snap onto the campus atlas and register no new image, which was
  * cheap and wrong: the fourteen campus buckets are means of tan brick and
  * limestone, so the Austonian, Frost Bank Tower, the Independent and 111 more
  * arrived downtown wearing four or five browns and the skyline read as one mass.
- * quantiseOuterFacades now clusters the towers on their OWN baked colours into
- * ten buckets and registers ten images — the same call quantiseStadiumFacades
- * makes, for the same reason, and bounded so the per-image atlas repaint stays
- * cheap.
+ * The bake now assigns architectural profiles from name, use, era and plan:
+ * at most seventeen material buckets sharing eight window grids and a deck,
+ * rather than ten colour buckets all using one glass pattern. Both source paths retain
+ * the baked fb ordinal join and the existing atlas painter.
  *
  * REGISTRATION. This module bootstraps itself: it waits for window.__map and
  * for the core building layers to exist, then inserts itself underneath them.
@@ -361,10 +361,11 @@
   let _palettePromise = null;
   function towerPaletteOnce() {
     if (!_palettePromise) {
-      // QUEUE K5: warm the TOWERS only (see TOWER_WARM above) -- midrise is
-      // left exactly as baked, it was never the blue-grey half of the split.
+      // The legacy palette was fitted with the K5 warming transform. Authored
+      // architectural recipes already supply their intended material colours;
+      // applying the old fit would also warm their shared streetwall materials.
       _palettePromise = getJSON(TOWER_PALETTE).then(pal => {
-        if (pal && pal.buckets) pal.buckets = warmTowerBuckets(pal.buckets);
+        if (pal && pal.buckets && !pal.shared_architecture) pal.buckets = warmTowerBuckets(pal.buckets);
         return pal;
       });
     }
@@ -374,6 +375,51 @@
   // rejection, and initOuter's own try/catch cannot cover a promise created
   // before it ran. Both callers see the same rejection; only one reports it.
   if (OUTER.on) towerPaletteOnce().catch(() => {});
+
+  // Eight estimated downtown grid archetypes share the existing facade painter.
+  // Its public registry API replaces the registry, so preserve the full core
+  // input/order before appending. Existing campus family IDs must remain stable:
+  // they have already been stamped into tiles and registered atlas image names.
+  // This does not change the painter, scheduling, lighting or texture resolution.
+  let _towerProfileFamilies = null;
+  function towerProfileFamilies(grids) {
+    if (_towerProfileFamilies) return _towerProfileFamilies;
+    const base = Object.fromEntries(Object.entries(grids || {}).map(([key, g]) => [key, g.base]));
+    if (!Object.keys(base).length) return base;
+    if (!window.registerMeasuredGrids || !Array.isArray(window.facadeMeasured)) return base;
+    const previous = window.facadeMeasured.filter(m => !String(m.id).startsWith('outer-profile:'));
+    const active = previous.filter(m => !m.sameAsTemplate).length;
+    if (active + Object.keys(base).length > 36) {
+      console.warn('[outer] core facade registry has no room for downtown grids; using material families');
+      return base;
+    }
+    const additions = Object.entries(grids).map(([key, g]) => ({
+      id: 'outer-profile:' + key, ref: 'Downtown architectural estimate: ' + key,
+      base: g.base, app_height_m: g.pitch * 10, storeys: 10,
+      bay_wall_m: g.bay * 10, bays: 10, aspect: g.aspect,
+      estimated: true,
+    }));
+    const registered = window.registerMeasuredGrids({ buildings: previous.concat(additions) });
+    const byId = new Map(registered.map(m => [m.id, m]));
+    const drifted = previous.some(m => !byId.has(m.id) || byId.get(m.id).fam !== m.fam);
+    if (drifted) {
+      // Restore the old registry before falling back; never evict campus grids
+      // for an optional downtown refinement if a future API changes allocation.
+      window.registerMeasuredGrids({ buildings: previous });
+      console.warn('[outer] downtown grid extension would change core families; restored core registry');
+      return base;
+    }
+    _towerProfileFamilies = { ...base };
+    for (const [key] of Object.entries(grids)) {
+      const entry = byId.get('outer-profile:' + key);
+      if (entry) _towerProfileFamilies[key] = entry.fam;
+    }
+    window.outerFacadeProfiles = {
+      grids: _towerProfileFamilies, preservedCoreFamilies: previous.length,
+      estimated: true,
+    };
+    return _towerProfileFamilies;
+  }
 
   let _added = false;
   let _gj = null;          // kept for the palette-churn re-snap, below
@@ -454,15 +500,25 @@
     let towerPattern = window.FACADE_PATTERN_EXPR;
     let midPattern = null;
 
-    // Both classes register the same way; only the family differs. Towers are
-    // `tg` (51% glazing, curtain wall) and the streetwall is `mh` (20%, the
-    // punched campus-hall grid) — putting a curtain wall on a two-storey
-    // shopfront is the same category error as putting campus tan on a tower.
-    const joinBuckets = (buckets, key, family) => {
+    // Both data routes join the baked ordinal. Tower buckets now carry their
+    // own architectural grid; the midrise palette keeps its existing family.
+    const joinBuckets = (buckets, key, family, families = null) => {
       if (!buckets || !buckets.length) return null;
-      const ids = window.registerFacadeBuckets &&
-                  window.registerFacadeBuckets(map, buckets, { key, family });
-      if (!ids || !ids.length) return null;
+      if (!window.registerFacadeBuckets) return null;
+      const ids = new Array(buckets.length);
+      const groups = new Map();
+      buckets.forEach((bucket, index) => {
+        const fam = (families && families[bucket.grid]) || bucket.base || family;
+        if (!groups.has(fam)) groups.set(fam, []);
+        groups.get(fam).push({ bucket, index });
+      });
+      for (const [fam, group] of groups) {
+        const registered = window.registerFacadeBuckets(map, group.map(g => g.bucket), {
+          key: key + ':' + fam, family: fam,
+        });
+        if (!registered || registered.length !== group.length) return null;
+        group.forEach((g, i) => { ids[g.index] = registered[i]; });
+      }
       const match = ['match', ['get', 'fb']];
       buckets.forEach((b, i) => { match.push(b.fb, ids[i]); });
       match.push('mh00');            // an unstamped building keeps the old look
@@ -608,10 +664,14 @@
       // to the data; the id belongs to the session; neither can drift into the
       // other.
       const pal = await towerPaletteOnce();
-      const t = joinBuckets(pal.buckets, 'outer-tower', 'tg');
+      const t = joinBuckets(pal.buckets, 'outer-tower', 'tg', towerProfileFamilies(pal.grids));
       if (t) { towerPattern = t; patterned += pal.buckets.length; }
-      midPattern = joinBuckets(pal.midrise, 'outer-midrise', 'mh');
-      if (midPattern) patterned += pal.midrise.length;
+      // The new bake uses the same profile ordinals for towers and streetwall.
+      // Reuse their images, rather than multiplying each material by a second
+      // set of midrise colours. Older cached palettes retain their old join.
+      midPattern = pal.shared_architecture ? towerPattern :
+        joinBuckets(pal.midrise, 'outer-midrise', 'mh');
+      if (midPattern && !pal.shared_architecture) patterned += pal.midrise.length;
     } catch (e) {
       // Unchanged behaviour: the towers still get drawn, on the campus pattern.
       // "Palette missing" must never mean "downtown missing".

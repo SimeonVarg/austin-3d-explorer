@@ -1,5 +1,85 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Downtown identities (`astra/downtown`, pipeline 018)
+
+Built headless by the Codex (Astra) pipeline; the Claude lane rebased it on
+main, re-tiled it with the real tippecanoe, measured it and merged it (PR and
+numbers at the end of this entry). Thirty final labelled comparisons are
+packaged locally:
+25 public-reference/before/after tower views, campus skyline day/night, an aerial,
+and Congress street day/night. All actual app cameras match; every JPEG is below
+1 MB. These establish visible changes, not owner acceptance of every detail.
+
+The generic outer-tower material election is replaced by architectural profiles
+in `scripts/downtown_facade_profiles.py`, stamped for towers and downtown
+streetwalls by `scripts/bake_outer_facades.py`. `scripts/bake_outer.py` preserves
+matched public names and building metadata, selects authored replacements and
+closes the generic taper-to-crown gap. `js/outer.js` joins the shared palette to
+eight additional grid families while preserving the sixteen campus families.
+No edits to lighting or `js/facades.js` repaint scheduling.
+
+`scripts/downtown_tower_identities.py` adds Independent, Austonian, Frost, 360,
+Block 185, Modern, Natiivo, 70 Rainey, Northshore, Seaholm, Colorado Tower,
+One American Center, 100 Congress, JW Marriott, Fairmont, W Austin, Republic,
+ATX, 415 Colorado, 44 East, Paseo, The Travis and Indeed Tower. Waterline and Sixth/Guadalupe retain their existing geometry. Profiles share
+atlas images; new geometry is structural rather than per-window. Public height
+reconciliation lives in `scripts/outer_heights.json`; plan fits remain estimates.
+See `docs/downtown-tower-identities.md` for tuning and limits.
+
+Rebuilt outer GeoJSON, profile palette, bake report and outer PMTiles are kept
+together. The pipeline sandbox has no tippecanoe, so it packed the archive with a
+stand-in (geojson-vt/vt-pbf); that archive was then replaced by the one the data
+workflow's real `scripts/tile.sh` built from this branch's GeoJSON (run
+36042750444, only `outer.pmtiles` changed), and the real app was checked on it.
+
+`scripts/verify/downtown-data.py` checks baked heights, polygon validity,
+ground-connected structural contact, profile joins, idempotent stamping and
+floating generic crowns. Negative controls detach a crown and recover the
+original generic floats. These are data checks, not visual or phone acceptance.
+The local pipeline work directory retains original assets, public reference
+packs' inventory, capture/comparison scripts and detailed validation reports.
+Only actual final labelled comparisons belong in its out directory. Final data
+checks cover 18,618 features and 1,060 patterned walls. Net geometry increase is
+about 76,800 closed-solid triangles before tiling; this is not a GPU measurement.
+The tippecanoe archive is 2,392,254 bytes (baseline 2,096,323; the stand-in's
+was 2,526,113).
+
+Three fresh-browser interleaved AMD Radeon pairs used forced low-power GPU,
+1440x900 DPR 1, balanced, CPU 1x, cancelled auto-detect and six-second continuous
+render samples at the same verified aerial pose. Minimum median frame times:
+day 38.0 -> 16.8 ms; night 66.2 -> 17.5 ms. Minimum p95: day 87.9 -> 73.7 ms;
+night 172.5 -> 54.9 ms. This meets the minimum-of-interleaved-reps comparison,
+but night FPS ranged 10.1-14.1 before and 11.1-34.1 after; one paired night run
+was slower. Do not claim a consistent speedup or physical-phone acceptance.
+Final capture logs report no page or console errors. No task browser remains.
+
+Remaining visual limits include W's shallow facade recesses, Natiivo's pale
+uniform finish, Austonian's crown, 100 Congress's stepped gable, and weak
+vertical ribbons on Seaholm/360/44 East/Travis. Street frontage remains sparse;
+some tower podiums are obscured in the comparison views. See the local final
+manifest, matched-pose report, performance summary and review notes.
+Phones were not checked on a real device.
+
+**Shipped by the Claude lane (rebased on 778be36).** Two changes on top:
+the tippecanoe tiles above, and the bake no longer writes `name` onto ring
+features. It had put one on 332, which turned outer-check's "no ring feature
+carries a name or a label flag" red. Nothing reads them: `fp` holds the identity
+and `bake_outer_facades.py --check` reports 0 changed without them. Cost on the
+AMD iGPU (forced low-power GPU, renderer string printed), minimum of two runs
+interleaved with main: desktop 1280x632 DPR 1.5 veil 43.5 -> 43.1 s, apartments
+ready 43.4 -> 41.1 s, renderer working set 2174 -> 2128 MB, GPU process 2574 ->
+2429 MB, boost frames per 10 s 137-191 -> 164-177 (ranges overlap), frames over
+0.8 s 0 -> 0; phone 390x844 DPR 3 veil 34.0 -> 33.0 s, ready 33.8 -> 32.3 s,
+renderer 2078 -> 2052 MB, GPU 1700 -> 1609 MB. Authored triangles and startup
+JSON are unchanged (+2.7 KB palette). These runs used the archive before the
+name strip (2,420,903 bytes). Gates against main: `downtown-data.py` passes
+and the bake's `--check` shows 0 changed; outer-check 20/21 on both (the same
+"budgeted layers" line is red on main); outer-facade-parity passes on both once
+`TOWER_BUCKETS` in `bake_outer_facades.py` went back to the browser's 10 (the
+branch had pointed it at the profile count, which only the parity check reads);
+every no-browser gate (harness-drift, facade-pace, facade-filter,
+facade-atlas-memory, slopes-buffer-memory, the apartment set) matches main.
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile

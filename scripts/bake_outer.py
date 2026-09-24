@@ -23,18 +23,18 @@ at runtime:
   * a minimum-footprint-area cull that GROWS with distance from the nearest of
     two anchors (the core, and downtown), so the ring thins out toward the
     horizon instead of ending at one
-  * five properties per feature — `h`, three baked colours, and a density rank
-    `d`. No id, no name, no class, no source_height, because nothing downstream
-    reads them
-  * colours come from a five-tone city palette (plus four tower materials)
-    instead of the core's 14 data-derived buckets, with the horizon fade
-    already mixed in
+  * ordinary ring buildings retain only height, baked colours and density
+  * downtown facades additionally retain their architectural profile, public
+    building name when known, use, and available era/floor/plan measurements
+  * facade profiles select bounded shared atlas grids by architecture instead
+    of assigning every tower the same grid through random colour buckets
 
-THE ONE EXCEPTION, and it is the whole reason for reaching south: downtown
-towers. A building at or above TOWER_H is tagged `t=1` and js/outer.js renders
-it with the core's EXISTING facade atlas (no new pattern images) plus a roof
-cap, because the skyline silhouette is what a stranger scrolling past uses to
-decide whether this is Austin.
+Downtown towers (t=1) and streetwall buildings (t=2) reuse the core facade
+atlas. bake_outer_facades.py stamps the shared profile ordinals after this
+bake. Seventeen skyline identities add bounded extrusion geometry for real
+massing, crowns, podiums and framing; Waterline and Sixth and Guadalupe keep
+their existing authored geometry. No per-window meshes or new runtime layer
+per building is needed. Public source links and reference photos stay local.
 
 DEDUP. The new box swallows both the core snapshot and the Capitol Complex
 (js/capitol.js). Nothing here is allowed to double-draw either:
@@ -56,6 +56,8 @@ import os
 import sys
 
 from downtown_landmarks import LANDMARKS, build_landmark, patch_landmarks
+from downtown_tower_identities import TOWER_IDENTITIES, build_tower_identity
+from downtown_facade_profiles import PROFILES, profile_for
 
 from shapely.geometry import shape, Polygon
 from shapely.strtree import STRtree
@@ -833,6 +835,18 @@ def downtown_detail(out, rep, use_landmarks=True):
         mine = []
         parts.append((f, mine))
 
+        if use_landmarks and name in TOWER_IDENTITIES:
+            solids = build_tower_identity(sys.modules[__name__], name, h, fade,
+                                          footprint=ring)
+            rank = f["properties"].get("d", 0)
+            f.update(solids[0])
+            f["properties"]["d"] = rank
+            for solid in solids[1:]:
+                emit(mine, solid)
+            n["curated"] += 1
+            n["identities"] = n.get("identities", 0) + 1
+            continue
+
         if name in LANDMARKS:
             if use_landmarks:
                 # Dedicated massing replaces the complete previous recipe,
@@ -950,6 +964,10 @@ def downtown_detail(out, rep, use_landmarks=True):
                     nxt, z0 + i * dz, z0 + (i + 1) * dz, base, fade,
                     tower=True, fb=f["properties"].get("fb")))
                 cur = nxt
+            # A narrow footprint can exhaust the inset before all steps fit.
+            # Its last valid wall must still reach the crown's reserved base;
+            # otherwise the early break leaves a roof floating above ATX Tower.
+            last_wall["properties"]["h"] = round(shaft_top, 1)
             cap = cur
             n["taper"] += 1
             n["curated"] += 1
@@ -1058,6 +1076,13 @@ def downtown_detail(out, rep, use_landmarks=True):
     # this catches, and it caught it.
     worst, checked = [], 0
     for f, mine in parts:
+        # A decomposed tower keeps its whole-building profile on every wall.
+        # Reclassifying each short podium would erase the owner's identity.
+        for solid in mine:
+            if solid["properties"].get("t") == 1:
+                for key in ("fp", "use", "yr", "lv", "fa", "fw"):
+                    if key in f["properties"]:
+                        solid["properties"].setdefault(key, f["properties"][key])
         tops = [f["properties"]["h"]] + [
             a["properties"]["h"] for a in mine
             if a["properties"].get("k") != "r"]
@@ -1079,7 +1104,7 @@ def downtown_detail(out, rep, use_landmarks=True):
     for f in out:
         if not f.get("_dt"):
             continue
-        if use_landmarks and f.get("_name") in LANDMARKS:
+        if use_landmarks and f.get("_name") in (LANDMARKS.keys() | TOWER_IDENTITIES.keys()):
             continue  # the dedicated model includes its own ground plane
         if f["_h"] < DT["retail_min_building_h_m"] or f["_area"] < DT["retail_min_area_m2"]:
             continue
@@ -1376,14 +1401,18 @@ def main():
 
         cands.append({"ring": best_ring_m, "area": best_area, "lon": lon,
                       "lat": lat, "h": float(h), "src": src, "cls": cls,
-                      "id": p.get("id"), "name": p.get("name"),
+                      "id": p.get("id"), "name": p.get("name") or (osm or {}).get("n"),
                       # The LiDAR height BEFORE the podium rule overrode it.
                       # Where the rule fired, this number is the roof of the
                       # PODIUM — a surveyed measurement of exactly the thing
                       # PASS D wants — so it is carried rather than discarded.
                       "ovh_raw": (float(p["overture_height"])
                                   if p.get("overture_height") else None),
-                      "floors": floors})
+                      "floors": floors,
+                      # Facade inference may use matched OSM levels without
+                      # changing the Overture-only podium correction above.
+                      "facade_levels": floors or (osm or {}).get("lv"),
+                      "era": p.get("year_built") or (osm or {}).get("start_date")})
 
     # ── PASS B: curated heights, ONE footprint each ──────────────────
     # Assigned override -> footprint, not footprint -> nearest override. The
@@ -1410,7 +1439,12 @@ def main():
         return inside
 
     n_curated = n_curated_missed = 0
-    for e in (overrides.get("by_point") or []):
+    height_entries = list(overrides.get("by_point") or [])
+    known_names = {e.get("name") for e in height_entries}
+    height_entries += [dict(name=name, lon=cfg["center"][0], lat=cfg["center"][1],
+                            height=cfg["height"])
+                       for name, cfg in TOWER_IDENTITIES.items() if name not in known_names]
+    for e in height_entries:
         px = (e["lon"] - OUTER["minlon"]) * M_LON
         py = (e["lat"] - OUTER["minlat"]) * M_LAT
         gx, gy = int(px // CELL), int(py // CELL)
@@ -1435,6 +1469,7 @@ def main():
             continue
         cands[pick]["h"] = float(e["height"])
         cands[pick]["src"] = "curated"
+        cands[pick]["name"] = e["name"]
         n_curated += 1
     print(f"  curated heights applied to {n_curated} footprints "
           f"({n_curated_missed} found no footprint)")
@@ -1527,6 +1562,13 @@ def main():
             n_lone_tower += 1
         mat = material_for(cls, h, best_area, lon, lat, key, company)
         base = PALETTE[mat]
+        facade_profile = None
+        if is_tower or (DT["on"] and in_rect(lon, lat, DOWNTOWN)
+                        and h >= MIDRISE_H and best_area >= MIDRISE_AREA):
+            facade_profile = profile_for(c.get("name"), cls, h, best_area,
+                                         c.get("era"), c.get("facade_levels"),
+                                         plan_width(ring_m, best_area))
+            base = PROFILES[facade_profile]["wd"]
         # +-6% lightness so a block of identical class is not one flat slab.
         j = (stable01(key + ":j") - 0.5) * 0.12
         base = lerp_hex(base, "#ffffff" if j > 0 else "#000000", abs(j))
@@ -1547,6 +1589,16 @@ def main():
                       and h >= MIDRISE_H and best_area >= MIDRISE_AREA)
 
         props = {"h": round(h, 1), "wd": wd, "wg": wg, "wn": wn}
+        if facade_profile:
+            props.update(fp=facade_profile, use=cls or "unknown",
+                         fa=round(best_area), fw=round(plan_width(ring_m, best_area), 1))
+            # No `name` on ring features: `fp` already carries the identity
+            # (profile_for ran on the name above), nothing at runtime reads
+            # one, and outer-check.mjs holds the ring to "no names, no labels".
+            if c.get("era"):
+                props["yr"] = c["era"]
+            if c.get("facade_levels"):
+                props["lv"] = c["facade_levels"]
         if is_midrise:
             props["t"] = 2
             n_midrise += 1
