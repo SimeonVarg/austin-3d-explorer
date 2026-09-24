@@ -61,9 +61,11 @@ DEADLINE_MIN = 9 * 60    # arrive at the campus stop by 09:00
 # building's doors in the walking graph; None = the WEST_MALL point.
 ANCHOR_BUILDINGS = [("GDC", "GDC"), ("WEL", "WEL"), ("UTC", "UTC"), ("WESTMALL", None)]
 WEST_MALL = (30.2851, -97.7405)  # midpoint of the West Mall (ASSUMED point)
-# Ground grid (south, west, north, east): East Riverside, research/domain-riverside.md
-GRID_BBOX = (30.222, -97.740, 30.252, -97.690)
-GRID_STEP_M = 250
+# Ground grid (south, west, north, east): East Riverside, research/domain-riverside.md,
+# with the north edge pulled down from 30.252 to just south of Lady Bird Lake's
+# shore: the first grid coloured the lake (phase 2 screenshot).
+GRID_BBOX = (30.222, -97.740, 30.2462, -97.692)
+GRID_STEP_M = 200
 SHAPE_TOL_M = 8          # Douglas-Peucker tolerance for the drawn bus line
 ROUTE_KINDS = [("6", "UT shuttle"), ("8", "MetroRapid"), ("", "bus")]  # by route_id prefix
 IN_SESSION_ROUTES = {"640", "642", "656", "661", "663", "670", "672"}   # UT shuttles

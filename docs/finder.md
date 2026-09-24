@@ -67,3 +67,45 @@ static files it names in `FINDER.data`.
 
     node scripts/verify/finder-core.mjs     # hand-computed scoring + real-graph cross-check
     node scripts/verify/finder-static.mjs   # schemas, sizes, network scan, switches
+
+## What the browser pass found (2026-09-24, AMD Radeon iGPU, D3D11)
+
+Driven at 1440x900 and 375x812 (phone emulation), 51 scripted checks, all green
+at the end. What they caught, so nobody re-learns it:
+
+- **The panel stood open over the whole intro.** `#finder { display: flex }`
+  beats the browser's `[hidden]` rule; the CSS now restates `#finder[hidden]`.
+  The state said "pill" the whole time; only the screenshot showed it.
+- **Selecting a home did not move the camera.** `js/controls.js` takes the
+  camera back, and stops any ease, whenever the eye is above its 900 m ceiling.
+  The first fly-to aimed 1.5 km up. Targets are now raised in zoom until the
+  eye is under `FINDER.fly.maxAltM` (760 m), and flights use `easeTo` (flyTo's
+  zoom-out arc climbs through the ceiling). On a narrow phone, where the routes
+  cannot fit under the ceiling, the home stays in frame and the routes run off
+  toward campus.
+- **The first colour ramp was invisible.** Pale gold to amber on the warm tan
+  ground: heat on and heat off looked the same. Now green (near) → yellow →
+  red → violet (a long bus ride), opacity 0.55. TASTE CALL, one line:
+  `FINDER.ramp`.
+- **The East Riverside grid coloured Lady Bird Lake.** Its north edge is now
+  just south of the shore (`GRID_BBOX` in the transit bake), 200 m cells.
+- Far pins stacked on the horizon behind the title bar: pins more than
+  `FINDER.pinMaxKm` (3.2 km) from the middle of the view hide.
+- Phone: the pill sits under Explore (it was on the hint line); while the sheet
+  is up the joystick, BOOST and hint step aside (and the time slider under the
+  tall sheet); the compare tray becomes a table inside the sheet; the sheet
+  hides while the import screen is up.
+- The big panel and the tray have no `backdrop-filter`: behind a 94%-opaque
+  surface it is invisible and re-blurs the city every frame.
+
+Frame rate, headless on the AMD chip, 1280x632 at 1.5x, a fixed 6 s camera
+sweep, after two warm-up sweeps, order-balanced (open, closed, closed, open):
+idle 60 fps either way (the map does not redraw at rest); moving 22.4 and 22.5
+fps with the finder open vs 24.8 and 23.7 closed. Of that, the heat layer is
+about 1.5 fps and the pins about 0.7 fps (attribution runs).
+
+Network, with the finder open and a schedule imported and deleted: the finder
+itself fetched only its three tables and `data/walk_graph.json`; the importer it
+brought up added `data/ut_buildings.json` (its building register) and a second
+read of the walk graph. All GETs, no request carried schedule text, and
+`wayfindStore.guard.state()` reported installed, armed, 30 strings watched.

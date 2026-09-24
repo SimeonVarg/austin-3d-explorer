@@ -1,5 +1,31 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - The apartment finder: "Where should I live?" (`claude/finder`, PR for review, not merged)
+
+A panel that is the first thing a visitor meets once the intro lands: pick a
+major (42, searchable) or import your schedule (the app's own importer), pick
+Walk / Bus / Either, and every home the app knows (49: the authored models, the
+walking graph's homes, four East Riverside student complexes) is ranked by
+minutes to your classes. The city shows the same answer: the ground coloured
+by minutes, numbered pins, fly-to with the walk (or bus + walk) to the top
+three class buildings, and a compare tray for three homes. Everything is in
+`docs/finder.md` (sources, bakes, the formula, what the browser pass found).
+
+- Data: `data/finder/{homes,major-buildings,transit}.json`, one bake each
+  (`scripts/bake_finder_*.py`); the downloaded sources (registrar PDF, catalog
+  cache, CapMetro GTFS) stay out of the repo and are passed as paths.
+- Code: `js/finder.js` + `finder.css` (every taste value in `FINDER` / the CSS
+  tokens), `js/finder-core.js` (arithmetic, no DOM), 3 exports added to
+  `js/walkgraph.js`, and an import-only door in `js/wayfind.js`: the finder
+  reuses the schedule import, its store and its egress guard without turning
+  the walking feature on. `WAYFIND.on` is still false.
+- Checks: `node scripts/verify/finder-core.mjs`, `node scripts/verify/finder-static.mjs`.
+- Taste calls for the owner: the colour ramp (`FINDER.ramp`), the panel opening
+  by itself after the flight (`FINDER.firstVisit`), dorms in the list
+  (`FINDER.showDorms`).
+- Frame rate (AMD iGPU): idle unchanged at 60; moving about 22.5 fps with the
+  finder open vs 24.3 closed (heat ~1.5, pins ~0.7).
+
 ## Sep 23 2026 - Flying no longer freezes: shadow casters wait for the camera, auto-exposure stops waiting on the GPU (`claude/speed-proxy-ae`)
 
 The two biggest measured costs in motion (astra-pipe `research/frame-cost.md`,

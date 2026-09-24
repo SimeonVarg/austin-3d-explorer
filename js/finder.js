@@ -79,14 +79,21 @@ const FINDER = {
   defaultMode: 'either',          // 'walk' | 'bus' | 'either'
   defaultTargets: [['MAI', 1]],   // before a major is chosen: the Main Building
   showDorms: true,                // UT residence halls in the list
+  // Pins further than this from the middle of the view are hidden (the chosen
+  // and compared homes always show). From East Riverside, campus is 6 km off
+  // and its 45 pins stacked up on the horizon behind the title bar (phase 2).
+  pinMaxKm: 3.2,
   rowBuildings: 4,                // buildings listed under a selected row
   compareMax: 3,
   compareBuildings: 6,            // rows in a compare card
 
-  // Minutes -> colour. Near is warm light, far is dusk violet: the app's own
-  // amber at the good end. Pins, heat and legend all read this one ramp.
-  ramp: [[3, '#fff3c4'], [8, '#ffd27a'], [13, '#ffab4a'], [20, '#f07a3a'],
-         [30, '#d24b4f'], [45, '#9c3b73'], [60, '#5a3a86']],
+  // Minutes -> colour. Green is close, red is far, violet is a long bus
+  // ride. Measured against the city: the first ramp ran pale gold -> amber,
+  // the app's own accent, and on the warm tan ground a whole campus of 5-15
+  // minute cells read as NO colour at all (phase 2, heat on vs off frames).
+  // Pins, heat and legend all read this one ramp.
+  ramp: [[4, '#1fb87a'], [10, '#8ccf4d'], [15, '#e9cf3c'], [22, '#f39237'],
+         [30, '#e04e4e'], [45, '#b23a7a'], [60, '#5e3a8f']],
   legendTicks: [5, 15, 30, 45, 60],
 
   heat: {
@@ -99,8 +106,9 @@ const FINDER = {
     cellM: 90,                    // walking-area cell size
     baseM: 0.26,                  // just above GROUND.pathRaise (0.22 m)
     heightM: 0.30,
-    opacity: 0.5,
+    opacity: 0.55,
     washOpacity: 0.3,
+    overlap: 1.03,                // cells drawn 3% oversize: no hairline seams between them
     fadeZoom: [16.8, 17.8],       // gone by walking height
   },
   route: {
@@ -114,13 +122,19 @@ const FINDER = {
     linkOpacity: 0.75,
   },
   fly: {
-    durationMs: 1400,
-    walkPitch: 52,
+    durationMs: 1600,
+    walkPitch: 50,
     pitchZoomLoss: 0.35,          // a pitched view sees less ground than the flat fit
-    minZoom: 14.4,
+    // NOT A TASTE VALUE. js/controls.js takes the camera back (and stops any
+    // ease) the moment the eye is above its altitude ceiling, ALT_MAX = 900 m.
+    // The first fly-to aimed at 1.5 km up, so it was stopped on its first frame
+    // and the camera never moved (phase 2). Every target is raised in zoom
+    // until the eye is under this, and flights use easeTo, not flyTo, whose
+    // zoom-out arc climbs through the ceiling on any long hop.
+    maxAltM: 760,
     maxZoom: 17.4,
     marginPx: 56,
-    busZoom: 15.3,
+    busZoom: 16.0,
     busPitch: 58,
     busFaceCampus: [-97.7394, 30.2861], // bus homes look toward the UT Tower
   },
@@ -255,12 +269,12 @@ function boot() {
       <p class="fd-status" role="status"></p>
       <ol class="fd-list"></ol>
       <p class="fd-unav"></p>
+      <div class="fd-priv"></div>
+      <details class="fd-src"><summary></summary><p class="fd-src-text"></p><p class="fd-bus-note"></p></details>
     </section>
     <footer class="fd-foot">
       <label class="fd-heat"><input type="checkbox"> <span></span></label>
       <div class="fd-legend"><div class="fd-legend-title"></div><div class="fd-ramp"></div><div class="fd-ticks"></div></div>
-      <details class="fd-src"><summary></summary><p class="fd-src-text"></p><p class="fd-bus-note"></p></details>
-      <div class="fd-priv"></div>
     </footer>`;
   const tray = el('div'); tray.id = 'fd-tray'; tray.hidden = true;
   tray.setAttribute('aria-label', C.compareTitle);
@@ -304,7 +318,13 @@ function boot() {
   $('.fd-heat input').onchange = (e) => { S.heat = e.target.checked; savePrefs(); drawHeat(); };
   $('.fd-import').onclick = openImport;
   $('.fd-swap').onclick = () => { S.preferMajor = !S.preferMajor; recompute(); };
-  window.addEventListener('resize', () => { if (S.view === 'peek' && !isPhone()) setView('open'); });
+  window.addEventListener('resize', () => { if (S.view === 'peek' && !isPhone()) setView('open'); else placeTray(); });
+  // Desktop: the tray floats beside the panel. Phone: it sits inside the
+  // sheet above the list (finder.css says why).
+  function placeTray() {
+    if (isPhone()) { if (tray.parentNode !== root) root.insertBefore(tray, $('.fd-results')); }
+    else if (tray.parentNode !== document.body) document.body.append(tray);
+  }
 
   // ── the major search ─────────────────────────────────────────────────────
   const input = $('#fd-major'), listbox = $('#fd-majors');
@@ -372,6 +392,8 @@ function boot() {
     pill.setAttribute('aria-expanded', String(shown));
     root.dataset.view = v;
     document.body.classList.toggle('fd-on', shown);
+    document.body.classList.toggle('fd-tall', v === 'open');
+    placeTray();
     $('.fd-handle').setAttribute('aria-label', v === 'open' ? C.collapse : C.expand);
     if (byUser && FINDER.firstVisit.rememberClosed) { prefs.closed = !shown; savePrefs(); }
     if (shown) { if (S.loaded) renderAll(); else ensureLoaded(); }
@@ -457,6 +479,15 @@ function boot() {
     const ok = await ensureImport();
     if (!ok) { status(C.importUnavailable, true); return; }
     window.wayfindImportOpen();
+    // While the import screen is up, body.fd-importing lets finder.css move
+    // the sheet out of its way on a phone (the two stacked, phase 2).
+    const imp = document.getElementById('wf-imp');
+    if (imp && !imp.__fdWatched) {
+      imp.__fdWatched = true;
+      const sync = () => document.body.classList.toggle('fd-importing', !imp.classList.contains('hidden'));
+      new MutationObserver(sync).observe(imp, { attributes: true, attributeFilter: ['class'] });
+      sync();
+    }
   }
   function useSchedule(s) {
     const pairs = s ? core.scheduleTargets(s) : [];
@@ -663,7 +694,8 @@ function boot() {
           wrap.append(b);
           b.onclick = (e) => { e.stopPropagation(); if (S.view === 'pill') setView(isPhone() ? 'peek' : 'open'); select(h.id); };
           b.onmouseenter = () => setHot(h.id); b.onmouseleave = () => setHot(null);
-          const marker = new maplibregl.Marker({ element: wrap, anchor: 'center' }).setLngLat(h.p).addTo(map());
+          wrap.append(el('i', 'fd-stem'));
+          const marker = new maplibregl.Marker({ element: wrap, anchor: 'bottom' }).setLngLat(h.p).addTo(map());
           mk = { marker, wrap, b };
           S.markers.set(h.id, mk);
         }
@@ -675,7 +707,26 @@ function boot() {
         mk.wrap.classList.toggle('sel', S.selected === h.id);
         mk.wrap.style.zIndex = String(S.selected === h.id ? 3 : S.hot === h.id ? 2 : 1);
       }
+      hookCull(); cullPins();
     });
+  }
+  // Distance culling, once per animation frame while the camera moves.
+  let cullQueued = false, cullHooked = false;
+  function cullPins() {
+    cullQueued = false;
+    const m = map(); if (!m) return;
+    const c = m.getCenter(), kx = 111.32 * Math.cos(c.lat * Math.PI / 180), max = FINDER.pinMaxKm;
+    for (const r of (S.result ? S.result.ranked : [])) {
+      const mk = S.markers.get(r.home.id); if (!mk) continue;
+      const d = Math.hypot((r.home.p[0] - c.lng) * kx, (r.home.p[1] - c.lat) * 111.32);
+      const keep = d <= max || S.selected === r.home.id || S.compare.includes(r.home.id);
+      mk.wrap.style.visibility = keep ? '' : 'hidden';
+    }
+  }
+  function hookCull() {
+    if (cullHooked || !map()) return;
+    cullHooked = true;
+    map().on('move', () => { if (!cullQueued) { cullQueued = true; requestAnimationFrame(cullPins); } });
   }
   function setHot(id) {
     S.hot = id;
@@ -748,6 +799,7 @@ function boot() {
 
   function square(c, hx, hy, m) {
     const [x, y] = c;
+    hx *= FINDER.heat.overlap; hy *= FINDER.heat.overlap;
     return { type: 'Feature', properties: { m: Math.round(m * 10) / 10, c: colourOf(m) },
       geometry: { type: 'Polygon', coordinates: [[[x - hx, y - hy], [x + hx, y - hy], [x + hx, y + hy], [x - hx, y + hy], [x - hx, y - hy]]] } };
   }
@@ -822,7 +874,9 @@ function boot() {
         const w = aStop && core.walkFrom(S.G, tree, [aStop]);
         if (w) end = walkPath(tree, w.anchor);
       }
-      if (end) ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
+      // A bus home's class buildings are 6 km away, on the horizon behind the
+      // title bar; their minutes are in the list, so no label there.
+      if (end && l.how === 'walk') ends.push({ code: l.code, p: end, t: fmtRange(l.lo, l.hi) + ' ' + C.minUnit, how: l.how });
     }
     return { feats, ends, pts };
   }
@@ -832,8 +886,10 @@ function boot() {
       for (const m of S.destMarkers) m.remove();
       S.destMarkers = [];
       const r = S.selected && S.result && S.result.ranked.find(x => x.home.id === S.selected);
+      S.routeKinds = {};
       if (!r || S.view === 'pill') { map().getSource(SRC_ROUTE).setData(empty()); return; }
       const { feats, ends } = routeOf(r);
+      for (const f of feats) S.routeKinds[f.properties.k] = (S.routeKinds[f.properties.k] || 0) + 1;
       map().getSource(SRC_ROUTE).setData({ type: 'FeatureCollection', features: feats });
       for (const e of ends) {
         const tag = el('div', 'fd-dest');
@@ -843,58 +899,66 @@ function boot() {
     });
   }
   function freeArea() {
-    // The part of the screen the panel does not cover, as offsets from centre.
+    // The part of the screen the panel and the time-of-day slider leave
+    // free, as a size and an offset of its middle from the screen's middle.
     const box = root.hidden ? null : root.getBoundingClientRect();
-    if (!box) return { w: innerWidth, h: innerHeight, dx: 0, dy: 0 };
-    if (isPhone()) {
-      const h = Math.max(120, box.top);
-      return { w: innerWidth, h, dx: 0, dy: (h - innerHeight) / 2 };
-    }
-    const left = box.right;
-    return { w: innerWidth - left, h: innerHeight, dx: left / 2, dy: 0 };
+    const tod = document.getElementById('tod-panel');
+    const tr = tod && getComputedStyle(tod).display !== 'none' ? tod.getBoundingClientRect() : null;
+    let x0 = 0, x1 = innerWidth, y0 = 0, y1 = innerHeight;
+    if (box && isPhone()) y1 = Math.max(120, box.top);
+    else if (box) x0 = box.right;
+    if (tr && tr.width && tr.left > innerWidth / 2) x1 = Math.min(x1, tr.left);
+    return { w: x1 - x0, h: y1 - y0, dx: (x0 + x1 - innerWidth) / 2, dy: (y0 + y1 - innerHeight) / 2 };
   }
   function flyToHome(r) {
     const m = map(); if (!m) return;
     const F = FINDER.fly;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const fa = freeArea();
-    let center, zoom, pitch, bearing = m.getBearing();
-    if (r.score.how === 'walk') {
+    const walk = r.score.how === 'walk';
+    let bearing = m.getBearing();
+    const pitch = walk ? F.walkPitch : F.busPitch;
+    if (!walk && F.busFaceCampus) {
+      const [lon, lat] = r.home.p, [tl, tt] = F.busFaceCampus;
+      bearing = Math.atan2((tl - lon) * Math.cos(lat * Math.PI / 180), tt - lat) * 180 / Math.PI;
+    }
+    // Work in a frame turned to the camera: x = screen right, y = screen down.
+    const b = bearing * Math.PI / 180;
+    const right = [Math.cos(b), Math.sin(b)], down = [-Math.sin(b), Math.cos(b)];
+    const rot = (c) => [c.x * right[0] + c.y * right[1], c.x * down[0] + c.y * down[1]];
+    const unrot = (p) => [p[0] * right[0] + p[1] * down[0], p[0] * right[1] + p[1] * down[1]];
+    const home = rot(maplibregl.MercatorCoordinate.fromLngLat(r.home.p));
+    // Under the controller's ceiling (see FINDER.fly.maxAltM).
+    const zAlt = Math.log2(m.transform.cameraToCenterDistance * 40075016.686 * Math.cos(r.home.p[1] * Math.PI / 180) *
+      Math.cos(pitch * Math.PI / 180) / (512 * F.maxAltM));
+    let mid = home, zoom = F.busZoom;
+    if (walk) {
+      // Fit the home and the routes to its top buildings into the free area...
       const { pts } = routeOf(r);
-      pts.push(r.home.p);
-      const M = pts.map(p => maplibregl.MercatorCoordinate.fromLngLat(p));
-      const br = bearing * Math.PI / 180, rx = [Math.cos(br), Math.sin(br)], uy = [Math.sin(br), -Math.cos(br)];
-      const pr = M.map(p => [p.x * rx[0] + p.y * rx[1], p.x * uy[0] + p.y * uy[1]]);
+      const pr = pts.map(p => rot(maplibregl.MercatorCoordinate.fromLngLat(p))).concat([home]);
       const xs = pr.map(p => p[0]), ys = pr.map(p => p[1]);
       const w = Math.max(1e-9, Math.max(...xs) - Math.min(...xs)), h = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
       zoom = Math.min(Math.log2((fa.w - 2 * F.marginPx) / (512 * w)), Math.log2((fa.h - 2 * F.marginPx) / (512 * h)));
-      zoom = Math.max(F.minZoom, Math.min(F.maxZoom, zoom - F.pitchZoomLoss));
-      const cx = M.reduce((a, p) => a + p.x, 0) / M.length, cy = M.reduce((a, p) => a + p.y, 0) / M.length;
-      const mid = [(Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2];
-      // back from the rotated frame to mercator
-      const mx = mid[0] * rx[0] + mid[1] * uy[0], my = mid[0] * rx[1] + mid[1] * uy[1];
-      center = [Number.isFinite(mx) ? mx : cx, Number.isFinite(my) ? my : cy];
-      pitch = F.walkPitch;
-    } else {
-      const c = maplibregl.MercatorCoordinate.fromLngLat(r.home.p);
-      center = [c.x, c.y]; zoom = F.busZoom; pitch = F.busPitch;
-      if (F.busFaceCampus) {
-        const [lon, lat] = r.home.p, [tl, tt] = F.busFaceCampus;
-        bearing = Math.atan2((tl - lon) * Math.cos(lat * Math.PI / 180), tt - lat) * 180 / Math.PI;
-      }
+      zoom = Math.min(F.maxZoom, zoom - F.pitchZoomLoss);
+      mid = [(Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2];
     }
-    // Shift so the target sits in the middle of the free area, not under the
-    // panel. Done on the centre, not with MapLibre padding: the flight
-    // controller derives its eye from an unpadded viewport (live-here.js).
-    const scale = 512 * Math.pow(2, zoom), b = bearing * Math.PI / 180;
-    const right = [Math.cos(b), Math.sin(b)], up = [Math.sin(b), -Math.cos(b)];
-    const kUp = 1 / Math.max(0.35, Math.cos(pitch * Math.PI / 180));
-    const ox = -fa.dx / scale, oy = fa.dy / scale * kUp;
-    const cm = new maplibregl.MercatorCoordinate(center[0] + right[0] * ox + up[0] * oy, center[1] + right[1] * ox + up[1] * oy);
-    const target = { center: cm.toLngLat(), zoom, pitch, bearing, padding: { left: 0, right: 0, top: 0, bottom: 0 } };
+    zoom = Math.max(zoom, zAlt);
+    const scale = 512 * Math.pow(2, zoom);
+    // ...and when the ceiling makes that impossible (a phone is narrow), the
+    // HOME stays in frame and the routes run off toward campus. Measured: the
+    // phone's first fit put The Standard 28 px off the left edge (phase 2).
+    const mx = (fa.w / 2 - F.marginPx) / scale, my = (fa.h / 2 - F.marginPx) / scale;
+    mid = [Math.min(home[0] + mx, Math.max(home[0] - mx, mid[0])), Math.min(home[1] + my, Math.max(home[1] - my, mid[1]))];
+    // Put that point in the middle of the free area, not under the panel.
+    // Done on the centre, not with MapLibre padding: the flight controller
+    // derives its eye from an unpadded viewport (live-here.js).
+    const kDown = 1 / Math.max(0.35, Math.cos(pitch * Math.PI / 180));
+    const c = unrot([mid[0] - fa.dx / scale, mid[1] - fa.dy / scale * kDown]);
+    const target = { center: new maplibregl.MercatorCoordinate(c[0], c[1]).toLngLat(), zoom, pitch, bearing,
+      padding: { left: 0, right: 0, top: 0, bottom: 0 } };
     m.stop();
     if (reduce) m.jumpTo(target);
-    else m.flyTo({ ...target, duration: F.durationMs, essential: true });
+    else m.easeTo({ ...target, duration: F.durationMs, essential: true });
   }
   function select(id, opt = {}) {
     S.selected = id;
@@ -928,6 +992,33 @@ function boot() {
     head.append(clr);
     tray.append(head);
     const codes = R.T.targets.slice(0, FINDER.compareBuildings).map(t => t.code);
+    if (isPhone()) {
+      // A 375 px screen has no room for three cards side by side, so the
+      // phone gets the same numbers as one table: a column per home.
+      const tbl = el('div', 'fd-ctable');
+      tbl.style.gridTemplateColumns = 'var(--fd-ctable-code) repeat(' + rows.length + ', minmax(0, 1fr))';
+      tbl.append(el('span'));
+      for (const r of rows) {
+        const h = el('div', 'fd-ch');
+        const n = el('span', 'fd-n', String(r.rank)); n.style.setProperty('--c', colourOf(r.score.mid));
+        const x = el('button', 'fd-x', '×'); x.type = 'button'; x.setAttribute('aria-label', C.compareRemove(r.home.name));
+        x.onclick = () => toggleCompare(r.home.id);
+        const nm = el('button', 'fd-card-name', r.home.name); nm.type = 'button'; nm.onclick = () => select(r.home.id);
+        h.append(n, x, nm, el('div', 'fd-sub', C.how[r.score.how]));
+        tbl.append(h);
+      }
+      tbl.append(el('b', 'fd-ct-lab', C.minUnit));
+      for (const r of rows) tbl.append(el('span', 'fd-ct-avg', fmtRange(r.score.lo, r.score.hi)));
+      for (const code of codes) {
+        tbl.append(el('b', null, code));
+        for (const r of rows) {
+          const l = r.score.legs.find(x => x.code === code);
+          tbl.append(el('span', null, l ? fmtRange(l.lo, l.hi) : '—'));
+        }
+      }
+      tray.append(tbl);
+      return;
+    }
     const grid = el('div', 'fd-cards');
     for (const r of rows) {
       const card = el('div', 'fd-card');
@@ -977,6 +1068,7 @@ function boot() {
       unranked: R ? R.unranked.map(r => r.home.id) : [],
       pins: S.markers.size,
       heatCells: S.heatCount == null ? null : S.heatCount,
+      route: Object.assign({}, S.routeKinds || {}), labels: S.destMarkers.length,
       importReady: S.importReady,
     };
   };

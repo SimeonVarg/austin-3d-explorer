@@ -5,11 +5,12 @@
   --fd-w: 360px;                    /* desktop panel width */
   --fd-top: 64px;                   /* below the top-left buttons */
   --fd-inset: 16px;
-  --fd-peek-h: 300px;               /* phone sheet, first state: the question, then the list */
+  --fd-peek-h: 290px;               /* phone sheet, first state: the question, then the list */
   --fd-open-h: 74dvh;               /* phone sheet, the list */
   --fd-radius: 16px;
   --fd-glass: rgba(17, 10, 3, .80);
   --fd-glass-solid: rgba(15, 9, 2, .94);
+  --fd-menu: #150d05;               /* the major list: opaque, it covers text */
   --fd-edge: rgba(255, 190, 90, .20);
   --fd-edge-soft: rgba(255, 190, 90, .12);
   --fd-ink: #f8ead0;
@@ -27,11 +28,13 @@
   --fd-small: 10.5px;
   --fd-min: 19px;                   /* the minutes on a row */
   --fd-pin: 26px;
+  --fd-stem: 12px;                  /* pin stands this far above its point */
   --fd-pin-hot: 1.28;               /* scale on hover / list hover */
   --fd-pin-sel: 1.42;
   --fd-pin-ink: #1d1206;
   --fd-pin-ring: rgba(255, 248, 235, .96);
   --fd-card-w: 212px;
+  --fd-ctable-code: 34px;           /* phone compare table: the code column */
   --fd-tray-bottom: 64px;           /* clear of the controls hint */
   --fd-z: 29;                       /* under the walk sheet / import screen (30-31) */
 }
@@ -39,7 +42,10 @@
 #fd-pill, #finder, #fd-tray { font: var(--fd-body)/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--fd-ink); box-sizing: border-box; }
 #finder *, #fd-tray * { box-sizing: border-box; }
-#finder [hidden], #fd-tray[hidden], #fd-pill[hidden] { display: none !important; }
+/* `#finder` sets display:flex, which beats the UA's [hidden] rule, so the
+   element's own hidden attribute has to be restated here. Without the first
+   selector the panel stood open, empty, over the whole intro (phase 2). */
+#finder[hidden], #fd-tray[hidden], #fd-pill[hidden], #finder [hidden] { display: none !important; }
 
 /* ── the pill ── */
 #fd-pill { position: fixed; z-index: var(--fd-z); left: var(--fd-inset); top: var(--fd-top);
@@ -53,7 +59,10 @@
 /* ── the panel ── */
 #finder { position: fixed; z-index: var(--fd-z); left: var(--fd-inset); top: var(--fd-top); bottom: var(--fd-inset);
   width: var(--fd-w); max-width: calc(100vw - 2 * var(--fd-inset)); display: flex; flex-direction: column;
-  background: var(--fd-glass-solid); backdrop-filter: blur(14px) saturate(1.1); border: 1px solid var(--fd-edge);
+  /* NO backdrop-filter on the two big surfaces. Behind a 94%-opaque panel the
+     blur is invisible, and it makes the compositor re-blur a 360 x 820 patch
+     of the city on every frame the camera moves — paid on the integrated GPU. */
+  background: var(--fd-glass-solid); border: 1px solid var(--fd-edge);
   border-radius: var(--fd-radius); box-shadow: var(--fd-shadow); overflow: hidden; }
 #finder button, #finder input { font: inherit; color: inherit; }
 #finder :focus-visible, #fd-tray :focus-visible, #fd-pill:focus-visible { outline: 2px solid var(--fd-accent); outline-offset: 2px; }
@@ -75,7 +84,7 @@
 #fd-major::placeholder { color: var(--fd-dimmer); }
 #fd-major:focus { border-color: rgba(255, 198, 99, .6); background: rgba(255, 255, 255, .09); }
 .fd-majors { position: absolute; z-index: 2; left: 0; right: 0; top: 42px; max-height: 260px; overflow: auto;
-  margin: 0; padding: 4px; list-style: none; background: var(--fd-glass-solid); border: 1px solid var(--fd-edge);
+  margin: 0; padding: 4px; list-style: none; background: var(--fd-menu); border: 1px solid var(--fd-edge);
   border-radius: 10px; box-shadow: var(--fd-shadow); }
 .fd-opt { padding: 7px 9px; border-radius: 7px; cursor: pointer; }
 .fd-opt small { display: block; color: var(--fd-dimmer); font-size: var(--fd-small); }
@@ -137,19 +146,23 @@
 .fd-ramp { height: 8px; border-radius: 4px; }
 .fd-ticks { position: relative; height: 14px; font-size: 9.5px; color: var(--fd-dimmer); font-variant-numeric: tabular-nums; }
 .fd-ticks span { position: absolute; top: 2px; transform: translateX(-50%); }
-.fd-src { margin-top: 6px; color: var(--fd-dimmer); font-size: var(--fd-small); }
+.fd-src { margin: 12px 8px 4px; color: var(--fd-dimmer); font-size: var(--fd-small); }
 .fd-src summary { cursor: pointer; }
 .fd-src p { margin: 5px 0 0; }
 .fd-priv:empty { display: none; }
-.fd-priv { margin-top: 8px; }
+.fd-priv { margin: 12px 8px 0; }
 
 /* ── the city ── */
-.fd-pinwrap { width: var(--fd-pin); height: var(--fd-pin); }
+/* A pin stands on a short stem above its home, so the city's own building
+   label under it stays readable. */
+.fd-pinwrap { width: var(--fd-pin); height: calc(var(--fd-pin) + var(--fd-stem)); display: flex; flex-direction: column; align-items: center; }
+.fd-pinwrap .fd-pin { flex: none; height: var(--fd-pin); }
+.fd-stem { flex: none; width: 2px; height: var(--fd-stem); background: var(--fd-pin-ring); box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
 .fd-pin { width: 100%; height: 100%; padding: 0; border-radius: 50%; border: 2px solid var(--fd-pin-ring);
   background: var(--c, var(--fd-accent)); color: var(--fd-pin-ink); font: 800 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .45); cursor: pointer; transition: transform .12s ease-out; }
-.fd-pinwrap.hot .fd-pin { transform: scale(var(--fd-pin-hot)); }
-.fd-pinwrap.sel .fd-pin { transform: scale(var(--fd-pin-sel)); box-shadow: 0 0 0 3px var(--fd-accent), 0 3px 12px rgba(0, 0, 0, .5); }
+.fd-pinwrap.hot .fd-pin { transform: scale(var(--fd-pin-hot)); transform-origin: 50% 100%; }
+.fd-pinwrap.sel .fd-pin { transform: scale(var(--fd-pin-sel)); transform-origin: 50% 100%; box-shadow: 0 0 0 3px var(--fd-accent), 0 3px 12px rgba(0, 0, 0, .5); }
 .fd-dest { padding: 4px 8px; border-radius: 8px; background: var(--fd-glass-solid); border: 1px solid var(--fd-edge);
   color: var(--fd-ink); font: 600 11px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .4); pointer-events: none; }
@@ -158,7 +171,7 @@
 /* ── the compare tray ── */
 #fd-tray { position: fixed; z-index: var(--fd-z); left: calc(2 * var(--fd-inset) + var(--fd-w)); bottom: var(--fd-tray-bottom);
   max-width: calc(100vw - 3 * var(--fd-inset) - var(--fd-w)); padding: 10px; border-radius: var(--fd-radius);
-  background: var(--fd-glass-solid); backdrop-filter: blur(14px) saturate(1.1); border: 1px solid var(--fd-edge);
+  background: var(--fd-glass-solid); border: 1px solid var(--fd-edge);
   box-shadow: var(--fd-shadow); }
 .fd-tray-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px; }
 .fd-tray-head b { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--fd-dimmer); }
@@ -183,7 +196,14 @@
 
 /* ── phones: a bottom sheet ── */
 @media (max-width: 650px) {
-  #fd-pill { top: auto; bottom: calc(var(--fd-inset) + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }
+  /* Under the Explore button: the bottom of a phone belongs to the joystick,
+     BOOST and the hint line (the first try sat on the hint, phase 2). */
+  #fd-pill { top: 72px; left: 12px; }
+  /* While the sheet is up it is the mode: the flying controls it would cover
+     step aside, and come back the moment it is closed. The tall sheet also
+     covers the time slider, so that steps aside too rather than half-show. */
+  body.fd-on #joystick-zone, body.fd-on #joy-boost, body.fd-on #controls-hint { display: none !important; }
+  body.fd-tall #tod-panel { display: none !important; }
   #finder { left: 0; right: 0; top: auto; bottom: 0; width: 100%; max-width: none; height: var(--fd-open-h);
     border-radius: var(--fd-radius) var(--fd-radius) 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
   /* Peek: the question first; the whole sheet scrolls into the list, or the
@@ -196,7 +216,21 @@
   .fd-head { padding: 4px 16px 6px; }
   .fd-title { font-size: 21px; }
   .fd-ask { padding: 2px 16px 10px; }
-  #fd-tray { left: 12px; right: 12px; top: 60px; bottom: auto; max-width: none; }
-  .fd-card { flex-basis: 180px; }
+  /* On a phone the compare tray lives INSIDE the sheet (js moves it), above
+     the list: there is no free corner of a 375 px screen to float it in. */
+  #finder #fd-tray { position: static; max-width: none; margin: 8px 10px 0; padding: 8px; box-shadow: none;
+    background: rgba(255, 255, 255, .03); }
+  .fd-ctable { display: grid; gap: 3px 8px; align-items: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+  .fd-ctable > b { color: var(--fd-accent); }
+  .fd-ctable .fd-ct-lab { color: var(--fd-dimmer); font-weight: 600; }
+  .fd-ctable .fd-ct-avg { font-size: 15px; font-weight: 650; }
+  .fd-ch { position: relative; padding-right: 18px; }
+  .fd-ch .fd-n { width: 20px; height: 20px; font-size: 10px; }
+  .fd-ch .fd-x { right: -4px; top: -2px; }
+  .fd-ch .fd-card-name { font-size: 11.5px; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; }
+  /* The import screen comes up over the middle of a phone; the sheet steps
+     out of its way until it closes. */
+  body.fd-importing #finder { visibility: hidden; }
 }
 .clip #fd-pill, .clip #finder, .clip #fd-tray { display: none !important; }
