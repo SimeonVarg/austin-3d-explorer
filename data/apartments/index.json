@@ -148,11 +148,19 @@
     "data/neighborhood_apartments.json",
     "data/guadalupe.json",
     "data/south_campus.json",
-    "data/speedway_buildings.json",
-    "data/apartments/village-at-east-riverside.json",
-    "data/apartments/estates-at-east-riverside.json",
-    "data/apartments/town-lake-student-apartments.json",
-    "data/apartments/the-element-austin.json",
-    "data/apartments/riverside-site.json"
-  ]
+    "data/speedway_buildings.json"
+  ],
+  "_areas": "Collections that load only when the camera comes near them (js/slopes-apartments.js APARTMENTS.areas). Each area is a box [west, south, east, north] around every footprint in its files and the files themselves. Everything above this key is the core and loads at start.",
+  "areas": {
+    "riverside": {
+      "bbox": [-97.7320, 30.2350, -97.7090, 30.2426],
+      "collections": [
+        "data/apartments/village-at-east-riverside.json",
+        "data/apartments/estates-at-east-riverside.json",
+        "data/apartments/town-lake-student-apartments.json",
+        "data/apartments/the-element-austin.json",
+        "data/apartments/riverside-site.json"
+      ]
+    }
+  }
 }

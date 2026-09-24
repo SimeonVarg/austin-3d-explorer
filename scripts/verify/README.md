@@ -117,6 +117,22 @@ landed mid-flight; a move that changes no input is checked but not rebuilt.
 `--break` restores "rebuild 300 ms after any move" and must exit 1. (Until
 2026-09-23 every moveend rebuilt it, 1.0-1.4 s each, every ~1.5 s of a flight.)
 
+### Far-away authored buildings load when the camera goes there
+
+`node apartment-areas.mjs` (no browser, no server) runs the real
+`js/slopes-apartments.js` in a sandbox with the geometry stubbed, against an
+index with one core file, one core collection and one on-demand area. The
+start must request no area file and be ready without it; a camera within
+`APARTMENTS.areas.loadM` builds the area as its own group, and only then do its
+buildings join the catalog and hide the outer ring's boxes; a desktop keeps it
+when the camera leaves, a phone drops it past `unloadM` with the boxes, counts
+and catalog back to the core's; `ensureAt` builds ahead of the camera; a core
+rebuild takes areas down and back without double counting; an area dropped
+mid-build takes back its counts; `?areas=eager` is the old start. `--break`
+makes every area eager (Riverside at start again) and must exit 1. It does not
+measure load time or memory; those numbers are in HANDOFF (Sep 24 2026,
+Riverside).
+
 ### The "graphics acceleration is off" notice
 
 `VERIFY_URL=http://127.0.0.1:8442 node gpu-hint.mjs --out <outside-repo-directory>`

@@ -225,12 +225,43 @@
     arch: { segments: 20, trimProud: 0.035 },
     mullion: { w: 0.08, proud: 0.04 },
     facets: { w: 3, h: 3, depth: 0.3, backingGap: 0.01 },
+    // ON-DEMAND AREAS. Authored buildings far from campus are grouped into
+    // areas in data/apartments/index.json (`areas`: name -> { bbox,
+    // collections }). The core, every file listed outside `areas`, loads at
+    // start exactly as before, and the veil waits only for it. An area is
+    // fetched and built when the camera comes within `loadM` of its box
+    // (metres from the nearer of the eye and the map centre to the nearest
+    // edge of the box), or when something asks for it with
+    // slopesApartments.areas.ensureAt([lng, lat]), the hook for a panel that
+    // is about to fly to a home there. Until then the map draws there what
+    // it drew before the area was authored (the outer ring's distance cull
+    // leaves most of Riverside's small footprints empty).
+    // A phone drops an area again past `unloadM` (well beyond loadM, so a
+    // camera on the boundary does not load and drop it over and over) and
+    // forgets its parsed files too; a desktop keeps what it has built.
+    //
+    // Why (2026-09-24): Riverside alone was 236 buildings, ~620k triangles
+    // and 7.6 MB of JSON added to every visitor's start, 5.6 km from the UT
+    // Tower where the opening camera never looks. `?areas=eager` loads every
+    // area at start, the old behaviour, for an A/B.
+    areas: {
+      eager: q.get('areas') === 'eager',
+      loadM: 1800,        // the intro's first eye is ~2.3 km from Riverside's box: this keeps the start clean
+      checkMs: 400,       // a moving camera is re-checked at most this often
+      pinMs: 20000,       // after ensureAt, how long a phone keeps an area the camera has not reached yet
+      phone: { loadM: 1200, unloadM: 3000, unload: true, dropSpecs: true },
+    },
   };
   window.APARTMENTS = APTS;
 
   // ── state ────────────────────────────────────────────────────────────
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
+  // The catalog that loads at start, and the on-demand areas (APTS.areas).
+  // `_data` is always the core plus every area whose mesh is attached, so
+  // the filters, labels and shadow proxy that read it follow the meshes.
+  let _core = null;
+  const _areas = new Map();
   const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
   /**
    * The density in force right now: APTS.byPreset for the live graphics preset,
@@ -2442,15 +2473,19 @@
     return result;
   }
 
-  async function build() {
+  // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
+  // area's own group without resetting the core's counts, failures or list.
+  async function build(specs, area) {
     const T = window.THREE, S = window.slopes;
     const t0 = performance.now();
-    resetCount();
-    _failed.clear();
+    const gen = area ? area.gen : 0;
+    const before = area ? { tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k]])), names: count.names.length } : null;
+    const tallySince = () => ({ tally: Object.fromEntries(RESET_KEYS.map(k => [k, count[k] - before.tally[k]])), names: count.names.slice(before.names) });
+    if (!area) { resetCount(); _failed.clear(); }
     const B = S.build();
     B.filtered=[];
     B.filterPending=[];
-    _built = [];
+    const built = area ? [] : (_built = []);
     let sliceT0 = performance.now(), slices = 1;
     // Yield through a MessageChannel, not setTimeout: a hidden or background
     // tab clamps setTimeout to ~1 s per call, and measured 2026-09-16 a
@@ -2465,25 +2500,29 @@
       await yieldTask();
       sliceT0 = performance.now(); slices++;
     };
-    for (const spec of _data.buildings) {
+    for (const spec of specs || _data.buildings) {
+      // An area whose build was superseded (dropped, or the core rebuilding)
+      // stops here and takes back what it had counted.
+      if (area && area.gen !== gen) { untally(tallySince()); return null; }
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
         const it = buildingOne(B, spec);          // generator: yields per block
         let r = it.next();
         while (!r.done) { await pause(); r = it.next(); }
-        _built.push(r.value);
+        built.push(r.value);
       }
-      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); }
+      catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }
-    count.buildSlices = slices;
+    const C = area ? {} : count;       // an area's slice and filter tallies are its own
+    C.buildSlices = slices;
     let geom;
     try {
-      count.filterCandidates=B.filterPending.length;
+      C.filterCandidates=B.filterPending.length;
       const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:APTS.facadeFilter});
-      count.filterResolutionLevel=plan?.resolutionLevel??0;
-      count.filterPlannedBytes=plan?.bytes??0;
+      C.filterResolutionLevel=plan?.resolutionLevel??0;
+      C.filterPlannedBytes=plan?.bytes??0;
       if(plan)for(const entry of plan.faces) {
         addFilteredFace(B,entry.face,entry.options);
         // Release authored cell staging as soon as it has been rasterized.
@@ -2491,19 +2530,23 @@
         await pause();
       }
       B.filterPending.length=0;
-      count.filteredFaces=B.filtered.length;
+      C.filteredFaces=B.filtered.length;
       B.filtered=batchFiltered(B.filtered);
-      count.filteredBatches=B.filtered.length;
+      C.filteredBatches=B.filtered.length;
       geom = B.geometry();
       const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
       mesh.name = 'apartments';
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;
-      g.name = 'slopes-apartments';
-      _builtFrame = S.frames;
+      g.name = area ? 'slopes-apartments-' + area.name : 'slopes-apartments';
+      if (!area) _builtFrame = S.frames;
       g.add(mesh);
       for(const m of B.filtered)g.add(m);
+      if (area) {
+        g.userData.area = Object.assign(tallySince(), { name: area.name, built, triangles: B.triangles, ms: +(performance.now() - t0).toFixed(1) });
+        return g;
+      }
       count.triangles = B.triangles;
       count.ms = +(performance.now() - t0).toFixed(1);
       _lastDetail = detailNow();
@@ -2836,6 +2879,7 @@
   }
 
   function dropGroup() {
+    dropAreas();
     if (!_group) return;
     window.slopes.remove(_group);
     _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); });
@@ -2848,7 +2892,9 @@
   let _building = null;
   function startBuild(map) {
     const S = window.slopes;
-    const p = _building = build().then(g => {
+    // Never beside an area build: they share the counts. An area build in
+    // flight has been superseded by dropAreas() and stops at its next building.
+    const p = _building = _areaChain.then(() => build()).then(g => {
       if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; } // superseded
       _building = null;
       const want = !!(window.SLOPES.on && APTS.on);
@@ -2857,6 +2903,7 @@
       setFilters(true); setLabels(true);
       (map || _map).triggerRepaint();
       console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
+      checkAreas(map || _map);   // a camera that is already near an area
     }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
     return p;
   }
@@ -2901,7 +2948,165 @@
     uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
     lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
     obbOf, h01, floorsBetween, offsetRing, hideGeometry,
+    /** the on-demand areas (APTS.areas) */
+    areas: {
+      /** load every area within its loadM of [lng, lat] now, before the camera gets there; resolves when built */
+      ensureAt(lngLat) {
+        const pt = Array.isArray(lngLat) ? lngLat : [lngLat.lng, lngLat.lat], P = areaParams();
+        return Promise.all([..._areas.values()].filter(a => areaDistanceM(a, [pt]) <= P.loadM).map(a => {
+          a.pinUntil = performance.now() + APTS.areas.pinMs;
+          return a.state === 'on' ? true : (_group && !_building ? loadArea(a) : false);
+        }));
+      },
+      get list() { return [..._areas.values()].map(a => ({ name: a.name, state: a.state, distanceM: a.distanceM, buildings: a.group ? a.group.userData.area.built.length : 0, triangles: a.group ? a.group.userData.area.triangles : 0, specs: a.specs ? a.specs.length : 0 })); },
+      check() { checkAreas(); },
+      unload(name) { const a = _areas.get(name); if (a) unloadArea(a); },
+    },
   };
+
+  // ── on-demand areas (APTS.areas) ─────────────────────────────────────
+  // Area builds run one at a time, and never beside a core build.
+  let _areaChain = Promise.resolve();
+  let _areaCheckT = 0, _areaTimer = null;
+  const isPhone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
+  const areaParams = () => isPhone() ? Object.assign({}, APTS.areas, APTS.areas.phone) : Object.assign({}, APTS.areas, { unload: false, dropSpecs: false });
+  function registerAreas(idx) {
+    if (APTS.areas.eager) return;
+    for (const [name, a] of Object.entries(idx.areas || {})) {
+      const bb = a && a.bbox, files = a && a.collections;
+      if (!Array.isArray(bb) || bb.length !== 4 || !bb.every(Number.isFinite) || !Array.isArray(files) || !files.length) { console.warn('[slopes-apartments] area', name, 'has no bbox or collections'); continue; }
+      _areas.set(name, { name, bbox: bb, files, state: 'idle', gen: 0, specs: null, group: null, failed: [], ready: null, pinUntil: 0, distanceM: null });
+    }
+  }
+  // ?areas=eager: every area's files join the core, as before areas existed.
+  const eagerAreaFiles = idx => APTS.areas.eager ? Object.values(idx.areas || {}).flatMap(a => (a && a.collections) || []) : [];
+  function areaDistanceM(a, pts) {
+    let best = Infinity;
+    for (const [lng, lat] of pts) {
+      const dx = Math.max(a.bbox[0] - lng, 0, lng - a.bbox[2]) * mLon(lat);
+      const dy = Math.max(a.bbox[1] - lat, 0, lat - a.bbox[3]) * M_LAT;
+      best = Math.min(best, Math.hypot(dx, dy));
+    }
+    return best;
+  }
+  function cameraPoints(map) {
+    const c = map.getCenter(), pts = [[c.lng, c.lat]];
+    try { const e = map.getFreeCameraOptions().position.toLngLat(); if (Number.isFinite(e.lng) && Number.isFinite(e.lat)) pts.push([e.lng, e.lat]); } catch (e) {}
+    return pts;
+  }
+  function catalogWithAreas() {
+    const on = [..._areas.values()].filter(a => a.state === 'on' && a.group && a.specs);
+    if (!_core || !on.length) return _core;
+    const extra = on.flatMap(a => a.specs);
+    return { buildings: _core.buildings.concat(extra),
+      replacedBuildingIds: [...new Set((_core.replacedBuildingIds || []).concat(extra.map(b => b.id).filter(Boolean)))],
+      replacedNames: [...new Set((_core.replacedNames || []).concat(extra.flatMap(b => [b.name, ...(b.aliases || [])]).filter(Boolean)))] };
+  }
+  function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.userData?.disposeFacade) o.userData.disposeFacade(); }); }
+  function untally(info) {
+    for (const k of RESET_KEYS) count[k] -= info.tally[k] || 0;
+    for (const n of info.names) { const i = count.names.lastIndexOf(n); if (i >= 0) count.names.splice(i, 1); }
+  }
+  function loadArea(a) {
+    if (a.state !== 'idle') return a.ready || Promise.resolve(a.state === 'on');
+    const gen = ++a.gen;
+    a.state = 'fetching';
+    a.ready = (async () => {
+      const S = window.slopes;
+      if (!a.specs) {
+        const lists = await Promise.all(a.files.map(async f => {
+          try {
+            const bundle = await fetchModel(S, f);
+            if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
+            return bundle.buildings;
+          } catch (e) { console.warn('[slopes-apartments]', f, e.message); return []; }
+        }));
+        if (gen !== a.gen) return false;
+        a.specs = lists.flat();
+      }
+      if (!a.specs.length) { a.state = 'failed'; return false; }
+      a.state = 'building';
+      let g = null;
+      const run = _areaChain.then(async () => {
+        if (gen !== a.gen || !_group) return;
+        try { g = await build(a.specs, a); } catch (e) { console.error('[slopes-apartments] area', a.name, e); }
+      });
+      _areaChain = run.catch(() => {});
+      await run;
+      if (gen !== a.gen) { if (g) { untally(g.userData.area); disposeGroup(g); } return false; }
+      if (!g || !_group || !(window.SLOPES.on && APTS.on)) { if (g) { untally(g.userData.area); disposeGroup(g); } a.state = g ? 'idle' : 'failed'; return false; }
+      attachArea(a, g);
+      return true;
+    })();
+    return a.ready;
+  }
+  function attachArea(a, g) {
+    const info = g.userData.area;
+    a.group = g; a.state = 'on';
+    count.triangles += info.triangles;
+    _built = _built.concat(info.built);
+    window.slopes.add(g);
+    _data = catalogWithAreas();     // the mesh is in: now its boxes may go
+    setFilters(true); setLabels(true);
+    if (_map) _map.triggerRepaint();
+    console.log('[slopes-apartments] area', a.name + ':', info.built.length, 'building(s),', info.triangles, 'triangles, built in', info.ms, 'ms');
+  }
+  function detachArea(a) {
+    const g = a.group, info = g.userData.area;
+    a.group = null;
+    window.slopes.remove(g); disposeGroup(g);
+    untally(info); count.triangles -= info.triangles;
+    _built = _built.filter(b => !info.built.includes(b));
+    for (const id of a.failed) _failed.delete(id);
+    a.failed = [];
+  }
+  function unloadArea(a) {
+    a.gen++;
+    a.ready = null;
+    if (a.group) {
+      a.state = 'idle';
+      _data = catalogWithAreas();     // the boxes come back first...
+      setFilters(true); setLabels(true);
+      detachArea(a);                  // ...then the mesh goes, so the swap is never a hole
+      if (_map) _map.triggerRepaint();
+      console.log('[slopes-apartments] area', a.name, 'unloaded');
+    }
+    a.state = 'idle';
+    if (areaParams().dropSpecs) a.specs = null;
+  }
+  // The core is going (a rebuild, the switch, the map): its areas go with it
+  // and come back through checkAreas once the core is back.
+  function dropAreas() {
+    for (const a of _areas.values()) {
+      a.gen++;
+      if (a.group) detachArea(a);
+      if (a.state !== 'failed') a.state = 'idle';
+      a.ready = null;
+    }
+    if (_core) _data = _core;
+  }
+  function checkAreas(map) {
+    map = map || _map;
+    if (!map || !_core || !_group || _building || !_areas.size || !(window.SLOPES.on && APTS.on)) return;
+    const P = areaParams(), pts = cameraPoints(map), now = performance.now();
+    for (const a of _areas.values()) {
+      const d = areaDistanceM(a, pts);
+      a.distanceM = Math.round(d);
+      if (d <= P.loadM) { if (a.state === 'idle') loadArea(a); }
+      else if (P.unload && a.state !== 'idle' && a.state !== 'failed' && d > P.unloadM && now > a.pinUntil) unloadArea(a);
+    }
+  }
+  function watchAreas(map) {
+    if (!_areas.size || map.__aptsAreasWatched) return;
+    map.__aptsAreasWatched = true;
+    const later = () => { _areaTimer = null; _areaCheckT = performance.now(); checkAreas(map); };
+    map.on('move', () => {
+      if (performance.now() - _areaCheckT >= APTS.areas.checkMs) later();
+      else if (!_areaTimer) _areaTimer = setTimeout(later, APTS.areas.checkMs);
+    });
+    map.on('moveend', later);
+    map.once('remove', () => { clearTimeout(_areaTimer); _areaTimer = null; });
+  }
 
   // ── boot ─────────────────────────────────────────────────────────────
   // Waits for the layer (window.slopes.root exists once initSlopes ran —
@@ -2934,6 +3139,7 @@
     if (_fetching) return _fetching;
     _fetching = (async () => {
           const idx = await fetchModel(S,APTS.index);
+          registerAreas(idx);
           if (_fetchClosed) return replacementCatalog(idx, [], []);
           // Fetch independent files together; serial fetches left obsolete models visible.
           const [individual, bundles] = await Promise.all([
@@ -2941,7 +3147,7 @@
               try { return await fetchModel(S,f.startsWith('data/') ? f : 'data/apartments/' + f); }
               catch (e) { console.warn('[slopes-apartments]', f, e.message); return null; }
             })),
-            Promise.all((idx.collections || []).map(async f => {
+            Promise.all((idx.collections || []).concat(eagerAreaFiles(idx)).map(async f => {
               try {
                 const bundle = await fetchModel(S,f);
                 if (!Array.isArray(bundle.buildings)) throw new Error(f + ': buildings collection missing');
@@ -2976,7 +3182,7 @@
     if (!map || !S || !S.root) return false;
     _map = map;
     if (!_data) {
-      try { _data = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
+      try { _data = _core = await startFetch(S); } catch (e) { console.warn('[slopes-apartments]', e.message, '— nothing drawn'); count.done = true; return true; }
     }
     if (_removedMaps.has(map)) return true; // fetch completed after removal
     // The mesh needs data and a scene root, not the building layers: start it
@@ -2987,6 +3193,7 @@
     if (!mapStyleAvailable(map) || !map.getLayer('buildings-3d')) return false;
     if (window.WESTCAMPUS && window.WESTCAMPUS.on && !map.getLayer('wc-wall') && !window.__wcSkipped) return false;
     S.onSwitch(() => window.applySlopesApartments(map));
+    watchAreas(map);
     // after any pass that rewrites a layer we filter — the slopes settings,
     // js/slopes-roofs.js's own apply (it sets roofs-pitched's filter from
     // the snapshot it took at ITS boot, which drops ours if we came first)
