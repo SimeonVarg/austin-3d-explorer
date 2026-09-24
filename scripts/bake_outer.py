@@ -1080,7 +1080,7 @@ def downtown_detail(out, rep, use_landmarks=True):
         # Reclassifying each short podium would erase the owner's identity.
         for solid in mine:
             if solid["properties"].get("t") == 1:
-                for key in ("fp", "name", "use", "yr", "lv", "fa", "fw"):
+                for key in ("fp", "use", "yr", "lv", "fa", "fw"):
                     if key in f["properties"]:
                         solid["properties"].setdefault(key, f["properties"][key])
         tops = [f["properties"]["h"]] + [
@@ -1592,8 +1592,9 @@ def main():
         if facade_profile:
             props.update(fp=facade_profile, use=cls or "unknown",
                          fa=round(best_area), fw=round(plan_width(ring_m, best_area), 1))
-            if c.get("name"):
-                props["name"] = c["name"]
+            # No `name` on ring features: `fp` already carries the identity
+            # (profile_for ran on the name above), nothing at runtime reads
+            # one, and outer-check.mjs holds the ring to "no names, no labels".
             if c.get("era"):
                 props["yr"] = c["era"]
             if c.get("facade_levels"):
