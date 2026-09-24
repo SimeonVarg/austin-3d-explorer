@@ -33,8 +33,18 @@
  *               the notice, and its button must restore the full city.
  *   landscape   the same phone at 844x390.
  *   desktop     1280x800, no touch: no profile, the URL untouched, no counter.
+ *   crashloop   Safari's own recovery (2026-09-24 report): the renderer is
+ *               killed DURING THE OPENING FLIGHT and the same URL loads again at
+ *               once, the way Safari reloads a killed page one time by itself.
+ *               That reload must be the `lighter` tier with the authored
+ *               buildings, a notice, and no reload of its own; killed again
+ *               (Safari's second kill: its error page, then the visitor's
+ *               reload), the next load is the safe tier. Never a self-reload.
  *   contextloss the WebGL context lost and restored after load: the page must
  *               reload by itself and draw the authored buildings again.
+ *   ctxintro    the WebGL context lost DURING THE OPENING FLIGHT: exactly one
+ *               reload, onto the `lighter` tier with the authored buildings;
+ *               lost again there, NO second reload - the notice instead.
  *   shots       The Standard, The Otis Hotel, Moody Center, 21 Rio, Icon,
  *               Villas on 24th and Moontower on the phone profile, each shot
  *               twice and the second kept (JPEG in --out).
@@ -56,7 +66,7 @@ const argv = process.argv.slice(2);
 const oi = argv.indexOf('--out');
 const OUT = oi >= 0 ? argv[oi + 1] : (process.env.OUT || path.join(os.tmpdir(), 'mobile-boot'));
 const picked = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--out');
-const ALL = ['probe', 'returning', 'interrupt', 'background', 'crash', 'legacy', 'landscape', 'desktop', 'contextloss'];
+const ALL = ['probe', 'returning', 'interrupt', 'background', 'crash', 'crashloop', 'legacy', 'landscape', 'desktop', 'contextloss', 'ctxintro'];
 const SCEN = picked.length ? picked : ALL;
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -418,6 +428,121 @@ S.contextloss = () => withCtx(PHONE, async ctx => {
   log('contextloss errors', JSON.stringify(errs.slice(0, 3)));
 });
 
+// ── Sep 24 2026: the reload loop ────────────────────────────────────
+// Every load the page starts by itself is a main-frame DOCUMENT REQUEST this
+// script did not ask for. Counted from the moment the listener is attached, so
+// the count after one goto is 1 and anything above it is the page's own reload.
+// NOT `framenavigated`: Playwright fires that for same-document history
+// changes too, and js/mobile.js calls history.replaceState twice on every load
+// (the profile flags in, the visitor's URL back) — the first version of this
+// counter read 3 for one load and called it a reload loop.
+function selfNavs(page) {
+  const o = { n: 0 };
+  page.on('request', r => { if (r.isNavigationRequest() && r.frame() === page.mainFrame()) o.n++; });
+  return o;
+}
+async function waitFlying(page) {
+  await page.waitForFunction(() => { const f = window.__intro && window.__intro.flight; return !!(f && f.state === 'flying'); },
+    null, { timeout: REVEAL_MS, polling: 200 });
+}
+async function loseContext(page) {
+  return page.evaluate(() => {
+    const gl = window.__map.painter && window.__map.painter.context && window.__map.painter.context.gl;
+    const ext = gl && gl.getExtension('WEBGL_lose_context');
+    if (!ext) return 'no WEBGL_lose_context';
+    window.__lc = ext; ext.loseContext(); return 'lost';
+  });
+}
+const tierOf = s => s.lite && s.lite.tierName;
+const flightOf = page => page.evaluate(() => (window.__intro && window.__intro.flight ? window.__intro.flight.state : null));
+
+S.crashloop = () => withCtx(PHONE, async ctx => {
+  let page = await ctx.newPage();
+  await page.goto(BASE + '/?drift=0', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect()).catch(() => {});
+  await waitFlying(page);
+  const b0 = await page.evaluate(() => ({ tier: window.LITE_PROFILE && window.LITE_PROFILE.tierName, boot: localStorage.getItem('flyover.boot') }));
+  await crash(page);
+  log(`crashloop: killed during the opening flight on the "${b0.tier}" tier (boot ${b0.boot})`);
+  check('crashloop: the first load was the phone tier', b0.tier === 'phone', b0.tier);
+  // Safari's one automatic reload.
+  page = await ctx.newPage();
+  let navs = selfNavs(page);
+  const s1 = await visit(page, '/?drift=0');
+  await sleep(10000);   // room for any reload of our own to happen
+  const s1b = await snap(page);
+  const fl1 = await flightOf(page);
+  log("crashloop: Safari's reload", JSON.stringify({ ...short(s1b), tier: tierOf(s1b), flight: fl1, navs: navs.n }));
+  check("crashloop: Safari's reload lands on the lighter tier", tierOf(s1) === 'lighter' && !s1.lite.safe, tierOf(s1));
+  check('crashloop: ...with the authored buildings', isFull(s1b), short(s1b).want);
+  check('crashloop: ...skipping the opening flight', fl1 === null, String(fl1));
+  check('crashloop: ...saying so on screen', s1b.notice && s1b.notice.shown, JSON.stringify(s1b.notice));
+  check('crashloop: ...and it never reloads itself', navs.n === 1, `main-frame navigations ${navs.n}`);
+  await page.screenshot({ path: path.join(OUT, 'crashloop-lighter-1.jpg'), type: 'jpeg', quality: 80 });
+  await sleep(1200);
+  await page.screenshot({ path: path.join(OUT, 'crashloop-lighter.jpg'), type: 'jpeg', quality: 80 });
+  // The lighter tier dies too, mid-load (a phone that cannot hold even that):
+  // Safari's reload of THAT must be the safe tier. (Killing the page above
+  // would not do: it has already outlived the settle window, i.e. the lighter
+  // tier SURVIVED there, which is not a death.)
+  await page.goto(BASE + '/?drift=0', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await sleep(7000);
+  const b1 = await page.evaluate(() => ({ tier: window.LITE_PROFILE && window.LITE_PROFILE.tierName }));
+  await crash(page);
+  log(`crashloop: killed mid-load on the "${b1.tier}" tier`);
+  page = await ctx.newPage();
+  navs = selfNavs(page);
+  await visit(page, '/?drift=0');
+  await sleep(10000);
+  const s2b = await snap(page);
+  log('crashloop: after a second kill', JSON.stringify({ ...short(s2b), tier: tierOf(s2b), navs: navs.n }));
+  check('crashloop: a second kill lands on the safe tier', tierOf(s2b) === 'safe' && s2b.lite.safe && !s2b.slopesOn, tierOf(s2b));
+  check('crashloop: ...with the notice', s2b.notice && s2b.notice.shown, JSON.stringify(s2b.notice));
+  check('crashloop: ...and no reload of its own', navs.n === 1, `main-frame navigations ${navs.n}`);
+});
+
+S.ctxintro = () => withCtx(PHONE, async ctx => {
+  const page = await ctx.newPage();
+  const errs = errsOf(page);
+  await page.goto(BASE + '/?drift=0', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect()).catch(() => {});
+  const navs = selfNavs(page);
+  await waitFlying(page);
+  const origin0 = await page.evaluate(() => performance.timeOrigin);
+  const lost = await loseContext(page);
+  await sleep(1000);
+  await page.evaluate(() => window.__lc && window.__lc.restoreContext()).catch(() => {});
+  const t0 = Date.now();
+  while (navs.n < 1 && Date.now() - t0 < 15000) await sleep(250);
+  log(`ctxintro: ${lost} during the opening flight; reloads by itself: ${navs.n} (${Date.now() - t0} ms after restore)`);
+  check('ctxintro: a context lost during the flight reloads once', navs.n === 1, `navigations ${navs.n}`);
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await waitReveal(page);
+  await sleep(SETTLE_MS);
+  const a = await snap(page);
+  const origin1 = await page.evaluate(() => performance.timeOrigin);
+  const fl = await flightOf(page);
+  log('ctxintro: after the reload', JSON.stringify({ ...short(a), tier: tierOf(a), flight: fl }));
+  check('ctxintro: the reload is the lighter tier with the authored buildings', origin1 !== origin0 && tierOf(a) === 'lighter' && isFull(a), `${tierOf(a)} ${short(a).want}`);
+  check('ctxintro: ...no opening flight, and a notice', fl === null && a.notice && a.notice.shown, `flight=${fl} ${JSON.stringify(a.notice)}`);
+  await page.screenshot({ path: path.join(OUT, 'ctxintro-lighter-1.jpg'), type: 'jpeg', quality: 80 });
+  await sleep(1200);
+  await page.screenshot({ path: path.join(OUT, 'ctxintro-lighter.jpg'), type: 'jpeg', quality: 80 });
+  // Lost again on the lighter tier: the one automatic reload is spent.
+  const lost2 = await loseContext(page);
+  await sleep(1000);
+  await page.evaluate(() => window.__lc && window.__lc.restoreContext()).catch(() => {});
+  await sleep(15000);
+  const b = await snap(page);
+  log(`ctxintro: ${lost2} again; navigations now ${navs.n}`, JSON.stringify({ notice: b.notice, tier: tierOf(b) }));
+  check('ctxintro: a second loss does NOT reload again', navs.n === 1, `navigations ${navs.n}`);
+  check('ctxintro: ...it offers the reload on screen instead', b.notice && b.notice.shown && /Reload/.test(b.notice.text), JSON.stringify(b.notice));
+  await page.screenshot({ path: path.join(OUT, 'ctxintro-second-1.jpg'), type: 'jpeg', quality: 80 });
+  await sleep(1200);
+  await page.screenshot({ path: path.join(OUT, 'ctxintro-second.jpg'), type: 'jpeg', quality: 80 });
+  log('ctxintro errors', JSON.stringify(errs.slice(0, 3)));
+});
+
 // Camera poses computed from each building's own footprint.
 function poseFor(name) {
   const idx = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/apartments/index.json'), 'utf8'));
@@ -454,7 +579,10 @@ S.shots = () => withCtx(PHONE, async ctx => {
   for (const name of WANT) {
     const p = poseFor(name);
     if (!p) { check(`shots: pose for ${name}`, false); continue; }
-    await page.evaluate(o => window.__map.jumpTo({ center: o.center, zoom: o.zoom, pitch: o.pitch, bearing: o.bearing }), p);
+    // Braces: jumpTo() RETURNS THE MAP, and page.evaluate serializes whatever
+    // comes back. On main at 0252095 that was a >512 MB message and killed
+    // the run (ERR_STRING_TOO_LONG in Playwright's pipe, 2026-09-24).
+    await page.evaluate(o => { window.__map.jumpTo({ center: o.center, zoom: o.zoom, pitch: o.pitch, bearing: o.bearing }); }, p);
     await sleep(6000);
     await page.evaluate(() => new Promise(r => { const m = window.__map; const t = setTimeout(r, 8000); m.once('idle', () => { clearTimeout(t); r(); }); }));
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');

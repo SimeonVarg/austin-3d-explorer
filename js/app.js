@@ -26,6 +26,8 @@
   // frame. Bearing 250 faces the golden-hour sun (az ≈ 247–256 near p = 0.5)
   // instead of leaving it behind the camera. Both are one-line taste edits.
   const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 74, bearing: 250 };
+  // The phone memory budget (js/mobile.js LITE.budget); null on a desktop.
+  const PHONE_BUDGET = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || null;
 
   // ── Y12 — THE NEAR PLANE, AND WHY IT ONLY MOVES NEAR THE PAVEMENT ─
   //
@@ -428,6 +430,10 @@
       // back out (graphics.js). It is not free, so it is only requested when the
       // saved settings actually want bloom.
       canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
+      // A phone keeps fewer tiles after they leave the screen (js/mobile.js
+      // LITE.budget.tileCacheSize): each holds a facade atlas texture. Desktop
+      // (no budget) passes nothing and keeps MapLibre's viewport-sized cache.
+      ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
 window.CityLighting.install(map);
@@ -1883,7 +1889,10 @@ window.CityLighting.install(map);
     const doTour = q.get('tour') === '1' || q.get('timelapse') === '1' || q.get('autopilot') === '1';  // ?tour=1 / ?timelapse=1 / ?autopilot=1 replace the intro
     const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
     const liveHere = q.get('livehere') === '1' && q.get('walk') !== '0';
-    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0';
+    // A phone on a lighter tier (js/mobile.js) skips the flight: it is the
+    // load's memory peak, and that tier exists because the peak did not fit.
+    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0' &&
+                    !(PHONE_BUDGET && PHONE_BUDGET.intro === false);
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     // Shot A primes ITS first waypoint under the veil, the same way the intro
     // primes its own start pose: the tiles it needs are fetched while the dark

@@ -105,6 +105,29 @@ and that the PACE knobs are named. `--break` widens the worker's blur by one
 texel, `--break-border` switches the border rewrite off; each must exit 1. It does not check timing or
 the scheduler; the frame-time A/B for the pacing is in HANDOFF (Sep 24 2026).
 
+### Phone memory, and the reload loop (Sep 24 2026)
+
+`node mobile-memory.mjs --arms main=http://127.0.0.1:8872,branch=http://127.0.0.1:8871 --reps 3`
+loads the phone profile (390x844, DPR 3, touch, iPhone UA, hardware GL, a fresh
+browser per rep, arms interleaved) and reads once a second until 30 s after the
+authored buildings land: the JS heap and ArrayBuffer backing store
+(`Runtime.getHeapUsage`), every live WebGL texture, buffer and renderbuffer
+(counted in the page, with the allocating file), and the renderer and GPU
+processes' private bytes and working set. `phone` = heap + backing + GL is the
+headline: what the page holds, independent of this laptop's GPU driver. It
+prints the PEAK (the opening flight is the peak) and the SETTLED value, the
+minimum over reps. An arm URL may carry its own query
+(`lighter=http://127.0.0.1:8871/?drift=0&litetier=lighter`); `--desktop`
+measures 1280x800 instead. It is a measurement and exits 0. Desktop Chrome
+is not WebKit: the numbers rank changes, they do not predict an iPhone's kill.
+
+`mobile-boot.mjs crashloop ctxintro` are the reload-loop gates: a renderer
+killed during the opening flight must come back (as Safari's one automatic
+reload would) on the `lighter` tier with the authored buildings and never
+reload itself, and a context lost during the flight must reload exactly once,
+onto the `lighter` tier, and not again when it is lost a second time.
+
+
 ### The shadow proxy is never rebuilt mid-flight
 
 `node shadow-proxy-pacing.mjs` (no browser, no server) runs the real
