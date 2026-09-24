@@ -876,31 +876,165 @@
     MIN: 0.85, MAX: 1.20, // hard gain clamps
     W: 40, H: 24,         // meter buffer
     DEADBAND: 0.006,      // skip the style write for gain moves below this
+    // Read the frame WITHOUT making the CPU wait for the GPU. The old read,
+    // a drawImage of the WebGL canvas + getImageData on every frame, is a
+    // synchronous readback: on the owner's AMD chip it was 25.6 of the 41 ms
+    // of main-thread time per frame (astra-pipe research/frame-cost.md,
+    // section 8, fix 2). With ASYNC the GPU does the same 40x24 bilinear
+    // downsample (blitFramebuffer, LINEAR) into a pixel-pack buffer behind a
+    // fence, and the reading is collected a frame or two later, once the fence
+    // has signalled. Measured on that chip, same frame both ways: the same luma
+    // to 1e-15, and well under 0.1 ms of main thread a read where a flight
+    // paid 25-54 ms for the synchronous one. Each reading enters the EMA with
+    // the frame time it covers, so the meter is the per-frame EMA it always
+    // was, one or two frames late. false, a WebGL1 or a multisampled canvas:
+    // the old per-frame read.
+    ASYNC: true,
+    // Frames still unread when the map stops drawing (the last one or two)
+    // are read this long after the last frame, from the preserved buffer, so
+    // the gain a view comes to rest on is the one the per-frame read gave it.
+    TRAIL_MS: 100,
+    // A fence still unsignalled FENCE_MS after it was issued, on at least
+    // FENCE_POLLS polls: the reader stalls, and every frame takes the old
+    // synchronous read until that fence does signal, which switches the
+    // asynchronous read back on. So a browser whose fences never signal gets
+    // the old meter for good, and a GPU that was only slow for a moment gets
+    // its fast one back after one old-style read. Both conditions, because
+    // neither alone is evidence: a fence polled once after the main thread
+    // was busy for 7 s is 7 s old and fine (measured on the AMD chip: oldest
+    // fence 7.0 s, never more than 1 unsignalled poll), and the status a poll
+    // sees is only refreshed between tasks. 60 polls was tried and is too
+    // slow: a page still loading polls about once a second, and with fences
+    // stubbed to never signal it froze the meter for 56 s before giving up.
+    FENCE_POLLS: 3, FENCE_MS: 2000,
   };
   let aeCv = null, aeCtx = null, aeLuma = null, aeGain = 1, aeLast = 0;
+  // aeOwed: [frame, dt] for frames drawn but not yet read, oldest first.
+  // aeGpu: the asynchronous reader, null until built, false where unavailable.
+  let aeFrame = 0, aeOwed = [], aeGpu = null, aeTrail = null, aeF = null;
 
-  function aeMeter(F) {
-    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
-      if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
-      return;
-    }
-    const now = performance.now();
-    const dt = aeLast ? Math.min(250, now - aeLast) : 16.7;
-    aeLast = now;
+  // Mean raw luma of the map canvas as it stands (the last frame drawn; the
+  // buffer is preserved). The measurement itself is unchanged.
+  function aeMeasure() {
     if (!aeCv) {
       aeCv = document.createElement('canvas');
       aeCv.width = AE.W; aeCv.height = AE.H;
       aeCtx = aeCv.getContext('2d', { willReadFrequently: true });
     }
-    let luma = null;
     try {
       aeCtx.drawImage(mapCanvas, 0, 0, AE.W, AE.H);
       const d = aeCtx.getImageData(0, 0, AE.W, AE.H).data;
       let s = 0;
       for (let i = 0; i < d.length; i += 4) s += d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
-      luma = s / (255 * (d.length / 4));
-    } catch (e) { return; }
+      return s / (255 * (d.length / 4));
+    } catch (e) { return null; }
+  }
+
+  // The asynchronous reader lives in the map's own WebGL2 context and puts
+  // back every binding it touches: MapLibre and three.js both cache GL state.
+  function aeGpuReader() {
+    if (aeGpu !== null) return aeGpu;
+    aeGpu = false;
+    try {
+      const gl = AE.ASYNC && mapCanvas.getContext('webgl2');
+      if (gl && gl.isContextLost()) { aeGpu = null; return false; }   // try again once restored
+      if (!gl || gl.getContextAttributes().antialias) return aeGpu;
+      const rb = gl.createRenderbuffer(), fb = gl.createFramebuffer(), pbo = gl.createBuffer();
+      const oldRb = gl.getParameter(gl.RENDERBUFFER_BINDING), oldDraw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+      const oldPack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, AE.W, AE.H);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+      gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+      const ok = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, AE.W * AE.H * 4, gl.STREAM_READ);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, oldPack);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, oldDraw);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, oldRb);
+      if (!ok) { gl.deleteFramebuffer(fb); gl.deleteRenderbuffer(rb); gl.deleteBuffer(pbo); return aeGpu; }
+      aeGpu = { gl, fb, rb, pbo, sync: null, frame: 0, data: new Uint8Array(AE.W * AE.H * 4),
+                premultiplied: gl.getContextAttributes().premultipliedAlpha };
+      // A lost context takes these objects with it; build new ones after.
+      mapCanvas.addEventListener('webglcontextlost', () => { aeGpu = null; }, { once: true });
+    } catch (e) { aeGpu = false; }
+    return aeGpu;
+  }
+
+  // Queue a read of the frame just drawn. false: not possible this frame.
+  function aeGpuIssue(G) {
+    const gl = G.gl;
+    if (gl.isContextLost() || gl.getParameter(gl.PACK_ROW_LENGTH) || gl.getParameter(gl.PACK_SKIP_ROWS) ||
+        gl.getParameter(gl.PACK_SKIP_PIXELS)) return false;
+    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING), draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
+    try {
+      if (scissor) gl.disable(gl.SCISSOR_TEST);        // a blit is scissored
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, G.fb);
+      gl.blitFramebuffer(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0, AE.W, AE.H,
+                         gl.COLOR_BUFFER_BIT, gl.LINEAR);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, G.fb);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
+      gl.readPixels(0, 0, AE.W, AE.H, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+      G.sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      G.frame = aeFrame; G.issued = performance.now(); G.misses = 0;
+    } finally {
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, draw);
+      if (scissor) gl.enable(gl.SCISSOR_TEST);
+    }
+    return !!G.sync;
+  }
+
+  // The queued read, if its fence has signalled: { frame, luma }, else null.
+  function aeGpuCollect(G) {
+    if (!G || !G.sync) return null;
+    const gl = G.gl;
+    if (gl.isContextLost()) { G.sync = null; return null; }
+    if (gl.getSyncParameter(G.sync, gl.SYNC_STATUS) !== gl.SIGNALED) {
+      if (++G.misses >= AE.FENCE_POLLS && performance.now() - G.issued >= AE.FENCE_MS) G.stalled = true;
+      return null;
+    }
+    gl.deleteSync(G.sync); G.sync = null;
+    G.stalled = false;                               // its reading is older than every frame the old read took
+    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
+    gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, G.data);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);
+    // getImageData hands back straight colour; the buffer holds premultiplied.
+    const d = G.data;
+    let s = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i], g = d[i + 1], b = d[i + 2];
+      const a = d[i + 3];
+      if (G.premultiplied && a < 255) {
+        if (a === 0) r = g = b = 0;
+        else { r = Math.min(255, Math.round(r * 255 / a)); g = Math.min(255, Math.round(g * 255 / a)); b = Math.min(255, Math.round(b * 255 / a)); }
+      }
+      s += r * 0.2126 + g * 0.7152 + b * 0.0722;
+    }
+    return { frame: G.frame, luma: s / (255 * (d.length / 4)) };
+  }
+  // Discard the read in flight. A stalled reader keeps its fence: it is the
+  // only thing that can tell us the asynchronous read works after all (and
+  // its reading can never count, being older than every frame still owed).
+  function aeGpuDrop() {
+    if (aeGpu && aeGpu.sync && !aeGpu.stalled) { try { aeGpu.gl.deleteSync(aeGpu.sync); } catch (e) {} aeGpu.sync = null; }
+  }
+
+  // One step of the meter's EMA: `luma` read off frame `frame`, covering every
+  // frame up to it that has no reading of its own yet.
+  function aeApply(frame, luma) {
+    let dt = 0;
+    while (aeOwed.length && aeOwed[0][0] <= frame) dt += aeOwed.shift()[1];
+    if (!dt) return;
     aeLuma = aeLuma == null ? luma : aeLuma + (luma - aeLuma) * (1 - Math.exp(-dt / AE.TAU_MS));
+  }
+
+  function aeGrade(F) {
     const target = (AE.TARGET_DAY + (AE.TARGET_GOLDEN - AE.TARGET_DAY) * F.golden) * (1 - F.night)
                  + AE.TARGET_NIGHT * F.night;
     const err = Math.log(target / Math.max(0.02, aeLuma));
@@ -909,10 +1043,60 @@
       Math.exp(Math.sign(err) * mag * AE.STRENGTH)));
     if (Math.abs(g - aeGain) > AE.DEADBAND) { aeGain = g; applyGrade(); }
   }
-  window.__ae = () => ({ gain: aeGain, luma: aeLuma });   // debug/test hook
+
+  function aeMeter(F) {
+    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
+      if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
+      aeOwed = []; aeGpuDrop();
+      return;
+    }
+    const now = performance.now();
+    const dt = aeLast ? Math.min(250, now - aeLast) : 16.7;
+    aeLast = now;
+    aeFrame++;
+    aeF = F;
+    const G = aeGpuReader();
+    const got = aeGpuCollect(G);                     // an earlier frame, read by now
+    if (got && aeLuma != null) aeApply(got.frame, got.luma);
+    if (aeLuma == null) {
+      // A fresh seed reads its own frame, synchronously, as before.
+      aeGpuDrop(); aeOwed = [];
+      const luma = aeMeasure();
+      if (luma == null) return;
+      aeLuma = luma;
+    } else {
+      aeOwed.push([aeFrame, dt]);
+      if (!G || G.stalled) {
+        const luma = aeMeasure();                    // no asynchronous path (or its fence is stuck): as before
+        if (luma == null) { aeOwed.pop(); return; }
+        aeApply(aeFrame, luma);
+      } else if (!G.sync) aeGpuIssue(G);             // one read in flight at a time
+      if (aeOwed.length && !aeTrail) aeTrail = setTimeout(aeTrailing, AE.TRAIL_MS);
+    }
+    aeGrade(F);
+  }
+  // The map stopped drawing with its last frame(s) unread. Collect the read in
+  // flight, then read what is left off the preserved buffer, which still holds
+  // the last frame drawn: asynchronously too, so nothing ever waits on the GPU.
+  function aeTrailing() {
+    aeTrail = null;
+    if (!aeOwed.length || aeLuma == null || !aeF || !(GFX.autoExposure && bloomOK && mapCanvas)) return;
+    const idle = performance.now() - aeLast;
+    if (idle >= AE.TRAIL_MS) {
+      const got = aeGpuCollect(aeGpu);
+      if (got) { aeApply(got.frame, got.luma); aeGrade(aeF); }
+      if (aeOwed.length && !(aeGpu && !aeGpu.stalled && (aeGpu.sync || aeGpuIssue(aeGpu)))) {
+        const luma = aeMeasure();                    // no asynchronous read: the old one, on an idle GPU
+        if (luma != null) { aeApply(aeFrame, luma); aeGrade(aeF); }
+        aeOwed = []; return;
+      }
+    }
+    if (aeOwed.length) aeTrail = setTimeout(aeTrailing, idle >= AE.TRAIL_MS ? 16 : AE.TRAIL_MS - idle);
+  }
+  window.__ae = () => ({ gain: aeGain, luma: aeLuma, async: !!(aeGpu && !aeGpu.stalled), unread: aeOwed.length });   // debug/test hook
   // Test hook: the EMA deliberately persists across hour changes in
   // production; a test sampling five poses back to back needs a clean seed.
-  window.__aeReset = () => { aeLuma = null; aeLast = 0; };
+  window.__aeReset = () => { aeLuma = null; aeLast = 0; aeOwed = []; aeGpuDrop(); };
 
   function applyGrade() {
     const host = document.getElementById('map');

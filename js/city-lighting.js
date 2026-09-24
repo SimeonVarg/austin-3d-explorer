@@ -252,68 +252,120 @@
     if(!proxyMap) {
       proxyMap=map;
       map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId))proxyDirty=true;});
-      map.on('moveend',()=>{proxyDirty=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      // The proxy is built from the tiles MapLibre is drawing, so moving the
+      // camera changes it only by changing that tile set: a move asks for a
+      // CHECK (proxyInputs), never a rebuild on its own, and nothing is
+      // checked or rebuilt until the camera is still. Until 2026-09-23 every
+      // moveend marked the proxy dirty. The flycam flies by one jumpTo per
+      // frame and each jumpTo ends in a moveend, so a flight rebuilt the proxy
+      // every ~1.5 s, each rebuild a 1.0-1.4 s stall of the main thread: 73-76 %
+      // of a boost's wall time on both GPUs, the owner's "freeze, then a burst"
+      // (astra-pipe research/frame-cost.md, section 8, fix 1).
+      map.on('move',()=>{proxyMovedAt=Date.now();});
+      map.on('moveend',()=>{proxyMovedAt=Date.now();proxyViewMoved=true;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
     const built=window.slopesApartments?.count.buildings||0;
     if(proxyBuilt!==built)proxyDirty=true;
-    if(proxyDirty&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>{
-      proxyTimer=null;
-      // A restored context briefly has no style while MapLibre rebuilds it.
-      // Keep the rebuild pending; neither discard the existing proxy nor read
-      // layers until the replacement style is available.
-      const style=map.getStyle()?.layers;
-      if(!style){proxyDirty=true;return;}
-      proxyDirty=false;proxyBuilt=built;
-      const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
-      const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
-      const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
-      const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
-      // The displayed base layer suppresses parent prisms with detailed parts,
-      // and replaced prisms by id (see casterSources).
-      const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
-      const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
-      stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
-      for(const source of casterSources) {
-        if(!map.getSource(source))continue;
-        // Each visible layer with its own display filter: a part, deck or
-        // detail that no layer draws does not cast.
-        for(const l of style) {
-          if(l.type!=='fill-extrusion'||l.source!==source||l.layout?.visibility==='none')continue;
-          const o={};if(l['source-layer'])o.sourceLayer=l['source-layer'];if(l.filter)o.filter=l.filter;
-          try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
-        }
-      }
-      const local=p=>{const v=S.toLocal(p[0],p[1],0);return new T.Vector2(v.x,v.y);};
-      const tri=(a,b,c,za,zb=za,zc=za)=>positions.push(a.x,a.y,za,b.x,b.y,zb,c.x,c.y,zc);
-      for(const f of features) {
-        // Parts, stadium decks and the replacement passes carry `base`; the
-        // outer ring carries `b`. Reading only `b` stood decks on the ground.
-        // Heroes and arts use `b` for a building KEY ('gdc', 'petal'), so
-        // only a finite number counts; NaN would reach the GPU as geometry.
-        const p=f.properties||{},num=v=>v==null||v===''||!isFinite(+v)?null:+v;
-        const h=num(p.final_height)??num(p.h)??num(p.height)??0,base=num(p.b)??num(p.base)??num(p.min_height)??0;
-        if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id))continue;
-        const polys=f.geometry?.type==='Polygon'?[f.geometry.coordinates]:f.geometry?.type==='MultiPolygon'?f.geometry.coordinates:[];
-        for(const poly of polys) {
-          const ring=poly[0];if(!ring?.length)continue;
-          const key=[p.id??f.id,base,h,ring[0].join(','),ring.length].join('|');if(seen.has(key))continue;seen.add(key);
-          const centre=ring.slice(0,-1).reduce((v,p)=>[v[0]+p[0]/(ring.length-1),v[1]+p[1]/(ring.length-1)],[0,0]);
-          if(rings.some(r=>inside(centre,r)))continue; // actual authored mesh casts instead
-          const contours=poly.map(r=>r.slice(0,-1).map(local));
-          const flat=contours.flat(),faces=T.ShapeUtils.triangulateShape(contours[0],contours.slice(1));
-          for(const face of faces)tri(...face.map(i=>flat[i]),h);
-          for(const contour of contours)for(let i=0;i<contour.length;i++) {
-            const a=contour[i],b=contour[(i+1)%contour.length];tri(a,b,a,base,base,h);tri(b,b,a,base,h,h);
-          }
-        }
-      }
-      proxy?.geometry.dispose();proxy?.material.dispose();
-      const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
-      proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
-      stats.shadowProxyTriangles=positions.length/9;map.triggerRepaint();
-    },300);
+    if((proxyDirty||proxyViewMoved)&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.settleMs);
     return proxy;
+  }
+  // settleMs: how long the camera must have been still (no move event, no
+  // camera animation, the flycam not driving) before the proxy is checked
+  // or rebuilt. It was the old fixed delay after a moveend, so a camera that
+  // stops gets the rebuild it always got, at the same moment.
+  const PROXY_PACE={settleMs:300};
+  let proxyMovedAt=0,proxyViewMoved=false,proxyInputs=null;
+  // Everything a rebuild reads, as a flat list compared entry by entry: the
+  // drawn tiles of every caster source and each tile's decoded data (what
+  // querySourceFeatures walks), the fill-extrusion layers that draw those
+  // sources (filter, visibility), the base layer's hide list, the legacy
+  // prisms and the authored set. Equal lists build an identical proxy. Objects
+  // enter as small ids, so an evicted tile is not kept alive by the list.
+  // null means "cannot tell" (a MapLibre without these internals): rebuild.
+  const proxyRefIds=new WeakMap();let proxyRefNext=0;
+  const proxyRef=o=>o&&typeof o==='object'?proxyRefIds.get(o)??(proxyRefIds.set(o,++proxyRefNext),proxyRefNext):o;
+  function proxyKey(map,built) {
+    const caches=map.style?.tileManagers||map.style?.sourceCaches;
+    if(!caches||typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return null;
+    const key=[built,window.APARTMENTS?.on,proxyRef(window.slopesApartments?.data?.buildings),proxyRef(buildings),proxyRef(map.getLayer('buildings-3d')?.filter)];
+    for(const source of casterSources) {
+      key.push(source);
+      if(!map.getSource(source))continue;
+      const cache=caches[source];
+      if(typeof cache?.getRenderableIds!=='function'||typeof cache.getTileByID!=='function')return null;
+      for(const id of cache.getRenderableIds())key.push(id,proxyRef(cache.getTileByID(id)?.latestFeatureIndex));
+    }
+    for(const id of map.getLayersOrder()) {
+      const l=map.getLayer(id);
+      if(l?.type==='fill-extrusion'&&casterSources.includes(l.source))key.push(id,l.sourceLayer,proxyRef(l.filter),l.visibility);
+    }
+    return key;
+  }
+  function proxyRebuild(map) {
+    proxyTimer=null;
+    // Never mid-flight. Re-arm while anything is moving the camera; the
+    // rebuild waits for the flight to end instead of stalling inside it.
+    const flying=map.isMoving()||!!window.__fly?.eye?.().driving;
+    const wait=flying?PROXY_PACE.settleMs:PROXY_PACE.settleMs-(Date.now()-proxyMovedAt);
+    if(wait>0){proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
+    const built=window.slopesApartments?.count.buildings||0;
+    const inputs=proxyKey(map,built);
+    // Only the view moved, and it moved nothing the proxy is built from.
+    if(!proxyDirty&&proxyBuilt===built&&inputs&&proxyInputs&&inputs.length===proxyInputs.length&&inputs.every((v,i)=>v===proxyInputs[i])){proxyViewMoved=false;return;}
+    // A restored context briefly has no style while MapLibre rebuilds it.
+    // Keep the rebuild pending; neither discard the existing proxy nor read
+    // layers until the replacement style is available.
+    const style=map.getStyle()?.layers;
+    if(!style){proxyDirty=true;return;}
+    proxyDirty=false;proxyViewMoved=false;proxyBuilt=built;proxyInputs=inputs;
+    const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
+    const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
+    const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
+    const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
+    // The displayed base layer suppresses parent prisms with detailed parts,
+    // and replaced prisms by id (see casterSources).
+    const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
+    const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
+    stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
+    for(const source of casterSources) {
+      if(!map.getSource(source))continue;
+      // Each visible layer with its own display filter: a part, deck or
+      // detail that no layer draws does not cast.
+      for(const l of style) {
+        if(l.type!=='fill-extrusion'||l.source!==source||l.layout?.visibility==='none')continue;
+        const o={};if(l['source-layer'])o.sourceLayer=l['source-layer'];if(l.filter)o.filter=l.filter;
+        try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+      }
+    }
+    const local=p=>{const v=S.toLocal(p[0],p[1],0);return new T.Vector2(v.x,v.y);};
+    const tri=(a,b,c,za,zb=za,zc=za)=>positions.push(a.x,a.y,za,b.x,b.y,zb,c.x,c.y,zc);
+    for(const f of features) {
+      // Parts, stadium decks and the replacement passes carry `base`; the
+      // outer ring carries `b`. Reading only `b` stood decks on the ground.
+      // Heroes and arts use `b` for a building KEY ('gdc', 'petal'), so
+      // only a finite number counts; NaN would reach the GPU as geometry.
+      const p=f.properties||{},num=v=>v==null||v===''||!isFinite(+v)?null:+v;
+      const h=num(p.final_height)??num(p.h)??num(p.height)??0,base=num(p.b)??num(p.base)??num(p.min_height)??0;
+      if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id))continue;
+      const polys=f.geometry?.type==='Polygon'?[f.geometry.coordinates]:f.geometry?.type==='MultiPolygon'?f.geometry.coordinates:[];
+      for(const poly of polys) {
+        const ring=poly[0];if(!ring?.length)continue;
+        const key=[p.id??f.id,base,h,ring[0].join(','),ring.length].join('|');if(seen.has(key))continue;seen.add(key);
+        const centre=ring.slice(0,-1).reduce((v,p)=>[v[0]+p[0]/(ring.length-1),v[1]+p[1]/(ring.length-1)],[0,0]);
+        if(rings.some(r=>inside(centre,r)))continue; // actual authored mesh casts instead
+        const contours=poly.map(r=>r.slice(0,-1).map(local));
+        const flat=contours.flat(),faces=T.ShapeUtils.triangulateShape(contours[0],contours.slice(1));
+        for(const face of faces)tri(...face.map(i=>flat[i]),h);
+        for(const contour of contours)for(let i=0;i<contour.length;i++) {
+          const a=contour[i],b=contour[(i+1)%contour.length];tri(a,b,a,base,base,h);tri(b,b,a,base,h,h);
+        }
+      }
+    }
+    proxy?.geometry.dispose();proxy?.material.dispose();
+    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
+    stats.shadowProxyTriangles=positions.length/9;map.triggerRepaint();
   }
   function install(map) {
     const gl=map.painter.context.gl;
