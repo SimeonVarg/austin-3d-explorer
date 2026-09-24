@@ -1,69 +1,35 @@
 # -*- coding: utf-8 -*-
-"""Give the 114 downtown towers their facade bucket in the BAKE, not the browser.
+"""Assign architecture-aware facade buckets to downtown buildings.
 
-WHY THIS EXISTS. The outer ring moved onto vector tiles (PR #43) and downtown
-lost its curtain wall in the same commit. `js/facades.js`'s
-`quantiseOuterFacades` clusters the towers' baked wall colours in the BROWSER
-and writes `wp` onto each feature at runtime; a vector tile cannot be mutated,
-so on the tile path every tower falls through
-`['coalesce', ['get','wp'], 'mh00']` to one pattern. That is the field of
-identical brick-red boxes in shots/tour/day-downtown-skyline.png, and it is the
-most-filmed subject in the scene after campus.
+stamp_towers partitions towers and streetwall by downtown_facade_profiles:
+eight bounded window rhythms and a parking deck, seventeen material recipes.
+Existing `fp` building identity wins; missing metadata uses name/use/era/plan.
+Both classes share images. No assignment comes from wall colour alone.
+The old colour-clustering/calibration helpers below remain available to legacy
+verification, but do not participate in the current mixed-family bake.
 
-THE ONE THING THAT MAKES THIS PORTABLE. The tower assignment depends only on
-the TOWERS' OWN colours — `clusterColours` runs over `towers.map(f => f.wd)` and
-nothing else. Only the resulting bucket's INDEX depends on the browser, because
-the towers' buckets are appended after the campus palette and the id is
-'tg' + that index. So the partition can be computed here, offline and exactly,
-and the browser only has to register an image per bucket.
+The data stores the bucket ORDINAL as `fb`. Both vector tiles and the GeoJSON
+fallback use that ordinal; js/outer.js registers an image and constructs the
+ordinal-to-runtime-pattern join. Pattern IDs belong to the browser session.
+Never stamp `wp` with an unregistered ID: the shared renderer reads that field
+and an unknown pattern makes an otherwise valid extruded building transparent.
 
-Hence a bucket ORDINAL under its own property `fb`, rather than a `wp` string.
-Two reasons, and the second one is a live hazard:
-
-  `wp` IS READ BY THE RENDERER. FACADE_PATTERN_EXPR is
-  ['coalesce', ['get','wp'], 'mh00'], so a baked wp of "tb03" resolves to an
-  atlas image named tb03 — which nothing registers — and MapLibre paints an
-  unknown pattern TRANSPARENT. The first version of this stamped `wp`, a
-  scheduled data build re-tiled outer.pmtiles from it within the hour, and that
-  archive would have turned every downtown tower into a hole. Nothing reads
-  `fb`, so the stamp is inert until the browser side deliberately picks it up.
-
-  And `parseId` splits an id as fam=slice(0,2), idx=parseInt(slice(2)), so
-  "tb03" would retint through family "tb" at palette index 3 — a campus colour
-  and a family with no tile generator — every time the hour changed.
-
-The browser side, when it lands, reads `fb` and maps it to whatever palette
-index it allocated. Keeping the ordinal and the id separate is the point: the
-ordinal belongs to the data, the id belongs to the session.
-
-WHAT IS NOT PORTED, and why it is not a smaller job than it looks. The other
-7,511 low-rise ring features are snapped to the CAMPUS palette, which
-js/facades.js derives in the browser from the campus buildings snapshot. That
-derivation would have to be ported too before their `wp` could be baked. They
-currently fall back to `mh00` on the tile path and did so before this change as
-well — this is the tower half, and it is the half you can see.
-
-Deterministic, and it has to be: `clusterColours` seeds from a luma-sorted
-quantile and runs a fixed twelve Lloyd iterations with no randomness anywhere.
-Every arithmetic detail below is transcribed from it, including that argmin
-takes the FIRST minimum on a tie. `scripts/verify/outer-facade-parity.mjs`
-checks this against the real browser function rather than against a re-reading
-of it.
-
-Idempotent: re-stamps from `wd` every time, so running it twice changes nothing.
-
-Usage:  python scripts/bake_outer_facades.py [--check]
+Re-stamping is deterministic and idempotent. `--check` computes the expected
+palette/join without changing either data file.
+Usage: python scripts/bake_outer_facades.py [--check]
 """
 import json
 import os
 import sys
+from downtown_facade_profiles import PROFILES, GRIDS, profile_for
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RING = os.path.join(ROOT, "data", "outer_ring.geojson")
 PALETTE = os.path.join(ROOT, "data", "outer_tower_palette.json")
 
-# js/facades.js: const TOWER_BUCKETS = 10;
-TOWER_BUCKETS = 10
+# At most seventeen material recipes and eight window grids, independent of
+# building count. The old ten colour clusters all used one curtain-wall grid.
+TOWER_BUCKETS = len(PROFILES)
 # The downtown streetwall (`t=2`, scripts/bake_outer.py:MIDRISE_H) gets its own
 # set for the same reason the towers got one: its materials are brick, stucco
 # and painted concrete, and snapping them onto ten GLASS centroids would put a
@@ -438,22 +404,57 @@ def stamp(feats, k, buckets, check_only):
     return palette, counts, changed, len(mine)
 
 
+def stamp_towers(feats, check_only=False):
+    """Assign architecture first, not the nearest pseudo-random wall colour.
+
+    `fp` is inherited by every wall of a decomposed tower in bake_outer.py.
+    Old/unclassified data still gets a deterministic morphology fallback.
+    The ordinal join is identical for GeoJSON and tiled rendering.
+    """
+    mine = [f for f in feats if f["properties"].get("t") in (1, 2)
+            and f["properties"].get("wd")]
+    assignments = []
+    for f in mine:
+        p = f["properties"]
+        profile = p.get("fp")
+        if profile not in PROFILES:
+            profile = profile_for(p.get("name"), p.get("use"),
+                                  p.get("h"), p.get("fa", 0),
+                                  p.get("yr"), p.get("lv"), p.get("fw"))
+        assignments.append(profile)
+    # Stable ordinals within a given data revision; unchanged input is idempotent.
+    used = set(assignments)
+    keys = [key for key in PROFILES if key in used]
+    index = {key: i for i, key in enumerate(keys)}
+    counts = [0] * len(keys)
+    palette = [dict(fb=index[key], profile=key, **PROFILES[key]) for key in keys]
+    changed = 0
+    for f, key in zip(mine, assignments):
+        p, ordinal = f["properties"], index[key]
+        counts[ordinal] += 1
+        changed += (p.get("fb") != ordinal or p.get("fp") != key
+                    or "wp" in p or "wf" in p)
+        if not check_only:
+            p["fb"], p["fp"] = ordinal, key
+            p.pop("wp", None)
+            p.pop("wf", None)
+    return palette, counts, changed, len(mine)
+
+
 def main():
     check_only = "--check" in sys.argv
     gj = json.load(open(RING, encoding="utf-8"))
     feats = gj["features"]
 
-    tpal, tcnt, tchg, tn = stamp(feats, 1, TOWER_BUCKETS, check_only)
-    mpal, mcnt, mchg, mn = stamp(feats, 2, MIDRISE_BUCKETS, check_only)
-    if not tn:
-        print("no towers in %s — nothing to do" % RING)
+    tpal, tcnt, tchg, total = stamp_towers(feats, check_only)
+    tn = sum(f["properties"].get("t") == 1 for f in feats)
+    mn = sum(f["properties"].get("t") == 2 for f in feats)
+    if not total:
+        print("no architectural facades in %s — nothing to do" % RING)
         return
 
-    # ── what the atlas will make of it, predicted from the fitted map ──
-    # Printed on every run because the whole point of the pre-compensation is
-    # the TILE, and a palette that looks odd on its own is exactly what success
-    # looks like here. scripts/verify/downtown-colour.mjs then reads the real
-    # atlas and the real frame, which is what actually settles it.
+    # Palette statistics are only a sanity check. The old tg-only fitted
+    # response must not be quoted as a prediction for mixed material families.
     def stats(vals, w):
         tot = float(sum(w)) or 1.0
         m = sum(v * n for v, n in zip(vals, w)) / tot
@@ -462,34 +463,32 @@ def main():
 
     pal_l = [luma(hex_to_rgb(b["wd"])) for b in tpal]
     pal_br = [hex_to_rgb(b["wd"])[2] - hex_to_rgb(b["wd"])[0] for b in tpal]
-    tiles = [predict_tile(hex_to_rgb(b["wd"]), hex_to_rgb(b["wg"])) for b in tpal]
-    tile_l = [luma(t) for t in tiles]
-    tile_br = [t[2] - t[0] for t in tiles]
     pm, ps = stats(pal_l, tcnt)
-    tm, ts = stats(tile_l, tcnt)
     pbm, _ = stats(pal_br, tcnt)
-    tbm, _ = stats(tile_br, tcnt)
     tone = {
-        "note": ("population-weighted over the towers; `tile` is PREDICTED from "
-                 "TILE_FIT, verify it against the real atlas with "
-                 "scripts/verify/downtown-colour.mjs"),
+        "note": ("Palette statistics only. Legacy tg-only TILE_FIT does not "
+                 "predict the new mixed architectural families; inspect the "
+                 "real atlas and city for visual acceptance."),
         "reference_facades": {"luma": 104.9, "sd": 28.5, "b_minus_r": 20.1},
         "palette": {"luma": round(pm, 1), "sd": round(ps, 1), "b_minus_r": round(pbm, 1)},
-        "tile":    {"luma": round(tm, 1), "sd": round(ts, 1), "b_minus_r": round(tbm, 1)},
+        "tile": None,
         "amber_cancel": AMBER_CANCEL,
-        "spread_precompensated": bool(SPREAD_ON),
-        "buckets_clipped_by_expansion": getattr(derive, "clipped", 0),
+        "spread_precompensated": False,
+        "buckets_clipped_by_expansion": 0,
     }
 
     report = {
         "tower_tone": tone,
         "towers": tn, "midrise": mn,
         "features": len(feats),
-        "tower_buckets": len(tpal), "midrise_buckets": len(mpal),
-        "tower_per_bucket": tcnt, "midrise_per_bucket": mcnt,
-        "changed": tchg + mchg,
-        "tower_palette": [{"fb": p["fb"], "wd": p["wd"], "wg": p["wg"]} for p in tpal],
-        "midrise_palette": [{"fb": p["fb"], "wd": p["wd"]} for p in mpal],
+        "shared_architecture": True,
+        "architecture_pieces": total,
+        "tower_buckets": len(tpal), "midrise_buckets": 0,
+        "architecture_per_bucket": tcnt,
+        "changed": tchg,
+        "tower_palette": tpal,
+        "tower_grid_families": len({p["grid"] for p in tpal if p["grid"] in GRIDS}),
+        "midrise_palette": [],
     }
     if check_only:
         print(json.dumps(report, indent=2))
@@ -501,16 +500,19 @@ def main():
         json.dump({
             "note": ("Facade buckets for downtown, computed by "
                      "scripts/bake_outer_facades.py from the buildings' own "
-                     "baked wall colours. `buckets` is the TOWERS (t=1, glass); "
-                     "`midrise` is the streetwall (t=2, masonry). Each building "
-                     "carries its bucket ORDINAL as `fb`, scoped by its `t`; the "
+                     "architectural profiles. With shared_architecture=true, "
+                     "`buckets` serves towers (t=1) and streetwall (t=2); "
+                     "each building carries the shared bucket ORDINAL as `fb`; the "
                      "browser maps that ordinal to a palette index it allocates "
                      "at boot and registers one atlas tile per bucket. "
                      "Do not stamp `wp` directly — the renderer reads it, and an "
                      "unregistered pattern id paints the wall transparent. "
                      "Regenerate whenever outer_ring.geojson is re-baked."),
             "buckets": tpal,
-            "midrise": mpal,
+            "shared_architecture": True,
+            "grids": {key: GRIDS[key] for key in GRIDS
+                      if key in {p["grid"] for p in tpal}},
+            "midrise": [],
         }, fh, indent=2)
     print(json.dumps(report, indent=2))
     print("wrote %s and %s" % (os.path.relpath(RING, ROOT),

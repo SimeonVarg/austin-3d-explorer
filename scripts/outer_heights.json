@@ -28,8 +28,8 @@
    "name": "The Independent",
    "lon": -97.751167,
    "lat": 30.267801,
-   "height": 209.0,
-   "source": "osm+wikipedia agree"
+   "height": 211.4,
+   "source": "CTBUH/CVU architectural and tip height rechecked 2026-09-24: 694 ft / 211.4 m"
   },
   {
    "name": "The Austonian",
@@ -43,49 +43,49 @@
    "lon": -97.746026,
    "lat": 30.268676,
    "height": 205.7,
-   "source": "osm+wikipedia agree"
+   "source": "CTBUH rechecked 2026-09-24: 205.7 m, 58 floors"
   },
   {
    "name": "Modern Austin Residences",
    "lon": -97.738483,
    "lat": 30.260431,
-   "height": 200.6,
-   "source": "osm+wikipedia agree"
+   "height": 199.6,
+   "source": "public skyline table rechecked 2026-09-24: 655 ft / 199.6 m"
   },
   {
    "name": "415 Colorado",
    "lon": -97.744243,
    "lat": 30.267087,
-   "height": 195.1,
-   "source": "osm+wikipedia agree"
+   "height": 193.1,
+   "source": "CTBUH rechecked 2026-09-24: 193.1 m, 50 floors"
   },
   {
    "name": "Block 185",
    "lon": -97.750451,
    "lat": 30.265571,
-   "height": 181.1,
-   "source": "osm+wikipedia agree"
+   "height": 175.9,
+   "source": "CTBUH/CVU architectural and tip height rechecked 2026-09-24: 577 ft / 175.9 m"
   },
   {
    "name": "Fairmont Austin",
    "lon": -97.738204,
    "lat": 30.262108,
    "height": 180.0,
-   "source": "wikipedia (osm had levels=37.0 only)"
+   "source": "CTBUH/CVU rechecked 2026-09-24: 180 m including spire, 36 above-ground floors"
   },
   {
    "name": "360 Condominiums",
    "lon": -97.74968,
    "lat": 30.26742,
    "height": 177.1,
-   "source": "wikipedia; not in osm (overture had 148.8)"
+   "source": "CTBUH/CVU rechecked 2026-09-24: 177.1 m, 45 above-ground floors (44 repeated facade levels)"
   },
   {
    "name": "44 East",
    "lon": -97.739065,
    "lat": 30.255928,
    "height": 174.7,
-   "source": "osm+wikipedia agree"
+   "source": "CTBUH rechecked 2026-09-24: 174.7 m, 50 floors"
   },
   {
    "name": "Paseo",
@@ -99,14 +99,14 @@
    "lon": -97.74029,
    "lat": 30.2601,
    "height": 171.3,
-   "source": "wikipedia; not in osm (overture had None)"
+   "source": "CTBUH rechecked 2026-09-24: 171.3 m, 50 floors; absent from OSM"
   },
   {
    "name": "Indeed Tower",
    "lon": -97.744264,
    "lat": 30.26902,
-   "height": 165.0,
-   "source": "osm+wikipedia agree"
+   "height": 165.2,
+   "source": "CTBUH rechecked 2026-09-24: 165.2 m, 36 floors; retained mapped footprint center"
   },
   {
    "name": "Hanover Republic Square",

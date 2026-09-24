@@ -1,5 +1,64 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Downtown identities (`astra/downtown`, pipeline 018)
+
+Uncommitted implementation for the Claude reviewer; no git writes or server
+starts were performed. Thirty final labelled comparisons are packaged locally:
+25 public-reference/before/after tower views, campus skyline day/night, an aerial,
+and Congress street day/night. All actual app cameras match; every JPEG is below
+1 MB. These establish visible changes, not owner acceptance of every detail.
+
+The generic outer-tower material election is replaced by architectural profiles
+in `scripts/downtown_facade_profiles.py`, stamped for towers and downtown
+streetwalls by `scripts/bake_outer_facades.py`. `scripts/bake_outer.py` preserves
+matched public names and building metadata, selects authored replacements and
+closes the generic taper-to-crown gap. `js/outer.js` joins the shared palette to
+eight additional grid families while preserving the sixteen campus families.
+No edits to lighting or `js/facades.js` repaint scheduling.
+
+`scripts/downtown_tower_identities.py` adds Independent, Austonian, Frost, 360,
+Block 185, Modern, Natiivo, 70 Rainey, Northshore, Seaholm, Colorado Tower,
+One American Center, 100 Congress, JW Marriott, Fairmont, W Austin, Republic,
+ATX, 415 Colorado, 44 East, Paseo, The Travis and Indeed Tower. Waterline and Sixth/Guadalupe retain their existing geometry. Profiles share
+atlas images; new geometry is structural rather than per-window. Public height
+reconciliation lives in `scripts/outer_heights.json`; plan fits remain estimates.
+See `docs/downtown-tower-identities.md` for tuning and limits.
+
+Rebuilt outer GeoJSON, profile palette, bake report and outer PMTiles are kept
+together. The sandbox has no working WSL/tippecanoe, so a local geojson-vt/vt-pbf
+packer generated 370 z13-z16 PMTiles with layer `outer`, extent 4096, buffer
+256 (matching 16/256 screen pixels), and no feature dropping. Its simplification
+is not asserted byte-equivalent to tippecanoe. All tiles round-trip through the
+PMTiles reader and all twenty-five authored tower tops survive z16. The reviewer should run the normal
+`scripts/tile.sh` outer invocation and inspect its real-app result before merge.
+
+`scripts/verify/downtown-data.py` checks baked heights, polygon validity,
+ground-connected structural contact, profile joins, idempotent stamping and
+floating generic crowns. Negative controls detach a crown and recover the
+original generic floats. These are data checks, not visual or phone acceptance.
+The local pipeline work directory retains original assets, public reference
+packs' inventory, capture/comparison scripts and detailed validation reports.
+Only actual final labelled comparisons belong in its out directory. Final data
+checks cover 18,618 features and 1,060 patterned walls. Net geometry increase is
+about 76,800 closed-solid triangles before tiling; this is not a GPU measurement.
+The packed archive is 2,526,113 bytes (baseline 2,096,323).
+
+Three fresh-browser interleaved AMD Radeon pairs used forced low-power GPU,
+1440x900 DPR 1, balanced, CPU 1x, cancelled auto-detect and six-second continuous
+render samples at the same verified aerial pose. Minimum median frame times:
+day 38.0 -> 16.8 ms; night 66.2 -> 17.5 ms. Minimum p95: day 87.9 -> 73.7 ms;
+night 172.5 -> 54.9 ms. This meets the minimum-of-interleaved-reps comparison,
+but night FPS ranged 10.1-14.1 before and 11.1-34.1 after; one paired night run
+was slower. Do not claim a consistent speedup or physical-phone acceptance.
+Final capture logs report no page or console errors. No task browser remains.
+
+Remaining visual limits include W's shallow facade recesses, Natiivo's pale
+uniform finish, Austonian's crown, 100 Congress's stepped gable, and weak
+vertical ribbons on Seaholm/360/44 East/Travis. Street frontage remains sparse;
+some tower podiums are obscured in the comparison views. See the local final
+manifest, matched-pose report, performance summary and review notes before
+reviewer retile/merge. Do not start a continuation from this handoff.
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
