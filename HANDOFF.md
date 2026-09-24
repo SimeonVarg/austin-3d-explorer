@@ -1,5 +1,99 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 23 2026 - Flying no longer freezes: shadow casters wait for the camera, auto-exposure stops waiting on the GPU (`claude/speed-proxy-ae`)
+
+The two biggest measured costs in motion (astra-pipe `research/frame-cost.md`,
+fixes 1 and 2), removed without changing the picture. Both files belong to the
+Codex lighting lane; this is a performance fix only and changes no lighting
+calibration, colour, exposure target, shadow quality or resolution.
+
+1. **Shadow proxy** (`js/city-lighting.js`). The proxy is built from the tiles
+   MapLibre is drawing (`querySourceFeatures`), so a camera move can only change
+   it by changing that tile set. But every `moveend` marked it dirty, and the
+   flycam flies by one `jumpTo` per frame, each ending in a `moveend`: a flight
+   rebuilt it every ~1.5 s, each rebuild a 1.0-1.4 s main-thread stall (the
+   "freeze, then a burst"). Now nothing is checked or rebuilt while the camera
+   moves (easing, the flycam driving, or any move in the last
+   `PROXY_PACE.settleMs` = 300 ms, the old delay), and a move only asks for a
+   check: a key of everything the rebuild reads (drawn tile ids and each tile's
+   decoded data, caster layers' filter and visibility, the base layer's hide
+   list, legacy prisms, the authored set) and a rebuild only if it changed.
+   `sourcedata` and the authored count still rebuild at rest, as before. When
+   the camera stops, the proxy is the same one the old code ended on (same
+   geometry hash in every A/B pose). Trade-off, by design: casters in tiles that
+   load mid-flight join the shadow map when the camera stops (the old code
+   picked them up at its next freeze); the idle drift likewise holds its casters
+   until it stops. New gate `scripts/verify/shadow-proxy-pacing.mjs` (no
+   browser; `--break` restores the old pacing and fails 4/18).
+2. **Auto-exposure** (`js/graphics.js`). The meter did a synchronous readback
+   of the whole frame (`drawImage` + `getImageData`) on every frame, which makes
+   the CPU wait for the GPU. With `AE.ASYNC` the GPU does the same 40x24
+   bilinear downsample (`blitFramebuffer`) into a pixel-pack buffer behind a
+   fence, collected a frame or two later. Probe on the AMD chip, same frame both
+   ways: identical luma (to 1e-15). Each reading enters the EMA with the frame
+   time it covers, so smoothing is unchanged, one or two frames late; the last
+   frame before the map goes idle is read after `AE.TRAIL_MS`. WebGL1 or a
+   multisampled canvas keep the old per-frame read. If a fence is still
+   unsignalled `AE.FENCE_MS` (2 s) after it was issued, on at least
+   `AE.FENCE_POLLS` (3) polls, the reader stalls: every frame takes the old
+   read until that fence does signal, which switches the fast read back on.
+   So a browser whose fences never signal gets main's meter for good, and a
+   GPU that was only slow gets the fast one back after one old read. (A
+   60-poll threshold was tried first; a page still loading polls about once a
+   second, so with fences stubbed to never signal it froze the meter 56 s.)
+   Probe on the AMD chip (a scratchpad `probe-fallback.mjs` that wraps
+   `getSyncParameter`, not committed; `_harness.html` 1100x800):
+   untouched fences never saw more than 1 unsignalled poll each, so the
+   stall never fires; stubbed to never signal, it falls back and settles at
+   main's exposure at all 4 light-ae poses (gain within the 0.006 dead band,
+   night luma equal to 5 digits); blocked then released, it stalls, then
+   reads asynchronously again from the first frame with 0 old reads after;
+   blocked at rest, it gives up after 2.0 s idle.
+
+Measured (AMD Radeon forced, 1280x632 DPR 1.5, `drift=0`, auto-detect
+cancelled, 3 interleaved reps, median [range]):
+
+| | main | this branch |
+|---|---|---|
+| intro, frames / 10 s | 62 [51-62] | 103 [99-108] |
+| boost, frames / 10 s | 38 [37-41] | 154 [127-159] |
+| boost frame time med / p90 / max | 50 / 1216 / 1283 ms | 34 / 100 / 733 ms |
+| boost, frame gaps over 0.8 s | 8 [8-8] | 0 [0-2] |
+| boost, proxy rebuilds in flight | 8 | 0 (one after the key is released) |
+| explore -> Tower, frames / 10 s | 27 [26.5-33] | 34 [31-34] |
+| auto-exposure main-thread time / 10 s | 0.9-2.1 s | 0-3 ms |
+
+Confirming re-run of the final code (fence fallback in), boost only, 2
+interleaved reps: main 40.8 / 39.5 frames per 10 s, 9 / 8 gaps over 0.8 s,
+auto-exposure 984 / 1034 ms; branch 174 / 145 frames, 1 / 2 gaps (longest
+frame 966 / 982 ms, the facade-atlas repaint below), auto-exposure 2 / 4 ms,
+0 synchronous reads, still on the fast read at the end.
+
+NVIDIA boost (n=1): 49 -> 267 frames / 10 s, gaps 8 -> 1. The remaining gaps
+and the Tower flight's 3.7-5 s stall are the facade-atlas repaint and texture
+re-uploads (fix 3 in the research doc), untouched here. The same 12 s boost
+now covers ~900 m instead of ~270 m, so it reaches more of the city and the
+GPU process ends ~0.7 GB larger; that is ground covered, not a leak.
+
+Proof of no visual change: 3 places x day/golden/night, main vs branch, two
+runs each, PNG diffs. With the auto-exposure off every day and golden frame is
+byte-identical; night differs only in star twinkle, the same 0.02-0.07 % of
+pixels as main against itself. With it on, the settled luma matches to 1e-6;
+the gain can land anywhere inside the meter's own 0.006 dead band, and two
+runs of main differ the same way (up to 3 codes). Gates run on both builds:
+dark-campus, night-lights, city-night, audit-settings (86 checks),
+shadow-proxy-recovery, slopes-context-loss and landmark-material-contract
+pass on both. audit-motion (shadow, ae) completes on both with no exposure
+pumping; its 12 s shadow travel went from 42 proxy rebuilds and 62 s of long
+tasks on main to 0 and 2.4 s. The new shadow-proxy-pacing passes 18/18,
+`--break` fails 4/18 as it must, and main's own code fails it 15/18.
+**Already red on main, red the same way here:** light-ae crashes at its
+white-ground step (`luma` null: it calls `updateSky` and reads the meter at
+once, but `updateSky` stopped running `renderFX` on main, so nothing was
+metered), and slopes-layer's harness dies after its 9th shot with
+`ERR_STRING_TOO_LONG` (a >512 MB message from the page). Both are stale
+gates, not this change.
+
 ## Sep 23 2026 - "Graphics acceleration is off" notice (`claude/gpu-off-hint`)
 
 A browser with graphics acceleration switched off still runs WebGL, on a

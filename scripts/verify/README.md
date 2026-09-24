@@ -91,6 +91,18 @@ the required external scratch directory. This is desktop Chromium emulation,
 not physical iPhone, memory, thermal or performance acceptance. The large view
 retains the touch graphics profile; it is not a fresh desktop-default session.
 
+### The shadow proxy is never rebuilt mid-flight
+
+`node shadow-proxy-pacing.mjs` (no browser, no server) runs the real
+`shadowProxy` code from `js/city-lighting.js` against a scripted map: a 12 s
+flight of per-frame `jumpTo` moves with a tile landing mid-flight, the flycam
+still owning a parked camera, a 2.5 fps flight, an ease, and moves that do and
+do not change the drawn tile set. Nothing may rebuild while the camera moves;
+exactly one rebuild once it has been still for `settleMs`, containing what
+landed mid-flight; a move that changes no input is checked but not rebuilt.
+`--break` restores "rebuild 300 ms after any move" and must exit 1. (Until
+2026-09-23 every moveend rebuilt it, 1.0-1.4 s each, every ~1.5 s of a flight.)
+
 ### The "graphics acceleration is off" notice
 
 `VERIFY_URL=http://127.0.0.1:8442 node gpu-hint.mjs --out <outside-repo-directory>`
