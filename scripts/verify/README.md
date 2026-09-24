@@ -91,6 +91,20 @@ the required external scratch directory. This is desktop Chromium emulation,
 not physical iPhone, memory, thermal or performance acceptance. The large view
 retains the touch graphics profile; it is not a fresh desktop-default session.
 
+### The paced facade repaint paints the same bytes
+
+`node facade-pace.mjs` (no browser, no server) assembles the facade paint
+worker from `js/facades.js`'s own function text the way `pacePool` does, runs
+it in a sandbox with the real `js/pattern-lowpass.js`, and checks that every
+tier image it returns is byte-identical to what `tileData` makes on the main
+thread for the same drawing (template and measured tile sizes, mottle on and
+off), that its premultiplied copies equal MapLibre 5.24.0's `El` for all
+65,536 alpha/colour pairs, that a paced patch into a tile built mid-job
+rewrites exactly the 1-texel wrap border a fresh atlas has (and only then),
+and that the PACE knobs are named. `--break` widens the worker's blur by one
+texel, `--break-border` switches the border rewrite off; each must exit 1. It does not check timing or
+the scheduler; the frame-time A/B for the pacing is in HANDOFF (Sep 24 2026).
+
 ### The shadow proxy is never rebuilt mid-flight
 
 `node shadow-proxy-pacing.mjs` (no browser, no server) runs the real

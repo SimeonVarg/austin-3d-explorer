@@ -1,5 +1,93 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
+
+What made the remaining long frames, traced on the AMD Radeon (CPU profile
+per long frame, renderer string printed every run):
+
+- **Explore -> UT Tower.** The flight crosses z17 once. Crossing an integer
+  zoom above 16 moves the facade zoom anchor, so ~155 combos (310 images,
+  165 MB) are redrawn. On main that was ONE 4.2-5.9 s frame: the redraw
+  (low-pass blur 2.4 s, drawing and readback 1 s, decimation, MapLibre's copy)
+  and then, in the same frame, MapLibre premultiplying and re-uploading
+  ~190 MB into ~370 tile-atlas regions. The 90 ms `FLUSH_MS` floor never
+  helped: the next `zoom` event painted the stale tiers synchronously anyway.
+- **Boost.** No zoom crossing at all (tile zoom stays 16). Its 300-1000 ms
+  frames were new tiles arriving: each brings its own pattern atlas (29-102 MB
+  per long frame) and MapLibre premultiplies every byte in JS (`El`) before
+  uploading it.
+
+What changed (js/facades.js; no pattern, colour, resolution, LOD or filter
+value touched):
+
+1. **PACE: the anchor repaint is spread over frames.** A queue of combos, the
+   ones on screen first; each frame spends at most `budgetMs` (10) of main
+   thread while the camera moves and `restBudgetMs` (40) once still. The
+   canvas half of a tile (draw + readback, ~4 ms) stays on the main thread;
+   mottle, decimation, the blur and MapLibre's premultiply run in 3 workers
+   built from this file's own functions and the real js/pattern-lowpass.js.
+   A combo is committed whole and only if its drawing signature is still
+   wanted. For a few seconds after a crossing some walls still wear the
+   previous zoom's windows (on screen ones done in 3-5 s, all in 5-7 s,
+   frames flowing throughout). The hour is not paced: `updateFacades` still
+   repaints every tier at once. `?facadepace=0` restores the old path.
+2. **Pattern borders.** MapLibre patches a changed image's interior but not
+   its 1-texel wrap border, so tiles built mid-job kept old seam colours (seen
+   as 0.1 % of pixels, seam lines on the downtown towers). A paced patch into
+   a tile first seen after the job's retarget now also rewrites that border,
+   byte-identical to a fresh atlas; everything else keeps MapLibre's own
+   patch, as main does.
+3. **Premultiply by lookup table.** New tiles' atlases (and patches) are
+   premultiplied by a table equal to `El` for all 65,536 alpha/colour pairs.
+   `?facadefastpm=0` restores `El`. Also: a paced job no longer re-arms the
+   atlas-release grace every frame (that held ~300 marks up and cost ~0.7 s
+   of `patchUpdatedImages` per job).
+
+Measured, AMD forced, 1280x632 DPR 1.5, 3 interleaved reps, median [range]:
+
+| | main | branch |
+|---|---|---|
+| explore->Tower frames / 10 s | 29.8 [27.8-37.3] | 76.8 [68.7-78.8] |
+| explore frame med / p90 / max ms | 72 / 590 / 4404 | 107 / 214 / 1001 |
+| explore frames > 0.8 s / > 0.25 s | 2 / 6 | 1 / 2 |
+| Tower click -> arrival | 6.4 s | 2.5 s |
+| boost frame max ms | 969 [809-982] | 500 [430-663] |
+| boost frames > 0.8 s / > 0.25 s | 1 / 8 | 0 / 6 |
+| boost frames / 10 s, med / p90 ms | 128 / 50 / 126 | 78 / 108 / 216 |
+
+The boost row is not like for like: a build with fewer stalls flies further
+in the same 12 s (1,016-1,053 m vs 880-957 m in a second 4-rep A/B), and two
+branch reps landed in a period when the GPU was slow for both builds. On a
+fixed 1,050 m path (same place at every frame index, 3 reps each) main and
+branch take the same 19.2 s; the branch halves the worst frame (804 -> 376 ms)
+and cuts frames over 0.25 s 9 -> 6, while its median frame rises 38 -> 53 ms
+(upload work spread instead of bunched). `?facadefastpm=0` measured like main.
+NVIDIA boost (n=1): max 679 -> 323 ms, frames over 0.25 s 7 -> 2, 253 -> 272
+frames / 10 s. Load: desktop veil 44.3 -> 42.9 s, phone profile (390x844,
+touch) 27.5/27.8 -> 27.0/27.3 s. Not worse.
+
+At rest: every facade image the paced path leaves is byte-identical to main's
+(298 of 298, at z16, z17 and back). Pixels at 6 poses (campus, West Campus,
+downtown; day and night; auto-exposure off), branch vs two separate main runs:
+all three day poses max |diff| 0; night max 13-35 on 0.04-0.06 % of pixels,
+all stars, the same noise as main against itself (max 9-20). Exposure on:
+downtown day max 2 (the meter's dead band).
+
+Gates, main and branch alike: facade-atlas-memory, facade-decimation,
+facade-filter (#294/#295), facade-random, slopes-buffer-memory,
+slopes-context-loss, harness-drift, night-silhouette and device-recovery pass
+on both; facadegrid refuses to score on both, identically (its template
+self-check is stale). New gate `scripts/verify/facade-pace.mjs` (no browser):
+worker bytes equal `tileData`, premultiply equals `El`, border rewrite equals a
+fresh atlas; `--break` and `--break-border` exit 1.
+
+Still open, found on the way: after the Tower flight lands the shadow proxy
+rebuilds once at rest, a 1.0-1.3 s frame (js/city-lighting.js, by design since
+#306); js/sky.js re-uploads a full-screen canvas (~7 MB) on most moving frames
+(~600 MB per 12 s boost); the async exposure read waits 30-130 ms on the GPU
+after big uploads. Evidence (sheets, WebP, raw JSON) in the Claude scratchpad
+`repaint/`.
+
 ## Sep 24 2026 - Lower CPU memory with unchanged rendering (`astra/memory`)
 
 Pipeline task 014, based on origin/main `0f4cb822`. Made headless through the
