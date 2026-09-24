@@ -1,5 +1,125 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Phones stop crash-looping: a memory budget, and one reload at most (`claude/mobile-crash`)
+
+Reported: "the site still breaks on mobile browsers - it loads for like 15
+seconds, but during the intro it refreshes, and then i get an error 'a problem
+repeatedly occured'". That is iOS Safari killing the page for memory, reloading
+it once by itself, and giving up when the reload dies too.
+
+**What was actually happening (desktop Chrome in phone emulation, 390x844 at DPR 3, not a phone).** New `scripts/verify/mobile-memory.mjs` reads, once a second,
+the JS heap, ArrayBuffers, every live WebGL texture/buffer (counted in the page,
+by allocating file) and the renderer/GPU process memory. On main the phone
+profile held ~1.2-1.3 GB when the veil lifted and **2.0-2.1 GB twelve to
+fourteen seconds later - the end of the opening flight**. The flight crosses
+downtown and every tile it loads carries a facade pattern atlas texture (up to
+30 MB each: 2580x3086 RGBA), and MapLibre keeps ~30 tiles per source after they
+leave the screen: 700 MB of textures, 680 of them facade atlases. Then two
+things of ours turned one kill into Safari's error page: the crash fallback
+needed TWO deaths, but Safari only ever reloads once, so its one reload was the
+same heavy scene; and a lost WebGL context reloaded into the same scene too.
+
+**The phone budget** (`js/mobile.js` `LITE.budget`, one block, desktop gets
+`null` and nothing changes there):
+
+- `facadeScale: 1` (`js/facades.js`): facade patterns at 1 texel per CSS px
+  instead of 2 on the phone. The phone draws at 2.25 device px per CSS px
+  (DPR 3 x renderScale 0.75), so the 2x texels were being minified 1.8x with no
+  mipmaps - nobody saw them. A quarter of every atlas.
+- `tileCacheSize: 6` (`js/app.js` -> MapLibre `maxTileCacheSize`): 6 off-screen
+  tiles kept per source instead of ~30.
+- `freeGeometryCpu` (`js/slopes.js` `add()`): three.js drops each mesh's CPU
+  copy once it is on the GPU (~260 MB). A phone recovers from a lost context by
+  reloading, and nothing on a phone reads the arrays afterwards.
+- `geometryChunkTris: 300000` (`js/slopes.js` `buildChunked`, used by
+  `js/slopes-apartments.js`): the authored buildings are built in ~8 pieces
+  instead of one set of buffers that doubled to 8.4 M vertices for 4.2 M used.
+  Same triangles, same order (`scripts/verify/slopes-chunked-build.mjs` compares
+  every expanded vertex byte for byte, and its `--break` goes red).
+- `packVertices` (`js/slopes.js` `packGeometry`): normals as signed bytes,
+  surface parameters as half floats, 50 -> 34 bytes a vertex. **Not
+  pixel-identical**: measured in one page (SwiftShader, close-ups, control
+  0 px), the fine brick-joint grain on far walls lands a fraction of a brick
+  along - The Standard by day 2.7% of pixels at most 12/255, 21 Rio 1.3%, Moody
+  0. Same grain, displaced; `packVertices: false` puts exact vertices back.
+
+**Tiers, one step per death** (`LITE.tiers`): `phone` -> `lighter` (no opening
+flight, no out-of-view tile cache, no balconies) -> `safe` (flat prisms, as
+before). A boot that finds the previous one died while visible steps down ONE
+tier, so Safari's own reload lands on `lighter`. A WebGL context lost during
+the boot or the opening flight steps down too, before its reload. **Every
+automatic reload is recorded; at most one per 10 minutes**, after that the
+notice offers the reload instead. `lighter` and `safe` say so on screen with
+"Load full city"; a visit an hour later tries one tier heavier by itself.
+`?litetier=phone|lighter|safe` forces a tier for testing. Kept from PR #270:
+the boot record, never writing the fallback into the URL, the reload after a
+post-load context loss, lateAuthored, legacy URL cleanup. Old boot records
+(v2) are discarded: they counted deaths of the 2 GB scene.
+
+**Memory, phone emulation, 3 interleaved reps, fresh browser each, minimum
+[range], MB. `phone` = JS heap + ArrayBuffers + live WebGL bytes:**
+
+                        page-held peak     page-held settled   renderer / GPU process (peak, private)
+    main, phone profile   2035 [2035-2133]   1920 [1920-2041]    2285 / 2463
+    branch, phone tier     824 [824-882]      696 [696-718]      1673 / 1247
+    branch, lighter tier   660 [660-813]      506 [506-507]      1322 /  908
+    branch, safe tier      365 (1 rep)        284                1179 /  522
+
+    of which (main -> phone tier, settled): WebGL textures 699 -> 122,
+    WebGL buffers 442 -> 322, ArrayBuffers 651 -> 137, JS heap ~100 both.
+
+Where the peak is: main peaks 12-14 s after the veil lifts (the end of the
+flight); the phone tier peaks as the authored buildings go to the GPU under the
+veil, or during the flight, at ~0.82-0.88 GB. Budget chosen: phone tier under
+0.9 GB peak, lighter under ~0.7, each a third below the one above; main
+survived ~1.2-1.3 GB on the owner's phone (the veil lifted) and died on the way
+to 2.0, so the phone tier's peak sits a third under what his phone demonstrably
+held. Renderer/GPU process numbers are this laptop's Chrome and include its
+own overhead; they are for ranking, not for predicting an iPhone.
+
+**Gates.** `scripts/verify/mobile-boot.mjs` has two new scenarios.
+`crashloop`: the page is killed during the opening flight and loaded again at
+once (Safari's own reload); it must come back on `lighter` with the authored
+buildings, a notice and no reload of its own, and a second death lands on
+`safe`. `ctxintro`: a context lost during the flight reloads exactly once,
+onto `lighter`; lost again, no second reload, the notice instead. On this
+branch: all 11 scenarios pass, 51/51 checks on the final code. On main the 9
+existing scenarios pass (37/37) and the new two fail as they should (crashloop
+3/9, ctxintro 3/5) - Safari's reload there is the same
+full scene with the flight again, and a context loss reloads into it too.
+`device-recovery.mjs` passes on both, after an instrument fix: it read the
+city as ready before a viewport resize had landed and then caught the new
+view's tiles loading at capture (it happened on the branch first; main shows
+the same loading once the wait is right). Also fixed in the harness: the
+`shots` scenario returned `map.jumpTo()` - the whole Map - through
+`page.evaluate`, which on main is now a >512 MB message that kills Playwright,
+and `crashloop`/`ctxintro` first counted `history.replaceState` as a reload
+(Playwright's `framenavigated` fires for it); they count document requests
+now. Node-only checks pass on both: slopes-context-loss, slopes-buffer-memory,
+facade-atlas-memory, shadow-proxy-pacing/-recovery, the four style-recovery
+checks, harness-drift; new `slopes-chunked-build.mjs` passes and its `--break`
+goes red. `mobile-budget.mjs` (the Sep 15
+heap-after-GC reading, SwiftShader): main 788 MB, branch 222 MB, both exit 0.
+`mobile-mergecells.mjs` was not run: it has nothing to compare on either side
+(no `APARTMENTS.mergeCells` in main or here since it was left out on Sep 19)
+and exits 2 by construction. The measurement harness is `mobile-memory.mjs`.
+
+**Desktop unchanged.** One desktop load each of main, this branch and main again
+(SwiftShader, 1280x800): 196 authored buildings, 3,045,153 apartment and
+4,035,204 layer triangles, the same 708 style images at the same sizes,
+MapLibre's default tile cache, no phone budget, 0 page errors - and the map
+canvas and the whole page pixel-identical (0 px, max 0) at a West Campus and a
+Tower pose, main-vs-main control also 0.
+
+**What a phone viewer loses:** facade windows drawn from 1x texels (at the
+phone's pixel density this reads the same; less shimmer if anything); flying
+back to somewhere you just left shows the coarser tile for a moment; the fine
+brick grain on far walls sits a fraction of a brick along. Only after a crash:
+no opening flight and no balconies (`lighter`), or flat blocks (`safe`).
+
+**Not verified on a real phone.** `docs/mobile-device-check.md` has the steps.
+Frames: scratchpad only (none committed).
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
@@ -87,6 +207,7 @@ rebuilds once at rest, a 1.0-1.3 s frame (js/city-lighting.js, by design since
 (~600 MB per 12 s boost); the async exposure read waits 30-130 ms on the GPU
 after big uploads. Evidence (sheets, WebP, raw JSON) in the Claude scratchpad
 `repaint/`.
+
 
 ## Sep 24 2026 - Lower CPU memory with unchanged rendering (`astra/memory`)
 

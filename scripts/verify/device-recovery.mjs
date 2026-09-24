@@ -72,8 +72,19 @@ async function ready(label){
   }
   throw Error('Full-city readiness timed out; partial city is not valid evidence');
 }
+// A resize lands a frame or more after it is asked for, and ready() read
+// before it passes on the OLD canvas's tiles — then the capture catches the
+// new viewport's tiles loading and "city must remain ready at capture" fails
+// (seen 2026-09-24 at recovered-large: viewport 2560x1440, canvas still
+// 1899x877 when ready() returned). Ready means ready at the requested view.
+const settledAt=(s,e)=>!!(s.viewport&&s.viewport.width===e.width&&s.viewport.height===e.height&&s.viewport.dpr===e.dpr&&
+  s.canvas&&s.canvas.height>0&&Math.abs(s.canvas.width/s.canvas.height-e.width/e.height)<.02);
 async function secondShot(name,largeCDP=null){
-  await ready(name);await sleep(2500);
+  const want=name==='recovered-large'?{width:2560,height:1440,dpr:1}:
+    name==='recovered-landscape'?{width:844,height:390,dpr:3}:{width:390,height:844,dpr:3};
+  const t0=Date.now();
+  for(;;){const s=await ready(name);if(settledAt(s,want)||Date.now()-t0>READY_MS)break;await sleep(500);}
+  await sleep(2500);
   // Playwright screenshot reapplies its context viewport/DPR. Preserve the
   // explicit large-screen CDP metrics by capturing through CDP in that case.
   if(largeCDP)await largeCDP.send('Page.captureScreenshot',{format:'jpeg',quality:88});

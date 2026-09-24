@@ -124,7 +124,11 @@
     // Below this density the window reveals go; below this, the sign dots too.
     revealsAbove: 0.75,
     signsAbove: 0.6,
-    balconies: true,      // draw balcony slabs and rails (false: flush walls)
+    // draw balcony slabs and rails (false: flush walls). A phone's `lighter`
+    // tier — the one after the full phone city has died once — gives them up
+    // (js/mobile.js LITE.tiers, budget.aptBalconies: ~a quarter of the
+    // authored triangles). Every other profile keeps them.
+    balconies: !(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.aptBalconies === false),
     signs: true,          // draw the dot-matrix name signs
     deck: true,           // draw the podium roof deck's pool, turf, screen, rail
     reveals: true,        // draw the four strips that join a window to the wall plane
@@ -2443,7 +2447,10 @@
     const t0 = performance.now();
     resetCount();
     _failed.clear();
-    const B = S.build();
+    // A phone builds in chunks (js/mobile.js LITE.budget.geometryChunkTris,
+    // js/slopes.js buildChunked): same triangles, a fraction of the peak.
+    const BUD = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || {};
+    const B = BUD.geometryChunkTris && S.buildChunked ? S.buildChunked(BUD.geometryChunkTris, !!BUD.packVertices) : S.build();
     B.filtered=[];
     B.filterPending=[];
     _built = [];
@@ -2490,15 +2497,18 @@
       count.filteredFaces=B.filtered.length;
       B.filtered=batchFiltered(B.filtered);
       count.filteredBatches=B.filtered.length;
-      geom = B.geometry();
-      const mesh = new T.Mesh(geom, S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide}));
-      mesh.name = 'apartments';
+      geom = B.geometries ? B.geometries() : [B.geometry()];
+      const mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
       const g = new T.Group();
       g.userData.lod = APTS.lod;
       g.userData.minzoom = APTS.minzoom;
       g.name = 'slopes-apartments';
       _builtFrame = S.frames;
-      g.add(mesh);
+      geom.forEach((gm, i) => {
+        const mesh = new T.Mesh(gm, mat);
+        mesh.name = i ? 'apartments-' + (i + 1) : 'apartments';
+        g.add(mesh);
+      });
       for(const m of B.filtered)g.add(m);
       count.triangles = B.triangles;
       count.ms = +(performance.now() - t0).toFixed(1);
@@ -2507,7 +2517,7 @@
     } catch(e) {
       // A failed final mesh/group assembly must not strand face textures in
       // FacadeFilter's live allocation set. The shared slopes material stays.
-      geom?.dispose();
+      for (const gm of geom || []) gm.dispose();
       for(const m of B.filtered) { m.geometry.dispose();m.userData.disposeFacade(); }
       throw e;
     }
