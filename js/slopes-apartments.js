@@ -2369,7 +2369,7 @@
       filtered.len=len;filtered.z0=z0;filtered.z1= z1;
       let geom,mat;
       try {
-        const T=window.THREE,S=window.slopes,fb=S.build();
+        const T=window.THREE,S=window.slopes,fb=S.build(4);
         faceQuad(fb,W,0,len,z0,z1,0,rects[0][4]);
         geom=fb.geometry();
         geom.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));
