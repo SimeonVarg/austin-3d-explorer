@@ -148,6 +148,11 @@
     "data/neighborhood_apartments.json",
     "data/guadalupe.json",
     "data/south_campus.json",
-    "data/speedway_buildings.json"
+    "data/speedway_buildings.json",
+    "data/apartments/village-at-east-riverside.json",
+    "data/apartments/estates-at-east-riverside.json",
+    "data/apartments/town-lake-student-apartments.json",
+    "data/apartments/the-element-austin.json",
+    "data/apartments/riverside-site.json"
   ]
 }

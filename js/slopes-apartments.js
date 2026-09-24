@@ -955,7 +955,8 @@
     // is odd — the diagonal weave of a slot that changes hands bay to bay and
     // row to row (Villas on Rio's glass slot at ±0.55 m off the bay centre)
     const flip = !!win.flip;
-    const frame = win.frame && win.frame.w > 0 ? win.frame : null;
+    const frame = win.frame && win.frame.w > 0 &&
+      (!win.frame.minDetail || win.frame.minDetail <= detailNow()) ? win.frame : null;
     // `spandrel: { h, tone }` under every opening, or per opening as an
     // `offsets` entry's third element (`null` = none) — see tileFace
     const spandrel = win.spandrel && win.spandrel.h > 0 ? win.spandrel : null;
@@ -2147,6 +2148,8 @@
 
     for (const blk of spec.blocks || []) {
       yield;                          // build() may pause here (time-sliced)
+      // Optional ornament only; essential massing omits minDetail.
+      if ((blk.minDetail || 0) > detailNow()) continue;
       count.blocks++;
       const bands = blk.bands || [];
       const zTop = blk.z1;
@@ -2313,6 +2316,7 @@
     // Small authored structural meshes: sloping canopies, curved rails and
     // brackets that cannot be represented honestly by stacked extrusion boxes.
     for (const mesh of spec.detailMeshes || []) {
+      if ((mesh.minDetail || 0) > detailNow()) continue;
       const col = P[mesh.tone], vertices = mesh.vertices;
       const points = vertices.map(p => F.at(...p));
       for (const tri of mesh.triangles || []) {
@@ -2526,11 +2530,11 @@
    * boundary, on the positive side.
    */
   const _hideGeo = {};              // inset -> the MultiPolygon, per list of buildings
-  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false) {
+  function hideGeometry(inset, roofscapeOnly = false, frontageOnly = false, outerOnly = false) {
     // cached per inset and list of buildings: a building added at runtime (a builder's console, the gate) gets its clause on the next apply
     inset = inset == null ? APTS.roofscapeInset : inset;
-    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage));
-    const key = inset + '|' + frontageOnly + '|' + buildings.map(b => b.name).join('|');
+    const buildings = okBuildings().filter(b => (!roofscapeOnly || !b.preserveRoofscape) && (!frontageOnly || b.replaceFrontage) && (!outerOnly || b.replaceOuter));
+    const key = inset + '|' + frontageOnly + '|' + outerOnly + '|' + buildings.map(b => b.name).join('|');
     if (_hideGeo[key] !== undefined) return _hideGeo[key];
     const polys = [];
     // A building may add `hideRings`: outlines it replaces beyond its own
@@ -2674,6 +2678,13 @@
     if (geoW) for (const id of HIDE_LAYERS.walls) plan.push([id, ['>', ['distance', geoW], APTS.wallMargin]]);
     if (geo && APTS.hideParts) for (const id of HIDE_LAYERS.parts) plan.push([id, ['>', ['distance', geo], 0]]);
     if (geo && APTS.hidePrecinct) for (const id of HIDE_LAYERS.precinct) plan.push([id, ['>', ['distance', geo], 0]]);
+    // OSM-authored buildings beyond the core replace Overture outer-ring
+    // prisms by footprint: the two sources do not share building ids. Only
+    // successful, explicitly opted-in models retire those legacy volumes.
+    const outerGeo = hideGeometry(APTS.roofscapeInset, false, false, true);
+    if (outerGeo) for (const id of ['outer-3d', 'outer-midrise', 'outer-midrise-roof', 'outer-tower', 'outer-tower-roof', 'outer-detail', 'outer-landmark-glass', 'outer-landmark-light']) {
+      plan.push([id, ['>', ['distance', outerGeo], 0]]);
+    }
     return plan;
   }
   // Keep the applied plan, including layers that have not arrived yet. Polling
@@ -2988,7 +2999,7 @@
       wrapped.__aptsHooked = true;
       window[name] = wrapped;
     };
-    for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings']) hook(name);
+    for (const name of ['applySlopesSettings', 'applySlopesRoofs', 'applyWestcampusSettings', 'applyOuterSettings']) hook(name);
     window.applySlopesApartments(map);   // starts the time-sliced build; it logs its own counts when it lands
     // a layer that boots after this file (campus-storeys comes with the
     // facades pass, on its own clock; slopes-roofs after its 1.4 MB rig
@@ -3008,7 +3019,7 @@
         if (_pendingApply) window.applySlopesApartments(map);
         if (!_filtered || !(window.SLOPES.on && APTS.on)) return;
         setLabels(true);
-        for (const name of ['applySlopesRoofs', 'applyWestcampusSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
+        for (const name of ['applySlopesRoofs', 'applyWestcampusSettings', 'applyOuterSettings']) if (typeof window[name] === 'function' && !window[name].__aptsHooked) hook(name);
         if (filtersMissing().length || rigsMissing().length) { setFilters(true); map.triggerRepaint(); }
       };
       tick();

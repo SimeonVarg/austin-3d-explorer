@@ -1,5 +1,61 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Riverside garden apartments (`astra/riverside`)
+
+Four new authored collections cover Village at East Riverside, Estates at East
+Riverside, Town Lake Student Apartments and both Element parcels. All 236 OSM
+building outlines are retained, including open carports and ancillary buildings,
+plus 10 mapped pool/spa outlines. A fifth collection adds parcel-clipped service
+drives, paths and eight courts. Residential forms use three storeys for Village,
+Estates and Town Lake, and two for Element; roofs, window recesses, open stairs,
+balconies/galleries and restrained night occupancy are authored separately from
+the original basemap. Town Lake's clubhouse has its own arched entrance and roof
+composition. Registration is through `data/apartments/index.json` collections.
+
+The small renderer extension in `js/slopes-apartments.js` adds opt-in
+`replaceOuter` footprint suppression for the eight outer building layers, only
+after a successful authored build, and reapplies it after outer settings changes.
+There is no authored-model geographic cutoff to extend. Optional `minDetail` on
+blocks, detail meshes and window surrounds omits fine ornament below 0.6 without
+changing older specs. Essential buildings, stairs and galleries remain at the
+phone preset's 0.5 detail.
+
+Validation: every new spec emits finite production geometry, without
+failed/empty roofs, alignment warnings or roof spikes above 20 m. Estimated
+added geometry is 282,359 triangles at phone detail and 619,663 at balanced
+detail (production generator, not measured phone FPS). Site polygons have no
+self-crossings or building intersections. Thirty original outer-ring features
+overlap the new building outlines; the read-only overlap audit found no weak
+incidental overlaps. Window/material contracts, filter lifecycle checks and
+harness script parity pass.
+
+The served application was checked in fresh hardware-GL browsers through the
+shared GPU queue, with graphics autodetection cancelled. The balanced default
+loaded all 549 authored specs (196 before), with 3,663,439 authored triangles
+versus 3,045,153 before. There were no page errors or missing replacement filters;
+the same 550 pre-existing alignment warnings remained, with none added by these
+collections. Day views and night occupancy were inspected for all four complexes.
+Each capture waited for veil removal and loaded tiles, then used the second shot.
+The before run routed only the apartment index to the original collection list.
+Capture-only flight-controller cleanup allowed the broad aerial camera; normal
+application controls and renderer defaults were not changed for the images.
+
+Five final labelled JPEG comparisons are in the local pipeline task's `out/`
+folder: four reference/before/after triptychs and one all-four aerial comparison.
+All are under 1 MB. The paired application cameras match exactly; the photograph
+viewpoints are approximate, not calibrated matches. Helpers and camera records
+remain in the sibling `work/` folder. These establish visible coverage and box
+replacement, not owner acceptance of photographic fidelity.
+
+Remaining accuracy limits: exact unit/balcony/stair layouts on unseen elevations
+are inferred; Element's two-storey treatment is based on photographed blocks,
+not a survey of every roof. Landscaping, uncovered parking surfaces, pool furniture
+and site lighting are visibly sparse. Small ancillary uses, roof ridges and
+clubhouse rear roof joints remain approximate. Images, reference identities, camera metadata and rebuild
+helpers remain local to the pipeline/reference workspace. Physical-phone
+performance is unverified. No git write, server launch or scheduled continuation
+was performed; the reviewing lane owns the commit/PR/merge.
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
