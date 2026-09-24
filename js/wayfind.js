@@ -1330,8 +1330,18 @@
   const urlTo = q.get('to');
   const ENABLED = urlWalk !== '0' &&
     (WAYFIND.on || urlWalk != null || urlFrom != null || urlTo != null || q.get('livehere') === '1');
+  // THE APARTMENT FINDER'S DOOR (js/finder.js). The finder reuses the schedule
+  // import -- the screen, the store and the egress guard -- WITHOUT switching
+  // the walking feature on: it sets `window.__wayfindImportOnly` and loads this
+  // file a second time, only when a student asks to import or already has a
+  // schedule saved. WAYFIND.on stays false and `?walk=0` still vetoes it. In
+  // this mode there is no button, no `/` key, no URL grammar and no day view:
+  // only the import screen, the store, the privacy panel and the guard (§12),
+  // which is installed exactly as it is when the feature is on.
+  const IMPORT_ONLY = !ENABLED && urlWalk !== '0' && window.__wayfindImportOnly === true;
+  WAYFIND.importOnly = IMPORT_ONLY;
   window.WAYFIND = WAYFIND;
-  if (!ENABLED) return;   // <- byte-identical past this line
+  if (!ENABLED && !IMPORT_ONLY) return;   // <- byte-identical past this line
 
   const MPD_LON = 96061, MPD_LAT = 111195;   // metres per degree at lat 30.285
   const SRC = 'wayfind-route', SRC_RIB = 'wayfind-strip', SRC_COL = 'wayfind-arrive';
@@ -6586,6 +6596,9 @@
   function buildUI() {
     if (el) return el;
     const root = h('div', null); root.id = 'wf-root';
+    // Import-only (the finder's door, see ENABLED): finder.css shows only the
+    // import screen out of this root.
+    if (IMPORT_ONLY) root.classList.add('wf-import-only');
 
     const btn = h('button', null, ''); btn.id = 'wf-button';
     btn.title = SAY.title; btn.setAttribute('aria-label', SAY.title);
@@ -13998,6 +14011,9 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     } catch (e) {}
     const cs = res.classes.slice().sort(impByTime);
     impClose();
+    // The finder reads the schedule off `wayfind:schedule` above; in its
+    // import-only mode there is no router sheet to open.
+    if (IMPORT_ONLY) return;
     el.sheet.classList.remove('hidden');
     el.btn.classList.add('active');
     if (cs.length >= 2) {
@@ -14112,6 +14128,7 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     if (foot) el.sheet.insertBefore(row, foot); else el.sheet.appendChild(row);
   }
   (function impBoot() {
+    if (IMPORT_ONLY) return;   // no router sheet to put an entry row in
     if (el && el.sheet) { impInstallEntry(); return; }
     setTimeout(impBoot, 80);
   })();
@@ -16096,7 +16113,8 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
   if (schedCache) setWatchlist(buildWatchlist(schedCache));
   // ...and hand whatever survived the reload back to the surfaces that read it.
   scheduleSyncPublished();
-  setTimeout(() => mountPrivacyPanel(), 0);
+  // Import-only: the finder mounts the panel in its own footer (store.mount).
+  if (!IMPORT_ONLY) setTimeout(() => mountPrivacyPanel(), 0);
 
   WAYFIND.store = {
     KEY: SCHEDULE_STORE.key,
@@ -16217,6 +16235,8 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     if (map.isStyleLoaded && map.isStyleLoaded()) go();
     else map.once('load', () => setTimeout(go, 0));
   }
-  boot();
-  dayBoot();
+  if (!IMPORT_ONLY) {
+    boot();
+    dayBoot();
+  }
 })();

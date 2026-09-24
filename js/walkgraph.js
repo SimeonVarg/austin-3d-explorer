@@ -77,7 +77,7 @@ export const WALKG = {
 };
 
 /* Edge flag bits, from the file's own `_format` string. */
-const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_OFFMAIN = 128;
+export const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_OFFMAIN = 128;
 
 let loadPromise = null;
 
@@ -125,7 +125,7 @@ export function decodeWalkGraph(g) {
 }
 
 /** Edge cost in equivalent flat metres — `js/wayfind.js`'s edgeCost(), symmetric. */
-function edgeCost(G, i) {
+export function edgeCost(G, i) {
   const T = G.tune;
   const m = G.W[i] / 100;
   if (G.F[i] & F_STEPS) {
@@ -139,7 +139,7 @@ function edgeCost(G, i) {
 }
 
 /** Every graph node a building's doors reach, with the true metres to each. */
-function anchorsOf(G, code) {
+export function anchorsOf(G, code) {
   const ds = G.code && G.code[code];
   if (!ds || !ds.length) return null;
   const out = [];
