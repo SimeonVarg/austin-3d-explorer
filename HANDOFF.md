@@ -1,5 +1,53 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 24 2026 - Lower CPU memory with unchanged rendering (`astra/memory`)
+
+Pipeline task 014, based on origin/main `0f4cb822`. Made headless through the
+owner's Codex pipeline; the Claude lane committed and merged it.
+
+`js/slopes.js` avoids duplicate typed-array copies and uses a constant zero
+gradient attribute instead of a per-vertex zero buffer. Real wall gradients
+and CPU geometry needed for recovery/raycasting remain. `js/slopes-apartments.js`
+starts four-vertex facade builders at four vertices instead of 65,536.
+`js/facades.js` releases uploaded tile-atlas CPU RGBA buffers, retaining source
+images, GPU textures and metadata, and caches byte-identical repeated image
+premultiplication within a frame (16 MiB cap). These private MapLibre hooks run
+only on audited version 5.24.0; a version upgrade needs a fresh lifecycle audit.
+Regression checks: `scripts/verify/slopes-buffer-memory.mjs` and
+`scripts/verify/facade-atlas-memory.mjs`.
+
+Three fresh-browser, interleaved before/after pairs on forced AMD Radeon,
+1280x632 DPR 1.5, balanced, renderScale 1, CPU 1x: minimum renderer working set
+after intro 3.18 -> 2.32 GB; GPU-process working set 3.22 -> 3.08 GB. Main-page
+backing storage 1.78 -> 0.93 GB (includes external strings and excludes worker
+heaps, not an exact ArrayBuffer-only census). Three.js geometry buffers total
+564 -> 493 MB with the same 196 authored buildings and 3,045,153 triangles.
+Minimum frames per 10 seconds: intro 74 -> 79, boost 89 -> 96. Ranges overlap;
+this does not establish that pauses or texture-upload costs are eliminated.
+The baseline already includes the prior proxy/exposure fixes.
+
+Six day/night campus, West Campus and downtown poses: four raw pairs match
+exactly; raw downtown max/mean RGB differences are 37/0.000451 (day) and
+17/0.020134 (night). Fresh downtown repeats with baseline exposure pinned in
+the test capture match exactly, max/mean 0/0. Raw discrepancies remain in the
+report; do not describe the original six pairs as all exact matches.
+
+Actual WebGL context loss/restore and the existing automatic phone reload path
+pass before and after in AMD desktop touch emulation: 196 buildings rebuilt,
+live GL, movement working and zero page errors. Restored screenshots inspected.
+This is not physical-phone acceptance. CPU buffer/lifecycle checks, byte-exact
+MapLibre upload audit, harness parity and diff checks pass.
+
+Local pipeline task `014-memory/work/report.md` and `summary.md` retain all
+samples, source audits, harnesses and visual evidence. `014-memory/out/` is
+contains the final labelled memory/frame chart and 24-frame animated AMD flight
+pair, both under 1 MB. The flight uses matching elapsed samples and a shared
+settled destination; small capture-time offsets remain, separate from static
+pixel proof and the performance benchmark. All capture browsers closed cleanly.
+No lighting, resolution, LOD, facade patterns or building geometry changed.
+GPU texture sharing, worker painting, full ArrayBuffer census and physical-phone
+acceptance remain open. This pass does not resume another queued task.
+
 ## Sep 23 2026 - Flying no longer freezes: shadow casters wait for the camera, auto-exposure stops waiting on the GPU (`claude/speed-proxy-ae`)
 
 The two biggest measured costs in motion (astra-pipe `research/frame-cost.md`,

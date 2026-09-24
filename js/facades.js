@@ -2697,6 +2697,122 @@
   };
   let _relMap = null, _relHooked = false, _relHold = 0, _relIdle = 0;
 
+  // MapLibre 5.24.0 reads ImageAtlas.image only in Tile.upload. After that,
+  // prepare patches the GPU texture from imageManager's originals; rendering
+  // reads the position maps. Context loss destroys the style and its tiles,
+  // then rebuilds them from the retained style images (mobile.js also reloads
+  // the authored scene). Keep those originals and all atlas metadata intact.
+  // Do not apply this private-lifecycle optimization to an unaudited version.
+  const ATLAS_MEMORY = {
+    tilesHooked: 0, atlasesReleased: 0, bytesReleased: 0,
+    premultiplyHits: 0, premultiplyMisses: 0, premultiplyBytesAvoided: 0,
+  };
+  const _memoryTiles = new WeakSet();
+  const _memoryAtlases = new WeakSet();
+  const PREMULTIPLY_CACHE_LIMIT = 16 * 1024 * 1024;
+  const _premultiplyFrame = new Map();
+  let _premultiplyBytes = 0;
+  const supportedAtlasVersion = () => !!(window.maplibregl &&
+    typeof window.maplibregl.getVersion === 'function' &&
+    window.maplibregl.getVersion() === '5.24.0');
+  window.facadeMemoryStats = () => ({
+    ...ATLAS_MEMORY,
+    premultiplyCacheBytes: _premultiplyBytes,
+    premultiplyCacheLimit: PREMULTIPLY_CACHE_LIMIT,
+    supported: supportedAtlasVersion(),
+  });
+
+  function clearPremultiplyFrame() {
+    _premultiplyFrame.clear();
+    _premultiplyBytes = 0;
+  }
+
+  // Different tile atlases often patch the same style image in one frame.
+  // Cache exactly El's 5.24.0 byte conversion, not an approximation using GPU
+  // unpack premultiplication. Texture.update(..., {premultiply:false}, xy)
+  // then takes the same raw-data path without allocating/converting again.
+  function premultipliedImage(styleImage) {
+    const image = styleImage.data, data = image && image.data;
+    if (!image || !data || data.BYTES_PER_ELEMENT !== 1 ||
+        data.length !== image.width * image.height * 4 ||
+        data.byteLength > PREMULTIPLY_CACHE_LIMIT) return null;
+    const cached = _premultiplyFrame.get(image);
+    if (cached && cached.version === styleImage.version && cached.source === data &&
+        cached.image.width === image.width && cached.image.height === image.height) {
+      ATLAS_MEMORY.premultiplyHits++;
+      ATLAS_MEMORY.premultiplyBytesAvoided += data.byteLength;
+      return cached.image;
+    }
+    if (cached) {
+      _premultiplyBytes -= cached.image.data.byteLength;
+      _premultiplyFrame.delete(image);
+    }
+    while (_premultiplyBytes + data.byteLength > PREMULTIPLY_CACHE_LIMIT) {
+      const oldest = _premultiplyFrame.keys().next().value;
+      _premultiplyBytes -= _premultiplyFrame.get(oldest).image.data.byteLength;
+      _premultiplyFrame.delete(oldest);
+    }
+    const pixels = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i + 3];
+      pixels[i] = Math.round(data[i] * alpha / 255);
+      pixels[i + 1] = Math.round(data[i + 1] * alpha / 255);
+      pixels[i + 2] = Math.round(data[i + 2] * alpha / 255);
+      pixels[i + 3] = alpha;
+    }
+    const converted = { width: image.width, height: image.height, data: pixels };
+    _premultiplyFrame.set(image, { version: styleImage.version, source: data, image: converted });
+    _premultiplyBytes += pixels.byteLength;
+    ATLAS_MEMORY.premultiplyMisses++;
+    return converted;
+  }
+
+  function watchAtlasPatches(atlas) {
+    if (!atlas || typeof atlas.patchUpdatedImage !== 'function' || _memoryAtlases.has(atlas)) return;
+    const patch = atlas.patchUpdatedImage;
+    atlas.patchUpdatedImage = function (position, image, texture) {
+      if (!position || !image || position.version === image.version) return;
+      const gl = texture && texture.context && texture.context.gl;
+      // Other texture formats retain MapLibre's own conversion behavior.
+      if (!gl || texture.format !== gl.RGBA) return patch.apply(this, arguments);
+      const converted = premultipliedImage(image);
+      if (!converted) return patch.apply(this, arguments);
+      // Preserve the original method's version assignment and coordinates.
+      position.version = image.version;
+      const [x, y] = position.tl;
+      texture.update(converted, { premultiply: false }, { x, y });
+    };
+    _memoryAtlases.add(atlas);
+  }
+
+  function releaseUploadedAtlas(tile, gl) {
+    const atlas = tile.imageAtlas, texture = tile.imageAtlasTexture;
+    const image = atlas && atlas.image, data = image && image.data;
+    if (!atlas || atlas.uploaded !== true || !texture || !texture.texture ||
+        !gl || typeof gl.isContextLost !== 'function' || gl.isContextLost() ||
+        !ArrayBuffer.isView(data) || data.byteLength !== image.width * image.height * 4) return;
+    ATLAS_MEMORY.bytesReleased += data.byteLength;
+    ATLAS_MEMORY.atlasesReleased++;
+    image.data = null;
+  }
+
+  function watchAtlasUpload(tile) {
+    if (!supportedAtlasVersion() || !tile || typeof tile.upload !== 'function') return;
+    watchAtlasPatches(tile.imageAtlas);
+    if (_memoryTiles.has(tile)) return;
+    const upload = tile.upload;
+    tile.upload = function (...args) {
+      const result = upload.apply(this, args);
+      // Read the current atlas, not the one present when this tile arrived:
+      // a source reload can replace the atlas while retaining the tile object.
+      watchAtlasPatches(this.imageAtlas);
+      releaseUploadedAtlas(this, args[0] && args[0].gl);
+      return result;
+    };
+    _memoryTiles.add(tile);
+    ATLAS_MEMORY.tilesHooked++;
+  }
+
   const imageManagerOf = (map) => {
     try { return (map && map.style && map.style.imageManager) || null; }
     catch (e) { return null; }
@@ -2864,10 +2980,21 @@
     if (_relHooked) return;
     _relHooked = true;
     map.on('render', releaseTick);
+    map.on('render', clearPremultiplyFrame);
+    map.on('webglcontextlost', clearPremultiplyFrame);
+    map.on('remove', clearPremultiplyFrame);
     // A tile arriving from the out-of-view cache is the ONE case that can be
     // stale, and the event hands us the tile, so no private tile store is
     // needed for the common path.
-    map.on('data', (e) => { if (e && e.tile) noteTile(map, e.tile); });
+    map.on('data', (e) => {
+      if (e && e.tile) {
+        watchAtlasUpload(e.tile);
+        noteTile(map, e.tile);
+      }
+    });
+    // Catch tiles loaded before the facade module was armed once, without
+    // adding an atlas walk to the render loop. Future arrivals use data above.
+    eachInViewTile(map, watchAtlasUpload);
   }
 
   // `_atlasP` is the hour the atlas has been ASKED for. `_tierP` is the hour

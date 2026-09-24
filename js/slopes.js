@@ -770,18 +770,23 @@
     if (!U) throw new Error('[slopes] material() before initSlopes — three.js not ready');
     const T = window.THREE;
     const o = opts || {};
-    return new T.ShaderMaterial({
+    const mat = new T.ShaderMaterial({
       uniforms: U,                    // SHARED, deliberately: one hour, one sun, every mesh
       vertexShader: VERT, fragmentShader: FRAG,
       side: o.side != null ? o.side : T.FrontSide,
       depthTest: true, depthWrite: true, transparent: false, blending: T.NoBlending,
     });
+    // Builder meshes have no wall gradient. A constant vertex attribute is
+    // exactly the old all-zero buffer, without eight CPU/GPU bytes per vertex.
+    // colour() still supplies an attribute for meshes that need a gradient.
+    mat.defaultAttributeValues.aGrad = [0, 0];
+    return mat;
   }
   // Continuous, filtered wall overlay. Close geometry remains the depth
   // source; projected metres per pixel select the representation per fragment.
   function facadeMaterial(face, tune) {
     const T=window.THREE;
-    return new T.ShaderMaterial({
+    const mat = new T.ShaderMaterial({
       defines:face.faces?{FACADE_FILTER:1,FACADE_FILTER_ARRAY:1}:{FACADE_FILTER:1},
       uniforms:{...U,
         u_faceDay:{value:face.textures.day},u_faceGold:{value:face.textures.gold},u_faceNight:{value:face.textures.night},
@@ -792,6 +797,8 @@
       transparent:true,depthTest:true,depthWrite:false,
       polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
     });
+    mat.defaultAttributeValues.aGrad = [0, 0];
+    return mat;
   }
   /**
    * Fill `geom`'s per-vertex colour triple and, for walls, the gradient
@@ -856,14 +863,16 @@
   //   b.geometry()                      the BufferGeometry (call once)
   //
   // Points are [x, y, z] in local metres. `col` is [day, golden, night] hex.
-  function build() {
+  function build(initialCapacity = 1 << 16) {
     const T = window.THREE;
     // Vertex store: growable Float32Arrays written in place. This used to be
     // seven plain arrays fed one number at a time (170 million push() calls
     // for the apartments alone, plus a per-vertex spread); profiled 2026-09-15
     // that was ~6 s of the 11 s apartment build and 1.6 s of GC. Same API,
     // same bytes out of geometry().
-    let cap = 1 << 16, nV = 0;
+    // Small one-face builders need only four vertices. Bulk generators keep
+    // their existing capacity; growth and the final trimmed geometry agree.
+    let cap = initialCapacity, nV = 0;
     let P = new Float32Array(cap * 3), NM = new Float32Array(cap * 3);
     // ── WHY THE COLOURS ARE BYTES ────────────────────────────────────────
     //
@@ -913,7 +922,7 @@
     // give both halves one averaged normal and CHANGE THE PIXELS. So `quad`
     // measures the two normals and only welds when they agree; otherwise it
     // emits the same two independent triangles it always did.
-    let icap = 1 << 17, nI = 0;
+    let icap = cap * 2, nI = 0;
     let IDX = new Uint32Array(icap);
     const igrow = () => { icap *= 2; const b = new Uint32Array(icap); b.set(IDX); IDX = b; };
     const emit = (a, b, c) => {
@@ -1084,16 +1093,18 @@
     function geometry() {
       const g = new T.BufferGeometry();
       // slice(): trimmed copies, so the oversized growth buffers can be freed.
-      g.setAttribute('position', new T.Float32BufferAttribute(P.slice(0, nV * 3), 3));
-      g.setAttribute('normal', new T.Float32BufferAttribute(NM.slice(0, nV * 3), 3));
+      // BufferAttribute takes ownership of the trimmed array. The convenience
+      // Float32BufferAttribute constructor would copy that array a second time.
+      g.setAttribute('position', new T.BufferAttribute(P.slice(0, nV * 3), 3));
+      g.setAttribute('normal', new T.BufferAttribute(NM.slice(0, nV * 3), 3));
       // `true` = normalized: the GPU divides by 255 on the way into the
       // shader, so `attribute vec3 cDay` still reads 0..1 and no GLSL changes.
       g.setAttribute('cDay', new T.BufferAttribute(CD.slice(0, nV * 3), 3, true));
       g.setAttribute('cGold', new T.BufferAttribute(CG.slice(0, nV * 3), 3, true));
       g.setAttribute('cNight', new T.BufferAttribute(CN.slice(0, nV * 3), 3, true));
-      g.setAttribute('aGrad', new T.Float32BufferAttribute(new Float32Array(nV * 2), 2));
+      // aGrad is [0,0] for every builder vertex; materials supply the constant.
       g.setAttribute('aFacet', new T.BufferAttribute(FC.slice(0, nV), 1, false));
-      g.setAttribute('aSurface', new T.Float32BufferAttribute(SF.slice(0, nV * 4), 4));
+      g.setAttribute('aSurface', new T.BufferAttribute(SF.slice(0, nV * 4), 4));
       g.setIndex(new T.BufferAttribute(IDX.slice(0, nI), 1));
       g.computeBoundingSphere();
       return g;
