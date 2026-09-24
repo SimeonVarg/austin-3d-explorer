@@ -28,8 +28,15 @@ RING = os.path.join(ROOT, "data", "outer_ring.geojson")
 PALETTE = os.path.join(ROOT, "data", "outer_tower_palette.json")
 
 # At most seventeen material recipes and eight window grids, independent of
-# building count. The old ten colour clusters all used one curtain-wall grid.
-TOWER_BUCKETS = len(PROFILES)
+# building count (len(PROFILES)). The old ten colour clusters all used one
+# curtain-wall grid.
+#
+# TOWER_BUCKETS stays the BROWSER's legacy tower cluster count, not the profile
+# count: scripts/verify/outer_facade_parity.py imports it to check
+# cluster_colours against js/facades.js's quantiseOuterFacades, which still
+# clusters into ten. Pointing it at len(PROFILES) turned that check red.
+# js/facades.js: const TOWER_BUCKETS = 10;
+TOWER_BUCKETS = 10
 # The downtown streetwall (`t=2`, scripts/bake_outer.py:MIDRISE_H) gets its own
 # set for the same reason the towers got one: its materials are brick, stucco
 # and painted concrete, and snapping them onto ten GLASS centroids would put a
