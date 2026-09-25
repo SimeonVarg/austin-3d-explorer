@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 25 2026 - Bounded admission correction (`codex/compiled-building-lifecycle`)
+
+PR #312 remains a guarded draft after the authorized planner follow-up. Tested
+source is `ef77c4132a94332c7b714d5909b8ef10f7cdf4da`; the remote bot's September 25
+data snapshot was incorporated before testing. The dirty primary checkout was
+preserved. The five compiled buildings, legacy default, budgets, route, gates,
+shadow behavior and rendering architecture are unchanged.
+
+Admission now proves a sufficient eligible victim prefix and prunes unnecessary
+victims before disposing resident detail. An impossible individual admission
+call disposes no resident detail; this does not undo a prior successful CPU
+preflight or stop inactive-cache trimming. All 31 residency contracts, 11 worker
+cancellation cases and six hero-teardown cases pass. The old planner fails six
+new regression cases, including byte fixtures from the preceding city audit.
+
+The repeated actual-city lifecycle passes all 12 checks and releases every
+building owner on removal. The existing 562 unique warning/error console strings
+are unchanged, including caught arches/art style-restoration errors outside the
+building suite's assertions. Do not call this complete recovery of every scene
+subsystem or a physical-phone result.
+
+All three new interleaved hardware-GL pairs fail both motion gates. At CPU 1x,
+1280x720, DPR 1 and balanced graphics, median intervals are 18.60-22.30 ms legacy
+versus 28.00-32.80 ms compiled; p95 is 34.60-66.50 versus 54.40-93.40 ms.
+Synchronous startup work falls 46.2-65.3%. The unchanged frozen outside-geometry
+comparison reports 70.7% less ownership, with its inherited partition and omitted
+53,436 filtered-facade bytes documented in `docs/compiled-buildings.md`. Cold wall
+time does not improve consistently. Keep all 44 long intervals, including five
+boundaries; a 24.2 ms maximum upload does not clear the new-gap criterion.
+
+Compiled routes still generate 62-90 distinct procedural buildings and perform
+218-278 sun-shadow passes versus 78 in each legacy run. GDC preparation remains
+synchronous. No sufficient strict-subset eviction witness was found in the new
+traces, but missing exact admission headroom prevents a necessity proof for every
+eviction. Do not infer causal improvement by comparing to the older September 22
+map-data run. The new six runs used identical September 25 data and source hashes.
+
+Twelve matched application pairs preserve the inspected nearby detailed targets;
+distant coarse facades visibly lose detail and night emission. Nueces is partly
+occluded and Painter has only a daytime view. The updated report, raw runs,
+all long-gap attribution, identities and image gallery remain local evidence.
+
+The bounded pass is finished. Do not expand the catalog, enable compiled mode,
+merge into `claude/mobile-crash`, or start GDC/shadow optimization under this
+authorization. A further profiling experiment on the same route is proposed in
+`docs/compiled-buildings.md`; implementation requires new direction. PR #310's
+dependency and the requirement to integrate/reverify main before an eventual
+merge remain in force. No scheduled continuation was created.
+
 ## Sep 25 2026 - Guarded compiled-building lifecycle (`codex/compiled-building-lifecycle`)
 
 The first compiled slice covers Welch, Painter, GDC, 2400 Nueces and The

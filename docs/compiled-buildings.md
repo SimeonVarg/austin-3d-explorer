@@ -87,6 +87,14 @@ unaffordable building is deferred without an asset-error backoff. Moving back
 toward it lets it displace more distant detail. A hard per-asset size violation
 remains an error.
 
+Admission first projects the eligible victims in their existing order until
+both CPU and GPU caps can be met. It then removes unnecessary victims from that
+prefix before disposing any resident detail. The resulting set is inclusion
+minimal within the selected prefix, not a global minimum-count eviction search.
+An impossible individual admission call disposes no resident detail. Inactive
+cache trimming still precedes planning; a later decoded-resource admission does
+not roll back evictions made by an earlier successful CPU preflight call.
+
 An invalid hash, truncated stream, missing file, bad URL, cancelled request or
 failed replacement leaves the current object visible. A failed initial detail
 load leaves its coarse representation visible. Asset failures use a retry delay;
@@ -189,50 +197,104 @@ travel still count against the motion gate even when individual uploads stay
 short. The post-route observation period and any unpainted boundary intervals
 remain in the raw record rather than being silently discarded.
 
-## September 25 result and remaining blockers
+## September 25 planner follow-up and remaining blockers
 
-Three complete interleaved pairs ran on hardware GL at CPU 1x, 1280x720, DPR 1,
-with the balanced preset and the frozen route. Outside the 300 m Welch district,
-owned CPU and GPU geometry each fell from 310,628,568 to 90,971,814 bytes, a 70.7%
-reduction. Synchronous work before the first useful district view fell by
-55.9%, 60.5% and 46.2%. These counters include coarse ownership and reconstruction;
-they do not measure total browser memory or promise faster wall-clock loading.
-Cold wall time ranged from 41.3-43.4 seconds for legacy and 36.4-60.8 seconds for
-compiled loading.
+The bounded planner correction was tested at
+`ef77c4132a94332c7b714d5909b8ef10f7cdf4da`. It plans and prunes eligible victims
+before disposal, retaining the existing budgets, protection rules, ordering,
+pending ownership and coarse fallback. Nine additional resource contracts include
+the exact byte fixtures from the prior admission audit, asymmetric CPU/GPU
+pressure, impossible admissions and replacement ownership. All 31 residency
+contracts pass; the old planner fails six of the new cases. The 11 real
+worker-cancellation and six hero-teardown cases also pass: 48 relevant CPU checks
+were rerun. Earlier compiler and deployment results remain historical evidence.
 
-The motion gate failed decisively. Legacy median frame intervals ranged from
-18.00-18.40 ms; compiled intervals ranged from 28.20-36.10 ms. Legacy p95 ranged
-from 28.60-30.40 ms; compiled p95 ranged from 56.40-63.90 ms. Every paired median
-and p95 comparison exceeded the permitted 10% regression. The minimum and range
-include all three repetitions; no slow sample was removed.
+The remote data-bot advance was incorporated before testing. Every new arm loaded
+the September 25 snapshot; the earlier run used September 22 data. The local
+source and data hashes were identical before and after verification, and observed
+requests identify 100 local data files, including worker fetches and all five
+compiled assets. Authored catalog inputs, compiled payloads and the frozen
+performance harness are unchanged from the preceding pass. Do not attribute
+differences between those two passes solely to the planner fix.
 
-Individual upload slices stayed below 100 ms, but that does not clear the new-gap
-gate. GDC preparation contributed 71.3-90.7 ms inside new 144.3-175.7 ms gaps;
-additional long-task time remains unattributed. Each legacy and compiled route
-had one heavy shared shadow-proxy rebuild. Compiled residency instead caused
-246-284 sun-shadow passes versus 78 in legacy, as ownership changes invalidated
-the two shadow cascades. Preserve those shadow updates until a replacement proves
-equivalent caster coverage; suppressing them would hide work by leaving stale
-shadows.
+Three complete interleaved legacy/compiled pairs ran sequentially on hardware GL,
+CPU 1x, 1280x720, DPR 1, balanced graphics, from 23:26:10 to 23:42:20 UTC. The
+route, thresholds, cameras, caps and shadow behavior were unchanged. Both motion
+gates failed in all three pairs:
 
-The admission planner also evicts small lower-priority details before discovering
-that a later, larger victim alone would satisfy both byte caps. The recorded
-corrected routes contain 1, 9 and 15 extra generation completions after these
-avoidable evictions. Plan and prune the permitted victim set before disposing
-anything. This bounded defect does not explain away the 71-80 distinct procedural
-generations per route, GDC preparation or the wider shadow cost. Increasing the
-budgets or changing the frozen route is not a correction.
+| Pair | Median legacy / compiled | p95 legacy / compiled | Synchronous startup reduction |
+| --- | --- | --- | --- |
+| 1 | 18.60 / 28.00 ms | 34.60 / 54.40 ms | 51.8% |
+| 2 | 20.10 / 29.40 ms | 41.90 / 68.50 ms | 65.3% |
+| 3 | 22.30 / 32.80 ms | 66.50 / 93.40 ms | 46.2% |
 
-The initial Welch round trip and the final 12-check actual-city lifecycle suite
-pass. The final lifecycle run reports zero page errors, invalid GPU warnings or
-old-context deletions, and no retained building owners after removal. Twelve
-matched application poses preserve the inspected detailed targets, including
-day/night glazing and Welch's grazing view. Distant coarse buildings visibly
-lose fine facade detail. Painter has a matched daytime pose only; these captures
-do not establish every building at every angle or physical-phone acceptance.
+The minimum/range is 18.60-22.30 ms legacy versus 28.00-32.80 ms compiled for
+median, and 34.60-66.50 versus 54.40-93.40 ms for p95. All six paired comparisons
+exceed the permitted 10% regression. Cold wall time is 47.713-72.462 seconds for
+legacy and 46.411-80.936 seconds for compiled; faster loading is not established.
 
-The next qualification must address admission churn, synchronous hero preparation
-and the cost of correct shadow updates, then repeat the same three-pair route
-and relevant lifecycle/visual checks. The current result remains a failed,
-reviewable draft. It does not authorize catalog expansion or enabling the feature
-by default.
+The frozen outside-district geometry comparison remains 310,628,568 to 90,971,814
+bytes for both CPU and GPU, a 70.7% reduction. The denominator is inherited from
+the frozen per-building inventory. All three new legacy whole-group totals equal
+347,931,522 bytes, and the healthy legacy build and authored inputs are unchanged;
+the new harness does not independently remeasure the outside partition. The
+frozen per-building inventory omits 53,436 bytes of separate filtered-facade
+geometry included in the whole-group total. The original conservative denominator
+and gates were retained. These are owned building geometry counters, not total
+browser memory or known GDC MapLibre GPU bytes.
+
+All 44 intervals over 100 ms remain in the audit: 15 legacy and 29 compiled,
+including five start/end boundaries. Individual uploads stay below 100 ms
+(maximum 24.2 ms), but the new-gap criterion is not cleared. Measured GDC prepare
+slices take 60.6-76.9 ms inside 130.2-148.7 ms gaps; synchronous commit takes
+29.8-40.3 ms outside those gaps. No recorded worker decode overlaps a long gap.
+Other portions of long gaps remain unattributed. Named
+main-thread scopes are unioned rather than added when nested, and inclusive
+LongTask time is reported separately. Worker decode and asynchronous lifetimes
+are not charged as main-thread work. The required stationary tail remains in the
+gap record; its boundary intervals are already excluded from median/p95.
+
+Compiled routes perform 218-278 sun-shadow passes versus 78 in each legacy run.
+Each arm has one proxy rebuild over 100 ms; the many cheap proxy-function calls
+are not additional heavy rebuilds. Ownership changes precede many shadow update
+cycles, but this correlation does not assign all rendering cost to eviction.
+Preserve correct caster coverage while investigating that cost.
+
+The compiled traces contain 98/79/62 generation completions, 90/79/62 distinct
+generated buildings, 8/0/0 within-trace repeat completions and 31/23/22 evictions.
+The eight repeats comprise seven budget-deferred retries and one post-eviction
+rebuild; the two runs with no within-trace repeats still fail both motion gates.
+The independent byte audit finds no sufficient strict subset in the inferred
+admission batches. That is not proof that every eviction was necessary: the
+trace lacks exact pre-admission headroom and reasons, and the earlier warm route
+is outside the repeat count. Correct planner contracts do not establish smooth
+travel or eliminate generation and rendering costs.
+
+The new actual-city lifecycle suite passes all 12 checks, including initial-build
+context loss and terminal removal. Page errors, invalid GPU warnings and
+old-context deletions are zero; all building owners reach zero after removal.
+Its 562 unique warning/error console strings match the prior run, including
+pre-existing caught arches/art initialization errors during style restoration.
+Those subsystems are not covered by the building lifecycle acceptance checks.
+
+All twelve matched application pairs were inspected. Nearby detailed targets,
+day/night glazing and Welch's grazing pose are preserved at the captured views.
+Distant coarse facades visibly lose fine detail and night emission. Painter has
+a daytime pose only, and the Nueces target is substantially occluded. Stills do
+not establish flicker acceptance or physical iPhone behavior.
+
+The bounded pass stops here. Keep PR #312 as a guarded draft, the legacy default,
+the five-building catalog and both failed motion gates. A separately authorized
+next experiment is one matched legacy/compiled diagnostic pair on the same route
+and data, sampling main-thread stacks and attributing garbage collection and
+renderer/driver waits around the existing markers. It should explain unresolved
+LongTask work and the more expensive ordinary colour calls while preserving
+settings, geometry, caster coverage, caps and gates. Stop at that diagnosis;
+it would not replace the three-pair acceptance experiment or authorize further
+implementation or catalog expansion.
+
+The preceding September 25 run at `ca8bbd94` is retained in local evidence with
+all six runs, 22 long gaps and its failed motion verdict. It measured legacy
+median 18.00-18.40 ms and compiled median 28.20-36.10 ms, with p95 28.60-30.40
+versus 56.40-63.90 ms. Its byte audit supplied the regression fixtures for this
+correction. The new same-data pairs above are the current qualification result.
