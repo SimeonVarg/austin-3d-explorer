@@ -296,13 +296,14 @@
   // stand-ins by filter while the mesh draws, hear it and put them back. The
   // value is still read live in render(); this only adds the notification.
   const _switchHooks = [];
+  let _contextFallback = false;
   (function observable() {
     let v = SLOPES.on;
     Object.defineProperty(SLOPES, 'on', {
       enumerable: true, configurable: true,
       get() { return v; },
       set(x) {
-        x = !!x;
+        x = !!x && !_contextFallback;
         if (x === v) return;
         v = x;
         for (const fn of _switchHooks) { try { fn(v); } catch (e) { console.error('[slopes] switch hook', e); } }
@@ -311,6 +312,14 @@
     });
   })();
   function onSwitch(fn) { _switchHooks.push(fn); return fn; }
+  // Released attributes cannot be uploaded into a restored WebGL context.
+  // Switch off before restoration can render, and let the existing generator
+  // hooks restore their MapLibre stand-ins. Only a page reload can leave this
+  // fallback: toggling a setting must not revive the invalid scene.
+  function useContextFallback() {
+    _contextFallback = true;
+    SLOPES.on = false;
+  }
 
   // ── The shader: MapLibre's fill-extrusion lighting, transcribed ─────────
   //
@@ -668,7 +677,8 @@
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
       // Filtering changes coverage, not the building's shadow geometry.
-      const filtered=(window.slopesApartments?.group?.children||[]).filter(o=>o.userData?.disposeFacade&&o.visible);
+      const filtered=[];
+      window.slopesApartments?.group?.traverse(o=>{if(o.userData?.disposeFacade&&o.visible)filtered.push(o);});
       for(const o of filtered)o.visible=false;
       try {
         scene.overrideMaterial=_sunShadow.depth;
@@ -836,16 +846,19 @@
   // A phone drops each mesh's CPU copy once three.js has uploaded it (js/mobile.js
   // LITE.budget.freeGeometryCpu; ~260 MB for the authored buildings). The copy
   // only matters for a re-upload after a lost WebGL context, and a phone
-  // recovers from that by reloading; nothing reads it after add() (raycast()
-  // above is an unwired helper). onUpload is three's own hook for exactly this.
+  // switches to MapLibre stand-ins until reloading; nothing reads it after
+  // add() (raycast() above is an unwired helper). onUpload is three's own hook.
   // Bounding spheres are computed before the first upload and kept. Desktop
   // (no budget) keeps every copy, unchanged.
   const FREE_CPU = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.freeGeometryCpu);
   function dropArray() { this.array = null; }
   function freeOnUpload(obj) {
+    // Streamed groups own their CPU lifetime and need these arrays for recovery.
+    if (obj.userData?.retainGeometryCpu) return;
     obj.traverse(o => {
       const g = o.geometry;
       if (!g || !g.isBufferGeometry) return;
+      for (let owner = o; owner; owner = owner.parent) if (owner.userData?.retainGeometryCpu) return;
       if (!g.boundingSphere && g.attributes.position) g.computeBoundingSphere();
       for (const k in g.attributes) { const a = g.attributes[k]; if (a && a.isBufferAttribute && typeof a.onUpload === 'function') a.onUpload(dropArray); }
       if (g.index && typeof g.index.onUpload === 'function') g.index.onUpload(dropArray);
@@ -1219,7 +1232,9 @@
     onRemove() {
       releaseSunShadows();
       try { if (renderer) renderer.dispose(); } catch (e) {}
-      renderer = null; _frames = 0;
+      renderer = null;
+      // Retained buildings keep absolute build-frame markers. Their scene's
+      // clock must survive layer removal and context restoration as well.
     },
     /** js/lod.js calls this instead of setLayoutProperty for custom layers. */
     setVisible(v) { _visible = !!v; if (_map) _map.triggerRepaint(); },
@@ -1470,9 +1485,58 @@
   }
 
   // ── Init ────────────────────────────────────────────────────────────────
+  let _contextRecovery = null;
+  function installContextRecovery(map) {
+    if (_contextRecovery?.map === map) return;
+    _contextRecovery?.dispose();
+    const canvas = map.getCanvas?.();
+    if (!canvas?.addEventListener) return; // The offline compiler has no canvas.
+    let removed = false, lost = false, pending = false, timer = null;
+    const attempt = () => {
+      timer = null;
+      if (removed || lost || !pending || map !== _map || !SLOPES.on || _contextFallback) return;
+      // MapLibre reconstructs its style after context restoration and omits
+      // custom layers from that serialized style. Wait for the new style,
+      // then reattach the retained scene rather than allocating a new root.
+      if (!map.isStyleLoaded()) return;
+      window.initSlopes(map);
+      if (map.getLayer(SLOPES.layerId)) pending = false;
+    };
+    const schedule = () => {
+      if (!removed && !lost && pending && SLOPES.on && !_contextFallback && timer === null) timer = setTimeout(attempt, 0);
+    };
+    const onLost = () => {
+      lost = true; pending = true;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    };
+    const onRestored = () => { lost = false; pending = true; schedule(); };
+    const onStyle = () => { pending = true; schedule(); };
+    const dispose = () => {
+      if (removed) return;
+      removed = true;
+      if (timer !== null) clearTimeout(timer);
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
+      map.off('style.load', onStyle); map.off('styledata', schedule);
+      map.off('render', schedule); map.off('remove', dispose);
+      if (_contextRecovery?.map === map) _contextRecovery = null;
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    map.on('style.load', onStyle); map.on('styledata', schedule);
+    map.on('render', schedule); map.once('remove', dispose);
+    _contextRecovery = { map, dispose };
+  }
   window.initSlopes = function initSlopes(map) {
-    if (!SLOPES.on || !map || !haveThree()) return;
-    if (map.getLayer(SLOPES.layerId)) { _map = map; return; }
+    if (!SLOPES.on || _contextFallback || !map || !haveThree()) return;
+    if (map.getLayer(SLOPES.layerId)) { _map = map; installContextRecovery(map); return; }
+    if (_map === map && scene && root && U) {
+      map.addLayer(layer, beforeId(map));
+      installContextRecovery(map);
+      window.applySlopesSettings(map);
+      return;
+    }
     _map = map;
     const T = window.THREE;
     // Colours are the data's own hex, lit by MapLibre's formula. No gamma
@@ -1523,6 +1587,7 @@
     };
     facetUniforms();
     scene = new T.Scene();
+    _frames = 0;
     root = new T.Group(); root.name = 'slopes-root';   // identity: NO mirror here, see point 3
     scene.add(root);
     camera = new T.Camera();
@@ -1531,6 +1596,7 @@
     scene.add(new T.AmbientLight(0xffffff, 0.35));   // ROOF_SHADE.ambient, for standard materials
 
     map.addLayer(layer, beforeId(map));
+    installContextRecovery(map);
 
     // Join the retint chain (js/timeofday.js's retint comment says why the
     // wrapper, not a poll, is the only correct way).
@@ -1592,7 +1658,7 @@
    * normalized BYTES (the shader still reads a vec3 in -1..1; an axis-aligned
    * wall or roof normal is exact, any other is within half a degree) and
    * aSurface four half floats (a material index, which is exact, and three
-   * shading scales to ~0.05%). Position and the colours are untouched.
+   * shading scales to ~0.1%; r159 truncates). Position and colours are untouched.
    *
    * NOT PIXEL-IDENTICAL, and this is the one place a phone gives up exactness
    * on purpose: the fine brick-joint grain is anchored in world metres through
@@ -1625,7 +1691,8 @@
 
   window.slopes = {
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
-    onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
+    onSwitch, useContextFallback, build, buildChunked, packGeometry, frame, stats, fetchJSON,
+    get contextFallback() { return _contextFallback; },
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
