@@ -208,9 +208,25 @@ export async function createBuildingResidency({map,THREE:T,slopes:S,catalog,comp
   }
   function makeRoom(cpu,gpu,except) {
     trimCache(cpu);
-    const candidates=roomCandidates(except);
-    while(candidates.length&&(totals().cpuBytes+cpu>tune.cpuBytes||totals().gpuBytes+gpu>tune.gpuBytes))
-      evict(candidates.shift(),{cacheAsset:false});
+    const n=totals(),plan=[];
+    let projectedCpu=n.cpuBytes+cpu,projectedGpu=n.gpuBytes+gpu;
+    // Prove that an eligible prefix fits before releasing any resident detail.
+    // The totals still include coarse owners and pending reservations.
+    for(const r of roomCandidates(except)){
+      if(projectedCpu<=tune.cpuBytes&&projectedGpu<=tune.gpuBytes)break;
+      plan.push(r);projectedCpu-=r.active.cpuBytes;projectedGpu-=r.active.gpuBytes;
+    }
+    if(projectedCpu>tune.cpuBytes||projectedGpu>tune.gpuBytes)return false;
+    // Keep a proposed victim if both caps permit it. Pruning from the end
+    // preserves the existing worst-first preference among interchangeable
+    // victims; disposal itself remains in the original candidate order.
+    for(let i=plan.length-1;i>=0;i--){
+      const r=plan[i];
+      if(projectedCpu+r.active.cpuBytes<=tune.cpuBytes&&projectedGpu+r.active.gpuBytes<=tune.gpuBytes){
+        projectedCpu+=r.active.cpuBytes;projectedGpu+=r.active.gpuBytes;plan[i]=null;
+      }
+    }
+    for(const r of plan)if(r)evict(r,{cacheAsset:false});
     return totals().cpuBytes+cpu<=tune.cpuBytes&&totals().gpuBytes+gpu<=tune.gpuBytes;
   }
   async function loadRecord(r) {

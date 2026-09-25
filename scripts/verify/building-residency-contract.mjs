@@ -534,6 +534,135 @@ async function assertBudgetTravel(t, kind) {
 test('tight GPU budgets follow the nearer building and revisit deferred detail without the asset-error delay', t => assertBudgetTravel(t, 'gpu'));
 test('temporary CPU preflight capacity defers without applying the asset-error delay', t => assertBudgetTravel(t, 'cpu'));
 
+// Exercise admission through real generated objects and their disposal events.
+// These extra attributes model owned bytes without creating millions of faces;
+// every coarse fallback still owns the original 42-byte triangle.
+function weightedGeneration(spec, options, generate, owners) {
+  const result = generate(spec, options), mesh = result.group.children[0];
+  if (!options.coarse) {
+    const cpu = spec.cpu, gpu = spec.gpu ?? cpu;
+    assert.ok(cpu > 42 && gpu > 42);
+    const storage = new ArrayBuffer(cpu - 42);
+    for (let remaining = gpu - 42, i = 0; remaining > 0; i++) {
+      const length = Math.min(storage.byteLength, remaining);
+      mesh.geometry.setAttribute('owned' + i, new T.BufferAttribute(new Uint8Array(storage, 0, length), 1));
+      remaining -= length;
+    }
+    const measured = buildingResources(result.group);
+    assert.equal(measured.cpuBytes, cpu); assert.equal(measured.gpuBytes, gpu);
+  }
+  owners.push({ id: spec.id, coarse: !!options.coarse, group: result.group, geometry: mesh.geometry, material: mesh.material });
+  return result;
+}
+
+async function assertPlannedAdmission(t, { residents, incoming, victims = [], admitted = true, headroom = 0 }) {
+  const owners = [], catalog = residents.map((r, i) => ({ name: r.id, x: r.nearer ? 599 : (i + 1) * 20, ...r }));
+  catalog.push({ id: 'incoming', name: 'Incoming', x: 600, ...incoming });
+  const coarseBytes = catalog.length * 42;
+  const limits = {
+    cpuBytes: coarseBytes + residents.reduce((n, r) => n + r.cpu, 0) + headroom,
+    gpuBytes: coarseBytes + residents.reduce((n, r) => n + (r.gpu ?? r.cpu), 0) + headroom,
+    keepMarginMetres: 2000, retryMs: 60000,
+  };
+  const env = environment(t, { catalog, compile: (spec, options, generate) => weightedGeneration(spec, options, generate, owners) });
+  const runtime = await env.open(limits);
+  // Seed a protected nearer resident even though the starting camera is far
+  // away; ordinary candidates become residents through the normal radius.
+  runtime.pin(residents.filter(r => r.pinned || r.nearer).map(r => r.id)); runtime.start();
+  await runtime.settled({ timeoutMs: 2000 });
+  const initial = runtime.snapshot(), rootId = runtime.group.uuid;
+  assert.deepEqual(initial.records.filter(r => r.active).map(r => r.id), residents.map(r => r.id));
+  const original = owners.filter(o => !o.coarse);
+  runtime.pin(residents.filter(r => r.pinned).map(r => r.id));
+  env.map.moveTo(599, 0); await runtime.settled({ timeoutMs: 2000 });
+  const result = runtime.snapshot(), events = result.events.slice(initial.events.length);
+  assert.deepEqual(events.filter(e => e.type === 'evicted').map(e => e.id), victims, 'dispose only necessary victims in candidate order');
+  assert.deepEqual(result.records.filter(r => r.active).map(r => r.id),
+    [...residents.filter(r => !victims.includes(r.id)).map(r => r.id), ...(admitted ? ['incoming'] : [])]);
+  for (const owner of original) {
+    const disposed = victims.includes(owner.id) ? 1 : 0;
+    assert.equal(owner.geometry.disposals, disposed, owner.id + ': exact original geometry ownership');
+    assert.equal(owner.material.disposals, disposed, owner.id + ': exact original material ownership');
+    if (!disposed) assert.equal(owner.group.parent, runtime.group, owner.id + ': retain the same visible group');
+  }
+  for (const owner of owners.filter(o => o.coarse)) assert.equal(owner.geometry.disposals, 0, 'hidden and visible coarse owners stay allocated');
+  assert.equal(result.coarseBytes, coarseBytes);
+  assert.ok(result.highWaterCpuBytes <= limits.cpuBytes && result.highWaterGpuBytes <= limits.gpuBytes);
+  assert.equal(result.stagingCpuBytes, 0); assert.equal(result.stagingGpuBytes, 0);
+  assert.ok(events.every(e => !['failed', 'runtime-error'].includes(e.type)));
+  const transient = owners.find(o => o.id === 'incoming' && !o.coarse);
+  assert.ok(transient, 'the real incoming object reaches admission');
+  assert.equal(transient.geometry.disposals, admitted ? 0 : 1);
+  if (!admitted) {
+    assert.equal(runtime.group.uuid, rootId, 'an impossible plan cannot invalidate resident shadows');
+    assert.ok(events.some(e => e.type === 'budget-deferred' && e.id === 'incoming'));
+    assert.equal(result.records.find(r => r.id === 'incoming').error, null, 'capacity is not an asset-error backoff');
+  }
+}
+
+test('admission retains the two small audit residents when Block on 23rd alone fits Wingstop', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'einstein', cpu: 23396 }, { id: 'storefront-3923', cpu: 44776 }, { id: 'block-23rd', cpu: 2179846 }],
+  incoming: { cpu: 1153628 }, victims: ['block-23rd'],
+}));
+
+test('admission retains Dollar Slice but needs both audited large victims for Wukasch', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'block-pearl-north', cpu: 1644740 }, { id: 'dollar-slice', cpu: 33638 }, { id: 'grayson', cpu: 2557636 }],
+  incoming: { cpu: 3255266 }, victims: ['block-pearl-north', 'grayson'],
+}));
+
+test('admission cannot prune a CPU-small victim needed for GPU capacity', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'gpu-heavy', cpu: 100, gpu: 4000 }, { id: 'cpu-heavy', cpu: 6000, gpu: 2000 }],
+  incoming: { cpu: 5000 }, victims: ['gpu-heavy', 'cpu-heavy'],
+}));
+
+test('admission cannot prune a GPU-small victim needed for CPU capacity', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'cpu-heavy', cpu: 4000, gpu: 100 }, { id: 'gpu-heavy', cpu: 2000, gpu: 6000 }],
+  incoming: { cpu: 5000 }, victims: ['cpu-heavy', 'gpu-heavy'],
+}));
+
+test('admission preserves worst-first preference within the first sufficient prefix', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'worst', cpu: 200 }, { id: 'middle', cpu: 700 }, { id: 'last-needed', cpu: 800 }, { id: 'later-large', cpu: 3000 }],
+  incoming: { cpu: 1000 }, victims: ['worst', 'last-needed'],
+}));
+
+test('admission exactly at both caps needs no resident eviction', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'first', cpu: 200 }, { id: 'second', cpu: 700 }], incoming: { cpu: 500 }, headroom: 500,
+}));
+
+test('an impossible admission disposes the incoming object and no resident detail', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'first', cpu: 2000, gpu: 1000 }, { id: 'second', cpu: 2000, gpu: 2000 }],
+  incoming: { cpu: 6000 }, admitted: false,
+}));
+
+test('an impossible plan cannot borrow pinned or higher-priority resident capacity', t => assertPlannedAdmission(t, {
+  residents: [{ id: 'first', cpu: 200 }, { id: 'second', cpu: 700 },
+    { id: 'pinned', cpu: 4000, pinned: true }, { id: 'nearer', cpu: 4000, nearer: true }],
+  incoming: { cpu: 1000 }, admitted: false,
+}));
+
+test('replacement admission cannot credit or evict its still-visible previous detail', async t => {
+  const owners = []; let targetBuilds = 0;
+  const env = environment(t, { catalog: [{ id: 'target', name: 'Target', cpu: 900 }, { id: 'victim', name: 'Victim', cpu: 200, x: 100 }],
+    compile: (spec, options, generate) => {
+      if (!options.coarse && spec.id === 'target' && ++targetBuilds > 1) spec = { ...spec, cpu: 1000 };
+      return weightedGeneration(spec, options, generate, owners);
+    } });
+  const runtime = await env.open({ cpuBytes: 1184, gpuBytes: 1184 }); runtime.start();
+  await runtime.settled({ timeoutMs: 2000 });
+  const initial = runtime.snapshot(), rootId = runtime.group.uuid, original = owners.filter(o => !o.coarse);
+  runtime.retry('target'); await runtime.settled({ timeoutMs: 2000 });
+  const result = runtime.snapshot();
+  assert.equal(result.commits, initial.commits); assert.equal(result.evictions, initial.evictions);
+  assert.equal(runtime.group.uuid, rootId);
+  for (const owner of original) {
+    assert.equal(owner.geometry.disposals, 0); assert.equal(owner.material.disposals, 0);
+    assert.equal(owner.group.parent, runtime.group);
+  }
+  assert.equal(owners.at(-1).geometry.disposals, 1, 'only the unaffordable replacement is released');
+  assert.ok(result.events.some(e => e.type === 'budget-deferred' && e.id === 'target'));
+  assert.equal(result.stagingCpuBytes, 0); assert.equal(result.stagingGpuBytes, 0);
+});
+
 test('non-finite or non-positive primary budgets fail before creating a worker', async t => {
   const env = environment(t);
   for (const key of ['nearMetres', 'cpuBytes', 'gpuBytes', 'inactiveBytes', 'stagingBytes', 'chunkTriangles']) {
