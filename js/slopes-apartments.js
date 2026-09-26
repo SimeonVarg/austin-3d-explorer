@@ -235,6 +235,9 @@
   // ── state ────────────────────────────────────────────────────────────
   let _map = null, _group = null, _data = null, _lastDetail = null;
   let _filtered = false;
+  // A single explicit compiler job shares the production component vocabulary.
+  // Jobs are serialized; the legacy city build keeps its original defaults.
+  let _compileOptions = null;
   const _clauses = {};              // layer id -> the clause this file put on it (stripped out again on switch-off)
   /**
    * The density in force right now: APTS.byPreset for the live graphics preset,
@@ -243,6 +246,10 @@
    * generator never disagree about how much to draw.
    */
   function detailNow() {
+    if (_compileOptions) return _compileOptions.detail ?? 1;
+    return liveDetailNow();
+  }
+  function liveDetailNow() {
     const pre = (window.GFX && window.GFX.preset) || 'balanced';
     const mine = APTS.byPreset[pre];
     const theirs = window.slopes && window.slopes.detail ? window.slopes.detail() : null;
@@ -252,7 +259,7 @@
   const wantReveals = () => APTS.reveals && detailNow() >= APTS.revealsAbove;
   const wantSigns = () => APTS.signs && detailNow() >= APTS.signsAbove;
 
-  const count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
+  let count = { buildings: 0, blocks: 0, faces: 0, cells: 0, windows: 0, balconies: 0, signs: 0, signMissing: 0, roofs: 0, insets: 0, frames: 0, mod4Cells: 0, dominoes: 0, rakes: 0, fins: 0, piers: 0, openings: 0, canopies: 0, soffits: 0, chamfers: 0, holes: 0, triangles: 0, ms: 0, done: false, names: [], warnings: [] };
   const RESET_KEYS = ['buildings', 'blocks', 'faces', 'cells', 'windows', 'balconies', 'signs', 'signMissing', 'roofs', 'insets', 'frames', 'mod4Cells', 'dominoes', 'rakes', 'fins', 'piers', 'openings', 'canopies', 'soffits', 'chamfers', 'holes'];
   const resetCount = () => { for (const k of RESET_KEYS) count[k] = 0; count.names = []; count.warnings = []; };
   /** a warning the boot log carries once, and `count.warnings` keeps for the gate */
@@ -1291,6 +1298,13 @@
    * of a `bays` or `flat` skin — skinBays sets `piers` itself). See blades().
    */
   function resolveSkin(sk, ctx, P, key) {
+    // Distant residency retains the authored volumes, rooflines, courtyards,
+    // recesses and balconies. It omits repetitive face cells; it is not a
+    // second, independently traced footprint or a replacement source of truth.
+    if (_compileOptions?.coarse) return {
+      rows: () => [], cols: () => [], windows: [],
+      tone: () => toneOf(P, sk.field, sk.panel, sk.frame, sk.stripTone, 'wall'),
+    };
     const skin = SKINS[sk.kind](sk, ctx, P, key);
     if (APTS.fins && sk.fins) skin.fins = sk.fins;
     skin.facets = sk.facets;
@@ -2207,6 +2221,7 @@
       const nW = walls.length;
       const corner = (Wi, Wo, high) => ({ kind: 'corner', dot: Wi.dir[0] * Wo.n[0] + Wi.dir[1] * Wo.n[1], nn: Wi.n[0] * Wo.n[0] + Wi.n[1] * Wo.n[1], bands: null });
       for (let i = 0; i < nW; i++) {
+        if (_compileOptions?.yieldWalls) yield;
         if (!plan[i]) continue;
         const W = walls[i], { bd, pieces } = plan[i];
         const wkey = key + '|' + blk.id + '|' + keys[i];
@@ -2428,6 +2443,7 @@
           material=S.facadeMaterial(group,APTS.facadeFilter);
           const mesh=new T.Mesh(geometry,material);
           mesh.name='filtered-facade';
+          mesh.userData.facadeBatch=group;
           mesh.userData.disposeFacade=()=>{group.dispose();material.dispose();};
           result.push(mesh);
         } catch(e) {geometry?.dispose();material?.dispose();throw e;}
@@ -2440,6 +2456,105 @@
     // Batch ownership now replaces individual textures/materials/geometries.
     for(const mesh of meshes){mesh.geometry.dispose();mesh.material.dispose();}
     return result;
+  }
+
+  /** Compile one independent envelope with the same builders and materials as
+   * the current city. No live group, filters, labels or collision are mutated.
+   * The caller owns every returned geometry/face texture; the slopes material
+   * remains shared. The offline adapter supplies the real pinned Three module.
+   */
+  async function compileBuilding(spec, options = {}) {
+    if (_compileOptions) throw new Error('Building compiler jobs must be serialized');
+    if (!spec?.id || !spec.footprint?.ring?.length) throw new Error('Building id and footprint required');
+    const T=window.THREE, S=window.slopes, liveCount=count;
+    const compilerCount={...count,names:[],warnings:[]};
+    const B=S.buildChunked(options.chunkTriangles ?? 8192, false);
+    B.filtered=[]; B.filterPending=[];
+    B.allowFilter=options.filtered!==false && APTS.facadeFilter.on && APTS.facadeFilter.buildings.includes(spec.name) && !!window.FacadeFilter;
+    let geometries=[], material=null, finished=false;
+    const pause=async()=>{
+      if(options.signal?.aborted)throw new DOMException('Cancelled','AbortError');
+      // The renderer and boot callbacks must see the live city's accounting
+      // while this independent compiler yields. Never restore a stale copy
+      // over changes (such as count.done) made by those callbacks.
+      count=liveCount;
+      try { if(options.pause)await options.pause(); }
+      finally { count=compilerCount; }
+      if(options.signal?.aborted)throw new DOMException('Cancelled','AbortError');
+    };
+    const started=performance.now(); let generationMs=0, finalizationMs=0;
+    _compileOptions=options;
+    count=compilerCount;
+    resetCount();
+    try {
+      const it=buildingOne(B,spec); let result;
+      do {
+        const t=performance.now(); result=it.next(); generationMs+=performance.now()-t;
+        if (!result.done) await pause();
+      } while (!result.done);
+      const meta=result.value, filterOptions={...APTS.facadeFilter,resolutionLevel:options.filteredResolutionLevel ?? 1};
+      const plan=window.FacadeFilter?.planFaces({faces:B.filterPending,options:filterOptions});
+      if (B.filterPending.length && !plan) throw new Error(spec.name+': filtered facade budget unavailable');
+      for (const entry of plan?.faces || []) {
+        const t=performance.now(); addFilteredFace(B,entry.face,entry.options); finalizationMs+=performance.now()-t;
+        entry.face.rects=null; await pause();
+      }
+      const t=performance.now();
+      B.filterPending.length=0; B.filtered=batchFiltered(B.filtered);
+      geometries=B.geometries();
+      const group=new T.Group(); group.name=spec.id; group.userData.buildingId=spec.id;
+      group.userData.retainGeometryCpu=!!options.retainGeometryCpu;
+      material=S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
+      for (const [i,geometry] of geometries.entries()) {
+        geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+        const mesh=new T.Mesh(geometry,material); mesh.name=spec.id+'/opaque/'+String(i).padStart(4,'0');
+        mesh.userData.buildingId=spec.id; group.add(mesh);
+      }
+      for (const mesh of B.filtered) { mesh.userData.buildingId=spec.id; group.add(mesh); }
+      finalizationMs+=performance.now()-t;
+      const frame={O:meta.frame.at(0,0,0),U:meta.frame.U,V:meta.frame.V,L:meta.frame.L,W:meta.frame.W,bearing:meta.frame.bearing,
+        obb:spec.frame?.obb || obbOf(spec.footprint.ring)};
+      const counts={...count,names:count.names.slice(),warnings:count.warnings.slice(),triangles:B.triangles,
+        filterCandidates:plan?.faces.length || 0,filterResolutionLevel:(options.filteredResolutionLevel ?? 1)+(plan?.resolutionLevel || 0),
+        filteredBatches:B.filtered.length,generationMs,finalizationMs,ms:performance.now()-started};
+      finished=true;
+      return {group,metadata:{...meta,frame,footprint:spec.footprint,aliases:spec.aliases || []},counts,triangles:B.triangles};
+    } finally {
+      _compileOptions=null; count=liveCount;
+      if (!finished) {
+        material?.dispose();
+        for (const geometry of geometries) geometry.dispose();
+        for (const mesh of B.filtered) { mesh.geometry.dispose(); mesh.userData.disposeFacade(); }
+      }
+    }
+  }
+
+  // A guarded lifecycle slice: the default still follows the verified legacy
+  // build. The manifest covers five buildings; other near buildings use the
+  // same component generator on demand, and every distant building has a
+  // separately owned coarse envelope. No city-wide hidden buffer is retained.
+  const compiledRequested = () => new URLSearchParams(location.search).get('buildings') === 'compiled';
+  let _residency = null;
+  async function buildCompiled(map,signal) {
+    const T=window.THREE,S=window.slopes,t0=performance.now();
+    resetCount(); _failed.clear(); _built=[];
+    const {createBuildingResidency}=await import('./building-residency.js');
+    const runtime=await createBuildingResidency({map,THREE:T,slopes:S,catalog:_data.buildings,signal,
+      compile:compileBuilding, detail:liveDetailNow(),
+      onMetadata(meta,spec){_built.push({...meta,frame:frameFor(spec.frame?.obb||obbOf(spec.footprint.ring))});},
+      onFailure(id){_failed.add(id);},
+      onMetrics(metrics){
+        count.triangles=metrics.visibleTriangles;
+        count.generationMs=metrics.generationMs;count.finalizationMs=metrics.finalizationMs;
+      }});
+    _residency=runtime;
+    runtime.group.userData.disposeBuilding=()=>runtime.dispose();
+    runtime.group.name='slopes-apartments';
+    runtime.group.userData.lod=APTS.lod;runtime.group.userData.minzoom=APTS.minzoom;
+    count.buildings=_built.length;count.names=_built.map(b=>b.name);
+    count.ms=+(performance.now()-t0).toFixed(1);count.buildSlices=runtime.snapshot().buildSlices;
+    _builtFrame=S.frames;_lastDetail=liveDetailNow();
+    return runtime.group;
   }
 
   async function build() {
@@ -2834,10 +2949,17 @@
     }
   }
 
+  let _retiring=Promise.resolve(),_buildAbort=null;
+  function discardGroup(g) {
+    if(g.userData.disposeBuilding){
+      _retiring=Promise.resolve(g.userData.disposeBuilding());
+      if(_residency?.group===g)_residency=null;
+    } else g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.userData?.disposeFacade)o.userData.disposeFacade();});
+  }
   function dropGroup() {
     if (!_group) return;
     window.slopes.remove(_group);
-    _group.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); });
+    discardGroup(_group);
     _group = null; // The shared slopes material belongs to the scene.
   }
   // The build is async (time-sliced, see build()). `_building` is the one in
@@ -2847,16 +2969,18 @@
   let _building = null;
   function startBuild(map) {
     const S = window.slopes;
-    const p = _building = build().then(g => {
-      if (_building !== p) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; } // superseded
+    const controller=_buildAbort=new AbortController();
+    const p = _building = _retiring.then(()=>compiledRequested()?buildCompiled(map||_map,controller.signal):build()).then(g => {
+      if (_building !== p) { discardGroup(g); return; } // superseded
       _building = null;
       const want = !!(window.SLOPES.on && APTS.on);
-      if (!want) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if(o.userData?.disposeFacade)o.userData.disposeFacade(); }); return; }
+      if (!want) { discardGroup(g); return; }
       _group = g; S.add(_group);
       setFilters(true); setLabels(true);
+      _residency?.start();
       (map || _map).triggerRepaint();
       console.log('[slopes-apartments]', count.buildings, 'building(s) built in', count.ms, 'ms over', count.buildSlices, 'slice(s):', count.names.join(', '), '—', count.blocks, 'blocks,', count.faces, 'faces,', count.cells, 'cells,', count.triangles, 'triangles');
-    }).catch(e => { if (_building === p) _building = null; console.error('[slopes-apartments] build failed', e); });
+    }).catch(e => { if (_building === p) _building = null; if(e.name!=='AbortError')console.error('[slopes-apartments] build failed', e); });
     return p;
   }
   window.applySlopesApartments = function applySlopesApartments(map) {
@@ -2865,7 +2989,7 @@
     const S = window.slopes;
     const want = !!(window.SLOPES.on && APTS.on);
     if (want && !_group && !_building) { startBuild(map); }
-    else if (want && _group && _lastDetail !== detailNow()) { dropGroup(); startBuild(map); }
+    else if (want && _group && _lastDetail !== liveDetailNow()) { dropGroup(); startBuild(map); }
     else if (!want && _group) { dropGroup(); }
     // Keep ownership while an off-state build finishes. Its completion checks
     // the latest intent and disposes when still off; an off/on toggle must not
@@ -2889,6 +3013,7 @@
     rebuild() { dropGroup(); window.applySlopesApartments(); },
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
     get group() { return _group; },
+    get residency() { return _residency; },
     get data() { return _data; },
     get filtered() { return _filtered; },
     get built() { return _built.map(b => ({ name: b.name, id: b.id, top: b.top, roofs: b.roofs, rakes: b.rakes, signs: b.signs, insets: b.insets })); },
@@ -2899,7 +3024,7 @@
     /** a built building's frame: (u, v) metres to [lng, lat], and back */
     uvToLngLat(name, u, v) { const b = _built.find(x => x.name === name); return b ? b.frame.ll(u, v) : null; },
     lngLatToUV(name, lng, lat) { const b = _built.find(x => x.name === name); return b ? b.frame.toUV([lng, lat]) : null; },
-    obbOf, h01, floorsBetween, offsetRing, hideGeometry,
+    obbOf, h01, floorsBetween, offsetRing, hideGeometry, compileBuilding,
   };
 
   // ── boot ─────────────────────────────────────────────────────────────
@@ -2963,6 +3088,7 @@
       for (const timer of _fetchTimers) clearTimeout(timer);
       _fetchTimers.clear();
       _building = null; // a pending build disposes itself instead of attaching
+      _buildAbort?.abort();
       dropGroup();
       _map = null;
     });

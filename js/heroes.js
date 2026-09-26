@@ -349,6 +349,8 @@
   window.HEROES_PALETTE = PALETTE;
 
   const SRC = 'austin-heroes';
+  const GDC_ID = '44e418d6-dd3a-48da-8e9d-c29e59593299';
+  const GDC_SRC = SRC + '-gdc-original';
   const DATA = 'data/heroes.geojson';
   const L = {
     solid: 'heroes-solid', lime: 'heroes-lime', brick: 'heroes-brick',
@@ -902,6 +904,22 @@
     const extra = gj.features.map(f => ({
       type: 'Feature', geometry: f.geometry, properties: { h: f.properties.h },
     }));
+    // A streamed hero can change after the apartment pass has corrected the
+    // grid. Carry those envelopes forward when rebuilding one hero's volume.
+    const apartments = window.slopesApartments;
+    const authored = new Map((apartments?.data?.buildings || []).map(b => [b.id, b]));
+    const built = new Map((apartments?.built || []).map(b => [b.id, b]));
+    const heights = Object.assign({}, window.__wc4?.heights || {});
+    for (const b of built.values()) if (b.name) heights[b.name] = b.top;
+    for (const f of buildings.features) {
+      const p = f.properties || {}, h = built.get(p.id)?.top || heights[p.name];
+      if (!Number.isFinite(h)) continue;
+      const spec = authored.get(p.id);
+      const geometry = spec?.footprint?.ring
+        ? { type: 'Polygon', coordinates: [spec.footprint.ring, ...(spec.footprint.holes || [])] }
+        : f.geometry;
+      extra.push({ type: 'Feature', geometry, properties: { h } });
+    }
     window.__flyRebuildCollision({
       buildings,
       parts: { type: 'FeatureCollection', features: ((parts && parts.features) || []).concat(extra) },
@@ -912,13 +930,60 @@
   // Fill-extrusions have no bottom face. Reuse the baked roof rings so the
   // oversails stay solid when viewed from the pavement, without duplicating
   // their plan or guessing new building heights.
-  function installRoofUndersides(map, gj) {
+  function buildRoofUndersides(gj) {
     // Select exposed slabs, not every cap: NHB's louvre rests on the deck
     // rather than forming a ceiling.
     const roofs = gj.features.filter(f => f.geometry.type === 'Polygon' && (
       (f.properties.b === 'gdc' && f.properties.cap === 1) ||
       (f.properties.b === 'nhb' && f.properties.band === 'deck')));
-    let group = null, tries = 0, timer = null, removed = false;
+    const S = window.slopes, T = window.THREE, B = S.build();
+    for (const f of roofs) {
+      const p = f.properties;
+      const points = f.geometry.coordinates[0].slice(0, -1).map(ll => {
+        const v = S.toLocal(ll[0], ll[1], p.base);
+        return [v.x, v.y, v.z];
+      });
+      B.polygon(points, [p.wd, p.wg, p.wn], [0, 0, -1], 'xy');
+    }
+    const group = new T.Group();
+    group.name = 'heroes-roof-undersides';
+    group.userData.minzoom = HEROES.minZoom;
+    const mesh = new T.Mesh(B.geometry(), S.material());
+    mesh.name = 'hero-roof-undersides';
+    group.add(mesh);
+    return { group, triangles: B.triangles, roofs: roofs.length };
+  }
+
+  // The GDC compiler reuses the existing MapLibre composition and underside
+  // builder. Moving its brick/glass layers into a different shader would be a
+  // material migration, not a faithful independent-asset boundary.
+  window.compileHeroBuilding = function compileHeroBuilding(raw, { id, name = 'Gates-Dell Complex' } = {}) {
+    if (!id || raw?.type !== 'FeatureCollection' || !raw.features?.length || raw.features.some(f => f.properties?.b !== 'gdc')) {
+      throw new Error('compileHeroBuilding requires an identified GDC-only source');
+    }
+    const started = performance.now(), gj = JSON.parse(JSON.stringify(raw));
+    authorGDC(gj);
+    const result = buildRoofUndersides(gj), S = window.slopes;
+    const bounds = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+    for (const f of gj.features) {
+      const rings = f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates.flat();
+      for (const ring of rings) for (const ll of ring) {
+        for (const z of [f.properties.base, f.properties.h]) {
+          const p = S.toLocal(ll[0], ll[1], z);
+          [p.x, p.y, p.z].forEach((v, k) => { bounds.min[k] = Math.min(bounds.min[k], v); bounds.max[k] = Math.max(bounds.max[k], v); });
+        }
+      }
+    }
+    result.group.name = id; result.group.userData.buildingId = id;
+    return { ...result, bounds, maplibre: { adapter: 'heroes', schemaVersion: 1, featureCollection: gj },
+      metadata: { id, name, top: bounds.max[2], featureCount: gj.features.length,
+        sourcePriority: 100, confidence: 'unreviewed', measurementStatus: 'not-surveyed' },
+      counts: { generationMs: performance.now() - started, finalizationMs: 0, filterResolutionLevel: 0 } };
+  };
+
+  function installRoofUndersides(map, gj) {
+    let group = null, gdc = null, compiled = false, tries = 0, timer = null, removed = false;
+    let gdcCounts = { roofs: 0, triangles: 0 };
     map.once('remove', () => {
       removed = true;
       clearTimeout(timer);
@@ -936,23 +1001,21 @@
         return;
       }
       if (group) { if (!group.parent) S.add(group); return; }
-      const B = S.build();
-      for (const f of roofs) {
-        const p = f.properties;
-        const points = f.geometry.coordinates[0].slice(0, -1).map(ll => {
-          const v = S.toLocal(ll[0], ll[1], p.base);
-          return [v.x, v.y, v.z];
-        });
-        B.polygon(points, [p.wd, p.wg, p.wn], [0, 0, -1], 'xy');
-      }
+      // GDC must be independently suppressible when its compiled underside is
+      // attached. Keep the tiny original CPU buffers for eviction/recovery.
       group = new T.Group();
       group.name = 'heroes-roof-undersides';
       group.userData.minzoom = HEROES.minZoom;
-      const mesh = new T.Mesh(B.geometry(), S.material());
-      mesh.name = 'hero-roof-undersides';
-      group.add(mesh);
+      group.userData.retainGeometryCpu = true;
+      const other = buildRoofUndersides({ features: gj.features.filter(f => f.properties.b !== 'gdc') });
+      const built = buildRoofUndersides({ features: gj.features.filter(f => f.properties.b === 'gdc') });
+      gdc = built.group;
+      gdc.name = 'heroes-gdc-roof-undersides';
+      gdc.visible = !compiled;
+      group.add(other.group, gdc);
+      gdcCounts = { roofs: built.roofs, triangles: built.triangles };
       S.add(group);
-      window.__heroes.roofUndersides = { roofs: roofs.length, triangles: B.triangles };
+      window.__heroes.roofUndersides = { roofs: built.roofs + other.roofs, triangles: built.triangles + other.triangles };
       map.triggerRepaint();
     };
     const boot = () => {
@@ -966,9 +1029,213 @@
       apply();
     };
     boot();
+    return {
+      setCompiled(value) { compiled = !!value; if (gdc) gdc.visible = !compiled; },
+      get stats() {
+        let geometryCpuBytes = 0, geometries = 0, materials = 0;
+        gdc?.traverse(o => {
+          if (o.geometry) {
+            geometries++;
+            for (const a of Object.values(o.geometry.attributes || {})) geometryCpuBytes += a.array?.byteLength || 0;
+            geometryCpuBytes += o.geometry.index?.array?.byteLength || 0;
+          }
+          if (o.material) materials++;
+        });
+        return { ...gdcCounts, geometryCpuBytes, geometries, materials, retained: true };
+      },
+    };
   }
 
   let _added = false;
+
+  const _heroHosts = new WeakMap();
+  window.HeroesAssetHost = { get: map => _heroHosts.get(map) };
+  const copyStyle = value => value == null ? value : JSON.parse(JSON.stringify(value));
+  const sameStyle = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // The original GDC is separated at initial installation, before any tiles
+  // exist. Later replacements only switch constant opacity: setFilter/setData
+  // would asynchronously rebuild the old tiles and cannot be an atomic swap.
+  function createHeroAssetHost(map, gj, specs, undersides) {
+    const original = { type: 'FeatureCollection', features: gj.features.filter(f => f.properties.b === 'gdc'),
+      replacedBuildingIds: [GDC_ID], authoredRoofIds: [GDC_ID], heroHeights: { [GDC_ID]: gj.heroHeights[GDC_ID] } };
+    const other = { ...gj, features: gj.features.filter(f => f.properties.b !== 'gdc') };
+    const used = new Set(original.features.map(f => f.properties.lyr));
+    const templates = specs.filter(s => s.id === L.cap || used.has(s.filter?.[2]));
+    const listeners = new Set(), records = new Map(), pendingRemoval = [];
+    const serializedGeoJsonBytes = new TextEncoder().encode(JSON.stringify(original)).byteLength;
+    let current = null, removed = false, lost = false, queued = false, syncing = false, collisionDirty = false;
+    let knownStyle = map.style, serial = 0;
+    const usable = () => !removed && !lost && (!('style' in map) || !!map.style) && map.style?._loaded !== false;
+    const emit = reason => { for (const fn of [...listeners]) fn(reason); };
+    const dirtyShadows = () => window.CityLighting?.invalidateShadowProxy?.();
+    const sourceSpec = data => ({ type: 'geojson', ...(window.PATTERN_TILING || {}), data });
+    const anchor = () => {
+      const layers = map.getStyle().layers;
+      const after = Math.max(0, layers.findIndex(l => l.id === 'buildings-3d'));
+      return layers.slice(after + 1).find(l => l.type === 'symbol')?.id;
+    };
+    const readSpec = spec => {
+      const live = map.getLayer(spec.id);
+      // Retain the last complete style for a later setStyle/context rebuild.
+      if (live) Object.assign(spec, copyStyle(live.serialize ? live.serialize() : live));
+      return copyStyle(spec);
+    };
+    const desired = (template, id, sourceId, visible) => {
+      const s = readSpec(template);
+      return { ...s, id, source: sourceId,
+        metadata: { ...s.metadata, 'flyover:hero-layer': template.id, 'flyover:building-id': GDC_ID },
+        paint: { ...s.paint, 'fill-extrusion-opacity': visible ? (s.paint?.['fill-extrusion-opacity'] ?? 1) : 0,
+          'fill-extrusion-opacity-transition': { duration: 0, delay: 0 } } };
+    };
+    const baseline = { sourceId: GDC_SRC, data: original,
+      layers: templates.map(s => ({ id: s.id + '-gdc-original', template: s })) };
+
+    function syncSource(record, visible) {
+      if (!usable()) return false;
+      if (!map.getSource(record.sourceId)) map.addSource(record.sourceId, sourceSpec(record.data));
+      for (const { id, template } of record.layers) {
+        const want = desired(template, id, record.sourceId, visible);
+        const have = map.getLayer(id);
+        if (!have) {
+          // Adjacent layers preserve the original solid/pattern/cap order.
+          map.addLayer(want, map.getLayer(template.id) ? template.id : anchor());
+          continue;
+        }
+        const actual = have.serialize ? have.serialize() : have;
+        for (const key of new Set([...Object.keys(actual.paint || {}), ...Object.keys(want.paint || {})])) {
+          const value = want.paint?.[key];
+          if (!sameStyle(actual.paint?.[key], value)) map.setPaintProperty(id, key, value ?? null);
+        }
+        for (const key of new Set([...Object.keys(actual.layout || {}), ...Object.keys(want.layout || {})])) {
+          const value = want.layout?.[key];
+          if (!sameStyle(actual.layout?.[key], value)) map.setLayoutProperty(id, key, value ?? null);
+        }
+        if (!sameStyle(map.getFilter(id), want.filter)) map.setFilter(id, want.filter ?? null);
+        if ((actual.minzoom ?? 0) !== (want.minzoom ?? 0) || (actual.maxzoom ?? 24) !== (want.maxzoom ?? 24)) {
+          map.setLayerZoomRange(id, want.minzoom ?? 0, want.maxzoom ?? 24);
+        }
+      }
+      return true;
+    }
+
+    function removeNow(record) {
+      if (!usable()) return false;
+      for (const { id } of [...record.layers].reverse()) if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(record.sourceId)) map.removeSource(record.sourceId);
+      return true;
+    }
+    function removeSource(record) {
+      records.delete(record.sourceId);
+      if (removed) return;
+      // An unavailable style may reappear with serialized compiled layers.
+      // Keep only IDs for deferred deletion; the asset payload is released.
+      const ids = { sourceId: record.sourceId, layers: record.layers.map(({ id }) => ({ id })) };
+      if (!removeNow(ids)) pendingRemoval.push(ids);
+    }
+    function syncCollision() {
+      if (!collisionDirty || !usable()) return;
+      const selected = { ...gj, features: other.features.concat(current?.data.features || original.features) };
+      window.__heroes.collision = extendCollision(map, selected);
+      collisionDirty = false;
+    }
+    function sync() {
+      if (!usable() || syncing) return;
+      syncing = true;
+      try {
+        // setStyle normally diffs the existing Style instance. Lost source or
+        // layer buckets invalidate a prepared render fence even when that
+        // object survives; restore the original before rebuilding any clone.
+        const interrupted = [...records.values()].some(record => !map.getSource(record.sourceId) ||
+          record.layers.some(({ id }) => !map.getLayer(id)));
+        if (knownStyle !== map.style || interrupted) {
+          knownStyle = map.style;
+          emit('style-reset');
+        }
+        while (pendingRemoval.length) { removeNow(pendingRemoval[0]); pendingRemoval.shift(); }
+        // A style replacement must recreate the fallback before a controller
+        // can prepare again. Context restoration commonly preserves these.
+        const missing = !map.getSource(SRC) || !map.getSource(GDC_SRC) || specs.some(s => !map.getLayer(s.id));
+        if (missing) {
+          ensureImages(map, window.__todCurrentP ?? 0.3);
+          if (!map.getSource(SRC)) map.addSource(SRC, sourceSpec(other));
+          for (const spec of specs) if (!map.getLayer(spec.id)) map.addLayer(copyStyle(spec), anchor());
+          const clause = ['!', ['in', ['get', 'id'], ['literal', gj.replacedBuildingIds || []]]];
+          const contains = f => sameStyle(f, clause) || (f?.[0] === 'all' && f.slice(1).some(contains));
+          for (const id of ['buildings-3d', 'buildings-roof']) if (map.getLayer(id)) {
+            const f = map.getFilter(id);
+            if (!contains(f)) map.setFilter(id, f ? ['all', f, clause] : clause);
+          }
+        }
+        syncSource(baseline, !current);
+        for (const record of records.values()) syncSource(record, record === current);
+        syncCollision();
+        emit('sync');
+      } finally { syncing = false; }
+    }
+    const schedule = () => {
+      if (removed || queued) return;
+      queued = true;
+      Promise.resolve().then(() => { queued = false; if (!removed) {
+        try { sync(); } catch (error) { emit({ type: 'error', error }); }
+      } });
+    };
+    const canvas = map.getCanvas?.();
+    const onLost = () => { lost = true; emit('context-lost'); };
+    const onRestored = () => { lost = false; schedule(); };
+    canvas?.addEventListener('webglcontextlost', onLost);
+    canvas?.addEventListener('webglcontextrestored', onRestored);
+    map.on('styledata', schedule);
+    map.on('style.load', schedule);
+    map.once('remove', () => {
+      removed = true;
+      emit('remove');
+      listeners.clear(); records.clear(); pendingRemoval.length = 0; current = null;
+      canvas?.removeEventListener('webglcontextlost', onLost);
+      canvas?.removeEventListener('webglcontextrestored', onRestored);
+      map.off('styledata', schedule); map.off('style.load', schedule);
+      _heroHosts.delete(map);
+    });
+    const host = {
+      id: GDC_ID, map,
+      get usable() { return usable(); },
+      get current() { return current; },
+      get originalSourceId() { return GDC_SRC; },
+      get originalLayerIds() { return baseline.layers.map(l => l.id); },
+      get fallbackStats() { return { features: original.features.length, serializedGeoJsonBytes,
+        sources: removed ? 0 : 1, layers: removed ? 0 : baseline.layers.length, maplibreGpuBytes: null, ...undersides.stats }; },
+      shadowSources: () => removed ? [] : [current?.sourceId || GDC_SRC],
+      ownsSource: id => id === GDC_SRC || records.has(id),
+      collisionFeatures: () => current?.data.features || original.features,
+      observe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+      sync, syncSource, removeSource,
+      createSource(data) {
+        if (!usable()) throw new Error('Hero style is unavailable');
+        const sourceId = 'austin-heroes-gdc-compiled-' + (++serial);
+        const used = new Set(data.features.map(f => f.properties.lyr));
+        const matching = specs.filter(s => s.id === L.cap || used.has(s.filter?.[2]));
+        const record = { sourceId, data, layers: matching.map(s => ({ id: s.id + '-gdc-compiled-' + serial, template: s })) };
+        records.set(sourceId, record);
+        try { syncSource(record, false); } catch (error) { removeSource(record); throw error; }
+        return record;
+      },
+      select(record) {
+        if (record && records.get(record.sourceId) !== record) throw new Error('Unknown compiled hero source');
+        current = record;
+        collisionDirty = true;
+        undersides.setCompiled(!!record);
+        if (usable()) {
+          syncSource(baseline, !record);
+          for (const candidate of records.values()) syncSource(candidate, candidate === record);
+          syncCollision();
+        }
+        dirtyShadows();
+      },
+    };
+    _heroHosts.set(map, host);
+    sync();
+    return host;
+  }
 
   window.initHeroes = async function initHeroes(map) {
     if (!HEROES.on || _added || map.getSource(SRC)) return;
@@ -1000,7 +1267,7 @@
     // "image not found" and paints those walls transparent.
     ensureImages(map, p);
 
-    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
+    map.addSource(SRC, { type: 'geojson', data: { ...gj, features: gj.features.filter(f => f.properties.b !== 'gdc') }, ...(window.PATTERN_TILING || {}) });
 
     // The generic extrusions these bands supersede have to STOP being drawn, or
     // the old 22.7 m box sits inside the new 40.5 m one and its roof cap cuts a
@@ -1023,7 +1290,9 @@
     const anchor = (stack.slice(after + 1).find(l => l.type === 'symbol') || {}).id;
 
     const geom = { 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'base'] };
-    const add = (id, lyr, paint) => map.addLayer({
+    const specs = [];
+    const addLayer = spec => { specs.push(copyStyle(spec)); map.addLayer(spec, anchor); };
+    const add = (id, lyr, paint) => addLayer({
       id, type: 'fill-extrusion', source: SRC, minzoom: HEROES.minZoom,
       filter: ['==', ['get', 'lyr'], lyr],
       paint: Object.assign({}, geom, paint, {
@@ -1034,7 +1303,7 @@
         // roof plane, which is the one edge the building is known for.
         'fill-extrusion-vertical-gradient': false,
       }),
-    }, anchor);
+    });
 
     add(L.solid, 'solid', { 'fill-extrusion-color': wallColor(p) });
     add(L.gdcGlass, 'gdc-glass', { 'fill-extrusion-color': wallColor(p) });
@@ -1051,7 +1320,7 @@
     // each building carries cap=1.
     const G = window.CAP_GEOM;
     if (G) {
-      map.addLayer({
+      addLayer({
         id: L.cap, type: 'fill-extrusion', source: SRC, minzoom: HEROES.minZoom,
         filter: ['==', ['get', 'cap'], 1],
         paint: {
@@ -1060,13 +1329,14 @@
           'fill-extrusion-base': G.base(['get', 'h']),
           'fill-extrusion-opacity': 1.0,
         },
-      }, anchor);
+      });
     }
 
     const col = extendCollision(map, gj);
     window.__heroes = { features: gj.features.length, replaced: gone.length,
                         heights: gj.heroHeights || {}, collision: col, composed };
-    installRoofUndersides(map, gj);
+    const undersides = installRoofUndersides(map, gj);
+    createHeroAssetHost(map, gj, specs, undersides);
     console.log('[heroes]', gj.features.length, 'band features over', gone.length,
                 'replaced buildings; collision', col, '; composed', composed);
   };
@@ -1103,6 +1373,7 @@
     // noon is not done. This is also where the lattice's glass and both curtain
     // walls come on after dusk.
     ensureImages(map, p);
+    _heroHosts.get(map)?.sync();
   };
 
   // ── bootstrap ─────────────────────────────────────────────────────

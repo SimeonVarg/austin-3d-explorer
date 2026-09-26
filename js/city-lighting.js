@@ -241,6 +241,10 @@
   // would add coincident geometry to the shadow map for nothing.
   // scripts/verify/dark-campus.mjs asserts the skip list is non-empty.
   const casterSources=['austin-outer','austin-parts','austin-stadium','austin-tower','austin-heroes','austin-drag','austin-arts','austin-moody','austin-westcampus'];
+  const heroHost=map=>window.HeroesAssetHost?.get(map);
+  // A prepared replacement is deliberately transparent while its tiles load.
+  // Only the source selected by the hero host may contribute shadow volumes.
+  const activeCasterSources=map=>[...casterSources,...(heroHost(map)?.shadowSources()||[])];
   function hiddenIds(filter,out=new Set()) {
     if(!Array.isArray(filter))return out;
     if(filter[0]==='all'){for(const f of filter.slice(1))hiddenIds(f,out);return out;}
@@ -251,7 +255,7 @@
   function shadowProxy(map) {
     if(!proxyMap) {
       proxyMap=map;
-      map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId))proxyDirty=true;});
+      map.on('sourcedata',e=>{if(casterSources.includes(e.sourceId)||heroHost(map)?.ownsSource(e.sourceId))proxyDirty=true;});
       // The proxy is built from the tiles MapLibre is drawing, so moving the
       // camera changes it only by changing that tile set: a move asks for a
       // CHECK (proxyInputs), never a rebuild on its own, and nothing is
@@ -289,7 +293,8 @@
     const caches=map.style?.tileManagers||map.style?.sourceCaches;
     if(!caches||typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return null;
     const key=[built,window.APARTMENTS?.on,proxyRef(window.slopesApartments?.data?.buildings),proxyRef(buildings),proxyRef(map.getLayer('buildings-3d')?.filter)];
-    for(const source of casterSources) {
+    const sources=activeCasterSources(map);
+    for(const source of sources) {
       key.push(source);
       if(!map.getSource(source))continue;
       const cache=caches[source];
@@ -298,7 +303,7 @@
     }
     for(const id of map.getLayersOrder()) {
       const l=map.getLayer(id);
-      if(l?.type==='fill-extrusion'&&casterSources.includes(l.source))key.push(id,l.sourceLayer,proxyRef(l.filter),l.visibility);
+      if(l?.type==='fill-extrusion'&&sources.includes(l.source))key.push(id,l.sourceLayer,proxyRef(l.filter),l.visibility);
     }
     return key;
   }
@@ -328,7 +333,7 @@
     const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
     const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
     stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
-    for(const source of casterSources) {
+    for(const source of activeCasterSources(map)) {
       if(!map.getSource(source))continue;
       // Each visible layer with its own display filter: a part, deck or
       // detail that no layer draws does not cast.
@@ -373,33 +378,48 @@
     gl.__cityLighting=true;
     // Reflections also run on a cold night load or with shadows disabled.
     // Samplers still need a complete texture even when the shader skips them.
-    const oldTexture=gl.getParameter(gl.TEXTURE_BINDING_2D);
-    fallbackShadow=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,fallbackShadow);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
-    gl.bindTexture(gl.TEXTURE_2D,oldTexture);
-    const originals={},shaders=new WeakMap(),programs=new WeakMap(),locations=new WeakMap();
+    function createFallbackShadow(){
+      if(gl.isContextLost())return;
+      const oldTexture=gl.getParameter(gl.TEXTURE_BINDING_2D),texture=gl.createTexture();
+      if(!texture)return;
+      try{
+        gl.bindTexture(gl.TEXTURE_2D,texture);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+        fallbackShadow=texture;
+      }finally{gl.bindTexture(gl.TEXTURE_2D,oldTexture);}
+    }
+    createFallbackShadow();
+    const originals={};
+    let shaders=new WeakMap(),programs=new WeakMap(),locations=new WeakMap();
     const groundLights=new Set(['night-streetlight-pool','night-streetlight-core',
       'night-tower-pool-fill','entrances-pool','signs-ground-glow','props-lit','props-lit-core']);
     const depthPool=id=>window.NIGHT_TUNE?.DEPTH_POOLS!==false&&groundLights.has(id);
-    const painter=map.painter,drawFunctions=painter.drawFunctions;
+    let painter,drawFunctions;
     let activeSolidSurface=0;
     // MapLibre treats circles after its first 3D layer as painter-ordered 2D
     // overlays, with depth testing disabled. A ground glow then crosses walls.
     // These seven ground-light layers use the existing 3D depth range, read-only.
     // MapLibre 5.24 dispatches the style type fill-extrusion through the
     // camelCase fillExtrusion method; a hyphenated property is never called.
-    painter.drawFunctions={...drawFunctions,fillExtrusion(...args){
-      const previous=activeSolidSurface;
-      activeSolidSurface=solidSurfaceFor(args[2]?.id);
-      try{return drawFunctions.fillExtrusion(...args);}finally{activeSolidSurface=previous;}
-    },circle(...args){
-      const p=args[0],layer=args[2],original=p.getDepthModeForSublayer;
-      if(!depthPool(layer.id))return drawFunctions.circle(...args);
-      p.getDepthModeForSublayer=()=>({...p.getDepthModeFor3D(),mask:false});
-      try{return drawFunctions.circle(...args);}finally{p.getDepthModeForSublayer=original;}
-    }};
+    function bindPainter(){
+      if(painter===map.painter)return;
+      if(painter)painter.drawFunctions=drawFunctions;
+      painter=map.painter;drawFunctions=painter.drawFunctions;
+      const native=drawFunctions;
+      painter.drawFunctions={...native,fillExtrusion(...args){
+        const previous=activeSolidSurface;
+        activeSolidSurface=solidSurfaceFor(args[2]?.metadata?.['flyover:hero-layer']||args[2]?.id);
+        try{return native.fillExtrusion(...args);}finally{activeSolidSurface=previous;}
+      },circle(...args){
+        const p=args[0],layer=args[2],original=p.getDepthModeForSublayer;
+        if(!depthPool(layer.id))return native.circle(...args);
+        p.getDepthModeForSublayer=()=>({...p.getDepthModeFor3D(),mask:false});
+        try{return native.circle(...args);}finally{p.getDepthModeForSublayer=original;}
+      }};
+    }
+    bindPainter();
     let current=null;
     const fail=message=>{stats.failures.push(message);console.error('[city-lighting]',message);};
     const wrap=(name,fn)=>{originals[name]=gl[name];gl[name]=fn(originals[name].bind(gl));};
@@ -558,16 +578,50 @@
       }
     }
     for(const name of ['drawElements','drawArrays'])wrap(name,native=>(...args)=>draw(native,args));
+    const imageMethods={};
     for(const method of ['addImage','updateImage']) {
-      const native=map[method].bind(map);
+      const native=imageMethods[method]=map[method];
       map[method]=function(id,image,...rest){
-        return native(id,bandGlassImage(id,image),...rest);
+        return native.call(map,id,bandGlassImage(id,image),...rest);
       };
     }
-    map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
+    function onContextLost(){
+      // The GL object survives, but every texture/program handle is invalid.
+      // Discard the renderer's supplied shadow handles as well as our fallback.
+      frame=null;fallbackShadow=null;current=null;activeSolidSurface=0;
+      shaders=new WeakMap();programs=new WeakMap();locations=new WeakMap();
+      if(proxyMap===map){
+        // Three r159 retains each geometry's disposal listener after its
+        // renderer is removed. Release our proxy while GL is still lost,
+        // before a later rebuild can delete old buffers in a live context.
+        clearTimeout(proxyTimer);proxyTimer=null;
+        proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;
+        proxyDirty=true;proxyBuilt=0;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;
+        stats.shadowProxyTriangles=0;
+      }
+    }
+    function onContextRestored(){
+      // MapLibre 5.24 fires this after _setupPainter() replaces its painter.
+      // Programs created during that setup have already passed through our GL
+      // hooks, so retain their records and wrap only the new draw dispatchers.
+      createFallbackShadow();
+      bindPainter();
+    }
+    function dispose(){
+      map.off('webglcontextlost',onContextLost);map.off('webglcontextrestored',onContextRestored);map.off('remove',dispose);
+      painter.drawFunctions=drawFunctions;
+      for(const [name,native] of Object.entries(originals))gl[name]=native;
+      for(const [name,native] of Object.entries(imageMethods))map[name]=native;
+      if(fallbackShadow&&!gl.isContextLost())gl.deleteTexture(fallbackShadow);
+      fallbackShadow=null;frame=null;current=null;delete gl.__cityLighting;
+    }
+    map.on('webglcontextlost',onContextLost);
+    map.on('webglcontextrestored',onContextRestored);
+    map.on('remove',dispose);
   }
   window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,
     setBuildings(features){buildings=features;proxyDirty=true;},
+    invalidateShadowProxy(){proxyDirty=true;proxyInputs=null;proxyMap?.triggerRepaint();},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
       U.u_citySkyFill??={value:new THREE.Vector2()};
@@ -588,7 +642,9 @@
         const pos=U['u_cityFixture'+i]??={value:new THREE.Vector4()},col=U['u_cityFixtureColour'+i]??={value:new THREE.Vector4()},f=fixtures[i];
         if(f){pos.value.set(...f.position,f.radius);col.value.set(...f.colour.map(c=>Math.pow(c,2.2)),f.power*(t.fixtureGain??1));}else{pos.value.set(0,0,0,0);col.value.set(0,0,0,0);}
       }
-      frame={U,inverse,textures:textures||[fallbackShadow,fallbackShadow]};serial++;
+      // Uniforms stay shared with Three while lost, but no old raw GL texture
+      // may be republished until this context has a complete fallback again.
+      frame=fallbackShadow?{U,inverse,textures:textures||[fallbackShadow,fallbackShadow]}:null;serial++;
     }
   };
 })();

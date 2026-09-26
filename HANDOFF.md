@@ -1,5 +1,166 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 25 2026 - One-pair motion diagnostic (`codex/compiled-building-lifecycle`)
+
+The separately authorized diagnostic is complete: one legacy/compiled pair on
+the same September 25 data and production source `ef77c413`. External profiling
+added CPU samples, allocation samples and a bounded main-thread trace after
+warm-up. Both captures and their clock/source checks pass. The production files,
+catalog, route, budgets, shadow behavior and application default are unchanged.
+Profiler overhead makes these diagnostic observations, not acceptance results.
+
+The clearest bounded correction is to retain the zero-draw upload staging
+material for its renderer/context lifetime. All 56 first-part staging renders
+sample Three's first-use `getProgramInfoLog` path; none of 36 later parts do.
+The 92 staging renders contain 470.26 ms of disjoint main-thread command-response
+wait. One 177.4 ms staging render includes a 174.66 ms nested wait inside a
+220.7 ms colour-frame gap. The current upload function creates and disposes the
+material for each building, allowing Three to release the program each time.
+Keep program checks, zero draw count, GL-state restoration and cancellation;
+give any reused resource explicit teardown and context-epoch ownership.
+This recommendation is **not implemented or proven to meet the motion gates**.
+
+Ordinary colour calls remain more expensive: mean 1.64 ms legacy versus 4.77 ms
+compiled, with more binding/uniform work and scene traversal in the samples.
+Both arms retain a large shared shadow-proxy rebuild; compiled mode also has
+generation, extra correct shadow renders and synchronous GDC preparation.
+Allocation sampling measures churn, not retained memory, and renderer waits are
+not GPU-duration or presentation measurements. The saved report preserves every
+long gap and unattributed portion; see `docs/compiled-buildings.md`.
+
+This bounded diagnostic stops here. PR #312 remains a guarded draft with the
+previous failed motion gates, distant coarse-facade limitations and unverified
+physical-phone behavior. No implementation, catalog expansion, default switch,
+merge, deployment or scheduled continuation is included.
+
+## Sep 25 2026 - Bounded admission correction (`codex/compiled-building-lifecycle`)
+
+PR #312 remains a guarded draft after the authorized planner follow-up. Tested
+source is `ef77c4132a94332c7b714d5909b8ef10f7cdf4da`; the remote bot's September 25
+data snapshot was incorporated before testing. The dirty primary checkout was
+preserved. The five compiled buildings, legacy default, budgets, route, gates,
+shadow behavior and rendering architecture are unchanged.
+
+Admission now proves a sufficient eligible victim prefix and prunes unnecessary
+victims before disposing resident detail. An impossible individual admission
+call disposes no resident detail; this does not undo a prior successful CPU
+preflight or stop inactive-cache trimming. All 31 residency contracts, 11 worker
+cancellation cases and six hero-teardown cases pass. The old planner fails six
+new regression cases, including byte fixtures from the preceding city audit.
+
+The repeated actual-city lifecycle passes all 12 checks and releases every
+building owner on removal. The existing 562 unique warning/error console strings
+are unchanged, including caught arches/art style-restoration errors outside the
+building suite's assertions. Do not call this complete recovery of every scene
+subsystem or a physical-phone result.
+
+All three new interleaved hardware-GL pairs fail both motion gates. At CPU 1x,
+1280x720, DPR 1 and balanced graphics, median intervals are 18.60-22.30 ms legacy
+versus 28.00-32.80 ms compiled; p95 is 34.60-66.50 versus 54.40-93.40 ms.
+Synchronous startup work falls 46.2-65.3%. The unchanged frozen outside-geometry
+comparison reports 70.7% less ownership, with its inherited partition and omitted
+53,436 filtered-facade bytes documented in `docs/compiled-buildings.md`. Cold wall
+time does not improve consistently. Keep all 44 long intervals, including five
+boundaries; a 24.2 ms maximum upload does not clear the new-gap criterion.
+
+Compiled routes still generate 62-90 distinct procedural buildings and perform
+218-278 sun-shadow passes versus 78 in each legacy run. GDC preparation remains
+synchronous. No sufficient strict-subset eviction witness was found in the new
+traces, but missing exact admission headroom prevents a necessity proof for every
+eviction. Do not infer causal improvement by comparing to the older September 22
+map-data run. The new six runs used identical September 25 data and source hashes.
+
+Twelve matched application pairs preserve the inspected nearby detailed targets;
+distant coarse facades visibly lose detail and night emission. Nueces is partly
+occluded and Painter has only a daytime view. The updated report, raw runs,
+all long-gap attribution, identities and image gallery remain local evidence.
+
+The bounded pass is finished. Do not expand the catalog, enable compiled mode,
+merge into `claude/mobile-crash`, or start GDC/shadow optimization under this
+authorization. A further profiling experiment on the same route is proposed in
+`docs/compiled-buildings.md`; implementation requires new direction. PR #310's
+dependency and the requirement to integrate/reverify main before an eventual
+merge remain in force. No scheduled continuation was created.
+
+## Sep 25 2026 - Guarded compiled-building lifecycle (`codex/compiled-building-lifecycle`)
+
+The first compiled slice covers Welch, Painter, GDC, 2400 Nueces and The
+Standard in the actual city, retaining the 196-building authored catalog and
+GDC's existing hero source. `?buildings=compiled` selects it;
+the ordinary application and `?buildings=legacy` retain the original builder.
+The source catalogs, desktop geometry, materials and shared map renderer are
+preserved. The new compiler, wire format, resource accounting and verification
+commands are documented in `docs/compiled-buildings.md` and
+`scripts/buildings/README.md`. Terrain and a building-picking UI are not added.
+
+The five versioned files total 50,023,568 bytes. Stable building/part identities,
+source selectors, hashes, original editable dimensions and explicit unreviewed
+measurement confidence accompany exact geometry and texture data. The compiler
+validates all requested changes before atomically publishing a manifest. A real
+no-op preserves hashes and timestamps without invoking the generators. The
+35 compiler and residency checks pass, including 22 residency contracts and
+exact fresh-generator comparisons. Separate suites cover 11 real-worker
+cancellation cases and six hero teardown cases; deliberate corruptions and
+preserved faulty runtimes fail the intended checks.
+Nine deployment-path cases also verify real compiled commits under domain-root
+and project-directory hosting. The manifest default now follows the application
+path instead of incorrectly requesting the domain root on GitHub Pages.
+
+Runtime loading uses a worker, bounded response/decode ownership, paced actual
+GPU uploads, independent coarse fallback objects, shadow-caster margins and
+atomic replacements. CPU/GPU ownership includes hidden coarse geometry and the
+inactive decoded cache. The counters exclude shared map tiles, shared shadow
+maps, JavaScript object overhead and transient generator arrays; GDC's MapLibre
+GPU allocation remains unknown. They are not total browser-memory limits.
+An active cancellation retains its worker slot and memory reservation until
+hashing/decoding has released the response; repeated cancellation cannot admit
+unaccounted concurrent owners.
+
+This branch includes PR #310's phone-budget baseline and fixes its Float16
+storage and second-context-loss handling. The overlap was recorded on #310.
+Desktop restoration also needed a separate repair: MapLibre reconstructs its
+style without the custom Three layer. Restoration now reattaches the retained
+scene and uniforms, and pending uploads wait for the returning renderer.
+Removed maps release listeners and timers. Actual GDC source/roof, day/night,
+style-interruption and shared-context restoration checks pass. Actual desktop
+phone emulation verifies the one-reload policy and subsequent usable fallback;
+physical iPhone Safari/Chrome acceptance remains open.
+The lighting bridge also releases shadow-proxy buffer owners during context
+loss. Deferred disposal after restoration had retained a destroyed GPU owner;
+the real Three regression and a captured prior city run reproduce that failure.
+
+The initial Welch round trip passed exact attribute and day/night/grazing checks
+before the other four assets were compiled. The final actual-city lifecycle run
+passes all 12 checks, including loss during initial construction, replacement,
+travel, failure, cancellation, eviction/reentry, rebuild, shared-context recovery,
+reload and terminal removal. It reports no page errors, invalid GPU warnings or
+old-context resource deletions, and all building owners reach zero after removal.
+The three paired actual-city performance runs are complete, and **both motion
+gates failed in all three pairs**. At hardware GL, CPU 1x, 1280x720, DPR 1 and the
+balanced preset, geometry ownership outside the 300 m Welch district fell 70.7%
+for both CPU and GPU. Synchronous startup work fell 46.2-60.5%, including finalization
+and reconstruction. Legacy median frame intervals were 18.00-18.40 ms versus
+28.20-36.10 ms compiled; p95 was 28.60-30.40 ms versus 56.40-63.90 ms. Cold wall
+time did not improve consistently. Keep all three repetitions and the failed
+verdict; short individual upload slices do not establish smooth motion.
+
+The trace identifies avoidable greedy admission evictions, frequent correct
+shadow invalidation from ownership changes, and a synchronous GDC preparation
+cost inside new long gaps. Unmeasured portions of those gaps remain unresolved.
+Fixing the unnecessary victims alone does not prove the remaining 71-80 distinct
+procedural generations per route or shadow work affordable. Twelve matched
+application poses preserve the inspected detailed targets; distant coarse
+facades are visibly simpler. Painter has a daytime comparison only.
+
+This is a guarded draft stacked on `claude/mobile-crash` / PR #310 at `9670a1e`.
+Its diff must contain only this lane's changes. Do not merge it into the other
+lane's branch. Once #310 lands, retarget to main, integrate current main, and
+rerun verification before any merge. The frozen gates remain in
+`scripts/verify/compiled-gates.json`; keep the legacy default, do not expand the
+compiled catalog, and preserve the failed performance result. Screenshots and
+raw run evidence remain local working artifacts. See `docs/compiled-buildings.md`
+for the measured result, limits and required corrections.
+
 ## Sep 24 2026 - Phones stop crash-looping: a memory budget, and one reload at most (`claude/mobile-crash`)
 
 Reported: "the site still breaks on mobile browsers - it loads for like 15

@@ -1,0 +1,56 @@
+{
+  "frozenAt": "2026-09-25T19:03:54.5421893Z",
+  "baselineRevision": "9670a1e50a07ee2a8c210d4351b671627faa738b",
+  "integration": "origin/main 778be367 plus PR310; healthy desktop geometry unchanged by the pending second-context-recovery correction",
+  "viewport": {
+    "width": 1280,
+    "height": 720,
+    "deviceScaleFactor": 1
+  },
+  "cpuThrottle": 1,
+  "preset": "balanced",
+  "timeOfDay": [
+    0.3,
+    0.82
+  ],
+  "activeDistrict": {
+    "centre": [
+      -97.73785,
+      30.2867
+    ],
+    "radiusMetres": 300
+  },
+  "residentReduction": {
+    "minimum": 0.5,
+    "denominator": "Actual baseline attribute and index bytes belonging to buildings with bounds wholly outside the active district; count both CPU and GPU ownership separately. Include replacement/coarse geometry in treatment. No shared-array culling credit."
+  },
+  "mainThreadGenerationReduction": {
+    "minimum": 0.3,
+    "denominator": "Sum of synchronous generator next() calls, geometry finalization and filtered-face raster/assembly before first useful district view, excluding waits; cold contexts separately measured."
+  },
+  "warmUploadGap": {
+    "maximumNewMs": 100,
+    "attribution": "Actual final Three color-render timestamps and loader upload/decode task intervals; existing city stalls are recorded separately, not erased from report."
+  },
+  "warmRouteRegression": {
+    "maximumRatio": 1.1,
+    "statistics": [
+      "median",
+      "p95"
+    ],
+    "repetitions": 3,
+    "order": "Interleaved AB/BA; retain every rep and report minimum and range. Repeatable excess in at least two paired reps is failure."
+  },
+  "visual": "Fixed day, night and grazing poses; preserve compiled building attributes, silhouette, openings, signs, glazing and fresh shadows. Second screenshots after real readiness and repaint; deliberate missing-asset negative control.",
+  "lifecycle": [
+    "independent asset round trip",
+    "failed asset retains fallback",
+    "cancel while loading",
+    "evict and re-enter",
+    "context loss and restoration",
+    "bounded CPU and GPU cache",
+    "shadow-caster margin",
+    "atomic building-ID ownership"
+  ],
+  "phone": "Physical iPhone unavailable; Safari/Chrome, thermal behavior and memory headroom remain unverified."
+}

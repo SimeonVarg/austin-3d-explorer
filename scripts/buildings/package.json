@@ -1,0 +1,10 @@
+{
+  "name": "flyover-building-compiler",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Offline compiler using the same pinned Three.js and authored generator as the city.",
+  "dependencies": {
+    "three": "0.159.0"
+  }
+}

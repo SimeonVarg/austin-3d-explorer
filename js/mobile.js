@@ -71,9 +71,10 @@
  *   the authored meshes replace them when their build lands.
  *
  *   A LOST GRAPHICS CONTEXT AFTER THE CITY IS UP RELOADS, SAME TIER (PR #270,
- *   kept). The three.js layer does not come back by itself (the authored and
- *   campus buildings are holes), so the page reloads once the context is
- *   restored and the page is visible — subject to the one-reload rule.
+ *   kept). The three.js layer releases its CPU arrays and cannot upload them
+ *   again. Switch to the map's simpler buildings immediately, then reload once
+ *   restored and visible. If the reload allowance is used, keep that usable
+ *   fallback and offer a manual reload.
  *
  *   OLD STATE RECOVERS BY ITSELF. Older boot records (the pre-#270 integer,
  *   #270's two-death record) are discarded — they describe a heavier scene —
@@ -137,7 +138,8 @@
       // js/slopes.js: once three.js has put a mesh's vertices on the GPU, drop
       // the CPU copy (~260 MB for the authored buildings). It is only needed to
       // upload again after a lost WebGL context, and a phone recovers from that
-      // by reloading (below). Nothing on a phone raycasts the meshes.
+      // by using map stand-ins until reloading (below). Nothing on a phone
+      // raycasts the meshes.
       freeGeometryCpu: true,
       // js/slopes-apartments.js via js/slopes.js buildChunked: build the
       // authored buildings in pieces of at most this many triangles instead of
@@ -213,7 +215,7 @@
         crashes: 'The full city stopped loading on this device twice, so this visit shows plain blocks instead of the detailed buildings.',
         url: 'This link asks for the lightweight city (lite=safe), so the buildings are plain blocks.',
         slow: 'The detailed buildings took too long to load this time, so plain blocks are shown instead.',
-        ctx: 'The phone took back the graphics memory, so some buildings are missing. Reloading brings them back.',
+        ctx: 'The graphics were reset. The map is using simpler buildings; reload to bring back the full city.',
         lighter: 'The full city ran out of memory on this device, so this visit uses lighter buildings (no balconies) and skips the opening flight.',
         lighterCtx: 'The phone ran short of graphics memory during the opening flight, so this visit uses lighter buildings (no balconies) and skips the flight.',
       },
@@ -467,16 +469,19 @@
   // record down first, then make the one allowed reload, which therefore lands
   // on the lighter tier. Lost after the city is up (typically in the
   // background): reload on the same tier, as before. Either way at most one
-  // automatic reload per LITE.autoReload.gapMs; after that, the notice.
+  // automatic reload per LITE.autoReload.gapMs; after that, the fallback and
+  // notice. Suspend the mesh layer in the loss event, before a restored frame
+  // or this handler's timer can attempt to upload its released CPU arrays.
   (function () {
-    let lostAt = 0, restored = false, timer = null, struck = false;
+    let lostAt = 0, restored = false, timer = null, struck = false, needsRecovery = false;
     const isMapCanvas = (e) => !!(e.target && e.target.classList && e.target.classList.contains('maplibregl-canvas'));
     const recover = () => {
       timer = null;
       if (!lostAt || !visible()) return;
-      if (!(window.SLOPES && window.SLOPES.on)) return;
+      if (!needsRecovery) return;
       const why = 'WebGL context was lost' + (restored ? ' and restored' : '') +
                   (struck ? ' during the boot; the next load is the "' + LITE.tiers[Math.min(MAX_TIER, st.tier)].name + '" tier' : '');
+      lostAt = 0; needsRecovery = false;
       if (!autoReload(why)) showNotice('ctx');
     };
     const schedule = () => {
@@ -487,8 +492,14 @@
     window.addEventListener('webglcontextlost', (e) => {
       if (!isMapCanvas(e)) return;
       lostAt = Date.now(); restored = false;
+      needsRecovery = needsRecovery || !!(window.SLOPES && window.SLOPES.on);
       window.LITE_PROFILE.contextLost = (window.LITE_PROFILE.contextLost | 0) + 1;
       if (!struck && visible() && window.SLOPES && window.SLOPES.on && (!B.revealed || introFlying())) struck = strike('ctx');
+      if (needsRecovery) {
+        if (window.slopes && typeof window.slopes.useContextFallback === 'function') window.slopes.useContextFallback();
+        else window.SLOPES.on = false;
+        window.LITE_PROFILE.contextFallback = true;
+      }
       schedule();
     }, true);
     window.addEventListener('webglcontextrestored', (e) => {

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
 const source=fs.readFileSync(new URL('../../js/heroes.js',import.meta.url),'utf8').replace(/\r\n/g,'\n');
-const begin=source.indexOf('  function installRoofUndersides(map, gj) {');
+const begin=source.indexOf('  function buildRoofUndersides(gj) {');
 const end=source.indexOf('\n  let _added = false;',begin);
 assert(begin>=0&&end>begin,'actual installer boundary must exist');
 let installer=source.slice(begin,end);
@@ -36,7 +36,7 @@ function fixture(late=false){
   let nextTimer=0;
   class Group{
     constructor(){this.children=[];this.userData={};this.parent=null;}
-    add(o){if(o.parent)o.parent.remove(o);this.children.push(o);o.parent=this;}
+    add(...objects){for(const o of objects){if(o.parent)o.parent.remove(o);this.children.push(o);o.parent=this;}}
     remove(o){this.children=this.children.filter(c=>c!==o);if(o.parent===this)o.parent=null;}
     traverse(fn){fn(this);for(const child of this.children)child.traverse?child.traverse(fn):fn(child);}
   }
@@ -67,13 +67,16 @@ function fixture(late=false){
 }
 
 const live=fixture();
-assert.equal(live.count.builds,1);
+assert.equal(live.count.builds,2,'GDC and NHB own independently disposable roof geometry');
 assert.equal(live.root.children.length,1);
 assert.equal(live.polygons.length,4,'NHB deck and the three existing GDC caps');
 assert.equal(live.window.__heroes.roofUndersides.triangles,
   roofs.reduce((n,f)=>n+f.geometry.coordinates[0].length-3,0));
 for(let i=0;i<roofs.length;i++){
-  const roof=roofs[i],emitted=live.polygons[i];
+  const roof=roofs[i];
+  const expected=roof.geometry.coordinates[0].slice(0,-1).map(([lng,lat])=>[lng*1000,lat*1000,roof.properties.base]);
+  const emitted=live.polygons.find(p=>JSON.stringify(p.points)===JSON.stringify(expected));
+  assert.ok(emitted,'each baked perimeter must have exactly matching underside geometry');
   assert.deepEqual(emitted.normal,[0,0,-1],'undersides must face down');
   assert.equal(emitted.plane,'xy');
   assert.deepEqual(emitted.points,roof.geometry.coordinates[0].slice(0,-1).map(([lng,lat])=>[lng*1000,lat*1000,roof.properties.base]),'use the baked roof perimeter and underside elevation');
@@ -87,26 +90,26 @@ function forToggle(){
   assert.equal(live.count.geometryDisposals,0,'toggle retains resources');
   live.toggle(true);assert.equal(live.root.children.length,1);
   assert.equal(live.root.children[0],originalGroup,'reattach the same owned mesh');
-  assert.equal(live.count.builds,1,'no allocation on repeated toggles');
+  assert.equal(live.count.builds,2,'no allocation on repeated toggles');
 }
 live.remove();
 assert.equal(live.root.children.length,0);
-assert.equal(live.count.geometryDisposals,1);
-assert.equal(live.count.materialDisposals,1);
+assert.equal(live.count.geometryDisposals,2);
+assert.equal(live.count.materialDisposals,2);
 live.toggle(false);live.toggle(true);
 assert.equal(live.root.children.length,0,'removed map cannot reattach geometry');
-assert.equal(live.count.builds,1);
+assert.equal(live.count.builds,2);
 
 const detached=fixture();detached.toggle(false);detached.remove();
-assert.equal(detached.count.geometryDisposals,1,'removed map also disposes a retained but detached group');
-assert.equal(detached.count.materialDisposals,1);
+assert.equal(detached.count.geometryDisposals,2,'removed map also disposes a retained but detached group');
+assert.equal(detached.count.materialDisposals,2);
 
 const late=fixture(true);
 assert.equal(late.count.builds,0);assert.equal(late.timers.size,1);
 late.slopes.root=late.root;late.tick();
-assert.equal(late.count.builds,1,'late renderer boot builds once');
+assert.equal(late.count.builds,2,'late renderer boot builds each owned roof once');
 assert.equal(late.timers.size,0);late.remove();
-assert.equal(late.count.geometryDisposals,1);
+assert.equal(late.count.geometryDisposals,2);
 
 const cancelled=fixture(true);
 const staleCallback=[...cancelled.timers.values()][0];

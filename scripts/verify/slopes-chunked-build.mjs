@@ -5,9 +5,12 @@
 // byte for byte — and no chunk may grow past its limit. No browser.
 //   node slopes-chunked-build.mjs            exit 0 = identical
 //   node slopes-chunked-build.mjs --break    drops the facet carry-over: exit 1
+// Optional THREE_R159_MODULE=/local/three.module.js uses the actual pinned
+// library, also checking the offline reference below. No network is used.
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
 
 let source = fs.readFileSync(new URL('../../js/slopes.js', import.meta.url), 'utf8').replaceAll('\r\n', '\n');
 if (process.argv.includes('--break')) {
@@ -24,17 +27,44 @@ class BufferGeometry {
 }
 class Vector2 { constructor(x, y) { Object.assign(this, { x, y }); } }
 // three r159's shapes: Float16BufferAttribute copies into a Uint16Array of
-// half-float BITS; DataUtils.toHalfFloat rounds to nearest.
+// half-float BITS; DataUtils.toHalfFloat TRUNCATES the float32 mantissa.
 class Float16BufferAttribute extends BufferAttribute {
   constructor(array, itemSize, normalized) { super(new Uint16Array(array), itemSize, normalized); this.isFloat16BufferAttribute = true; }
 }
 const f32 = new Float32Array(1), u32 = new Uint32Array(f32.buffer);
-function toHalfFloat(v) {
-  f32[0] = v; const x = u32[0], sign = (x >>> 16) & 0x8000;
-  let e = ((x >>> 23) & 0xff) - 112, m = x & 0x7fffff;
-  if (e <= 0) { if (e < -10) return sign; m = (m | 0x800000) >> (1 - e); return sign | ((m + 0x1000) >> 13); }
-  if (e >= 31) return sign | 0x7c00;
-  return (sign | (e << 10) | (m >> 13)) + ((m >> 12) & 1);
+// The base/shift branches from three@0.159.0 src/extras/DataUtils.js, applied
+// directly rather than precomputed in tables. Fixed r159 outputs below guard
+// against substituting a generic half converter with different rounding.
+function referenceHalf(v) {
+  f32[0] = Math.max(-65504, Math.min(65504, v));
+  const x = u32[0], sign = (x >>> 16) & 0x8000;
+  const e = ((x >>> 23) & 0xff) - 127, m = x & 0x7fffff;
+  if (e < -27) return sign;
+  if (e < -14) return (sign | (0x0400 >> (-e - 14))) + (m >> (-e - 1));
+  if (e <= 15) return (sign | ((e + 15) << 10)) + (m >> 13);
+  return (sign | 0x7c00) + (e < 128 ? 0 : m >> 13);
+}
+const r159Cases = [[0, 0], [-0, 0x8000], [0.078, 0x2cfd], [-0.078, 0xacfd],
+  [0.65, 0x3933], [1.00075, 0x3c00], [0.9999, 0x3bff], [2 ** -25, 0],
+  [2 ** -24, 1], [2 ** -14, 0x400], [0.000061, 0x3ff], [1, 0x3c00],
+  [2, 0x4000], [4, 0x4400], [2047, 0x67ff], [65504, 0x7bff], [-65504, 0xfbff]];
+let toHalfFloat = referenceHalf;
+if (process.env.THREE_R159_MODULE) {
+  const actual = await import(pathToFileURL(process.env.THREE_R159_MODULE).href);
+  assert.equal(actual.REVISION, '159', 'precision verification must match the app dependency');
+  toHalfFloat = actual.DataUtils.toHalfFloat;
+}
+for (const [v, bits] of r159Cases) {
+  assert.equal(referenceHalf(v), bits, 'offline r159 reference for ' + v);
+  assert.equal(toHalfFloat(v), bits, 'r159 DataUtils for ' + v);
+}
+// Cover both signs, normal and subnormal exponents, and mantissa boundaries.
+// When a module is supplied, this checks the reference against real r159.
+for (let e = -28; e <= 15; e++) for (const m of [0, 1, 4095, 4096, 8191, 8192, 8380415]) {
+  for (const s of [-1, 1]) {
+    const v = s * Math.min(65504, 2 ** e * (1 + m / 2 ** 23));
+    assert.equal(referenceHalf(v), toHalfFloat(v), 'r159 reference drift for ' + v);
+  }
 }
 const fromHalf = h => { const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, m = h & 1023; return e === 0 ? s * m * 2 ** -24 : s * (1 + m / 1024) * 2 ** (e - 15); };
 const THREE = { BufferAttribute, BufferGeometry, Vector2, Float16BufferAttribute, DataUtils: { toHalfFloat } };
@@ -106,7 +136,7 @@ for (const n of Object.keys(whole.out)) {
 }
 // Packed (LITE.budget.packVertices): positions, colours and facets still
 // identical; normals within half a byte step; aSurface within half-float
-// rounding, material indices exact; 34 bytes a vertex instead of 50.
+// truncation, material indices exact; 34 bytes a vertex instead of 50.
 const packedParts = run(context.buildChunked(LIMIT, true)).geometries();
 const packed = expand(packedParts);
 assert.equal(packed.tris, whole.tris);
@@ -117,6 +147,7 @@ for (const n of Object.keys(whole.out)) {
   for (let i = 0; i < A.length; i++) {
     if (n === 'normal') normalErr = Math.max(normalErr, Math.abs(P[Math.floor(i / 3) * 4 + i % 3] / 127 - A[i]));
     else if (n === 'aSurface') {
+      assert.equal(P[i], toHalfFloat(A[i]), 'surface bits must match r159 DataUtils');
       const v = fromHalf(P[i]), e = Math.abs(v - A[i]);
       if (i % 4 === 0) assert.equal(v, A[i], 'material index must be exact');
       surfaceErr = Math.max(surfaceErr, e / Math.max(Math.abs(A[i]), 1e-3));
@@ -124,7 +155,7 @@ for (const n of Object.keys(whole.out)) {
   }
 }
 assert.ok(normalErr <= 0.5 / 127 + 1e-7, 'normal error ' + normalErr);
-assert.ok(surfaceErr <= 2 ** -11, 'aSurface relative error ' + surfaceErr);
+assert.ok(surfaceErr <= 2 ** -10, 'aSurface relative error (r159 truncation) ' + surfaceErr);
 const bytesOf = parts => parts.reduce((s, g) => s + Object.values(g.attributes).reduce((t, a) => t + a.array.byteLength, 0), 0);
 const vtx = parts.reduce((s, g) => s + g.attributes.position.count, 0);
 assert.equal(bytesOf(parts), vtx * 50);
