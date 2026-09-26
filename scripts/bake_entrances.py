@@ -74,6 +74,7 @@ authored portals). Read all three before changing a number here.
 from __future__ import print_function
 
 import json
+import hashlib
 import math
 import os
 import re
@@ -6547,7 +6548,130 @@ def finish_arcades():
     return made
 
 
+# The campus Gearing courtyard model owns the rear doorway and its approach.
+# Keep this retirement separate from placement: removing a candidate earlier
+# would renumber every later eid. The legacy ramp slabs still belong here until
+# the continuous ground/ramp route is replaced by its owning bake.
+GEARING_COURT_RETIREMENT = {
+    "bid": "5f2441ff-0c49-4dea-990e-d9f2b97e4241",
+    "ref": "GEA", "role": "main", "src": "ut",
+    "door_center": (-97.73921745, 30.28771412),
+    "center_tolerance_m": 1.0,
+    "frozen_eid": 239,
+    "retire_kinds": frozenset(("door", "glass", "surround", "reveal",
+                                "transom", "step", "rail")),
+    "expected_kinds": {"door": 6, "glass": 6, "surround": 4,
+                       "reveal": 3, "transom": 1, "step": 18,
+                       "rail": 6, "ramp": 4},
+}
+GEARING_COURT_MARKER = "gearingCourtEntryRetirement"
+
+
+def gearing_court_marker(feats):
+    """Content-address the four retained slabs, including all their metadata."""
+    rule = GEARING_COURT_RETIREMENT
+    ramps = [f for f in feats if f["properties"]["eid"] == rule["frozen_eid"]]
+    assert len(ramps) == rule["expected_kinds"]["ramp"], (
+        "Gearing court retirement: expected exactly four remaining ramps")
+    assert all(f["properties"]["k"] == "ramp" and all(
+        f["properties"].get(k) == rule[k] for k in ("bid", "ref", "role", "src"))
+        for f in ramps), "Gearing court retirement: invalid retained ramp ownership"
+    return {"version": 1, "owner": "campus_gearing.py",
+            "eid": rule["frozen_eid"], "bid": rule["bid"],
+            "retiredPieces": sum(rule["expected_kinds"][k]
+                                 for k in rule["retire_kinds"]),
+            "retainedRampSha256": [hashlib.sha256(json.dumps(
+                f, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+                for f in ramps]}
+
+
+def retire_gearing_court_entry(feats):
+    """Retire one spatially identified doorway, preserving every ramp record.
+
+    The UUID/ref/role/source and door-bank centre identify the court entry;
+    the frozen eid/composition assertions expose snapshot or generator drift
+    instead of silently removing a different entry after a future rebake.
+    """
+    rule = GEARING_COURT_RETIREMENT
+    groups = defaultdict(list)
+    for f in feats:
+        p = f["properties"]
+        if all(p.get(k) == rule[k] for k in ("bid", "ref", "role", "src")):
+            groups[p["eid"]].append(f)
+    cx, cy = to_m(*rule["door_center"])
+    matches = []
+    for eid, group in groups.items():
+        points = [pt for f in group if f["properties"]["k"] == "door"
+                  for pt in f["geometry"]["coordinates"][0][:-1]]
+        if not points:
+            continue
+        x, y = to_m(*(sum(p[i] for p in points) / len(points) for i in (0, 1)))
+        if math.hypot(x - cx, y - cy) <= rule["center_tolerance_m"]:
+            matches.append(eid)
+    assert matches == [rule["frozen_eid"]], (
+        "Gearing court retirement: expected one frozen spatial entry, got %s"
+        % matches)
+    eid = matches[0]
+    group = [f for f in feats if f["properties"]["eid"] == eid]
+    assert group == groups[eid], "Gearing court retirement: mixed entry ownership"
+    kinds = Counter(f["properties"]["k"] for f in group)
+    assert kinds == rule["expected_kinds"], (
+        "Gearing court retirement: frozen piece composition changed: %s" % kinds)
+    arch = ARCHES.get(eid)
+    if arch is not None:
+        assert arch.get("bid") == rule["bid"] and arch.get("ref") == rule["ref"], (
+            "Gearing court retirement: mixed arch ownership")
+        del ARCHES[eid]
+    retired = rule["retire_kinds"]
+    feats[:] = [f for f in feats if not (
+        f["properties"]["eid"] == eid and f["properties"]["k"] in retired)]
+    LOCAL[:] = [r for r in LOCAL if not (r[0] == eid and r[1] in retired)]
+    print("Gearing court ownership: retired %d doorway/stair/rail pieces; "
+          "kept %d ramp slabs; retired %d arch records"
+          % (sum(kinds[k] for k in retired), kinds["ramp"], int(arch is not None)))
+    return gearing_court_marker(feats)
+
+
+def retire_gearing_court_only():
+    """Migrate the existing baked file without re-seating unrelated doors.
+
+    A normal full bake still applies the same retirement. This focused mode
+    preserves the existing snapshot, feature order and all unrelated metadata;
+    it does not query sources or rerun placement. The marker makes a second run
+    a checked no-op, not permission to accept an unmarked partial retirement.
+    """
+    with open(OUT, encoding="utf-8") as fh:
+        out = json.load(fh)
+    marker = out.get(GEARING_COURT_MARKER)
+    if marker is not None:
+        assert marker == gearing_court_marker(out["features"]), (
+            "Gearing court retirement: marker or retained ramp records changed")
+        assert str(GEARING_COURT_RETIREMENT["frozen_eid"]) not in out.get("arches", {}), (
+            "Gearing court retirement: retired arch metadata remains")
+        print("Gearing court ownership: already retired; four ramp records verified")
+        return
+    ARCHES.clear()
+    ARCHES.update((int(k), v) for k, v in out.get("arches", {}).items())
+    out[GEARING_COURT_MARKER] = retire_gearing_court_entry(out["features"])
+    out["arches"] = ARCHES
+    with open(OUT, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, separators=(",", ":"))
+    print("  wrote %s (existing snapshot %s; placement not rerun)"
+          % (os.path.relpath(OUT, ROOT), out.get("snapshot")))
+
+
 def main():
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("Usage: python scripts/bake_entrances.py [--retire-gearing-court-only]")
+        print("  default: full cached-source bake (SNAP_DATE optionally pins snapshot)")
+        print("  --retire-gearing-court-only: migrate existing output, preserving all")
+        print("    other entries and four rear ramp slabs; checked idempotent reruns")
+        print("  --refresh / --refresh-ut: refresh source observations")
+        return
+    if "--retire-gearing-court-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_gearing_court_only()
+        return
     if "--refresh" in sys.argv:
         refresh()
         return
@@ -6907,6 +7031,8 @@ def main():
         for c in sorted(b.ents, key=lambda c: (-c.score, c.x, c.y)):
             eid += 1
             assemble(feats, b, c, eid, stats)
+
+    gearing_retirement = retire_gearing_court_entry(feats)
 
     # ── SANITY, and the numbers go in the commit message ───────────────
     print("")
@@ -7326,7 +7452,8 @@ def main():
            # westcampus/capitol in either order.
            "replacedBuildingIds": [],
            # The curves the chords are sampled from — see ARCHES at the top.
-           "arches": ARCHES}
+           "arches": ARCHES,
+           GEARING_COURT_MARKER: gearing_retirement}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"))
     mb = os.path.getsize(OUT) / 1048576.0

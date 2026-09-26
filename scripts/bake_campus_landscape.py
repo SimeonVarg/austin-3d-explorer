@@ -363,6 +363,8 @@ from campus_ramps import compile_ramps
 walk_config=json.loads((ROOT/'data/campus_walk_profiles.json').read_text())
 output['ramps']=compile_ramps(json.loads((ROOT/'data/entrances.geojson').read_text())['features'],walk_config['rampIds'],walk_config['rampToe'])
 output['gardens']['places'].extend(compile_ground_repairs())
+from campus_gearing_ground import apply_gearing_ground
+apply_gearing_ground(output,json.loads((ROOT/'data/campus_buildings.json').read_text())['buildings'])
 output['treeRepairs']=tree_repairs
 OUT.write_text(json.dumps(output,separators=(',',':'),ensure_ascii=False)+'\n',encoding='utf-8')
 print('campus trees',len(trees),'species',dict(Counter(t[5]for t in trees)),'bytes',OUT.stat().st_size)
