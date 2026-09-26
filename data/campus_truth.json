@@ -785,22 +785,23 @@
         "note": "Austin LiDAR: 68.7 ft (20.9 m). UT Direct: 5 floors, 171,276 gross sq ft."
       },
       "entrance": {
-        "note": "Unambiguous in the photograph: \"THE EYES OF TEXAS ARE UPON YOU / THE UNION\" is carved into the stone base beneath a monumental round arch under a tower with a projecting bracketed roof, on the WEST elevation facing the West Mall plaza; a Longhorn medallion marks a secondary door in the lower west wing. This is, by `scripts/bake_entrances.py`'s own comment, \"THE BIGGEST HOLE IN THE SPEC\": UNB is NOT in UT's surveyed celebrated-entrance table, has no OSM `entrance=*` node, and the CELEBRATED override for UNB authors no coordinate at all -- its own note reads \"No source states which elevation the main door is on... the generic pass places it.\" This photograph is itself new, useful evidence toward closing that hole: a clear, labelled, unambiguous west-facing entrance, CC-licensed and citable.",
+        "note": "The monumental entrance faces south toward the West Mall approach. Earlier west-facing notes were incorrect. Its round arch contains a deep vault and smaller wood-and-glass doorway; two exterior stair flights reach a shared outdoor landing around a central wall and planting. Existing mapped tower placement is retained; facade depth and ground dimensions are estimates, not survey data. See docs/campus-truth/UNB.md.",
         "osm_tagged_nodes_on_this_building": [],
         "ut_facilities_survey_score": {
           "ut_surveyed": false
         }
       },
       "facade": {
-        "photographed_elevation": "the west (entrance, tower) elevation",
-        "window_grid_from_photo": "Not a uniform grid. South wing (right of the tower): ground-floor round arcade (~6-7 arches with radiating fanlights) with paired rectangular windows above at floor 2, roughly 1:1 with the arches below. Lower west wing (left of the tower): 3 ground windows plus a door, 3 tall shuttered casement windows above, a roof deck with a balustrade and 2 large ceramic urns. The tower itself: one large arched window/Juliet-balcony opening at floor 3, a band of narrow louvred slit openings near the roofline, a deep bracketed eave.",
+        "photographed_elevation": "south-facing entrance tower",
+        "window_grid_from_photo": "Three balcony-level openings (broad center and narrow flanks), four tall upper bays (left louver and three timber sash), deep portal with smaller arched door, bowed balcony and bracketed eave. Wing patterns remain outside the tower correction.",
         "app_current_family_assignment": {
           "family_code": "mr",
           "family_grid": "6 rows x 5 cols (2-3 storey walk-ups)",
           "computed_from": {
             "building_class": "university",
             "final_height_m": 11.9
-          }
+          },
+          "status": "Historical generic fallback; current Union uses the authored data/apartments/texas-union.json model."
         }
       },
       "photo": {

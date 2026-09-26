@@ -14,17 +14,17 @@ Austin LiDAR: 68.7 ft (20.9 m). UT Direct: 5 floors, 171,276 gross sq ft.
 
 ## Where the real entrance is
 
-Unambiguous in the photograph: "THE EYES OF TEXAS ARE UPON YOU / THE UNION" is carved into the stone base beneath a monumental round arch under a tower with a projecting bracketed roof, on the WEST elevation facing the West Mall plaza; a Longhorn medallion marks a secondary door in the lower west wing. This is, by `scripts/bake_entrances.py`'s own comment, "THE BIGGEST HOLE IN THE SPEC": UNB is NOT in UT's surveyed celebrated-entrance table, has no OSM `entrance=*` node, and the CELEBRATED override for UNB authors no coordinate at all -- its own note reads "No source states which elevation the main door is on... the generic pass places it." This photograph is itself new, useful evidence toward closing that hole: a clear, labelled, unambiguous west-facing entrance, CC-licensed and citable.
+The monumental entrance is on the south-facing tower, opening toward the West Mall approach. Earlier notes called it west-facing; that orientation was incorrect. The round arch surrounds a deep orange vault and a smaller wood-and-glass doorway. A projecting balcony sits above it, followed by four tall upper bays and a bracketed timber eave. Two exterior stair flights flank a low central wall and planting, reaching a shared outdoor landing.
 
-`UNB` is **not** in UT's surveyed celebrated-entrance table.
+`UNB` is **not** in UT's surveyed celebrated-entrance table. The current tower placement follows the existing mapped building model; facade depths and the approach grade are exterior-view estimates, not surveyed dimensions.
 
-## The window grid, counted off the photograph
+## The entrance tower
 
-*Photographed elevation: the west (entrance, tower) elevation.*
+The south tower has three balcony-level openings: one broad central opening and two narrow flanks. Its four upper bays comprise a louvered left bay and three timber sash bays. The deep entry vault contains a smaller arched wood-and-glass door. Adjacent wings have their own arcade and window patterns; this tower pass does not establish their photographic accuracy.
 
-Not a uniform grid. South wing (right of the tower): ground-floor round arcade (~6-7 arches with radiating fanlights) with paired rectangular windows above at floor 2, roughly 1:1 with the arches below. Lower west wing (left of the tower): 3 ground windows plus a door, 3 tall shuttered casement windows above, a roof deck with a balustrade and 2 large ceramic urns. The tower itself: one large arched window/Juliet-balcony opening at floor 3, a band of narrow louvred slit openings near the roofline, a deep bracketed eave.
+**Current application model:** `data/apartments/texas-union.json`, owned by `scripts/bake_union.py`, replaces the generic atlas facade. `scripts/campus_union.py` supplies the recessed portal, doors, balcony, four upper bays and bracketed eave. `scripts/campus_union_ground.py`, called by the landscape bake, supplies the connected exterior approach. See [the bounded correction and matched application views](../union-entrance.md).
 
-**What this app currently draws on this building today:** family `mr` — 6 rows x 5 cols (2-3 storey walk-ups), chosen by `js/facades.js`'s `familyFor()` from this building's own baked height (11.9 m) and class (`university`). This is the number the rest of the facade fix should be scored against.
+The former family `mr` assignment (6 rows by 5 columns, derived from an 11.9 m generic footprint height) describes the historical fallback, not the current authored Union. Mapped footprint, existing roof geometry and unmodified wings remain. Carved lettering, insignia, fine weathering and interior traversal remain unimplemented.
 
 ## Reference photograph
 
@@ -35,4 +35,4 @@ Not a uniform grid. South wing (right of the tower): ground-floor round arcade (
 
 ---
 
-*Compiled into `data/campus_truth.json` under the `UNB` key.*
+*The corresponding record is under `buildings.UNB` in `data/campus_truth.json`.*
