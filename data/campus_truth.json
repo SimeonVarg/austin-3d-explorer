@@ -116,7 +116,7 @@
         "note": "Austin LiDAR: 73.4 ft (22.4 m). UT Direct's facilities register: 7 floors -- but only 2 storeys are visible above grade on the photographed (east) elevation. Battle Hall was built as the university's library and its stack hall is known to carry internal book-stack tiers; that almost certainly accounts for the gap between '7 floors' on paper and 2 storeys on the wall, but this round did not independently verify the stack-tier count, so it is flagged rather than asserted."
       },
       "entrance": {
-        "note": "The single central round-arched door on the EAST elevation (facing the South Mall), flanked by wrought-iron lanterns. Confirmed three ways: visible in the photograph, `scripts/bake_entrances.py`'s CELEBRATED table already carries it as `facade=\"E\"` with an authored point marked [D] \"centre of the east wall\", and the final `data/entrances.geojson` places its `role: main` door 1.4 m from that authored point -- this is one of the entrances the pipeline gets right end to end.",
+        "note": "The east elevation has one central rectangular recessed doorway with teal paneled leaves, a flat stone lintel and flanking lanterns. The September 26 source review corrects the older arched-door claim. The authored Battle model owns this opening; legacy east assemblies 94 and 95 are retired, including the path-inferred doorway occupying a window bay. The historical UT survey proximity score below is location evidence, not evidence for the former arch shape.",
         "osm_tagged_nodes_on_this_building": [],
         "ut_facilities_survey_score": {
           "ut_surveyed": true,
@@ -127,20 +127,23 @@
           "dist_m": 1.4,
           "within_12m": true,
           "is_main": true,
-          "ut_side": "authored"
+          "ut_side": "authored",
+          "historical_prior_bake": true
         }
       },
       "facade": {
         "photographed_elevation": "the east (South Mall-facing) elevation",
-        "window_grid_from_photo": "East elevation, 2 storeys over a rusticated limestone base, counted off the photograph. Upper floor: 5 tall round-arched Palladian bays -- paired casements with divided lights, a small wrought-iron Juliet balcony under each, a carved roundel medallion above each arch. Ground floor: roughly 4 tall double-hung windows on each side of the central door (~8 total, symmetric), about 2 per upper arch bay -- the row counts do NOT match between floors. Red clay tile hip roof, deep bracketed eave with a polychrome tile frieze.",
+        "window_grid_from_photo": "East elevation: seven tall round-arched upper bays, each with a Juliet guard; six rectangular lower sash windows, three on either side of one rectangular central doorway. The upper sash has divided vertical lights, a central transom and fanlight bars. Pale stone arch surrounds enclose a narrow polychrome strip. Red clay hip roof with deep bracketed eave and teal/gold soffit panels. Dimensions and detailed ornament are approximate; west and short elevations are not established by these views.",
         "app_current_family_assignment": {
           "family_code": "mh",
           "family_grid": "8 rows x 5 cols (4-7 storey campus halls)",
           "computed_from": {
             "building_class": "university",
             "final_height_m": 21.5
-          }
-        }
+          },
+          "scope": "Historical generic fallback; the authored Battle asset overrides this facade."
+        },
+        "authored_east_override": "data/apartments/battle-hall.json: seven upper arches, six lower sash, central rectangular paneled door and bracketed eave; September 26, 2026."
       },
       "photo": {
         "wikimedia_title": "File:Battle Hall - UT Austin (54983869707).jpg",

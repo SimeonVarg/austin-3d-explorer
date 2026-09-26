@@ -6660,6 +6660,67 @@ def retire_gearing_court_only():
           % (os.path.relpath(OUT, ROOT), out.get("snapshot")))
 
 
+BATTLE_EAST_MARKER = "battleEastEntryRetirement"
+BATTLE_EAST_ENTRIES = {
+    94: ("main", "authored", (-97.7401655125, 30.28541115)),
+    95: ("secondary", "path", (-97.74014895, 30.2855767)),
+}
+BATTLE_EAST_BID = "283f5992-bc72-411a-80ba-25d0314544d0"
+
+
+def retire_battle_east_entries(feats):
+    """The authored east facade owns its photographed rectangular central door.
+
+    Retire both old arched assemblies after generation, retaining eid ordering.
+    The second was inferred from a path and occupies a photographed window bay.
+    Exact identity, position and composition checks fail on source drift.
+    """
+    for eid, (role, src, center) in BATTLE_EAST_ENTRIES.items():
+        group = [f for f in feats if f['properties']['eid'] == eid]
+        assert group and all(f['properties'].get('bid') == BATTLE_EAST_BID
+            and f['properties'].get('ref') == 'BTL'
+            and f['properties'].get('role') == role
+            and f['properties'].get('src') == src for f in group), 'Battle entry identity drift'
+        expected = {'reveal': 3, 'door': 2, 'glass': 2, 'transom': 5,
+                    'surround': 21, 'step': 6, 'rail': 6}
+        if eid == 94:
+            expected['sign'] = 4
+        assert Counter(f['properties']['k'] for f in group) == expected, 'Battle entry composition drift'
+        pts = [p for f in group if f['properties']['k'] == 'door'
+               for p in f['geometry']['coordinates'][0][:-1]]
+        x, y = to_m(*(sum(p[i] for p in pts)/len(pts) for i in (0, 1)))
+        cx, cy = to_m(*center)
+        assert math.hypot(x-cx, y-cy) < .1, 'Battle entry position drift'
+        arch = ARCHES.get(eid)
+        assert arch and arch.get('bid') == BATTLE_EAST_BID and arch.get('ref') == 'BTL', 'Battle arch identity drift'
+        del ARCHES[eid]
+    feats[:] = [f for f in feats if f['properties']['eid'] not in BATTLE_EAST_ENTRIES]
+    LOCAL[:] = [r for r in LOCAL if r[0] not in BATTLE_EAST_ENTRIES]
+    return {'version': 1, 'owner': 'campus_battle.py', 'bid': BATTLE_EAST_BID,
+            'eids': list(BATTLE_EAST_ENTRIES), 'retiredPieces': 94}
+
+
+def retire_battle_east_only():
+    """Migrate only the two frozen east entries; never rerun global placement."""
+    with open(OUT, encoding='utf-8') as fh:
+        out = json.load(fh)
+    expected = {'version': 1, 'owner': 'campus_battle.py', 'bid': BATTLE_EAST_BID,
+                'eids': list(BATTLE_EAST_ENTRIES), 'retiredPieces': 94}
+    if BATTLE_EAST_MARKER in out:
+        assert out[BATTLE_EAST_MARKER] == expected, 'Battle retirement marker drift'
+        assert not any(f['properties']['eid'] in BATTLE_EAST_ENTRIES for f in out['features'])
+        assert not any(str(eid) in out.get('arches', {}) for eid in BATTLE_EAST_ENTRIES)
+        print('Battle east entries already retired; checked no-op')
+        return
+    ARCHES.clear()
+    ARCHES.update((int(k), v) for k, v in out.get('arches', {}).items())
+    out[BATTLE_EAST_MARKER] = retire_battle_east_entries(out['features'])
+    out['arches'] = ARCHES
+    with open(OUT, 'w', encoding='utf-8') as fh:
+        json.dump(out, fh, separators=(',', ':'))
+    print('Battle east: retired 94 legacy pieces and two arch records; other entries unchanged')
+
+
 def main():
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Usage: python scripts/bake_entrances.py [--retire-gearing-court-only]")
@@ -6667,6 +6728,11 @@ def main():
         print("  --retire-gearing-court-only: migrate existing output, preserving all")
         print("    other entries and four rear ramp slabs; checked idempotent reruns")
         print("  --refresh / --refresh-ut: refresh source observations")
+        print("  --retire-battle-east-only: migrate the two obsolete east arch assemblies")
+        return
+    if "--retire-battle-east-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_battle_east_only()
         return
     if "--retire-gearing-court-only" in sys.argv:
         assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
@@ -7033,6 +7099,7 @@ def main():
             assemble(feats, b, c, eid, stats)
 
     gearing_retirement = retire_gearing_court_entry(feats)
+    battle_retirement = retire_battle_east_entries(feats)
 
     # ── SANITY, and the numbers go in the commit message ───────────────
     print("")
@@ -7453,7 +7520,8 @@ def main():
            "replacedBuildingIds": [],
            # The curves the chords are sampled from — see ARCHES at the top.
            "arches": ARCHES,
-           GEARING_COURT_MARKER: gearing_retirement}
+           GEARING_COURT_MARKER: gearing_retirement,
+           BATTLE_EAST_MARKER: battle_retirement}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"))
     mb = os.path.getsize(OUT) / 1048576.0
