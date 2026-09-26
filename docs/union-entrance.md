@@ -24,6 +24,8 @@ One imagery-detected tree occupied the clear vestibule approach. A narrow bake-s
 
 Six matched day/night second captures load all 196 authored buildings with exact tested Union and landscape assets, finite geometry and no page or console errors. Actual keyboard walking starts on the plaza, stops/restarts, climbs the left flight, crosses the outdoor landing, contacts the central wall, restarts toward the right flight and descends to the plaza without resetting the camera. All ten heights are observed on each flight. The final 2,945-frame route stays outside the building footprint; seven settled stops have zero drift and approximately 1.8 m eye clearance. Descent smoothing briefly raises clearance to 2.293 m before it settles back to walking height. The central coping blocks movement as expected.
 
+The peak clearance occurs over the lowest 0.15 m tread during active descent. Samples above 2 m span 1.126 simulation seconds; clearance returns to 1.800 m on the plaza 0.342 simulation seconds after the peak, while still moving. The trace therefore records a temporary interpolation lag, not a persistent elevated stop.
+
 The Gearing floor regression also passes. Its old height-only selection accidentally counted the new Union treads; the test now selects Gearing's stair footprint before applying the same floor-count, height and extent assertions. No controls or renderer change was needed. The original failed check and initial camera/framing attempts remain in local verification evidence.
 
 ## Remaining limits
