@@ -67,12 +67,20 @@ const uv = p => {
   const x = (p[0] - frame.o[0]) * frame.mx, y = (p[1] - frame.o[1]) * frame.my;
   return [x * frame.ax + y * frame.ay, -x * frame.ay + y * frame.ax];
 };
-const treads = data.walkableGround.filter(f => f.height > 0 && f.height < architecture.grade);
+// Other campus entrances also own floor surfaces. Count only Gearing's actual
+// stair footprint; height alone would count unrelated 0.15 m Union treads.
+const gearingStairs = data.walkableGround.filter(f => f.rings?.[0]?.every(p => {
+  const [u, v] = uv(p);
+  return u >= architecture.gateCentre - architecture.stairWidth / 2 - .001 &&
+    u <= architecture.gateCentre + architecture.stairWidth / 2 + .001 &&
+    v >= architecture.gateV - architecture.stairRun - .001 && v <= architecture.gateV + .001;
+}));
+const treads = gearingStairs.filter(f => f.height > 0 && f.height < architecture.grade);
 assert.equal(treads.length, architecture.stairCount - 1, 'Stair floor count matches architecture');
 for (let i = 0; i < architecture.stairCount; i++) {
   const height = architecture.grade * (i + 1) / architecture.stairCount;
   const front = architecture.gateV - architecture.stairRun + i * architecture.stairRun / architecture.stairCount;
-  const candidates = data.walkableGround.filter(f => Math.abs(f.height - height) < 1e-8);
+  const candidates = gearingStairs.filter(f => Math.abs(f.height - height) < 1e-8);
   const floor = candidates.find(f => Math.abs(Math.min(...f.rings[0].map(p => uv(p)[1])) - front) < .001);
   assert(floor, `Visible tread ${i + 1} has matching walking support`);
   const points = floor.rings[0].map(uv);

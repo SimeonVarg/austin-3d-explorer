@@ -67,7 +67,20 @@ for f in json.loads((ROOT/f'data/snapshots/{snapshot}/buildings.detailed.geojson
  g=make_valid(metric(shape(f['geometry'])))
  if not g.is_empty and all(math.isfinite(v)for v in g.bounds):walls.append(g)
 wall_index=STRtree(walls)
-clear_trees=[];tree_repairs={'insideBuildings':0,'canopiesClipped':0,'speedwayCanopies':0}
+# The documented Union south vestibule approach is paved and unobstructed.
+# Suppress only imagery detections inside this mapped doorway clearance. Keep
+# the row slot: tree geometry seeds use array indices. Density 2 exceeds every
+# supported preset/slider value (maximum 1), preserving all other tree shapes
+# and all old retirement keys without changing the renderer.
+UNION_APPROACH = dict(origin=[-97.74152403804212,30.28602088917869],
+    ax=.9961946980917455,ay=-.08715574274765817,mx=96126.44678836058,my=111320,
+    bounds=[23.,29.,-5.,0.])
+def false_union_approach_tree(t):
+ if t[8]!='imagery':return False
+ f=UNION_APPROACH;dx=(t[0]-f['origin'][0])*f['mx'];dy=(t[1]-f['origin'][1])*f['my']
+ u=dx*f['ax']+dy*f['ay'];v=-dx*f['ay']+dy*f['ax'];a,b,c,d=f['bounds']
+ return a<=u<=b and c<=v<=d
+clear_trees=[];tree_repairs={'insideBuildings':0,'canopiesClipped':0,'speedwayCanopies':0,'unionApproach':0}
 speedway=metric(LineString([[-97.73772,30.28175],[-97.73704,30.2860],[-97.73686,30.2878]]))
 SPEEDWAY_BUFFER=11
 SPEEDWAY_MAX_RADIUS=2.7
@@ -79,7 +92,9 @@ for t in trees:
  radius=min(t[2],max(0,clearance-TREE_CLEARANCE)/TREE_ENVELOPE_GAIN)
  if radius<TREE_MIN_RADIUS:tree_repairs['insideBuildings']+=1;continue
  if radius<t[2]-.01:tree_repairs['canopiesClipped']+=1
- t[2]=round(radius,2);clear_trees.append(t)
+ t[2]=round(radius,2)
+ if false_union_approach_tree(t):t[6]=2;tree_repairs['unionApproach']+=1
+ clear_trees.append(t)
 trees=clear_trees
 
 def compile_court_details(config, frame, court):
@@ -365,6 +380,8 @@ output['ramps']=compile_ramps(json.loads((ROOT/'data/entrances.geojson').read_te
 output['gardens']['places'].extend(compile_ground_repairs())
 from campus_gearing_ground import apply_gearing_ground
 apply_gearing_ground(output,json.loads((ROOT/'data/campus_buildings.json').read_text())['buildings'])
+from campus_union_ground import apply_union_ground
+apply_union_ground(output,json.loads((ROOT/'data/apartments/texas-union.json').read_text(encoding='utf-8')))
 output['treeRepairs']=tree_repairs
 OUT.write_text(json.dumps(output,separators=(',',':'),ensure_ascii=False)+'\n',encoding='utf-8')
 print('campus trees',len(trees),'species',dict(Counter(t[5]for t in trees)),'bytes',OUT.stat().st_size)

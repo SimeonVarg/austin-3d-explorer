@@ -121,14 +121,9 @@ s['balcony']={'proj':.65,'slabT':.16,'railH':1,'railT':.045,'railPitch':.2,'rail
 b['faces']={'u1':{'bands':copy.deepcopy(b['bands'])}}
 b['faces']['u1']['bands'][2]['balconies']=[{'s0':i*8.62+2.65,'s1':i*8.62+5.97} for i in range(5)]
 save('battle-hall',s)
-s,F,uv=base('Union Building','docs/campus-truth/UNB.md; https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/UTM/UNB/');L,W=F['L'],F['W'];s['levels']['floors']=[0,4.4,9.5,13,18.3];s['preserveRoof']=True
-s['skins']['arcade']=bays('stone',5.3,2.3,3.6,.6);s['skins']['arcade']['window']['arch']={'rise':1.15,'tone':'trim','trim':.18};s['skins']['arcade']['window']['mullion']={'cols':[.5],'rows':[.55],'w':.10};s['skins']['arcade']['reveal']=.5
-s['skins']['paired']=bays('wall',5.3,1.1,2.6,.6);s['skins']['paired']['window']['offsets']=[[-.9,1.1],[.9,1.1]]
-s['skins']['slits']=bays('stone',4.36,1.4,2.4,1.2)
-s['skins']['towerdoor']=bays('stone',13.1,3.7,7.2,1.7);s['skins']['towerdoor']['window']['arch']={'rise':1.85,'tone':'trim','trim':.45};s['skins']['towerdoor']['window']['mullion']={'cols':[.33,.66],'rows':[.35,.7],'w':.12};s['skins']['towerdoor']['window']['cols']=[.5];s['skins']['towerdoor']['reveal']=.85
-s['blocks']=[block('main-wings',{'ring':uv},0,12.80,'paired')];s['blocks'][0]['bands']=[band(0,4.4,'paired'),band(4.4,9.5,'arcade'),band(9.5,12.80,'paired')]
-b=block('entrance-tower',[20.3,33.4,0,13.5],0,18.3,'stone');b['bands']=[band(0,9.5,'towerdoor'),band(9.5,13,'paired'),band(13,18.3,'slits')];roof(s,b,18,over=.85);s['blocks'].append(b);cornice(s,'tower-eave',[20.3,33.4,0,13.5],18.05,.75)
-save('texas-union',s)
+# Union has a dedicated output owner; keep the legacy all-model entrypoint wired.
+from bake_union import main as bake_union
+s=bake_union();NEW.append(('texas-union',s))
 s,F,uv=base(feature(next(f['properties']['name'] for f in features if 'Perry' in (f['properties'].get('name') or '') ))['properties']['name'],'docs/campus-truth/PCL.md')
 s['name']='Perry-Castañeda Library';s['levels']['floors']=[0,4.8,9.6,14.4,19.2,24];s['skins']['slots']=bays('stone',2.5,.72,3.8,.5);s['skins']['slots']['reveal']=.85;s['skins']['slots']['pier']={'w':.48,'d':.22,'tone':'stone'}
 b=block('library',{'ring':uv},0,28.4,'stone',parapet=.5,parapetTone='stone');b['faces']={}
