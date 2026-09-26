@@ -48,6 +48,8 @@ def apply_union_ground(output, model):
 
     meshes = {key: dict(kind='detailMesh', colour=t[key], vertices=[], triangles=[])
               for key in ('stone', 'coping', 'foliage', 'flowers')}
+    for key in ('stone', 'coping'):
+        meshes[key]['structural'] = True
     floors = []
 
     def solid(key, vertices, faces):
@@ -67,7 +69,7 @@ def apply_union_ground(output, model):
               [(3,2,1,0),(4,5,6,7),(0,1,5,4),(1,2,6,5),
                (2,3,7,6),(3,0,4,7)])
         if support:
-            floors.append(dict(rings=[ring(rect)], height=top))
+            floors.append(dict(rings=[ring(rect)], height=top, structural=True))
 
     box('stone', t['landing'], 0, t['grade'], support=True)
     for left,right in t['flights']:

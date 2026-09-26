@@ -41,7 +41,7 @@ function constant(name) {
   assert(match, `Production constant missing: ${name}`);
   return Number(match[1]);
 }
-const context = vm.createContext({data, group: {}, C: {on: true}, window: {SLOPES: {on: true}}});
+const context = vm.createContext({data, structuralGroup: {}, C: {on: true}, window: {SLOPES: {on: true}, slopesApartments: {group: {}, built: [{id: hall.id}]}}});
 const run = source => vm.runInContext(source, context);
 run(between(landscape, ' const GROUND_CELL=', ' const hash=') +
   between(landscape, ' function inRing(', '\n function shrubs(') +
@@ -88,9 +88,19 @@ for (let i = 0; i < architecture.stairCount; i++) {
   near(Math.max(...points.map(p => p[0])), architecture.gateCentre + architecture.stairWidth / 2, 'Right stair edge', .001);
   near(Math.max(...points.map(p => p[1])), front + architecture.stairRun / architecture.stairCount, 'Rear tread edge', .001);
 }
-context.C.on = false; assert.equal(at(26, 10), 0); context.C.on = true;
+context.C.on = false; near(at(26, 10), 1.57, 'Phone floor independent of planting'); context.C.on = true;
 context.window.SLOPES.on = false; assert.equal(at(26, 10), 0); context.window.SLOPES.on = true;
-context.group = null; assert.equal(at(26, 10), 0); context.group = {};
+context.structuralGroup = null; assert.equal(at(26, 10), 0); context.structuralGroup = {};
+context.structuralGroup.visible = false; assert.equal(at(26, 10), 0); context.structuralGroup.visible = true;
+context.window.slopesApartments.group = null; assert.equal(context.query(...tread(0)), 0);
+context.window.slopesApartments.group = {}; context.window.slopesApartments.built = [{id: 'another-building'}];
+assert.equal(context.query(...tread(0)), 0, 'Missing authored model has no invisible stair support');
+context.window.slopesApartments.group = {}; context.window.slopesApartments.built = [{id: hall.id}];
+near(context.query(...tread(0)), 1.57 / 10, 'Successful authored model activates its stair support');
+context.window.slopesApartments.group.visible = false; assert.equal(context.query(...tread(0)), 0);
+context.window.slopesApartments.group = null;
+near(at(26, 10), 1.57, 'Visible terrace independent of authored build completion');
+context.window.slopesApartments.group = {};
 
 // Once compiled, queries must never revisit garden or source-floor arrays.
 context.data = new Proxy(data, {get() { throw new Error('Floor query rescanned source data'); }});
@@ -101,7 +111,8 @@ context.data = data;
 // A synthetic floor with a hole verifies polygon semantics independently of
 // this bake's particular tessellation. An overhead garden surface is ignored.
 const rect = (x0, y0, x1, y1) => [[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]].map(p => ll(...p));
-context.data = {walkableGround: [{height: 2, rings: [rect(0,0,10,10), rect(3,3,7,7)]}],
+context.data = {walkableGround: [{height: 2, structural: true, rings: [rect(0,0,10,10), rect(3,3,7,7)]},
+  {height: 50, rings: [rect(0,0,10,10)]}],
   gardens: {places: [{features: [{height: 50, rings: [rect(0,0,10,10)]}]}]}};
 context.reindex(); near(at(1, 1), 2, 'Explicit synthetic floor');
 assert.equal(at(5, 5), 0, 'Floor hole remains open below overhead geometry');

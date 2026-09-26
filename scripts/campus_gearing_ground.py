@@ -32,6 +32,7 @@ def apply_gearing_ground(output, halls):
     def poly(f):
         return transform(uv, Polygon(f['rings'][0], f['rings'][1:]))
     ramp=next(r for r in output['ramps'] if r['eid']==239)
+    ramp['structural']=True
     ramp_poly=Polygon([uv(*p[:2]) for p in ramp['vertices']])
     channel=ramp_poly.buffer(T['rampClearance'],join_style=2)
     boundary=[uv(*p) for p in hall['footprint']['ring']]
@@ -43,8 +44,8 @@ def apply_gearing_ground(output, halls):
     existing=deepcopy(garden['features']); features=[]
     floor=[]
     for p in parts(terrace):
-        features.append(dict(kind='pave',height=T['grade'],rings=rings(p)))
-        floor.append(dict(rings=rings(p),height=T['grade']))
+        features.append(dict(kind='pave',height=T['grade'],rings=rings(p),structural=True))
+        floor.append(dict(rings=rings(p),height=T['grade'],structural=True))
     planting=box(T['innerLeft'],T['plantingFront'],T['innerRight'],T['plantingBack']).difference(channel)
     for f in existing:
         if 'rings' in f:
@@ -72,7 +73,7 @@ def apply_gearing_ground(output, halls):
     pu=((b[2]-a[2])*(cy-ay)-(c[2]-a[2])*(by-ay))/det
     pv=((bx-ax)*(c[2]-a[2])-(cx-ax)*(b[2]-a[2]))/det
     height=lambda u,v:a[2]+pu*(u-ax)+pv*(v-ay)
-    mesh=dict(kind='detailMesh',colour=ramp['colour'],vertices=[],triangles=[])
+    mesh=dict(kind='detailMesh',colour=ramp['colour'],vertices=[],triangles=[],structural=True)
     for p in parts(channel.intersection(court).difference(ramp_poly)):
         for tri in triangulate(p):
             if not p.covers(tri.representative_point()):continue
@@ -84,13 +85,13 @@ def apply_gearing_ground(output, halls):
     # crossover onto the retained ramp before the rear wall. Its small level
     # difference is an inferred connection, not a surveyed access detail.
     for side in [channel.bounds[0],channel.bounds[2]]:
-        features.append(dict(kind='raisedRail',line=[ll(side,T['front']),ll(side,T['railEnd'])],base=T['grade']))
+        features.append(dict(kind='raisedRail',line=[ll(side,T['front']),ll(side,T['railEnd'])],base=T['grade'],structural=True))
     # Controls use only these explicit ground surfaces, never overhead meshes.
-    floor.append(dict(vertices=deepcopy(ramp['vertices']),rings=rings(channel.intersection(court))))
+    floor.append(dict(vertices=deepcopy(ramp['vertices']),rings=rings(channel.intersection(court)),structural=True))
     for i in range(T['stepsCount']):
         start=T['stepsFront']+(T['stepsBack']-T['stepsFront'])*i/T['stepsCount']
         end=T['stepsFront']+(T['stepsBack']-T['stepsFront'])*(i+1)/T['stepsCount']
-        floor.append(dict(rings=rings(box(T['stepsLeft'],start,T['stepsRight'],end)),height=T['grade']*(i+1)/T['stepsCount']))
+        floor.append(dict(rings=rings(box(T['stepsLeft'],start,T['stepsRight'],end)),height=T['grade']*(i+1)/T['stepsCount'],structural=True,requiresAuthored=hall['id']))
     garden['features']=features
     garden['note']+=' Raised court datum inferred from the existing ramp landing; absolute elevation is not surveyed. Rail ends align with the rear planting edge to leave an inferred crossover onto the unchanged ramp.'
     output['walkableGround']=floor

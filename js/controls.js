@@ -1768,7 +1768,8 @@ function initControls(map, scene) {
       let want = roof > 0 ? roof + skinV() : 0;
       if (want - altUser > stepUp()) want = 0;    // too tall to lift over; the slide already stopped us
       want = Math.max(want, stepFloor);
-      want = Math.max(want, groundEyeMin());
+      // Ground follows steps above and is enforced directly below. Feeding it
+      // into rooftop decay again leaves pedestrians floating on stair descent.
       const tf = want > altFloor ? TAU_FLOOR_UP : TAU_FLOOR_DOWN;
       const next = altFloor + (want - altFloor) * (1 - Math.exp(-dt / tf));
       altFloor += clamp(next - altFloor, -FALL * dt, LIFT * dt);

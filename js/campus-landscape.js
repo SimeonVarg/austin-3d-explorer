@@ -19,16 +19,23 @@
   furniture:{pole:.035,umbrellaSides:8,canopyRise:.45,seatHeight:.46,seatRadius:.23,railHeight:1.05,railPostPitch:1.4},
   livingWall:{bottom:.45,spacing:.65,radius:.4},fountain:{stem:.16,bowl:.55,height:1.45},shrubQuality:1.3,
  };
- let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
- const count={done:false,trees:0,triangles:0,gardens:0,railings:0};
+ let data=null,map=null,group=null,structuralGroup=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
+ const count={done:false,trees:0,triangles:0,gardens:0,railings:0,structuralTriangles:0};
  // Explicit ground-only geometry is indexed once on load. Overhead court
  // canopies and buildings must never become walking floors.
  const GROUND_CELL=8;
+ let authoredGroup=null,authoredIds=new Set();
+ function authoredPresent(id){
+  const apartments=window.slopesApartments,g=apartments?.group;
+  if(!g||g.visible===false)return false;
+  if(g!==authoredGroup){authoredGroup=g;authoredIds=new Set(apartments.built.map(b=>b.id))}
+  return authoredIds.has(id);
+ }
  let groundIndex=new Map(),groundOrigin=[0,0],groundMx=1;
  const groundPoint=(lng,lat)=>[(lng-groundOrigin[0])*groundMx,(lat-groundOrigin[1])*111320];
  function indexGround(){
   groundIndex=new Map();
-  const surfaces=data.walkableGround||[];
+  const surfaces=(data.walkableGround||[]).filter(f=>f.structural===true);
   if(!surfaces.length)return;
   groundOrigin=surfaces[0].rings[0][0];groundMx=111320*Math.cos(groundOrigin[1]*Math.PI/180);
   for(const f of surfaces){
@@ -43,7 +50,7 @@
     plane=[u,v,a[2]-u*a[0]-v*a[1]];
    }
    if(!plane.every(Number.isFinite))continue;
-   const entry={rings,plane};
+   const entry={rings,plane,requiresAuthored:f.requiresAuthored||null};
    for(let x=Math.floor(Math.min(...xs)/GROUND_CELL);x<=Math.floor(Math.max(...xs)/GROUND_CELL);x++)
     for(let y=Math.floor(Math.min(...ys)/GROUND_CELL);y<=Math.floor(Math.max(...ys)/GROUND_CELL);y++){
      const key=x+','+y;if(!groundIndex.has(key))groundIndex.set(key,[]);groundIndex.get(key).push(entry);
@@ -51,10 +58,10 @@
   }
  }
  function floorAt(lng,lat){
-  if(!C.on||!window.SLOPES?.on||!group)return 0;
+  if(!window.SLOPES?.on||!structuralGroup||structuralGroup.visible===false)return 0;
   const [x,y]=groundPoint(lng,lat),entries=groundIndex.get(Math.floor(x/GROUND_CELL)+','+Math.floor(y/GROUND_CELL))||[];
   let height=0;
-  for(const f of entries)if(inRing(x,y,f.rings[0])&&!f.rings.slice(1).some(r=>inRing(x,y,r)))
+  for(const f of entries)if((!f.requiresAuthored||authoredPresent(f.requiresAuthored))&&inRing(x,y,f.rings[0])&&!f.rings.slice(1).some(r=>inRing(x,y,r)))
    height=Math.max(height,f.plane[0]*x+f.plane[1]*y+f.plane[2]);
   return height;
  }
@@ -153,9 +160,12 @@
   for(const [a,b,c]of triangles)B.tri(points[a],points[b],points[c],col);
   return true;
  }
- function buildGardens(B){
-  count.gardens=0;
+ function buildGardens(B,structural=false){
+  if(!structural)count.gardens=0;
+  let featureIndex=0;
   for(const place of data.gardens.places||[])for(const f of place.features||[]){
+   const ordinal=featureIndex++;
+   if((f.structural===true)!==structural)continue;
    const col=(C.gardens[f.kind]||C.gardens.bed).slice(),z=f.height??C.gardenHeights[f.kind]??.1;
    if(C.surface[f.kind])col.surface=C.surface[f.kind];
    if(f.rings){
@@ -165,7 +175,7 @@
     }
     if(f.plants)shrubs(B,f);
    }
-   if(f.kind==='detailMesh')detailMesh(B,f);
+   if(f.kind==='detailMesh'&&!detailMesh(B,f)&&structural)throw new Error('Invalid structural ground mesh');
    if(f.kind==='beam'){const a=slopes.toLocal(...f.a),b=slopes.toLocal(...f.b);stem(B,[a.x,a.y,a.z],[b.x,b.y,b.z],f.radius,f.radius,f.colour);}
    if(f.kind==='bench'){
     const T=data.gardens.detail,p=slopes.toLocal(...f.at,0),a=f.bearing||0,base=f.base||0;
@@ -178,7 +188,7 @@
     for(let z=base+T.benchHeight+.16;z<base+T.benchBack;z+=T.benchSlat*1.3)boxMesh(B,back,T.benchLength,.07,z,z+T.benchSlat,C.gardens.bench,a);
    }
    if(f.kind==='umbrella'){
-    const p=slopes.toLocal(...f.at,0),T=C.furniture,n=T.umbrellaSides,col=f.colours[count.gardens%f.colours.length];
+    const p=slopes.toLocal(...f.at,0),T=C.furniture,n=T.umbrellaSides,col=f.colours[ordinal%f.colours.length];
     stem(B,[p.x,p.y,0],[p.x,p.y,f.height+T.canopyRise],T.pole,T.pole,C.bark);
     const disc=(radius,z,col)=>{for(let i=0;i<24;i++){const a=i/24*Math.PI*2,b=(i+1)/24*Math.PI*2;B.tri([p.x,p.y,z],[p.x+radius*Math.cos(a),p.y+radius*Math.sin(a),z],[p.x+radius*Math.cos(b),p.y+radius*Math.sin(b),z],col,[0,0,1])}};
     disc(f.tableRadius,f.tableHeight,C.gardens.bench);
@@ -215,18 +225,30 @@
     stem(B,[p.x,p.y,base+.46],[p.x,p.y,base+T.height],T.stem,T.stem,C.gardens.stone);
     crown(B,[p.x,p.y,base+T.height],[T.bowl,T.bowl,.12],0,C.gardens.stone,.8);
    }
-   count.gardens++;
+   if(!structural)count.gardens++;
   }
  }
- function build(){
-  const chunks=new Map();count.triangles=0;buildTrees(chunks);
-  const gardens=slopes.build();buildGardens(gardens);chunks.set('gardens',gardens);
+ function buildRamps(gardens,structural){
   for(const r of data.ramps||[]){
+   if((r.structural===true)!==structural)continue;
    const points=r.vertices.map(ll=>{const p=slopes.toLocal(...ll);return [p.x,p.y,p.z]}),ring=points.map(p=>new THREE.Vector2(p[0],p[1]));
    const col=r.colour.slice();col.surface=C.surface.pave;
    for(const [a,b,c]of THREE.ShapeUtils.triangulateShape(ring,[]))gardens.tri(points[a],points[b],points[c],col);
    for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];gardens.quad([a[0],a[1],0],[b[0],b[1],0],b,a,col)}
   }
+ }
+ function buildStructural(){
+  const B=slopes.build();buildGardens(B,true);buildRamps(B,true);
+  const g=new THREE.Group();g.name='campus-structural-ground';
+  // Permanent ground has no vegetation LOD. Its support is enabled only while
+  // this matching geometry exists; authored stairs additionally need their owner.
+  if(B.triangles){const mesh=new THREE.Mesh(B.geometry(),slopes.material());mesh.name='campus-structural';g.add(mesh)}
+  count.structuralTriangles=B.triangles;return g;
+ }
+ function build(){
+  const chunks=new Map();count.triangles=0;buildTrees(chunks);
+  const gardens=slopes.build();buildGardens(gardens);chunks.set('gardens',gardens);
+  buildRamps(gardens,false);
   if(C.walks.on){
    const col=C.walks.colour.slice();col.surface=C.walks.surface;
    for(const f of data.walks||[])polygon(gardens,f.rings,f.z+C.walks.lift,col);
@@ -261,6 +283,12 @@
  function drop(){
   if(!group)return;
   slopes.remove(group);group.traverse(o=>o.geometry?.dispose());group=null;
+  count.trees=0;count.triangles=0;count.gardens=0;count.railings=0;
+ }
+ function dropStructural(){
+  if(!structuralGroup)return;
+  slopes.remove(structuralGroup);structuralGroup.traverse(o=>o.geometry?.dispose());structuralGroup=null;
+  count.structuralTriangles=0;
  }
  let fenceClause=null;
  let rampClause=null;
@@ -269,8 +297,8 @@
   let base=map.getFilter('entrances-detail');
   if(rampClause&&base?.[0]==='all')base=base.slice(1).filter(c=>JSON.stringify(c)!==JSON.stringify(rampClause));
   else base=base?[base]:[];
-  const ids=(data.ramps||[]).map(r=>r.eid);
-  rampClause=on&&ids.length?['any',['!=',['get','k'],'ramp'],['!',['in',['get','eid'],['literal',ids]]]]:null;
+  const ids=(data.ramps||[]).filter(r=>r.structural===true?SLOPES.on&&!!structuralGroup:on).map(r=>r.eid);
+  rampClause=ids.length?['any',['!=',['get','k'],'ramp'],['!',['in',['get','eid'],['literal',ids]]]]:null;
   map.setFilter('entrances-detail',['all',...base,...(rampClause?[rampClause]:[])]);
  }
  const walkFilters=new Map();
@@ -294,6 +322,8 @@
  function apply(){
   if(!data||!map||!window.slopes?.root)return;
   const on=C.on&&SLOPES.on;
+  if(!SLOPES.on)dropStructural();
+  else if(!structuralGroup){structuralGroup=buildStructural();slopes.add(structuralGroup)}
   if(group&&(!on||lastDensity!==(window.GFX?.treeDensity??1)||lastDetail!==slopes.detail()))drop();
   if(on&&!group){group=build();slopes.add(group)}
   applyFences(on);
@@ -303,7 +333,7 @@
   map.triggerRepaint();
  }
  window.applyCampusLandscape=apply;
- window.campusLandscape={get count(){return {...count}},get group(){return group},get data(){return data},floorAt,rebuild(){drop();apply()}};
+ window.campusLandscape={get count(){return {...count}},get group(){return group},get structuralGroup(){return structuralGroup},get data(){return data},floorAt,rebuild(){drop();dropStructural();apply()}};
  if(q.get('slopes')==='0'){count.done=true;return}
  let busy=false;
  const timer=setInterval(async()=>{
@@ -313,11 +343,13 @@
    map=window.__map;data=await slopes.fetchJSON(C.url);originalFilter=window.treeFilter;
    indexGround();
    window.treeFilter=function(kind){
-    const base=originalFilter(kind);if(!C.on||!SLOPES.on||!group)return base;
+    const base=originalFilter(kind);
     const key=kind==='canopy'?canopyKey:trunkKey,keys=kind==='canopy'?data.canopyKeys:data.trunkKeys;
+    const active=C.on&&SLOPES.on&&!!group;
+    const retired=active?keys:(kind==='canopy'?data.retiredCanopyKeys||[]:[]);
     // MapLibre's within expression does not match polygon features. These
     // recorded compound keys identify whole crowns across all their tiers.
-    return ['all',base,['!',['in',key,['literal',keys]]]];
+    return retired.length?['all',base,['!',['in',key,['literal',retired]]]]:base;
    };
    slopes.onSwitch(apply);apply();count.done=true;console.log('[campus-landscape]',count.trees,'trees',count.gardens,'garden surfaces',count.triangles,'triangles');
    // Presets and density controls already call applyTreeDensity; rebuild the

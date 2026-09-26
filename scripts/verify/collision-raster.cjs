@@ -115,7 +115,7 @@ function constant(name) {
   assert(match, `Production constant missing: ${name}`);
   return Number(match[1]);
 }
-const ground = vm.createContext({data: groundData, group: {}, C: {on: true}, window: {SLOPES: {on: true}},
+const ground = vm.createContext({data: groundData, structuralGroup: {}, C: {on: true}, window: {SLOPES: {on: true}},
   ALT_GROUND: constant('ALT_GROUND'), ALT_MIN: constant('ALT_MIN'), R_CAM: constant('R_CAM'),
   R_CAM_GROUND: constant('R_CAM_GROUND'), alt: 0,
   clamp: (v,lo,hi) => Math.min(hi,Math.max(lo,v)), lerp: (a,b,t) => a+(b-a)*t});

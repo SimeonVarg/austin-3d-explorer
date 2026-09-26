@@ -80,11 +80,11 @@ def false_union_approach_tree(t):
  f=UNION_APPROACH;dx=(t[0]-f['origin'][0])*f['mx'];dy=(t[1]-f['origin'][1])*f['my']
  u=dx*f['ax']+dy*f['ay'];v=-dx*f['ay']+dy*f['ax'];a,b,c,d=f['bounds']
  return a<=u<=b and c<=v<=d
-clear_trees=[];tree_repairs={'insideBuildings':0,'canopiesClipped':0,'speedwayCanopies':0,'unionApproach':0}
+clear_trees=[];retired_canopy_keys=[];tree_repairs={'insideBuildings':0,'canopiesClipped':0,'speedwayCanopies':0,'unionApproach':0}
 speedway=metric(LineString([[-97.73772,30.28175],[-97.73704,30.2860],[-97.73686,30.2878]]))
 SPEEDWAY_BUFFER=11
 SPEEDWAY_MAX_RADIUS=2.7
-for t in trees:
+for tree_index,t in enumerate(trees):
  pt=metric(Point(t[:2]));
  if pt.distance(speedway)<SPEEDWAY_BUFFER and t[2]>SPEEDWAY_MAX_RADIUS:t[2]=SPEEDWAY_MAX_RADIUS;tree_repairs['speedwayCanopies']+=1
  near=wall_index.query(pt.buffer(t[2]*TREE_ENVELOPE_GAIN+TREE_CLEARANCE))
@@ -93,7 +93,9 @@ for t in trees:
  if radius<TREE_MIN_RADIUS:tree_repairs['insideBuildings']+=1;continue
  if radius<t[2]-.01:tree_repairs['canopiesClipped']+=1
  t[2]=round(radius,2)
- if false_union_approach_tree(t):t[6]=2;tree_repairs['unionApproach']+=1
+ if false_union_approach_tree(t):
+  t[6]=2;tree_repairs['unionApproach']+=1
+  retired_canopy_keys.append(canopy_keys[tree_index])
  clear_trees.append(t)
 trees=clear_trees
 
@@ -383,5 +385,8 @@ apply_gearing_ground(output,json.loads((ROOT/'data/campus_buildings.json').read_
 from campus_union_ground import apply_union_ground
 apply_union_ground(output,json.loads((ROOT/'data/apartments/texas-union.json').read_text(encoding='utf-8')))
 output['treeRepairs']=tree_repairs
+# Explicitly rejected detections stay rejected in the ordinary tree fallback.
+# Other inventory trees keep the original filter and density behavior.
+output['retiredCanopyKeys']=retired_canopy_keys
 OUT.write_text(json.dumps(output,separators=(',',':'),ensure_ascii=False)+'\n',encoding='utf-8')
 print('campus trees',len(trees),'species',dict(Counter(t[5]for t in trees)),'bytes',OUT.stat().st_size)
