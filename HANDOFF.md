@@ -1,5 +1,38 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 25 2026 - One-pair motion diagnostic (`codex/compiled-building-lifecycle`)
+
+The separately authorized diagnostic is complete: one legacy/compiled pair on
+the same September 25 data and production source `ef77c413`. External profiling
+added CPU samples, allocation samples and a bounded main-thread trace after
+warm-up. Both captures and their clock/source checks pass. The production files,
+catalog, route, budgets, shadow behavior and application default are unchanged.
+Profiler overhead makes these diagnostic observations, not acceptance results.
+
+The clearest bounded correction is to retain the zero-draw upload staging
+material for its renderer/context lifetime. All 56 first-part staging renders
+sample Three's first-use `getProgramInfoLog` path; none of 36 later parts do.
+The 92 staging renders contain 470.26 ms of disjoint main-thread command-response
+wait. One 177.4 ms staging render includes a 174.66 ms nested wait inside a
+220.7 ms colour-frame gap. The current upload function creates and disposes the
+material for each building, allowing Three to release the program each time.
+Keep program checks, zero draw count, GL-state restoration and cancellation;
+give any reused resource explicit teardown and context-epoch ownership.
+This recommendation is **not implemented or proven to meet the motion gates**.
+
+Ordinary colour calls remain more expensive: mean 1.64 ms legacy versus 4.77 ms
+compiled, with more binding/uniform work and scene traversal in the samples.
+Both arms retain a large shared shadow-proxy rebuild; compiled mode also has
+generation, extra correct shadow renders and synchronous GDC preparation.
+Allocation sampling measures churn, not retained memory, and renderer waits are
+not GPU-duration or presentation measurements. The saved report preserves every
+long gap and unattributed portion; see `docs/compiled-buildings.md`.
+
+This bounded diagnostic stops here. PR #312 remains a guarded draft with the
+previous failed motion gates, distant coarse-facade limitations and unverified
+physical-phone behavior. No implementation, catalog expansion, default switch,
+merge, deployment or scheduled continuation is included.
+
 ## Sep 25 2026 - Bounded admission correction (`codex/compiled-building-lifecycle`)
 
 PR #312 remains a guarded draft after the authorized planner follow-up. Tested

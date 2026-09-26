@@ -298,3 +298,87 @@ all six runs, 22 long gaps and its failed motion verdict. It measured legacy
 median 18.00-18.40 ms and compiled median 28.20-36.10 ms, with p95 28.60-30.40
 versus 56.40-63.90 ms. Its byte audit supplied the regression fixtures for this
 correction. The new same-data pairs above are the current qualification result.
+
+## September 25 diagnostic follow-up (September 26 UTC)
+
+The authorized next experiment is complete. Exactly one matched legacy/compiled
+pair used the same September 25 snapshot, route and production source
+`ef77c4132a94332c7b714d5909b8ef10f7cdf4da`, with hardware GL, CPU 1x,
+1280x720, DPR 1 and balanced graphics. All 175 local data-file hashes, production
+sources and frozen verification inputs match before and after capture. External
+instrumentation was hashed separately. Both arms passed trace transport, clock
+marker, CPU-profile and allocation-profile validation after disposable control
+checks. No actual-city arm needed replacement.
+
+The profiler requests 1 ms main-thread samples, 128 KiB allocation sampling
+including collected objects, and a bounded trace. Sampling and tracing overhead
+mean this pair cannot replace the unprofiled three-pair acceptance experiment.
+Its median/p95 colour-frame intervals are 27.70/39.70 ms legacy and 42.10/75.10 ms
+compiled. All 15 intervals over 100 ms are retained: six legacy and nine compiled,
+including the legacy 427.4 ms end boundary. These are JavaScript colour-completion
+intervals, not presented-frame or GPU-duration measurements.
+
+The single recommended correction is **reuse of the zero-draw staging material
+for its live renderer/context lifetime**. `uploadBuildingObject` in
+`js/building-asset-runtime.js` creates a `MeshBasicMaterial` at line 185, renders
+each part with a zero draw count at line 200, and disposes that material at line
+217. The loaded Three r159 source releases a program when its final material
+reference is disposed. In this pair, all 56 first-part staging renders contain
+samples in `onFirstUse -> getProgramInfoLog`; none of the 36 later parts do.
+First-part renders total 567.0 ms, versus 12.5 ms for later parts. This repeated
+first-use path is a concrete avoidable cost candidate, not proof of how much a
+future fix would save. First parts are classified by the first observed building
+ID in the upload events; GL program identities and creation counts were not
+instrumented.
+
+The 92 staging renders total 579.5 ms and enclose 470.26 ms of disjoint
+main-thread command-response waits. A 177.4 ms staging render, inside a 177.6 ms
+upload and a 220.7 ms frame gap, has 105 of its 107 CPU sample points in
+`getProgramInfoLog`; the longest nested wait is 174.66 ms. Nested scopes are not
+added together. Whole-route command-response wait is 31.63 ms legacy versus
+580.39 ms compiled. These are observed renderer-main-thread waits for command
+responses; the evidence does not separate shader compilation, GPU backlog,
+driver scheduling and transport latency, or establish GPU execution duration.
+
+A future implementation of this one correction must retain program-error checks,
+the zero draw count, geometry draw-range restoration, GL-state restoration,
+per-part yielding, cancellation, caster coverage and existing budgets. Shared
+staging ownership must survive ordinary building release while ending at the
+owning renderer/context epoch's teardown. A cancelled building must not dispose
+a staging resource another upload still uses. No such code change is part of
+this diagnostic.
+
+The recommendation does not explain or resolve the full steady-motion cost:
+
+- Ordinary colour rendering totals 691.50 ms across 421 calls in legacy and
+  1,354.40 ms across 284 calls in compiled mode: means of 1.64 and 4.77 ms.
+  CPU samples show more per-object binding/uniform work and scene traversal.
+  Sample counts are point observations, not elapsed CPU or GPU milliseconds.
+- Correct sun-shadow rendering takes 78 calls / 77.20 ms legacy versus
+  210 calls / 660.80 ms compiled. Ownership changes require caster updates;
+  these measurements do not justify skipping or weakening those shadows.
+- Each arm has one large shared proxy rebuild: 870.70 ms legacy and
+  1,038.50 ms compiled. This is distinct from cheap proxy scheduling calls
+  and ordinary shadow rendering. It occupies most of each arm's largest gap.
+- Compiled generation slices total 997.00 ms; assembly totals 122.20 ms.
+  Synchronous GDC preparation is 81.90 ms inside a 171.70 ms gap; its 32.50 ms
+  commit and the 53.20 ms worker decode lie outside the long gaps. Worker decode
+  is parallel work and is not charged as main-thread elapsed time.
+- Main-thread GC trace intervals union to 245.23 ms legacy and 342.98 ms
+  compiled. Estimated sampled allocations total 2.114 and 2.007 GB respectively,
+  across their sampler windows. Fewer compiled colour frames reduce some shared
+  map allocation activity while generation adds its own churn. These estimates
+  do not measure retained heap, native/GPU allocation or per-gap allocation.
+- The main-thread trace has 918.91 ms legacy and 59.73 ms compiled outside any
+  recorded task interval. These remain unknown. Recorded script-call intervals
+  can also contain opaque work or preemption; their full elapsed durations are
+  not assigned to an ending CPU sample. Parallel worker/GPU tracks are not added
+  to the main-thread partition.
+
+The raw captures, exact source inventory, all-gap partitions and independent
+source/sample reviews remain local. The previous three-pair motion failures are
+still the qualification result. Keep the five-building opt-in catalog, legacy
+default, PR #312 draft status, distant coarse-facade limitations and unverified
+physical iPhone behavior. Stop after this diagnosis and one recommendation;
+implementation, another profiling/acceptance pair, merging and deployment require
+new direction.
