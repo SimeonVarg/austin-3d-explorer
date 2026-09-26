@@ -1,5 +1,13 @@
 # The phone shows the real buildings (2026-09-19)
 
+> **Superseded in part on 2026-09-24** (HANDOFF "Sep 24 2026 - Phones stop
+> crash-looping"): the two-death fallback below became one step down per death
+> across three tiers (`phone`, `lighter`, `safe`), a lost context during the
+> boot or the opening flight steps down too, the page reloads itself at most
+> once per 10 minutes, and the phone profile has a memory budget
+> (`js/mobile.js` `LITE.budget`). The history below is still accurate for
+> what it describes.
+
 Branch `acer/mobile-real-buildings`. Device check for the owner:
 `docs/mobile-device-check.md` (**UNVERIFIED on a real iPhone** — no device was
 available; everything below is an emulated phone in desktop Chrome: 390x844,

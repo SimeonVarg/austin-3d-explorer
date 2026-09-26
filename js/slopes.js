@@ -833,7 +833,25 @@
     geom.setAttribute('aSurface', new T.BufferAttribute(new Float32Array(n*4), 4));
     return geom;
   }
-  function add(obj) { if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
+  // A phone drops each mesh's CPU copy once three.js has uploaded it (js/mobile.js
+  // LITE.budget.freeGeometryCpu; ~260 MB for the authored buildings). The copy
+  // only matters for a re-upload after a lost WebGL context, and a phone
+  // recovers from that by reloading; nothing reads it after add() (raycast()
+  // above is an unwired helper). onUpload is three's own hook for exactly this.
+  // Bounding spheres are computed before the first upload and kept. Desktop
+  // (no budget) keeps every copy, unchanged.
+  const FREE_CPU = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget && window.LITE_PROFILE.budget.freeGeometryCpu);
+  function dropArray() { this.array = null; }
+  function freeOnUpload(obj) {
+    obj.traverse(o => {
+      const g = o.geometry;
+      if (!g || !g.isBufferGeometry) return;
+      if (!g.boundingSphere && g.attributes.position) g.computeBoundingSphere();
+      for (const k in g.attributes) { const a = g.attributes[k]; if (a && a.isBufferAttribute && typeof a.onUpload === 'function') a.onUpload(dropArray); }
+      if (g.index && typeof g.index.onUpload === 'function') g.index.onUpload(dropArray);
+    });
+  }
+  function add(obj) { if (FREE_CPU && obj && obj.traverse) freeOnUpload(obj); if (root) root.add(obj); if (_map) _map.triggerRepaint(); return obj; }
   function remove(obj) { if (root) root.remove(obj); if (_map) _map.triggerRepaint(); }
 
   // ── The builder: one geometry, one draw call, flat normals ──────────────
@@ -1530,9 +1548,84 @@
                 '— debug', SLOPES.debug ? 'ON' : 'off');
   };
 
+  /**
+   * build(), in chunks of at most `maxTris` triangles (js/mobile.js
+   * LITE.budget.geometryChunkTris; phones only). The same API plus
+   * `geometries()`: every primitive lands whole in one chunk (its indices only
+   * ever point at its own vertices), so the output is the same triangles in the
+   * same order, split across several meshes.
+   *
+   * WHY. One builder holds the whole of a bulk generator in growth buffers
+   * that double, and trims them with a copy at the end. For the authored
+   * buildings that was ~4.2 M vertices in buffers sized for 8.4 M, plus the
+   * trimmed copy, plus the doubling's garbage — the load's peak, ~820 MB of
+   * ArrayBuffers for a result of ~235 MB, measured on the phone profile. A
+   * chunk's buffers never grow past the chunk.
+   */
+  function buildChunked(maxTris, pack) {
+    const done = [];
+    let cur = build(), facetOn = false, before = 0;
+    const finish = () => (pack ? packGeometry(cur.geometry()) : cur.geometry());
+    const roll = () => {
+      if (cur.triangles < maxTris) return;
+      before += cur.triangles;
+      done.push(finish());
+      cur = build();
+      cur.facet(facetOn);
+    };
+    const api = {
+      facet(v) { facetOn = !!v; return cur.facet(v); },
+      geometries() {
+        const out = done.splice(0);
+        if (cur.triangles > 0 || !out.length) out.push(finish());
+        return out;
+      },
+      get triangles() { return before + cur.triangles; },
+    };
+    for (const m of ['tri', 'triN', 'quad', 'polygon', 'extrude']) api[m] = (...a) => { roll(); return cur[m](...a); };
+    return api;
+  }
+
+  /**
+   * A builder geometry at 34 bytes a vertex instead of 50 (js/mobile.js
+   * LITE.budget.packVertices; phones only). The normal becomes signed
+   * normalized BYTES (the shader still reads a vec3 in -1..1; an axis-aligned
+   * wall or roof normal is exact, any other is within half a degree) and
+   * aSurface four half floats (a material index, which is exact, and three
+   * shading scales to ~0.05%). Position and the colours are untouched.
+   *
+   * NOT PIXEL-IDENTICAL, and this is the one place a phone gives up exactness
+   * on purpose: the fine brick-joint grain is anchored in world metres through
+   * the normal and the surface scale, so on a wall hundreds of metres from the
+   * origin it lands a fraction of a brick along. Measured in one page, packed
+   * vs not (SwiftShader, 640x640 close-ups, control 0 px): The Standard by
+   * day 2.7% of pixels, at most 12/255; 21 Rio 1.3%; Moody Center 0. The
+   * same grain, displaced — invisible at a phone's ~0.3 m a pixel.
+   */
+  function packGeometry(g) {
+    const T = window.THREE;
+    const n = g.attributes.normal;
+    if (n && n.array instanceof Float32Array) {
+      // FOUR bytes, the fourth unused: `attribute vec3 normal` reads x, y, z of
+      // a 4-component attribute (legal in WebGL), and a 4-byte stride is one
+      // Metal (iOS) can use as is instead of converting a copy.
+      const a = n.array, nv = a.length / 3, o = new Int8Array(nv * 4);
+      for (let v = 0; v < nv; v++) for (let k = 0; k < 3; k++) o[v * 4 + k] = Math.round(Math.max(-1, Math.min(1, a[v * 3 + k])) * 127);
+      g.setAttribute('normal', new T.BufferAttribute(o, 4, true));
+    }
+    const s = g.attributes.aSurface;
+    if (s && s.array instanceof Float32Array && T.Float16BufferAttribute && T.DataUtils && T.DataUtils.toHalfFloat) {
+      const a = s.array, o = new Uint16Array(a.length), h = T.DataUtils.toHalfFloat;
+      for (let i = 0; i < a.length; i++) o[i] = h(a[i]);
+      const attr = new T.Float16BufferAttribute(o, 4);
+      g.setAttribute('aSurface', attr);
+    }
+    return g;
+  }
+
   window.slopes = {
     toLocal, toLngLat, project, raycast, material, facadeMaterial, colour, add, remove, detail,
-    onSwitch, build, frame, stats, fetchJSON,
+    onSwitch, build, buildChunked, packGeometry, frame, stats, fetchJSON,
     light: () => ({ enu: _light.enu.slice(), colour: _light.colour.slice(), intensity: _light.intensity }),
     get scene() { return scene; }, get root() { return root; }, get camera() { return camera; },
     get renderer() { return renderer; }, get layer() { return layer; },
