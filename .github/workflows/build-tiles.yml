@@ -16,26 +16,44 @@ name: Build PMTiles
 on:
   workflow_dispatch:
   push:
+    # Main's full snapshot workflow already tiles these inputs. Keep this
+    # lightweight path for feature branches and deliberate manual rebuilds.
+    branches-ignore: [main]
     paths:
       - 'scripts/tile.sh'
       - 'scripts/config.sh'
-      - '.github/workflows/build-tiles.yml'
+      # Workflow-only edits do not launch a tile build; use manual dispatch.
 
 permissions:
   contents: write
 
 concurrency:
-  # Two of these committing to the same branch at once is a guaranteed conflict.
-  group: build-tiles-${{ github.ref }}
-  cancel-in-progress: true
+  # Share the snapshot publisher's lock because both write PMTiles.
+  group: city-data-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   tiles:
+    if: startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
+
+      - name: Reject an outdated source revision
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/* ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          current=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "::error::Branch advanced since this run was requested. Rebuild from its current revision."
+            exit 1
+          fi
+
+      - name: Pin snapshot date
+        run: echo "SNAPSHOT_DATE=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
 
       # Cached because building tippecanoe from source is ~90 s of the run and
       # it changes about once a year.
@@ -78,14 +96,27 @@ jobs:
 
       - name: Commit
         run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/* ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          current=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "::error::Branch changed during tiling. Discard these results and rebuild from its current revision."
+            exit 1
+          fi
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tiles data/snapshots
+          source scripts/config.sh
+          for layer in trees roads outer roofdetail props; do
+            path="${DATA_DIR}/tiles/${layer}.pmtiles"
+            if [ -f "$path" ]; then git add -- "$path"; fi
+          done
+          if [ -f "$BUILDINGS_PMTILES" ]; then git add -- "$BUILDINGS_PMTILES"; fi
           if git diff --cached --quiet; then
             echo "no tile changes"
           else
             git commit -m "Rebuild PMTiles archives"
-            # Someone may have pushed while tippecanoe was running.
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            # An update after the check still fails this ordinary push.
+            # Never rebase generated archives onto sources they did not use.
+            git push origin "HEAD:${GITHUB_REF}"
           fi
