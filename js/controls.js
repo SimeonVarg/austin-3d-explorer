@@ -177,6 +177,7 @@ function initControls(map, scene) {
   // SKIN_V = 8 m is the clearance kept above a surface being ridden. Eight
   // metres above a one-storey roof is a third floor.
   const R_CAM_GROUND = 1.0, SKIN_V_GROUND = 0.8, STEP_UP_GROUND = 0.5;
+  const GROUND_FOLLOW_MARGIN = 0.25;
   const LIFT = 45, FALL = 25, TAU_FLOOR_UP = 0.25, TAU_FLOOR_DOWN = 0.80;
   const FLOOR_LOOKAHEAD = 0.5;
   const BRAKE_PROBES = [[0.9, 0.55], [0.5, 0.30], [0.25, 0.12]];
@@ -305,6 +306,15 @@ function initControls(map, scene) {
   const rCam   = () => lerp(R_CAM,   R_CAM_GROUND,   groundMix());
   const skinV  = () => lerp(SKIN_V,  SKIN_V_GROUND,  groundMix());
   const stepUp = () => lerp(STEP_UP, STEP_UP_GROUND, groundMix());
+  // Raised walkable courts are a separate field from building roofs. Sampling
+  // an explicit ground surface must never lift the eye onto its arcade canopy.
+  const groundFloorAt = (lng, lat) => window.campusLandscape?.floorAt(lng, lat) || 0;
+  const groundEyeMin = () => {
+    const floor = groundFloorAt(eye.lng, eye.lat);
+    return floor > 0 ? floor + ALT_MIN : 0;
+  };
+  const groundBlockedAt = (lng, lat) =>
+    groundFloorAt(lng, lat) > Math.max(groundFloorAt(eye.lng, eye.lat), alt - ALT_MIN) + STEP_UP_GROUND;
 
   // ── State — the camera eye is the truth ───────────────────────────
   const eye = { lng: 0, lat: 0 };
@@ -384,8 +394,73 @@ function initControls(map, scene) {
   // which would stop you short of exactly the facades you're trying to read.
   let grid = null, gx0 = 0, gy0 = 0, gnx = 0, gny = 0, gridBuilt = false;
   let fence = null;
+  // Six-metre raster cells can close a narrow court even when its real wall
+  // is metres away. Query cached footprints at every altitude so geometry
+  // stays consistent as the camera rises; buckets bound the candidate work.
+  // Cache exact footprints in larger candidate buckets; only nearby polygons
+  // are tested, including courtyard holes and separate buildings inside them.
+  const CORE_BUCKET = 32;
+  let coreBuckets = new Map(), coreMx = 1, coreQuery = 0;
+  const coreStats = { polygons: 0, vertices: 0, buckets: 0, references: 0 };
+
+  function indexCoreFootprints(rings, mx) {
+    coreBuckets = new Map(); coreMx = mx; coreQuery = 0;
+    coreStats.polygons = coreStats.vertices = coreStats.references = 0;
+    for (const [poly, height] of rings) {
+      const projected = poly.map(ring => ring.map(p => [(p[0] - gx0) * mx, (p[1] - gy0) * M_LAT]));
+      const xs = projected[0].map(p => p[0]), ys = projected[0].map(p => p[1]);
+      const entry = { rings: projected, height, minX: Math.min(...xs), maxX: Math.max(...xs),
+                      minY: Math.min(...ys), maxY: Math.max(...ys), seen: 0 };
+      coreStats.polygons++; coreStats.vertices += projected.reduce((n, r) => n + r.length, 0);
+      for (let i = Math.floor(entry.minX / CORE_BUCKET); i <= Math.floor(entry.maxX / CORE_BUCKET); i++) {
+        for (let j = Math.floor(entry.minY / CORE_BUCKET); j <= Math.floor(entry.maxY / CORE_BUCKET); j++) {
+          const key = i + ',' + j;
+          if (!coreBuckets.has(key)) coreBuckets.set(key, []);
+          coreBuckets.get(key).push(entry); coreStats.references++;
+        }
+      }
+    }
+    coreStats.buckets = coreBuckets.size;
+  }
+
+  function coreTouches(entry, x, y, radius) {
+    if (x + radius < entry.minX || x - radius > entry.maxX ||
+        y + radius < entry.minY || y - radius > entry.maxY) return false;
+    let insideShell = false, insideHole = false;
+    const radius2 = radius * radius;
+    for (let k = 0; k < entry.rings.length; k++) {
+      const ring = entry.rings[k]; let inside = false;
+      for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+        const p = ring[a], q = ring[b], dx = q[0] - p[0], dy = q[1] - p[1];
+        const length2 = dx * dx + dy * dy;
+        const t = length2 ? Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / length2)) : 0;
+        if ((x - p[0] - t * dx) ** 2 + (y - p[1] - t * dy) ** 2 <= radius2) return true;
+        if ((p[1] > y) !== (q[1] > y) && x < (q[0] - p[0]) * (y - p[1]) / (q[1] - p[1]) + p[0]) inside = !inside;
+      }
+      if (k === 0) insideShell = inside;
+      else if (inside) insideHole = true;
+    }
+    return insideShell && !insideHole;
+  }
+
+  function coreHeightAt(lng, lat, radius) {
+    const x = (lng - gx0) * coreMx, y = (lat - gy0) * M_LAT, query = ++coreQuery;
+    let best = 0;
+    for (let i = Math.floor((x - radius) / CORE_BUCKET); i <= Math.floor((x + radius) / CORE_BUCKET); i++) {
+      for (let j = Math.floor((y - radius) / CORE_BUCKET); j <= Math.floor((y + radius) / CORE_BUCKET); j++) {
+        for (const entry of coreBuckets.get(i + ',' + j) || []) {
+          if (entry.seen === query) continue;
+          entry.seen = query;
+          if (entry.height > best && coreTouches(entry, x, y, radius)) best = entry.height;
+        }
+      }
+    }
+    return best;
+  }
 
   function buildHeightField(sc) {
+    coreBuckets = new Map();
+    coreStats.polygons = coreStats.vertices = coreStats.buckets = coreStats.references = 0;
     const feats = [];
     const push = (arr, key) => { for (const f of (arr || [])) {
       const h = f.properties && (f.properties[key]);
@@ -418,6 +493,7 @@ function initControls(map, scene) {
     gnx = Math.ceil(((maxLng - gx0) * mx) / CELL) + 2;
     gny = Math.ceil(((maxLat - gy0) * my) / CELL) + 2;
     grid = new Float32Array(gnx * gny);
+    indexCoreFootprints(rings, mx);
 
     const cx = lng => (lng - gx0) * mx / CELL;
     const cy = lat => (lat - gy0) * my / CELL;
@@ -445,7 +521,8 @@ function initControls(map, scene) {
           }
         xsAt.sort((p, q) => p - q);
         for (let s = 0; s + 1 < xsAt.length; s += 2) {
-          const i0 = Math.max(0, Math.floor(xsAt[s])), i1 = Math.min(gnx - 1, Math.ceil(xsAt[s + 1]));
+          // The right crossing is exclusive; ceil itself names the NEXT cell.
+          const i0 = Math.max(0, Math.floor(xsAt[s])), i1 = Math.min(gnx - 1, Math.ceil(xsAt[s + 1]) - 1);
           for (let i = i0; i <= i1; i++) stamp(i, j, h);
         }
       }
@@ -925,20 +1002,9 @@ function initControls(map, scene) {
   function gridHeightAt(lng, lat, r) {
     const ring = outerHeightIn(lng, lat, r);
     if (!gridBuilt) return ring;
-    const mx = mLon(lat), my = M_LAT;
-    const i0 = Math.floor((lng - r / mx - gx0) * mx / CELL);
-    const i1 = Math.floor((lng + r / mx - gx0) * mx / CELL);
-    const j0 = Math.floor((lat - r / my - gy0) * my / CELL);
-    const j1 = Math.floor((lat + r / my - gy0) * my / CELL);
-    let best = ring;
-    for (let j = Math.max(0, j0); j <= Math.min(gny - 1, j1); j++) {
-      const row = j * gnx;
-      for (let i = Math.max(0, i0); i <= Math.min(gnx - 1, i1); i++) {
-        const v = grid[row + i];
-        if (v > best) best = v;
-      }
-    }
-    return best;
+    // The probe radius already grows smoothly with altitude. Switching back
+    // to raster cells at a height threshold would invent a sudden nearby roof.
+    return Math.max(ring, coreHeightAt(lng, lat, r));
   }
 
   // ── Derived bounds. These BLOCK input; they never move the camera. ──
@@ -1061,7 +1127,7 @@ function initControls(map, scene) {
       const h = maxHeightIn(eye.lng, eye.lat, rCam());
       if (h > 0) outAlt = Math.max(outAlt, h + HARD_CLEAR);   // an offset may never dip below the hard net
     }
-    outAlt = Math.max(outAlt, ALT_RENDER_MIN);
+    outAlt = Math.max(outAlt, ALT_RENDER_MIN, groundEyeMin());
     // Both bounds are widened to include `pitch` itself so the clamp can never
     // be inverted by a feel offset; the effects may not push the written pitch
     // outside what the written ALTITUDE can express, in either direction.
@@ -1103,7 +1169,7 @@ function initControls(map, scene) {
   // Roofs OR trunks, for the two slide branches — the only places that ask
   // "could I go this way at all" rather than "how high is it here".
   const hardBlockedAt = (lng, lat) =>
-    trunkBlockedAt(lng, lat) || (gridBuilt && blockedAt(lng, lat));
+    groundBlockedAt(lng, lat) || trunkBlockedAt(lng, lat) || (gridBuilt && blockedAt(lng, lat));
 
   /**
    * Wall deflection (TUNE.WALL_*): called when a substep found the way blocked.
@@ -1532,7 +1598,7 @@ function initControls(map, scene) {
                         lookPointerId !== null || tapDragId !== null || pointerCount() >= 2 ||
                         pendingYaw !== 0 || pendingPitch !== 0 ||
                         wheelLogAcc !== 0 || touchLogAcc !== 0;
-    const resolvedAlt = clamp(Math.max(altUser, altFloor), altFloorMin(), altCeiling());
+    const resolvedAlt = clamp(Math.max(altUser, altFloor, groundEyeMin()), altFloorMin(), altCeiling());
     // realDrive is the original driving test. fxLive extends ownership only
     // while a feel effect (bank return, FOV relax, bob, settle) still has a
     // non-negligible output offset to write; every effect decays to exactly
@@ -1643,6 +1709,7 @@ function initControls(map, scene) {
     // would let the camera tunnel clean through a narrow building between two
     // samples.
     const frameDist = Math.hypot(vel.e, vel.n) * dt;
+    const groundBeforeMove = groundFloorAt(eye.lng, eye.lat);
     const steps = Math.max(1, Math.ceil(frameDist / (R_CAM * 0.75)));
     const sdt = dt / steps;
     let stepFloor = 0;
@@ -1658,7 +1725,7 @@ function initControls(map, scene) {
       // A trunk is a WALL, never a kerb, so it is kept out of the step-up test
       // below rather than folded into blockedAt. Fold it in and a 4.95 m oak
       // becomes something the camera climbs.
-      const tBlk = trunkBlockedAt(pLng, pLat);
+      const tBlk = trunkBlockedAt(pLng, pLat) || groundBlockedAt(pLng, pLat);
 
       // Block and slide. Exactly ONE axis is applied when blocked: applying
       // both independently-free axes would reconstruct the very diagonal that
@@ -1686,6 +1753,12 @@ function initControls(map, scene) {
       eye.lng = clamp(eye.lng, fence.w, fence.e);
       eye.lat = clamp(eye.lat, fence.s, fence.n);
     }
+    // Preserve a pedestrian's clearance while following steps or the ramp,
+    // including after syncFromMap resumes control on a raised landing. Higher
+    // free-flight altitudes retain their existing absolute-altitude behavior.
+    if (altUser <= groundBeforeMove + ALT_MIN + GROUND_FOLLOW_MARGIN) {
+      altUser = Math.max(ALT_MIN, altUser + groundFloorAt(eye.lng, eye.lat) - groundBeforeMove);
+    }
 
     // ── Rooftop floor
     if (gridBuilt) {
@@ -1695,6 +1768,7 @@ function initControls(map, scene) {
       let want = roof > 0 ? roof + skinV() : 0;
       if (want - altUser > stepUp()) want = 0;    // too tall to lift over; the slide already stopped us
       want = Math.max(want, stepFloor);
+      want = Math.max(want, groundEyeMin());
       const tf = want > altFloor ? TAU_FLOOR_UP : TAU_FLOOR_DOWN;
       const next = altFloor + (want - altFloor) * (1 - Math.exp(-dt / tf));
       altFloor += clamp(next - altFloor, -FALL * dt, LIFT * dt);
@@ -1702,7 +1776,7 @@ function initControls(map, scene) {
       altFloor = SAFE_ALT;                          // fail safe, never fail open
     }
 
-    alt = clamp(Math.max(altUser, altFloor), altFloorMin(), altCeiling());
+    alt = clamp(Math.max(altUser, altFloor, groundEyeMin()), altFloorMin(), altCeiling());
 
     // ── Hard net: the guarantee rather than the feel. Fires essentially never.
     if (gridBuilt) {
@@ -1887,11 +1961,13 @@ function initControls(map, scene) {
     eye: () => ({ lng: eye.lng, lat: eye.lat, alt, altUser, altFloor,
                   vE: vel.e, vN: vel.n, bearing, pitch, driving: wasDriving }),
     roofAt: (lng, lat, r) => maxHeightIn(lng, lat, r == null ? R_CAM : r),
+    groundAt: groundFloorAt,
     // The pose R returns to, so a verification can assert the reset lands there.
     home: () => (HOME ? { center: HOME.center.slice(), zoom: HOME.zoom,
                           bearing: HOME.bearing, pitch: HOME.pitch } : null),
     indexed: () => gridBuilt,
     gridBytes: () => (grid ? grid.byteLength : 0),
+    coreField: () => ({ ...coreStats, bucketSize: CORE_BUCKET }),
     // The fence, in degrees, and how much of the outer ring the incremental
     // collision field has seen. Both exist so a verification can assert on them
     // instead of inferring them from where the camera stopped.

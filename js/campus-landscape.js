@@ -21,6 +21,43 @@
  };
  let data=null,map=null,group=null,originalFilter=null,lastDensity=-1,lastDetail=-1;
  const count={done:false,trees:0,triangles:0,gardens:0,railings:0};
+ // Explicit ground-only geometry is indexed once on load. Overhead court
+ // canopies and buildings must never become walking floors.
+ const GROUND_CELL=8;
+ let groundIndex=new Map(),groundOrigin=[0,0],groundMx=1;
+ const groundPoint=(lng,lat)=>[(lng-groundOrigin[0])*groundMx,(lat-groundOrigin[1])*111320];
+ function indexGround(){
+  groundIndex=new Map();
+  const surfaces=data.walkableGround||[];
+  if(!surfaces.length)return;
+  groundOrigin=surfaces[0].rings[0][0];groundMx=111320*Math.cos(groundOrigin[1]*Math.PI/180);
+  for(const f of surfaces){
+   const rings=f.rings.map(r=>r.map(p=>groundPoint(...p))),xs=rings[0].map(p=>p[0]),ys=rings[0].map(p=>p[1]);
+   let plane=[0,0,f.height];
+   if(f.vertices){
+    const points=f.vertices.map(p=>[...groundPoint(...p),p[2]]),a=points[0],b=points[1],c=points[points.length-1];
+    const det=(b[0]-a[0])*(c[1]-a[1])-(c[0]-a[0])*(b[1]-a[1]);
+    if(Math.abs(det)<1e-8)continue;
+    const u=((b[2]-a[2])*(c[1]-a[1])-(c[2]-a[2])*(b[1]-a[1]))/det;
+    const v=((b[0]-a[0])*(c[2]-a[2])-(c[0]-a[0])*(b[2]-a[2]))/det;
+    plane=[u,v,a[2]-u*a[0]-v*a[1]];
+   }
+   if(!plane.every(Number.isFinite))continue;
+   const entry={rings,plane};
+   for(let x=Math.floor(Math.min(...xs)/GROUND_CELL);x<=Math.floor(Math.max(...xs)/GROUND_CELL);x++)
+    for(let y=Math.floor(Math.min(...ys)/GROUND_CELL);y<=Math.floor(Math.max(...ys)/GROUND_CELL);y++){
+     const key=x+','+y;if(!groundIndex.has(key))groundIndex.set(key,[]);groundIndex.get(key).push(entry);
+    }
+  }
+ }
+ function floorAt(lng,lat){
+  if(!C.on||!window.SLOPES?.on||!group)return 0;
+  const [x,y]=groundPoint(lng,lat),entries=groundIndex.get(Math.floor(x/GROUND_CELL)+','+Math.floor(y/GROUND_CELL))||[];
+  let height=0;
+  for(const f of entries)if(inRing(x,y,f.rings[0])&&!f.rings.slice(1).some(r=>inRing(x,y,r)))
+   height=Math.max(height,f.plane[0]*x+f.plane[1]*y+f.plane[2]);
+  return height;
+ }
  const hash=(n,k=0)=>{const x=Math.sin(n*127.1+k*311.7)*43758.5453;return x-Math.floor(x)};
  // Every caller passes a 3-vector; the spread-and-map form was 0.5 s of a load (profiled 2026-09-15).
  const norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l]};
@@ -174,9 +211,9 @@
     for(let s=T.spacing/2;s<length;s+=T.spacing)for(let z=T.bottom;z<f.height;z+=T.spacing)crown(B,[a.x+(b.x-a.x)*s/length,a.y+(b.y-a.y)*s/length,z],[T.radius,T.radius,T.radius],s+z,C.gardens.hedge,.6);
    }
    if(f.kind==='fountain'){
-    const p=slopes.toLocal(...f.at,0),T=C.fountain;
-    stem(B,[p.x,p.y,.46],[p.x,p.y,T.height],T.stem,T.stem,C.gardens.stone);
-    crown(B,[p.x,p.y,T.height],[T.bowl,T.bowl,.12],0,C.gardens.stone,.8);
+    const p=slopes.toLocal(...f.at,0),T=C.fountain,base=f.base||0;
+    stem(B,[p.x,p.y,base+.46],[p.x,p.y,base+T.height],T.stem,T.stem,C.gardens.stone);
+    crown(B,[p.x,p.y,base+T.height],[T.bowl,T.bowl,.12],0,C.gardens.stone,.8);
    }
    count.gardens++;
   }
@@ -266,7 +303,7 @@
   map.triggerRepaint();
  }
  window.applyCampusLandscape=apply;
- window.campusLandscape={get count(){return {...count}},get group(){return group},get data(){return data},rebuild(){drop();apply()}};
+ window.campusLandscape={get count(){return {...count}},get group(){return group},get data(){return data},floorAt,rebuild(){drop();apply()}};
  if(q.get('slopes')==='0'){count.done=true;return}
  let busy=false;
  const timer=setInterval(async()=>{
@@ -274,6 +311,7 @@
   busy=true;
   try{
    map=window.__map;data=await slopes.fetchJSON(C.url);originalFilter=window.treeFilter;
+   indexGround();
    window.treeFilter=function(kind){
     const base=originalFilter(kind);if(!C.on||!SLOPES.on||!group)return base;
     const key=kind==='canopy'?canopyKey:trunkKey,keys=kind==='canopy'?data.canopyKeys:data.trunkKeys;

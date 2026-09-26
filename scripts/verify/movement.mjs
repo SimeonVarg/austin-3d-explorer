@@ -39,7 +39,20 @@ const pageErrors = [];
 
 page.on('pageerror', e => pageErrors.push(e.message));
 
-await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// Cancel as soon as the app exposes the probe, before its delayed rewrite.
+await page.addInitScript(() => {
+  const timer = setInterval(() => {
+    if (window.cancelGraphicsAutoDetect) {
+      window.cancelGraphicsAutoDetect();
+      clearInterval(timer);
+    }
+  }, 10);
+});
+await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.waitForFunction(() => window.slopesApartments?.readyToReveal() &&
+  window.slopesApartments.count.buildings === 196 && !document.getElementById('veil'),
+  null, { timeout: 180000 });
+await page.waitForFunction(() => window.__fly?.indexed(), null, { timeout: 30000 });
 
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 
@@ -64,16 +77,15 @@ await page.evaluate(() => {
   // The poll had NO DEADLINE — the one genuine hang shape in this file. It has
   // not fired in any recorded run, but a gate that can wait forever is a gate
   // that can be reported as "unknown" instead of red, which is exactly the
-  // state five of these scripts were in. 60 s, then seed anyway and SAY SO.
-  window.__reset = (b, z, p) => new Promise(res => {
+  // state five of these scripts were in. Fail after 60 s; an overwritten pose is not a measurement.
+  window.__reset = (b, z, p) => new Promise((res, reject) => {
     const t0 = performance.now();
     const seed = () => m.jumpTo({ center: [-97.7434, 30.2857],
                                   zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
     const tryIt = () => {
       if (!window.__fly.eye().driving) { seed(); res({ waitedMs: Math.round(performance.now() - t0), forced: false }); }
       else if (performance.now() - t0 > 60000) {
-        console.warn('[movement] __reset gave up waiting for !driving after 60 s');
-        seed(); res({ waitedMs: Math.round(performance.now() - t0), forced: true });
+        reject(new Error('[movement] camera still driving after 60 s; refusing to overwrite pose'));
       } else setTimeout(tryIt, 120);
     };
     tryIt();
@@ -359,7 +371,21 @@ check('forward ground speed is in a sane flythrough range',
     const before = window.__fly.eye();
     const t0 = window.__fly.simTime();
     let last = before;
-    for (let i = 0; i < 60; i++) { await new Promise(r => requestAnimationFrame(r)); last = window.__fly.eye(); }
+    // A fixed frame count changes the stopping deadline with renderer speed.
+    // TAU_DECEL is 0.45 s; allow 3.5 effective seconds, retaining <0.1 m/s.
+    let timer, stopped = false;
+    try {
+      await Promise.race([
+        (async () => {
+          while (!stopped && window.__fly.simTime() - t0 < 3.5) {
+            await new Promise(r => requestAnimationFrame(r));
+            if (!stopped) last = window.__fly.eye();
+          }
+        })(),
+        new Promise((_, reject) => { timer = setTimeout(() =>
+          reject(new Error('Glide simulation window timed out')), 90000); })
+      ]);
+    } finally { stopped = true; clearTimeout(timer); }
     return { sp0: Math.hypot(before.vE, before.vN), sp1: Math.hypot(last.vE, last.vN),
              dt: window.__fly.simTime() - t0 };
   });

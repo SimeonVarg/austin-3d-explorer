@@ -1,7 +1,8 @@
 """Gearing's rear court upper window band and connected bracketed eave.
 
 Facade dimensions are editable exterior-view interpretations, not a survey.
-The existing footprint, lower entrances, garden and roof rig remain authoritative.
+The mapped footprint and main roof rig remain authoritative. The companion
+court helper completes the lower architecture around the retained access ramp.
 """
 import copy
 import math
@@ -9,12 +10,12 @@ import math
 
 T = dict(
     faces=[3, 4], bays=8, upperStart=9.1,
-    windowWidth=2.22, windowBottom=11.02, windowTop=12.96,
-    windowDepth=.34, windowLit=False, frameWidth=.085, frameDepth=.075,
-    glassClearance=.015, mullionWidth=.052, cols=[1/3, 2/3], rows=[.5],
-    panelBottom=9.68, panelTop=10.85, panelProud=.055,
+    windowWidth=1.80, windowBottom=11.38, windowTop=12.96,
+    windowDepth=.34, windowLit=False, frameWidth=.11, frameDepth=.095,
+    glassClearance=.015, mullionWidth=.065, cols=[1/3, 2/3], rows=[.5],
+    panelBottom=10.28, panelTop=11.20, panelProud=.055,
     panelBorder=.12, panelInset=.025,
-    courseBottom=9.42, courseHeight=.18, courseDepth=.26,
+    courseBottom=10.04, courseHeight=.18, courseDepth=.26,
     sillHeight=.12, sillDepth=.19, surroundWidth=.13, surroundDepth=.1,
     wallEmbed=.025, eaveOut=.95, eaveUnderside=13.56,
     eaveFrontTop=14.28, tileThickness=.13,
@@ -28,7 +29,7 @@ T = dict(
     maxDetailTriangles=5000,
 )
 COLOURS = dict(geaStone='#d4c9b4', geaPale='#e2d9c4',
-    geaPanel='#d8d0b8', geaSash='#8b8b77', geaGlass='#566b6c',
+    geaPanel='#d8d0b8', geaSash='#403b33', geaGlass='#3d4c4b',
     geaTimber='#65503a',
     # Continue the existing Gearing roof's day/golden/night tile palette.
     geaTile=['#a04b2f', '#b96139', '#11111c'], geaSoffit='#a8987b')
@@ -151,8 +152,8 @@ def refine(model, profile):
             m.box('geaSash', lo+fw, hi-fw, back, back+t['frameDepth'], z, z+fw)
         sw = t['surroundWidth']
         for x0, x1 in ((lo-sw, lo), (hi, hi+sw)):
-            m.box('geaPale', x0, x1, -t['wallEmbed'], t['surroundDepth'], z0, z1)
-        m.box('geaPale', lo-sw, hi+sw, -t['wallEmbed'], t['surroundDepth'], z1, z1+sw)
+            m.box('geaSash', x0, x1, -t['wallEmbed'], t['surroundDepth'], z0, z1)
+        m.box('geaSash', lo-sw, hi+sw, -t['wallEmbed'], t['surroundDepth'], z1, z1+sw)
         m.box('geaPale', lo-sw, hi+sw, -t['wallEmbed'], t['sillDepth'], z0-t['sillHeight'], z0)
         # Raised border with recessed pale infill, closed solid through wall.
         pb, pt, bw = t['panelBottom'], t['panelTop'], t['panelBorder']
@@ -211,8 +212,6 @@ def refine(model, profile):
     result['sources']['gearingDetail'] = (
         'Exterior views inform the rear court upper paired/tripartite window band, '
         'pale panels, sillcourse and bracketed eave. Dimensions are approximate. '
-        'The mapped footprint, wall height, floors, lower entrances and roof rig are retained.')
-    result['open'] = list(dict.fromkeys(result.get('open', []) + [
-        'Gearing towers, roof vents, lower loggia, gate and unphotographed elevations '
-        'remain outside this upper court-face correction.']))
-    return result
+        'The mapped footprint, wall height, floors and main roof rig are retained.')
+    from campus_gearing_court import refine_court
+    return refine_court(result, profile, Details)
