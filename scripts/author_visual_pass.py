@@ -113,14 +113,9 @@ s['deck']={'z':0,'items':[dict(id='court-paving',plan=[14,42,29,69],h=.08,tone='
 s['open'].append('Courtyard plan and entrance extents are derived; crown curve follows the exterior photograph, not a measured elevation.')
 save('rambler',s)
 # Campus: photographed elevations take precedence over generic floor grids.
-s,F,uv=base('Battle Hall','docs/campus-truth/BTL.md; docs/shots/verdict-battle-vs-photo.jpg');L,W=F['L'],F['W'];s['levels']['floors']=[0,1.2,7.2,17.7];s['skins']['lower']=bays('stone',4.3,1.5,3.4,1.2);s['skins']['arches']=bays('stone',8.5,3.15,7.2,.55);s['skins']['arches']['window']['arch']={'rise':1.6,'segments':24,'tone':'trim','trim':.35};s['skins']['arches']['window']['mullion']={'w':.11,'cols':[.25,.5,.75],'rows':[.22,.45,.68,.83],'tone':'trim'};s['skins']['lower']['window']['mullion']={'w':.09,'cols':[.5],'rows':[.45],'tone':'trim'};s['skins']['arches']['reveal']=.6
-b=block('reading-hall',[14.9,34.45,0,43.1],0,17.7,'lower');b['bands']=[band(0,1.2,'stone'),band(1.2,7.2,'lower'),band(7.2,16.2,'arches'),band(16.2,17.7,'trim')];roof(s,b,25);s['blocks']=[b,block('west-stack-wing',[0,14.9,7.8,35],0,16,'lower')];roof(s,s['blocks'][1],25)
-for z in [1.1,7,16.2,17.5]:cornice(s,'cornice-'+str(z),[14.9,34.45,0,43.1],z,.32)
-# Five iron Juliet rails on the photographed east face.
-s['balcony']={'proj':.65,'slabT':.16,'railH':1,'railT':.045,'railPitch':.2,'railPost':.035,'slabTone':'trim','railTone':'dark'}
-b['faces']={'u1':{'bands':copy.deepcopy(b['bands'])}}
-b['faces']['u1']['bands'][2]['balconies']=[{'s0':i*8.62+2.65,'s1':i*8.62+5.97} for i in range(5)]
-save('battle-hall',s)
+# Battle has a dedicated output owner.
+from bake_battle import main as bake_battle
+s=bake_battle();NEW.append(('battle-hall',s))
 # Union has a dedicated output owner; keep the legacy all-model entrypoint wired.
 from bake_union import main as bake_union
 s=bake_union();NEW.append(('texas-union',s))
