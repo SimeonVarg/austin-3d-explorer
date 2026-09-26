@@ -31720,3 +31720,12 @@ Codex rebuilt `data/apartments/icon.json` headless from reference photographs (d
 Phone profile (390 x 844, DPR 1, touch, performance preset): authored-apartment triangles 2,110,907 before -> 2,115,389 after (+4,482, +0.21%). This is desktop emulation, not physical-phone performance. Fine signs are skipped at this profile. Balanced triangles: 3,037,299 -> 3,045,153 (+7,854).
 
 Two labelled local-only photo/before/after comparisons were delivered to the pipeline, using identical app cameras/settings and the second screenshot of each pair. Photo alignment remains approximate. The podium, recessed entrance, curtains/blinds, vents, planters and vertical sign render, but pale walls remain too grey, glazing lacks the photographed reflections, and the lobby and trees remain simplified. Verification is complete; photographic acceptance remains for owner review. The Claude lane committed and merged it.
+
+
+## September 26, 2026 - Goldsmith entrance pavilion (codex/goldsmith-eave-depth)
+
+Restored the missing raised open loggia, deep bracketed eave and roof above the projecting entrance, with its central balcony and pediment. The mapped footprint, courtyard, five original wing roofs and all 36 other campus models remain unchanged. All aesthetic dimensions are adjustable in the Goldsmith bake helper.
+
+Matched application comparisons and scope limits are in [the Goldsmith pavilion note](docs/goldsmith-pavilion.md). Both day/night loads show all 196 authored buildings without errors; the open-courtyard ray/collision checks, finite geometry and short camera movement check pass. Balanced authored-building geometry increases by 1,436 triangles with unchanged draw calls in the sampled views. The full-height entrance comparison uses the existing view-width control at 74 degrees; overview and original oblique frames use 58. Independent review corrected bracket triangulation and coincident ceiling faces before the final evidence.
+
+Fine carving, broader material matching and existing tree forms remain simplified. Dimensions are photo-fitted rather than surveyed. This pass does not establish full photographic acceptance, citywide motion/flicker acceptance or physical-phone performance.
