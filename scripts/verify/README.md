@@ -60,6 +60,43 @@ CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
 
+### CI: the checks on every pull request
+
+`.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
+for every pull request, and by hand from the Actions tab ("Run workflow",
+optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
+checkout, runs the checks one at a time per machine across 16 machines on
+SwiftShader, and keeps **one comment** on the pull request up to date. It
+never pushes and holds no secret. Timing is not measured there.
+
+Reading the comment, top to bottom:
+
+- **Not passing** — each check that failed, timed out or could not run, the
+  line of its output that says why, and a link to its shard's download: the
+  full log and every picture the check wrote.
+- **Pictures, before and after** — the ten views in `ci/poses.json`, shot from
+  the base branch and from the pull request on the same machine. A view is
+  **changed** when more than 0.05% of its pixels moved AND that is over three
+  times what the same page moves between two loads of itself (its "noise",
+  shown beside it). The download's `index.html` has before | after | moved
+  pixels, side by side, per view. Pictures never turn the run red: a visible
+  change is usually the point of the pull request. They are there to look at.
+- **Not run here** — quarantined checks and why, the timing scripts (laptop
+  only), and the tools that have no verdict to give.
+- **Mac graphics probe** — which WebGL renderer full Chrome gets on a macOS
+  runner, and a screenshot.
+
+**What runs is `ci/checks.json`.** Every top-level `*.mjs` here runs unless it
+is listed there under `quarantine`, `laptop_only`, `tools` or `harness`, each
+with a reason. So a new check is covered the day it lands, and leaving one out
+is a visible line. Arguments (`{out}` becomes the script's own artifact folder)
+and ceilings go in its `run` entry. To bring a quarantined check back, fix it,
+delete its line, and let the pull request's run show it green.
+
+Reproduce one shard's way of running a check locally (it never reaps browsers
+outside CI): `VERIFY_URL=http://127.0.0.1:8442 node ci/run-checks.mjs --only
+sky.mjs --out <scratch>`.
+
 ### The core gates
 
 ```bash
