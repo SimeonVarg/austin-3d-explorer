@@ -66,18 +66,23 @@ Chrome is not WebKit: these rank the builds, they do not predict an iPhone.
 
 **Checks on the integrated commit** (AMD Radeon iGPU via the new
 `VERIFY_GPU=low`, renderer string printed by every run):
-- NEW `scripts/verify/scene-unavailable.mjs`: 23/23. Early loss before the
-  three.js root exists (style held, reload record refused): paused 9/9, then
-  "Reload city" -> `lighter`, 196 buildings, 35/35 supports (10/10 authored),
-  200 released arrays, moves 1.75 m. Loss in the flight: one automatic reload
-  onto `lighter`, whole; lost again: no reload, paused 9/9; "Reload city":
-  whole, record untouched, moves 1.21 m. Normal phone with the record refused:
-  paused 9/9, "Reload city" -> `phone`, 216 released arrays, moves 1.75 m.
-  0 page/console errors in all three. `--break` exits 1 (supports stay 35/35,
-  card dismissable).
+- NEW `scripts/verify/scene-unavailable.mjs`: 26/26 on the final code. Early
+  loss before the three.js root exists (style held, reload record refused):
+  paused 9/9, then "Reload city" -> `lighter`, 196 buildings, 35/35 supports
+  (10/10 authored), 200 released arrays, moves 1.73 m. Loss in the flight: one
+  automatic reload onto `lighter`, whole; lost again: no reload, paused 9/9;
+  "Reload city": whole, record untouched, moves 1.72 m. Normal phone with the
+  record refused: paused 9/9, "Reload city" -> `phone`, 216 released arrays,
+  moves 1.74 m. No `<dialog>`: reloads by itself, whole, no error. 0 page or
+  console errors anywhere. `--break` exits 1 (supports stay 35/35, card
+  dismissable).
 - `mobile-boot.mjs`: 51/51, incl. crashloop (killed in the flight -> Safari's
   reload is `lighter`, never reloads itself; killed again -> `safe` with its
   card, no reload of its own) and ctxintro (second loss shows the new card).
+  crashloop + contextloss + ctxintro re-run on the final code: 17/17. (The
+  `<dialog>` fallback landed after the full suite, device-recovery, the walks
+  and the desktop identity ran; it only changes the path where `showModal`
+  does not exist, which `nodialog` covers.)
 - `device-recovery.mjs`: PASS - full city, real loss during time-of-day
   playback, one recovery reload, 196 buildings back, keyboard 42.9 m and
   touch 26.1 m of movement, portrait/landscape/large captures, 0 errors.
@@ -96,7 +101,16 @@ Chrome is not WebKit: these rank the builds, they do not predict an iPhone.
   browser): 196 buildings, 3,084,685 apartment and 4,075,507 layer triangles
   on all three, no phone budget, 0 errors; map canvas and whole page 0 px
   different (max 0) at a West Campus and a Tower pose, control also 0.
-- PERF_LINE
+- Desktop not slower (lanes' `framecost.mjs`, headed Chrome, AMD Radeon iGPU
+  via `--force_low_power_gpu`, 1280x632 at DPR 1.5, CPU 1x, auto-detect
+  cancelled, 4 interleaved pairs, free RAM 5.9-8.8 GB; best of 4 [range]):
+  veil lift main 40,535 [40,535-48,846] ms vs this PR 40,546 [40,546-106,119];
+  idle 60 fps both (median frame 16.6 ms); flying across the city with BOOST
+  main 211 [62.5-211] frames/10 s, median 33.4 ms, p90 66.8 vs this PR 215
+  [60.8-215], 33.4, 66.7. The 106 s load is pair 3, run while another lane
+  loaded the CPU (21-62% before the run); main's run in that pair fell to the
+  same 61 frames/10 s. Desktop never runs the new code (`js/mobile.js` returns
+  before it; the other guards read an undefined flag).
 
 **Harness changes.** `chrome.mjs` `VERIFY_GPU=low` swaps
 `--force_high_performance_gpu` for `--force_low_power_gpu`.
