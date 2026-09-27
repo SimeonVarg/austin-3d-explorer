@@ -1,0 +1,295 @@
+# Visual checks: the scripts/verify suite, on GitHub's machines, on every pull request.
+#
+# WHAT IT DOES. Serves the pull request's site locally, runs every check in
+# scripts/verify that can go red (sharded across 16 machines, one browser per
+# machine, software-rendered so exact-pixel assertions are deterministic),
+# photographs a fixed set of views before and after the change, probes what
+# graphics a Mac runner gives Chrome, and posts ONE comment on the pull request
+# that it keeps updating: what failed and why, what changed in the pictures,
+# links to every log and picture.
+#
+# WHAT IT NEVER DOES. It never pushes, never commits, and holds no secret. The
+# token is GITHUB_TOKEN, read-only everywhere except the summary job, which may
+# also write the one PR comment and read this run's artifact list. Checkouts do
+# not keep credentials. Only GitHub-hosted runners.
+#
+# WHICH CHECKS: scripts/verify/ci/checks.json. Everything runs unless it is
+# listed there as quarantined (with the reason), timing (laptop only), a tool
+# with no verdict, or harness machinery. How to read the results:
+# scripts/verify/README.md, "CI: the checks on every pull request".
+#
+# THE DATA BOTS. build-data.yml, build-tiles.yml and fetch-reference-imagery.yml
+# commit to the branch that triggered them. This workflow triggers none of them
+# and touches none of their paths; it does not run on push at all.
+
+name: Visual checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - 'docs/**'
+      - 'shots/**'
+      - 'research/**'
+      - '*.md'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Run only these checks, comma-separated (e.g. sky.mjs,dusk.mjs). Empty runs the whole suite.'
+        required: false
+        default: ''
+      before:
+        description: 'Pictures: the ref to compare against'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  VERIFY_URL: http://127.0.0.1:8442
+  PORT: '8442'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: m
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          if [ -n "$ONLY" ]; then echo 'matrix=["only"]' >> "$GITHUB_OUTPUT"
+          else echo "matrix=$(node scripts/verify/ci/run-checks.mjs --matrix)" >> "$GITHUB_OUTPUT"; fi
+          node scripts/verify/ci/run-checks.mjs --list | node -e "
+            let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);
+            console.log(j.run.length+' checks run, '+Object.keys(j.excluded).length+' excluded, missing from disk: '+(j.missing.join(', ')||'none'))})"
+
+  checks:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: scripts/verify/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the harness (playwright-core only; it drives the runner's own Chrome)
+        run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - name: Serve this checkout like GitHub Pages does (ranges, cache headers)
+        run: |
+          python scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:8442/index.html
+          google-chrome --version
+      - name: Run this shard's checks
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        # xvfb gives the few headed scripts a display; the rest are headless.
+        run: |
+          if [ "${{ matrix.shard }}" = "only" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+              node scripts/verify/ci/run-checks.mjs --only "$ONLY" --out ci-out
+          else
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+              node scripts/verify/ci/run-checks.mjs --shard ${{ matrix.shard }} --out ci-out
+          fi
+      - name: Upload results (small, read by the summary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-shard-${{ matrix.shard }}
+          path: ci-out/results
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload logs and pictures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-shard-${{ matrix.shard }}
+          path: |
+            ci-out/logs
+            ci-out/pictures
+          retention-days: 14
+          if-no-files-found: warn
+
+  pictures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check out the "before" side
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha || github.event.inputs.before || 'main' }}
+          path: before-site
+          sparse-checkout: |
+            /*
+            !/shots/
+            !/docs/
+            !/research/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: scripts/verify/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - name: Serve after (this change) on 8442 and before on 8443
+        run: |
+          python scripts/serve.py 8442 . > "$RUNNER_TEMP/after.log" 2>&1 &
+          python scripts/serve.py 8443 before-site > "$RUNNER_TEMP/before.log" 2>&1 &
+          for p in 8442 8443; do
+            for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:$p/index.html && break; sleep 1; done
+            curl -sf -o /dev/null http://127.0.0.1:$p/index.html
+          done
+      - name: Photograph both sides and compare
+        continue-on-error: true
+        run: |
+          node scripts/verify/ci/pictures.mjs --before http://127.0.0.1:8443 --after http://127.0.0.1:8442 \
+            --label "${{ github.event.pull_request.base.ref || github.event.inputs.before || 'main' }}" --out ci-out/pictures
+      - name: Upload the report (small, read by the summary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures-report
+          path: ci-out/pictures/pictures.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload the side-by-sides
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures-before-after
+          path: ci-out/pictures
+          retention-days: 14
+          if-no-files-found: warn
+
+  mac-probe:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/shots/
+            !/docs/
+            !/research/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - name: Serve
+        run: |
+          python3 scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+      - name: Which WebGL renderer does full Chrome get here?
+        run: node scripts/verify/ci/mac-probe.mjs --out ci-out/mac
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-probe
+          path: ci-out/mac
+          retention-days: 14
+          if-no-files-found: warn
+
+  summary:
+    needs: [checks, pictures, mac-probe]
+    if: always() && needs.checks.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read          # list this run's artifacts, for the links in the comment
+      pull-requests: write   # post or update the one summary comment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-shard-*
+          path: in/results
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: pictures-report
+          path: in/pictures
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: mac-probe
+          path: in/mac
+      - name: List this run's artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate \
+            --jq '.artifacts[] | {id, name} | tojson' > in/artifacts.jsonl
+          wc -l < in/artifacts.jsonl
+      - name: Write the report
+        id: report
+        run: |
+          set +e
+          node scripts/verify/ci/summary.mjs --results in/results --pictures in/pictures --mac in/mac \
+            --artifacts in/artifacts.jsonl \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --sha "${{ github.event.pull_request.head.sha || github.sha }}" --out summary.md > /dev/null
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Post or update the one comment on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          id=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+                 --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- visual-checks-summary -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -F body=@summary.md > /dev/null
+            echo "updated comment $id"
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$PR/comments" -F body=@summary.md > /dev/null
+            echo "posted a new comment"
+          fi
+      - name: Red if any check did not pass
+        run: exit ${{ steps.report.outputs.code }}
