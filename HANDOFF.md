@@ -1,5 +1,110 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - A graphics reset pauses the phone city instead of leaving it hollow; the phone crash fix lands (`claude/mobile-crash`, PR #310)
+
+![Second graphics reset: before, after, after Reload city](docs/shots/phone-graphics-reset.jpg)
+
+PR #310 (the Sep 24 entry below) rebased onto main, which now has Codex's
+#319 phone walking surfaces, with Codex's private "recovery v2" taken in
+(`C:/Users/simip/output/flyover-architecture/overnight-20260926/pr310-recovery-v2/`,
+applied byte-exact: the six baseline files hashed identical to his, the five
+repaired ones identical after `git apply`). Two decisions of mine on top.
+
+**The hole it closes.** A phone drops each mesh's vertex arrays once they
+are on the GPU (`LITE.budget.freeGeometryCpu`). After a lost WebGL context
+three.js cannot upload them again, so the restored page is missing buildings
+while `__fly` and all 35 walking supports (`campusLandscape.floorAt`, 10 of
+them on Gearing's authored model) still answer: you walk on invisible stairs.
+The first loss already reloaded by itself; a second inside the 10-minute
+limit, or one whose reload record could not be written, left that hollow city
+running with zero page errors (left panel above: Codex's capture of the
+unmodified Sep 24 code). Now any map-canvas loss with the 3D layer on sets
+`LITE_PROFILE.sceneUnavailable`: the root hides, `city:unavailable` tears the
+controls down and disables all eight map handlers (`js/app.js`), render,
+`floorAt`, the landscape poller/rebuild/density hooks, the facade storey
+bootstrap, the intro and idle rotation all stand down, and the notice becomes
+a native modal "Reload to continue exploring" with one button and no dismiss
+(keys captured, Escape blocked, later notices cannot replace it). The first
+loss still reloads once by itself; the modal only stays up when it cannot.
+
+**Mine 1: one fix to Codex's patch.** His render guard read
+`window.LITE_PROFILE` before `gl.isContextLost()`; the existing
+`slopes-context-loss.mjs` requires a lost-context render to touch nothing,
+and failed. Reordered (same conditions); it passes, and both its `--break`s
+still go red.
+
+**Mine 2: vertex packing DEFERRED** (`packVertices: false`). Its own gate
+(packed vs exact, one page, SwiftShader 640x640, control 0 px) still fails
+exactly as on Sep 24: The Standard day 11,190 px (max 12/255), night 515;
+21 Rio day 5,348 (max 11), night 244; Moody 0. Taste call for the owner:
+packing buys back about 60 MB once settled and nothing measurable at the
+peak (table below) for that sub-brick grain shift. At that price, off.
+
+**Memory, phone emulation** (`mobile-memory.mjs`, 390x844 DPR 3 touch,
+AMD Radeon iGPU, CPU 1x, a fresh browser per rep, arms interleaved, 3 reps,
+graphics auto-detect cancelled, free RAM 4.2-6.7 GB at each start, one other
+lane's browser running). `phone` = JS heap + ArrayBuffers + live WebGL bytes;
+peak = the opening flight (15-24 s after the veil lifts), settled = 30 s after
+the buildings land. Minimum [range], MB:
+
+                              peak               settled       WebGL buffers
+    main (91a4106)            1968 [1968-2050]   1845 [1845-1905]   428
+    this PR, packing off       861 [861-985]      758 [758-769]     383
+    this PR, packing on        869 [869-902]      697 [697-705]     315
+
+Same 196 buildings and 2,155,609 apartment triangles in every arm. The
+phone tier holds 56% less at the peak and 59% less settled than main. Desktop
+Chrome is not WebKit: these rank the builds, they do not predict an iPhone.
+
+**Checks on the integrated commit** (AMD Radeon iGPU via the new
+`VERIFY_GPU=low`, renderer string printed by every run):
+- NEW `scripts/verify/scene-unavailable.mjs`: 23/23. Early loss before the
+  three.js root exists (style held, reload record refused): paused 9/9, then
+  "Reload city" -> `lighter`, 196 buildings, 35/35 supports (10/10 authored),
+  200 released arrays, moves 1.75 m. Loss in the flight: one automatic reload
+  onto `lighter`, whole; lost again: no reload, paused 9/9; "Reload city":
+  whole, record untouched, moves 1.21 m. Normal phone with the record refused:
+  paused 9/9, "Reload city" -> `phone`, 216 released arrays, moves 1.75 m.
+  0 page/console errors in all three. `--break` exits 1 (supports stay 35/35,
+  card dismissable).
+- `mobile-boot.mjs`: 51/51, incl. crashloop (killed in the flight -> Safari's
+  reload is `lighter`, never reloads itself; killed again -> `safe` with its
+  card, no reload of its own) and ctxintro (second loss shows the new card).
+- `device-recovery.mjs`: PASS - full city, real loss during time-of-day
+  playback, one recovery reload, 196 buildings back, keyboard 42.9 m and
+  touch 26.1 m of movement, portrait/landscape/large captures, 0 errors.
+- #319's phone walks, Codex's unchanged route code (`union-walk.mjs`,
+  `gearing-walk.mjs` from his phone-ground folder) on this build: PASS on the
+  `phone` tier (Union 2,704 frames; Gearing stairs/restart 665, terrace-to-ramp
+  739, outside 342; eye 1.800000-1.800210 m over the ground) and on the
+  `lighter` tier (Union 2,994; Gearing 543/527/226; 1.800000-1.800797 m);
+  35/35 supports before, all 0 with the 3D switch off; 0 errors.
+- Node-only: slopes-context-loss, slopes-buffer-memory, facade-atlas-memory,
+  shadow-proxy-pacing/-recovery, the five style-recovery checks,
+  slopes-chunked-build, harness-drift, gearing-ground, ground-roof-separation,
+  collision-raster all pass; Codex's two CPU fixtures (`guard-cpu.cjs`,
+  `cpu-v1.cjs`) pass against this tree.
+- Desktop unchanged (SwiftShader 1280x800, main / this PR / main again in one
+  browser): 196 buildings, 3,084,685 apartment and 4,075,507 layer triangles
+  on all three, no phone budget, 0 errors; map canvas and whole page 0 px
+  different (max 0) at a West Campus and a Tower pose, control also 0.
+- PERF_LINE
+
+**Harness changes.** `chrome.mjs` `VERIFY_GPU=low` swaps
+`--force_high_performance_gpu` for `--force_low_power_gpu`.
+`mobile-memory.mjs` now cancels the graphics auto-detect (rule 10, Codex's
+review caught it) and prints the renderer and free RAM per rep.
+`docs/mobile-device-check.md` is rewritten as the owner's iPhone steps:
+the flight, crashing twice, a graphics reset (camera app, twice in ten
+minutes), walking the Union and Gearing steps, and an optional forced reset
+from the Mac's Web Inspector.
+
+**Open.** Not tested on a real iPhone (Safari or Chrome) - memory, thermals
+and recovery there are unverified. PR #312 (Codex, parked) is stacked on this
+branch and touches `js/mobile.js`, `js/slopes.js`, `js/slopes-apartments.js`;
+it has to be retargeted to main and re-verified by its lane. Packing waits on
+the owner's taste call above.
+
 ## Sep 24 2026 - Phones stop crash-looping: a memory budget, and one reload at most (`claude/mobile-crash`)
 
 Reported: "the site still breaks on mobile browsers - it loads for like 15

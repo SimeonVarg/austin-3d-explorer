@@ -605,7 +605,11 @@
           if (!['Tab', 'Enter', ' '].includes(e.key)) e.preventDefault();
         }, true);
         el.addEventListener('cancel', e => e.preventDefault());
-        el.showModal();
+        // Safari before 15.4 has no <dialog>: the card still shows (fixed,
+        // above the city) and the keys are still captured; a throw here
+        // would skip the automatic reload the caller schedules next.
+        if (typeof el.showModal === 'function') { try { el.showModal(); } catch (e) { el.setAttribute('open', ''); } }
+        else el.setAttribute('open', '');
       }
     };
     if (document.body) mount();
