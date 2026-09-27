@@ -81,7 +81,8 @@ const artLink = name => {
   const a = artifacts.find(x => x.name === name);
   return a && runUrl ? `${runUrl}/artifacts/${a.id}` : null;
 };
-const shardArt = k => artLink(`checks-shard-${onlyRun ? "only" : k}`);
+const OS = opt('--os', '');
+const shardArt = k => artLink(`checks-${OS ? OS + '-' : ''}shard-${onlyRun ? 'only' : k}`);
 const shardFor = script => {
   const r = rows.find(x => x.script === script);
   for (const [k, s] of shards) if ((s.rows || []).includes(r)) return Number(k);
@@ -105,7 +106,7 @@ const L = [MARKER];
 const failing = bad.length + lost.length;
 L.push(`## Visual checks: ${failing ? `${failing} not passing, ` : 'all '}${good.length} passed${sha ? ` (commit ${sha})` : ''}`);
 L.push('');
-L.push(`Every check in \`scripts/verify\` that can run without a graphics card, on GitHub's machines, software-rendered. ` +
+L.push(`Every check in \`scripts/verify\` that can run without a graphics card, on GitHub's machines${OS ? ` (\`${OS}\`)` : ''}, software-rendered. ` +
        `How to read this: \`scripts/verify/README.md\`, section "CI: the checks on every pull request".`);
 L.push('');
 
@@ -139,10 +140,11 @@ if (pictures) {
            ` (a pixel counts if any colour channel moved more than ${pictures.tolerance}; a view counts if more than ${pictures.minPct}% of its pixels did).` +
            (link ? ` [Download the side-by-sides](${link}).` : ''));
     L.push('');
-    L.push('| view | pixels changed | biggest change |');
-    L.push('|---|---|---|');
+    L.push('| view | pixels that moved | same page shot twice | biggest channel change |');
+    L.push('|---|---|---|---|');
     for (const p of pictures.poses || []) {
-      L.push(`| ${p.changed ? '**' + esc(p.name) + '**' : esc(p.name)} | ${p.error ? esc(p.error) : p.pct + '%'} | ${p.maxChannelDiff ?? ''} |`);
+      L.push(`| ${p.changed ? '**' + esc(p.name) + ' (changed)**' : esc(p.name)} | ${p.error ? esc(p.error) : p.pct + '%'} | ` +
+             `${p.noisePct != null ? p.noisePct + '%' : ''} | ${p.maxChannelDiff ?? ''} |`);
     }
     L.push('');
     L.push('Pictures never fail the run: a change can be the point of the pull request. They are here to be looked at.');

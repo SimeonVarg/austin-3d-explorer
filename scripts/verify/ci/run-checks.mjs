@@ -56,8 +56,18 @@ if (argv.includes('--list')) {
   console.log(JSON.stringify({ shards: OF, run, excluded, missing }, null, 1));
   process.exit(0);
 }
+// The workflow's job matrix: every runner image x every shard ("only" for a
+// hand-picked run), plus the image whose results are the verdict.
 if (argv.includes('--matrix')) {
-  console.log(JSON.stringify(Array.from({ length: OF }, (_, i) => i)));
+  const runners = CONFIG.runners?.length ? CONFIG.runners : ['ubuntu-latest'];
+  const shard = ONLY ? ['only'] : Array.from({ length: OF }, (_, i) => String(i));
+  console.log(JSON.stringify({ os: runners, shard }));
+  process.exit(0);
+}
+if (argv.includes('--config')) {
+  const runners = CONFIG.runners?.length ? CONFIG.runners : ['ubuntu-latest'];
+  console.log(`verdict_os=${runners[0]}`);
+  console.log(`pictures_os=${CONFIG.pictures_runner || runners[0]}`);
   process.exit(0);
 }
 

@@ -9,18 +9,24 @@
  * It NEVER fails the run: in this repo a visible change is usually the point
  * of the pull request. It reports, and the report is the PR comment.
  *
- * NOISE. Both sides are shot on the same machine, same software renderer, same
- * harness (this checkout's shot.mjs). The BEFORE side is shot twice, and the
- * difference between those two is printed as each view's noise floor, so a
- * "changed" can be read against how much the page moves on its own.
+ * NOISE. Every side is shot with the same harness (this checkout's shot.mjs)
+ * and the same software renderer. The BEFORE side is shot a second time
+ * ("again"), and the difference between those two is printed as each view's
+ * noise floor, so a "changed" can be read against how much the page moves on
+ * its own. In CI the three shoots run on three machines at once (one frame
+ * takes seconds in software); "again" being on its own machine means the
+ * noise floor includes the machine-to-machine difference too.
  *
  * Usage:
- *   node scripts/verify/ci/pictures.mjs --before http://127.0.0.1:8443 \
- *        --after http://127.0.0.1:8442 --out ci-out/pictures [--label main]
- *        [--poses scripts/verify/ci/poses.json] [--no-repeat]
+ *   one machine, all of it:
+ *     node scripts/verify/ci/pictures.mjs --before URL --after URL --out DIR [--label main]
+ *   or split, as the workflow does:
+ *     node scripts/verify/ci/pictures.mjs --shoot before|after|again --url URL --out DIR
+ *     node scripts/verify/ci/pictures.mjs --compare --out DIR [--label main]
+ *   [--poses scripts/verify/ci/poses.json] [--no-again]
  *
  * Writes <out>/pictures.json, <out>/index.html and per view
- * <view>-compare.jpg (before | after | changed pixels) plus the raw PNGs.
+ * <view>-compare.jpg (before | after | moved pixels) plus the raw PNGs.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -49,11 +55,20 @@ const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
 const BEFORE = opt('--before');
 const AFTER = opt('--after');
+const SHOOT = opt('--shoot');
+const COMPARE = argv.includes('--compare');
 const OUT = path.resolve(opt('--out', 'ci-out/pictures'));
 const LABEL = opt('--label', 'main');
 const POSES = path.resolve(opt('--poses', path.join(CI_DIR, 'poses.json')));
-const REPEAT = !argv.includes('--no-repeat');
-if (!BEFORE || !AFTER) { console.error('usage: pictures.mjs --before URL --after URL --out DIR'); process.exit(2); }
+const AGAIN = !argv.includes('--no-again');
+const SIDES = ['before', 'after', 'again'];
+if (!(BEFORE && AFTER) && !(SHOOT && opt('--url')) && !COMPARE) {
+  console.error('usage: pictures.mjs --before URL --after URL --out DIR\n' +
+                '       pictures.mjs --shoot before|after|again --url URL --out DIR\n' +
+                '       pictures.mjs --compare --out DIR');
+  process.exit(2);
+}
+if (SHOOT && !SIDES.includes(SHOOT)) { console.error('--shoot takes ' + SIDES.join('|')); process.exit(2); }
 
 fs.mkdirSync(OUT, { recursive: true });
 const poses = JSON.parse(fs.readFileSync(POSES, 'utf8'));
@@ -75,8 +90,10 @@ function shoot(side, url) {
     child.stdout.on('data', d => { log += d; process.stdout.write(d); });
     child.stderr.on('data', d => { log += d; process.stderr.write(d); });
     child.on('close', code => {
+      const run = { side, url, code, secs: Math.round((Date.now() - t0) / 1000), os: process.platform };
       fs.writeFileSync(path.join(OUT, `${side}.log`), log);
-      resolve({ code, secs: Math.round((Date.now() - t0) / 1000) });
+      fs.writeFileSync(path.join(OUT, side, 'run.json'), JSON.stringify(run));
+      resolve(run);
     });
   });
 }
@@ -128,19 +145,33 @@ function compare(a, b, writeTo) {
 }
 
 // ---- shoot -------------------------------------------------------------
-console.log(`before ${BEFORE} (${LABEL})  after ${AFTER}  ${poses.length} views${REPEAT ? ', before shot twice' : ''}`);
-const runs = { before: await shoot('before', BEFORE), after: await shoot('after', AFTER) };
-if (REPEAT) runs.repeat = await shoot('repeat', BEFORE);
-report.runs = runs;
+if (SHOOT) {
+  const r = await shoot(SHOOT, opt('--url'));
+  console.log(`shot ${SHOOT}: exit ${r.code} after ${r.secs}s`);
+  process.exit(0);   // a failed shoot shows up as missing views in --compare
+}
+if (BEFORE && AFTER) {
+  console.log(`before ${BEFORE} (${LABEL})  after ${AFTER}  ${poses.length} views${AGAIN ? ', before shot twice' : ''}`);
+  await shoot('before', BEFORE);
+  await shoot('after', AFTER);
+  if (AGAIN) await shoot('again', BEFORE);
+}
 
+// ---- compare -----------------------------------------------------------
+report.runs = {};
+for (const side of SIDES) {
+  try { report.runs[side] = JSON.parse(fs.readFileSync(path.join(OUT, side, 'run.json'), 'utf8')); } catch (e) {}
+}
 for (const p of poses) {
   const row = { name: p.name };
   try {
     const b = shotPath('before', p.name), a = shotPath('after', p.name);
-    if (!fs.existsSync(b) || !fs.existsSync(a)) throw new Error('no picture (shot.mjs did not finish this view)');
+    if (!fs.existsSync(b) || !fs.existsSync(a)) {
+      throw new Error(`no ${!fs.existsSync(b) ? 'before' : 'after'} picture (its shoot did not reach this view)`);
+    }
     Object.assign(row, compare(b, a, path.join(OUT, `${p.name}-diff.png`)));
-    if (REPEAT && fs.existsSync(shotPath('repeat', p.name))) {
-      row.noisePct = compare(b, shotPath('repeat', p.name), null).pct;
+    if (fs.existsSync(shotPath('again', p.name))) {
+      row.noisePct = compare(b, shotPath('again', p.name), null).pct;
     }
     row.changed = row.pct > LOOK.minPct && row.pct > LOOK.noiseFactor * (row.noisePct || 0);
   } catch (e) {
