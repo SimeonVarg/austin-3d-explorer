@@ -42,6 +42,7 @@ same heavy scene; and a lost WebGL context reloaded into the same scene too.
   0 px), the fine brick-joint grain on far walls lands a fraction of a brick
   along - The Standard by day 2.7% of pixels at most 12/255, 21 Rio 1.3%, Moody
   0. Same grain, displaced; `packVertices: false` puts exact vertices back.
+  **DEFERRED on Sep 27 (entry above): phones ship `packVertices: false`.**
 
 **Tiers, one step per death** (`LITE.tiers`): `phone` -> `lighter` (no opening
 flight, no out-of-view tile cache, no balconies) -> `safe` (flat prisms, as

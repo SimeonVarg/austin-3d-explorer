@@ -127,6 +127,31 @@ reload would) on the `lighter` tier with the authored buildings and never
 reload itself, and a context lost during the flight must reload exactly once,
 onto the `lighter` tier, and not again when it is lost a second time.
 
+### A graphics reset pauses the phone city, it never leaves it hollow (Sep 27 2026)
+
+`VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage] [--out DIR]`
+(hardware GL, one browser, 390x844 DPR 3 touch). A phone drops its vertex
+arrays once they are on the GPU, so a restored context cannot draw the city
+again; only a new document can. Three real losses: before the three.js root
+exists (the style request held), a second loss after the flight's one
+automatic reload, and a loss whose reload record cannot be written. Each must
+end PAUSED (nine checks: `LITE_PROFILE.sceneUnavailable`, no controller, every
+walking support 0, a native modal with no dismiss, the root hidden, frames
+stopped, the camera unmoved through W + Escape, no errors), and the real
+"Reload city" button must bring back a WHOLE city (196 buildings, all 35
+supports incl. the 10 on Gearing's authored model, released CPU arrays, draw
+calls, a hardware renderer) that moves under the keyboard. `--break` makes the
+flag impossible to set in the page and must exit 1 (Sep 27: it does — 35/35
+supports still answer over a city whose buffers are gone, and the card can be
+dismissed). Codex's negative control of the unmodified Sep 24 code (private,
+`pr310-recovery-spike`) found the same hollow city with its controller still
+live and zero page errors: nothing else in this directory noticed.
+
+`VERIFY_GPU=low` swaps `--force_high_performance_gpu` for
+`--force_low_power_gpu` in every hardware launch (`chrome.mjs` `HW_ARGS`):
+the owner's laptop has an AMD iGPU next to an RTX 3050 Ti, and a visitor
+without the big GPU is the one to measure. Print the renderer string.
+
 
 ### The shadow proxy is never rebuilt mid-flight
 

@@ -193,6 +193,10 @@ async function measure(arm, rep, sampler) {
   const bcdp = await browser.newBrowserCDPSession();
   const ctx = await browser.newContext(DESKTOP ? DESK : PHONE);
   await ctx.addInitScript(glInit);
+  // CLAUDE.md rule 10: cancel the graphics auto-detect probe at the top of any
+  // test, so its preset change cannot land in the middle of a reading.
+  await ctx.addInitScript(() => { const t = setInterval(() => { if (window.cancelGraphicsAutoDetect) { window.cancelGraphicsAutoDetect(); clearInterval(t); } }, 10); });
+  const freeMB = Math.round(os.freemem() / 1048576);
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   const errors = [];
@@ -300,6 +304,7 @@ async function measure(arm, rep, sampler) {
         }
         out.maplibre = { images: imgN, imagesCpuMB: Math.round(imgCpu / 1048576), sources: per };
       } catch (e) { out.maplibre = { error: String(e).slice(0, 100) }; }
+      try { const gl = window.__map.painter.context.gl, x = gl.getExtension('WEBGL_debug_renderer_info'); out.renderer = x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : null; } catch (e) {}
       out.lite = window.LITE_PROFILE ? JSON.parse(JSON.stringify(window.LITE_PROFILE)) : null;
       out.preset = window.GFX ? window.GFX.preset : null;
       out.renderScale = window.GFX ? window.GFX.renderScale : null;
@@ -316,7 +321,7 @@ async function measure(arm, rep, sampler) {
   const peak = (rows, k) => rows.reduce((m, r) => r[k] != null && r[k] > m ? r[k] : m, 0);
   const settled = (k) => tail.reduce((m, r) => r[k] != null && r[k] < m ? r[k] : m, Infinity);
   const KEYS = ['phone', 'heapUsed', 'backing', 'gl', 'tex', 'buf', 'rb', 'rendPM', 'rendWS', 'gpuPM', 'gpuWS'];
-  const res = { arm: arm.name, rep, crashed, navs, tReveal, tLanded, errors: errors.slice(0, 20), census, peak: {}, settled: {}, samples };
+  const res = { arm: arm.name, rep, crashed, navs, tReveal, tLanded, freeMB, errors: errors.slice(0, 20), census, peak: {}, settled: {}, samples };
   for (const k of KEYS) {
     res.peak[k] = MB(Math.max(peak(intro, k), peak(samples, k)));
     const v = settled(k); res.settled[k] = v === Infinity ? null : MB(v);
@@ -334,7 +339,7 @@ try {
       const r = await measure(arm, rep, sampler);
       results.push(r);
       const p = r.peak, s = r.settled;
-      console.log(`${arm.name} rep ${rep}: reveal ${r.tReveal} ms, landed ${r.tLanded} ms, crashed ${r.crashed}, navs ${r.navs}, errors ${r.errors.length}`);
+      console.log(`${arm.name} rep ${rep}: reveal ${r.tReveal} ms, landed ${r.tLanded} ms, crashed ${r.crashed}, navs ${r.navs}, errors ${r.errors.length}, free RAM at start ${r.freeMB} MB, renderer ${r.census && r.census.renderer}`);
       console.log(`   peak    phone ${p.phone}  heap ${p.heapUsed}  backing ${p.backing}  gl ${p.gl} (tex ${p.tex} buf ${p.buf} rb ${p.rb})  renderer ${p.rendPM}/${p.rendWS}  gpu ${p.gpuPM}/${p.gpuWS}  MB (private/ws)`);
       console.log(`   settled phone ${s.phone}  heap ${s.heapUsed}  backing ${s.backing}  gl ${s.gl} (tex ${s.tex} buf ${s.buf} rb ${s.rb})  renderer ${s.rendPM}/${s.rendWS}  gpu ${s.gpuPM}/${s.gpuWS}  MB`);
       if (r.census) console.log('   census', JSON.stringify({ three: r.census.three, maplibre: r.census.maplibre, preset: r.census.preset, canvas: r.census.canvas, slopesTris: r.census.slopesTris, apts: r.census.apts, tier: r.census.lite && r.census.lite.tier }));

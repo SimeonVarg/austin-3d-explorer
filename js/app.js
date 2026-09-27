@@ -519,7 +519,20 @@ window.CityLighting.install(map);
     // because applyGraphics() toggles buildings-ao / buildings-shadow.
     step('graphics', () => initGraphics(map));
     step('basemap',  () => cleanupBasemap(map));
-    step('controls', () => initControls(map, scene));
+    step('controls', () => {
+      let cleanup = null;
+      const unavailable = () => {
+        window.dispatchEvent(new Event('flycam:takeover'));
+        if (cleanup) { cleanup(); cleanup = null; }
+        map.stop();
+        // controls.cleanup restores the handlers it inherited. A blocked
+        // scene must disable those too until the requested document reload.
+        for (const h of ['scrollZoom', 'boxZoom', 'dragRotate', 'dragPan', 'keyboard', 'doubleClickZoom', 'touchZoomRotate', 'touchPitch']) map[h]?.disable();
+      };
+      window.addEventListener('city:unavailable', unavailable);
+      if (window.LITE_PROFILE?.sceneUnavailable) unavailable();
+      else cleanup = initControls(map, scene);
+    });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
     step('reveal',   () => revealAndIntro());
@@ -2101,6 +2114,7 @@ window.CityLighting.install(map);
     map.jumpTo(INTRO.start);
 
     const fly = () => {
+      if (window.LITE_PROFILE?.sceneUnavailable) { cancel('city unavailable'); return; }
       if (F.state !== 'primed') return;
       // The user drove under the veil (the takeover already cancelled us), or
       // something else placed the camera: either way the camera is theirs.
@@ -2154,7 +2168,7 @@ window.CityLighting.install(map);
       const f = window.__intro && window.__intro.flight;
       return !!f && (f.state === 'primed' || f.state === 'flying');
     };
-    const canRun = () => document.visibilityState === 'visible' &&
+    const canRun = () => !window.LITE_PROFILE?.sceneUnavailable && document.visibilityState === 'visible' &&
                          !reducedMotion.matches &&
                          (!banner || banner.classList.contains('hidden')) &&
                          !introBusy() &&

@@ -1227,7 +1227,7 @@
     prerender(gl,args) { this.render(gl,args,true); },
     render(gl, args, prepareOnly=false) {
       // The switch, read LIVE every frame — never cached at onAdd.
-      if (!SLOPES.on || !scene || gl.isContextLost()) return;
+      if (!SLOPES.on || !scene || gl.isContextLost() || window.LITE_PROFILE?.sceneUnavailable) return;
       // Each generator's group carries the minzoom and the LOD tier of the
       // fill-extrusion layer it replaces (userData.minzoom, userData.lod), so
       // the roofs go at the altitude js/lod.js drops `roofs-pitched` while the

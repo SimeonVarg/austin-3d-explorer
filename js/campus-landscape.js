@@ -58,7 +58,7 @@
   }
  }
  function floorAt(lng,lat){
-  if(!window.SLOPES?.on||!structuralGroup||structuralGroup.visible===false)return 0;
+  if(!window.SLOPES?.on||window.LITE_PROFILE?.sceneUnavailable||!structuralGroup||structuralGroup.visible===false)return 0;
   const [x,y]=groundPoint(lng,lat),entries=groundIndex.get(Math.floor(x/GROUND_CELL)+','+Math.floor(y/GROUND_CELL))||[];
   let height=0;
   for(const f of entries)if((!f.requiresAuthored||authoredPresent(f.requiresAuthored))&&inRing(x,y,f.rings[0])&&!f.rings.slice(1).some(r=>inRing(x,y,r)))
@@ -320,6 +320,7 @@
   map.setFilter('props-line',['all',...base,...(fenceClause?[fenceClause]:[])]);
  }
  function apply(){
+  if(window.LITE_PROFILE?.sceneUnavailable)return;
   if(!data||!map||!window.slopes?.root)return;
   const on=C.on&&SLOPES.on;
   if(!SLOPES.on)dropStructural();
@@ -333,14 +334,19 @@
   map.triggerRepaint();
  }
  window.applyCampusLandscape=apply;
- window.campusLandscape={get count(){return {...count}},get group(){return group},get structuralGroup(){return structuralGroup},get data(){return data},floorAt,rebuild(){drop();dropStructural();apply()}};
+ window.campusLandscape={get count(){return {...count}},get group(){return group},get structuralGroup(){return structuralGroup},get data(){return data},floorAt,rebuild(){if(window.LITE_PROFILE?.sceneUnavailable)return;drop();dropStructural();apply()}};
  if(q.get('slopes')==='0'){count.done=true;return}
  let busy=false;
  const timer=setInterval(async()=>{
+  // A lost scene stays paused until a new document; do not query its style.
+  if(window.LITE_PROFILE?.sceneUnavailable){clearInterval(timer);return}
   if(busy||!window.__map?.getLayer('trees-canopy')||!window.slopes?.root||!window.treeFilter)return;
   busy=true;
   try{
-   map=window.__map;data=await slopes.fetchJSON(C.url);originalFilter=window.treeFilter;
+   map=window.__map;
+   const loaded=await slopes.fetchJSON(C.url);
+   if(window.LITE_PROFILE?.sceneUnavailable){clearInterval(timer);return}
+   data=loaded;originalFilter=window.treeFilter;
    indexGround();
    window.treeFilter=function(kind){
     const base=originalFilter(kind);
@@ -355,9 +361,9 @@
    // Presets and density controls already call applyTreeDensity; rebuild the
    // mesh at that same transition, without changing the app's base tree filter.
    const densityApply=window.applyTreeDensity;
-   window.applyTreeDensity=function(m){densityApply(m);if(C.on&&SLOPES.on&&((window.GFX?.treeDensity??1)!==lastDensity||slopes.detail()!==lastDetail))apply()};
+   window.applyTreeDensity=function(m){if(window.LITE_PROFILE?.sceneUnavailable)return;densityApply(m);if(C.on&&SLOPES.on&&((window.GFX?.treeDensity??1)!==lastDensity||slopes.detail()!==lastDetail))apply()};
    const entranceApply=window.applyEntranceDensity;
-   window.applyEntranceDensity=function(m){entranceApply(m);applyRamps(C.on&&SLOPES.on&&!!group)};
+   window.applyEntranceDensity=function(m){if(window.LITE_PROFILE?.sceneUnavailable)return;entranceApply(m);applyRamps(C.on&&SLOPES.on&&!!group)};
   }catch(e){console.error('[campus-landscape]',e);count.done=true}
   clearInterval(timer);
  },180);

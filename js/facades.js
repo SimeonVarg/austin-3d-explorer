@@ -4305,6 +4305,7 @@
   // last owns the outermost closure, so a check written against the wrapper's
   // own property reads false for every pass except that one.
   function csBoot() {
+    if (window.LITE_PROFILE?.sceneUnavailable) return;
     const map = window.__map;
     if (!map) return setTimeout(csBoot, 60);
 
@@ -4322,6 +4323,7 @@
     };
 
     const go = () => {
+      if (window.LITE_PROFILE?.sceneUnavailable) return;
       // Wait for the core buildings: the anchor search needs `buildings-3d` in
       // the style, and trim standing proud of a wall that does not exist yet is
       // invisible from every angle except straight down.

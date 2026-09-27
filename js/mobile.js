@@ -153,7 +153,11 @@
       // half a degree. The one visible-in-a-diff cost: the fine brick-joint
       // grain on far walls sits a fraction of a brick along (see packGeometry).
       // false = exact vertices.
-      packVertices: true,
+      // DEFERRED (Sep 27 2026): its own visual gate still fails - packed vs
+      // exact in one page, The Standard by day 11,190 px changed (max 12/255),
+      // 21 Rio 5,348 - so phones ship exact vertices until someone accepts
+      // that picture. true turns it back on; nothing else changes.
+      packVertices: false,
       // js/slopes-apartments.js: balcony slabs and rails on the authored
       // buildings. Kept here; the `lighter` tier drops them.
       aptBalconies: true,
@@ -208,18 +212,19 @@
     // The notice shown whenever the visitor is not getting the full city.
     notice: {
       title: 'Simplified buildings',
-      titles: { ctx: 'Graphics were reset', lighter: 'Lighter city', lighterCtx: 'Lighter city' },
+      titles: { ctx: 'Reload to continue exploring', lighter: 'Lighter city', lighterCtx: 'Lighter city' },
       why: {
         crashes: 'The full city stopped loading on this device twice, so this visit shows plain blocks instead of the detailed buildings.',
         url: 'This link asks for the lightweight city (lite=safe), so the buildings are plain blocks.',
         slow: 'The detailed buildings took too long to load this time, so plain blocks are shown instead.',
-        ctx: 'The phone took back the graphics memory, so some buildings are missing. Reloading brings them back.',
+        ctx: 'The graphics were reset. Exploring is paused until the city reloads.',
         lighter: 'The full city ran out of memory on this device, so this visit uses lighter buildings (no balconies) and skips the opening flight.',
         lighterCtx: 'The phone ran short of graphics memory during the opening flight, so this visit uses lighter buildings (no balconies) and skips the flight.',
       },
       retry: 'Load full city',
       retries: { ctx: 'Reload city' },
       dismiss: 'Dismiss',
+      blockedBackdrop: 'rgba(16,10,3,.98)',
       // Under the veil (z 60), over the HUD and the buttons (z 30-31), so it
       // appears as the veil lifts. Clear of the top-right button column.
       top: 'calc(16px + 44px + 12px)',
@@ -489,6 +494,14 @@
       lostAt = Date.now(); restored = false;
       window.LITE_PROFILE.contextLost = (window.LITE_PROFILE.contextLost | 0) + 1;
       if (!struck && visible() && window.SLOPES && window.SLOPES.on && (!B.revealed || introFlying())) struck = strike('ctx');
+      // CPU buffers may already have been released after their first upload.
+      // Restoration cannot make that scene usable; only a new document can.
+      if (window.SLOPES && window.SLOPES.on) {
+        window.LITE_PROFILE.sceneUnavailable = true;
+        if (window.slopes && window.slopes.root) window.slopes.root.visible = false;
+        window.dispatchEvent(new Event('city:unavailable'));
+        showNotice('ctx');
+      }
       schedule();
     }, true);
     window.addEventListener('webglcontextrestored', (e) => {
@@ -542,9 +555,12 @@
   }
 
   function showNotice(kind) {
+    // Late boot notices cannot reopen an invalid scene or dismiss its reload.
+    if (window.LITE_PROFILE.sceneUnavailable) kind = 'ctx';
     const N = LITE.notice;
     window.LITE_PROFILE.notice = kind;
     const mount = () => {
+      const blocked = kind === 'ctx' && window.LITE_PROFILE.sceneUnavailable;
       const old = document.getElementById('lite-notice');
       if (old) { if (old.dataset.kind === kind) return; old.remove(); }
       if (!document.getElementById('lite-notice-css')) {
@@ -561,23 +577,36 @@
           '#lite-notice button[data-act=full]{min-height:36px;padding:0 16px;border-radius:999px;border:0;' +
           'background:' + N.accent + ';color:' + N.accentInk + ';font-family:inherit;font-weight:600;font-size:12.5px;line-height:1;cursor:pointer}' +
           '#lite-notice button[data-act=close]{position:absolute;top:4px;right:4px;width:36px;height:36px;border:0;' +
-          'background:none;color:' + N.ink + ';opacity:.7;font-size:18px;line-height:1;cursor:pointer}';
+          'background:none;color:' + N.ink + ';opacity:.7;font-size:18px;line-height:1;cursor:pointer}' +
+          'dialog#lite-notice{position:fixed;inset:0;margin:auto;width:calc(100% - 56px);height:fit-content;box-sizing:border-box}' +
+          'dialog#lite-notice::backdrop{background:' + N.blockedBackdrop + '}';
         document.head.appendChild(css);
       }
-      const el = document.createElement('div');
+      const el = document.createElement(blocked ? 'dialog' : 'div');
       el.id = 'lite-notice';
       el.dataset.kind = kind;
-      el.setAttribute('role', 'status');
+      el.setAttribute('role', blocked ? 'alertdialog' : 'status');
+      if (blocked) { el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', N.titles.ctx); }
       const t = document.createElement('div'); t.className = 'ln-t'; t.textContent = N.titles[kind] || N.title;
       const b = document.createElement('div'); b.className = 'ln-b'; b.textContent = N.why[kind] || '';
       const a = document.createElement('div'); a.className = 'ln-a';
       const go = document.createElement('button'); go.type = 'button'; go.dataset.act = 'full'; go.textContent = N.retries[kind] || N.retry;
       const x = document.createElement('button'); x.type = 'button'; x.dataset.act = 'close'; x.textContent = '×';
       x.setAttribute('aria-label', N.dismiss);
-      a.appendChild(go); el.append(t, b, a, x);
+      a.appendChild(go); el.append(t, b, a); if (!blocked) el.appendChild(x);
       go.addEventListener('click', (e) => { e.stopPropagation(); retryFull(kind); });
       x.addEventListener('click', (e) => { e.stopPropagation(); el.remove(); });
       document.body.appendChild(el);
+      if (blocked) {
+        // Modal inertness prevents clicks reaching the city; capture prevents
+        // document-level shortcuts from starting camera travel behind it.
+        window.addEventListener('keydown', e => {
+          e.stopImmediatePropagation();
+          if (!['Tab', 'Enter', ' '].includes(e.key)) e.preventDefault();
+        }, true);
+        el.addEventListener('cancel', e => e.preventDefault());
+        el.showModal();
+      }
     };
     if (document.body) mount();
     else document.addEventListener('DOMContentLoaded', mount, { once: true });
