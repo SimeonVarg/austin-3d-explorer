@@ -1,0 +1,23 @@
+# Build-time and documentation material. None of this is fetched by the
+# running site: every shots/ and scripts/ mention in js/ is inside a comment.
+# Keeping it out of deployments is what stops the 10 GB free tier filling up.
+
+shots/
+research/
+scripts/
+docs/
+
+# Build inputs for the outer-ring bake, not read at runtime.
+data/outer/
+
+# Repo housekeeping
+.github/
+*.md
+
+# Caches and source imagery for the bakes. Verified: every mention of these in
+# js/ is inside a comment, nothing fetches them at runtime.
+data/imagery_cache/
+data/osm_cache/
+data/dkr_aerial.png
+data/dkr_aerial_geo.png
+data/capitol_aerial.png
