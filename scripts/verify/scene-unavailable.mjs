@@ -12,7 +12,7 @@
  * leave that hollow city running with 35 positive supports. Zero page errors
  * and a 196-building registry did not notice.
  *
- * SCENARIOS (default: all three; one hardware browser, a fresh context each,
+ * SCENARIOS (default: all four; one hardware browser, a fresh context each,
  * 390x844 at DPR 3, touch, iPhone UA, CPU 1x, graphics auto-detect cancelled)
  *   early    the context is lost BEFORE the three.js root exists (the map style
  *            request is held), with the reload record refused. It must pause,
@@ -24,6 +24,8 @@
  *   storage  the normal phone tier with the two reload-record keys refusing
  *            writes: no automatic reload, paused. "Reload city": a whole
  *            phone-tier city that moves.
+ *   nodialog Safari before 15.4 has no <dialog>: a settled loss must still
+ *            make its one automatic reload and come back whole.
  *
  * PAUSED = all nine: sceneUnavailable set; no controller; every support sample
  *   0; the notice is a native modal; it has no dismiss button; the three.js
@@ -35,7 +37,7 @@
  *   IS the freed-buffer path, not a retained-buffer shortcut); draw calls > 0;
  *   a hardware renderer (printed).
  *
- *   VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage ...] [--out DIR] [--break]
+ *   VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage|nodialog ...] [--out DIR] [--break]
  *
  * --break makes `sceneUnavailable` impossible to set inside the page (the flag
  * every guard reads) and runs `storage`; it must exit 1, and does: the walking
@@ -59,7 +61,7 @@ const oi = argv.indexOf('--out');
 const OUT = oi >= 0 ? argv[oi + 1] : path.join(os.tmpdir(), 'scene-unavailable');
 const BREAK = argv.includes('--break');
 const picked = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--out');
-const SCEN = BREAK ? ['storage'] : (picked.length ? picked : ['early', 'intro', 'storage']);
+const SCEN = BREAK ? ['storage'] : (picked.length ? picked : ['early', 'intro', 'storage', 'nodialog']);
 fs.mkdirSync(OUT, { recursive: true });
 
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -117,7 +119,7 @@ const browser = await launch(chromium, {
 });
 
 async function run(scen) {
-  const early = scen === 'early', storageBlocked = scen === 'early' || scen === 'storage';
+  const early = scen === 'early', storageBlocked = scen === 'early' || scen === 'storage', noDialog = scen === 'nodialog';
   const ctx = await browser.newContext(PHONE);
   const errors = [], docs = [];
   let releaseStyle = () => {};
@@ -125,7 +127,7 @@ async function run(scen) {
   let styleHeld = false;
   try {
     await ctx.exposeBinding('__sceneLife', (_, x) => { docs.push(x); });
-    await ctx.addInitScript(({ storageBlocked, TOKEN_KEYS, BREAK }) => {
+    await ctx.addInitScript(({ storageBlocked, TOKEN_KEYS, BREAK, noDialog }) => {
       window.__lifeId = Math.random().toString(36).slice(2);
       window.__sceneLife({ doc: window.__lifeId, url: location.href });
       window.__recoveryHandlers = [];
@@ -142,6 +144,7 @@ async function run(scen) {
           return put.call(this, k, v);
         };
       }
+      if (noDialog) delete HTMLDialogElement.prototype.showModal;   // Safari before 15.4
       if (BREAK) {
         // The code before the fix: nothing can mark the scene unavailable.
         let lp;
@@ -150,7 +153,7 @@ async function run(scen) {
           lp = v;
         } });
       }
-    }, { storageBlocked, TOKEN_KEYS, BREAK });
+    }, { storageBlocked, TOKEN_KEYS, BREAK, noDialog });
     if (early) await ctx.route(STYLE_URL, async route => { if (!styleHeld) { styleHeld = true; await styleGate; } return route.continue(); });
 
     const page = await ctx.newPage();
@@ -230,7 +233,7 @@ async function run(scen) {
       return check(scen, `${label}: keyboard movement`, m > 0.2, `${m.toFixed(2)} m`);
     };
 
-    await page.goto(`${BASE}/index.html?drift=0${storageBlocked && !early ? '&intro=0' : ''}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.goto(`${BASE}/index.html?drift=0${(storageBlocked && !early) || noDialog ? '&intro=0' : ''}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     let old;
     if (early) {
       await page.waitForFunction(() => window.__map && window.__map.painter && window.__map.painter.context.gl && window.SLOPES && window.slopes &&
@@ -243,6 +246,17 @@ async function run(scen) {
       check(scen, 'paused while the style is still held', held.doc === old && held.unavailable && !held.lost && held.modal, { doc: held.doc === old, unavailable: held.unavailable, lost: held.lost, modal: held.modal });
       releaseStyle();
       await sleep(6000);
+    } else if (noDialog) {
+      // No <dialog> (Safari before 15.4): a settled loss must still make its
+      // one automatic reload - showing the card must not throw it away.
+      await ready();
+      old = await lose();
+      await page.waitForFunction(o => window.__lifeId && window.__lifeId !== o, old, { timeout: 20000 }).catch(() => {});
+      const moved = await page.evaluate(() => window.__lifeId).catch(() => old);
+      check(scen, 'no <dialog>: the loss still reloads by itself', moved !== old, { reloaded: moved !== old });
+      if (moved !== old) { await ready(); whole('after the automatic reload', await state(), 'phone'); }
+      check(scen, 'no page or console errors', errors.length === 0, errors.slice(0, 3));
+      return;
     } else if (!storageBlocked) {
       await page.waitForFunction(() => window.__intro && window.__intro.flight && window.__intro.flight.state === 'flying' && window.slopes && window.slopes.frames > 2, null, { timeout: READY_MS, polling: 100 });
       old = await lose();

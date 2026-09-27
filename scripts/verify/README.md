@@ -129,7 +129,7 @@ onto the `lighter` tier, and not again when it is lost a second time.
 
 ### A graphics reset pauses the phone city, it never leaves it hollow (Sep 27 2026)
 
-`VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage] [--out DIR]`
+`VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage|nodialog] [--out DIR]`
 (hardware GL, one browser, 390x844 DPR 3 touch). A phone drops its vertex
 arrays once they are on the GPU, so a restored context cannot draw the city
 again; only a new document can. Three real losses: before the three.js root
@@ -140,7 +140,9 @@ walking support 0, a native modal with no dismiss, the root hidden, frames
 stopped, the camera unmoved through W + Escape, no errors), and the real
 "Reload city" button must bring back a WHOLE city (196 buildings, all 35
 supports incl. the 10 on Gearing's authored model, released CPU arrays, draw
-calls, a hardware renderer) that moves under the keyboard. `--break` makes the
+calls, a hardware renderer) that moves under the keyboard. `nodialog` deletes
+`showModal` (Safari before 15.4) and requires the automatic reload to still
+happen. `--break` makes the
 flag impossible to set in the page and must exit 1 (Sep 27: it does — 35/35
 supports still answer over a city whose buffers are gone, and the card can be
 dismissed). Codex's negative control of the unmodified Sep 24 code (private,

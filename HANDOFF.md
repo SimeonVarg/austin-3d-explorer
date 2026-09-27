@@ -8,7 +8,7 @@ PR #310 (the Sep 24 entry below) rebased onto main, which now has Codex's
 #319 phone walking surfaces, with Codex's private "recovery v2" taken in
 (`C:/Users/simip/output/flyover-architecture/overnight-20260926/pr310-recovery-v2/`,
 applied byte-exact: the six baseline files hashed identical to his, the five
-repaired ones identical after `git apply`). Two decisions of mine on top.
+repaired ones identical after `git apply`). Three changes of mine on top.
 
 **The hole it closes.** A phone drops each mesh's vertex arrays once they
 are on the GPU (`LITE.budget.freeGeometryCpu`). After a lost WebGL context
@@ -33,7 +33,15 @@ loss still reloads once by itself; the modal only stays up when it cannot.
 and failed. Reordered (same conditions); it passes, and both its `--break`s
 still go red.
 
-**Mine 2: vertex packing DEFERRED** (`packVertices: false`). Its own gate
+**Mine 2: Safari before 15.4 has no `<dialog>`.** `el.showModal()` threw a
+TypeError out of the context-loss handler before it scheduled the automatic
+reload (it still happened only because the restore event schedules it too; a
+context never restored would have waited forever). Feature-detected, falls
+back to `open`; the new `nodialog` scenario deletes `showModal` and requires
+the reload with no page error - the pre-fix file fails it on exactly that
+TypeError, this one passes.
+
+**Mine 3: vertex packing DEFERRED** (`packVertices: false`). Its own gate
 (packed vs exact, one page, SwiftShader 640x640, control 0 px) still fails
 exactly as on Sep 24: The Standard day 11,190 px (max 12/255), night 515;
 21 Rio day 5,348 (max 11), night 244; Moody 0. Taste call for the owner:
