@@ -102,6 +102,43 @@ function roof(b) {
   const levels=b.levels || {}, floors=levels.floors||[];
   return Number(levels.roof || floors[floors.length-1] || byId.get(b.id)?.properties.final_height || 0);
 }
+// The top of an authored model as js/slopes-apartments.js builds it: blocks and
+// their parapets, roof boxes, pitched roofs, roof meshes, deck items and the
+// file's own named tops (hipApex, bulkhead, mechTop...). A name drawn at the eave
+// or slab starts INSIDE a penthouse, bulkhead or ridge above it, and the label's
+// depth test then hides it from every angle. An upper bound, never below.
+const LEVEL_TOPS=/^top|Top|Apex|^bulkhead$/;
+// A block plan is the footprint, a (u, v) rectangle [u0, u1, v0, v1], a (u, v)
+// polygon or { ring, holes } in the building's frame (metres).
+function planShortSide(plan,b) {
+  if(!plan||plan==='footprint')return b.frame?.obb?.W||0;
+  if(Array.isArray(plan)&&plan.length===4&&typeof plan[0]==='number')return Math.min(Math.abs(plan[1]-plan[0]),Math.abs(plan[3]-plan[2]));
+  const ring=Array.isArray(plan)?plan:plan.ring;
+  if(!Array.isArray(ring)||!ring.length)return b.frame?.obb?.W||0;
+  const us=ring.map(p=>p[0]),vs=ring.map(p=>p[1]);
+  return Math.min(Math.max(...us)-Math.min(...us),Math.max(...vs)-Math.min(...vs));
+}
+// roofOf: rise = tan(pitch) * the slope's run; a deck roof's run stops at `d`.
+function pitchedRise(R,shortSide) {
+  if(!R||typeof R!=='object'||!(shortSide>0))return 0;
+  const run=Math.max(0,Math.min(shortSide/2+(R.over||0)-(R.inset||0),R.d!=null?R.d:Infinity));
+  return run*Math.tan((R.pitch!=null?R.pitch:25)*Math.PI/180);   // 25: APARTMENTS.roof.pitch
+}
+function authoredTop(b) {
+  let top=0;
+  for(const [k,v] of Object.entries(b.levels||{}))if(LEVEL_TOPS.test(k)&&Number.isFinite(v))top=Math.max(top,v);
+  for(const blk of b.blocks||[]) {
+    top=Math.max(top,blk.z1+(blk.parapet||0));
+    if(blk.roof)top=Math.max(top,(blk.roof.base??blk.z1)+pitchedRise(blk.roof,planShortSide(blk.plan,b)));
+    for(const it of blk.roofItems||[]) {
+      const z1=blk.z1+(it.z0||0)+(it.h||0);
+      top=Math.max(top,z1+(it.roof?pitchedRise(it.roof,planShortSide(it.plan,b)):0));
+    }
+  }
+  for(const m of b.detailMeshes||[])for(const v of m.vertices||[])top=Math.max(top,v[2]);
+  for(const it of b.deck?.items||[])top=Math.max(top,b.deck.z+(it.z1!=null?it.z1:(it.z0||0)+(it.h||0.1)));
+  return top;
+}
 function add({name,kind,p,height=0,code,buildingIds=[],source,aliases=[],fullName,geometry,area:region}) {
   name=clean(name); if(!name||!p||!p.every(Number.isFinite))return;
   const parts=unique(name.split(';').map(clean));
@@ -137,7 +174,7 @@ function addModel(b,source,forceKind) {
   if(!modelHosts.has(b.id))modelHosts.set(b.id,{geometry,height:roof(b),source});
   const code=validCode(b.code||lookupCode.get(norm(b.name)),anchor(geometry),b.name);
   const kind=forceKind || ((code&&!['D21','N24'].includes(code))||/dormitory|jester .*hall|san jacinto hall/i.test(b.name)?'campus':/hotel|moody center/i.test(b.name)?'landmark':'apartment');
-  const row=add({name:b.name,kind,p:anchor(geometry),geometry,height:roof(b),code,buildingIds:[b.id],aliases:b.aliases||[],source});
+  const row=add({name:b.name,kind,p:anchor(geometry),geometry,height:Math.max(roof(b),authoredTop(b)),code,buildingIds:[b.id],aliases:b.aliases||[],source});
   if(kind==='apartment')candidates.push({name:b.name,p:pointOf(row),source});
 }
 
@@ -282,18 +319,6 @@ for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++) {
 // Canopies, carports, pools and ground-only site paths never host a name.
 const areaHostTune = { maxSiteDistanceMetres:250, minTopMetres:2,
   notAHost:/\b(canopy|carport|covered parking|pool|service)\b/i };
-function authoredTop(b) {
-  let top=0;
-  for(const blk of b.blocks||[]) {
-    top=Math.max(top,blk.z1+(blk.parapet||0));
-    for(const it of blk.roofItems||[])top=Math.max(top,blk.z1+(it.z0||0)+(it.h||0));
-    // A pitched block roof rises at most half the frame's short side at its pitch.
-    const pitch=blk.roof?.pitch,w=b.frame?.obb?.W;
-    if(pitch>0&&w>0)top=Math.max(top,blk.z1+w/2*Math.tan(pitch*Math.PI/180));
-  }
-  for(const m of b.detailMeshes||[])for(const v of m.vertices||[])top=Math.max(top,v[2]);
-  return top;
-}
 const areaHostAudit=[];
 for(const [area,spec] of Object.entries(read('data/apartments/index.json').areas||{})) {
   const hosts=[];
