@@ -97,6 +97,12 @@
     lod: null,
     minzoom: 14,
     twoSided: true, // closed visual envelopes remain opaque from either flight direction
+    // DRAW ONLY THE BUILDINGS A CAMERA CAN SEE. Not a taste value: the
+    // picture is byte-identical either way (see cullFor below). `on` is the
+    // switch (?aptcull=0 for an A/B, or flip it live); `marginM` pads every
+    // building's bounding sphere so float rounding can never cull a building
+    // that is a hair inside the view.
+    cull: { on: q.get('aptcull') !== '0', marginM: 1 },
     fetchTimeoutMs: 45000,
     // Geometry density per graphics preset (0..1) — the sign dots and the
     // window reveals go first when it drops; the massing never does.
@@ -2477,6 +2483,127 @@
     return result;
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  DRAW ONLY WHAT EACH CAMERA CAN SEE (APTS.cull)
+  // ══════════════════════════════════════════════════════════════════════
+  // On a desktop every authored building lands in ONE geometry (about 3.08 M
+  // triangles, 79 % of the three.js layer), drawn as one mesh. three.js culls
+  // a mesh by its bounding sphere, and this one covers the whole campus, so
+  // every vertex went through the uber-shader every frame — West Campus
+  // behind the camera included — and again in both sun-shadow cascades on
+  // every frame that re-renders them, the 480 m near one included. Measured
+  // 2026-09-27 on the AMD integrated GPU: the layer was 16.3 of 32.5 ms of
+  // GPU per boost frame, and removing the apartments outright had cut GPU by
+  // 35 % while 56 % fewer pixels cut 15 %: the cost is vertices, not pixels.
+  //
+  // The geometry stays ONE buffer, never reordered. build() records where
+  // each building's triangles start in the index, and each such range gets
+  // its own bounding sphere. Before every renderer.render — the main pass
+  // and each shadow cascade — the scene's onBeforeRender (three r159 calls it
+  // after the matrix updates and before it walks the scene, so it sees the
+  // camera that pass uses) writes the ranges inside that camera's frustum as
+  // geometry.groups, in index order, adjacent ones merged. Every group shares
+  // the object, the material and the sort depth, so three's stable painter
+  // sort keeps them in the old single draw's slot, in the old order. What is
+  // drawn is the old triangles minus ranges wholly outside the frustum, which
+  // could not have produced a fragment: the frame and both shadow maps are
+  // byte-identical. A phone's chunked build keeps the old path.
+  //
+  // Measured 2026-09-27, AMD integrated GPU, 1920x948 canvas, 3 interleaved
+  // pairs against main: in the Shift+W boost the main pass drew 1.85 M
+  // triangles instead of 3.55 M and the near shadow cascade 0.86 M instead of
+  // 3.74 M; the three.js layer's GPU time fell from 19.5 to 13.7 ms a frame
+  // (mean), the whole frame's from 32.6 to 28.4 ms (median), and the flight
+  // drew 242 frames per 10 s instead of 213. Standing at the Tower draws 30 %
+  // fewer triangles, at The Standard 44 %, from Riverside 95 %; the opening
+  // pose sees every building and gains nothing.
+  const CULL_REVISION = '159';          // the r159 internals named above; any other version keeps one plain draw
+  const _cullMeshes = new Set();
+  let _cullScene = null, _cullFrustum = null, _cullMatrix = null, _cullBroken = false;
+  const _cullStats = { passes: 0, ranges: 0, drawnRanges: 0, drawnTriangles: 0, totalTriangles: 0 };
+
+  function cullAvailable(B, T, S) {
+    return !!(APTS.cull && !B.geometries && T && T.REVISION === CULL_REVISION && T.Frustum && T.Matrix4 && S && S.scene);
+  }
+  /** Bounding sphere [cx, cy, cz, r] of every vertex the index range [s, e) can reach. */
+  function rangeSphere(idx, pos, s, e, margin) {
+    // Each building's triangles only point at vertices pushed for it, so the
+    // index range's min..max vertex span is exactly (or a superset of) them.
+    let lo = Infinity, hi = -1;
+    for (let k = s; k < e; k++) { const v = idx[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let v = lo * 3, end = hi * 3 + 3; v < end; v += 3) {
+      const x = pos[v], y = pos[v + 1], z = pos[v + 2];
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z;
+    }
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+    let r2 = 0;
+    for (let v = lo * 3, end = hi * 3 + 3; v < end; v += 3) {
+      const dx = pos[v] - cx, dy = pos[v + 1] - cy, dz = pos[v + 2] - cz, d = dx * dx + dy * dy + dz * dz;
+      if (d > r2) r2 = d;
+    }
+    return [cx, cy, cz, Math.sqrt(r2) + margin];
+  }
+  function fullGroups(mesh) {
+    const c = mesh.userData.cull, groups = mesh.geometry.groups;
+    groups.length = 0;
+    const g = c.pool[0] || (c.pool[0] = { start: 0, count: 0, materialIndex: 0 });
+    g.start = 0; g.count = c.total; groups.push(g);
+  }
+  function shownInScene(o) { let top = o; for (; o; o = o.parent) { if (!o.visible) return false; top = o; } return top === _cullScene; }
+  function cullFor(camera) {
+    const on = APTS.cull.on && !_cullBroken;
+    let planes = null;
+    if (on) {
+      _cullMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      planes = _cullFrustum.setFromProjectionMatrix(_cullMatrix).planes;
+    }
+    let ranges = 0, drawnRanges = 0, drawn = 0, total = 0;
+    for (const mesh of _cullMeshes) {
+      const c = mesh.userData.cull;
+      if (!on) { fullGroups(mesh); continue; }
+      if (!shownInScene(mesh)) continue;            // not drawn by this pass: leave it be
+      const groups = mesh.geometry.groups, S = c.sph, e = mesh.matrixWorld.elements, sc = mesh.matrixWorld.getMaxScaleOnAxis();
+      groups.length = 0;
+      let run = null, used = 0;
+      for (let i = 0; i < c.n; i++) {
+        const j = i * 4, x = S[j], y = S[j + 1], z = S[j + 2], r = -S[j + 3] * sc;
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12], wy = e[1] * x + e[5] * y + e[9] * z + e[13], wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        let inside = true;
+        for (let p = 0; p < 6; p++) { const P = planes[p], n = P.normal; if (n.x * wx + n.y * wy + n.z * wz + P.constant < r) { inside = false; break; } }
+        if (!inside) { run = null; continue; }
+        drawnRanges++; drawn += c.count[i];
+        if (run && run.start + run.count === c.start[i]) { run.count += c.count[i]; continue; }
+        run = c.pool[used] || (c.pool[used] = { start: 0, count: 0, materialIndex: 0 });
+        run.start = c.start[i]; run.count = c.count[i]; groups.push(run); used++;
+      }
+      ranges += c.n; total += c.total;
+    }
+    Object.assign(_cullStats, { passes: _cullStats.passes + 1, ranges, drawnRanges, drawnTriangles: drawn / 3, totalTriangles: total / 3 });
+  }
+  function watchCull(mesh) {
+    const T = window.THREE, sc = window.slopes.scene;
+    if (_cullScene !== sc) {
+      _cullFrustum = _cullFrustum || new T.Frustum();
+      _cullMatrix = _cullMatrix || new T.Matrix4();
+      const prev = sc.onBeforeRender;
+      sc.onBeforeRender = function (renderer, scene, camera) {
+        if (_cullMeshes.size) {
+          try { cullFor(camera); }
+          catch (e) {
+            // Never leave a half-written group list: draw everything from now on.
+            _cullBroken = true; console.error('[slopes-apartments] cull disabled', e);
+            for (const m of _cullMeshes) fullGroups(m);
+          }
+        }
+        return prev.apply(this, arguments);
+      };
+      _cullScene = sc;
+    }
+    _cullMeshes.add(mesh);
+    mesh.geometry.addEventListener('dispose', () => _cullMeshes.delete(mesh));
+  }
+
   // `specs` defaults to the catalog; `area` (an APTS.areas entry) builds that
   // area's own group without resetting the core's counts, failures or list.
   async function build(specs, area) {
@@ -2507,10 +2634,14 @@
       await yieldTask();
       sliceT0 = performance.now(); slices++;
     };
+    // APTS.cull: where each building's triangles start in the index (the
+    // builder writes three indices per triangle and nothing else).
+    const cull = cullAvailable(B, T, S) ? [] : null;
     for (const spec of specs || _data.buildings) {
       // An area whose build was superseded (dropped, or the core rebuilding)
       // stops here and takes back what it had counted.
       if (area && area.gen !== gen) { untally(tallySince()); return null; }
+      if (cull) cull.push(B.triangles * 3);
       const pendingStart=B.filterPending.length;
       B.allowFilter=APTS.facadeFilter.on&&APTS.facadeFilter.buildings.includes(spec.name)&&!!window.FacadeFilter;
       try {
@@ -2522,6 +2653,7 @@
       catch (e) { B.filterPending.length=pendingStart; console.error('[slopes-apartments]', spec.name, e); _failed.add(spec.id || spec.name); if (area) area.failed.push(spec.id || spec.name); }
       await pause();
     }
+    if (cull) cull.push(B.triangles * 3);   // anything after this is a range of its own
     const C = area ? {} : count;       // an area's slice and filter tallies are its own
     C.buildSlices = slices;
     let geom;
@@ -2541,6 +2673,20 @@
       B.filtered=batchFiltered(B.filtered);
       C.filteredBatches=B.filtered.length;
       geom = B.geometries ? B.geometries() : [B.geometry()];
+      // One bounding sphere per building's index range (APTS.cull). Any
+      // triangles after the last building are a range of their own.
+      let ranges = null;
+      if (cull && geom.length === 1 && geom[0].index && geom[0].attributes && geom[0].attributes.position) {
+        const idx = geom[0].index.array, pos = geom[0].attributes.position.array, bounds = cull.concat(idx.length);
+        const start = [], cnt = [], sph = [];
+        for (let i = 0; i + 1 < bounds.length; i++) {
+          const s = bounds[i], e = Math.min(bounds[i + 1], idx.length);
+          if (e <= s) continue;
+          start.push(s); cnt.push(e - s); sph.push(...rangeSphere(idx, pos, s, e, APTS.cull.marginM));
+          await pause();
+        }
+        ranges = { n: start.length, start, count: cnt, sph: Float64Array.from(sph), total: idx.length, pool: [] };
+      }
       const mat = S.material({side:APTS.twoSided?T.DoubleSide:T.FrontSide});
       const g = new T.Group();
       g.userData.lod = APTS.lod;
@@ -2548,8 +2694,9 @@
       g.name = area ? 'slopes-apartments-' + area.name : 'slopes-apartments';
       if (!area) _builtFrame = S.frames;
       geom.forEach((gm, i) => {
-        const mesh = new T.Mesh(gm, mat);
+        const mesh = new T.Mesh(gm, ranges ? [mat] : mat);
         mesh.name = i ? 'apartments-' + (i + 1) : 'apartments';
+        if (ranges) { mesh.userData.cull = ranges; fullGroups(mesh); watchCull(mesh); }
         g.add(mesh);
       });
       for(const m of B.filtered)g.add(m);
@@ -2946,6 +3093,8 @@
     },
     rebuild() { dropGroup(); window.applySlopesApartments(); },
     get count() { return Object.assign({}, count, { names: count.names.slice() }); },
+    /** APTS.cull as of the last renderer.render (each frame's main pass is its last) */
+    get cull() { return Object.assign({ on: APTS.cull.on && !_cullBroken, meshes: _cullMeshes.size }, _cullStats); },
     get group() { return _group; },
     get data() { return _data; },
     get filtered() { return _filtered; },
