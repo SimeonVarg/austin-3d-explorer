@@ -5,7 +5,8 @@
  *
  * Usage (the workflow's summary job):
  *   node scripts/verify/ci/summary.mjs --results <dir> [--pictures <dir>]
- *        [--mac <dir>] [--artifacts <json>] [--run-url <url>] [--sha <sha>]
+ *        [--probe mac=<dir>] [--probe linux=<dir>] [--artifacts <jsonl>]
+ *        [--run-url <url>] [--sha <sha>]
  *        --out summary.md
  *
  * <dir>s are searched recursively, because downloaded artifacts land one
@@ -90,8 +91,13 @@ const shardFor = script => {
 // ---- pictures ----------------------------------------------------------
 let pictures = null;
 for (const p of files(opt('--pictures'), /^pictures\.json$/)) pictures = readJSON(p);
-let mac = null;
-for (const p of files(opt('--mac'), /^mac-probe\.json$/)) mac = readJSON(p);
+// Graphics probes: `--probe name=dir`, repeatable (mac, linux).
+const probes = [];
+argv.forEach((a, i) => {
+  if (a !== '--probe') return;
+  const [name, dir] = String(argv[i + 1] || '').split('=');
+  for (const p of files(dir, /^gpu-probe\.json$/)) probes.push({ name, report: readJSON(p) });
+});
 
 // ---- report ------------------------------------------------------------
 const sha = (opt('--sha', '') || '').slice(0, 7);
@@ -168,13 +174,19 @@ L.push('');
 L.push('</details>');
 L.push('');
 
-if (mac) {
-  L.push('<details><summary>Mac graphics probe</summary>');
+if (probes.length) {
+  L.push('<details><summary>Graphics probes: which renderer Chrome gets, and how fast the city draws</summary>');
   L.push('');
-  for (const m of mac.modes || []) L.push(`- ${esc(m.mode)}: ${m.error ? 'error: ' + esc(m.error) : '`' + esc(m.renderer) + '`'}`);
-  if (mac.appRenderer) L.push(`- the app itself, full Chrome: \`${esc(mac.appRenderer)}\``);
-  const link = artLink('mac-probe');
-  if (link) L.push(`- [screenshot](${link})`);
+  L.push('| machine | launch mode | renderer | page load | frames per second |');
+  L.push('|---|---|---|---|---|');
+  for (const { name, report } of probes) {
+    for (const m of report?.modes || []) {
+      L.push(`| ${esc(name)} (${report.cpus} cores) | ${esc(m.mode)} | ${m.renderer ? '`' + esc(m.renderer) + '`' : ''} | ` +
+             `${m.loadSecs != null ? m.loadSecs + ' s' : ''} | ${m.fps ?? (m.error ? 'error: ' + esc(short(m.error, 80)) : '')} |`);
+    }
+    const link = artLink(`${name}-probe`);
+    if (link) L.push(`| ${esc(name)} | [screenshots](${link}) | | | |`);
+  }
   L.push('');
   L.push('</details>');
   L.push('');

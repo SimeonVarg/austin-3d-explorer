@@ -29,7 +29,7 @@ import zlib from 'node:zlib';
 import { chromium } from 'playwright-core';
 import { launch } from '../chrome.mjs';
 import { decodePNG } from '../lib/png.mjs';
-import { CI_DIR, VERIFY } from './plan.mjs';
+import { CI_DIR, VERIFY, slowMachineEnv } from './plan.mjs';
 
 // ---- every look-and-threshold value, in one place ----------------------
 export const LOOK = {
@@ -68,7 +68,7 @@ function shoot(side, url) {
   return new Promise(resolve => {
     const t0 = Date.now();
     const child = spawn(process.execPath, [path.join(VERIFY, 'shot.mjs'), side, POSES], {
-      cwd, env: { ...process.env, VERIFY_URL: url, VERIFY_MAX_MS: String(40 * 60 * 1000) },
+      cwd, env: { ...process.env, ...slowMachineEnv(), VERIFY_URL: url, VERIFY_MAX_MS: String(40 * 60 * 1000) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let log = '';

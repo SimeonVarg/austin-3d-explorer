@@ -5,12 +5,23 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const CI_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const VERIFY = path.resolve(CI_DIR, '..');
 export const REPO = path.resolve(VERIFY, '..', '..');
 export const BUCKETS = ['quarantine', 'laptop_only', 'tools', 'harness'];
+
+/**
+ * Extra environment for a child verify script: when PW_DEFAULT_TIMEOUT_MS is
+ * set (the workflow sets it), preload slow-machine.mjs so Playwright's own
+ * default waits match a 4-core software renderer. See that file for why.
+ */
+export function slowMachineEnv(env = process.env) {
+  if (!env.PW_DEFAULT_TIMEOUT_MS) return {};
+  const pre = `--import=${pathToFileURL(path.join(CI_DIR, 'slow-machine.mjs')).href}`;
+  return { NODE_OPTIONS: `${env.NODE_OPTIONS || ''} ${pre}`.trim() };
+}
 
 export function loadConfig() {
   return JSON.parse(fs.readFileSync(path.join(CI_DIR, 'checks.json'), 'utf8'));

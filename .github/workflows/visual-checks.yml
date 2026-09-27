@@ -87,10 +87,19 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      # Playwright's own default waits (screenshot, click) go from 30 s to 180 s:
+      # a 4-core software renderer can take longer than 30 s to hand over one
+      # frame. No script's own timeout or threshold changes. ci/slow-machine.mjs.
+      PW_DEFAULT_TIMEOUT_MS: '180000'
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # Some checks compare against an older commit with `git show`:
+          # full history, but each blob only when something asks for it.
+          fetch-depth: 0
+          filter: blob:none
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -100,7 +109,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install the harness (playwright-core only; it drives the runner's own Chrome)
-        run: npm ci --prefix scripts/verify --no-audit --no-fund
+        run: |
+          npm ci --prefix scripts/verify --no-audit --no-fund
+          # stadium-roof-filter.mjs measures its polygons with shapely.
+          python -m pip install --quiet shapely
       - name: Serve this checkout like GitHub Pages does (ranges, cache headers)
         run: |
           python scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
@@ -111,20 +123,22 @@ jobs:
         env:
           ONLY: ${{ github.event.inputs.only }}
         # xvfb gives the few headed scripts a display; the rest are headless.
+        # Output goes OUTSIDE the checkout: some scripts refuse a scratch
+        # folder inside the repository, and the picture scan skips it.
         run: |
           if [ "${{ matrix.shard }}" = "only" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-              node scripts/verify/ci/run-checks.mjs --only "$ONLY" --out ci-out
+              node scripts/verify/ci/run-checks.mjs --only "$ONLY" --out "$RUNNER_TEMP/ci-out"
           else
             xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-              node scripts/verify/ci/run-checks.mjs --shard ${{ matrix.shard }} --out ci-out
+              node scripts/verify/ci/run-checks.mjs --shard ${{ matrix.shard }} --out "$RUNNER_TEMP/ci-out"
           fi
       - name: Upload results (small, read by the summary)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: results-shard-${{ matrix.shard }}
-          path: ci-out/results
+          path: ${{ runner.temp }}/ci-out/results
           retention-days: 14
           if-no-files-found: warn
       - name: Upload logs and pictures
@@ -133,14 +147,16 @@ jobs:
         with:
           name: checks-shard-${{ matrix.shard }}
           path: |
-            ci-out/logs
-            ci-out/pictures
+            ${{ runner.temp }}/ci-out/logs
+            ${{ runner.temp }}/ci-out/pictures
           retention-days: 14
           if-no-files-found: warn
 
   pictures:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      PW_DEFAULT_TIMEOUT_MS: '180000'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -178,13 +194,13 @@ jobs:
         continue-on-error: true
         run: |
           node scripts/verify/ci/pictures.mjs --before http://127.0.0.1:8443 --after http://127.0.0.1:8442 \
-            --label "${{ github.event.pull_request.base.ref || github.event.inputs.before || 'main' }}" --out ci-out/pictures
+            --label "${{ github.event.pull_request.base.ref || github.event.inputs.before || 'main' }}" --out "$RUNNER_TEMP/pictures"
       - name: Upload the report (small, read by the summary)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pictures-report
-          path: ci-out/pictures/pictures.json
+          path: ${{ runner.temp }}/pictures/pictures.json
           retention-days: 14
           if-no-files-found: warn
       - name: Upload the side-by-sides
@@ -192,14 +208,69 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pictures-before-after
-          path: ci-out/pictures
+          path: ${{ runner.temp }}/pictures
           retention-days: 14
           if-no-files-found: warn
 
-  mac-probe:
-    runs-on: macos-latest
+  # TEMPORARY: the checks that failed on Linux in the first CI run, on Windows,
+  # where their exact-pixel expectations were written. Not read by the summary.
+  windows-trial:
+    runs-on: windows-latest
+    timeout-minutes: 180
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { k: 0, only: 'arts-check.mjs,tower-check.mjs,drift-check.mjs,roof-ring.mjs,focus-move.mjs,light-probe.mjs' }
+          - { k: 1, only: 'walkwidth.mjs,collision.mjs,night-sky.mjs,light-tone.mjs,light-vig.mjs,motion-caps.mjs,explore.mjs' }
+          - { k: 2, only: 'drag-night.mjs,live-here.mjs,audit-dupes-control.mjs,movement.mjs,night-luma.mjs' }
+    env:
+      PW_DEFAULT_TIMEOUT_MS: '180000'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          npm ci --prefix scripts/verify --no-audit --no-fund
+          python -m pip install --quiet shapely
+      - name: Serve and run
+        run: |
+          python scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+          node scripts/verify/ci/run-checks.mjs --only '${{ matrix.only }}' --out "$RUNNER_TEMP/ci-out"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-trial-${{ matrix.k }}
+          path: ${{ runner.temp }}/ci-out
+          retention-days: 7
+          if-no-files-found: warn
+
+  # A probe, not a check: which WebGL renderer Chrome gets and how many frames
+  # a second the city draws with it. The macOS runner is here to find out
+  # whether full Chrome gets a real GPU there; Linux is the yardstick.
+  probe:
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: mac, os: macos-latest, modes: 'headed,hw,swiftshader' }
+          - { name: linux, os: ubuntu-latest, modes: 'hw,swiftshader' }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,18 +289,18 @@ jobs:
         run: |
           python3 scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
-      - name: Which WebGL renderer does full Chrome get here?
-        run: node scripts/verify/ci/mac-probe.mjs --out ci-out/mac
+      - name: Which WebGL renderer does Chrome get here, and how fast does the city draw?
+        run: node scripts/verify/ci/gpu-probe.mjs --modes '${{ matrix.modes }}' --out "$RUNNER_TEMP/probe"
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mac-probe
-          path: ci-out/mac
+          name: ${{ matrix.name }}-probe
+          path: ${{ runner.temp }}/probe
           retention-days: 14
           if-no-files-found: warn
 
   summary:
-    needs: [checks, pictures, mac-probe]
+    needs: [checks, pictures, probe]
     if: always() && needs.checks.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -257,8 +328,8 @@ jobs:
       - uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: mac-probe
-          path: in/mac
+          pattern: '*-probe'
+          path: in/probes
       - name: List this run's artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -270,7 +341,8 @@ jobs:
         id: report
         run: |
           set +e
-          node scripts/verify/ci/summary.mjs --results in/results --pictures in/pictures --mac in/mac \
+          node scripts/verify/ci/summary.mjs --results in/results --pictures in/pictures \
+            --probe mac=in/probes/mac-probe --probe linux=in/probes/linux-probe \
             --artifacts in/artifacts.jsonl \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --sha "${{ github.event.pull_request.head.sha || github.sha }}" --out summary.md > /dev/null

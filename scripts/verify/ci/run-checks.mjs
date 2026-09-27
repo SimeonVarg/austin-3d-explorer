@@ -33,7 +33,7 @@
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { VERIFY, REPO, loadConfig, plan, entry, shardOf } from './plan.mjs';
+import { VERIFY, REPO, loadConfig, plan, entry, shardOf, slowMachineEnv } from './plan.mjs';
 
 const CONFIG = loadConfig();
 const argv = process.argv.slice(2);
@@ -119,6 +119,9 @@ function runOne(r) {
         // chrome.mjs's watchdog fires a little before ours, so a slow script
         // reports exit 124 (its own verdict) rather than a bare kill.
         VERIFY_MAX_MS: String(Math.max(30000, r.timeout_s * 1000 - 15000)),
+        // Scripts that want a scratch folder ask for it here or via {out}.
+        VERIFY_OUT: picDir,
+        ...slowMachineEnv(),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
