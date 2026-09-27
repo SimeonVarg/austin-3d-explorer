@@ -57,6 +57,7 @@ function area(r) {
   for(let i=0;i<r.length-1;i++) a+=(r[i][0]-o[0])*(r[i+1][1]-o[1])-(r[i+1][0]-o[0])*(r[i][1]-o[1]);
   return Math.abs(a)/2;
 }
+const footprintM2=g=>ringsOf(g).reduce((s,poly)=>s+area(poly[0]),0)*96000*111320;   // m², outer rings
 function inRing(p,r) {
   let yes=false;
   for(let i=0,j=r.length-1;i<r.length;j=i++) {
@@ -272,7 +273,8 @@ for(const f of oldSigns) {
   const kind=p.category==='apartment'?'apartment':p.category==='food'?'place':'landmark';
   // Curated shorthand is an alias when the named building occupies this point.
   const b=buildingAt(loc,p.label),existing=b&&rows.find(r=>r.buildingIds.includes(b.properties.id));
-  add({name:p.label,kind,p:loc,height:p.height||0,buildingIds:existing&&kind!=='place'?[b.properties.id]:[],source:'data/signs.json'});
+  const row=add({name:p.label,kind,p:loc,height:p.height||0,buildingIds:existing&&kind!=='place'?[b.properties.id]:[],source:'data/signs.json'});
+  if(row)row._sign=Math.min(row._sign??9,Number(p.priority)||2);
 }
 
 // Sources can bridge two authored wings after each wing was already read.
@@ -284,6 +286,7 @@ for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++) {
   a.aliases=unique([...a.aliases,b.name,...b.aliases]).filter(n=>n!==a.name);
   a.sources=unique([...a.sources,...b.sources]);a.buildingIds=unique([...a.buildingIds,...b.buildingIds]);
   a._keys=unique([...a._keys,...b._keys]);if(!a.code&&b.code)a.code=b.code;
+  if(b._sign!=null)a._sign=Math.min(a._sign??9,b._sign);
   rows.splice(j--,1);
 }
 
@@ -307,6 +310,7 @@ for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++) {
   a.aliases=unique([...a.aliases,b.name,...b.aliases]).filter(n=>n!==a.name);
   a.sources=unique([...a.sources,...b.sources]);a.buildingIds=unique([...a.buildingIds,...b.buildingIds]);
   a._keys=unique([...a._keys,...b._keys]);if(!a.height&&b.height)a.height=b.height;
+  if(b._sign!=null)a._sign=Math.min(a._sign??9,b._sign);
   rows.splice(j--,1);
 }
 
@@ -335,6 +339,9 @@ for(const [area,spec] of Object.entries(read('data/apartments/index.json').areas
     const own=hosts.filter(h=>h.key.startsWith(key)).map(h=>({...h,distance:inGeometry(site,h.geometry)?0:dist(site,h.p)}));
     if(!own.length)continue;
     const host=own.sort((a,b)=>a.distance-b.distance||a.b.id.localeCompare(b.b.id))[0];
+    // The name stands for the whole complex, so its size tier (below) counts
+    // every building of it, not only the one that carries the name.
+    r._complexVolume=own.reduce((sum,h)=>sum+footprintM2(h.geometry)*h.top,0);
     if(host.distance>areaHostTune.maxSiteDistanceMetres)throw Error(`Area host too far from its site: ${r.name}`);
     r.lng=+host.p[0].toFixed(7);r.lat=+host.p[1].toFixed(7);r.height=+host.top.toFixed(2);
     r.buildingIds=unique([...r.buildingIds,host.b.id]);r.sources=unique([...r.sources,host.file]);
@@ -514,6 +521,35 @@ for(const f of features) {
   if(tier<=2)oldEligible.push({name:short,p:anchor(f.geometry),source:'buildings-labels',buildingId:p.id});
 }
 for(const f of placeFeatures)if(f.properties.kind==='label')oldEligible.push({name:f.properties.nm,p:anchor(f.geometry),source:'places-label'});
+// SIZE TIER: how big js/name-labels.js draws the name, by the live layers' own
+// rule so a name is the size it is on the map today. Curated signs keep their
+// sign size (priority 1 heroes, priority 2 signs); every other building ranks
+// by built volume with js/app.js LABEL_RANK's thresholds (footprint x height,
+// plants demoted two tiers, long names one; a Riverside-style complex counts
+// all of its buildings); shops and small places take the shop-name size. Live
+// never draws its lowest volume tier; the catalog chose these names, so they
+// draw at the smallest building size instead.
+const LABEL_RANK={landmarkVol:130000,landmarkH:55,majorVol:42000,majorH:30,minorVol:13000,longName:34,
+  utility:/\b(garage|parking|cooling tower|chilling|chiller|power plant|substation|annex|utility plant|storage|maintenance)\b/i};
+const footprintById=new Map();
+for(const f of features)footprintById.set(f.properties.id,f.geometry);
+for(const f of capitolBodies)if(f.properties.id&&!footprintById.has(f.properties.id))footprintById.set(f.properties.id,f.geometry);
+for(const [id,m] of modelHosts)footprintById.set(id,m.geometry);   // authored footprints win
+const sizeTiers={hero:0,major:0,sign:0,mid:0,minor:0,small:0};
+for(const r of rows) {
+  let tier;
+  if(r._sign===1)tier='hero';
+  else if(r._sign===2)tier='sign';
+  else if(r.kind==='place')tier='small';
+  else {
+    const h=r.height||0,v=Math.max(r._complexVolume||0,r.buildingIds.reduce((s,id)=>s+(footprintById.has(id)?footprintM2(footprintById.get(id)):0),0)*h);
+    let t=v>=LABEL_RANK.landmarkVol||h>=LABEL_RANK.landmarkH?0:v>=LABEL_RANK.majorVol||h>=LABEL_RANK.majorH?1:v>=LABEL_RANK.minorVol?2:3;
+    if(LABEL_RANK.utility.test(r.name))t=Math.min(3,t+2);
+    if(r.name.length>LABEL_RANK.longName)t=Math.min(3,t+1);
+    tier=['major','mid','minor','minor'][t];
+  }
+  r.tier=tier;sizeTiers[tier]++;
+}
 const apartments=rows.filter(r=>r.kind==='apartment');
 const missing=[],renamed=[],existing=[];
 for(const r of apartments) {
@@ -527,10 +563,10 @@ const uncovered=candidates.filter(c=>!rows.some(r=>['apartment','campus','landma
 gaps.push(...uncovered.map(c=>({name:c.name,reason:'Source classified differently or duplicate position needs review',source:c.source})));
 const unnamed=tags.filter(t=>t.b==='apartments'&&!t.n).length;
 const allCodes=unique(rows.map(r=>r.code));
-const stats={labels:rows.length,apartments:apartments.length,campus:rows.filter(r=>r.kind==='campus').length,places:rows.filter(r=>r.kind==='place').length,landmarks:rows.filter(r=>r.kind==='landmark').length,utCodes:allCodes.length,newlyNamedApartments:missing.length,renamedApartments:renamed.length,previouslyEligibleApartments:existing.length,unnamedOsmApartmentParts:unnamed};
+const stats={labels:rows.length,apartments:apartments.length,campus:rows.filter(r=>r.kind==='campus').length,places:rows.filter(r=>r.kind==='place').length,landmarks:rows.filter(r=>r.kind==='landmark').length,utCodes:allCodes.length,newlyNamedApartments:missing.length,renamedApartments:renamed.length,previouslyEligibleApartments:existing.length,unnamedOsmApartmentParts:unnamed,sizeTiers};
 for(const r of rows) {
   r.id=`${r.kind}-${createHash('sha1').update(`${norm(r.name)}|${r.lng.toFixed(5)}|${r.lat.toFixed(5)}`).digest('hex').slice(0,12)}`;
-  delete r._keys;delete r._geometry;
+  delete r._keys;delete r._geometry;delete r._sign;delete r._complexVolume;
   r.sources.sort();r.aliases.sort();r.buildingIds.sort();
 }
 rows.sort((a,b)=>a.kind.localeCompare(b.kind)||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
