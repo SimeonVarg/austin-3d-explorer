@@ -633,6 +633,36 @@
     if(U){U.u_sunShadow0.value=null;U.u_sunShadow1.value=null;U.u_shadowSettings.value.x=0;}
   }
 
+  // The viewport and scissor box as the shared context last set them, so the
+  // shadow pass can put them back without asking: gl.getParameter(VIEWPORT)
+  // and (SCISSOR_BOX) are synchronous round trips to the GPU process, 354-420 ms
+  // per 12 s on the owner's AMD chip (window.GLSTATE in js/graphics.js has the
+  // measurement and the switches: ?glstate=0 queries as before, ?glstatecheck=1
+  // counts disagreements). gl.viewport/gl.scissor are wrapped once per context,
+  // pass straight through, and record the call as GL stores it: ints as WebIDL
+  // converts them, a negative size ignored (an error that changes nothing), a
+  // viewport clamped to MAX_VIEWPORT_DIMS. Seeded with one query each, and again
+  // after a lost context. null with GLSTATE off.
+  function viewState(gl) {
+    const GS=window.GLSTATE;
+    if(!GS||!GS.on)return null;
+    let S=gl.__vpState;
+    if(!S) {
+      S=gl.__vpState={known:false,viewport:null,scissor:null,max:null};
+      const wrap=(name,rec)=>{const native=gl[name];gl[name]=function(x,y,w,h){const r=native.apply(this,arguments);rec(x|0,y|0,w|0,h|0);return r;};};
+      wrap('viewport',(x,y,w,h)=>{if(w>=0&&h>=0&&S.max)S.viewport=[x,y,Math.min(w,S.max[0]),Math.min(h,S.max[1])];});
+      wrap('scissor',(x,y,w,h)=>{if(w>=0&&h>=0)S.scissor=[x,y,w,h];});
+      gl.canvas.addEventListener('webglcontextlost',()=>{S.known=false;});
+    }
+    if(!S.known&&!gl.isContextLost()) {
+      S.max=Array.from(gl.getParameter(gl.MAX_VIEWPORT_DIMS)||[]);
+      S.viewport=Array.from(gl.getParameter(gl.VIEWPORT)||[]);
+      S.scissor=Array.from(gl.getParameter(gl.SCISSOR_BOX)||[]);
+      S.known=!gl.isContextLost()&&S.max.length===2&&S.viewport.length===4&&S.scissor.length===4;
+    }
+    return S.known?S:null;
+  }
+
   function updateSunShadows() {
     const s=SLOPES.sunlight,T=window.THREE;
     U.u_shadowSettings.value.x=0;
@@ -663,8 +693,10 @@
       // MapLibre owns canvas sizing. Three's default viewport is stale unless
       // explicitly restored after leaving an offscreen target (setSize is
       // intentionally forbidden in this shared canvas).
-      const viewport=gl.getParameter(gl.VIEWPORT);
-      const scissor=gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
+      const V=viewState(gl),GS=window.GLSTATE;
+      if(V&&GS.check){GS.verify(gl,'shadow.viewport',gl.VIEWPORT,V.viewport);GS.verify(gl,'shadow.scissor',gl.SCISSOR_BOX,V.scissor);}
+      const viewport=V?V.viewport.slice():gl.getParameter(gl.VIEWPORT);
+      const scissor=V?V.scissor.slice():gl.getParameter(gl.SCISSOR_BOX),scissorTest=gl.isEnabled(gl.SCISSOR_TEST);
       if(!viewport||!scissor)return; // loss can occur during a GL state query
       const clear=renderer.getClearColor(new T.Color()),alpha=renderer.getClearAlpha();
       // Filtering changes coverage, not the building's shadow geometry.
