@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Downtown lands: every tower its own facade, 23 landmarks their own look (`astra/downtown`, PR #311)
+
+The downtown change from the Sep 24 entry below (Astra pipeline 018), rebased
+onto main twice (last onto 9b02160, after the phone crash fix), the data bot's
+snapshot commit dropped from the branch, and re-measured. No code changed in
+this pass; the diff against main is the same 13 files as on Sep 24.
+
+What he sees: `docs/shots/downtown-skyline-before-after.jpg` (same camera,
+skyline from campus, day and night, main on the left). By day the towers stop
+reading as one grey-blue mass: crowns, setbacks, curtain-wall colours. **At
+night downtown is darker than before**: the new window grids are finer, so
+fewer and smaller windows are lit, and the Frost Bank crown now glows. That is
+a taste call for him, not a defect; the night window tuning is where to change it.
+
+Cost, AMD Radeon iGPU (forced low-power GPU, renderer string printed every
+run), minimum [range], main vs this branch:
+- Desktop 1280x632 DPR 1.5, against main at 91a4106 (the phone fix since
+  changes nothing on desktop), 2 reps each, order main/branch/branch/main, with
+  the second browser slot held empty so no other lane shared the GPU:
+  loading screen lifts 40.9 [40.9-42.3] vs 41.8 [41.8-42.3] s; apartments
+  ready 40.3 [40.3-41.8] vs 41.6 [41.6-41.6] s; renderer private memory 2017
+  vs 2017 MB; GPU process 2624 [2624-2735] vs 2673 [2673-2679] MB; live WebGL
+  1073 vs 1060 MB. 12 s boost toward downtown: 150-195 vs 189-203 frames per
+  10 s, 0 vs 0 frames over 0.8 s. Skyline view held still and redrawn for 10 s:
+  340-344 vs 335-336 frames per 10 s, GPU 24.8-25.4 vs 25.4-25.8 ms per frame.
+  Outer-ring triangles drawn in that view: 167,375 vs 227,371 (+60,000).
+- Phone 390x844 DPR 3 touch, on the rebased result (`mobile-memory.mjs`, 3
+  reps interleaved, fresh browser each): loading screen lifts 41.8
+  [41.8-63.1] vs 41.3 [41.3-60.1] s; page memory peak 872 [872-999] vs 839
+  [839-980] MB, settled 760 [760-795] vs 760 [760-803] MB. No difference
+  outside the noise. Outer-ring triangles in the skyline view on the phone
+  (quiet pair, before the phone fix): 103,060 vs 163,056.
+  (A 2-rep run on the NVIDIA GPU read the branch about 20 MB higher settled,
+  12 MB of it the extra facade images.)
+- A first, unquiet pass (other lanes' browsers on the same iGPU) read 40-90 s
+  loads and 60-120 boost frames for both builds; it is not used above.
+
+Checks on the rebased branch: `downtown-data.py` PASS, `bake_outer_facades.py
+--check` 0 changed, `downtown-landmarks.py` PASS; outer-check 20/21 on branch
+and main alike (the "budgeted layers" line is red on main too);
+outer-facade-parity and `outer_facade_parity.py` PASS on both; harness-drift,
+facade-pace, facade-filter, facade-atlas-memory, slopes-buffer-memory, the six
+no-browser apartment gates and apartment-window-scene PASS. The downtown grids
+register (8 grids, 16 campus families preserved), no `[outer]` warnings.
+campus-apartment-check is red on main and branch alike (it reads the building
+count before the build finishes: 29 and 32 of 196). The data checks,
+facade-pace, facade-atlas-memory, outer-check and the phone memory run were
+repeated after the last rebase. Not tested on a real phone.
+
 ## Sep 27 2026 - A graphics reset pauses the phone city instead of leaving it hollow; the phone crash fix lands (`claude/mobile-crash`, PR #310)
 
 ![Second graphics reset: before, after, after Reload city](docs/shots/phone-graphics-reset.jpg)
@@ -247,6 +296,86 @@ no opening flight and no balconies (`lighter`), or flat blocks (`safe`).
 
 **Not verified on a real phone.** `docs/mobile-device-check.md` has the steps.
 Frames: scratchpad only (none committed).
+
+## Sep 24 2026 - Downtown identities (`astra/downtown`, pipeline 018)
+
+Built headless by the Codex (Astra) pipeline; the Claude lane rebased it on
+main, re-tiled it with the real tippecanoe, measured it and merged it (PR and
+numbers at the end of this entry). Thirty final labelled comparisons are
+packaged locally:
+25 public-reference/before/after tower views, campus skyline day/night, an aerial,
+and Congress street day/night. All actual app cameras match; every JPEG is below
+1 MB. These establish visible changes, not owner acceptance of every detail.
+
+The generic outer-tower material election is replaced by architectural profiles
+in `scripts/downtown_facade_profiles.py`, stamped for towers and downtown
+streetwalls by `scripts/bake_outer_facades.py`. `scripts/bake_outer.py` preserves
+matched public names and building metadata, selects authored replacements and
+closes the generic taper-to-crown gap. `js/outer.js` joins the shared palette to
+eight additional grid families while preserving the sixteen campus families.
+No edits to lighting or `js/facades.js` repaint scheduling.
+
+`scripts/downtown_tower_identities.py` adds Independent, Austonian, Frost, 360,
+Block 185, Modern, Natiivo, 70 Rainey, Northshore, Seaholm, Colorado Tower,
+One American Center, 100 Congress, JW Marriott, Fairmont, W Austin, Republic,
+ATX, 415 Colorado, 44 East, Paseo, The Travis and Indeed Tower. Waterline and Sixth/Guadalupe retain their existing geometry. Profiles share
+atlas images; new geometry is structural rather than per-window. Public height
+reconciliation lives in `scripts/outer_heights.json`; plan fits remain estimates.
+See `docs/downtown-tower-identities.md` for tuning and limits.
+
+Rebuilt outer GeoJSON, profile palette, bake report and outer PMTiles are kept
+together. The pipeline sandbox has no tippecanoe, so it packed the archive with a
+stand-in (geojson-vt/vt-pbf); that archive was then replaced by the one the data
+workflow's real `scripts/tile.sh` built from this branch's GeoJSON (run
+36042750444, only `outer.pmtiles` changed), and the real app was checked on it.
+
+`scripts/verify/downtown-data.py` checks baked heights, polygon validity,
+ground-connected structural contact, profile joins, idempotent stamping and
+floating generic crowns. Negative controls detach a crown and recover the
+original generic floats. These are data checks, not visual or phone acceptance.
+The local pipeline work directory retains original assets, public reference
+packs' inventory, capture/comparison scripts and detailed validation reports.
+Only actual final labelled comparisons belong in its out directory. Final data
+checks cover 18,618 features and 1,060 patterned walls. Net geometry increase is
+about 76,800 closed-solid triangles before tiling; this is not a GPU measurement.
+The tippecanoe archive is 2,392,254 bytes (baseline 2,096,323; the stand-in's
+was 2,526,113).
+
+Three fresh-browser interleaved AMD Radeon pairs used forced low-power GPU,
+1440x900 DPR 1, balanced, CPU 1x, cancelled auto-detect and six-second continuous
+render samples at the same verified aerial pose. Minimum median frame times:
+day 38.0 -> 16.8 ms; night 66.2 -> 17.5 ms. Minimum p95: day 87.9 -> 73.7 ms;
+night 172.5 -> 54.9 ms. This meets the minimum-of-interleaved-reps comparison,
+but night FPS ranged 10.1-14.1 before and 11.1-34.1 after; one paired night run
+was slower. Do not claim a consistent speedup or physical-phone acceptance.
+Final capture logs report no page or console errors. No task browser remains.
+
+Remaining visual limits include W's shallow facade recesses, Natiivo's pale
+uniform finish, Austonian's crown, 100 Congress's stepped gable, and weak
+vertical ribbons on Seaholm/360/44 East/Travis. Street frontage remains sparse;
+some tower podiums are obscured in the comparison views. See the local final
+manifest, matched-pose report, performance summary and review notes.
+Phones were not checked on a real device.
+
+**Shipped by the Claude lane (rebased on 778be36).** Two changes on top:
+the tippecanoe tiles above, and the bake no longer writes `name` onto ring
+features. It had put one on 332, which turned outer-check's "no ring feature
+carries a name or a label flag" red. Nothing reads them: `fp` holds the identity
+and `bake_outer_facades.py --check` reports 0 changed without them. Cost on the
+AMD iGPU (forced low-power GPU, renderer string printed), minimum of two runs
+interleaved with main: desktop 1280x632 DPR 1.5 veil 43.5 -> 43.1 s, apartments
+ready 43.4 -> 41.1 s, renderer working set 2174 -> 2128 MB, GPU process 2574 ->
+2429 MB, boost frames per 10 s 137-191 -> 164-177 (ranges overlap), frames over
+0.8 s 0 -> 0; phone 390x844 DPR 3 veil 34.0 -> 33.0 s, ready 33.8 -> 32.3 s,
+renderer 2078 -> 2052 MB, GPU 1700 -> 1609 MB. Authored triangles and startup
+JSON are unchanged (+2.7 KB palette). These runs used the archive before the
+name strip (2,420,903 bytes). Gates against main: `downtown-data.py` passes
+and the bake's `--check` shows 0 changed; outer-check 20/21 on both (the same
+"budgeted layers" line is red on main); outer-facade-parity passes on both once
+`TOWER_BUCKETS` in `bake_outer_facades.py` went back to the browser's 10 (the
+branch had pointed it at the profile count, which only the parity check reads);
+every no-browser gate (harness-drift, facade-pace, facade-filter,
+facade-atlas-memory, slopes-buffer-memory, the apartment set) matches main.
 
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
