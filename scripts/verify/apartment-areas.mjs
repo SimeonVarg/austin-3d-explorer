@@ -21,7 +21,11 @@
 //      brings a near one back afterwards, with no double counting;
 //   6. an area dropped in the middle of its build stops and takes back what
 //      it had counted;
-//   7. ?areas=eager puts every area in the core at start (the old behaviour).
+//   7. ?areas=eager puts every area in the core at start (the old behaviour);
+//   8. a phone builds an area in chunks like the core (js/mobile.js
+//      budget.geometryChunkTris): every chunk is a mesh in the area's group;
+//   9. a phone paused by a lost WebGL context (LITE_PROFILE.sceneUnavailable)
+//      builds no area, near or through ensureAt.
 //
 // --break makes every area eager, i.e. loads Riverside at start again; claim 1
 // must then fail.
@@ -57,7 +61,7 @@ const FILES = {
 };
 const TRIS = 100;                         // stub triangles per building
 
-function sandbox({ phone = false, search = '?slopes=0' } = {}) {
+function sandbox({ phone = false, search = '?slopes=0', lite = null } = {}) {
   const requested = [], added = [], removedGroups = [];
   const handlers = {};
   const layers = { 'buildings-3d': { filter: ['has', 'id'] }, 'buildings-labels': { field: ['get', 'name'] }, 'outer-3d': { filter: ['==', 't', 0] } };
@@ -86,14 +90,16 @@ function sandbox({ phone = false, search = '?slopes=0' } = {}) {
     onSwitch() {},
     fetchJSON(url) { requested.push(url); const d = FILES[url]; return d ? Promise.resolve(JSON.parse(JSON.stringify(d))) : Promise.reject(new Error('404 ' + url)); },
     build() { return { triangles: 0, geometry: () => ({ dispose() {} }) }; },
+    // js/slopes.js buildChunked: the same triangles in several geometries
+    buildChunked() { return { triangles: 0, geometries: () => [{ dispose() {} }, { dispose() {} }] }; },
     material: () => ({}),
-    add(g) { added.push(g.name); },
+    add(g) { added.push(g.name); (window.test.groups = window.test.groups || {})[g.name] = g; },
     remove(g) { removedGroups.push(g.name); },
   };
   const location = { search };
   const window = {
     location, __map: map, THREE, slopes, SLOPES: { on: true }, GFX: { preset: 'balanced' },
-    LITE_PROFILE: phone ? { on: true } : undefined,
+    LITE_PROFILE: lite || (phone ? { on: true } : undefined),
   };
   const document = { getElementById: () => null, hidden: false };
   const ctx = vm.createContext({ window, location, document, URLSearchParams, console: { log() {}, warn() {}, error: console.error, info() {} },
@@ -110,7 +116,7 @@ function sandbox({ phone = false, search = '?slopes=0' } = {}) {
   vm.runInContext(source.slice(0, at) + stub + source.slice(at), ctx);
   const emit = n => (handlers[n] || []).forEach(fn => fn());
   const moveTo = async (p, eye = p) => { cam.center = p; cam.eye = eye; emit('moveend'); await idleTicks(); };
-  return { window, map, layers, requested, added, removedGroups, moveTo, api: window.test, A: () => window.slopesApartments };
+  return { window, map, layers, requested, added, removedGroups, moveTo, api: window.test, A: () => window.slopesApartments, groups: () => window.test.groups };
 }
 async function booted(s) {
   assert.equal(await s.api.boot(), true, 'boot completes');
@@ -213,5 +219,30 @@ const area = s => s.A().areas.list[0];
   assert.equal(s.A().count.buildings, 5);
 }
 
-console.log('PASS: the start fetches the core only; a near camera builds an area as its own group and hides its boxes only once built; a desktop keeps it, a phone drops it past unloadM and forgets its files; ensureAt builds ahead of the camera; a core rebuild takes areas down and back without double counting; a dropped build takes back its counts; ?areas=eager is the old start');
+// ── 8: a phone's chunked build ─────────────────────────────────────────
+{
+  const s = sandbox({ lite: { on: true, budget: { geometryChunkTris: 1500 } } });
+  await booted(s);
+  await s.moveTo(NEAR);
+  for (let i = 0; i < 50 && area(s).state !== 'on'; i++) await idleTicks(5);
+  assert.equal(area(s).state, 'on', '8: a chunked phone builds the area');
+  const g = s.groups()['slopes-apartments-riverside'];
+  assert.deepEqual(g.children.map(m => m.name), ['apartments', 'apartments-2'], '8: one mesh per chunk, as the core');
+}
+
+// ── 9: a phone paused by a lost context ────────────────────────────────
+{
+  const s = sandbox({ phone: true });
+  await booted(s);
+  s.window.LITE_PROFILE.sceneUnavailable = true;
+  await s.moveTo(NEAR);
+  const r = await s.A().areas.ensureAt(NEAR);
+  for (let i = 0; i < 50; i++) await idleTicks(5);
+  assert.deepEqual(r, [false], '9: ensureAt declines');
+  assert.deepEqual(areaFiles(s), [], '9: a paused scene fetches no area file');
+  assert.equal(area(s).state, 'idle', '9: and builds nothing');
+  assert.ok(!s.added.includes('slopes-apartments-riverside'));
+}
+
+console.log('PASS: the start fetches the core only; a near camera builds an area as its own group and hides its boxes only once built; a desktop keeps it, a phone drops it past unloadM and forgets its files; ensureAt builds ahead of the camera; a core rebuild takes areas down and back without double counting; a dropped build takes back its counts; ?areas=eager is the old start; a chunked phone build gives the area every chunk; a paused (context-lost) phone builds no area');
 process.exit(0);   // the module's own late-filter poll would keep the process alive for minutes
