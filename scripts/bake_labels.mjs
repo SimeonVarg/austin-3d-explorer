@@ -273,6 +273,52 @@ for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++) {
   rows.splice(j--,1);
 }
 
+// On-demand areas (data/apartments/index.json `areas`, e.g. Riverside) build
+// their authored complexes only when the camera comes near. The sources above
+// name each complex at a site point (a finder home, an office tag, an old
+// outer-ring mass) that the authored buildings now replace. Put the name on
+// the complex's own building that holds, or is nearest to, that site point,
+// above its real top: pitched ridges and roof meshes, not the eave line.
+// Canopies, carports, pools and ground-only site paths never host a name.
+const areaHostTune = { maxSiteDistanceMetres:250, minTopMetres:2,
+  notAHost:/\b(canopy|carport|covered parking|pool|service)\b/i };
+function authoredTop(b) {
+  let top=0;
+  for(const blk of b.blocks||[]) {
+    top=Math.max(top,blk.z1+(blk.parapet||0));
+    for(const it of blk.roofItems||[])top=Math.max(top,blk.z1+(it.z0||0)+(it.h||0));
+    // A pitched block roof rises at most half the frame's short side at its pitch.
+    const pitch=blk.roof?.pitch,w=b.frame?.obb?.W;
+    if(pitch>0&&w>0)top=Math.max(top,blk.z1+w/2*Math.tan(pitch*Math.PI/180));
+  }
+  for(const m of b.detailMeshes||[])for(const v of m.vertices||[])top=Math.max(top,v[2]);
+  return top;
+}
+const areaHostAudit=[];
+for(const [area,spec] of Object.entries(read('data/apartments/index.json').areas||{})) {
+  const hosts=[];
+  for(const file of spec.collections||[])for(const b of read(file).buildings||[]) {
+    if(!b.footprint?.ring||!b.name||areaHostTune.notAHost.test(b.name))continue;
+    const top=authoredTop(b);if(!(top>=areaHostTune.minTopMetres))continue;
+    const geometry={type:'Polygon',coordinates:[b.footprint.ring,...(b.footprint.holes||[])]};
+    hosts.push({b,file,geometry,top,p:anchor(geometry),key:apartmentKey(b.complex||b.name)});
+    if(!modelHosts.has(b.id))modelHosts.set(b.id,{geometry,height:top,source:file});
+  }
+  for(const r of rows.filter(r=>r.kind==='apartment')) {
+    const key=apartmentKey(r.name),site=pointOf(r);
+    if(key.length<4)continue;
+    const own=hosts.filter(h=>h.key.startsWith(key)).map(h=>({...h,distance:inGeometry(site,h.geometry)?0:dist(site,h.p)}));
+    if(!own.length)continue;
+    const host=own.sort((a,b)=>a.distance-b.distance||a.b.id.localeCompare(b.b.id))[0];
+    if(host.distance>areaHostTune.maxSiteDistanceMetres)throw Error(`Area host too far from its site: ${r.name}`);
+    r.lng=+host.p[0].toFixed(7);r.lat=+host.p[1].toFixed(7);r.height=+host.top.toFixed(2);
+    r.buildingIds=unique([...r.buildingIds,host.b.id]);r.sources=unique([...r.sources,host.file]);
+    areaHostAudit.push({name:r.name,area,site,lng:r.lng,lat:r.lat,height:r.height,buildingId:host.b.id,
+      building:host.b.name,source:host.file,siteDistanceMetres:+host.distance.toFixed(1),
+      method:'Authored building of this complex holding or nearest its site point; label above its highest roof'});
+  }
+}
+
 // OSM bounds centres can lie in empty courtyards or concave cut-outs. A unique
 // sub-two-metre match to the shipped footprint's bounds verifies that identity;
 // nearby-but-unmatched buildings never supply apartment heights.
@@ -315,6 +361,8 @@ for(const r of rows.filter(r=>r.kind==='apartment'&&!r.height)) {
 // These sites have no matching rendered building. Use their mapped access
 // frontage rather than borrowing a neighbour's roof. Reviewed OSM way ids keep
 // the placement deliberate; the inset points toward the original property.
+// Estates and Village at East Riverside now have authored buildings in an
+// on-demand area (above), so their entries apply only if that area is removed.
 const besideSiteWays = {
   'Colorado D':136149802, 'Colorado J':136224826, 'Colorado K':136224826,
   'Colorado L':820431909, 'Colorado M':773679741, 'Colorado N':136149803,
@@ -465,11 +513,12 @@ if(new Set(rows.map(r=>r.id)).size!==rows.length)throw Error('Duplicate catalog 
 for(const r of rows)if(![r.lng,r.lat,r.height].every(Number.isFinite))throw Error(`Invalid position/height: ${r.name}`);
 const data={version:1,license:'OpenStreetMap-derived records: ODbL-1.0; UT register: published factual building names.',heightMeaning:'Metres above local ground; 0 means no measured roof height. Explicit beside-site placements and place anchors are at street level.',snapshot,finderSource,finderHomes:finder.homes.map(h=>({id:h.id,name:h.name,kind:h.kind,p:h.p,area:h.area,wc:h.wc})),stats,labels:rows};
 fs.writeFileSync(path.join(ROOT,'data/labels.json'),JSON.stringify(data)+'\n');
-const report={...stats,definition:'Missing means absent from the former eligible sign/building/place name inventory, not simply absent in one screenshot. Renamed/shortened aliases are separate. Current catalog eligibility does not promise simultaneous display.',missingBefore:missing,renamedAliases:renamed,previouslyEligible:existing,gaps,limitations:[`${unnamed} OpenStreetMap apartment parts have no public name in this cache. No names were invented.`, 'Nine apartments without matching loaded buildings use documented access-frontage placements; no roof height is invented.', 'UT register rows without mapped walking-graph sites cannot be placed from the register alone.']};
+const report={...stats,definition:'Missing means absent from the former eligible sign/building/place name inventory, not simply absent in one screenshot. Renamed/shortened aliases are separate. Current catalog eligibility does not promise simultaneous display.',missingBefore:missing,renamedAliases:renamed,previouslyEligible:existing,gaps,limitations:[`${unnamed} OpenStreetMap apartment parts have no public name in this cache. No names were invented.`, `${deliberateApartmentAnchors.length} apartments without matching loaded buildings use documented access-frontage placements; no roof height is invented.`, `${areaHostAudit.length} apartments in on-demand areas sit on their own authored buildings, which load only near the area.`, 'UT register rows without mapped walking-graph sites cannot be placed from the register alone.']};
 report.codeValidation={maxDistanceMetres:300,rejected:rejectedCodes,skippedNumericNames:[...skippedNumericNames].sort()};
 report.apartmentAliasMerges=apartmentAliasMerges;
 report.placeHeightAudit=placeHeightAudit;
 report.downtownRoofAudit=downtownRoofAudit;
+report.areaHostAudit=areaHostAudit;
 report.apartmentHeightAudit={recovered:recoveredApartmentHeights,deliberateBesideSite:deliberateApartmentAnchors,unresolved:apartments.filter(r=>!r.height&&!r.placement).map(r=>({name:r.name,lng:r.lng,lat:r.lat,reason:'No matched loaded footprint and no deliberate beside-site placement'}))};
 const reportArg=process.argv.indexOf('--report');
 if(reportArg>=0){const target=process.argv[reportArg+1];if(!target)throw Error('--report requires path');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,JSON.stringify(report,null,2)+'\n');}
