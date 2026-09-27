@@ -1,5 +1,62 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - The name labels land on today's main; Riverside's names sit on its own roofs (`astra/labels`)
+
+The owner approved Astra's label revamp ("ship the labels"). This pass rebased
+it onto main 9444fd7 (after Riverside #322, downtown #311 and the speed pass
+#323-#325), rebaked the catalog on today's data, and fixed the two anchor
+defects the rebase exposed. The two Astra entries below describe the label
+system itself.
+
+- **Rebase.** Only this file conflicted. `js/app.js` and `js/graphics.js`
+  merged cleanly and keep #324's GL-state caching; the label edits are the same
+  four small hooks as before.
+- **Riverside.** The bake read only the core apartment list, so it never saw
+  the on-demand Riverside area: Estates and Village kept street-level anchors
+  from when nothing stood there, Town Lake and The Element kept anchors on the
+  outer-ring masses and office points the authored buildings now retire. The
+  bake now reads `areas` in `data/apartments/index.json` and puts each complex's
+  name on its own authored building nearest its site point (never a canopy,
+  carport, pool or path), above that building's real top. Names are not gated
+  on the area loading: a desktop builds Riverside from 1,800 m and apartment
+  names only fade in from 1,350 m, so on a desktop they appear over a built or
+  building area. A phone loads at 1,200 m, so there is a 150 m band where a
+  name can show a moment before the buildings under it.
+- **Names hidden inside their own buildings.** An authored building's name was
+  placed at its eave or slab (`levels.roof`, or its last floor). Where a crown,
+  core, bulkhead, mechanical box or ridge rises above that, the anchor sat
+  inside the building and the depth test hid the name from every angle: The
+  Castilian never showed in West Campus. The bake now uses the model's top as
+  the renderer builds it (blocks, parapets, roof boxes, pitched roofs, roof
+  meshes, deck items, the file's named tops). Against the renderer's own
+  `slopesApartments.built[].top` for 126 labelled buildings, every name now
+  starts above it. 54 names move up, 0 to 8.4 m.
+- **Catalog.** 1,761 names (1,756 before; the Sep 27 snapshot names a few more
+  small places), 220 apartments, every one of the 179 newly named apartments
+  still present. Yugo Austin Nueces now counts as previously eligible because
+  the new snapshot names it, so the stat reads 178. Downtown names follow the
+  new crowns (The Independent 209 -> 210.4 m); the Gates Dell Complex label
+  follows its corrected 26 m roof. Seven apartments keep deliberate beside-site
+  anchors (Colorado D/J/K/L/M/N, Echo).
+
+**Checks** (AMD Radeon integrated, `ANGLE (AMD, AMD Radeon(TM) Graphics
+(0x00001638) Direct3D11 ...)`, low-power GPU, 1280x800 DPR 1, balanced):
+desktop and phone loads of the rebased branch with 0 console and 0 page errors;
+harness parity 49/49; Astra's 12 layout and 7 teleport regressions pass; Astra's
+catalog regressions pass with two counts updated for the reasons above (178
+newly named, 7 unresolved heights); two 8 s moving-camera runs (West Campus and
+across Riverside with its area built, 117 and 280 samples) with 0 clipped cards,
+0 cards on a control and 0 overlapping cards; still captures at West Campus,
+Riverside and downtown with the same assertions and GL error 0. The Riverside
+flight placed all four complex names on screen.
+
+**Cost.** Astra measured +3.1% boost frame time (37.37 -> 38.55 ms, three
+interleaved pairs); the owner accepted it. Not re-measured in this pass.
+
+**Still open** (Astra's known limits): a name hidden behind a foreground
+building still reserves its screen space, so it can keep a visible neighbour
+off screen; physical-phone performance is unverified.
+
 ## Sep 27 2026 - Label acceptance repairs (`astra/labels`, pipeline task 022)
 
 Whole name cards now stay within the viewport and clear attribution, time controls, top buttons and the open compare drawer, including its moving map buttons. Retiring cards cannot overlap replacement cards, and camera jumps cannot resurrect dim cards at stale screen positions. Foreground geometry hides the entire card using its anchor depth instead of slicing its letters. Layout, control rectangles and static screen positions are cached; moving frames use nearby candidates and MapLibre's current GPU-state cache. No authored building triangles were added.
