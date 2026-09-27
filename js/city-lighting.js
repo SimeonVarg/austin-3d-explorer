@@ -223,7 +223,7 @@
     for(let i=3;i<data.length;i+=4)data[i]=mask[i];
     stats.glassImages++;return {...image,data};
   }
-  let buildings=[],proxy=null,proxyDirty=true,proxyTimer=null,proxyMap=null,proxyBuilt=0;
+  let buildings=[],proxy=null,proxyDirty=true,proxyTimer=null,proxyMap=null,proxySigBuilt=null;
   // Only what is DRAWN may cast. The Tower, hero, Drag, arts, Moody and West
   // Campus passes draw their own buildings and hide the legacy prism with the
   // shared ['!',['in',['get','id'],['literal',ids]]] clause on buildings-3d.
@@ -263,13 +263,31 @@
       // (astra-pipe research/frame-cost.md, section 8, fix 1).
       map.on('move',()=>{proxyMovedAt=Date.now();});
       map.on('moveend',()=>{proxyMovedAt=Date.now();proxyViewMoved=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxyBuilt=0;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
-    const built=window.slopesApartments?.count.buildings||0;
-    if(proxyBuilt!==built)proxyDirty=true;
+    if(!sameList(proxySignature(map),proxySigBuilt))proxyDirty=true;
     if((proxyDirty||proxyViewMoved)&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.settleMs);
     return proxy;
   }
+  // What the proxy reads from the authored apartments and the base layer,
+  // checked every frame: the catalogue whose footprints and ids it leaves out
+  // (a new object whenever an area attaches or detaches), the switch, the
+  // buildings-3d filter it takes the hide list from (its source is not a
+  // caster, so no sourcedata reports it) and the authored triangle count,
+  // which moves only when a build lands or an area comes and goes.
+  // Until 2026-09-28 this was count.buildings, which rises once per building
+  // DURING the time-sliced build. The proxy uses none of that progress, but
+  // it rebuilt the proxy every ~2.5 s of the build under the veil, the same
+  // mesh each time: 11-12 rebuilds, ~8.5 s of main thread. Measured on the
+  // AMD iGPU, 3 interleaved pairs: 6-8 rebuilds (~2.4 s) remain, all from
+  // tiles arriving (sourcedata), and the veil lifts at 38.0-40.0 s, not
+  // 44.3-46.1 s (speed night 09-28, shadow-proxy-no-storm).
+  // map.getLayer throws while the map has no style (a context restore).
+  const proxySignature=map=>{
+    const A=window.slopesApartments;
+    return [A?.count.triangles,window.APARTMENTS?.on,proxyRef(A?.data?.buildings),proxyRef(map.style?map.getLayer?.('buildings-3d')?.filter:undefined)];
+  };
+  const sameList=(a,b)=>!!a&&!!b&&a.length===b.length&&a.every((v,i)=>v===b[i]);
   // settleMs: how long the camera must have been still (no move event, no
   // camera animation, the flycam not driving) before the proxy is checked
   // or rebuilt. It was the old fixed delay after a moveend, so a camera that
@@ -285,10 +303,10 @@
   // null means "cannot tell" (a MapLibre without these internals): rebuild.
   const proxyRefIds=new WeakMap();let proxyRefNext=0;
   const proxyRef=o=>o&&typeof o==='object'?proxyRefIds.get(o)??(proxyRefIds.set(o,++proxyRefNext),proxyRefNext):o;
-  function proxyKey(map,built) {
+  function proxyKey(map,signature) {
     const caches=map.style?.tileManagers||map.style?.sourceCaches;
     if(!caches||typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return null;
-    const key=[built,window.APARTMENTS?.on,proxyRef(window.slopesApartments?.data?.buildings),proxyRef(buildings),proxyRef(map.getLayer('buildings-3d')?.filter)];
+    const key=[...signature,proxyRef(buildings)];
     for(const source of casterSources) {
       key.push(source);
       if(!map.getSource(source))continue;
@@ -309,20 +327,19 @@
     const flying=map.isMoving()||!!window.__fly?.eye?.().driving;
     const wait=flying?PROXY_PACE.settleMs:PROXY_PACE.settleMs-(Date.now()-proxyMovedAt);
     if(wait>0){proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
-    const built=window.slopesApartments?.count.buildings||0;
-    const inputs=proxyKey(map,built);
+    const signature=proxySignature(map);
+    const inputs=proxyKey(map,signature);
     // Only the view moved, and it moved nothing the proxy is built from.
-    if(!proxyDirty&&proxyBuilt===built&&inputs&&proxyInputs&&inputs.length===proxyInputs.length&&inputs.every((v,i)=>v===proxyInputs[i])){proxyViewMoved=false;return;}
+    if(!proxyDirty&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyViewMoved=false;return;}
     // A restored context briefly has no style while MapLibre rebuilds it.
     // Keep the rebuild pending; neither discard the existing proxy nor read
     // layers until the replacement style is available.
-    const style=map.getStyle()?.layers;
+    const style=proxyStyleLayers(map);
     if(!style){proxyDirty=true;return;}
-    proxyDirty=false;proxyViewMoved=false;proxyBuilt=built;proxyInputs=inputs;
+    proxyDirty=false;proxyViewMoved=false;proxySigBuilt=signature;proxyInputs=inputs;
     const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
     const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
-    const ids=new Set(authored.map(b=>b.id)),rings=authored.map(b=>b.footprint?.ring).filter(Boolean);
-    const inside=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
+    const ids=new Set(authored.map(b=>b.id)),insideAuthored=footprintLookup(authored.map(b=>b.footprint?.ring).filter(Boolean));
     // The displayed base layer suppresses parent prisms with detailed parts,
     // and replaced prisms by id (see casterSources).
     const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
@@ -333,8 +350,8 @@
       // Each visible layer with its own display filter: a part, deck or
       // detail that no layer draws does not cast.
       for(const l of style) {
-        if(l.type!=='fill-extrusion'||l.source!==source||l.layout?.visibility==='none')continue;
-        const o={};if(l['source-layer'])o.sourceLayer=l['source-layer'];if(l.filter)o.filter=l.filter;
+        if(l.type!=='fill-extrusion'||l.source!==source||l.visibility==='none')continue;
+        const o={};if(l.sourceLayer)o.sourceLayer=l.sourceLayer;if(l.filter)o.filter=l.filter;
         try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
       }
     }
@@ -353,7 +370,7 @@
         const ring=poly[0];if(!ring?.length)continue;
         const key=[p.id??f.id,base,h,ring[0].join(','),ring.length].join('|');if(seen.has(key))continue;seen.add(key);
         const centre=ring.slice(0,-1).reduce((v,p)=>[v[0]+p[0]/(ring.length-1),v[1]+p[1]/(ring.length-1)],[0,0]);
-        if(rings.some(r=>inside(centre,r)))continue; // actual authored mesh casts instead
+        if(insideAuthored(centre))continue; // actual authored mesh casts instead
         const contours=poly.map(r=>r.slice(0,-1).map(local));
         const flat=contours.flat(),faces=T.ShapeUtils.triangulateShape(contours[0],contours.slice(1));
         for(const face of faces)tri(...face.map(i=>flat[i]),h);
@@ -365,7 +382,66 @@
     proxy?.geometry.dispose();proxy?.material.dispose();
     const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
     proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
+    stats.shadowProxyRebuilds=(stats.shadowProxyRebuilds||0)+1;
     stats.shadowProxyTriangles=positions.length/9;map.triggerRepaint();
+  }
+  // The style's layers in draw order, read off MapLibre's live layer objects
+  // (id, type, source, sourceLayer, filter, visibility: the fields proxyKey
+  // already compares). Custom layers are skipped, as getStyle() skips them.
+  // Until 2026-09-28 this was map.getStyle().layers, a full serialise and deep
+  // clone of every layer, the authored hide clauses included, on every
+  // rebuild. null while there is no loaded style (getStyle()'s undefined).
+  function proxyStyleLayers(map) {
+    const style=map.style;
+    if(!style||(typeof style._loaded==='boolean'?!style._loaded:!map.getStyle?.()))return null;
+    if(typeof map.getLayersOrder!=='function'||typeof map.getLayer!=='function')return map.getStyle()?.layers.map(l=>({id:l.id,type:l.type,source:l.source,sourceLayer:l['source-layer'],filter:l.filter,visibility:l.layout?.visibility}))||null;
+    const layers=[];
+    for(const id of map.getLayersOrder()){const l=map.getLayer(id);if(l&&l.type!=='custom')layers.push(l);}
+    return layers;
+  }
+  // The authored-footprint test, as a lookup built once per rebuild. Each
+  // ring is filed under every PROXY_GRID_DEG cell its bounding box touches, so
+  // a caster's centre is tested only against the rings of its own cell: the
+  // same even-odd test on the same rings, the same answer. Until 2026-09-28
+  // every caster polygon was tested against EVERY authored ring: 0.35-0.55 s
+  // per rebuild on the core catalogue, 2.2-7.1 s once Riverside's 353 rings
+  // join (offline bench, node). The grid takes 3-9 ms.
+  // PROXY_GRID_DEG: cell size in degrees (~100 m). Speed only, never picture:
+  // any size gives the same answer. PROXY_GRID_MAX_CELLS: a ring whose box
+  // would span more cells than this (bad data, a campus-sized outline) is
+  // tested for every centre instead of being filed.
+  const PROXY_GRID_DEG=0.001,PROXY_GRID_MAX_CELLS=4096;
+  const insideRing=(p,r)=>{let yes=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>p[1])!==(r[j][1]>p[1])&&p[0]<(r[j][0]-r[i][0])*(p[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])yes=!yes;return yes;};
+  function footprintLookup(rings,cell=PROXY_GRID_DEG) {
+    // pad: a centre within rounding of a box edge still finds that ring
+    const cells=new Map(),wide=[],pad=1e-9,key=(i,j)=>i*1e6+j;
+    for(const r of rings) {
+      let w=Infinity,s=Infinity,e=-Infinity,n=-Infinity,finite=true;
+      for(const p of r){if(!(Number.isFinite(p[0])&&Number.isFinite(p[1])))finite=false;if(p[0]<w)w=p[0];if(p[0]>e)e=p[0];if(p[1]<s)s=p[1];if(p[1]>n)n=p[1];}
+      if(!r.length)continue; // the even-odd test never hits an empty ring
+      // A broken vertex can leave an odd crossing count outside the box:
+      // such a ring is tested for every centre, exactly as before.
+      if(!finite){wide.push(r);continue;}
+      const i0=Math.floor((w-pad)/cell),i1=Math.floor((e+pad)/cell),j0=Math.floor((s-pad)/cell),j1=Math.floor((n+pad)/cell);
+      if((i1-i0+1)*(j1-j0+1)>PROXY_GRID_MAX_CELLS){wide.push(r);continue;}
+      for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const k=key(i,j);let list=cells.get(k);if(!list)cells.set(k,list=[]);list.push(r);}
+    }
+    return p=>{
+      const list=cells.get(key(Math.floor(p[0]/cell),Math.floor(p[1]/cell)));
+      if(list)for(const r of list)if(insideRing(p,r))return true;
+      for(const r of wide)if(insideRing(p,r))return true;
+      return false;
+    };
+  }
+  // Debug only (parity checks): a hash of the current proxy's triangles.
+  // `ordered` follows the vertex order; `set` sums one hash per triangle, so
+  // two proxies with the same triangles in a different order hash the same.
+  function proxyHash() {
+    const a=proxy?.geometry.getAttribute('position')?.array;
+    if(!a)return null;
+    const u=new Uint32Array(a.buffer,a.byteOffset,a.length);let ordered=0x811c9dc5,set=0;
+    for(let t=0;t<u.length;t+=9){let h=0x811c9dc5;for(let k=t;k<t+9;k++){h=Math.imul(h^u[k],0x01000193);ordered=Math.imul(ordered^u[k],0x01000193);}set=(set+(h>>>0))>>>0;}
+    return {triangles:u.length/9,ordered:(ordered>>>0).toString(16),set:set.toString(16)};
   }
   function install(map) {
     const gl=map.painter.context.gl;
@@ -566,7 +642,7 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
