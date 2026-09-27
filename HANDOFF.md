@@ -1,5 +1,45 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Speed pass: the city opens ~4.5 s sooner, flights freeze less and run ~11% smoother (`claude/speed-*`, PRs #323 #324 #325)
+
+A measure-first pass on the AMD integrated GPU (the renderer most visitors and the
+owner's laptop use): a fresh baseline of main 2546efe, two code readers, three
+surgical fixes, and a separate checker per fix that repeated every measurement and
+read the diff. All three merged; the combined build and the live site loaded on
+desktop and the phone profile with 0 errors, and matched main pixel for pixel in
+daylight (night: max 7/255 on 0.02% of pixels, sky twinkle).
+
+**What the baseline showed (vs frame-cost.md, Sep 23).** The moveend proxy storm,
+the auto-exposure getImageData and the facade-repaint freezes are gone: boost went
+from 38.6 to 206 frames per 10 s. What remained: proxy rebuilds under the veil
+(7.8 s), getParameter round trips as the top self-time function in flight, and the
+three.js layer drawing every authored apartment in all three passes.
+
+- **#323 `js/city-lighting.js`.** The proxy's per-frame dirty check is a signature
+  of what it reads (triangles, areas switch, catalogue ref, buildings-3d filter ref),
+  not `count.buildings`; the footprint test goes through a grid (`PROXY_GRID_DEG`);
+  rebuilds read live layers, not getStyle(). Veil 43.8 s (43.8-44.3) -> 39.3 s
+  (39.3-40.5); Tower landing worst task 899 -> 551 ms; return from Riverside 4.3 ->
+  3.0 s. Riverside switches on ~0.4 s later. Gate: `scripts/verify/proxy-inside-grid.mjs`.
+- **#324 `js/graphics.js`, `js/slopes.js`.** GL state is recorded in JS (`GLSTATE`)
+  so auto-exposure and the sun-shadow pass stop calling getParameter every frame.
+  Boost main-thread busy 39.4% -> 29.5%, long tasks 46 -> 34 per 12 s. No fps change:
+  the AMD chip is GPU-bound in flight.
+- **#325 `js/slopes-apartments.js`.** Per-building bounding spheres; each camera
+  (main pass, both shadow cascades) draws only the index ranges in its frustum, in
+  order. Boost 195 -> 216 frames per 10 s, GPU 34.7 -> 30.9 ms/frame, three.js layer
+  -28%. Off switch: `APARTMENTS.cull.on`.
+
+Settings for every number: framecost.mjs `--gpu low`, 1280x632 at DPR 1.5, no CPU
+throttle, drift=0, auto-detect cancelled, 3 interleaved pairs, best (range).
+
+**Next, ranked.** Synchronous shader link/compile checks under the veil (~9 s;
+moving the check only moves the wait, so measure a warm-profile load first);
+`ensureImages` is a single 5.3 s task at load; desktop keeps ~0.5 GB of CPU geometry
+copies; a per-tile proxy memo for the landing task; the facade premultiply in flight
+(870 ms per 12 s); a desktop LRU for visited areas. A texture-state cache in the
+extrusion adapter was prototyped separately and gave no measurable gain: skip it.
+
 ## Sep 27 2026 - Riverside's four student complexes land, and load only when you go there (`astra/riverside`)
 
 Astra's four Riverside complexes (Village at East Riverside, Estates at East
