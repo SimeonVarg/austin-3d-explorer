@@ -167,6 +167,33 @@ landed mid-flight; a move that changes no input is checked but not rebuilt.
 `--break` restores "rebuild 300 ms after any move" and must exit 1. (Until
 2026-09-23 every moveend rebuilt it, 1.0-1.4 s each, every ~1.5 s of a flight.)
 
+The same gate then builds 350 authored apartments one by one with the camera
+still, as the time-sliced build does under the veil: no rebuild, because the
+proxy reads none of that progress. The build landing, an area attaching, the
+apartments switch and a new `buildings-3d` hide list each rebuild it once, and
+a footprint over a caster's centre takes that caster out. `--break-storm`
+restores "rebuild whenever `count.buildings` moves" and must exit 1 (it rebuilds
+116 times in the 35 s build). Until 2026-09-28 that was the code: 9 rebuilds,
+7.8 s of main thread, 17 % of the load under the veil.
+
+`node shadow-proxy-recovery.mjs`: while the map has no style, or a style that
+has not loaded, the rebuild stays pending instead of building from nothing.
+`--break` drops the "not loaded" half and must exit 1.
+
+### The authored-footprint test is a grid, and gives the scan's answer
+
+`node proxy-inside-grid.mjs` (no browser, no server) runs the real
+`footprintLookup` from `js/city-lighting.js` against every authored footprint
+(core, then core + every on-demand area) and compares it, point by point, with
+the scan it replaced (`rings.some(inside)`): the centre of every legacy prism,
+part and outer-ring building, an 8 x 8 lattice over every footprint, its
+vertices, points one rounding step either side of its box and on cell edges,
+and odd rings (a broken vertex, an empty ring, a 40 km box, a NaN centre). Any
+difference fails. `--break` files no ring under its last cell and must exit 1.
+On 2026-09-28: 0 differences over 21,066 caster centres (against both
+footprint sets) and 50,240 lattice and edge points; the scan took 2.1 s for
+the caster centres against core + Riverside, the grid 27 ms.
+
 ### Far-away authored buildings load when the camera goes there
 
 `node apartment-areas.mjs` (no browser, no server) runs the real
