@@ -1,5 +1,80 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Riverside's four student complexes land, and load only when you go there (`astra/riverside`)
+
+Astra's four Riverside complexes (Village at East Riverside, Estates at East
+Riverside, Town Lake Student Apartments, both Element parcels: 236 buildings on
+their OSM outlines, plus a site file of drives, paths, courts and pools; the
+Sep 24 entry below) land with **on-demand areas**, rebased onto main after the
+phone crash fix (#310) and downtown (#311). The data bot's snapshot commit was
+already gone from the branch; nothing was built on it.
+
+**Why areas.** Riverside is 5.6 km from the Tower and the opening camera never
+looks there, but as committed every visitor paid for it at start. Measured on
+the rebased branch with `?areas=eager` (= Riverside at start, as committed)
+against main, AMD iGPU (`--force_low_power_gpu`, renderer string
+`ANGLE (AMD, AMD Radeon(TM) Graphics ...)` printed every run), graphics
+auto-detect cancelled, two interleaved reps, minimum [range]:
+
+- desktop 1280x632 DPR 1.5: veil lift 42.3 [42.3-44.1] s -> 82.3 [82.3-119.0] s,
+  apartments ready 41.7 -> 81.4 s, authored triangles 3,084,685 -> 3,702,971
+  (+20 %), JS heap 1158 -> 1214 MB;
+- phone 390x844 DPR 3 touch: veil 34.5 [34.5-60.4] s -> 43.6 [43.6-60.3] s,
+  ready 34.3 -> 42.3 s, triangles 2,155,609 -> 2,436,591 (+13 %);
+- JSON downloaded at start: 90 files, 42.02 MB raw / 5.37 MB gzip / 4.88 MB
+  brotli -> 95 files, 49.64 / 6.82 / 5.64 MB (gzip 6 and brotli q4 of the files
+  on disk; q4 is within ~3 % of what production sends for the same file).
+
+**What areas do.** `data/apartments/index.json` has `areas`: a box and its
+files. The core (everything else) loads at start exactly as before and the veil
+waits only for it. An area is fetched and built as its own group when the
+camera (the nearer of the eye and the map centre) comes within 1800 m of its
+box (1200 m on a phone); a phone drops it again past 3000 m and forgets the
+parsed files, a desktop keeps it. Its buildings join the catalog, and so
+retire the outer-ring boxes they replace, only once its mesh is in. All the
+distances are `APARTMENTS.areas` in `js/slopes-apartments.js`; `?areas=eager`
+is the old start. PR #310 had no distance-based loading to reuse (its budget
+is per tile and per build), so the area build goes through the same
+`build()` and so gets #310's chunked phone build for free; an area also stands
+down while a phone's lost context has the city paused (`sceneUnavailable`).
+
+**Startup is main's again**, same runs: desktop veil 42.1 [42.1-50.2] s, ready
+41.7 s, 3,084,685 triangles, heap 1058 MB; phone veil 36.4 [36.4-73.3] s, ready
+35.8 s, 2,155,609 triangles; start JSON the same 90 files, byte for byte, as
+main. The phone memory instrument from #310 (`mobile-memory.mjs`, two
+interleaved reps, AMD iGPU) agrees: page-held peak 1012 (main) vs 909 MB,
+settled 784 vs 782 MB, WebGL 528 vs 538 MB, GPU process 1202 vs 1218 MB,
+buildings landed 38.0 vs 37.4 s. The machine was shared with other lanes'
+browsers throughout (free RAM 4.3-8.1 GB, CPU up to 100 % in rep 1), which is
+the whole spread; rep 2 of each pair ran on a quieter machine.
+
+**Flying there**, same runs: Riverside is on 9.4 [9.4-19.2] s after the camera
+arrives on the desktop and 6.3 [6.3-10.0] s on the phone, with exactly the eager
+build's triangles (3,702,971 desktop, 2,436,591 phone: +618,286 and +280,982)
+and its 353 authored pieces (the 236 buildings plus the site's drives, courts and
+pools); the phone is back to 2,155,609 once it leaves (area idle). The
+area's own files are 7.62 MB raw / 1.45 MB gzip / 0.77 MB brotli, fetched only
+then. Pictures: `docs/shots/riverside-four-complexes-before-after.jpg` (Astra's
+matched app camera, before and after) and, from the rebased branch after flying
+there with areas on, `docs/shots/riverside-village-after-flying-there.jpg`
+(desktop) and `docs/shots/riverside-village-phone-after-flying-there.jpg`
+(phone), second of two screenshots, no page errors.
+
+**Open:** the apartment finder (PR #307, still open) should call
+`slopesApartments.areas.ensureAt([lng, lat])` in `select()` before it flies to
+a Riverside home, and its "Riverside has no 3D buildings yet" line stops being
+true with this. PR #312 (compiled building lifecycle, already conflicting with
+main) also edits `build()` and `count` in `js/slopes-apartments.js`; whichever
+lands second merges the two. Not tested on a real phone.
+
+Gates: `apartment-areas.mjs` (new; claims 1-9 incl. the chunked phone build
+and the paused phone scene) passes and fails with `--break`; the rest of the
+no-browser apartment set, slopes-buffer-memory, slopes-chunked-build,
+slopes-context-loss, facade-pace, facade-atlas-memory and harness-drift pass.
+`facade-filter.mjs` fails identically on main (this branch does not touch
+`js/facade-filter.js`). Measurement scripts: the lane scratchpad's
+`framecost.mjs` (load + fly-to-Riverside) and `scripts/verify/mobile-memory.mjs`.
+
 ## Sep 27 2026 - Downtown lands: every tower its own facade, 23 landmarks their own look (`astra/downtown`, PR #311)
 
 The downtown change from the Sep 24 entry below (Astra pipeline 018), rebased
@@ -376,6 +451,7 @@ and the bake's `--check` shows 0 changed; outer-check 20/21 on both (the same
 branch had pointed it at the profile count, which only the parity check reads);
 every no-browser gate (harness-drift, facade-pace, facade-filter,
 facade-atlas-memory, slopes-buffer-memory, the apartment set) matches main.
+
 ## Sep 24 2026 - Riverside garden apartments (`astra/riverside`)
 
 Four new authored collections cover Village at East Riverside, Estates at East
@@ -386,12 +462,14 @@ drives, paths and eight courts. Residential forms use three storeys for Village,
 Estates and Town Lake, and two for Element; roofs, window recesses, open stairs,
 balconies/galleries and restrained night occupancy are authored separately from
 the original basemap. Town Lake's clubhouse has its own arched entrance and roof
-composition. Registration is through `data/apartments/index.json` collections.
+composition. Registration is through `data/apartments/index.json`, as the
+first on-demand area (`areas.riverside`; see the Sep 27 entry: Riverside loads
+when the camera goes there, not at start).
 
 The small renderer extension in `js/slopes-apartments.js` adds opt-in
 `replaceOuter` footprint suppression for the eight outer building layers, only
 after a successful authored build, and reapplies it after outer settings changes.
-There is no authored-model geographic cutoff to extend. Optional `minDetail` on
+Optional `minDetail` on
 blocks, detail meshes and window surrounds omits fine ornament below 0.6 without
 changing older specs. Essential buildings, stairs and galleries remain at the
 phone preset's 0.5 detail.
@@ -429,8 +507,8 @@ not a survey of every roof. Landscaping, uncovered parking surfaces, pool furnit
 and site lighting are visibly sparse. Small ancillary uses, roof ridges and
 clubhouse rear roof joints remain approximate. Images, reference identities, camera metadata and rebuild
 helpers remain local to the pipeline/reference workspace. Physical-phone
-performance is unverified. No git write, server launch or scheduled continuation
-was performed; the reviewing lane owns the commit/PR/merge.
+performance is unverified. (Astra made no git write or server launch; the
+Claude lane committed, measured and shipped it: Sep 27 entry.)
 
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 

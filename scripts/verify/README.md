@@ -178,9 +178,12 @@ buildings join the catalog and hide the outer ring's boxes; a desktop keeps it
 when the camera leaves, a phone drops it past `unloadM` with the boxes, counts
 and catalog back to the core's; `ensureAt` builds ahead of the camera; a core
 rebuild takes areas down and back without double counting; an area dropped
-mid-build takes back its counts; `?areas=eager` is the old start. `--break`
+mid-build takes back its counts; `?areas=eager` is the old start; a phone's
+chunked build gives the area one mesh per chunk, like the core; and a phone
+paused by a lost WebGL context (`LITE_PROFILE.sceneUnavailable`) builds no
+area. `--break`
 makes every area eager (Riverside at start again) and must exit 1. It does not
-measure load time or memory; those numbers are in HANDOFF (Sep 24 2026,
+measure load time or memory; those numbers are in HANDOFF (Sep 27 2026,
 Riverside).
 
 ### The "graphics acceleration is off" notice
