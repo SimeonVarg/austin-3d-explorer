@@ -144,8 +144,19 @@
 
   // ── Scene data ────────────────────────────────────────────────────
   async function getJSON(url, fallback) {
-    try { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return await r.json(); }
-    catch (e) { console.warn('fetch', url, e.message); return fallback; }
+    // Count parsed data, not just a response whose body is still downloading.
+    try { window.loaderData?.(url, 'start'); } catch (e) {}
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(r.status);
+      const data = await r.json();
+      try { window.loaderData?.(url, 'done'); } catch (e) {}
+      return data;
+    } catch (e) {
+      try { window.loaderData?.(url, 'error'); } catch (ignored) {}
+      console.warn('fetch', url, e.message);
+      return fallback;
+    }
   }
 
   /** Strip decoration so "The Mark Austin" and "The Mark" collide. */
@@ -524,6 +535,7 @@ window.CityLighting.install(map);
     step('orbit',    () => initLandmarkOrbit());
     step('tour',     () => initTourKey());
     step('photo',    () => initPhotoKey());
+    try { window.loaderSceneReady?.(); } catch (e) {}
   }
 
   // ── Building layers ───────────────────────────────────────────────
@@ -1927,7 +1939,7 @@ window.CityLighting.install(map);
       dbg.missingAtLift = g.missing;
       // Fill the skyline before the veil goes, so the last thing seen is the
       // city fully lit rather than a bar stranded at 80%.
-      try { if (window.loaderDone) window.loaderDone(); } catch (e) {}
+      try { if (window.loaderDone) window.loaderDone({ reason, missing: g.missing, tiles: g.all, modelLate: dbg.modelLate }); } catch (e) {}
       // Back to full resolution BEFORE the veil starts to fade (see
       // INTRO.veilRenderScale); applyGraphics re-applies the pixel ratio.
       window.__veilRenderScale = 1;

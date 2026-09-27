@@ -1348,6 +1348,7 @@
   async function loadGraph() {
     if (G) return G;
     if (loadPromise) return loadPromise;
+    try { window.loaderGraph?.('start'); } catch (e) {}
     loadPromise = (async () => {
       const t0 = performance.now();
       // The register rides along so the 85 codes the graph lacks can still be
@@ -1377,8 +1378,12 @@
         SIGNAL_WAIT_HIGH_S: 'signalWaitHighS', CROSSING_PENALTY_M: 'crossingPenaltyM',
         DOOR_LINK_MAX_M: 'doorLinkMaxM' };
       for (const k in map) if (raw.tune && raw.tune[k] != null) WAYFIND[map[k]] = raw.tune[k];
+      try { window.loaderGraph?.('done'); } catch (e) {}
       return G;
-    })();
+    })().catch(e => {
+      try { window.loaderGraph?.('error'); } catch (ignored) {}
+      throw e;
+    });
     return loadPromise;
   }
 
