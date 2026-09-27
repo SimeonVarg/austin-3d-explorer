@@ -1,17 +1,5 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 26 2026 - Loading-screen task blocked (`astra/loading`)
-
-No application changes. The untouched desktop baseline, through the required
-GPU queue with forced low-power hardware GL, reached the 300000 ms browser
-watchdog without completing. A fresh phone-profile run failed local ground and
-building data requests with `net::ERR_INSUFFICIENT_RESOURCES`. A subsequent
-PowerShell launch failed with `Starting the CLR failed with HRESULT 8007000e`.
-No valid timing comparison, new screen, launcher or visual acceptance is claimed.
-Draft captures, helper and findings are in the pipeline task's local `work/`
-directory; nothing was published to `out/`. Resume this task when the machine
-can load an intact baseline city. No git write commands were run.
-
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
