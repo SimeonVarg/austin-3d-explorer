@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Downtown lands: every tower its own facade, 23 landmarks their own look (`astra/downtown`, PR #311)
+
+The downtown change from the Sep 24 entry below (Astra pipeline 018), rebased
+onto main twice (last onto 9b02160, after the phone crash fix), the data bot's
+snapshot commit dropped from the branch, and re-measured. No code changed in
+this pass; the diff against main is the same 13 files as on Sep 24.
+
+What he sees: `docs/shots/downtown-skyline-before-after.jpg` (same camera,
+skyline from campus, day and night, main on the left). By day the towers stop
+reading as one grey-blue mass: crowns, setbacks, curtain-wall colours. **At
+night downtown is darker than before**: the new window grids are finer, so
+fewer and smaller windows are lit, and the Frost Bank crown now glows. That is
+a taste call for him, not a defect; the night window tuning is where to change it.
+
+Cost, AMD Radeon iGPU (forced low-power GPU, renderer string printed every
+run), minimum [range], main vs this branch:
+- Desktop 1280x632 DPR 1.5, against main at 91a4106 (the phone fix since
+  changes nothing on desktop), 2 reps each, order main/branch/branch/main, with
+  the second browser slot held empty so no other lane shared the GPU:
+  loading screen lifts 40.9 [40.9-42.3] vs 41.8 [41.8-42.3] s; apartments
+  ready 40.3 [40.3-41.8] vs 41.6 [41.6-41.6] s; renderer private memory 2017
+  vs 2017 MB; GPU process 2624 [2624-2735] vs 2673 [2673-2679] MB; live WebGL
+  1073 vs 1060 MB. 12 s boost toward downtown: 150-195 vs 189-203 frames per
+  10 s, 0 vs 0 frames over 0.8 s. Skyline view held still and redrawn for 10 s:
+  340-344 vs 335-336 frames per 10 s, GPU 24.8-25.4 vs 25.4-25.8 ms per frame.
+  Outer-ring triangles drawn in that view: 167,375 vs 227,371 (+60,000).
+- Phone 390x844 DPR 3 touch, on the rebased result (`mobile-memory.mjs`, 3
+  reps interleaved, fresh browser each): loading screen lifts 41.8
+  [41.8-63.1] vs 41.3 [41.3-60.1] s; page memory peak 872 [872-999] vs 839
+  [839-980] MB, settled 760 [760-795] vs 760 [760-803] MB. No difference
+  outside the noise. Outer-ring triangles in the skyline view on the phone
+  (quiet pair, before the phone fix): 103,060 vs 163,056.
+  (A 2-rep run on the NVIDIA GPU read the branch about 20 MB higher settled,
+  12 MB of it the extra facade images.)
+- A first, unquiet pass (other lanes' browsers on the same iGPU) read 40-90 s
+  loads and 60-120 boost frames for both builds; it is not used above.
+
+Checks on the rebased branch: `downtown-data.py` PASS, `bake_outer_facades.py
+--check` 0 changed, `downtown-landmarks.py` PASS; outer-check 20/21 on branch
+and main alike (the "budgeted layers" line is red on main too);
+outer-facade-parity and `outer_facade_parity.py` PASS on both; harness-drift,
+facade-pace, facade-filter, facade-atlas-memory, slopes-buffer-memory, the six
+no-browser apartment gates and apartment-window-scene PASS. The downtown grids
+register (8 grids, 16 campus families preserved), no `[outer]` warnings.
+campus-apartment-check is red on main and branch alike (it reads the building
+count before the build finishes: 29 and 32 of 196). The data checks,
+facade-pace, facade-atlas-memory, outer-check and the phone memory run were
+repeated after the last rebase. Not tested on a real phone.
+
 ## Sep 27 2026 - A graphics reset pauses the phone city instead of leaving it hollow; the phone crash fix lands (`claude/mobile-crash`, PR #310)
 
 ![Second graphics reset: before, after, after Reload city](docs/shots/phone-graphics-reset.jpg)
