@@ -87,8 +87,10 @@ export const HW_ARGS = [
   '--ignore-gpu-blocklist',
   '--enable-gpu-rasterization',
   // Without this a laptop hands headless Chrome the INTEGRATED chip. Costs
-  // nothing on a desktop or a machine with one GPU.
-  '--force_high_performance_gpu',
+  // nothing on a desktop or a machine with one GPU. VERIFY_GPU=low asks for
+  // the integrated chip on purpose (the owner's laptop: AMD Radeon iGPU next
+  // to an RTX 3050 Ti) - measure what a visitor without the big GPU gets.
+  process.env.VERIFY_GPU === 'low' ? '--force_low_power_gpu' : '--force_high_performance_gpu',
 ];
 
 /**

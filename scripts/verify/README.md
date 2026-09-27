@@ -105,6 +105,56 @@ and that the PACE knobs are named. `--break` widens the worker's blur by one
 texel, `--break-border` switches the border rewrite off; each must exit 1. It does not check timing or
 the scheduler; the frame-time A/B for the pacing is in HANDOFF (Sep 24 2026).
 
+### Phone memory, and the reload loop (Sep 24 2026)
+
+`node mobile-memory.mjs --arms main=http://127.0.0.1:8872,branch=http://127.0.0.1:8871 --reps 3`
+loads the phone profile (390x844, DPR 3, touch, iPhone UA, hardware GL, a fresh
+browser per rep, arms interleaved) and reads once a second until 30 s after the
+authored buildings land: the JS heap and ArrayBuffer backing store
+(`Runtime.getHeapUsage`), every live WebGL texture, buffer and renderbuffer
+(counted in the page, with the allocating file), and the renderer and GPU
+processes' private bytes and working set. `phone` = heap + backing + GL is the
+headline: what the page holds, independent of this laptop's GPU driver. It
+prints the PEAK (the opening flight is the peak) and the SETTLED value, the
+minimum over reps. An arm URL may carry its own query
+(`lighter=http://127.0.0.1:8871/?drift=0&litetier=lighter`); `--desktop`
+measures 1280x800 instead. It is a measurement and exits 0. Desktop Chrome
+is not WebKit: the numbers rank changes, they do not predict an iPhone's kill.
+
+`mobile-boot.mjs crashloop ctxintro` are the reload-loop gates: a renderer
+killed during the opening flight must come back (as Safari's one automatic
+reload would) on the `lighter` tier with the authored buildings and never
+reload itself, and a context lost during the flight must reload exactly once,
+onto the `lighter` tier, and not again when it is lost a second time.
+
+### A graphics reset pauses the phone city, it never leaves it hollow (Sep 27 2026)
+
+`VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage|nodialog] [--out DIR]`
+(hardware GL, one browser, 390x844 DPR 3 touch). A phone drops its vertex
+arrays once they are on the GPU, so a restored context cannot draw the city
+again; only a new document can. Three real losses: before the three.js root
+exists (the style request held), a second loss after the flight's one
+automatic reload, and a loss whose reload record cannot be written. Each must
+end PAUSED (nine checks: `LITE_PROFILE.sceneUnavailable`, no controller, every
+walking support 0, a native modal with no dismiss, the root hidden, frames
+stopped, the camera unmoved through W + Escape, no errors), and the real
+"Reload city" button must bring back a WHOLE city (196 buildings, all 35
+supports incl. the 10 on Gearing's authored model, released CPU arrays, draw
+calls, a hardware renderer) that moves under the keyboard. `nodialog` deletes
+`showModal` (Safari before 15.4) and requires the automatic reload to still
+happen. `--break` makes the
+flag impossible to set in the page and must exit 1 (Sep 27: it does — 35/35
+supports still answer over a city whose buffers are gone, and the card can be
+dismissed). Codex's negative control of the unmodified Sep 24 code (private,
+`pr310-recovery-spike`) found the same hollow city with its controller still
+live and zero page errors: nothing else in this directory noticed.
+
+`VERIFY_GPU=low` swaps `--force_high_performance_gpu` for
+`--force_low_power_gpu` in every hardware launch (`chrome.mjs` `HW_ARGS`):
+the owner's laptop has an AMD iGPU next to an RTX 3050 Ti, and a visitor
+without the big GPU is the one to measure. Print the renderer string.
+
+
 ### The shadow proxy is never rebuilt mid-flight
 
 `node shadow-proxy-pacing.mjs` (no browser, no server) runs the real

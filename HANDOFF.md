@@ -1,5 +1,253 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - A graphics reset pauses the phone city instead of leaving it hollow; the phone crash fix lands (`claude/mobile-crash`, PR #310)
+
+![Second graphics reset: before, after, after Reload city](docs/shots/phone-graphics-reset.jpg)
+
+PR #310 (the Sep 24 entry below) rebased onto main, which now has Codex's
+#319 phone walking surfaces, with Codex's private "recovery v2" taken in
+(`C:/Users/simip/output/flyover-architecture/overnight-20260926/pr310-recovery-v2/`,
+applied byte-exact: the six baseline files hashed identical to his, the five
+repaired ones identical after `git apply`). Three changes of mine on top.
+
+**The hole it closes.** A phone drops each mesh's vertex arrays once they
+are on the GPU (`LITE.budget.freeGeometryCpu`). After a lost WebGL context
+three.js cannot upload them again, so the restored page is missing buildings
+while `__fly` and all 35 walking supports (`campusLandscape.floorAt`, 10 of
+them on Gearing's authored model) still answer: you walk on invisible stairs.
+The first loss already reloaded by itself; a second inside the 10-minute
+limit, or one whose reload record could not be written, left that hollow city
+running with zero page errors (left panel above: Codex's capture of the
+unmodified Sep 24 code). Now any map-canvas loss with the 3D layer on sets
+`LITE_PROFILE.sceneUnavailable`: the root hides, `city:unavailable` tears the
+controls down and disables all eight map handlers (`js/app.js`), render,
+`floorAt`, the landscape poller/rebuild/density hooks, the facade storey
+bootstrap, the intro and idle rotation all stand down, and the notice becomes
+a native modal "Reload to continue exploring" with one button and no dismiss
+(keys captured, Escape blocked, later notices cannot replace it). The first
+loss still reloads once by itself; the modal only stays up when it cannot.
+
+**Mine 1: one fix to Codex's patch.** His render guard read
+`window.LITE_PROFILE` before `gl.isContextLost()`; the existing
+`slopes-context-loss.mjs` requires a lost-context render to touch nothing,
+and failed. Reordered (same conditions); it passes, and both its `--break`s
+still go red.
+
+**Mine 2: Safari before 15.4 has no `<dialog>`.** `el.showModal()` threw a
+TypeError out of the context-loss handler before it scheduled the automatic
+reload (it still happened only because the restore event schedules it too; a
+context never restored would have waited forever). Feature-detected, falls
+back to `open`; the new `nodialog` scenario deletes `showModal` and requires
+the reload with no page error - the pre-fix file fails it on exactly that
+TypeError, this one passes.
+
+**Mine 3: vertex packing DEFERRED** (`packVertices: false`). Its own gate
+(packed vs exact, one page, SwiftShader 640x640, control 0 px) still fails
+exactly as on Sep 24: The Standard day 11,190 px (max 12/255), night 515;
+21 Rio day 5,348 (max 11), night 244; Moody 0. Taste call for the owner:
+packing buys back about 60 MB once settled and nothing measurable at the
+peak (table below) for that sub-brick grain shift. At that price, off.
+
+**Memory, phone emulation** (`mobile-memory.mjs`, 390x844 DPR 3 touch,
+AMD Radeon iGPU, CPU 1x, a fresh browser per rep, arms interleaved, 3 reps,
+graphics auto-detect cancelled, free RAM 4.2-6.7 GB at each start, one other
+lane's browser running). `phone` = JS heap + ArrayBuffers + live WebGL bytes;
+peak = the opening flight (15-24 s after the veil lifts), settled = 30 s after
+the buildings land. Minimum [range], MB:
+
+                              peak               settled       WebGL buffers
+    main (91a4106)            1968 [1968-2050]   1845 [1845-1905]   428
+    this PR, packing off       861 [861-985]      758 [758-769]     383
+    this PR, packing on        869 [869-902]      697 [697-705]     315
+
+Same 196 buildings and 2,155,609 apartment triangles in every arm. The
+phone tier holds 56% less at the peak and 59% less settled than main. Desktop
+Chrome is not WebKit: these rank the builds, they do not predict an iPhone.
+
+**Checks on the integrated commit** (AMD Radeon iGPU via the new
+`VERIFY_GPU=low`, renderer string printed by every run):
+- NEW `scripts/verify/scene-unavailable.mjs`: 26/26 on the final code. Early
+  loss before the three.js root exists (style held, reload record refused):
+  paused 9/9, then "Reload city" -> `lighter`, 196 buildings, 35/35 supports
+  (10/10 authored), 200 released arrays, moves 1.73 m. Loss in the flight: one
+  automatic reload onto `lighter`, whole; lost again: no reload, paused 9/9;
+  "Reload city": whole, record untouched, moves 1.72 m. Normal phone with the
+  record refused: paused 9/9, "Reload city" -> `phone`, 216 released arrays,
+  moves 1.74 m. No `<dialog>`: reloads by itself, whole, no error. 0 page or
+  console errors anywhere. `--break` exits 1 (supports stay 35/35, card
+  dismissable).
+- `mobile-boot.mjs`: 51/51, incl. crashloop (killed in the flight -> Safari's
+  reload is `lighter`, never reloads itself; killed again -> `safe` with its
+  card, no reload of its own) and ctxintro (second loss shows the new card).
+  crashloop + contextloss + ctxintro re-run on the final code: 17/17. (The
+  `<dialog>` fallback landed after the full suite, device-recovery, the walks
+  and the desktop identity ran; it only changes the path where `showModal`
+  does not exist, which `nodialog` covers.)
+- `device-recovery.mjs`: PASS - full city, real loss during time-of-day
+  playback, one recovery reload, 196 buildings back, keyboard 42.9 m and
+  touch 26.1 m of movement, portrait/landscape/large captures, 0 errors.
+- #319's phone walks, Codex's unchanged route code (`union-walk.mjs`,
+  `gearing-walk.mjs` from his phone-ground folder) on this build: PASS on the
+  `phone` tier (Union 2,704 frames; Gearing stairs/restart 665, terrace-to-ramp
+  739, outside 342; eye 1.800000-1.800210 m over the ground) and on the
+  `lighter` tier (Union 2,994; Gearing 543/527/226; 1.800000-1.800797 m);
+  35/35 supports before, all 0 with the 3D switch off; 0 errors.
+- Node-only: slopes-context-loss, slopes-buffer-memory, facade-atlas-memory,
+  shadow-proxy-pacing/-recovery, the five style-recovery checks,
+  slopes-chunked-build, harness-drift, gearing-ground, ground-roof-separation,
+  collision-raster all pass; Codex's two CPU fixtures (`guard-cpu.cjs`,
+  `cpu-v1.cjs`) pass against this tree.
+- Desktop unchanged (SwiftShader 1280x800, main / this PR / main again in one
+  browser): 196 buildings, 3,084,685 apartment and 4,075,507 layer triangles
+  on all three, no phone budget, 0 errors; map canvas and whole page 0 px
+  different (max 0) at a West Campus and a Tower pose, control also 0.
+- Desktop not slower (lanes' `framecost.mjs`, headed Chrome, AMD Radeon iGPU
+  via `--force_low_power_gpu`, 1280x632 at DPR 1.5, CPU 1x, auto-detect
+  cancelled, 4 interleaved pairs, free RAM 5.9-8.8 GB; best of 4 [range]):
+  veil lift main 40,535 [40,535-48,846] ms vs this PR 40,546 [40,546-106,119];
+  idle 60 fps both (median frame 16.6 ms); flying across the city with BOOST
+  main 211 [62.5-211] frames/10 s, median 33.4 ms, p90 66.8 vs this PR 215
+  [60.8-215], 33.4, 66.7. The 106 s load is pair 3, run while another lane
+  loaded the CPU (21-62% before the run); main's run in that pair fell to the
+  same 61 frames/10 s. Desktop never runs the new code (`js/mobile.js` returns
+  before it; the other guards read an undefined flag).
+
+**Harness changes.** `chrome.mjs` `VERIFY_GPU=low` swaps
+`--force_high_performance_gpu` for `--force_low_power_gpu`.
+`mobile-memory.mjs` now cancels the graphics auto-detect (rule 10, Codex's
+review caught it) and prints the renderer and free RAM per rep.
+`docs/mobile-device-check.md` is rewritten as the owner's iPhone steps:
+the flight, crashing twice, a graphics reset (camera app, twice in ten
+minutes), walking the Union and Gearing steps, and an optional forced reset
+from the Mac's Web Inspector.
+
+**Open.** Not tested on a real iPhone (Safari or Chrome) - memory, thermals
+and recovery there are unverified. PR #312 (Codex, parked) is stacked on this
+branch and touches `js/mobile.js`, `js/slopes.js`, `js/slopes-apartments.js`;
+it has to be retargeted to main and re-verified by its lane. Packing waits on
+the owner's taste call above.
+
+## Sep 24 2026 - Phones stop crash-looping: a memory budget, and one reload at most (`claude/mobile-crash`)
+
+Reported: "the site still breaks on mobile browsers - it loads for like 15
+seconds, but during the intro it refreshes, and then i get an error 'a problem
+repeatedly occured'". That is iOS Safari killing the page for memory, reloading
+it once by itself, and giving up when the reload dies too.
+
+**What was actually happening (desktop Chrome in phone emulation, 390x844 at DPR 3, not a phone).** New `scripts/verify/mobile-memory.mjs` reads, once a second,
+the JS heap, ArrayBuffers, every live WebGL texture/buffer (counted in the page,
+by allocating file) and the renderer/GPU process memory. On main the phone
+profile held ~1.2-1.3 GB when the veil lifted and **2.0-2.1 GB twelve to
+fourteen seconds later - the end of the opening flight**. The flight crosses
+downtown and every tile it loads carries a facade pattern atlas texture (up to
+30 MB each: 2580x3086 RGBA), and MapLibre keeps ~30 tiles per source after they
+leave the screen: 700 MB of textures, 680 of them facade atlases. Then two
+things of ours turned one kill into Safari's error page: the crash fallback
+needed TWO deaths, but Safari only ever reloads once, so its one reload was the
+same heavy scene; and a lost WebGL context reloaded into the same scene too.
+
+**The phone budget** (`js/mobile.js` `LITE.budget`, one block, desktop gets
+`null` and nothing changes there):
+
+- `facadeScale: 1` (`js/facades.js`): facade patterns at 1 texel per CSS px
+  instead of 2 on the phone. The phone draws at 2.25 device px per CSS px
+  (DPR 3 x renderScale 0.75), so the 2x texels were being minified 1.8x with no
+  mipmaps - nobody saw them. A quarter of every atlas.
+- `tileCacheSize: 6` (`js/app.js` -> MapLibre `maxTileCacheSize`): 6 off-screen
+  tiles kept per source instead of ~30.
+- `freeGeometryCpu` (`js/slopes.js` `add()`): three.js drops each mesh's CPU
+  copy once it is on the GPU (~260 MB). A phone recovers from a lost context by
+  reloading, and nothing on a phone reads the arrays afterwards.
+- `geometryChunkTris: 300000` (`js/slopes.js` `buildChunked`, used by
+  `js/slopes-apartments.js`): the authored buildings are built in ~8 pieces
+  instead of one set of buffers that doubled to 8.4 M vertices for 4.2 M used.
+  Same triangles, same order (`scripts/verify/slopes-chunked-build.mjs` compares
+  every expanded vertex byte for byte, and its `--break` goes red).
+- `packVertices` (`js/slopes.js` `packGeometry`): normals as signed bytes,
+  surface parameters as half floats, 50 -> 34 bytes a vertex. **Not
+  pixel-identical**: measured in one page (SwiftShader, close-ups, control
+  0 px), the fine brick-joint grain on far walls lands a fraction of a brick
+  along - The Standard by day 2.7% of pixels at most 12/255, 21 Rio 1.3%, Moody
+  0. Same grain, displaced; `packVertices: false` puts exact vertices back.
+  **DEFERRED on Sep 27 (entry above): phones ship `packVertices: false`.**
+
+**Tiers, one step per death** (`LITE.tiers`): `phone` -> `lighter` (no opening
+flight, no out-of-view tile cache, no balconies) -> `safe` (flat prisms, as
+before). A boot that finds the previous one died while visible steps down ONE
+tier, so Safari's own reload lands on `lighter`. A WebGL context lost during
+the boot or the opening flight steps down too, before its reload. **Every
+automatic reload is recorded; at most one per 10 minutes**, after that the
+notice offers the reload instead. `lighter` and `safe` say so on screen with
+"Load full city"; a visit an hour later tries one tier heavier by itself.
+`?litetier=phone|lighter|safe` forces a tier for testing. Kept from PR #270:
+the boot record, never writing the fallback into the URL, the reload after a
+post-load context loss, lateAuthored, legacy URL cleanup. Old boot records
+(v2) are discarded: they counted deaths of the 2 GB scene.
+
+**Memory, phone emulation, 3 interleaved reps, fresh browser each, minimum
+[range], MB. `phone` = JS heap + ArrayBuffers + live WebGL bytes:**
+
+                        page-held peak     page-held settled   renderer / GPU process (peak, private)
+    main, phone profile   2035 [2035-2133]   1920 [1920-2041]    2285 / 2463
+    branch, phone tier     824 [824-882]      696 [696-718]      1673 / 1247
+    branch, lighter tier   660 [660-813]      506 [506-507]      1322 /  908
+    branch, safe tier      365 (1 rep)        284                1179 /  522
+
+    of which (main -> phone tier, settled): WebGL textures 699 -> 122,
+    WebGL buffers 442 -> 322, ArrayBuffers 651 -> 137, JS heap ~100 both.
+
+Where the peak is: main peaks 12-14 s after the veil lifts (the end of the
+flight); the phone tier peaks as the authored buildings go to the GPU under the
+veil, or during the flight, at ~0.82-0.88 GB. Budget chosen: phone tier under
+0.9 GB peak, lighter under ~0.7, each a third below the one above; main
+survived ~1.2-1.3 GB on the owner's phone (the veil lifted) and died on the way
+to 2.0, so the phone tier's peak sits a third under what his phone demonstrably
+held. Renderer/GPU process numbers are this laptop's Chrome and include its
+own overhead; they are for ranking, not for predicting an iPhone.
+
+**Gates.** `scripts/verify/mobile-boot.mjs` has two new scenarios.
+`crashloop`: the page is killed during the opening flight and loaded again at
+once (Safari's own reload); it must come back on `lighter` with the authored
+buildings, a notice and no reload of its own, and a second death lands on
+`safe`. `ctxintro`: a context lost during the flight reloads exactly once,
+onto `lighter`; lost again, no second reload, the notice instead. On this
+branch: all 11 scenarios pass, 51/51 checks on the final code. On main the 9
+existing scenarios pass (37/37) and the new two fail as they should (crashloop
+3/9, ctxintro 3/5) - Safari's reload there is the same
+full scene with the flight again, and a context loss reloads into it too.
+`device-recovery.mjs` passes on both, after an instrument fix: it read the
+city as ready before a viewport resize had landed and then caught the new
+view's tiles loading at capture (it happened on the branch first; main shows
+the same loading once the wait is right). Also fixed in the harness: the
+`shots` scenario returned `map.jumpTo()` - the whole Map - through
+`page.evaluate`, which on main is now a >512 MB message that kills Playwright,
+and `crashloop`/`ctxintro` first counted `history.replaceState` as a reload
+(Playwright's `framenavigated` fires for it); they count document requests
+now. Node-only checks pass on both: slopes-context-loss, slopes-buffer-memory,
+facade-atlas-memory, shadow-proxy-pacing/-recovery, the four style-recovery
+checks, harness-drift; new `slopes-chunked-build.mjs` passes and its `--break`
+goes red. `mobile-budget.mjs` (the Sep 15
+heap-after-GC reading, SwiftShader): main 788 MB, branch 222 MB, both exit 0.
+`mobile-mergecells.mjs` was not run: it has nothing to compare on either side
+(no `APARTMENTS.mergeCells` in main or here since it was left out on Sep 19)
+and exits 2 by construction. The measurement harness is `mobile-memory.mjs`.
+
+**Desktop unchanged.** One desktop load each of main, this branch and main again
+(SwiftShader, 1280x800): 196 authored buildings, 3,045,153 apartment and
+4,035,204 layer triangles, the same 708 style images at the same sizes,
+MapLibre's default tile cache, no phone budget, 0 page errors - and the map
+canvas and the whole page pixel-identical (0 px, max 0) at a West Campus and a
+Tower pose, main-vs-main control also 0.
+
+**What a phone viewer loses:** facade windows drawn from 1x texels (at the
+phone's pixel density this reads the same; less shimmer if anything); flying
+back to somewhere you just left shows the coarser tile for a moment; the fine
+brick grain on far walls sits a fraction of a brick along. Only after a crash:
+no opening flight and no balconies (`lighter`), or flat blocks (`safe`).
+
+**Not verified on a real phone.** `docs/mobile-device-check.md` has the steps.
+Frames: scratchpad only (none committed).
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
@@ -87,6 +335,7 @@ rebuilds once at rest, a 1.0-1.3 s frame (js/city-lighting.js, by design since
 (~600 MB per 12 s boost); the async exposure read waits 30-130 ms on the GPU
 after big uploads. Evidence (sheets, WebP, raw JSON) in the Claude scratchpad
 `repaint/`.
+
 
 ## Sep 24 2026 - Lower CPU memory with unchanged rendering (`astra/memory`)
 
