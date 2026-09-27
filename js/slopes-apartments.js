@@ -2965,7 +2965,7 @@
         const pt = Array.isArray(lngLat) ? lngLat : [lngLat.lng, lngLat.lat], P = areaParams();
         return Promise.all([..._areas.values()].filter(a => areaDistanceM(a, [pt]) <= P.loadM).map(a => {
           a.pinUntil = performance.now() + APTS.areas.pinMs;
-          return a.state === 'on' ? true : (_group && !_building ? loadArea(a) : false);
+          return a.state === 'on' ? true : (_group && !_building && !sceneGone() ? loadArea(a) : false);
         }));
       },
       get list() { return [..._areas.values()].map(a => ({ name: a.name, state: a.state, distanceM: a.distanceM, buildings: a.group ? a.group.userData.area.built.length : 0, triangles: a.group ? a.group.userData.area.triangles : 0, specs: a.specs ? a.specs.length : 0 })); },
@@ -2979,6 +2979,7 @@
   let _areaChain = Promise.resolve();
   let _areaCheckT = 0, _areaTimer = null;
   const isPhone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.on);
+  const sceneGone = () => !!(window.LITE_PROFILE && window.LITE_PROFILE.sceneUnavailable);
   const areaParams = () => isPhone() ? Object.assign({}, APTS.areas, APTS.areas.phone) : Object.assign({}, APTS.areas, { unload: false, dropSpecs: false });
   function registerAreas(idx) {
     if (APTS.areas.eager) return;
@@ -3038,7 +3039,7 @@
       a.state = 'building';
       let g = null;
       const run = _areaChain.then(async () => {
-        if (gen !== a.gen || !_group) return;
+        if (gen !== a.gen || !_group || sceneGone()) return;
         try { g = await build(a.specs, a); } catch (e) { console.error('[slopes-apartments] area', a.name, e); }
       });
       _areaChain = run.catch(() => {});
@@ -3097,7 +3098,9 @@
   }
   function checkAreas(map) {
     map = map || _map;
-    if (!map || !_core || !_group || _building || !_areas.size || !(window.SLOPES.on && APTS.on)) return;
+    // A phone whose WebGL context was lost is paused behind its reload card
+    // (js/mobile.js sceneUnavailable): nothing new is built into it.
+    if (!map || !_core || !_group || _building || !_areas.size || !(window.SLOPES.on && APTS.on) || sceneGone()) return;
     const P = areaParams(), pts = cameraPoints(map), now = performance.now();
     for (const a of _areas.values()) {
       const d = areaDistanceM(a, pts);
