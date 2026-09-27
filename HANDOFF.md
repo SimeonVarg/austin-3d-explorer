@@ -1,5 +1,48 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Name labels restyled to match the live labels (`astra/labels`, PR #326, awaiting the owner's look check)
+
+The owner saw the label system's dark rounded cards with a coloured dot and
+rejected the look ("black background big labels that covered the screen"),
+but kept the system. This pass changes only the look, to match the labels live
+today, and leaves the PR open for him to judge.
+
+- **Look.** Text straight on the map: warm near-white ink with a thin
+  near-black outline (live `LABEL_LOOK` ink, halo and halo-to-size ratio 0.17),
+  no box, dot or stem. Night swaps in the live night outline and fades the two
+  smallest tiers 45%, as live does. All values are one line each in
+  `NAME_LABELS` (`js/name-labels.js`).
+- **Size.** Six tiers on the live zoom curves: hero (curated signs priority 1),
+  major, sign (priority 2), mid, minor, small (shops). The bake stamps `tier`
+  on every catalog row with the live rule (sign priority, then footprint x
+  height with `LABEL_RANK`'s thresholds; an on-demand area complex counts all
+  its buildings). Minor names start at 10 px, not live's 9.5, because they show
+  from further out than live's minor tier ever does. Only `tier` changed in
+  `data/labels.json`; every other value is identical.
+- **Density.** Live collision padding per tier, plus a cap: all names together
+  cover at most `maxCoverage` = 8% of the screen. Measured coverage at the
+  comparison cameras: cards 11.4% / 8.0% / 9.3% (West, downtown, phone),
+  restyle 3.9% / 3.0% / 3.5%, with about the same number of names.
+- **Renderer.** Glyphs are rasterised once per weight at the largest size that
+  weight is drawn, into one RG8 atlas (red = letter, green = letter + outline)
+  with mipmaps, 1.7 MiB instead of 4 MiB; each name draws a hit rectangle, all
+  outlines, then all letters, in the same single draw call. The tap occlusion
+  query now uses the hit rectangle (it used the card background).
+
+**Checks** (AMD integrated, low-power GPU, DPR 1): same-camera captures of main,
+the rejected cards and the restyle at West Campus, downtown and Riverside (area
+built) by day, downtown at night and West Campus at 390x844: 0 page errors, GL
+error 0, 0 names past the 8 px edge, 0 overlapping names. Astra's catalog
+regressions pass. Tap check: 8 of 8 names resolve; sky resolves null.
+Framecost boost probe, one run each, 1280x632 DPR 1.5: main 83.3 ms median /
+110.5 frames per 10 s, restyle 83.3 ms / 107.8 (an earlier restyle run under
+more load: 83.5 / 96.2; a first main run was invalid, its window stopped
+painting). A probe, not a timing claim.
+
+**Open.** The owner judges the look before merge. The atlas uses Arial, not the
+map's Noto Sans. Comparison pictures are local:
+`astra-pipe/feedback/2026-09-28-speed2/labels-restyle/`.
+
 ## Sep 27 2026 - The name labels land on today's main; Riverside's names sit on its own roofs (`astra/labels`)
 
 The owner approved Astra's label revamp ("ship the labels"). This pass rebased
