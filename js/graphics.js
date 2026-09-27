@@ -649,10 +649,11 @@
     if (on) {
       for (const id of Array.from(_hidByCapture)) {
         try {
-          if (_map.getLayer(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
+          if (_map.getLayer(id) && !window.nameLabels?.replaces(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
         } catch (e) {}
         _hidByCapture.delete(id);
       }
+      window.nameLabels?.sync();
       return;
     }
     for (const id of symbolLayerIds()) {
