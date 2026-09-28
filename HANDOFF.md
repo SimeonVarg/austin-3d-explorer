@@ -88,6 +88,32 @@ rest of the session, rather than drawing a wrong image. With a schedule saved,
 replies smaller, so it has less to scan, not more. Codex's draft #312 also
 touches `js/facades.js`; it already conflicts with main and was left alone.
 
+## Sep 28 2026 - Load screen: tap the main island to flip it over (`claude/island-flip`, PR #339, open until the owner looks; merge #338 first)
+
+The owner asked for the island to answer a tap, not to flip on a timer. A drag
+was the first idea, and a tap was fine if a drag was too heavy.
+
+- Tap, click, Enter or Space turns the island over like a card. The Tower side
+  tips back, goes gray and squashes. The rock underneath comes up as a generic
+  West Campus apartment block, and the gray Tower hangs upside down below it.
+  Tap again to flip back. A tap mid-turn reverses it.
+- The main island has a real rock underside (iceberg), which replaces the faint
+  two-step one. Art source: `scripts/loader-art/island-gen.mjs`. `export.mjs`
+  prints the `ART_LAYERS` (`ice`, `apt`, `spire`).
+- Knobs: `FLIP = { on, time, depth, axis, sink, rise, gray, hint }` in
+  `js/loader.js`. The new copy (hint line, button label) waits for his look.
+- Why not a drag: CDP wheel and touch input waited for the main thread
+  (~3.7 s during a block), even on a root scroller with no listeners. The
+  harness cannot prove that a drag follows the finger during a load.
+- Measured on the live site with the files swapped in: loader-check 7/7. For
+  34 taps on a fixed 1.3 s clock, the delay from tap to turn start was:
+  median 0.16 s, 8 over 1 s, worst 5.1 s. All the slow ones were in the first
+  ~25 s, when the main thread blocks for 3-8 s at a time.
+- A click always needs the main thread, so the loader cannot make a tap start
+  sooner. The fix is to split the facades.js boot painting (item 1 below).
+  #337 has that file open. Tools: `%TEMP%/claude/loading-mv/verify/realtap2.mjs`,
+  `flipstart.mjs`, `filmflip.mjs`.
+
 ## Sep 28 2026 - Load screen: the seconds never stall, the islands float more (`claude/load-timer`, PR #338, open until the owner looks)
 
 On a desktop the "12s in." line jumped 4-5 s at a time. Measured on a cold
