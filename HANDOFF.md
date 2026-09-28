@@ -1,5 +1,87 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - Moire while flying: Smooth edges on by default at 1080p on a graphics card, at no frame-time cost (`claude/no-moire`, PR #332, merged Sep 28 as 6a92480, live)
+
+The owner: "main thing im noticing while flying is the moire. its too noticeable."
+
+- **The meter** (`scripts/verify/moire.mjs` + `moire-report.py`). Each pose is
+  drawn at the owner's screen (1280x680 CSS at DPR 1.5, a 1920x1020
+  framebuffer) and again at 3x the pixels, box-filtered back down: the
+  "truth". The score is the low-frequency part (blur 1.5) of the difference,
+  which is what reads as bands; `hot%` is the share of pixels in a visible
+  band (over 6 levels). `--flight` scores frame-to-frame crawl the truth does
+  not have; `--own` / `--hide-each` say which system draws it; `--variants`
+  tries runtime changes at one pose. `moire-fps.mjs` is an interleaved
+  frame-time A/B on the real page (headed, vsync off, a git ref per side,
+  machine CPU / VRAM / GPU clock per rep, `--fresh` for a browser per rep).
+- **Where the moire came from** (main, no MSAA, share of the score):
+  1. Authored apartment buildings (three.js): fin screens, balcony rails,
+     floor lines thinner than a pixel. ~50-55% at campus poses.
+  2. Outer-ring downtown towers: floor slabs, fins and crowns a fraction of a
+     pixel thick. ~50-60% at the downtown and landing-start poses.
+  3. Far ground: MapLibre draws every `fill` layer with a one-device-pixel
+     outline pass, so a road a third of a pixel wide at the horizon is drawn a
+     whole pixel wide. The dark stair-stepped web over the far city; dominant
+     on the landing flight's crest.
+  4. Campus pattern walls and plain extrusions 5-23%, trees 1-11%.
+  Texture is NOT a source: the atlases are already band-limited on the CPU
+  (`js/pattern-lowpass.js`). It is geometry smaller than a pixel, which only
+  coverage samples resolve. Smooth edges (4x MSAA) was only on by default up
+  to 0.6 MP, so a 1080p laptop at 150% never had it.
+- **What changed, all in `js/graphics.js`:**
+  - `EDGE_SMOOTHING.maxDefaultPixels` 600,000 -> 2,100,000 when the renderer
+    names a graphics card (`fullDefaultGpu`: NVIDIA, Radeon RX / Pro, Arc
+    A-series). Integrated, software, unknown: `integratedMaxPixels` (the old
+    600,000), so nothing changes for them, including the SwiftShader harness
+    and the CI pictures (0 of 10 moved). A first visit reads the renderer off
+    a throwaway context (17-500 ms of main thread); the map's own renderer is
+    then saved (`austin3d.gpu.renderer.v1`) and later visits use that (<1 ms).
+  - `EDGE_SMOOTHING.fillOutlinesWithMSAA: false`: under MSAA every `fill`
+    layer drops MapLibre's outline pass. Without MSAA the outlines stay.
+  - Auto-exposure reads a multisampled canvas through a same-size resolve
+    blit. Before, it refused multisampled canvases and fell back to a
+    synchronous `drawImage` + `getImageData` EVERY FRAME. That was the whole
+    frame-time cost of Smooth edges (24.3 -> 31.2 ms a frame), and why older
+    notes called MSAA expensive.
+  - `edge-defaults.mjs` asserts the budget per renderer. `ci/checks.json`
+    lists `moire.mjs` as a tool and `moire-fps.mjs` as laptop-only timing.
+- **Measured, main vs this branch** (moire against the truth, lower is
+  better, `hot%` in brackets): west campus 0.702 (1.99%) -> 0.207 (0.01%),
+  landing crest 0.664 (1.99%) -> 0.349 (0.57%; 0.261 on a repeat), spawn
+  0.575 (0.99%) -> 0.198 (0.08%), landing end 0.540 -> 0.236, campus low
+  0.504 -> 0.197, downtown 0.448 (0.88%) -> 0.225 (0.16%), landing start
+  0.312 -> 0.169. Crawl on the slow spawn orbit 0.443 -> 0.154. Sharpness:
+  near a building only the edges change (89-96% of near pixels within 2
+  levels); detail energy moves toward the truth, not below it.
+- **Frame time** (RTX 3050 Ti, 1920x1020, vsync off, spawn orbit): one
+  browser, 15 interleaved pairs over three runs, median difference -0.8 ms,
+  MSAA slower in 4. A fresh browser per rep, with another lane holding the
+  machine at 50-75% CPU: 8 pairs, +1.8 ms median with two slow MSAA reps; the
+  card sat near 700 MHz with 1.5 of 4 GB in use, so those frames were
+  CPU-bound. Read it as no cost, not as a clean zero. Two traps met on the
+  way: in one shared browser the FIRST page runs ~4-8 ms faster than later
+  ones whatever the code (interleave, never compare rep 1 to rep 2), and
+  `VERIFY_GPU=low` no longer reaches the AMD chip on this laptop (Chrome is
+  pinned to NVIDIA in Windows), so the integrated chip was not timed.
+- **What is left, and why:**
+  - About a third of the moire. Most of what remains is the authored
+    buildings' sub-pixel detail, which 4 samples cannot fully resolve; the
+    next lever would be fading that detail with distance.
+  - Downtown tower floor lines now read as short broken dashes (a line a
+    fifth of a pixel thick, 4 samples). Fewer dark pixels than main (376 vs
+    635 in the worst box; the truth has 266). Not shadows or sunlight:
+    switching either off does not remove them.
+  - Integrated GPUs and screens over 2.1 MP keep the old default and the old
+    moire until someone times MSAA there.
+- **Tried and not taken:** a shader box filter on MapLibre's pattern reads
+  (<1% of pixels changed); the per-primitive band limit from
+  `claude/flicker-general` (worse score, erased sign lettering); `centroid`
+  interpolation on extrusion and three.js varyings (no change).
+- **Correcting older notes.** `docs/shimmer-mechanism.md` says "Do not
+  pursue: MSAA". That was about texture crawl on the ground patterns; the
+  moire seen in flight is geometry, and there MSAA is the fix. The cost those
+  notes saw was the auto-exposure fallback above.
+
 ## Sep 28 2026 - The owner-approved loading screen is live (`claude/loading-screen`, PR #333, merged; carries #321)
 
 The loading screen now shows the drawing and words the owner approved: the UT
