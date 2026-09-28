@@ -273,8 +273,11 @@ async function runArm(arm, rep) {
     for (;;) {
       const q = await ev(() => { const n = performance.now(), T = window.__tm; let tiles = true; try { tiles = window.__map.areTilesLoaded(); } catch (e) {}
         const moving = (() => { try { return window.__map.isMoving() || !!(window.__fly && window.__fly.eye().driving); } catch (e) { return false; } })();
-        return { tiles, moving, lt: T.lt.filter(x => x[0] + x[1] > n - 1500).length }; });
-      if (q.tiles && !q.moving && !q.lt) return Date.now() - s0;
+        // A sliced proxy rebuild makes no long task, so wait for it by its flag
+        // (undefined before 2026-09-28, whose one-piece rebuild IS a long task).
+        let proxy = false; try { proxy = !!window.CityLighting.stats.shadowProxyBuilding; } catch (e) {}
+        return { tiles, moving, proxy, lt: T.lt.filter(x => x[0] + x[1] > n - 1500).length }; });
+      if (q.tiles && !q.moving && !q.proxy && !q.lt) return Date.now() - s0;
       if (Date.now() - s0 > maxMs) return -1;
       await sleep(250);
     }

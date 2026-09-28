@@ -263,7 +263,7 @@
       // (astra-pipe research/frame-cost.md, section 8, fix 1).
       map.on('move',()=>{proxyMovedAt=Date.now();});
       map.on('moveend',()=>{proxyMovedAt=Date.now();proxyViewMoved=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyJob=null;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyJob=null;stats.shadowProxyBuilding=false;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
     if(!sameList(proxySignature(map),proxySigBuilt))proxyDirty=true;
     if((proxyDirty||proxyViewMoved)&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.settleMs);
@@ -355,7 +355,7 @@
     if(job?.paused) {
       const signature=proxySignature(map),inputs=proxyKey(map,signature);
       if(job.inputs&&map.style===job.styleOwner&&sameList(inputs,job.inputs)&&sameList(signature,job.signature)){job.paused=false;job.runStart=proxyNow();}
-      else{proxyJob=job=null;proxyDirty=true;stats.shadowProxyRestarts=(stats.shadowProxyRestarts||0)+1;}
+      else{proxyJob=job=null;proxyDirty=true;stats.shadowProxyBuilding=false;stats.shadowProxyRestarts=(stats.shadowProxyRestarts||0)+1;}
     }
     if(!job) {
       const signature=proxySignature(map);
@@ -369,7 +369,7 @@
       if(!style){proxyDirty=true;return;}
       proxyDirty=false;proxyViewMoved=false;proxySigBuilt=signature;proxyInputs=inputs;
       job=proxyJob={map,style,signature,inputs,styleOwner:map.style,started:proxyNow(),runStart:proxyNow(),activeMs:0,slices:0,paused:false};
-      job.steps=proxyGeometry(job);
+      job.steps=proxyGeometry(job);stats.shadowProxyBuilding=true;
     }
     const started=proxyNow();let steps=0;
     const P=PROXY_PACE,budget=Math.min(Math.max(P.budgetMs,P.maxBudgetMs||0),P.budgetMs*2**Math.floor((job.activeMs+started-job.runStart)/(P.stretchMs||Infinity)));
@@ -383,7 +383,7 @@
       }
     } catch(e) {
       const m=e.message||String(e);if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}
-      proxyJob=null;proxyDirty=true;return;
+      proxyJob=null;proxyDirty=true;stats.shadowProxyBuilding=false;return;
     } finally {
       const ms=proxyNow()-started;job.slices++;
       stats.shadowProxySlices=(stats.shadowProxySlices||0)+1;
@@ -483,7 +483,7 @@
     return positions;
   }
   function proxyCommit(map,job,positions) {
-    proxyJob=null;
+    proxyJob=null;stats.shadowProxyBuilding=false;
     // The style this build read was replaced under it (a context restore):
     // keep the old proxy and build again from the new one.
     if(map.style!==job.styleOwner){proxyDirty=true;return;}
