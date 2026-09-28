@@ -1,5 +1,104 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - Turning is smoother: shaders ready before the first turn, no lamp hunting by day, the shadow rebuild in slices (`claude/turn-lag`, PR #334, merged Sep 28 as 882a5aa, live)
+
+The owner: turning is the biggest cause of lag. `scripts/verify/turnmeter.mjs`
+(new, laptop-only) turns the real page the way a hand does: 60 and 120 deg/s,
+180-degree flicks, quick looks, each against a straight flight, on campus and
+downtown. Every number below: 1280x680 at DPR 1.5, no CPU throttle, vsync
+off, 3 interleaved fresh-load runs per arm (4 where said), medians, machine
+NOT quiet (other lanes working on the same laptop). `--arms "a=URL|query"`
+A/Bs one checkout against itself with a URL switch.
+
+**What turning cost, worst first (measured):**
+1. First turn built shader programs: one 0.8-1.4 s frame. Fixed:
+   `SLOPES.turn.precompile` (`?precompile=0`) compiles the out-of-view
+   materials before the first turn.
+2. Facade atlas prep as tiles land (`premultiplyInto` / `uploadAtlasFast`,
+   `js/facades.js`): 0.26-1.29 s per 6 s of turning, and it is the hitch
+   right after a flick (74-121 uploads in the 2.5 s stop, same on both arms).
+   **Not changed: the facade lane's file. It is now the biggest cost.**
+3. Streetlamps re-found by day, when invisible: 197-292 lamp tile reloads and
+   340-380 ms per 6 s turn. Fixed: `NIGHT_TUNE.HIDE_WHEN_OFF` hides the lamps
+   and skips re-finding them while their level is 0; `REGEN_FLYING_MS` 3000.
+   Trade-off: a jump straight from day to night shows lamps 1.1-1.4 s after
+   the ~4 s recolour (at dusk they fade in from 0, so it cannot be seen).
+4. Sun-shadow map redraws: 40-70 per 6 s at ~1.3 ms. Each map now has its
+   own redraw key and the far grid is a switch (`shadowSnapFar`,
+   `?shadowsnapfar=`). A 100 m far grid cut far redraws 10-20 % but no fps
+   change beat the noise (3+3 A/B), and it moved far-shadow edge pixels in 7
+   of the 10 CI views, so the default stays 20 m: not changed in effect.
+5. The shadow-caster rebuild after stopping: one 1.0-1.4 s freeze. Fixed:
+   built in slices (`PROXY_PACE` in `js/city-lighting.js`, Codex's 75930c7
+   idea ported), slices stretch on a slow machine (capped at 40 ms).
+6. ~300 draw calls a frame: not changed.
+
+**Before -> after, fps and worst frame** (round 1 = moderately busy machine,
+100 m far grid that later proved neutral; round 2 = final commit vs today's
+main, heavily loaded machine, so lower everywhere):
+- NVIDIA RTX 3050 Ti, round 1: campus first turn 21 -> 25 fps, worst 720 ->
+  260 ms; campus looks 34 -> 45, worst 156 -> 51; downtown flicks 27 -> 44,
+  worst 248 -> 83; downtown 120 deg/s 28 -> 40; downtown 60 deg/s 21 -> 26 but
+  its worst frame 192 -> 252 (tile arrivals, item 2).
+- NVIDIA, round 2: campus first turn 10.5 -> 14.8 fps, worst 1209 -> 470 ms;
+  campus first flick (4+4) 12.2 -> 18 fps, worst 1560 -> 307 ms, every branch
+  run beat every main run, and `?precompile=0` put it back (11.9 fps, 1704
+  ms); straight 31.5 -> 42.3 / 34.8 -> 44.6. Flat under that load: campus 120
+  deg/s, downtown 60 deg/s, and a campus flick after other turns (16.1 ->
+  12.3 fps, worst 320 -> 297), all three better in round 1.
+- NVIDIA after merging #332 (smooth edges on by default on a GPU), campus
+  3+3: straight 34.2 -> 46.2; first turn 16.7 -> 21.9 fps, worst 814 -> 243
+  ms; flicks after it 25.2 -> 35 fps, worst 271 -> 329 ms.
+- AMD Radeon iGPU, round 1: campus 120 deg/s 13 -> 20 fps; campus looks 20 ->
+  28; downtown 60 deg/s 11 -> 17; downtown flicks 14.5 -> 15.9, worst 442 ->
+  276; downtown 120 deg/s flat (15.2 -> 15.6, worst 325 -> 360).
+- AMD, round 2: campus first turn worst 898 -> 259 ms (fps flat); straight
+  24.1 -> 28.7 / 34.5 -> 49; downtown 60 deg/s 18.7 -> 22.3. **Campus 120
+  deg/s right after the first turn is slower: 21.3 -> 16.5 fps** (quieter
+  4-arm rerun 28.3 -> 26.1, worst 154 -> 212 ms). Cause, measured: facade
+  atlas uploads per page are the same on every arm (~220 MB over the two
+  turns), but main lands 197-221 MB of them during its 0.7 s first-turn
+  freeze, while with the precompile 64-161 MB land in the first turn and the
+  rest (61-154 MB vs 2-20) in the next. `?precompile=0` restores main's split
+  AND its freeze; the 100 m grid changes neither. Item 2's cost moved, not new
+  work. On AMD about a quarter of a turn is also the CPU waiting on the GPU
+  (auto-exposure read-back, sky, post effects), untouched.
+- Not reached: a steady 30 fps with no hitch. Round 1 NVIDIA held it for fast
+  turns and looks; a steady 60 deg/s turn was ~25 fps. Remaining hitches =
+  item 2, which is now the one thing to fix next (facade lane).
+- Still frames identical: CI pictures 0 of 10 views changed against main
+  (8 day, 2 night); hardware shots of spawn and stadium, 0 pixels moved. The
+  100 m far grid had moved far-shadow edges in 7 of 10 CI views, which is why
+  it is off.
+
+**Traps met (in `scripts/verify/README.md`, "What turning costs"):**
+- `--gpu low` drew on NVIDIA: Windows' per-app GPU preference (the installed
+  `chrome.exe` is set to High performance) beats `--force_low_power_gpu`.
+  turnmeter now exits 2 on that; the AMD numbers come from Edge
+  (`CHROME_PATH`), on both arms. Playwright's own chromium would not spawn.
+- `--profile split` stops the profiler at the end of the drive; that stop
+  freezes the page for the serialisation, so the "stop" frame times of a
+  profiled run are not usable, only its profile.
+- `slopes-context-loss.mjs` is red on main ("viewState is not defined"),
+  already quarantined in CI.
+
+**`scripts/verify/shot.mjs` now waits for a sliced proxy build** (and logs
+the wait). MapLibre's idle cannot see it; on CI's software renderer the build
+was still running at the shot in 7 of 10 views and needed another 6-45 s, so
+2-3 random day views per run moved 0.01-0.07 %. With the wait: 0 % on all 10.
+Same fact, user side: on a very slow machine new far shadows arrive seconds
+after stopping instead of freezing the frame (`PROXY_PACE.budgetMs = 0` is
+the old one-piece build). Any harness that shoots after a camera move must
+wait for `CityLighting.stats.shadowProxyBuilding` to clear.
+
+CI on the final commit: all 67 pass, pictures 0 of 10 changed vs main.
+Gates on the merged branch: shadow-proxy-slices 16/16 (`--break` exit 1),
+shadow-proxy-pacing 27, shadow-proxy-recovery PASS, night-lights PASS,
+dark-campus PASS (`--break` 3 FAILED, exit 1), a lamp-visibility page probe
+PASS (hidden by day, shown and drawn at night, an outside hide survives).
+Before/after recordings (scratch, not committed): campus first turn and
+three flicks, side by side.
+
 ## Sep 28 2026 - Moire while flying: Smooth edges on by default at 1080p on a graphics card, at no frame-time cost (`claude/no-moire`, PR #332, merged Sep 28 as 6a92480, live)
 
 The owner: "main thing im noticing while flying is the moire. its too noticeable."
