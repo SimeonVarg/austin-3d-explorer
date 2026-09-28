@@ -341,11 +341,106 @@
   // Union's thin facade details alias during rotation without coverage samples.
   // Verified on the 732x672 desktop framebuffer; retain a bounded default rather
   // than extending that timing result to large displays or the phone profile.
-  const EDGE_SMOOTHING = { maxDefaultPixels: 600000 };
+  //
+  // RAISED 2026-09-28 (claude/no-moire) from 600,000 to cover a 1080p laptop
+  // screen at 150% (1920x1020 framebuffer, 1.96 MP) and 1080p at 100%. The
+  // moire on the flyover is almost all GEOMETRY thinner than a pixel — floor
+  // lines, fins, rails, far road edges — which only coverage samples resolve;
+  // scripts/verify/moire.mjs against a 3x-supersampled truth measured 4x MSAA
+  // cutting it by 45-70% at every flyover pose together with the outline
+  // change below (spawn 0.575 -> 0.198, downtown 0.448 -> 0.225, west campus
+  // 0.702 -> 0.207). Its frame-time cost was never the samples: see
+  // AE.ASYNC. With that fixed, interleaved A/Bs (moire-fps.mjs, RTX 3050 Ti,
+  // 1920x1020, spawn orbit, vsync off) read no cost in one browser: 15 pairs,
+  // median difference -0.8 ms, MSAA slower in 4. With a fresh browser per rep
+  // on a machine another job held at 50-75% CPU, 8 pairs read +1.8 ms with
+  // two slow MSAA reps, while the card sat at ~700 MHz and 1.5 of 4 GB: the
+  // frames were CPU-bound, which points at the machine, not the samples.
+  // Screens larger than this keep the old default: that timing does not
+  // extend to 1440p+.
+  //
+  // fullDefaultGpu: the raised budget is for a graphics card only. An
+  // integrated chip shares its memory bandwidth with the CPU, and four samples
+  // a pixel is four times the colour and depth traffic; that cost has not been
+  // timed (the test laptop's Chrome is pinned to its NVIDIA card, and
+  // --force_low_power_gpu no longer reaches the AMD chip). Until it is, a
+  // renderer this does not name (integrated, software, unknown, unreadable)
+  // keeps integratedMaxPixels, the old default, exactly as before. That also
+  // keeps the SwiftShader harness's exact-pixel frames unchanged.
+  //
+  // fillOutlinesWithMSAA: MapLibre draws every `fill` layer (roads, lots,
+  // parks, building shadows, the basemap's far ground) with a gl.LINES outline
+  // one DEVICE pixel wide, its only anti-aliasing. With MSAA the fill's own
+  // edges are already smoothed, and the outline does harm: a road polygon a
+  // third of a pixel wide near the horizon is drawn a whole pixel wide at full
+  // strength, which is the dark stair-stepped web over the far city on the
+  // landing flight. Off under MSAA, that view's moire against the supersampled
+  // truth halves (intro-crest 0.518 -> 0.262, pixels in a visible band 2.05% ->
+  // 0.11%). Without MSAA the outlines stay: there they ARE the edge smoothing.
+  const EDGE_SMOOTHING = {
+    maxDefaultPixels: 2100000,
+    integratedMaxPixels: 600000,
+    // NVIDIA; AMD's discrete RX / Pro lines; Intel's discrete Arc A-series
+    // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
+    fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
+    fillOutlinesWithMSAA: false,
+  };
+  // The renderer this browser draws WebGL with. `antialias` has to be decided
+  // before the map's context exists, so a FIRST visit reads it off a throwaway
+  // context: 17-24 ms of main thread on the RTX laptop, and 310-370 ms when it
+  // landed right after another page's city had been torn down. initGraphics
+  // then saves what the map's own context reports (GPU_RENDERER_KEY), and every
+  // later visit decides from that with no context at all. A browser moved to
+  // another GPU is right again from its next load.
+  const GPU_RENDERER_KEY = 'austin3d.gpu.renderer.v1';
+  let gpuRenderer = null;
+  function contextRenderer(gl) {
+    // Firefox answers RENDERER unmasked (and warns if the debug extension is
+    // asked for); Chrome and Safari mask it. Same order as js/gpu-hint.js.
+    const plain = String(gl.getParameter(gl.RENDERER) || '');
+    if (plain && !/^WebKit WebGL$/i.test(plain)) return plain;
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : plain;
+  }
+  const gpuClock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function readGpuRenderer() {
+    if (gpuRenderer !== null) return gpuRenderer;
+    const t0 = gpuClock();
+    let from = 'saved';
+    try { gpuRenderer = localStorage.getItem(GPU_RENDERER_KEY); } catch (e) { gpuRenderer = null; }
+    if (gpuRenderer === null) {
+      from = 'probe';
+      gpuRenderer = '';
+      try {
+        const gl = document.createElement('canvas').getContext('webgl2');
+        if (gl) {
+          gpuRenderer = contextRenderer(gl);
+          const lose = gl.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();
+        }
+      } catch (e) {}
+    }
+    // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
+    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
+                        ms: +(gpuClock() - t0).toFixed(1) };
+    return gpuRenderer;
+  }
+  // Once the map's context exists: remember its renderer for the next load.
+  function rememberGpuRenderer(map) {
+    try {
+      const gl = map.painter && map.painter.context && map.painter.context.gl;
+      if (!gl || gl.isContextLost()) return;
+      const r = contextRenderer(gl);
+      if (r && r !== localStorage.getItem(GPU_RENDERER_KEY)) localStorage.setItem(GPU_RENDERER_KEY, r);
+    } catch (e) {}
+  }
   function defaultMSAA(scale) {
+    if (window.LITE_PROFILE?.on) return false;
     const ratio=(window.devicePixelRatio||1)*scale;
     const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
-    return !window.LITE_PROFILE?.on && pixels>0 && pixels<=EDGE_SMOOTHING.maxDefaultPixels;
+    const budget=EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer())
+      ? EDGE_SMOOTHING.maxDefaultPixels : EDGE_SMOOTHING.integratedMaxPixels;
+    return pixels>0 && pixels<=budget;
   }
   const PRESETS = {
     performance: {
@@ -566,6 +661,29 @@
     return c.toDataURL();
   }
 
+  // EDGE_SMOOTHING.fillOutlinesWithMSAA, applied: every fill layer, the
+  // basemap's and every one added later (ground, shadows, a re-added layer),
+  // loses its outline pass once, if and only if this context has MSAA.
+  function dropFillOutlinesUnderMSAA(map) {
+    if (EDGE_SMOOTHING.fillOutlinesWithMSAA) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes || !gl.getContextAttributes().antialias) return;
+    const seen = new WeakSet();
+    const sweep = () => {
+      const ids = typeof map.getLayersOrder === 'function' ? map.getLayersOrder() : ((map.style && map.style._order) || []);
+      for (const id of ids) {
+        const l = map.getLayer(id);
+        if (!l || seen.has(l)) continue;
+        seen.add(l);
+        if (l.type !== 'fill') continue;
+        try { if (map.getPaintProperty(id, 'fill-antialias') !== false) map.setPaintProperty(id, 'fill-antialias', false); } catch (e) {}
+      }
+    };
+    map.on('styledata', sweep);
+    sweep();
+  }
+
   window.initGraphics = function initGraphics(map) {
     _map = map;
 
@@ -594,6 +712,8 @@
       bloomOK = !!(gl && gl.getContextAttributes().preserveDrawingBuffer);
     } catch (e) { bloomOK = false; }
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
+    dropFillOutlinesUnderMSAA(map);
+    rememberGpuRenderer(map);
 
     buildMenu();
     buildFeedback();
@@ -888,8 +1008,16 @@
     // to 1e-15, and well under 0.1 ms of main thread a read where a flight
     // paid 25-54 ms for the synchronous one. Each reading enters the EMA with
     // the frame time it covers, so the meter is the per-frame EMA it always
-    // was, one or two frames late. false, a WebGL1 or a multisampled canvas:
-    // the old per-frame read.
+    // was, one or two frames late. false, or a WebGL1 canvas: the old
+    // per-frame read.
+    //
+    // A MULTISAMPLED canvas (Smooth edges) used to take the old read too,
+    // because a multisampled framebuffer can only be blitted at its own size.
+    // That was the whole frame-time cost of Smooth edges: measured on the RTX
+    // 3050 Ti, 1920x1020, spawn orbit, 24.3 ms a frame without MSAA and 31.2
+    // with it, all of the difference the synchronous read. Now it is resolved
+    // first, a same-size blit into a single-sample buffer, and read from there
+    // exactly as a plain canvas is (claude/no-moire).
     ASYNC: true,
     // Frames still unread when the map stops drawing (the last one or two)
     // are read this long after the last frame, from the preserved buffer, so
@@ -1042,7 +1170,8 @@
     try {
       const gl = AE.ASYNC && mapCanvas.getContext('webgl2');
       if (gl && gl.isContextLost()) { aeGpu = null; return false; }   // try again once restored
-      if (!gl || gl.getContextAttributes().antialias) return aeGpu;
+      if (!gl) return aeGpu;
+      const msaa = !!gl.getContextAttributes().antialias;
       const rb = gl.createRenderbuffer(), fb = gl.createFramebuffer(), pbo = gl.createBuffer();
       const oldRb = gl.getParameter(gl.RENDERBUFFER_BINDING), oldDraw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
       const oldPack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
@@ -1058,7 +1187,9 @@
       gl.bindRenderbuffer(gl.RENDERBUFFER, oldRb);
       if (!ok) { gl.deleteFramebuffer(fb); gl.deleteRenderbuffer(rb); gl.deleteBuffer(pbo); return aeGpu; }
       aeGpu = { gl, fb, rb, pbo, sync: null, frame: 0, data: new Uint8Array(AE.W * AE.H * 4),
-                premultiplied: gl.getContextAttributes().premultipliedAlpha };
+                premultiplied: gl.getContextAttributes().premultipliedAlpha,
+                // the resolve target for a multisampled canvas, sized on first use
+                resolve: msaa ? { fb: gl.createFramebuffer(), rb: gl.createRenderbuffer(), w: 0, h: 0, checked: false } : null };
       aeGlState(gl);                                 // start recording before the first read
       // A lost context takes these objects with it; build new ones after.
       mapCanvas.addEventListener('webglcontextlost', () => { aeGpu = null; }, { once: true });
@@ -1077,10 +1208,32 @@
     const pack = aeGlGet(gl, S, 'pack', gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
     try {
       if (scissor) gl.disable(gl.SCISSOR_TEST);        // a blit is scissored
+      const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight, R = G.resolve;
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      if (R) {
+        // Multisampled: resolve at full size first (the only blit a
+        // multisampled source allows), then downsample from the resolved copy.
+        if (R.w !== W || R.h !== H) {
+          const oldRb = gl.getParameter(gl.RENDERBUFFER_BINDING);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, R.rb);
+          gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, W, H);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, oldRb);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, R.fb);
+          gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, R.rb);
+          R.w = W; R.h = H;
+        }
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, R.fb);
+        gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        if (!R.checked) {
+          // Once: a canvas whose format the resolve cannot take reports it
+          // here, and this reader then gives way to the old one for good.
+          R.checked = true;
+          if (gl.getError() !== gl.NO_ERROR) { G.stalled = true; return false; }
+        }
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, R.fb);
+      }
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, G.fb);
-      gl.blitFramebuffer(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0, AE.W, AE.H,
-                         gl.COLOR_BUFFER_BIT, gl.LINEAR);
+      gl.blitFramebuffer(0, 0, W, H, 0, 0, AE.W, AE.H, gl.COLOR_BUFFER_BIT, gl.LINEAR);
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, G.fb);
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
       gl.readPixels(0, 0, AE.W, AE.H, gl.RGBA, gl.UNSIGNED_BYTE, 0);
