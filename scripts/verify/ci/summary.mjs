@@ -152,6 +152,13 @@ if (pictures) {
   L.push('');
 }
 
+const retried = rows.filter(r => r.retried);
+if (retried.length) {
+  L.push(`Run twice because Chrome could not take a screenshot the first time (not a verdict; ` +
+         `every other failure stands): ${retried.map(r => `\`${r.script}\` (${r.verdict === 'pass' ? 'passed the second time' : 'failed again'})`).join(', ')}.`);
+  L.push('');
+}
+
 if (good.length) {
   L.push(`<details><summary>${good.length} passed</summary>`);
   L.push('');

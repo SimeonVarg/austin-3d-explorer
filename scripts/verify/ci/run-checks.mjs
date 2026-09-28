@@ -180,10 +180,25 @@ const meta = {
 const flush = () => fs.writeFileSync(resultPath, JSON.stringify({ ...meta, rows }, null, 1));
 flush();
 
+// ONE retry, for ONE failure that is not a verdict: Chrome refusing to hand
+// over a screenshot at all ("Unable to capture screenshot"). A software
+// renderer on a busy runner does this now and then; the check never got to
+// look. Any other failure, including a timeout, stands. The retry is recorded
+// in the result and printed in the PR comment, so it cannot hide a pattern.
+const NOT_A_VERDICT = /Page\.captureScreenshot\): Unable to capture screenshot/;
+
 console.log(`shard ${SHARD + 1}/${OF}: ${mine.length} script(s), ~${mine.reduce((s, r) => s + r.est_s, 0)} s estimated`);
 for (const r of mine) {
   if (IN_CI) console.log(`::group::${r.script}`);
-  const res = await runOne(r);
+  let res = await runOne(r);
+  if (res.verdict === 'fail' && NOT_A_VERDICT.test(res.tail)) {
+    const first = res;
+    fs.renameSync(path.join(OUT, 'logs', r.script.replace(/\.mjs$/, '') + '.log'),
+                  path.join(OUT, 'logs', r.script.replace(/\.mjs$/, '') + '.try1.log'));
+    console.log(`${r.script}: Chrome could not capture a screenshot; running it once more`);
+    res = await runOne(r);
+    res.retried = { why: 'Chrome could not capture a screenshot', firstSecs: first.secs };
+  }
   rows.push(res);
   flush();
   console.log(res.tail.split('\n').slice(-40).join('\n'));

@@ -65,9 +65,10 @@ it means "still alive at the budget", nothing more.
 `.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
 for every pull request, and by hand from the Actions tab ("Run workflow",
 optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
-checkout, runs the checks one at a time per machine across 16 machines on
-SwiftShader, and keeps **one comment** on the pull request up to date. It
-never pushes and holds no secret. Timing is not measured there.
+checkout, runs the checks one at a time per machine across 10 Linux machines
+on SwiftShader, and keeps **one comment** on the pull request up to date. The
+check "Visual checks / summary" is red if any check did not pass. It never
+pushes and holds no secret. Timing is not measured there.
 
 Reading the comment, top to bottom:
 
@@ -75,16 +76,28 @@ Reading the comment, top to bottom:
   line of its output that says why, and a link to its shard's download: the
   full log and every picture the check wrote.
 - **Pictures, before and after** — the ten views in `ci/poses.json`, shot from
-  the base branch and from the pull request on the same machine. A view is
-  **changed** when more than 0.05% of its pixels moved AND that is over three
-  times what the same page moves between two loads of itself (its "noise",
-  shown beside it). The download's `index.html` has before | after | moved
-  pixels, side by side, per view. Pictures never turn the run red: a visible
-  change is usually the point of the pull request. They are there to look at.
+  the base branch, from the pull request, and from the base branch again. A
+  view is **changed** when more than 0.05% of its pixels moved AND that is over
+  three times what the base branch moves against itself ("same page shot
+  twice"; 0% on every view so far). Download the side-by-sides and open
+  `index.html`: before | after | moved pixels in magenta, per view. Pictures
+  never turn the run red: a visible change is usually the point of the pull
+  request. They are there to look at.
 - **Not run here** — quarantined checks and why, the timing scripts (laptop
   only), and the tools that have no verdict to give.
-- **Mac graphics probe** — which WebGL renderer full Chrome gets on a macOS
-  runner, and a screenshot.
+- **Graphics probes** — the renderer Chrome gets and the frames per second the
+  city draws, on the Linux runner and on a macOS runner, with screenshots.
+
+**Why so much is quarantined: the runners have no GPU and are slow at
+software rendering.** Measured 2026-09-27 at the spawn view: SwiftShader draws
+**0.2-0.4 frames a second** on a 4-core Linux runner (3.7 on the laptop),
+0.16 on Windows. Every single-frame pixel check is fine and reproduces the
+laptop's own numbers exactly; anything that needs the camera to move or the
+scene to settle inside its own 60 s window cannot. Those are quarantined as
+"needs a GPU". A macOS runner does have one: full Chrome gets **Apple's
+paravirtual Metal GPU at 22-25 frames a second** — the place for them, later.
+CI also gives Playwright's own default waits 180 s instead of 30 s
+(`ci/slow-machine.mjs`); no script's own timeout or threshold is touched.
 
 **What runs is `ci/checks.json`.** Every top-level `*.mjs` here runs unless it
 is listed there under `quarantine`, `laptop_only`, `tools` or `harness`, each

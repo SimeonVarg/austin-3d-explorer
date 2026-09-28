@@ -90,7 +90,7 @@ function shoot(side, url) {
     child.stdout.on('data', d => { log += d; process.stdout.write(d); });
     child.stderr.on('data', d => { log += d; process.stderr.write(d); });
     child.on('close', code => {
-      const run = { side, url, code, secs: Math.round((Date.now() - t0) / 1000), os: process.platform };
+      const run = { side, url, rev: opt('--rev', null), code, secs: Math.round((Date.now() - t0) / 1000), os: process.platform };
       fs.writeFileSync(path.join(OUT, `${side}.log`), log);
       fs.writeFileSync(path.join(OUT, side, 'run.json'), JSON.stringify(run));
       resolve(run);
@@ -162,6 +162,12 @@ report.runs = {};
 for (const side of SIDES) {
   try { report.runs[side] = JSON.parse(fs.readFileSync(path.join(OUT, side, 'run.json'), 'utf8')); } catch (e) {}
 }
+// Name both sides by commit, so a picture can never be pinned on the wrong one.
+const revOf = side => (report.runs[side]?.rev || '').slice(0, 7);
+if (revOf('before')) report.beforeLabel = `${LABEL} ${revOf('before')}`;
+if (revOf('after')) report.afterLabel = revOf('after');
+const BEFORE_NAME = report.beforeLabel;
+const AFTER_NAME = report.afterLabel ? `this change ${report.afterLabel}` : 'this change';
 for (const p of poses) {
   const row = { name: p.name };
   try {
@@ -190,8 +196,8 @@ try {
   for (const row of report.poses) {
     if (row.error) continue;
     const panels = [
-      [`BEFORE: ${LABEL}`, shotPath('before', row.name)],
-      ['AFTER: this change', shotPath('after', row.name)],
+      [`BEFORE: ${BEFORE_NAME}`, shotPath('before', row.name)],
+      [`AFTER: ${AFTER_NAME}`, shotPath('after', row.name)],
       [`MOVED: ${row.pct}% of pixels${row.noisePct != null ? ` (noise ${row.noisePct}%)` : ''}`, path.join(OUT, `${row.name}-diff.png`)],
     ];
     const w = Math.round(1440 * LOOK.panelScale), h = Math.round(900 * LOOK.panelScale);
@@ -208,7 +214,7 @@ try {
 
 fs.writeFileSync(path.join(OUT, 'index.html'), `<!doctype html><meta charset="utf-8"><title>Before and after</title>
 <body style="font:15px system-ui,sans-serif;background:#1a1a1a;color:#eee;margin:16px">
-<h1 style="font-size:20px">Before (${LABEL}) and after, ${report.poses.filter(p => p.changed).length} of ${report.poses.length} views changed</h1>
+<h1 style="font-size:20px">Before (${BEFORE_NAME}) and after (${AFTER_NAME}),${report.poses.filter(p => p.changed).length} of ${report.poses.length} views changed</h1>
 ${report.poses.map(p => `<h2 style="font-size:16px">${p.changed ? 'CHANGED' : 'same'}: ${p.name} ${p.error ? '(' + p.error + ')' : `(${p.pct}% of pixels moved, noise ${p.noisePct ?? '-'}%)`}</h2>
 ${p.error ? '' : `<img src="${p.name}-compare.jpg" style="max-width:100%">`}`).join('\n')}
 </body>`);
