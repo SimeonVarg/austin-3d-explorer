@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, not merged)
+## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329)
 
 `.github/workflows/visual-checks.yml`: every pull request now gets the
 `scripts/verify` suite run on GitHub's own machines (free for this public
@@ -10,12 +10,25 @@ secret. How to read it: `scripts/verify/README.md`, "CI: the checks on every
 pull request". What runs and what is left out, each with its reason:
 `scripts/verify/ci/checks.json`.
 
-- **Proof that it catches a colour change.** A throwaway PR (#330, closed,
-  branch deleted) turned the Tower's night floodlight blue. The comment marked
-  tower-night (0.89% of pixels) and spawn-night (0.10%) as changed, every other
-  view 0%, and the side-by-side paints exactly the Tower:
-  `docs/shots/ci-proof-tower-night.jpg`. No check caught it (tower-check is
-  quarantined, see below), which is why the pictures exist.
+- **Proof that a check goes red on a real break.** A throwaway PR (#331,
+  closed, branch deleted) removed the one line in `js/drag.js` that installs
+  the Drag's time-of-day hook (a real past defect: the streetwall stays
+  daylight-bright after dark). Run 36379744797 failed on exactly one check,
+  drag-check, "applyTimeOfDay repaints every Drag tile" (0 of 16), and the
+  pictures marked tower-night and drag-street-day as changed:
+  `docs/shots/ci-proof-drag-night.jpg`.
+- **Why the earlier proofs went green.** The blue Tower (#330,
+  `docs/shots/ci-proof-tower-night.jpg`) is caught only by the pictures, which
+  never fail a run; the one check that reads the
+  Tower's colour, tower-check, is quarantined (red on main). The first Drag
+  run (36377405672) had drag-check at 26/26: it read `__dragTodHooked`, a
+  flag set next to the hook that stays true without it, and its night
+  frame-mean measures the scene light, not the tiles. drag-check now counts
+  the tiles the map is actually handed. Other passes set the same kind of flag
+  (`__csTodHooked` etc.); a check that reads one has the same blind spot.
+- **Advisory, not required.** No branch protection. Make it required only
+  after it has stayed green on other lanes' PRs; four checks already had to be
+  quarantined for flaking after passing. A PR's run takes 27-39 minutes.
 - **It is deterministic, with the name labels off.** Before #326 the base
   branch shot twice, on two machines, moved 0% of pixels in all ten views on
   every run. The new label system picks which names show from timing and from

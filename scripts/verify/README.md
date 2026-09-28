@@ -68,7 +68,8 @@ optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
 checkout, runs the checks one at a time per machine across 8 Linux machines
 on SwiftShader, and keeps **one comment** on the pull request up to date. The
 check "Visual checks / summary" is red if any check did not pass. It never
-pushes and holds no secret. Timing is not measured there.
+pushes and holds no secret. Timing is not measured there. It is advisory:
+nothing requires it to be green before a merge, and nobody should merge red.
 
 Reading the comment, top to bottom:
 
