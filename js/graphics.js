@@ -399,9 +399,10 @@
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : plain;
   }
+  const gpuClock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function readGpuRenderer() {
     if (gpuRenderer !== null) return gpuRenderer;
-    const t0 = performance.now();
+    const t0 = gpuClock();
     let from = 'saved';
     try { gpuRenderer = localStorage.getItem(GPU_RENDERER_KEY); } catch (e) { gpuRenderer = null; }
     if (gpuRenderer === null) {
@@ -418,7 +419,7 @@
     }
     // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
     window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
-                        ms: +(performance.now() - t0).toFixed(1) };
+                        ms: +(gpuClock() - t0).toFixed(1) };
     return gpuRenderer;
   }
   // Once the map's context exists: remember its renderer for the next load.

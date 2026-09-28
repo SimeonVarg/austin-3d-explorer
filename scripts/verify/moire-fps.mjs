@@ -54,15 +54,22 @@ const FLIGHTS = {
 };
 if (!FLIGHTS[FLIGHT]) { console.error('unknown --flight ' + FLIGHT); process.exit(2); }
 
-const browser = await launch(chromium, {
+// --fresh: a new browser for every rep, so each page is the only one its GPU
+// process has seen, as a visitor's is. Without it, all reps share one browser,
+// and pages after the first measured slower on both sides (2026-09-28: the
+// first page 16.8 ms, later ones 24-29 ms, same code).
+const FRESH = argv.includes('--fresh');
+const launchOpts = () => ({
   headless: false, gl: 'hardware', maxMs: +(process.env.VERIFY_MAX_MS || 3600000),
   args: [...HW_ARGS, '--disable-gpu-vsync', '--disable-frame-rate-limit',
     '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
     '--disable-background-timer-throttling', '--disable-features=CalculateNativeWinOcclusion'],
 });
+const shared = FRESH ? null : await launch(chromium, launchOpts());
 
 const gitCache = new Map();
 async function run(s) {
+  const browser = shared || await launch(chromium, launchOpts());
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: DPR });
   const page = await ctx.newPage();
   const errors = [];
@@ -134,6 +141,7 @@ async function run(s) {
     };
   }, { fl: FLIGHTS[FLIGHT], frames: FRAMES, warm: WARM });
   await ctx.close();
+  if (!shared) browser.__done();
   res.errors = errors.slice(0, 3);
   return res;
 }
@@ -158,7 +166,7 @@ for (let r = 0; r < REPS; r++) {
   }
 }
 console.log(`renderer: ${out.A[0].res.renderer}`);
-console.log(`viewport ${W}x${H} @ DPR ${DPR}, no CPU throttle, vsync off, flight ${FLIGHT}, ${FRAMES} frames/rep after ${WARM} warm-up`);
+console.log(`viewport ${W}x${H} @ DPR ${DPR}, no CPU throttle, vsync off, flight ${FLIGHT}, ${FRAMES} frames/rep after ${WARM} warm-up, ${FRESH ? 'a fresh browser per rep' : 'one browser for all reps'}`);
 for (const [k, s] of [['A', A], ['B', B]]) {
   const meds = out[k].map(x => x.med), p90s = out[k].map(x => x.p90);
   console.log(`${s.label.padEnd(8)} frame ms  min-of-medians ${Math.min(...meds).toFixed(2)}  median-of-medians ${q(meds, 0.5).toFixed(2)}  ` +
@@ -167,4 +175,4 @@ for (const [k, s] of [['A', A], ['B', B]]) {
 const diffs = out.B.map((b, i) => b.med - out.A[i].med);
 console.log(`${B.label} - ${A.label} per rep: ${diffs.map(d => (d >= 0 ? '+' : '') + d.toFixed(1)).join(' ')} ms  ` +
   `median ${(q(diffs, 0.5) >= 0 ? '+' : '') + q(diffs, 0.5).toFixed(2)} ms, ${B.label} slower in ${diffs.filter(d => d > 0).length} of ${diffs.length}`);
-browser.__done();
+if (shared) shared.__done();
