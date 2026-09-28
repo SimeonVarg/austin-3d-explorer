@@ -49,7 +49,9 @@ import { launch } from './chrome.mjs';
 
 const A = process.argv.slice(2);
 const arg = (k, d) => { const i = A.indexOf('--' + k); return i >= 0 ? (A[i + 1] && !A[i + 1].startsWith('--') ? A[i + 1] : true) : d; };
-const ARMS = String(arg('arms', 'this=' + (process.env.VERIFY_URL || 'http://127.0.0.1:8099'))).split(',').map(s => { const i = s.indexOf('='); return { name: s.slice(0, i), url: s.slice(i + 1) }; });
+// An arm is name=url, or name=url|query for a URL switch on that arm only
+// (base=http://127.0.0.1:8978|shadowsnapfar=20 against branch=http://127.0.0.1:8978).
+const ARMS = String(arg('arms', 'this=' + (process.env.VERIFY_URL || 'http://127.0.0.1:8099'))).split(',').map(s => { const i = s.indexOf('='), [url, q] = s.slice(i + 1).split('|'); return { name: s.slice(0, i), url, q: q || '' }; });
 const REPS = Number(arg('reps', 1));
 const GPU = String(arg('gpu', 'high'));
 const W = Number(arg('w', 1280)), H = Number(arg('h', 680)), DPR = Number(arg('dpr', 1.5));
@@ -242,7 +244,7 @@ async function runArm(arm, rep) {
   const cdp = await ctx.newCDPSession(page);
   const ev = (fn, x) => page.evaluate(fn, x);
   const res = { arm: arm.name, url: arm.url, rep, gpuFlag, vsync: VSYNC, viewport: [W, H], dpr: DPR, cpuThrottle: 1, cpuLoadBefore: cpuLoad(), chromeProcsBefore: chromeCount(), scen: {} };
-  const url = `${arm.url}/index.html?drift=0&intro=0${QUERY}`;
+  const url = `${arm.url}/index.html?drift=0&intro=0${arm.q ? '&' + arm.q : ''}${QUERY}`;
   const tNav = Date.now();
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.bringToFront();

@@ -199,13 +199,13 @@
       shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
       // shadowSnap is the NEAR map's grid; shadowSnapFar the far map's (null:
       // the same grid). Each map is redrawn only when ITS snapped centre
-      // moves. One grid for both redrew the 2.8 km far map every 20 m the
-      // look-at point travelled, and a turn swings that point round the camera
-      // ~10 m per degree: both maps every ~2 degrees of turn. The far map's
-      // texel is 1.8 m and it reaches 1400 m each way, so a 100 m grid moves
-      // its edge by at most 50 m, 1.4 km out. ?shadowsnapfar=20 (or null here)
-      // is the behaviour before 2026-09-28.
-      shadowSnapFar: isFinite(parseFloat(q.get('shadowsnapfar'))) ? parseFloat(q.get('shadowsnapfar')) : 100,
+      // moves. A turn swings the look-at point round the camera ~10 m per
+      // degree, so on a 20 m grid both maps redraw every ~2 degrees of turn.
+      // A coarser far grid (?shadowsnapfar=100) cut far-map redraws 10-20 %
+      // but gave no fps change that beat run-to-run noise (NVIDIA, 3+3 runs,
+      // 2026-09-28), and it moves far-shadow edge pixels in a still frame. So
+      // it stays at the near grid, identical to before, until it earns more.
+      shadowSnapFar: isFinite(parseFloat(q.get('shadowsnapfar'))) ? parseFloat(q.get('shadowsnapfar')) : 20,
     },
     // ── Turning (TURN-LAG lane, 2026-09-28) ──────────────────────────────
     // precompile: build every scene material's shader program as soon as the

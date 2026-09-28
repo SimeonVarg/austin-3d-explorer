@@ -268,6 +268,9 @@ hand lets go. `--gpu low` for the AMD iGPU, `--gputime` for GPU time per frame,
 `--profile` for a sampled CPU profile per scenario (`--profile split` profiles
 the drive and the stop separately), `--video DIR` to record
 (each scenario's `videoAt` is its window in seconds into that recording).
+An arm can carry its own URL switches after a `|`, so one checkout can be
+A/B'd against itself:
+`--arms "far20=http://127.0.0.1:8978|shadowsnapfar=20,far100=http://127.0.0.1:8978|shadowsnapfar=100"`.
 
 Four traps, all met building it:
 
