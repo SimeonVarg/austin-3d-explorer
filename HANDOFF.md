@@ -26,20 +26,26 @@ pull request". What runs and what is left out, each with its reason:
   The macOS runner has a real GPU: full Chrome gets Apple's paravirtual Metal
   device at 22-34 frames a second. The probe runs on every PR; moving the
   frame-rate-bound checks there is the obvious next step.
-- **72 checks run** (10 machines, about 25 minutes). **58 are quarantined**:
-  20 fail on main's own code for reasons that are not speed. 13 of those were
-  re-run on the laptop and are red there too (campus-court-detail,
-  facade-filter, wallplane, geomlint, suite-lint, coplanar --gate,
-  slopes-context-loss, outer-check, walkwidth, walkmeter, places-check,
-  arts-check, si-integration); tower-check fails on HANDOFF's own numbers;
-  facadegrid and mobile-mergecells refuse to run (their subject is gone);
-  field-bleed, dayview, slopes-layer and si-fold-shots are not re-run on the
-  laptop yet. The other 38 need a GPU: they assert a hardware renderer, were
-  written for hardware GL, or need the camera to move or the scene to settle
-  inside their own 60 s windows. 29 timing scripts stay on the laptop by design.
-- **si-fold-shots started failing when #326 (the label restyle) reached main**:
-  Chrome cannot capture its third 390x844 screenshot at all, twice in a row;
-  green on every run before #326. See the entry in checks.json.
+- **67 checks run** (8 machines, about 35 minutes), every one green on every
+  CI run it was in (five to seven runs). **63 are quarantined**, each with its
+  reason in checks.json:
+  - **22 fail for reasons that are not the runner's speed.** 13 were re-run on
+    the laptop and are red there too (campus-court-detail, facade-filter,
+    wallplane, geomlint, suite-lint, coplanar --gate, slopes-context-loss,
+    outer-check, walkwidth, walkmeter, places-check, arts-check,
+    si-integration); tower-check fails on HANDOFF's own numbers; facadegrid and
+    mobile-mergecells refuse to run (their subject is gone). Not yet re-run on
+    the laptop: field-bleed, dayview, slopes-layer, and sky / night-sky (10/12,
+    the setLight-vs-sun pair README already knows from a race).
+    si-fold-shots is the odd one: it started failing on the runner when #326
+    (the label restyle) reached main, Chrome there cannot capture its third
+    390x844 screenshot at all; on the laptop it passes with and without #326,
+    so it is the runner, not the labels.
+  - **41 need a GPU**: they assert a hardware renderer, were written for
+    hardware GL, or need the camera to move or the scene to settle inside their
+    own windows, or flaked (dusk, banding, light-sky2, tour-check each went red
+    once after passing).
+  - 29 timing scripts stay on the laptop by design.
 - **Playwright waits longer in CI** (`ci/slow-machine.mjs`): its 30 s default
   becomes 180 s and a load/wait timeout a script names is tripled. No
   assertion, threshold or in-page timer is touched. One retry exists, only for

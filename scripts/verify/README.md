@@ -65,7 +65,7 @@ it means "still alive at the budget", nothing more.
 `.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
 for every pull request, and by hand from the Actions tab ("Run workflow",
 optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
-checkout, runs the checks one at a time per machine across 10 Linux machines
+checkout, runs the checks one at a time per machine across 8 Linux machines
 on SwiftShader, and keeps **one comment** on the pull request up to date. The
 check "Visual checks / summary" is red if any check did not pass. It never
 pushes and holds no secret. Timing is not measured there.
