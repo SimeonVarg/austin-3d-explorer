@@ -152,6 +152,30 @@ function pageInit(opts) {
       } catch (e) {}
     };
     setInterval(wrapCustom, 500); wrapCustom();
+    // Atlas-prep instruments, the same on every arm: every texImage2D that
+    // carries a pixel array (tile atlases, and anything three.js uploads), and
+    // MapLibre's _getImagesForIds, the main-thread copy of every style image a
+    // tile's worker asks for. [start, ms, bytes].
+    TM.tex = []; TM.gi = [];
+    const ti = gl.texImage2D;
+    gl.texImage2D = function () {
+      const t = now();
+      try { return ti.apply(this, arguments); }
+      finally { const d = arguments.length === 9 ? arguments[8] : null; if (d && ArrayBuffer.isView(d)) TM.tex.push([t, now() - t, d.byteLength]); }
+    };
+    const hookGI = () => {
+      const im = m.style && m.style.imageManager, P = im && Object.getPrototypeOf(im);
+      if (!P || typeof P._getImagesForIds !== 'function') return setTimeout(hookGI, 100);
+      if (P.__tmGI) return; P.__tmGI = true;
+      const g = P._getImagesForIds;
+      P._getImagesForIds = function () {
+        const t = now(), r = g.apply(this, arguments);
+        let b = 0; try { for (const k in r) b += r[k].data.data.byteLength; } catch (e) {}
+        TM.gi.push([t, now() - t, b]);
+        return r;
+      };
+    };
+    hookGI();
     m.on('data', e => { if (e.dataType === 'source' && e.tile) TM.tiles.push([now(), e.sourceId]); });
     TM.hooked = now();
   };
@@ -207,7 +231,10 @@ function windowStats(snap, a, b) {
   const lt = snap.lt.filter(x => x[0] < b && x[0] + x[1] > a);
   const g = snap.gpu.filter(x => x[0] >= a && x[0] <= b).map(x => x[1]);
   const tiles = snap.tiles.filter(x => x[0] >= a && x[0] <= b);
+  const sumIn = (arr) => { const v = (arr || []).filter(x => x[0] >= a && x[0] <= b); return { n: v.length, ms: Math.round(v.reduce((s, x) => s + x[1], 0)), MB: r1(v.reduce((s, x) => s + x[2], 0) / 1048576), worst: r1(Math.max(0, ...v.map(x => x[1]))) }; };
   return {
+    prep: { tex: sumIn(snap.tex), gi: sumIn(snap.gi) },
+    iv: d.map(r1),   // every frame interval, in order (for a frame-time strip)
     durMs: Math.round(dur), frames: inside.length, fps: r1(inside.length / dur * 1000),
     ft: { p50: r1(med(d)), p95: r1(pct(d, 0.95)), worst: r1(Math.max(0, ...d)), over50: d.filter(x => x > 50).length, over100: d.filter(x => x > 100).length },
     yawDegS: r1(swept / dur * 1000), yawDeg: Math.round(swept),
@@ -343,7 +370,10 @@ async function runArm(arm, rep) {
     for (const sc of SCEN) {
       const settle = await place(P);
       if (PROFILE) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 200 }); await cdp.send('Profiler.start'); }
-      const atlasNow = () => ev(() => { try { const f = window.facadeMemoryStats(); return [f.fastAtlasUploads || 0, f.fastAtlasBytes || 0]; } catch (e) { return [0, 0]; } });
+      // [uploads, bytes, of those premultiplied in a MapLibre worker, main-thread premultiply ms,
+      //  pattern images a worker already held (not copied), their bytes]
+      // (all but the first two are 0 on a checkout from before ATLAS_WORKER_PM / ATLAS_IMAGE_CACHE, 2026-09-28)
+      const atlasNow = () => ev(() => { try { const f = window.facadeMemoryStats(); return [f.fastAtlasUploads || 0, f.fastAtlasBytes || 0, f.workerPmUploads || 0, f.mainPmMs || 0, f.imgCacheStubs || 0, f.imgCacheBytesSaved || 0]; } catch (e) { return [0, 0, 0, 0, 0, 0]; } });
       const at0 = await atlasNow();
       const a = await ev(() => performance.now()), wa = Date.now() - tVideo;
       await drive(SCHED[sc], DUR, HOLDW[sc]);
@@ -361,20 +391,24 @@ async function runArm(arm, rep) {
       if (PROFILE) { const { profile } = await cdp.send('Profiler.stop'); prof = summarizeProfile(profile); }
       const snap = await ev(([a, b]) => { const T = window.__tm; if (T.poll) try { T.poll(); } catch (e) {}
         const i0 = T.raf.findIndex(t => t >= a - 2000);
-        return { raf: T.raf.slice(i0), bear: T.bear.slice(i0), lt: T.lt.filter(x => x[0] + x[1] >= a), renders: T.renders.filter(x => x[0] >= a - 1000), gpu: T.gpu.filter(x => x[0] >= a - 100), tiles: T.tiles.filter(x => x[0] >= a - 100) }; }, [a, b]);
+        return { raf: T.raf.slice(i0), bear: T.bear.slice(i0), lt: T.lt.filter(x => x[0] + x[1] >= a), renders: T.renders.filter(x => x[0] >= a - 1000), gpu: T.gpu.filter(x => x[0] >= a - 100), tiles: T.tiles.filter(x => x[0] >= a - 100),
+          tex: (T.tex || []).filter(x => x[0] >= a - 100), gi: (T.gi || []).filter(x => x[0] >= a - 100) }; }, [a, b]);
       const s = windowStats(snap, a, b);
       const tl = windowStats(snap, b, b + TAIL_MS);
-      s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders, tiles: tl.tiles, tilesBy: tl.tilesBy };
+      s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders, tiles: tl.tiles, tilesBy: tl.tilesBy, prep: tl.prep, iv: tl.iv };
       s.settleMs = settle;
-      // facade atlas uploads (js/facades.js premultiplies each on the main thread)
-      s.atlas = { uploads: at1[0] - at0[0], MB: r1((at1[1] - at0[1]) / 1048576) };
-      s.tail.atlas = { uploads: at2[0] - at1[0], MB: r1((at2[1] - at1[1]) / 1048576) };
+      // facade atlas uploads (js/facades.js); workerPm = arrived premultiplied
+      // from a MapLibre worker, pmMs = main-thread premultiply for the rest
+      s.atlas = { uploads: at1[0] - at0[0], MB: r1((at1[1] - at0[1]) / 1048576), workerPm: at1[2] - at0[2], pmMs: Math.round(at1[3] - at0[3]),
+        heldImgs: at1[4] - at0[4], heldMB: r1((at1[5] - at0[5]) / 1048576) };
+      s.tail.atlas = { uploads: at2[0] - at1[0], MB: r1((at2[1] - at1[1]) / 1048576), workerPm: at2[2] - at1[2], pmMs: Math.round(at2[3] - at1[3]),
+        heldImgs: at2[4] - at1[4], heldMB: r1((at2[5] - at1[5]) / 1048576) };
       if (VIDEO) s.videoAt = [wa / 1000, wb / 1000];   // seconds into this arm's --video recording
       if (driveProf) { s.profile = driveProf; s.tail.profile = prof; } else if (prof) s.profile = prof;
       res.scen[poseName + '/' + sc] = s;
-      console.log(`[turn ${arm.name}#${rep}] ${poseName}/${sc.padEnd(8)} fps ${String(s.fps).padStart(5)}  p50 ${s.ft.p50}  p95 ${s.ft.p95}  worst ${s.ft.worst}  >50ms ${s.ft.over50}  yaw ${s.yawDegS} deg/s  lt ${s.longTasks.n}/${s.longTasks.sumMs}ms/max ${s.longTasks.worst}  mapCpu p50 ${s.mapCpu.p50} p95 ${s.mapCpu.p95}  three p50 ${s.threeCpu.p50}  shadowR ${s.shadowRenders}  proxy ${s.proxyRebuilds}  tiles ${s.tiles} atlas ${s.atlas.uploads}/${s.atlas.MB}MB${s.gpu ? '  gpu p50 ' + s.gpu.p50 + ' p95 ' + s.gpu.p95 : ''}  | stop: worst ${s.tail.worst} lt max ${s.tail.longTasks.worst} proxy ${s.tail.proxyRebuilds} atlas ${s.tail.atlas.uploads}/${s.tail.atlas.MB}MB tiles ${s.tail.tiles}`);
+      console.log(`[turn ${arm.name}#${rep}] ${poseName}/${sc.padEnd(8)} fps ${String(s.fps).padStart(5)}  p50 ${s.ft.p50}  p95 ${s.ft.p95}  worst ${s.ft.worst}  >50ms ${s.ft.over50}  yaw ${s.yawDegS} deg/s  lt ${s.longTasks.n}/${s.longTasks.sumMs}ms/max ${s.longTasks.worst}  mapCpu p50 ${s.mapCpu.p50} p95 ${s.mapCpu.p95}  three p50 ${s.threeCpu.p50}  shadowR ${s.shadowRenders}  proxy ${s.proxyRebuilds}  tiles ${s.tiles} atlas ${s.atlas.uploads}/${s.atlas.MB}MB wpm ${s.atlas.workerPm} pm ${s.atlas.pmMs}ms held ${s.atlas.heldImgs}/${s.atlas.heldMB}MB tex ${s.prep.tex.ms}ms/${s.prep.tex.MB}MB gi ${s.prep.gi.ms}ms/${s.prep.gi.MB}MB${s.gpu ? '  gpu p50 ' + s.gpu.p50 + ' p95 ' + s.gpu.p95 : ''}  | stop: worst ${s.tail.worst} lt max ${s.tail.longTasks.worst} proxy ${s.tail.proxyRebuilds} atlas ${s.tail.atlas.uploads}/${s.tail.atlas.MB}MB pm ${s.tail.atlas.pmMs}ms tex ${s.tail.prep.tex.ms}ms gi ${s.tail.prep.gi.ms}ms tiles ${s.tail.tiles}`);
       // trim the arrays so a long run does not grow the page's memory
-      await ev(() => { const T = window.__tm, n = performance.now() - 5000; const i = T.raf.findIndex(t => t >= n); if (i > 0) { T.raf.splice(0, i); T.bear.splice(0, i); } T.renders = T.renders.filter(x => x[0] >= n); T.gpu = T.gpu.filter(x => x[0] >= n); T.tiles = T.tiles.filter(x => x[0] >= n); T.lt = T.lt.filter(x => x[0] >= n); });
+      await ev(() => { const T = window.__tm, n = performance.now() - 5000; const i = T.raf.findIndex(t => t >= n); if (i > 0) { T.raf.splice(0, i); T.bear.splice(0, i); } T.renders = T.renders.filter(x => x[0] >= n); T.gpu = T.gpu.filter(x => x[0] >= n); T.tiles = T.tiles.filter(x => x[0] >= n); T.lt = T.lt.filter(x => x[0] >= n); if (T.tex) T.tex = T.tex.filter(x => x[0] >= n); if (T.gi) T.gi = T.gi.filter(x => x[0] >= n); });
     }
   }
   res.errors = errors.slice(0, 20);
@@ -403,7 +437,7 @@ for (const k of keys) {
     if (!rs.length) continue;
     const f = sel => rs.map(sel).filter(v => v != null);
     const mm = sel => { const v = f(sel); return v.length ? `${r1(Math.min(...v))}/${r1(med(v))}/${r1(Math.max(...v))}` : '-'; };
-    console.log(`${k.padEnd(18)} ${arm.name.padEnd(8)} fps ${mm(s => s.fps)}  p95 ${mm(s => s.ft.p95)}  worst ${mm(s => s.ft.worst)}  >50 ${mm(s => s.ft.over50)}  yaw ${mm(s => s.yawDegS)}  stop-worst ${mm(s => s.tail && s.tail.worst)}  (min/med/max of ${rs.length})`);
+    console.log(`${k.padEnd(18)} ${arm.name.padEnd(8)} fps ${mm(s => s.fps)}  p95 ${mm(s => s.ft.p95)}  worst ${mm(s => s.ft.worst)}  >50 ${mm(s => s.ft.over50)}  yaw ${mm(s => s.yawDegS)}  stop-worst ${mm(s => s.tail && s.tail.worst)}  lt-ms ${mm(s => s.longTasks.sumMs)}  (min/med/max of ${rs.length})`);
   }
 }
 console.log('wrote', path.join(OUT, `turn-${stamp}.json`));

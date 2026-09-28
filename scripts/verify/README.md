@@ -294,6 +294,26 @@ Four traps, all met building it:
   `moveend` or `idle` (lamp discovery, the old proxy rebuild) runs DURING a
   turn unless it also checks `window.__fly.eye().driving`.
 
+### Facade atlas prep in MapLibre's workers: `atlas-worker-pm.mjs`
+
+`VERIFY_URL=http://127.0.0.1:8562 node atlas-worker-pm.mjs [--break | --break-img]`
+(laptop, hardware GL, through `gpu-run.mjs`). Two things moved off the main
+thread in `js/facades.js` and both must be byte-exact: each tile's pattern
+atlas is premultiplied inside the MapLibre worker that built it
+(`ATLAS_WORKER_PM`), and each worker keeps the pattern images it was sent, so
+this thread sends a stub instead of a fresh copy when the worker already holds
+the same image at the same version (`ATLAS_IMAGE_CACHE`). The page is loaded
+with `?atlaspmcheck=1`, which makes every worker atlas carry its raw bytes and
+every stub carry a fresh copy beside it, and the camera is turned through a
+full circle at campus and downtown. PASS needs every atlas and every held
+image compared, 0 bytes different. `--break` (a worker that tags an atlas
+without premultiplying it) and `--break-img` (held images corrupted) each exit
+1. `facade-atlas-memory.mjs` runs the same worker source text in a vm, in CI.
+`?atlasworkerpm=0` and `?atlasimgcache=0` switch either half off for an A/B.
+`turnmeter.mjs` prints `wpm` (atlases premultiplied in a worker), `pm` (main-
+thread premultiply ms), `held` (images a worker already held) and `gi` (the
+main-thread image copies it still made) per scenario.
+
 ### The authored-footprint test is a grid, and gives the scan's answer
 
 `node proxy-inside-grid.mjs` (no browser, no server) runs the real
