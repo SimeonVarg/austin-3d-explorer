@@ -33,11 +33,19 @@ const readJSON = p => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } c
 const esc = s => String(s ?? '').replace(/\|/g, '\\|').replace(/`/g, "'").replace(/\r?\n/g, ' ').trim();
 const short = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
-/** The line of a script's output that best says why it failed. */
+/**
+ * The line of a script's output that best says why it failed. An assertion the
+ * suite printed as failed ("FAIL  ..." / "*FAIL  ...") wins; otherwise the last
+ * line that sounds like an error and is not a PASS line. Without that last
+ * rule, drag-check's "PASS  no page errors" was quoted as the reason it failed
+ * (2026-09-28, #331): "errors" matched.
+ */
 function why(tail) {
   const lines = String(tail || '').split('\n').map(l => l.trim()).filter(Boolean)
     .filter(l => !l.startsWith('[chrome.mjs]') && !/^at\s/.test(l));
-  const pick = [...lines].reverse().find(l => /\bFAIL|Error|error:|assert|watchdog|killed/i.test(l));
+  const rev = [...lines].reverse();
+  const pick = rev.find(l => /^\*?FAIL\b/.test(l))
+    || rev.find(l => !/^\*?\s*(PASS|ok)\b/i.test(l) && /\bFAIL|Error|error:|assert|watchdog|killed/i.test(l));
   return short(esc(pick || lines[lines.length - 1] || 'no output'), 160);
 }
 
