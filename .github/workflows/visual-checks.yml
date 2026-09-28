@@ -54,11 +54,12 @@ env:
   NODE_VERSION: '24'
   VERIFY_URL: http://127.0.0.1:8442
   PORT: '8442'
-  # Playwright's own default waits (screenshot, click, goto) go from 30 s to
-  # 180 s: a 4-core runner drawing in software can take longer than 30 s to
-  # hand over one frame. No script's own timeout or threshold changes.
-  # See scripts/verify/ci/slow-machine.mjs.
+  # Playwright's own waits get more time: its 30 s default becomes 180 s, and a
+  # timeout a script names for the page to load or get somewhere is tripled.
+  # A 4-core runner draws the city in software at 0.2-0.4 frames a second.
+  # No assertion, threshold or in-page timer changes: scripts/verify/ci/slow-machine.mjs.
   PW_DEFAULT_TIMEOUT_MS: '180000'
+  PW_WAIT_SCALE: '3'
   BEFORE_REF: ${{ github.event.pull_request.base.sha || github.event.inputs.before || 'main' }}
   BEFORE_LABEL: ${{ github.event.pull_request.base.ref || github.event.inputs.before || 'main' }}
 

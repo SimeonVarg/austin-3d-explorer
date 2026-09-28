@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, not merged)
+
+`.github/workflows/visual-checks.yml`: every pull request now gets the
+`scripts/verify` suite run on GitHub's own machines (free for this public
+repo), plus ten before/after views of the city, and ONE bot comment that says
+what failed and why and which views changed. It never pushes and holds no
+secret. How to read it: `scripts/verify/README.md`, "CI: the checks on every
+pull request". What runs and what is left out, each with its reason:
+`scripts/verify/ci/checks.json`.
+
+- **Proof that it catches a colour change.** A throwaway PR (#330, closed,
+  branch deleted) turned the Tower's night floodlight blue. The comment marked
+  tower-night (0.89% of pixels) and spawn-night (0.10%) as changed, every other
+  view 0%, and the side-by-side paints exactly the Tower:
+  `docs/shots/ci-proof-tower-night.jpg`. No check caught it (tower-check is
+  quarantined, see below), which is why the pictures exist.
+- **It is deterministic.** The base branch shot twice, on two different
+  machines, moved 0% of pixels in all ten views on every run.
+- **The runners are slow at software rendering, and that decides what can run.**
+  Measured with `ci/gpu-probe.mjs` at the spawn view: SwiftShader draws 0.2-0.6
+  frames a second on the 4-core Linux runner (the laptop: 3.7), 0.16 on
+  Windows (298 s to load the city). Linux reproduces the laptop's exact pixel
+  numbers (tower-check's 0.251 and 0.160), so Windows was tried and dropped.
+  The macOS runner has a real GPU: full Chrome gets Apple's paravirtual Metal
+  device at 22-34 frames a second. The probe runs on every PR; moving the
+  frame-rate-bound checks there is the obvious next step.
+- **72 checks run** (10 machines, about 25 minutes). **58 are quarantined**:
+  20 fail on main's own code for reasons that are not speed. 13 of those were
+  re-run on the laptop and are red there too (campus-court-detail,
+  facade-filter, wallplane, geomlint, suite-lint, coplanar --gate,
+  slopes-context-loss, outer-check, walkwidth, walkmeter, places-check,
+  arts-check, si-integration); tower-check fails on HANDOFF's own numbers;
+  facadegrid and mobile-mergecells refuse to run (their subject is gone);
+  field-bleed, dayview, slopes-layer and si-fold-shots are not re-run on the
+  laptop yet. The other 38 need a GPU: they assert a hardware renderer, were
+  written for hardware GL, or need the camera to move or the scene to settle
+  inside their own 60 s windows. 29 timing scripts stay on the laptop by design.
+- **si-fold-shots started failing when #326 (the label restyle) reached main**:
+  Chrome cannot capture its third 390x844 screenshot at all, twice in a row;
+  green on every run before #326. See the entry in checks.json.
+- **Playwright waits longer in CI** (`ci/slow-machine.mjs`): its 30 s default
+  becomes 180 s and a load/wait timeout a script names is tripled. No
+  assertion, threshold or in-page timer is touched. One retry exists, only for
+  "Unable to capture screenshot", and it is printed in the comment.
+- **The data bots.** build-data.yml only runs on main; build-tiles.yml and
+  fetch-reference-imagery.yml push to the branch that triggered them, but only
+  when their own paths change. This workflow runs on `pull_request`, touches
+  none of those paths, and triggered none of them on either branch.
+
 ## Sep 27 2026 - Name labels restyled to match the live labels (`astra/labels`, PR #326, awaiting the owner's look check)
 
 The owner saw the label system's dark rounded cards with a coloured dot and

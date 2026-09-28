@@ -90,14 +90,16 @@ Reading the comment, top to bottom:
 
 **Why so much is quarantined: the runners have no GPU and are slow at
 software rendering.** Measured 2026-09-27 at the spawn view: SwiftShader draws
-**0.2-0.4 frames a second** on a 4-core Linux runner (3.7 on the laptop),
+**0.2-0.6 frames a second** on a 4-core Linux runner (3.7 on the laptop),
 0.16 on Windows. Every single-frame pixel check is fine and reproduces the
 laptop's own numbers exactly; anything that needs the camera to move or the
 scene to settle inside its own 60 s window cannot. Those are quarantined as
 "needs a GPU". A macOS runner does have one: full Chrome gets **Apple's
-paravirtual Metal GPU at 22-25 frames a second** — the place for them, later.
-CI also gives Playwright's own default waits 180 s instead of 30 s
-(`ci/slow-machine.mjs`); no script's own timeout or threshold is touched.
+paravirtual Metal GPU at 22-34 frames a second** — the place for them, later.
+CI gives Playwright's own waits more room (`ci/slow-machine.mjs`): its 30 s
+default becomes 180 s and a load/wait timeout a script names is tripled. No
+assertion, threshold or in-page timer is touched. The one retry is for Chrome
+failing to capture a screenshot at all, and the comment says when it happened.
 
 **What runs is `ci/checks.json`.** Every top-level `*.mjs` here runs unless it
 is listed there under `quarantine`, `laptop_only`, `tools` or `harness`, each
