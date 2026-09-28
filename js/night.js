@@ -300,6 +300,32 @@
 
     MAX_POINTS: 12000,        // hard cap; generation warns if it ever trims
     IDLE_RETRIES: 5,          // querySourceFeatures can race tile loading
+    // While the camera is being FLOWN (the flycam driving, or an ease), the
+    // lamps are re-discovered at most once per REGEN_FLYING_MS; still, as
+    // before, on the next idle. The flycam moves the map by jumpTo, which is
+    // not "moving" to MapLibre, so `idle` fired between flight frames and a
+    // turn re-queried every road and re-sent the whole lamp source (setData:
+    // every lamp tile at every zoom reloaded) about once a second. MEASURED
+    // 197-292 lamp tile reloads per 6 s of turning in place, campus spawn,
+    // NVIDIA (TURN-LAG lane, 2026-09-28). New roads still get their lamps
+    // mid-flight, just less often, and all of them within ~0.8 s of stopping.
+    // 0 puts back regeneration on every idle.
+    REGEN_FLYING_MS: 3000,
+    // While the lamps are fully OFF (the schedule's lamp level is 0: daytime,
+    // and the opening hour p 0.50), their three layers are hidden, so MapLibre
+    // neither loads, re-tiles nor draws two sources nobody can see, and the
+    // lamps are not re-discovered on travel until they come on. Before
+    // 2026-09-28 they were drawn at opacity 0: at the opening hour a 6 s turn
+    // re-sent the lamp source ~5 times and reloaded 197-292 lamp tiles, and
+    // re-discovering them took 340-380 ms of every 6 s of flying (TURN-LAG
+    // lane, NVIDIA, campus). Nothing visible changes while they are off. The
+    // cost is at the moment they come on: at dusk they fade in from 0, so it
+    // cannot be seen, but a JUMP from day straight to night (a click on the
+    // slider's track) draws them 1.1-1.4 s after the ~4 s the time-of-day
+    // recolour already takes, while their tiles load (measured, 3 jumps,
+    // NVIDIA; before: on the first frame). false draws them at opacity 0 all
+    // day, as before.
+    HIDE_WHEN_OFF: true,
   };
 
   /**
@@ -468,9 +494,12 @@
     const beforeId = map.getLayer('buildings-shadow') ? 'buildings-shadow'
                    : map.getLayer('buildings-3d') ? 'buildings-3d' : undefined;
     if (!beforeId) console.warn('[night] no building layer to sit under — lamps will draw over roofs');
+    // Born hidden if the hour already switched the lamps off (LIGHTS.HIDE_WHEN_OFF).
+    const layout = { visibility: (LIGHTS.HIDE_WHEN_OFF && generationState(map).lampsOn === false) ? 'none' : 'visible' };
     if (!map.getLayer(POOL)) {
       map.addLayer({
         id: POOL, type: 'circle', source: SRC, minzoom: 13,
+        layout,
         paint: {
           'circle-pitch-alignment': 'map',
           'circle-color': ['get', 'color'],
@@ -483,6 +512,7 @@
     if (!map.getLayer(CORE)) {
       map.addLayer({
         id: CORE, type: 'circle', source: SRC, minzoom: 14,
+        layout,
         paint: {
           'circle-pitch-alignment': 'map',
           'circle-color': ['get', 'head'],
@@ -507,6 +537,7 @@
     if (TOWER_POOL.on && !map.getLayer(TPOOL)) {
       map.addLayer({
         id: TPOOL, type: 'circle', source: TSRC, minzoom: TOWER_POOL.MIN_ZOOM,
+        layout,
         paint: {
           'circle-pitch-alignment': 'map',
           'circle-color': TOWER_POOL.COLOR,
@@ -726,10 +757,23 @@
     map.once('idle', () => generate(map));
     // Discover roads when their tiles arrive after travelling out of campus.
     // Existing points survive; one bounded refresh per move, no per-frame query.
-    let pending,coverageDirty=false;
+    let pending,coverageDirty=false,lastFlyingRegen=-Infinity;
     const state = generationState(map);
-    const onMove = () => {if(state.removed)return;coverageDirty=true;clearTimeout(pending);pending=setTimeout(()=>generate(map,true),800);};
-    const onIdle = () => {if(coverageDirty){coverageDirty=false;generate(map,true);}};
+    const flying = () => { try { return map.isMoving() || !!(window.__fly && window.__fly.eye().driving); } catch (e) { return false; } };
+    // LIGHTS.REGEN_FLYING_MS: in flight, one regeneration per window at most.
+    const paced = () => {
+      if (!(LIGHTS.REGEN_FLYING_MS > 0) || !flying()) return false;
+      const now = performance.now();
+      if (now - lastFlyingRegen < LIGHTS.REGEN_FLYING_MS) return true;
+      lastFlyingRegen = now; return false;
+    };
+    // LIGHTS.HIDE_WHEN_OFF: no re-discovery while the lamps are off; the
+    // coverage stays owed and is paid when they come on (state.onLampsOn).
+    const lampsOff = () => LIGHTS.HIDE_WHEN_OFF && state.lampsOn === false;
+    const regen = () => { if (state.removed || lampsOff()) return; if (paced()) { pending = setTimeout(regen, 800); return; } generate(map, true); };
+    const onMove = () => {if(state.removed)return;coverageDirty=true;clearTimeout(pending);pending=setTimeout(regen,800);};
+    const onIdle = () => {if(coverageDirty&&!lampsOff()&&!paced()){coverageDirty=false;generate(map,true);}};
+    state.onLampsOn = () => {if(coverageDirty&&!state.removed){coverageDirty=false;generate(map,true);}};
     map.on('moveend',onMove);
     map.on('idle',onIdle);
     const fallback = setTimeout(() => generate(map), IDLE_FALLBACK_MS);
@@ -752,6 +796,17 @@
     const B = (typeof window.skyBodies === 'function') ? window.skyBodies(_lastP) : null;
     const t = (B && typeof B.lamps === 'number') ? B.lamps : Math.max(0, Math.min(1,
       (_lastP - LIGHTS.NIGHT_START) / (LIGHTS.NIGHT_FULL - LIGHTS.NIGHT_START)));
+    // LIGHTS.HIDE_WHEN_OFF: a lamp level of 0 hides the layers outright.
+    const state = generationState(map), on = !(LIGHTS.HIDE_WHEN_OFF && !(t > 0));
+    try {
+      for (const id of [POOL, CORE, TPOOL]) {
+        if (!map.getLayer(id)) continue;
+        const vis = on ? 'visible' : 'none';
+        if ((map.getLayoutProperty(id, 'visibility') || 'visible') !== vis) map.setLayoutProperty(id, 'visibility', vis);
+      }
+    } catch (err) { /* layers not ready yet */ }
+    const was = state.lampsOn; state.lampsOn = on;
+    if (on && was === false && state.onLampsOn) state.onLampsOn();
     try {
       if (map.getLayer(POOL)) {
         // `ob` is the baked core-vs-edge boost. No zoom term here, so wrapping

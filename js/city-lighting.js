@@ -263,7 +263,7 @@
       // (astra-pipe research/frame-cost.md, section 8, fix 1).
       map.on('move',()=>{proxyMovedAt=Date.now();});
       map.on('moveend',()=>{proxyMovedAt=Date.now();proxyViewMoved=true;});
-      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
+      map.on('remove',()=>{clearTimeout(proxyTimer);proxyTimer=null;proxyJob=null;proxyDirty=true;proxySigBuilt=null;proxyViewMoved=false;proxyMovedAt=0;proxyInputs=null;proxy?.geometry.dispose();proxy?.material.dispose();proxy=null;proxyMap=null;});
     }
     if(!sameList(proxySignature(map),proxySigBuilt))proxyDirty=true;
     if((proxyDirty||proxyViewMoved)&&!proxyTimer&&!map.isMoving())proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.settleMs);
@@ -292,8 +292,27 @@
   // camera animation, the flycam not driving) before the proxy is checked
   // or rebuilt. It was the old fixed delay after a moveend, so a camera that
   // stops gets the rebuild it always got, at the same moment.
-  const PROXY_PACE={settleMs:300};
-  let proxyMovedAt=0,proxyViewMoved=false,proxyInputs=null;
+  // budgetMs: the rebuild runs in slices of about this much main thread, one
+  // task each, so frames keep being drawn while it works (proxyGeometry). 0
+  // builds in one piece, as before 2026-09-28. MEASURED before slicing, the
+  // one piece was a stall of the still picture ~0.3 s after every turn or
+  // flight that changed the drawn caster tiles (TURN-LAG lane, turnmeter.mjs
+  // "stop"). A slice can run over its budget by one indivisible step (one
+  // tile query, one polygon); stats.shadowProxyMaxSliceMs records by how much.
+  // stretchMs / maxBudgetMs: a slice runs between two frames, so when frames
+  // are slow the build takes (slices x frame time): 52 s once, on a loaded
+  // machine at ~4 fps. For every stretchMs a build has been running (camera
+  // pauses not counted) the slice budget doubles, up to maxBudgetMs, so a slow
+  // machine finishes in a few seconds at the price of a few longer frames.
+  // yieldMs: the pause between slices. trustLayerFilters: query each layer
+  // with the filter MapLibre already validated when that layer was added
+  // (validate:false). MapLibre 5.24 otherwise re-validates a query filter by
+  // serialising the WHOLE style, once per caster layer per rebuild; the
+  // features returned are the same either way. (Ported from Codex's
+  // codex/overnight-shadow-proxy 75930c7 onto this file's current rebuild.)
+  const PROXY_PACE={settleMs:300,budgetMs:5,stretchMs:1000,maxBudgetMs:40,yieldMs:0,trustLayerFilters:true};
+  let proxyMovedAt=0,proxyViewMoved=false,proxyInputs=null,proxyJob=null;
+  const proxyNow=()=>globalThis.performance?.now?.()??Date.now();
   // Everything a rebuild reads, as a flat list compared entry by entry: the
   // drawn tiles of every caster source and each tile's decoded data (what
   // querySourceFeatures walks), the fill-extrusion layers that draw those
@@ -322,41 +341,100 @@
   }
   function proxyRebuild(map) {
     proxyTimer=null;
+    if(proxyMap!==map)return;
     // Never mid-flight. Re-arm while anything is moving the camera; the
     // rebuild waits for the flight to end instead of stalling inside it.
+    // A build already under way is paused the same way, not thrown away.
     const flying=map.isMoving()||!!window.__fly?.eye?.().driving;
     const wait=flying?PROXY_PACE.settleMs:PROXY_PACE.settleMs-(Date.now()-proxyMovedAt);
-    if(wait>0){proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
-    const signature=proxySignature(map);
-    const inputs=proxyKey(map,signature);
-    // Only the view moved, and it moved nothing the proxy is built from.
-    if(!proxyDirty&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyViewMoved=false;return;}
-    // A restored context briefly has no style while MapLibre rebuilds it.
-    // Keep the rebuild pending; neither discard the existing proxy nor read
-    // layers until the replacement style is available.
-    const style=proxyStyleLayers(map);
-    if(!style){proxyDirty=true;return;}
-    proxyDirty=false;proxyViewMoved=false;proxySigBuilt=signature;proxyInputs=inputs;
-    const T=window.THREE,S=window.slopes,positions=[],seen=new Set();
+    if(wait>0){if(proxyJob&&!proxyJob.paused){proxyJob.paused=true;proxyJob.activeMs+=proxyNow()-proxyJob.runStart;}proxyTimer=setTimeout(()=>proxyRebuild(map),wait);return;}
+    let job=proxyJob;
+    // A paused build resumes only if nothing it reads has changed since it
+    // started; otherwise it is dropped and a fresh one starts from today's
+    // tiles. (No check between ordinary slices: the camera has not moved.)
+    if(job?.paused) {
+      const signature=proxySignature(map),inputs=proxyKey(map,signature);
+      if(job.inputs&&map.style===job.styleOwner&&sameList(inputs,job.inputs)&&sameList(signature,job.signature)){job.paused=false;job.runStart=proxyNow();}
+      else{proxyJob=job=null;proxyDirty=true;stats.shadowProxyRestarts=(stats.shadowProxyRestarts||0)+1;}
+    }
+    if(!job) {
+      const signature=proxySignature(map);
+      const inputs=proxyKey(map,signature);
+      // Only the view moved, and it moved nothing the proxy is built from.
+      if(!proxyDirty&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyViewMoved=false;return;}
+      // A restored context briefly has no style while MapLibre rebuilds it.
+      // Keep the rebuild pending; neither discard the existing proxy nor read
+      // layers until the replacement style is available.
+      const style=proxyStyleLayers(map);
+      if(!style){proxyDirty=true;return;}
+      proxyDirty=false;proxyViewMoved=false;proxySigBuilt=signature;proxyInputs=inputs;
+      job=proxyJob={map,style,signature,inputs,styleOwner:map.style,started:proxyNow(),runStart:proxyNow(),activeMs:0,slices:0,paused:false};
+      job.steps=proxyGeometry(job);
+    }
+    const started=proxyNow();let steps=0;
+    const P=PROXY_PACE,budget=Math.min(Math.max(P.budgetMs,P.maxBudgetMs||0),P.budgetMs*2**Math.floor((job.activeMs+started-job.runStart)/(P.stretchMs||Infinity)));
+    try {
+      for(;;) {
+        const step=job.steps.next();steps++;
+        if(step.done){proxyCommit(map,job,step.value);return;}
+        // `true` marks the start of an indivisible tile query: it opens a
+        // slice of its own unless this slice has done nothing yet.
+        if(budget>0&&((step.value===true&&steps>1)||proxyNow()-started>=budget))break;
+      }
+    } catch(e) {
+      const m=e.message||String(e);if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}
+      proxyJob=null;proxyDirty=true;return;
+    } finally {
+      const ms=proxyNow()-started;job.slices++;
+      stats.shadowProxySlices=(stats.shadowProxySlices||0)+1;
+      stats.shadowProxyMaxSliceMs=Math.max(stats.shadowProxyMaxSliceMs||0,ms);
+    }
+    proxyTimer=setTimeout(()=>proxyRebuild(map),PROXY_PACE.yieldMs);
+  }
+  // The rebuild, one small step per `yield`: the same features, the same
+  // order, the same triangles and so the same bytes as the one-piece build it
+  // replaced (proxyHash compares them), only interruptible.
+  function* proxyGeometry(job) {
+    const map=job.map,style=job.style,T=window.THREE,S=window.slopes,seen=new Set();
     const authored=window.APARTMENTS?.on?window.slopesApartments?.data?.buildings||[]:[];
     const ids=new Set(authored.map(b=>b.id)),insideAuthored=footprintLookup(authored.map(b=>b.footprint?.ring).filter(Boolean));
+    yield;
     // The displayed base layer suppresses parent prisms with detailed parts,
     // and replaced prisms by id (see casterSources).
     const hidden=hiddenIds(style.find(l=>l.id==='buildings-3d')?.filter);
-    const features=buildings.filter(f=>!f.properties?.has_parts&&!hidden.has(f.properties?.id));
-    stats.shadowProxyHidden=buildings.filter(f=>!f.properties?.has_parts&&hidden.has(f.properties?.id)).length;
+    const features=[];let hiddenCount=0,n=0;
+    for(const f of buildings) {
+      if(!f.properties?.has_parts){if(hidden.has(f.properties?.id))hiddenCount++;else features.push(f);}
+      if(++n%1024===0)yield;
+    }
+    job.hidden=hiddenCount;
+    const trust=PROXY_PACE.trustLayerFilters&&window.maplibregl?.getVersion?.()==='5.24.0';
     for(const source of casterSources) {
       if(!map.getSource(source))continue;
       // Each visible layer with its own display filter: a part, deck or
       // detail that no layer draws does not cast.
       for(const l of style) {
         if(l.type!=='fill-extrusion'||l.source!==source||l.visibility==='none')continue;
+        yield true;
         const o={};if(l.sourceLayer)o.sourceLayer=l.sourceLayer;if(l.filter)o.filter=l.filter;
-        try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!stats.failures.includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+        // Only the exact filter object the live layer draws with, which
+        // MapLibre validated when it was set.
+        if(trust&&o.filter&&map.getLayer?.(l.id)?.filter===o.filter)o.validate=false;
+        try{features.push(...map.querySourceFeatures(source,o));}catch(e){const m='shadow proxy '+l.id+': '+e.message;if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}}
+        yield;
       }
     }
+    // Triangles go straight into Float32 chunks: the bytes a Float32 copy of
+    // the old number array held, without the number array.
+    const CHUNK=9*1024,chunks=[];let chunk=null,used=0,length=0,sinceYield=0;
     const local=p=>{const v=S.toLocal(p[0],p[1],0);return new T.Vector2(v.x,v.y);};
-    const tri=(a,b,c,za,zb=za,zc=za)=>positions.push(a.x,a.y,za,b.x,b.y,zb,c.x,c.y,zc);
+    const tri=(a,b,c,za,zb=za,zc=za)=>{
+      if(!chunk||used===CHUNK){chunk=new Float32Array(CHUNK);chunks.push(chunk);used=0;}
+      chunk[used++]=a.x;chunk[used++]=a.y;chunk[used++]=za;
+      chunk[used++]=b.x;chunk[used++]=b.y;chunk[used++]=zb;
+      chunk[used++]=c.x;chunk[used++]=c.y;chunk[used++]=zc;
+      length+=9;sinceYield++;
+    };
     for(const f of features) {
       // Parts, stadium decks and the replacement passes carry `base`; the
       // outer ring carries `b`. Reading only `b` stood decks on the ground.
@@ -364,7 +442,7 @@
       // only a finite number counts; NaN would reach the GPU as geometry.
       const p=f.properties||{},num=v=>v==null||v===''||!isFinite(+v)?null:+v;
       const h=num(p.final_height)??num(p.h)??num(p.height)??0,base=num(p.b)??num(p.base)??num(p.min_height)??0;
-      if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id))continue;
+      if(!(h>base)||h<=0||ids.has(p.id)||ids.has(f.id)){if(++n%256===0)yield;continue;}
       const polys=f.geometry?.type==='Polygon'?[f.geometry.coordinates]:f.geometry?.type==='MultiPolygon'?f.geometry.coordinates:[];
       for(const poly of polys) {
         const ring=poly[0];if(!ring?.length)continue;
@@ -377,13 +455,48 @@
         for(const contour of contours)for(let i=0;i<contour.length;i++) {
           const a=contour[i],b=contour[(i+1)%contour.length];tri(a,b,a,base,base,h);tri(b,b,a,base,h,h);
         }
+        if(sinceYield>=256){sinceYield=0;yield;}
       }
     }
+    const positions=new Float32Array(length);let offset=0;
+    let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+    for(let i=0;i<chunks.length;i++) {
+      const count=Math.min(CHUNK,length-offset),part=chunks[i];positions.set(part.subarray(0,count),offset);
+      for(let j=0;j<count;j+=3) {
+        const x=part[j],y=part[j+1],z=part[j+2];
+        if(x<minX)minX=x;if(y<minY)minY=y;if(z<minZ)minZ=z;if(x>maxX)maxX=x;if(y>maxY)maxY=y;if(z>maxZ)maxZ=z;
+      }
+      offset+=count;chunks[i]=null;yield;
+    }
+    // Three sorts even an unculled mesh by its bounding-sphere centre, and
+    // computes a missing sphere on the first frame that draws it: a scan of
+    // the whole buffer inside the first shadow render after the commit. The
+    // same sphere (box centre, farthest vertex), computed here in slices.
+    if(T.Sphere&&T.Vector3) {
+      const cx=length?(minX+maxX)/2:0,cy=length?(minY+maxY)/2:0,cz=length?(minZ+maxZ)/2:0;let r2=0;
+      for(let s=0;s<length;s+=CHUNK) {
+        for(let i=s,e=Math.min(s+CHUNK,length);i<e;i+=3){const dx=positions[i]-cx,dy=positions[i+1]-cy,dz=positions[i+2]-cz,d=dx*dx+dy*dy+dz*dz;if(d>r2)r2=d;}
+        yield;
+      }
+      job.sphere=new T.Sphere(new T.Vector3(cx,cy,cz),Math.sqrt(r2));
+    }
+    return positions;
+  }
+  function proxyCommit(map,job,positions) {
+    proxyJob=null;
+    // The style this build read was replaced under it (a context restore):
+    // keep the old proxy and build again from the new one.
+    if(map.style!==job.styleOwner){proxyDirty=true;return;}
+    const T=window.THREE;
     proxy?.geometry.dispose();proxy?.material.dispose();
-    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.BufferAttribute(positions,3));
+    if(job.sphere)geometry.boundingSphere=job.sphere;
+    // A NEW Mesh, never new geometry on the old one: the sun shadow's cache
+    // key is the proxy's uuid (slopes.js updateSunShadows).
     proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
-    stats.shadowProxyRebuilds=(stats.shadowProxyRebuilds||0)+1;
-    stats.shadowProxyTriangles=positions.length/9;map.triggerRepaint();
+    stats.shadowProxyRebuilds=(stats.shadowProxyRebuilds||0)+1;stats.shadowProxyHidden=job.hidden;
+    stats.shadowProxyTriangles=positions.length/9;stats.shadowProxyLastBuildMs=proxyNow()-job.started;stats.shadowProxyLastSlices=job.slices+1;
+    map.triggerRepaint();
   }
   // The style's layers in draw order, read off MapLibre's live layer objects
   // (id, type, source, sourceLayer, filter, visibility: the fields proxyKey

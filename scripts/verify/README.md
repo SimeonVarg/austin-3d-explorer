@@ -180,6 +180,50 @@ restores "rebuild whenever `count.buildings` moves" and must exit 1 (it rebuilds
 has not loaded, the rebuild stays pending instead of building from nothing.
 `--break` drops the "not loaded" half and must exit 1.
 
+`node shadow-proxy-slices.mjs` (no browser, no server): the rebuild runs in
+slices (`PROXY_PACE.budgetMs`), so the still picture keeps drawing while the
+proxy is rebuilt after a turn. Against a scripted map whose tile queries each
+cost 30 ms of the test clock: a sliced build takes several tasks and no slice
+runs longer than one query past its budget; its triangles are byte for byte
+the one-piece build's; a camera moving mid-build pauses it and, still again
+with the same tiles, it resumes without a second start; tiles changing during
+the pause restart it once and the result has them; the proxy arrives with its
+bounding sphere. With 250 ms frames between slices (a loaded machine) the
+slices stretch (`stretchMs`, `maxBudgetMs`): fixed 5 ms slices took 13.1 s of
+test clock, stretched ones 5.6 s, the longest 42 ms, same bytes. (In a real
+page on a loaded machine one fixed-slice build took 52 s.) `--break` builds in
+one piece and must exit 1.
+
+### What turning costs: `turnmeter.mjs`
+
+`node turnmeter.mjs --arms base=http://127.0.0.1:8977,branch=http://127.0.0.1:8978 --reps 3 --vsync off`
+drives the real `index.html` the way a person turns (W held, the mouse dragging
+the view) at 60 and 120 deg/s, three 180-degree flicks in 0.5 s, and three
+quick looks without W, each against a straight flight of the same length from
+the same pose, at the campus spawn and over downtown. Arms run interleaved
+(A,B then B,A), a fresh browser and a fresh load each. Per scenario: frame
+interval p50 / p95 / worst, frames over 50 ms, long tasks, MapLibre's and the
+three.js layer's CPU per frame, shadow-map re-renders, tiles that landed, the
+yaw actually achieved, and "stop": the worst frame gap in the 2.5 s after the
+hand lets go. `--gpu low` for the AMD iGPU, `--gputime` for GPU time per frame,
+`--profile` for a sampled CPU profile per scenario, `--video DIR` to record
+(each scenario's `videoAt` is its window in seconds into that recording).
+
+Three traps, all met building it:
+
+- **Headed, vsync off.** With the laptop's screen asleep a headed window gets
+  about one frame a second from Chrome, and a headless one stops firing rAF.
+  `--vsync off` (`--disable-gpu-vsync --disable-frame-rate-limit`) makes a frame
+  interval the frame's real cost, not a multiple of 16.7 ms.
+- **The first turn is not like the others.** Most of the scene is outside the
+  spawn view, so the first frame that looks at it built its shader programs:
+  one 0.8-1.4 s frame, on the first campus turn only. A run that warms up with
+  a turn before measuring never sees it; this one measures from a fresh load.
+- **The flycam moves the map with one `jumpTo` per frame**, so every frame
+  ends in a `moveend` and MapLibre fires `idle` mid-flight. Anything keyed to
+  `moveend` or `idle` (lamp discovery, the old proxy rebuild) runs DURING a
+  turn unless it also checks `window.__fly.eye().driving`.
+
 ### The authored-footprint test is a grid, and gives the scan's answer
 
 `node proxy-inside-grid.mjs` (no browser, no server) runs the real
