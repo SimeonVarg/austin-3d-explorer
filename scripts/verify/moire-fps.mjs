@@ -27,7 +27,7 @@
  */
 import { chromium } from 'playwright-core';
 import { BASE, launch, HW_ARGS } from './chrome.mjs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -59,6 +59,8 @@ if (!FLIGHTS[FLIGHT]) { console.error('unknown --flight ' + FLIGHT); process.exi
 // and pages after the first measured slower on both sides (2026-09-28: the
 // first page 16.8 ms, later ones 24-29 ms, same code).
 const FRESH = argv.includes('--fresh');
+// --gap <s>: wait this long after each rep's browser is gone before the next.
+const GAP_MS = 1000 * +opt('--gap', '0');
 const launchOpts = () => ({
   headless: false, gl: 'hardware', maxMs: +(process.env.VERIFY_MAX_MS || 3600000),
   args: [...HW_ARGS, '--disable-gpu-vsync', '--disable-frame-rate-limit',
@@ -142,11 +144,36 @@ async function run(s) {
   }, { fl: FLIGHTS[FLIGHT], frames: FRAMES, warm: WARM });
   await ctx.close();
   if (!shared) browser.__done();
+  if (GAP_MS) await new Promise(r => setTimeout(r, GAP_MS));
   res.errors = errors.slice(0, 3);
   return res;
 }
 
 const q = (a, p) => { const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1) + 0.5))]; };
+// NVIDIA only: VRAM in use (peak) and the mean graphics clock over the rep,
+// from nvidia-smi every 500 ms. A 4 GB card near full pages, and a hot one
+// clocks down; either moves frame time more than the change under test.
+function nvSample() {
+  let proc = null, peak = 0, clocks = [];
+  try {
+    proc = spawn('nvidia-smi', ['--query-gpu=memory.used,clocks.gr', '--format=csv,noheader,nounits', '-lms', '500'],
+      { stdio: ['ignore', 'pipe', 'ignore'] });
+    proc.on('error', () => { proc = null; });
+    proc.stdout.on('data', d => {
+      for (const line of String(d).split(String.fromCharCode(10))) {
+        const [m, c] = line.split(',').map(Number);
+        if (Number.isFinite(m)) peak = Math.max(peak, m);
+        if (Number.isFinite(c)) clocks.push(c);
+      }
+    });
+  } catch (e) { proc = null; }
+  return { stop() {
+    if (!proc) return null;
+    try { proc.kill(); } catch (e) {}
+    if (!clocks.length) return null;
+    return { peakMiB: peak, clockMHz: Math.round(clocks.reduce((a, b) => a + b, 0) / clocks.length) };
+  } };
+}
 const cpuSnap = () => os.cpus().reduce((a, c) => {
   const t = c.times, busy = t.user + t.nice + t.sys + t.irq;
   a.busy += busy; a.all += busy + t.idle; return a;
@@ -154,14 +181,15 @@ const cpuSnap = () => os.cpus().reduce((a, c) => {
 const out = { A: [], B: [] };
 for (let r = 0; r < REPS; r++) {
   for (const [k, s] of (r % 2 ? [['B', B], ['A', A]] : [['A', A], ['B', B]])) {
-    const c0 = cpuSnap();
+    const c0 = cpuSnap(), gpuLog = nvSample();
     const res = await run(s);
-    const c1 = cpuSnap(), cpu = (c1.busy - c0.busy) / Math.max(1, c1.all - c0.all);
+    const c1 = cpuSnap(), cpu = (c1.busy - c0.busy) / Math.max(1, c1.all - c0.all), nv = gpuLog.stop();
     const med = q(res.dts, 0.5), p90 = q(res.dts, 0.9);
     out[k].push({ med, p90, res });
+    res.nv = nv;
     const gpu = /nvidia/i.test(res.renderer) ? 'NVIDIA' : /amd|radeon/i.test(res.renderer) ? 'AMD' : res.renderer.slice(0, 24);
     console.log(`rep ${r + 1} ${s.label.padEnd(8)} median ${med.toFixed(2)} ms (${(1000 / med).toFixed(1)} fps)  p90 ${p90.toFixed(2)} ms  ` +
-      `cpu=${(cpu * 100).toFixed(0)}% ${gpu} ` +
+      `cpu=${(cpu * 100).toFixed(0)}% ${gpu} ${nv ? `vram peak ${nv.peakMiB} MiB, ${nv.clockMHz} MHz ` : ''}` +
       `${res.canvas} aa=${res.antialias} samples=${res.samples} gfx=${JSON.stringify(res.gfx)} aeAsync=${res.aeAsync} aeLuma=${res.aeLuma == null ? '-' : res.aeLuma.toFixed(4)}${res.gpuGate ? ` gate=${res.gpuGate.full ? 'card' : 'integrated/other'} ${res.gpuGate.ms}ms` : ''}${res.errors.length ? '  ERR ' + res.errors.join(' | ') : ''}`);
   }
 }

@@ -350,9 +350,12 @@
   // cutting it by 45-70% at every flyover pose together with the outline
   // change below (spawn 0.575 -> 0.198, downtown 0.448 -> 0.225, west campus
   // 0.702 -> 0.207). Its frame-time cost was never the samples: see
-  // AE.ASYNC. With that fixed, an interleaved A/B (moire-fps.mjs, RTX 3050 Ti,
-  // 1920x1020, spawn orbit, vsync off) reads no difference: over 7 reps a
-  // side the median frame is 25.6 ms without it and 25.4 ms with it.
+  // AE.ASYNC. With that fixed, interleaved A/Bs (moire-fps.mjs, RTX 3050 Ti,
+  // 1920x1020, spawn orbit, vsync off) read no cost in one browser: 15 pairs,
+  // median difference -0.8 ms, MSAA slower in 4. With a fresh browser per rep
+  // on a machine another job held at 50-75% CPU, 8 pairs read +1.8 ms with
+  // two slow MSAA reps, while the card sat at ~700 MHz and 1.5 of 4 GB: the
+  // frames were CPU-bound, which points at the machine, not the samples.
   // Screens larger than this keep the old default: that timing does not
   // extend to 1440p+.
   //
