@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, awaiting the owner's look)
+## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, merged 0db4a9a)
 
 The "Switch modes" pill sat on the OpenMapTiles/OpenStreetMap credit at every
 screen size. The credit is a licence requirement. Two phone rules fought over
