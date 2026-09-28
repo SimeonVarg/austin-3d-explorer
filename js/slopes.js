@@ -1265,7 +1265,17 @@
   /** One fetch per URL for the whole layer; the browser's cache does the rest. */
   function fetchJSON(url) {
     if (!_fetches.has(url)) {
-      _fetches.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + ': ' + r.status); return r.json(); }));
+      try { window.loaderData?.(url, 'start'); } catch (e) {}
+      _fetches.set(url, fetch(url).then(r => {
+        if (!r.ok) throw new Error(url + ': ' + r.status);
+        return r.json();
+      }).then(data => {
+        try { window.loaderData?.(url, 'done'); } catch (e) {}
+        return data;
+      }).catch(e => {
+        try { window.loaderData?.(url, 'error'); } catch (ignored) {}
+        throw e;
+      }));
     }
     return _fetches.get(url);
   }

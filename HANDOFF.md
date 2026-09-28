@@ -1,5 +1,34 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - The owner-approved loading screen is live (`claude/loading-screen`, PR #333, merged; carries #321)
+
+The loading screen now shows the drawing and words the owner approved: the UT
+Tower on floating islands in a Monument Valley style, and every line of the
+loading screen, the "Switch modes" button and the "Where to?" mode picker word
+for word. Live on flyover-utx.vercel.app since merge 6cef8a0.
+Pictures: `docs/shots/loading-screen-desktop.jpg`,
+`docs/shots/loading-screen-launcher.jpg`, `docs/shots/loading-screen-phone.jpg`.
+
+- **Where to change it.** `js/loader.js`: `COPY` (every word), `ART` (the
+  drawing's colours and animation speeds, each a CSS variable on the SVG),
+  `TUNE` (progress weights; the time line switches to the slow wording after
+  40 s on a computer, 50 s on a phone). The old "Usually about N seconds"
+  promise is gone. The approved text has a normal and a slow time line only.
+- **Same as the approved renders.** With the harness's frozen progress, the
+  real loader draws the approved computer, phone and mode-picker pictures pixel
+  for pixel. In full real-app loads (through the browser queue) the only
+  differences are the live numbers and text anti-aliasing. All 196 buildings,
+  no page or console errors, computer and phone.
+- **The bar no longer slides back.** The raw reading dipped 11-24 times per
+  load (new data files found mid-load; the opening view re-fetching tiles cost
+  -10 for the last ~12 s). The bar holds its best reading; the stage list keeps
+  the real state; `__loading.history` has both `percent` and `shown`.
+- **`loader-check.mjs` rewritten for the new screen.** It waited for the old
+  `#veil-load` and failed CI on this PR. Now 7/7 locally and green in CI.
+- **Open:** on a computer the "Switch modes" button covers the right end of
+  the map credit line in the bottom-right corner (from #321). Not moved here:
+  it is a layout call.
+
 ## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, merged Sep 28)
 
 `.github/workflows/visual-checks.yml`: every pull request now gets the
@@ -32605,3 +32634,13 @@ The initial phone walk exposed two descent frames above the unchanged 2.35 m cle
 This repair does not establish physical-iPhone performance, thermal/memory headroom, faster startup, full phone photo fidelity or citywide recognition. In particular, Union's close phone doorway remains a flat orange simplified surface; that visual limitation remains open. Shared renderer/recovery files stay with their existing owners; the dirty primary checkout is preserved.
 
 Final broad hardware browser checks pass all 14 movement and nine collision assertions, including 528 random-flight samples, low street traversal, a real tower approach and simultaneous touch movement/look. Exact tested source, all 196 authored buildings, floor lifecycle and error checks pass. Main remains the verified 6e458338 base; failed evidence and original thresholds are preserved.
+
+## September 26, 2026 - Loading screen and mode launcher (astra/loading, pipeline 020)
+
+Replaced the old time-driven skyline loader with a lightweight vector campus/city illustration and measured map/tiles, parsed-file, authored-building, lighting and optional walking-graph stages. Final reveal retains its existing gates; late or failed work never receives a fake 100 percent. The launcher offers eight described experiences, including the existing apartment finder and explicit walking preview, plus lighting and graphics choices. It remains reachable after loading and in photo mode. WAYFIND.on stays false. Changes are in js/loader.js, js/app.js, js/slopes.js, js/wayfind.js and style.css; mode inventory and verification are in docs/loading-launcher.md.
+
+Sixteen actual-code progress/URL checks, four JavaScript syntax checks, harness parity and desktop/phone-width browser checks pass. Every measured/captured city has all 196 authored buildings, all 68 tracked files complete and no JavaScript errors; only the expected cancelled trees.pmtiles request appears. Hardware launch confirms AMD Radeon integrated graphics with --force_low_power_gpu, no CPU throttle and cancelled graphics auto-detection. Two interleaved desktop pairs yield minimum 35.992 seconds before / 35.094 after. Four interleaved phone-profile pairs yield 35.396 / 25.243; the full spread and original apparent phone regression are documented rather than discarded. Shared-machine variance is too high to claim a speedup. Rounded estimates are 40/50 seconds and explicitly label longer waits.
+
+Final labelled evidence lives locally in C:/Users/simip/Projects/astra-pipe/tasks/020-loading/out/: desktop-before-after.jpg, phone-before-after.jpg, mode-launcher.jpg and full-load-before-after.webp. Each is below 103 KB. The animation compresses each complete load to equal duration and is not a speed comparison. Raw frames, baseline copies, scripts, CPU results and all timing JSON remain in work. These local evidence files are intentionally not tracked here; the reviewing lane should preserve them in the pipeline handoff. No commits, pushes, merges, servers or continuation were created by this sandbox lane.
+
+Remaining limits: physical iPhone Safari/Chrome and thermal/memory behavior are unverified; full journeys through every existing mode were not re-tested. Main-thread model construction can briefly freeze textual progress. The illustration is stylized. An earlier FFmpeg font-discovery test hung with `Fontconfig error: Cannot load default config file: No such file: (null)`; no forbidden process-kill was attempted. Final exports use an explicit local font path and finish normally. This supersedes the earlier memory-blocked status for task 020; the changes are ready for the Claude lane's real-app review and commit.
