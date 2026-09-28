@@ -33,7 +33,8 @@
  * tasks, MapLibre's render CPU per frame, the three.js layer's CPU per frame,
  * sun-shadow map re-renders, shadow-proxy rebuilds, tiles that landed, and the
  * yaw actually achieved (read off the bearing every frame). --profile adds a
- * sampled CPU profile per scenario (self time and nearest js/ caller).
+ * sampled CPU profile per scenario, the drive and the stop together (self
+ * time and nearest js/ caller).
  * "stop" is the --tail ms (2500) after the hand lets go: the worst frame gap,
  * long tasks and proxy rebuilds there, i.e. the hitch on the still picture.
  *
@@ -107,7 +108,8 @@ function pageInit(opts) {
     const tq = opts.gputime ? gl.getExtension('EXT_disjoint_timer_query_webgl2') : null;
     TM.hasTQ = !!tq;
     let cur = null, pending = [];
-    const shadowN = () => { try { return window.slopes.sunlightStats().shadowUpdates; } catch (e) { return 0; } };
+    // Shadow MAP renders: two per update before 2026-09-28 (no shadowMapRenders stat then).
+    const shadowN = () => { try { const S = window.slopes.sunlightStats(); return S.shadowMapRenders ?? 2 * S.shadowUpdates; } catch (e) { return 0; } };
     const proxyN = () => { try { return window.CityLighting.stats.shadowProxyRebuilds || 0; } catch (e) { return 0; } };
     const poll = () => {
       while (pending.length) {
@@ -121,14 +123,16 @@ function pageInit(opts) {
     TM.poll = () => { if (tq) poll(); };
     const orig = m._render;
     m._render = function () {
-      const t0 = now(), sh0 = shadowN(), px0 = proxyN();
+      const t0 = now(), sh0 = shadowN();
       let q = null;
       if (tq && pending.length < 300) { q = gl.createQuery(); gl.beginQuery(tq.TIME_ELAPSED_EXT, q); }
       cur = { cl: 0 };
       try { return orig.apply(this, arguments); }
       finally {
         if (q) { gl.endQuery(tq.TIME_ELAPSED_EXT); pending.push({ q, t: t0 }); }
-        TM.renders.push([t0, now() - t0, cur.cl, shadowN() - sh0, proxyN() - px0]);
+        // [4] is the proxy rebuild COUNT after this render: the rebuild runs in its
+        // own timer task, between renders, so a per-render difference is always 0.
+        TM.renders.push([t0, now() - t0, cur.cl, shadowN() - sh0, proxyN()]);
         cur = null;
         if (tq) try { poll(); } catch (e) {}
       }
@@ -195,6 +199,8 @@ function windowStats(snap, a, b) {
   let swept = 0;
   for (let i = 1; i < bear.length; i++) if (bear[i] != null && bear[i - 1] != null) { let x = bear[i] - bear[i - 1]; x = ((x + 540) % 360) - 180; swept += Math.abs(x); }
   const R = snap.renders.filter(x => x[0] >= a && x[0] <= b);
+  const R0 = snap.renders.filter(x => x[0] < a).pop();
+  const proxyRebuilds = R.length && R0 ? R[R.length - 1][4] - R0[4] : 0;
   const lt = snap.lt.filter(x => x[0] < b && x[0] + x[1] > a);
   const g = snap.gpu.filter(x => x[0] >= a && x[0] <= b).map(x => x[1]);
   const tiles = snap.tiles.filter(x => x[0] >= a && x[0] <= b);
@@ -204,7 +210,7 @@ function windowStats(snap, a, b) {
     yawDegS: r1(swept / dur * 1000), yawDeg: Math.round(swept),
     mapCpu: { p50: r1(med(R.map(x => x[1]))), p95: r1(pct(R.map(x => x[1]), 0.95)), worst: r1(Math.max(0, ...R.map(x => x[1]))), sum: Math.round(R.reduce((s, x) => s + x[1], 0)) },
     threeCpu: { p50: r1(med(R.map(x => x[2]))), p95: r1(pct(R.map(x => x[2]), 0.95)), sum: Math.round(R.reduce((s, x) => s + x[2], 0)) },
-    shadowRenders: R.reduce((s, x) => s + x[3], 0), proxyRebuilds: R.reduce((s, x) => s + x[4], 0),
+    shadowRenders: R.reduce((s, x) => s + x[3], 0), proxyRebuilds,
     gpu: g.length ? { n: g.length, p50: r1(med(g)), p95: r1(pct(g, 0.95)) } : null,
     longTasks: { n: lt.length, sumMs: Math.round(lt.reduce((s, x) => s + x[1], 0)), worst: Math.round(Math.max(0, ...lt.map(x => x[1]))) },
     tiles: tiles.length,
@@ -324,16 +330,16 @@ async function runArm(arm, rep) {
       const a = await ev(() => performance.now()), wa = Date.now() - tVideo;
       await drive(SCHED[sc], DUR, HOLDW[sc]);
       const b = await ev(() => performance.now()), wb = Date.now() - tVideo;
-      let prof = null;
-      if (PROFILE) { const { profile } = await cdp.send('Profiler.stop'); prof = summarizeProfile(profile); }
       // The STOP: what the page does in the TAIL_MS after the hand lets go
       // (the shadow proxy used to rebuild here, in one piece, ~0.3 s after the
       // camera went still). Frame gaps here are main-thread stalls the person
       // sees as a hitch on the still image.
       await sleep(TAIL_MS);
+      let prof = null;   // the profile covers the drive AND the stop
+      if (PROFILE) { const { profile } = await cdp.send('Profiler.stop'); prof = summarizeProfile(profile); }
       const snap = await ev(([a, b]) => { const T = window.__tm; if (T.poll) try { T.poll(); } catch (e) {}
         const i0 = T.raf.findIndex(t => t >= a - 2000);
-        return { raf: T.raf.slice(i0), bear: T.bear.slice(i0), lt: T.lt.filter(x => x[0] + x[1] >= a), renders: T.renders.filter(x => x[0] >= a - 100), gpu: T.gpu.filter(x => x[0] >= a - 100), tiles: T.tiles.filter(x => x[0] >= a - 100) }; }, [a, b]);
+        return { raf: T.raf.slice(i0), bear: T.bear.slice(i0), lt: T.lt.filter(x => x[0] + x[1] >= a), renders: T.renders.filter(x => x[0] >= a - 1000), gpu: T.gpu.filter(x => x[0] >= a - 100), tiles: T.tiles.filter(x => x[0] >= a - 100) }; }, [a, b]);
       const s = windowStats(snap, a, b);
       const tl = windowStats(snap, b, b + TAIL_MS);
       s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders };
