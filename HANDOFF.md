@@ -1,5 +1,34 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - The loading-screen drawing moves: the islands float, the West Campus islet turns (`claude/loading-motion`, awaiting the owner's look)
+
+The owner asked for the drawing's islands to bob up and down, out of step, and
+maybe a rotation. This branch does both. It is taste, so it waits for his yes.
+
+- **Float.** Each island is its own small `<svg>` layer, cut to its box
+  (`ART_LAYERS`, `ART_BOX` in `js/loader.js`), and bobs with a CSS transform.
+  A transform on a whole element runs on the compositor, so the float stays
+  smooth while the city load blocks the main thread. Tune it in `FLOAT`
+  (lift, seconds per rise, start offset per island).
+- **Turn.** The West Campus apartment islet does Monument Valley quarter turns
+  with a small wind-up and settle. A worker draws it on an OffscreenCanvas,
+  so main-thread work cannot stall it either. Tune it in `TURN`
+  (`on: false` keeps it still). It starts in `startTurn()` from `build()`
+  and stops within a second of the veil being removed.
+- **Fallbacks.** Reduced motion: nothing moves, and the still SVG islet shows.
+  No OffscreenCanvas, or a blocked worker: the islands float and the islet
+  stays still.
+- **Checked** (the real page from this branch, the city blocked, software GL):
+  the still picture matches main except about 1 px of edge smoothing where the
+  layers are cut; the islet on the canvas matches the SVG islet at rest; the
+  phone layout does not move; no page errors; the worker stops after the veil
+  goes. `harness-drift.mjs` passes. Not yet run: `loader-check.mjs` on a full
+  cold load (the one GPU slot was busy with the turn-lag work).
+- **Where the art comes from.** The layers are generated, not hand edited: the
+  generator is outside the repo in the loading-screen scratch folder
+  (`art/motion-gen.mjs`, `heroArt(..., PARTS = true)`). Regenerate
+  `ART_LAYERS` and `ART_BOX` together if the drawing changes.
+
 ## Sep 28 2026 - The owner-approved loading screen is live (`claude/loading-screen`, PR #333, merged; carries #321)
 
 The loading screen now shows the drawing and words the owner approved: the UT
