@@ -108,9 +108,9 @@
   // How each island floats: lift in drawing units (the drawing is 680 wide),
   // seconds for one rise, and a start offset so no two move in step.
   const FLOAT = {
-    main: { lift: 1.2, rise: 3.4, delay: 0 },    // the big island: heaviest, slowest, smallest
-    west: { lift: 2.6, rise: 2.5, delay: -1.1 }, // West Campus islet
-    city: { lift: 2.0, rise: 2.9, delay: -2.2 }   // downtown islet
+    main: { lift: 6, rise: 3.4, delay: 0 },      // the big island: heaviest, slowest
+    west: { lift: 4, rise: 2.5, delay: -1.1 },   // West Campus islet
+    city: { lift: 7, rise: 2.9, delay: -2.2 }    // downtown islet
   };
   // The West Campus islet's quarter turns, in seconds: one turn, the rest
   // between turns, the longer rest at home, and the overshoot (0 = none).
@@ -118,6 +118,15 @@
   const TURN = { on: true, time: 1.25, hold: 1.7, holdHome: 3.8, back: 0.55 };
   // slowAfter*: seconds after which the time line switches from estimate.usual
   // to estimate.slow (phones load slower).
+  // The seconds on the time line count on the compositor, like the floating
+  // islands, so a busy page cannot stall them. Measured 2026-09-28 on a cold
+  // desktop load: the main thread was blocked for 20-27 s of a 30-36 s load,
+  // once for 4.9 s straight, and the old text only changed when it was free,
+  // so the count jumped 4-5 s at a time. Two digit wheels (tens, ones) step
+  // with a transform animation started at the loader's own start time. Past
+  // `max` seconds, or without Web Animations on pseudo-elements, the plain
+  // number shows instead. on: false = the old text.
+  const CLOCK = { on: true, max: 99 };
   const TUNE = { slowAfterDesktop: 40, slowAfterPhone: 50, pollMs: 600,
     weights: { map: 20, data: 20, models: 45, light: 5, reveal: 10 } };
   const t = (key, vars) => String(COPY[key] ?? '').replace(/\{(\w+)\}/g, (m, n) => vars && n in vars ? vars[n] : m);
@@ -134,7 +143,7 @@
     ['walk',{walk:'1'}]
   ].map(([id,params]) => [id, t('mode.'+id+'.title'), t('mode.'+id+'.desc'), params]);
   const files = new Map();
-  let graph = 'optional', sceneReady = false, revealed = false, timer, root, dialog, opener;
+  let graph = 'optional', sceneReady = false, revealed = false, timer, root, dialog, opener, clock = null;
   // shown: the highest reading so far. The measurement can dip (new data files are
   // discovered mid-load; the opening camera re-requests tiles under the veil, -10),
   // so the bar holds its best reading while the stage list shows the real state.
@@ -165,12 +174,48 @@
     const percent = Math.floor(w.map*((mapReady||sceneReady)?(tiles?1:.5):0)+w.data*data+w.models*models+w.light*(light?1:0)+w.reveal*(revealed&&complete&&state.complete?1:0));
     return {total,built,tiles,off,models,dataDone,dataTotal:values.length,errors,light,complete,percent};
   }
+  // #load-estimate holds [pre][wheels][number][post]; its textContent is still
+  // exactly the copy line ("12s in. Beats sitting on I-35."), because the
+  // wheels draw their digits in ::before and carry no text of their own. The
+  // number span is what a screen reader reads; it is only hidden from sight
+  // while the wheels are running.
+  function setEstimate(line, secs) {
+    const p = root.querySelector('#load-estimate'), [pre, post = ''] = line.split('\u0000');
+    if (clock && secs > CLOCK.max) { clock.forEach(a => a.cancel()); clock = null; p.classList.remove('odo'); }
+    for (const [sel, text] of [['.load-pre', pre], ['.load-num', String(secs)], ['.load-post', post]]) {
+      const el = p.querySelector(sel); if (el.textContent !== text) el.textContent = text;
+    }
+  }
+  function startClock() {
+    const p = root.querySelector('#load-estimate'), odo = p.querySelector('.load-odo');
+    if (!CLOCK.on || typeof odo.animate !== 'function') return;
+    const [tens, ones] = odo.children, strip = [{ transform: 'translateY(0)' }, { transform: 'translateY(-100%)' }];
+    const run = (el, pseudo, frames, duration, opts) => {
+      const a = el.animate(frames, { duration, pseudoElement: pseudo, ...opts });
+      a.startTime = state.started;   // the loader's clock, not whenever the page is next free
+      return a;
+    };
+    // Show the wheels BEFORE animating them: an animation aimed at a ::before
+    // that does not exist yet (display:none parent) never attaches to it.
+    p.classList.add('odo'); void getComputedStyle(ones, '::before').transform;
+    try {
+      clock = [
+        run(ones, '::before', strip, 10000, { iterations: Infinity, easing: 'steps(10, end)' }),
+        run(tens, '::before', strip, 100000, { easing: 'steps(10, end)', fill: 'forwards' }),
+        // The tens wheel is blank until 10 s; slide the run left over it so
+        // "5s" does not start one digit in.
+        run(p.querySelector('.load-run'), undefined, [{ transform: 'translateX(-1ch)' }, { transform: 'none' }], 10000, { easing: 'steps(1, end)', fill: 'forwards' })
+      ];
+      // A browser without pseudo-element animation would move the whole wheel.
+      if (clock[0].effect.pseudoElement !== '::before') throw new Error('no pseudo-element animation');
+    } catch (e) { clock?.forEach(a => a.cancel()); clock = null; p.classList.remove('odo'); }
+  }
   function update() {
     if (!root) return;
     const r = readings();
     const elapsed = (performance.now()-state.started)/1000;
     const slowAfter = matchMedia('(pointer:coarse)').matches ? TUNE.slowAfterPhone : TUNE.slowAfterDesktop;
-    const estimate = t(elapsed < slowAfter ? 'estimate.usual' : 'estimate.slow', {elapsed: Math.floor(elapsed)});
+    const estimate = t(elapsed < slowAfter ? 'estimate.usual' : 'estimate.slow', {elapsed: '\u0000'});
     const rows = [
       [t('stage.map.name'),t(r.tiles?'stage.map.ready':sceneReady?'stage.map.drawing':'stage.map.style')],
       [t('stage.data.name'),t('stage.data.count',{done:r.dataDone,total:r.dataTotal})+(r.errors?t('stage.data.errors'):'')],
@@ -188,7 +233,7 @@
     const bar = root.querySelector('[role=progressbar]');
     bar.setAttribute('aria-valuenow',shown);
     bar.querySelector('i').style.transform='scaleX('+shown/100+')';
-    root.querySelector('#load-estimate').textContent=estimate;
+    setEstimate(estimate, Math.floor(elapsed));
     root.querySelector('#load-stages').replaceChildren(...rows.map(([name,value])=>{
       const row=document.createElement('div'), n=document.createElement('span'), v=document.createElement('span');
       n.textContent=name;v.textContent=value;row.append(n,v);return row;
@@ -411,7 +456,7 @@
     const veil=document.getElementById('veil'); if(!veil)return;
     veil.replaceChildren();veil.classList.add('loading-v2');veil.removeAttribute('aria-hidden');
     root=document.createElement('section');root.id='load-city';
-    root.innerHTML=`<div class="load-story"><p class="load-eyebrow">${h('story.eyebrow')}</p><h1>${h('story.headline')}</h1><p class="load-subtitle">${h('story.subtitle')}</p>${cityArt()}<p class="load-caption">${h('story.caption')}</p></div><div class="load-card"><div class="load-heading"><h2>${h('card.title')}</h2><span id="load-percent">0%</span></div><div class="load-rail" role="progressbar" aria-label="${h('card.progress_aria')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="load-estimate"></p><div id="load-stages"></div><div class="load-choice"><h3>${h('choice.title')}</h3><p>${h('choice.body')}</p><button type="button" id="load-modes">${h('choice.button')}</button><small>${h('choice.fine')}</small></div></div><footer>${h('story.footer')}</footer>`;
+    root.innerHTML=`<div class="load-story"><p class="load-eyebrow">${h('story.eyebrow')}</p><h1>${h('story.headline')}</h1><p class="load-subtitle">${h('story.subtitle')}</p>${cityArt()}<p class="load-caption">${h('story.caption')}</p></div><div class="load-card"><div class="load-heading"><h2>${h('card.title')}</h2><span id="load-percent">0%</span></div><div class="load-rail" role="progressbar" aria-label="${h('card.progress_aria')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="load-estimate"><span class="load-pre"></span><span class="load-run"><span class="load-odo" aria-hidden="true"><i></i><i></i></span><span class="load-num"></span><span class="load-post"></span></span></p><div id="load-stages"></div><div class="load-choice"><h3>${h('choice.title')}</h3><p>${h('choice.body')}</p><button type="button" id="load-modes">${h('choice.button')}</button><small>${h('choice.fine')}</small></div></div><footer>${h('story.footer')}</footer>`;
     veil.append(root);
     startTurn(root.querySelector('.mvh-stack'));
     const button=document.createElement('button');button.id='mode-launcher';button.textContent=t('pill.ready');button.hidden=true;button.type='button';button.addEventListener('click',openModes);document.body.append(button);
@@ -433,7 +478,7 @@
     dialog.addEventListener('keydown',e=>e.stopPropagation());dialog.addEventListener('pointerdown',e=>e.stopPropagation());
     dialog.addEventListener('close',()=>{const target=opener?.isConnected?opener:button;if(!target.hidden)target.focus();});
     document.body.append(dialog);root.querySelector('#load-modes').addEventListener('click',openModes);
-    update();timer=setInterval(update,TUNE.pollMs);
+    startClock();update();timer=setInterval(update,TUNE.pollMs);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();

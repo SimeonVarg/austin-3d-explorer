@@ -2160,6 +2160,13 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .load-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.load-heading h2{font-size:17px;font-weight:600}#load-percent{color:var(--load-accent);font-variant-numeric:tabular-nums}
 .load-rail{height:5px;background:var(--load-border);border-radius:5px;overflow:hidden;margin:18px 0 12px}.load-rail i{display:block;height:100%;background:var(--load-accent);transform:scaleX(0);transform-origin:left;transition:transform .2s}
 #load-estimate{font-size:12px;color:var(--load-muted);margin-bottom:24px}
+#load-estimate .load-run{display:inline-block}
+#load-estimate .load-odo{display:none}
+#load-estimate.odo .load-odo{display:inline-flex;font-variant-numeric:tabular-nums}
+#load-estimate.odo .load-num{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#load-estimate .load-odo i{display:block;width:1ch;height:1lh;overflow:hidden;font-style:normal}
+#load-estimate .load-odo i::before{display:block;white-space:pre;content:"0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
+#load-estimate .load-odo i:first-child::before{content:"\00a0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"}
 #load-stages{display:grid;gap:15px;font-size:12px}#load-stages>div{display:flex;justify-content:space-between;gap:12px}#load-stages>div span:last-child{color:var(--load-muted);text-align:right}
 .load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
 #load-modes,.mode-go{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
