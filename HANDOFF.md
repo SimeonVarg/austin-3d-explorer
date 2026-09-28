@@ -18,6 +18,14 @@ maybe a rotation. This branch does both. It is taste, so it waits for his yes.
 - **Fallbacks.** Reduced motion: nothing moves, and the still SVG islet shows.
   No OffscreenCanvas, or a blocked worker: the islands float and the islet
   stays still.
+- **The schedule privacy guard.** With walking directions on and a class
+  schedule saved, `js/wayfind.js` refuses every worker message it cannot read,
+  and a transferred canvas is one. CI caught it (`img-import.mjs`: the refused
+  message threw inside `build()`). `startTurn()` now asks
+  `WAYFIND.store.guard.state().watched` first and keeps the islet still when a
+  schedule is saved, so the guard never trips (`blocked: 0`); a try/catch
+  round the message is the backstop. Do not route around the guard to get
+  the turn back for those users.
 - **Checked** (the real page from this branch, the city blocked, software GL):
   the still picture matches main except about 1 px of edge smoothing where the
   layers are cut; the islet on the canvas matches the SVG islet at rest; the

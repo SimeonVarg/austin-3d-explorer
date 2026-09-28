@@ -247,7 +247,8 @@
   }
   // ---- The West Campus islet's quarter turns. A worker draws it on an
   // OffscreenCanvas, so the city's loading work cannot stall it. No
-  // OffscreenCanvas, TURN.on false, or reduced motion: the still SVG islet stays.
+  // OffscreenCanvas, TURN.on false, reduced motion, or a class schedule saved
+  // on the device (see startTurn): the still SVG islet stays.
   // The drawing's projection: screen units per metre, and where the Tower stands.
   const ART_PROJ = { u: 1.2, X0: 398, Y0: 214 };
   // The islet in drawing metres (i east, j south, z up), as the drawing builds it.
@@ -375,6 +376,11 @@
     const wrap = stack && stack.querySelector('.mvh-west');
     if (!wrap || !TURN.on || !('transferControlToOffscreen' in HTMLCanvasElement.prototype)) return null;
     if (opt.freeze == null && matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    // The schedule privacy guard (js/wayfind.js) refuses any worker message it
+    // cannot read while a class schedule is saved, and a canvas is one. Ask it
+    // first instead of tripping it: with a schedule saved, the islet stays still.
+    const guard = window.WAYFIND && WAYFIND.store && WAYFIND.store.guard;
+    if (guard && guard.state && guard.state().watched) return null;
     const vb = wrap.querySelector('svg').viewBox.baseVal, box = [vb.x, vb.y, vb.width, vb.height];
     const cv = document.createElement('canvas');
     cv.className = 'mvh-turn';
@@ -389,7 +395,10 @@
       glow: ART.glow, door: ART.door, accent: ART.accent, routeWalk: parseFloat(ART['route-walk']) };
     const path = stack.querySelector('.mvh-main .route .w0');
     const walk0 = path && path.getAnimations ? ((path.getAnimations()[0] || {}).currentTime || 0) / 1000 : 0;
-    w.postMessage({ canvas: off, model: turnModel(), proj: ART_PROJ, turn: TURN, box, pal, freeze: opt.freeze, walk0, ...size() }, [off]);
+    // if the message is refused anyway, the still islet stays and the rest of
+    // the loading screen still builds
+    try { w.postMessage({ canvas: off, model: turnModel(), proj: ART_PROJ, turn: TURN, box, pal, freeze: opt.freeze, walk0, ...size() }, [off]); }
+    catch (e) { w.terminate(); cv.remove(); return null; }
     let atDone = null;
     w.onmessage = e => { if (e.data === 'at') { if (atDone) atDone(); return; } wrap.classList.add('turning'); };
     const ro = new ResizeObserver(() => w.postMessage(size())); ro.observe(cv);
