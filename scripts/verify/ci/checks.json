@@ -240,6 +240,7 @@
     "where-time-goes.mjs": "timing breakdown, exits 0",
     "places-lowpass-cost.mjs": "timing",
     "turnmeter.mjs": "timing (frame intervals while turning, hardware GL, headed), exits 0",
+    "atlas-worker-pm.mjs": "correctness, but needs a GPU: turns through ~1,300 new tiles in headed hardware GL. CI covers the same code with facade-atlas-memory.mjs (both worker halves, in a vm) and the 10-view picture check",
     "moire-fps.mjs": "timing: an interleaved frame-time A/B in headed hardware Chrome, vsync off"
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
