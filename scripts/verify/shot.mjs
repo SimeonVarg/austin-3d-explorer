@@ -167,6 +167,20 @@ for (const s of SHOTS) {
     m.once('idle', r);
     setTimeout(r, 15000);
   }));
+  // The shadow casters are rebuilt in slices after the camera stops
+  // (js/city-lighting.js PROXY_PACE). On a software renderer that build can
+  // still be running here, and a shot then shows the previous view's far
+  // shadows: CI pictures moved 0.01-0.07 % of pixels on a random 2-3 day views
+  // per run, a different few each run. Wait for the build (MapLibre's idle
+  // cannot see it). A page without the flag passes straight through.
+  const proxyBuilding = () => !!(window.CityLighting && window.CityLighting.stats &&
+    window.CityLighting.stats.shadowProxyBuilding);
+  if (await page.evaluate(proxyBuilding)) {
+    const t0 = Date.now();
+    await page.waitForFunction(() => !(window.CityLighting.stats.shadowProxyBuilding), null,
+      { timeout: 60000, polling: 100 }).catch(() => {});
+    console.log(`shadow-proxy build still running at ${s.name}: waited ${Date.now() - t0} ms`);
+  }
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
   const file = path.join(outDir, `${OUT}-${s.name}.png`);

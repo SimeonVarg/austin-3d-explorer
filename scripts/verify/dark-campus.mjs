@@ -113,6 +113,9 @@ try {
   }, BREAK);
   // 1. The proxy leaves out what buildings-3d hides.
   await page.evaluate(() => new Promise(r => { __map.fire('moveend'); __map.triggerRepaint(); setTimeout(() => { __map.triggerRepaint(); setTimeout(r, 1500); }, 600); }));
+  // Since 2026-09-28 the rebuild runs in slices (PROXY_PACE.budgetMs): wait
+  // for it to land, or a stale count from the previous proxy is read.
+  await page.waitForFunction(() => !window.CityLighting.stats.shadowProxyBuilding, null, { timeout: 60000 });
   const proxy = await page.evaluate(() => ({ hidden: window.CityLighting.stats.shadowProxyHidden, failures: window.CityLighting.stats.failures.slice(0, 3) }));
   check(proxy.hidden > 0 && !proxy.failures.length, `shadow proxy leaves out ${proxy.hidden} hidden legacy prisms (failures: ${JSON.stringify(proxy.failures)})`);
 
