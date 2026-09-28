@@ -60,6 +60,63 @@ CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
 
+### CI: the checks on every pull request
+
+`.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
+for every pull request, and by hand from the Actions tab ("Run workflow",
+optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
+checkout, runs the checks one at a time per machine across 8 Linux machines
+on SwiftShader, and keeps **one comment** on the pull request up to date. The
+check "Visual checks / summary" is red if any check did not pass. It never
+pushes and holds no secret. Timing is not measured there. It is advisory:
+nothing requires it to be green before a merge, and nobody should merge red.
+
+Reading the comment, top to bottom:
+
+- **Not passing** — each check that failed, timed out or could not run, the
+  line of its output that says why, and a link to its shard's download: the
+  full log and every picture the check wrote.
+- **Pictures, before and after** — the ten views in `ci/poses.json`, shot from
+  the base branch, from the pull request, and from the base branch again. A
+  view is **changed** when more than 0.05% of its pixels moved AND that is over
+  three times what the base branch moves against itself ("same page shot
+  twice"). Name labels are OFF in these shots (`?namelabels=0`, `LOOK.shotQuery`
+  in `ci/pictures.mjs`): since #326 the labels choose what to show from timing
+  and from what they showed a moment ago, and two loads of main differed by up
+  to 5.8% of a view. With them off, main against itself is 0%. Download the
+  side-by-sides and open
+  `index.html`: before | after | moved pixels in magenta, per view. Pictures
+  never turn the run red: a visible change is usually the point of the pull
+  request. They are there to look at.
+- **Not run here** — quarantined checks and why, the timing scripts (laptop
+  only), and the tools that have no verdict to give.
+- **Graphics probes** — the renderer Chrome gets and the frames per second the
+  city draws, on the Linux runner and on a macOS runner, with screenshots.
+
+**Why so much is quarantined: the runners have no GPU and are slow at
+software rendering.** Measured 2026-09-27 at the spawn view: SwiftShader draws
+**0.2-0.6 frames a second** on a 4-core Linux runner (3.7 on the laptop),
+0.16 on Windows. Every single-frame pixel check is fine and reproduces the
+laptop's own numbers exactly; anything that needs the camera to move or the
+scene to settle inside its own 60 s window cannot. Those are quarantined as
+"needs a GPU". A macOS runner does have one: full Chrome gets **Apple's
+paravirtual Metal GPU at 22-34 frames a second** — the place for them, later.
+CI gives Playwright's own waits more room (`ci/slow-machine.mjs`): its 30 s
+default becomes 180 s and a load/wait timeout a script names is tripled. No
+assertion, threshold or in-page timer is touched. The one retry is for Chrome
+failing to capture a screenshot at all, and the comment says when it happened.
+
+**What runs is `ci/checks.json`.** Every top-level `*.mjs` here runs unless it
+is listed there under `quarantine`, `laptop_only`, `tools` or `harness`, each
+with a reason. So a new check is covered the day it lands, and leaving one out
+is a visible line. Arguments (`{out}` becomes the script's own artifact folder)
+and ceilings go in its `run` entry. To bring a quarantined check back, fix it,
+delete its line, and let the pull request's run show it green.
+
+Reproduce one shard's way of running a check locally (it never reaps browsers
+outside CI): `VERIFY_URL=http://127.0.0.1:8442 node ci/run-checks.mjs --only
+sky.mjs --out <scratch>`.
+
 ### The core gates
 
 ```bash

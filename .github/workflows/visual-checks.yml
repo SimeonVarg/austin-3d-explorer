@@ -1,0 +1,377 @@
+# Visual checks: the scripts/verify suite, on GitHub's machines, on every pull request.
+#
+# WHAT IT DOES. Serves the pull request's site locally, runs every check in
+# scripts/verify that can go red (sharded across the machines checks.json's
+# "shards" names, 8 today, one browser per machine, software-rendered so
+# exact-pixel assertions stay deterministic),
+# photographs a fixed set of views before and after the change, probes what
+# graphics each runner image gives Chrome, and keeps ONE comment on the pull
+# request up to date: what failed and why, what changed in the pictures, and
+# links to every log and picture.
+#
+# WHAT IT NEVER DOES. It never pushes, never commits, and holds no secret. The
+# token is GITHUB_TOKEN, read-only everywhere except the summary job, which may
+# also write the one PR comment and read this run's artifact list. Checkouts do
+# not keep credentials. GitHub-hosted runners only.
+#
+# WHICH CHECKS, ON WHICH MACHINE: scripts/verify/ci/checks.json. Everything runs
+# unless it is listed there as quarantined (with the reason), timing (laptop
+# only), a tool with no verdict, or harness machinery. How to read the results:
+# scripts/verify/README.md, "CI: the checks on every pull request".
+#
+# THE DATA BOTS. build-data.yml, build-tiles.yml and fetch-reference-imagery.yml
+# commit to the branch that triggered them. This workflow triggers none of them
+# and touches none of their paths; it does not run on push at all.
+
+name: Visual checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - 'docs/**'
+      - 'shots/**'
+      - 'research/**'
+      - '*.md'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Run only these checks, comma-separated (e.g. sky.mjs,dusk.mjs). Empty runs the whole suite.'
+        required: false
+        default: ''
+      before:
+        description: 'Pictures: the ref to compare against'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  VERIFY_URL: http://127.0.0.1:8442
+  PORT: '8442'
+  # Playwright's own waits get more time: its 30 s default becomes 180 s, and a
+  # timeout a script names for the page to load or get somewhere is tripled.
+  # A 4-core runner draws the city in software at 0.2-0.4 frames a second.
+  # No assertion, threshold or in-page timer changes: scripts/verify/ci/slow-machine.mjs.
+  PW_DEFAULT_TIMEOUT_MS: '180000'
+  PW_WAIT_SCALE: '3'
+  BEFORE_REF: ${{ github.event.pull_request.base.sha || github.event.inputs.before || 'main' }}
+  BEFORE_LABEL: ${{ github.event.pull_request.base.ref || github.event.inputs.before || 'main' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+      verdict_os: ${{ steps.m.outputs.verdict_os }}
+      pictures_os: ${{ steps.m.outputs.pictures_os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: m
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          if [ -n "$ONLY" ]; then o=(--only "$ONLY"); else o=(); fi
+          echo "matrix=$(node scripts/verify/ci/run-checks.mjs --matrix "${o[@]}")" >> "$GITHUB_OUTPUT"
+          node scripts/verify/ci/run-checks.mjs --config >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+          node scripts/verify/ci/run-checks.mjs --list | node -e "
+            let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);
+            console.log(j.run.length+' checks run, '+Object.keys(j.excluded).length+' excluded, missing from disk: '+(j.missing.join(', ')||'none'))})"
+
+  checks:
+    needs: plan
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # Some checks compare against an older commit with `git show`:
+          # full history, but each file's contents only when asked for.
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: scripts/verify/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the harness (playwright-core only; it drives the runner's own Chrome)
+        run: |
+          npm ci --prefix scripts/verify --no-audit --no-fund
+          # stadium-roof-filter.mjs measures its polygons with shapely.
+          python -m pip install --quiet shapely
+      - name: Serve this checkout like GitHub Pages does, and run this shard's checks
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+          SHARD: ${{ matrix.shard }}
+        # Output goes OUTSIDE the checkout: some scripts refuse a scratch
+        # folder inside the repository. xvfb gives headed scripts a display on
+        # Linux; Windows and macOS have one.
+        run: |
+          python scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:8442/index.html
+          if [ "$SHARD" = "only" ]; then args=(--only "$ONLY"); else args=(--shard "$SHARD"); fi
+          wrap=(); if [ "$RUNNER_OS" = "Linux" ]; then wrap=(xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"); fi
+          "${wrap[@]}" node scripts/verify/ci/run-checks.mjs "${args[@]}" --out "$RUNNER_TEMP/ci-out"
+      - name: Upload results (small, read by the summary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.os }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/ci-out/results
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload logs and pictures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-${{ matrix.os }}-shard-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/ci-out/logs
+            ${{ runner.temp }}/ci-out/pictures
+          retention-days: 14
+          if-no-files-found: warn
+
+  # The same ten views from the base branch and from this change. One frame
+  # takes seconds in software, so the three shoots run on three machines at
+  # once: before, after, and before again (the noise floor).
+  pictures-shoot:
+    needs: plan
+    runs-on: ${{ needs.plan.outputs.pictures_os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        side: [before, after, again]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      # "Before" is the commit this pull request's merge was built on (the
+      # merge commit's first parent), NOT the event's base.sha: that one goes
+      # stale when main moves, and then everything main changed in the
+      # meantime reads as this pull request's doing (it happened: a label
+      # restyle that landed on main mid-run showed up in all ten views).
+      - name: Which commit is "before"
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then rev=$(git rev-parse HEAD^1); else rev="$BEFORE_REF"; fi
+          echo "rev=$rev" >> "$GITHUB_OUTPUT"
+          echo "before = $rev, after = $(git rev-parse HEAD)"
+      - name: Check out the base branch to serve as "before"
+        if: matrix.side != 'after'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ steps.base.outputs.rev }}
+          path: before-site
+          sparse-checkout: |
+            /*
+            !/shots/
+            !/docs/
+            !/research/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: scripts/verify/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - name: Serve and photograph
+        env:
+          SIDE: ${{ matrix.side }}
+        run: |
+          site=.; if [ "$SIDE" != "after" ]; then site=before-site; fi
+          rev=$(git -C "$site" rev-parse HEAD)
+          python scripts/serve.py 8442 "$site" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+          node scripts/verify/ci/pictures.mjs --shoot "$SIDE" --url http://127.0.0.1:8442 --rev "$rev" --out "$RUNNER_TEMP/pictures"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures-raw-${{ matrix.side }}
+          path: ${{ runner.temp }}/pictures
+          retention-days: 3
+          if-no-files-found: warn
+
+  pictures:
+    needs: [plan, pictures-shoot]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ${{ needs.plan.outputs.pictures_os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: scripts/verify/package-lock.json
+      - run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pictures-raw-*
+          path: ${{ runner.temp }}/pictures
+          merge-multiple: true
+      - name: Compare, and draw the side-by-sides
+        continue-on-error: true
+        run: node scripts/verify/ci/pictures.mjs --compare --label "$BEFORE_LABEL" --out "$RUNNER_TEMP/pictures"
+      - name: Upload the report (small, read by the summary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures-report
+          path: ${{ runner.temp }}/pictures/pictures.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload the side-by-sides
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures-before-after
+          path: |
+            ${{ runner.temp }}/pictures/index.html
+            ${{ runner.temp }}/pictures/pictures.json
+            ${{ runner.temp }}/pictures/*.jpg
+            ${{ runner.temp }}/pictures/*.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  # A probe, not a check: which WebGL renderer Chrome gets on each runner image
+  # and how many frames a second the city draws with it. The macOS runner is
+  # here to find out whether full Chrome gets a real GPU there.
+  probe:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: mac, os: macos-latest, modes: 'headed,hw,swiftshader' }
+          - { name: linux, os: ubuntu-latest, modes: 'swiftshader' }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/shots/
+            !/docs/
+            !/research/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci --prefix scripts/verify --no-audit --no-fund
+      - name: Which WebGL renderer does Chrome get here, and how fast does the city draw?
+        run: |
+          if command -v python >/dev/null; then py=python; else py=python3; fi
+          $py scripts/serve.py 8442 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8442/index.html && break; sleep 1; done
+          node scripts/verify/ci/gpu-probe.mjs --modes '${{ matrix.modes }}' --out "$RUNNER_TEMP/probe"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-probe
+          path: ${{ runner.temp }}/probe
+          retention-days: 14
+          if-no-files-found: warn
+
+  summary:
+    needs: [plan, checks, pictures, probe]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read          # list this run's artifacts, for the links in the comment
+      pull-requests: write   # post or update the one summary comment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-${{ needs.plan.outputs.verdict_os }}-shard-*
+          path: in/results
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: pictures-report
+          path: in/pictures
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: '*-probe'
+          path: in/probes
+      - name: List this run's artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate \
+            --jq '.artifacts[] | {id, name} | tojson' > in/artifacts.jsonl
+          wc -l < in/artifacts.jsonl
+      - name: Write the report
+        id: report
+        run: |
+          set +e
+          node scripts/verify/ci/summary.mjs --results in/results --pictures in/pictures \
+            --probe mac=in/probes/mac-probe --probe linux=in/probes/linux-probe --probe windows=in/probes/windows-probe \
+            --os "${{ needs.plan.outputs.verdict_os }}" --artifacts in/artifacts.jsonl \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --sha "${{ github.event.pull_request.head.sha || github.sha }}" --out summary.md > /dev/null
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Post or update the one comment on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          id=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+                 --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- visual-checks-summary -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -F body=@summary.md > /dev/null
+            echo "updated comment $id"
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$PR/comments" -F body=@summary.md > /dev/null
+            echo "posted a new comment"
+          fi
+      - name: Red if any check did not pass
+        run: exit ${{ steps.report.outputs.code }}
