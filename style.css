@@ -180,7 +180,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 /* ── ?clip=1: cinematic capture — scene only. Attribution stays (license). */
 .clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,
 .clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast,
-.clip #fb-button,.clip #fb-panel{display:none!important}
+.clip #fb-button,.clip #fb-panel,.clip #mode-launcher{display:none!important}
 
 /* ── ?timelapse=1 — chrome-free like clip, EXCEPT the time column, which is
    the point of the shot: the knob has to be seen travelling from sunset to
@@ -307,6 +307,12 @@ html.timelapse #tod-slider{pointer-events:none}
 /* controls.js adds .flying after 200ms of genuine camera input and removes it
    again after 4s idle, so the hint always comes back. */
 body.flying #controls-hint{opacity:0}
+/* The hint sits centred on the bottom row and the map credit sits at the
+   right of it, so once the screen is narrower than about hint + 2 x credit
+   (the desktop hint is ~560px, the credit ~310px with its margin) the two
+   overlap. Below that width the hint moves up one credit row (the same 42px
+   the "Switch modes" pill uses). Phones have their own rule further down. */
+@media(min-width:521px) and (max-width:1200px){#controls-hint{bottom:42px}}
 body.flying #hud{opacity:.35}
 
 /* The side panels used to be `pointer-events:none` for the whole of `.flying`,
@@ -2158,9 +2164,21 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .load-choice{border-top:1px solid var(--load-border);margin-top:25px;padding-top:22px}.load-choice h3{font-size:16px}.load-choice p{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 18px}
 #load-modes,.mode-go{border:0;border-radius:9px;background:var(--load-accent);color:#202225;padding:14px 16px;font-weight:650;font-size:14px;cursor:pointer;width:100%}.load-choice small{display:block;font-size:11px;color:var(--load-muted);margin-top:12px;text-align:center}
 #load-city footer{grid-column:1/-1;font-size:11px;color:var(--load-muted);letter-spacing:.06em}
-#mode-launcher{position:fixed;right:16px;bottom:18px;z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
+/* "Switch modes" never covers the map credit (a licence requirement) or the
+   touch controls. On a desktop it sits one credit row up: the credit's 10px
+   margin + its 24px bar + 8px of air. Wherever the stick and BOOST show, it
+   clears them the way every bottom sheet does (--drive-clear). */
+:root{--launcher-bottom:42px}
+@media(max-width:1024px){:root{--launcher-bottom:var(--drive-clear)}}
+html.has-touch{--launcher-bottom:var(--drive-clear)}
+/* A phone on its side has no room above BOOST (the time-of-day slider fills
+   that edge), so the pill goes small and sits just over the credit, under
+   BOOST: the credit row is 34px, plus 6px of air. */
+@media(max-height:520px){:root,html.has-touch{--launcher-bottom:40px}}
+#mode-launcher{position:fixed;right:16px;bottom:var(--launcher-bottom);z-index:59;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:24px;padding:12px 18px;cursor:pointer;box-shadow:0 4px 20px #0005}#mode-launcher[hidden]{display:none}
+@media(max-height:520px){#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 #mode-dialog{margin:auto;width:min(710px,94vw);max-height:90dvh;overflow:auto;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-bg);color:var(--load-ink);padding:26px;box-shadow:0 20px 70px #0008}#mode-dialog::backdrop{background:#050d14c9}.mode-header{display:flex;align-items:center;justify-content:space-between;gap:15px}.mode-header h2{font-size:24px}.mode-header button{font-size:27px;color:var(--load-ink);border:0;background:none;width:44px;height:44px;cursor:pointer}.mode-intro{font-size:13px;color:var(--load-muted);line-height:1.5;margin:10px 0 20px}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mode-option{display:flex;align-items:start;gap:10px;padding:14px;border:1px solid var(--load-border);border-radius:10px;cursor:pointer}.mode-option:has(input:checked){border-color:var(--load-accent);background:var(--load-panel)}.mode-option input{margin-top:3px;accent-color:var(--load-accent)}.mode-option strong{display:block;font-size:14px}.mode-option small{display:block;color:var(--load-muted);font-size:12px;line-height:1.5;margin-top:6px}.mode-settings{display:flex;gap:16px;margin:20px 0}.mode-settings label{flex:1;font-size:12px;color:var(--load-muted)}.mode-settings select{display:block;width:100%;background:var(--load-panel);color:var(--load-ink);border:1px solid var(--load-border);border-radius:6px;padding:10px 6px;margin-top:7px}#mode-dialog :focus-visible,#load-city :focus-visible,#mode-launcher:focus-visible{outline:2px solid var(--load-accent);outline-offset:4px}
 .load-route{animation:load-route-pulse 2.5s ease-in-out infinite}@keyframes load-route-pulse{50%{opacity:.35}}
-@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-height:160px;margin:0 auto}.load-caption{font-size:8px;text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:10px}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{bottom:90px;right:10px;padding:10px 14px;font-size:12px}}
+@media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-height:160px;margin:0 auto}.load-caption{font-size:8px;text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:10px}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){.load-route{animation:none}.load-rail i{transition:none}}
-@media(max-width:650px){#mode-launcher{bottom:18px}.mode-settings select{font-size:16px}}
+@media(max-width:650px){.mode-settings select{font-size:16px}}
