@@ -267,7 +267,14 @@ hand lets go. `--gpu low` for the AMD iGPU, `--gputime` for GPU time per frame,
 the drive and the stop separately), `--video DIR` to record
 (each scenario's `videoAt` is its window in seconds into that recording).
 
-Three traps, all met building it:
+Four traps, all met building it:
+
+- **`--gpu low` can still draw on NVIDIA.** Windows' per-app GPU preference
+  (Settings > Display > Graphics) beats Chrome's `--force_low_power_gpu`, and
+  the installed `chrome.exe` on the owner's laptop is set to High performance.
+  turnmeter now exits 2 when a `--gpu low` run reads an NVIDIA renderer. Run
+  the AMD arm with `CHROME_PATH` pointing at a browser with no preference set
+  (Edge worked; Playwright's own chromium would not spawn on this machine).
 
 - **Headed, vsync off.** With the laptop's screen asleep a headed window gets
   about one frame a second from Chrome, and a headless one stops firing rAF.

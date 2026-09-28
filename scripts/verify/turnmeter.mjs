@@ -254,6 +254,15 @@ async function runArm(arm, rep) {
   }
   await ev(() => { try { window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect(); } catch (e) {} });
   console.log(`[turn ${arm.name}#${rep}] ${res.renderer && res.renderer.renderer} canvas ${res.renderer && res.renderer.canvas} css ${res.renderer && res.renderer.css} dpr ${res.renderer && res.renderer.dpr}`);
+  // Windows' per-app GPU preference beats --force_low_power_gpu: a chrome.exe
+  // set to "High performance" in Settings > Display > Graphics draws on the
+  // NVIDIA chip whatever the flag says. Refuse to label that run "low".
+  if (GPU === 'low' && /NVIDIA/i.test((res.renderer && res.renderer.renderer) || '')) {
+    await ctx.close().catch(() => {}); await browser.__done();
+    console.error(`[turn] --gpu low drew on NVIDIA: this Chrome (${process.env.CHROME_PATH || 'the default'}) has a Windows GPU preference. ` +
+      'Point CHROME_PATH at a Chrome with none, e.g. Playwright\'s %LOCALAPPDATA%\\ms-playwright\\chromium-*\\chrome-win64\\chrome.exe');
+    process.exit(2);
+  }
   // loaded: veil gone, authored buildings built and revealed, tiles in
   const t0 = Date.now();
   for (;;) {

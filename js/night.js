@@ -797,16 +797,21 @@
     const t = (B && typeof B.lamps === 'number') ? B.lamps : Math.max(0, Math.min(1,
       (_lastP - LIGHTS.NIGHT_START) / (LIGHTS.NIGHT_FULL - LIGHTS.NIGHT_START)));
     // LIGHTS.HIDE_WHEN_OFF: a lamp level of 0 hides the layers outright.
+    // Written only when on/off FLIPS (layers added later read state.lampsOn in
+    // addLayers), so anything else that hides the lamps (a test isolating
+    // them, a future toggle) is not overruled on every call of this function.
     const state = generationState(map), on = !(LIGHTS.HIDE_WHEN_OFF && !(t > 0));
-    try {
+    const was = state.lampsOn;
+    let wrote = true;
+    if (was !== on) try {
       for (const id of [POOL, CORE, TPOOL]) {
         if (!map.getLayer(id)) continue;
         const vis = on ? 'visible' : 'none';
         if ((map.getLayoutProperty(id, 'visibility') || 'visible') !== vis) map.setLayoutProperty(id, 'visibility', vis);
       }
-    } catch (err) { /* layers not ready yet */ }
-    const was = state.lampsOn; state.lampsOn = on;
-    if (on && was === false && state.onLampsOn) state.onLampsOn();
+    } catch (err) { wrote = false; /* layers not ready yet: the next call retries */ }
+    if (wrote) state.lampsOn = on;
+    if (wrote && on && was === false && state.onLampsOn) state.onLampsOn();
     try {
       if (map.getLayer(POOL)) {
         // `ob` is the baked core-vs-edge boost. No zoom term here, so wrapping
