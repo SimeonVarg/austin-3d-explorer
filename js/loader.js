@@ -19,8 +19,6 @@
     'story.caption': "THE FORTY ACRES, GIVE OR TAKE",
     // new 2026-09-28 with the island flip, waiting for the owner's look
     'story.flip_aria': "Flip the island over",
-    'story.flip_hint_touch': "Tap the island to flip it.",
-    'story.flip_hint_mouse': "Click the island to flip it.",
     'story.footer': "Built by Simeon Varghese",
     'card.title': "Still building",
     'card.progress_aria': "City loading progress",
@@ -137,10 +135,9 @@
   //   sink: how long the Tower side stays as it turns under (1 = full length).
   //   rise: how tall the apartments are as they come up (1 = full height).
   //   gray: the dark and light ends of the gray the Tower side turns to.
-  //   hint: the one line under the drawing that says it can flip.
   //   on: false = no flip (the island keeps its rock underside).
   const FLIP = { on: true, time: 1.4, depth: 3.2, axis: 262, sink: 0.42, rise: 0.7,
-    gray: ['#1b262d', '#6a767b'], hint: true };
+    gray: ['#1b262d', '#6a767b'] };
   // slowAfter*: seconds after which the time line switches from estimate.usual
   // to estimate.slow (phones load slower).
   // The seconds on the time line count on the compositor, like the floating
@@ -551,7 +548,7 @@
     const veil=document.getElementById('veil'); if(!veil)return;
     veil.replaceChildren();veil.classList.add('loading-v2');veil.removeAttribute('aria-hidden');
     root=document.createElement('section');root.id='load-city';
-    root.innerHTML=`<div class="load-story"><p class="load-eyebrow">${h('story.eyebrow')}</p><h1>${h('story.headline')}</h1><p class="load-subtitle">${h('story.subtitle')}</p>${cityArt()}<p class="load-caption">${h('story.caption')}</p>${canFlip() && FLIP.hint ? `<p class="load-caption load-flip-hint">${h(matchMedia('(hover: hover) and (pointer: fine)').matches ? 'story.flip_hint_mouse' : 'story.flip_hint_touch')}</p>` : ''}</div><div class="load-card"><div class="load-heading"><h2>${h('card.title')}</h2><span id="load-percent">0%</span></div><div class="load-rail" role="progressbar" aria-label="${h('card.progress_aria')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="load-estimate"><span class="load-pre"></span><span class="load-run"><span class="load-odo" aria-hidden="true"><i></i><i></i></span><span class="load-num"></span><span class="load-post"></span></span></p><div id="load-stages"></div><div class="load-choice"><h3>${h('choice.title')}</h3><p>${h('choice.body')}</p><button type="button" id="load-modes">${h('choice.button')}</button><small>${h('choice.fine')}</small></div></div><footer>${h('story.footer')}</footer>`;
+    root.innerHTML=`<div class="load-story"><p class="load-eyebrow">${h('story.eyebrow')}</p><h1>${h('story.headline')}</h1><p class="load-subtitle">${h('story.subtitle')}</p>${cityArt()}<p class="load-caption">${h('story.caption')}</p></div><div class="load-card"><div class="load-heading"><h2>${h('card.title')}</h2><span id="load-percent">0%</span></div><div class="load-rail" role="progressbar" aria-label="${h('card.progress_aria')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="load-estimate"><span class="load-pre"></span><span class="load-run"><span class="load-odo" aria-hidden="true"><i></i><i></i></span><span class="load-num"></span><span class="load-post"></span></span></p><div id="load-stages"></div><div class="load-choice"><h3>${h('choice.title')}</h3><p>${h('choice.body')}</p><button type="button" id="load-modes">${h('choice.button')}</button><small>${h('choice.fine')}</small></div></div><footer>${h('story.footer')}</footer>`;
     veil.append(root);
     startTurn(root.querySelector('.mvh-stack'));
     startFlip(root.querySelector('.mvh-stack'));
