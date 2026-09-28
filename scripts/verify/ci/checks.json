@@ -238,7 +238,8 @@
     "westcampus-perf.mjs": "timing",
     "mobile-memory.mjs": "memory measurement, exits 0",
     "where-time-goes.mjs": "timing breakdown, exits 0",
-    "places-lowpass-cost.mjs": "timing"
+    "places-lowpass-cost.mjs": "timing",
+    "turnmeter.mjs": "timing (frame intervals while turning, hardware GL, headed), exits 0"
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
