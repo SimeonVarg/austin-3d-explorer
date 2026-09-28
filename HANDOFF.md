@@ -28,6 +28,7 @@ maybe a rotation. This branch does both. It is taste, so it waits for his yes.
   generator is outside the repo in the loading-screen scratch folder
   (`art/motion-gen.mjs`, `heroArt(..., PARTS = true)`). Regenerate
   `ART_LAYERS` and `ART_BOX` together if the drawing changes.
+
 ## Sep 28 2026 - Moire while flying: Smooth edges on by default at 1080p on a graphics card, at no frame-time cost (`claude/no-moire`, PR #332, merged Sep 28 as 6a92480, live)
 
 The owner: "main thing im noticing while flying is the moire. its too noticeable."
