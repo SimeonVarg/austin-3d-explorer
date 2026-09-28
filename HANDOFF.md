@@ -1,5 +1,93 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, open, not merged: a reviewer re-checks and ships it)
+
+The owner: "turning is the biggest inducer of lag. please prioritize turning
+while keeping high fps". #334 left one cost named and unfixed: preparing the
+facade atlas of each tile that arrives during a turn. Measured on main
+(NVIDIA, per 6 s turn): the main thread premultiplied every new atlas
+(`premultiplyInto`, 566-783 ms of self time in a profile) and MapLibre copied
+every facade image each new tile asked for, again, for every tile
+(`_getImagesForIds`, 205-410 ms and 150-340 MB of copies, turnmeter
+medians). That was 0.26-1.29 s of every 6 s turn, and most of the hitch right
+after a flick.
+
+**What changed (`js/facades.js`, both halves are switches):**
+1. `ATLAS_WORKER_PM` (`?atlasworkerpm=0` turns it off). A script imported
+   into MapLibre's tile workers premultiplies each atlas in the worker that
+   built it, and tags it; `uploadAtlasFast` uploads a tagged atlas as it is.
+   Main-thread premultiply is now 0 ms in every scenario measured, desktop and
+   phone. On any failure it falls back to the old main-thread path.
+2. `ATLAS_IMAGE_CACHE` (`?atlasimgcache=0`). Each worker keeps the facade
+   images it has been sent (`maxBytesPerWorker` 48 MB, least recently used
+   dropped first) and says which it holds when it asks for images; the page
+   sends a small stub instead of a copy for an image the worker holds at the
+   same version. A changed or re-added image is always sent whole. Main-thread
+   image copies in a turn: 205-410 ms / 150-342 MB per 6 s on main, 2-65 ms /
+   1-36 MB on the branch (NVIDIA medians). Memory cost: up to 48 MB in each of
+   the 4 desktop workers (192 MB at most). **Off on the phone profile**
+   (`offOnPhone`), so the phone's memory budget is not touched.
+3. `?atlaspmcheck=1` makes the page compare every worker-premultiplied atlas
+   and every held image with a fresh main-thread copy, byte for byte.
+
+**Before -> after** (medians of 3 interleaved fresh-load runs per side,
+1280x680 at DPR 1.5, no CPU throttle, vsync off, `cancelGraphicsAutoDetect`
+called; CPU load 0-6 % before each NVIDIA run, 8-48 % before the AMD runs):
+- NVIDIA RTX 3050 Ti: fps up in 9 of 10 scenarios, worst frame down in 7 of
+  10. Campus flick 15.8 -> 17.0 fps, worst 448 -> 254 ms, the hitch after
+  letting go 442 -> 229 ms; campus 120 deg/s 14.3 -> 16.6 fps, worst 360 ->
+  236; campus straight worst 263 -> 143; downtown looks 23.1 -> 30.4 fps,
+  worst 454 -> 177; downtown flick 15.4 -> 18.0 fps. Worse or flat: downtown
+  60 deg/s 15.6 -> 12.2 fps (ranges overlap, 11.1-19.9 vs 12.0-16.4), downtown
+  120 deg/s worst 264 -> 317, downtown flick's after-hitch 173 -> 248, campus
+  looks worst 88 -> 146.
+- AMD Radeon iGPU (Edge via `CHROME_PATH`, `--gpu low`, both sides): worst
+  frame down in 8 of 10, fps up in 6 of 10 (the other 4 down 0.2-1.1 fps).
+  **The #334 regression, campus 120 deg/s right after the first turn:** worst
+  frame 211 -> 170 ms (every branch run 118-191, every main run 200-213), the
+  hitch after letting go 172 -> 137; fps flat, 19.4 -> 18.7 (main's runs
+  spread 12.9-25.6). Campus flick after-hitch 360 -> 188 ms; downtown 60
+  deg/s 21.5 -> 23.6 fps, worst 197 -> 125; downtown flick 14.2 -> 17.8 fps;
+  downtown looks worst 239 -> 115. Worse: campus first turn worst 237 -> 279.
+- Recorded runs (NVIDIA, 3 + 3, campus, the ones the video is cut from):
+  worst frame lower in all four (straight 218 -> 135 ms, first turn 308 ->
+  175, 120 deg/s 191 -> 139, flick 273 -> 173), fps within 2 either way.
+- Load, 5 + 5 interleaved on NVIDIA: veil gone 35.3 s -> 33.1 s median, and
+  every branch run (32.3-33.5 s) beat every main run (34.5-35.7 s).
+- Phone profile (`mobile-memory.mjs`, 3 + 3, 390x844 DPR 3): peak 926 -> 929
+  MB, settled 796 -> 800 MB (minimums; ranges overlap), buildings landed
+  26.0-27.6 s vs 25.8-26.7 s. A phone probe of the branch: worker premultiply
+  on, image cache off, all 395 atlases from workers, 0 ms on the main thread.
+- Not reached: steady turns are still 12-24 fps. What is left of a turning
+  frame is MapLibre's own render, including waits on the GPU, not atlas prep;
+  frames over 50 ms are not fewer, the tallest ones are.
+
+**Checks:** `facade-atlas-memory.mjs` (CI) runs both worker halves in a vm:
+stubs, versions, re-added images, render-callback images, the LRU cap, check
+mode; `--break` and `--break-img` exit 1. `atlas-worker-pm.mjs` (laptop,
+hardware GL; new, listed `laptop_only`) turns the real page through ~1,300
+new tiles, on the branch rebased onto main: 2,194 atlases from workers, 0
+bytes different; 7,424 images sent as stubs (2.8 GB not copied), 4,747 held
+copies compared, 0 bytes different; `--break` and `--break-img` exit 1.
+Stills: CI pictures 0 of 10 views changed against main 16dd455 (no view
+moved more than the same page shot twice), and all 67 CI checks pass,
+`img-import.mjs` included (it saves a schedule, which arms the guard on
+messages to workers). Hardware shots of spawn and stadium move 2,700-4,800 px
+between main and the branch, but 2,000-5,000 px between two runs of main
+itself, in the same places (label edges, shadow edges), none on a facade.
+`turnmeter.mjs` now prints `wpm`, `pm`, `held` and `gi` per scenario
+(README, "Facade atlas prep in MapLibre's workers").
+
+**Traps:** the image stubs rely on MapLibre 5.24 internals (the worker
+actor's `sendAsync`, `Style.getImages`, `ImageManager._getImagesForIds`);
+`supportedAtlasVersion()` turns both halves off on any other version. A stub
+the worker cannot match (it should never happen: the page stubs only what
+that request listed) fails that one request and turns the cache off for the
+rest of the session, rather than drawing a wrong image. With a schedule saved,
+`js/wayfind.js` scans every message to a worker; the stubs make the image
+replies smaller, so it has less to scan, not more. Codex's draft #312 also
+touches `js/facades.js`; it already conflicts with main and was left alone.
+
 ## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, merged 0db4a9a)
 
 The "Switch modes" pill sat on the OpenMapTiles/OpenStreetMap credit at every
