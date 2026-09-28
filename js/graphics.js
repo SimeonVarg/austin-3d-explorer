@@ -341,7 +341,27 @@
   // Union's thin facade details alias during rotation without coverage samples.
   // Verified on the 732x672 desktop framebuffer; retain a bounded default rather
   // than extending that timing result to large displays or the phone profile.
-  const EDGE_SMOOTHING = { maxDefaultPixels: 600000 };
+  //
+  // RAISED 2026-09-28 (claude/no-moire) from 600,000 to cover a 1080p laptop
+  // screen at 150% (1920x1020 framebuffer, 1.96 MP) and 1080p at 100%. The
+  // moire on the flyover is almost all GEOMETRY thinner than a pixel — floor
+  // lines, fins, rails, far road edges — which only coverage samples resolve;
+  // scripts/verify/moire.mjs against a 3x-supersampled truth measured 4x MSAA
+  // cutting it by 40-60% at every flyover pose (spawn 0.575 -> 0.246, downtown
+  // 0.448 -> 0.260), and an interleaved A/B (moire-fps.mjs, 3 reps, RTX 3050 Ti,
+  // 1280x680 @ DPR 1.5, spawn orbit) found no frame-time loss. Screens larger
+  // than this keep the old default: that timing does not extend to 1440p+.
+  //
+  // fillOutlinesWithMSAA: MapLibre draws every `fill` layer (roads, lots,
+  // parks, building shadows, the basemap's far ground) with a gl.LINES outline
+  // one DEVICE pixel wide, its only anti-aliasing. With MSAA the fill's own
+  // edges are already smoothed, and the outline does harm: a road polygon a
+  // third of a pixel wide near the horizon is drawn a whole pixel wide at full
+  // strength, which is the dark stair-stepped web over the far city on the
+  // landing flight. Off under MSAA, that view's moire against the supersampled
+  // truth halves (intro-crest 0.518 -> 0.262, pixels in a visible band 2.05% ->
+  // 0.11%). Without MSAA the outlines stay: there they ARE the edge smoothing.
+  const EDGE_SMOOTHING = { maxDefaultPixels: 2100000, fillOutlinesWithMSAA: false };
   function defaultMSAA(scale) {
     const ratio=(window.devicePixelRatio||1)*scale;
     const pixels=window.innerWidth*window.innerHeight*ratio*ratio;
@@ -566,6 +586,29 @@
     return c.toDataURL();
   }
 
+  // EDGE_SMOOTHING.fillOutlinesWithMSAA, applied: every fill layer, the
+  // basemap's and every one added later (ground, shadows, a re-added layer),
+  // loses its outline pass once, if and only if this context has MSAA.
+  function dropFillOutlinesUnderMSAA(map) {
+    if (EDGE_SMOOTHING.fillOutlinesWithMSAA) return;
+    let gl = null;
+    try { gl = map.painter && map.painter.context && map.painter.context.gl; } catch (e) {}
+    if (!gl || !gl.getContextAttributes || !gl.getContextAttributes().antialias) return;
+    const seen = new WeakSet();
+    const sweep = () => {
+      const ids = typeof map.getLayersOrder === 'function' ? map.getLayersOrder() : ((map.style && map.style._order) || []);
+      for (const id of ids) {
+        const l = map.getLayer(id);
+        if (!l || seen.has(l)) continue;
+        seen.add(l);
+        if (l.type !== 'fill') continue;
+        try { if (map.getPaintProperty(id, 'fill-antialias') !== false) map.setPaintProperty(id, 'fill-antialias', false); } catch (e) {}
+      }
+    };
+    map.on('styledata', sweep);
+    sweep();
+  }
+
   window.initGraphics = function initGraphics(map) {
     _map = map;
 
@@ -594,6 +637,7 @@
       bloomOK = !!(gl && gl.getContextAttributes().preserveDrawingBuffer);
     } catch (e) { bloomOK = false; }
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
+    dropFillOutlinesUnderMSAA(map);
 
     buildMenu();
     buildFeedback();
