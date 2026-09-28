@@ -1,5 +1,28 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, awaiting the owner's look)
+
+The "Switch modes" pill sat on the OpenMapTiles/OpenStreetMap credit at every
+screen size. The credit is a licence requirement. Two phone rules fought over
+the pill (`bottom:90px` inside the long 650px block, then a later
+`bottom:18px` that won).
+
+- Desktop: the pill sits one credit row up (`--launcher-bottom: 42px`).
+- Wherever the stick and BOOST show (<=1024px or `html.has-touch`): it clears
+  them with `--drive-clear`, like every bottom sheet. On a phone it sits above
+  BOOST.
+- Phone on its side (max-height 520px): small pill, 40px up, under BOOST.
+- The controls hint moves up one credit row between 521 and 1200px wide, where
+  it ran into the credit.
+- `?clip=1` now hides the pill like every other control. Many audit scripts
+  shoot with clip=1, so their bottom-right pixels no longer include a pill.
+
+Checked on the live site with the stylesheet swapped in, hardware GL, at
+1280x680@1.5, 1100x680@1.5, 390x844@3, 768x1024@2 and 844x390@3: every visible
+floating control measured, no overlaps left except one older one (a sideways
+phone's BOOST sits on the bottom of the time-of-day slider). The CI picture
+check photographs the controls, so it will show them in their new places.
+
 ## Sep 28 2026 - The loading-screen drawing moves: the islands float, the West Campus islet turns (`claude/loading-motion`, PR #335, merged f46279a)
 
 The owner asked for the drawing's islands to bob up and down, out of step, and
