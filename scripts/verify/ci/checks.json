@@ -181,6 +181,7 @@
     "light-probe.mjs": "needs a GPU: 7/9 then 9/10 in CI, 'shownLater' false: the probe's window closes before the runner draws enough frames",
     "banding.mjs": "needs a GPU: green 3 times, red 2: the second page (sky stubbed before boot) never reports the style loaded, even given 180 s, while the first is still open",
     "light-sky2.mjs": "needs a GPU: green 5 times, then 'with AMP=0 the star field is bit-still' failed (10/11): something else still moving between two frames at runner frame rates",
+    "light-tone.mjs": "needs a GPU: green on every run through 2026-09-28, then 10/12 on run 36382855922: its first day shot, taken a fixed 5 s after applyTimeOfDay, was still a night frame (city mean 33 against 136, sky 25 against 176) at runner frame rates",
     "lookup-check.mjs": "needs a GPU: runs past a 2400 s ceiling at runner frame rates (448 s on the laptop)",
     "walk.mjs": "needs a GPU: 0/3 sites walk their distance at runner frame rates",
     "focus-move.mjs": "needs a GPU: the camera does not fly far enough in its window at runner frame rates (3/7)",

@@ -27,8 +27,9 @@ pull request". What runs and what is left out, each with its reason:
   the tiles the map is actually handed. Other passes set the same kind of flag
   (`__csTodHooked` etc.); a check that reads one has the same blind spot.
 - **Advisory, not required.** No branch protection. Make it required only
-  after it has stayed green on other lanes' PRs; four checks already had to be
-  quarantined for flaking after passing. A PR's run takes 27-39 minutes.
+  after it has stayed green on other lanes' PRs; five checks already had to be
+  quarantined for flaking after passing (light-tone the latest, on the run
+  meant to be this PR's last). A PR's run takes 27-39 minutes.
 - **It is deterministic, with the name labels off.** Before #326 the base
   branch shot twice, on two machines, moved 0% of pixels in all ten views on
   every run. The new label system picks which names show from timing and from
@@ -45,8 +46,8 @@ pull request". What runs and what is left out, each with its reason:
   The macOS runner has a real GPU: full Chrome gets Apple's paravirtual Metal
   device at 22-34 frames a second. The probe runs on every PR; moving the
   frame-rate-bound checks there is the obvious next step.
-- **67 checks run** (8 machines, about 35 minutes), every one green on every
-  CI run it was in (five to seven runs). **63 are quarantined**, each with its
+- **66 checks run** (8 machines, about half an hour), every one green on every
+  CI run it was in. **64 are quarantined**, each with its
   reason in checks.json:
   - **22 fail for reasons that are not the runner's speed.** 16 were re-run on
     the laptop and are red there too (campus-court-detail, facade-filter,
@@ -61,10 +62,10 @@ pull request". What runs and what is left out, each with its reason:
     (the label restyle) reached main, Chrome there cannot capture its third
     390x844 screenshot at all; on the laptop it passes with and without #326,
     so it is the runner, not the labels.
-  - **41 need a GPU**: they assert a hardware renderer, were written for
+  - **42 need a GPU**: they assert a hardware renderer, were written for
     hardware GL, or need the camera to move or the scene to settle inside their
-    own windows, or flaked (dusk, banding, light-sky2, tour-check each went red
-    once after passing).
+    own windows, or flaked (dusk, banding, light-sky2, tour-check, light-tone
+    each went red once after passing).
   - 29 timing scripts stay on the laptop by design.
 - **Playwright waits longer in CI** (`ci/slow-machine.mjs`): its 30 s default
   becomes 180 s and a load/wait timeout a script names is tripled. No
