@@ -1,103 +1,210 @@
 {
-  "note": "Facade buckets for downtown, computed by scripts/bake_outer_facades.py from the buildings' own baked wall colours. `buckets` is the TOWERS (t=1, glass); `midrise` is the streetwall (t=2, masonry). Each building carries its bucket ORDINAL as `fb`, scoped by its `t`; the browser maps that ordinal to a palette index it allocates at boot and registers one atlas tile per bucket. Do not stamp `wp` directly \u2014 the renderer reads it, and an unregistered pattern id paints the wall transparent. Regenerate whenever outer_ring.geojson is re-baked.",
+  "note": "Facade buckets for downtown, computed by scripts/bake_outer_facades.py from the buildings' own architectural profiles. With shared_architecture=true, `buckets` serves towers (t=1) and streetwall (t=2); each building carries the shared bucket ORDINAL as `fb`; the browser maps that ordinal to a palette index it allocates at boot and registers one atlas tile per bucket. Do not stamp `wp` directly \u2014 the renderer reads it, and an unregistered pattern id paints the wall transparent. Regenerate whenever outer_ring.geojson is re-baked.",
   "buckets": [
     {
       "fb": 0,
-      "wd": "#52626f",
-      "wg": "#426c8b",
-      "wn": "#2a303b"
+      "profile": "office_blue",
+      "grid": "office_fine",
+      "base": "tg",
+      "wd": "#7597ad",
+      "wg": "#7999a8",
+      "wn": "#212f3e"
     },
     {
       "fb": 1,
-      "wd": "#a77d4f",
-      "wg": "#a5875f",
-      "wn": "#3c3634"
+      "profile": "office_silver",
+      "grid": "office_wide",
+      "base": "tg",
+      "wd": "#a1b0b7",
+      "wg": "#a7b3b2",
+      "wn": "#2d3742"
     },
     {
       "fb": 2,
-      "wd": "#7c96ad",
-      "wg": "#70a4c8",
-      "wn": "#333b47"
+      "profile": "office_teal",
+      "grid": "office_fine",
+      "base": "tg",
+      "wd": "#658f92",
+      "wg": "#69918e",
+      "wn": "#1c2c35"
     },
     {
       "fb": 3,
-      "wd": "#809bb2",
-      "wg": "#74a8cd",
-      "wn": "#343c48"
+      "profile": "office_dark",
+      "grid": "office_fine",
+      "base": "tg",
+      "wd": "#405867",
+      "wg": "#425964",
+      "wn": "#121b25"
     },
     {
       "fb": 4,
-      "wd": "#849fb8",
-      "wg": "#79add3",
-      "wn": "#353d49"
+      "profile": "office_bronze",
+      "grid": "office_ribbon",
+      "base": "tg",
+      "wd": "#8e8070",
+      "wg": "#93826d",
+      "wn": "#282828"
     },
     {
       "fb": 5,
-      "wd": "#8da8c1",
-      "wg": "#82b6db",
-      "wn": "#373f4a"
+      "profile": "office_ribbon",
+      "grid": "office_ribbon",
+      "base": "tg",
+      "wd": "#829da2",
+      "wg": "#879f9d",
+      "wn": "#24313a"
     },
     {
       "fb": 6,
-      "wd": "#c3b7a7",
-      "wg": "#c0c6bb",
-      "wn": "#424245"
+      "profile": "residential_blue",
+      "grid": "residential_glass",
+      "base": "tg",
+      "wd": "#85a7b3",
+      "wg": "#8aaaae",
+      "wn": "#253440"
     },
     {
       "fb": 7,
-      "wd": "#b68b5e",
-      "wg": "#b5976f",
-      "wn": "#3f3937"
+      "profile": "residential_silver",
+      "grid": "residential_glass",
+      "base": "tg",
+      "wd": "#adb9bc",
+      "wg": "#b3bcb6",
+      "wn": "#303944"
     },
     {
       "fb": 8,
-      "wd": "#dcdbd8",
-      "wg": "#daecee",
-      "wn": "#47494f"
+      "profile": "residential_teal",
+      "grid": "residential_glass",
+      "base": "tg",
+      "wd": "#789f9c",
+      "wg": "#7ca197",
+      "wn": "#223138"
     },
     {
       "fb": 9,
-      "wd": "#ebebec",
-      "wg": "#e9fdff",
-      "wn": "#4a4d53"
+      "profile": "residential_white",
+      "grid": "residential_punched",
+      "base": "tr",
+      "wd": "#d0cbc1",
+      "wg": "#d7cebb",
+      "wn": "#3a3f45"
+    },
+    {
+      "fb": 10,
+      "profile": "residential_warm",
+      "grid": "residential_punched",
+      "base": "tr",
+      "wd": "#b8a28d",
+      "wg": "#bea489",
+      "wn": "#343233"
+    },
+    {
+      "fb": 11,
+      "profile": "hotel_light",
+      "grid": "hotel",
+      "base": "tr",
+      "wd": "#c4bcac",
+      "wg": "#cbbfa7",
+      "wn": "#373a3e"
+    },
+    {
+      "fb": 12,
+      "profile": "hotel_dark",
+      "grid": "hotel",
+      "base": "tr",
+      "wd": "#7a8287",
+      "wg": "#7e8483",
+      "wn": "#222831"
+    },
+    {
+      "fb": 13,
+      "profile": "stone_sand",
+      "grid": "stone_vertical",
+      "base": "mh",
+      "wd": "#b8a28a",
+      "wg": "#bea486",
+      "wn": "#343232"
+    },
+    {
+      "fb": 14,
+      "profile": "stone_pale",
+      "grid": "stone_vertical",
+      "base": "mh",
+      "wd": "#c6c4b9",
+      "wg": "#cdc7b3",
+      "wn": "#373d43"
+    },
+    {
+      "fb": 15,
+      "profile": "historic_brick",
+      "grid": "historic",
+      "base": "mh",
+      "wd": "#a78b76",
+      "wg": "#ad8d72",
+      "wn": "#2f2b2a"
+    },
+    {
+      "fb": 16,
+      "profile": "parking_deck",
+      "grid": "parking_deck",
+      "base": "dk",
+      "wd": "#aaa69e",
+      "wg": "#b0a899",
+      "wn": "#303339"
     }
   ],
-  "midrise": [
-    {
-      "fb": 0,
-      "wd": "#a7765e",
-      "wg": "#b17d56",
-      "wn": "#3e2f2c"
+  "shared_architecture": true,
+  "grids": {
+    "office_fine": {
+      "base": "tg",
+      "pitch": 3.9,
+      "bay": 1.55,
+      "aspect": 2.05
     },
-    {
-      "fb": 1,
-      "wd": "#c8b191",
-      "wg": "#d4bc86",
-      "wn": "#49433e"
+    "office_wide": {
+      "base": "tg",
+      "pitch": 4.2,
+      "bay": 2.65,
+      "aspect": 1.1
     },
-    {
-      "fb": 2,
-      "wd": "#9ea6aa",
-      "wg": "#a7b09d",
-      "wn": "#3b3f46"
+    "office_ribbon": {
+      "base": "tg",
+      "pitch": 3.65,
+      "bay": 3.8,
+      "aspect": 0.63
     },
-    {
-      "fb": 3,
-      "wd": "#bcb7a9",
-      "wg": "#c7c29c",
-      "wn": "#454546"
+    "residential_glass": {
+      "base": "tg",
+      "pitch": 3.15,
+      "bay": 3.25,
+      "aspect": 0.9
     },
-    {
-      "fb": 4,
-      "wd": "#cac3b3",
-      "wg": "#d6cfa4",
-      "wn": "#4a4949"
+    "residential_punched": {
+      "base": "tr",
+      "pitch": 3.05,
+      "bay": 3.15,
+      "aspect": 1.7
     },
-    {
-      "fb": 5,
-      "wd": "#d5cebb",
-      "wg": "#e2daac",
-      "wn": "#4e4d4c"
+    "hotel": {
+      "base": "tr",
+      "pitch": 3.35,
+      "bay": 3.75,
+      "aspect": 1.75
+    },
+    "stone_vertical": {
+      "base": "mh",
+      "pitch": 3.8,
+      "bay": 2.15,
+      "aspect": 2.65
+    },
+    "historic": {
+      "base": "mh",
+      "pitch": 3.7,
+      "bay": 3.0,
+      "aspect": 1.85
     }
-  ]
+  },
+  "midrise": []
 }

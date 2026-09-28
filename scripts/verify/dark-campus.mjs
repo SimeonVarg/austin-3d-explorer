@@ -103,9 +103,12 @@ try {
       m.triggerRepaint();
     });
     if (BREAK) {
-      // The pre-fix proxy: it never read the display filter.
-      const m = window.__map, gs = m.getStyle.bind(m);
+      // The pre-fix proxy: it never read the display filter. Since 2026-09-28
+      // the proxy reads the live layer (getLayer), before that getStyle().
+      // The live layer is wrapped, never edited: MapLibre draws from it.
+      const m = window.__map, gs = m.getStyle.bind(m), gl = m.getLayer.bind(m);
       m.getStyle = () => { const s = gs(); for (const l of s.layers) if (l.id === 'buildings-3d') delete l.filter; return s; };
+      m.getLayer = id => { const l = gl(id); return id === 'buildings-3d' && l ? Object.create(l, { filter: { value: undefined } }) : l; };
     }
   }, BREAK);
   // 1. The proxy leaves out what buildings-3d hides.

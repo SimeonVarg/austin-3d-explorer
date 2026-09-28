@@ -158,6 +158,37 @@ const R = await page.evaluate(async () => {
   };
 });
 
+// Is the time-of-day hook INSTALLED? Asked of what it does, not of a flag.
+//
+// `__dragTodHooked` is set next to the hook, not derived from it: it stayed
+// true for the whole period `window.applyTimeOfDay = wrapped` was missing from
+// js/drag.js, and the Guadalupe streetwall stayed daylight-bright after dark.
+// The frame-mean below cannot see that either. On 2026-09-28 a throwaway PR
+// removed exactly that line and this script still went 26/26 in CI: night luma
+// 34.4 against 33.8 with the hook, because the scene light does the darkening
+// that mean measures, not the tiles. So: call applyTimeOfDay once, as the
+// slider does, and count which Drag tiles the map is actually handed
+// (map.updateImage, the call that settled the original bug). Every one must be.
+const hook = await page.evaluate(async () => {
+  const m = window.__map;
+  const ids = new Set(window.dragCombos().map(c => c.id));
+  const seen = new Set();
+  const origUpdate = m.updateImage, origAdd = m.addImage;
+  m.updateImage = function (id) { if (ids.has(id)) seen.add(id); return origUpdate.apply(this, arguments); };
+  m.addImage = function (id) { if (ids.has(id)) seen.add(id); return origAdd.apply(this, arguments); };
+  try {
+    window.applyTimeOfDay(m, 0.86, true);
+    // A wrapper may defer its work; give it wall-clock time, not frames (a
+    // software renderer draws well under one frame a second).
+    const t0 = Date.now();
+    while (seen.size < ids.size && Date.now() - t0 < 20000) await new Promise(r => setTimeout(r, 250));
+  } finally {
+    m.updateImage = origUpdate;
+    m.addImage = origAdd;
+  }
+  return { of: ids.size, updated: seen.size };
+});
+
 // Night behaviour: the pass must go dark with the city. Sample the mean luma of
 // the drag layers alone at noon and at midnight — a pass that only looks right
 // at noon is not done, and an unlit building brighter than the night sky is the
@@ -222,8 +253,10 @@ t('every tile within its glazing/gap spec', R.audit.every(r => r.ok),
 // whichever boots LAST owns the outermost closure, so the property is false for
 // every pass but one even though all of them are being called. That version of
 // this check read as "the drag pass never hooked time-of-day" while the drag
-// pass was demonstrably repainting.
-t('applyTimeOfDay is wrapped', R.todHooked);
+// pass was demonstrably repainting. Not `__dragTodHooked` either (it replaced
+// the property, and it lies the other way: see `hook` above).
+t('applyTimeOfDay repaints every Drag tile', hook.of > 0 && hook.updated === hook.of,
+  `${hook.updated} of ${hook.of} tiles handed to the map by one applyTimeOfDay call; the flag says ${R.todHooked}`);
 const tile = f => R.tiles.find(t => t.fam === f) || { day: 0, night: 0 };
 // 2.2x, not 3x. The first version of this asserted 3x and passed at 24 -> 146,
 // and then failed at 54 -> 146 — because the DAY value was deliberately raised:

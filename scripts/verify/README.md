@@ -60,6 +60,63 @@ CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
 
+### CI: the checks on every pull request
+
+`.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
+for every pull request, and by hand from the Actions tab ("Run workflow",
+optionally `only: sky.mjs,dusk.mjs`). It serves the pull request's own
+checkout, runs the checks one at a time per machine across 8 Linux machines
+on SwiftShader, and keeps **one comment** on the pull request up to date. The
+check "Visual checks / summary" is red if any check did not pass. It never
+pushes and holds no secret. Timing is not measured there. It is advisory:
+nothing requires it to be green before a merge, and nobody should merge red.
+
+Reading the comment, top to bottom:
+
+- **Not passing** — each check that failed, timed out or could not run, the
+  line of its output that says why, and a link to its shard's download: the
+  full log and every picture the check wrote.
+- **Pictures, before and after** — the ten views in `ci/poses.json`, shot from
+  the base branch, from the pull request, and from the base branch again. A
+  view is **changed** when more than 0.05% of its pixels moved AND that is over
+  three times what the base branch moves against itself ("same page shot
+  twice"). Name labels are OFF in these shots (`?namelabels=0`, `LOOK.shotQuery`
+  in `ci/pictures.mjs`): since #326 the labels choose what to show from timing
+  and from what they showed a moment ago, and two loads of main differed by up
+  to 5.8% of a view. With them off, main against itself is 0%. Download the
+  side-by-sides and open
+  `index.html`: before | after | moved pixels in magenta, per view. Pictures
+  never turn the run red: a visible change is usually the point of the pull
+  request. They are there to look at.
+- **Not run here** — quarantined checks and why, the timing scripts (laptop
+  only), and the tools that have no verdict to give.
+- **Graphics probes** — the renderer Chrome gets and the frames per second the
+  city draws, on the Linux runner and on a macOS runner, with screenshots.
+
+**Why so much is quarantined: the runners have no GPU and are slow at
+software rendering.** Measured 2026-09-27 at the spawn view: SwiftShader draws
+**0.2-0.6 frames a second** on a 4-core Linux runner (3.7 on the laptop),
+0.16 on Windows. Every single-frame pixel check is fine and reproduces the
+laptop's own numbers exactly; anything that needs the camera to move or the
+scene to settle inside its own 60 s window cannot. Those are quarantined as
+"needs a GPU". A macOS runner does have one: full Chrome gets **Apple's
+paravirtual Metal GPU at 22-34 frames a second** — the place for them, later.
+CI gives Playwright's own waits more room (`ci/slow-machine.mjs`): its 30 s
+default becomes 180 s and a load/wait timeout a script names is tripled. No
+assertion, threshold or in-page timer is touched. The one retry is for Chrome
+failing to capture a screenshot at all, and the comment says when it happened.
+
+**What runs is `ci/checks.json`.** Every top-level `*.mjs` here runs unless it
+is listed there under `quarantine`, `laptop_only`, `tools` or `harness`, each
+with a reason. So a new check is covered the day it lands, and leaving one out
+is a visible line. Arguments (`{out}` becomes the script's own artifact folder)
+and ceilings go in its `run` entry. To bring a quarantined check back, fix it,
+delete its line, and let the pull request's run show it green.
+
+Reproduce one shard's way of running a check locally (it never reaps browsers
+outside CI): `VERIFY_URL=http://127.0.0.1:8442 node ci/run-checks.mjs --only
+sky.mjs --out <scratch>`.
+
 ### The core gates
 
 ```bash
@@ -105,6 +162,56 @@ and that the PACE knobs are named. `--break` widens the worker's blur by one
 texel, `--break-border` switches the border rewrite off; each must exit 1. It does not check timing or
 the scheduler; the frame-time A/B for the pacing is in HANDOFF (Sep 24 2026).
 
+### Phone memory, and the reload loop (Sep 24 2026)
+
+`node mobile-memory.mjs --arms main=http://127.0.0.1:8872,branch=http://127.0.0.1:8871 --reps 3`
+loads the phone profile (390x844, DPR 3, touch, iPhone UA, hardware GL, a fresh
+browser per rep, arms interleaved) and reads once a second until 30 s after the
+authored buildings land: the JS heap and ArrayBuffer backing store
+(`Runtime.getHeapUsage`), every live WebGL texture, buffer and renderbuffer
+(counted in the page, with the allocating file), and the renderer and GPU
+processes' private bytes and working set. `phone` = heap + backing + GL is the
+headline: what the page holds, independent of this laptop's GPU driver. It
+prints the PEAK (the opening flight is the peak) and the SETTLED value, the
+minimum over reps. An arm URL may carry its own query
+(`lighter=http://127.0.0.1:8871/?drift=0&litetier=lighter`); `--desktop`
+measures 1280x800 instead. It is a measurement and exits 0. Desktop Chrome
+is not WebKit: the numbers rank changes, they do not predict an iPhone's kill.
+
+`mobile-boot.mjs crashloop ctxintro` are the reload-loop gates: a renderer
+killed during the opening flight must come back (as Safari's one automatic
+reload would) on the `lighter` tier with the authored buildings and never
+reload itself, and a context lost during the flight must reload exactly once,
+onto the `lighter` tier, and not again when it is lost a second time.
+
+### A graphics reset pauses the phone city, it never leaves it hollow (Sep 27 2026)
+
+`VERIFY_URL=http://127.0.0.1:8871 node scene-unavailable.mjs [early|intro|storage|nodialog] [--out DIR]`
+(hardware GL, one browser, 390x844 DPR 3 touch). A phone drops its vertex
+arrays once they are on the GPU, so a restored context cannot draw the city
+again; only a new document can. Three real losses: before the three.js root
+exists (the style request held), a second loss after the flight's one
+automatic reload, and a loss whose reload record cannot be written. Each must
+end PAUSED (nine checks: `LITE_PROFILE.sceneUnavailable`, no controller, every
+walking support 0, a native modal with no dismiss, the root hidden, frames
+stopped, the camera unmoved through W + Escape, no errors), and the real
+"Reload city" button must bring back a WHOLE city (196 buildings, all 35
+supports incl. the 10 on Gearing's authored model, released CPU arrays, draw
+calls, a hardware renderer) that moves under the keyboard. `nodialog` deletes
+`showModal` (Safari before 15.4) and requires the automatic reload to still
+happen. `--break` makes the
+flag impossible to set in the page and must exit 1 (Sep 27: it does — 35/35
+supports still answer over a city whose buffers are gone, and the card can be
+dismissed). Codex's negative control of the unmodified Sep 24 code (private,
+`pr310-recovery-spike`) found the same hollow city with its controller still
+live and zero page errors: nothing else in this directory noticed.
+
+`VERIFY_GPU=low` swaps `--force_high_performance_gpu` for
+`--force_low_power_gpu` in every hardware launch (`chrome.mjs` `HW_ARGS`):
+the owner's laptop has an AMD iGPU next to an RTX 3050 Ti, and a visitor
+without the big GPU is the one to measure. Print the renderer string.
+
+
 ### The shadow proxy is never rebuilt mid-flight
 
 `node shadow-proxy-pacing.mjs` (no browser, no server) runs the real
@@ -116,6 +223,52 @@ exactly one rebuild once it has been still for `settleMs`, containing what
 landed mid-flight; a move that changes no input is checked but not rebuilt.
 `--break` restores "rebuild 300 ms after any move" and must exit 1. (Until
 2026-09-23 every moveend rebuilt it, 1.0-1.4 s each, every ~1.5 s of a flight.)
+
+The same gate then builds 350 authored apartments one by one with the camera
+still, as the time-sliced build does under the veil: no rebuild, because the
+proxy reads none of that progress. The build landing, an area attaching, the
+apartments switch and a new `buildings-3d` hide list each rebuild it once, and
+a footprint over a caster's centre takes that caster out. `--break-storm`
+restores "rebuild whenever `count.buildings` moves" and must exit 1 (it rebuilds
+116 times in the 35 s build). Until 2026-09-28 that was the code: 9 rebuilds,
+7.8 s of main thread, 17 % of the load under the veil.
+
+`node shadow-proxy-recovery.mjs`: while the map has no style, or a style that
+has not loaded, the rebuild stays pending instead of building from nothing.
+`--break` drops the "not loaded" half and must exit 1.
+
+### The authored-footprint test is a grid, and gives the scan's answer
+
+`node proxy-inside-grid.mjs` (no browser, no server) runs the real
+`footprintLookup` from `js/city-lighting.js` against every authored footprint
+(core, then core + every on-demand area) and compares it, point by point, with
+the scan it replaced (`rings.some(inside)`): the centre of every legacy prism,
+part and outer-ring building, an 8 x 8 lattice over every footprint, its
+vertices, points one rounding step either side of its box and on cell edges,
+and odd rings (a broken vertex, an empty ring, a 40 km box, a NaN centre). Any
+difference fails. `--break` files no ring under its last cell and must exit 1.
+On 2026-09-28: 0 differences over 21,066 caster centres (against both
+footprint sets) and 50,240 lattice and edge points; the scan took 2.1 s for
+the caster centres against core + Riverside, the grid 27 ms.
+
+### Far-away authored buildings load when the camera goes there
+
+`node apartment-areas.mjs` (no browser, no server) runs the real
+`js/slopes-apartments.js` in a sandbox with the geometry stubbed, against an
+index with one core file, one core collection and one on-demand area. The
+start must request no area file and be ready without it; a camera within
+`APARTMENTS.areas.loadM` builds the area as its own group, and only then do its
+buildings join the catalog and hide the outer ring's boxes; a desktop keeps it
+when the camera leaves, a phone drops it past `unloadM` with the boxes, counts
+and catalog back to the core's; `ensureAt` builds ahead of the camera; a core
+rebuild takes areas down and back without double counting; an area dropped
+mid-build takes back its counts; `?areas=eager` is the old start; a phone's
+chunked build gives the area one mesh per chunk, like the core; and a phone
+paused by a lost WebGL context (`LITE_PROFILE.sceneUnavailable`) builds no
+area. `--break`
+makes every area eager (Riverside at start again) and must exit 1. It does not
+measure load time or memory; those numbers are in HANDOFF (Sep 27 2026,
+Riverside).
 
 ### The "graphics acceleration is off" notice
 

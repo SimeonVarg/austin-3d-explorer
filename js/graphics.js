@@ -649,10 +649,11 @@
     if (on) {
       for (const id of Array.from(_hidByCapture)) {
         try {
-          if (_map.getLayer(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
+          if (_map.getLayer(id) && !window.nameLabels?.replaces(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
         } catch (e) {}
         _hidByCapture.delete(id);
       }
+      window.nameLabels?.sync();
       return;
     }
     for (const id of symbolLayerIds()) {
@@ -908,6 +909,42 @@
     // stubbed to never signal it froze the meter for 56 s before giving up.
     FENCE_POLLS: 3, FENCE_MS: 2000,
   };
+
+  // GL STATE KEPT IN JS, NOT ASKED FOR. The reader below saves and puts back
+  // the framebuffer and pack-buffer bindings and checks the pack parameters, on
+  // every frame the map draws; js/slopes.js saves the viewport and scissor box
+  // on every sun-shadow re-render. Each of those was a gl.getParameter, and a
+  // getParameter the browser does not answer from its own cache is a
+  // synchronous round trip: the main thread waits until the GPU process has
+  // worked through everything queued so far. Measured on the owner's AMD chip
+  // (framecost, --gpu low, DPR 1.5, balanced): getParameter was the most
+  // expensive function on the main thread, 1.17 s per 12.6 s intro flight and
+  // 1.61 s per 12 s boost, and these two callers were 1.13 s and 1.28 s of it.
+  // So the few calls that change that state are wrapped once per context, pass
+  // straight through, and write down what they set; the saved values are read
+  // off that record. The bindings put back are the same ones, so the frame is.
+  //   ?glstate=0       query as before (an A/B in one build)
+  //   ?glstatecheck=1  query as well, and count every disagreement with the
+  //                    record in window.__glStateCheck (mismatches must be 0)
+  const GLSTATE = window.GLSTATE || (window.GLSTATE = {
+    on: Q.get('glstate') !== '0',
+    check: Q.get('glstatecheck') === '1',
+    // Check mode: the context's answer beside the record's, and what asking cost.
+    verify(gl, name, pname, recorded) {
+      const C = window.__glStateCheck ||
+        (window.__glStateCheck = { uses: 0, mismatches: 0, n: {}, ms: {}, bad: {}, first: [] });
+      const t = performance.now(), real = gl.getParameter(pname);
+      C.ms[name] = (C.ms[name] || 0) + performance.now() - t;
+      C.n[name] = (C.n[name] || 0) + 1; C.uses++;
+      const same = ArrayBuffer.isView(real)
+        ? !!recorded && real.length === recorded.length && Array.prototype.every.call(real, (v, i) => v === recorded[i])
+        : real === recorded;
+      if (!same && !gl.isContextLost()) {
+        C.mismatches++; C.bad[name] = (C.bad[name] || 0) + 1;
+        if (C.first.length < 10) C.first.push([name, String(recorded), String(real)]);
+      }
+    },
+  });
   let aeCv = null, aeCtx = null, aeLuma = null, aeGain = 1, aeLast = 0;
   // aeOwed: [frame, dt] for frames drawn but not yet read, oldest first.
   // aeGpu: the asynchronous reader, null until built, false where unavailable.
@@ -928,6 +965,73 @@
       for (let i = 0; i < d.length; i += 4) s += d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
       return s / (255 * (d.length / 4));
     } catch (e) { return null; }
+  }
+
+  // The state the reader saves, as the context last set it (GLSTATE above):
+  // the read and draw framebuffers, the pixel-pack buffer, and the three pack
+  // parameters a readPixels into that buffer depends on. The wrappers go on
+  // once per context and stay; the record is seeded with one query per value
+  // (the only round trips left) and seeded again after a lost context, whose
+  // restore resets every binding. Each wrapper records only what the call
+  // really sets: a bad target, a negative size or a deleted object is a GL
+  // error that leaves the state alone, and deleting a bound object unbinds it.
+  // null with GLSTATE off or while the record is unknown (the caller queries).
+  function aeGlState(gl) {
+    if (!GLSTATE.on) return null;
+    let S = gl.__aeState;
+    if (!S) {
+      S = gl.__aeState = { known: false, read: null, draw: null, pack: null, row: 0, skipRows: 0, skipPixels: 0 };
+      const deadFb = new WeakSet(), deadBuf = new WeakSet();
+      const wrap = (name, after) => {
+        const native = gl[name];
+        gl[name] = function (a, b) { const r = native.apply(this, arguments); after(a, b); return r; };
+      };
+      wrap('bindFramebuffer', (target, fb) => {
+        fb = fb || null;
+        if (fb && deadFb.has(fb)) return;
+        if (target === gl.FRAMEBUFFER) S.read = S.draw = fb;
+        else if (target === gl.READ_FRAMEBUFFER) S.read = fb;
+        else if (target === gl.DRAW_FRAMEBUFFER) S.draw = fb;
+      });
+      wrap('deleteFramebuffer', fb => {
+        if (!fb) return;
+        deadFb.add(fb);
+        if (S.read === fb) S.read = null;
+        if (S.draw === fb) S.draw = null;
+      });
+      wrap('bindBuffer', (target, buf) => {
+        buf = buf || null;
+        if (target === gl.PIXEL_PACK_BUFFER && !(buf && deadBuf.has(buf))) S.pack = buf;
+      });
+      wrap('deleteBuffer', buf => {
+        if (!buf) return;
+        deadBuf.add(buf);
+        if (S.pack === buf) S.pack = null;
+      });
+      wrap('pixelStorei', (pname, param) => {
+        const v = param | 0;                     // GLint, as WebIDL converts it
+        if (v < 0) return;
+        if (pname === gl.PACK_ROW_LENGTH) S.row = v;
+        else if (pname === gl.PACK_SKIP_ROWS) S.skipRows = v;
+        else if (pname === gl.PACK_SKIP_PIXELS) S.skipPixels = v;
+      });
+      gl.canvas.addEventListener('webglcontextlost', () => { S.known = false; });
+    }
+    if (!S.known && !gl.isContextLost()) {
+      S.read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING); S.draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
+      S.pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+      S.row = gl.getParameter(gl.PACK_ROW_LENGTH); S.skipRows = gl.getParameter(gl.PACK_SKIP_ROWS);
+      S.skipPixels = gl.getParameter(gl.PACK_SKIP_PIXELS);
+      S.known = !gl.isContextLost();             // a loss mid-seed leaves it unknown
+    }
+    return S.known ? S : null;                   // unknown: query, as before
+  }
+  // One saved value: the record's (checked against the context in check mode),
+  // or with no record, the context's.
+  function aeGlGet(gl, S, key, pname) {
+    if (!S) return gl.getParameter(pname);
+    if (GLSTATE.check) GLSTATE.verify(gl, 'ae.' + key, pname, S[key]);
+    return S[key];
   }
 
   // The asynchronous reader lives in the map's own WebGL2 context and puts
@@ -955,6 +1059,7 @@
       if (!ok) { gl.deleteFramebuffer(fb); gl.deleteRenderbuffer(rb); gl.deleteBuffer(pbo); return aeGpu; }
       aeGpu = { gl, fb, rb, pbo, sync: null, frame: 0, data: new Uint8Array(AE.W * AE.H * 4),
                 premultiplied: gl.getContextAttributes().premultipliedAlpha };
+      aeGlState(gl);                                 // start recording before the first read
       // A lost context takes these objects with it; build new ones after.
       mapCanvas.addEventListener('webglcontextlost', () => { aeGpu = null; }, { once: true });
     } catch (e) { aeGpu = false; }
@@ -964,10 +1069,12 @@
   // Queue a read of the frame just drawn. false: not possible this frame.
   function aeGpuIssue(G) {
     const gl = G.gl;
-    if (gl.isContextLost() || gl.getParameter(gl.PACK_ROW_LENGTH) || gl.getParameter(gl.PACK_SKIP_ROWS) ||
-        gl.getParameter(gl.PACK_SKIP_PIXELS)) return false;
-    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING), draw = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING);
-    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
+    if (gl.isContextLost()) return false;
+    const S = aeGlState(gl);
+    if (aeGlGet(gl, S, 'row', gl.PACK_ROW_LENGTH) || aeGlGet(gl, S, 'skipRows', gl.PACK_SKIP_ROWS) ||
+        aeGlGet(gl, S, 'skipPixels', gl.PACK_SKIP_PIXELS)) return false;
+    const read = aeGlGet(gl, S, 'read', gl.READ_FRAMEBUFFER_BINDING), draw = aeGlGet(gl, S, 'draw', gl.DRAW_FRAMEBUFFER_BINDING);
+    const pack = aeGlGet(gl, S, 'pack', gl.PIXEL_PACK_BUFFER_BINDING), scissor = gl.isEnabled(gl.SCISSOR_TEST);
     try {
       if (scissor) gl.disable(gl.SCISSOR_TEST);        // a blit is scissored
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
@@ -1000,7 +1107,7 @@
     }
     gl.deleteSync(G.sync); G.sync = null;
     G.stalled = false;                               // its reading is older than every frame the old read took
-    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+    const pack = aeGlGet(gl, aeGlState(gl), 'pack', gl.PIXEL_PACK_BUFFER_BINDING);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, G.pbo);
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, G.data);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);

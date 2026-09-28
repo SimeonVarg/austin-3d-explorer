@@ -26,6 +26,8 @@
   // frame. Bearing 250 faces the golden-hour sun (az ≈ 247–256 near p = 0.5)
   // instead of leaving it behind the camera. Both are one-line taste edits.
   const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 74, bearing: 250 };
+  // The phone memory budget (js/mobile.js LITE.budget); null on a desktop.
+  const PHONE_BUDGET = (window.LITE_PROFILE && window.LITE_PROFILE.budget) || null;
 
   // ── Y12 — THE NEAR PLANE, AND WHY IT ONLY MOVES NEAR THE PAVEMENT ─
   //
@@ -439,6 +441,10 @@
       // back out (graphics.js). It is not free, so it is only requested when the
       // saved settings actually want bloom.
       canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
+      // A phone keeps fewer tiles after they leave the screen (js/mobile.js
+      // LITE.budget.tileCacheSize): each holds a facade atlas texture. Desktop
+      // (no budget) passes nothing and keeps MapLibre's viewport-sized cache.
+      ...(PHONE_BUDGET && PHONE_BUDGET.tileCacheSize != null ? { maxTileCacheSize: PHONE_BUDGET.tileCacheSize } : {}),
     });
     window.__map = map;
 window.CityLighting.install(map);
@@ -524,7 +530,20 @@ window.CityLighting.install(map);
     // because applyGraphics() toggles buildings-ao / buildings-shadow.
     step('graphics', () => initGraphics(map));
     step('basemap',  () => cleanupBasemap(map));
-    step('controls', () => initControls(map, scene));
+    step('controls', () => {
+      let cleanup = null;
+      const unavailable = () => {
+        window.dispatchEvent(new Event('flycam:takeover'));
+        if (cleanup) { cleanup(); cleanup = null; }
+        map.stop();
+        // controls.cleanup restores the handlers it inherited. A blocked
+        // scene must disable those too until the requested document reload.
+        for (const h of ['scrollZoom', 'boxZoom', 'dragRotate', 'dragPan', 'keyboard', 'doubleClickZoom', 'touchZoomRotate', 'touchPitch']) map[h]?.disable();
+      };
+      window.addEventListener('city:unavailable', unavailable);
+      if (window.LITE_PROFILE?.sceneUnavailable) unavailable();
+      else cleanup = initControls(map, scene);
+    });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
     step('reveal',   () => revealAndIntro());
@@ -1552,6 +1571,7 @@ window.CityLighting.install(map);
   ];
 
   function addLabelLayers() {
+    window.initNameLabels?.(map);
     if (map.getLayer('buildings-labels')) return;
     for (const t of LABEL_TIERS) {
       const size = ['interpolate', ['linear'], ['zoom'],
@@ -1895,7 +1915,10 @@ window.CityLighting.install(map);
     const doTour = q.get('tour') === '1' || q.get('timelapse') === '1' || q.get('autopilot') === '1';  // ?tour=1 / ?timelapse=1 / ?autopilot=1 replace the intro
     const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
     const liveHere = q.get('livehere') === '1' && q.get('walk') !== '0';
-    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0';
+    // A phone on a lighter tier (js/mobile.js) skips the flight: it is the
+    // load's memory peak, and that tier exists because the peak did not fit.
+    const doIntro = !doTour && !doSlider && !liveHere && q.get('intro') !== '0' &&
+                    !(PHONE_BUDGET && PHONE_BUDGET.intro === false);
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     // Shot A primes ITS first waypoint under the veil, the same way the intro
     // primes its own start pose: the tiles it needs are fetched while the dark
@@ -2104,6 +2127,7 @@ window.CityLighting.install(map);
     map.jumpTo(INTRO.start);
 
     const fly = () => {
+      if (window.LITE_PROFILE?.sceneUnavailable) { cancel('city unavailable'); return; }
       if (F.state !== 'primed') return;
       // The user drove under the veil (the takeover already cancelled us), or
       // something else placed the camera: either way the camera is theirs.
@@ -2157,7 +2181,7 @@ window.CityLighting.install(map);
       const f = window.__intro && window.__intro.flight;
       return !!f && (f.state === 'primed' || f.state === 'flying');
     };
-    const canRun = () => document.visibilityState === 'visible' &&
+    const canRun = () => !window.LITE_PROFILE?.sceneUnavailable && document.visibilityState === 'visible' &&
                          !reducedMotion.matches &&
                          (!banner || banner.classList.contains('hidden')) &&
                          !introBusy() &&
@@ -2257,8 +2281,9 @@ window.CityLighting.install(map);
   function initLandmarkOrbit() {
     const canvas = map.getCanvas();
     let downAt = 0, downX = 0, downY = 0;
-    let orbiting = false, legTimer = null;
+    let orbiting = false, legTimer = null, interaction = 0;
     const stop = () => {
+      interaction++;
       if (!orbiting) return;
       orbiting = false;
       clearTimeout(legTimer);
@@ -2270,7 +2295,7 @@ window.CityLighting.install(map);
       downAt = performance.now(); downX = e.clientX; downY = e.clientY;
       stop();                              // touching the world during an orbit ends it
     });
-    canvas.addEventListener('pointerup', e => {
+    canvas.addEventListener('pointerup', async e => {
       if (performance.now() - downAt > ORBIT.tapMs) return;
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > ORBIT.tapPx) return;
       let hits = [];
@@ -2278,7 +2303,11 @@ window.CityLighting.install(map);
         const p = ORBIT.hitPad;
         // Only RENDERED labels can be hit — which is the correct contract: you
         // tap a sign you can see. (A not-yet-rendered label is not tappable.)
-        hits = map.queryRenderedFeatures(
+        const bounds = canvas.getBoundingClientRect();
+        const tapStarted = interaction;
+        const named = await window.nameLabels?.hitTest(e.clientX - bounds.left, e.clientY - bounds.top);
+        if (tapStarted !== interaction) return;
+        hits = named ? [named] : map.queryRenderedFeatures(
           [[e.clientX - p, e.clientY - p], [e.clientX + p, e.clientY + p]],
           { layers: ['signs-label'] });
       } catch (err) { return; }

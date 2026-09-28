@@ -1,5 +1,816 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, merged Sep 28)
+
+`.github/workflows/visual-checks.yml`: every pull request now gets the
+`scripts/verify` suite run on GitHub's own machines (free for this public
+repo), plus ten before/after views of the city, and ONE bot comment that says
+what failed and why and which views changed. It never pushes and holds no
+secret. How to read it: `scripts/verify/README.md`, "CI: the checks on every
+pull request". What runs and what is left out, each with its reason:
+`scripts/verify/ci/checks.json`.
+
+- **Proof that a check goes red on a real break.** A throwaway PR (#331,
+  closed, branch deleted) removed the one line in `js/drag.js` that installs
+  the Drag's time-of-day hook (a real past defect: the streetwall stays
+  daylight-bright after dark). Run 36379744797 failed on exactly one check,
+  drag-check, "applyTimeOfDay repaints every Drag tile" (0 of 16), and the
+  pictures marked tower-night and drag-street-day as changed:
+  `docs/shots/ci-proof-drag-night.jpg`.
+- **Why the earlier proofs went green.** The blue Tower (#330,
+  `docs/shots/ci-proof-tower-night.jpg`) is caught only by the pictures, which
+  never fail a run; the one check that reads the
+  Tower's colour, tower-check, is quarantined (red on main). The first Drag
+  run (36377405672) had drag-check at 26/26: it read `__dragTodHooked`, a
+  flag set next to the hook that stays true without it, and its night
+  frame-mean measures the scene light, not the tiles. drag-check now counts
+  the tiles the map is actually handed. Other passes set the same kind of flag
+  (`__csTodHooked` etc.); a check that reads one has the same blind spot.
+- **Advisory, not required.** No branch protection. Make it required only
+  after it has stayed green on other lanes' PRs; five checks already had to be
+  quarantined for flaking after passing (light-tone the latest, on the run
+  meant to be this PR's last). A PR's run takes 27-39 minutes.
+- **Merged Sep 28 (d76d155)** after the final commit went green twice
+  (run 36385190157, attempts 1 and 2, all 66 checks each time). If a check
+  goes red on your PR, read its line in the bot comment first: a flake gets
+  quarantined in `ci/checks.json` with its reason, it is not re-run until green.
+- **It is deterministic, with the name labels off.** Before #326 the base
+  branch shot twice, on two machines, moved 0% of pixels in all ten views on
+  every run. The new label system picks which names show from timing and from
+  what it showed a moment ago, so after #326 two shots of main differed by up
+  to 5.8% of a view and one untouched view was flagged "changed". The pictures
+  now shoot with `?namelabels=0` (one line, `LOOK.shotQuery` in
+  `ci/pictures.mjs`). For the labels lane: the same page, loaded twice, shows
+  different names.
+- **The runners are slow at software rendering, and that decides what can run.**
+  Measured with `ci/gpu-probe.mjs` at the spawn view: SwiftShader draws 0.2-0.6
+  frames a second on the 4-core Linux runner (the laptop: 3.7), 0.16 on
+  Windows (298 s to load the city). Linux reproduces the laptop's exact pixel
+  numbers (tower-check's 0.251 and 0.160), so Windows was tried and dropped.
+  The macOS runner has a real GPU: full Chrome gets Apple's paravirtual Metal
+  device at 22-34 frames a second. The probe runs on every PR; moving the
+  frame-rate-bound checks there is the obvious next step.
+- **66 checks run** (8 machines, about half an hour), every one green on every
+  CI run it was in. **64 are quarantined**, each with its
+  reason in checks.json:
+  - **22 fail for reasons that are not the runner's speed.** 16 were re-run on
+    the laptop and are red there too (campus-court-detail, facade-filter,
+    wallplane, geomlint, suite-lint, coplanar --gate, slopes-context-loss,
+    outer-check, walkwidth, walkmeter, places-check, arts-check,
+    si-integration, dayview, and **sky and night-sky**, 10/12 each: setLight
+    disagrees with the shared sun, the pair README knows from a race, 12/12 on
+    Aug 16); tower-check fails on HANDOFF's own numbers; facadegrid and
+    mobile-mergecells refuse to run (their subject is gone). Not yet re-run on
+    the laptop: field-bleed and slopes-layer.
+    si-fold-shots is the odd one: it started failing on the runner when #326
+    (the label restyle) reached main, Chrome there cannot capture its third
+    390x844 screenshot at all; on the laptop it passes with and without #326,
+    so it is the runner, not the labels.
+  - **42 need a GPU**: they assert a hardware renderer, were written for
+    hardware GL, or need the camera to move or the scene to settle inside their
+    own windows, or flaked (dusk, banding, light-sky2, tour-check, light-tone
+    each went red once after passing).
+  - 29 timing scripts stay on the laptop by design.
+- **Playwright waits longer in CI** (`ci/slow-machine.mjs`): its 30 s default
+  becomes 180 s and a load/wait timeout a script names is tripled. No
+  assertion, threshold or in-page timer is touched. One retry exists, only for
+  "Unable to capture screenshot", and it is printed in the comment.
+- **The data bots.** build-data.yml only runs on main; build-tiles.yml and
+  fetch-reference-imagery.yml push to the branch that triggered them, but only
+  when their own paths change. This workflow runs on `pull_request`, touches
+  none of those paths, and triggered none of them on either branch.
+
+## Sep 27 2026 - Name labels restyled to match the live labels (`astra/labels`, PR #326, awaiting the owner's look check)
+
+The owner saw the label system's dark rounded cards with a coloured dot and
+rejected the look ("black background big labels that covered the screen"),
+but kept the system. This pass changes only the look, to match the labels live
+today, and leaves the PR open for him to judge.
+
+- **Look.** Text straight on the map: warm near-white ink with a thin
+  near-black outline (live `LABEL_LOOK` ink, halo and halo-to-size ratio 0.17),
+  no box, dot or stem. Night swaps in the live night outline and fades the two
+  smallest tiers 45%, as live does. All values are one line each in
+  `NAME_LABELS` (`js/name-labels.js`).
+- **Size.** Six tiers on the live zoom curves: hero (curated signs priority 1),
+  major, sign (priority 2), mid, minor, small (shops). The bake stamps `tier`
+  on every catalog row with the live rule (sign priority, then footprint x
+  height with `LABEL_RANK`'s thresholds; an on-demand area complex counts all
+  its buildings). Minor names start at 10 px, not live's 9.5, because they show
+  from further out than live's minor tier ever does. Only `tier` changed in
+  `data/labels.json`; every other value is identical.
+- **Density.** Live collision padding per tier, plus a cap: all names together
+  cover at most `maxCoverage` = 8% of the screen. Measured coverage at the
+  comparison cameras: cards 11.4% / 8.0% / 9.3% (West, downtown, phone),
+  restyle 3.9% / 3.0% / 3.5%, with about the same number of names.
+- **Renderer.** Glyphs are rasterised once per weight at the largest size that
+  weight is drawn, into one RG8 atlas (red = letter, green = letter + outline)
+  with mipmaps, 1.7 MiB instead of 4 MiB; each name draws a hit rectangle, all
+  outlines, then all letters, in the same single draw call. The tap occlusion
+  query now uses the hit rectangle (it used the card background).
+
+**Checks** (AMD integrated, low-power GPU, DPR 1): same-camera captures of main,
+the rejected cards and the restyle at West Campus, downtown and Riverside (area
+built) by day, downtown at night and West Campus at 390x844: 0 page errors, GL
+error 0, 0 names past the 8 px edge, 0 overlapping names. Astra's catalog
+regressions pass. Tap check: 8 of 8 names resolve; sky resolves null.
+Framecost boost probe, one run each, 1280x632 DPR 1.5: main 83.3 ms median /
+110.5 frames per 10 s, restyle 83.3 ms / 107.8 (an earlier restyle run under
+more load: 83.5 / 96.2; a first main run was invalid, its window stopped
+painting). A probe, not a timing claim.
+
+**Open.** The owner judges the look before merge. The atlas uses Arial, not the
+map's Noto Sans. Comparison pictures are local:
+`astra-pipe/feedback/2026-09-28-speed2/labels-restyle/`.
+
+## Sep 27 2026 - The name labels land on today's main; Riverside's names sit on its own roofs (`astra/labels`)
+
+The owner approved Astra's label revamp ("ship the labels"). This pass rebased
+it onto main 9444fd7 (after Riverside #322, downtown #311 and the speed pass
+#323-#325), rebaked the catalog on today's data, and fixed the two anchor
+defects the rebase exposed. The two Astra entries below describe the label
+system itself.
+
+- **Rebase.** Only this file conflicted. `js/app.js` and `js/graphics.js`
+  merged cleanly and keep #324's GL-state caching; the label edits are the same
+  four small hooks as before.
+- **Riverside.** The bake read only the core apartment list, so it never saw
+  the on-demand Riverside area: Estates and Village kept street-level anchors
+  from when nothing stood there, Town Lake and The Element kept anchors on the
+  outer-ring masses and office points the authored buildings now retire. The
+  bake now reads `areas` in `data/apartments/index.json` and puts each complex's
+  name on its own authored building nearest its site point (never a canopy,
+  carport, pool or path), above that building's real top. Names are not gated
+  on the area loading: a desktop builds Riverside from 1,800 m and apartment
+  names only fade in from 1,350 m, so on a desktop they appear over a built or
+  building area. A phone loads at 1,200 m, so there is a 150 m band where a
+  name can show a moment before the buildings under it.
+- **Names hidden inside their own buildings.** An authored building's name was
+  placed at its eave or slab (`levels.roof`, or its last floor). Where a crown,
+  core, bulkhead, mechanical box or ridge rises above that, the anchor sat
+  inside the building and the depth test hid the name from every angle: The
+  Castilian never showed in West Campus. The bake now uses the model's top as
+  the renderer builds it (blocks, parapets, roof boxes, pitched roofs, roof
+  meshes, deck items, the file's named tops). Against the renderer's own
+  `slopesApartments.built[].top` for 126 labelled buildings, every name now
+  starts above it. 54 names move up, 0 to 8.4 m.
+- **Catalog.** 1,761 names (1,756 before; the Sep 27 snapshot names a few more
+  small places), 220 apartments, every one of the 179 newly named apartments
+  still present. Yugo Austin Nueces now counts as previously eligible because
+  the new snapshot names it, so the stat reads 178. Downtown names follow the
+  new crowns (The Independent 209 -> 210.4 m); the Gates Dell Complex label
+  follows its corrected 26 m roof. Seven apartments keep deliberate beside-site
+  anchors (Colorado D/J/K/L/M/N, Echo).
+
+**Checks** (AMD Radeon integrated, `ANGLE (AMD, AMD Radeon(TM) Graphics
+(0x00001638) Direct3D11 ...)`, low-power GPU, 1280x800 DPR 1, balanced):
+desktop and phone loads of the rebased branch with 0 console and 0 page errors;
+harness parity 49/49; Astra's 12 layout and 7 teleport regressions pass; Astra's
+catalog regressions pass with two counts updated for the reasons above (178
+newly named, 7 unresolved heights); two 8 s moving-camera runs (West Campus and
+across Riverside with its area built, 117 and 280 samples) with 0 clipped cards,
+0 cards on a control and 0 overlapping cards; still captures at West Campus,
+Riverside and downtown with the same assertions and GL error 0. The Riverside
+flight placed all four complex names on screen.
+
+**Cost.** Astra measured +3.1% boost frame time (37.37 -> 38.55 ms, three
+interleaved pairs); the owner accepted it. Not re-measured in this pass.
+
+**Still open** (Astra's known limits): a name hidden behind a foreground
+building still reserves its screen space, so it can keep a visible neighbour
+off screen; physical-phone performance is unverified.
+
+## Sep 27 2026 - Label acceptance repairs (`astra/labels`, pipeline task 022)
+
+Whole name cards now stay within the viewport and clear attribution, time controls, top buttons and the open compare drawer, including its moving map buttons. Retiring cards cannot overlap replacement cards, and camera jumps cannot resurrect dim cards at stale screen positions. Foreground geometry hides the entire card using its anchor depth instead of slicing its letters. Layout, control rectangles and static screen positions are cached; moving frames use nearby candidates and MapLibre's current GPU-state cache. No authored building triangles were added.
+
+The label bake preserves all 1,756 names, including 220 apartment properties and the 179 additions. Nine absent host roofs (Colorado D/J/K/L/M/N, Echo, Estates at East Riverside and Village at East Riverside) now have deliberate beside-site access-frontage placements. Original site coordinates and placement reasons remain in the catalog; the bake rejects excessive displacement or overlap with another building. This resolves label placement, not the missing buildings themselves.
+
+Validation: twelve layout regressions, catalog coverage and 49-script harness parity pass. Desktop/phone captures use 1280x800 and 390x844. GPU depth positive controls retain Avenir's roof-extension label and reject 6 of 11 submitted labels at Otis and 4 of 18 in West Campus; disabling depth makes every submitted label visible. Physical-phone performance remains unverified.
+
+Performance acceptance remains OPEN: three interleaved AMD low-power pairs at 1280x800, DPR1, balanced, CPU1x measured minimum idle 34.640 -> 34.586 ms (-0.16%) and actual boost 37.374 -> 38.545 ms (+3.13%, above the 2% limit). The comparator restores original main label layers and fully removes the custom layer in the same resident city. Exact stationary camera, effects, geometry, layer state and zero GL/browser errors were independently checked. Actual boost trajectories vary slightly with cadence. Final source caches static layout, limits moving candidates, uses squared distance rejection and updates only admitted/retiring fades in catalog order. A 4,800-frame differential check preserves placement/fade behavior. A later micro-optimization did not establish a gain and was reverted. Earlier reset-invalidated reports and every failed run remain in pipeline work; performance-summary.json identifies authoritative evidence. Desktop/phone marker bounds and visibility restoration pass. Final-source motion has 41 render samples and 20 compositor captures, with zero clipping/control/card-overlap failures.
+
+Final labelled before/after images are local pipeline artifacts in `../astra-pipe/tasks/022-labels-fix/out/`; raw captures, timing JSON and scripts stay in `work/`. The animation demonstrates sampled label motion, not compositor frame pacing. All changes are deliberately uncommitted for the reviewing lane; no git writes, server launches or scheduled continuation were performed.
+
+
+
+## Sep 24 2026 - Unified name labels (`astra/labels`, verification completed; acceptance open)
+
+Pipeline task 019 replaces the separate place/building/apartment name layers
+with `js/name-labels.js`. Text uses one white-on-dark treatment; category dots
+are mint for homes, amber for campus, blue for landmarks, neutral for small
+places. All taste controls are in `NAME_LABELS`. Names use the shared city
+depth buffer, distance fades, retained collision priority and phone density
+limits. Streets and architectural sign geometry remain. Label taps verify
+the exact pixel asynchronously against the rendered depth buffer.
+
+`scripts/bake_labels.mjs` owns `data/labels.json`: 1,756 entries, including
+220 named apartment properties and 136 verified UT codes. All 45 authored
+apartment names and 49 finder homes are covered; 179 apartment names were
+absent from the former eligible label inventory. Seven nearby aliases were
+merged without collapsing distinct apartment wings or properties. Unnamed
+OSM apartment parts have no invented names. Seven missing roof anchors were
+recovered from matching loaded footprints or explicitly named offices; nine
+apartment heights remain unresolved in the source data. GPU-hidden labels
+can still reserve collision space.
+Seven residential towers were corrected from place/landmark categories,
+including AMLI on 2nd and Sixth and Guadalupe. Twenty-five roof heights now
+match their containing loaded roof/crown geometry; foreground occlusion is
+preserved rather than raising labels above unrelated buildings.
+Nine indoor POIs also received verified host roof heights to prevent permanent
+self-occlusion; authored street-facing anchors are preserved. Stadium
+Starbucks remains unresolved because the legacy height is not a valid roof
+height for the custom stadium bowl.
+
+Integration touches `js/app.js`, `js/graphics.js`, `index.html` and
+`_harness.html`. `?namelabels=0` restores the original layers for controlled
+comparison. Syntax, 49-script harness alignment, catalog regressions, 12
+layout/GL checks and 13 control/fade checks pass. Task 021 finishes the browser
+checks on the same branch. Its catalog correction
+uses Avenir's exact named, containing loaded building in `data/capitol.geojson`
+for its 11 m roof anchor; this changes the label height, not building geometry.
+Task 021 also reduces per-frame allocation/distance work, caches glyph
+geometry, and updates a small anchor/alpha texture. The label layer still
+uses one draw call and shared depth. The glyph atlas is 4 MiB and anchor
+texture 28,672 bytes. Cached control bounds keep settled names clear of the
+time slider, including when the settings panel moves it.
+
+The task 021 local output contains matched day/night desktop and phone-width
+comparisons for campus, West Campus, downtown, Riverside and an extra Otis
+close view, plus a continuous before/after flight. The local work directory
+contains the 179-name apartment list, raw evidence and verification report.
+The final AMD depth control shows 8 of 11 queried Otis card centers visible
+normally and all 11 with depth disabled; Avenir is visible above its loaded
+roof. The continuous recording contains 47 before and 45 after frames.
+Exact label-render telemetry found no abrupt CPU fade transitions; this
+does not establish absence of GPU occlusion flicker.
+
+Performance acceptance remains OPEN. Two fresh-browser interleaved AMD
+repetitions at 1280 x 800, DPR 1, balanced preset, CPU throttle 1, forced
+low-power GPU gave before 15.19/11.66 FPS and after 9.41/13.94 FPS. The minimum
+mean frame time is 65.81 ms before versus 71.71 ms after, an 8.96% increase.
+Run variation is large; do not claim negligible cost. Some foreground
+buildings still cut cards into unreadable fragments, and GPU-hidden cards
+can reserve collision space. A West Campus desktop card also overlaps bottom
+attribution and approaches the frame edge. Nine apartment roof anchors remain unresolved.
+Physical iPhone Safari/Chrome acceptance remains unverified.
+
+The shared queue currently permits two slots; this task reserves both before
+launching its single browser, yielding if the companion slot is occupied to
+avoid deadlocking with another lane that also needs exclusive access.
+Changes are intentionally uncommitted under the pipeline instruction; the
+Claude lane owns review, commit and PR. Do not start another work order.
+
+## Sep 27 2026 - Speed pass: the city opens ~4.5 s sooner, flights freeze less and run ~11% smoother (`claude/speed-*`, PRs #323 #324 #325)
+
+A measure-first pass on the AMD integrated GPU (the renderer most visitors and the
+owner's laptop use): a fresh baseline of main 2546efe, two code readers, three
+surgical fixes, and a separate checker per fix that repeated every measurement and
+read the diff. All three merged; the combined build and the live site loaded on
+desktop and the phone profile with 0 errors, and matched main pixel for pixel in
+daylight (night: max 7/255 on 0.02% of pixels, sky twinkle).
+
+**What the baseline showed (vs frame-cost.md, Sep 23).** The moveend proxy storm,
+the auto-exposure getImageData and the facade-repaint freezes are gone: boost went
+from 38.6 to 206 frames per 10 s. What remained: proxy rebuilds under the veil
+(7.8 s), getParameter round trips as the top self-time function in flight, and the
+three.js layer drawing every authored apartment in all three passes.
+
+- **#323 `js/city-lighting.js`.** The proxy's per-frame dirty check is a signature
+  of what it reads (triangles, areas switch, catalogue ref, buildings-3d filter ref),
+  not `count.buildings`; the footprint test goes through a grid (`PROXY_GRID_DEG`);
+  rebuilds read live layers, not getStyle(). Veil 43.8 s (43.8-44.3) -> 39.3 s
+  (39.3-40.5); Tower landing worst task 899 -> 551 ms; return from Riverside 4.3 ->
+  3.0 s. Riverside switches on ~0.4 s later. Gate: `scripts/verify/proxy-inside-grid.mjs`.
+- **#324 `js/graphics.js`, `js/slopes.js`.** GL state is recorded in JS (`GLSTATE`)
+  so auto-exposure and the sun-shadow pass stop calling getParameter every frame.
+  Boost main-thread busy 39.4% -> 29.5%, long tasks 46 -> 34 per 12 s. No fps change:
+  the AMD chip is GPU-bound in flight.
+- **#325 `js/slopes-apartments.js`.** Per-building bounding spheres; each camera
+  (main pass, both shadow cascades) draws only the index ranges in its frustum, in
+  order. Boost 195 -> 216 frames per 10 s, GPU 34.7 -> 30.9 ms/frame, three.js layer
+  -28%. Off switch: `APARTMENTS.cull.on`.
+
+Settings for every number: framecost.mjs `--gpu low`, 1280x632 at DPR 1.5, no CPU
+throttle, drift=0, auto-detect cancelled, 3 interleaved pairs, best (range).
+
+**Next, ranked.** Synchronous shader link/compile checks under the veil (~9 s;
+moving the check only moves the wait, so measure a warm-profile load first);
+`ensureImages` is a single 5.3 s task at load; desktop keeps ~0.5 GB of CPU geometry
+copies; a per-tile proxy memo for the landing task; the facade premultiply in flight
+(870 ms per 12 s); a desktop LRU for visited areas. A texture-state cache in the
+extrusion adapter was prototyped separately and gave no measurable gain: skip it.
+
+## Sep 27 2026 - Riverside's four student complexes land, and load only when you go there (`astra/riverside`)
+
+Astra's four Riverside complexes (Village at East Riverside, Estates at East
+Riverside, Town Lake Student Apartments, both Element parcels: 236 buildings on
+their OSM outlines, plus a site file of drives, paths, courts and pools; the
+Sep 24 entry below) land with **on-demand areas**, rebased onto main after the
+phone crash fix (#310) and downtown (#311). The data bot's snapshot commit was
+already gone from the branch; nothing was built on it.
+
+**Why areas.** Riverside is 5.6 km from the Tower and the opening camera never
+looks there, but as committed every visitor paid for it at start. Measured on
+the rebased branch with `?areas=eager` (= Riverside at start, as committed)
+against main, AMD iGPU (`--force_low_power_gpu`, renderer string
+`ANGLE (AMD, AMD Radeon(TM) Graphics ...)` printed every run), graphics
+auto-detect cancelled, two interleaved reps, minimum [range]:
+
+- desktop 1280x632 DPR 1.5: veil lift 42.3 [42.3-44.1] s -> 82.3 [82.3-119.0] s,
+  apartments ready 41.7 -> 81.4 s, authored triangles 3,084,685 -> 3,702,971
+  (+20 %), JS heap 1158 -> 1214 MB;
+- phone 390x844 DPR 3 touch: veil 34.5 [34.5-60.4] s -> 43.6 [43.6-60.3] s,
+  ready 34.3 -> 42.3 s, triangles 2,155,609 -> 2,436,591 (+13 %);
+- JSON downloaded at start: 90 files, 42.02 MB raw / 5.37 MB gzip / 4.88 MB
+  brotli -> 95 files, 49.64 / 6.82 / 5.64 MB (gzip 6 and brotli q4 of the files
+  on disk; q4 is within ~3 % of what production sends for the same file).
+
+**What areas do.** `data/apartments/index.json` has `areas`: a box and its
+files. The core (everything else) loads at start exactly as before and the veil
+waits only for it. An area is fetched and built as its own group when the
+camera (the nearer of the eye and the map centre) comes within 1800 m of its
+box (1200 m on a phone); a phone drops it again past 3000 m and forgets the
+parsed files, a desktop keeps it. Its buildings join the catalog, and so
+retire the outer-ring boxes they replace, only once its mesh is in. All the
+distances are `APARTMENTS.areas` in `js/slopes-apartments.js`; `?areas=eager`
+is the old start. PR #310 had no distance-based loading to reuse (its budget
+is per tile and per build), so the area build goes through the same
+`build()` and so gets #310's chunked phone build for free; an area also stands
+down while a phone's lost context has the city paused (`sceneUnavailable`).
+
+**Startup is main's again**, same runs: desktop veil 42.1 [42.1-50.2] s, ready
+41.7 s, 3,084,685 triangles, heap 1058 MB; phone veil 36.4 [36.4-73.3] s, ready
+35.8 s, 2,155,609 triangles; start JSON the same 90 files, byte for byte, as
+main. The phone memory instrument from #310 (`mobile-memory.mjs`, two
+interleaved reps, AMD iGPU) agrees: page-held peak 1012 (main) vs 909 MB,
+settled 784 vs 782 MB, WebGL 528 vs 538 MB, GPU process 1202 vs 1218 MB,
+buildings landed 38.0 vs 37.4 s. The machine was shared with other lanes'
+browsers throughout (free RAM 4.3-8.1 GB, CPU up to 100 % in rep 1), which is
+the whole spread; rep 2 of each pair ran on a quieter machine.
+
+**Flying there**, same runs: Riverside is on 9.4 [9.4-19.2] s after the camera
+arrives on the desktop and 6.3 [6.3-10.0] s on the phone, with exactly the eager
+build's triangles (3,702,971 desktop, 2,436,591 phone: +618,286 and +280,982)
+and its 353 authored pieces (the 236 buildings plus the site's drives, courts and
+pools); the phone is back to 2,155,609 once it leaves (area idle). The
+area's own files are 7.62 MB raw / 1.45 MB gzip / 0.77 MB brotli, fetched only
+then. Pictures: `docs/shots/riverside-four-complexes-before-after.jpg` (Astra's
+matched app camera, before and after) and, from the rebased branch after flying
+there with areas on, `docs/shots/riverside-village-after-flying-there.jpg`
+(desktop) and `docs/shots/riverside-village-phone-after-flying-there.jpg`
+(phone), second of two screenshots, no page errors.
+
+**Open:** the apartment finder (PR #307, still open) should call
+`slopesApartments.areas.ensureAt([lng, lat])` in `select()` before it flies to
+a Riverside home, and its "Riverside has no 3D buildings yet" line stops being
+true with this. PR #312 (compiled building lifecycle, already conflicting with
+main) also edits `build()` and `count` in `js/slopes-apartments.js`; whichever
+lands second merges the two. Not tested on a real phone.
+
+Gates: `apartment-areas.mjs` (new; claims 1-9 incl. the chunked phone build
+and the paused phone scene) passes and fails with `--break`; the rest of the
+no-browser apartment set, slopes-buffer-memory, slopes-chunked-build,
+slopes-context-loss, facade-pace, facade-atlas-memory and harness-drift pass.
+`facade-filter.mjs` fails identically on main (this branch does not touch
+`js/facade-filter.js`). Measurement scripts: the lane scratchpad's
+`framecost.mjs` (load + fly-to-Riverside) and `scripts/verify/mobile-memory.mjs`.
+
+## Sep 27 2026 - Downtown lands: every tower its own facade, 23 landmarks their own look (`astra/downtown`, PR #311)
+
+The downtown change from the Sep 24 entry below (Astra pipeline 018), rebased
+onto main twice (last onto 9b02160, after the phone crash fix), the data bot's
+snapshot commit dropped from the branch, and re-measured. No code changed in
+this pass; the diff against main is the same 13 files as on Sep 24.
+
+What he sees: `docs/shots/downtown-skyline-before-after.jpg` (same camera,
+skyline from campus, day and night, main on the left). By day the towers stop
+reading as one grey-blue mass: crowns, setbacks, curtain-wall colours. **At
+night downtown is darker than before**: the new window grids are finer, so
+fewer and smaller windows are lit, and the Frost Bank crown now glows. That is
+a taste call for him, not a defect; the night window tuning is where to change it.
+
+Cost, AMD Radeon iGPU (forced low-power GPU, renderer string printed every
+run), minimum [range], main vs this branch:
+- Desktop 1280x632 DPR 1.5, against main at 91a4106 (the phone fix since
+  changes nothing on desktop), 2 reps each, order main/branch/branch/main, with
+  the second browser slot held empty so no other lane shared the GPU:
+  loading screen lifts 40.9 [40.9-42.3] vs 41.8 [41.8-42.3] s; apartments
+  ready 40.3 [40.3-41.8] vs 41.6 [41.6-41.6] s; renderer private memory 2017
+  vs 2017 MB; GPU process 2624 [2624-2735] vs 2673 [2673-2679] MB; live WebGL
+  1073 vs 1060 MB. 12 s boost toward downtown: 150-195 vs 189-203 frames per
+  10 s, 0 vs 0 frames over 0.8 s. Skyline view held still and redrawn for 10 s:
+  340-344 vs 335-336 frames per 10 s, GPU 24.8-25.4 vs 25.4-25.8 ms per frame.
+  Outer-ring triangles drawn in that view: 167,375 vs 227,371 (+60,000).
+- Phone 390x844 DPR 3 touch, on the rebased result (`mobile-memory.mjs`, 3
+  reps interleaved, fresh browser each): loading screen lifts 41.8
+  [41.8-63.1] vs 41.3 [41.3-60.1] s; page memory peak 872 [872-999] vs 839
+  [839-980] MB, settled 760 [760-795] vs 760 [760-803] MB. No difference
+  outside the noise. Outer-ring triangles in the skyline view on the phone
+  (quiet pair, before the phone fix): 103,060 vs 163,056.
+  (A 2-rep run on the NVIDIA GPU read the branch about 20 MB higher settled,
+  12 MB of it the extra facade images.)
+- A first, unquiet pass (other lanes' browsers on the same iGPU) read 40-90 s
+  loads and 60-120 boost frames for both builds; it is not used above.
+
+Checks on the rebased branch: `downtown-data.py` PASS, `bake_outer_facades.py
+--check` 0 changed, `downtown-landmarks.py` PASS; outer-check 20/21 on branch
+and main alike (the "budgeted layers" line is red on main too);
+outer-facade-parity and `outer_facade_parity.py` PASS on both; harness-drift,
+facade-pace, facade-filter, facade-atlas-memory, slopes-buffer-memory, the six
+no-browser apartment gates and apartment-window-scene PASS. The downtown grids
+register (8 grids, 16 campus families preserved), no `[outer]` warnings.
+campus-apartment-check is red on main and branch alike (it reads the building
+count before the build finishes: 29 and 32 of 196). The data checks,
+facade-pace, facade-atlas-memory, outer-check and the phone memory run were
+repeated after the last rebase. Not tested on a real phone.
+
+## Sep 27 2026 - A graphics reset pauses the phone city instead of leaving it hollow; the phone crash fix lands (`claude/mobile-crash`, PR #310)
+
+![Second graphics reset: before, after, after Reload city](docs/shots/phone-graphics-reset.jpg)
+
+PR #310 (the Sep 24 entry below) rebased onto main, which now has Codex's
+#319 phone walking surfaces, with Codex's private "recovery v2" taken in
+(`C:/Users/simip/output/flyover-architecture/overnight-20260926/pr310-recovery-v2/`,
+applied byte-exact: the six baseline files hashed identical to his, the five
+repaired ones identical after `git apply`). Three changes of mine on top.
+
+**The hole it closes.** A phone drops each mesh's vertex arrays once they
+are on the GPU (`LITE.budget.freeGeometryCpu`). After a lost WebGL context
+three.js cannot upload them again, so the restored page is missing buildings
+while `__fly` and all 35 walking supports (`campusLandscape.floorAt`, 10 of
+them on Gearing's authored model) still answer: you walk on invisible stairs.
+The first loss already reloaded by itself; a second inside the 10-minute
+limit, or one whose reload record could not be written, left that hollow city
+running with zero page errors (left panel above: Codex's capture of the
+unmodified Sep 24 code). Now any map-canvas loss with the 3D layer on sets
+`LITE_PROFILE.sceneUnavailable`: the root hides, `city:unavailable` tears the
+controls down and disables all eight map handlers (`js/app.js`), render,
+`floorAt`, the landscape poller/rebuild/density hooks, the facade storey
+bootstrap, the intro and idle rotation all stand down, and the notice becomes
+a native modal "Reload to continue exploring" with one button and no dismiss
+(keys captured, Escape blocked, later notices cannot replace it). The first
+loss still reloads once by itself; the modal only stays up when it cannot.
+
+**Mine 1: one fix to Codex's patch.** His render guard read
+`window.LITE_PROFILE` before `gl.isContextLost()`; the existing
+`slopes-context-loss.mjs` requires a lost-context render to touch nothing,
+and failed. Reordered (same conditions); it passes, and both its `--break`s
+still go red.
+
+**Mine 2: Safari before 15.4 has no `<dialog>`.** `el.showModal()` threw a
+TypeError out of the context-loss handler before it scheduled the automatic
+reload (it still happened only because the restore event schedules it too; a
+context never restored would have waited forever). Feature-detected, falls
+back to `open`; the new `nodialog` scenario deletes `showModal` and requires
+the reload with no page error - the pre-fix file fails it on exactly that
+TypeError, this one passes.
+
+**Mine 3: vertex packing DEFERRED** (`packVertices: false`). Its own gate
+(packed vs exact, one page, SwiftShader 640x640, control 0 px) still fails
+exactly as on Sep 24: The Standard day 11,190 px (max 12/255), night 515;
+21 Rio day 5,348 (max 11), night 244; Moody 0. Taste call for the owner:
+packing buys back about 60 MB once settled and nothing measurable at the
+peak (table below) for that sub-brick grain shift. At that price, off.
+
+**Memory, phone emulation** (`mobile-memory.mjs`, 390x844 DPR 3 touch,
+AMD Radeon iGPU, CPU 1x, a fresh browser per rep, arms interleaved, 3 reps,
+graphics auto-detect cancelled, free RAM 4.2-6.7 GB at each start, one other
+lane's browser running). `phone` = JS heap + ArrayBuffers + live WebGL bytes;
+peak = the opening flight (15-24 s after the veil lifts), settled = 30 s after
+the buildings land. Minimum [range], MB:
+
+                              peak               settled       WebGL buffers
+    main (91a4106)            1968 [1968-2050]   1845 [1845-1905]   428
+    this PR, packing off       861 [861-985]      758 [758-769]     383
+    this PR, packing on        869 [869-902]      697 [697-705]     315
+
+Same 196 buildings and 2,155,609 apartment triangles in every arm. The
+phone tier holds 56% less at the peak and 59% less settled than main. Desktop
+Chrome is not WebKit: these rank the builds, they do not predict an iPhone.
+
+**Checks on the integrated commit** (AMD Radeon iGPU via the new
+`VERIFY_GPU=low`, renderer string printed by every run):
+- NEW `scripts/verify/scene-unavailable.mjs`: 26/26 on the final code. Early
+  loss before the three.js root exists (style held, reload record refused):
+  paused 9/9, then "Reload city" -> `lighter`, 196 buildings, 35/35 supports
+  (10/10 authored), 200 released arrays, moves 1.73 m. Loss in the flight: one
+  automatic reload onto `lighter`, whole; lost again: no reload, paused 9/9;
+  "Reload city": whole, record untouched, moves 1.72 m. Normal phone with the
+  record refused: paused 9/9, "Reload city" -> `phone`, 216 released arrays,
+  moves 1.74 m. No `<dialog>`: reloads by itself, whole, no error. 0 page or
+  console errors anywhere. `--break` exits 1 (supports stay 35/35, card
+  dismissable).
+- `mobile-boot.mjs`: 51/51, incl. crashloop (killed in the flight -> Safari's
+  reload is `lighter`, never reloads itself; killed again -> `safe` with its
+  card, no reload of its own) and ctxintro (second loss shows the new card).
+  crashloop + contextloss + ctxintro re-run on the final code: 17/17. (The
+  `<dialog>` fallback landed after the full suite, device-recovery, the walks
+  and the desktop identity ran; it only changes the path where `showModal`
+  does not exist, which `nodialog` covers.)
+- `device-recovery.mjs`: PASS - full city, real loss during time-of-day
+  playback, one recovery reload, 196 buildings back, keyboard 42.9 m and
+  touch 26.1 m of movement, portrait/landscape/large captures, 0 errors.
+- #319's phone walks, Codex's unchanged route code (`union-walk.mjs`,
+  `gearing-walk.mjs` from his phone-ground folder) on this build: PASS on the
+  `phone` tier (Union 2,704 frames; Gearing stairs/restart 665, terrace-to-ramp
+  739, outside 342; eye 1.800000-1.800210 m over the ground) and on the
+  `lighter` tier (Union 2,994; Gearing 543/527/226; 1.800000-1.800797 m);
+  35/35 supports before, all 0 with the 3D switch off; 0 errors.
+- Node-only: slopes-context-loss, slopes-buffer-memory, facade-atlas-memory,
+  shadow-proxy-pacing/-recovery, the five style-recovery checks,
+  slopes-chunked-build, harness-drift, gearing-ground, ground-roof-separation,
+  collision-raster all pass; Codex's two CPU fixtures (`guard-cpu.cjs`,
+  `cpu-v1.cjs`) pass against this tree.
+- Desktop unchanged (SwiftShader 1280x800, main / this PR / main again in one
+  browser): 196 buildings, 3,084,685 apartment and 4,075,507 layer triangles
+  on all three, no phone budget, 0 errors; map canvas and whole page 0 px
+  different (max 0) at a West Campus and a Tower pose, control also 0.
+- Desktop not slower (lanes' `framecost.mjs`, headed Chrome, AMD Radeon iGPU
+  via `--force_low_power_gpu`, 1280x632 at DPR 1.5, CPU 1x, auto-detect
+  cancelled, 4 interleaved pairs, free RAM 5.9-8.8 GB; best of 4 [range]):
+  veil lift main 40,535 [40,535-48,846] ms vs this PR 40,546 [40,546-106,119];
+  idle 60 fps both (median frame 16.6 ms); flying across the city with BOOST
+  main 211 [62.5-211] frames/10 s, median 33.4 ms, p90 66.8 vs this PR 215
+  [60.8-215], 33.4, 66.7. The 106 s load is pair 3, run while another lane
+  loaded the CPU (21-62% before the run); main's run in that pair fell to the
+  same 61 frames/10 s. Desktop never runs the new code (`js/mobile.js` returns
+  before it; the other guards read an undefined flag).
+
+**Harness changes.** `chrome.mjs` `VERIFY_GPU=low` swaps
+`--force_high_performance_gpu` for `--force_low_power_gpu`.
+`mobile-memory.mjs` now cancels the graphics auto-detect (rule 10, Codex's
+review caught it) and prints the renderer and free RAM per rep.
+`docs/mobile-device-check.md` is rewritten as the owner's iPhone steps:
+the flight, crashing twice, a graphics reset (camera app, twice in ten
+minutes), walking the Union and Gearing steps, and an optional forced reset
+from the Mac's Web Inspector.
+
+**Open.** Not tested on a real iPhone (Safari or Chrome) - memory, thermals
+and recovery there are unverified. PR #312 (Codex, parked) is stacked on this
+branch and touches `js/mobile.js`, `js/slopes.js`, `js/slopes-apartments.js`;
+it has to be retargeted to main and re-verified by its lane. Packing waits on
+the owner's taste call above.
+
+## Sep 24 2026 - Phones stop crash-looping: a memory budget, and one reload at most (`claude/mobile-crash`)
+
+Reported: "the site still breaks on mobile browsers - it loads for like 15
+seconds, but during the intro it refreshes, and then i get an error 'a problem
+repeatedly occured'". That is iOS Safari killing the page for memory, reloading
+it once by itself, and giving up when the reload dies too.
+
+**What was actually happening (desktop Chrome in phone emulation, 390x844 at DPR 3, not a phone).** New `scripts/verify/mobile-memory.mjs` reads, once a second,
+the JS heap, ArrayBuffers, every live WebGL texture/buffer (counted in the page,
+by allocating file) and the renderer/GPU process memory. On main the phone
+profile held ~1.2-1.3 GB when the veil lifted and **2.0-2.1 GB twelve to
+fourteen seconds later - the end of the opening flight**. The flight crosses
+downtown and every tile it loads carries a facade pattern atlas texture (up to
+30 MB each: 2580x3086 RGBA), and MapLibre keeps ~30 tiles per source after they
+leave the screen: 700 MB of textures, 680 of them facade atlases. Then two
+things of ours turned one kill into Safari's error page: the crash fallback
+needed TWO deaths, but Safari only ever reloads once, so its one reload was the
+same heavy scene; and a lost WebGL context reloaded into the same scene too.
+
+**The phone budget** (`js/mobile.js` `LITE.budget`, one block, desktop gets
+`null` and nothing changes there):
+
+- `facadeScale: 1` (`js/facades.js`): facade patterns at 1 texel per CSS px
+  instead of 2 on the phone. The phone draws at 2.25 device px per CSS px
+  (DPR 3 x renderScale 0.75), so the 2x texels were being minified 1.8x with no
+  mipmaps - nobody saw them. A quarter of every atlas.
+- `tileCacheSize: 6` (`js/app.js` -> MapLibre `maxTileCacheSize`): 6 off-screen
+  tiles kept per source instead of ~30.
+- `freeGeometryCpu` (`js/slopes.js` `add()`): three.js drops each mesh's CPU
+  copy once it is on the GPU (~260 MB). A phone recovers from a lost context by
+  reloading, and nothing on a phone reads the arrays afterwards.
+- `geometryChunkTris: 300000` (`js/slopes.js` `buildChunked`, used by
+  `js/slopes-apartments.js`): the authored buildings are built in ~8 pieces
+  instead of one set of buffers that doubled to 8.4 M vertices for 4.2 M used.
+  Same triangles, same order (`scripts/verify/slopes-chunked-build.mjs` compares
+  every expanded vertex byte for byte, and its `--break` goes red).
+- `packVertices` (`js/slopes.js` `packGeometry`): normals as signed bytes,
+  surface parameters as half floats, 50 -> 34 bytes a vertex. **Not
+  pixel-identical**: measured in one page (SwiftShader, close-ups, control
+  0 px), the fine brick-joint grain on far walls lands a fraction of a brick
+  along - The Standard by day 2.7% of pixels at most 12/255, 21 Rio 1.3%, Moody
+  0. Same grain, displaced; `packVertices: false` puts exact vertices back.
+  **DEFERRED on Sep 27 (entry above): phones ship `packVertices: false`.**
+
+**Tiers, one step per death** (`LITE.tiers`): `phone` -> `lighter` (no opening
+flight, no out-of-view tile cache, no balconies) -> `safe` (flat prisms, as
+before). A boot that finds the previous one died while visible steps down ONE
+tier, so Safari's own reload lands on `lighter`. A WebGL context lost during
+the boot or the opening flight steps down too, before its reload. **Every
+automatic reload is recorded; at most one per 10 minutes**, after that the
+notice offers the reload instead. `lighter` and `safe` say so on screen with
+"Load full city"; a visit an hour later tries one tier heavier by itself.
+`?litetier=phone|lighter|safe` forces a tier for testing. Kept from PR #270:
+the boot record, never writing the fallback into the URL, the reload after a
+post-load context loss, lateAuthored, legacy URL cleanup. Old boot records
+(v2) are discarded: they counted deaths of the 2 GB scene.
+
+**Memory, phone emulation, 3 interleaved reps, fresh browser each, minimum
+[range], MB. `phone` = JS heap + ArrayBuffers + live WebGL bytes:**
+
+                        page-held peak     page-held settled   renderer / GPU process (peak, private)
+    main, phone profile   2035 [2035-2133]   1920 [1920-2041]    2285 / 2463
+    branch, phone tier     824 [824-882]      696 [696-718]      1673 / 1247
+    branch, lighter tier   660 [660-813]      506 [506-507]      1322 /  908
+    branch, safe tier      365 (1 rep)        284                1179 /  522
+
+    of which (main -> phone tier, settled): WebGL textures 699 -> 122,
+    WebGL buffers 442 -> 322, ArrayBuffers 651 -> 137, JS heap ~100 both.
+
+Where the peak is: main peaks 12-14 s after the veil lifts (the end of the
+flight); the phone tier peaks as the authored buildings go to the GPU under the
+veil, or during the flight, at ~0.82-0.88 GB. Budget chosen: phone tier under
+0.9 GB peak, lighter under ~0.7, each a third below the one above; main
+survived ~1.2-1.3 GB on the owner's phone (the veil lifted) and died on the way
+to 2.0, so the phone tier's peak sits a third under what his phone demonstrably
+held. Renderer/GPU process numbers are this laptop's Chrome and include its
+own overhead; they are for ranking, not for predicting an iPhone.
+
+**Gates.** `scripts/verify/mobile-boot.mjs` has two new scenarios.
+`crashloop`: the page is killed during the opening flight and loaded again at
+once (Safari's own reload); it must come back on `lighter` with the authored
+buildings, a notice and no reload of its own, and a second death lands on
+`safe`. `ctxintro`: a context lost during the flight reloads exactly once,
+onto `lighter`; lost again, no second reload, the notice instead. On this
+branch: all 11 scenarios pass, 51/51 checks on the final code. On main the 9
+existing scenarios pass (37/37) and the new two fail as they should (crashloop
+3/9, ctxintro 3/5) - Safari's reload there is the same
+full scene with the flight again, and a context loss reloads into it too.
+`device-recovery.mjs` passes on both, after an instrument fix: it read the
+city as ready before a viewport resize had landed and then caught the new
+view's tiles loading at capture (it happened on the branch first; main shows
+the same loading once the wait is right). Also fixed in the harness: the
+`shots` scenario returned `map.jumpTo()` - the whole Map - through
+`page.evaluate`, which on main is now a >512 MB message that kills Playwright,
+and `crashloop`/`ctxintro` first counted `history.replaceState` as a reload
+(Playwright's `framenavigated` fires for it); they count document requests
+now. Node-only checks pass on both: slopes-context-loss, slopes-buffer-memory,
+facade-atlas-memory, shadow-proxy-pacing/-recovery, the four style-recovery
+checks, harness-drift; new `slopes-chunked-build.mjs` passes and its `--break`
+goes red. `mobile-budget.mjs` (the Sep 15
+heap-after-GC reading, SwiftShader): main 788 MB, branch 222 MB, both exit 0.
+`mobile-mergecells.mjs` was not run: it has nothing to compare on either side
+(no `APARTMENTS.mergeCells` in main or here since it was left out on Sep 19)
+and exits 2 by construction. The measurement harness is `mobile-memory.mjs`.
+
+**Desktop unchanged.** One desktop load each of main, this branch and main again
+(SwiftShader, 1280x800): 196 authored buildings, 3,045,153 apartment and
+4,035,204 layer triangles, the same 708 style images at the same sizes,
+MapLibre's default tile cache, no phone budget, 0 page errors - and the map
+canvas and the whole page pixel-identical (0 px, max 0) at a West Campus and a
+Tower pose, main-vs-main control also 0.
+
+**What a phone viewer loses:** facade windows drawn from 1x texels (at the
+phone's pixel density this reads the same; less shimmer if anything); flying
+back to somewhere you just left shows the coarser tile for a moment; the fine
+brick grain on far walls sits a fraction of a brick along. Only after a crash:
+no opening flight and no balconies (`lighter`), or flat blocks (`safe`).
+
+**Not verified on a real phone.** `docs/mobile-device-check.md` has the steps.
+Frames: scratchpad only (none committed).
+
+## Sep 24 2026 - Downtown identities (`astra/downtown`, pipeline 018)
+
+Built headless by the Codex (Astra) pipeline; the Claude lane rebased it on
+main, re-tiled it with the real tippecanoe, measured it and merged it (PR and
+numbers at the end of this entry). Thirty final labelled comparisons are
+packaged locally:
+25 public-reference/before/after tower views, campus skyline day/night, an aerial,
+and Congress street day/night. All actual app cameras match; every JPEG is below
+1 MB. These establish visible changes, not owner acceptance of every detail.
+
+The generic outer-tower material election is replaced by architectural profiles
+in `scripts/downtown_facade_profiles.py`, stamped for towers and downtown
+streetwalls by `scripts/bake_outer_facades.py`. `scripts/bake_outer.py` preserves
+matched public names and building metadata, selects authored replacements and
+closes the generic taper-to-crown gap. `js/outer.js` joins the shared palette to
+eight additional grid families while preserving the sixteen campus families.
+No edits to lighting or `js/facades.js` repaint scheduling.
+
+`scripts/downtown_tower_identities.py` adds Independent, Austonian, Frost, 360,
+Block 185, Modern, Natiivo, 70 Rainey, Northshore, Seaholm, Colorado Tower,
+One American Center, 100 Congress, JW Marriott, Fairmont, W Austin, Republic,
+ATX, 415 Colorado, 44 East, Paseo, The Travis and Indeed Tower. Waterline and Sixth/Guadalupe retain their existing geometry. Profiles share
+atlas images; new geometry is structural rather than per-window. Public height
+reconciliation lives in `scripts/outer_heights.json`; plan fits remain estimates.
+See `docs/downtown-tower-identities.md` for tuning and limits.
+
+Rebuilt outer GeoJSON, profile palette, bake report and outer PMTiles are kept
+together. The pipeline sandbox has no tippecanoe, so it packed the archive with a
+stand-in (geojson-vt/vt-pbf); that archive was then replaced by the one the data
+workflow's real `scripts/tile.sh` built from this branch's GeoJSON (run
+36042750444, only `outer.pmtiles` changed), and the real app was checked on it.
+
+`scripts/verify/downtown-data.py` checks baked heights, polygon validity,
+ground-connected structural contact, profile joins, idempotent stamping and
+floating generic crowns. Negative controls detach a crown and recover the
+original generic floats. These are data checks, not visual or phone acceptance.
+The local pipeline work directory retains original assets, public reference
+packs' inventory, capture/comparison scripts and detailed validation reports.
+Only actual final labelled comparisons belong in its out directory. Final data
+checks cover 18,618 features and 1,060 patterned walls. Net geometry increase is
+about 76,800 closed-solid triangles before tiling; this is not a GPU measurement.
+The tippecanoe archive is 2,392,254 bytes (baseline 2,096,323; the stand-in's
+was 2,526,113).
+
+Three fresh-browser interleaved AMD Radeon pairs used forced low-power GPU,
+1440x900 DPR 1, balanced, CPU 1x, cancelled auto-detect and six-second continuous
+render samples at the same verified aerial pose. Minimum median frame times:
+day 38.0 -> 16.8 ms; night 66.2 -> 17.5 ms. Minimum p95: day 87.9 -> 73.7 ms;
+night 172.5 -> 54.9 ms. This meets the minimum-of-interleaved-reps comparison,
+but night FPS ranged 10.1-14.1 before and 11.1-34.1 after; one paired night run
+was slower. Do not claim a consistent speedup or physical-phone acceptance.
+Final capture logs report no page or console errors. No task browser remains.
+
+Remaining visual limits include W's shallow facade recesses, Natiivo's pale
+uniform finish, Austonian's crown, 100 Congress's stepped gable, and weak
+vertical ribbons on Seaholm/360/44 East/Travis. Street frontage remains sparse;
+some tower podiums are obscured in the comparison views. See the local final
+manifest, matched-pose report, performance summary and review notes.
+Phones were not checked on a real device.
+
+**Shipped by the Claude lane (rebased on 778be36).** Two changes on top:
+the tippecanoe tiles above, and the bake no longer writes `name` onto ring
+features. It had put one on 332, which turned outer-check's "no ring feature
+carries a name or a label flag" red. Nothing reads them: `fp` holds the identity
+and `bake_outer_facades.py --check` reports 0 changed without them. Cost on the
+AMD iGPU (forced low-power GPU, renderer string printed), minimum of two runs
+interleaved with main: desktop 1280x632 DPR 1.5 veil 43.5 -> 43.1 s, apartments
+ready 43.4 -> 41.1 s, renderer working set 2174 -> 2128 MB, GPU process 2574 ->
+2429 MB, boost frames per 10 s 137-191 -> 164-177 (ranges overlap), frames over
+0.8 s 0 -> 0; phone 390x844 DPR 3 veil 34.0 -> 33.0 s, ready 33.8 -> 32.3 s,
+renderer 2078 -> 2052 MB, GPU 1700 -> 1609 MB. Authored triangles and startup
+JSON are unchanged (+2.7 KB palette). These runs used the archive before the
+name strip (2,420,903 bytes). Gates against main: `downtown-data.py` passes
+and the bake's `--check` shows 0 changed; outer-check 20/21 on both (the same
+"budgeted layers" line is red on main); outer-facade-parity passes on both once
+`TOWER_BUCKETS` in `bake_outer_facades.py` went back to the browser's 10 (the
+branch had pointed it at the profile count, which only the parity check reads);
+every no-browser gate (harness-drift, facade-pace, facade-filter,
+facade-atlas-memory, slopes-buffer-memory, the apartment set) matches main.
+
+## Sep 24 2026 - Riverside garden apartments (`astra/riverside`)
+
+Four new authored collections cover Village at East Riverside, Estates at East
+Riverside, Town Lake Student Apartments and both Element parcels. All 236 OSM
+building outlines are retained, including open carports and ancillary buildings,
+plus 10 mapped pool/spa outlines. A fifth collection adds parcel-clipped service
+drives, paths and eight courts. Residential forms use three storeys for Village,
+Estates and Town Lake, and two for Element; roofs, window recesses, open stairs,
+balconies/galleries and restrained night occupancy are authored separately from
+the original basemap. Town Lake's clubhouse has its own arched entrance and roof
+composition. Registration is through `data/apartments/index.json`, as the
+first on-demand area (`areas.riverside`; see the Sep 27 entry: Riverside loads
+when the camera goes there, not at start).
+
+The small renderer extension in `js/slopes-apartments.js` adds opt-in
+`replaceOuter` footprint suppression for the eight outer building layers, only
+after a successful authored build, and reapplies it after outer settings changes.
+Optional `minDetail` on
+blocks, detail meshes and window surrounds omits fine ornament below 0.6 without
+changing older specs. Essential buildings, stairs and galleries remain at the
+phone preset's 0.5 detail.
+
+Validation: every new spec emits finite production geometry, without
+failed/empty roofs, alignment warnings or roof spikes above 20 m. Estimated
+added geometry is 282,359 triangles at phone detail and 619,663 at balanced
+detail (production generator, not measured phone FPS). Site polygons have no
+self-crossings or building intersections. Thirty original outer-ring features
+overlap the new building outlines; the read-only overlap audit found no weak
+incidental overlaps. Window/material contracts, filter lifecycle checks and
+harness script parity pass.
+
+The served application was checked in fresh hardware-GL browsers through the
+shared GPU queue, with graphics autodetection cancelled. The balanced default
+loaded all 549 authored specs (196 before), with 3,663,439 authored triangles
+versus 3,045,153 before. There were no page errors or missing replacement filters;
+the same 550 pre-existing alignment warnings remained, with none added by these
+collections. Day views and night occupancy were inspected for all four complexes.
+Each capture waited for veil removal and loaded tiles, then used the second shot.
+The before run routed only the apartment index to the original collection list.
+Capture-only flight-controller cleanup allowed the broad aerial camera; normal
+application controls and renderer defaults were not changed for the images.
+
+Five final labelled JPEG comparisons are in the local pipeline task's `out/`
+folder: four reference/before/after triptychs and one all-four aerial comparison.
+All are under 1 MB. The paired application cameras match exactly; the photograph
+viewpoints are approximate, not calibrated matches. Helpers and camera records
+remain in the sibling `work/` folder. These establish visible coverage and box
+replacement, not owner acceptance of photographic fidelity.
+
+Remaining accuracy limits: exact unit/balcony/stair layouts on unseen elevations
+are inferred; Element's two-storey treatment is based on photographed blocks,
+not a survey of every roof. Landscaping, uncovered parking surfaces, pool furniture
+and site lighting are visibly sparse. Small ancillary uses, roof ridges and
+clubhouse rear roof joints remain approximate. Images, reference identities, camera metadata and rebuild
+helpers remain local to the pipeline/reference workspace. Physical-phone
+performance is unverified. (Astra made no git write or server launch; the
+Claude lane committed, measured and shipped it: Sep 27 entry.)
+
 ## Sep 24 2026 - Zooming and flying no longer freeze on facade repaints (`claude/facade-repaint`)
 
 What made the remaining long frames, traced on the AMD Radeon (CPU profile
@@ -87,6 +898,7 @@ rebuilds once at rest, a 1.0-1.3 s frame (js/city-lighting.js, by design since
 (~600 MB per 12 s boost); the async exposure read waits 30-130 ms on the GPU
 after big uploads. Evidence (sheets, WebP, raw JSON) in the Claude scratchpad
 `repaint/`.
+
 
 ## Sep 24 2026 - Lower CPU memory with unchanged rendering (`astra/memory`)
 

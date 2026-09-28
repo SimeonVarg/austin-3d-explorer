@@ -1,24 +1,26 @@
 {
   "downtown_detail": {
     "downtown": {
-      "podium": 113,
-      "podium_measured": 10,
+      "podium": 88,
+      "podium_measured": 6,
       "setback_skipped_slim": 1,
-      "crown": 106,
-      "mast": 36,
-      "retail": 751,
+      "crown": 82,
+      "mast": 15,
+      "retail": 727,
       "plant": 189,
-      "curated": 10,
-      "jenga": 1,
-      "taper": 8,
-      "gable": 1,
+      "curated": 25,
+      "jenga": 0,
+      "taper": 0,
+      "gable": 0,
       "curated_unmatched": [],
+      "identities": 23,
+      "landmarks": 2,
       "height_checked": 114,
       "height_mismatch": 0,
       "height_worst": [],
-      "parts_per_tower_max": 8,
+      "parts_per_tower_max": 2447,
       "plant_offroof": 1,
-      "floating_pieces": 2
+      "floating_pieces": 0
     },
     "green": {
       "read": 839,
@@ -34,18 +36,18 @@
     }
   },
   "shipped": {
-    "features": 9149,
+    "features": 18618,
     "bodies": 7625,
-    "detail": 1524,
+    "detail": 10993,
     "by_kind": {
-      "tower": 243,
+      "tower": 415,
+      "c": 9656,
       "flat": 7511,
-      "c": 335,
-      "r": 751,
+      "r": 727,
       "g": 309
     },
-    "with_base": 464,
-    "max_top_m": 315.0
+    "with_base": 9341,
+    "max_top_m": 315
   },
   "date": "2026-07-30",
   "outer_bbox": {
@@ -74,12 +76,12 @@
   "dropped_too_small": 39179,
   "dropped_duplicate": 434,
   "height_source": {
-    "overture": 7459,
+    "overture": 7456,
     "osm_height": 5,
     "osm_levels": 4,
     "overture_floors": 1,
     "class_default": 87,
-    "curated": 63,
+    "curated": 66,
     "podium_rule": 6
   },
   "podium_rule_examples": [
@@ -165,7 +167,7 @@
     "2": 459,
     "3": 40
   },
-  "file_kb": 3254,
+  "file_kb": 6385,
   "rules": {
     "keep_any_height_m": 24.0,
     "area_floor_m2": 115.0,

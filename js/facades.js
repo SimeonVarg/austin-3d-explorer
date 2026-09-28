@@ -165,7 +165,13 @@
   // construction, which is the third candidate on the list and the only one that
   // costs anything to fix. Quantised, and capped at 2: nothing on a phone is
   // reading a window at 3x.
-  const SCALE = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1)));
+  //
+  // A phone takes its cap from js/mobile.js (LITE.budget.facadeScale): every
+  // tile's pattern atlas is a texture of these images, so the cap is a square
+  // law on the phone's biggest allocation. Desktop (budget null) keeps 2.
+  const SCALE_CAP = (window.LITE_PROFILE && window.LITE_PROFILE.budget &&
+                     window.LITE_PROFILE.budget.facadeScale) || 2;
+  const SCALE = Math.max(1, Math.min(SCALE_CAP, Math.round(window.devicePixelRatio || 1)));
   const RES = TILE * SCALE;     // real canvas texels per repeat, NEAR tier
   /** Texels per repeat in one tier — the shared drawing, decimated by `div`. */
   const tierRes = t => RES / t.div;
@@ -4299,6 +4305,7 @@
   // last owns the outermost closure, so a check written against the wrapper's
   // own property reads false for every pass except that one.
   function csBoot() {
+    if (window.LITE_PROFILE?.sceneUnavailable) return;
     const map = window.__map;
     if (!map) return setTimeout(csBoot, 60);
 
@@ -4316,6 +4323,7 @@
     };
 
     const go = () => {
+      if (window.LITE_PROFILE?.sceneUnavailable) return;
       // Wait for the core buildings: the anchor search needs `buildings-3d` in
       // the style, and trim standing proud of a wall that does not exist yet is
       // invisible from every angle except straight down.
