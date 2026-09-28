@@ -49,6 +49,12 @@ export const LOOK = {
   labelFg: '#fff',
   labelPx: 20,
   jpegQuality: 88,
+  // Extra query for every shot (shot.mjs's SHOT_Q). Name labels OFF: the label
+  // system (#326) picks which names show from timing and from what it showed a
+  // moment ago, so two loads of the same page differ. On 2026-09-27 that moved
+  // up to 5.8% of a view between two shots of main and flagged a view as
+  // "changed" that nothing had touched. Set to '' to photograph them anyway.
+  shotQuery: 'namelabels=0',
 };
 
 const argv = process.argv.slice(2);
@@ -73,7 +79,7 @@ if (SHOOT && !SIDES.includes(SHOOT)) { console.error('--shoot takes ' + SIDES.jo
 fs.mkdirSync(OUT, { recursive: true });
 const poses = JSON.parse(fs.readFileSync(POSES, 'utf8'));
 const report = { beforeLabel: LABEL, tolerance: LOOK.tolerance, minPct: LOOK.minPct,
-                 noiseFactor: LOOK.noiseFactor, poses: [] };
+                 noiseFactor: LOOK.noiseFactor, shotQuery: LOOK.shotQuery, poses: [] };
 const save = () => fs.writeFileSync(path.join(OUT, 'pictures.json'), JSON.stringify(report, null, 1));
 
 /** Run shot.mjs against one server; its PNGs land in <OUT>/<side>/shots/. */
@@ -83,7 +89,8 @@ function shoot(side, url) {
   return new Promise(resolve => {
     const t0 = Date.now();
     const child = spawn(process.execPath, [path.join(VERIFY, 'shot.mjs'), side, POSES], {
-      cwd, env: { ...process.env, ...slowMachineEnv(), VERIFY_URL: url, VERIFY_MAX_MS: String(40 * 60 * 1000) },
+      cwd, env: { ...process.env, ...slowMachineEnv(), VERIFY_URL: url, VERIFY_MAX_MS: String(40 * 60 * 1000),
+                  ...(LOOK.shotQuery ? { SHOT_Q: LOOK.shotQuery } : {}) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let log = '';

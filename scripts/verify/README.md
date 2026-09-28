@@ -79,7 +79,11 @@ Reading the comment, top to bottom:
   the base branch, from the pull request, and from the base branch again. A
   view is **changed** when more than 0.05% of its pixels moved AND that is over
   three times what the base branch moves against itself ("same page shot
-  twice"; 0% on every view so far). Download the side-by-sides and open
+  twice"). Name labels are OFF in these shots (`?namelabels=0`, `LOOK.shotQuery`
+  in `ci/pictures.mjs`): since #326 the labels choose what to show from timing
+  and from what they showed a moment ago, and two loads of main differed by up
+  to 5.8% of a view. With them off, main against itself is 0%. Download the
+  side-by-sides and open
   `index.html`: before | after | moved pixels in magenta, per view. Pictures
   never turn the run red: a visible change is usually the point of the pull
   request. They are there to look at.

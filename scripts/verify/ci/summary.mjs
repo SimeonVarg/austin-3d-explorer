@@ -147,6 +147,10 @@ if (pictures) {
              `${p.noisePct != null ? p.noisePct + '%' : ''} | ${p.maxChannelDiff ?? ''} |`);
     }
     L.push('');
+    if (pictures.shotQuery) {
+      L.push(`Shot with \`?${esc(pictures.shotQuery)}\`${/namelabels=0/.test(pictures.shotQuery) ? ': name labels off, because they pick what to show from timing and two loads of the same page differ' : ''}.`);
+      L.push('');
+    }
     L.push('Pictures never fail the run: a change can be the point of the pull request. They are here to be looked at.');
   }
   L.push('');

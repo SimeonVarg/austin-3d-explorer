@@ -16,8 +16,14 @@ pull request". What runs and what is left out, each with its reason:
   view 0%, and the side-by-side paints exactly the Tower:
   `docs/shots/ci-proof-tower-night.jpg`. No check caught it (tower-check is
   quarantined, see below), which is why the pictures exist.
-- **It is deterministic.** The base branch shot twice, on two different
-  machines, moved 0% of pixels in all ten views on every run.
+- **It is deterministic, with the name labels off.** Before #326 the base
+  branch shot twice, on two machines, moved 0% of pixels in all ten views on
+  every run. The new label system picks which names show from timing and from
+  what it showed a moment ago, so after #326 two shots of main differed by up
+  to 5.8% of a view and one untouched view was flagged "changed". The pictures
+  now shoot with `?namelabels=0` (one line, `LOOK.shotQuery` in
+  `ci/pictures.mjs`). For the labels lane: the same page, loaded twice, shows
+  different names.
 - **The runners are slow at software rendering, and that decides what can run.**
   Measured with `ci/gpu-probe.mjs` at the spawn view: SwiftShader draws 0.2-0.6
   frames a second on the 4-core Linux runner (the laptop: 3.7), 0.16 on
@@ -29,14 +35,15 @@ pull request". What runs and what is left out, each with its reason:
 - **67 checks run** (8 machines, about 35 minutes), every one green on every
   CI run it was in (five to seven runs). **63 are quarantined**, each with its
   reason in checks.json:
-  - **22 fail for reasons that are not the runner's speed.** 13 were re-run on
+  - **22 fail for reasons that are not the runner's speed.** 16 were re-run on
     the laptop and are red there too (campus-court-detail, facade-filter,
     wallplane, geomlint, suite-lint, coplanar --gate, slopes-context-loss,
     outer-check, walkwidth, walkmeter, places-check, arts-check,
-    si-integration); tower-check fails on HANDOFF's own numbers; facadegrid and
+    si-integration, dayview, and **sky and night-sky**, 10/12 each: setLight
+    disagrees with the shared sun, the pair README knows from a race, 12/12 on
+    Aug 16); tower-check fails on HANDOFF's own numbers; facadegrid and
     mobile-mergecells refuse to run (their subject is gone). Not yet re-run on
-    the laptop: field-bleed, dayview, slopes-layer, and sky / night-sky (10/12,
-    the setLight-vs-sun pair README already knows from a race).
+    the laptop: field-bleed and slopes-layer.
     si-fold-shots is the odd one: it started failing on the runner when #326
     (the label restyle) reached main, Chrome there cannot capture its third
     390x844 screenshot at all; on the laptop it passes with and without #326,
