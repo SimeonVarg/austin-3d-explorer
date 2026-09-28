@@ -260,7 +260,9 @@ quick looks without W, each against a straight flight of the same length from
 the same pose, at the campus spawn and over downtown. Arms run interleaved
 (A,B then B,A), a fresh browser and a fresh load each. Per scenario: frame
 interval p50 / p95 / worst, frames over 50 ms, long tasks, MapLibre's and the
-three.js layer's CPU per frame, shadow-map re-renders, tiles that landed, the
+three.js layer's CPU per frame, shadow-map re-renders, tiles that landed (per
+source in `tilesBy`), facade atlas uploads (`atlas`, the main-thread texture
+prep in `js/facades.js`, counted in the drive and in the stop), the
 yaw actually achieved, and "stop": the worst frame gap in the 2.5 s after the
 hand lets go. `--gpu low` for the AMD iGPU, `--gputime` for GPU time per frame,
 `--profile` for a sampled CPU profile per scenario (`--profile split` profiles

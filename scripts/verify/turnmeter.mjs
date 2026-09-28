@@ -215,6 +215,7 @@ function windowStats(snap, a, b) {
     gpu: g.length ? { n: g.length, p50: r1(med(g)), p95: r1(pct(g, 0.95)) } : null,
     longTasks: { n: lt.length, sumMs: Math.round(lt.reduce((s, x) => s + x[1], 0)), worst: Math.round(Math.max(0, ...lt.map(x => x[1]))) },
     tiles: tiles.length,
+    tilesBy: tiles.reduce((o, x) => (o[x[1]] = (o[x[1]] || 0) + 1, o), {}),
   };
 }
 
@@ -340,9 +341,12 @@ async function runArm(arm, rep) {
     for (const sc of SCEN) {
       const settle = await place(P);
       if (PROFILE) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 200 }); await cdp.send('Profiler.start'); }
+      const atlasNow = () => ev(() => { try { const f = window.facadeMemoryStats(); return [f.fastAtlasUploads || 0, f.fastAtlasBytes || 0]; } catch (e) { return [0, 0]; } });
+      const at0 = await atlasNow();
       const a = await ev(() => performance.now()), wa = Date.now() - tVideo;
       await drive(SCHED[sc], DUR, HOLDW[sc]);
       const b = await ev(() => performance.now()), wb = Date.now() - tVideo;
+      const at1 = await atlasNow();
       let driveProf = null;
       if (PROFILE === 'split') { driveProf = summarizeProfile((await cdp.send('Profiler.stop')).profile); await cdp.send('Profiler.start'); }
       // The STOP: what the page does in the TAIL_MS after the hand lets go
@@ -350,6 +354,7 @@ async function runArm(arm, rep) {
       // camera went still). Frame gaps here are main-thread stalls the person
       // sees as a hitch on the still image.
       await sleep(TAIL_MS);
+      const at2 = await atlasNow();
       let prof = null;   // the profile covers the drive AND the stop (or just the stop, split)
       if (PROFILE) { const { profile } = await cdp.send('Profiler.stop'); prof = summarizeProfile(profile); }
       const snap = await ev(([a, b]) => { const T = window.__tm; if (T.poll) try { T.poll(); } catch (e) {}
@@ -357,12 +362,15 @@ async function runArm(arm, rep) {
         return { raf: T.raf.slice(i0), bear: T.bear.slice(i0), lt: T.lt.filter(x => x[0] + x[1] >= a), renders: T.renders.filter(x => x[0] >= a - 1000), gpu: T.gpu.filter(x => x[0] >= a - 100), tiles: T.tiles.filter(x => x[0] >= a - 100) }; }, [a, b]);
       const s = windowStats(snap, a, b);
       const tl = windowStats(snap, b, b + TAIL_MS);
-      s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders };
+      s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders, tiles: tl.tiles, tilesBy: tl.tilesBy };
       s.settleMs = settle;
+      // facade atlas uploads (js/facades.js premultiplies each on the main thread)
+      s.atlas = { uploads: at1[0] - at0[0], MB: r1((at1[1] - at0[1]) / 1048576) };
+      s.tail.atlas = { uploads: at2[0] - at1[0], MB: r1((at2[1] - at1[1]) / 1048576) };
       if (VIDEO) s.videoAt = [wa / 1000, wb / 1000];   // seconds into this arm's --video recording
       if (driveProf) { s.profile = driveProf; s.tail.profile = prof; } else if (prof) s.profile = prof;
       res.scen[poseName + '/' + sc] = s;
-      console.log(`[turn ${arm.name}#${rep}] ${poseName}/${sc.padEnd(8)} fps ${String(s.fps).padStart(5)}  p50 ${s.ft.p50}  p95 ${s.ft.p95}  worst ${s.ft.worst}  >50ms ${s.ft.over50}  yaw ${s.yawDegS} deg/s  lt ${s.longTasks.n}/${s.longTasks.sumMs}ms/max ${s.longTasks.worst}  mapCpu p50 ${s.mapCpu.p50} p95 ${s.mapCpu.p95}  three p50 ${s.threeCpu.p50}  shadowR ${s.shadowRenders}  proxy ${s.proxyRebuilds}  tiles ${s.tiles}${s.gpu ? '  gpu p50 ' + s.gpu.p50 + ' p95 ' + s.gpu.p95 : ''}  | stop: worst ${s.tail.worst} lt max ${s.tail.longTasks.worst} proxy ${s.tail.proxyRebuilds}`);
+      console.log(`[turn ${arm.name}#${rep}] ${poseName}/${sc.padEnd(8)} fps ${String(s.fps).padStart(5)}  p50 ${s.ft.p50}  p95 ${s.ft.p95}  worst ${s.ft.worst}  >50ms ${s.ft.over50}  yaw ${s.yawDegS} deg/s  lt ${s.longTasks.n}/${s.longTasks.sumMs}ms/max ${s.longTasks.worst}  mapCpu p50 ${s.mapCpu.p50} p95 ${s.mapCpu.p95}  three p50 ${s.threeCpu.p50}  shadowR ${s.shadowRenders}  proxy ${s.proxyRebuilds}  tiles ${s.tiles} atlas ${s.atlas.uploads}/${s.atlas.MB}MB${s.gpu ? '  gpu p50 ' + s.gpu.p50 + ' p95 ' + s.gpu.p95 : ''}  | stop: worst ${s.tail.worst} lt max ${s.tail.longTasks.worst} proxy ${s.tail.proxyRebuilds} atlas ${s.tail.atlas.uploads}/${s.tail.atlas.MB}MB tiles ${s.tail.tiles}`);
       // trim the arrays so a long run does not grow the page's memory
       await ev(() => { const T = window.__tm, n = performance.now() - 5000; const i = T.raf.findIndex(t => t >= n); if (i > 0) { T.raf.splice(0, i); T.bear.splice(0, i); } T.renders = T.renders.filter(x => x[0] >= n); T.gpu = T.gpu.filter(x => x[0] >= n); T.tiles = T.tiles.filter(x => x[0] >= n); T.lt = T.lt.filter(x => x[0] >= n); });
     }
