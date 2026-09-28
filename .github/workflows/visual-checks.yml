@@ -1,8 +1,9 @@
 # Visual checks: the scripts/verify suite, on GitHub's machines, on every pull request.
 #
 # WHAT IT DOES. Serves the pull request's site locally, runs every check in
-# scripts/verify that can go red (sharded across 16 machines, one browser per
-# machine, software-rendered so exact-pixel assertions stay deterministic),
+# scripts/verify that can go red (sharded across the machines checks.json's
+# "shards" names, 8 today, one browser per machine, software-rendered so
+# exact-pixel assertions stay deterministic),
 # photographs a fixed set of views before and after the change, probes what
 # graphics each runner image gives Chrome, and keeps ONE comment on the pull
 # request up to date: what failed and why, what changed in the pictures, and

@@ -23,7 +23,7 @@
  * Usage:
  *   node scripts/verify/ci/run-checks.mjs --list                 what runs, as JSON
  *   node scripts/verify/ci/run-checks.mjs --matrix               shard indices, for the workflow
- *   node scripts/verify/ci/run-checks.mjs --shard 3 --of 16 --out ci-out
+ *   node scripts/verify/ci/run-checks.mjs --shard 3 --of 8 --out ci-out
  *   node scripts/verify/ci/run-checks.mjs --only sky.mjs,dusk.mjs --out ci-out
  *
  * It reaps leftover harness browsers between scripts ONLY when GITHUB_ACTIONS
