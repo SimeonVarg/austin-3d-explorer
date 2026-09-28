@@ -238,10 +238,12 @@
     "westcampus-perf.mjs": "timing",
     "mobile-memory.mjs": "memory measurement, exits 0",
     "where-time-goes.mjs": "timing breakdown, exits 0",
-    "places-lowpass-cost.mjs": "timing"
+    "places-lowpass-cost.mjs": "timing",
+    "moire-fps.mjs": "timing: an interleaved frame-time A/B in headed hardware Chrome, vsync off"
   },
   "_tools": "Not checks: no path to a non-zero exit (they photograph or print), or they need inputs only a human supplies (two checkouts, a PNG, a plan file). Running them proves nothing.",
   "tools": {
+    "moire.mjs": "meter: needs --out, writes frames for moire-report.py and prints scores; no verdict of its own",
     "_o4-eastnorth.mjs": "probe",
     "_o4-fieldframe.mjs": "probe",
     "_o4-seedlag.mjs": "probe",
