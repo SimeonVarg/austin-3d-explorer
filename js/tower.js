@@ -451,10 +451,10 @@
       // left at 252 so the ladder above does not move. Measured back off the
       // render, the shaft's screen hue goes 0-9 deg (which is RED) to 25-28
       // deg; #BF5700 is 27.3.
-      shaft:  { z0: 20.2, L: 20.3, gain: 1.00, floor: 0.30, soft: true, bands: 40, o: [252, 134, 22], w: [216, 210, 198] },
-      deck:   { z0: 70.1, L: 6.4,  gain: 1.00, floor: 0.34,  bands: 10, o: [250, 112, 42], w: [238, 232, 216] },
-      belfry: { z0: 79.2, L: 14.0, gain: 1.25, floor: 0.62,  bands: 4,  o: [216, 54, 30],  w: [216, 210, 198] },
-      cap:    { z0: 90.7, L: 5.0,  gain: 1.00, floor: 0.68,  bands: 2,  o: [238, 64, 34],  w: [226, 218, 204] },
+      shaft:  { z0: 20.2, L: 20.3, gain: 1.00, floor: 0.30, soft: true, bands: 40, o: [30, 110, 252], w: [216, 210, 198] },
+      deck:   { z0: 70.1, L: 6.4,  gain: 1.00, floor: 0.34,  bands: 10, o: [30, 110, 252], w: [238, 232, 216] },
+      belfry: { z0: 79.2, L: 14.0, gain: 1.25, floor: 0.62,  bands: 4,  o: [30, 110, 252], w: [216, 210, 198] },
+      cap:    { z0: 90.7, L: 5.0,  gain: 1.00, floor: 0.68,  bands: 2,  o: [30, 110, 252], w: [226, 218, 204] },
     },
 
     // The bracketed cornice, 66.3-70.1. Its own level in everything but name:
