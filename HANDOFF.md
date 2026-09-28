@@ -1,5 +1,186 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - Name labels restyled to match the live labels (`astra/labels`, PR #326, awaiting the owner's look check)
+
+The owner saw the label system's dark rounded cards with a coloured dot and
+rejected the look ("black background big labels that covered the screen"),
+but kept the system. This pass changes only the look, to match the labels live
+today, and leaves the PR open for him to judge.
+
+- **Look.** Text straight on the map: warm near-white ink with a thin
+  near-black outline (live `LABEL_LOOK` ink, halo and halo-to-size ratio 0.17),
+  no box, dot or stem. Night swaps in the live night outline and fades the two
+  smallest tiers 45%, as live does. All values are one line each in
+  `NAME_LABELS` (`js/name-labels.js`).
+- **Size.** Six tiers on the live zoom curves: hero (curated signs priority 1),
+  major, sign (priority 2), mid, minor, small (shops). The bake stamps `tier`
+  on every catalog row with the live rule (sign priority, then footprint x
+  height with `LABEL_RANK`'s thresholds; an on-demand area complex counts all
+  its buildings). Minor names start at 10 px, not live's 9.5, because they show
+  from further out than live's minor tier ever does. Only `tier` changed in
+  `data/labels.json`; every other value is identical.
+- **Density.** Live collision padding per tier, plus a cap: all names together
+  cover at most `maxCoverage` = 8% of the screen. Measured coverage at the
+  comparison cameras: cards 11.4% / 8.0% / 9.3% (West, downtown, phone),
+  restyle 3.9% / 3.0% / 3.5%, with about the same number of names.
+- **Renderer.** Glyphs are rasterised once per weight at the largest size that
+  weight is drawn, into one RG8 atlas (red = letter, green = letter + outline)
+  with mipmaps, 1.7 MiB instead of 4 MiB; each name draws a hit rectangle, all
+  outlines, then all letters, in the same single draw call. The tap occlusion
+  query now uses the hit rectangle (it used the card background).
+
+**Checks** (AMD integrated, low-power GPU, DPR 1): same-camera captures of main,
+the rejected cards and the restyle at West Campus, downtown and Riverside (area
+built) by day, downtown at night and West Campus at 390x844: 0 page errors, GL
+error 0, 0 names past the 8 px edge, 0 overlapping names. Astra's catalog
+regressions pass. Tap check: 8 of 8 names resolve; sky resolves null.
+Framecost boost probe, one run each, 1280x632 DPR 1.5: main 83.3 ms median /
+110.5 frames per 10 s, restyle 83.3 ms / 107.8 (an earlier restyle run under
+more load: 83.5 / 96.2; a first main run was invalid, its window stopped
+painting). A probe, not a timing claim.
+
+**Open.** The owner judges the look before merge. The atlas uses Arial, not the
+map's Noto Sans. Comparison pictures are local:
+`astra-pipe/feedback/2026-09-28-speed2/labels-restyle/`.
+
+## Sep 27 2026 - The name labels land on today's main; Riverside's names sit on its own roofs (`astra/labels`)
+
+The owner approved Astra's label revamp ("ship the labels"). This pass rebased
+it onto main 9444fd7 (after Riverside #322, downtown #311 and the speed pass
+#323-#325), rebaked the catalog on today's data, and fixed the two anchor
+defects the rebase exposed. The two Astra entries below describe the label
+system itself.
+
+- **Rebase.** Only this file conflicted. `js/app.js` and `js/graphics.js`
+  merged cleanly and keep #324's GL-state caching; the label edits are the same
+  four small hooks as before.
+- **Riverside.** The bake read only the core apartment list, so it never saw
+  the on-demand Riverside area: Estates and Village kept street-level anchors
+  from when nothing stood there, Town Lake and The Element kept anchors on the
+  outer-ring masses and office points the authored buildings now retire. The
+  bake now reads `areas` in `data/apartments/index.json` and puts each complex's
+  name on its own authored building nearest its site point (never a canopy,
+  carport, pool or path), above that building's real top. Names are not gated
+  on the area loading: a desktop builds Riverside from 1,800 m and apartment
+  names only fade in from 1,350 m, so on a desktop they appear over a built or
+  building area. A phone loads at 1,200 m, so there is a 150 m band where a
+  name can show a moment before the buildings under it.
+- **Names hidden inside their own buildings.** An authored building's name was
+  placed at its eave or slab (`levels.roof`, or its last floor). Where a crown,
+  core, bulkhead, mechanical box or ridge rises above that, the anchor sat
+  inside the building and the depth test hid the name from every angle: The
+  Castilian never showed in West Campus. The bake now uses the model's top as
+  the renderer builds it (blocks, parapets, roof boxes, pitched roofs, roof
+  meshes, deck items, the file's named tops). Against the renderer's own
+  `slopesApartments.built[].top` for 126 labelled buildings, every name now
+  starts above it. 54 names move up, 0 to 8.4 m.
+- **Catalog.** 1,761 names (1,756 before; the Sep 27 snapshot names a few more
+  small places), 220 apartments, every one of the 179 newly named apartments
+  still present. Yugo Austin Nueces now counts as previously eligible because
+  the new snapshot names it, so the stat reads 178. Downtown names follow the
+  new crowns (The Independent 209 -> 210.4 m); the Gates Dell Complex label
+  follows its corrected 26 m roof. Seven apartments keep deliberate beside-site
+  anchors (Colorado D/J/K/L/M/N, Echo).
+
+**Checks** (AMD Radeon integrated, `ANGLE (AMD, AMD Radeon(TM) Graphics
+(0x00001638) Direct3D11 ...)`, low-power GPU, 1280x800 DPR 1, balanced):
+desktop and phone loads of the rebased branch with 0 console and 0 page errors;
+harness parity 49/49; Astra's 12 layout and 7 teleport regressions pass; Astra's
+catalog regressions pass with two counts updated for the reasons above (178
+newly named, 7 unresolved heights); two 8 s moving-camera runs (West Campus and
+across Riverside with its area built, 117 and 280 samples) with 0 clipped cards,
+0 cards on a control and 0 overlapping cards; still captures at West Campus,
+Riverside and downtown with the same assertions and GL error 0. The Riverside
+flight placed all four complex names on screen.
+
+**Cost.** Astra measured +3.1% boost frame time (37.37 -> 38.55 ms, three
+interleaved pairs); the owner accepted it. Not re-measured in this pass.
+
+**Still open** (Astra's known limits): a name hidden behind a foreground
+building still reserves its screen space, so it can keep a visible neighbour
+off screen; physical-phone performance is unverified.
+
+## Sep 27 2026 - Label acceptance repairs (`astra/labels`, pipeline task 022)
+
+Whole name cards now stay within the viewport and clear attribution, time controls, top buttons and the open compare drawer, including its moving map buttons. Retiring cards cannot overlap replacement cards, and camera jumps cannot resurrect dim cards at stale screen positions. Foreground geometry hides the entire card using its anchor depth instead of slicing its letters. Layout, control rectangles and static screen positions are cached; moving frames use nearby candidates and MapLibre's current GPU-state cache. No authored building triangles were added.
+
+The label bake preserves all 1,756 names, including 220 apartment properties and the 179 additions. Nine absent host roofs (Colorado D/J/K/L/M/N, Echo, Estates at East Riverside and Village at East Riverside) now have deliberate beside-site access-frontage placements. Original site coordinates and placement reasons remain in the catalog; the bake rejects excessive displacement or overlap with another building. This resolves label placement, not the missing buildings themselves.
+
+Validation: twelve layout regressions, catalog coverage and 49-script harness parity pass. Desktop/phone captures use 1280x800 and 390x844. GPU depth positive controls retain Avenir's roof-extension label and reject 6 of 11 submitted labels at Otis and 4 of 18 in West Campus; disabling depth makes every submitted label visible. Physical-phone performance remains unverified.
+
+Performance acceptance remains OPEN: three interleaved AMD low-power pairs at 1280x800, DPR1, balanced, CPU1x measured minimum idle 34.640 -> 34.586 ms (-0.16%) and actual boost 37.374 -> 38.545 ms (+3.13%, above the 2% limit). The comparator restores original main label layers and fully removes the custom layer in the same resident city. Exact stationary camera, effects, geometry, layer state and zero GL/browser errors were independently checked. Actual boost trajectories vary slightly with cadence. Final source caches static layout, limits moving candidates, uses squared distance rejection and updates only admitted/retiring fades in catalog order. A 4,800-frame differential check preserves placement/fade behavior. A later micro-optimization did not establish a gain and was reverted. Earlier reset-invalidated reports and every failed run remain in pipeline work; performance-summary.json identifies authoritative evidence. Desktop/phone marker bounds and visibility restoration pass. Final-source motion has 41 render samples and 20 compositor captures, with zero clipping/control/card-overlap failures.
+
+Final labelled before/after images are local pipeline artifacts in `../astra-pipe/tasks/022-labels-fix/out/`; raw captures, timing JSON and scripts stay in `work/`. The animation demonstrates sampled label motion, not compositor frame pacing. All changes are deliberately uncommitted for the reviewing lane; no git writes, server launches or scheduled continuation were performed.
+
+
+
+## Sep 24 2026 - Unified name labels (`astra/labels`, verification completed; acceptance open)
+
+Pipeline task 019 replaces the separate place/building/apartment name layers
+with `js/name-labels.js`. Text uses one white-on-dark treatment; category dots
+are mint for homes, amber for campus, blue for landmarks, neutral for small
+places. All taste controls are in `NAME_LABELS`. Names use the shared city
+depth buffer, distance fades, retained collision priority and phone density
+limits. Streets and architectural sign geometry remain. Label taps verify
+the exact pixel asynchronously against the rendered depth buffer.
+
+`scripts/bake_labels.mjs` owns `data/labels.json`: 1,756 entries, including
+220 named apartment properties and 136 verified UT codes. All 45 authored
+apartment names and 49 finder homes are covered; 179 apartment names were
+absent from the former eligible label inventory. Seven nearby aliases were
+merged without collapsing distinct apartment wings or properties. Unnamed
+OSM apartment parts have no invented names. Seven missing roof anchors were
+recovered from matching loaded footprints or explicitly named offices; nine
+apartment heights remain unresolved in the source data. GPU-hidden labels
+can still reserve collision space.
+Seven residential towers were corrected from place/landmark categories,
+including AMLI on 2nd and Sixth and Guadalupe. Twenty-five roof heights now
+match their containing loaded roof/crown geometry; foreground occlusion is
+preserved rather than raising labels above unrelated buildings.
+Nine indoor POIs also received verified host roof heights to prevent permanent
+self-occlusion; authored street-facing anchors are preserved. Stadium
+Starbucks remains unresolved because the legacy height is not a valid roof
+height for the custom stadium bowl.
+
+Integration touches `js/app.js`, `js/graphics.js`, `index.html` and
+`_harness.html`. `?namelabels=0` restores the original layers for controlled
+comparison. Syntax, 49-script harness alignment, catalog regressions, 12
+layout/GL checks and 13 control/fade checks pass. Task 021 finishes the browser
+checks on the same branch. Its catalog correction
+uses Avenir's exact named, containing loaded building in `data/capitol.geojson`
+for its 11 m roof anchor; this changes the label height, not building geometry.
+Task 021 also reduces per-frame allocation/distance work, caches glyph
+geometry, and updates a small anchor/alpha texture. The label layer still
+uses one draw call and shared depth. The glyph atlas is 4 MiB and anchor
+texture 28,672 bytes. Cached control bounds keep settled names clear of the
+time slider, including when the settings panel moves it.
+
+The task 021 local output contains matched day/night desktop and phone-width
+comparisons for campus, West Campus, downtown, Riverside and an extra Otis
+close view, plus a continuous before/after flight. The local work directory
+contains the 179-name apartment list, raw evidence and verification report.
+The final AMD depth control shows 8 of 11 queried Otis card centers visible
+normally and all 11 with depth disabled; Avenir is visible above its loaded
+roof. The continuous recording contains 47 before and 45 after frames.
+Exact label-render telemetry found no abrupt CPU fade transitions; this
+does not establish absence of GPU occlusion flicker.
+
+Performance acceptance remains OPEN. Two fresh-browser interleaved AMD
+repetitions at 1280 x 800, DPR 1, balanced preset, CPU throttle 1, forced
+low-power GPU gave before 15.19/11.66 FPS and after 9.41/13.94 FPS. The minimum
+mean frame time is 65.81 ms before versus 71.71 ms after, an 8.96% increase.
+Run variation is large; do not claim negligible cost. Some foreground
+buildings still cut cards into unreadable fragments, and GPU-hidden cards
+can reserve collision space. A West Campus desktop card also overlaps bottom
+attribution and approaches the frame edge. Nine apartment roof anchors remain unresolved.
+Physical iPhone Safari/Chrome acceptance remains unverified.
+
+The shared queue currently permits two slots; this task reserves both before
+launching its single browser, yielding if the companion slot is occupied to
+avoid deadlocking with another lane that also needs exclusive access.
+Changes are intentionally uncommitted under the pipeline instruction; the
+Claude lane owns review, commit and PR. Do not start another work order.
+
 ## Sep 27 2026 - Speed pass: the city opens ~4.5 s sooner, flights freeze less and run ~11% smoother (`claude/speed-*`, PRs #323 #324 #325)
 
 A measure-first pass on the AMD integrated GPU (the renderer most visitors and the

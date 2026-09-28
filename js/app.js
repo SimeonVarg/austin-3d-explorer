@@ -1559,6 +1559,7 @@ window.CityLighting.install(map);
   ];
 
   function addLabelLayers() {
+    window.initNameLabels?.(map);
     if (map.getLayer('buildings-labels')) return;
     for (const t of LABEL_TIERS) {
       const size = ['interpolate', ['linear'], ['zoom'],
@@ -2268,8 +2269,9 @@ window.CityLighting.install(map);
   function initLandmarkOrbit() {
     const canvas = map.getCanvas();
     let downAt = 0, downX = 0, downY = 0;
-    let orbiting = false, legTimer = null;
+    let orbiting = false, legTimer = null, interaction = 0;
     const stop = () => {
+      interaction++;
       if (!orbiting) return;
       orbiting = false;
       clearTimeout(legTimer);
@@ -2281,7 +2283,7 @@ window.CityLighting.install(map);
       downAt = performance.now(); downX = e.clientX; downY = e.clientY;
       stop();                              // touching the world during an orbit ends it
     });
-    canvas.addEventListener('pointerup', e => {
+    canvas.addEventListener('pointerup', async e => {
       if (performance.now() - downAt > ORBIT.tapMs) return;
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > ORBIT.tapPx) return;
       let hits = [];
@@ -2289,7 +2291,11 @@ window.CityLighting.install(map);
         const p = ORBIT.hitPad;
         // Only RENDERED labels can be hit — which is the correct contract: you
         // tap a sign you can see. (A not-yet-rendered label is not tappable.)
-        hits = map.queryRenderedFeatures(
+        const bounds = canvas.getBoundingClientRect();
+        const tapStarted = interaction;
+        const named = await window.nameLabels?.hitTest(e.clientX - bounds.left, e.clientY - bounds.top);
+        if (tapStarted !== interaction) return;
+        hits = named ? [named] : map.queryRenderedFeatures(
           [[e.clientX - p, e.clientY - p], [e.clientX + p, e.clientY + p]],
           { layers: ['signs-label'] });
       } catch (err) { return; }
