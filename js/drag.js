@@ -899,7 +899,8 @@
       // "hooked" while the retint chain had never heard of it. Instrumenting
       // `map.updateImage` across a real slider drag is what settled it: 120
       // calls, tower and arts and moody among them, and not one from the Drag.
-      window.applyTimeOfDay = wrapped;
+      // THROWAWAY PROOF (never merge): the hook is left uninstalled, the defect this comment block describes.
+      // window.applyTimeOfDay = wrapped;
       // ALSO a global, and not only a property on the wrapper: six passes are
       // wrapping this same function and whichever one boots last owns the
       // outermost closure, so `window.applyTimeOfDay.__drag` is false for every
