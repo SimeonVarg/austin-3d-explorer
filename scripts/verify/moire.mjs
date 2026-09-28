@@ -58,6 +58,9 @@
  *     --gfx <json>         saved graphics settings before load, e.g. '{"msaa":true,"custom":true}'
  *     --hide-each <regex>  also capture each style layer whose id matches, hidden alone
  *                          (<pose>-hide-<id>.png): which ONE layer draws a defect
+ *     --variants <json>    also capture runtime variants, a file of [{name, do, undo}]:
+ *                          `do` runs (map as `m`), the frame is captured as
+ *                          <pose>-var-<name>.png, then `undo` runs
  *     --label <text>       document.title (BEFORE/AFTER) for a visible window
  *
  * Exit: 0 captured / 2 could not run.
@@ -90,6 +93,7 @@ const SETS = (opt('--set', '') || '').split(',').map(s => s.trim()).filter(Boole
 const SCREENS = has('--screens');
 const OWN = has('--own') ? ['authored', 'patterned', 'extrusions', 'outer', 'trees', 'ground'] : null;
 const HIDE_EACH = opt('--hide-each', null);
+const VARIANTS = opt('--variants', null) ? JSON.parse(fs.readFileSync(opt('--variants', null), 'utf8')) : null;
 
 // ── Poses: the app's own flyover cameras. center/zoom/pitch/bearing exactly as
 // MapLibre takes them. `spawn` is js/app.js SPAWN; `intro-*` are INTRO.start /
@@ -375,6 +379,13 @@ if (FL) {
         await page.evaluate(async id => { window.__map.setLayoutProperty(id, 'visibility', 'visible'); await window.__moire.frames(4); }, id);
       }
       console.log(`  ${name}: hid ${ids.length} layers one at a time`);
+    }
+    if (VARIANTS) for (const v of VARIANTS) {
+      const r = await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) { return String(e); } await window.__moire.frames(6); return null; }, v.do);
+      const o = await page.evaluate(() => window.__moire.capture(false));
+      save(`${name}-var-${v.name}.png`, o.native);
+      if (v.undo) await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) {} await window.__moire.frames(4); }, v.undo);
+      console.log(`  ${name}: variant ${v.name}${r ? ' ERROR ' + r : ''}`);
     }
     meta.captures.push({ name, pose, settleMs: Math.round(ms) });
     console.log(`  ${name}: settled ${Math.round(ms)} ms`);

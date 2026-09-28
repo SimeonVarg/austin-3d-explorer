@@ -19,10 +19,16 @@
  * time min / median / p90 over its reps (each rep's median first, then the
  * min and median of those), with no CPU throttle. The window title is the
  * side's label (BEFORE / AFTER) so a visible window can be told apart.
+ *
+ * Each rep also prints cpu=, the whole machine's CPU busy share over that rep
+ * (this browser included). A rep that reads far above its neighbours shared
+ * the machine with something else: read the pairs, not one side's minimum.
+ * The last line is the median of the per-rep differences B - A.
  */
 import { chromium } from 'playwright-core';
 import { BASE, launch, HW_ARGS } from './chrome.mjs';
 import { execFileSync } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -121,6 +127,9 @@ async function run(s) {
       canvas: m.getCanvas().width + 'x' + m.getCanvas().height,
       antialias: gl.getContextAttributes().antialias, samples: gl.getParameter(gl.SAMPLES),
       gfx: window.GFX ? { preset: window.GFX.preset, msaa: window.GFX.msaa, renderScale: window.GFX.renderScale } : null,
+      aeAsync: window.__ae ? window.__ae().async : null,
+      aeLuma: window.__ae ? window.__ae().luma : null,
+      gpuGate: window.__gfxGpu || null,
       dts: dts.slice(warm),
     };
   }, { fl: FLIGHTS[FLIGHT], frames: FRAMES, warm: WARM });
@@ -130,14 +139,22 @@ async function run(s) {
 }
 
 const q = (a, p) => { const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1) + 0.5))]; };
+const cpuSnap = () => os.cpus().reduce((a, c) => {
+  const t = c.times, busy = t.user + t.nice + t.sys + t.irq;
+  a.busy += busy; a.all += busy + t.idle; return a;
+}, { busy: 0, all: 0 });
 const out = { A: [], B: [] };
 for (let r = 0; r < REPS; r++) {
   for (const [k, s] of (r % 2 ? [['B', B], ['A', A]] : [['A', A], ['B', B]])) {
+    const c0 = cpuSnap();
     const res = await run(s);
+    const c1 = cpuSnap(), cpu = (c1.busy - c0.busy) / Math.max(1, c1.all - c0.all);
     const med = q(res.dts, 0.5), p90 = q(res.dts, 0.9);
     out[k].push({ med, p90, res });
+    const gpu = /nvidia/i.test(res.renderer) ? 'NVIDIA' : /amd|radeon/i.test(res.renderer) ? 'AMD' : res.renderer.slice(0, 24);
     console.log(`rep ${r + 1} ${s.label.padEnd(8)} median ${med.toFixed(2)} ms (${(1000 / med).toFixed(1)} fps)  p90 ${p90.toFixed(2)} ms  ` +
-      `${res.canvas} aa=${res.antialias} samples=${res.samples} gfx=${JSON.stringify(res.gfx)}${res.errors.length ? '  ERR ' + res.errors.join(' | ') : ''}`);
+      `cpu=${(cpu * 100).toFixed(0)}% ${gpu} ` +
+      `${res.canvas} aa=${res.antialias} samples=${res.samples} gfx=${JSON.stringify(res.gfx)} aeAsync=${res.aeAsync} aeLuma=${res.aeLuma == null ? '-' : res.aeLuma.toFixed(4)}${res.gpuGate ? ` gate=${res.gpuGate.full ? 'card' : 'integrated/other'} ${res.gpuGate.ms}ms` : ''}${res.errors.length ? '  ERR ' + res.errors.join(' | ') : ''}`);
   }
 }
 console.log(`renderer: ${out.A[0].res.renderer}`);
@@ -147,4 +164,7 @@ for (const [k, s] of [['A', A], ['B', B]]) {
   console.log(`${s.label.padEnd(8)} frame ms  min-of-medians ${Math.min(...meds).toFixed(2)}  median-of-medians ${q(meds, 0.5).toFixed(2)}  ` +
     `(fps ${(1000 / Math.min(...meds)).toFixed(1)} / ${(1000 / q(meds, 0.5)).toFixed(1)})  p90 min ${Math.min(...p90s).toFixed(2)}`);
 }
+const diffs = out.B.map((b, i) => b.med - out.A[i].med);
+console.log(`${B.label} - ${A.label} per rep: ${diffs.map(d => (d >= 0 ? '+' : '') + d.toFixed(1)).join(' ')} ms  ` +
+  `median ${(q(diffs, 0.5) >= 0 ? '+' : '') + q(diffs, 0.5).toFixed(2)} ms, ${B.label} slower in ${diffs.filter(d => d > 0).length} of ${diffs.length}`);
 browser.__done();
