@@ -1,5 +1,34 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 28 2026 - The owner-approved loading screen is live (`claude/loading-screen`, PR #333, merged; carries #321)
+
+The loading screen now shows the drawing and words the owner approved: the UT
+Tower on floating islands in a Monument Valley style, and every line of the
+loading screen, the "Switch modes" button and the "Where to?" mode picker word
+for word. Live on flyover-utx.vercel.app since merge 6cef8a0.
+Pictures: `docs/shots/loading-screen-desktop.jpg`,
+`docs/shots/loading-screen-launcher.jpg`, `docs/shots/loading-screen-phone.jpg`.
+
+- **Where to change it.** `js/loader.js`: `COPY` (every word), `ART` (the
+  drawing's colours and animation speeds, each a CSS variable on the SVG),
+  `TUNE` (progress weights; the time line switches to the slow wording after
+  40 s on a computer, 50 s on a phone). The old "Usually about N seconds"
+  promise is gone. The approved text has a normal and a slow time line only.
+- **Same as the approved renders.** With the harness's frozen progress, the
+  real loader draws the approved computer, phone and mode-picker pictures pixel
+  for pixel. In full real-app loads (through the browser queue) the only
+  differences are the live numbers and text anti-aliasing. All 196 buildings,
+  no page or console errors, computer and phone.
+- **The bar no longer slides back.** The raw reading dipped 11-24 times per
+  load (new data files found mid-load; the opening view re-fetching tiles cost
+  -10 for the last ~12 s). The bar holds its best reading; the stage list keeps
+  the real state; `__loading.history` has both `percent` and `shown`.
+- **`loader-check.mjs` rewritten for the new screen.** It waited for the old
+  `#veil-load` and failed CI on this PR. Now 7/7 locally and green in CI.
+- **Open:** on a computer the "Switch modes" button covers the right end of
+  the map credit line in the bottom-right corner (from #321). Not moved here:
+  it is a layout call.
+
 ## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, merged Sep 28)
 
 `.github/workflows/visual-checks.yml`: every pull request now gets the
