@@ -1,9 +1,11 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 28 2026 - The loading-screen drawing moves: the islands float, the West Campus islet turns (`claude/loading-motion`, awaiting the owner's look)
+## Sep 28 2026 - The loading-screen drawing moves: the islands float, the West Campus islet turns (`claude/loading-motion`, PR #335, merged f46279a)
 
 The owner asked for the drawing's islands to bob up and down, out of step, and
-maybe a rotation. This branch does both. It is taste, so it waits for his yes.
+maybe a rotation. This branch does both. He looked and said ship it, turn
+included. Live check after the deploy: the islet turns, all 4 layers float, the
+worker stops once the veil is gone, and nothing runs under reduced motion.
 
 - **Float.** Each island is its own small `<svg>` layer, cut to its box
   (`ART_LAYERS`, `ART_BOX` in `js/loader.js`), and bobs with a CSS transform.
