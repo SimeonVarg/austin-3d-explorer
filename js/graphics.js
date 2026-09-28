@@ -379,35 +379,56 @@
     integratedMaxPixels: 600000,
     // NVIDIA; AMD's discrete RX / Pro lines; Intel's discrete Arc A-series
     // ("Intel Arc Graphics" with no model number is Core Ultra's integrated one).
-    fullDefaultGpu: /nvidia|geforce|quadro|[gr]tx|radeon.*(rx|pro)|arc.*a\d{3}/i,
+    fullDefaultGpu: /nvidia|geforce|quadro|\b[gr]tx\b|radeon.*\b(rx|pro)\b|\barc.*\ba\d{3}/i,
     fillOutlinesWithMSAA: false,
   };
-  // The renderer this browser draws WebGL with, read once off a throwaway
-  // context: the map's own does not exist yet, and `antialias` has to be
-  // decided before it does. Every browser context lands on the same adapter.
+  // The renderer this browser draws WebGL with. `antialias` has to be decided
+  // before the map's context exists, so a FIRST visit reads it off a throwaway
+  // context: 17-24 ms of main thread on the RTX laptop, and 310-370 ms when it
+  // landed right after another page's city had been torn down. initGraphics
+  // then saves what the map's own context reports (GPU_RENDERER_KEY), and every
+  // later visit decides from that with no context at all. A browser moved to
+  // another GPU is right again from its next load.
+  const GPU_RENDERER_KEY = 'austin3d.gpu.renderer.v1';
   let gpuRenderer = null;
+  function contextRenderer(gl) {
+    // Firefox answers RENDERER unmasked (and warns if the debug extension is
+    // asked for); Chrome and Safari mask it. Same order as js/gpu-hint.js.
+    const plain = String(gl.getParameter(gl.RENDERER) || '');
+    if (plain && !/^WebKit WebGL$/i.test(plain)) return plain;
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : plain;
+  }
   function readGpuRenderer() {
     if (gpuRenderer !== null) return gpuRenderer;
-    gpuRenderer = '';
     const t0 = performance.now();
-    try {
-      const gl = document.createElement('canvas').getContext('webgl2');
-      if (!gl) return gpuRenderer;
-      // Firefox answers RENDERER unmasked (and warns if the debug extension
-      // is asked for); Chrome and Safari mask it. Same order as js/gpu-hint.js.
-      const plain = String(gl.getParameter(gl.RENDERER) || '');
-      if (plain && !/^WebKit WebGL$/i.test(plain)) gpuRenderer = plain;
-      else {
-        const ext = gl.getExtension('WEBGL_debug_renderer_info');
-        gpuRenderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : plain;
-      }
-      const lose = gl.getExtension('WEBGL_lose_context');
-      if (lose) lose.loseContext();
-    } catch (e) {}
-    // debug/test hook: what the MSAA default was decided on, and what reading it cost
-    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer),
+    let from = 'saved';
+    try { gpuRenderer = localStorage.getItem(GPU_RENDERER_KEY); } catch (e) { gpuRenderer = null; }
+    if (gpuRenderer === null) {
+      from = 'probe';
+      gpuRenderer = '';
+      try {
+        const gl = document.createElement('canvas').getContext('webgl2');
+        if (gl) {
+          gpuRenderer = contextRenderer(gl);
+          const lose = gl.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();
+        }
+      } catch (e) {}
+    }
+    // debug/test hook: what the MSAA default was decided on, where from, and what reading it cost
+    window.__gfxGpu = { renderer: gpuRenderer, full: EDGE_SMOOTHING.fullDefaultGpu.test(gpuRenderer), from,
                         ms: +(performance.now() - t0).toFixed(1) };
     return gpuRenderer;
+  }
+  // Once the map's context exists: remember its renderer for the next load.
+  function rememberGpuRenderer(map) {
+    try {
+      const gl = map.painter && map.painter.context && map.painter.context.gl;
+      if (!gl || gl.isContextLost()) return;
+      const r = contextRenderer(gl);
+      if (r && r !== localStorage.getItem(GPU_RENDERER_KEY)) localStorage.setItem(GPU_RENDERER_KEY, r);
+    } catch (e) {}
   }
   function defaultMSAA(scale) {
     if (window.LITE_PROFILE?.on) return false;
@@ -688,6 +709,7 @@
     } catch (e) { bloomOK = false; }
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
     dropFillOutlinesUnderMSAA(map);
+    rememberGpuRenderer(map);
 
     buildMenu();
     buildFeedback();
