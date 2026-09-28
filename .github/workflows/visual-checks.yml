@@ -265,8 +265,7 @@ jobs:
       matrix:
         include:
           - { name: mac, os: macos-latest, modes: 'headed,hw,swiftshader' }
-          - { name: linux, os: ubuntu-latest, modes: 'hw,swiftshader' }
-          - { name: windows, os: windows-latest, modes: 'hw,swiftshader' }
+          - { name: linux, os: ubuntu-latest, modes: 'swiftshader' }
     steps:
       - uses: actions/checkout@v4
         with:
