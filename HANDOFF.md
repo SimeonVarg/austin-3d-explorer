@@ -88,6 +88,44 @@ rest of the session, rather than drawing a wrong image. With a schedule saved,
 replies smaller, so it has less to scan, not more. Codex's draft #312 also
 touches `js/facades.js`; it already conflicts with main and was left alone.
 
+## Sep 28 2026 - Load screen: the seconds never stall, the islands float more (`claude/load-timer`, PR #338, open until the owner looks)
+
+On a desktop the "12s in." line jumped 4-5 s at a time. Measured on a cold
+live load (1280x680 @1.5, NVIDIA): the main thread was blocked for 20-27 s of
+a 30-36 s wait, once for 4.9-5.8 s straight. The line was plain text, so it
+only changed when the page was free.
+
+- The seconds are two digit wheels (`.load-odo`, digits drawn in `::before`)
+  stepped by Web Animations whose `startTime` is the loader's start. They run
+  on the compositor, like the floats. `#load-estimate` textContent is still
+  the exact copy line. Knob `CLOCK = { on, max }`.
+- Trap: an animation on a `::before` whose parent is `display:none` never
+  attaches, even after the parent shows. Show the wheels, then animate.
+- `FLOAT` lifts: main 1.2 -> 6, downtown 2.0 -> 7, West Campus 2.6 -> 4.
+  Main island travel measured 1 -> 5 px desktop, 0 -> 3 px phone.
+- Checked: once-per-second crops of the real page (old line sat on "2s" for
+  6 s; new one counts every second), loader-check 7/7 with the files swapped in.
+
+What makes a desktop load long (V8 profile of one cold load, main thread only):
+1. `facades.js` texture painting at boot (`ensureImages` -> `tileData` ->
+   `blurWrap`/`applyMottle`/`drawRaw`): one 5-6 s task at ~2 s, again ~0.75 s
+   from `initOuter`.
+2. `city-lighting.js` program wrap: the first draw of each lit fill-extrusion
+   compiles and checks the shader, 1-2 s each, ~5 times. On a cold GPU cache
+   this also stops the WHOLE screen for up to ~0.9 s (floats, the turning
+   islet and the new wheels all pause). This is the "islet sometimes freezes".
+3. `facades.js premultiplyInto` in `uploadAtlasFast`: many 0.3-1 s tasks.
+4. `slopes-apartments` build slices of 350-450 ms.
+The veil lifts on "ceiling" because the authored apartments finish at 23-30 s
+(first tick after they finish is reason "ceiling", not "gate", since the gate
+needs 2 passes). Tools: `%TEMP%/claude/loading-mv/verify/blockprof.mjs`
+(trace) + `%TEMP%/claude/blockprof/parse2.mjs` (per-task functions),
+`timerfilm.mjs` (screencast + long tasks), `loadfreeze.mjs`.
+
+"Downtown gone on load" (owner, his own Chrome): NOT reproduced. 6 live loads
+(3 cold + 3 reloads, graphics auto-detect left on) all show downtown at the
+lift. Waiting on which screen and URL he saw it on.
+
 ## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, merged 0db4a9a)
 
 The "Switch modes" pill sat on the OpenMapTiles/OpenStreetMap credit at every
