@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329)
+## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, merged Sep 28)
 
 `.github/workflows/visual-checks.yml`: every pull request now gets the
 `scripts/verify` suite run on GitHub's own machines (free for this public
@@ -30,6 +30,10 @@ pull request". What runs and what is left out, each with its reason:
   after it has stayed green on other lanes' PRs; five checks already had to be
   quarantined for flaking after passing (light-tone the latest, on the run
   meant to be this PR's last). A PR's run takes 27-39 minutes.
+- **Merged Sep 28 (d76d155)** after the final commit went green twice
+  (run 36385190157, attempts 1 and 2, all 66 checks each time). If a check
+  goes red on your PR, read its line in the bot comment first: a flake gets
+  quarantined in `ci/checks.json` with its reason, it is not re-run until green.
 - **It is deterministic, with the name labels off.** Before #326 the base
   branch shot twice, on two machines, moved 0% of pixels in all ten views on
   every run. The new label system picks which names show from timing and from
