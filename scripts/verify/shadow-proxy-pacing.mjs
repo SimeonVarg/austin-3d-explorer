@@ -51,7 +51,7 @@ const map={
 class Vector2{constructor(x,y){this.x=x;this.y=y;}}
 let built=0;
 class Geometry{constructor(){built++;}setAttribute(n,a){this.count=a.n;}dispose(){}}
-const THREE={Vector2,BufferGeometry:Geometry,Float32BufferAttribute:class{constructor(a){this.n=a.length/9;}},Mesh:class{constructor(g,m){this.geometry=g;this.material=m;}},MeshBasicMaterial:class{dispose(){}},
+const THREE={Vector2,BufferGeometry:Geometry,Float32BufferAttribute:class{constructor(a){this.n=a.length/9;}},BufferAttribute:class{constructor(a){this.n=a.length/9;}},Mesh:class{constructor(g,m){this.geometry=g;this.material=m;}},MeshBasicMaterial:class{dispose(){}},
   ShapeUtils:{triangulateShape:c=>c.slice(2).map((_,i)=>[0,i+1,i+2])}};
 const window={THREE,slopes:{toLocal:(x,y)=>({x,y})},__fly:{eye:()=>({driving})}};
 const scope=vm.createContext({window,stats:{failures:[]},casterSources:['austin-outer'],buildings:[],console,

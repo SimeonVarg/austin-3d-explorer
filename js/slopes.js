@@ -197,6 +197,29 @@
       atmosphere: true, skyBlend: .72, saturation: 1.0,
       shadows: true, shadowSize: 1536, shadowRadii: [240, 1400], shadowSnap: 20,
       shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
+      // shadowSnap is the NEAR map's grid; shadowSnapFar the far map's (null:
+      // the same grid). Each map is redrawn only when ITS snapped centre
+      // moves. A turn swings the look-at point round the camera ~10 m per
+      // degree, so on a 20 m grid both maps redraw every ~2 degrees of turn.
+      // A coarser far grid (?shadowsnapfar=100) cut far-map redraws 10-20 %
+      // but gave no fps change that beat run-to-run noise (NVIDIA, 3+3 runs,
+      // 2026-09-28), and it moves far-shadow edge pixels in a still frame. So
+      // it stays at the near grid, identical to before, until it earns more.
+      shadowSnapFar: isFinite(parseFloat(q.get('shadowsnapfar'))) ? parseFloat(q.get('shadowsnapfar')) : 20,
+    },
+    // ── Turning (TURN-LAG lane, 2026-09-28) ──────────────────────────────
+    // precompile: build every scene material's shader program as soon as the
+    // material exists (under the veil), instead of on the first frame that
+    // draws it. Most of this scene is outside the spawn view, so that first
+    // frame was the first TURN: MEASURED one frame of 0.8-1.4 s on the
+    // owner's NVIDIA, campus spawn, the first 60 deg/s turn, the main thread
+    // waiting on getProgramInfoLog for the big building shader. With
+    // KHR_parallel_shader_compile the driver builds it on its own threads.
+    // Speed only: the same program three would build on that frame.
+    // ?precompile=0 leaves it to the first frame, as before.
+    turn: {
+      precompile: q.get('precompile') !== '0',
+      precompileEveryMs: 1000,   // how often to look for new, unbuilt materials
     },
     surfaces: {on:q.get('surfaces')!=='0', joint:.009, jointShade:.12,
       grain:.035, reflection:.42, near:25, far:120,
@@ -680,15 +703,22 @@
         side:T.DoubleSide,blending:T.NoBlending,depthTest:true,depthWrite:true,
       });
       const cameras=s.shadowRadii.map(r=>new T.OrthographicCamera(-r,r,r,-r,1,s.shadowDistance*2));
-      _sunShadow={targets,depth,cameras,key:null,size:s.shadowSize,updates:0};
+      _sunShadow={targets,depth,cameras,keys:[null,null],size:s.shadowSize,updates:0,mapRenders:0};
       U.u_sunShadow0.value=targets[0].texture;U.u_sunShadow1.value=targets[1].texture;
     }
-    const centre=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
-    centre.x=Math.round(centre.x/s.shadowSnap)*s.shadowSnap;
-    centre.y=Math.round(centre.y/s.shadowSnap)*s.shadowSnap;
+    const look=toLocal(_map.getCenter().lng,_map.getCenter().lat,30);
+    // Each map on its own grid (shadowSnap near, shadowSnapFar far) and its
+    // own key: a map is redrawn when its snapped centre or anything common to
+    // both changes, not when only the other map's centre moved.
+    const centres=[0,1].map(i=>{
+      const g=i===1&&s.shadowSnapFar!=null?s.shadowSnapFar:s.shadowSnap;
+      return {x:Math.round(look.x/g)*g,y:Math.round(look.y/g)*g,z:look.z,g};
+    });
     const proxy=window.CityLighting.shadowProxy(_map);
-    const key=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,centre.x,centre.y,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
-    if(_sunShadow.key!==key) {
+    const common=[U.u_p.value,window.slopesApartments?.count.triangles,window.slopesApartments?.count.done,s.shadowRadii.join(','),s.shadowDistance,proxy?.uuid,root.children.map(g=>`${g.uuid}:${g.visible}`).join(',')].join('|');
+    const keys=centres.map(c=>common+'|'+c.g+'|'+c.x+'|'+c.y);
+    const stale=[0,1].filter(i=>_sunShadow.keys[i]!==keys[i]);
+    if(stale.length) {
       const target=renderer.getRenderTarget(),override=scene.overrideMaterial;
       // MapLibre owns canvas sizing. Three's default viewport is stale unless
       // explicitly restored after leaving an offscreen target (setSize is
@@ -706,8 +736,8 @@
         scene.overrideMaterial=_sunShadow.depth;
         if(proxy){scene.add(proxy);proxy.visible=true;}
         renderer.setClearColor(0xffffff,1);
-        for(let i=0;i<2;i++) {
-          const c=centre,cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
+        for(const i of stale) {
+          const c=centres[i],cam=_sunShadow.cameras[i],radius=s.shadowRadii[i];
           cam.left=cam.bottom=-radius;cam.right=cam.top=radius;
           cam.far=s.shadowDistance*2;cam.updateProjectionMatrix();
           cam.up.set(0,0,1);
@@ -715,8 +745,8 @@
           cam.lookAt(c.x,c.y,c.z);cam.updateMatrixWorld(true);
           U[i===0?'u_sunShadowMatrix0':'u_sunShadowMatrix1'].value.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
           renderer.setRenderTarget(_sunShadow.targets[i]);renderer.clear();renderer.render(scene,cam);
+          _sunShadow.keys[i]=keys[i];_sunShadow.mapRenders++;
         }
-        _sunShadow.key=key;
         _sunShadow.updates++;
       } finally {
         for(const o of filtered)o.visible=true;
@@ -727,6 +757,46 @@
     }
     U.u_shadowSettings.value.set(1,1/s.shadowSize,s.shadowBias/(s.shadowDistance*2-1),s.shadowNormalBias);
   }
+
+  // ── Shader programs built before the frame that first needs them ────────
+  // SLOPES.turn.precompile (header there). Every precompileEveryMs, any scene
+  // material three has not built a program for yet is handed to
+  // renderer.compile() with this scene's own lights, fog and camera, i.e. the
+  // program key the next render would compute. Only the missing ones: an
+  // object stand-in walks just those meshes, so the materials already built
+  // are not re-keyed every second. A program the driver has finished
+  // (isReady, KHR_parallel_shader_compile) has its one-time setup -- the
+  // uniform and attribute tables three reads on first use -- done here too,
+  // on a still frame, rather than on the first frame of a turn.
+  const _pc = { next: 0, pending: new Set(), compiled: 0, warmed: 0, materials: 0, ms: 0 };
+  function precompileTick() {
+    const P = SLOPES.turn;
+    if (!P.precompile || !renderer || !scene || !camera) return;
+    const t = performance.now();
+    if (t < _pc.next) return;
+    _pc.next = t + P.precompileEveryMs;
+    try {
+      for (const p of _pc.pending) if (p.isReady()) { p.getUniforms(); p.getAttributes(); _pc.pending.delete(p); _pc.warmed++; }
+      const missing = [];
+      scene.traverse(o => {
+        const m = o.material; if (!m) return;
+        for (const x of Array.isArray(m) ? m : [m]) if (!renderer.properties.get(x).currentProgram) { missing.push(o); return; }
+      });
+      if (missing.length) {
+        const subset = { traverse: fn => { for (const o of missing) fn(o); }, traverseVisible() {} };
+        for (const m of renderer.compile(subset, camera, scene)) {
+          const p = renderer.properties.get(m).currentProgram;
+          if (p && !p.__slopesPrecompiled) { p.__slopesPrecompiled = true; _pc.pending.add(p); _pc.compiled++; }
+          _pc.materials++;
+        }
+      }
+    } catch (e) {
+      // A failure here only means the program is built on first draw, as before.
+      P.precompile = false; console.warn('[slopes] precompile disabled: ' + e.message);
+    }
+    _pc.ms += performance.now() - t;
+  }
+
   let _mat = null, _loc = null, _s3 = null, _eye4=null;   // per-frame scratch
   let _debugGroup = null, _debugTwinAdded = false;
   const _light = { enu: [0, 0, 1], colour: [1, 1, 1], intensity: 0 };
@@ -1364,6 +1434,7 @@
       if(prepareOnly)return;
       renderer.render(scene, camera);
       _frames++;
+      precompileTick();
     },
   };
 
@@ -1674,7 +1745,8 @@
     get origin() { return originMerc; }, get scale() { return originScale; },
     get frames() { return _frames; }, get debugGroup() { return _debugGroup; },
     uniforms: () => U,
-    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
+    sunlightStats: () => ({shadowUpdates:_sunShadow?.updates||0,shadowMapRenders:_sunShadow?.mapRenders||0,shadowSize:_sunShadow?.size||0,shadowMaps:_sunShadow?2:0}),
+    precompileStats: () => ({ on: SLOPES.turn.precompile, compiled: _pc.compiled, warmed: _pc.warmed, pending: _pc.pending.size, materials: _pc.materials, ms: +_pc.ms.toFixed(1) }),
   };
 
   // Self-boot, the shape js/roofs.js documents: take the style's own `load`

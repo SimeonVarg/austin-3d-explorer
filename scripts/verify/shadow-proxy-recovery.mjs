@@ -22,7 +22,7 @@ const handlers=new Map();
 const map={on:(name,fn)=>handlers.set(name,fn),isMoving:()=>false,triggerRepaint(){},
   get style(){return style;},getStyle:()=>style?._loaded?{layers:style.layers}:undefined,
   getLayersOrder:()=>style.layers.map(l=>l.id),getLayer:id=>style.layers.find(l=>l.id===id)};
-const scope=vm.createContext({window:{THREE:{BufferGeometry:Geometry,Float32BufferAttribute:class{},Mesh,MeshBasicMaterial:Material},slopes:{}},stats:{},casterSources:[],buildings:[],
+const scope=vm.createContext({window:{THREE:{BufferGeometry:Geometry,Float32BufferAttribute:class{},BufferAttribute:class{},Mesh,MeshBasicMaterial:Material},slopes:{}},stats:{},casterSources:[],buildings:[],
   setTimeout(fn){timers.set(++next,fn);return next;},clearTimeout:id=>timers.delete(id)});
 vm.runInContext('let proxy=null,proxyMap=null,proxyDirty=true,proxyTimer=null,proxySigBuilt=null; const hiddenIds=()=>new Set();\n'+code+'\nglobalThis.build=shadowProxy;',scope);
 const tick=()=>{const pending=[...timers.values()];timers.clear();pending.forEach(fn=>fn());};
