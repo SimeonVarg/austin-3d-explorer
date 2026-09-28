@@ -2149,7 +2149,6 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .load-eyebrow{font-size:11px;letter-spacing:.23em;color:var(--load-accent);margin-bottom:24px}
 #load-city h1{font-size:clamp(32px,3.6vw,48px);line-height:1.08;max-width:530px;font-weight:600;letter-spacing:-.035em}
 .load-subtitle{font-size:16px;line-height:1.6;color:var(--load-muted);max-width:380px;margin-top:20px}
-.load-story .mvh-stack{width:100%}
 .load-caption{font-size:9px;letter-spacing:.12em;color:var(--load-muted)}
 .load-card{padding:28px;border:1px solid var(--load-border);border-radius:var(--load-radius);background:var(--load-panel)}
 .load-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.load-heading h2{font-size:17px;font-weight:600}#load-percent{color:var(--load-accent);font-variant-numeric:tabular-nums}
