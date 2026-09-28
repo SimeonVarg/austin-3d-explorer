@@ -121,7 +121,10 @@
   ].map(([id,params]) => [id, t('mode.'+id+'.title'), t('mode.'+id+'.desc'), params]);
   const files = new Map();
   let graph = 'optional', sceneReady = false, revealed = false, timer, root, dialog, opener;
-  let last = '', mapReady = false;
+  // shown: the highest reading so far. The measurement can dip (new data files are
+  // discovered mid-load; the opening camera re-requests tiles under the veil, -10),
+  // so the bar holds its best reading while the stage list shows the real state.
+  let last = '', mapReady = false, shown = 0;
   const state = window.__loading = { history: [], started: performance.now(), complete: false };
   window.loaderData = (url, phase) => { files.set(url, phase); update(); };
   window.loaderGraph = phase => { graph = phase; update(); };
@@ -164,12 +167,13 @@
     const signature = JSON.stringify([r,graph,Math.floor(elapsed)]);
     if(signature===last)return; last=signature;
     state.current = r;
-    state.history.push({ms:Math.round(performance.now()),...r,graph});
+    shown = Math.max(shown, r.percent);
+    state.history.push({ms:Math.round(performance.now()),...r,shown,graph});
     if(state.history.length>600)state.history.shift();
-    root.querySelector('#load-percent').textContent = r.percent+'%';
+    root.querySelector('#load-percent').textContent = shown+'%';
     const bar = root.querySelector('[role=progressbar]');
-    bar.setAttribute('aria-valuenow',r.percent);
-    bar.querySelector('i').style.transform='scaleX('+r.percent/100+')';
+    bar.setAttribute('aria-valuenow',shown);
+    bar.querySelector('i').style.transform='scaleX('+shown/100+')';
     root.querySelector('#load-estimate').textContent=estimate;
     root.querySelector('#load-stages').replaceChildren(...rows.map(([name,value])=>{
       const row=document.createElement('div'), n=document.createElement('span'), v=document.createElement('span');
