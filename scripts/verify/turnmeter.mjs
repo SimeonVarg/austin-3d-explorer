@@ -34,7 +34,8 @@
  * sun-shadow map re-renders, shadow-proxy rebuilds, tiles that landed, and the
  * yaw actually achieved (read off the bearing every frame). --profile adds a
  * sampled CPU profile per scenario, the drive and the stop together (self
- * time and nearest js/ caller).
+ * time and nearest js/ caller); --profile split profiles them separately
+ * (s.profile is the drive, s.tail.profile the stop).
  * "stop" is the --tail ms (2500) after the hand lets go: the worst frame gap,
  * long tasks and proxy rebuilds there, i.e. the hitch on the still picture.
  *
@@ -54,7 +55,7 @@ const GPU = String(arg('gpu', 'high'));
 const W = Number(arg('w', 1280)), H = Number(arg('h', 680)), DPR = Number(arg('dpr', 1.5));
 const POSES = String(arg('poses', 'campus,downtown')).split(',');
 const SCEN = String(arg('scen', 'straight,turn60,turn120,flick,look')).split(',');
-const PROFILE = !!arg('profile', false);
+const PROFILE = arg('profile', false) === 'split' ? 'split' : !!arg('profile', false);
 const GPUTIME = !!arg('gputime', false);
 const VIDEO = arg('video', null);
 const QUERY = String(arg('query', ''));
@@ -333,12 +334,14 @@ async function runArm(arm, rep) {
       const a = await ev(() => performance.now()), wa = Date.now() - tVideo;
       await drive(SCHED[sc], DUR, HOLDW[sc]);
       const b = await ev(() => performance.now()), wb = Date.now() - tVideo;
+      let driveProf = null;
+      if (PROFILE === 'split') { driveProf = summarizeProfile((await cdp.send('Profiler.stop')).profile); await cdp.send('Profiler.start'); }
       // The STOP: what the page does in the TAIL_MS after the hand lets go
       // (the shadow proxy used to rebuild here, in one piece, ~0.3 s after the
       // camera went still). Frame gaps here are main-thread stalls the person
       // sees as a hitch on the still image.
       await sleep(TAIL_MS);
-      let prof = null;   // the profile covers the drive AND the stop
+      let prof = null;   // the profile covers the drive AND the stop (or just the stop, split)
       if (PROFILE) { const { profile } = await cdp.send('Profiler.stop'); prof = summarizeProfile(profile); }
       const snap = await ev(([a, b]) => { const T = window.__tm; if (T.poll) try { T.poll(); } catch (e) {}
         const i0 = T.raf.findIndex(t => t >= a - 2000);
@@ -348,7 +351,7 @@ async function runArm(arm, rep) {
       s.tail = { worst: tl.ft.worst, over50: tl.ft.over50, longTasks: tl.longTasks, proxyRebuilds: tl.proxyRebuilds, shadowRenders: tl.shadowRenders };
       s.settleMs = settle;
       if (VIDEO) s.videoAt = [wa / 1000, wb / 1000];   // seconds into this arm's --video recording
-      if (prof) s.profile = prof;
+      if (driveProf) { s.profile = driveProf; s.tail.profile = prof; } else if (prof) s.profile = prof;
       res.scen[poseName + '/' + sc] = s;
       console.log(`[turn ${arm.name}#${rep}] ${poseName}/${sc.padEnd(8)} fps ${String(s.fps).padStart(5)}  p50 ${s.ft.p50}  p95 ${s.ft.p95}  worst ${s.ft.worst}  >50ms ${s.ft.over50}  yaw ${s.yawDegS} deg/s  lt ${s.longTasks.n}/${s.longTasks.sumMs}ms/max ${s.longTasks.worst}  mapCpu p50 ${s.mapCpu.p50} p95 ${s.mapCpu.p95}  three p50 ${s.threeCpu.p50}  shadowR ${s.shadowRenders}  proxy ${s.proxyRebuilds}  tiles ${s.tiles}${s.gpu ? '  gpu p50 ' + s.gpu.p50 + ' p95 ' + s.gpu.p95 : ''}  | stop: worst ${s.tail.worst} lt max ${s.tail.longTasks.worst} proxy ${s.tail.proxyRebuilds}`);
       // trim the arrays so a long run does not grow the page's memory

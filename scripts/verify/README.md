@@ -206,7 +206,8 @@ interval p50 / p95 / worst, frames over 50 ms, long tasks, MapLibre's and the
 three.js layer's CPU per frame, shadow-map re-renders, tiles that landed, the
 yaw actually achieved, and "stop": the worst frame gap in the 2.5 s after the
 hand lets go. `--gpu low` for the AMD iGPU, `--gputime` for GPU time per frame,
-`--profile` for a sampled CPU profile per scenario, `--video DIR` to record
+`--profile` for a sampled CPU profile per scenario (`--profile split` profiles
+the drive and the stop separately), `--video DIR` to record
 (each scenario's `videoAt` is its window in seconds into that recording).
 
 Three traps, all met building it:
