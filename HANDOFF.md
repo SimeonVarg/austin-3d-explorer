@@ -1,5 +1,85 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 27 2026 - The picture checks run on GitHub for every pull request (`claude/ci-visual-checks`, PR #329, merged Sep 28)
+
+`.github/workflows/visual-checks.yml`: every pull request now gets the
+`scripts/verify` suite run on GitHub's own machines (free for this public
+repo), plus ten before/after views of the city, and ONE bot comment that says
+what failed and why and which views changed. It never pushes and holds no
+secret. How to read it: `scripts/verify/README.md`, "CI: the checks on every
+pull request". What runs and what is left out, each with its reason:
+`scripts/verify/ci/checks.json`.
+
+- **Proof that a check goes red on a real break.** A throwaway PR (#331,
+  closed, branch deleted) removed the one line in `js/drag.js` that installs
+  the Drag's time-of-day hook (a real past defect: the streetwall stays
+  daylight-bright after dark). Run 36379744797 failed on exactly one check,
+  drag-check, "applyTimeOfDay repaints every Drag tile" (0 of 16), and the
+  pictures marked tower-night and drag-street-day as changed:
+  `docs/shots/ci-proof-drag-night.jpg`.
+- **Why the earlier proofs went green.** The blue Tower (#330,
+  `docs/shots/ci-proof-tower-night.jpg`) is caught only by the pictures, which
+  never fail a run; the one check that reads the
+  Tower's colour, tower-check, is quarantined (red on main). The first Drag
+  run (36377405672) had drag-check at 26/26: it read `__dragTodHooked`, a
+  flag set next to the hook that stays true without it, and its night
+  frame-mean measures the scene light, not the tiles. drag-check now counts
+  the tiles the map is actually handed. Other passes set the same kind of flag
+  (`__csTodHooked` etc.); a check that reads one has the same blind spot.
+- **Advisory, not required.** No branch protection. Make it required only
+  after it has stayed green on other lanes' PRs; five checks already had to be
+  quarantined for flaking after passing (light-tone the latest, on the run
+  meant to be this PR's last). A PR's run takes 27-39 minutes.
+- **Merged Sep 28 (d76d155)** after the final commit went green twice
+  (run 36385190157, attempts 1 and 2, all 66 checks each time). If a check
+  goes red on your PR, read its line in the bot comment first: a flake gets
+  quarantined in `ci/checks.json` with its reason, it is not re-run until green.
+- **It is deterministic, with the name labels off.** Before #326 the base
+  branch shot twice, on two machines, moved 0% of pixels in all ten views on
+  every run. The new label system picks which names show from timing and from
+  what it showed a moment ago, so after #326 two shots of main differed by up
+  to 5.8% of a view and one untouched view was flagged "changed". The pictures
+  now shoot with `?namelabels=0` (one line, `LOOK.shotQuery` in
+  `ci/pictures.mjs`). For the labels lane: the same page, loaded twice, shows
+  different names.
+- **The runners are slow at software rendering, and that decides what can run.**
+  Measured with `ci/gpu-probe.mjs` at the spawn view: SwiftShader draws 0.2-0.6
+  frames a second on the 4-core Linux runner (the laptop: 3.7), 0.16 on
+  Windows (298 s to load the city). Linux reproduces the laptop's exact pixel
+  numbers (tower-check's 0.251 and 0.160), so Windows was tried and dropped.
+  The macOS runner has a real GPU: full Chrome gets Apple's paravirtual Metal
+  device at 22-34 frames a second. The probe runs on every PR; moving the
+  frame-rate-bound checks there is the obvious next step.
+- **66 checks run** (8 machines, about half an hour), every one green on every
+  CI run it was in. **64 are quarantined**, each with its
+  reason in checks.json:
+  - **22 fail for reasons that are not the runner's speed.** 16 were re-run on
+    the laptop and are red there too (campus-court-detail, facade-filter,
+    wallplane, geomlint, suite-lint, coplanar --gate, slopes-context-loss,
+    outer-check, walkwidth, walkmeter, places-check, arts-check,
+    si-integration, dayview, and **sky and night-sky**, 10/12 each: setLight
+    disagrees with the shared sun, the pair README knows from a race, 12/12 on
+    Aug 16); tower-check fails on HANDOFF's own numbers; facadegrid and
+    mobile-mergecells refuse to run (their subject is gone). Not yet re-run on
+    the laptop: field-bleed and slopes-layer.
+    si-fold-shots is the odd one: it started failing on the runner when #326
+    (the label restyle) reached main, Chrome there cannot capture its third
+    390x844 screenshot at all; on the laptop it passes with and without #326,
+    so it is the runner, not the labels.
+  - **42 need a GPU**: they assert a hardware renderer, were written for
+    hardware GL, or need the camera to move or the scene to settle inside their
+    own windows, or flaked (dusk, banding, light-sky2, tour-check, light-tone
+    each went red once after passing).
+  - 29 timing scripts stay on the laptop by design.
+- **Playwright waits longer in CI** (`ci/slow-machine.mjs`): its 30 s default
+  becomes 180 s and a load/wait timeout a script names is tripled. No
+  assertion, threshold or in-page timer is touched. One retry exists, only for
+  "Unable to capture screenshot", and it is printed in the comment.
+- **The data bots.** build-data.yml only runs on main; build-tiles.yml and
+  fetch-reference-imagery.yml push to the branch that triggered them, but only
+  when their own paths change. This workflow runs on `pull_request`, touches
+  none of those paths, and triggered none of them on either branch.
+
 ## Sep 27 2026 - Name labels restyled to match the live labels (`astra/labels`, PR #326, awaiting the owner's look check)
 
 The owner saw the label system's dark rounded cards with a coloured dot and

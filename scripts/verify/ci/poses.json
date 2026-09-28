@@ -1,0 +1,12 @@
+[
+ {"name":"spawn-day",        "p":0.12, "center":[-97.7434,30.2857],   "zoom":16.5,  "pitch":64, "bearing":90},
+ {"name":"spawn-golden",     "p":0.47, "center":[-97.7434,30.2857],   "zoom":16.5,  "pitch":64, "bearing":90},
+ {"name":"spawn-night",      "p":0.90, "center":[-97.7434,30.2857],   "zoom":16.5,  "pitch":64, "bearing":90},
+ {"name":"tower-day",        "p":0.25, "center":[-97.73932,30.28601], "zoom":17.2,  "pitch":66, "bearing":180},
+ {"name":"tower-night",      "p":1.0,  "center":[-97.73932,30.28601], "zoom":17.2,  "pitch":66, "bearing":180},
+ {"name":"drag-street-day",  "p":0.14, "center":[-97.74180,30.28680], "zoom":16.75, "pitch":73, "bearing":356},
+ {"name":"west-campus-day",  "p":0.12, "center":[-97.74330,30.28270], "zoom":15.9,  "pitch":68, "bearing":0},
+ {"name":"stadium-day",      "p":0.25, "center":[-97.73520,30.28396], "zoom":16.9,  "pitch":68, "bearing":90},
+ {"name":"capitol-day",      "p":0.25, "center":[-97.73905,30.28250], "zoom":15.9,  "pitch":70, "bearing":180},
+ {"name":"downtown-day",     "p":0.25, "center":[-97.74300,30.26900], "zoom":15.8,  "pitch":70, "bearing":20}
+]
