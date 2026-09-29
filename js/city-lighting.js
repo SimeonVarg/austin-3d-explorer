@@ -11,6 +11,44 @@
   // Pattern texels below this alpha are translucent overlays, not glass-coded
   // facade texels (which are 191..255). Anything between the two bands works.
   const OVERLAY_ALPHA=0.70;
+  // FAR PATTERN FILTER (moire on distant facades). MapLibre samples the
+  // fill-extrusion pattern atlas bilinear with NO mip levels
+  // (docs/pattern-sampling.md), so a wall whose texels are smaller than a pixel
+  // point-samples its window grid, and MSAA does not help: it multiplies
+  // coverage samples, not texture reads. Beyond nearM each pattern read is
+  // replaced by the average of up to maxTaps x maxTaps reads spread over the
+  // pixel's own footprint on the wall (screen derivatives of the pattern
+  // coordinate), faded in by fullM. Where a pixel covers one texel or less it
+  // is the single read it always was, and inside nearM nothing changes at all.
+  // maxSpacing (texels) keeps each tap within reach of its neighbour's bilinear
+  // footprint, so the taps add up to a box. Where a pixel spans more than
+  // maxTaps x maxSpacing texels the box stops growing instead of spreading its
+  // taps thinner: taps further apart than that are a comb, not a box, and a comb
+  // passes some of the window grid's harmonics at full strength. Measured, 2
+  // keeps nearly all of the unclamped gain (campus low alias 0.644 unclamped,
+  // 0.655 at 2, 0.665 at 1.5, 0.720 with no filter).
+  // ?patfilter=0 turns it off, ?patfilter=1 forces it on; CityLighting.patternFilter
+  // is live. offOnPhone: the phone profile keeps the single read (its GPU cost
+  // has not been timed on a phone).
+  // cardsOnly: on by default only where js/graphics.js says the browser draws
+  // with a graphics card (the Smooth edges test). Timed with each frame's GPU
+  // work finished (a synchronous redraw + readPixels, still poses, 10
+  // interleaved rounds): on the RTX 3050 Ti the filter is within noise in
+  // flight and at most +1.2 ms at the downtown pose (19 ms frames); on the AMD
+  // integrated chip +0.7 to +2.5 ms at every pose (30-50 ms frames), so there
+  // it stays off. Cheaper settings (maxTaps 2) cost nothing there but made the
+  // still-frame bands WORSE than no filter (landing flight moire 0.169 ->
+  // 0.175-0.177, pixels in a visible band 0.156% -> 0.182%): a 2-tap comb.
+  // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
+  // so fewer taps per pixel for more pixels.
+  const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
+  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,offOnPhone:true,cardsOnly:true};
+  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&!(patternFilter.offOnPhone&&window.LITE_PROFILE?.on)&&
+    (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.()));
+  // Compiled in only where it is on at load. Elsewhere the pattern shader is
+  // MapLibre's own, exactly as before, so the integrated chip pays nothing,
+  // not even the registers. A live `on` switch works only where it compiled.
+  patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
   const balance={skyFill:0.12,roofFill:0.08};
@@ -41,8 +79,35 @@
     uniform sampler2D u_sunShadow0, u_sunShadow1;
     uniform mat4 u_sunShadowMatrix0, u_sunShadowMatrix1;
     uniform vec4 u_shadowSettings;
+    uniform vec4 u_cityPatternFilter, u_cityPatternFilterB;
     ${Array.from({length:8},(_,i)=>`uniform vec4 u_cityFixture${i}, u_cityFixtureColour${i};`).join('\n')}
   `;
+  // The pattern fragment only (see patternFilter). `point` is MapLibre's own
+  // read; v is the pattern coordinate in repeats; tl/br the image's corners in
+  // atlas UV. Derivatives are taken before any branch that varies per pixel.
+  const patternFilterGlsl = `
+    vec4 cityPatternTexel(sampler2D img,vec4 point,vec2 v,vec2 tl,vec2 br,vec2 texsize,float dist){
+      vec2 dx=dFdx(v),dy=dFdy(v);
+      if(u_cityPatternFilter.x<.5)return point;
+      float fade=smoothstep(u_cityPatternFilter.y,u_cityPatternFilter.z,dist);
+      if(fade<=0.0)return point;
+      vec2 texels=(br-tl)*texsize;
+      float fx=length(dx*texels),fy=length(dy*texels);
+      float nx=clamp(ceil(fx),1.0,u_cityPatternFilter.w),ny=clamp(ceil(fy),1.0,u_cityPatternFilter.w);
+      if(nx*ny<=1.0)return point;
+      dx*=min(1.0,nx*u_cityPatternFilterB.x/max(fx,1e-4));
+      dy*=min(1.0,ny*u_cityPatternFilterB.x/max(fy,1e-4));
+      vec4 sum=vec4(0.0);
+      for(int i=0;i<${patternFilter.maxTaps};i++){
+        if(float(i)>=nx)break;
+        for(int j=0;j<${patternFilter.maxTaps};j++){
+          if(float(j)>=ny)break;
+          vec2 at=v+dx*((float(i)+.5)/nx-.5)+dy*((float(j)+.5)/ny-.5);
+          sum+=textureLod(img,mix(tl,br,fract(at)),0.0);
+        }
+      }
+      return mix(point,sum/(nx*ny),fade);
+    }`;
   const glsl = `
     vec3 linearColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
     vec3 displayColour(vec3 c) { return pow(max(c,vec3(0.0)),vec3(1.0/2.2)); }
@@ -620,7 +685,15 @@
           if(pattern||minimal) {
             kind=pattern?'pattern-fragment':'solid-fragment';
             const packing=`float unpackRGBAToDepth(vec4 v){return dot(v,vec4(255.0/256.0/16777216.0,255.0/256.0/65536.0,255.0/256.0/256.0,255.0/256.0));}`;
-            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\nvoid main()`);
+            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern&&patternFilter.compiled?patternFilterGlsl:''}\nvoid main()`);
+            if(pattern&&patternFilter.compiled) {
+              const read=(ab,pos)=>`texture(u_image,${pos})`;
+              const filtered=(ab,pos,v)=>`cityPatternTexel(u_image,${read(ab,pos)},${v},pattern_tl_${ab}/u_texsize,pattern_br_${ab}/u_texsize,u_texsize,cityPatternDist)`;
+              source=replace(source,'vec2 imagecoord=mod(v_pos_a,1.0);','float cityPatternDist=distance(u_eye,v_cityPos);vec2 imagecoord=mod(v_pos_a,1.0);');
+              source=replace(source,`vec4 color1=${read('a','pos')};`,`vec4 color1=${filtered('a','pos','v_pos_a')};`);
+              // The second read only matters while MapLibre crossfades two zooms.
+              source=replace(source,`vec4 color2=${read('b','pos2')};`,`vec4 color2=u_fade>0.0?${filtered('b','pos2','v_pos_b')}:${read('b','pos2')};`);
+            }
             // The glass code is a FACADE-atlas convention: opaque texels, and
             // alpha 191 reserved for glass (see glassRect). A texel below
             // OVERLAY_ALPHA is neither: it is a translucent ground overlay
@@ -755,12 +828,18 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
       U.u_citySkyFill??={value:new THREE.Vector2()};
       U.u_citySkyFill.value.set(balance.skyFill,balance.roofFill);
+      U.u_cityPatternFilter??={value:new THREE.Vector4()};
+      // The shader's loops were sized from maxTaps when it compiled; a live
+      // change can lower the count, not raise it past that.
+      U.u_cityPatternFilter.value.set(patternFilter.on?1:0,patternFilter.nearM,patternFilter.fullM,Math.max(1,patternFilter.maxTaps));
+      U.u_cityPatternFilterB??={value:new THREE.Vector4()};
+      U.u_cityPatternFilterB.value.set(patternFilter.maxSpacing,0,0,0);
       U.u_cityNight??={value:new THREE.Vector4()};
       const night=window.CityNight,t=night?.tune;
       U.u_cityNight.value.set(t?.on?night.lamps(window.__todCurrentP??.5):0,t?.emissionGain??1,...(t?.glassThreshold??[.26,.48]));

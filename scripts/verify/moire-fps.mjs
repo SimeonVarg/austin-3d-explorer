@@ -23,7 +23,13 @@
  * Each rep also prints cpu=, the whole machine's CPU busy share over that rep
  * (this browser included). A rep that reads far above its neighbours shared
  * the machine with something else: read the pairs, not one side's minimum.
- * The last line is the median of the per-rep differences B - A.
+ * The last lines are the median of the per-rep differences B - A, of the
+ * median frame and of the mean frame (wall time / frames). Read the MEAN on
+ * the AMD integrated chip: there the median sits near 20 ms while the mean is
+ * 45-65 ms, because most ticks are short and every few frames one waits on
+ * the GPU queue, so a GPU cost shows in the mean and the tail, not the median.
+ * Across fresh loads that mean still swings 45-66 ms between reps of the SAME
+ * code; for a change that can be switched live, time it in one page instead.
  */
 import { chromium } from 'playwright-core';
 import { BASE, launch, HW_ARGS } from './chrome.mjs';
@@ -184,11 +190,15 @@ for (let r = 0; r < REPS; r++) {
     const c0 = cpuSnap(), gpuLog = nvSample();
     const res = await run(s);
     const c1 = cpuSnap(), cpu = (c1.busy - c0.busy) / Math.max(1, c1.all - c0.all), nv = gpuLog.stop();
-    const med = q(res.dts, 0.5), p90 = q(res.dts, 0.9);
-    out[k].push({ med, p90, res });
+    // mean = wall time / frames. On a GPU that queues frames (ANGLE D3D11 on
+    // the AMD iGPU) most rAF ticks are short and every few frames one blocks
+    // on the queue, so the median shows the CPU side and a GPU cost lands in
+    // the tail. The mean is what the eye gets; report it next to the median.
+    const med = q(res.dts, 0.5), p90 = q(res.dts, 0.9), mean = res.dts.reduce((x, y) => x + y, 0) / res.dts.length;
+    out[k].push({ med, p90, mean, res });
     res.nv = nv;
     const gpu = /nvidia/i.test(res.renderer) ? 'NVIDIA' : /amd|radeon/i.test(res.renderer) ? 'AMD' : res.renderer.slice(0, 24);
-    console.log(`rep ${r + 1} ${s.label.padEnd(8)} median ${med.toFixed(2)} ms (${(1000 / med).toFixed(1)} fps)  p90 ${p90.toFixed(2)} ms  ` +
+    console.log(`rep ${r + 1} ${s.label.padEnd(8)} median ${med.toFixed(2)} ms (${(1000 / med).toFixed(1)} fps)  mean ${mean.toFixed(2)} ms  p90 ${p90.toFixed(2)} ms  ` +
       `cpu=${(cpu * 100).toFixed(0)}% ${gpu} ${nv ? `vram peak ${nv.peakMiB} MiB, ${nv.clockMHz} MHz ` : ''}` +
       `${res.canvas} aa=${res.antialias} samples=${res.samples} gfx=${JSON.stringify(res.gfx)} aeAsync=${res.aeAsync} aeLuma=${res.aeLuma == null ? '-' : res.aeLuma.toFixed(4)}${res.gpuGate ? ` gate=${res.gpuGate.full ? 'card' : 'integrated/other'} ${res.gpuGate.ms}ms` : ''}${res.errors.length ? '  ERR ' + res.errors.join(' | ') : ''}`);
   }
@@ -196,11 +206,15 @@ for (let r = 0; r < REPS; r++) {
 console.log(`renderer: ${out.A[0].res.renderer}`);
 console.log(`viewport ${W}x${H} @ DPR ${DPR}, no CPU throttle, vsync off, flight ${FLIGHT}, ${FRAMES} frames/rep after ${WARM} warm-up, ${FRESH ? 'a fresh browser per rep' : 'one browser for all reps'}`);
 for (const [k, s] of [['A', A], ['B', B]]) {
-  const meds = out[k].map(x => x.med), p90s = out[k].map(x => x.p90);
+  const meds = out[k].map(x => x.med), p90s = out[k].map(x => x.p90), means = out[k].map(x => x.mean);
   console.log(`${s.label.padEnd(8)} frame ms  min-of-medians ${Math.min(...meds).toFixed(2)}  median-of-medians ${q(meds, 0.5).toFixed(2)}  ` +
-    `(fps ${(1000 / Math.min(...meds)).toFixed(1)} / ${(1000 / q(meds, 0.5)).toFixed(1)})  p90 min ${Math.min(...p90s).toFixed(2)}`);
+    `(fps ${(1000 / Math.min(...meds)).toFixed(1)} / ${(1000 / q(meds, 0.5)).toFixed(1)})  p90 min ${Math.min(...p90s).toFixed(2)}  ` +
+    `mean min ${Math.min(...means).toFixed(2)} median ${q(means, 0.5).toFixed(2)}`);
 }
 const diffs = out.B.map((b, i) => b.med - out.A[i].med);
 console.log(`${B.label} - ${A.label} per rep: ${diffs.map(d => (d >= 0 ? '+' : '') + d.toFixed(1)).join(' ')} ms  ` +
   `median ${(q(diffs, 0.5) >= 0 ? '+' : '') + q(diffs, 0.5).toFixed(2)} ms, ${B.label} slower in ${diffs.filter(d => d > 0).length} of ${diffs.length}`);
+const mdiffs = out.B.map((b, i) => b.mean - out.A[i].mean);
+console.log(`${B.label} - ${A.label} mean per rep: ${mdiffs.map(d => (d >= 0 ? '+' : '') + d.toFixed(1)).join(' ')} ms  ` +
+  `median ${(q(mdiffs, 0.5) >= 0 ? '+' : '') + q(mdiffs, 0.5).toFixed(2)} ms, ${B.label} slower in ${mdiffs.filter(d => d > 0).length} of ${mdiffs.length}`);
 if (shared) shared.__done();
