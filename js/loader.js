@@ -126,17 +126,19 @@
   // on: false keeps the islet still (it still floats).
   const TURN = { on: true, time: 1.25, hold: 1.7, holdHome: 3.8, back: 0.55 };
   // The main island turns over when it is tapped or clicked (the owner asked for
-  // it to answer a tap, not to turn on a timer). It lifts, winds back a touch and
-  // rolls over on a slanted axis with a half spin, solid, its sides showing, then
-  // lands with a small bounce. On the way the Tower's stages slide into each
-  // other, the top first, and the shaft sinks into the Main Building; the Main
-  // Building and the halls fold into the rock's wide ledges, and under the island
-  // the ledges unfold again, the Tower's stages coming back out as the deep tip.
-  // On the other side the rock folds up, the tip first, cracks into one piece per
-  // block, and the pieces push up floor by floor into West Campus apartment
-  // blocks, each floor clicking into line, windows lighting as they come; roofs,
-  // steps, lawns, the pool and the trees follow. Every block changes colour as it
-  // passes the middle. Tap again to turn it back (the same turn run backwards); a
+  // it to answer a tap, not to turn on a timer). While the Tower side still faces
+  // you, the Tower becomes the iceberg: the crown slides down into the clock, the
+  // shaft's sections slide into each other like a telescope closing and step out,
+  // the lowest first, into the stepped ledges of the rock's deep tip, while the
+  // Main Building and the halls step out into its wide upper ledges. Then the
+  // island lifts, winds back a touch and rolls half a turn over the slanted
+  // north-south line, solid, its sides showing, and lands with a small bounce.
+  // Each block takes its new colour as it passes the middle, spreading out from
+  // the Tower like a wave. The rock that comes over the top turns solid, cracks
+  // into one piece per block, and the pieces slide onto their blocks and push up
+  // floor by floor into West Campus apartment blocks, each floor clicking into
+  // line and its windows lighting as it comes; roofs, steps, lawns, the pool and
+  // the trees follow. Tap again to turn it back (the same turn run backwards); a
   // tap mid-turn turns it round from where it is. A worker draws the turn with
   // WebGL on its own canvas, so once it has started a busy page cannot make it
   // stutter (the tap itself waits for the page). At rest on the Tower side the
@@ -145,47 +147,53 @@
   // drawing metres (i east, j south, z up).
   const ISLAND = {
     on: true,             // false = no turn: the still drawing and no tap target
-    time: 3.4,            // seconds for one whole turn (the way back is the same turn run backwards)
+    time: 3.8,            // seconds for one whole turn (the way back is the same turn run backwards)
     pivot: [-4, 35, -9],  // the point it turns round
-    // THE TURN. A turn winds back by `wind` (a fraction of a half turn), goes over, passes the mark by
-    // `wind`, and comes back onto it; `knee` is the share of its time each of those two small moves takes.
-    roll: { dir: 1, from: 0.03, to: 0.84, wind: 0.035, knee: 0.1 },   // rolling over its long axis (dir -1 = the other way)
-    spin: { dir: -1, from: 0.08, to: 0.88, wind: 0.03, knee: 0.1 },  // the half spin round the upright, a little behind the roll: together a slanted axis
-    lift: { h: 9, rise: [0.02, 0.3], land: [0.66, 0.98], dip: 0.18, knee: 0.3 }, // how high it rises; a crouch before, a bounce on landing
-    shrink: 0.08,         // how much smaller it looks at mid-turn (0 = not at all)
+    // THE TURN. It winds back by `wind` (a fraction of a half turn), goes over, passes the mark by `wind` and
+    // clicks back onto it; `knee` is the share of its time each of those two small moves takes.
+    roll: { axis: 'j', dir: 1, from: 0.12, to: 0.7, wind: 0.035, knee: 0.1 }, // axis 'j': half a turn round the slanted north-south line (dir -1 = the other way); 'i': the older roll with a half spin (below)
+    spin: { dir: -1, from: 0.17, to: 0.75, wind: 0.03, knee: 0.1 },  // axis 'i' only: the half spin round the upright
+    lift: { h: 12, rise: [0.02, 0.26], land: [0.6, 0.92], dip: 0.18, knee: 0.3 }, // how high it rises; a crouch before, a bounce on landing
+    shrink: 0.04,         // how much smaller it looks halfway over (0 = not at all)
     click: 0.05,          // how far a block's move goes past its mark before it clicks back (0.05 = 5% of the move)
-    // THE TOWER SIDE BECOMES ROCK (0 to about 0.45, while it still faces you)
-    tower: { from: 0.05, step: 0.034, span: 0.12, shaft: [0.13, 0.47], rails: [0.06, 0.14], stub: 3, gap: 0.3, tint: 0.5 },
-                          // the Tower's stages slide into the one below, the top first (a new stage every `step`);
-                          // then the shaft sinks to a stub `stub` tall; `gap`: how far inside its host a stage hides;
-                          // `tint`: the share of its slide a stage spends taking on its host's colour
-    terraces: { rise: [0.08, 0.22], sink: [0.4, 0.55] }, // the terraces rise level with the lawn; later, on the other side, thin to their new depth
-    tiers: { from: 0.14, stagger: 0.045, span: 0.16 },   // halls and the Main Building fold into the wide ledges, the top ledge first
-    folded: { tower: 2.5, rock: 2 }, // how thin a ledge is while folded: the Tower side's, the rock's
-    below: { from: 0.46, stagger: 0.04, span: 0.13, slide: [0.42, 0.6] }, // under the island the ledges unfold one below another, and the stub slides to where the tip hangs
-    // THE ROCK BECOMES APARTMENTS (while that side comes round to face you)
-    retract: { from: 0.04, stagger: 0.03, span: 0.13 },  // the rock folds up into the island, the tip first
+    wave: { from: [0, 0], reach: 90, span: 0.07 }, // the Tower side's changes spread out from this point: a box `reach` metres away starts `span` later
+    // THE TOWER SIDE BECOMES THE ICEBERG (while it still faces you)
+    tower: {
+      crown: [0.05, 0.03, 0.1],  // the crown's stages slide down into the clock, the top first: start, a new stage every, each takes
+      rails: [0.06, 0.14],       // the clock's railings fold into it
+      out: [0.12, 0.035, 0.15],  // the shaft's three sections and the clock step out into the tip's ledges, the lowest first
+      down: [0.14, 0.035, 0.17], // ... and slide down into each other, the top first, like a telescope closing
+      dark: [0.3, 0.42, 0.03],   // the shaft's windows go dark, the top row first (start, end, delay for the lowest row)
+      hide: [0.46, 0.5],         // (unseen) the part of a section inside the one below goes
+      gap: 0.3,                  // how far inside its host a stage hides
+      tint: 0.5                  // the share of its slide a stage spends taking on its host's colour
+    },
+    terraces: { rise: [0.06, 0.18], sink: [0.5, 0.62] }, // the terraces rise level with the lawn; on the other side, they sink back to their own height
+    tiers: { from: 0.09, stagger: 0.03, span: 0.14 },    // halls and the Main Building step out into the wide ledges, the lowest first (plus the wave)
+    lips: 0.05,           // a ledge's lips come on this long, once it has changed colour
+    // THE ROCK BECOMES APARTMENTS (once it has come over and faces you)
     rebuild: {
-      crack: [0.28, 0.36], gap: 1.2,   // shared ledges crack into one piece per block, this far apart
-      gather: [0.34, 0.48],            // the pieces slide under their blocks
-      from: 0.42, block: 0.015, floor: 0.035, span: 0.1, // floors push out, block after block, floor after floor
-      nest: 1.2, close: 0.06,          // each floor starts this far inside the one below, and they close up with a click
-      lit: 0.03,                       // within a floor, the upper windows light this much later
-      absorb: [0.26, 0.4],             // rock with no block to become folds into the island
-      cap: 0.04, capGap: -0.01         // roofs, crowns and decks grow out of a finished block (a negative gap overlaps)
+      crack: [0.49, 0.57], gap: 1.2,     // shared ledges crack into one piece per block, this far apart
+      gather: [0.52, 0.11],             // the pieces slide across onto their blocks and square up: start, length
+      settle: [0.57, 0.09],              // each floor settles into place, the lowest first: start, length
+      block: 0.018, floor: 0.025,       // ... block after block (in `ledges` order), floor after floor
+      nest: 1.2, close: 0.05,           // each floor starts this far inside the one below, and they close up with a click
+      lit: 0.03,                        // within a floor, the upper windows light this much later
+      absorb: [0.49, 0.61],             // rock with no block to become draws up into what it hangs from
+      cap: 0.05, capGap: -0.01          // roofs, crowns and decks grow out of a finished block (a negative gap overlaps)
     },
     // which rock ledges each apartment block is built from: levels of the rock, top (1) to tip (8).
     // The order is the order the blocks rise in.
     ledges: { tall: '1 2 5 6 7 8', court: '1 2 3', east: '1 2 4', wing: '1 2', west: '1 2 3 4', small: '1 2 3 4', office: '1 2', row: '1 2' },
     steps: [0.04, 0.12],  // the Tower side's steps and balustrades sinking into their terrace
-    stairsIn: [0.76, 0.9],  // the apartment side's steps and railings rising out of theirs
+    stairsIn: [0.8, 0.92], // the apartment side's steps and railings rising out of theirs
     swap: 0.04,           // how quickly a block changes colour as it passes the middle
-    out: [0.04, 0.2, 0.1], // the Tower side's windows fading into the stone: start, end, delay for the lowest row
-    fold: [0.03, 0.16],   // roofs, the mast and the clock faces settling into what they stand on
-    props: [0.03, 0.14],  // the fountain, the figure and the path settling into the terrace
-    lawns: [0.58, 0.8],    // the apartment side's lawns coming up
-    pool: [0.66, 0.86],    // the pool filling
-    trees: [0.8, 0.97],   // the apartment side's trees growing
+    out: [0.04, 0.16, 0.08], // the halls' and Main Building's windows going dark: start, end, delay for the lowest row (plus the wave)
+    fold: [0.03, 0.14],   // roofs, the mast and the clock faces settling into what they stand on (plus the wave)
+    props: [0.03, 0.12],  // the fountain, the figure and the path settling into the terrace
+    lawns: [0.7, 0.86],   // the apartment side's lawns coming up
+    pool: [0.74, 0.9],    // the pool filling
+    trees: [0.84, 0.98],  // the apartment side's trees growing
     halo: [0, 0.25],      // the Tower's halo fading out
     faces: [0.02, 0.12],  // faces the still drawing leaves out (the ledges' tops) coming in
     fade: 0.25,           // reduced motion: a crossfade of this many seconds instead of the turn
@@ -654,97 +662,124 @@
       const padAt = q => { const ci = (q[0] + q[1]) / 2, cj = (q[2] + q[3]) / 2; let best = 'podium', bd = 1e9; for (const k of PADS) { const f = pad[k].a.l, d = Math.hypot(Math.max(f[0] - ci, 0, ci - f[1]), Math.max(f[2] - cj, 0, cj - f[3])); if (d < bd - 1e-9) { bd = d; best = k; } } return best; };
       const over = (q, k) => { const f = pad[k].a.l, ci = (q[0] + q[1]) / 2, cj = (q[2] + q[3]) / 2; return ci > f[0] && ci < f[1] && cj > f[2] && cj < f[3]; };
 
-      // ---- the two iceberg stacks, level by level, so ledges of one level always share their heights.
-      // B (the Tower side's ledges, upright in the island's own frame, standing on the level top); A (the rock under
-      // the island, hanging from its bottom). Each folds to a thin ledge and unfolds.
+      // ---- the Tower side's changes spread out from the Tower: a box this far away waits this much longer
+      const WV = K.wave, wv = b => { const c = ctr(b); return WV.span * clamp(Math.hypot(c[0] - WV.from[0], c[1] - WV.from[1]) / WV.reach); };
+      const later = (w, d) => w.map((v, k) => k < 2 ? v + d : v); // a window [start, end, ...] moved later by d
+
+      // ---- the two iceberg stacks, level by level, so ledges of one level always share their heights, and at their
+      // full size all the way: B (what the Tower side becomes, upright in the island's own frame, standing on the
+      // level top); A (the rock under the island, hanging from its bottom)
       const NL = Math.max(...Ab.map(r => r.g || 0));
       const lvH = L => { const h = []; for (let g = 1; g <= NL; g++) { const r = L.find(r => r.g === g); h[g] = r.l[5] - r.l[4]; } return h; };
-      const HBs = lvH(Bb), HAs = lvH(Ab), FT = K.folded.tower, FR = K.folded.rock;
-      const BE = K.below, exW = g => { const a = BE.from + BE.stagger * (g - 1); return [a, a + BE.span]; };
-      const hB = (g, p) => FT + (HBs[g] - FT) * click(win(p, exW(g)), S);
-      const baseB = (g, p, z = 0) => { for (let m = 1; m < g; m++) z += hB(m, p); return z; };
-      const tierB = (g, fp, p, z = 0) => { const z0 = baseB(g, p, z); return [fp[0], fp[1], fp[2], fp[3], z0, z0 + hB(g, p)]; };
-      const litB = g => [exW(g)[1] + 0.005, exW(g)[1] + 0.06, 0]; // a ledge's lips come on once it has unfolded
-      const RT = K.retract, rtW = g => { const a = RT.from + RT.stagger * (NL - g); return [a, a + RT.span]; };
-      const hA = (g, p) => HAs[g] + (FR - HAs[g]) * click(win(p, rtW(g)), S);
-      const tierA = (g, fp, p, z) => { for (let m = 1; m < g; m++) z -= hA(m, p); return [fp[0], fp[1], fp[2], fp[3], z - hA(g, p), z]; };
+      const HBs = lvH(Bb), HAs = lvH(Ab);
+      const tierB = (g, fp, z = 0) => { for (let m = 1; m < g; m++) z += HBs[m]; return [fp[0], fp[1], fp[2], fp[3], z, z + HBs[g]]; };
+      const tierA = (g, fp, z) => { for (let m = 1; m < g; m++) z -= HAs[m]; return [fp[0], fp[1], fp[2], fp[3], z - HAs[g], z]; };
       const ZA0 = pad.podium.a.l[4]; // the island's flat bottom, where the rock hangs from
 
-      // ---- THE TOWER SIDE. The halls and the Main Building step into the wide ledges, the top ledge first.
-      const TI = K.tiers, tiW = (k, nn) => { const a = TI.from + TI.stagger * (nn - 1 - k); return [a, a + TI.span]; };
-      let pC = 0; // by then the Tower side is folded: the stub's hidden stages go, the stub's clip rises
+      // ---- THE TOWER SIDE BECOMES THE ICEBERG, facing you. The halls and the Main Building step out into the wide
+      // ledges, the lowest ledge first, spreading out from the Tower; each keeps its own colour until it passes the
+      // middle of the turn.
+      const TI = K.tiers, tiW = (k, d) => { const a = TI.from + d + TI.stagger * k; return [a, a + TI.span]; };
       for (const nm of ['battle', 'parlin', 'batts', 'garrison']) {
-        const r = one(Ab, nm), col = padAt(r.l), T = pad[col];
+        const r = one(Ab, nm), col = padAt(r.l), T = pad[col], d = wv(r.l);
         const lv = Bb.filter(q => q.g && q.part.split(':')[2] === col).sort((x, y) => x.g - y.g), nn = lv.length;
         let below = null;
         slabsZ(r.l, nn, false).forEach((sl, k) => {
-          const L = lv[k], w = tiW(k, nn);
-          const P = mk({ bx: p => mix(upZ(sl, T.up(p)), tierB(L.g, L.l, p, T.top(p)), click(win(p, w), S)), rA: r, rB: L, lit: litB(L.g) });
+          const L = lv[k], w = tiW(k, d);
+          const P = mk({ bx: p => mix(upZ(sl, T.up(p)), tierB(L.g, L.l, T.top(p)), click(win(p, w), S)), rA: r, rB: L, out: later(K.out, d), fold: later(K.fold, d), lips: 1 });
           decals(r, sl, sl, 'A', P.da); decals(L, L.l, L.l, 'B', P.db); own(r, P); own(L, P);
           if (below) { P.below = below; below.above = P; } below = P;
-          pC = Math.max(pC, w[1]);
         });
       }
       // the Main Building as a grid, two rows of three filling their joint box; each block's slab k becomes its
-      // cell of ledge k, and the cells, once they have unfolded, join into the one ledge
+      // cell of ledge k, and the cells, once they are all in, join into the one ledge (in the Main Building's colours
+      // until it passes the middle)
       const MB = ['wingW', 'mid', 'wingE', 'southW', 'pav', 'southE'].map(nm => one(Ab, 'mb:' + nm));
       const gb = [Math.min(...MB.map(r => r.l[0])), Math.max(...MB.map(r => r.l[1])), Math.min(...MB.map(r => r.l[2])), Math.max(...MB.map(r => r.l[3]))];
       const rowJ = (Math.max(...MB.slice(0, 3).map(r => r.l[3])) + Math.min(...MB.slice(3).map(r => r.l[2]))) / 2, vs = (rowJ - gb[2]) / (gb[3] - gb[2]);
       const lvPod = [ledge(Bb, 1, 'podium'), ledge(Bb, 2, 'podium'), ledge(Bb, 3, 'central'), ledge(Bb, 4, 'central')];
-      const joinAt = g => exW(g)[1] + 0.004;
+      const joinAt = lvPod.map(() => 0), cells = [];
       MB.forEach((r, bi) => {
-        const u = [(r.l[0] - gb[0]) / (gb[1] - gb[0]), (r.l[1] - gb[0]) / (gb[1] - gb[0])], v = bi < 3 ? [0, vs] : [vs, 1];
+        const u = [(r.l[0] - gb[0]) / (gb[1] - gb[0]), (r.l[1] - gb[0]) / (gb[1] - gb[0])], v = bi < 3 ? [0, vs] : [vs, 1], d = wv(r.l);
         let below = null;
         slabsZ(r.l, lvPod.length, false).forEach((sl, k) => {
-          const L = lvPod[k], q = L.l, fp = [q[0] + u[0] * (q[1] - q[0]), q[0] + u[1] * (q[1] - q[0]), q[2] + v[0] * (q[3] - q[2]), q[2] + v[1] * (q[3] - q[2])], w = tiW(k, lvPod.length);
-          const P = mk({ bx: p => mix(sl, tierB(L.g, fp, p), click(win(p, w), S)), rA: r, rB: L, vis: [-1, joinAt(L.g)] });
-          decals(r, sl, sl, 'A', P.da); own(r, P);
+          const L = lvPod[k], q = L.l, fp = [q[0] + u[0] * (q[1] - q[0]), q[0] + u[1] * (q[1] - q[0]), q[2] + v[0] * (q[3] - q[2]), q[2] + v[1] * (q[3] - q[2])], w = tiW(k, d);
+          const P = mk({ bx: p => mix(sl, tierB(L.g, fp), click(win(p, w), S)), rA: r, rB: L, out: later(K.out, d), fold: later(K.fold, d) });
+          decals(r, sl, sl, 'A', P.da); own(r, P); cells.push([P, k]);
+          joinAt[k] = Math.max(joinAt[k], w[1] + 0.004);
           if (below) { P.below = below; below.above = P; } below = P;
-          pC = Math.max(pC, w[1]);
         });
       });
-      for (const L of lvPod) { const P = mk({ bx: p => tierB(L.g, L.l, p), rB: L, only: 'B', vis: [joinAt(L.g), 2], lit: litB(L.g) }); decals(L, L.l, L.l, 'B', P.db); own(L, P); }
-      // ---- the Tower: every stage slides down into the one below it, the top first; the shaft sinks into the
-      // Main Building last, to a stub. Under the island, the stub slides to where the tip hangs, and the stages
-      // come back out of each other as the ledges of the tip: shaft, clock, belfry, entablature.
-      const TW = K.tower, stubTop = baseB(5, 0.5 * (pC + BE.from)) + TW.stub;
-      const stg = {}, order = ['step2', 'step1', 'ent', 'belfry', 'clock', 'cornice'], host = { step2: 'step1', step1: 'ent', ent: 'belfry', belfry: 'clock', clock: 'cornice', cornice: 'shaft' };
-      const fit = (f, h) => [Math.max(f[0], h[0] + TW.gap), Math.min(f[1], h[1] - TW.gap), Math.max(f[2], h[2] + TW.gap), Math.min(f[3], h[3] - TW.gap)];
-      stg.shaft = { r: one(Ab, 'tower:shaft'), w: TW.shaft };
-      order.forEach((nm, k) => { stg[nm] = { r: one(Ab, 'tower:' + nm), host: host[nm], w: [TW.from + TW.step * k, TW.from + TW.step * k + TW.span] }; });
-      Ab.filter(r => r.part === 'tower:deck').forEach((r, k) => { stg['rail' + k] = { r, host: 'clock', w: TW.rails }; });
-      for (const nm in stg) { const t = stg[nm], h = t.host && stg[t.host].r.l; t.x0 = h ? t.r.l[5] - h[5] : 0; t.fit = h ? fit(t.r.l, h) : t.r.l.slice(0, 4); }
-      const topAt = (nm, p) => { const t = stg[nm], e = click(win(p, t.w), S); return t.host ? topAt(t.host, p) + t.x0 + (-TW.gap - t.x0) * e : t.r.l[5] + (stubTop - t.r.l[5]) * e; };
-      const tip = ledge(Bb, 7, 'central').l, sc0 = ctr(stg.shaft.r.l), slideV = [(tip[0] + tip[1]) / 2 - sc0[0], (tip[2] + tip[3]) / 2 - sc0[1]];
-      const stubBox = (nm, p) => {
-        const t = stg[nm], e = io(win(p, t.w)), f = mix(t.r.l.slice(0, 4), t.fit, e), z1 = topAt(nm, p), s = io(win(p, BE.slide));
-        return shiftIJ([f[0], f[1], f[2], f[3], z1 - (t.r.l[5] - t.r.l[4]), z1], slideV[0] * s, slideV[1] * s);
+      for (const [P, k] of cells) P.vis = [-1, joinAt[k]];
+      const mbMid = one(Ab, 'mb:mid');
+      lvPod.forEach((L, k) => { const P = mk({ bx: () => tierB(L.g, L.l), rA: mbMid, rB: L, vis: [joinAt[k], 2], lips: 1 }); P.hA = 0; decals(L, L.l, L.l, 'B', P.db); own(L, P); });
+
+      // ---- the Tower becomes the iceberg's tip. Its crown slides down into the clock, the top stage first. The shaft,
+      // in three sections, and the clock step out into the tip's ledges, the lowest first, while each slides down into
+      // the one below it, the top first, like a telescope closing; the cornice slides into the shaft.
+      const TW = K.tower, shaft = one(Ab, 'tower:shaft'), secs = slabsZ(shaft.l, 3, false), tipL = [5, 6, 7, 8].map(g => ledge(Bb, g, 'central'));
+      const ST = [{ r: shaft, a: secs[0], L: tipL[0] }, { r: shaft, a: secs[1], L: tipL[1] }, { r: shaft, a: secs[2], L: tipL[2] },
+        { r: one(Ab, 'tower:cornice'), L: null }, { r: one(Ab, 'tower:clock'), L: tipL[3] }], nS = ST.length;
+      ST.forEach((t, k) => {
+        t.a = t.a || t.r.l; t.h0 = t.a[5] - t.a[4]; t.hL = t.L ? t.L.l[5] - t.L.l[4] : 0;
+        const a = TW.down[0] + TW.down[1] * (nS - 1 - k), b = TW.out[0] + TW.out[1] * Math.min(k, nS - 2);
+        t.dw = [a, a + TW.down[2]]; t.ow = [b, b + TW.out[2]];
+      });
+      const visH = (t, p) => t.h0 + (t.hL - t.h0) * click(win(p, t.dw), S);
+      const topOf = (k, p) => {
+        let z = ST[0].a[4] + (ST[0].L.l[4] - ST[0].a[4]) * click(win(p, ST[0].dw), S);
+        for (let m = 0; m <= k; m++) z += visH(ST[m], p);
+        return z;
       };
-      pC += 0.004;
-      const clipT = p => p < pC ? 0 : baseB(4, p) + 0.1;
-      const tipOf = { shaft: 5, clock: 6, belfry: 7, ent: 8 };
-      for (const nm in stg) {
-        const t = stg[nm], r = t.r, L = tipOf[nm] && ledge(Bb, tipOf[nm], 'central');
-        const P = L ? mk({ bx: p => mix(stubBox(nm, p), tierB(L.g, L.l, p), io(win(p, exW(L.g)))), rA: r, rB: L, clip: clipT, lit: litB(L.g) })
-          : mk({ bx: p => stubBox(nm, p), rA: r, only: 'A', vis: [-1, pC], clip: clipT });
-        decals(r, r.l, r.l, 'A', P.da); own(r, P); if (L) { decals(L, L.l, L.l, 'B', P.db); own(L, P); }
+      const grow4 = (f, o) => [f[0] - o, f[1] + o, f[2] - o, f[3] + o];
+      const fpOf = (k, p) => {
+        const t = ST[k];
+        if (t.L) return mix(t.a.slice(0, 4), t.L.l.slice(0, 4), click(win(p, t.ow), S));
+        const h = fpOf(k - 1, p), o0 = (t.a[1] - t.a[0] - (ST[k - 1].a[1] - ST[k - 1].a[0])) / 2; // the cornice: its overhang, then inside the shaft
+        return grow4(h, o0 + (-TW.gap - o0) * io(win(p, [t.dw[0], t.dw[0] + 0.35 * (t.dw[1] - t.dw[0])])));
+      };
+      // a section keeps its height while it slides into the one below (the part inside is not drawn); once its
+      // windows are dark that hidden part goes, so it ends as exactly its ledge
+      const boxOf = (k, p) => {
+        const t = ST[k], z1 = topOf(k, p), v = visH(t, p), ov = k && t.h0 > t.hL ? (t.h0 - v) * (1 - io(win(p, TW.hide))) : 0, f = fpOf(k, p);
+        return [f[0], f[1], f[2], f[3], z1 - v - ov, z1];
+      };
+      ST.forEach((t, k) => {
+        const P = t.L ? mk({ bx: p => boxOf(k, p), rA: t.r, rB: t.L, out: TW.dark, lips: 1 })
+          : mk({ bx: p => boxOf(k, p), rA: t.r, only: 'A', vis: [-1, t.dw[1] + 0.002] });
+        decals(t.r, t.a, t.a, 'A', P.da); own(t.r, P); if (t.L) { decals(t.L, t.L.l, t.L.l, 'B', P.db); own(t.L, P); }
+        if (k) P.clipBy = ST[k - 1].P;
+        if (k && k < 3) { P.below = ST[k - 1].P; ST[k - 1].P.above = P; } // the shaft's sections, flush at rest
         t.P = P;
+      });
+      // the cornice takes on the shaft's colour as it goes in
+      { const t = ST[3]; t.P.tint = { host: ST[2].P, w: [t.dw[1] - TW.tint * (t.dw[1] - t.dw[0]), t.dw[1]] }; }
+      // the crown: every stage slides down into the one below it, the top first, riding on the clock
+      const CR = {}, corder = ['step2', 'step1', 'ent', 'belfry'], chost = { step2: 'step1', step1: 'ent', ent: 'belfry', belfry: 'clock' };
+      corder.forEach((nm, k) => { const a = TW.crown[0] + TW.crown[1] * k; CR[nm] = { r: one(Ab, 'tower:' + nm), host: chost[nm], w: [a, a + TW.crown[2]] }; });
+      Ab.filter(r => r.part === 'tower:deck').forEach((r, k) => { CR['rail' + k] = { r, host: 'clock', w: TW.rails }; });
+      const fit = (f, h) => [Math.max(f[0], h[0] + TW.gap), Math.min(f[1], h[1] - TW.gap), Math.max(f[2], h[2] + TW.gap), Math.min(f[3], h[3] - TW.gap)];
+      const hostR = nm => nm === 'clock' ? ST[4].r : CR[nm].r, hostP = nm => nm === 'clock' ? ST[4].P : CR[nm].P;
+      for (const nm in CR) { const t = CR[nm], h = hostR(t.host).l; t.x0 = t.r.l[5] - h[5]; t.fit = fit(t.r.l, h); }
+      const topAt = (nm, p) => { if (nm === 'clock') return topOf(4, p); const t = CR[nm], e = click(win(p, t.w), S); return topAt(t.host, p) + t.x0 + (-TW.gap - t.x0) * e; };
+      const c0 = ctr(ST[4].r.l), cShift = p => { const f = fpOf(4, p); return [(f[0] + f[1]) / 2 - c0[0], (f[2] + f[3]) / 2 - c0[1]]; };
+      for (const nm in CR) {
+        const t = CR[nm], r = t.r, hh = r.l[5] - r.l[4];
+        t.P = mk({ bx: p => { const f = mix(r.l.slice(0, 4), t.fit, io(win(p, t.w))), z1 = topAt(nm, p), s = cShift(p); return shiftIJ([f[0], f[1], f[2], f[3], z1 - hh, z1], s[0], s[1]); }, rA: r, only: 'A', vis: [-1, t.w[1] + 0.002] });
+        decals(r, r.l, r.l, 'A', t.P.da); own(r, t.P);
       }
-      // nothing of a stage shows below the top of the stage it slides into (or comes out of, under the island):
-      // it goes in through that top, and a see-through ledge never shows the stages folded up inside it
-      for (const nm in stg) if (nm !== 'shaft') stg[nm].P.clipBy = stg[nm === 'clock' ? 'shaft' : stg[nm].host].P;
-      // and a stage takes on the colour of the one it slides into, all of it by the time its top goes under
-      // that one's top: so the top that closes over it is the same colour and nothing flicks
-      for (const nm in stg) if (stg[nm].host) {
-        const t = stg[nm], H = stg[t.host].P; let x = t.w[1];
+      // nothing of a stage shows below the top of the stage it slides into, and it takes on that stage's colour,
+      // all of it by the time its top goes under that one's top: so the top that closes over it is the same colour
+      for (const nm in CR) {
+        const t = CR[nm]; t.P.clipBy = hostP(t.host);
+        let x = t.w[1];
         for (let k = 0; k <= 400; k++) { const q = t.w[0] + (t.w[1] - t.w[0]) * k / 400; if (topAt(nm, q) <= topAt(t.host, q) + 1e-6) { x = q; break; } }
-        const a = Math.max(t.w[0], x - TW.tint * (t.w[1] - t.w[0]));
-        t.P.tint = { host: H, w: [a, x] };
+        t.P.tint = { host: hostP(t.host), w: [Math.max(t.w[0], x - TW.tint * (t.w[1] - t.w[0])), x] };
       }
-      // the fountain plaza's ledge grows out of the plaza once it is under the island
-      { const L = ledge(Bb, 1, 'plaza'), T = pad.plaza, st = [L.l[0] + 1, L.l[1] - 1, L.l[2] + 1, L.l[3] - 1, -0.4, -0.35];
-        const P = mk({ bx: p => mix(st, tierB(1, L.l, p, T.top(p)), io(win(p, exW(1)))), rB: L, only: 'B', vis: [exW(1)[0], 2], lit: litB(1) });
-        decals(L, L.l, L.l, 'B', P.db); own(L, P); }
+      // the fountain plaza's ledge rises out of the plaza, in the plaza's paving until it passes the middle
+      { const L = ledge(Bb, 1, 'plaza'), T = pad.plaza, w = tiW(0, wv(L.l));
+        const P = mk({ bx: p => { const z = T.top(p), s0 = [L.l[0] + 1, L.l[1] - 1, L.l[2] + 1, L.l[3] - 1, z - 0.4, z - 0.35]; return mix(s0, tierB(1, L.l, z), click(win(p, w), S)); }, rA: T.a, rB: L, vis: [w[0], 2], lips: 1 });
+        P.hA = 0; decals(L, L.l, L.l, 'B', P.db); own(L, P); }
       // steps and balustrades sink into their terrace (or, with no terrace under them, fold flat) before it rises
       for (const r of Ab.filter(r => /^(stair|bal)/.test(r.part))) {
         const col = padAt(r.l), T = pad[col], h = r.l[5] - r.l[4], inPad = over(r.l, col), W = K.steps;
@@ -753,9 +788,10 @@
         const P = mk({ bx, rA: r, only: 'A', vis: [-1, W[1] + 0.002] }); decals(r, r.l, r.l, 'A', P.da); own(r, P);
       }
 
-      // ---- THE ROCK -> THE APARTMENTS. Under the island the rock folds up, the tip first. Once it is on top, a
-      // shared ledge cracks apart, the pieces slide under their blocks, and each block pushes out floor by floor,
-      // every floor a little inside the one below, until they close up with a click.
+      // ---- THE ROCK BECOMES THE APARTMENTS, once it has come over and faces you. It keeps its full size through the
+      // turn. Then the shared ledges crack apart, one piece per block; the pieces slide across onto their blocks and
+      // square up; and each block settles floor by floor, the lowest first, every floor a little inside the one below
+      // until they close up with a click. Rock turns to brick and concrete as each floor settles, and its windows light.
       const RB = K.rebuild, blocks = Object.keys(K.ledges).map((nm, bi) => { const r = one(Bb, 'apt:' + nm); return { nm, bi, r, col: padAt(r.l), toks: K.ledges[nm].trim().split(/\s+/) }; });
       const shares = new Map(), src = [];
       for (const Bk of blocks) Bk.toks.forEach((t, k) => { const g = parseInt(t, 10), L = ledge(Ab, g, Bk.col) || ledge(Ab, g, 'central'); src.push([Bk, k, L]); if (!shares.has(L)) shares.set(L, []); shares.get(L).push(Bk); });
@@ -777,28 +813,27 @@
         out.push(z1); return out;
       }
       for (const Bk of blocks) {
-        const r = Bk.r, T = pad[Bk.col], nn = Bk.toks.length, cz = cuts(r, nn), H = cz.slice(1).map((z, k) => z - cz[k]);
-        const w = k => { const a = RB.from + RB.block * Bk.bi + RB.floor * k; return [a, a + RB.span]; };
+        const r = Bk.r, T = pad[Bk.col], nn = Bk.toks.length, cz = cuts(r, nn), z0 = r.w[4];
+        const g0 = RB.gather[0] + RB.block * Bk.bi, s0 = RB.settle[0] + RB.block * Bk.bi;
+        const w = k => [s0 + RB.floor * k, s0 + RB.floor * k + RB.settle[1]];
         const close = [w(nn - 1)[1], w(nn - 1)[1] + RB.close], step = Math.min(RB.nest, 0.35 * Math.min(r.l[1] - r.l[0], r.l[3] - r.l[2]) / Math.max(1, nn - 1));
-        const h = (k, p) => FR + (H[k] - FR) * click(win(p, w(k)), S);
-        Object.assign(Bk, { nn, w, close, done: close[1], box: (k, p) => {
-          let z = T.bot(p); for (let m = 0; m < k; m++) z -= h(m, p);
-          const d = step * k * (1 - click(win(p, close), S));
-          return [r.l[0] + d, r.l[1] - d, r.l[2] + d, r.l[3] - d, z - h(k, p), z];
-        } });
+        Object.assign(Bk, { nn, w, gw: [g0, g0 + RB.gather[1]], close, done: close[1],
+          fp: (k, p) => { const d = step * k * (1 - click(win(p, close), S)); return [r.l[0] + d, r.l[1] - d, r.l[2] + d, r.l[3] - d]; },
+          zr: (k, p) => { const b = T.bot(p); return [b - (cz[k + 1] - z0), b - (cz[k] - z0)]; } });
       }
       for (const [Bk, k, L] of src) {
-        const sh = shares.get(L), q = L.l, base = baseA(L), cell = sh.length > 1 ? cellsOf(L, sh).get(Bk) : null;
-        const plate = cell ? p => tierA(L.g, crackFp(cell, q, io(win(p, RB.crack))), p, base(p)) : p => tierA(L.g, q, p, base(p));
-        const sl = Bk.box(k, 1), lw = Bk.w(k);
-        const P = mk({ bx: p => mix(plate(p), Bk.box(k, p), io(win(p, RB.gather))), rA: L, rB: Bk.r, vis: cell ? [RB.crack[0], 2] : [-1, 2], lit: [lw[1] - 0.01, lw[1] + 0.05, RB.lit] });
+        const sh = shares.get(L), q = L.l, base = baseA(L), cell = sh.length > 1 ? cellsOf(L, sh).get(Bk) : null, lw = Bk.w(k);
+        const rock = cell ? p => tierA(L.g, crackFp(cell, q, io(win(p, RB.crack))), base(p)) : p => tierA(L.g, q, base(p));
+        const bx = p => { const a = rock(p), f = mix(a.slice(0, 4), Bk.fp(k, p), io(win(p, Bk.gw))), z = mix([a[4], a[5]], Bk.zr(k, p), click(win(p, lw), S)); return [f[0], f[1], f[2], f[3], z[0], z[1]]; };
+        const fin = Bk.fp(k, 1), zf = Bk.zr(k, 1), sl = [fin[0], fin[1], fin[2], fin[3], zf[0], zf[1]];
+        const P = mk({ bx, rA: L, rB: Bk.r, vis: cell ? [RB.crack[0], 2] : [-1, 2], lit: [lw[1] - 0.01, lw[1] + 0.05, RB.lit], out: [RB.crack[0], RB.crack[1], 0], cw: [lw[0], lw[1]] });
         if (!cell) decals(L, q, q, 'A', P.da);
         decals(Bk.r, sl, sl, 'B', P.db); own(Bk.r, P); if (!cell) own(L, P);
       }
-      for (const [L, sh] of shares) if (sh.length > 1) { const base = baseA(L), P = mk({ bx: p => tierA(L.g, L.l, p, base(p)), rA: L, only: 'A', vis: [-1, RB.crack[0]] }); decals(L, L.l, L.l, 'A', P.da); own(L, P); }
-      // rock with no block to become folds up into the island
+      for (const [L, sh] of shares) if (sh.length > 1) { const base = baseA(L), P = mk({ bx: p => tierA(L.g, L.l, base(p)), rA: L, only: 'A', vis: [-1, RB.crack[0]] }); decals(L, L.l, L.l, 'A', P.da); own(L, P); }
+      // rock with no block to become draws up into what it hangs from
       for (const L of Ab.filter(r => r.g && !shares.has(r))) {
-        const base = baseA(L), P = mk({ bx: p => upZ(tierA(L.g, L.l, p, base(p)), (FR * L.g + 0.5) * io(win(p, RB.absorb))), rA: L, only: 'A', vis: [-1, RB.absorb[1]] });
+        const base = baseA(L), P = mk({ bx: p => { const b = tierA(L.g, L.l, base(p)); return [b[0], b[1], b[2], b[3], b[5] - (b[5] - b[4]) * (1 - io(win(p, RB.absorb))), b[5]]; }, rA: L, only: 'A', vis: [-1, RB.absorb[1]], out: [RB.absorb[0], RB.absorb[0] + 0.03, 0] });
         decals(L, L.l, L.l, 'A', P.da); own(L, P);
       }
       // what stands on a finished block grows out of it: roofs, the crown, the pool deck. Steps and railings rise out of their terrace.
@@ -862,9 +897,10 @@
         }
         p.pr.push(q);
       }
-      // ---- when each piece's colour turns: as its middle passes the pivot's height, in its own motion
+      // ---- when each piece's colour turns: as its middle passes the pivot's height, in its own motion (the rock that
+      // becomes a floor takes its colour in its own window, cw, but its see-through turns solid here). Ledges' lips
+      // come on as they finish turning.
       for (const P of parts) {
-        if (P.only) { P.ps = P.only === 'A' ? 9 : -9; continue; }
         const lo = Math.max(0, P.vis[0]), hi = Math.min(1, P.vis[1]);
         let s0 = null; P.ps = 0.5;
         for (let k = 0; k <= 240; k++) {
@@ -875,17 +911,22 @@
           if (Math.sign(z) !== s0) { P.ps = t; break; }
         }
         P.ps = Math.min(1 - K.swap - 1e-3, Math.max(K.swap + 1e-3, P.ps)); // exact colours at both rests
+        P.px = P.ps; // when its see-through turns (the rock that comes over the top goes solid)
+        if (P.only) { P.ps = P.only === 'A' ? 9 : -9; if (P.only === 'A' && P.rA && /^ice:/.test(P.rA.part)) P.ab = 1; }
+        if (P.lips) P.lit = [P.ps + K.swap, P.ps + K.swap + K.lips, 0];
       }
       return { A: A.length, B: B.length, parts: parts.length };
     }
-    // ---- the turn: a roll over the island's long axis and a half spin round the upright, together a turn round a
-    // slanted axis; it rises as it starts and lands as it ends
+    // ---- the turn: half a turn round one slanted axis (axis 'j': the island's north-south line, which runs
+    // corner to corner across the picture), rising as it starts and landing as it ends. axis 'i': the older way, a roll
+    // over the long axis with a half spin round the upright behind it.
     function rot(p) {
       const R = K.roll, Sp = K.spin, L = K.lift;
-      const th = R.dir * Math.PI * wound(win(p, [R.from, R.to]), R.wind, R.knee), ph = Sp.dir * Math.PI * wound(win(p, [Sp.from, Sp.to]), Sp.wind, Sp.knee);
-      const ct = Math.cos(th), sn = Math.sin(th), cp = Math.cos(ph), sp = Math.sin(ph), fe = sstep(0, 1, p);
-      const up = L.h * (wound(win(p, L.rise), L.dip, L.knee) - wound(win(p, L.land), L.dip, L.knee)), bump = Math.sin(Math.PI * clamp(th / (R.dir * Math.PI))) ** 2; // smallest when the roll is half over, still at both ends
-      return { m: [cp, -sp * ct, sp * sn, sp, cp * ct, -cp * sn, 0, sn, ct], t: [PIV[0] - FIX[0] * fe, PIV[1], PIV[2] + up - FIX[1] * fe], sc: 1 - K.shrink * bump };
+      const e = wound(win(p, [R.from, R.to]), R.wind, R.knee), th = R.dir * Math.PI * e, ct = Math.cos(th), sn = Math.sin(th), fe = sstep(0, 1, p);
+      const up = L.h * (wound(win(p, L.rise), L.dip, L.knee) - wound(win(p, L.land), L.dip, L.knee)), bump = Math.sin(Math.PI * clamp(e)) ** 2; // smallest when the turn is half over, still at both ends
+      let m = [ct, 0, sn, 0, 1, 0, -sn, 0, ct];
+      if (R.axis === 'i') { const ph = Sp.dir * Math.PI * wound(win(p, [Sp.from, Sp.to]), Sp.wind, Sp.knee), cp = Math.cos(ph), sp = Math.sin(ph); m = [cp, -sp * ct, sp * sn, sp, cp * ct, -cp * sn, 0, sn, ct]; }
+      return { m, t: [PIV[0] - FIX[0] * fe, PIV[1], PIV[2] + up - FIX[1] * fe], sc: 1 - K.shrink * bump };
     }
     // ---- one frame's triangles, in buckets: opaque, one per see-through rock level, and see-through extras
     function Bucket() { return { f: new Float32Array(5120), c: new Uint8ClampedArray(4096), n: 0, d: 0, dn: 0 }; } // room for 1024 vertices in both
@@ -897,7 +938,7 @@
       b.c[j] = c[0] * 255; b.c[j + 1] = c[1] * 255; b.c[j + 2] = c[2] * 255; b.c[j + 3] = a * 255; b.n++;
     }
     // a piece's face colour with its tint: towards the colour its host has at that moment (see the Tower's stages)
-    const cbOf = (P, p) => P.only === 'B' ? 1 : P.only === 'A' ? 0 : sstep(P.ps - K.swap, P.ps + K.swap, p);
+    const cbOf = (P, p) => P.only === 'B' ? 1 : P.only === 'A' ? 0 : P.cw ? sstep(P.cw[0], P.cw[1], p) : sstep(P.ps - K.swap, P.ps + K.swap, p);
     function tinted(P, n, p, c) {
       if (!P.tint) return c;
       const k = io(win(p, P.tint.w)); if (k <= 0) return c;
@@ -934,7 +975,7 @@
         const ax = [0, 1, 2].map(q => CW * (Gm[0][q] - Gm[1][q])), ay = [0, 1, 2].map(q => CH * (Gm[0][q] + Gm[1][q]) - U * Gm[2][q]), as = [0, 1, 2].map(q => Gm[0][q] + Gm[1][q] + Gm[2][q]);
         const bx = PR.X0 + CW * (g0[0] - g0[1]), by = PR.Y0 + CH * (g0[0] + g0[1]) - U * g0[2], bs = g0[0] + g0[1] + g0[2];
         const X = (a, b, c) => bx + ax[0] * a + ax[1] * b + ax[2] * (c < zc ? zc : c), Y = (a, b, c) => by + ay[0] * a + ay[1] * b + ay[2] * (c < zc ? zc : c), S = (a, b, c) => bs + as[0] * a + as[1] * b + as[2] * (c < zc ? zc : c);
-        const cb = P.only === 'B' ? 1 : P.only === 'A' ? 0 : sstep(P.ps - K.swap, P.ps + K.swap, p), al = lerp(P.aa, P.ab, cb), gk = cb < .5 ? (P.ga ? 'A' + P.ga : '') : (P.gb ? 'B' + P.gb : '');
+        const cb = cbOf(P, p), ca = P.cw || P.only ? sstep(P.px - K.swap, P.px + K.swap, p) : cb, al = lerp(P.aa, P.ab, ca), gA = P.ga ? 'A' + P.ga : '', gB = P.gb ? 'B' + P.gb : '', gk = ca < .5 ? gA || gB : gB || gA; // a see-through piece always draws with a see-through group, so its hidden faces stay hidden
         let bk = BK.o;
         if (al < .999) { if (gk) { if (!GR.has(gk)) GR.set(gk, Bucket()); bk = GR.get(gk); } else bk = BK.t; }
         const mid = S(.5, .5, .5), ord0 = P.o[0];
