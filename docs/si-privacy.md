@@ -39,12 +39,12 @@ those exact words wherever they turn up. `provenance.correctedFrom` (what the
 photo said) and `provenance.why` (a whole sentence) stay watched.
 
 **Two. The 4 MB binary ceiling was outgrown.** MapLibre's replies to a worker's
-image request now carry up to 10.2 MB of facade pixels on a 1x phone, and the
-facade images are drawn at `devicePixelRatio` (capped at 2), so a 2x screen
-sends up to 4x that. Each one was refused unread. `binaryScanBytes` is now
-64 MB and still a hard ceiling. Tile bytes are still scanned: with the app's
-words out of the watchlist, a tile can only match if it literally holds the
-student's own class string.
+image request now carry up to 10.2 MB of facade pixels on a 1x phone. The
+facade images are drawn at `devicePixelRatio` (capped at 2), and a 1440x900
+DPR 2 page sent up to 33.7 MB over the same walk. Every reply over 4 MB was
+refused unread. `binaryScanBytes` is now 64 MB and still a hard ceiling.
+Tile bytes are still scanned: with the app's words out of the watchlist, a tile
+can only match if it literally holds the student's own class string.
 
 **Three. A bare room number is a substring of the map's decimals.** Found by
 re-running round 8's adversarial pass on the fix: a class in room `0.130`
@@ -67,6 +67,8 @@ views at zoom 14.5-17.2):
 | uncaught page errors | 1 | 0 |
 | canaries (title bytes, title string, room pair, instructor, title inside 6 MB) | all refused | all refused |
 | `"Student Activity Center photo"` sent to a worker | refused | passes |
+| same walk, rooms `0.130` and `0.220` (bare numbers) | - | 0 refused, 0 errors |
+| same walk, 1440x900 DPR 2 desktop | - | 0 refused, 0 errors, canaries refused |
 
 The refused messages were `LD` (a GeoJSON source's data), `UL` (a layer
 update) and image replies, so on main a row of West Campus buildings near the
@@ -76,14 +78,17 @@ Belo Center simply did not draw with a schedule stored.
 dropped. On the probe's walk the guard read 615 MB of binary (main read 245 MB
 over the same walk, but it refused messages outright and drew less). A reply of
 6-10 MB spent 60-300 ms inside `postMessage` on a busy software-GL machine,
-including the clone MapLibre does anyway. That only happens on a device with a
-schedule stored.
+including the clone MapLibre does anyway. On the 2x desktop walk the guard read
+947 MB, and the slowest replies (up to 33.7 MB) took 350-630 ms each on the same
+busy machine. That only happens on a device with a schedule stored. Before this
+fix those replies were refused, so the buildings did not draw at all; making
+the scan cheaper is the next job, not a reason to skip it.
 
 The gate is `scripts/verify/guard-map-traffic.mjs`. It needs no map, so it runs
 in seconds: map-like payloads must pass (including map decimals that contain a
 stored room number), the schedule must still be refused (including the building
 and room pair as tile bytes), and a payload past the ceiling is refused unread.
-On main it fails 13 checks.
+On main (89e01d3) it fails 16 of 30 checks.
 
 ---
 

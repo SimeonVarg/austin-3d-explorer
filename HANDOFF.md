@@ -13,8 +13,9 @@ in `img-import.mjs` (CI runs 36490647834, 36418276659, 36413604870).
   app-owned fields (`SCHEDULE_STORE.appOwnedFields`) and drops app words
   (`SCHEDULE_STORE.appVocabulary` + the `SCHEDULE_SOURCES` kinds and labels).
 - Cause 2: image replies to the workers now carry up to 10.2 MB of facade
-  pixels on a 1x phone, past the old 4 MB ceiling, so they were refused unread.
-  `binaryScanBytes` is 64 MB now, still a hard ceiling.
+  pixels on a 1x phone and 33.7 MB on a 2x desktop, past the old 4 MB ceiling,
+  so they were refused unread. `binaryScanBytes` is 64 MB now, still a hard
+  ceiling.
 - Cause 3 (found while checking the fix): a bare room number like `0.130` is a
   substring of the map's decimals (tree records read `"0.1308|pecan|..."`).
   A value made only of digits and punctuation is no longer watched alone
@@ -22,12 +23,14 @@ in `img-import.mjs` (CI runs 36490647834, 36418276659, 36413604870).
 - Tile bytes are still scanned. With the app's words gone, a tile only matches
   if it holds the student's own class string.
 - Measured on the phone probe (5 campus views): main 14 refusals + 1 page
-  error, fix 0 + 0; all canaries still refused.
+  error, fix 0 + 0; all canaries still refused. Also 0 + 0 with bare numeric
+  rooms, and 0 + 0 on a 1440x900 DPR 2 desktop, both after merging #337.
 - New fast gate: `scripts/verify/guard-map-traffic.mjs` (no map, seconds). It
-  fails 13 checks on main. Details: `docs/si-privacy.md`, "Round 9".
+  fails 16 of 30 checks on main. Details: `docs/si-privacy.md`, "Round 9".
 - Known cost: the guard now scans the image replies instead of dropping them,
-  60-300 ms per 6-10 MB reply on a busy software-GL machine, only with a
-  schedule stored.
+  60-300 ms per 6-10 MB reply on the phone probe and 350-630 ms for the
+  biggest (up to 33.7 MB) on the desktop probe, on a busy software-GL machine,
+  only with a schedule stored. Making that scan cheaper is the next job.
 
 ## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
 

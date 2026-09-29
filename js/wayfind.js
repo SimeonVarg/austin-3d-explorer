@@ -14454,12 +14454,13 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
      *
      * 4 MB WAS OUTGROWN, and nothing said so. Re-measured 2026-09-28 on a
      * phone (390x844, DPR 1), walking five campus views: MapLibre's replies to
-     * a worker's image request now carry 7,147,520 and 7,249,920 bytes of
-     * facade pattern pixels, and all five were refused unread. The facade
+     * a worker's image request carry up to 10,199,040 bytes of facade
+     * pattern pixels, and every one over 4 MB was refused unread. The facade
      * images are drawn at `devicePixelRatio` (capped at 2, js/facades.js
-     * SCALE), so on a 2x desktop the same reply is up to 4x that, ~29 MB.
-     * 64 MB covers that twice over. It is still a hard ceiling with the same
-     * rule: past it, refused.
+     * SCALE), so a 2x screen sends more: measured on a 1440x900 DPR 2 page
+     * over the same walk, the largest was 33,685,504 bytes. 64 MB is about
+     * twice that. It is still a hard ceiling with the same rule: past it,
+     * refused.
      */
     binaryScanBytes: 64 * 1024 * 1024,
     /**
