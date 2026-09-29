@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, open, not merged: a reviewer re-checks and ships it)
+## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
 
 The owner: "turning is the biggest inducer of lag. please prioritize turning
 while keeping high fps". #334 left one cost named and unfixed: preparing the
@@ -87,6 +87,54 @@ rest of the session, rather than drawing a wrong image. With a schedule saved,
 `js/wayfind.js` scans every message to a worker; the stubs make the image
 replies smaller, so it has less to scan, not more. Codex's draft #312 also
 touches `js/facades.js`; it already conflicts with main and was left alone.
+
+**Reviewer re-check before merging** (a separate lane; merged as 66134b8 and
+live on flyover-utx.vercel.app: the served `js/facades.js` has the same hash
+as main's):
+- Pictures: CI 0 of 10 views changed against main 89e01d3. Hardware stills
+  of three views on NVIDIA moved no more pixels between main and the branch
+  than between two runs of the same build.
+- Bytes: with `?atlaspmcheck=1`, through two time-of-day changes, zoom
+  crossings and a WebGL context loss and restore, 6,668 worker atlases and
+  10,133 held image copies matched the main-thread result exactly. Every
+  atlas took the fast upload, after the restore too. `atlas-worker-pm.mjs`
+  passed again on the merged tree (2,146 atlases, 4,539 held copies, 0 bytes
+  different).
+- NVIDIA (3 + 3 interleaved fresh loads, same settings): worst frame lower
+  in 10 of 10 scenarios (campus flick 268 -> 153 ms, downtown 60 deg/s
+  345 -> 125). The hitch after letting go of a downtown flick fell
+  369 -> 124 ms, and image-copy time per turn fell from 101-200 ms to 3-18 ms.
+- AMD (Edge, `--gpu low`, 3 + 3, 19-37 % CPU before runs): downtown fps went
+  up in all four turn scenarios (looks 19.6 -> 29.1). The downtown worst
+  frames got worse, though: 60 deg/s 449 -> 531 ms, 120 deg/s 315 -> 514.
+  The cause is single texture uploads that stall the AMD driver for
+  100-720 ms. Tiles now arrive sooner, so more atlas bytes are uploaded
+  during the turn. Campus 120 deg/s did not reproduce the builder's clean
+  separation (the runs overlap). The next AMD step is spreading the
+  uploads, not the prep.
+- Load (9 + 9 interleaved, NVIDIA): veil gone median 52.9 s on the branch vs
+  58.6 s on main (minimum 42.4 vs 47.4). One branch load took 159 s. It did
+  not recur in 4 more, and main had 72-93 s loads in the same session. The
+  slow loads I could look inside, on both sides, were waiting on the
+  apartments' reveal step with tiles already in.
+- Left open, both safe:
+  - After a WebGL context restore the image cache stops working for the
+    rest of the session, and each worker keeps up to 48 MB it no longer uses.
+  - If a tagged atlas's fast upload fails, MapLibre's own upload would
+    premultiply it a second time. No test reached that path.
+- A CI failure that is NOT from this PR: `img-import.mjs` failed once on the
+  phone page with `[wayfind] blocked: Worker.postMessage carried stored
+  schedule content (st…(7))`. Reproduced on main with a probe.
+  - Once a photo-imported class is confirmed, the stored schedule holds the
+    app's own word "student" (`provenance.confirmedBy`).
+  - The privacy guard then watches for that word and refuses map tiles on
+    their way to the workers when a building name contains it ("Student
+    Activity Center").
+  - It also refuses payloads over its 4 MB scan budget: 35 in one probe of
+    main with a plain photo schedule stored.
+  - The fix belongs in `js/wayfind.js`: watch only the student's own
+    values. The rerun on cb62c3d passed, and local runs passed 2 of 2 on
+    each side.
 
 ## Sep 28 2026 - Load screen: tap the main island to flip it over (`claude/island-flip`, PR #339, open until the owner looks; merge #338 first)
 
