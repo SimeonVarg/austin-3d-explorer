@@ -128,7 +128,9 @@ live on flyover-utx.vercel.app: the served `js/city-lighting.js` and
 `js/graphics.js` have the same hashes as main's):
 - Where it runs: NVIDIA Chrome on and compiled, no shader failures; phone
   profile (`?lite=1`), AMD (Edge, `--gpu low`) and SwiftShader (the CI
-  renderer) off and not compiled.
+  renderer) off and not compiled. Forced on with `?patfilter=1`, it also
+  compiles without failures through SwiftShader's Vulkan path, a second
+  shader compiler besides NVIDIA's D3D11.
 - Stills at the sunset default: the builder's six views reproduced to the
   third decimal. **At night** (p 1.0, not in the builder's set: the lamps are
   off at sunset, and the lit-window threshold runs on the averaged read, so
@@ -158,7 +160,8 @@ live on flyover-utx.vercel.app: the served `js/city-lighting.js` and
   flake: the identical number reads as changed or as noise on other PRs'
   runs. tower-night (1.39%, max 16) is not this change: nothing is compiled
   in that renderer, and a repeat in the same renderer with CI's waits matched
-  main to 0 pixels over the tolerance. A crowded earlier local capture caught
+  main to 0 pixels over the tolerance, as two captures of main matched each
+  other (spawn-golden identical in all three). A crowded earlier local capture caught
   the downtown skyline before its night lights landed (0.8% of pixels, all
   skyline) and the clean repeat did not, so if tower-night flags on an
   unrelated PR, that is the first suspect.
