@@ -350,23 +350,23 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
   // Level 1 follows every pad; the deeper levels close in on one tip under the mall. In 3D each
   // ledge is one box with its lit lip as a band on its two front faces, faded as a group per level.
   const drawIce = pp => {
-    const I = G.ice, all = [pp.battle, pp.podium, pp.mall, pp.batts, pp.garrison, pp.plaza];
+    const I = G.ice, all = [pp.battle, pp.podium, pp.mall, pp.batts, pp.garrison, pp.plaza], keys = ['battle', 'podium', 'mall', 'batts', 'garrison', 'plaza'];
     const mf = f => MIR == null ? f : [2 * MIR - f[1], 2 * MIR - f[0], f[2], f[3]];
     const lv = [];
     let z = I.z0;
     I.levels.forEach((L, k) => {
       const z1 = z, z0 = z - I.drops[k];
+      // every footprint keeps a name for the model: the pad it hangs under, or its place in a merged level
       const feet = typeof L === 'number'
-        ? all.map(b => [b.i0 + L, b.i1 - L, b.j0 + L, b.j1 - L]).filter(([a, b, c, d]) => b - a > 2 && d - c > 2)
-        : L.map(mf);
+        ? all.map((b, n) => Object.assign([b.i0 + L, b.i1 - L, b.j0 + L, b.j1 - L], { tag: keys[n] })).filter(([a, b, c, d]) => b - a > 2 && d - c > 2)
+        : L.map((f, n) => Object.assign(mf(f), { tag: L.length === 1 ? 'central' : ['battle', 'central', 'garrison'][n] }));
       lv.push({ z0, z1, feet, a: I.alpha[k] });
       z = z0;
     });
-    part = 'ice';
     // deepest first: each level is hidden behind the wider level above it
     for (let k = lv.length - 1; k >= 0; k--) {
       const { z0, z1, feet, a } = lv[k], lip = w => R('rib', 0, z1 - I.lip, w, I.lip);
-      for (const [i0, i1, j0, j1] of feet) note({ t: 'b', b: [i0, i1, j0, j1, z0, z1], c: ['rib', 'ril', 'ris'], d: [['L', lip(i1 - i0)], ['R', lip(j1 - j0)]], g: k + 1, a, h: 'T' });
+      for (const f of feet) { const [i0, i1, j0, j1] = f; part = `ice:${k + 1}:${f.tag}`; note({ t: 'b', b: [i0, i1, j0, j1, z0, z1], c: ['rib', 'ril', 'ris'], d: [['L', lip(i1 - i0)], ['R', lip(j1 - j0)]], g: k + 1, a, h: 'T' }); }
       quiet++;
       add(`<g opacity="${a}">`);
       for (const [i0, i1, j0, j1] of feet) box(B(i0, i1, j0, j1, z0, z1), [null, 'ril', null]);
@@ -394,7 +394,6 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
   }, 1.6);
 
   // ---- Main Building: west wing, middle, TOWER, east wing, south block, south pavilion + portico
-  part = 'mainbldg';
   const EAVE = H(24.4), MID = H(20.2), EAVEP = H(26.2);
   const wingWin = w => grid(2, w - 2, Math.round(w / 4.4), 1.6, [H(2.4), H(9), H(14.5), H(19.6)], H(2.8), 3);
   // each wing's roof is two short hip segments with a flat valley between, not one long wedge
@@ -402,13 +401,12 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
     box(B(i0, i1, -26, 18, 0, EAVE), ['rf', 'll', 'ls'], { right: win });
     if (G.wingSegs > 1) { hip(i0, i1, -26, -6, EAVE, 1, 31, 2); hip(i0, i1, -2, 18, EAVE, 1, 31, 2); } else hip(i0, i1, -26, 18, EAVE, 1.2, 31, 2);
   };
-  wing(-38, -18, w => grid(2, w - 2, Math.round(w / 4.4), 1.6, [H(20.6)], H(2.4))); // only its top storey clears the middle block
-  box(B(-18, 18, -22, 18, 0, MID), ['rf', 'll', 'ls']);
+  part = 'mb:wingW'; wing(-38, -18, w => grid(2, w - 2, Math.round(w / 4.4), 1.6, [H(20.6)], H(2.4))); // only its top storey clears the middle block
+  part = 'mb:mid'; box(B(-18, 18, -22, 18, 0, MID), ['rf', 'll', 'ls']);
 
   // ---------------- THE TOWER
-  part = 'tower';
   {
-    const stage = (s, za, zb, cls, det, c3) => box(B(-hi * s, hi * s, -hj * s, hj * s, TZ(za), TZ(zb)), cls, det, c3);
+    const stage = (name, s, za, zb, cls, det, c3) => { part = 'tower:' + name; box(B(-hi * s, hi * s, -hj * s, hj * s, TZ(za), TZ(zb)), cls, det, c3); };
     // shaft: three recessed channels per face, dark glass alternating with gilt-bronze spandrels
     const chan = (glass, bronze) => w => {
       const cw = 2.5, pitch = 5.0, top = TZ(64.6), bot = TZ(3.5), fl = 3.46 * G.tx;
@@ -419,21 +417,21 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
         dashP(bronze, fl * 0.36, fl * 0.64, cw, xs.map(x => [x + cw / 2, bot + fl * 0.62, top - bot - fl * 0.62]), true) +
         rects('wg', lamps);
     };
-    stage(1, 0, 66.3, ['lt', 'll', 'ls'], { left: chan('gl2', 'sbz'), right: chan('gs2', 'sbs') });
+    stage('shaft', 1, 0, 66.3, ['lt', 'll', 'ls'], { left: chan('gl2', 'sbz'), right: chan('gs2', 'sbs') });
     // bracketed cornice, projecting slightly: a row of dark bracket notches under its lip
     const brackets = (w, z0) => grid(0.6, w - 0.6, 11, 0.55, [z0], 1.1, 0, 'scn');
-    stage(1.026, 66.3, 70.1, ['ct', 'cl', 'cs'], { left: brackets, right: brackets });
+    stage('cornice', 1.026, 66.3, 70.1, ['ct', 'cl', 'cs'], { left: brackets, right: brackets });
     // clock stage, lit orange: a clock on every face
     const clock = w => {
       const cx = w / 2, cy = TZ(74.4);
       return `<circle class="bez" cx="${n(cx)}" cy="${n(cy)}" r="4.1"/><circle class="dial" cx="${n(cx)}" cy="${n(cy)}" r="2.9"/>` +
         rects('hand', [[cx - 0.22, cy, 0.44, 2.2], [cx, cy - 0.22, 1.6, 0.44]]);
     };
-    stage(0.86, 70.1, 78.2, ['ot', 'ol', 'os'], { left: clock, right: clock });
+    stage('clock', 0.86, 70.1, 78.2, ['ot', 'ol', 'os'], { left: clock, right: clock });
     // the observation deck on the clock stage: back balustrade, belfry, front balustrade
     const s86 = 0.86, dz0 = TZ(78.2), dz1 = TZ(78.2) + TZ(79.7) - TZ(78.2);
     const A = hi * s86, Bj = hj * s86;
-    box(B(-A, A - 0.5, -Bj, -Bj + 0.5, dz0, dz1), ['ot', null, null], {}, ['ot', 'ot', 'ot']);
+    part = 'tower:deck'; box(B(-A, A - 0.5, -Bj, -Bj + 0.5, dz0, dz1), ['ot', null, null], {}, ['ot', 'ot', 'ot']);
     box(B(-A, -A + 0.5, -Bj, Bj, dz0, dz1), ['ot', null, 'os'], {}, ['ot', 'ot', 'os']);
     // belfry: an OPEN colonnade. Per face: 2 square corner piers, then 4 slim Doric columns in
     // pairs (2+2) round a wide central void, the dark bell chamber showing through every gap.
@@ -444,15 +442,15 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
       // a solid sill under the openings, so the columns stand on something
       return rects(pier, xs) + R(pier, 0, z0, w, 0.9);
     };
-    stage(0.49, 79.2, 89.4, [null, 'bell', 'bell'], { left: colonnade('ol'), right: colonnade('os') });
+    stage('belfry', 0.49, 79.2, 89.4, [null, 'bell', 'bell'], { left: colonnade('ol'), right: colonnade('os') });
     const bal = (w, z0, z1) => grid(0.8, w - 0.8, 12, 0.45, [z0 + 0.25], z1 - z0 - 0.7);
-    box(B(-A, A, Bj - 0.5, Bj, dz0, dz1), ['ot', 'ol', null], { left: bal }, ['ot', 'ol', 'ot']);
+    part = 'tower:deck'; box(B(-A, A, Bj - 0.5, Bj, dz0, dz1), ['ot', 'ol', null], { left: bal }, ['ot', 'ol', 'ot']);
     box(B(A - 0.5, A, -Bj, Bj, dz0, dz1), ['ot', null, 'os'], { right: bal }, ['ot', 'ot', 'os']);
     // entablature with gilt garland cartouches, then the temple-like stepped cap
     const cart = (w, z0, z1) => grid(0.6, w - 0.6, 4, 0.7, [z0 + (z1 - z0) * 0.3], (z1 - z0) * 0.4, 0, 'sgd');
-    stage(0.52, 89.4, 90.7, ['ot', 'ol', 'os'], { left: cart, right: cart });
-    stage(0.45, 90.7, 92.4, ['ot', 'ol', 'os']);
-    stage(0.36, 92.4, 94.0, [null, 'ol', 'os']);
+    stage('ent', 0.52, 89.4, 90.7, ['ot', 'ol', 'os'], { left: cart, right: cart });
+    stage('step1', 0.45, 90.7, 92.4, ['ot', 'ol', 'os']);
+    stage('step2', 0.36, 92.4, 94.0, [null, 'ol', 'os']);
     // verdigris copper roof: a low pyramid on the top step, and the steel mast
     const a = hi * 0.36 + 0.3, b = hj * 0.36 + 0.3, z = TZ(94.0), top = P(0, 0, TZ(96.2));
     add(poly('kt', [P(-a, -b, z), P(a, -b, z), top]));
@@ -464,7 +462,7 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
   }
 
   // east wing, in front of the Tower's lower right
-  part = 'mainbldg';
+  part = 'mb:wingE';
   wing(18, 38, wingWin);
 
   // south block: arcade storey, piano nobile, entablature + balustrade, attic
@@ -480,7 +478,7 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
     }
     return arches('wo', a1) + arches('wg', a2) + rects('wo', a3) + trim(w);
   };
-  box(B(-38, -12, 18, 40, 0, EAVE), ['rf', 'll', null], { left: southFace(0) }); // west half; the pavilion hides its east end
+  part = 'mb:southW'; box(B(-38, -12, 18, 40, 0, EAVE), ['rf', 'll', null], { left: southFace(0) }); // west half; the pavilion hides its east end
   // South block roof: ONE long hip whose middle is taken by the pavilion's cross-hip, so the front
   // reads as a single building with a central portico, but no roof plane runs the whole length.
   const TP = Math.tan(31 * Math.PI / 180) * G.hx, fz = 0.9 * G.hx, sEave = EAVE - fz;
@@ -498,7 +496,7 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
   ridge([P(SI0, SJ1, EAVE), P(SI0 + sh, sjm, szr), P(-vi, sjm, szr)]);
   // south pavilion: the portico's three stacked rows of 7 (open arches, tall windows on a rail,
   // attic windows) under its own short hip roof, ridge running north-south
-  box(B(-12, 12, 14, 43, 0, EAVEP), ['rf', 'll', 'ls'], {
+  part = 'mb:pav'; box(B(-12, 12, 14, 43, 0, EAVEP), ['rf', 'll', 'ls'], {
     left: (w, z0) => {
       const ar = row(0.8, w - 0.8, 7, 2.4, z0, H(6.2));
       return arches('ao', ar) + arches('ag', ar.map(([x, y, ww, hh]) => [x + 0.45, y, ww - 0.9, hh - 0.7])) +
@@ -509,7 +507,7 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
   hip(-12, 12, 14, 43, EAVEP);
   // east half (drawn after the pavilion, so it hides the pavilion's east wall behind it); its roof
   // stops at the valley where it meets the pavilion roof
-  box(B(12, 38, 18, 40, 0, EAVE), ['rf', 'll', 'ls'], { left: southFace(1) });
+  part = 'mb:southE'; box(B(12, 38, 18, 40, 0, EAVE), ['rf', 'll', 'ls'], { left: southFace(1) });
   shadow(12, 38, 40);
   add(poly('esh', [P(38, 40, sEave), P(38, 18, sEave), P(38, 18, sEave - 1.6), P(38, 40, sEave - 1.6)]));
   add(poly('rm', [P(PI1, SJ1, EAVE), P(SI1, SJ1, EAVE), P(SI1, SJ1, sEave), P(PI1, SJ1, sEave)]));
@@ -621,33 +619,37 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
     // balcony bands: one dark slab edge per storey, over the windows
     const bands = pitch => (w, z0, z1) => { const r = []; for (let y = z0 + pitch; y < z1 - 1.5; y += pitch) r.push([0, y, w, 0.5]); return rects('ab', r); };
     const withBands = (f, pitch) => (w, z0, z1) => f(w, z0, z1) + bands(pitch)(w, z0, z1);
-    const flatRoof = (b, c = ['ar', null, null]) => { box(B(b.i0, b.i1, b.j0, b.j1, b.z1, b.z1 + 1.1), [c[0], 'al', 'as']); };
+    const flatRoof = (b, c = ['ar', null, null]) => { const k = part; part = k + '-roof'; box(B(b.i0, b.i1, b.j0, b.j1, b.z1, b.z1 + 1.1), [c[0], 'al', 'as']); part = k; };
     // the platform: the same pads as the campus side
     part = 'pad:battle'; box(pp.battle, ['pt', 'ie', 'is'], { top: lawn2(3) });
     part = 'pad:podium'; box(pp.podium, ['pt', 'ie', 'is']);
     part = 'pad:garrison'; box(pp.garrison, ['pt', 'ie', 'is'], { top: lawn2(3) });
-    part = 'apt';
     // brick mid-rise on the west lawn
-    { const b = Bx(-78, -52, 14, 50, MALL, MALL + H(A.west)); box(b, [null, 'bl', 'bs'], { left: flats(3), right: flats(4) }); flatRoof(b, ['ar']); box(Bx(-72, -66, 22, 28, b.z1 + 1.1, b.z1 + 4), ['al', 'al', 'as']); }
+    part = 'apt:west';
+    { const b = Bx(-78, -52, 14, 50, MALL, MALL + H(A.west)); box(b, [null, 'bl', 'bs'], { left: flats(3), right: flats(4) }); flatRoof(b, ['ar']); part = 'apt:west-top'; box(Bx(-72, -66, 22, 28, b.z1 + 1.1, b.z1 + 4), ['al', 'al', 'as']); }
     // the tower: the one tall one on this side, balconies on both faces, a lit crown
+    part = 'apt:tall';
     {
       const b = Bx(-22, 4, -26, -2, 0, H(A.tall));
       box(b, [null, 'al', 'as'], { left: withBands(flats(3), 3.1), right: withBands(flats(4), 3.1) });
       flatRoof(b);
       // setback crown: a glowing band, then a mechanical box and a water tank
       const c = Bx(-18, 0, -22, -6, b.z1 + 1.1, b.z1 + 5);
-      box(c, ['ar', 'al', 'as'], { left: w => R('wg', 0.6, c.z0 + 1.2, w - 1.2, 1.3), right: w => R('ag', 0.6, c.z0 + 1.2, w - 1.2, 1.3) });
-      box(Bx(-14, -6, -18, -12, c.z1, c.z1 + 3), ['ar', 'al', 'as']);
+      part = 'apt:tall-crown'; box(c, ['ar', 'al', 'as'], { left: w => R('wg', 0.6, c.z0 + 1.2, w - 1.2, 1.3), right: w => R('ag', 0.6, c.z0 + 1.2, w - 1.2, 1.3) });
+      part = 'apt:tall-mech'; box(Bx(-14, -6, -18, -12, c.z1, c.z1 + 3), ['ar', 'al', 'as']);
     }
     // the courtyard block in front of it: brick, six storeys
+    part = 'apt:court';
     { const b = Bx(-40, -6, 6, 40, 0, H(A.mid)); box(b, [null, 'bl', 'bs'], { left: flats(3), right: flats(3) }); flatRoof(b); }
     // the east block: taller, light, with balconies
+    part = 'apt:east';
     { const b = Bx(12, 40, -24, 16, 0, H(A.east)); box(b, [null, 'al', 'as'], { left: withBands(flats(4), 3.1), right: withBands(flats(3), 3.1) }); flatRoof(b); }
     // its low wing: shops under, a pool deck on top
+    part = 'apt:wing';
     {
       const b = Bx(4, 40, 18, 40, 0, H(A.wing));
       box(b, [null, 'al', 'as'], { left: w => grid(1, w - 1, 9, 2.6, [b.z0 + 0.6], 2.4, 2, 'sd', 'sg') + flats(3)(w, b.z0 + 3.4, b.z1), right: flats(4) });
-      box(B(b.i0, b.i1, b.j0, b.j1, b.z1, b.z1 + 0.8), ['pt', 'al', 'as'], { top: (w, h) => R('water', 6, 4, w - 16, h - 9) + R('glint', w - 8, 5, 2.4, 2.4) });
+      part = 'apt:wing-deck'; box(B(b.i0, b.i1, b.j0, b.j1, b.z1, b.z1 + 0.8), ['pt', 'al', 'as'], { top: (w, h) => R('water', 6, 4, w - 16, h - 9) + R('glint', w - 8, 5, 2.4, 2.4) });
     }
     const podiumBal = (w, z0, z1) => grid(0.8, w - 0.8, Math.round(w / 1.7), 0.5, [z1 - 1.7], 1.2);
     part = 'bal'; box(Bx(-44, -12, 43.3, 44, 0, 1.6), ['pt', 'll', null], { left: podiumBal }, ['pt', 'll', 'pt']);
@@ -656,14 +658,15 @@ export function heroArt(T = TOKENS, G = GEO, F = FLOAT, PARTS = false) {
     });
     part = 'stairI'; stairI(-40, 3, 44, 47.5, 7, 0, MALL);
     part = 'stair'; stair(-12, 12, 44, 2, 7, 0, MALL);
-    part = 'apt';
     // townhouses on the mall's west side
+    part = 'apt:row';
     { const b = Bx(-68, -48, 58, 74, MALL, MALL + H(A.row)); box(b, [null, 'bl', 'bs'], { left: flats(2, 3.3, 1.8, 2.2), right: (w, z0, z1) => flats(2, 3.3, 1.8, 2.2)(w, z0, z1) + R('door', w / 2 - 1.1, z0, 2.2, 2.8) }); flatRoof(b); }
     // leasing office and trees where Batts Hall stood
     part = 'pad:batts'; box(pp.batts, ['pt', 'ie', 'is'], { top: lawn2(3) });
-    part = 'apt';
+    part = 'apt:office';
     { const b = Bx(38, 56, 48, 60, MALL, MALL + H(A.office)); box(b, [null, 'gl2', 'gs2'], { left: (w, z0) => grid(1, w - 1, 6, 2, [z0 + 0.8], 4.4, 2, null, 'sg') }); flatRoof(b); }
     // a small block where Garrison Hall stood
+    part = 'apt:small';
     { const b = Bx(50, 70, 14, 34, MALL, MALL + H(A.small)); box(b, [null, 'bl', 'bs'], { left: flats(3), right: flats(2) }); flatRoof(b); }
     // round-crowned trees, placed on the lawns: trunk, then a crown of two tones
     const tree = (i, j, z, r = G.apt.tree) => {

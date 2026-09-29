@@ -126,41 +126,73 @@
   // on: false keeps the islet still (it still floats).
   const TURN = { on: true, time: 1.25, hold: 1.7, holdHome: 3.8, back: 0.55 };
   // The main island turns over when it is tapped or clicked (the owner asked for
-  // it to answer a tap, not to turn on a timer). It rolls over on a slanted axis
-  // with a half spin, solid, its sides showing as it goes. The Tower's floors
-  // slide into each other and become the rock ledges; the ledges it stood on push
-  // up and split into West Campus apartment towers, whose windows light floor by
-  // floor; every block changes colour as it passes the middle. Tap again to turn
-  // it back; a tap mid-turn turns it round from where it is. A worker draws the
-  // turn with WebGL on its own canvas, so once it has started a busy page cannot
-  // make it stutter (the tap itself waits for the page). At rest on the Tower
-  // side the page shows the still drawing, exactly as before.
+  // it to answer a tap, not to turn on a timer). It lifts, winds back a touch and
+  // rolls over on a slanted axis with a half spin, solid, its sides showing, then
+  // lands with a small bounce. On the way the Tower's stages slide into each
+  // other, the top first, and the shaft sinks into the Main Building; the Main
+  // Building and the halls fold into the rock's wide ledges, and under the island
+  // the ledges unfold again, the Tower's stages coming back out as the deep tip.
+  // On the other side the rock folds up, the tip first, cracks into one piece per
+  // block, and the pieces push up floor by floor into West Campus apartment
+  // blocks, each floor clicking into line, windows lighting as they come; roofs,
+  // steps, lawns, the pool and the trees follow. Every block changes colour as it
+  // passes the middle. Tap again to turn it back (the same turn run backwards); a
+  // tap mid-turn turns it round from where it is. A worker draws the turn with
+  // WebGL on its own canvas, so once it has started a busy page cannot make it
+  // stutter (the tap itself waits for the page). At rest on the Tower side the
+  // page shows the still drawing, exactly as before.
   // Times are shares of one turn (0 = Tower up, 1 = apartments up); lengths are
   // drawing metres (i east, j south, z up).
   const ISLAND = {
     on: true,             // false = no turn: the still drawing and no tap target
-    time: 2.6,            // seconds for one whole turn
+    time: 3.4,            // seconds for one whole turn (the way back is the same turn run backwards)
     pivot: [-4, 35, -9],  // the point it turns round
-    roll: { dir: 1, from: 0, to: 0.85 },   // rolling over its long axis (dir -1 = the other way round)
-    spin: { dir: 1, from: 0.1, to: 1 },    // the half spin round the upright
-    lift: 8,              // how far it rises at mid-turn
-    shrink: 0.1,          // how much smaller it looks at mid-turn (0 = not at all)
-    floors: { from: 0.1, stagger: 0.25, span: 0.4 },               // Tower floors into ledges, the top floor first
-    towers: { from: 0.4, stagger: 0.2, blocks: 0.1, span: 0.35 },  // ledges into towers, from the pad out, block after block
-    pads: [0.15, 0.85],   // the pads moving to their place on the other side
-    retract: [0.3, 0.7],  // ledges with nothing to become fold into their pad
-    swap: 0.05,           // how quickly a block changes colour as it passes the middle
-    out: [0, 0.35, 0.2],  // the Tower side's windows fading into the stone: start, end, delay for the lowest row
-    lights: [0.4, 0.75, 0.25], // the apartments' windows lighting: start, end, delay for the top floor
-    prim: [0, 0.3],       // roofs, mast, fountain and figure settling into what they stand on
-    trees: [0.7, 1],      // the apartment side's trees growing
-    halo: [0, 0.35],      // the Tower's halo fading out
-    faces: [0.02, 0.15],  // faces the still drawing leaves out (the ledges' tops) coming in
+    // THE TURN. A turn winds back by `wind` (a fraction of a half turn), goes over, passes the mark by
+    // `wind`, and comes back onto it; `knee` is the share of its time each of those two small moves takes.
+    roll: { dir: 1, from: 0.03, to: 0.84, wind: 0.035, knee: 0.1 },   // rolling over its long axis (dir -1 = the other way)
+    spin: { dir: -1, from: 0.08, to: 0.88, wind: 0.03, knee: 0.1 },  // the half spin round the upright, a little behind the roll: together a slanted axis
+    lift: { h: 9, rise: [0.02, 0.3], land: [0.66, 0.98], dip: 0.18, knee: 0.3 }, // how high it rises; a crouch before, a bounce on landing
+    shrink: 0.08,         // how much smaller it looks at mid-turn (0 = not at all)
+    click: 0.05,          // how far a block's move goes past its mark before it clicks back (0.05 = 5% of the move)
+    // THE TOWER SIDE BECOMES ROCK (0 to about 0.45, while it still faces you)
+    tower: { from: 0.05, step: 0.034, span: 0.12, shaft: [0.13, 0.47], rails: [0.06, 0.14], stub: 3, gap: 0.3, tint: 0.5 },
+                          // the Tower's stages slide into the one below, the top first (a new stage every `step`);
+                          // then the shaft sinks to a stub `stub` tall; `gap`: how far inside its host a stage hides;
+                          // `tint`: the share of its slide a stage spends taking on its host's colour
+    terraces: { rise: [0.08, 0.22], sink: [0.4, 0.55] }, // the terraces rise level with the lawn; later, on the other side, thin to their new depth
+    tiers: { from: 0.14, stagger: 0.045, span: 0.16 },   // halls and the Main Building fold into the wide ledges, the top ledge first
+    folded: { tower: 2.5, rock: 2 }, // how thin a ledge is while folded: the Tower side's, the rock's
+    below: { from: 0.46, stagger: 0.04, span: 0.13, slide: [0.42, 0.6] }, // under the island the ledges unfold one below another, and the stub slides to where the tip hangs
+    // THE ROCK BECOMES APARTMENTS (while that side comes round to face you)
+    retract: { from: 0.04, stagger: 0.03, span: 0.13 },  // the rock folds up into the island, the tip first
+    rebuild: {
+      crack: [0.28, 0.36], gap: 1.2,   // shared ledges crack into one piece per block, this far apart
+      gather: [0.34, 0.48],            // the pieces slide under their blocks
+      from: 0.42, block: 0.015, floor: 0.035, span: 0.1, // floors push out, block after block, floor after floor
+      nest: 1.2, close: 0.06,          // each floor starts this far inside the one below, and they close up with a click
+      lit: 0.03,                       // within a floor, the upper windows light this much later
+      absorb: [0.26, 0.4],             // rock with no block to become folds into the island
+      cap: 0.04, capGap: -0.01         // roofs, crowns and decks grow out of a finished block (a negative gap overlaps)
+    },
+    // which rock ledges each apartment block is built from: levels of the rock, top (1) to tip (8).
+    // The order is the order the blocks rise in.
+    ledges: { tall: '1 2 5 6 7 8', court: '1 2 3', east: '1 2 4', wing: '1 2', west: '1 2 3 4', small: '1 2 3 4', office: '1 2', row: '1 2' },
+    steps: [0.04, 0.12],  // the Tower side's steps and balustrades sinking into their terrace
+    stairsIn: [0.76, 0.9],  // the apartment side's steps and railings rising out of theirs
+    swap: 0.04,           // how quickly a block changes colour as it passes the middle
+    out: [0.04, 0.2, 0.1], // the Tower side's windows fading into the stone: start, end, delay for the lowest row
+    fold: [0.03, 0.16],   // roofs, the mast and the clock faces settling into what they stand on
+    props: [0.03, 0.14],  // the fountain, the figure and the path settling into the terrace
+    lawns: [0.58, 0.8],    // the apartment side's lawns coming up
+    pool: [0.66, 0.86],    // the pool filling
+    trees: [0.8, 0.97],   // the apartment side's trees growing
+    halo: [0, 0.25],      // the Tower's halo fading out
+    faces: [0.02, 0.12],  // faces the still drawing leaves out (the ledges' tops) coming in
     fade: 0.25,           // reduced motion: a crossfade of this many seconds instead of the turn
     // how it is drawn, not how it looks: the hand-over from the drawing's paint order
     // to real depth, the depth range and offsets, frames averaged a fraction of a pixel apart for
     // the drawing's smooth edges (1 = none), MSAA
-    painter: 0.06, s0: 50, depth: 500, bias: 0.04, spriteLift: 1.5, aa: 4, msaa: true
+    painter: 0.04, s0: 50, depth: 500, bias: 0.04, spriteLift: 1.5, aa: 4, msaa: true
   };
   // slowAfter*: seconds after which the time line switches from estimate.usual
   // to estimate.slow (phones load slower).
@@ -319,7 +351,7 @@
   // The main island in 3D, both sides, for its turn (see startIsland): the Tower
   // side as drawn above and the West Campus apartment side, from
   // scripts/loader-art/export.mjs model (the record format is described there).
-  const ART_MODEL = {"flip":[-4,-9],"dot":2.2,"A":[["b","ice",[-11,-1,23,36,-108,-92],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"13\" height=\".9\"/>"]],8,0.46,"T"],["b","ice",[-18,4,16,42,-92,-78],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"26\" height=\".9\"/>"]],7,0.58,"T"],["b","ice",[-26,10,8,48,-78,-65],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"36\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"40\" height=\".9\"/>"]],6,0.7,"T"],["b","ice",[-36,18,-2,56,-65,-53],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"54\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"58\" height=\".9\"/>"]],5,0.8,"T"],["b","ice",[-67,-59,24,38,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"8\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"14\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[-46,26,-12,66,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"72\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"78\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[56,62,20,27,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"6\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"7\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[-70,-56,20,44,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"14\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"24\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[-58,34,-22,76,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"92\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"98\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[54,64,18,30,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"12\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[-73,-53,17,49,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"20\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"32\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-35,35,-23,35,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"70\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"58\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-63,21,53,71,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"84\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"18\" height=\".9\"/>"]],2,1,"T"],["b","ice",[39,51,49,57,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"8\" height=\".9\"/>"]],2,1,"T"],["b","ice",[53,65,17,31,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"14\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-78,-48,12,54,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"30\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"42\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-40,40,-28,40,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"80\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"68\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-68,26,48,76,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"94\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"28\" height=\".9\"/>"]],1,1,"T"],["b","ice",[34,56,44,62,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"18\" height=\".9\"/>"]],1,1,"T"],["b","ice",[48,70,12,36,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"24\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-13,13,88,98,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"26\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"10\" height=\".9\"/>"]],1,1,"T"],["b","pad:battle",[-82,-44,8,58,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"32\" height=\"44\"/>"]]],["b","pad:podium",[-44,44,-32,44,-18,0],"pt ie is",[]],["b","pad:garrison",[44,74,8,40,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"26\"/>"]]],["b","battle",[-76,-54,18,44,-9,8.5],"ht hl hs",[["L","<path class=\"wo\" d=\"M3.2 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM7.7 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM12.2 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM16.7 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4z\"/><path class=\"so\" stroke-width=\"3.6\" stroke-dasharray=\"1.8 2.7\" d=\"M3.4-4.7h15.3\"/>"],["R","<path class=\"wg\" d=\"M2.5-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM5.6-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM8.8-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM11.9-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM15-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM18.2-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM21.3-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"sd\" stroke-width=\"3.8\" stroke-dasharray=\"1.6 1.5\" d=\"M2.8-4.9h20.5\"/><rect class=\"door\" x=\"11.7\" y=\"-9\" width=\"2.6\" height=\"4.8\"/>"]]],["p","esh",[-76,44,7.6,-54,44,7.6,-54,44,6,-76,44,6],24],["p","esh",[-54,44,7.6,-54,18,7.6,-54,18,6,-54,44,6],24],["p","rm",[-77.6,45.6,8.5,-52.4,45.6,8.5,-52.4,45.6,7.6,-77.6,45.6,7.6],24],["p","rs",[-52.4,45.6,8.5,-52.4,16.4,8.5,-52.4,16.4,7.6,-52.4,45.6,7.6],24],["p","rm",[-77.6,16.4,8.5,-52.4,16.4,8.5,-65,29,16.07],24],["p","rl",[-77.6,16.4,8.5,-65,29,16.07,-65,33,16.07,-77.6,45.6,8.5],24],["p","rs",[-52.4,16.4,8.5,-52.4,45.6,8.5,-65,33,16.07,-65,29,16.07],24],["p","rl",[-77.6,45.6,8.5,-65,33,16.07,-52.4,45.6,8.5],24],["l","rg",[-77.6,45.6,8.5,-65,33,16.07,-52.4,45.6,8.5],24,0.6],["l","rg",[-65,33,16.07,-65,29,16.07],24,0.6],["b","mainbldg",[-38,-18,-26,18,0,24.4],"rf ll ls",[["R","<path class=\"sd\" stroke-width=\"2.4\" stroke-dasharray=\"1.6 2.4\" d=\"M3.2 21.8h37.6\"/>"]]],["p","esh",[-18,18,23.5,-18,-26,23.5,-18,-26,21.9,-18,18,21.9],35],["p","rm",[-39.2,19.2,24.4,-16.8,19.2,24.4,-16.8,19.2,23.5,-39.2,19.2,23.5],35],["p","rs",[-16.8,19.2,24.4,-16.8,-27.2,24.4,-16.8,-27.2,23.5,-16.8,19.2,23.5],35],["p","rm",[-39.2,-27.2,24.4,-16.8,-27.2,24.4,-28,-16,31.13],35],["p","rl",[-39.2,-27.2,24.4,-28,-16,31.13,-28,8,31.13,-39.2,19.2,24.4],35],["p","rs",[-16.8,-27.2,24.4,-16.8,19.2,24.4,-28,8,31.13,-28,-16,31.13],35],["p","rl",[-39.2,19.2,24.4,-28,8,31.13,-16.8,19.2,24.4],35],["l","rg",[-39.2,19.2,24.4,-28,8,31.13,-16.8,19.2,24.4],35,0.6],["l","rg",[-28,8,31.13,-28,-16,31.13],35,0.6],["b","mainbldg",[-18,18,-22,18,0,20.2],"rf ll ls",[]],["b","tower",[-11.28,11.28,-10.42,10.42,0,114.04],"lt ll ls",[["L","<path class=\"gl2\" d=\"M5 6h2.5v105.1h-2.5zM10 6h2.5v105.1h-2.5zM15 6h2.5v105.1h-2.5z\"/><path class=\"sbz\" stroke-width=\"2.5\" stroke-dasharray=\"2.1 3.8\" d=\"M6.3 9.7v101.4M11.3 9.7v101.4M16.3 9.7v101.4\"/><path class=\"wg\" d=\"M5.4 60.3h1.8v3h-1.8zM10.4 24.6h1.8v3h-1.8zM10.4 102h1.8v3h-1.8zM15.4 66.2h1.8v3h-1.8z\"/>"],["R","<path class=\"gs2\" d=\"M4.2 6h2.5v105.1h-2.5zM9.2 6h2.5v105.1h-2.5zM14.2 6h2.5v105.1h-2.5z\"/><path class=\"sbs\" stroke-width=\"2.5\" stroke-dasharray=\"2.1 3.8\" d=\"M5.4 9.7v101.4M10.4 9.7v101.4M15.4 9.7v101.4\"/><path class=\"wg\" d=\"M4.5 60.3h1.8v3h-1.8zM9.5 24.6h1.8v3h-1.8zM9.5 102h1.8v3h-1.8zM14.5 66.2h1.8v3h-1.8z\"/>"]]],["b","tower",[-11.57,11.57,-10.69,10.69,114.04,118.98],"ct cl cs",[["L","<path class=\"scn\" stroke-width=\"1.1\" stroke-dasharray=\".6 1.4\" d=\"M1.3 114.6h20.5\"/>"],["R","<path class=\"scn\" stroke-width=\"1.1\" stroke-dasharray=\".6 1.3\" d=\"M1.2 114.6h18.9\"/>"]]],["b","tower",[-9.7,9.7,-8.96,8.96,118.98,129.51],"ot ol os",[["L","<circle class=\"bez\" cx=\"9.7\" cy=\"124.6\" r=\"4.1\"/><circle class=\"dial\" cx=\"9.7\" cy=\"124.6\" r=\"2.9\"/><path class=\"hand\" d=\"M9.5 124.6h.4v2.2h-.4zM9.7 124.3h1.6v.4h-1.6z\"/>"],["R","<circle class=\"bez\" cx=\"9\" cy=\"124.6\" r=\"4.1\"/><circle class=\"dial\" cx=\"9\" cy=\"124.6\" r=\"2.9\"/><path class=\"hand\" d=\"M8.7 124.6h.4v2.2h-.4zM9 124.3h1.6v.4h-1.6z\"/>"]]],["b","tower",[-9.7,9.2,-8.96,-8.46,129.51,131.46],"ot ot ot",[],0,1,"LR"],["b","tower",[-9.7,-9.2,-8.96,8.96,129.51,131.46],"ot ot os",[],0,1,"L"],["b","tower",[-5.53,5.53,-5.11,5.11,130.81,144.07],"bell bell bell",[["L","<path class=\"ol\" d=\"M0 130.8h1.3v13.3h-1.3zM2.3 130.8h.6v13.3h-.6zM3.2 130.8h.6v13.3h-.6zM7.3 130.8h.6v13.3h-.6zM8.1 130.8h.6v13.3h-.6zM9.8 130.8h1.3v13.3h-1.3z\"/><rect class=\"ol\" x=\"0\" y=\"130.8\" width=\"11.1\" height=\".9\"/>"],["R","<path class=\"os\" d=\"M0 130.8h1.2v13.3h-1.2zM2.1 130.8h.6v13.3h-.6zM2.9 130.8h.6v13.3h-.6zM6.7 130.8h.6v13.3h-.6zM7.5 130.8h.6v13.3h-.6zM9 130.8h1.2v13.3h-1.2z\"/><rect class=\"os\" x=\"0\" y=\"130.8\" width=\"10.2\" height=\".9\"/>"]],0,1,"T"],["b","tower",[-9.7,9.7,8.46,8.96,129.51,131.46],"ot ol ot",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1\" d=\"M1.3 130.4h16.8\"/>"]],0,1,"R"],["b","tower",[9.2,9.7,-8.96,8.96,129.51,131.46],"ot ot os",[["R","<path class=\"sd\" stroke-width=\"1.2\" stroke-dasharray=\".5 .9\" d=\"M1.3 130.4h15.4\"/>"]],0,1,"L"],["b","tower",[-5.87,5.87,-5.42,5.42,144.07,145.76],"ot ol os",[["L","<path class=\"sgd\" stroke-width=\".7\" stroke-dasharray=\".7 1.9\" d=\"M1.6 144.9h8.6\"/>"],["R","<path class=\"sgd\" stroke-width=\".7\" stroke-dasharray=\".7 1.7\" d=\"M1.5 144.9h7.9\"/>"]]],["b","tower",[-5.08,5.08,-4.69,4.69,145.76,147.97],"ot ol os",[]],["b","tower",[-4.06,4.06,-3.75,3.75,147.97,150.05],"ot ol os",[],0,1,"T"],["p","kt",[-4.36,-4.05,150.05,4.36,-4.05,150.05,0,0,152.91],56],["p","kt",[-4.36,-4.05,150.05,0,0,152.91,-4.36,4.05,150.05],56],["p","kl",[-4.36,4.05,150.05,0,0,152.91,4.36,4.05,150.05],56],["p","ks",[4.36,-4.05,150.05,4.36,4.05,150.05,0,0,152.91],56],["s",[0,0,152.91],"<rect class=\"mast\" x=\"397.6\" y=\"21.5\" width=\".9\" height=\"9\"/>",56],["b","mainbldg",[18,38,-26,18,0,24.4],"rf ll ls",[["R","<path class=\"sd\" stroke-width=\"2.8\" stroke-dasharray=\"1.6 2.4\" d=\"M3.2 3.8h37.6M3.2 10.4h37.6M3.2 15.9h37.6M3.2 21h37.6\"/><path class=\"sg\" stroke-width=\"2.8\" stroke-dasharray=\"1.6 10.4\" d=\"M7.2 3.8h25.6M3.2 10.4h37.6M11.2 15.9h25.6M7.2 21h25.6\"/>"]]],["p","esh",[38,18,23.5,38,-26,23.5,38,-26,21.9,38,18,21.9],62],["p","rm",[16.8,19.2,24.4,39.2,19.2,24.4,39.2,19.2,23.5,16.8,19.2,23.5],62],["p","rs",[39.2,19.2,24.4,39.2,-27.2,24.4,39.2,-27.2,23.5,39.2,19.2,23.5],62],["p","rm",[16.8,-27.2,24.4,39.2,-27.2,24.4,28,-16,31.13],62],["p","rl",[16.8,-27.2,24.4,28,-16,31.13,28,8,31.13,16.8,19.2,24.4],62],["p","rs",[39.2,-27.2,24.4,39.2,19.2,24.4,28,8,31.13,28,-16,31.13],62],["p","rl",[16.8,19.2,24.4,28,8,31.13,39.2,19.2,24.4],62],["l","rg",[16.8,19.2,24.4,28,8,31.13,39.2,19.2,24.4],62,0.6],["l","rg",[28,8,31.13,28,-16,31.13],62,0.6],["b","mainbldg",[-38,-12,18,40,0,24.4],"rf ll ls",[["L","<path class=\"wo\" d=\"M1.8 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM7.7 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM13.5 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM19.3 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9z\"/><path class=\"wg\" d=\"M1.8 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM7.7 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM13.5 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM19.3 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"wo\" d=\"M2 20.4h1.8v2.2h-1.8zM7.9 20.4h1.8v2.2h-1.8zM13.7 20.4h1.8v2.2h-1.8zM19.5 20.4h1.8v2.2h-1.8z\"/><path class=\"trim\" d=\"M0 17.2h26v.8h-26zM0 20h26v.5h-26z\"/>"]],0,1,"R"],["p","esh",[-38,40,23.5,-12,40,23.5,-12,40,21.9,-38,40,21.9],72],["p","rm",[-39.2,41.2,24.4,0,41.2,24.4,0,41.2,23.5,-39.2,41.2,23.5],72],["p","rm",[-39.2,16.8,24.4,0,16.8,24.4,0,29,31.73,-27,29,31.73],72],["p","rl",[-39.2,16.8,24.4,-27,29,31.73,-39.2,41.2,24.4],72],["p","rl",[-39.2,41.2,24.4,-27,29,31.73,0,29,31.73,0,41.2,24.4],72],["l","rg",[-39.2,41.2,24.4,-27,29,31.73,-4,29,31.73],72,0.6],["b","mainbldg",[-12,12,14,43,0,26.2],"rf ll ls",[["L","<path class=\"ao\" d=\"M1.2 0v5a1.2 1.2 0 0 0 2.4 0v-5zM4.4 0v5a1.2 1.2 0 0 0 2.4 0v-5zM7.6 0v5a1.2 1.2 0 0 0 2.4 0v-5zM10.8 0v5a1.2 1.2 0 0 0 2.4 0v-5zM14 0v5a1.2 1.2 0 0 0 2.4 0v-5zM17.2 0v5a1.2 1.2 0 0 0 2.4 0v-5zM20.4 0v5a1.2 1.2 0 0 0 2.4 0v-5z\"/><path class=\"ag\" d=\"M1.7 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM4.9 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM8 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM11.3 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM14.5 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM17.7 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM20.8 0v4.8a.8.8 0 0 0 1.5 0v-4.7z\"/><path class=\"sg\" stroke-width=\"7.6\" stroke-dasharray=\"1.7 1.5\" d=\"M1.5 12.2h20.9\"/><rect class=\"rail\" x=\".6\" y=\"8.4\" width=\"22.8\" height=\".5\"/><path class=\"so\" stroke-width=\"2.6\" stroke-dasharray=\"1.4 1.8\" d=\"M1.7 22.2h20.6\"/><path class=\"trim\" d=\"M0 17.2h24v.8h-24zM0 20h24v.5h-24z\"/><path class=\"so\" stroke-width=\"1.5\" stroke-dasharray=\".4 1.2\" d=\"M1.2 18.9h21.6\"/>"]]],["p","esh",[-12,43,25.3,12,43,25.3,12,43,23.7,-12,43,23.7],79],["p","esh",[12,43,25.3,12,14,25.3,12,14,23.7,12,43,23.7],79],["p","rm",[-13.2,44.2,26.2,13.2,44.2,26.2,13.2,44.2,25.3,-13.2,44.2,25.3],79],["p","rs",[13.2,44.2,26.2,13.2,12.8,26.2,13.2,12.8,25.3,13.2,44.2,25.3],79],["p","rm",[-13.2,12.8,26.2,13.2,12.8,26.2,0,26,34.13],79],["p","rl",[-13.2,12.8,26.2,0,26,34.13,0,31,34.13,-13.2,44.2,26.2],79],["p","rs",[13.2,12.8,26.2,13.2,44.2,26.2,0,31,34.13,0,26,34.13],79],["p","rl",[-13.2,44.2,26.2,0,31,34.13,13.2,44.2,26.2],79],["l","rg",[-13.2,44.2,26.2,0,31,34.13,13.2,44.2,26.2],79,0.6],["l","rg",[0,31,34.13,0,26,34.13],79,0.6],["b","mainbldg",[12,38,18,40,0,24.4],"rf ll ls",[["L","<path class=\"wo\" d=\"M22 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM16.2 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM10.3 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM4.5 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9z\"/><path class=\"wg\" d=\"M22 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM16.2 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM10.3 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM4.5 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"wo\" d=\"M22.2 20.4h1.8v2.2h-1.8zM16.4 20.4h1.8v2.2h-1.8zM10.5 20.4h1.8v2.2h-1.8zM4.7 20.4h1.8v2.2h-1.8z\"/><path class=\"trim\" d=\"M0 17.2h26v.8h-26zM0 20h26v.5h-26z\"/>"]]],["p","esh",[12,40,23.5,38,40,23.5,38,40,21.9,12,40,21.9],90],["p","esh",[38,40,23.5,38,18,23.5,38,18,21.9,38,40,21.9],90],["p","rm",[13.2,41.2,24.4,39.2,41.2,24.4,39.2,41.2,23.5,13.2,41.2,23.5],90],["p","rs",[39.2,41.2,24.4,39.2,16.8,24.4,39.2,16.8,23.5,39.2,41.2,23.5],90],["p","rm",[13.2,16.8,24.4,39.2,16.8,24.4,27,29,31.73,4,29,31.73,13.2,19.8,26.2],90],["p","rl",[13.2,41.2,24.4,39.2,41.2,24.4,27,29,31.73,4,29,31.73,13.2,38.2,26.2],90],["p","rs",[39.2,16.8,24.4,39.2,41.2,24.4,27,29,31.73],90],["l","rg",[4,29,31.73,27,29,31.73,39.2,41.2,24.4],90,0.6],["b","bal",[-44,-12,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","pad:mall",[-72,30,44,80,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"31\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"74\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"2\" y=\"2\" width=\"26\" height=\"32\"/>"]]],["b","stairI",[-40,-37,44,47.5,-9,0],"st sr ss",[]],["b","stairI",[-37,-34,44,47.5,-9,-1.29],"st sr ss",[]],["b","stairI",[-34,-31,44,47.5,-9,-2.57],"st sr ss",[]],["b","stairI",[-31,-28,44,47.5,-9,-3.86],"st sr ss",[]],["b","stairI",[-28,-25,44,47.5,-9,-5.14],"st sr ss",[]],["b","stairI",[-25,-22,44,47.5,-9,-6.43],"st sr ss",[]],["b","stairI",[-22,-19,44,47.5,-9,-7.71],"st sr ss",[]],["b","stair",[-12,12,44,46,-9,0],"st sr ss",[]],["b","stair",[-12,12,46,48,-9,-1.29],"st sr ss",[]],["b","stair",[-12,12,48,50,-9,-2.57],"st sr ss",[]],["b","stair",[-12,12,50,52,-9,-3.86],"st sr ss",[]],["b","stair",[-12,12,52,54,-9,-5.14],"st sr ss",[]],["b","stair",[-12,12,54,56,-9,-6.43],"st sr ss",[]],["b","stair",[-12,12,56,58,-9,-7.71],"st sr ss",[]],["b","bal",[12,44,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","parlin",[-70,-48,58,72,-9,10.8],"ht hl hs",[["L","<path class=\"so\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 1.7\" d=\"M2.3-5.1h17.3M2.3.9h17.3M2.3 6.7h17.3\"/><path class=\"sg\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 11.2\" d=\"M5.5-5.1h14.2M11.8.9h1.5M5.5 6.7h14.2\"/>"],["R","<path class=\"wg\" d=\"M2.2-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9zM5.9-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9zM9.6-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9z\"/><path class=\"sd\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 2.2\" d=\"M2.6 1.7h8.8M2.6 6.7h8.8\"/>"]]],["p","esh",[-70,72,9.9,-48,72,9.9,-48,72,8.3,-70,72,8.3],116],["p","esh",[-48,72,9.9,-48,58,9.9,-48,58,8.3,-48,72,8.3],116],["p","rm",[-71.4,73.4,10.8,-46.6,73.4,10.8,-46.6,73.4,9.9,-71.4,73.4,9.9],116],["p","rs",[-46.6,73.4,10.8,-46.6,56.6,10.8,-46.6,56.6,9.9,-46.6,73.4,9.9],116],["p","rm",[-71.4,56.6,10.8,-46.6,56.6,10.8,-55,65,15.85,-63,65,15.85],116],["p","rl",[-71.4,56.6,10.8,-63,65,15.85,-71.4,73.4,10.8],116],["p","rl",[-71.4,73.4,10.8,-63,65,15.85,-55,65,15.85,-46.6,73.4,10.8],116],["p","rs",[-46.6,56.6,10.8,-46.6,73.4,10.8,-55,65,15.85],116],["l","rg",[-71.4,73.4,10.8,-63,65,15.85,-55,65,15.85,-46.6,73.4,10.8],116,0.6],["b","pad:batts",[30,60,40,66,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"20\"/>"]]],["b","batts",[38,56,48,60,-9,11.5],"ht hl hs",[["L","<path class=\"so\" stroke-width=\"3.6\" stroke-dasharray=\"1.5 1.5\" d=\"M2.3-5h13.5M2.3 1.2h13.5M2.3 7h13.5\"/><path class=\"sg\" stroke-width=\"3.6\" stroke-dasharray=\"1.5 7.5\" d=\"M5.3-5h10.5M2.3 1.2h10.5M8.3 7h1.5\"/>"],["R","<path class=\"sg\" stroke-width=\"6.8\" stroke-dasharray=\"1.8 1.2\" d=\"M2.1 1.9h7.8\"/><rect class=\"rail\" x=\"1\" y=\"-1.5\" width=\"10\" height=\".4\"/><path class=\"sd\" stroke-width=\"3\" stroke-dasharray=\"1.5 1.5\" d=\"M2.3-5.3h7.5M2.3 8.1h7.5\"/>"]]],["p","esh",[38,60,10.6,56,60,10.6,56,60,9,38,60,9],127],["p","esh",[56,60,10.6,56,48,10.6,56,48,9,56,60,9],127],["p","rm",[36.6,61.4,11.5,57.4,61.4,11.5,57.4,61.4,10.6,36.6,61.4,10.6],127],["p","rs",[57.4,61.4,11.5,57.4,46.6,11.5,57.4,46.6,10.6,57.4,61.4,10.6],127],["p","rm",[36.6,46.6,11.5,57.4,46.6,11.5,50,54,15.95,44,54,15.95],127],["p","rl",[36.6,46.6,11.5,44,54,15.95,36.6,61.4,11.5],127],["p","rl",[36.6,61.4,11.5,44,54,15.95,50,54,15.95,57.4,61.4,11.5],127],["p","rs",[57.4,46.6,11.5,57.4,61.4,11.5,50,54,15.95],127],["l","rg",[36.6,61.4,11.5,44,54,15.95,50,54,15.95,57.4,61.4,11.5],127,0.6],["b","garrison",[50,70,14,34,-9,3.9],"ht hl hs",[["L","<path class=\"wg\" d=\"M3.8-8v5.9a1.5 1.5 0 0 0 3 0v-5.9zM8.5-8v5.9a1.5 1.5 0 0 0 3 0v-5.9zM13.2-8v5.9a1.5 1.5 0 0 0 3 0v-5.9z\"/><path class=\"so\" stroke-width=\"1.6\" stroke-dasharray=\"1.4 1.6\" d=\"M1.8 1.8h16.4\"/>"],["R","<path class=\"sd\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 1.9\" d=\"M2.5-5.3h15.1M2.5-.1h15.1\"/><path class=\"sg\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 8.7\" d=\"M5.9-5.3h11.7M2.5-.1h11.7\"/>"]]],["p","esh",[50,34,3,70,34,3,70,34,1.4,50,34,1.4],137],["p","esh",[70,34,3,70,14,3,70,14,1.4,70,34,1.4],137],["p","rm",[48.6,35.4,3.9,71.4,35.4,3.9,71.4,35.4,3,48.6,35.4,3],137],["p","rs",[71.4,35.4,3.9,71.4,12.6,3.9,71.4,12.6,3,71.4,35.4,3],137],["p","rm",[48.6,12.6,3.9,71.4,12.6,3.9,60,24,10.75,60,24,10.75],137],["p","rl",[48.6,12.6,3.9,60,24,10.75,48.6,35.4,3.9],137],["p","rl",[48.6,35.4,3.9,60,24,10.75,60,24,10.75,71.4,35.4,3.9],137],["p","rs",[71.4,12.6,3.9,71.4,35.4,3.9,60,24,10.75],137],["l","rg",[48.6,35.4,3.9,60,24,10.75,60,24,10.75,71.4,35.4,3.9],137,0.6],["b","stairP",[-17,17,80,81,-13,-9],"st sr ss",[]],["b","stairP",[-17,17,81,82,-13,-10],"st sr ss",[]],["b","stairP",[-17,17,82,83,-13,-11],"st sr ss",[]],["b","stairP",[-17,17,83,84,-13,-12],"st sr ss",[]],["b","pad:plaza",[-17,17,84,102,-18,-13],"pt ie is",[]],["d",[0,85.4,-13],0,151],["d",[0,83.5,-12],1,150],["d",[0,81.5,-10],2,148],["d",[0,78.4,-9],0,100],["d",[0,75.2,-9],1,100],["d",[0,72,-9],2,100],["d",[0,68.8,-9],0,100],["d",[0,65.6,-9],1,100],["d",[0,58.6,-9],2,100],["d",[0,57,-7.71],0,114],["d",[0,55,-6.43],1,113],["d",[0,53,-5.14],2,112],["d",[0,51,-3.86],0,111],["d",[0,49,-2.57],1,110],["d",[0,47,-1.29],2,109],["d",[0,45,0],0,108],["c","ll lt",[0,93,-13],6.4,2.2,151],["e","water",[0,93,-10.8],5.04,4.99,151],["s",[0,93,-10.8],"<path class=\"bronze\" d=\"M297 283.4l1 -2h6.8l1 2zM300.6 281.4v-4.6l-2.3 -2.1 2.6 1 .5 -1.2 .5 1.2 2.6 -1 -2.3 2.1v4.6z\"/>",151],["s",[0,93,-10.8],"<path class=\"glint\" d=\"M305.8 280.4l.7 1.8 1.8 .7 -1.8 .7 -.7 1.8 -.7 -1.8 -1.8 -.7 1.8 -.7z\"/>",151],["e","shade",[0.43,61.07,-9],2.31,1.41,100],["s",[0,61.5,-9],"<path class=\"fig\" d=\"M332.3 261.7v-6.6a1.8 1.8 0 0 1 3.6 0V261.7z\"/><circle class=\"fig\" cx=\"334.7\" cy=\"252.2\" r=\"1.8\"/><rect class=\"pack\" x=\"331.6\" y=\"254.2\" width=\"3.1\" height=\"4.2\" rx=\".9\"/>",100]],"B":[["b","ice",[-7,3,23,36,-108,-92],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"13\" height=\".9\"/>"]],8,0.46,"T"],["b","ice",[-12,10,16,42,-92,-78],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"26\" height=\".9\"/>"]],7,0.58,"T"],["b","ice",[-18,18,8,48,-78,-65],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"36\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"40\" height=\".9\"/>"]],6,0.7,"T"],["b","ice",[-26,28,-2,56,-65,-53],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"54\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"58\" height=\".9\"/>"]],5,0.8,"T"],["b","ice",[51,59,24,38,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"8\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"14\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[-34,38,-12,66,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"72\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"78\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[-70,-64,20,27,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"6\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"7\" height=\".9\"/>"]],4,0.88,"T"],["b","ice",[48,62,20,44,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"14\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"24\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[-42,50,-22,76,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"92\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"98\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[-72,-62,18,30,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"12\" height=\".9\"/>"]],3,0.95,"T"],["b","ice",[45,65,17,49,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"20\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"32\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-43,27,-23,35,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"70\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"58\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-29,55,53,71,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"84\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"18\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-59,-47,49,57,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"8\" height=\".9\"/>"]],2,1,"T"],["b","ice",[-73,-61,17,31,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"14\" height=\".9\"/>"]],2,1,"T"],["b","ice",[40,70,12,54,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"30\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"42\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-48,32,-28,40,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"80\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"68\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-34,60,48,76,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"94\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"28\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-64,-42,44,62,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"18\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-78,-56,12,36,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"24\" height=\".9\"/>"]],1,1,"T"],["b","ice",[-21,5,88,98,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"26\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"10\" height=\".9\"/>"]],1,1,"T"],["b","pad:battle",[36,74,8,58,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"32\" height=\"44\"/>"]]],["b","pad:podium",[-52,36,-32,44,-18,0],"pt ie is",[]],["b","pad:garrison",[-82,-52,8,40,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"26\"/>"]]],["b","apt",[44,70,14,50,-9,9],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1\" d=\"M1.7-5.8h22.6M1.7-2.7h22.6M1.7.4h22.6M1.7 3.5h22.6M1.7 6.6h22.6\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.3\" d=\"M4.3-5.8h17.3M1.7-2.7h17.3M7 .4h17.3M4.3 3.5h17.3M1.7 6.6h17.3\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8-5.8h32.4M1.8-2.7h32.4M1.8.4h32.4M1.8 3.5h32.4M1.8 6.6h32.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.6\" d=\"M4.6-5.8h24M10.2-2.7h24M4.6.4h24M10.2 3.5h24M4.6 6.6h24\"/>"]],0,1,"T"],["b","apt",[44,70,14,50,9,10.1],"ar al as",[]],["b","apt",[58,64,22,28,10.1,13],"al al as",[]],["b","apt",[-12,14,-26,-2,0,62],"ar al as",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1\" d=\"M1.7 3.2h22.6M1.7 6.3h22.6M1.7 9.4h22.6M1.7 12.5h22.6M1.7 15.6h22.6M1.7 18.7h22.6M1.7 21.8h22.6M1.7 24.9h22.6M1.7 28h22.6M1.7 31.1h22.6M1.7 34.2h22.6M1.7 37.3h22.6M1.7 40.4h22.6M1.7 43.5h22.6M1.7 46.6h22.6M1.7 49.7h22.6M1.7 52.8h22.6M1.7 55.9h22.6M1.7 59h22.6\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.3\" d=\"M4.3 3.2h17.3M1.7 6.3h17.3M7 9.4h17.3M4.3 12.5h17.3M1.7 15.6h17.3M7 18.7h17.3M4.3 21.8h17.3M1.7 24.9h17.3M7 28h17.3M4.3 31.1h17.3M1.7 34.2h17.3M7 37.3h17.3M4.3 40.4h17.3M1.7 43.5h17.3M7 46.6h17.3M4.3 49.7h17.3M1.7 52.8h17.3M7 55.9h17.3M4.3 59h17.3\"/><path class=\"ab\" d=\"M0 3.1h26v.5h-26zM0 6.2h26v.5h-26zM0 9.3h26v.5h-26zM0 12.4h26v.5h-26zM0 15.5h26v.5h-26zM0 18.6h26v.5h-26zM0 21.7h26v.5h-26zM0 24.8h26v.5h-26zM0 27.9h26v.5h-26zM0 31h26v.5h-26zM0 34.1h26v.5h-26zM0 37.2h26v.5h-26zM0 40.3h26v.5h-26zM0 43.4h26v.5h-26zM0 46.5h26v.5h-26zM0 49.6h26v.5h-26zM0 52.7h26v.5h-26zM0 55.8h26v.5h-26zM0 58.9h26v.5h-26z\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.1\" d=\"M1.8 3.2h20.5M1.8 6.3h20.5M1.8 9.4h20.5M1.8 12.5h20.5M1.8 15.6h20.5M1.8 18.7h20.5M1.8 21.8h20.5M1.8 24.9h20.5M1.8 28h20.5M1.8 31.1h20.5M1.8 34.2h20.5M1.8 37.3h20.5M1.8 40.4h20.5M1.8 43.5h20.5M1.8 46.6h20.5M1.8 49.7h20.5M1.8 52.8h20.5M1.8 55.9h20.5M1.8 59h20.5\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.2\" d=\"M4.5 3.2h12.4M9.9 6.3h12.4M4.5 9.4h12.4M9.9 12.5h12.4M4.5 15.6h12.4M9.9 18.7h12.4M4.5 21.8h12.4M9.9 24.9h12.4M4.5 28h12.4M9.9 31.1h12.4M4.5 34.2h12.4M9.9 37.3h12.4M4.5 40.4h12.4M9.9 43.5h12.4M4.5 46.6h12.4M9.9 49.7h12.4M4.5 52.8h12.4M9.9 55.9h12.4M4.5 59h12.4\"/><path class=\"ab\" d=\"M0 3.1h24v.5h-24zM0 6.2h24v.5h-24zM0 9.3h24v.5h-24zM0 12.4h24v.5h-24zM0 15.5h24v.5h-24zM0 18.6h24v.5h-24zM0 21.7h24v.5h-24zM0 24.8h24v.5h-24zM0 27.9h24v.5h-24zM0 31h24v.5h-24zM0 34.1h24v.5h-24zM0 37.2h24v.5h-24zM0 40.3h24v.5h-24zM0 43.4h24v.5h-24zM0 46.5h24v.5h-24zM0 49.6h24v.5h-24zM0 52.7h24v.5h-24zM0 55.8h24v.5h-24zM0 58.9h24v.5h-24z\"/>"]],0,1,"T"],["b","apt",[-12,14,-26,-2,62,63.1],"ar al as",[]],["b","apt",[-8,10,-22,-6,63.1,67],"ar al as",[["L","<rect class=\"wg\" x=\".6\" y=\"64.3\" width=\"16.8\" height=\"1.3\"/>"],["R","<rect class=\"ag\" x=\".6\" y=\"64.3\" width=\"14.8\" height=\"1.3\"/>"]]],["b","apt",[-2,6,-18,-12,67,70],"ar al as",[]],["b","apt",[-2,32,6,40,0,20],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h30.3M1.8 6.3h30.3M1.8 9.4h30.3M1.8 12.5h30.3M1.8 15.6h30.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7\" d=\"M4.7 3.2h27.5M1.8 6.3h27.5M7.6 9.4h18.8M4.7 12.5h27.5M1.8 15.6h27.5\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h30.3M1.8 6.3h30.3M1.8 9.4h30.3M1.8 12.5h30.3M1.8 15.6h30.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7\" d=\"M4.7 3.2h27.5M1.8 6.3h27.5M7.6 9.4h18.8M4.7 12.5h27.5M1.8 15.6h27.5\"/>"]],0,1,"T"],["b","apt",[-2,32,6,40,20,21.1],"ar al as",[]],["b","apt",[-48,-20,-24,16,0,30],"ar al as",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 3.2h24.4M1.8 6.3h24.4M1.8 9.4h24.4M1.8 12.5h24.4M1.8 15.6h24.4M1.8 18.7h24.4M1.8 21.8h24.4M1.8 24.9h24.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.8\" d=\"M4.7 3.2h13M10.4 6.3h13M4.7 9.4h13M10.4 12.5h13M4.7 15.6h13M10.4 18.7h13M4.7 21.8h13M10.4 24.9h13\"/><path class=\"ab\" d=\"M0 3.1h28v.5h-28zM0 6.2h28v.5h-28zM0 9.3h28v.5h-28zM0 12.4h28v.5h-28zM0 15.5h28v.5h-28zM0 18.6h28v.5h-28zM0 21.7h28v.5h-28zM0 24.8h28v.5h-28zM0 27.9h28v.5h-28z\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h36.3M1.8 6.3h36.3M1.8 9.4h36.3M1.8 12.5h36.3M1.8 15.6h36.3M1.8 18.7h36.3M1.8 21.8h36.3M1.8 24.9h36.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7.1\" d=\"M4.7 3.2h27.6M1.8 6.3h36.3M7.6 9.4h27.6M4.7 12.5h27.6M1.8 15.6h36.3M7.6 18.7h27.6M4.7 21.8h27.6M1.8 24.9h36.3\"/><path class=\"ab\" d=\"M0 3.1h40v.5h-40zM0 6.2h40v.5h-40zM0 9.3h40v.5h-40zM0 12.4h40v.5h-40zM0 15.5h40v.5h-40zM0 18.6h40v.5h-40zM0 21.7h40v.5h-40zM0 24.8h40v.5h-40zM0 27.9h40v.5h-40z\"/>"]],0,1,"T"],["b","apt",[-48,-20,-24,16,30,31.1],"ar al as",[]],["b","apt",[-48,-12,18,40,0,12],"ar al as",[["L","<path class=\"sd\" stroke-width=\"2.4\" stroke-dasharray=\"2.6 1.2\" d=\"M1.6 1.8h32.8\"/><path class=\"sg\" stroke-width=\"2.4\" stroke-dasharray=\"2.6 5\" d=\"M5.4 1.8h25.3\"/><path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 6.6h32.4M1.8 9.6h32.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.8\" d=\"M4.6 6.6h26.8M1.8 9.6h26.8\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 3.2h18.4M1.8 6.3h18.4M1.8 9.4h18.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.6\" d=\"M4.6 3.2h12.8M10.2 6.3h1.6M4.6 9.4h12.8\"/>"]],0,1,"T"],["b","apt",[-48,-12,18,40,12,12.8],"pt al as",[["T","<rect class=\"water\" x=\"6\" y=\"4\" width=\"20\" height=\"13\"/><rect class=\"glint\" x=\"28\" y=\"5\" width=\"2.4\" height=\"2.4\"/>"]]],["b","bal",[4,36,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","pad:mall",[-38,64,44,80,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"31\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"74\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"2\" y=\"2\" width=\"26\" height=\"32\"/>"]]],["b","stairI",[11,14,44,47.5,-9,0],"st sr ss",[]],["b","stairI",[14,17,44,47.5,-9,-1.29],"st sr ss",[]],["b","stairI",[17,20,44,47.5,-9,-2.57],"st sr ss",[]],["b","stairI",[20,23,44,47.5,-9,-3.86],"st sr ss",[]],["b","stairI",[23,26,44,47.5,-9,-5.14],"st sr ss",[]],["b","stairI",[26,29,44,47.5,-9,-6.43],"st sr ss",[]],["b","stairI",[29,32,44,47.5,-9,-7.71],"st sr ss",[]],["b","stair",[-20,4,44,46,-9,0],"st sr ss",[]],["b","stair",[-20,4,46,48,-9,-1.29],"st sr ss",[]],["b","stair",[-20,4,48,50,-9,-2.57],"st sr ss",[]],["b","stair",[-20,4,50,52,-9,-3.86],"st sr ss",[]],["b","stair",[-20,4,52,54,-9,-5.14],"st sr ss",[]],["b","stair",[-20,4,54,56,-9,-6.43],"st sr ss",[]],["b","stair",[-20,4,56,58,-9,-7.71],"st sr ss",[]],["b","apt",[40,60,58,74,-9,2],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 .7\" d=\"M1.6-5.7h16.9M1.6-2.4h16.9\"/><path class=\"sg\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 3.2\" d=\"M4.1-5.7h11.9M4.1-2.4h11.9\"/>"],["R","<path class=\"sd\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 .9\" d=\"M1.7-5.7h12.7M1.7-2.4h12.7\"/><path class=\"sg\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 3.6\" d=\"M4.4-5.7h7.2M4.4-2.4h7.2\"/><rect class=\"door\" x=\"6.9\" y=\"-9\" width=\"2.2\" height=\"2.8\"/>"]],0,1,"T"],["b","apt",[40,60,58,74,2,3.1],"ar al as",[]],["b","pad:batts",[-68,-38,40,66,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"20\"/>"]]],["b","apt",[-64,-46,48,60,-9,-3],"ar gl2 gs2",[["L","<path class=\"sg\" stroke-width=\"4.4\" stroke-dasharray=\"2 3.3\" d=\"M4-6h12.7\"/>"]],0,1,"T"],["b","apt",[-64,-46,48,60,-3,-1.9],"ar al as",[]],["b","apt",[-78,-58,14,34,-9,4],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 .9\" d=\"M1.7-5.8h16.7M1.7-2.7h16.7M1.7.4h16.7\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 5.9\" d=\"M4.2-5.8h9.1M1.7-2.7h16.7M6.7.4h9.1\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 .9\" d=\"M1.7-5.8h16.7M1.7-2.7h16.7M1.7.4h16.7\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 3.4\" d=\"M4.2-5.8h11.7M4.2-2.7h11.7M4.2.4h11.7\"/>"]],0,1,"T"],["b","apt",[-78,-58,14,34,4,5.1],"ar al as",[]],["s",[28,66,-9],"<rect class=\"hs\" x=\"358.2\" y=\"277.4\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"358.5\" cy=\"275\" r=\"4.1\"/><circle class=\"gt\" cx=\"357.5\" cy=\"274.1\" r=\"2.5\"/>",38],["s",[14,72,-9],"<rect class=\"hs\" x=\"337.4\" y=\"272.6\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"337.7\" cy=\"270.2\" r=\"4.1\"/><circle class=\"gt\" cx=\"336.7\" cy=\"269.3\" r=\"2.5\"/>",38],["s",[-14,64,-9],"<rect class=\"hs\" x=\"316.6\" y=\"251\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"316.9\" cy=\"248.6\" r=\"4.1\"/><circle class=\"gt\" cx=\"315.9\" cy=\"247.7\" r=\"2.5\"/>",38],["s",[-28,72,-9],"<rect class=\"hs\" x=\"293.7\" y=\"247.4\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"294.1\" cy=\"245\" r=\"4.1\"/><circle class=\"gt\" cx=\"293.1\" cy=\"244.1\" r=\"2.5\"/>",38],["s",[-41,63,-9],"<rect class=\"hs\" x=\"289.6\" y=\"234.2\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"289.9\" cy=\"231.8\" r=\"4.1\"/><circle class=\"gt\" cx=\"288.9\" cy=\"230.9\" r=\"2.5\"/>",55],["s",[-66,64,-9],"<rect class=\"hs\" x=\"262.6\" y=\"219.8\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"262.9\" cy=\"217.4\" r=\"4.1\"/><circle class=\"gt\" cx=\"261.9\" cy=\"216.5\" r=\"2.5\"/>",55],["s",[-80,38,-9],"<rect class=\"hs\" x=\"275\" y=\"195.8\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"275.4\" cy=\"193.4\" r=\"4.1\"/><circle class=\"gt\" cx=\"274.4\" cy=\"192.5\" r=\"2.5\"/>",23],["b","stairP",[-25,9,80,81,-13,-9],"st sr ss",[]],["b","stairP",[-25,9,81,82,-13,-10],"st sr ss",[]],["b","stairP",[-25,9,82,83,-13,-11],"st sr ss",[]],["b","stairP",[-25,9,83,84,-13,-12],"st sr ss",[]],["b","pad:plaza",[-25,9,84,102,-18,-13],"pt ie is",[["T","<rect class=\"water\" x=\"4\" y=\"3\" width=\"26\" height=\"12\"/><rect class=\"glint\" x=\"25\" y=\"5\" width=\"2.2\" height=\"2.2\"/>"]]]]};
+  const ART_MODEL = {"flip":[-4,-9],"dot":2.2,"A":[["b","ice:8:central",[-11,-1,23,36,-108,-92],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"13\" height=\".9\"/>"]],8,0.46,"T"],["b","ice:7:central",[-18,4,16,42,-92,-78],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"26\" height=\".9\"/>"]],7,0.58,"T"],["b","ice:6:central",[-26,10,8,48,-78,-65],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"36\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"40\" height=\".9\"/>"]],6,0.7,"T"],["b","ice:5:central",[-36,18,-2,56,-65,-53],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"54\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"58\" height=\".9\"/>"]],5,0.8,"T"],["b","ice:4:battle",[-67,-59,24,38,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"8\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"14\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:4:central",[-46,26,-12,66,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"72\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"78\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:4:garrison",[56,62,20,27,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"6\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"7\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:3:battle",[-70,-56,20,44,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"14\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"24\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:3:central",[-58,34,-22,76,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"92\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"98\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:3:garrison",[54,64,18,30,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"12\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:2:battle",[-73,-53,17,49,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"20\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"32\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:podium",[-35,35,-23,35,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"70\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"58\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:mall",[-63,21,53,71,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"84\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"18\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:batts",[39,51,49,57,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"8\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:garrison",[53,65,17,31,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"14\" height=\".9\"/>"]],2,1,"T"],["b","ice:1:battle",[-78,-48,12,54,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"30\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"42\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:podium",[-40,40,-28,40,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"80\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"68\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:mall",[-68,26,48,76,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"94\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"28\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:batts",[34,56,44,62,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"18\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:garrison",[48,70,12,36,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"24\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:plaza",[-13,13,88,98,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"26\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"10\" height=\".9\"/>"]],1,1,"T"],["b","pad:battle",[-82,-44,8,58,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"32\" height=\"44\"/>"]]],["b","pad:podium",[-44,44,-32,44,-18,0],"pt ie is",[]],["b","pad:garrison",[44,74,8,40,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"26\"/>"]]],["b","battle",[-76,-54,18,44,-9,8.5],"ht hl hs",[["L","<path class=\"wo\" d=\"M3.2 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM7.7 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM12.2 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4zM16.7 0v5.4a1.1 1.1 0 0 0 2.2 0v-5.4z\"/><path class=\"so\" stroke-width=\"3.6\" stroke-dasharray=\"1.8 2.7\" d=\"M3.4-4.7h15.3\"/>"],["R","<path class=\"wg\" d=\"M2.5-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM5.6-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM8.8-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM11.9-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM15-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM18.2-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM21.3-.4v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"sd\" stroke-width=\"3.8\" stroke-dasharray=\"1.6 1.5\" d=\"M2.8-4.9h20.5\"/><rect class=\"door\" x=\"11.7\" y=\"-9\" width=\"2.6\" height=\"4.8\"/>"]]],["p","esh",[-76,44,7.6,-54,44,7.6,-54,44,6,-76,44,6],24],["p","esh",[-54,44,7.6,-54,18,7.6,-54,18,6,-54,44,6],24],["p","rm",[-77.6,45.6,8.5,-52.4,45.6,8.5,-52.4,45.6,7.6,-77.6,45.6,7.6],24],["p","rs",[-52.4,45.6,8.5,-52.4,16.4,8.5,-52.4,16.4,7.6,-52.4,45.6,7.6],24],["p","rm",[-77.6,16.4,8.5,-52.4,16.4,8.5,-65,29,16.07],24],["p","rl",[-77.6,16.4,8.5,-65,29,16.07,-65,33,16.07,-77.6,45.6,8.5],24],["p","rs",[-52.4,16.4,8.5,-52.4,45.6,8.5,-65,33,16.07,-65,29,16.07],24],["p","rl",[-77.6,45.6,8.5,-65,33,16.07,-52.4,45.6,8.5],24],["l","rg",[-77.6,45.6,8.5,-65,33,16.07,-52.4,45.6,8.5],24,0.6],["l","rg",[-65,33,16.07,-65,29,16.07],24,0.6],["b","mb:wingW",[-38,-18,-26,18,0,24.4],"rf ll ls",[["R","<path class=\"sd\" stroke-width=\"2.4\" stroke-dasharray=\"1.6 2.4\" d=\"M3.2 21.8h37.6\"/>"]]],["p","esh",[-18,18,23.5,-18,-26,23.5,-18,-26,21.9,-18,18,21.9],35],["p","rm",[-39.2,19.2,24.4,-16.8,19.2,24.4,-16.8,19.2,23.5,-39.2,19.2,23.5],35],["p","rs",[-16.8,19.2,24.4,-16.8,-27.2,24.4,-16.8,-27.2,23.5,-16.8,19.2,23.5],35],["p","rm",[-39.2,-27.2,24.4,-16.8,-27.2,24.4,-28,-16,31.13],35],["p","rl",[-39.2,-27.2,24.4,-28,-16,31.13,-28,8,31.13,-39.2,19.2,24.4],35],["p","rs",[-16.8,-27.2,24.4,-16.8,19.2,24.4,-28,8,31.13,-28,-16,31.13],35],["p","rl",[-39.2,19.2,24.4,-28,8,31.13,-16.8,19.2,24.4],35],["l","rg",[-39.2,19.2,24.4,-28,8,31.13,-16.8,19.2,24.4],35,0.6],["l","rg",[-28,8,31.13,-28,-16,31.13],35,0.6],["b","mb:mid",[-18,18,-22,18,0,20.2],"rf ll ls",[]],["b","tower:shaft",[-11.28,11.28,-10.42,10.42,0,114.04],"lt ll ls",[["L","<path class=\"gl2\" d=\"M5 6h2.5v105.1h-2.5zM10 6h2.5v105.1h-2.5zM15 6h2.5v105.1h-2.5z\"/><path class=\"sbz\" stroke-width=\"2.5\" stroke-dasharray=\"2.1 3.8\" d=\"M6.3 9.7v101.4M11.3 9.7v101.4M16.3 9.7v101.4\"/><path class=\"wg\" d=\"M5.4 60.3h1.8v3h-1.8zM10.4 24.6h1.8v3h-1.8zM10.4 102h1.8v3h-1.8zM15.4 66.2h1.8v3h-1.8z\"/>"],["R","<path class=\"gs2\" d=\"M4.2 6h2.5v105.1h-2.5zM9.2 6h2.5v105.1h-2.5zM14.2 6h2.5v105.1h-2.5z\"/><path class=\"sbs\" stroke-width=\"2.5\" stroke-dasharray=\"2.1 3.8\" d=\"M5.4 9.7v101.4M10.4 9.7v101.4M15.4 9.7v101.4\"/><path class=\"wg\" d=\"M4.5 60.3h1.8v3h-1.8zM9.5 24.6h1.8v3h-1.8zM9.5 102h1.8v3h-1.8zM14.5 66.2h1.8v3h-1.8z\"/>"]]],["b","tower:cornice",[-11.57,11.57,-10.69,10.69,114.04,118.98],"ct cl cs",[["L","<path class=\"scn\" stroke-width=\"1.1\" stroke-dasharray=\".6 1.4\" d=\"M1.3 114.6h20.5\"/>"],["R","<path class=\"scn\" stroke-width=\"1.1\" stroke-dasharray=\".6 1.3\" d=\"M1.2 114.6h18.9\"/>"]]],["b","tower:clock",[-9.7,9.7,-8.96,8.96,118.98,129.51],"ot ol os",[["L","<circle class=\"bez\" cx=\"9.7\" cy=\"124.6\" r=\"4.1\"/><circle class=\"dial\" cx=\"9.7\" cy=\"124.6\" r=\"2.9\"/><path class=\"hand\" d=\"M9.5 124.6h.4v2.2h-.4zM9.7 124.3h1.6v.4h-1.6z\"/>"],["R","<circle class=\"bez\" cx=\"9\" cy=\"124.6\" r=\"4.1\"/><circle class=\"dial\" cx=\"9\" cy=\"124.6\" r=\"2.9\"/><path class=\"hand\" d=\"M8.7 124.6h.4v2.2h-.4zM9 124.3h1.6v.4h-1.6z\"/>"]]],["b","tower:deck",[-9.7,9.2,-8.96,-8.46,129.51,131.46],"ot ot ot",[],0,1,"LR"],["b","tower:deck",[-9.7,-9.2,-8.96,8.96,129.51,131.46],"ot ot os",[],0,1,"L"],["b","tower:belfry",[-5.53,5.53,-5.11,5.11,130.81,144.07],"bell bell bell",[["L","<path class=\"ol\" d=\"M0 130.8h1.3v13.3h-1.3zM2.3 130.8h.6v13.3h-.6zM3.2 130.8h.6v13.3h-.6zM7.3 130.8h.6v13.3h-.6zM8.1 130.8h.6v13.3h-.6zM9.8 130.8h1.3v13.3h-1.3z\"/><rect class=\"ol\" x=\"0\" y=\"130.8\" width=\"11.1\" height=\".9\"/>"],["R","<path class=\"os\" d=\"M0 130.8h1.2v13.3h-1.2zM2.1 130.8h.6v13.3h-.6zM2.9 130.8h.6v13.3h-.6zM6.7 130.8h.6v13.3h-.6zM7.5 130.8h.6v13.3h-.6zM9 130.8h1.2v13.3h-1.2z\"/><rect class=\"os\" x=\"0\" y=\"130.8\" width=\"10.2\" height=\".9\"/>"]],0,1,"T"],["b","tower:deck",[-9.7,9.7,8.46,8.96,129.51,131.46],"ot ol ot",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1\" d=\"M1.3 130.4h16.8\"/>"]],0,1,"R"],["b","tower:deck",[9.2,9.7,-8.96,8.96,129.51,131.46],"ot ot os",[["R","<path class=\"sd\" stroke-width=\"1.2\" stroke-dasharray=\".5 .9\" d=\"M1.3 130.4h15.4\"/>"]],0,1,"L"],["b","tower:ent",[-5.87,5.87,-5.42,5.42,144.07,145.76],"ot ol os",[["L","<path class=\"sgd\" stroke-width=\".7\" stroke-dasharray=\".7 1.9\" d=\"M1.6 144.9h8.6\"/>"],["R","<path class=\"sgd\" stroke-width=\".7\" stroke-dasharray=\".7 1.7\" d=\"M1.5 144.9h7.9\"/>"]]],["b","tower:step1",[-5.08,5.08,-4.69,4.69,145.76,147.97],"ot ol os",[]],["b","tower:step2",[-4.06,4.06,-3.75,3.75,147.97,150.05],"ot ol os",[],0,1,"T"],["p","kt",[-4.36,-4.05,150.05,4.36,-4.05,150.05,0,0,152.91],56],["p","kt",[-4.36,-4.05,150.05,0,0,152.91,-4.36,4.05,150.05],56],["p","kl",[-4.36,4.05,150.05,0,0,152.91,4.36,4.05,150.05],56],["p","ks",[4.36,-4.05,150.05,4.36,4.05,150.05,0,0,152.91],56],["s",[0,0,152.91],"<rect class=\"mast\" x=\"397.6\" y=\"21.5\" width=\".9\" height=\"9\"/>",56],["b","mb:wingE",[18,38,-26,18,0,24.4],"rf ll ls",[["R","<path class=\"sd\" stroke-width=\"2.8\" stroke-dasharray=\"1.6 2.4\" d=\"M3.2 3.8h37.6M3.2 10.4h37.6M3.2 15.9h37.6M3.2 21h37.6\"/><path class=\"sg\" stroke-width=\"2.8\" stroke-dasharray=\"1.6 10.4\" d=\"M7.2 3.8h25.6M3.2 10.4h37.6M11.2 15.9h25.6M7.2 21h25.6\"/>"]]],["p","esh",[38,18,23.5,38,-26,23.5,38,-26,21.9,38,18,21.9],62],["p","rm",[16.8,19.2,24.4,39.2,19.2,24.4,39.2,19.2,23.5,16.8,19.2,23.5],62],["p","rs",[39.2,19.2,24.4,39.2,-27.2,24.4,39.2,-27.2,23.5,39.2,19.2,23.5],62],["p","rm",[16.8,-27.2,24.4,39.2,-27.2,24.4,28,-16,31.13],62],["p","rl",[16.8,-27.2,24.4,28,-16,31.13,28,8,31.13,16.8,19.2,24.4],62],["p","rs",[39.2,-27.2,24.4,39.2,19.2,24.4,28,8,31.13,28,-16,31.13],62],["p","rl",[16.8,19.2,24.4,28,8,31.13,39.2,19.2,24.4],62],["l","rg",[16.8,19.2,24.4,28,8,31.13,39.2,19.2,24.4],62,0.6],["l","rg",[28,8,31.13,28,-16,31.13],62,0.6],["b","mb:southW",[-38,-12,18,40,0,24.4],"rf ll ls",[["L","<path class=\"wo\" d=\"M1.8 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM7.7 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM13.5 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM19.3 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9z\"/><path class=\"wg\" d=\"M1.8 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM7.7 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM13.5 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM19.3 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"wo\" d=\"M2 20.4h1.8v2.2h-1.8zM7.9 20.4h1.8v2.2h-1.8zM13.7 20.4h1.8v2.2h-1.8zM19.5 20.4h1.8v2.2h-1.8z\"/><path class=\"trim\" d=\"M0 17.2h26v.8h-26zM0 20h26v.5h-26z\"/>"]],0,1,"R"],["p","esh",[-38,40,23.5,-12,40,23.5,-12,40,21.9,-38,40,21.9],72],["p","rm",[-39.2,41.2,24.4,0,41.2,24.4,0,41.2,23.5,-39.2,41.2,23.5],72],["p","rm",[-39.2,16.8,24.4,0,16.8,24.4,0,29,31.73,-27,29,31.73],72],["p","rl",[-39.2,16.8,24.4,-27,29,31.73,-39.2,41.2,24.4],72],["p","rl",[-39.2,41.2,24.4,-27,29,31.73,0,29,31.73,0,41.2,24.4],72],["l","rg",[-39.2,41.2,24.4,-27,29,31.73,-4,29,31.73],72,0.6],["b","mb:pav",[-12,12,14,43,0,26.2],"rf ll ls",[["L","<path class=\"ao\" d=\"M1.2 0v5a1.2 1.2 0 0 0 2.4 0v-5zM4.4 0v5a1.2 1.2 0 0 0 2.4 0v-5zM7.6 0v5a1.2 1.2 0 0 0 2.4 0v-5zM10.8 0v5a1.2 1.2 0 0 0 2.4 0v-5zM14 0v5a1.2 1.2 0 0 0 2.4 0v-5zM17.2 0v5a1.2 1.2 0 0 0 2.4 0v-5zM20.4 0v5a1.2 1.2 0 0 0 2.4 0v-5z\"/><path class=\"ag\" d=\"M1.7 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM4.9 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM8 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM11.3 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM14.5 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM17.7 0v4.8a.8.8 0 0 0 1.5 0v-4.7zM20.8 0v4.8a.8.8 0 0 0 1.5 0v-4.7z\"/><path class=\"sg\" stroke-width=\"7.6\" stroke-dasharray=\"1.7 1.5\" d=\"M1.5 12.2h20.9\"/><rect class=\"rail\" x=\".6\" y=\"8.4\" width=\"22.8\" height=\".5\"/><path class=\"so\" stroke-width=\"2.6\" stroke-dasharray=\"1.4 1.8\" d=\"M1.7 22.2h20.6\"/><path class=\"trim\" d=\"M0 17.2h24v.8h-24zM0 20h24v.5h-24z\"/><path class=\"so\" stroke-width=\"1.5\" stroke-dasharray=\".4 1.2\" d=\"M1.2 18.9h21.6\"/>"]]],["p","esh",[-12,43,25.3,12,43,25.3,12,43,23.7,-12,43,23.7],79],["p","esh",[12,43,25.3,12,14,25.3,12,14,23.7,12,43,23.7],79],["p","rm",[-13.2,44.2,26.2,13.2,44.2,26.2,13.2,44.2,25.3,-13.2,44.2,25.3],79],["p","rs",[13.2,44.2,26.2,13.2,12.8,26.2,13.2,12.8,25.3,13.2,44.2,25.3],79],["p","rm",[-13.2,12.8,26.2,13.2,12.8,26.2,0,26,34.13],79],["p","rl",[-13.2,12.8,26.2,0,26,34.13,0,31,34.13,-13.2,44.2,26.2],79],["p","rs",[13.2,12.8,26.2,13.2,44.2,26.2,0,31,34.13,0,26,34.13],79],["p","rl",[-13.2,44.2,26.2,0,31,34.13,13.2,44.2,26.2],79],["l","rg",[-13.2,44.2,26.2,0,31,34.13,13.2,44.2,26.2],79,0.6],["l","rg",[0,31,34.13,0,26,34.13],79,0.6],["b","mb:southE",[12,38,18,40,0,24.4],"rf ll ls",[["L","<path class=\"wo\" d=\"M22 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM16.2 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM10.3 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9zM4.5 1.6v2.9a1.1 1.1 0 0 0 2.2 0v-2.9z\"/><path class=\"wg\" d=\"M22 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM16.2 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM10.3 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3zM4.5 8.6v6.3a1.1 1.1 0 0 0 2.2 0v-6.3z\"/><path class=\"wo\" d=\"M22.2 20.4h1.8v2.2h-1.8zM16.4 20.4h1.8v2.2h-1.8zM10.5 20.4h1.8v2.2h-1.8zM4.7 20.4h1.8v2.2h-1.8z\"/><path class=\"trim\" d=\"M0 17.2h26v.8h-26zM0 20h26v.5h-26z\"/>"]]],["p","esh",[12,40,23.5,38,40,23.5,38,40,21.9,12,40,21.9],90],["p","esh",[38,40,23.5,38,18,23.5,38,18,21.9,38,40,21.9],90],["p","rm",[13.2,41.2,24.4,39.2,41.2,24.4,39.2,41.2,23.5,13.2,41.2,23.5],90],["p","rs",[39.2,41.2,24.4,39.2,16.8,24.4,39.2,16.8,23.5,39.2,41.2,23.5],90],["p","rm",[13.2,16.8,24.4,39.2,16.8,24.4,27,29,31.73,4,29,31.73,13.2,19.8,26.2],90],["p","rl",[13.2,41.2,24.4,39.2,41.2,24.4,27,29,31.73,4,29,31.73,13.2,38.2,26.2],90],["p","rs",[39.2,16.8,24.4,39.2,41.2,24.4,27,29,31.73],90],["l","rg",[4,29,31.73,27,29,31.73,39.2,41.2,24.4],90,0.6],["b","bal",[-44,-12,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","pad:mall",[-72,30,44,80,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"31\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"74\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"2\" y=\"2\" width=\"26\" height=\"32\"/>"]]],["b","stairI",[-40,-37,44,47.5,-9,0],"st sr ss",[]],["b","stairI",[-37,-34,44,47.5,-9,-1.29],"st sr ss",[]],["b","stairI",[-34,-31,44,47.5,-9,-2.57],"st sr ss",[]],["b","stairI",[-31,-28,44,47.5,-9,-3.86],"st sr ss",[]],["b","stairI",[-28,-25,44,47.5,-9,-5.14],"st sr ss",[]],["b","stairI",[-25,-22,44,47.5,-9,-6.43],"st sr ss",[]],["b","stairI",[-22,-19,44,47.5,-9,-7.71],"st sr ss",[]],["b","stair",[-12,12,44,46,-9,0],"st sr ss",[]],["b","stair",[-12,12,46,48,-9,-1.29],"st sr ss",[]],["b","stair",[-12,12,48,50,-9,-2.57],"st sr ss",[]],["b","stair",[-12,12,50,52,-9,-3.86],"st sr ss",[]],["b","stair",[-12,12,52,54,-9,-5.14],"st sr ss",[]],["b","stair",[-12,12,54,56,-9,-6.43],"st sr ss",[]],["b","stair",[-12,12,56,58,-9,-7.71],"st sr ss",[]],["b","bal",[12,44,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","parlin",[-70,-48,58,72,-9,10.8],"ht hl hs",[["L","<path class=\"so\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 1.7\" d=\"M2.3-5.1h17.3M2.3.9h17.3M2.3 6.7h17.3\"/><path class=\"sg\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 11.2\" d=\"M5.5-5.1h14.2M11.8.9h1.5M5.5 6.7h14.2\"/>"],["R","<path class=\"wg\" d=\"M2.2-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9zM5.9-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9zM9.6-7v3.9a1.1 1.1 0 0 0 2.2 0v-3.9z\"/><path class=\"sd\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 2.2\" d=\"M2.6 1.7h8.8M2.6 6.7h8.8\"/>"]]],["p","esh",[-70,72,9.9,-48,72,9.9,-48,72,8.3,-70,72,8.3],116],["p","esh",[-48,72,9.9,-48,58,9.9,-48,58,8.3,-48,72,8.3],116],["p","rm",[-71.4,73.4,10.8,-46.6,73.4,10.8,-46.6,73.4,9.9,-71.4,73.4,9.9],116],["p","rs",[-46.6,73.4,10.8,-46.6,56.6,10.8,-46.6,56.6,9.9,-46.6,73.4,9.9],116],["p","rm",[-71.4,56.6,10.8,-46.6,56.6,10.8,-55,65,15.85,-63,65,15.85],116],["p","rl",[-71.4,56.6,10.8,-63,65,15.85,-71.4,73.4,10.8],116],["p","rl",[-71.4,73.4,10.8,-63,65,15.85,-55,65,15.85,-46.6,73.4,10.8],116],["p","rs",[-46.6,56.6,10.8,-46.6,73.4,10.8,-55,65,15.85],116],["l","rg",[-71.4,73.4,10.8,-63,65,15.85,-55,65,15.85,-46.6,73.4,10.8],116,0.6],["b","pad:batts",[30,60,40,66,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"20\"/>"]]],["b","batts",[38,56,48,60,-9,11.5],"ht hl hs",[["L","<path class=\"so\" stroke-width=\"3.6\" stroke-dasharray=\"1.5 1.5\" d=\"M2.3-5h13.5M2.3 1.2h13.5M2.3 7h13.5\"/><path class=\"sg\" stroke-width=\"3.6\" stroke-dasharray=\"1.5 7.5\" d=\"M5.3-5h10.5M2.3 1.2h10.5M8.3 7h1.5\"/>"],["R","<path class=\"sg\" stroke-width=\"6.8\" stroke-dasharray=\"1.8 1.2\" d=\"M2.1 1.9h7.8\"/><rect class=\"rail\" x=\"1\" y=\"-1.5\" width=\"10\" height=\".4\"/><path class=\"sd\" stroke-width=\"3\" stroke-dasharray=\"1.5 1.5\" d=\"M2.3-5.3h7.5M2.3 8.1h7.5\"/>"]]],["p","esh",[38,60,10.6,56,60,10.6,56,60,9,38,60,9],127],["p","esh",[56,60,10.6,56,48,10.6,56,48,9,56,60,9],127],["p","rm",[36.6,61.4,11.5,57.4,61.4,11.5,57.4,61.4,10.6,36.6,61.4,10.6],127],["p","rs",[57.4,61.4,11.5,57.4,46.6,11.5,57.4,46.6,10.6,57.4,61.4,10.6],127],["p","rm",[36.6,46.6,11.5,57.4,46.6,11.5,50,54,15.95,44,54,15.95],127],["p","rl",[36.6,46.6,11.5,44,54,15.95,36.6,61.4,11.5],127],["p","rl",[36.6,61.4,11.5,44,54,15.95,50,54,15.95,57.4,61.4,11.5],127],["p","rs",[57.4,46.6,11.5,57.4,61.4,11.5,50,54,15.95],127],["l","rg",[36.6,61.4,11.5,44,54,15.95,50,54,15.95,57.4,61.4,11.5],127,0.6],["b","garrison",[50,70,14,34,-9,3.9],"ht hl hs",[["L","<path class=\"wg\" d=\"M3.8-8v5.9a1.5 1.5 0 0 0 3 0v-5.9zM8.5-8v5.9a1.5 1.5 0 0 0 3 0v-5.9zM13.2-8v5.9a1.5 1.5 0 0 0 3 0v-5.9z\"/><path class=\"so\" stroke-width=\"1.6\" stroke-dasharray=\"1.4 1.6\" d=\"M1.8 1.8h16.4\"/>"],["R","<path class=\"sd\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 1.9\" d=\"M2.5-5.3h15.1M2.5-.1h15.1\"/><path class=\"sg\" stroke-width=\"3.4\" stroke-dasharray=\"1.5 8.7\" d=\"M5.9-5.3h11.7M2.5-.1h11.7\"/>"]]],["p","esh",[50,34,3,70,34,3,70,34,1.4,50,34,1.4],137],["p","esh",[70,34,3,70,14,3,70,14,1.4,70,34,1.4],137],["p","rm",[48.6,35.4,3.9,71.4,35.4,3.9,71.4,35.4,3,48.6,35.4,3],137],["p","rs",[71.4,35.4,3.9,71.4,12.6,3.9,71.4,12.6,3,71.4,35.4,3],137],["p","rm",[48.6,12.6,3.9,71.4,12.6,3.9,60,24,10.75,60,24,10.75],137],["p","rl",[48.6,12.6,3.9,60,24,10.75,48.6,35.4,3.9],137],["p","rl",[48.6,35.4,3.9,60,24,10.75,60,24,10.75,71.4,35.4,3.9],137],["p","rs",[71.4,12.6,3.9,71.4,35.4,3.9,60,24,10.75],137],["l","rg",[48.6,35.4,3.9,60,24,10.75,60,24,10.75,71.4,35.4,3.9],137,0.6],["b","stairP",[-17,17,80,81,-13,-9],"st sr ss",[]],["b","stairP",[-17,17,81,82,-13,-10],"st sr ss",[]],["b","stairP",[-17,17,82,83,-13,-11],"st sr ss",[]],["b","stairP",[-17,17,83,84,-13,-12],"st sr ss",[]],["b","pad:plaza",[-17,17,84,102,-18,-13],"pt ie is",[]],["d",[0,85.4,-13],0,151],["d",[0,83.5,-12],1,150],["d",[0,81.5,-10],2,148],["d",[0,78.4,-9],0,100],["d",[0,75.2,-9],1,100],["d",[0,72,-9],2,100],["d",[0,68.8,-9],0,100],["d",[0,65.6,-9],1,100],["d",[0,58.6,-9],2,100],["d",[0,57,-7.71],0,114],["d",[0,55,-6.43],1,113],["d",[0,53,-5.14],2,112],["d",[0,51,-3.86],0,111],["d",[0,49,-2.57],1,110],["d",[0,47,-1.29],2,109],["d",[0,45,0],0,108],["c","ll lt",[0,93,-13],6.4,2.2,151],["e","water",[0,93,-10.8],5.04,4.99,151],["s",[0,93,-10.8],"<path class=\"bronze\" d=\"M297 283.4l1 -2h6.8l1 2zM300.6 281.4v-4.6l-2.3 -2.1 2.6 1 .5 -1.2 .5 1.2 2.6 -1 -2.3 2.1v4.6z\"/>",151],["s",[0,93,-10.8],"<path class=\"glint\" d=\"M305.8 280.4l.7 1.8 1.8 .7 -1.8 .7 -.7 1.8 -.7 -1.8 -1.8 -.7 1.8 -.7z\"/>",151],["e","shade",[0.43,61.07,-9],2.31,1.41,100],["s",[0,61.5,-9],"<path class=\"fig\" d=\"M332.3 261.7v-6.6a1.8 1.8 0 0 1 3.6 0V261.7z\"/><circle class=\"fig\" cx=\"334.7\" cy=\"252.2\" r=\"1.8\"/><rect class=\"pack\" x=\"331.6\" y=\"254.2\" width=\"3.1\" height=\"4.2\" rx=\".9\"/>",100]],"B":[["b","ice:8:central",[-7,3,23,36,-108,-92],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-92.9\" width=\"13\" height=\".9\"/>"]],8,0.46,"T"],["b","ice:7:central",[-12,10,16,42,-92,-78],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-78.9\" width=\"26\" height=\".9\"/>"]],7,0.58,"T"],["b","ice:6:central",[-18,18,8,48,-78,-65],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"36\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-65.9\" width=\"40\" height=\".9\"/>"]],6,0.7,"T"],["b","ice:5:central",[-26,28,-2,56,-65,-53],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"54\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-53.9\" width=\"58\" height=\".9\"/>"]],5,0.8,"T"],["b","ice:4:battle",[51,59,24,38,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"8\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"14\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:4:central",[-34,38,-12,66,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"72\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"78\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:4:garrison",[-70,-64,20,27,-53,-42],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"6\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-42.9\" width=\"7\" height=\".9\"/>"]],4,0.88,"T"],["b","ice:3:battle",[48,62,20,44,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"14\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"24\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:3:central",[-42,50,-22,76,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"92\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"98\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:3:garrison",[-72,-62,18,30,-42,-32],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"10\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-32.9\" width=\"12\" height=\".9\"/>"]],3,0.95,"T"],["b","ice:2:battle",[45,65,17,49,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"20\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"32\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:podium",[-43,27,-23,35,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"70\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"58\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:mall",[-29,55,53,71,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"84\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"18\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:batts",[-59,-47,49,57,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"8\" height=\".9\"/>"]],2,1,"T"],["b","ice:2:garrison",[-73,-61,17,31,-32,-24],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"12\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-24.9\" width=\"14\" height=\".9\"/>"]],2,1,"T"],["b","ice:1:battle",[40,70,12,54,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"30\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"42\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:podium",[-48,32,-28,40,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"80\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"68\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:mall",[-34,60,48,76,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"94\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"28\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:batts",[-64,-42,44,62,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"18\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:garrison",[-78,-56,12,36,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"22\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"24\" height=\".9\"/>"]],1,1,"T"],["b","ice:1:plaza",[-21,5,88,98,-24,-18],"rib ril ris",[["L","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"26\" height=\".9\"/>"],["R","<rect class=\"rib\" x=\"0\" y=\"-18.9\" width=\"10\" height=\".9\"/>"]],1,1,"T"],["b","pad:battle",[36,74,8,58,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"32\" height=\"44\"/>"]]],["b","pad:podium",[-52,36,-32,44,-18,0],"pt ie is",[]],["b","pad:garrison",[-82,-52,8,40,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"26\"/>"]]],["b","apt:west",[44,70,14,50,-9,9],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1\" d=\"M1.7-5.8h22.6M1.7-2.7h22.6M1.7.4h22.6M1.7 3.5h22.6M1.7 6.6h22.6\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.3\" d=\"M4.3-5.8h17.3M1.7-2.7h17.3M7 .4h17.3M4.3 3.5h17.3M1.7 6.6h17.3\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8-5.8h32.4M1.8-2.7h32.4M1.8.4h32.4M1.8 3.5h32.4M1.8 6.6h32.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.6\" d=\"M4.6-5.8h24M10.2-2.7h24M4.6.4h24M10.2 3.5h24M4.6 6.6h24\"/>"]],0,1,"T"],["b","apt:west-roof",[44,70,14,50,9,10.1],"ar al as",[]],["b","apt:west-top",[58,64,22,28,10.1,13],"al al as",[]],["b","apt:tall",[-12,14,-26,-2,0,62],"ar al as",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1\" d=\"M1.7 3.2h22.6M1.7 6.3h22.6M1.7 9.4h22.6M1.7 12.5h22.6M1.7 15.6h22.6M1.7 18.7h22.6M1.7 21.8h22.6M1.7 24.9h22.6M1.7 28h22.6M1.7 31.1h22.6M1.7 34.2h22.6M1.7 37.3h22.6M1.7 40.4h22.6M1.7 43.5h22.6M1.7 46.6h22.6M1.7 49.7h22.6M1.7 52.8h22.6M1.7 55.9h22.6M1.7 59h22.6\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.3\" d=\"M4.3 3.2h17.3M1.7 6.3h17.3M7 9.4h17.3M4.3 12.5h17.3M1.7 15.6h17.3M7 18.7h17.3M4.3 21.8h17.3M1.7 24.9h17.3M7 28h17.3M4.3 31.1h17.3M1.7 34.2h17.3M7 37.3h17.3M4.3 40.4h17.3M1.7 43.5h17.3M7 46.6h17.3M4.3 49.7h17.3M1.7 52.8h17.3M7 55.9h17.3M4.3 59h17.3\"/><path class=\"ab\" d=\"M0 3.1h26v.5h-26zM0 6.2h26v.5h-26zM0 9.3h26v.5h-26zM0 12.4h26v.5h-26zM0 15.5h26v.5h-26zM0 18.6h26v.5h-26zM0 21.7h26v.5h-26zM0 24.8h26v.5h-26zM0 27.9h26v.5h-26zM0 31h26v.5h-26zM0 34.1h26v.5h-26zM0 37.2h26v.5h-26zM0 40.3h26v.5h-26zM0 43.4h26v.5h-26zM0 46.5h26v.5h-26zM0 49.6h26v.5h-26zM0 52.7h26v.5h-26zM0 55.8h26v.5h-26zM0 58.9h26v.5h-26z\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.1\" d=\"M1.8 3.2h20.5M1.8 6.3h20.5M1.8 9.4h20.5M1.8 12.5h20.5M1.8 15.6h20.5M1.8 18.7h20.5M1.8 21.8h20.5M1.8 24.9h20.5M1.8 28h20.5M1.8 31.1h20.5M1.8 34.2h20.5M1.8 37.3h20.5M1.8 40.4h20.5M1.8 43.5h20.5M1.8 46.6h20.5M1.8 49.7h20.5M1.8 52.8h20.5M1.8 55.9h20.5M1.8 59h20.5\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.2\" d=\"M4.5 3.2h12.4M9.9 6.3h12.4M4.5 9.4h12.4M9.9 12.5h12.4M4.5 15.6h12.4M9.9 18.7h12.4M4.5 21.8h12.4M9.9 24.9h12.4M4.5 28h12.4M9.9 31.1h12.4M4.5 34.2h12.4M9.9 37.3h12.4M4.5 40.4h12.4M9.9 43.5h12.4M4.5 46.6h12.4M9.9 49.7h12.4M4.5 52.8h12.4M9.9 55.9h12.4M4.5 59h12.4\"/><path class=\"ab\" d=\"M0 3.1h24v.5h-24zM0 6.2h24v.5h-24zM0 9.3h24v.5h-24zM0 12.4h24v.5h-24zM0 15.5h24v.5h-24zM0 18.6h24v.5h-24zM0 21.7h24v.5h-24zM0 24.8h24v.5h-24zM0 27.9h24v.5h-24zM0 31h24v.5h-24zM0 34.1h24v.5h-24zM0 37.2h24v.5h-24zM0 40.3h24v.5h-24zM0 43.4h24v.5h-24zM0 46.5h24v.5h-24zM0 49.6h24v.5h-24zM0 52.7h24v.5h-24zM0 55.8h24v.5h-24zM0 58.9h24v.5h-24z\"/>"]],0,1,"T"],["b","apt:tall-roof",[-12,14,-26,-2,62,63.1],"ar al as",[]],["b","apt:tall-crown",[-8,10,-22,-6,63.1,67],"ar al as",[["L","<rect class=\"wg\" x=\".6\" y=\"64.3\" width=\"16.8\" height=\"1.3\"/>"],["R","<rect class=\"ag\" x=\".6\" y=\"64.3\" width=\"14.8\" height=\"1.3\"/>"]]],["b","apt:tall-mech",[-2,6,-18,-12,67,70],"ar al as",[]],["b","apt:court",[-2,32,6,40,0,20],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h30.3M1.8 6.3h30.3M1.8 9.4h30.3M1.8 12.5h30.3M1.8 15.6h30.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7\" d=\"M4.7 3.2h27.5M1.8 6.3h27.5M7.6 9.4h18.8M4.7 12.5h27.5M1.8 15.6h27.5\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h30.3M1.8 6.3h30.3M1.8 9.4h30.3M1.8 12.5h30.3M1.8 15.6h30.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7\" d=\"M4.7 3.2h27.5M1.8 6.3h27.5M7.6 9.4h18.8M4.7 12.5h27.5M1.8 15.6h27.5\"/>"]],0,1,"T"],["b","apt:court-roof",[-2,32,6,40,20,21.1],"ar al as",[]],["b","apt:east",[-48,-20,-24,16,0,30],"ar al as",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 3.2h24.4M1.8 6.3h24.4M1.8 9.4h24.4M1.8 12.5h24.4M1.8 15.6h24.4M1.8 18.7h24.4M1.8 21.8h24.4M1.8 24.9h24.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.8\" d=\"M4.7 3.2h13M10.4 6.3h13M4.7 9.4h13M10.4 12.5h13M4.7 15.6h13M10.4 18.7h13M4.7 21.8h13M10.4 24.9h13\"/><path class=\"ab\" d=\"M0 3.1h28v.5h-28zM0 6.2h28v.5h-28zM0 9.3h28v.5h-28zM0 12.4h28v.5h-28zM0 15.5h28v.5h-28zM0 18.6h28v.5h-28zM0 21.7h28v.5h-28zM0 24.8h28v.5h-28zM0 27.9h28v.5h-28z\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.3\" d=\"M1.8 3.2h36.3M1.8 6.3h36.3M1.8 9.4h36.3M1.8 12.5h36.3M1.8 15.6h36.3M1.8 18.7h36.3M1.8 21.8h36.3M1.8 24.9h36.3\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 7.1\" d=\"M4.7 3.2h27.6M1.8 6.3h36.3M7.6 9.4h27.6M4.7 12.5h27.6M1.8 15.6h36.3M7.6 18.7h27.6M4.7 21.8h27.6M1.8 24.9h36.3\"/><path class=\"ab\" d=\"M0 3.1h40v.5h-40zM0 6.2h40v.5h-40zM0 9.3h40v.5h-40zM0 12.4h40v.5h-40zM0 15.5h40v.5h-40zM0 18.6h40v.5h-40zM0 21.7h40v.5h-40zM0 24.8h40v.5h-40zM0 27.9h40v.5h-40z\"/>"]],0,1,"T"],["b","apt:east-roof",[-48,-20,-24,16,30,31.1],"ar al as",[]],["b","apt:wing",[-48,-12,18,40,0,12],"ar al as",[["L","<path class=\"sd\" stroke-width=\"2.4\" stroke-dasharray=\"2.6 1.2\" d=\"M1.6 1.8h32.8\"/><path class=\"sg\" stroke-width=\"2.4\" stroke-dasharray=\"2.6 5\" d=\"M5.4 1.8h25.3\"/><path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 6.6h32.4M1.8 9.6h32.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 6.8\" d=\"M4.6 6.6h26.8M1.8 9.6h26.8\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 1.2\" d=\"M1.8 3.2h18.4M1.8 6.3h18.4M1.8 9.4h18.4\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 9.6\" d=\"M4.6 3.2h12.8M10.2 6.3h1.6M4.6 9.4h12.8\"/>"]],0,1,"T"],["b","apt:wing-deck",[-48,-12,18,40,12,12.8],"pt al as",[["T","<rect class=\"water\" x=\"6\" y=\"4\" width=\"20\" height=\"13\"/><rect class=\"glint\" x=\"28\" y=\"5\" width=\"2.4\" height=\"2.4\"/>"]]],["b","bal",[4,36,43.3,44,0,1.6],"pt ll pt",[["L","<path class=\"so\" stroke-width=\"1.2\" stroke-dasharray=\".5 1.1\" d=\"M1.4.5h29.3\"/>"]],0,1,"R"],["b","pad:mall",[-38,64,44,80,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"31\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"74\" y=\"16\" width=\"25\" height=\"16\"/><rect class=\"gt\" x=\"2\" y=\"2\" width=\"26\" height=\"32\"/>"]]],["b","stairI",[11,14,44,47.5,-9,0],"st sr ss",[]],["b","stairI",[14,17,44,47.5,-9,-1.29],"st sr ss",[]],["b","stairI",[17,20,44,47.5,-9,-2.57],"st sr ss",[]],["b","stairI",[20,23,44,47.5,-9,-3.86],"st sr ss",[]],["b","stairI",[23,26,44,47.5,-9,-5.14],"st sr ss",[]],["b","stairI",[26,29,44,47.5,-9,-6.43],"st sr ss",[]],["b","stairI",[29,32,44,47.5,-9,-7.71],"st sr ss",[]],["b","stair",[-20,4,44,46,-9,0],"st sr ss",[]],["b","stair",[-20,4,46,48,-9,-1.29],"st sr ss",[]],["b","stair",[-20,4,48,50,-9,-2.57],"st sr ss",[]],["b","stair",[-20,4,50,52,-9,-3.86],"st sr ss",[]],["b","stair",[-20,4,52,54,-9,-5.14],"st sr ss",[]],["b","stair",[-20,4,54,56,-9,-6.43],"st sr ss",[]],["b","stair",[-20,4,56,58,-9,-7.71],"st sr ss",[]],["b","apt:row",[40,60,58,74,-9,2],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 .7\" d=\"M1.6-5.7h16.9M1.6-2.4h16.9\"/><path class=\"sg\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 3.2\" d=\"M4.1-5.7h11.9M4.1-2.4h11.9\"/>"],["R","<path class=\"sd\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 .9\" d=\"M1.7-5.7h12.7M1.7-2.4h12.7\"/><path class=\"sg\" stroke-width=\"2.2\" stroke-dasharray=\"1.8 3.6\" d=\"M4.4-5.7h7.2M4.4-2.4h7.2\"/><rect class=\"door\" x=\"6.9\" y=\"-9\" width=\"2.2\" height=\"2.8\"/>"]],0,1,"T"],["b","apt:row-roof",[40,60,58,74,2,3.1],"ar al as",[]],["b","pad:batts",[-68,-38,40,66,-18,-9],"pt ie is",[["T","<rect class=\"gt\" x=\"3\" y=\"3\" width=\"24\" height=\"20\"/>"]]],["b","apt:office",[-64,-46,48,60,-9,-3],"ar gl2 gs2",[["L","<path class=\"sg\" stroke-width=\"4.4\" stroke-dasharray=\"2 3.3\" d=\"M4-6h12.7\"/>"]],0,1,"T"],["b","apt:office-roof",[-64,-46,48,60,-3,-1.9],"ar al as",[]],["b","apt:small",[-78,-58,14,34,-9,4],"ar bl bs",[["L","<path class=\"so\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 .9\" d=\"M1.7-5.8h16.7M1.7-2.7h16.7M1.7.4h16.7\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 5.9\" d=\"M4.2-5.8h9.1M1.7-2.7h16.7M6.7.4h9.1\"/>"],["R","<path class=\"sd\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 .9\" d=\"M1.7-5.8h16.7M1.7-2.7h16.7M1.7.4h16.7\"/><path class=\"sg\" stroke-width=\"1.9\" stroke-dasharray=\"1.6 3.4\" d=\"M4.2-5.8h11.7M4.2-2.7h11.7M4.2.4h11.7\"/>"]],0,1,"T"],["b","apt:small-roof",[-78,-58,14,34,4,5.1],"ar al as",[]],["s",[28,66,-9],"<rect class=\"hs\" x=\"358.2\" y=\"277.4\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"358.5\" cy=\"275\" r=\"4.1\"/><circle class=\"gt\" cx=\"357.5\" cy=\"274.1\" r=\"2.5\"/>",38],["s",[14,72,-9],"<rect class=\"hs\" x=\"337.4\" y=\"272.6\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"337.7\" cy=\"270.2\" r=\"4.1\"/><circle class=\"gt\" cx=\"336.7\" cy=\"269.3\" r=\"2.5\"/>",38],["s",[-14,64,-9],"<rect class=\"hs\" x=\"316.6\" y=\"251\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"316.9\" cy=\"248.6\" r=\"4.1\"/><circle class=\"gt\" cx=\"315.9\" cy=\"247.7\" r=\"2.5\"/>",38],["s",[-28,72,-9],"<rect class=\"hs\" x=\"293.7\" y=\"247.4\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"294.1\" cy=\"245\" r=\"4.1\"/><circle class=\"gt\" cx=\"293.1\" cy=\"244.1\" r=\"2.5\"/>",38],["s",[-41,63,-9],"<rect class=\"hs\" x=\"289.6\" y=\"234.2\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"289.9\" cy=\"231.8\" r=\"4.1\"/><circle class=\"gt\" cx=\"288.9\" cy=\"230.9\" r=\"2.5\"/>",55],["s",[-66,64,-9],"<rect class=\"hs\" x=\"262.6\" y=\"219.8\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"262.9\" cy=\"217.4\" r=\"4.1\"/><circle class=\"gt\" cx=\"261.9\" cy=\"216.5\" r=\"2.5\"/>",55],["s",[-80,38,-9],"<rect class=\"hs\" x=\"275\" y=\"195.8\" width=\".7\" height=\"3.8\"/><circle class=\"gl\" cx=\"275.4\" cy=\"193.4\" r=\"4.1\"/><circle class=\"gt\" cx=\"274.4\" cy=\"192.5\" r=\"2.5\"/>",23],["b","stairP",[-25,9,80,81,-13,-9],"st sr ss",[]],["b","stairP",[-25,9,81,82,-13,-10],"st sr ss",[]],["b","stairP",[-25,9,82,83,-13,-11],"st sr ss",[]],["b","stairP",[-25,9,83,84,-13,-12],"st sr ss",[]],["b","pad:plaza",[-25,9,84,102,-18,-13],"pt ie is",[["T","<rect class=\"water\" x=\"4\" y=\"3\" width=\"26\" height=\"12\"/><rect class=\"glint\" x=\"25\" y=\"5\" width=\"2.2\" height=\"2.2\"/>"]]]]};
   // main is the main island: the Tower side and its rock. Its turn is drawn over
   // the whole drawing.
   const ART_BOX = { halo: [317, -1, 162, 114], city: [533, 136, 57, 97], west: [191, 117, 53, 84], main: [237, 18, 243, 352] };
@@ -502,10 +534,27 @@
     const FN = [[0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0]];
     const FQ = [[[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], [[0, 1, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]],
       [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]], [[0, 0, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1]]];
-    const FACE = { T: 0, L: 2, R: 4 }, FL = ['T', '', 'L', '', 'R', ''];
+    const FACE = { T: 0, L: 2, R: 4 };
+    // the faces a drawing leaves out, as faces in the island's own frame (side B lies there upside down, mirrored east-west)
+    const HID = { A: { T: 0, L: 2, R: 4 }, B: { T: 1, L: 2, R: 5 } };
     // three-tone light: a face's colour from its normal in the world (top / lit south / shaded east)
     const shade = (pal, n) => { const a = n[2] > 0 ? n[2] : 0, b = n[1] > 0 ? n[1] : 0, c = n[0] > 0 ? n[0] : 0, s = a + b + c || 1; return [0, 1, 2].map(k => (a * pal[0][k] + b * pal[1][k] + c * pal[2][k]) / s); };
     const TRI = { rl: ['rm', 'rl', 'rs'], rm: ['rm', 'rl', 'rs'], rs: ['rm', 'rl', 'rs'], kt: ['kt', 'kl', 'ks'], kl: ['kt', 'kl', 'ks'], ks: ['kt', 'kl', 'ks'], ll: ['lt', 'll', 'ls'], lt: ['lt', 'll', 'ls'] };
+    // easings. io: a smooth start and stop. click: a smooth start, past the mark by a touch (s), back onto it, stop.
+    // Both are still at both ends, so any move run backwards is the same move.
+    const io = t => t * t * (3 - 2 * t);
+    const click = (t, s) => { const x = t * t - 1; return 1 + (s + 1) * x * x * x + s * x * x; };
+    const win = (p, w) => clamp((p - w[0]) / (w[1] - w[0] || 1e-9));
+    const mix = (a, b, t) => a.map((v, k) => v + (b[k] - v) * t);
+    const upZ = (b, dz) => [b[0], b[1], b[2], b[3], b[4] + dz, b[5] + dz];
+    const shiftIJ = (b, di, dj) => [b[0] + di, b[1] + di, b[2] + dj, b[3] + dj, b[4], b[5]];
+    // a turn's shape over its window: wound back by w over the first k, across, past 1 by w, back onto 1 over the last k
+    function wound(u, w, k) {
+      if (u <= 0) return 0; if (u >= 1) return 1;
+      if (u < k) return -w * io(u / k);
+      if (u < 1 - k) return -w + (1 + 2 * w) * io((u - k) / (1 - 2 * k));
+      return 1 + w - w * io((u - 1 + k) / k);
+    }
     function build(Md) {
       const U = PR.u, CW = U * Math.cos(Math.PI / 6), CH = U / 2;
       Object.assign(PR, { CW, CH });
@@ -526,10 +575,7 @@
         return o;
       });
       const A = side(Md.A, 'A'), B = side(Md.B, 'B');
-      const boxes = L => L.filter(r => r.t === 'b');
-      const vol = b => (b[1] - b[0]) * (b[3] - b[2]) * (b[5] - b[4]);
       const ctr = b => [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2];
-      const dist = (p, b) => Math.hypot(Math.max(b[0] - p[0], 0, p[0] - b[1]), Math.max(b[2] - p[1], 0, p[1] - b[3]), Math.max(b[4] - p[2], 0, p[2] - b[5]));
       // ---- paint order of side A: the order the still drawing paints in, so the first frame is the drawing
       let n = 0;
       for (let k = 0; k < A.length; k++) {
@@ -550,9 +596,7 @@
       let nb = n + 1; // side B only shows once the turn has handed over to real depth; any order will do
       for (const r of B) { if (r.t === 'b') { r.ord = [nb, nb, nb, nb, nb, nb]; r.dord = { T: nb, L: nb, R: nb }; } else r.ord = nb; nb++; }
       const pal = cls => cls.map(col);
-      // ---- a piece: one box that morphs from src to dst over its window
-      const mk = (o) => Object.assign({ da: [], db: [], pr: [], ga: 0, gb: 0, aa: 1, ab: 1, only: '' }, o);
-      // a box's details, clipped to a slab of it, as triangles in the piece's fractions
+      // a box's details, clipped to a slab of it, as triangles in the fractions of the box fr
       function decals(r, slab, fr, S, out) {
         if (!r.dec.length) return;
         const w = r.w, Wz0 = w[4], Wz1 = w[5], sw = S === 'A' ? [slab[4], slab[5]] : [2 * mz - slab[5], 2 * mz - slab[4]];
@@ -571,138 +615,225 @@
             }
             if (!f.length) continue;
             const row = F === 'T' ? 1 : clamp(((ymin + ymax) / 2 - Wz0) / (Wz1 - Wz0 || 1));
-            out.push({ f: new Float32Array(f), fc, c, row, ord: (r.dord[F] || 0) + out.filter(d => d.fc === fc && d.S === S).length, S, blink: sh.c === 'glint' });
+            out.push({ f: new Float32Array(f), fc, c, row, ord: (r.dord[F] || 0) + out.filter(d => d.fc === fc).length, blink: sh.c === 'glint' });
           }
         }
       }
       const slabsZ = (b, q, down) => Array.from({ length: q }, (_, r) => { const h = (b[5] - b[4]) / q; return down ? [b[0], b[1], b[2], b[3], b[5] - (r + 1) * h, b[5] - r * h] : [b[0], b[1], b[2], b[3], b[4] + r * h, b[4] + (r + 1) * h]; });
-      const Ab = boxes(A), Bb = boxes(B), padA = {}, padB = {};
-      Ab.filter(r => r.part.startsWith('pad:')).forEach(r => padA[r.part] = r);
-      Bb.filter(r => r.part.startsWith('pad:')).forEach(r => padB[r.part] = r);
-      const padNames = Object.keys(padA).filter(k => padB[k]);
-      const colOf = b => { const [ci, cj] = ctr(b); let best = padNames[0], bd = 1e9; for (const k of padNames) { const p = padA[k].l, d = Math.hypot(Math.max(p[0] - ci, 0, ci - p[1]), Math.max(p[2] - cj, 0, cj - p[3])); if (d < bd) { bd = d; best = k; } } return best; };
-      const pieceOf = new Map(); // box record -> its pieces
-      const addP = (r, p) => { parts.push(p); if (r) { if (!pieceOf.has(r)) pieceOf.set(r, []); pieceOf.get(r).push(p); } return p; };
-      // pads: each keeps its name, and moves to where the other side has it
-      const pw = K.pads;
-      for (const k of padNames) {
-        const a = padA[k], b = padB[k];
-        const p = mk({ s: a.l, d: b.l, a: pw[0], b: pw[1], pa: pal(a.cls), pb: pal(b.cls), o: a.ord, ps: 0.5, rA: a, rB: b });
-        decals(a, a.l, a.l, 'A', p.da); decals(b, b.l, b.l, 'B', p.db);
-        addP(a, p); pieceOf.set(b, [p]);
+      const Ab = A.filter(r => r.t === 'b'), Bb = B.filter(r => r.t === 'b');
+      const one = (L, nm) => L.find(r => r.part === nm);
+      const ledge = (L, g, tag) => one(L, `ice:${g}:${tag}`);
+      const hbits = (h, S) => [...(h || '')].reduce((s, c) => HID[S][c] != null ? s | 1 << HID[S][c] : s, 0);
+      const pieceOf = new Map(), own = (r, P) => { if (!pieceOf.has(r)) pieceOf.set(r, []); pieceOf.get(r).push(P); };
+      // the click's curve for an overshoot of K.click (a fraction of the move): it passes by 4s^3 / 27(1+s)^2
+      let S = 0; for (let lo = 0, hi = 40, k = 0; k < 60; k++) { S = (lo + hi) / 2; if (4 * S ** 3 / (27 * (1 + S) ** 2) < K.click) lo = S; else hi = S; }
+      // ---- a piece: one box whose place at p is bx(p), in the island's own frame. rA / rB: the drawing's box it
+      // is on side A / B (colours, details, left-out faces). vis: when it is drawn. clip: nothing of it below
+      // this height. out / lit: when A's details go dark / B's come on. fold / grow: what rides on it settling / growing.
+      const mk = o => {
+        const P = Object.assign({ da: [], db: [], pr: [], ga: 0, gb: 0, aa: 1, ab: 1, only: '', vis: [-1, 2], clip: null, out: K.out, lit: [0.9, 1, 0], fold: K.fold, grow: K.trees }, o);
+        P.s = P.bx(0); P.d = P.bx(1);
+        if (P.rA) { P.pa = P.pa || pal(P.rA.cls); P.aa = P.rA.a; P.ga = P.rA.g; P.o = P.o || P.rA.ord; }
+        if (P.rB) { P.pb = P.pb || pal(P.rB.cls); P.ab = P.rB.a; P.gb = P.rB.g; if (!P.o) P.o = P.rB.ord; }
+        P.pa = P.pa || P.pb; P.pb = P.pb || P.pa;
+        if (P.only === 'A') { P.ab = P.aa; P.gb = P.ga; } else if (P.only === 'B') { P.aa = P.ab; P.ga = P.gb; }
+        P.hA = P.rA ? hbits(P.rA.h, 'A') : 0; P.hB = P.rB ? hbits(P.rB.h, 'B') : 0;
+        parts.push(P); return P;
+      };
+
+      // ---- the pads: the terraces rise level before the turn; after it they sink back, on the other side
+      const TR = K.terraces, PADS = ['battle', 'podium', 'mall', 'batts', 'garrison', 'plaza'], pad = {};
+      for (const k of PADS) {
+        const a = one(Ab, 'pad:' + k), b = one(Bb, 'pad:' + k);
+        const top = p => a.l[5] + (b.l[5] - a.l[5]) * click(win(p, TR.rise), S), bot = p => a.l[4] + (b.l[4] - a.l[4]) * click(win(p, TR.sink), S);
+        const P = mk({ bx: p => [a.l[0], a.l[1], a.l[2], a.l[3], bot(p), top(p)], rA: a, rB: b, lit: k === 'plaza' ? [K.pool[0], K.pool[1], 0] : [K.lawns[0], K.lawns[1], 0], fold: K.props });
+        decals(a, a.l, a.l, 'A', P.da); decals(b, b.l, b.l, 'B', P.db); own(a, P); own(b, P);
+        pad[k] = { P, a, b, top, bot, up: p => top(p) - a.l[5] };
       }
-      // children: a box of side B that grows out of the face of a piece it stands on
-      function child(parent, r, win) {
-        const Pd = parent.d, Ps = parent.s, b = r.l;
-        const onTop = Math.abs(b[4] - Pd[5]) <= Math.abs(b[5] - Pd[4]), zs = onTop ? Ps[5] : Ps[4];
-        const fx = (v, a0, a1, s0, s1) => s0 + (v - a0) / (a1 - a0 || 1) * (s1 - s0);
-        const s = [fx(b[0], Pd[0], Pd[1], Ps[0], Ps[1]), fx(b[1], Pd[0], Pd[1], Ps[0], Ps[1]), fx(b[2], Pd[2], Pd[3], Ps[2], Ps[3]), fx(b[3], Pd[2], Pd[3], Ps[2], Ps[3]), zs, zs];
-        const p = mk({ s, d: b, a: win ? win[0] : parent.a, b: win ? win[1] : parent.b, pa: pal(r.cls), pb: pal(r.cls), aa: r.a, ab: r.a, ga: r.g, gb: r.g, o: r.ord, ps: 0, only: 'B', rB: r });
-        decals(r, b, b, 'B', p.db);
-        return addP(r, p);
-      }
-      const supports = (r, L) => L.find(s => s !== r && Math.abs(s.w[5] - r.w[4]) < 0.06 && s.w[0] - 0.01 <= (r.w[0] + r.w[1]) / 2 && (r.w[0] + r.w[1]) / 2 <= s.w[1] + 0.01 && s.w[2] - 0.01 <= (r.w[2] + r.w[3]) / 2 && (r.w[2] + r.w[3]) / 2 <= s.w[3] + 0.01);
-      const later = [];
-      for (const c of padNames) {
-        const padPiece = pieceOf.get(padA[c])[0];
-        const inCol = (L, f) => L.filter(r => !r.part.startsWith('pad:') && f(r) && colOf(r.l) === c);
-        // ---- the Tower side's buildings -> the rock ledges over this pad (floor k becomes ledge k)
-        const topA = inCol(Ab, r => r.part !== 'ice'), iceB = inCol(Bb, r => r.part === 'ice').sort((x, y) => x.l[4] - y.l[4]);
-        const nL = iceB.length;
-        const bld = topA.filter(r => !/^(stair|bal)/.test(r.part)); // steps and railings are never a floor
-        if (bld.length && nL) {
-          const tower = bld.filter(r => r.part === 'tower');
-          const stack = (tower.length ? tower : [bld.reduce((x, y) => vol(y.l) > vol(x.l) ? y : x)]).slice().sort((x, y) => x.l[4] - y.l[4]);
-          let floors = stack.filter(r => Math.min(r.l[1] - r.l[0], r.l[3] - r.l[2]) >= 1.5);
-          if (!floors.length) floors = [stack.reduce((x, y) => vol(y.l) > vol(x.l) ? y : x)];
-          if (floors.length > nL) floors = floors.slice().sort((x, y) => vol(y.l) - vol(x.l)).slice(0, nL).sort((x, y) => x.l[4] - y.l[4]);
-          let fl = floors.map(r => ({ r, b: r.l }));
-          while (fl.length < nL) { // slice the tallest floor into two, until there is a floor for every ledge
-            let t = 0; fl.forEach((f, k) => { if (f.b[5] - f.b[4] > fl[t].b[5] - fl[t].b[4]) t = k; });
-            const f = fl[t], m = (f.b[4] + f.b[5]) / 2;
-            fl.splice(t, 1, { r: f.r, b: [...f.b.slice(0, 4), f.b[4], m] }, { r: f.r, b: [...f.b.slice(0, 4), m, f.b[5]] });
-          }
-          const W = K.floors, host = [];
-          fl.forEach((f, k) => {
-            const q = iceB[k], rr = nL > 1 ? (nL - 1 - k) / (nL - 1) : 0, a = W.from + W.stagger * rr;
-            const p = mk({ s: f.b, d: q.l, a, b: a + W.span, pa: pal(f.r.cls), pb: pal(q.cls), ab: q.a, gb: q.g, o: f.r.ord, rA: f.r, rB: q });
-            decals(f.r, f.b, f.b, 'A', p.da);
-            host.push(addP(f.r, p));
-          });
-          // everything else on the pad sinks into the ledge nearest it
-          for (const r of topA) {
-            if (fl.some(f => f.r === r)) continue;
-            const cc = ctr(r.l); let h = host[0], bd = 1e9;
-            host.forEach(p => { const d = dist(cc, p.s); if (d < bd - 1e-6) { bd = d; h = p; } });
-            const D = h.d, e = r.l, g = 0.5;
-            let s = [Math.max(e[0], D[0]) + g, Math.min(e[1], D[1]) - g, Math.max(e[2], D[2]) + g, Math.min(e[3], D[3]) - g, D[4] + g, D[5] - g];
-            if (s[1] - s[0] < 0.2 || s[3] - s[2] < 0.2) { const m = ctr(D); s = [m[0] - .1, m[0] + .1, m[1] - .1, m[1] + .1, m[2] - .1, m[2] + .1]; }
-            if (s[5] - s[4] < 0.2) { const m = (D[4] + D[5]) / 2; s[4] = m - .1; s[5] = m + .1; }
-            const p = mk({ s: r.l, d: s, a: h.a, b: h.b, pa: pal(r.cls), pb: h.pb, ab: h.ab, gb: h.gb, o: r.ord, rA: r, extra: 1 });
-            decals(r, r.l, r.l, 'A', p.da);
-            addP(r, p);
-          }
-        } else {
-          iceB.forEach(q => later.push(() => child(padPiece, q)));
-          topA.forEach(r => { const p = mk({ s: r.l, d: [...r.l.slice(0, 4), r.l[4], r.l[4]], a: pw[0], b: pw[1], pa: pal(r.cls), pb: pal(r.cls), o: r.ord, only: 'A', rA: r }); decals(r, r.l, r.l, 'A', p.da); addP(r, p); });
-        }
-        // ---- the rock ledges under this pad -> the apartment blocks on the other side (ledges shared out by height)
-        const iceA = inCol(Ab, r => r.part === 'ice').sort((x, y) => y.l[5] - x.l[5]);
-        const topB = inCol(Bb, r => r.part !== 'ice');
-        const blocks = topB.filter(r => r.part === 'apt' && (supports(r, Bb) || {}).part === padB[c].part).sort((x, y) => (x.w[5] - x.w[4]) - (y.w[5] - y.w[4]));
-        const m = iceA.length, kk = blocks.length, T = K.towers;
-        const cnt = blocks.map(() => 0);
-        if (kk && m >= kk) {
-          const hs = blocks.map(r => r.w[5] - r.w[4]), sum = hs.reduce((x, y) => x + y, 0), raw = hs.map(h => h / sum * m);
-          raw.forEach((v, k) => cnt[k] = Math.max(1, Math.floor(v)));
-          while (cnt.reduce((x, y) => x + y, 0) > m) { let t = -1; cnt.forEach((v, k) => { if (v > 1 && (t < 0 || raw[k] - v < raw[t] - cnt[t])) t = k; }); if (t < 0) break; cnt[t]--; }
-          while (cnt.reduce((x, y) => x + y, 0) < m) { let t = 0; cnt.forEach((v, k) => { if (raw[k] - v > raw[t] - cnt[t]) t = k; }); cnt[t]++; }
-        } else for (let k = kk - m; k < kk; k++) if (k >= 0) cnt[k] = 1;
-        let li = 0;
-        blocks.forEach((r, bi) => {
-          if (!cnt[bi]) { later.push(() => child(padPiece, r)); return; }
-          slabsZ(r.l, cnt[bi], true).forEach((sl, q) => {
-            const L = iceA[li++], a = T.from + T.stagger * (cnt[bi] > 1 ? q / (cnt[bi] - 1) : 0) + T.blocks * (kk > 1 ? bi / (kk - 1) : 0);
-            const p = mk({ s: L.l, d: sl, a, b: Math.min(1, a + T.span), pa: pal(L.cls), pb: pal(r.cls), aa: L.a, ga: L.g, o: L.ord, rA: L, rB: r, outer: q === cnt[bi] - 1 });
-            decals(L, L.l, L.l, 'A', p.da); decals(r, sl, sl, 'B', p.db);
-            addP(L, p); if (!pieceOf.has(r)) pieceOf.set(r, []); pieceOf.get(r).push(p);
-          });
+      // the pad a box stands on (or hangs from): the one its middle lies over, else the nearest
+      const padAt = q => { const ci = (q[0] + q[1]) / 2, cj = (q[2] + q[3]) / 2; let best = 'podium', bd = 1e9; for (const k of PADS) { const f = pad[k].a.l, d = Math.hypot(Math.max(f[0] - ci, 0, ci - f[1]), Math.max(f[2] - cj, 0, cj - f[3])); if (d < bd - 1e-9) { bd = d; best = k; } } return best; };
+      const over = (q, k) => { const f = pad[k].a.l, ci = (q[0] + q[1]) / 2, cj = (q[2] + q[3]) / 2; return ci > f[0] && ci < f[1] && cj > f[2] && cj < f[3]; };
+
+      // ---- the two iceberg stacks, level by level, so ledges of one level always share their heights.
+      // B (the Tower side's ledges, upright in the island's own frame, standing on the level top); A (the rock under
+      // the island, hanging from its bottom). Each folds to a thin ledge and unfolds.
+      const NL = Math.max(...Ab.map(r => r.g || 0));
+      const lvH = L => { const h = []; for (let g = 1; g <= NL; g++) { const r = L.find(r => r.g === g); h[g] = r.l[5] - r.l[4]; } return h; };
+      const HBs = lvH(Bb), HAs = lvH(Ab), FT = K.folded.tower, FR = K.folded.rock;
+      const BE = K.below, exW = g => { const a = BE.from + BE.stagger * (g - 1); return [a, a + BE.span]; };
+      const hB = (g, p) => FT + (HBs[g] - FT) * click(win(p, exW(g)), S);
+      const baseB = (g, p, z = 0) => { for (let m = 1; m < g; m++) z += hB(m, p); return z; };
+      const tierB = (g, fp, p, z = 0) => { const z0 = baseB(g, p, z); return [fp[0], fp[1], fp[2], fp[3], z0, z0 + hB(g, p)]; };
+      const litB = g => [exW(g)[1] + 0.005, exW(g)[1] + 0.06, 0]; // a ledge's lips come on once it has unfolded
+      const RT = K.retract, rtW = g => { const a = RT.from + RT.stagger * (NL - g); return [a, a + RT.span]; };
+      const hA = (g, p) => HAs[g] + (FR - HAs[g]) * click(win(p, rtW(g)), S);
+      const tierA = (g, fp, p, z) => { for (let m = 1; m < g; m++) z -= hA(m, p); return [fp[0], fp[1], fp[2], fp[3], z - hA(g, p), z]; };
+      const ZA0 = pad.podium.a.l[4]; // the island's flat bottom, where the rock hangs from
+
+      // ---- THE TOWER SIDE. The halls and the Main Building step into the wide ledges, the top ledge first.
+      const TI = K.tiers, tiW = (k, nn) => { const a = TI.from + TI.stagger * (nn - 1 - k); return [a, a + TI.span]; };
+      let pC = 0; // by then the Tower side is folded: the stub's hidden stages go, the stub's clip rises
+      for (const nm of ['battle', 'parlin', 'batts', 'garrison']) {
+        const r = one(Ab, nm), col = padAt(r.l), T = pad[col];
+        const lv = Bb.filter(q => q.g && q.part.split(':')[2] === col).sort((x, y) => x.g - y.g), nn = lv.length;
+        let below = null;
+        slabsZ(r.l, nn, false).forEach((sl, k) => {
+          const L = lv[k], w = tiW(k, nn);
+          const P = mk({ bx: p => mix(upZ(sl, T.up(p)), tierB(L.g, L.l, p, T.top(p)), click(win(p, w), S)), rA: r, rB: L, lit: litB(L.g) });
+          decals(r, sl, sl, 'A', P.da); decals(L, L.l, L.l, 'B', P.db); own(r, P); own(L, P);
+          if (below) { P.below = below; below.above = P; } below = P;
+          pC = Math.max(pC, w[1]);
         });
-        // ledges with nothing to become fold up into the pad
-        for (; li < m; li++) {
-          const L = iceA[li], z = padB[c].l[4] + 0.3, R = K.retract;
-          const p = mk({ s: L.l, d: [L.l[0], L.l[1], L.l[2], L.l[3], z, z], a: R[0], b: R[1], pa: pal(L.cls), pb: pal(L.cls), aa: L.a, ab: L.a, ga: L.g, gb: L.g, o: L.ord, only: 'A', rA: L });
-          decals(L, L.l, L.l, 'A', p.da); addP(L, p);
-        }
-        // stairs, balustrades: they grow out of the pad
-        topB.filter(r => r.part !== 'apt').forEach(r => later.push(() => child(padPiece, r)));
       }
-      later.forEach(f => f());
-      // boxes that stand on another box of side B: a roof slab on a block, a crown on the roof
-      let left = Bb.filter(r => !pieceOf.has(r)), guard = 0;
-      while (left.length && guard++ < 20) {
-        for (const r of left) {
-          const s = supports(r, Bb), ps = s && pieceOf.get(s);
-          if (!ps) continue;
-          const top = ps.find(p => p.outer) || ps[ps.length - 1];
-          child(top, r);
-        }
-        left = Bb.filter(r => !pieceOf.has(r));
+      // the Main Building as a grid, two rows of three filling their joint box; each block's slab k becomes its
+      // cell of ledge k, and the cells, once they have unfolded, join into the one ledge
+      const MB = ['wingW', 'mid', 'wingE', 'southW', 'pav', 'southE'].map(nm => one(Ab, 'mb:' + nm));
+      const gb = [Math.min(...MB.map(r => r.l[0])), Math.max(...MB.map(r => r.l[1])), Math.min(...MB.map(r => r.l[2])), Math.max(...MB.map(r => r.l[3]))];
+      const rowJ = (Math.max(...MB.slice(0, 3).map(r => r.l[3])) + Math.min(...MB.slice(3).map(r => r.l[2]))) / 2, vs = (rowJ - gb[2]) / (gb[3] - gb[2]);
+      const lvPod = [ledge(Bb, 1, 'podium'), ledge(Bb, 2, 'podium'), ledge(Bb, 3, 'central'), ledge(Bb, 4, 'central')];
+      const joinAt = g => exW(g)[1] + 0.004;
+      MB.forEach((r, bi) => {
+        const u = [(r.l[0] - gb[0]) / (gb[1] - gb[0]), (r.l[1] - gb[0]) / (gb[1] - gb[0])], v = bi < 3 ? [0, vs] : [vs, 1];
+        let below = null;
+        slabsZ(r.l, lvPod.length, false).forEach((sl, k) => {
+          const L = lvPod[k], q = L.l, fp = [q[0] + u[0] * (q[1] - q[0]), q[0] + u[1] * (q[1] - q[0]), q[2] + v[0] * (q[3] - q[2]), q[2] + v[1] * (q[3] - q[2])], w = tiW(k, lvPod.length);
+          const P = mk({ bx: p => mix(sl, tierB(L.g, fp, p), click(win(p, w), S)), rA: r, rB: L, vis: [-1, joinAt(L.g)] });
+          decals(r, sl, sl, 'A', P.da); own(r, P);
+          if (below) { P.below = below; below.above = P; } below = P;
+          pC = Math.max(pC, w[1]);
+        });
+      });
+      for (const L of lvPod) { const P = mk({ bx: p => tierB(L.g, L.l, p), rB: L, only: 'B', vis: [joinAt(L.g), 2], lit: litB(L.g) }); decals(L, L.l, L.l, 'B', P.db); own(L, P); }
+      // ---- the Tower: every stage slides down into the one below it, the top first; the shaft sinks into the
+      // Main Building last, to a stub. Under the island, the stub slides to where the tip hangs, and the stages
+      // come back out of each other as the ledges of the tip: shaft, clock, belfry, entablature.
+      const TW = K.tower, stubTop = baseB(5, 0.5 * (pC + BE.from)) + TW.stub;
+      const stg = {}, order = ['step2', 'step1', 'ent', 'belfry', 'clock', 'cornice'], host = { step2: 'step1', step1: 'ent', ent: 'belfry', belfry: 'clock', clock: 'cornice', cornice: 'shaft' };
+      const fit = (f, h) => [Math.max(f[0], h[0] + TW.gap), Math.min(f[1], h[1] - TW.gap), Math.max(f[2], h[2] + TW.gap), Math.min(f[3], h[3] - TW.gap)];
+      stg.shaft = { r: one(Ab, 'tower:shaft'), w: TW.shaft };
+      order.forEach((nm, k) => { stg[nm] = { r: one(Ab, 'tower:' + nm), host: host[nm], w: [TW.from + TW.step * k, TW.from + TW.step * k + TW.span] }; });
+      Ab.filter(r => r.part === 'tower:deck').forEach((r, k) => { stg['rail' + k] = { r, host: 'clock', w: TW.rails }; });
+      for (const nm in stg) { const t = stg[nm], h = t.host && stg[t.host].r.l; t.x0 = h ? t.r.l[5] - h[5] : 0; t.fit = h ? fit(t.r.l, h) : t.r.l.slice(0, 4); }
+      const topAt = (nm, p) => { const t = stg[nm], e = click(win(p, t.w), S); return t.host ? topAt(t.host, p) + t.x0 + (-TW.gap - t.x0) * e : t.r.l[5] + (stubTop - t.r.l[5]) * e; };
+      const tip = ledge(Bb, 7, 'central').l, sc0 = ctr(stg.shaft.r.l), slideV = [(tip[0] + tip[1]) / 2 - sc0[0], (tip[2] + tip[3]) / 2 - sc0[1]];
+      const stubBox = (nm, p) => {
+        const t = stg[nm], e = io(win(p, t.w)), f = mix(t.r.l.slice(0, 4), t.fit, e), z1 = topAt(nm, p), s = io(win(p, BE.slide));
+        return shiftIJ([f[0], f[1], f[2], f[3], z1 - (t.r.l[5] - t.r.l[4]), z1], slideV[0] * s, slideV[1] * s);
+      };
+      pC += 0.004;
+      const clipT = p => p < pC ? 0 : baseB(4, p) + 0.1;
+      const tipOf = { shaft: 5, clock: 6, belfry: 7, ent: 8 };
+      for (const nm in stg) {
+        const t = stg[nm], r = t.r, L = tipOf[nm] && ledge(Bb, tipOf[nm], 'central');
+        const P = L ? mk({ bx: p => mix(stubBox(nm, p), tierB(L.g, L.l, p), io(win(p, exW(L.g)))), rA: r, rB: L, clip: clipT, lit: litB(L.g) })
+          : mk({ bx: p => stubBox(nm, p), rA: r, only: 'A', vis: [-1, pC], clip: clipT });
+        decals(r, r.l, r.l, 'A', P.da); own(r, P); if (L) { decals(L, L.l, L.l, 'B', P.db); own(L, P); }
+        t.P = P;
       }
+      // nothing of a stage shows below the top of the stage it slides into (or comes out of, under the island):
+      // it goes in through that top, and a see-through ledge never shows the stages folded up inside it
+      for (const nm in stg) if (nm !== 'shaft') stg[nm].P.clipBy = stg[nm === 'clock' ? 'shaft' : stg[nm].host].P;
+      // and a stage takes on the colour of the one it slides into, all of it by the time its top goes under
+      // that one's top: so the top that closes over it is the same colour and nothing flicks
+      for (const nm in stg) if (stg[nm].host) {
+        const t = stg[nm], H = stg[t.host].P; let x = t.w[1];
+        for (let k = 0; k <= 400; k++) { const q = t.w[0] + (t.w[1] - t.w[0]) * k / 400; if (topAt(nm, q) <= topAt(t.host, q) + 1e-6) { x = q; break; } }
+        const a = Math.max(t.w[0], x - TW.tint * (t.w[1] - t.w[0]));
+        t.P.tint = { host: H, w: [a, x] };
+      }
+      // the fountain plaza's ledge grows out of the plaza once it is under the island
+      { const L = ledge(Bb, 1, 'plaza'), T = pad.plaza, st = [L.l[0] + 1, L.l[1] - 1, L.l[2] + 1, L.l[3] - 1, -0.4, -0.35];
+        const P = mk({ bx: p => mix(st, tierB(1, L.l, p, T.top(p)), io(win(p, exW(1)))), rB: L, only: 'B', vis: [exW(1)[0], 2], lit: litB(1) });
+        decals(L, L.l, L.l, 'B', P.db); own(L, P); }
+      // steps and balustrades sink into their terrace (or, with no terrace under them, fold flat) before it rises
+      for (const r of Ab.filter(r => /^(stair|bal)/.test(r.part))) {
+        const col = padAt(r.l), T = pad[col], h = r.l[5] - r.l[4], inPad = over(r.l, col), W = K.steps;
+        const bx = inPad ? p => { const e = io(win(p, W)), d = 0.2 * e, z1 = r.l[5] - (h + 0.3) * e + T.up(p), z0 = Math.max(r.l[4] - (h + 0.3) * e, T.a.l[4] + 0.1) + T.up(p); return [r.l[0] + d, r.l[1] - d, r.l[2] + d, r.l[3] - d, Math.min(z0, z1 - 0.01), z1]; }
+          : p => [r.l[0], r.l[1], r.l[2], r.l[3], r.l[4], r.l[4] + h * (1 - io(win(p, W)))];
+        const P = mk({ bx, rA: r, only: 'A', vis: [-1, W[1] + 0.002] }); decals(r, r.l, r.l, 'A', P.da); own(r, P);
+      }
+
+      // ---- THE ROCK -> THE APARTMENTS. Under the island the rock folds up, the tip first. Once it is on top, a
+      // shared ledge cracks apart, the pieces slide under their blocks, and each block pushes out floor by floor,
+      // every floor a little inside the one below, until they close up with a click.
+      const RB = K.rebuild, blocks = Object.keys(K.ledges).map((nm, bi) => { const r = one(Bb, 'apt:' + nm); return { nm, bi, r, col: padAt(r.l), toks: K.ledges[nm].trim().split(/\s+/) }; });
+      const shares = new Map(), src = [];
+      for (const Bk of blocks) Bk.toks.forEach((t, k) => { const g = parseInt(t, 10), L = ledge(Ab, g, Bk.col) || ledge(Ab, g, 'central'); src.push([Bk, k, L]); if (!shares.has(L)) shares.set(L, []); shares.get(L).push(Bk); });
+      const baseA = L => { const c = L.part.split(':')[2]; return pad[c] ? p => pad[c].bot(p) : () => ZA0; };
+      // a shared ledge cut into one piece per block: west / east of a line between the blocks, then north / south
+      const cellsOf = (L, Bs) => {
+        const q = L.l, cc = b => ctr(b.r.l), out = new Map();
+        const byI = Bs.slice().sort((x, y) => cc(x)[0] - cc(y)[0]), h = Bs.length >> 1, W = byI.slice(0, h), E = byI.slice(h);
+        const ci = (Math.max(...W.map(b => b.r.l[1])) + Math.min(...E.map(b => b.r.l[0]))) / 2;
+        const col2 = (G, i0, i1) => { const s = G.slice().sort((x, y) => cc(x)[1] - cc(y)[1]); if (s.length === 1) { out.set(s[0], [i0, i1, q[2], q[3]]); return; } const cj = (s[0].r.l[3] + s[1].r.l[2]) / 2; out.set(s[0], [i0, i1, q[2], cj]); out.set(s[1], [i0, i1, cj, q[3]]); };
+        col2(W, q[0], ci); col2(E, ci, q[1]); return out;
+      };
+      const crackFp = (cell, q, e) => { const d = RB.gap / 2 * e; return [cell[0] + (cell[0] > q[0] + 1e-6 ? d : 0), cell[1] - (cell[1] < q[1] - 1e-6 ? d : 0), cell[2] + (cell[2] > q[2] + 1e-6 ? d : 0), cell[3] - (cell[3] < q[3] - 1e-6 ? d : 0)]; };
+      // a block's floors: cut between rows of windows, the lowest first
+      const rowsOf = r => { const iv = []; for (const [F, svg] of r.dec) if (F !== 'T') for (const sh of shapes(svg)) for (const poly of sh.polys) { let a = 1e9, b = -1e9; for (const q of poly) { a = Math.min(a, q[1]); b = Math.max(b, q[1]); } iv.push([a, b]); } return iv; };
+      function cuts(r, nn) {
+        const z0 = r.w[4], z1 = r.w[5], iv = rowsOf(r), out = [z0], free = y => iv.every(([a, b]) => y <= a - 0.15 || y >= b + 0.15);
+        for (let k = 1; k < nn; k++) { const y0 = z0 + (z1 - z0) * k / nn; let y = y0; for (let d = 0; d <= 3; d += 0.05) { if (free(y0 - d)) { y = y0 - d; break; } if (free(y0 + d)) { y = y0 + d; break; } } out.push(y); }
+        out.push(z1); return out;
+      }
+      for (const Bk of blocks) {
+        const r = Bk.r, T = pad[Bk.col], nn = Bk.toks.length, cz = cuts(r, nn), H = cz.slice(1).map((z, k) => z - cz[k]);
+        const w = k => { const a = RB.from + RB.block * Bk.bi + RB.floor * k; return [a, a + RB.span]; };
+        const close = [w(nn - 1)[1], w(nn - 1)[1] + RB.close], step = Math.min(RB.nest, 0.35 * Math.min(r.l[1] - r.l[0], r.l[3] - r.l[2]) / Math.max(1, nn - 1));
+        const h = (k, p) => FR + (H[k] - FR) * click(win(p, w(k)), S);
+        Object.assign(Bk, { nn, w, close, done: close[1], box: (k, p) => {
+          let z = T.bot(p); for (let m = 0; m < k; m++) z -= h(m, p);
+          const d = step * k * (1 - click(win(p, close), S));
+          return [r.l[0] + d, r.l[1] - d, r.l[2] + d, r.l[3] - d, z - h(k, p), z];
+        } });
+      }
+      for (const [Bk, k, L] of src) {
+        const sh = shares.get(L), q = L.l, base = baseA(L), cell = sh.length > 1 ? cellsOf(L, sh).get(Bk) : null;
+        const plate = cell ? p => tierA(L.g, crackFp(cell, q, io(win(p, RB.crack))), p, base(p)) : p => tierA(L.g, q, p, base(p));
+        const sl = Bk.box(k, 1), lw = Bk.w(k);
+        const P = mk({ bx: p => mix(plate(p), Bk.box(k, p), io(win(p, RB.gather))), rA: L, rB: Bk.r, vis: cell ? [RB.crack[0], 2] : [-1, 2], lit: [lw[1] - 0.01, lw[1] + 0.05, RB.lit] });
+        if (!cell) decals(L, q, q, 'A', P.da);
+        decals(Bk.r, sl, sl, 'B', P.db); own(Bk.r, P); if (!cell) own(L, P);
+      }
+      for (const [L, sh] of shares) if (sh.length > 1) { const base = baseA(L), P = mk({ bx: p => tierA(L.g, L.l, p, base(p)), rA: L, only: 'A', vis: [-1, RB.crack[0]] }); decals(L, L.l, L.l, 'A', P.da); own(L, P); }
+      // rock with no block to become folds up into the island
+      for (const L of Ab.filter(r => r.g && !shares.has(r))) {
+        const base = baseA(L), P = mk({ bx: p => upZ(tierA(L.g, L.l, p, base(p)), (FR * L.g + 0.5) * io(win(p, RB.absorb))), rA: L, only: 'A', vis: [-1, RB.absorb[1]] });
+        decals(L, L.l, L.l, 'A', P.da); own(L, P);
+      }
+      // what stands on a finished block grows out of it: roofs, the crown, the pool deck. Steps and railings rise out of their terrace.
+      const supp = r => Bb.find(s => s !== r && Math.abs(s.w[5] - r.w[4]) < 0.06 && s.w[0] - 0.01 <= (r.w[0] + r.w[1]) / 2 && (r.w[0] + r.w[1]) / 2 <= s.w[1] + 0.01 && s.w[2] - 0.01 <= (r.w[2] + r.w[3]) / 2 && (r.w[2] + r.w[3]) / 2 <= s.w[3] + 0.01);
+      const done = new Map(blocks.map(Bk => [Bk.r, Bk.done]));
+      let rest = Bb.filter(r => r.part.startsWith('apt:') && !done.has(r)), guard = 0;
+      while (rest.length && guard++ < 12) rest = rest.filter(r => {
+        const s = supp(r); if (!s || !done.has(s)) return true;
+        const w = [done.get(s) + RB.capGap, done.get(s) + RB.capGap + RB.cap], pz = s.l[4], d = Math.min(0.4, (r.l[1] - r.l[0]) / 4, (r.l[3] - r.l[2]) / 4);
+        const st = [r.l[0] + d, r.l[1] - d, r.l[2] + d, r.l[3] - d, pz + 0.15, pz + 0.17];
+        const P = mk({ bx: p => mix(st, r.l, click(win(p, w), S)), rB: r, only: 'B', vis: [w[0], 2], lit: [w[1] - 0.01, w[1] + 0.05, 0] });
+        decals(r, r.l, r.l, 'B', P.db); own(r, P); done.set(r, w[1]); return false;
+      });
+      for (const r of Bb.filter(r => /^(stair|bal)/.test(r.part))) {
+        const s = supp(r), col = s && s.part.startsWith('pad:') ? s.part.slice(4) : padAt(r.l), zb = pad[col].b.l[4], W = K.stairsIn;
+        const st = over(r.l, col) ? [r.l[0] + 0.1, r.l[1] - 0.1, r.l[2] + 0.1, r.l[3] - 0.1, zb + 0.15, zb + 0.17] : [r.l[0], r.l[1], r.l[2], r.l[3], r.l[5], r.l[5]];
+        const P = mk({ bx: p => mix(st, r.l, click(win(p, W), S)), rB: r, only: 'B', vis: [W[0], 2], lit: [W[1] - 0.01, W[1] + 0.05, 0] });
+        decals(r, r.l, r.l, 'B', P.db); own(r, P);
+      }
+
       // ---- everything that rides on a box: roofs, ridges, sprites, dots, the fountain
       const onPiece = (S, r) => {
-        const L = S === 'A' ? A : B, pb = L[r.par], ps = pb && pieceOf.get(pb);
-        if (!ps) return null;
+        const L = S === 'A' ? A : B, pb = L[r.par];
+        const ps = pb && (pieceOf.get(pb) || []).filter(P => (S === 'A' ? P.rA : P.rB) === pb && (S === 'A' ? P.vis[0] <= 0 : P.vis[1] >= 1));
+        if (!ps || !ps.length) return null;
         const zref = r.t === 'p' || r.t === 'l' ? r.p.reduce((s, v) => s + v[2], 0) / r.p.length : r.a[2];
         const zl = S === 'A' ? zref : 2 * mz - zref;
-        return ps.find(p => { const b = S === 'A' ? p.s : p.d; return zl >= b[4] - 1e-6 && zl <= b[5] + 1e-6; }) || ps.reduce((x, y) => { const bx = S === 'A' ? x.s : x.d, by = S === 'A' ? y.s : y.d; return (S === 'A' ? by[5] > bx[5] : by[4] < bx[4]) ? y : x; });
+        return ps.find(P => { const b = S === 'A' ? P.s : P.d; return zl >= b[4] - 1e-6 && zl <= b[5] + 1e-6; }) || ps.reduce((x, y) => { const bx = S === 'A' ? x.s : x.d, by = S === 'A' ? y.s : y.d; return (S === 'A' ? by[5] > bx[5] : by[4] < bx[4]) ? y : x; });
       };
       const fr3 = (v, b) => [(v[0] - b[0]) / (b[1] - b[0] || 1), (v[1] - b[2]) / (b[3] - b[2] || 1), (v[2] - b[4]) / (b[5] - b[4] || 1)];
-      for (const S of ['A', 'B']) for (const r of (S === 'A' ? A : B)) {
+      for (const Sd of ['A', 'B']) for (const r of (Sd === 'A' ? A : B)) {
         if (r.t === 'b') continue;
-        const p = onPiece(S, r); if (!p) continue;
-        const bx = S === 'A' ? p.s : p.d, loc = S === 'A' ? v => v : Ep, F = v => fr3(loc(v), bx);
-        const q = { t: r.t, S, ord: r.ord };
+        const p = onPiece(Sd, r); if (!p) continue;
+        const bx = Sd === 'A' ? p.s : p.d, loc = Sd === 'A' ? v => v : Ep, F = v => fr3(loc(v), bx);
+        const q = { t: r.t, S: Sd, ord: r.ord };
         if (r.t === 'p' || r.t === 'l') {
           q.f = r.p.map(F); q.c = hex(CLS[r.c] || '#ff00ff'); q.cls = r.c; q.w = r.w || 0.6; q.al = ALPHA[r.c] == null ? 1 : ALPHA[r.c];
           if (r.t === 'p') {
@@ -715,46 +846,49 @@
             const t2 = tri(P3.map((v, k) => [v[u], v[w], k])), fl = [];
             for (const pt of t2) fl.push(...q.f[pt[2]]);
             q.tri = new Float32Array(fl); q.n = N;
-            const T3 = TRI[r.c]; q.pal = T3 && T3.map(col); q.rest = q.pal ? q.c.map((v, k) => v - shade(q.pal, S === 'A' ? N : [-N[0], N[1], -N[2]])[k]) : null;
+            const T3 = TRI[r.c]; q.pal = T3 && T3.map(col); q.rest = q.pal ? q.c.map((v, k) => v - shade(q.pal, Sd === 'A' ? N : [-N[0], N[1], -N[2]])[k]) : null;
           }
         } else if (r.t === 's') {
           q.fa = F(r.a); q.c0 = scr(r.a);
           q.sh = shapes(r.svg).map(s => { const t = []; for (const poly of s.polys) for (const v of tri(poly)) t.push(v[0], v[1]); return { c: hex(CLS[s.c] || '#ff00ff'), blink: s.c === 'glint', t: new Float32Array(t) }; });
         } else if (r.t === 'd') { q.fa = F(r.a); q.set = r.set; q.c = hex(CLS.route || '#f6b85e'); }
         else if (r.t === 'c' || r.t === 'e') {
-          const nS = 48, ring3 = [], a = r.a;
-          const s2 = Math.SQRT1_2;
+          const nS = 48, ring3 = [], a = r.a, s2 = Math.SQRT1_2;
           for (let k = 0; k < nS; k++) { const t = 2 * Math.PI * k / nS; ring3.push(r.t === 'c' ? [a[0] + r.r * Math.cos(t), a[1] + r.r * Math.sin(t)] : [a[0] + (r.ra * Math.cos(t) + r.rb * Math.sin(t)) * s2, a[1] + (-r.ra * Math.cos(t) + r.rb * Math.sin(t)) * s2]); }
-          q.fa = F(r.t === 'c' ? a : a);
+          q.fa = F(a);
           if (r.t === 'c') { q.lo = ring3.map(v => F([v[0], v[1], a[2]])); q.hi = ring3.map(v => F([v[0], v[1], a[2] + r.h])); q.cs = col(r.c[0]); q.ct = col(r.c[1]); q.pal = TRI[r.c[0]].map(col);
             q.fh = F([a[0], a[1], a[2] + r.h]); q.rest = ring3.map((v, k) => { const t = 2 * Math.PI * (k + .5) / nS, N = [Math.cos(t), Math.sin(t), 0]; return q.cs.map((c, m) => c - shade(q.pal, N)[m]); }); }
           else { q.ring = ring3.map(v => F([v[0], v[1], a[2]])); q.c = col(r.c); q.al = ALPHA[r.c] == null ? 1 : ALPHA[r.c]; }
         }
         p.pr.push(q);
       }
-      // ---- when each piece's colour turns: as its middle passes the pivot's height
-      for (const p of parts) {
-        p.ps = 0.5;
-        let s0 = 0;
-        for (let k = 0; k <= 100; k++) {
-          const t = k / 100, m = sstep(p.a, p.b, t), c = ctr(p.s.map((v, q) => lerp(v, p.d[q], m))), R = rot(t).m;
-          const z = R[6] * (c[0] - PIV[0]) + R[7] * (c[1] - PIV[1]) + R[8] * (c[2] - PIV[2]);
-          if (k === 0) { s0 = Math.sign(z); if (Math.abs(z) < 1) break; continue; }
-          if (Math.sign(z) !== s0) { p.ps = t; break; }
+      // ---- when each piece's colour turns: as its middle passes the pivot's height, in its own motion
+      for (const P of parts) {
+        if (P.only) { P.ps = P.only === 'A' ? 9 : -9; continue; }
+        const lo = Math.max(0, P.vis[0]), hi = Math.min(1, P.vis[1]);
+        let s0 = null; P.ps = 0.5;
+        for (let k = 0; k <= 240; k++) {
+          const t = lo + (hi - lo) * k / 240, b = P.bx(t), zl = Math.max(P.clip ? P.clip(t) : -1e9, P.clipBy ? P.clipBy.bx(t)[5] : -1e9), R = rot(t), m = R.m;
+          const c = [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (Math.min(Math.max(b[4], zl), b[5]) + b[5]) / 2]; // the middle of what shows
+          const z = m[6] * (c[0] - PIV[0]) + m[7] * (c[1] - PIV[1]) + m[8] * (c[2] - PIV[2]);
+          if (s0 === null) { s0 = Math.sign(z); if (Math.abs(z) < 0.5) break; continue; }
+          if (Math.sign(z) !== s0) { P.ps = t; break; }
         }
-        p.ps = Math.min(1 - K.swap - 1e-3, Math.max(K.swap + 1e-3, p.ps)); // exact colours at both rests
+        P.ps = Math.min(1 - K.swap - 1e-3, Math.max(K.swap + 1e-3, P.ps)); // exact colours at both rests
       }
       return { A: A.length, B: B.length, parts: parts.length };
     }
-    // ---- the turn: a roll over the island's long axis and a half spin, together a turn round a slanted axis
+    // ---- the turn: a roll over the island's long axis and a half spin round the upright, together a turn round a
+    // slanted axis; it rises as it starts and lands as it ends
     function rot(p) {
-      const e = (k, x) => { const w = K[k]; return sstep(w.from, w.to, x); };
-      const th = K.roll.dir * Math.PI * e('roll', p), ph = K.spin.dir * Math.PI * e('spin', p);
-      const ct = Math.cos(th), sn = Math.sin(th), cp = Math.cos(ph), sp = Math.sin(ph), bump = Math.sin(Math.PI * clamp(p)), fe = sstep(0, 1, p);
-      return { m: [cp, -sp * ct, sp * sn, sp, cp * ct, -cp * sn, 0, sn, ct], t: [PIV[0] - FIX[0] * fe, PIV[1], PIV[2] + K.lift * bump - FIX[1] * fe], sc: 1 - K.shrink * bump };
+      const R = K.roll, Sp = K.spin, L = K.lift;
+      const th = R.dir * Math.PI * wound(win(p, [R.from, R.to]), R.wind, R.knee), ph = Sp.dir * Math.PI * wound(win(p, [Sp.from, Sp.to]), Sp.wind, Sp.knee);
+      const ct = Math.cos(th), sn = Math.sin(th), cp = Math.cos(ph), sp = Math.sin(ph), fe = sstep(0, 1, p);
+      const up = L.h * (wound(win(p, L.rise), L.dip, L.knee) - wound(win(p, L.land), L.dip, L.knee)), bump = Math.sin(Math.PI * clamp(th / (R.dir * Math.PI))) ** 2; // smallest when the roll is half over, still at both ends
+      return { m: [cp, -sp * ct, sp * sn, sp, cp * ct, -cp * sn, 0, sn, ct], t: [PIV[0] - FIX[0] * fe, PIV[1], PIV[2] + up - FIX[1] * fe], sc: 1 - K.shrink * bump };
     }
     // ---- one frame's triangles, in buckets: opaque, one per see-through rock level, and see-through extras
-    function Bucket() { return { f: new Float32Array(6144), c: new Uint8ClampedArray(4096), n: 0, d: 0, dn: 0 }; }
+    function Bucket() { return { f: new Float32Array(5120), c: new Uint8ClampedArray(4096), n: 0, d: 0, dn: 0 }; } // room for 1024 vertices in both
     let BK = { o: Bucket(), t: Bucket() }, GR = new Map();
     function grow(b) { const f = new Float32Array(b.f.length * 2); f.set(b.f); b.f = f; const c = new Uint8ClampedArray(b.c.length * 2); c.set(b.c); b.c = c; }
     function vtx(b, x, y, s, o, l, c, a) {
@@ -762,6 +896,15 @@
       const i = b.n * 5, j = b.n * 4; b.f[i] = x; b.f[i + 1] = y; b.f[i + 2] = s; b.f[i + 3] = o; b.f[i + 4] = l;
       b.c[j] = c[0] * 255; b.c[j + 1] = c[1] * 255; b.c[j + 2] = c[2] * 255; b.c[j + 3] = a * 255; b.n++;
     }
+    // a piece's face colour with its tint: towards the colour its host has at that moment (see the Tower's stages)
+    const cbOf = (P, p) => P.only === 'B' ? 1 : P.only === 'A' ? 0 : sstep(P.ps - K.swap, P.ps + K.swap, p);
+    function tinted(P, n, p, c) {
+      if (!P.tint) return c;
+      const k = io(win(p, P.tint.w)); if (k <= 0) return c;
+      const H = P.tint.host, cb = cbOf(H, p), a = shade(H.pa, n), b = shade(H.pb, n), h = tinted(H, n, p, [0, 1, 2].map(q => lerp(a[q], b[q], cb)));
+      return c.map((v, q) => lerp(v, h[q], k));
+    }
+    const same4 = (a, b) => Math.abs(a[0] - b[0]) < 1e-4 && Math.abs(a[1] - b[1]) < 1e-4 && Math.abs(a[2] - b[2]) < 1e-4 && Math.abs(a[3] - b[3]) < 1e-4;
     function frame(p, time) {
       const t0 = performance.now();
       for (const b of [BK.o, BK.t]) b.n = 0;
@@ -772,59 +915,67 @@
       const FNW = FN.map(rotN), vis = FNW.map(n => n[0] + n[1] + n[2] > 1e-5);
       // the path's shimmer and the fountain's glint, in step with the drawing's CSS (time: its animation clock)
       const walk = k => K.still ? 1 : pulse(time + [0, K.walk / 1.5, K.walk / 3][k], K.walk, .45), blink = K.still ? 1 : pulse(time, K.blink, .25);
+      // faces the drawings leave out: side A's come in as the turn starts, side B's go as it ends
+      const kA = sstep(K.faces[0], K.faces[1], p), kB = 1 - sstep(1 - K.faces[1], 1 - K.faces[0], p);
+      for (const P of parts) P.cur = p >= P.vis[0] && (p < P.vis[1] || (p >= 1 && P.vis[1] >= 1)) ? P.bx(p) : null;
       for (const P of parts) {
-        const mm = sstep(P.a, P.b, p);
-        if ((P.only === 'B' && mm <= 1e-4) || (P.only === 'A' && mm >= 1 - 1e-4)) continue;
-        const lo = [0, 2, 4].map(q => lerp(P.s[q], P.d[q], mm)), hi = [1, 3, 5].map(q => lerp(P.s[q], P.d[q], mm));
-        const dd = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
-        if (P.only === 'B' && dd[0] * dd[1] < 1e-6) continue;
+        const bb = P.cur; if (!bb) continue;
+        const lo = [bb[0], bb[2], bb[4]], dd = [bb[1] - bb[0], bb[3] - bb[2], bb[5] - bb[4]];
+        if (dd[0] < 1e-4 || dd[1] < 1e-4 || dd[2] < 1e-4) continue;
+        let zl = P.clip ? P.clip(p) : -1e9; if (P.clipBy && P.clipBy.cur) zl = Math.max(zl, P.clipBy.cur[5]);
+        const zc = zl > -1e8 ? clamp((zl - lo[2]) / dd[2]) : 0;
+        if (zc > 1 - 1e-6) continue;
+        // slabs of one box that have not come apart yet: their inner faces stay out (the painter's order would show them)
+        const hideT = P.above && P.above.cur && Math.abs(P.above.cur[4] - bb[5]) < 1e-4 && same4(P.above.cur, bb);
+        const hideB = P.below && P.below.cur && Math.abs(P.below.cur[5] - bb[4]) < 1e-4 && same4(P.below.cur, bb);
         // f (fractions of the box) -> screen x, y and depth s = i + j + z, as one affine map for this frame
         const g0 = [0, 1, 2].map(r => R.t[r] + sc * (m[r * 3] * (lo[0] - PIV[0]) + m[r * 3 + 1] * (lo[1] - PIV[1]) + m[r * 3 + 2] * (lo[2] - PIV[2])));
         const Gm = [0, 1, 2].map(r => [0, 1, 2].map(q => sc * m[r * 3 + q] * dd[q]));
         const ax = [0, 1, 2].map(q => CW * (Gm[0][q] - Gm[1][q])), ay = [0, 1, 2].map(q => CH * (Gm[0][q] + Gm[1][q]) - U * Gm[2][q]), as = [0, 1, 2].map(q => Gm[0][q] + Gm[1][q] + Gm[2][q]);
         const bx = PR.X0 + CW * (g0[0] - g0[1]), by = PR.Y0 + CH * (g0[0] + g0[1]) - U * g0[2], bs = g0[0] + g0[1] + g0[2];
-        const X = (a, b, c) => bx + ax[0] * a + ax[1] * b + ax[2] * c, Y = (a, b, c) => by + ay[0] * a + ay[1] * b + ay[2] * c, S = (a, b, c) => bs + as[0] * a + as[1] * b + as[2] * c;
-        const cb = sstep(P.ps - K.swap, P.ps + K.swap, p), al = lerp(P.aa, P.ab, cb), gk = cb < .5 ? (P.ga ? 'A' + P.ga : '') : (P.gb ? 'B' + P.gb : '');
+        const X = (a, b, c) => bx + ax[0] * a + ax[1] * b + ax[2] * (c < zc ? zc : c), Y = (a, b, c) => by + ay[0] * a + ay[1] * b + ay[2] * (c < zc ? zc : c), S = (a, b, c) => bs + as[0] * a + as[1] * b + as[2] * (c < zc ? zc : c);
+        const cb = P.only === 'B' ? 1 : P.only === 'A' ? 0 : sstep(P.ps - K.swap, P.ps + K.swap, p), al = lerp(P.aa, P.ab, cb), gk = cb < .5 ? (P.ga ? 'A' + P.ga : '') : (P.gb ? 'B' + P.gb : '');
         let bk = BK.o;
         if (al < .999) { if (gk) { if (!GR.has(gk)) GR.set(gk, Bucket()); bk = GR.get(gk); } else bk = BK.t; }
         const mid = S(.5, .5, .5), ord0 = P.o[0];
         bk.d += lerp(1 - 2 * (ord0 + 1) / (NORD + 2), -(mid - K.s0) / K.depth, w); bk.dn++;
-        const kA = sstep(K.out[0], K.out[1], mm);
         const faceCol = [];
         for (let fi = 0; fi < 6; fi++) {
-          if (!vis[fi]) continue;
-          const n = FNW[fi], cA = shade(P.pa, n), cB = shade(P.pb, n), c = [0, 1, 2].map(k => lerp(cA[k], cB[k], cb));
+          if (!vis[fi] || (fi === 0 && hideT) || (fi === 1 && hideB)) continue;
+          const n = FNW[fi], cA = shade(P.pa, n), cB = shade(P.pb, n), c = tinted(P, n, p, [0, 1, 2].map(k => lerp(cA[k], cB[k], cb)));
           faceCol[fi] = { c, rA: lum(cA) / lum(shade(P.pa, FN[fi])), rB: lum(cB) / lum(shade(P.pb, [-FN[fi][0], FN[fi][1], -FN[fi][2]])) };
-          // a face the still drawing leaves out (the iceberg's ledge tops) comes in as the turn starts
-          let fb = bk, fa = al;
-          if (P.rA && P.rA.h && FL[fi] && P.rA.h.includes(FL[fi])) { const k = sstep(K.faces[0], K.faces[1], p); if (k <= 0) continue; if (k < 1) { fb = BK.t; fa = al * k; } }
+          let fb = bk, fa = al, k = 1;
+          if (P.hA & (1 << fi)) k = kA;
+          if (P.hB & (1 << fi)) k = Math.min(k, kB);
+          if (k <= 0) continue;
+          if (k < 1) { fb = BK.t; fa = al * k; }
           const q = FQ[fi], o = P.o[fi];
           const v = q.map(f => [X(f[0], f[1], f[2]), Y(f[0], f[1], f[2]), S(f[0], f[1], f[2])]);
-          for (const [a, b2, c2] of [[0, 1, 2], [0, 2, 3]]) for (const k of [a, b2, c2]) vtx(fb, v[k][0], v[k][1], v[k][2], o, 0, c, fa);
+          for (const [a, b2, c2] of [[0, 1, 2], [0, 2, 3]]) for (const kk of [a, b2, c2]) vtx(fb, v[kk][0], v[kk][1], v[kk][2], o, 0, c, fa);
           for (const u of v) { if (u[0] < bounds[0]) bounds[0] = u[0]; if (u[1] < bounds[1]) bounds[1] = u[1]; if (u[0] > bounds[2]) bounds[2] = u[0]; if (u[1] > bounds[3]) bounds[3] = u[1]; }
         }
-        // the details: side A's go dark into the face as the piece moves off; side B's come on floor by floor
+        // the details: side A's go dark into the face, the top row first; side B's come on floor by floor
         const dec = (list, isA) => {
           for (const d of list) {
             const fcd = faceCol[d.fc]; if (!fcd) continue;
             let k, c;
-            if (isA) { k = sstep(K.out[0] + K.out[2] * (1 - d.row), K.out[1] + K.out[2] * (1 - d.row), mm); if (k >= 1) continue; c = d.c.map((v, q) => lerp(Math.min(1, v * fcd.rA), fcd.c[q], k)); }
-            else { const L = K.lights; k = sstep(L[0] + L[2] * d.row, L[1] + L[2] * d.row, mm); if (k <= 0) continue; c = d.c.map((v, q) => lerp(fcd.c[q], Math.min(1, v * fcd.rB), k)); }
+            if (isA) { const o = P.out; k = sstep(o[0] + o[2] * (1 - d.row), o[1] + o[2] * (1 - d.row), p); if (k >= 1) continue; c = d.c.map((v, q) => lerp(Math.min(1, v * fcd.rA), fcd.c[q], k)); }
+            else { const o = P.lit; k = sstep(o[0] + o[2] * d.row, o[1] + o[2] * d.row, p); if (k <= 0) continue; c = d.c.map((v, q) => lerp(fcd.c[q], Math.min(1, v * fcd.rB), k)); }
             const b = d.blink ? BK.t : bk, a = d.blink ? al * blink : al, f = d.f;
             for (let q = 0; q < f.length; q += 3) vtx(b, X(f[q], f[q + 1], f[q + 2]), Y(f[q], f[q + 1], f[q + 2]), S(f[q], f[q + 1], f[q + 2]), d.ord, 1, c, a);
           }
         };
-        if (P.da.length && kA < 1) dec(P.da, true);
+        if (P.da.length) dec(P.da, true);
         if (P.db.length) dec(P.db, false);
-        // what rides on the piece: A's shrink and settle onto it, B's (the trees) grow at the end
+        // what rides on the piece: A's fold and sink onto it, B's (the trees) grow
         const topC = faceCol[0] ? faceCol[0].c : shade(P.pa, FNW[0]);
         for (const q of P.pr) {
-          const kq = q.S === 'A' ? sstep(K.prim[0], K.prim[1], mm) : 1 - sstep(K.trees[0], K.trees[1], mm);
+          const kq = q.S === 'A' ? sstep(P.fold[0], P.fold[1], p) : 1 - sstep(P.grow[0], P.grow[1], p);
           if (kq >= 1) continue;
           const shr = (f, fa) => [fa[0] + (f[0] - fa[0]) * (1 - kq), fa[1] + (f[1] - fa[1]) * (1 - kq), f[2] > 1 ? 1 + (f[2] - 1) * (1 - kq) : f[2]];
           const tb = q.al != null && q.al < 1 ? BK.t : bk;
           if (q.t === 'p') {
-            const n = rotN(q.S === 'A' ? q.n : q.n); if (n[0] + n[1] + n[2] <= 1e-5) continue;
+            const n = rotN(q.n); if (n[0] + n[1] + n[2] <= 1e-5) continue;
             let c = q.pal ? shade(q.pal, n).map((v, k) => clamp(v + q.rest[k])) : q.c;
             c = c.map((v, k) => lerp(v, topC[k], kq));
             const f = q.tri;
