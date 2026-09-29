@@ -2152,10 +2152,12 @@
         ctx.fillStyle = css(mix(wall, [0, 0, 0], 0.30), 0.7 * (1 - dark * 0.6));
         ctx.fillRect(x, y - dkRow, g.w, dkRow);
 
-        const roll = hash01(seed, r, Math.floor(c / 2));
+        const paneIndex = window.CityNight?.tune.windowScatter !== false ? c : Math.floor(c / 2);
+        const scatter = window.CityNight?.tune.windowScatter !== false;
+        const roll = scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-window', r, c) : hash01(seed, r, paneIndex);
         const isLit = night > 0.05 && roll < occupancy;
         if (isLit) {
-          let tone = pickTone(hash01(seed + 1009, r, Math.floor(c / 2)) * warmBias);
+          let tone = pickTone((scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-tone', r, c) : hash01(seed + 1009, r, paneIndex)) * warmBias);
           const bRoll = hash01(seed + 2003, r, c);
           let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
           if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {
@@ -2200,7 +2202,7 @@
     // counts, mottle cell size, deck band pitch), not just the resampling. It
     // was the one-deep cache that made the first cut of the metre anchor look
     // like it had no effect: the tile was correct and stale.
-    const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor;
+    const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor + '|' + (window.CityNight?.tune.windowScatter !== false);
     if (_rawKey === key) return _raw;
     const { d, RESF, mottle } = drawRaw(fam, bucketIdx, p);
     if (mottle) applyMottle(d, RESF, SCALE, mottle);
@@ -2635,13 +2637,10 @@
    * it back. "Fly over a chunk to fix that chunk" is the near tiles arriving;
    * "they go back to being dark after a while" is flying away again.
    *
-   * THE RULE NOW: every tier holds the same hour, always — and since the H2 mip
-   * change every tier is repainted in the CALLING frame, so there is no window
-   * in which it can be false. §46 could not afford that (three full-resolution
-   * blurs); a decimated tier costs a quarter and a sixteenth of the near one, so
-   * all three together are cheaper than the two the camera-derived set used to
-   * paint. The timer below survives as a belt-and-braces path for combos
-   * registered after a repaint; `staleTiers()` normally finds nothing.
+   * Every tier of a combo must change together. The paced path below commits
+   * all its tiers atomically, across successive frames for different combos.
+   * It keeps running without a zoom event, and discards obsolete hour jobs.
+   * TIMEOFDAY_PACE.on=false retains the historical synchronous comparison.
    */
   const ATLAS = {
     // Milliseconds after a time-of-day change by which every remaining mip tier
@@ -2740,6 +2739,15 @@
     tilesHooked: 0, atlasesReleased: 0, bytesReleased: 0,
     premultiplyHits: 0, premultiplyMisses: 0, premultiplyBytesAvoided: 0,
     fastAtlasUploads: 0, fastAtlasBytes: 0, premultiplyPrimed: 0, borderPatches: 0,
+    // Of fastAtlasUploads: atlases that arrived premultiplied from a MapLibre
+    // worker (ATLAS_WORKER_PM), and the main-thread ms the rest cost here.
+    workerPmUploads: 0, workerPmBytes: 0, mainPmMs: 0,
+    workerPm: 'unarmed', workerPmChecked: 0, workerPmMismatch: 0,
+    // Pattern images a worker already held (ATLAS_IMAGE_CACHE): sent as a stub
+    // instead of a copy, their bytes, and the ones sent whole; `imgCacheChecked`
+    // / `imgCacheMismatch` are the `?atlaspmcheck=1` byte comparisons.
+    imgCache: 'unarmed', imgCacheStubs: 0, imgCacheBytesSaved: 0, imgCacheSent: 0,
+    imgCacheBytesSent: 0, imgCacheChecked: 0, imgCacheMismatch: 0,
   };
   const _memoryTiles = new WeakSet();
   const _memoryAtlases = new WeakSet();
@@ -2977,24 +2985,374 @@
       typeof C.prototype.update === 'function' && typeof C.prototype.bind === 'function' &&
       typeof C.prototype.destroy === 'function';
   }
-  function uploadAtlasFast(tile, context) {
-    if (!_TextureCtor || !ATLAS_UPLOAD.fastPremultiply) return;
+  /**
+   * ── THE ATLAS PREMULTIPLY RUNS IN MAPLIBRE'S TILE WORKERS ──
+   *
+   * WHY. Turning brings new tiles into view every few frames and each one
+   * carries its own pattern atlas, so the table above still ran over every
+   * atlas byte on the main thread, into a fresh copy, in the frame the tile
+   * first drew. MEASURED on main (turnmeter, NVIDIA, 1280x680 DPR 1.5, vsync
+   * off, 6 s at 120 deg/s over campus): 491 atlases, 258 MB, and
+   * `premultiplyInto` the top self-time function of the turn at 566 ms, with
+   * `texImage2D` itself 82 ms. It is also the hitch right after a flick, when
+   * the tiles the flick asked for all land at once.
+   *
+   * WHAT. The atlas is BUILT in a MapLibre worker: `ImageAtlas` copies each
+   * style image into a zeroed image. Premultiplying is per pixel, so doing it
+   * there, to the finished atlas, gives exactly the bytes doing it here gives.
+   * A script imported into every MapLibre worker (`importScriptInWorkers`)
+   * wraps that worker's `postMessage`: a tile result carrying an ImageAtlas is
+   * premultiplied in place, by `premultiplyInto` and `buildPremultiplyLut`
+   * sent as source text (the same function, the same table), and tagged
+   * `ATLAS_PM_TAG`. The tag rides MapLibre's own serializer, which copies
+   * every own key, so the main thread knows PER ATLAS, never by assumption:
+   * a tagged atlas is uploaded as it arrived, premultiply off, no copy; an
+   * untagged one (built before the import landed) takes the path above.
+   *
+   * SAFE BY ORDER. The import is sent only once every arriving tile is hooked
+   * (`armRelease` listens for `data` first, and `data` fires before a tile's
+   * first draw), so a tagged atlas never meets MapLibre's own upload, which
+   * would premultiply it a second time. If anything fails, the workers are
+   * told to stop tagging (`disableWorkerPremultiply`).
+   *
+   * `?atlasworkerpm=0` is the old main-thread path, for an A/B in one checkout.
+   */
+  const ATLAS_WORKER_PM = {
+    on: !/[?&]atlasworkerpm=0(?:&|$)/.test((window.location && window.location.search) || ''),
+    // `?atlaspmcheck=1`: every tagged atlas also carries its raw bytes, and the
+    // main thread compares premultiplyInto(raw) with what arrived, byte for
+    // byte (facadeMemoryStats().workerPmChecked / workerPmMismatch). A gate for
+    // scripts/verify/atlas-worker-pm.mjs, never on by default: it doubles the
+    // bytes every tile sends.
+    check: /[?&]atlaspmcheck=1(?:&|$)/.test((window.location && window.location.search) || ''),
+  };
+  const ATLAS_PM_TAG = '__facadePm';
+  let _workerPmArmed = false, _workerPmURL = null;
+
+  /**
+   * ── EACH WORKER KEEPS THE PATTERN IMAGES IT WAS SENT ──
+   *
+   * WHY. With the premultiply in the workers, the biggest atlas cost left on
+   * this thread is MapLibre copying images FOR the workers: every new tile's
+   * worker asks for every pattern image the tile uses ("GI"), and
+   * `ImageManager._getImagesForIds` clones each one so its own copy is not
+   * transferred away. It is the same facade images, tile after tile. MEASURED
+   * (turnmeter, NVIDIA, 1280x680 DPR 1.5, vsync off, 3 runs, after the
+   * premultiply moved): 64-244 MB copied and 51-337 ms per 6 s turn, the
+   * largest atlas item left.
+   *
+   * WHAT. Each worker keeps the pattern images it has received, keyed by
+   * WHICH image (a serial this thread gives each image object) at WHICH
+   * version (MapLibre's own, bumped by every updateImage). With its next
+   * request it lists what it holds; this thread answers a stub instead of a
+   * copy for every image whose serial and version still match, and the
+   * worker puts its own copy back before MapLibre's code sees the reply.
+   * Same pixels into the same atlas: an image that changed has a new version
+   * (or a new serial, if it was removed and added again) and goes whole.
+   * Patterns only (icons untouched), never an image with a render callback,
+   * a copy is used only for the request that listed it (held, so eviction
+   * cannot race it), LRU-capped per worker, and off on a phone.
+   *
+   * `?atlasimgcache=0` switches it off for an A/B; `?atlaspmcheck=1` also
+   * sends the full copy beside each stub and the worker compares them.
+   */
+  const ATLAS_IMAGE_CACHE = {
+    on: !/[?&]atlasimgcache=0(?:&|$)/.test((window.location && window.location.search) || ''),
+    // Bytes of pattern images each MapLibre worker may keep; the least
+    // recently used go first. Facade images alone are ~165 MB at DPR 2.
+    maxBytesPerWorker: 48 * 1024 * 1024,
+    // A phone keeps none: its memory budget is js/mobile.js, and this is
+    // pure extra memory (4 workers x the cap at worst).
+    offOnPhone: true,
+  };
+  const IMG_HAVE = '__facadeHave', IMG_STUB = '__facadeHeld', IMG_GEN = '__facadeGen',
+    IMG_CHK = '__facadeChk';
+  const _imgGen = new WeakMap();
+  let _imgGenSeq = 0, _imgHave = null, _imgCacheArmed = false;
+  const imgGenOf = (img) => {
+    let g = _imgGen.get(img);
+    if (!g) { g = ++_imgGenSeq; _imgGen.set(img, g); }
+    return g;
+  };
+  const imgCacheable = (img) => !!(img && img.data && img.data.data &&
+    ArrayBuffer.isView(img.data.data) && !(img.userImage && img.userImage.render));
+
+  // Runs inside each MapLibre worker, as source text, before
+  // facadeAtlasWorkerMain (which carries the check counts home on an atlas).
+  function facadeImageCacheWorker(HAVE, STUB, GEN, CHK, MAX) {
+    const w = self.worker, actor = w && w.actor;
+    if (self.__facadeImgCache || !actor || typeof actor.sendAsync !== 'function') return;
+    const gs = self.__facadeImgCache = { off: false, bytes: 0, checked: 0, bad: 0, n: 0 };
+    const cache = new Map();   // id -> { key, entry, bytes }, oldest first
+    const store = (id, c) => {
+      const old = cache.get(id);
+      if (old) { gs.bytes -= old.bytes; cache.delete(id); }
+      if (c.bytes > MAX) return;
+      cache.set(id, c); gs.bytes += c.bytes;
+      while (gs.bytes > MAX && cache.size) {
+        const k = cache.keys().next().value;
+        gs.bytes -= cache.get(k).bytes; cache.delete(k);
+      }
+      gs.n = cache.size;
+    };
+    const send = actor.sendAsync;
+    actor.sendAsync = function (msg, abort) {
+      const d = msg && msg.type === 'GI' ? msg.data : null;
+      if (gs.off || !d || d.type !== 'patterns' || !Array.isArray(d.icons)) return send.apply(this, arguments);
+      const have = {}, held = {};
+      for (const id of d.icons) {
+        const c = cache.get(id);
+        if (!c) continue;
+        have[id] = c.key; held[id] = c;
+        cache.delete(id); cache.set(id, c);          // most recently used
+      }
+      const out = Object.assign({}, msg, { data: Object.assign({}, d, { [HAVE]: have }) });
+      return send.call(this, out, abort).then((res) => {
+        if (!res || typeof res !== 'object') return res;
+        for (const id of Object.keys(res)) {
+          const e = res[id];
+          if (!e || typeof e !== 'object') continue;
+          if (e[STUB] !== undefined) {
+            const c = held[id];
+            // Cannot happen: this thread stubs only the key this request listed.
+            if (!c || c.key !== e[STUB]) { gs.off = true; throw new Error('facade image cache: no held copy of ' + id); }
+            const fresh = e[CHK];
+            if (fresh && fresh.data) {
+              const a = c.entry.data.data, b = fresh.data;
+              let bad = a.length === b.length ? 0 : Math.max(a.length, b.length);
+              if (!bad) for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) bad++;
+              gs.checked++; gs.bad += bad;
+            }
+            res[id] = c.entry;
+          } else if (e[GEN] !== undefined && e.data && e.data.data && ArrayBuffer.isView(e.data.data)) {
+            store(id, { key: e[GEN] + ':' + e.version, entry: e, bytes: e.data.data.byteLength });
+          }
+        }
+        return res;
+      });
+    };
+  }
+
+  function disableImageCache(reason) {
+    if (ATLAS_MEMORY.imgCache === 'off') return;
+    ATLAS_MEMORY.imgCache = 'off';
+    console.warn('[facades] pattern images copied for every tile again: ' + reason);
+    try {
+      const url = URL.createObjectURL(new Blob(
+        ['self.__facadeImgCache && (self.__facadeImgCache.off = true);'], { type: 'text/javascript' }));
+      window.maplibregl.importScriptInWorkers(url);
+    } catch (e) { /* nothing was armed that could reach here */ }
+  }
+
+  /**
+   * This thread's half: answer a worker's list of held images with stubs.
+   * Wraps the one map's Style.getImages (to see the list) and its
+   * ImageManager._getImagesForIds (where the copies are made); both call the
+   * prototype's CURRENT method, so anything else wrapping those still runs.
+   */
+  function armImageCache(map) {
+    if (_imgCacheArmed) return ATLAS_MEMORY.imgCache === 'on';
+    _imgCacheArmed = true;
+    const phone = !!(window.LITE_PROFILE && window.LITE_PROFILE.budget);
+    const style = map && map.style, im = style && style.imageManager;
+    if (!ATLAS_IMAGE_CACHE.on || (phone && ATLAS_IMAGE_CACHE.offOnPhone) || !supportedAtlasVersion() ||
+        !im || typeof style.getImages !== 'function' || typeof im._getImagesForIds !== 'function' ||
+        typeof im.getImage !== 'function') {
+      ATLAS_MEMORY.imgCache = 'off';
+      return false;
+    }
+    style.getImages = function (mapId, params) {
+      const have = ATLAS_MEMORY.imgCache === 'on' && params && params.type === 'patterns' ? params[IMG_HAVE] : null;
+      const P = Object.getPrototypeOf(this);
+      if (!have || typeof have !== 'object') return P.getImages.apply(this, arguments);
+      // MapLibre 5.24.0's getImages calls _getImagesForIds synchronously when
+      // the sprite is loaded; the other path (still loading) runs later,
+      // after this is cleared, and simply sends everything.
+      _imgHave = have;
+      try { return P.getImages.apply(this, arguments); } finally { _imgHave = null; }
+    };
+    im._getImagesForIds = function (ids) {
+      const have = _imgHave;
+      _imgHave = null;
+      const P = Object.getPrototypeOf(this);
+      if (!have || !Array.isArray(ids)) return P._getImagesForIds.apply(this, arguments);
+      const need = [], stubs = [];
+      for (const id of ids) {
+        const img = this.getImage(id);
+        if (imgCacheable(img) && have[id] === imgGenOf(img) + ':' + img.version) stubs.push([id, img]);
+        else need.push(id);
+      }
+      const res = P._getImagesForIds.call(this, need);
+      for (const id of need) {
+        const e = res[id], img = this.getImage(id);
+        if (!e || !imgCacheable(img)) continue;
+        e[IMG_GEN] = imgGenOf(img);
+        ATLAS_MEMORY.imgCacheSent++;
+        ATLAS_MEMORY.imgCacheBytesSent += img.data.data.byteLength;
+      }
+      for (const [id, img] of stubs) {
+        const s = { [IMG_STUB]: have[id] };
+        if (ATLAS_WORKER_PM.check) s[IMG_CHK] = img.data.clone();
+        res[id] = s;
+        ATLAS_MEMORY.imgCacheStubs++;
+        ATLAS_MEMORY.imgCacheBytesSaved += img.data.data.byteLength;
+      }
+      return res;
+    };
+    ATLAS_MEMORY.imgCache = 'on';
+    return true;
+  }
+
+  // Runs inside each MapLibre worker, as source text: `premultiplyInto`,
+  // `PM_LUT` and `PM_LITTLE_ENDIAN` are defined beside it in the same scope.
+  // PM false: no premultiply, only the image cache's check counts ride home.
+  function facadeAtlasWorkerMain(TAG, CHECK, PM) {
+    if (self.__facadeAtlasPm) return;            // one wrapper per worker
+    const st = self.__facadeAtlasPm = { off: !PM, atlases: 0, bytes: 0 };
+    const post = self.postMessage;
+    self.postMessage = function (msg) {
+      try {
+        // MapLibre's Actor.completeTask: { type: '<response>', data: serialize(result) },
+        // and a tile result holds its atlas at data.imageAtlas.
+        const d = msg && msg.type === '<response>' && !msg.error ? msg.data : null;
+        const a = d && typeof d === 'object' ? d.imageAtlas : null;
+        if (a && a.$name === 'ImageAtlas') {
+          const gs = self.__facadeImgCache;
+          if (gs && (gs.checked || gs.bad)) { a[TAG + 'Img'] = [gs.checked, gs.bad]; gs.checked = 0; gs.bad = 0; }
+          const im = !st.off && a[TAG] !== 1 ? a.image : null;
+          const px = im && im.data;
+          if (px && ArrayBuffer.isView(px) && px.BYTES_PER_ELEMENT === 1 &&
+              px.length === im.width * im.height * 4) {
+            if (CHECK) a[TAG + 'Src'] = px.slice();
+            premultiplyInto(px, px);
+            a[TAG] = 1;
+            st.atlases++; st.bytes += px.length;
+          }
+        }
+      } catch (e) { /* the message goes out exactly as MapLibre built it */ }
+      return post.apply(self, arguments);
+    };
+  }
+
+  function disableWorkerPremultiply(reason) {
+    if (ATLAS_MEMORY.workerPm === 'off') return;
+    ATLAS_MEMORY.workerPm = 'off';
+    console.warn('[facades] atlas premultiply back on the main thread: ' + reason);
+    try {
+      const url = URL.createObjectURL(new Blob(
+        ['self.__facadeAtlasPm && (self.__facadeAtlasPm.off = true);'], { type: 'text/javascript' }));
+      window.maplibregl.importScriptInWorkers(url);
+    } catch (e) { /* nothing was armed that could reach here */ }
+  }
+
+  /**
+   * Send the premultiply and the image cache into MapLibre's workers, as one
+   * imported script. Once per page; each half has its own switch and its own
+   * way back (disableWorkerPremultiply / disableImageCache).
+   */
+  function armWorkers(map) {
+    if (_workerPmArmed) return;
+    _workerPmArmed = true;
+    const ml = window.maplibregl;
+    const canImport = !!(ml && typeof ml.importScriptInWorkers === 'function' &&
+      typeof Blob === 'function' && typeof URL !== 'undefined' && URL.createObjectURL);
+    const pm = canImport && ATLAS_WORKER_PM.on && ATLAS_UPLOAD.fastPremultiply && supportedAtlasVersion();
+    if (!pm) ATLAS_MEMORY.workerPm = 'off';
+    const img = canImport ? armImageCache(map) : (ATLAS_MEMORY.imgCache = 'off', false);
+    if (!pm && !img) return;
+    const fail = (why) => {
+      if (pm) disableWorkerPremultiply(why);
+      if (img) disableImageCache(why);
+    };
+    try {
+      const src = [
+        '(function () {',
+        'const PM_LUT = (' + buildPremultiplyLut.toString() + ')();',
+        'const PM_LITTLE_ENDIAN = ' + JSON.stringify(PM_LITTLE_ENDIAN) + ';',
+        premultiplyInto.toString(),
+        img ? '(' + facadeImageCacheWorker.toString() + ')(' + [IMG_HAVE, IMG_STUB, IMG_GEN, IMG_CHK]
+          .map(s => JSON.stringify(s)).join(', ') + ', ' + (ATLAS_IMAGE_CACHE.maxBytesPerWorker | 0) + ');' : '',
+        '(' + facadeAtlasWorkerMain.toString() + ')(' + JSON.stringify(ATLAS_PM_TAG) + ', ' +
+          JSON.stringify(!!ATLAS_WORKER_PM.check) + ', ' + JSON.stringify(!!pm) + ');',
+        '})();',
+      ].join('\n');
+      // Kept for the page's life, never revoked.
+      _workerPmURL = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      if (pm) ATLAS_MEMORY.workerPm = 'arming';
+      Promise.resolve(ml.importScriptInWorkers(_workerPmURL)).then(
+        () => { if (ATLAS_MEMORY.workerPm === 'arming') ATLAS_MEMORY.workerPm = 'on'; },
+        (e) => fail('worker import failed: ' + ((e && e.message) || e)));
+    } catch (e) {
+      fail((e && e.message) || String(e));
+    }
+  }
+
+  /**
+   * MapLibre's Texture class, before any tile has been uploaded: run the
+   * original `Tile.upload` on a one-pixel stand-in tile and read the class off
+   * the texture it made. A tagged atlas must never reach MapLibre's own upload.
+   */
+  function acquireTextureCtor(upload, context) {
+    if (_TextureCtor || typeof upload !== 'function') return;
+    const probe = { buckets: {}, glyphAtlasImage: null,
+      imageAtlas: { uploaded: false, image: { width: 1, height: 1, data: new Uint8Array(4) } } };
+    try {
+      upload.call(probe, context);
+      const t = probe.imageAtlasTexture;
+      if (t && isTextureCtor(t.constructor)) _TextureCtor = t.constructor;
+      if (t && typeof t.destroy === 'function') t.destroy();
+    } catch (e) { /* stays null: the caller falls back */ }
+  }
+
+  const pmNow = () => (window.performance && window.performance.now ? window.performance.now() : 0);
+
+  function uploadAtlasFast(tile, context, upload) {
     const atlas = tile && tile.imageAtlas;
     if (!atlas || atlas.uploaded) return;
+    const ic = atlas[ATLAS_PM_TAG + 'Img'];   // the image cache's check counts, carried home
+    if (ic) {
+      ATLAS_MEMORY.imgCacheChecked += ic[0] | 0;
+      ATLAS_MEMORY.imgCacheMismatch += ic[1] | 0;
+      atlas[ATLAS_PM_TAG + 'Img'] = null;
+    }
+    const pre = atlas[ATLAS_PM_TAG] === 1;
+    if (!pre && !ATLAS_UPLOAD.fastPremultiply) return;
     const image = atlas.image, data = image && image.data;
     const gl = context && context.gl;
     if (!gl || !data || data.BYTES_PER_ELEMENT !== 1 || !ArrayBuffer.isView(data) ||
         data.length !== image.width * image.height * 4) return;
+    if (pre && !_TextureCtor) acquireTextureCtor(upload, context);
+    if (!_TextureCtor) {
+      if (pre) disableWorkerPremultiply('no Texture class for a premultiplied atlas');
+      return;
+    }
     try {
-      const pixels = premultiplyInto(data, new Uint8Array(data.length));
+      let pixels = data;
+      if (pre) {
+        const src = atlas[ATLAS_PM_TAG + 'Src'];
+        if (src) {
+          const want = premultiplyInto(src, new Uint8Array(src.length));
+          let bad = want.length === data.length ? 0 : Math.max(want.length, data.length);
+          if (!bad) for (let i = 0; i < want.length; i++) if (want[i] !== data[i]) bad++;
+          ATLAS_MEMORY.workerPmChecked++;
+          ATLAS_MEMORY.workerPmMismatch += bad;
+          atlas[ATLAS_PM_TAG + 'Src'] = null;
+        }
+      } else {
+        const t0 = pmNow();
+        pixels = premultiplyInto(data, new Uint8Array(data.length));
+        ATLAS_MEMORY.mainPmMs += pmNow() - t0;
+      }
       tile.imageAtlasTexture = new _TextureCtor(context,
         { width: image.width, height: image.height, data: pixels }, gl.RGBA, { premultiply: false });
       atlas.uploaded = true;
       ATLAS_MEMORY.fastAtlasUploads++;
       ATLAS_MEMORY.fastAtlasBytes += data.byteLength;
+      if (pre) { ATLAS_MEMORY.workerPmUploads++; ATLAS_MEMORY.workerPmBytes += data.byteLength; }
     } catch (e) {
       // Leave the tile exactly as MapLibre handed it over; its own upload runs.
       ATLAS_UPLOAD.fastPremultiply = false;
+      if (pre) disableWorkerPremultiply(e.message);
       console.warn('[facades] fast atlas upload disabled: ' + e.message);
     }
   }
@@ -3005,7 +3363,7 @@
     if (_memoryTiles.has(tile)) return;
     const upload = tile.upload;
     tile.upload = function (...args) {
-      uploadAtlasFast(this, args[0]);
+      uploadAtlasFast(this, args[0], upload);
       const result = upload.apply(this, args);
       if (!_TextureCtor && this.imageAtlasTexture &&
           isTextureCtor(this.imageAtlasTexture.constructor)) {
@@ -3188,7 +3546,12 @@
     if (_relHooked) return;
     _relHooked = true;
     map.on('render', releaseTick);
-    map.on('render', clearPremultiplyFrame);
+    // Keep worker-primed bytes across tile patches on later frames. The cache
+    // is byte-bounded and checks image source/version before every reuse.
+    // The runtime legacy switch restores the original per-render clearing.
+    map.on('render', () => {
+      if (!window.TIMEOFDAY_PACE?.on) clearPremultiplyFrame();
+    });
     map.on('webglcontextlost', clearPremultiplyFrame);
     map.on('remove', clearPremultiplyFrame);
     // A tile arriving from the out-of-view cache is the ONE case that can be
@@ -3203,6 +3566,10 @@
     // Catch tiles loaded before the facade module was armed once, without
     // adding an atlas walk to the render loop. Future arrivals use data above.
     eachInViewTile(map, watchAtlasUpload);
+    // Only now: every tile that arrives from here on is hooked before it draws,
+    // which is what makes a worker-premultiplied atlas safe (ATLAS_WORKER_PM).
+    // The image cache (ATLAS_IMAGE_CACHE) rides in the same script.
+    armWorkers(map);
   }
 
   // `_atlasP` is the hour the atlas has been ASKED for. `_tierP` is the hour
@@ -3238,7 +3605,7 @@
     if (fam === 'dk') return 'dk|' + p + '|' + detailK();
     const g = gridFor(fam);
     return p + '|' + g.rows + 'x' + g.cols + 'x' + g.w + 'x' + g.h
-      + '|' + detailK() + '|' + baseFamOf(fam);
+      + '|' + detailK() + '|' + baseFamOf(fam) + '|' + (window.CityNight?.tune.windowScatter !== false);
   }
   window.facadeDrawSig = drawSig;
   // The sig covers everything drawTile reads EXCEPT the colour bucket, which is
@@ -3322,7 +3689,7 @@
 
   /**
    * ══════════════════════════════════════════════════════════════════
-   *  PACE: A ZOOM-ANCHOR REPAINT IS SPREAD OVER FRAMES, NEVER ONE FRAME
+   *  PACE: ZOOM AND TIME REPAINTS ARE SPREAD OVER FRAMES
    * ══════════════════════════════════════════════════════════════════
    *
    * WHAT IT COST. Crossing an integer zoom above REF_ZOOM moves `_zAnchor`,
@@ -3357,21 +3724,25 @@
    * Once the queue drains every image is byte-for-byte what `paintTiers` would
    * have drawn (298 of 298 images checked against main), and the tiles that
    * arrived mid-job get their pattern borders fixed too (see ATLAS_BORDER).
-   * The HOUR is never paced: `updateFacades` still repaints every tier in the
+   * With TIMEOFDAY_PACE disabled, the HOUR is never paced: `updateFacades` still repaints every tier in the
    * calling frame, per the A1/A4 rule above, and a paced job finds that work
    * done.
    *
    * Every threshold is here, and `?facadepace=0` restores the old synchronous
    * path for an A/B in the same checkout.
    */
+  // Runtime A/B: false retains the synchronous hour repaint.
+  window.TIMEOFDAY_PACE = { on: !/[?&]timeofdaypace=0(?:&|$)/.test(location.search) };
   const PACE = {
     on: !/[?&]facadepace=0(?:&|$)/.test(location.search),
     // Main-thread milliseconds per frame the repaint may use while the camera
     // moves (easing, flycam driving, or any move in the last `settleMs`).
     budgetMs: 10,
-    // ...and once it has been still for `settleMs`. Larger, so the city
-    // settles into its final look quickly after you stop.
-    restBudgetMs: 40,
+    // Keep the same short budget after the camera has settled: a time change
+    // must leave room for input and the render's deferred atlas uploads.
+    restBudgetMs: 10,
+    // updateImage defers atlas copies/uploads until render; bound that debt too.
+    maxCommitsPerFrame: 2,
     settleMs: 250,
     // Background painters. 0 paints on this thread (still paced). Capped at
     // hardwareConcurrency - 1.
@@ -3676,7 +4047,7 @@
     PS.frames++;
 
     // 1. finished combos first: they are the cheapest pixels to put on screen
-    while (_pace.ready.length && (did === 0 || spent() < budget)) {
+    while (_pace.ready.length && wrote < PACE.maxCommitsPerFrame && (did === 0 || spent() < budget)) {
       const job = _pace.ready.shift();
       if (paceCommit(map, job)) {
         wrote++; PS.committed++;
@@ -3690,7 +4061,7 @@
     }
     // 2. then draw more, into a worker if there is one, else here
     const pool = _pace.poolDead ? [] : pacePool();
-    while (_pace.queue.length && (did === 0 || spent() < budget)) {
+    while (_pace.queue.length && wrote < PACE.maxCommitsPerFrame && (did === 0 || spent() < budget)) {
       const id = _pace.queue[0];
       const sig = drawSig(parseId(id).fam, _atlasP);
       let inFlight = false;
@@ -3750,9 +4121,7 @@
     armPump();
   }
 
-  // A safety net, not a path anything relies on: updateFacades already paints
-  // every tier in its own frame, so this only ever finds work if a combo was
-  // registered between two repaints.
+  // Zoom changes retarget the same queue used for time-of-day repainting.
   /**
    * The zoom anchor, and the only place it moves.
    *
@@ -3866,6 +4235,13 @@
   window.updateFacades = function updateFacades(map, p) {
     if (!palette.length) return;
     _atlasP = p;
+    if (PACE.on && window.TIMEOFDAY_PACE.on) {
+      if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = 0; }
+      requestAnchorRepaint(map);
+      watchTierZoom(map);
+      armRelease(map);
+      return;
+    }
     // EVERY tier, in this frame. See the ATLAS block: nothing derived from the
     // camera can name the tiers a pitched frame reads, and the decimated tiers
     // are cheap enough now that there is no reason to try.

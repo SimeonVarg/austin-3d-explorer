@@ -1,5 +1,505 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - Far facades crawl about a third less in flight: each far window-pattern read averages the pixel's own patch of wall (`claude/moire-distance`, PR #341, merged c17b085, live)
+
+The owner: "main thing im noticing while flying is the moire. its too
+noticable ... ideally id like all of it to be fixed". #332 (Smooth edges on
+by default) took about two thirds of it. This pass went after the rest,
+measured on main 4fbb502 first. It takes a real piece of what is left, not
+all of it.
+
+**What was left, and where it comes from** (`moire.mjs`, NVIDIA, 1280x680 at
+DPR 1.5, balanced, Smooth edges on, `cancelGraphicsAutoDetect` called):
+- **The crawl on far pattern walls.** MapLibre reads the facade atlas once per
+  pixel, bilinear, with no mip levels. Past about 200 m one pixel covers 2-6
+  texels of window grid and keeps one of them, a different one each frame as
+  the camera moves. 4x MSAA adds coverage samples, not texture reads, so #332
+  never touched this. It is most of what still moves in the flight frames.
+- **Authored buildings (three.js).** With Smooth edges on, hiding their fine
+  parts (balconies, fins and piers, reveals; one full load per switch) moves
+  the score by 0.004 or less at every pose. They are at what 4 samples can
+  resolve, so fading them with distance has nothing left to take.
+- **Downtown floor lines as short dashes.** Geometry a fifth of a pixel thick;
+  see What is left.
+
+**What changed (`js/city-lighting.js`, `CityLighting.patternFilter`, all
+values at the top of the file):**
+- Beyond `nearM` 150 m (full strength by `fullM` 250 m), each facade pattern
+  read is the average of up to `maxTaps` 4 x 4 reads spread over the patch of
+  wall the pixel covers (sized from the screen-space change of the pattern
+  coordinate), with taps kept at most `maxSpacing` 2 texels apart. Inside
+  150 m, and wherever a pixel covers one texel or less, it is MapLibre's own
+  single read, unchanged.
+- `cardsOnly`: on by default only where `js/graphics.js` says the browser
+  draws with a graphics card (the Smooth edges test, now exported as
+  `GFX_GPU_CARD`), and compiled into the shader only where it is on at load.
+  On an integrated chip, the phone profile (`offOnPhone`) and the CI harness
+  the pattern shader is MapLibre's own, as on main. `?patfilter=0` turns it
+  off, `?patfilter=1` forces it on.
+- `moire.mjs`: close-up poses (`near-campus`, `near-west`, `near-downtown`),
+  `--init`, `--vtruth`, and `--variants` on flights (every flight frame drawn
+  again with each variant, same page, same tiles, same camera).
+  `moire-fps.mjs` prints the mean frame beside the median (on the AMD chip the
+  median sits near 20 ms while the mean is 45-65 ms, so a GPU cost shows only
+  in the mean). `pattern-filter-cost.mjs` (new, laptop-only) times each
+  setting with each frame's GPU work finished. `edge-defaults.mjs` (CI)
+  asserts the card test.
+
+**Before -> after** (NVIDIA RTX 3050 Ti, same settings; "before" is the same
+page with the filter off, which matches main to within load-to-load noise;
+the reference is the same frame drawn at 3x the pixels and shrunk back;
+lower is better):
+- **Crawl while flying** (frame-to-frame change the reference does not have,
+  each frame drawn both ways in one page): landing flight 0.153 -> 0.096
+  (-37%, 150 frames; a repeat on the final commit 0.153 -> 0.097), slow
+  downtown pan 0.196 -> 0.125 (-36%, 90 frames), spawn orbit 0.191 -> 0.164
+  (-14%, 90 frames). One frame of the landing-flight repeat scored worse
+  (f0121): a shadow-map refresh landed between its two captures, so the
+  "after" picture carries the old shadow edge. Harness, not filter.
+- **Still frames**, all error / bands / share of pixels in a visible band:
+  west campus 0.725 -> 0.721 / 0.207 -> 0.206 / 0.01% -> 0.01%; spawn 0.694
+  -> 0.662 / 0.198 -> 0.196 / 0.08% -> 0.08%; downtown 0.615 -> 0.566 / 0.225
+  -> 0.226 / 0.16% -> 0.15%; landing crest 0.707 -> 0.688 / 0.261 -> 0.260 /
+  0.11% -> 0.10%; landing start 0.424 -> 0.374 / 0.169 -> 0.172 / 0.13% ->
+  0.13%; campus low 0.720 -> 0.655 / 0.197 -> 0.195 / 0.07% -> 0.04%.
+  The win is the crawl and the fine grain on far walls; the still band score
+  is flat (within 0.004 either way). The average is taken before lighting and
+  glass reflection is not linear, so an averaged far wall sits about half a
+  level darker than the reference.
+- **Close up** (filter off vs on in one page, near half of the frame, 979,200
+  pixels): near-west 0 changed, near-downtown 0, near-campus 86 by 1 level.
+- **Sign lettering**: symbol layers and authored meshes, not touched; pattern
+  walls inside 150 m are identical.
+- Pictures: `docs/shots/moire-distance-campus-low.jpg`,
+  `docs/shots/moire-distance-downtown.jpg` (BEFORE | AFTER | REFERENCE,
+  pixels shown 2x).
+
+**Frame time** (1280x680 at DPR 1.5, vsync off, no CPU throttle, 300 frames a
+rep after 40 warm-up):
+- NVIDIA, main vs branch, a fresh browser per rep, 4 + 4 interleaved, two
+  rounds. Round 1 (CPU 39-52%): downtown pan fastest rep 15.3 vs 15.1 ms,
+  median per-rep difference -0.5 ms; spawn orbit 15.2 vs 15.4 ms, +0.5. Round
+  2 (another lane working, CPU 53-80%, GPU clock 640-915 MHz): downtown pan
+  21.7 vs 22.3 ms, +0.9 (slower in 3 of 4; mean frame +0.4, slower in 2 of 4);
+  spawn orbit 21.0 vs 21.1, +0.1.
+- NVIDIA, on vs off in one page, 6 alternating pairs: downtown pan +0.1 ms;
+  spawn orbit +1.5 ms in one run (pairs -3.8 to +2.1), -0.3 in another.
+- NVIDIA, GPU-synced still views (synchronous redraw + 1-pixel readPixels,
+  10 rounds): +1.2 ms of a 19 ms frame at the downtown view (slower 7 of 10),
+  within +/-0.1 ms at the other three. So: no cost beyond noise in flight,
+  where the frame waits on the CPU; up to about 1 ms of GPU at the densest
+  view.
+- AMD integrated (Edge via `CHROME_PATH`, `--gpu low`, both sides): forced on,
+  +0.7 to +2.5 ms at every still view (30-50 ms frames), which is why
+  `cardsOnly` exists. A cheaper 2 x 2 setting cost nothing there but made the
+  still bands worse than no filter (landing flight 0.169 -> 0.175-0.177): a
+  2-tap comb. With the final code it is off and not compiled there: main vs
+  branch downtown pan, 4 + 4, median +0.2 ms, mean +0.6, each slower in 2 of 4.
+
+**What is left, and why:**
+- **Downtown floor lines as dashes.** Tried twice as a thin-geometry pass (a
+  separate style layer, then a pass inside the extrusion layer, drawing
+  sub-pixel slabs a pixel tall with matching coverage). Both were worse
+  against the reference at every pose (downtown changed-region error 1.71 ->
+  2.29, landing start 1.18 -> 1.73, campus low 1.83 -> 1.93): the stretched
+  walls land brighter than the reference, and the extra style layer moved
+  near pixels (UT Tower base 0.82%) because MapLibre's depth range depends on
+  the layer count. Not taken. The likely next lever is a distance fade on the
+  slab geometry itself, where the outer ring is built, not a render pass.
+- **Integrated GPUs and screens over 2.1 MP** keep #332's default (Smooth
+  edges off on integrated chips); not re-timed in this pass, so not changed.
+  Integrated chips do not get this filter either, because of its cost there.
+- **Phone**: filter off, so far walls on the phone crawl as before.
+- **One unexplained capture.** One spawn capture with the first version (no
+  tap-spacing limit) showed a smeared bright patch on a far wall; it did not
+  come back in 7 later loads, including the same pose order and the sharp
+  facade tier forced everywhere. `maxSpacing` 2 was added as a guard (it
+  keeps nearly all of the gain: campus low all-error 0.644 without it, 0.655
+  with it, 0.720 with no filter). If a smear shows on a far wall in flight,
+  `?patfilter=0` is the first check.
+
+**Corrections to #332's entry:** "Tried and not taken: a shader box filter on
+MapLibre's pattern reads (<1% of pixels changed)" was a fixed small box; one
+sized from each pixel's footprint is what this PR is. "Texture is NOT a
+source" holds for still frames at one distance, not for far walls in motion.
+
+**Reviewer re-check before merging** (a separate lane; merged as c17b085 and
+live on flyover-utx.vercel.app: the served `js/city-lighting.js` and
+`js/graphics.js` have the same hashes as main's):
+- Where it runs: NVIDIA Chrome on and compiled, no shader failures; phone
+  profile (`?lite=1`), AMD (Edge, `--gpu low`) and SwiftShader (the CI
+  renderer) off and not compiled. Forced on with `?patfilter=1`, it also
+  compiles without failures through SwiftShader's Vulkan path, a second
+  shader compiler besides NVIDIA's D3D11.
+- Stills at the sunset default: the builder's six views reproduced to the
+  third decimal. **At night** (p 1.0, not in the builder's set: the lamps are
+  off at sunset, and the lit-window threshold runs on the averaged read, so
+  averaging could have put far windows out): error lower at all six views
+  (tower view 0.580 -> 0.528, far skyline 0.636 -> 0.543, downtown 0.408 ->
+  0.345); the share of bright lit-window pixels moves toward the 3x reference
+  (far skyline 0.81% -> 0.70%, reference 0.67%); far-half brightness within
+  0.1 level. Far windows stay lit: `docs/shots/moire-distance-night.jpg`
+  (BEFORE | AFTER | REFERENCE, pixels shown 2x).
+- Close up: the three close-up views' near half moved 13 / 2 / 0 pixels, none
+  by more than 1 level. Street height (2 m) and low flight (10-12 m): 0.00 to
+  0.04% of pixels, none by more than 2 levels, the same as two captures of one
+  build.
+- Crawl, landing flight, each of 150 frames drawn both ways: 0.153 -> 0.097
+  (-37%), worse in 0 of 149 frame pairs. The builder's f0121 did not recur.
+- NVIDIA frame time (1280x680 at DPR 1.5, vsync off, no throttle): main vs
+  branch, 4 + 4 fresh loads, downtown pan, CPU 47-56%: per-rep median -0.4 ms
+  (branch slower 1 of 4), so the builder's +0.9 ms did not reproduce. On vs
+  off in one page, 12 alternating passes: spawn orbit +0.5 ms per pair
+  (slower 3 of 6), downtown pan +0.2 (3 of 6). GPU-synced stills: downtown
+  +0.7 ms of 21 (7 of 10); at 3840x2040 +0.7 of 22 (6 of 10).
+- AMD (filter not compiled): main vs branch downtown pan, 4 + 4 at CPU
+  39-46%: median-of-medians 21.7 vs 21.6 ms, per rep +0.7 (2 of 4). Two other
+  AMD rounds ran while another lane loaded the machine (CPU 57-81%) and swung
+  18-92 ms inside each arm: no signal either way.
+- CI pictures flagged 2 of 10. spawn-golden (0.0664%, max 100) is the known
+  flake: the identical number reads as changed or as noise on other PRs'
+  runs. tower-night (1.39%, max 16) is not this change: nothing is compiled
+  in that renderer, and a repeat in the same renderer with CI's waits matched
+  main to 0 pixels over the tolerance, as two captures of main matched each
+  other (spawn-golden identical in all three). A crowded earlier local capture caught
+  the downtown skyline before its night lights landed (0.8% of pixels, all
+  skyline) and the clean repeat did not, so if tower-night flags on an
+  unrelated PR, that is the first suspect.
+- Minor, not fixed: raising `CityLighting.patternFilter.maxTaps` live above
+  the compiled 4 darkens far walls (the loops are sized when the shader
+  compiles; the divisor follows the live value). Lowering it, as
+  `pattern-filter-cost.mjs` does, is fine. The fix is to clamp the uniform's
+  last component to the compiled count.
+- Context loss: read, not run. A recompile goes through the same shader
+  wrapper with the same `compiled` decision, and the app reloads the page
+  after a loss anyway (`js/mobile.js`).
+
+**Overlap:** open draft #312 (`codex/compiled-building-lifecycle`) also edits
+`js/city-lighting.js`.
+## Sep 28 2026 - The privacy guard stops refusing the map's own tiles (`claude/guard-map-traffic`)
+
+With a photo-imported schedule stored, a phone refused MapLibre's own traffic
+and buildings went missing (a row of West Campus buildings near the Belo
+Center). This was also the flaky "no console errors on the phone page" check
+in `img-import.mjs` (CI runs 36490647834, 36418276659, 36413604870).
+
+- Cause 1: the guard's watchlist was every string in the stored schedule,
+  including the app's own words. `provenance.confirmedBy: 'student'` matched
+  "Student Activity Center" inside a tile. Now `buildWatchlist()` skips
+  app-owned fields (`SCHEDULE_STORE.appOwnedFields`) and drops app words
+  (`SCHEDULE_STORE.appVocabulary` + the `SCHEDULE_SOURCES` kinds and labels).
+- Cause 2: image replies to the workers now carry up to 10.2 MB of facade
+  pixels on a 1x phone and 33.7 MB on a 2x desktop, past the old 4 MB ceiling,
+  so they were refused unread. `binaryScanBytes` is 64 MB now, still a hard
+  ceiling.
+- Cause 3 (found while checking the fix): a bare room number like `0.130` is a
+  substring of the map's decimals (tree records read `"0.1308|pecan|..."`).
+  A value made only of digits and punctuation is no longer watched alone
+  (`SCHEDULE_STORE.bareNumberPattern`); `RLP 0.130` still is.
+- Tile bytes are still scanned. With the app's words gone, a tile only matches
+  if it holds the student's own class string.
+- Measured on the phone probe (5 campus views): main 14 refusals + 1 page
+  error, fix 0 + 0; all canaries still refused. Also 0 + 0 with bare numeric
+  rooms, and 0 + 0 on a 1440x900 DPR 2 desktop, both after merging #337.
+- New fast gate: `scripts/verify/guard-map-traffic.mjs` (no map, seconds). It
+  fails 16 of 30 checks on main. Details: `docs/si-privacy.md`, "Round 9".
+- Known cost: the guard now scans the image replies instead of dropping them,
+  60-300 ms per 6-10 MB reply on the phone probe and 350-630 ms for the
+  biggest (up to 33.7 MB) on the desktop probe, on a busy software-GL machine,
+  only with a schedule stored. Making that scan cheaper is the next job.
+## Sep 29 2026 - Building-label stability (`astra/label-flicker`, uncommitted pipeline handoff)
+
+Task 025 changes `js/name-labels.js` only. A single roof-anchor depth sample
+previously bypassed the CPU fade and switched an entire name on/off; collision
+retirement could also cut alpha straight to zero. The default now retains
+collision incumbents with an 8 px admission margin, reserves retiring space,
+uses finite 220 ms fades and spatial edge/control fades, and filters depth with
+a one-pixel cross, depth dead band and 180 ms hold before a 220 ms fade.
+All values are in `NAME_LABELS`; `NAME_LABELS.stable=false` (or
+`?labelstable=0`) restores the original behavior for same-page comparisons.
+The tiny per-label GPU history pass adds no application CPU readback or geometry.
+Stable mode also avoids periodic depth refreshes in an unchanged idle scene.
+`NAME_LABELS.measureVisibility=true` enables baseline instrumentation;
+`nameLabels.visibility()` reads actual GPU opacity for diagnostics only.
+
+Desktop final: 1440x900 DPR 1, RTX 3050 Ti hardware, no CPU throttle, one city
+load, interleaved baseline/fixed/fixed/baseline timing arms without readback.
+Minimum mean label CPU time: 0.614 -> 0.698 ms; minimum median frame interval:
+18.9 -> 19.9 ms. Every-render GPU sampling observed 77 of 1761 catalog names;
+shown-hidden-shown cycles (alpha > 0.1) fell 146 -> 16, Patterson 58 -> 1.
+No fixed name had more than one cycle within any single slow-move phase.
+Strict immediate-still acceptance is not fully met: two fades finish 128 ms
+and 177 ms after stopping; no subsequent change during the five-second hold.
+All legacy MapLibre symbol layers were hidden in the loaded style.
+
+Phone-profile emulation: 390x844 DPR 3, 40 observed names, cycles 18 -> 3;
+no fixed name exceeded one cycle within a slow-move phase. One fade completed
+99 ms into the five-second still hold, with no later changes. Minimum mean
+label CPU 0.396 -> 0.441 ms; minimum median frame interval 17.8 -> 17.8 ms.
+Both profiles completed without page errors. Readback/capture arms were separate
+from timing arms; this is desktop Chromium emulation, not physical iPhone proof.
+`node --check js/name-labels.js` and `git diff --check` passed. Read-only review
+checked resource cleanup, runtime switching and finite idle repaint behavior.
+
+Verification artifacts and final measurements are recorded locally under pipeline
+task `025-label-flicker/work`; its `out` directory contains the labelled animated
+comparisons and per-label count image. No owner imagery was used. The pipeline
+lane must review in the real application and commit/PR/merge; this sandbox did
+not run git writes. Physical iPhone Safari/Chrome acceptance remains unverified.
+## Sep 29 2026 - Task 027: time switches and individual night windows (uncommitted, `astra/timeofday-night`)
+
+Pipeline handoff only: no git writes, server launch, commit or deployment. The
+Claude lane reviews and lands these changes. Changed `js/facades.js`,
+`js/city-night.js`, `js/slopes-apartments.js`; added
+`scripts/verify/night-window-occupancy.mjs`.
+
+The dominant input-handler cost was a synchronous full facade repaint, not a
+time-dependent shader compile. Hour changes now use the existing paced painter,
+with 10 ms slices, at most two combo commits per frame, and the bounded 16 MB
+version-checked premultiplication cache retained between renders. All tiers of
+each combo still change together. `TIMEOFDAY_PACE.on=false` (or
+`?timeofdaypace=0`) restores the synchronous hour path and per-render cache
+clearing for comparison. Distant facade completion is progressive.
+
+Occupancy now hashes each drawn column/opening rather than each pair of bays;
+multi-opening authored bays pass their opening index. Generic facade rolls use
+the uniform CityNight hash. `CityNight.tune.windowScatter=false` (or
+`?windowScatter=0`) restores the paired baseline; authored runtime comparisons
+also require `slopesApartments.rebuild()`. Hero tiles already pick per drawn
+cell and retain their existing density. No geometry was added.
+
+Verified one fully loaded page per session, hardware D3D11, no CPU throttle,
+graphics auto-detect cancelled, two rounds of four slider inputs per arm:
+- NVIDIA desktop 1440x900, matched Jester close view: next rendered frame
+  1.33-1.89 s before, 0.35-0.59 s after; max long task 1154 -> 307 ms.
+- NVIDIA phone profile 390x844 DPR 3: 1.92-2.08 s before, 0.31-0.50 s after;
+  max long task 1673 -> 233 ms. First post-load changed frame: 376 ms.
+- Edge with `--force_low_power_gpu`, renderer confirmed AMD Radeon Graphics,
+  desktop 1440x900: 2.35-2.57 s before, 0.44-0.79 s after; max long task
+  1981 -> 305 ms. First post-load changed frame: 472 ms.
+
+These are observed ranges, not a claim of a universal latency bound. Arms were
+run sequentially within each page, not interleaved. The timing proxy is the next
+MapLibre render plus animation frame; the timed screencast separately shows the
+visible transition. The reported live 8-15 s delay was not reproduced at that
+magnitude. The roughly 200 ms maximum-task target remains open; physical iPhone
+performance is unverified. Residual rendering/atlas work still produces hitches.
+
+Production-function occupancy checks: mean horizontal lit runs 3.16 -> 1.59
+(facade), 3.11 -> 1.57 (authored), 6.22 -> 1.58 (multiple openings per bay),
+with lit share within 0.4 percentage points. High-density hero surfaces can
+still have natural long runs; texture softness at close range also remains.
+Passing checks: facade-pace byte/worker/premultiply/border parity,
+night-window-occupancy, apartment-window-rule, harness-drift, syntax and diff.
+
+Local evidence: `C:/Users/simip/Projects/astra-pipe/tasks/027-timeofday-night/out/`
+contains only labelled before/after JPEGs for Union on 24th, 360 Condominiums,
+Jester West Hall, and `time-switch.webp` (6 s, synchronized to the input; all
+under 1 MB). The sibling `work/` has scripts, raw second captures, CDP profiles,
+per-click long tasks and `timing-summary.json`. Early captures were rejected
+because they included the loading veil; final captures wait for the application
+ready and authored reveal gates, then take two screenshots at each pose.
+
+## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
+
+The owner: "turning is the biggest inducer of lag. please prioritize turning
+while keeping high fps". #334 left one cost named and unfixed: preparing the
+facade atlas of each tile that arrives during a turn. Measured on main
+(NVIDIA, per 6 s turn): the main thread premultiplied every new atlas
+(`premultiplyInto`, 566-783 ms of self time in a profile) and MapLibre copied
+every facade image each new tile asked for, again, for every tile
+(`_getImagesForIds`, 205-410 ms and 150-340 MB of copies, turnmeter
+medians). That was 0.26-1.29 s of every 6 s turn, and most of the hitch right
+after a flick.
+
+**What changed (`js/facades.js`, both halves are switches):**
+1. `ATLAS_WORKER_PM` (`?atlasworkerpm=0` turns it off). A script imported
+   into MapLibre's tile workers premultiplies each atlas in the worker that
+   built it, and tags it; `uploadAtlasFast` uploads a tagged atlas as it is.
+   Main-thread premultiply is now 0 ms in every scenario measured, desktop and
+   phone. On any failure it falls back to the old main-thread path.
+2. `ATLAS_IMAGE_CACHE` (`?atlasimgcache=0`). Each worker keeps the facade
+   images it has been sent (`maxBytesPerWorker` 48 MB, least recently used
+   dropped first) and says which it holds when it asks for images; the page
+   sends a small stub instead of a copy for an image the worker holds at the
+   same version. A changed or re-added image is always sent whole. Main-thread
+   image copies in a turn: 205-410 ms / 150-342 MB per 6 s on main, 2-65 ms /
+   1-36 MB on the branch (NVIDIA medians). Memory cost: up to 48 MB in each of
+   the 4 desktop workers (192 MB at most). **Off on the phone profile**
+   (`offOnPhone`), so the phone's memory budget is not touched.
+3. `?atlaspmcheck=1` makes the page compare every worker-premultiplied atlas
+   and every held image with a fresh main-thread copy, byte for byte.
+
+**Before -> after** (medians of 3 interleaved fresh-load runs per side,
+1280x680 at DPR 1.5, no CPU throttle, vsync off, `cancelGraphicsAutoDetect`
+called; CPU load 0-6 % before each NVIDIA run, 8-48 % before the AMD runs):
+- NVIDIA RTX 3050 Ti: fps up in 9 of 10 scenarios, worst frame down in 7 of
+  10. Campus flick 15.8 -> 17.0 fps, worst 448 -> 254 ms, the hitch after
+  letting go 442 -> 229 ms; campus 120 deg/s 14.3 -> 16.6 fps, worst 360 ->
+  236; campus straight worst 263 -> 143; downtown looks 23.1 -> 30.4 fps,
+  worst 454 -> 177; downtown flick 15.4 -> 18.0 fps. Worse or flat: downtown
+  60 deg/s 15.6 -> 12.2 fps (ranges overlap, 11.1-19.9 vs 12.0-16.4), downtown
+  120 deg/s worst 264 -> 317, downtown flick's after-hitch 173 -> 248, campus
+  looks worst 88 -> 146.
+- AMD Radeon iGPU (Edge via `CHROME_PATH`, `--gpu low`, both sides): worst
+  frame down in 8 of 10, fps up in 6 of 10 (the other 4 down 0.2-1.1 fps).
+  **The #334 regression, campus 120 deg/s right after the first turn:** worst
+  frame 211 -> 170 ms (every branch run 118-191, every main run 200-213), the
+  hitch after letting go 172 -> 137; fps flat, 19.4 -> 18.7 (main's runs
+  spread 12.9-25.6). Campus flick after-hitch 360 -> 188 ms; downtown 60
+  deg/s 21.5 -> 23.6 fps, worst 197 -> 125; downtown flick 14.2 -> 17.8 fps;
+  downtown looks worst 239 -> 115. Worse: campus first turn worst 237 -> 279.
+- Recorded runs (NVIDIA, 3 + 3, campus, the ones the video is cut from):
+  worst frame lower in all four (straight 218 -> 135 ms, first turn 308 ->
+  175, 120 deg/s 191 -> 139, flick 273 -> 173), fps within 2 either way.
+- Load, 5 + 5 interleaved on NVIDIA: veil gone 35.3 s -> 33.1 s median, and
+  every branch run (32.3-33.5 s) beat every main run (34.5-35.7 s).
+- Phone profile (`mobile-memory.mjs`, 3 + 3, 390x844 DPR 3): peak 926 -> 929
+  MB, settled 796 -> 800 MB (minimums; ranges overlap), buildings landed
+  26.0-27.6 s vs 25.8-26.7 s. A phone probe of the branch: worker premultiply
+  on, image cache off, all 395 atlases from workers, 0 ms on the main thread.
+- Not reached: steady turns are still 12-24 fps. What is left of a turning
+  frame is MapLibre's own render, including waits on the GPU, not atlas prep;
+  frames over 50 ms are not fewer, the tallest ones are.
+
+**Checks:** `facade-atlas-memory.mjs` (CI) runs both worker halves in a vm:
+stubs, versions, re-added images, render-callback images, the LRU cap, check
+mode; `--break` and `--break-img` exit 1. `atlas-worker-pm.mjs` (laptop,
+hardware GL; new, listed `laptop_only`) turns the real page through ~1,300
+new tiles, on the branch rebased onto main: 2,194 atlases from workers, 0
+bytes different; 7,424 images sent as stubs (2.8 GB not copied), 4,747 held
+copies compared, 0 bytes different; `--break` and `--break-img` exit 1.
+Stills: CI pictures 0 of 10 views changed against main 16dd455 (no view
+moved more than the same page shot twice), and all 67 CI checks pass,
+`img-import.mjs` included (it saves a schedule, which arms the guard on
+messages to workers). Hardware shots of spawn and stadium move 2,700-4,800 px
+between main and the branch, but 2,000-5,000 px between two runs of main
+itself, in the same places (label edges, shadow edges), none on a facade.
+`turnmeter.mjs` now prints `wpm`, `pm`, `held` and `gi` per scenario
+(README, "Facade atlas prep in MapLibre's workers").
+
+**Traps:** the image stubs rely on MapLibre 5.24 internals (the worker
+actor's `sendAsync`, `Style.getImages`, `ImageManager._getImagesForIds`);
+`supportedAtlasVersion()` turns both halves off on any other version. A stub
+the worker cannot match (it should never happen: the page stubs only what
+that request listed) fails that one request and turns the cache off for the
+rest of the session, rather than drawing a wrong image. With a schedule saved,
+`js/wayfind.js` scans every message to a worker; the stubs make the image
+replies smaller, so it has less to scan, not more. Codex's draft #312 also
+touches `js/facades.js`; it already conflicts with main and was left alone.
+
+**Reviewer re-check before merging** (a separate lane; merged as 66134b8 and
+live on flyover-utx.vercel.app: the served `js/facades.js` has the same hash
+as main's):
+- Pictures: CI 0 of 10 views changed against main 89e01d3. Hardware stills
+  of three views on NVIDIA moved no more pixels between main and the branch
+  than between two runs of the same build.
+- Bytes: with `?atlaspmcheck=1`, through two time-of-day changes, zoom
+  crossings and a WebGL context loss and restore, 6,668 worker atlases and
+  10,133 held image copies matched the main-thread result exactly. Every
+  atlas took the fast upload, after the restore too. `atlas-worker-pm.mjs`
+  passed again on the merged tree (2,146 atlases, 4,539 held copies, 0 bytes
+  different).
+- NVIDIA (3 + 3 interleaved fresh loads, same settings): worst frame lower
+  in 10 of 10 scenarios (campus flick 268 -> 153 ms, downtown 60 deg/s
+  345 -> 125). The hitch after letting go of a downtown flick fell
+  369 -> 124 ms, and image-copy time per turn fell from 101-200 ms to 3-18 ms.
+- AMD (Edge, `--gpu low`, 3 + 3, 19-37 % CPU before runs): downtown fps went
+  up in all four turn scenarios (looks 19.6 -> 29.1). The downtown worst
+  frames got worse, though: 60 deg/s 449 -> 531 ms, 120 deg/s 315 -> 514.
+  The cause is single texture uploads that stall the AMD driver for
+  100-720 ms. Tiles now arrive sooner, so more atlas bytes are uploaded
+  during the turn. Campus 120 deg/s did not reproduce the builder's clean
+  separation (the runs overlap). The next AMD step is spreading the
+  uploads, not the prep.
+- Load (9 + 9 interleaved, NVIDIA): veil gone median 52.9 s on the branch vs
+  58.6 s on main (minimum 42.4 vs 47.4). One branch load took 159 s. It did
+  not recur in 4 more, and main had 72-93 s loads in the same session. The
+  slow loads I could look inside, on both sides, were waiting on the
+  apartments' reveal step with tiles already in.
+- Left open, both safe:
+  - After a WebGL context restore the image cache stops working for the
+    rest of the session, and each worker keeps up to 48 MB it no longer uses.
+  - If a tagged atlas's fast upload fails, MapLibre's own upload would
+    premultiply it a second time. No test reached that path.
+- A CI failure that is NOT from this PR: `img-import.mjs` failed once on the
+  phone page with `[wayfind] blocked: Worker.postMessage carried stored
+  schedule content (st…(7))`. Reproduced on main with a probe.
+  - Once a photo-imported class is confirmed, the stored schedule holds the
+    app's own word "student" (`provenance.confirmedBy`).
+  - The privacy guard then watches for that word and refuses map tiles on
+    their way to the workers when a building name contains it ("Student
+    Activity Center").
+  - It also refuses payloads over its 4 MB scan budget: 35 in one probe of
+    main with a plain photo schedule stored.
+  - The fix belongs in `js/wayfind.js`: watch only the student's own
+    values. The rerun on cb62c3d passed, and local runs passed 2 of 2 on
+    each side.
+
+## Sep 28 2026 - Load screen: tap the main island to flip it over (`claude/island-flip`, PR #339, open until the owner looks; merge #338 first)
+
+The owner asked for the island to answer a tap, not to flip on a timer. A drag
+was the first idea, and a tap was fine if a drag was too heavy.
+
+- Tap, click, Enter or Space turns the island over like a card. The Tower side
+  tips back, goes gray and squashes. The rock underneath comes up as a generic
+  West Campus apartment block, and the gray Tower hangs upside down below it.
+  Tap again to flip back. A tap mid-turn reverses it.
+- The main island has a real rock underside (iceberg), which replaces the faint
+  two-step one. Art source: `scripts/loader-art/island-gen.mjs`. `export.mjs`
+  prints the `ART_LAYERS` (`ice`, `apt`, `spire`).
+- Knobs: `FLIP = { on, time, depth, axis, sink, rise, gray, hint }` in
+  `js/loader.js`. The new copy (hint line, button label) waits for his look.
+- Why not a drag: CDP wheel and touch input waited for the main thread
+  (~3.7 s during a block), even on a root scroller with no listeners. The
+  harness cannot prove that a drag follows the finger during a load.
+- Measured on the live site with the files swapped in: loader-check 7/7. For
+  34 taps on a fixed 1.3 s clock, the delay from tap to turn start was:
+  median 0.16 s, 8 over 1 s, worst 5.1 s. All the slow ones were in the first
+  ~25 s, when the main thread blocks for 3-8 s at a time.
+- A click always needs the main thread, so the loader cannot make a tap start
+  sooner. The fix is to split the facades.js boot painting (item 1 below).
+  #337 has that file open. Tools: `%TEMP%/claude/loading-mv/verify/realtap2.mjs`,
+  `flipstart.mjs`, `filmflip.mjs`.
+
+## Sep 28 2026 - Load screen: the seconds never stall, the islands float more (`claude/load-timer`, PR #338, open until the owner looks)
+
+On a desktop the "12s in." line jumped 4-5 s at a time. Measured on a cold
+live load (1280x680 @1.5, NVIDIA): the main thread was blocked for 20-27 s of
+a 30-36 s wait, once for 4.9-5.8 s straight. The line was plain text, so it
+only changed when the page was free.
+
+- The seconds are two digit wheels (`.load-odo`, digits drawn in `::before`)
+  stepped by Web Animations whose `startTime` is the loader's start. They run
+  on the compositor, like the floats. `#load-estimate` textContent is still
+  the exact copy line. Knob `CLOCK = { on, max }`.
+- Trap: an animation on a `::before` whose parent is `display:none` never
+  attaches, even after the parent shows. Show the wheels, then animate.
+- `FLOAT` lifts: main 1.2 -> 6, downtown 2.0 -> 7, West Campus 2.6 -> 4.
+  Main island travel measured 1 -> 5 px desktop, 0 -> 3 px phone.
+- Checked: once-per-second crops of the real page (old line sat on "2s" for
+  6 s; new one counts every second), loader-check 7/7 with the files swapped in.
+
+What makes a desktop load long (V8 profile of one cold load, main thread only):
+1. `facades.js` texture painting at boot (`ensureImages` -> `tileData` ->
+   `blurWrap`/`applyMottle`/`drawRaw`): one 5-6 s task at ~2 s, again ~0.75 s
+   from `initOuter`.
+2. `city-lighting.js` program wrap: the first draw of each lit fill-extrusion
+   compiles and checks the shader, 1-2 s each, ~5 times. On a cold GPU cache
+   this also stops the WHOLE screen for up to ~0.9 s (floats, the turning
+   islet and the new wheels all pause). This is the "islet sometimes freezes".
+3. `facades.js premultiplyInto` in `uploadAtlasFast`: many 0.3-1 s tasks.
+4. `slopes-apartments` build slices of 350-450 ms.
+The veil lifts on "ceiling" because the authored apartments finish at 23-30 s
+(first tick after they finish is reason "ceiling", not "gate", since the gate
+needs 2 passes). Tools: `%TEMP%/claude/loading-mv/verify/blockprof.mjs`
+(trace) + `%TEMP%/claude/blockprof/parse2.mjs` (per-task functions),
+`timerfilm.mjs` (screencast + long tasks), `loadfreeze.mjs`.
+
+"Downtown gone on load" (owner, his own Chrome): NOT reproduced. 6 live loads
+(3 cold + 3 reloads, graphics auto-detect left on) all show downtown at the
+lift. Waiting on which screen and URL he saw it on.
+
 ## Sep 28 2026 - Nothing covers the map credit: the Switch modes pill and the hint move up a row (`claude/launcher-credit`, PR #336, merged 0db4a9a)
 
 The "Switch modes" pill sat on the OpenMapTiles/OpenStreetMap credit at every
@@ -32888,6 +33388,15 @@ Final labelled evidence lives locally in C:/Users/simip/Projects/astra-pipe/task
 
 Remaining limits: physical iPhone Safari/Chrome and thermal/memory behavior are unverified; full journeys through every existing mode were not re-tested. Main-thread model construction can briefly freeze textual progress. The illustration is stylized. An earlier FFmpeg font-discovery test hung with `Fontconfig error: Cannot load default config file: No such file: (null)`; no forbidden process-kill was attempted. Final exports use an explicit local font path and finish normally. This supersedes the earlier memory-blocked status for task 020; the changes are ready for the Claude lane's real-app review and commit.
 
+## September 29, 2026 - Time-of-day CI shadow completion (astra/timeofday-night, pipeline 029)
+
+Uncommitted fix in js/city-lighting.js replaces forced per-caster-layer task yields with the existing elapsed CPU budget. On a software renderer, those forced yields paid a slow frame per cheap query, defeating budget stretching. Dirty source notifications now compare actual caster inputs against the last successful commit; unchanged paint notifications do not rebuild geometry. Real tile/filter/authored changes, camera pauses, geometry bytes and recovery behavior remain covered. No facade or night-light appearance change.
+
+New regression coverage in shadow-proxy-slices.mjs gives 120 layers five-second task gaps plus paint notifications. The saved original code fails to finish within 180 seconds; the fix finishes in 5,012 ms / two slices with identical geometry and no restart. shadow-proxy-pacing.mjs distinguishes unchanged source notifications from actual tile replacement. All 19 slice, 28 pacing, recovery, facade-pace, night-window-occupancy and harness-drift checks pass.
+
+Full dark-campus passes locally on SwiftShader with CI's wait scaling: 217 hidden prisms, roof/shaft visibility 0.980/0.993, back-facing fraction 0.343%, identical to baseline. The unmodified baseline ALSO passed locally; neither it nor the timeofdaypace=0 probe reproduced the exact hosted-runner timeout. One startup restart was observed, not an endless repaint restart. The regression establishes the scheduling defect; PR #343 still needs its hosted CI rerun. Fixed browser traces show a completed proxy with 109 facade combinations still pending.
+
+NVIDIA RTX 3050 Ti, 1440x900, no CPU throttle, all 196 authored buildings, two interleaved paced/synchronous switches in one loaded page: minimum handler 66.4/1717.7 ms and changed-frame latency 394.7/2229.7 ms. This preserves the pacing benefit, not a new shadow-fix speedup claim; 287-303 ms paced frame gaps remain. Full logs, original source, diagnostic helpers and RESULTS.md are local in astra-pipe/tasks/029-timeofday-ci/work. No appearance changes or images; no server, git writes, merges or continuation. Claude lane reviews and commits these edits and reruns CI. Existing visual and physical-device acceptance remains open.
 ## September 29, 2026 - Island roll-and-rebuild repair (pipeline 028)
 
 Uncommitted work on claude/island-flip, scoped to js/loader.js. Spread rotation, telescoping and hall movement across the turn; preserve the Tower clock/windows longer; overlap outgoing limestone and incoming apartment colour/light. Roof polygons now flatten onto their host tops, with shrinking ridge strokes. Apartment floors share cumulative connected heights and a common footprint during gathering; their caps grow directly from the stack. Emerging iceberg highlight strips are disabled by the ISLAND.rockLip taste knob to remove pale projecting hairlines. Ground details and roofs follow their pieces at staggered times. ART_MODEL, model generators and the pre-tap drawing were not edited; no geometry was added.

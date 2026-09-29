@@ -601,6 +601,11 @@
   // preset stops paying for it on the next load.
   window.GFX_MSAA = !!GFX.msaa;
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
+  // Does this browser draw with a graphics card? The same test as the Smooth
+  // edges default (EDGE_SMOOTHING.fullDefaultGpu). js/city-lighting.js keeps
+  // its far pattern filter to cards by default. On the phone profile this may
+  // have to probe a throwaway context, so a caller checks LITE_PROFILE first.
+  window.GFX_GPU_CARD = () => EDGE_SMOOTHING.fullDefaultGpu.test(readGpuRenderer());
 
   function save() {
     // A ?preset= load NEVER writes settings. applyGraphics() calls save() on
