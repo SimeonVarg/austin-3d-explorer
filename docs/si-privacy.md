@@ -3440,3 +3440,122 @@ await browser.close();
 console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASS') + '  (9 checks)');
 process.exit(fails ? 1 : 0);
 ```
+
+
+---
+
+## §12.A The visit counter (2026-09-29) — a new request, and why the guard's promise is untouched
+
+`js/analytics.js` was added so the owner can see how many people open the app.
+It is Vercel Web Analytics, added the plain-HTML way: a `window.va` / `window.vaq`
+queue shim, then `<script defer src="/_vercel/insights/script.js">`, injected by
+`js/analytics.js` and by nothing else. This section states exactly what the new
+request carries, to whom, and why every promise §12 makes about the class
+schedule still holds. `scripts/verify/analytics-check.mjs` is the gate that
+proves it.
+
+### What leaves the page, and to whom
+
+One request per page load, both to **this same origin** (the deployment's own
+domain — never a third-party host):
+
+1. `GET /_vercel/insights/script.js` — Vercel's own counting script, served from
+   this origin only once Web Analytics is switched on in the dashboard. Until
+   then it 404s and nothing else changes (§12.A "not switched on yet", below).
+2. `POST /_vercel/insights/view` — one page view. Its event, after `beforeSend`,
+   is `{ type: 'pageview', url: origin + pathname }`. Vercel derives country,
+   device, browser and referrer itself from the request's own headers and
+   `document.referrer`; the app hands it none of those.
+
+That is the whole outbound surface. No cookie is set or read. The only storage
+key `js/analytics.js` ever touches is Vercel's documented `va-disable` opt-out
+key, and it only ever reads it (writes it solely when a person passes `?va=off`).
+
+### Why the request carries nothing from the schedule
+
+`beforeSend` is `clean()` in `js/analytics.js`. It takes the event Vercel wants
+to send and returns `origin + pathname` with **the query string and the hash cut
+off**, or `null`. Everything the app ever writes into its own URL is therefore
+stripped before the request is built:
+
+- from the boot script: `?clip=1`, `?timelapse=1`, `?autopilot=1`,
+  `?sliderdemo=1`, `?drive=1`;
+- from `js/mobile.js`: `?tiles=`, `?lite=0/1`;
+- from `js/wayfind.js` (the schedule feature): `?walk=1`, `?from=`, `?to=`,
+  `?dayof=`, `?dayat=`;
+- from the renderers: `?slopes=0`, `?apartments=0`, `?tour`, graphics flags;
+- from the loader's mode picker: `?tour=1`, `?livehere=1`, `?p=` (time of day),
+  `?preset=` (graphics), `?intro=`; and debug flags such as `?debug=1`,
+  `?labels=`, `?patfilter=`;
+- `js/analytics.js`'s own `?va=on` / `?va=off`;
+- and every `#hash`.
+
+`?from=` and `?to=` are building codes and `?dayat=` is a time of day; those are
+the only URL parameters that could carry anything about where a person is going,
+and `clean()` removes the entire query string, so they never reach the request.
+`clean()` fails closed: a null event, a missing `url`, an unparseable `url` or a
+non-http scheme all return `null` and send nothing.
+
+`js/analytics.js` never reads an `austin3d.schedule.*` key, never imports
+`WAYFIND`, and never touches `window.wayfindStore`. It cannot put a class title,
+an instructor, a room or a route into the request because it never reads them.
+
+### Why the egress guard (§12) still holds, unweakened
+
+The guard in `js/wayfind.js` §12 is **not touched, bypassed, whitelisted or
+special-cased** by this work. `WAYFIND.on` stays `false`. The beacon simply has
+nothing in it for the guard to refuse, and it passes the guard the same way any
+schedule-free request does — through it, not around it:
+
+- `js/analytics.js` is the **last** `<script>` in `index.html` and `_harness.html`,
+  after `js/wayfind.js`. When the walking feature is on, the guard has already
+  wrapped `fetch` and `navigator.sendBeacon` by the time analytics runs, so the
+  reference Vercel's script picks up is the **guarded** one. If analytics loaded
+  first, Vercel's script could capture the unwrapped originals and the guard
+  would never see the beacon. Loading last is what keeps the beacon inside the
+  guard's reach.
+- With the feature off (every ordinary visitor, `WAYFIND.on === false`, no
+  schedule imported), the guard is not installed at all and there is no schedule
+  in storage to leak. Nothing to guard, nothing to leak.
+- With a schedule stored, the guard is armed and it **sees the beacon and lets it
+  through** because the payload holds none of the watched strings. The check
+  proves this two ways: it reads `guard.log()` and finds the `/_vercel/insights/view`
+  request with `blocked === false`, and it runs a **negative control** — the same
+  channel (`sendBeacon` and `fetch` to the same path) carrying a class title is
+  refused and never reaches the server, so the guard was demonstrably live in
+  that same page.
+
+### Fail-safe, not fail-open
+
+There is one case where a stored schedule makes the counter send **less**, never
+more. If Vercel's real script were to POST the page view as an opaque `Blob`
+body while a schedule is stored, the guard refuses it unread (`blockedOpaque`),
+because a body it cannot inspect is treated as a body that might carry the
+schedule. That visit is then not counted. This is the correct direction of
+failure: an uncounted visit costs the owner a number; a leaked schedule costs a
+student. With the feature off (no guard, no schedule UI) the same body is sent
+normally and the visit is counted. See §12's `blockUnreadableBodies` policy.
+
+### Not counting one visitor twice
+
+A load reached from this same origin (the loader's mode picker reloads the page
+with `location.assign`) is not counted again; it reads `document.referrer` only
+to compare its origin, and sends nothing.
+
+### Opting out
+
+The owner's own visits and any agent that loads the live site should not count.
+`?va=off` writes Vercel's `va-disable` key and that browser stops counting on
+every later load; `?va=on` removes the key. This is the only thing in
+`js/analytics.js` that writes to storage, and it writes only that one key.
+
+### What the check proves, and what it cannot
+
+`scripts/verify/analytics-check.mjs` runs the real `js/analytics.js` and the real
+`js/wayfind.js` guard against a **stand-in** for `/_vercel/insights/script.js`,
+because Vercel's real script only exists on a live deployment with Web Analytics
+enabled. The stand-in is written from Vercel's documented contract (drain
+`window.vaq`, pass every event through the registered `beforeSend`, POST the
+survivor to `/_vercel/insights/view`). What the stand-in cannot prove is the byte
+layout of the real script's request body. `docs/analytics.md` records how the
+lead confirms that live once the owner enables it.

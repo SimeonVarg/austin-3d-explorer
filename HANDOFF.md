@@ -1,5 +1,27 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - Visit counting with Vercel Web Analytics (`claude/view-analytics`, PR open, not merged)
+
+`js/analytics.js` counts page views with Vercel Web Analytics, loaded the
+plain-HTML way (queue shim, then `/_vercel/insights/script.js`), as the last
+script in `index.html` and `_harness.html`. Its `beforeSend` sends only
+`origin + pathname`: every query string and hash is cut. Inert on localhost
+and LAN hosts. `?va=off` opts a browser out. `vercel.json` adds
+`Referrer-Policy: origin` so the Referer header on the beacon cannot carry the
+query either. Nothing counts until the owner turns Web Analytics on in the
+Vercel dashboard. How to read the numbers: `docs/analytics.md`. Privacy
+reasoning: `docs/si-privacy.md` §12.A. Gate: `scripts/verify/analytics-check.mjs`
+(no GPU).
+
+The egress guard in `js/wayfind.js` is untouched and `WAYFIND.on` stays false.
+
+Note for the `js/wayfind.js` owner (PR #307 has that file open, so this lane
+did not edit it): the schedule panel line `Read on your device. This app has
+no server to send it to.` was reviewed and left as is. It is about the
+imported file, which is still sent nowhere, and the panel is off. If you want
+it exact, `Read on your device. The file you pick is sent nowhere.` would do,
+and `docs/si-ui.md` (around line 465) quotes it.
+
 ## Sep 29 2026 - The tab icon is the UT Tower in the loading screen's colours (`claude/favicon`, PR #344, merged 23d4389, live)
 
 The old tab icon was three bars in the brown-and-orange palette the app no
