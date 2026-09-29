@@ -1,5 +1,59 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - Task 027: time switches and individual night windows (uncommitted, `astra/timeofday-night`)
+
+Pipeline handoff only: no git writes, server launch, commit or deployment. The
+Claude lane reviews and lands these changes. Changed `js/facades.js`,
+`js/city-night.js`, `js/slopes-apartments.js`; added
+`scripts/verify/night-window-occupancy.mjs`.
+
+The dominant input-handler cost was a synchronous full facade repaint, not a
+time-dependent shader compile. Hour changes now use the existing paced painter,
+with 10 ms slices, at most two combo commits per frame, and the bounded 16 MB
+version-checked premultiplication cache retained between renders. All tiers of
+each combo still change together. `TIMEOFDAY_PACE.on=false` (or
+`?timeofdaypace=0`) restores the synchronous hour path and per-render cache
+clearing for comparison. Distant facade completion is progressive.
+
+Occupancy now hashes each drawn column/opening rather than each pair of bays;
+multi-opening authored bays pass their opening index. Generic facade rolls use
+the uniform CityNight hash. `CityNight.tune.windowScatter=false` (or
+`?windowScatter=0`) restores the paired baseline; authored runtime comparisons
+also require `slopesApartments.rebuild()`. Hero tiles already pick per drawn
+cell and retain their existing density. No geometry was added.
+
+Verified one fully loaded page per session, hardware D3D11, no CPU throttle,
+graphics auto-detect cancelled, two rounds of four slider inputs per arm:
+- NVIDIA desktop 1440x900, matched Jester close view: next rendered frame
+  1.33-1.89 s before, 0.35-0.59 s after; max long task 1154 -> 307 ms.
+- NVIDIA phone profile 390x844 DPR 3: 1.92-2.08 s before, 0.31-0.50 s after;
+  max long task 1673 -> 233 ms. First post-load changed frame: 376 ms.
+- Edge with `--force_low_power_gpu`, renderer confirmed AMD Radeon Graphics,
+  desktop 1440x900: 2.35-2.57 s before, 0.44-0.79 s after; max long task
+  1981 -> 305 ms. First post-load changed frame: 472 ms.
+
+These are observed ranges, not a claim of a universal latency bound. Arms were
+run sequentially within each page, not interleaved. The timing proxy is the next
+MapLibre render plus animation frame; the timed screencast separately shows the
+visible transition. The reported live 8-15 s delay was not reproduced at that
+magnitude. The roughly 200 ms maximum-task target remains open; physical iPhone
+performance is unverified. Residual rendering/atlas work still produces hitches.
+
+Production-function occupancy checks: mean horizontal lit runs 3.16 -> 1.59
+(facade), 3.11 -> 1.57 (authored), 6.22 -> 1.58 (multiple openings per bay),
+with lit share within 0.4 percentage points. High-density hero surfaces can
+still have natural long runs; texture softness at close range also remains.
+Passing checks: facade-pace byte/worker/premultiply/border parity,
+night-window-occupancy, apartment-window-rule, harness-drift, syntax and diff.
+
+Local evidence: `C:/Users/simip/Projects/astra-pipe/tasks/027-timeofday-night/out/`
+contains only labelled before/after JPEGs for Union on 24th, 360 Condominiums,
+Jester West Hall, and `time-switch.webp` (6 s, synchronized to the input; all
+under 1 MB). The sibling `work/` has scripts, raw second captures, CDP profiles,
+per-click long tasks and `timing-summary.json`. Early captures were rejected
+because they included the loading veil; final captures wait for the application
+ready and authored reveal gates, then take two screenshots at each pose.
+
 ## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
 
 The owner: "turning is the biggest inducer of lag. please prioritize turning

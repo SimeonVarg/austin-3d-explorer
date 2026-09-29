@@ -1021,7 +1021,7 @@
             const T = win.accent.tones, k = Math.floor(h01(key, 'accent', ci, storey) * T.length) % T.length;
             accent = Object.assign({}, win.accent, { tone: T[k] });
           }
-          const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,ci):{lit:h01(key,'lit',fi,ci,pi)<APTS.nightLit};
+          const room=window.CityNight?.tune.on?window.CityNight.room(key,storey,ci,pi):{lit:h01(key,'lit',fi,ci,pi)<APTS.nightLit};
           out.push({ s0, s1, z0: zb, z1: zt, ...room, frame, spandrel: sp, arch: win.arch, mullion: win.mullion, head: win.head || null, accent });
         }
       }
@@ -1191,7 +1191,7 @@
       const room=window.CityNight.room(key,fi,i);
       // Shop windows and amenity rooms have their own operating pattern.
       const occ=spec.nightOccupancy??(ctx.z0<window.CityNight.tune.storefrontMaxBase?window.CityNight.tune.commercialOccupancy:null);
-      if(occ!=null)room.lit=window.CityNight.hash(key,'public-room',fi,Math.floor(i/2))<occ;
+      if(occ!=null)room.lit=window.CityNight.hash(key,'public-room',fi,window.CityNight.tune.windowScatter ? i : Math.floor(i/2))<occ;
       if(spec.nightTone)room.nightTone=spec.nightTone;
       return room;
     };
