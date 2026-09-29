@@ -15,7 +15,7 @@
  * whole name instead of slicing its letters. Names stay inside the frame and
  * off the controls, and together never cover more than `maxCoverage` of the
  * screen. No depth readback, raycast, per-frame glyph-atlas upload or per-label
- * DOM node: one glyph atlas, one draw call.
+ * DOM node: one glyph atlas, one small visibility pass and one text draw call.
  * ?namelabels=0 retains the original layers for repeatable before/after tests.
  */
 (function () {
@@ -23,6 +23,9 @@
   const q = new URLSearchParams(location.search);
   const TUNE = window.NAME_LABELS = {
     on: q.get('namelabels') !== '0',
+    stable: q.get('labelstable') !== '0', // runtime A/B: NAME_LABELS.stable
+    collisionMarginPx: 8, boundaryFadePx: 24,
+    depthHoldMs: 180, depthFadeMs: 220, depthMargin: 0.000001,
     // ── Look: the live labels' values ───────────────────────────────────
     fontFamily: 'Arial, Helvetica, sans-serif',
     boldWeight: 700, regularWeight: 400,
@@ -80,11 +83,16 @@
   let nearby = [], nearbyEye = null, night = -1, coverage = 0;
   const fadingRows = new Set(), fadeOrder = [];
   const candidates = [], admitted = [], viewport = [0, 0];
-  const byScore = (a, b) => b.score - a.score || a.index - b.index;
+  const byScore = (a, b) => (TUNE.stable ? Number(b.admitted) - Number(a.admitted) : 0) || b.score - a.score || a.index - b.index;
   const smooth = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
   // Padded boxes overlap: the same rule as MapLibre's text-padding.
   const clash = (a, b) => a.box[0] - a.pad < b.box[2] + b.pad && a.box[2] + a.pad > b.box[0] - b.pad &&
     a.box[1] - a.pad < b.box[3] + b.pad && a.box[3] + a.pad > b.box[1] - b.pad;
+  function entryClash(a, b) {
+    const pad = TUNE.stable && !a.admitted ? TUNE.collisionMarginPx : 0;
+    return a.box[0]-a.pad-pad < b.box[2]+b.pad && a.box[2]+a.pad+pad > b.box[0]-b.pad &&
+      a.box[1]-a.pad-pad < b.box[3]+b.pad && a.box[3]+a.pad+pad > b.box[1]-b.pad;
+  }
   let markerBoxes = [];
   let fixedControlBoxes = [];
   const hiddenMarkers = new Map();
@@ -95,6 +103,11 @@
   let canvasWidth = 0, canvasHeight = 0;
   let controlBoxes = [], boundsDirty = true, controlObserver, controlClassObserver;
   let layoutDirty = true, layoutFading = true, uploadDirty = true;
+  let stabilityEnabled=TUNE.stable;
+  Object.defineProperty(TUNE,'stable',{enumerable:true,get:()=>stabilityEnabled,set:value=>{
+    const enabled=!!value;if(enabled===stabilityEnabled)return;stabilityEnabled=enabled;
+    layoutDirty=true;if(gpu?.visibility)gpu.visibility.reset=true;map?.triggerRepaint();
+  }});
   const lastMatrix = new Float64Array(16);
   const controlSelector = '#tod-panel, .maplibregl-ctrl, #hud, #controls-hint, #gfx-button, #fb-button, #explore, #live-here, #lh-toggle, #finder-tray, #compare-tray, #joy-boost, #joystick-zone, #gfx-panel, #fb-panel, .lh-map-label';
   function cacheControlBounds() {
@@ -247,7 +260,7 @@
       precision highp float; precision highp int;
       in vec2 a_pos; in vec2 a_uv; in float a_label; in float a_tier; in float a_role;
       uniform highp sampler2D u_anchors; uniform highp sampler2D u_depth; uniform vec2 u_pixelScale; uniform vec2 u_depthRange; uniform float u_depthBias;
-      uniform float u_scale[8]; uniform float u_lift;
+      uniform float u_scale[8]; uniform float u_lift; uniform highp sampler2D u_visibility; uniform bool u_stable;
       out vec2 v_uv; out float v_alpha; out float v_role;
       void main(){int label=int(a_label);vec4 anchor=texelFetch(u_anchors,ivec2(label%256,label/256),0);
         vec2 px=a_pos*u_scale[int(a_tier)]+vec2(0.,u_lift);
@@ -256,7 +269,8 @@
         // Foreground geometry can hide a name, but cannot slice its letters.
         float scene=texture(u_depth,anchor.xy*0.5+0.5).r;
         float depth=mix(u_depthRange.x,u_depthRange.y,anchor.z*0.5+0.5);
-        v_uv=a_uv;v_alpha=depth<=scene+u_depthBias?anchor.w:0.;v_role=a_role;}`);
+        float visibility=u_stable?texelFetch(u_visibility,ivec2(label%256,label/256),0).r:float(depth<=scene+u_depthBias);
+        v_uv=a_uv;v_alpha=visibility*anchor.w;v_role=a_role;}`);
     const fs = compile(gl, gl.FRAGMENT_SHADER, `#version 300 es
       precision mediump float; uniform sampler2D u_atlas;
       uniform vec4 u_ink; uniform vec4 u_halo; uniform float u_hit; uniform float u_mipBias;
@@ -301,6 +315,7 @@
     const u = name => gl.getUniformLocation(program, name);
     return { program, vao, buffer, textures, anchorTexture,
       depthSampler: u('u_depth'), depthRange: u('u_depthRange'), depthBias: u('u_depthBias'),
+      visibilitySampler: u('u_visibility'), stable: u('u_stable'),
       anchorSampler: u('u_anchors'), pixelScale: u('u_pixelScale'), sampler: u('u_atlas'),
       scale: u('u_scale'), lift: u('u_lift'), ink: u('u_ink'), halo: u('u_halo'), hit: u('u_hit'), mipBias: u('u_mipBias'),
       inkColor: rgba(TUNE.ink), dayHalo: rgba(TUNE.halo), nightHalo: rgba(TUNE.nightHalo), haloColor: new Float32Array(4) };
@@ -311,6 +326,7 @@
     if (!gpu) return;
     if (!gl.isContextLost()) {
       if (gpu.depthTexture) gl.deleteTexture(gpu.depthTexture); if (gpu.depthFbo) gl.deleteFramebuffer(gpu.depthFbo);
+      if (gpu.visibility) { const v=gpu.visibility; v.textures.forEach(t=>gl.deleteTexture(t)); v.fbos.forEach(f=>gl.deleteFramebuffer(f)); gl.deleteProgram(v.program); gl.deleteVertexArray(v.vao); }
       gpu.textures.forEach(t => gl.deleteTexture(t)); gl.deleteTexture(gpu.anchorTexture); gl.deleteBuffer(gpu.buffer);
       gl.deleteVertexArray(gpu.vao); gl.deleteProgram(gpu.program);
     }
@@ -415,8 +431,13 @@
       r.strength = 1 - smooth((distance - range[0]) / (range[1] - range[0]));
       const edge = Math.min(box[0], W - box[2], box[1], H - box[3]);
       // Hard safety boundaries also apply to retiring names, during motion.
-      if (edge < TUNE.edgePx || behindControl(box)) { r.alpha=0; r.projected=false; continue; }
+      if (edge < TUNE.edgePx || behindControl(box)) { if(!TUNE.stable)r.alpha=0; r.projected=false; continue; }
       r.strength *= smooth(edge / TUNE.edgePx);
+      if(TUNE.stable) {
+        let clearance=edge-TUNE.edgePx;
+        for(const p of controlBoxes) clearance=Math.min(clearance,Math.max(p[0]-box[2],box[0]-p[2],p[1]-box[3],box[1]-p[3])-TUNE.controlGapPx);
+        r.strength*=smooth(clearance/TUNE.boundaryFadePx);
+      }
       if (r.strength <= 0) continue;
       r.score = TUNE.priority[r.kind] + (TUNE.tiers[r.tier].priority || 0) + 1 - distance / range[1] + (r.admitted ? TUNE.retainBonus : 0);
       candidates.push(r);
@@ -431,7 +452,12 @@
       const b = r.box, area = (b[2] - b[0]) * (b[3] - b[1]);
       if (covered + area > budget) continue;
       let blocked = false;
-      for (let i = 0; i < admitted.length; i++) if (clash(r, admitted[i])) { blocked = true; break; }
+      for (let i = 0; i < admitted.length; i++) if (entryClash(r, admitted[i])) { blocked = true; break; }
+      // Reserve a departing name's space until its fade ends. Otherwise an
+      // entrant replaces it in one frame, then gives it back at the boundary.
+      if(TUNE.stable && !r.admitted && !blocked) for(const other of fadingRows) {
+        if(other!==r && other.projected && other.alpha>TUNE.retireAlpha && entryClash(r,other)){blocked=true;break;}
+      }
       if (blocked) continue;
       r.target = r.strength; admitted.push(r); fadingRows.add(r); covered += area;
     }
@@ -446,16 +472,16 @@
     for (const r of fadeOrder) {
       r.admitted = r.target > 0;
       if (!r.target && !r.alpha) {fadingRows.delete(r);continue;}
-      r.alpha += (r.target - r.alpha) * blend;
+      r.alpha += TUNE.stable ? Math.max(-dt/TUNE.fadeMs,Math.min(dt/TUNE.fadeMs,r.target-r.alpha)) : (r.target-r.alpha)*blend;
       if (Math.abs(r.alpha - r.target) > 0.002) fading = true;
       if (r.alpha < TUNE.retireAlpha && !r.target) { r.alpha = 0; fadingRows.delete(r); continue; }
       // Never reuse a stale projected box when a point goes behind the eye.
       if (r.projected && r.alpha > TUNE.retireAlpha) {
-        if (!r.admitted && (admitted.some(other=>other!==r && clash(r, other)) || drawn.some(other=>other!==r && clash(r, other)))) {r.alpha=0;fadingRows.delete(r);continue;}
+        if (!TUNE.stable && !r.admitted && (admitted.some(other=>other!==r && clash(r, other)) || drawn.some(other=>other!==r && clash(r, other)))) {r.alpha=0;fadingRows.delete(r);continue;}
         drawn.push(r);
       }
     }
-    // Conflicting retiring names disappear whole; positions follow the camera.
+    // Retiring names keep following the camera throughout their finite fade.
     layoutFading = fading;
     if (fading) map.triggerRepaint();
     viewport[0] = W; viewport[1] = H;
@@ -498,12 +524,15 @@
     const W=gl.drawingBufferWidth,H=gl.drawingBufferHeight;
     const count=window.slopesApartments?.count?.done || 0;
     if(count!==depthModelCount){depthModelCount=count;depthDirty=true;}
-    const refresh=depthDirty || uploadDirty || !gpu.depthTexture || performance.now()-(gpu.depthTime||0)>TUNE.depthRefreshMs;
+    const refresh=depthDirty || uploadDirty || !gpu.depthTexture || (!TUNE.stable && performance.now()-(gpu.depthTime||0)>TUNE.depthRefreshMs);
+    gpu.depthUpdated=refresh;
     if (!refresh) {
       gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,gpu.depthTexture);gl.uniform1i(gpu.depthSampler,2);return;
     }
     gpu.depthTime=performance.now();depthDirty=false;
-    clearTimeout(depthTimer);depthTimer=setTimeout(()=>{depthDirty=true;map?.triggerRepaint();},TUNE.depthRefreshMs);
+    // Camera/layout, source/style events and authored-model count invalidate
+    // depth. Do not wake an unchanged city once a second just to refade it.
+    clearTimeout(depthTimer);if(!TUNE.stable)depthTimer=setTimeout(()=>{if(!TUNE.stable){depthDirty=true;map?.triggerRepaint();}},TUNE.depthRefreshMs);
     // MapLibre tracks these bindings before invoking custom layers. Reading
     // its cache avoids synchronous driver queries on every moving frame.
     const context=map.painter?.context;
@@ -542,6 +571,76 @@
     gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,gpu.depthTexture);
     gl.uniform1i(gpu.depthSampler,2);gl.uniform2fv(gpu.depthRange,context?.depthRange?.current || gl.getParameter(gl.DEPTH_RANGE));gl.uniform1f(gpu.depthBias,TUNE.depthBias);
   }
+  // One RGBA8 texel per catalog entry, ping-ponged entirely on the GPU:
+  // opacity, time supporting the opposite decision, accepted decision, raw test.
+  // No synchronous depth readback in the application and no per-glyph tests.
+  function updateVisibility(gl, now) {
+    if(!TUNE.stable && !TUNE.measureVisibility)return;
+    const context=map.painter?.context;
+    const source=context?.bindFramebuffer ? context.bindFramebuffer.current : gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    let v=gpu.visibility;
+    if(!v) {
+      const vs=compile(gl,gl.VERTEX_SHADER,`#version 300 es
+        void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.-1.,0.,1.);}`);
+      const fs=compile(gl,gl.FRAGMENT_SHADER,`#version 300 es
+        precision highp float; precision highp int;
+        uniform highp sampler2D anchors, scene, previous;
+        uniform vec2 depthRange; uniform float bias, margin, dt, holdMs, fadeMs;
+        uniform bool stable, reset; out vec4 result;
+        void main(){
+          ivec2 at=ivec2(gl_FragCoord.xy);vec4 a=texelFetch(anchors,at,0);
+          if(a.w<=0.){result=vec4(0.);return;}
+          vec2 uv=a.xy*.5+.5;float d=mix(depthRange.x,depthRange.y,a.z*.5+.5);
+          float z=texture(scene,uv).r;float raw=float(d<=z+bias);
+          if(!stable){result=vec4(raw,0.,raw,raw);return;}
+          vec4 old=reset?vec4(0.):texelFetch(previous,at,0);
+          // A one-pixel cross prevents a single roof-edge sample from deciding
+          // the whole name. The dead band retains the previous depth decision.
+          vec2 px=1./vec2(textureSize(scene,0));
+          z=max(z,max(max(texture(scene,uv+vec2(px.x,0.)).r,texture(scene,uv-vec2(px.x,0.)).r),
+                      max(texture(scene,uv+vec2(0.,px.y)).r,texture(scene,uv-vec2(0.,px.y)).r)));
+          float want=old.b;
+          if(d<z+bias-margin)want=1.;else if(d>z+bias+margin)want=0.;
+          float elapsed=want==old.b?0.:min(1.,old.g+dt/holdMs);
+          float accepted=elapsed>=1.?want:old.b;
+          if(elapsed>=1.)elapsed=0.;
+          float alpha=old.r+clamp(accepted-old.r,-dt/fadeMs,dt/fadeMs);
+          result=vec4(alpha,elapsed,accepted,raw);
+        }`);
+      const program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
+      gl.deleteShader(vs);gl.deleteShader(fs);
+      if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
+      v=gpu.visibility={program,vao:gl.createVertexArray(),textures:[],fbos:[],index:0,time:0,until:0,mode:TUNE.stable};
+      v.width=anchorWidth;v.height=anchors.length/4/anchorWidth;
+      for(let i=0;i<2;i++) {
+        const t=gl.createTexture(),f=gl.createFramebuffer();v.textures.push(t);v.fbos.push(f);
+        gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,t);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,v.width,v.height,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+        if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('Label visibility framebuffer incomplete');
+      }
+      v.u=Object.fromEntries(['anchors','scene','previous','depthRange','bias','margin','dt','holdMs','fadeMs','stable','reset'].map(n=>[n,gl.getUniformLocation(program,n)]));
+    }
+    const reset=!v.time || v.mode!==TUNE.stable || v.reset;
+    const dt=Math.min(80,v.time?now-v.time:16);v.time=now;v.mode=TUNE.stable;v.reset=false;
+    // Repaint only through the finite hold/fade tail. An idle page can sleep.
+    if(uploadDirty || gpu.depthUpdated || reset)v.until=now+TUNE.depthHoldMs+TUNE.depthFadeMs+100;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,v.fbos[1-v.index]);gl.viewport(0,0,v.width,v.height);
+    gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.disable(gl.STENCIL_TEST);gl.disable(gl.SCISSOR_TEST);gl.disable(gl.CULL_FACE);
+    gl.colorMask(true,true,true,true);gl.useProgram(v.program);gl.bindVertexArray(v.vao);
+    for(const [unit,texture,name] of [[1,gpu.anchorTexture,'anchors'],[2,gpu.depthTexture,'scene'],[3,v.textures[v.index],'previous']]) {
+      gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,texture);gl.uniform1i(v.u[name],unit);
+    }
+    gl.uniform2fv(v.u.depthRange,context?.depthRange?.current || gl.getParameter(gl.DEPTH_RANGE));
+    for(const [key,value] of Object.entries({bias:TUNE.depthBias,margin:TUNE.depthMargin,dt,holdMs:TUNE.depthHoldMs,fadeMs:TUNE.depthFadeMs}))gl.uniform1f(v.u[key],value);
+    gl.uniform1i(v.u.stable,TUNE.stable?1:0);gl.uniform1i(v.u.reset,reset?1:0);
+    gl.drawArrays(gl.TRIANGLES,0,3);v.index=1-v.index;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,source);gl.viewport(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight);
+    gl.useProgram(gpu.program);gl.bindVertexArray(gpu.vao);
+    gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,v.textures[v.index]);gl.uniform1i(gpu.visibilitySampler,3);
+    if(TUNE.stable && now<v.until)map.triggerRepaint();
+  }
   const layer = {
     id: ID, type: 'custom', renderingMode: '3d',
     onAdd() { disposed = false; lastTime = 0; },
@@ -554,6 +653,21 @@
         const started = performance.now(), [W, H] = layout(M, started);
         gl.useProgram(gpu.program); gl.bindVertexArray(gpu.vao); gl.bindBuffer(gl.ARRAY_BUFFER, gpu.buffer);
         copyDepth(gl);
+        const cursor = packGeometry();
+        if(uploadDirty || geometryDirty) {
+          anchors.fill(0);
+          for (const r of drawn) {
+            const offset=r.index*4;
+            anchors[offset]=r.ndc[0];anchors[offset+1]=r.ndc[1];anchors[offset+2]=r.ndc[2];
+            // The spatial ramp must cap the drawn alpha, not just its slowly
+            // approached target; otherwise a fading name pops at the UI edge.
+            anchors[offset+3]=(TUNE.stable?Math.min(r.alpha,r.strength):r.alpha)*tierDim[r.tierIndex];
+          }
+          gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,gpu.anchorTexture);
+          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+          gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,anchorWidth,anchors.length/4/anchorWidth,gl.RGBA,gl.FLOAT,anchors);
+        }
+        updateVisibility(gl,started);gl.uniform1i(gpu.stable,TUNE.stable?1:0);
         gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
         // Keep the depth range MapLibre supplies. Resetting it to [0,1]
         // would compare labels with a different depth scale than the city.
@@ -565,16 +679,9 @@
         gl.uniform4fv(gpu.ink, gpu.inkColor); gl.uniform4fv(gpu.halo, halo);
         gl.uniform1fv(gpu.scale, tierScale); gl.uniform1f(gpu.lift, TUNE.liftPx);
         gl.uniform1f(gpu.hit, 0); gl.uniform1f(gpu.mipBias, TUNE.mipBias);
-        const cursor = packGeometry();
-        for (const r of drawn) {
-          const offset = r.index * 4;
-          anchors[offset] = r.ndc[0]; anchors[offset + 1] = r.ndc[1];
-          anchors[offset + 2] = r.ndc[2]; anchors[offset + 3] = r.alpha * tierDim[r.tierIndex];
-        }
         if (cursor) {
           gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gpu.anchorTexture);
           gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-          if (uploadDirty || geometryDirty) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, anchorWidth, anchors.length / 4 / anchorWidth, gl.RGBA, gl.FLOAT, anchors);
           gl.uniform1i(gpu.anchorSampler, 1); gl.uniform2f(gpu.pixelScale, 2 / W, 2 / H);
           gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpu.textures[0]);
           if (geometryDirty) gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices.subarray(0, cursor));
@@ -613,6 +720,19 @@
   window.nameLabels = {
     replaces: id => ready && !failed && TUNE.on && LEGACY.has(id),
     sync,
+    // Opt-in diagnostic readback, never used by normal rendering or timings.
+    // Includes GPU occlusion: submitted/drawn alone cannot measure flicker.
+    visibility: () => {
+      const v=gpu?.visibility;if(!v)return [];
+      const gl=map.getCanvas().getContext('webgl2');if(!gl || gl.isContextLost())return [];
+      const source=gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+      const pixels=new Uint8Array(v.width*v.height*4);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER,v.fbos[v.index]);
+      gl.readPixels(0,0,v.width,v.height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER,source);
+      return drawn.map(r=>({id:r.id,name:r.name,alpha:anchors[r.index*4+3]*pixels[r.index*4]/255,
+        raw:!!pixels[r.index*4+3],layoutAlpha:r.alpha,box:r.box.slice()}));
+    },
     stats: () => ({ ready, failed, total: rows.length, pages: pages.length,
       atlas: pages[0] ? [pages[0].width, pages[0].height] : null,
       textureMiB: pages.reduce((s, p) => s + p.width * p.height * 2 * 4 / 3, 0) / 1048576,
@@ -624,7 +744,7 @@
       // Stats are snapshots: the render loop reuses each row's projection box.
       drawn: drawn.map(r => ({ id: r.id, name: r.name, kind: r.kind, tier: r.tier, alpha: +r.alpha.toFixed(3), distance: Math.round(r.distance), box: r.box.slice() })) }),
     // Verification can isolate a real label for the depth-mask control.
-    isolate: ids => { only = ids ? new Set(ids) : null; layoutDirty=true; nearbyEye=null; rows.forEach(r => { r.alpha = 0; r.admitted = false; }); map?.triggerRepaint(); },
+    isolate: ids => { only = ids ? new Set(ids) : null; layoutDirty=true; nearbyEye=null; if(gpu?.visibility)gpu.visibility.reset=true; rows.forEach(r => { r.alpha = 0; r.admitted = false; }); map?.triggerRepaint(); },
     hitTest: (x, y) => {
       if (!labelsOn()) return null;
       const r = drawn.find(r => r.alpha > 0.8 && x >= r.box[0] && x <= r.box[2] && y >= r.box[1] && y <= r.box[3]);

@@ -14,6 +14,84 @@ without `?walk=1` and looking.
 
 ---
 
+## Round 9 (2026-09-28) — the guard refused the map's own traffic
+
+Eight rounds made the guard refuse more. This one found it refusing the wrong
+thing: **with a photo-imported schedule stored, a phone refused MapLibre's own
+tiles, and buildings went missing.** Two causes, both on the worker door.
+
+**One. The watchlist was every string in the stored doc, including the app's
+own words.** `provenance.confirmedBy: 'student'` is written the moment a class
+is confirmed. The byte scan found `student` inside a vector tile's "Student
+Activity Center" and threw. `read: 'photo'`, the source labels, `tz`, and the
+field names in `unconfirmedFields` (`building` is a layer name inside every
+building tile) were the same bug. None of them is the schedule; every student's
+device writes them the same way.
+
+Fix: `buildWatchlist()` skips the fields listed in
+`SCHEDULE_STORE.appOwnedFields` (envelope `v`, `savedAt`, `tz`, `sources`; per
+class `id`, `days`, times, `unroutableWhy`, `confidence`, `src`; in
+`provenance`, `read`, `confirmed`, `confirmedBy`, `unconfirmedFields`). It is a
+list of what to SKIP, so a new field is watched until someone decides it is app
+vocabulary: the guard may over-refuse, never under-refuse. A second line,
+`SCHEDULE_STORE.appVocabulary` plus the `SCHEDULE_SOURCES` kinds and labels, drops
+those exact words wherever they turn up. `provenance.correctedFrom` (what the
+photo said) and `provenance.why` (a whole sentence) stay watched.
+
+**Two. The 4 MB binary ceiling was outgrown.** MapLibre's replies to a worker's
+image request now carry up to 10.2 MB of facade pixels on a 1x phone. The
+facade images are drawn at `devicePixelRatio` (capped at 2), and a 1440x900
+DPR 2 page sent up to 33.7 MB over the same walk. Every reply over 4 MB was
+refused unread. `binaryScanBytes` is now 64 MB and still a hard ceiling.
+Tile bytes are still scanned: with the app's words out of the watchlist, a tile
+can only match if it literally holds the student's own class string.
+
+**Three. A bare room number is a substring of the map's decimals.** Found by
+re-running round 8's adversarial pass on the fix: a class in room `0.130`
+refused the campus landscape layer, because its tree records read
+`"0.1308|pecan|8.19|0"`. The needle test is a substring test, so any room
+number made only of digits and dots will match some decimal the map carries.
+Fix: `SCHEDULE_STORE.bareNumberPattern` — a value made only of digits and
+punctuation is not watched on its own. The pair is: `RLP 0.130` and
+`RLP-0.130` are still needles, and so is the serialised doc. This matches the
+rule the guard already had for building codes, which are too short to watch
+alone (`minTokenLen`).
+
+Measured with a probe (390x844 phone, SwiftShader, `?walk=1&drift=0`, a
+two-class schedule stored with `confirmedBy: 'student'`, reload, five campus
+views at zoom 14.5-17.2):
+
+| | main 89e01d3 | this fix |
+|---|---|---|
+| map messages refused | **14** (7 on `st…(7)`, 7 over 4 MB) | **0** |
+| uncaught page errors | 1 | 0 |
+| canaries (title bytes, title string, room pair, instructor, title inside 6 MB) | all refused | all refused |
+| `"Student Activity Center photo"` sent to a worker | refused | passes |
+| same walk, rooms `0.130` and `0.220` (bare numbers) | - | 0 refused, 0 errors |
+| same walk, 1440x900 DPR 2 desktop | - | 0 refused, 0 errors, canaries refused |
+
+The refused messages were `LD` (a GeoJSON source's data), `UL` (a layer
+update) and image replies, so on main a row of West Campus buildings near the
+Belo Center simply did not draw with a schedule stored.
+
+**The cost, said plainly.** The image replies are now scanned instead of
+dropped. On the probe's walk the guard read 615 MB of binary (main read 245 MB
+over the same walk, but it refused messages outright and drew less). A reply of
+6-10 MB spent 60-300 ms inside `postMessage` on a busy software-GL machine,
+including the clone MapLibre does anyway. On the 2x desktop walk the guard read
+947 MB, and the slowest replies (up to 33.7 MB) took 350-630 ms each on the same
+busy machine. That only happens on a device with a schedule stored. Before this
+fix those replies were refused, so the buildings did not draw at all; making
+the scan cheaper is the next job, not a reason to skip it.
+
+The gate is `scripts/verify/guard-map-traffic.mjs`. It needs no map, so it runs
+in seconds: map-like payloads must pass (including map decimals that contain a
+stored room number), the schedule must still be refused (including the building
+and room pair as tile bytes), and a payload past the ceiling is refused unread.
+On main (89e01d3) it fails 16 of 30 checks.
+
+---
+
 ## THE VERDICT, ROUND 8 — read this first
 
 **Rounds 4 through 7 each found the same bug wearing a different hat: a check
