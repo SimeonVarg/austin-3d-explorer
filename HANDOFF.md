@@ -1,5 +1,24 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - The tab icon is the UT Tower in the loading screen's colours (`claude/favicon`, PR #344, merged 23d4389, live)
+
+The old tab icon was three bars in the brown-and-orange palette the app no
+longer uses. The new one is the Tower rising out of the Main Building's red
+roof, drawn with the loading screen's `ART` colours. The owner saw the
+before/after (tab strip light and dark, iPhone home screen) and said merge.
+
+- `favicon.svg` (root): the icon. A note at the top names the `ART` key in
+  `js/loader.js` that each colour comes from, so a colour is a one-line edit.
+- `apple-touch-icon.png` (root, 180 px, square corners): the same drawing for
+  iPhone home screens and bookmarks, which do not use SVG icons.
+- `index.html` and `_harness.html` link `favicon.svg` instead of carrying the
+  old icon inline.
+- Trap, caught before merge: an XML comment may not contain `--`, and a
+  non-UTF-8 byte breaks the file too. The first push had both, and Chrome drew
+  a broken image. Fixed in 99f7394; the committed file was drawn in Chrome and
+  byte-compared to the tested one. Checked live: both files 200 with the right
+  types, and the live page links them.
+
 ## Sep 29 2026 - Far facades crawl about a third less in flight: each far window-pattern read averages the pixel's own patch of wall (`claude/moire-distance`, PR #341, merged c17b085, live)
 
 The owner: "main thing im noticing while flying is the moire. its too
