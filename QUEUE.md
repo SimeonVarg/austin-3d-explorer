@@ -1,6 +1,9 @@
 # QUEUE — Acer lane
 
-## NOW - Four defects the owner saw on the live site (2026-09-29)
+## DONE 2026-09-29 - Four defects the owner saw on the live site
+
+All four merged and live: names #342, roads #340, time switch + night windows
+#343 (with the shadow-proxy slice fix CI asked for). Details in HANDOFF.md.
 
 Sent to Astra (Codex) one at a time, to save the Claude lane's weekly limit.
 Claude writes the briefs, checks the result in the real app, commits and merges.
