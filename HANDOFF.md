@@ -1,5 +1,178 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - Far facades crawl about a third less in flight: each far window-pattern read averages the pixel's own patch of wall (`claude/moire-distance`, PR #341, merged c17b085, live)
+
+The owner: "main thing im noticing while flying is the moire. its too
+noticable ... ideally id like all of it to be fixed". #332 (Smooth edges on
+by default) took about two thirds of it. This pass went after the rest,
+measured on main 4fbb502 first. It takes a real piece of what is left, not
+all of it.
+
+**What was left, and where it comes from** (`moire.mjs`, NVIDIA, 1280x680 at
+DPR 1.5, balanced, Smooth edges on, `cancelGraphicsAutoDetect` called):
+- **The crawl on far pattern walls.** MapLibre reads the facade atlas once per
+  pixel, bilinear, with no mip levels. Past about 200 m one pixel covers 2-6
+  texels of window grid and keeps one of them, a different one each frame as
+  the camera moves. 4x MSAA adds coverage samples, not texture reads, so #332
+  never touched this. It is most of what still moves in the flight frames.
+- **Authored buildings (three.js).** With Smooth edges on, hiding their fine
+  parts (balconies, fins and piers, reveals; one full load per switch) moves
+  the score by 0.004 or less at every pose. They are at what 4 samples can
+  resolve, so fading them with distance has nothing left to take.
+- **Downtown floor lines as short dashes.** Geometry a fifth of a pixel thick;
+  see What is left.
+
+**What changed (`js/city-lighting.js`, `CityLighting.patternFilter`, all
+values at the top of the file):**
+- Beyond `nearM` 150 m (full strength by `fullM` 250 m), each facade pattern
+  read is the average of up to `maxTaps` 4 x 4 reads spread over the patch of
+  wall the pixel covers (sized from the screen-space change of the pattern
+  coordinate), with taps kept at most `maxSpacing` 2 texels apart. Inside
+  150 m, and wherever a pixel covers one texel or less, it is MapLibre's own
+  single read, unchanged.
+- `cardsOnly`: on by default only where `js/graphics.js` says the browser
+  draws with a graphics card (the Smooth edges test, now exported as
+  `GFX_GPU_CARD`), and compiled into the shader only where it is on at load.
+  On an integrated chip, the phone profile (`offOnPhone`) and the CI harness
+  the pattern shader is MapLibre's own, as on main. `?patfilter=0` turns it
+  off, `?patfilter=1` forces it on.
+- `moire.mjs`: close-up poses (`near-campus`, `near-west`, `near-downtown`),
+  `--init`, `--vtruth`, and `--variants` on flights (every flight frame drawn
+  again with each variant, same page, same tiles, same camera).
+  `moire-fps.mjs` prints the mean frame beside the median (on the AMD chip the
+  median sits near 20 ms while the mean is 45-65 ms, so a GPU cost shows only
+  in the mean). `pattern-filter-cost.mjs` (new, laptop-only) times each
+  setting with each frame's GPU work finished. `edge-defaults.mjs` (CI)
+  asserts the card test.
+
+**Before -> after** (NVIDIA RTX 3050 Ti, same settings; "before" is the same
+page with the filter off, which matches main to within load-to-load noise;
+the reference is the same frame drawn at 3x the pixels and shrunk back;
+lower is better):
+- **Crawl while flying** (frame-to-frame change the reference does not have,
+  each frame drawn both ways in one page): landing flight 0.153 -> 0.096
+  (-37%, 150 frames; a repeat on the final commit 0.153 -> 0.097), slow
+  downtown pan 0.196 -> 0.125 (-36%, 90 frames), spawn orbit 0.191 -> 0.164
+  (-14%, 90 frames). One frame of the landing-flight repeat scored worse
+  (f0121): a shadow-map refresh landed between its two captures, so the
+  "after" picture carries the old shadow edge. Harness, not filter.
+- **Still frames**, all error / bands / share of pixels in a visible band:
+  west campus 0.725 -> 0.721 / 0.207 -> 0.206 / 0.01% -> 0.01%; spawn 0.694
+  -> 0.662 / 0.198 -> 0.196 / 0.08% -> 0.08%; downtown 0.615 -> 0.566 / 0.225
+  -> 0.226 / 0.16% -> 0.15%; landing crest 0.707 -> 0.688 / 0.261 -> 0.260 /
+  0.11% -> 0.10%; landing start 0.424 -> 0.374 / 0.169 -> 0.172 / 0.13% ->
+  0.13%; campus low 0.720 -> 0.655 / 0.197 -> 0.195 / 0.07% -> 0.04%.
+  The win is the crawl and the fine grain on far walls; the still band score
+  is flat (within 0.004 either way). The average is taken before lighting and
+  glass reflection is not linear, so an averaged far wall sits about half a
+  level darker than the reference.
+- **Close up** (filter off vs on in one page, near half of the frame, 979,200
+  pixels): near-west 0 changed, near-downtown 0, near-campus 86 by 1 level.
+- **Sign lettering**: symbol layers and authored meshes, not touched; pattern
+  walls inside 150 m are identical.
+- Pictures: `docs/shots/moire-distance-campus-low.jpg`,
+  `docs/shots/moire-distance-downtown.jpg` (BEFORE | AFTER | REFERENCE,
+  pixels shown 2x).
+
+**Frame time** (1280x680 at DPR 1.5, vsync off, no CPU throttle, 300 frames a
+rep after 40 warm-up):
+- NVIDIA, main vs branch, a fresh browser per rep, 4 + 4 interleaved, two
+  rounds. Round 1 (CPU 39-52%): downtown pan fastest rep 15.3 vs 15.1 ms,
+  median per-rep difference -0.5 ms; spawn orbit 15.2 vs 15.4 ms, +0.5. Round
+  2 (another lane working, CPU 53-80%, GPU clock 640-915 MHz): downtown pan
+  21.7 vs 22.3 ms, +0.9 (slower in 3 of 4; mean frame +0.4, slower in 2 of 4);
+  spawn orbit 21.0 vs 21.1, +0.1.
+- NVIDIA, on vs off in one page, 6 alternating pairs: downtown pan +0.1 ms;
+  spawn orbit +1.5 ms in one run (pairs -3.8 to +2.1), -0.3 in another.
+- NVIDIA, GPU-synced still views (synchronous redraw + 1-pixel readPixels,
+  10 rounds): +1.2 ms of a 19 ms frame at the downtown view (slower 7 of 10),
+  within +/-0.1 ms at the other three. So: no cost beyond noise in flight,
+  where the frame waits on the CPU; up to about 1 ms of GPU at the densest
+  view.
+- AMD integrated (Edge via `CHROME_PATH`, `--gpu low`, both sides): forced on,
+  +0.7 to +2.5 ms at every still view (30-50 ms frames), which is why
+  `cardsOnly` exists. A cheaper 2 x 2 setting cost nothing there but made the
+  still bands worse than no filter (landing flight 0.169 -> 0.175-0.177): a
+  2-tap comb. With the final code it is off and not compiled there: main vs
+  branch downtown pan, 4 + 4, median +0.2 ms, mean +0.6, each slower in 2 of 4.
+
+**What is left, and why:**
+- **Downtown floor lines as dashes.** Tried twice as a thin-geometry pass (a
+  separate style layer, then a pass inside the extrusion layer, drawing
+  sub-pixel slabs a pixel tall with matching coverage). Both were worse
+  against the reference at every pose (downtown changed-region error 1.71 ->
+  2.29, landing start 1.18 -> 1.73, campus low 1.83 -> 1.93): the stretched
+  walls land brighter than the reference, and the extra style layer moved
+  near pixels (UT Tower base 0.82%) because MapLibre's depth range depends on
+  the layer count. Not taken. The likely next lever is a distance fade on the
+  slab geometry itself, where the outer ring is built, not a render pass.
+- **Integrated GPUs and screens over 2.1 MP** keep #332's default (Smooth
+  edges off on integrated chips); not re-timed in this pass, so not changed.
+  Integrated chips do not get this filter either, because of its cost there.
+- **Phone**: filter off, so far walls on the phone crawl as before.
+- **One unexplained capture.** One spawn capture with the first version (no
+  tap-spacing limit) showed a smeared bright patch on a far wall; it did not
+  come back in 7 later loads, including the same pose order and the sharp
+  facade tier forced everywhere. `maxSpacing` 2 was added as a guard (it
+  keeps nearly all of the gain: campus low all-error 0.644 without it, 0.655
+  with it, 0.720 with no filter). If a smear shows on a far wall in flight,
+  `?patfilter=0` is the first check.
+
+**Corrections to #332's entry:** "Tried and not taken: a shader box filter on
+MapLibre's pattern reads (<1% of pixels changed)" was a fixed small box; one
+sized from each pixel's footprint is what this PR is. "Texture is NOT a
+source" holds for still frames at one distance, not for far walls in motion.
+
+**Reviewer re-check before merging** (a separate lane; merged as c17b085 and
+live on flyover-utx.vercel.app: the served `js/city-lighting.js` and
+`js/graphics.js` have the same hashes as main's):
+- Where it runs: NVIDIA Chrome on and compiled, no shader failures; phone
+  profile (`?lite=1`), AMD (Edge, `--gpu low`) and SwiftShader (the CI
+  renderer) off and not compiled.
+- Stills at the sunset default: the builder's six views reproduced to the
+  third decimal. **At night** (p 1.0, not in the builder's set: the lamps are
+  off at sunset, and the lit-window threshold runs on the averaged read, so
+  averaging could have put far windows out): error lower at all six views
+  (tower view 0.580 -> 0.528, far skyline 0.636 -> 0.543, downtown 0.408 ->
+  0.345); the share of bright lit-window pixels moves toward the 3x reference
+  (far skyline 0.81% -> 0.70%, reference 0.67%); far-half brightness within
+  0.1 level. Far windows stay lit: `docs/shots/moire-distance-night.jpg`
+  (BEFORE | AFTER | REFERENCE, pixels shown 2x).
+- Close up: the three close-up views' near half moved 13 / 2 / 0 pixels, none
+  by more than 1 level. Street height (2 m) and low flight (10-12 m): 0.00 to
+  0.04% of pixels, none by more than 2 levels, the same as two captures of one
+  build.
+- Crawl, landing flight, each of 150 frames drawn both ways: 0.153 -> 0.097
+  (-37%), worse in 0 of 149 frame pairs. The builder's f0121 did not recur.
+- NVIDIA frame time (1280x680 at DPR 1.5, vsync off, no throttle): main vs
+  branch, 4 + 4 fresh loads, downtown pan, CPU 47-56%: per-rep median -0.4 ms
+  (branch slower 1 of 4), so the builder's +0.9 ms did not reproduce. On vs
+  off in one page, 12 alternating passes: spawn orbit +0.5 ms per pair
+  (slower 3 of 6), downtown pan +0.2 (3 of 6). GPU-synced stills: downtown
+  +0.7 ms of 21 (7 of 10); at 3840x2040 +0.7 of 22 (6 of 10).
+- AMD (filter not compiled): main vs branch downtown pan, 4 + 4 at CPU
+  39-46%: median-of-medians 21.7 vs 21.6 ms, per rep +0.7 (2 of 4). Two other
+  AMD rounds ran while another lane loaded the machine (CPU 57-81%) and swung
+  18-92 ms inside each arm: no signal either way.
+- CI pictures flagged 2 of 10. spawn-golden (0.0664%, max 100) is the known
+  flake: the identical number reads as changed or as noise on other PRs'
+  runs. tower-night (1.39%, max 16) is not this change: nothing is compiled
+  in that renderer, and a repeat in the same renderer with CI's waits matched
+  main to 0 pixels over the tolerance. A crowded earlier local capture caught
+  the downtown skyline before its night lights landed (0.8% of pixels, all
+  skyline) and the clean repeat did not, so if tower-night flags on an
+  unrelated PR, that is the first suspect.
+- Minor, not fixed: raising `CityLighting.patternFilter.maxTaps` live above
+  the compiled 4 darkens far walls (the loops are sized when the shader
+  compiles; the divisor follows the live value). Lowering it, as
+  `pattern-filter-cost.mjs` does, is fine. The fix is to clamp the uniform's
+  last component to the compiled count.
+- Context loss: read, not run. A recompile goes through the same shader
+  wrapper with the same `compiled` decision, and the app reloads the page
+  after a loss anyway (`js/mobile.js`).
+
+**Overlap:** open draft #312 (`codex/compiled-building-lifecycle`) also edits
+`js/city-lighting.js`.
 ## Sep 28 2026 - The privacy guard stops refusing the map's own tiles (`claude/guard-map-traffic`)
 
 With a photo-imported schedule stored, a phone refused MapLibre's own traffic

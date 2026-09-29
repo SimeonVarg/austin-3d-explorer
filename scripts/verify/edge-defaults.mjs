@@ -13,7 +13,7 @@ function boot({width=651,height=598,dpr=1.5,mobile=false,search='',saved=null,gp
     {RENDERER:0x1F01,getParameter:()=>gpu,getExtension:()=>null}})};
   vm.runInNewContext(source.slice(0,end)+'})();',{window,document,location:{search},URLSearchParams,console,
     localStorage:{getItem:key=>key===GPU_KEY?savedGpu:stored,setItem:(key,value)=>{if(key!==GPU_KEY)stored=value;}}});
-  return {gfx:window.GFX,msaa:window.GFX_MSAA,stored,gate:window.__gfxGpu};
+  return {gfx:window.GFX,msaa:window.GFX_MSAA,stored,gate:window.__gfxGpu,card:window.GFX_GPU_CARD};
 }
 const old={preset:'performance',rev:2,custom:false,autoDetected:true,msaa:false,renderScale:.75,clouds:.22};
 assert.equal(boot({search:'?preset=performance'}).msaa,true,'small desktop default');
@@ -42,4 +42,8 @@ assert.equal(fromSaved.msaa,true,'a saved renderer decides with no context');ass
 assert.equal(boot({width:2560,height:1440,dpr:1,gpu:CARD}).msaa,false,'1440p keeps the old default on a card');
 assert.equal(boot({mobile:true,search:'?lite=1&preset=performance',gpu:CARD}).msaa,false,'phone profile unchanged on a card');
 assert.equal(boot({...laptop,gpu:CARD,saved:{...old,custom:true}}).msaa,false,'manual off survives on a card');
-console.log('PASS: bounded desktop default, migration, custom overrides, resize, phone, ultra, capture persistence, and the graphics-card budget');
+// js/city-lighting.js's far pattern filter is on by default only where this says card (claude/moire-distance).
+assert.equal(boot({...laptop,gpu:CARD}).card(),true,'pattern filter: a graphics card');
+assert.equal(boot({...laptop,gpu:IGPU}).card(),false,'pattern filter: not on the integrated chip');
+assert.equal(boot({...laptop,gpu:SOFT}).card(),false,'pattern filter: not on the harness');
+console.log('PASS: bounded desktop default, migration, custom overrides, resize, phone, ultra, capture persistence, the graphics-card budget, and the pattern-filter card test');

@@ -1,5 +1,21 @@
 # QUEUE — Acer lane
 
+## NOW - Four defects the owner saw on the live site (2026-09-29)
+
+Sent to Astra (Codex) one at a time, to save the Claude lane's weekly limit.
+Claude writes the briefs, checks the result in the real app, commits and merges.
+
+1. **Building names flicker badly.** Astra task 025, `astra/label-flicker`.
+2. **Road details do not show.** Astra task 026, `astra/road-details`.
+   Check first if it happens only with a class schedule stored (the privacy
+   guard fix is PR #340).
+3. **Picking a different time of day freezes the app for 8-15 s** before the
+   change shows. Astra task 027, `astra/timeofday-night`.
+4. **Night windows still light in runs of 2-4 side by side** instead of one
+   by one. Same task 027 (same code). First suspect: the random pick still
+   uses a cell size from before the window grid became a pitch in metres.
+
+
 ## NEXT - Downtown night fidelity from owner photographs (2026-09-21)
 
 After the active sky-fill/night pass, use the owner's two newly supplied late-night
