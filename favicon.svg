@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
 <!-- Tab icon: the UT Tower rising out of the Main Building, drawn in the
      loading screen's palette so the tab matches the first screen.
-     Colours are the ART keys in js/loader.js (and --load-bg in style.css):
-     tile #101b23 = --load-bg · glow #bf5700 = halo · shaft #d6ae77/#807157 =
-     crown-lit/crown-shade · crown #e07a2a/#8a3f00 = win-top/win-shade ·
-     roof #b2613c/#9c4a2f = tile-lit/tile-mid · cap #f1d6a6 = crown-top ·
-     clock #fff0c7 = clock · cupola #8fa596 = copper-top · mast #f6b85e = accent.
+     Colours are the ART keys in js/loader.js (and the load-bg colour in style.css):
+     tile #101b23 = load-bg ; glow #bf5700 = halo ; shaft #d6ae77/#807157 =
+     crown-lit/crown-shade ; crown #e07a2a/#8a3f00 = win-top/win-shade ;
+     roof #b2613c/#9c4a2f = tile-lit/tile-mid ; cap #f1d6a6 = crown-top ;
+     clock #fff0c7 = clock ; cupola #8fa596 = copper-top ; mast #f6b85e = accent.
      apple-touch-icon.png is this drawing at 180 px with square corners. -->
 
 <defs><radialGradient id="h" cx="16" cy="6" r="12" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#bf5700" stop-opacity=".6"/><stop offset="1" stop-color="#bf5700" stop-opacity="0"/></radialGradient></defs>
