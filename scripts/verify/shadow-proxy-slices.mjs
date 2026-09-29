@@ -26,7 +26,7 @@ const start = src.indexOf('  function shadowProxy(map) {'), end = src.indexOf(' 
 const code = src.slice(start, end);
 const BREAK = process.argv.includes('--break');
 
-function world({ localMs = 0, gapMs = 0, scale = 1 } = {}) {
+function world({ localMs = 0, gapMs = 0, scale = 1, layerN = 3, queryMs = 30 } = {}) {
   let now = 1e6, nextId = 0; const timers = new Map();
   let tasks = 0;
   const advance = ms => { const until = now + ms; for (;;) { let due = null; for (const [id, t] of timers) if (t.at <= until && (!due || t.at < due[1].at)) due = [id, t]; if (!due) break; timers.delete(due[0]); now = Math.max(now, due[1].at); tasks++; due[1].fn(); } now = until; };
@@ -35,7 +35,7 @@ function world({ localMs = 0, gapMs = 0, scale = 1 } = {}) {
   const tile = (key, n) => ({ key, index: {}, features: Array.from({ length: n }, (_, i) => ({ id: key + i, properties: { id: key + '-' + i, h: 20 + i }, geometry: { type: 'Polygon', coordinates: [square(i * 2, key.charCodeAt(0), 1)] } })) });
   const W = { tiles: [tile('a', 40 * scale), tile('b', 30 * scale), tile('c', 50 * scale)], moving: false, driving: false, queries: 0, sliceMax: 0 };
   // Three caster layers on one source: three indivisible queries per build.
-  const layers = ['l1', 'l2', 'l3'].map((id, i) => ({ id, type: 'fill-extrusion', source: 'austin-outer', sourceLayer: undefined, filter: ['>', 'h', i], visibility: 'visible' }));
+  const layers = Array.from({length:layerN},(_,i)=>'l'+(i+1)).map((id, i) => ({ id, type: 'fill-extrusion', source: 'austin-outer', sourceLayer: undefined, filter: ['>', 'h', i], visibility: 'visible' }));
   const map = {
     on: (n, f) => (handlers[n] = handlers[n] || []).push(f), isMoving: () => W.moving, triggerRepaint() {},
     getSource: id => id === 'austin-outer' ? {} : null,
@@ -43,7 +43,7 @@ function world({ localMs = 0, gapMs = 0, scale = 1 } = {}) {
     getLayersOrder: () => ['buildings-3d', ...layers.map(l => l.id)],
     getLayer: id => layers.find(l => l.id === id) || (id === 'buildings-3d' ? { id, type: 'fill-extrusion', source: 'austin', filter: null } : null),
     // Each query costs 30 ms of the clock, as a real querySourceFeatures can.
-    querySourceFeatures: (s, o) => { W.queries++; now += 30; const k = Number(o.filter[2]); return W.tiles.flatMap(t => t.features).filter(f => f.properties.h > 20 + k); },
+    querySourceFeatures: (s, o) => { W.queries++; now += queryMs; const k = Number(o.filter[2]); return W.tiles.flatMap(t => t.features).filter(f => f.properties.h > 20 + k); },
     style: { _loaded: true, tileManagers: { 'austin-outer': { getRenderableIds: () => W.tiles.map(t => t.key), getTileByID: id => { const t = W.tiles.find(t => t.key === id); return t && { latestFeatureIndex: t.index }; } } } },
   };
   class Vector2 { constructor(x, y) { this.x = x; this.y = y; } }
@@ -128,6 +128,20 @@ check('stretch: fixed 5 ms slices under slow frames take many seconds (the probl
 check('stretch: stretched slices finish in under half that', () => assert.ok(stretched.ms < fixed.ms / 2, `stretched ${Math.round(stretched.ms)} ms vs fixed ${Math.round(fixed.ms)} ms`));
 check('stretch: no slice past maxBudgetMs + one query', () => assert.ok(stretched.max <= stretched.budget.maxBudgetMs + 30, `max slice ${stretched.max} ms`));
 check('stretch: identical bytes to the one-piece build', () => assert.ok(bytes(stretched.geom).equals(bytes(slowRef.built.at(-1)))));
+
+
+// CI's 0.2 fps with many cheap caster queries must not pay a frame per layer.
+const ci = world({ gapMs: 5000, layerN: 120, queryMs: 0.1 });
+ci.scope.build(ci.map);
+for(let i=0;i<180&&!ci.stats.shadowProxyRebuilds;i++){
+  // Notifications from paced paint commits leave the geometry unchanged.
+  ci.emit('sourcedata',{sourceId:'austin-outer'});ci.scope.build(ci.map);ci.advance(1000);
+}
+check('software frames: completes within 180 s despite paint notifications',()=>assert.equal(ci.stats.shadowProxyRebuilds,1));
+check('software frames: paint notifications never restart a build',()=>assert.equal(ci.stats.shadowProxyRestarts||0,0));
+const ciRef=world({layerN:120,queryMs:0.1});ciRef.scope.pace.budgetMs=0;ciRef.scope.build(ciRef.map);ciRef.advance(1000);
+check('software frames: exact one-piece geometry',()=>assert.ok(ci.built.length&&bytes(ci.built.at(-1)).equals(bytes(ciRef.built.at(-1)))));
+console.log('software frames (5000 ms gap):',ci.stats.shadowProxyLastBuildMs,'ms,',ci.stats.shadowProxyLastSlices,'slices');
 
 for (const [s, n] of results) console.log(s.padEnd(5), n);
 const failed = results.filter(r => r[0] === 'FAIL').length;

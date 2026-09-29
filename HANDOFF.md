@@ -246,6 +246,59 @@ task `025-label-flicker/work`; its `out` directory contains the labelled animate
 comparisons and per-label count image. No owner imagery was used. The pipeline
 lane must review in the real application and commit/PR/merge; this sandbox did
 not run git writes. Physical iPhone Safari/Chrome acceptance remains unverified.
+## Sep 29 2026 - Task 027: time switches and individual night windows (uncommitted, `astra/timeofday-night`)
+
+Pipeline handoff only: no git writes, server launch, commit or deployment. The
+Claude lane reviews and lands these changes. Changed `js/facades.js`,
+`js/city-night.js`, `js/slopes-apartments.js`; added
+`scripts/verify/night-window-occupancy.mjs`.
+
+The dominant input-handler cost was a synchronous full facade repaint, not a
+time-dependent shader compile. Hour changes now use the existing paced painter,
+with 10 ms slices, at most two combo commits per frame, and the bounded 16 MB
+version-checked premultiplication cache retained between renders. All tiers of
+each combo still change together. `TIMEOFDAY_PACE.on=false` (or
+`?timeofdaypace=0`) restores the synchronous hour path and per-render cache
+clearing for comparison. Distant facade completion is progressive.
+
+Occupancy now hashes each drawn column/opening rather than each pair of bays;
+multi-opening authored bays pass their opening index. Generic facade rolls use
+the uniform CityNight hash. `CityNight.tune.windowScatter=false` (or
+`?windowScatter=0`) restores the paired baseline; authored runtime comparisons
+also require `slopesApartments.rebuild()`. Hero tiles already pick per drawn
+cell and retain their existing density. No geometry was added.
+
+Verified one fully loaded page per session, hardware D3D11, no CPU throttle,
+graphics auto-detect cancelled, two rounds of four slider inputs per arm:
+- NVIDIA desktop 1440x900, matched Jester close view: next rendered frame
+  1.33-1.89 s before, 0.35-0.59 s after; max long task 1154 -> 307 ms.
+- NVIDIA phone profile 390x844 DPR 3: 1.92-2.08 s before, 0.31-0.50 s after;
+  max long task 1673 -> 233 ms. First post-load changed frame: 376 ms.
+- Edge with `--force_low_power_gpu`, renderer confirmed AMD Radeon Graphics,
+  desktop 1440x900: 2.35-2.57 s before, 0.44-0.79 s after; max long task
+  1981 -> 305 ms. First post-load changed frame: 472 ms.
+
+These are observed ranges, not a claim of a universal latency bound. Arms were
+run sequentially within each page, not interleaved. The timing proxy is the next
+MapLibre render plus animation frame; the timed screencast separately shows the
+visible transition. The reported live 8-15 s delay was not reproduced at that
+magnitude. The roughly 200 ms maximum-task target remains open; physical iPhone
+performance is unverified. Residual rendering/atlas work still produces hitches.
+
+Production-function occupancy checks: mean horizontal lit runs 3.16 -> 1.59
+(facade), 3.11 -> 1.57 (authored), 6.22 -> 1.58 (multiple openings per bay),
+with lit share within 0.4 percentage points. High-density hero surfaces can
+still have natural long runs; texture softness at close range also remains.
+Passing checks: facade-pace byte/worker/premultiply/border parity,
+night-window-occupancy, apartment-window-rule, harness-drift, syntax and diff.
+
+Local evidence: `C:/Users/simip/Projects/astra-pipe/tasks/027-timeofday-night/out/`
+contains only labelled before/after JPEGs for Union on 24th, 360 Condominiums,
+Jester West Hall, and `time-switch.webp` (6 s, synchronized to the input; all
+under 1 MB). The sibling `work/` has scripts, raw second captures, CDP profiles,
+per-click long tasks and `timing-summary.json`. Early captures were rejected
+because they included the loading veil; final captures wait for the application
+ready and authored reveal gates, then take two screenshots at each pose.
 
 ## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
 
@@ -33334,3 +33387,13 @@ Sixteen actual-code progress/URL checks, four JavaScript syntax checks, harness 
 Final labelled evidence lives locally in C:/Users/simip/Projects/astra-pipe/tasks/020-loading/out/: desktop-before-after.jpg, phone-before-after.jpg, mode-launcher.jpg and full-load-before-after.webp. Each is below 103 KB. The animation compresses each complete load to equal duration and is not a speed comparison. Raw frames, baseline copies, scripts, CPU results and all timing JSON remain in work. These local evidence files are intentionally not tracked here; the reviewing lane should preserve them in the pipeline handoff. No commits, pushes, merges, servers or continuation were created by this sandbox lane.
 
 Remaining limits: physical iPhone Safari/Chrome and thermal/memory behavior are unverified; full journeys through every existing mode were not re-tested. Main-thread model construction can briefly freeze textual progress. The illustration is stylized. An earlier FFmpeg font-discovery test hung with `Fontconfig error: Cannot load default config file: No such file: (null)`; no forbidden process-kill was attempted. Final exports use an explicit local font path and finish normally. This supersedes the earlier memory-blocked status for task 020; the changes are ready for the Claude lane's real-app review and commit.
+
+## September 29, 2026 - Time-of-day CI shadow completion (astra/timeofday-night, pipeline 029)
+
+Uncommitted fix in js/city-lighting.js replaces forced per-caster-layer task yields with the existing elapsed CPU budget. On a software renderer, those forced yields paid a slow frame per cheap query, defeating budget stretching. Dirty source notifications now compare actual caster inputs against the last successful commit; unchanged paint notifications do not rebuild geometry. Real tile/filter/authored changes, camera pauses, geometry bytes and recovery behavior remain covered. No facade or night-light appearance change.
+
+New regression coverage in shadow-proxy-slices.mjs gives 120 layers five-second task gaps plus paint notifications. The saved original code fails to finish within 180 seconds; the fix finishes in 5,012 ms / two slices with identical geometry and no restart. shadow-proxy-pacing.mjs distinguishes unchanged source notifications from actual tile replacement. All 19 slice, 28 pacing, recovery, facade-pace, night-window-occupancy and harness-drift checks pass.
+
+Full dark-campus passes locally on SwiftShader with CI's wait scaling: 217 hidden prisms, roof/shaft visibility 0.980/0.993, back-facing fraction 0.343%, identical to baseline. The unmodified baseline ALSO passed locally; neither it nor the timeofdaypace=0 probe reproduced the exact hosted-runner timeout. One startup restart was observed, not an endless repaint restart. The regression establishes the scheduling defect; PR #343 still needs its hosted CI rerun. Fixed browser traces show a completed proxy with 109 facade combinations still pending.
+
+NVIDIA RTX 3050 Ti, 1440x900, no CPU throttle, all 196 authored buildings, two interleaved paced/synchronous switches in one loaded page: minimum handler 66.4/1717.7 ms and changed-frame latency 394.7/2229.7 ms. This preserves the pacing benefit, not a new shadow-fix speedup claim; 287-303 ms paced frame gaps remain. Full logs, original source, diagnostic helpers and RESULTS.md are local in astra-pipe/tasks/029-timeofday-ci/work. No appearance changes or images; no server, git writes, merges or continuation. Claude lane reviews and commits these edits and reruns CI. Existing visual and physical-device acceptance remains open.

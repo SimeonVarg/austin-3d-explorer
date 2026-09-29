@@ -2152,10 +2152,12 @@
         ctx.fillStyle = css(mix(wall, [0, 0, 0], 0.30), 0.7 * (1 - dark * 0.6));
         ctx.fillRect(x, y - dkRow, g.w, dkRow);
 
-        const roll = hash01(seed, r, Math.floor(c / 2));
+        const paneIndex = window.CityNight?.tune.windowScatter !== false ? c : Math.floor(c / 2);
+        const scatter = window.CityNight?.tune.windowScatter !== false;
+        const roll = scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-window', r, c) : hash01(seed, r, paneIndex);
         const isLit = night > 0.05 && roll < occupancy;
         if (isLit) {
-          let tone = pickTone(hash01(seed + 1009, r, Math.floor(c / 2)) * warmBias);
+          let tone = pickTone((scatter && window.CityNight ? window.CityNight.hash(seed, 'facade-tone', r, c) : hash01(seed + 1009, r, paneIndex)) * warmBias);
           const bRoll = hash01(seed + 2003, r, c);
           let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
           if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {
@@ -2200,7 +2202,7 @@
     // counts, mottle cell size, deck band pitch), not just the resampling. It
     // was the one-deep cache that made the first cut of the metre anchor look
     // like it had no effect: the tile was correct and stale.
-    const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor;
+    const key = fam + '|' + bucketIdx + '|' + p + '|' + _zAnchor + '|' + (window.CityNight?.tune.windowScatter !== false);
     if (_rawKey === key) return _raw;
     const { d, RESF, mottle } = drawRaw(fam, bucketIdx, p);
     if (mottle) applyMottle(d, RESF, SCALE, mottle);
@@ -2635,13 +2637,10 @@
    * it back. "Fly over a chunk to fix that chunk" is the near tiles arriving;
    * "they go back to being dark after a while" is flying away again.
    *
-   * THE RULE NOW: every tier holds the same hour, always — and since the H2 mip
-   * change every tier is repainted in the CALLING frame, so there is no window
-   * in which it can be false. §46 could not afford that (three full-resolution
-   * blurs); a decimated tier costs a quarter and a sixteenth of the near one, so
-   * all three together are cheaper than the two the camera-derived set used to
-   * paint. The timer below survives as a belt-and-braces path for combos
-   * registered after a repaint; `staleTiers()` normally finds nothing.
+   * Every tier of a combo must change together. The paced path below commits
+   * all its tiers atomically, across successive frames for different combos.
+   * It keeps running without a zoom event, and discards obsolete hour jobs.
+   * TIMEOFDAY_PACE.on=false retains the historical synchronous comparison.
    */
   const ATLAS = {
     // Milliseconds after a time-of-day change by which every remaining mip tier
@@ -3547,7 +3546,12 @@
     if (_relHooked) return;
     _relHooked = true;
     map.on('render', releaseTick);
-    map.on('render', clearPremultiplyFrame);
+    // Keep worker-primed bytes across tile patches on later frames. The cache
+    // is byte-bounded and checks image source/version before every reuse.
+    // The runtime legacy switch restores the original per-render clearing.
+    map.on('render', () => {
+      if (!window.TIMEOFDAY_PACE?.on) clearPremultiplyFrame();
+    });
     map.on('webglcontextlost', clearPremultiplyFrame);
     map.on('remove', clearPremultiplyFrame);
     // A tile arriving from the out-of-view cache is the ONE case that can be
@@ -3601,7 +3605,7 @@
     if (fam === 'dk') return 'dk|' + p + '|' + detailK();
     const g = gridFor(fam);
     return p + '|' + g.rows + 'x' + g.cols + 'x' + g.w + 'x' + g.h
-      + '|' + detailK() + '|' + baseFamOf(fam);
+      + '|' + detailK() + '|' + baseFamOf(fam) + '|' + (window.CityNight?.tune.windowScatter !== false);
   }
   window.facadeDrawSig = drawSig;
   // The sig covers everything drawTile reads EXCEPT the colour bucket, which is
@@ -3685,7 +3689,7 @@
 
   /**
    * ══════════════════════════════════════════════════════════════════
-   *  PACE: A ZOOM-ANCHOR REPAINT IS SPREAD OVER FRAMES, NEVER ONE FRAME
+   *  PACE: ZOOM AND TIME REPAINTS ARE SPREAD OVER FRAMES
    * ══════════════════════════════════════════════════════════════════
    *
    * WHAT IT COST. Crossing an integer zoom above REF_ZOOM moves `_zAnchor`,
@@ -3720,21 +3724,25 @@
    * Once the queue drains every image is byte-for-byte what `paintTiers` would
    * have drawn (298 of 298 images checked against main), and the tiles that
    * arrived mid-job get their pattern borders fixed too (see ATLAS_BORDER).
-   * The HOUR is never paced: `updateFacades` still repaints every tier in the
+   * With TIMEOFDAY_PACE disabled, the HOUR is never paced: `updateFacades` still repaints every tier in the
    * calling frame, per the A1/A4 rule above, and a paced job finds that work
    * done.
    *
    * Every threshold is here, and `?facadepace=0` restores the old synchronous
    * path for an A/B in the same checkout.
    */
+  // Runtime A/B: false retains the synchronous hour repaint.
+  window.TIMEOFDAY_PACE = { on: !/[?&]timeofdaypace=0(?:&|$)/.test(location.search) };
   const PACE = {
     on: !/[?&]facadepace=0(?:&|$)/.test(location.search),
     // Main-thread milliseconds per frame the repaint may use while the camera
     // moves (easing, flycam driving, or any move in the last `settleMs`).
     budgetMs: 10,
-    // ...and once it has been still for `settleMs`. Larger, so the city
-    // settles into its final look quickly after you stop.
-    restBudgetMs: 40,
+    // Keep the same short budget after the camera has settled: a time change
+    // must leave room for input and the render's deferred atlas uploads.
+    restBudgetMs: 10,
+    // updateImage defers atlas copies/uploads until render; bound that debt too.
+    maxCommitsPerFrame: 2,
     settleMs: 250,
     // Background painters. 0 paints on this thread (still paced). Capped at
     // hardwareConcurrency - 1.
@@ -4039,7 +4047,7 @@
     PS.frames++;
 
     // 1. finished combos first: they are the cheapest pixels to put on screen
-    while (_pace.ready.length && (did === 0 || spent() < budget)) {
+    while (_pace.ready.length && wrote < PACE.maxCommitsPerFrame && (did === 0 || spent() < budget)) {
       const job = _pace.ready.shift();
       if (paceCommit(map, job)) {
         wrote++; PS.committed++;
@@ -4053,7 +4061,7 @@
     }
     // 2. then draw more, into a worker if there is one, else here
     const pool = _pace.poolDead ? [] : pacePool();
-    while (_pace.queue.length && (did === 0 || spent() < budget)) {
+    while (_pace.queue.length && wrote < PACE.maxCommitsPerFrame && (did === 0 || spent() < budget)) {
       const id = _pace.queue[0];
       const sig = drawSig(parseId(id).fam, _atlasP);
       let inFlight = false;
@@ -4113,9 +4121,7 @@
     armPump();
   }
 
-  // A safety net, not a path anything relies on: updateFacades already paints
-  // every tier in its own frame, so this only ever finds work if a combo was
-  // registered between two repaints.
+  // Zoom changes retarget the same queue used for time-of-day repainting.
   /**
    * The zoom anchor, and the only place it moves.
    *
@@ -4229,6 +4235,13 @@
   window.updateFacades = function updateFacades(map, p) {
     if (!palette.length) return;
     _atlasP = p;
+    if (PACE.on && window.TIMEOFDAY_PACE.on) {
+      if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = 0; }
+      requestAnchorRepaint(map);
+      watchTierZoom(map);
+      armRelease(map);
+      return;
+    }
     // EVERY tier, in this frame. See the ATLAS block: nothing derived from the
     // camera can name the tiers a pitched frame reads, and the decimated tiers
     // are cheap enough now that there is no reason to try.
