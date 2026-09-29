@@ -68,6 +68,7 @@
     "graphics.mjs": {"est_s": 260},
     "guadalupe-check.mjs": {"est_s": 30},
     "guadalupe-visuals.mjs": {"est_s": 30},
+    "guard-map-traffic.mjs": {"est_s": 20},
     "harness-drift.mjs": {"est_s": 10},
     "hero-atlas-resolution.mjs": {"est_s": 10},
     "hero-roof-lifecycle.mjs": {"est_s": 10},
