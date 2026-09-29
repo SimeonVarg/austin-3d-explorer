@@ -14350,6 +14350,17 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       'unknown', 'offmap', 'nodoor', 'nolocation', 'failed', 'missing',
       'staff', 'online',
     ],
+    /**
+     * A VALUE MADE ONLY OF DIGITS AND PUNCTUATION IS NOT WATCHED ON ITS OWN.
+     * The needle test is a substring test, and a bare room number is a
+     * substring of every decimal the map carries. Found 2026-09-28: a class in
+     * room `0.130` refused the campus landscape layer, whose tree records read
+     * `"0.1308|pecan|8.19|0"`. A room number alone is not the private part —
+     * the building code alone is not watched either (see `minTokenLen`) — and
+     * the pair is: `RLP 0.130` and `RLP-0.130` are still needles, and so is the
+     * serialised doc. A value with a letter in it (`2.216A`) is still watched.
+     */
+    bareNumberPattern: /^[\d\s.,:;\-\/#]+$/,
     /** Ring buffer for the guard's log. */
     logCap: 400,
     /**
@@ -14701,9 +14712,10 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
 
   /** Every string leaf in the schedule that the STUDENT supplied, long enough
    *  to be distinctive, plus the serialised blob itself and the `CODE ROOM`
-   *  composites the router will be handed. The app's own words are skipped:
-   *  see `SCHEDULE_STORE.appOwnedFields`. Lowercased once here so the hot path
-   *  is a plain indexOf. */
+   *  composites the router will be handed. The app's own words are skipped
+   *  (`SCHEDULE_STORE.appOwnedFields`), and so is a bare number
+   *  (`bareNumberPattern`). Lowercased once here so the hot path is a plain
+   *  indexOf. */
   function buildWatchlist(doc) {
     const out = new Set();
     const stop = new Set(SCHEDULE_STORE.appVocabulary.concat(
@@ -14713,7 +14725,9 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     const add = (s) => {
       if (typeof s !== 'string') return;
       const t = s.trim().toLowerCase();
-      if (t.length >= SCHEDULE_STORE.minTokenLen && !stop.has(t)) out.add(t);
+      if (t.length < SCHEDULE_STORE.minTokenLen || stop.has(t)) return;
+      if (SCHEDULE_STORE.bareNumberPattern.test(t)) return;
+      out.add(t);
     };
     const walk = (v) => {
       if (v == null) return;

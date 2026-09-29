@@ -18,9 +18,10 @@
  * (every app-owned field filled in), and fires payloads at a REAL Worker:
  *
  *   1. MAP-LIKE PAYLOADS PASS: vector-tile words ("Student Activity Center",
- *      "building", "photo" ...), each alone, as tile bytes; and a big image
- *      reply over the old 4 MB budget.
- *   2. THE SCHEDULE IS STILL REFUSED: title, room pair, instructor, the
+ *      "building", "photo" ...), each alone, as tile bytes; map decimals
+ *      that contain a stored room number ("0.4024|elm|11.9061"), as bytes
+ *      and as a string; and a big image reply over the old 4 MB budget.
+ *   2. THE SCHEDULE IS STILL REFUSED: title, building + room pair, instructor, the
  *      photo's original reading, in UTF-8 and UTF-16LE bytes and as strings,
  *      at the START and the END of a big buffer, and a buffer past the hard
  *      ceiling is refused unread.
@@ -141,11 +142,18 @@ const MAP_WORDS = [
   'Student Activity Center', 'building', 'photo', 'Photo Lab', 'image-ocr',
   'a photo of a schedule', 'America/Chicago', 'room', 'time', 'days', 'offmap',
   'Speedway', 'Gregory Gym',
+  // Decimals in the map's own data that CONTAIN the stored room numbers
+  // (2.216, 1.906). The campus landscape layer's tree records look exactly
+  // like this; a bare room number used to be a needle and matched them.
+  '0.5926|pecan|12.2168|0.143', '0.4024|elm|11.9061|0.286',
 ];
 for (const w of MAP_WORDS) {
   const r = await fire('tile', w);
   ok(r === 'passed', 'tile bytes holding "' + w + '" pass', r);
 }
+// The landscape layer reaches the worker as GeoJSON, so as strings, not bytes.
+const treeStr = await fire('string', '0.5926|pecan|12.2168|0.143');
+ok(treeStr === 'passed', 'a map string holding a stored room number passes', treeStr);
 const bigClean = await fire('image', { mb: 12 });
 ok(bigClean === 'passed', 'a 12 MB image reply with no schedule in it passes', bigClean);
 
@@ -155,6 +163,7 @@ const CASES = [
   ['tile', TITLE, 'the class title, as tile bytes'],
   ['utf16', TITLE, 'the class title, as UTF-16LE bytes'],
   ['string', 'meet at ' + ROOM_PAIR, 'the building + room pair, as a string'],
+  ['tile', ROOM_PAIR, 'the building + room pair, as tile bytes'],
   ['string', INSTRUCTOR, 'the instructor, as a string'],
   ['string', 'it said ' + READ_AS, 'what the photo said before it was corrected'],
   ['image', { mb: 12, text: TITLE, at: 'start' }, 'the title at the START of a 12 MB image'],
