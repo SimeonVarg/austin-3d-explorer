@@ -14304,6 +14304,52 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
      *  on its own is not the private part. `MAI 220`, a course title and an
      *  instructor's name all clear the bar. */
     minTokenLen: 4,
+    /**
+     * THE PARTS OF THE STORED DOC THAT ARE THE APP'S WORDS, NOT THE STUDENT'S,
+     * and so are never a needle. Keyed by where the field lives.
+     *
+     * Found on a phone on 2026-09-28. The watchlist used to be EVERY string
+     * leaf of the doc, so `provenance.confirmedBy: 'student'` (written the
+     * moment a class is confirmed) became a needle. The byte scan then found it
+     * inside a vector tile's "Student Activity Center", and the guard refused
+     * MapLibre's own tile: 7 refusals and an uncaught error in one short walk
+     * round campus. `read: 'photo'` did the same thing, and
+     * `unconfirmedFields: ['building']` would have refused every tile that has
+     * a building in it, because `building` is a layer name inside the tile.
+     * None of these is the schedule. They are values this file writes the same
+     * way on every student's device.
+     *
+     * A LIST OF WHAT TO SKIP, NOT A LIST OF WHAT TO WATCH, on purpose. A field
+     * added next year is watched until somebody decides it is app vocabulary
+     * and adds it here. That is the guard's rule everywhere else: it may
+     * over-refuse, it may never under-refuse.
+     */
+    appOwnedFields: {
+      doc: ['v', 'savedAt', 'tz', 'sources'],
+      cls: ['id', 'days', 'startMin', 'endMin', 'unroutableWhy', 'confidence', 'src'],
+      // `why` and `correctedFrom` are NOT here. `correctedFrom` is what the
+      // photo said, which is the student's data. `why` is a whole sentence, so
+      // it can only match a whole sentence, and it names the student's codes.
+      provenance: ['read', 'confirmed', 'confirmedBy', 'unconfirmedFields'],
+    },
+    /**
+     * THE SAME VOCABULARY AS WORDS, dropped wherever it turns up in the doc.
+     * The field list above is the real fix; this is the second line, for a
+     * value the app writes into a field nobody listed yet. The source kinds and
+     * labels in `SCHEDULE_SOURCES` are added to it at build time.
+     *
+     * The cost, said plainly: a class whose WHOLE title is one of these words
+     * is not watched. A one-word title like "Photo" is not what identifies a
+     * student; the room and the code-room pair on the same class still are.
+     * `staff` and `online` are what a registrar prints where a name or a room
+     * would go, so they carry nothing about the student either.
+     */
+    appVocabulary: [
+      'photo', 'student', 'manual',
+      'building', 'room', 'code', 'title', 'time', 'days', 'instructor',
+      'unknown', 'offmap', 'nodoor', 'nolocation', 'failed', 'missing',
+      'staff', 'online',
+    ],
     /** Ring buffer for the guard's log. */
     logCap: 400,
     /**
@@ -14394,8 +14440,17 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
      * MESSAGE totals 999,424 bytes. 4 MB is four times that worst case and
      * still a hard ceiling: past it the payload is refused, not waved on, so
      * padding a leak past the budget buys nothing.
+     *
+     * 4 MB WAS OUTGROWN, and nothing said so. Re-measured 2026-09-28 on a
+     * phone (390x844, DPR 1), walking five campus views: MapLibre's replies to
+     * a worker's image request now carry 7,147,520 and 7,249,920 bytes of
+     * facade pattern pixels, and all five were refused unread. The facade
+     * images are drawn at `devicePixelRatio` (capped at 2, js/facades.js
+     * SCALE), so on a 2x desktop the same reply is up to 4x that, ~29 MB.
+     * 64 MB covers that twice over. It is still a hard ceiling with the same
+     * rule: past it, refused.
      */
-    binaryScanBytes: 4 * 1024 * 1024,
+    binaryScanBytes: 64 * 1024 * 1024,
     /**
      * How far into ONE payload the structured walk goes. The old value was
      * 4,000 and running out SILENTLY gave up — measured, 21 of this app's own
@@ -14644,15 +14699,21 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
     [EGRESS_OPAQUE_HEADERS]: 'request headers the guard could not read',
   };
 
-  /** Every string leaf in the schedule, long enough to be distinctive, plus
-   *  the serialised blob itself and the `CODE ROOM` composites the router will
-   *  be handed. Lowercased once here so the hot path is a plain indexOf. */
+  /** Every string leaf in the schedule that the STUDENT supplied, long enough
+   *  to be distinctive, plus the serialised blob itself and the `CODE ROOM`
+   *  composites the router will be handed. The app's own words are skipped:
+   *  see `SCHEDULE_STORE.appOwnedFields`. Lowercased once here so the hot path
+   *  is a plain indexOf. */
   function buildWatchlist(doc) {
     const out = new Set();
+    const stop = new Set(SCHEDULE_STORE.appVocabulary.concat(
+      Object.keys(SCHEDULE_SOURCES), Object.values(SCHEDULE_SOURCES),
+    ).map(s => String(s).trim().toLowerCase()));
+    const own = SCHEDULE_STORE.appOwnedFields;
     const add = (s) => {
       if (typeof s !== 'string') return;
       const t = s.trim().toLowerCase();
-      if (t.length >= SCHEDULE_STORE.minTokenLen) out.add(t);
+      if (t.length >= SCHEDULE_STORE.minTokenLen && !stop.has(t)) out.add(t);
     };
     const walk = (v) => {
       if (v == null) return;
@@ -14660,7 +14721,20 @@ body.wf-fixing #wf-day{opacity:.35;pointer-events:none}
       if (Array.isArray(v)) return v.forEach(walk);
       if (typeof v === 'object') return Object.keys(v).forEach(k => walk(v[k]));
     };
-    walk(doc);
+    /** Walk every key of `o` except the ones listed as the app's. */
+    const walkExcept = (o, skip, deeper) => {
+      if (o == null || typeof o !== 'object' || Array.isArray(o)) return walk(o);
+      for (const k of Object.keys(o)) {
+        if (skip.indexOf(k) !== -1) continue;
+        if (deeper && deeper[k]) deeper[k](o[k]); else walk(o[k]);
+      }
+    };
+    const walkClass = (c) => walkExcept(c, own.cls, {
+      provenance: (p) => walkExcept(p, own.provenance),
+    });
+    walkExcept(doc, own.doc, {
+      classes: (cs) => (Array.isArray(cs) ? cs.forEach(walkClass) : walk(cs)),
+    });
     for (const c of (doc && doc.classes) || []) {
       if (c.code && c.room) { add(c.code + ' ' + c.room); add(c.code + '-' + c.room); }
     }
