@@ -425,26 +425,30 @@
     if(!job) {
       const signature=proxySignature(map);
       const inputs=proxyKey(map,signature);
-      // Only the view moved, and it moved nothing the proxy is built from.
-      if(!proxyDirty&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyViewMoved=false;return;}
+      // Source notifications (including image/paint updates) ask for a check,
+      // not new geometry. Compare against the last SUCCESSFUL commit, even
+      // when dirty; actual tile data, filters and authored changes remain keyed.
+      if(proxy&&sameList(signature,proxySigBuilt)&&inputs&&sameList(inputs,proxyInputs)){proxyDirty=false;proxyViewMoved=false;return;}
       // A restored context briefly has no style while MapLibre rebuilds it.
       // Keep the rebuild pending; neither discard the existing proxy nor read
       // layers until the replacement style is available.
       const style=proxyStyleLayers(map);
       if(!style){proxyDirty=true;return;}
-      proxyDirty=false;proxyViewMoved=false;proxySigBuilt=signature;proxyInputs=inputs;
+      proxyDirty=false;proxyViewMoved=false;
       job=proxyJob={map,style,signature,inputs,styleOwner:map.style,started:proxyNow(),runStart:proxyNow(),activeMs:0,slices:0,paused:false};
       job.steps=proxyGeometry(job);stats.shadowProxyBuilding=true;
     }
-    const started=proxyNow();let steps=0;
+    const started=proxyNow();
     const P=PROXY_PACE,budget=Math.min(Math.max(P.budgetMs,P.maxBudgetMs||0),P.budgetMs*2**Math.floor((job.activeMs+started-job.runStart)/(P.stretchMs||Infinity)));
     try {
       for(;;) {
-        const step=job.steps.next();steps++;
+        const step=job.steps.next();
         if(step.done){proxyCommit(map,job,step.value);return;}
-        // `true` marks the start of an indivisible tile query: it opens a
-        // slice of its own unless this slice has done nothing yet.
-        if(budget>0&&((step.value===true&&steps>1)||proxyNow()-started>=budget))break;
+        // Bound CPU work, not the number of layer queries. Forcing a fresh
+        // task for every query costs one software-rendered frame per layer
+        // even when queries are cheap, defeating the stretched time budget.
+        // An indivisible query/polygon may overrun by one step, as before.
+        if(budget>0&&proxyNow()-started>=budget)break;
       }
     } catch(e) {
       const m=e.message||String(e);if(!(stats.failures??=[]).includes(m)){stats.failures.push(m);console.error('[city-lighting]',m);}
@@ -559,6 +563,7 @@
     // A NEW Mesh, never new geometry on the old one: the sun shadow's cache
     // key is the proxy's uuid (slopes.js updateSunShadows).
     proxy=new T.Mesh(geometry,new T.MeshBasicMaterial());proxy.frustumCulled=false;proxy.visible=false;
+    proxySigBuilt=job.signature;proxyInputs=job.inputs;
     stats.shadowProxyRebuilds=(stats.shadowProxyRebuilds||0)+1;stats.shadowProxyHidden=job.hidden;
     stats.shadowProxyTriangles=positions.length/9;stats.shadowProxyLastBuildMs=proxyNow()-job.started;stats.shadowProxyLastSlices=job.slices+1;
     map.triggerRepaint();

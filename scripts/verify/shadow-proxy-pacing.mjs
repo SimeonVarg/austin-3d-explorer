@@ -106,9 +106,12 @@ check('tile data replaced: rebuild',()=>assert.equal(built,5));
 // 7. a layer filter changed, then a move
 layer.filter=['>','h',21];frame(0);advance(1000);
 check('layer filter changed: rebuild',()=>assert.equal(built,6));
-// 8. sourcedata always rebuilds at rest, as before
+// 8. Paint/image source notifications do not change caster geometry.
 emit('sourcedata',{sourceId:'austin-outer'});scope.build(map);advance(1000);
-check('sourcedata at rest: rebuild',()=>assert.equal(built,7));
+check('paint-only sourcedata at rest: no rebuild',()=>assert.equal(built,6));
+// Real data arriving still rebuilds once.
+tiles[0]={...tiles[0],index:{}};emit('sourcedata',{sourceId:'austin-outer'});scope.build(map);advance(1000);
+check('changed sourcedata at rest: rebuild',()=>assert.equal(built,7));
 // 9. an ease: nothing mid-ease, one rebuild after it ends
 moving=true;emit('movestart');tiles.push(tile('e',2));emit('sourcedata',{sourceId:'austin-outer'});
 for(let i=0;i<60;i++){emit('move');scope.build(map);advance(50);}
