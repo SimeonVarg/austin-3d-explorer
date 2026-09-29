@@ -117,3 +117,21 @@ memory and is never written here, in any tracked file, or in a commit message.
 
 11. **Parameterise every taste value** so Simeon can overrule any aesthetic call
     with a one-line edit. No aesthetic constant buried in a function body.
+
+## Speed
+
+13. **Most of a lane's time is the city loading, not thinking. Cut the loads.**
+    Measured on 2026-09-28 over 34 hours of agent work: 58% went to running
+    the real city in a browser and waiting for it, 9% to waiting for the
+    GitHub checks, and 19% to thinking and writing. At least 6 of those hours
+    were two lanes queueing for the one browser slot.
+    - **One browser-using lane at a time.** A second lane on the same laptop
+      does not run in parallel. It waits in the gpu-run queue.
+    - **Load once, test many.** For an A/B, load the city once and flip the
+      setting inside the page between passes. Reload only when the change is
+      about loading itself.
+    - **Render art and motion offline** with a script that draws frames without
+      a browser. Use a browser only for the final check.
+    - **Do not sit on CI.** Push, keep working, and merge when the checks finish.
+    - **Timebox.** A lane that has gone about 90 minutes without a result stops
+      and writes down what blocks it.
