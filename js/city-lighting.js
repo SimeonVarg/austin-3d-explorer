@@ -30,9 +30,25 @@
   // ?patfilter=0 turns it off, ?patfilter=1 forces it on; CityLighting.patternFilter
   // is live. offOnPhone: the phone profile keeps the single read (its GPU cost
   // has not been timed on a phone).
+  // cardsOnly: on by default only where js/graphics.js says the browser draws
+  // with a graphics card (the Smooth edges test). Timed with each frame's GPU
+  // work finished (a synchronous redraw + readPixels, still poses, 10
+  // interleaved rounds): on the RTX 3050 Ti the filter is within noise in
+  // flight and at most +1.2 ms at the downtown pose (19 ms frames); on the AMD
+  // integrated chip +0.7 to +2.5 ms at every pose (30-50 ms frames), so there
+  // it stays off. Cheaper settings (maxTaps 2) cost nothing there but made the
+  // still-frame bands WORSE than no filter (landing flight moire 0.169 ->
+  // 0.175-0.177, pixels in a visible band 0.156% -> 0.182%): a 2-tap comb.
+  // Screen size needs no budget: a bigger screen gives each pixel fewer texels,
+  // so fewer taps per pixel for more pixels.
   const patternFilterQuery=new URLSearchParams(location.search).get('patfilter');
-  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,offOnPhone:true};
-  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&!(patternFilter.offOnPhone&&window.LITE_PROFILE?.on));
+  const patternFilter={nearM:150,fullM:250,maxTaps:4,maxSpacing:2,offOnPhone:true,cardsOnly:true};
+  patternFilter.on=patternFilterQuery==='1'||(patternFilterQuery!=='0'&&!(patternFilter.offOnPhone&&window.LITE_PROFILE?.on)&&
+    (!patternFilter.cardsOnly||!!window.GFX_GPU_CARD?.()));
+  // Compiled in only where it is on at load. Elsewhere the pattern shader is
+  // MapLibre's own, exactly as before, so the integrated chip pays nothing,
+  // not even the registers. A live `on` switch works only where it compiled.
+  patternFilter.compiled=patternFilter.on;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
   const balance={skyFill:0.12,roofFill:0.08};
@@ -669,8 +685,8 @@
           if(pattern||minimal) {
             kind=pattern?'pattern-fragment':'solid-fragment';
             const packing=`float unpackRGBAToDepth(vec4 v){return dot(v,vec4(255.0/256.0/16777216.0,255.0/256.0/65536.0,255.0/256.0/256.0,255.0/256.0));}`;
-            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern?patternFilterGlsl:''}\nvoid main()`);
-            if(pattern) {
+            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern&&patternFilter.compiled?patternFilterGlsl:''}\nvoid main()`);
+            if(pattern&&patternFilter.compiled) {
               const read=(ab,pos)=>`texture(u_image,${pos})`;
               const filtered=(ab,pos,v)=>`cityPatternTexel(u_image,${read(ab,pos)},${v},pattern_tl_${ab}/u_texsize,pattern_br_${ab}/u_texsize,u_texsize,cityPatternDist)`;
               source=replace(source,'vec2 imagecoord=mod(v_pos_a,1.0);','float cityPatternDist=distance(u_eye,v_cityPos);vec2 imagecoord=mod(v_pos_a,1.0);');
