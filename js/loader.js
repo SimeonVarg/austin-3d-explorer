@@ -214,6 +214,10 @@
     trees: [0.82, 0.96],  // the apartment side's trees growing
     halo: [0, 0.25],      // the Tower's halo fading out
     fade: 0.25,           // reduced motion: a crossfade of this many seconds instead of the turn
+    // the switch from the still drawing to the turn's canvas: the canvas fades in over the drawing by the first
+    // share of the turn, then the drawing fades out by the second (backwards on the way back), so no single frame
+    // swaps one for the other ([0, 0] = the old hard switch)
+    handover: [0.03, 0.06],
     // how it is drawn, not how it looks: the hand-over from the drawing's paint order
     // to real depth, the depth range and offsets, frames averaged a fraction of a pixel apart for
     // the drawing's smooth edges (1 = none), MSAA
@@ -361,7 +365,7 @@
     }
   };
   // The drawing's own stylesheet: which ART colour each part uses, and the pulses.
-  const ART_CSS = ".mvh .rf{fill:var(--roof-flat)}.mvh .lt{fill:var(--lime-top)}.mvh .ll{fill:var(--lime-lit)}.mvh .ls{fill:var(--lime-shade)}.mvh .ct,.mvh .trim{fill:var(--crown-top)}.mvh .cl{fill:var(--crown-lit)}.mvh .cs{fill:var(--crown-shade)}.mvh .ot{fill:var(--win-top)}.mvh .ol{fill:var(--win-lit)}.mvh .os{fill:var(--win-shade)}.mvh .kt{fill:var(--copper-top)}.mvh .kl{fill:var(--copper-lit)}.mvh .ks{fill:var(--copper-shade)}.mvh .rl{fill:var(--tile-lit)}.mvh .rm{fill:var(--tile-mid)}.mvh .rs{fill:var(--tile-shade)}.mvh .ht{fill:var(--hall-top)}.mvh .hl{fill:var(--hall-lit)}.mvh .hs{fill:var(--hall-shade)}.mvh .ft{fill:var(--far-top)}.mvh .fl{fill:var(--far-lit)}.mvh .fs{fill:var(--far-shade)}.mvh .wo{fill:var(--opening)}.mvh .ao{fill:var(--opening-deep)}.mvh .wg,.mvh .ag{fill:var(--glow)}.mvh .door{fill:var(--door)}.mvh .gl2{fill:var(--glass-lit)}.mvh .gs2{fill:var(--glass-shade)}.mvh .bez{fill:var(--bezel)}.mvh .dial{fill:var(--clock)}.mvh .hand,.mvh .rail,.mvh .bronze{fill:var(--hands)}.mvh .bell{fill:var(--bell)}.mvh .mast{fill:var(--mast)}.mvh .it{fill:var(--island-top)}.mvh .ie{fill:var(--island-edge)}.mvh .is{fill:var(--island-side)}.mvh .pt,.mvh .st{fill:var(--pave-top)}.mvh .sr{fill:var(--riser)}.mvh .ss{fill:var(--riser-shade)}.mvh .gt{fill:var(--lawn-top)}.mvh .gl{fill:var(--lawn-lit)}.mvh .gs{fill:var(--lawn-shade)}.mvh .water{fill:var(--water)}.mvh .glint{fill:var(--glint)}.mvh .fig{fill:var(--figure)}.mvh .pack{fill:var(--pack)}.mvh .shade,.mvh .esh{fill:var(--shadow)}.mvh .so{stroke:var(--opening)}.mvh .sd{stroke:var(--opening-deep)}.mvh .sg{stroke:var(--glow)}.mvh .sbz{stroke:var(--bronze-lit)}.mvh .sbs{stroke:var(--bronze-shade)}.mvh .scn{stroke:var(--crown-shade)}.mvh .sgd{stroke:var(--bezel)}.mvh .rg{stroke:var(--tile-ridge)}.mvh .route{stroke:var(--accent)}.mvh [stroke-dasharray],.mvh .rg,.mvh .route{fill:none}.mvh .rg{stroke-width:.6;stroke-linejoin:round}.mvh .route{stroke-linecap:round}.mvh .moon{fill:var(--moon);opacity:var(--moon-alpha)}.mvh .stars{fill:var(--star);opacity:var(--star-alpha)}.mvh .shade{opacity:.55}.mvh .esh{opacity:var(--eave-alpha)}.mvh .u1{opacity:.7}.mvh .u2{opacity:.32}.mvh .u3{opacity:.14}.mvh .glint{animation:mvh-blink var(--glint-blink) ease-in-out infinite}.mvh .stars circle:nth-child(2n){animation:mvh-blink var(--star-twinkle) ease-in-out infinite}.mvh .route path{animation:mvh-walk var(--route-walk) ease-in-out infinite}.mvh .route .w1{animation-delay:calc(var(--route-walk)/-1.5)}.mvh .route .w2{animation-delay:calc(var(--route-walk)/-3)}@keyframes mvh-breathe{50%{opacity:.72}}@keyframes mvh-blink{50%{opacity:.25}}@keyframes mvh-walk{50%{opacity:.45}}.mvh .ril{fill:var(--rock-lit)}.mvh .ris{fill:var(--rock-shade)}.mvh .rib{fill:var(--rock-band)}.mvh .al{fill:var(--apt-lit)}.mvh .as{fill:var(--apt-shade)}.mvh .ar{fill:var(--apt-roof)}.mvh .ab{fill:var(--apt-band)}.mvh .bl{fill:var(--brick-lit)}.mvh .bs{fill:var(--brick-shade)}.mvh-a{position:absolute;inset:0}.mvh-isl{position:absolute;opacity:0;pointer-events:none}.mvh-glow,.mvh-a,.mvh-isl{will-change:opacity}.mvh-show .mvh-isl{opacity:1!important}.mvh-show .mvh-a{opacity:0!important}.mvh-flip{position:absolute;margin:0;padding:0;border:0;background:none;cursor:pointer;border-radius:14px;-webkit-tap-highlight-color:transparent}.mvh-flip:focus-visible{outline:2px solid var(--load-accent);outline-offset:2px}.mvh-stack{position:relative;margin-top:4px}.mvh-stack>div{position:absolute;inset:0}.mvh-stack svg.mvh{position:absolute;inset:0;width:100%;height:100%;margin:0;display:block}.mvh-turn{position:absolute;inset:0;width:100%;height:100%;visibility:hidden}.mvh-west.turning>svg{visibility:hidden}.mvh-west.turning>.mvh-turn{visibility:visible}@media (prefers-reduced-motion:reduce){.mvh-stack,.mvh-stack *{animation:none!important}}";
+  const ART_CSS = ".mvh .rf{fill:var(--roof-flat)}.mvh .lt{fill:var(--lime-top)}.mvh .ll{fill:var(--lime-lit)}.mvh .ls{fill:var(--lime-shade)}.mvh .ct,.mvh .trim{fill:var(--crown-top)}.mvh .cl{fill:var(--crown-lit)}.mvh .cs{fill:var(--crown-shade)}.mvh .ot{fill:var(--win-top)}.mvh .ol{fill:var(--win-lit)}.mvh .os{fill:var(--win-shade)}.mvh .kt{fill:var(--copper-top)}.mvh .kl{fill:var(--copper-lit)}.mvh .ks{fill:var(--copper-shade)}.mvh .rl{fill:var(--tile-lit)}.mvh .rm{fill:var(--tile-mid)}.mvh .rs{fill:var(--tile-shade)}.mvh .ht{fill:var(--hall-top)}.mvh .hl{fill:var(--hall-lit)}.mvh .hs{fill:var(--hall-shade)}.mvh .ft{fill:var(--far-top)}.mvh .fl{fill:var(--far-lit)}.mvh .fs{fill:var(--far-shade)}.mvh .wo{fill:var(--opening)}.mvh .ao{fill:var(--opening-deep)}.mvh .wg,.mvh .ag{fill:var(--glow)}.mvh .door{fill:var(--door)}.mvh .gl2{fill:var(--glass-lit)}.mvh .gs2{fill:var(--glass-shade)}.mvh .bez{fill:var(--bezel)}.mvh .dial{fill:var(--clock)}.mvh .hand,.mvh .rail,.mvh .bronze{fill:var(--hands)}.mvh .bell{fill:var(--bell)}.mvh .mast{fill:var(--mast)}.mvh .it{fill:var(--island-top)}.mvh .ie{fill:var(--island-edge)}.mvh .is{fill:var(--island-side)}.mvh .pt,.mvh .st{fill:var(--pave-top)}.mvh .sr{fill:var(--riser)}.mvh .ss{fill:var(--riser-shade)}.mvh .gt{fill:var(--lawn-top)}.mvh .gl{fill:var(--lawn-lit)}.mvh .gs{fill:var(--lawn-shade)}.mvh .water{fill:var(--water)}.mvh .glint{fill:var(--glint)}.mvh .fig{fill:var(--figure)}.mvh .pack{fill:var(--pack)}.mvh .shade,.mvh .esh{fill:var(--shadow)}.mvh .so{stroke:var(--opening)}.mvh .sd{stroke:var(--opening-deep)}.mvh .sg{stroke:var(--glow)}.mvh .sbz{stroke:var(--bronze-lit)}.mvh .sbs{stroke:var(--bronze-shade)}.mvh .scn{stroke:var(--crown-shade)}.mvh .sgd{stroke:var(--bezel)}.mvh .rg{stroke:var(--tile-ridge)}.mvh .route{stroke:var(--accent)}.mvh [stroke-dasharray],.mvh .rg,.mvh .route{fill:none}.mvh .rg{stroke-width:.6;stroke-linejoin:round}.mvh .route{stroke-linecap:round}.mvh .moon{fill:var(--moon);opacity:var(--moon-alpha)}.mvh .stars{fill:var(--star);opacity:var(--star-alpha)}.mvh .shade{opacity:.55}.mvh .esh{opacity:var(--eave-alpha)}.mvh .u1{opacity:.7}.mvh .u2{opacity:.32}.mvh .u3{opacity:.14}.mvh .glint{animation:mvh-blink var(--glint-blink) ease-in-out infinite}.mvh .stars circle:nth-child(2n){animation:mvh-blink var(--star-twinkle) ease-in-out infinite}.mvh .route path{animation:mvh-walk var(--route-walk) ease-in-out infinite}.mvh .route .w1{animation-delay:calc(var(--route-walk)/-1.5)}.mvh .route .w2{animation-delay:calc(var(--route-walk)/-3)}@keyframes mvh-breathe{50%{opacity:.72}}@keyframes mvh-blink{50%{opacity:.25}}@keyframes mvh-walk{50%{opacity:.45}}.mvh .ril{fill:var(--rock-lit)}.mvh .ris{fill:var(--rock-shade)}.mvh .rib{fill:var(--rock-band)}.mvh .al{fill:var(--apt-lit)}.mvh .as{fill:var(--apt-shade)}.mvh .ar{fill:var(--apt-roof)}.mvh .ab{fill:var(--apt-band)}.mvh .bl{fill:var(--brick-lit)}.mvh .bs{fill:var(--brick-shade)}.mvh-a{position:absolute;inset:0}.mvh-isl{position:absolute;opacity:0;pointer-events:none}.mvh-glow,.mvh-a,.mvh-isl{will-change:opacity}.mvh-show .mvh-isl{opacity:1!important}.mvh-show .mvh-a{opacity:0!important}.mvh-flip{position:absolute;margin:0;padding:0;border:0;background:none;cursor:pointer;border-radius:14px;-webkit-tap-highlight-color:transparent}.mvh-flip:focus-visible{outline:2px solid var(--load-accent);outline-offset:2px}.mvh-stack{position:relative;margin-top:4px;--mvh-w:100%;--mvh-g:calc(var(--mvh-w) * var(--mvh-grow));margin-bottom:calc(round(up, var(--mvh-g), var(--mvh-snap)) - var(--mvh-g))}.mvh-stack>div{position:absolute;inset:0}.mvh-stack svg.mvh{position:absolute;inset:0;width:100%;height:100%;margin:0;display:block}.mvh-turn{position:absolute;inset:0;width:100%;height:100%;visibility:hidden}.mvh-west.turning>svg{visibility:hidden}.mvh-west.turning>.mvh-turn{visibility:visible}@media (prefers-reduced-motion:reduce){.mvh-stack,.mvh-stack *{animation:none!important}}";
   // One layer per island, in paint order, so each can float on its own.
   // ART_BOX is where each moving layer is cut from the drawing: [x, y, w, h].
   const ART_LAYERS = {
@@ -381,6 +385,12 @@
   // the whole drawing.
   const ART_BOX = { halo: [317, -1, 162, 114], city: [533, 136, 57, 97], west: [191, 117, 53, 84], main: [237, 18, 243, 352] };
   const ART_W = 680, ART_H = 372; // the drawing's size, in drawing units
+  // The drawing grew ART_GROW units at the bottom to give the iceberg room, and the page centres it, so
+  // everything above would move by half that growth: a fraction of a pixel at most widths, which re-draws
+  // every edge of the scene a little differently. A margin under the stack rounds the growth up to whole
+  // ART_SNAP px instead, so the page moves by whole device pixels (at zoom 1, 1.25, 1.5, 1.75, 2, 2.5, 3)
+  // and the scene keeps the exact pixels it had before it grew.
+  const ART_GROW = 32, ART_SNAP = 8;
   // The drawing (an ART_W x ART_H isometric scene).
   function cityArt() {
     // Inline vector art: no image download, no extra WebGL scene. Each island is
@@ -398,7 +408,7 @@
     const island = islandOK(), M = ART_BOX.main;
     // the Tower side: its rock, then the island, each on the main island's whole box
     const face = (k, body) => `<svg xmlns="http://www.w3.org/2000/svg" class="mvh mvh-${k}" viewBox="${M.join(' ')}" aria-hidden="true">${body}</svg>`;
-    return `<div class="mvh-stack" style="aspect-ratio:${ART_W}/${ART_H}">`+
+    return `<div class="mvh-stack" style="aspect-ratio:${ART_W}/${ART_H};--mvh-grow:${ART_GROW / ART_W};--mvh-snap:${ART_SNAP}px">`+
       svg('sky', ART_LAYERS.sky, [0,0,ART_W,ART_H], `<style>.mvh{${vars}}${ART_CSS}${bob}</style>`, false).replace(' aria-hidden="true"', ` role="img" aria-label="${h('story.art_aria')}"`)+
       `<div class="mvh-glow">${svg('halo', ART_LAYERS.halo, ART_BOX.halo, `<defs><radialGradient id="mvh-halo">${halo('0',ART['halo-alpha'])}${halo('.45',ART['halo-mid-alpha'])}${halo('1','0')}</radialGradient></defs>`)}</div>`+
       svg('city', ART_LAYERS.city, ART_BOX.city)+
@@ -1285,8 +1295,9 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
   }
   // Wire the tap. The canvas covers the whole drawing inside the main island's
   // float, so it bobs with it; it shows only while the island is off the Tower
-  // side. Its swap with the still drawing and the halo's fade are Web Animations
-  // on the page's clock; the worker runs the turn on the same clock. Reduced
+  // side. Its crossfade with the still drawing (ISLAND.handover) and the halo's
+  // fade are Web Animations on the page's clock; the worker runs the turn on the
+  // same clock. Reduced
   // motion: the two still sides crossfade instead (ISLAND.fade). The handle goes
   // on the stack as .flip: toggle(), at(p) (holds the turn at p, 0-1, and
   // resolves once the worker has drawn it), state, ready, stats().
@@ -1330,9 +1341,12 @@ precision highp float; uniform highp sampler2D uT; uniform float uK; out vec4 o;
       last = JSON.stringify(z);
       w.postMessage({ init: { K, cls, alpha, proj: ART_PROJ, model: ART_MODEL, time: ca && ca.currentTime ? ca.currentTime / 1000 : 0, t: performance.timeOrigin + performance.now(), p: still ? 1 : 0 }, canvas: off, ...z }, [off]);
     } catch (e) { fail(); return null; }
-    const swap = (a, b) => still ? [{ opacity: a }, { opacity: b }] : [{ opacity: a }, { opacity: a, offset: 1e-4 }, { opacity: b, offset: 1e-4 }, { opacity: b }];
+    // the canvas fades in over the drawing, then the drawing goes (at p = 0 the canvas is off)
+    const h0 = Math.max(1e-4, ISLAND.handover[0]), h1 = Math.max(h0, ISLAND.handover[1]);
+    const artFade = still ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1 }, { opacity: 1, offset: h0, easing: 'ease-in-out' }, { opacity: 0, offset: h1 }, { opacity: 0 }];
+    const cvFade = still ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, easing: 'ease-in-out' }, { opacity: 1, offset: h0 }, { opacity: 1 }];
     const H = ISLAND.halo, halo = still ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1 }, { opacity: 1, offset: H[0] }, { opacity: 0, offset: H[1] }, { opacity: 0 }];
-    anims = [[art, swap(1, 0)], [cv, swap(0, 1)], [stack.querySelector('.mvh-glow'), halo]].filter(x => x[0]).map(([el, f]) => {
+    anims = [[art, artFade], [cv, cvFade], [stack.querySelector('.mvh-glow'), halo]].filter(x => x[0]).map(([el, f]) => {
       const a = el.animate(f, { duration: dur, easing: 'linear', fill: 'both' }); a.pause(); a.currentTime = 0; return a;
     });
     const progress = () => anims.length ? Math.min(1, Math.max(0, (anims[0].currentTime || 0) / dur)) : 0;
