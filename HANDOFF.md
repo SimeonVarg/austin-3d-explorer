@@ -29,6 +29,142 @@ in `img-import.mjs` (CI runs 36490647834, 36418276659, 36413604870).
   60-300 ms per 6-10 MB reply on a busy software-GL machine, only with a
   schedule stored.
 
+## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
+
+The owner: "turning is the biggest inducer of lag. please prioritize turning
+while keeping high fps". #334 left one cost named and unfixed: preparing the
+facade atlas of each tile that arrives during a turn. Measured on main
+(NVIDIA, per 6 s turn): the main thread premultiplied every new atlas
+(`premultiplyInto`, 566-783 ms of self time in a profile) and MapLibre copied
+every facade image each new tile asked for, again, for every tile
+(`_getImagesForIds`, 205-410 ms and 150-340 MB of copies, turnmeter
+medians). That was 0.26-1.29 s of every 6 s turn, and most of the hitch right
+after a flick.
+
+**What changed (`js/facades.js`, both halves are switches):**
+1. `ATLAS_WORKER_PM` (`?atlasworkerpm=0` turns it off). A script imported
+   into MapLibre's tile workers premultiplies each atlas in the worker that
+   built it, and tags it; `uploadAtlasFast` uploads a tagged atlas as it is.
+   Main-thread premultiply is now 0 ms in every scenario measured, desktop and
+   phone. On any failure it falls back to the old main-thread path.
+2. `ATLAS_IMAGE_CACHE` (`?atlasimgcache=0`). Each worker keeps the facade
+   images it has been sent (`maxBytesPerWorker` 48 MB, least recently used
+   dropped first) and says which it holds when it asks for images; the page
+   sends a small stub instead of a copy for an image the worker holds at the
+   same version. A changed or re-added image is always sent whole. Main-thread
+   image copies in a turn: 205-410 ms / 150-342 MB per 6 s on main, 2-65 ms /
+   1-36 MB on the branch (NVIDIA medians). Memory cost: up to 48 MB in each of
+   the 4 desktop workers (192 MB at most). **Off on the phone profile**
+   (`offOnPhone`), so the phone's memory budget is not touched.
+3. `?atlaspmcheck=1` makes the page compare every worker-premultiplied atlas
+   and every held image with a fresh main-thread copy, byte for byte.
+
+**Before -> after** (medians of 3 interleaved fresh-load runs per side,
+1280x680 at DPR 1.5, no CPU throttle, vsync off, `cancelGraphicsAutoDetect`
+called; CPU load 0-6 % before each NVIDIA run, 8-48 % before the AMD runs):
+- NVIDIA RTX 3050 Ti: fps up in 9 of 10 scenarios, worst frame down in 7 of
+  10. Campus flick 15.8 -> 17.0 fps, worst 448 -> 254 ms, the hitch after
+  letting go 442 -> 229 ms; campus 120 deg/s 14.3 -> 16.6 fps, worst 360 ->
+  236; campus straight worst 263 -> 143; downtown looks 23.1 -> 30.4 fps,
+  worst 454 -> 177; downtown flick 15.4 -> 18.0 fps. Worse or flat: downtown
+  60 deg/s 15.6 -> 12.2 fps (ranges overlap, 11.1-19.9 vs 12.0-16.4), downtown
+  120 deg/s worst 264 -> 317, downtown flick's after-hitch 173 -> 248, campus
+  looks worst 88 -> 146.
+- AMD Radeon iGPU (Edge via `CHROME_PATH`, `--gpu low`, both sides): worst
+  frame down in 8 of 10, fps up in 6 of 10 (the other 4 down 0.2-1.1 fps).
+  **The #334 regression, campus 120 deg/s right after the first turn:** worst
+  frame 211 -> 170 ms (every branch run 118-191, every main run 200-213), the
+  hitch after letting go 172 -> 137; fps flat, 19.4 -> 18.7 (main's runs
+  spread 12.9-25.6). Campus flick after-hitch 360 -> 188 ms; downtown 60
+  deg/s 21.5 -> 23.6 fps, worst 197 -> 125; downtown flick 14.2 -> 17.8 fps;
+  downtown looks worst 239 -> 115. Worse: campus first turn worst 237 -> 279.
+- Recorded runs (NVIDIA, 3 + 3, campus, the ones the video is cut from):
+  worst frame lower in all four (straight 218 -> 135 ms, first turn 308 ->
+  175, 120 deg/s 191 -> 139, flick 273 -> 173), fps within 2 either way.
+- Load, 5 + 5 interleaved on NVIDIA: veil gone 35.3 s -> 33.1 s median, and
+  every branch run (32.3-33.5 s) beat every main run (34.5-35.7 s).
+- Phone profile (`mobile-memory.mjs`, 3 + 3, 390x844 DPR 3): peak 926 -> 929
+  MB, settled 796 -> 800 MB (minimums; ranges overlap), buildings landed
+  26.0-27.6 s vs 25.8-26.7 s. A phone probe of the branch: worker premultiply
+  on, image cache off, all 395 atlases from workers, 0 ms on the main thread.
+- Not reached: steady turns are still 12-24 fps. What is left of a turning
+  frame is MapLibre's own render, including waits on the GPU, not atlas prep;
+  frames over 50 ms are not fewer, the tallest ones are.
+
+**Checks:** `facade-atlas-memory.mjs` (CI) runs both worker halves in a vm:
+stubs, versions, re-added images, render-callback images, the LRU cap, check
+mode; `--break` and `--break-img` exit 1. `atlas-worker-pm.mjs` (laptop,
+hardware GL; new, listed `laptop_only`) turns the real page through ~1,300
+new tiles, on the branch rebased onto main: 2,194 atlases from workers, 0
+bytes different; 7,424 images sent as stubs (2.8 GB not copied), 4,747 held
+copies compared, 0 bytes different; `--break` and `--break-img` exit 1.
+Stills: CI pictures 0 of 10 views changed against main 16dd455 (no view
+moved more than the same page shot twice), and all 67 CI checks pass,
+`img-import.mjs` included (it saves a schedule, which arms the guard on
+messages to workers). Hardware shots of spawn and stadium move 2,700-4,800 px
+between main and the branch, but 2,000-5,000 px between two runs of main
+itself, in the same places (label edges, shadow edges), none on a facade.
+`turnmeter.mjs` now prints `wpm`, `pm`, `held` and `gi` per scenario
+(README, "Facade atlas prep in MapLibre's workers").
+
+**Traps:** the image stubs rely on MapLibre 5.24 internals (the worker
+actor's `sendAsync`, `Style.getImages`, `ImageManager._getImagesForIds`);
+`supportedAtlasVersion()` turns both halves off on any other version. A stub
+the worker cannot match (it should never happen: the page stubs only what
+that request listed) fails that one request and turns the cache off for the
+rest of the session, rather than drawing a wrong image. With a schedule saved,
+`js/wayfind.js` scans every message to a worker; the stubs make the image
+replies smaller, so it has less to scan, not more. Codex's draft #312 also
+touches `js/facades.js`; it already conflicts with main and was left alone.
+
+**Reviewer re-check before merging** (a separate lane; merged as 66134b8 and
+live on flyover-utx.vercel.app: the served `js/facades.js` has the same hash
+as main's):
+- Pictures: CI 0 of 10 views changed against main 89e01d3. Hardware stills
+  of three views on NVIDIA moved no more pixels between main and the branch
+  than between two runs of the same build.
+- Bytes: with `?atlaspmcheck=1`, through two time-of-day changes, zoom
+  crossings and a WebGL context loss and restore, 6,668 worker atlases and
+  10,133 held image copies matched the main-thread result exactly. Every
+  atlas took the fast upload, after the restore too. `atlas-worker-pm.mjs`
+  passed again on the merged tree (2,146 atlases, 4,539 held copies, 0 bytes
+  different).
+- NVIDIA (3 + 3 interleaved fresh loads, same settings): worst frame lower
+  in 10 of 10 scenarios (campus flick 268 -> 153 ms, downtown 60 deg/s
+  345 -> 125). The hitch after letting go of a downtown flick fell
+  369 -> 124 ms, and image-copy time per turn fell from 101-200 ms to 3-18 ms.
+- AMD (Edge, `--gpu low`, 3 + 3, 19-37 % CPU before runs): downtown fps went
+  up in all four turn scenarios (looks 19.6 -> 29.1). The downtown worst
+  frames got worse, though: 60 deg/s 449 -> 531 ms, 120 deg/s 315 -> 514.
+  The cause is single texture uploads that stall the AMD driver for
+  100-720 ms. Tiles now arrive sooner, so more atlas bytes are uploaded
+  during the turn. Campus 120 deg/s did not reproduce the builder's clean
+  separation (the runs overlap). The next AMD step is spreading the
+  uploads, not the prep.
+- Load (9 + 9 interleaved, NVIDIA): veil gone median 52.9 s on the branch vs
+  58.6 s on main (minimum 42.4 vs 47.4). One branch load took 159 s. It did
+  not recur in 4 more, and main had 72-93 s loads in the same session. The
+  slow loads I could look inside, on both sides, were waiting on the
+  apartments' reveal step with tiles already in.
+- Left open, both safe:
+  - After a WebGL context restore the image cache stops working for the
+    rest of the session, and each worker keeps up to 48 MB it no longer uses.
+  - If a tagged atlas's fast upload fails, MapLibre's own upload would
+    premultiply it a second time. No test reached that path.
+- A CI failure that is NOT from this PR: `img-import.mjs` failed once on the
+  phone page with `[wayfind] blocked: Worker.postMessage carried stored
+  schedule content (st…(7))`. Reproduced on main with a probe.
+  - Once a photo-imported class is confirmed, the stored schedule holds the
+    app's own word "student" (`provenance.confirmedBy`).
+  - The privacy guard then watches for that word and refuses map tiles on
+    their way to the workers when a building name contains it ("Student
+    Activity Center").
+  - It also refuses payloads over its 4 MB scan budget: 35 in one probe of
+    main with a plain photo schedule stored.
+  - The fix belongs in `js/wayfind.js`: watch only the student's own
+    values. The rerun on cb62c3d passed, and local runs passed 2 of 2 on
+    each side.
+
 ## Sep 28 2026 - Load screen: tap the main island to flip it over (`claude/island-flip`, PR #339, open until the owner looks; merge #338 first)
 
 The owner asked for the island to answer a tap, not to flip on a timer. A drag
