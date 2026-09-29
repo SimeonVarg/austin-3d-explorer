@@ -10,6 +10,7 @@
   "default_est_s": 180,
   "_run": "Per-script settings for scripts that DO run. args may use {out}, which becomes that script's artifact folder. est_s is the runtime measured on a GitHub runner; it only balances the shards. timeout_s is the kill ceiling.",
   "run": {
+    "analytics-check.mjs": {"est_s": 60},
     "apartment-areas.mjs": {"est_s": 10},
     "apartment-filter-cache.mjs": {"est_s": 10},
     "apartment-frontage-filter.mjs": {"est_s": 10},
