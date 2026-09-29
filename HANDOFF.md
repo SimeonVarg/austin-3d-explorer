@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## Sep 29 2026 - Far facades crawl about a third less in flight: each far window-pattern read averages the pixel's own patch of wall (`claude/moire-distance`, PR #341, open for a separate reviewer)
+## Sep 29 2026 - Far facades crawl about a third less in flight: each far window-pattern read averages the pixel's own patch of wall (`claude/moire-distance`, PR #341, merged c17b085, live)
 
 The owner: "main thing im noticing while flying is the moire. its too
 noticable ... ideally id like all of it to be fixed". #332 (Smooth edges on
@@ -122,6 +122,54 @@ rep after 40 warm-up):
 MapLibre's pattern reads (<1% of pixels changed)" was a fixed small box; one
 sized from each pixel's footprint is what this PR is. "Texture is NOT a
 source" holds for still frames at one distance, not for far walls in motion.
+
+**Reviewer re-check before merging** (a separate lane; merged as c17b085 and
+live on flyover-utx.vercel.app: the served `js/city-lighting.js` and
+`js/graphics.js` have the same hashes as main's):
+- Where it runs: NVIDIA Chrome on and compiled, no shader failures; phone
+  profile (`?lite=1`), AMD (Edge, `--gpu low`) and SwiftShader (the CI
+  renderer) off and not compiled.
+- Stills at the sunset default: the builder's six views reproduced to the
+  third decimal. **At night** (p 1.0, not in the builder's set: the lamps are
+  off at sunset, and the lit-window threshold runs on the averaged read, so
+  averaging could have put far windows out): error lower at all six views
+  (tower view 0.580 -> 0.528, far skyline 0.636 -> 0.543, downtown 0.408 ->
+  0.345); the share of bright lit-window pixels moves toward the 3x reference
+  (far skyline 0.81% -> 0.70%, reference 0.67%); far-half brightness within
+  0.1 level. Far windows stay lit: `docs/shots/moire-distance-night.jpg`
+  (BEFORE | AFTER | REFERENCE, pixels shown 2x).
+- Close up: the three close-up views' near half moved 13 / 2 / 0 pixels, none
+  by more than 1 level. Street height (2 m) and low flight (10-12 m): 0.00 to
+  0.04% of pixels, none by more than 2 levels, the same as two captures of one
+  build.
+- Crawl, landing flight, each of 150 frames drawn both ways: 0.153 -> 0.097
+  (-37%), worse in 0 of 149 frame pairs. The builder's f0121 did not recur.
+- NVIDIA frame time (1280x680 at DPR 1.5, vsync off, no throttle): main vs
+  branch, 4 + 4 fresh loads, downtown pan, CPU 47-56%: per-rep median -0.4 ms
+  (branch slower 1 of 4), so the builder's +0.9 ms did not reproduce. On vs
+  off in one page, 12 alternating passes: spawn orbit +0.5 ms per pair
+  (slower 3 of 6), downtown pan +0.2 (3 of 6). GPU-synced stills: downtown
+  +0.7 ms of 21 (7 of 10); at 3840x2040 +0.7 of 22 (6 of 10).
+- AMD (filter not compiled): main vs branch downtown pan, 4 + 4 at CPU
+  39-46%: median-of-medians 21.7 vs 21.6 ms, per rep +0.7 (2 of 4). Two other
+  AMD rounds ran while another lane loaded the machine (CPU 57-81%) and swung
+  18-92 ms inside each arm: no signal either way.
+- CI pictures flagged 2 of 10. spawn-golden (0.0664%, max 100) is the known
+  flake: the identical number reads as changed or as noise on other PRs'
+  runs. tower-night (1.39%, max 16) is not this change: nothing is compiled
+  in that renderer, and a repeat in the same renderer with CI's waits matched
+  main to 0 pixels over the tolerance. A crowded earlier local capture caught
+  the downtown skyline before its night lights landed (0.8% of pixels, all
+  skyline) and the clean repeat did not, so if tower-night flags on an
+  unrelated PR, that is the first suspect.
+- Minor, not fixed: raising `CityLighting.patternFilter.maxTaps` live above
+  the compiled 4 darkens far walls (the loops are sized when the shader
+  compiles; the divisor follows the live value). Lowering it, as
+  `pattern-filter-cost.mjs` does, is fine. The fix is to clamp the uniform's
+  last component to the compiled count.
+- Context loss: read, not run. A recompile goes through the same shader
+  wrapper with the same `compiled` decision, and the app reloads the page
+  after a loss anyway (`js/mobile.js`).
 
 **Overlap:** open draft #312 (`codex/compiled-building-lifecycle`) also edits
 `js/city-lighting.js`.
