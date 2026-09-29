@@ -52,6 +52,8 @@
  *     --q k=v,...          extra URL query switches (e.g. namelabels=0)
  *     --eval <js>          a statement run in the page (map as `m`) before capturing,
  *                          for a one-off experiment (e.g. a paint property)
+ *     --init <js>          a statement run before any page script (a switch the first
+ *                          build must see, e.g. one field of window.APARTMENTS)
  *     --width/--height/--dpr   default 1280/680/1.5
  *     --own                also capture each system hidden in turn (authored, patterned,
  *                          extrusions, outer, trees, ground) for moire-report.py --own
@@ -61,6 +63,7 @@
  *     --variants <json>    also capture runtime variants, a file of [{name, do, undo}]:
  *                          `do` runs (map as `m`), the frame is captured as
  *                          <pose>-var-<name>.png, then `undo` runs
+ *     --vtruth             each variant gets its own truth too (<pose>-var-<name>-truth.png)
  *     --label <text>       document.title (BEFORE/AFTER) for a visible window
  *
  * Exit: 0 captured / 2 could not run.
@@ -94,6 +97,9 @@ const SCREENS = has('--screens');
 const OWN = has('--own') ? ['authored', 'patterned', 'extrusions', 'outer', 'trees', 'ground'] : null;
 const HIDE_EACH = opt('--hide-each', null);
 const VARIANTS = opt('--variants', null) ? JSON.parse(fs.readFileSync(opt('--variants', null), 'utf8')) : null;
+// --vtruth: each variant also gets its own truth (<pose>-var-<name>-truth.png), for a
+// variant that changes what the frame SHOULD look like, not only how it samples
+const VTRUTH = has('--vtruth');
 
 // ── Poses: the app's own flyover cameras. center/zoom/pitch/bearing exactly as
 // MapLibre takes them. `spawn` is js/app.js SPAWN; `intro-*` are INTRO.start /
@@ -107,6 +113,11 @@ const POSES = {
   'west-campus':  { center: [-97.7445, 30.2880], zoom: 16.6,  pitch: 72, bearing: 300 },
   'downtown':     { center: [-97.7430, 30.2690], zoom: 16.4,  pitch: 70, bearing: 20 },
   'campus-low':   { center: [-97.7395, 30.2860], zoom: 17.2,  pitch: 72, bearing: 160 },
+  // close-ups: the camera within ~100-150 m of the walls in the middle of the
+  // frame, for "a change for far pixels must not move a near one"
+  'near-campus':  { center: [-97.7392, 30.2858], zoom: 18.8,  pitch: 68, bearing: 200 },
+  'near-west':    { center: [-97.7447, 30.2885], zoom: 18.6,  pitch: 70, bearing: 300 },
+  'near-downtown':{ center: [-97.7432, 30.2688], zoom: 18.4,  pitch: 70, bearing: 20 },
 };
 
 // ── Flights: slow and scripted, so the true image changes little per frame.
@@ -152,6 +163,11 @@ if (REF) {
 }
 
 const GFXSET = opt('--gfx', null);
+// --init <js>: a statement run before any page script, for a switch that must be
+// in place before the first build (e.g. an APARTMENTS field, which a runtime
+// --set would only reach through a rebuild)
+const INIT = opt('--init', null);
+if (INIT) await page.addInitScript(src => { try { new Function(src)(); } catch (e) { console.error('moire --init: ' + e); } }, INIT);
 await page.addInitScript((gfx) => {
   if (gfx) try {
     const KEY = 'austin3d.gfx.v1';
@@ -347,6 +363,18 @@ if (FL) {
       c = await page.evaluate(t => window.__moire.capture(t), TRUTH);
       save(`f${String(k).padStart(4, '0')}-native.png`, c.native);
       if (c.truth) save(`f${String(k).padStart(4, '0')}-truth.png`, c.truth);
+      // --variants on a flight: every frame again with each variant, into
+      // <out>/var-<name>/, so both sides of an A/B are the same page, the same
+      // tiles and the same camera, frame for frame
+      if (VARIANTS) for (const v of VARIANTS) {
+        const dir = path.join(OUT, 'var-' + v.name);
+        fs.mkdirSync(dir, { recursive: true });
+        await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) {} await window.__moire.frames(3); }, v.do);
+        const o = await page.evaluate(t => window.__moire.capture(t), TRUTH && VTRUTH);
+        fs.writeFileSync(path.join(dir, `f${String(k).padStart(4, '0')}-native.png`), Buffer.from(o.native.split(',')[1], 'base64'));
+        if (o.truth) fs.writeFileSync(path.join(dir, `f${String(k).padStart(4, '0')}-truth.png`), Buffer.from(o.truth.split(',')[1], 'base64'));
+        if (v.undo) await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) {} await window.__moire.frames(3); }, v.undo);
+      }
     }
     meta.captures.push({ k, pose });
     if (k % 10 === 0) console.log(`  frame ${k}/${n}`);
@@ -382,8 +410,9 @@ if (FL) {
     }
     if (VARIANTS) for (const v of VARIANTS) {
       const r = await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) { return String(e); } await window.__moire.frames(6); return null; }, v.do);
-      const o = await page.evaluate(() => window.__moire.capture(false));
+      const o = await page.evaluate(t => window.__moire.capture(t), TRUTH && VTRUTH);
       save(`${name}-var-${v.name}.png`, o.native);
+      if (o.truth) save(`${name}-var-${v.name}-truth.png`, o.truth);
       if (v.undo) await page.evaluate(async src => { try { new Function('m', src)(window.__map); } catch (e) {} await window.__moire.frames(4); }, v.undo);
       console.log(`  ${name}: variant ${v.name}${r ? ' ERROR ' + r : ''}`);
     }
