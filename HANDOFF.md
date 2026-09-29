@@ -1,5 +1,45 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 29 2026 - Building-label stability (`astra/label-flicker`, uncommitted pipeline handoff)
+
+Task 025 changes `js/name-labels.js` only. A single roof-anchor depth sample
+previously bypassed the CPU fade and switched an entire name on/off; collision
+retirement could also cut alpha straight to zero. The default now retains
+collision incumbents with an 8 px admission margin, reserves retiring space,
+uses finite 220 ms fades and spatial edge/control fades, and filters depth with
+a one-pixel cross, depth dead band and 180 ms hold before a 220 ms fade.
+All values are in `NAME_LABELS`; `NAME_LABELS.stable=false` (or
+`?labelstable=0`) restores the original behavior for same-page comparisons.
+The tiny per-label GPU history pass adds no application CPU readback or geometry.
+Stable mode also avoids periodic depth refreshes in an unchanged idle scene.
+`NAME_LABELS.measureVisibility=true` enables baseline instrumentation;
+`nameLabels.visibility()` reads actual GPU opacity for diagnostics only.
+
+Desktop final: 1440x900 DPR 1, RTX 3050 Ti hardware, no CPU throttle, one city
+load, interleaved baseline/fixed/fixed/baseline timing arms without readback.
+Minimum mean label CPU time: 0.614 -> 0.698 ms; minimum median frame interval:
+18.9 -> 19.9 ms. Every-render GPU sampling observed 77 of 1761 catalog names;
+shown-hidden-shown cycles (alpha > 0.1) fell 146 -> 16, Patterson 58 -> 1.
+No fixed name had more than one cycle within any single slow-move phase.
+Strict immediate-still acceptance is not fully met: two fades finish 128 ms
+and 177 ms after stopping; no subsequent change during the five-second hold.
+All legacy MapLibre symbol layers were hidden in the loaded style.
+
+Phone-profile emulation: 390x844 DPR 3, 40 observed names, cycles 18 -> 3;
+no fixed name exceeded one cycle within a slow-move phase. One fade completed
+99 ms into the five-second still hold, with no later changes. Minimum mean
+label CPU 0.396 -> 0.441 ms; minimum median frame interval 17.8 -> 17.8 ms.
+Both profiles completed without page errors. Readback/capture arms were separate
+from timing arms; this is desktop Chromium emulation, not physical iPhone proof.
+`node --check js/name-labels.js` and `git diff --check` passed. Read-only review
+checked resource cleanup, runtime switching and finite idle repaint behavior.
+
+Verification artifacts and final measurements are recorded locally under pipeline
+task `025-label-flicker/work`; its `out` directory contains the labelled animated
+comparisons and per-label count image. No owner imagery was used. The pipeline
+lane must review in the real application and commit/PR/merge; this sandbox did
+not run git writes. Physical iPhone Safari/Chrome acceptance remains unverified.
+
 ## Sep 28 2026 - Turning no longer stops for facade atlas prep: premultiplied in MapLibre's workers, pattern images kept there (`claude/turn-atlas`, PR #337, merged 66134b8, live)
 
 The owner: "turning is the biggest inducer of lag. please prioritize turning
