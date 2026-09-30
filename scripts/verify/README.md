@@ -60,6 +60,10 @@ CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
 
+To run these checks on a rented NVIDIA GPU instead of this one GPU browser (up
+to four at once, frames brought back, session always stopped), see
+`scripts/colab/README.md`.
+
 ### CI: the checks on every pull request
 
 `.github/workflows/visual-checks.yml` runs this directory on GitHub's machines
