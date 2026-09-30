@@ -33451,3 +33451,9 @@ Final verification: both 538-frame desktop and phone-viewport films retain nonze
 Visual limits: the island remains deliberately stylized, with muted old-window traces briefly travelling onto upper rock faces. Physical-phone timing, thermal behavior and the real-city busy-load path were not evaluated in this stub-only task. Final animated comparison and contact sheet are for the owner's visual review; no deployment is claimed.
 
 Final rest proof also passes: with CSS, SVG and the separate satellite worker held at the same phase, the entire pre-tap stack screenshot is byte-identical (zero differing pixels), with identical main SVG and no errors. Final exports: out/desktop-before-after.webp (845,612 bytes), out/phone-after.webp (563,294 bytes), out/after-contact-sheet-24.jpg (373,861 bytes). All are labelled and below 1 MB. Full-resolution desktop and phone MP4s and reports remain in work/final2.
+
+## September 29, 2026 - Union on 24th photo pilot blocked (pipeline 032)
+
+Branch astra/photo-pilot; no building edits or git writes. Photo audit identified lighter silver courtyard cladding, pale window surrounds, cool glazing, round entrance columns, timber soffit and paired arched lobby doors. Proposed ground meshes and generator are saved only in pipeline task 032/work/audit, pending matched application verification. Do not treat these drafts as accepted geometry.
+
+The mandatory queued browser probe exited before launch with MODULE_NOT_FOUND: Cannot find module 'playwright-core', resolved from scripts/verify/package.json. Stopped per pipeline instruction; no alternative browser or server started. Restore the verification dependencies before resuming baseline captures and implementation. The authored union-on-24th.json remains 60,601 bytes; added application triangles: 0. No final comparisons produced. Private reference metadata stays local.
