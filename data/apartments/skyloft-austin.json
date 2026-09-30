@@ -1729,17 +1729,17 @@
     {
       "what": "polygon plans with holes, and a roof cap that earcuts them",
       "why": "this building's footprint has two real interior rings (S1, S2). js/slopes-apartments.js takes ONE ring per block and caps it with B.polygon(cap), so a well cannot be a hole; the 18-storey mass is cut into six rectangles round the two wells instead. That draws the right picture - the wells are open to the sky and their four walls are drawn - but it costs six blocks where one would do, and it puts two interior walls (towerS.u1 and towerM.u0/u1) across the plan where nothing sees them. A `plan: {ring, holes}` with the holes passed to the earcut would collapse this to two blocks.",
-      "owner": "js/slopes-apartments.js - not this file"
+      "where": "js/slopes-apartments.js - not this file"
     },
     {
       "what": "a skin whose windows are scattered rather than on a column",
       "why": "the end walls in S5, S6 and S9 carry slot windows that are deliberately NOT aligned. `bays` puts one window per bay per floor, on a column. The three strips of `slots`/`slotsB`/`slotsC` with coprime bays and different sills break the columns up, but a `scatter` rule (density per m2, position from the cell hash the pixel skin already has) would be the real thing.",
-      "owner": "js/slopes-apartments.js - not this file"
+      "where": "js/slopes-apartments.js - not this file"
     },
     {
       "what": "a bay whose window is a GROUP, and a chamfered corner",
       "why": "two rules this building wants and the schema cannot say. (1) S7's head-on elevation repeats a wide window plus a pair of narrow ones about every 6.5 m; `bays` takes one window per bay, so the grid here is the right pitch with the wrong grouping. A `window` that took a LIST of [offset, w] inside the bay would draw it. (2) The corner amenity volume is chamfered in S8; overrides clip axis-parallel walls, so the facet cannot be drawn.",
-      "owner": "js/slopes-apartments.js - not this file"
+      "where": "js/slopes-apartments.js - not this file"
     }
   ],
   "open": [

@@ -29,8 +29,10 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * IT IS A FLOOR, ON PURPOSE, AND THAT IS THE WHOLE SAFETY ARGUMENT
  *
- * `lo` is the fast end of the app's own printed range: 1.4 m/s, no wait at any
- * light. `schedconfirm` compares a gap against `lo` and never against `hi`,
+ * `lo` is a separate fast-time floor over every mapped door and path: 1.4 m/s,
+ * no wait at any light, and no door/link-selection handicap. Split staircase
+ * fixed seconds are distributed across their edges to keep partial flights
+ * conservative. `schedconfirm` compares a gap against `lo`, never `hi`,
  * which means the sentence it is allowed to say is the strong one — *even at a
  * brisk walk with every light green, this does not fit*. Comparing against the
  * slow end would let the app tell a student their own schedule is impossible
@@ -49,12 +51,13 @@
  * `wc` table are all absent for the same reason: they change which route is
  * drawn, and this file draws nothing.
  *
- * What IS copied exactly, because a different answer here than in the router
- * would be a defect: the delta decode, the CSR adjacency, the `OFF_MAIN` rule
- * (never route onto a stranded island), the crossing penalty, the per-STAIRCASE
- * fixed cost divided across the edges one staircase was split into, and the
- * 4.0x link-cost multiplier that stops the router taking a 27 m straight line
- * across a lawn. `scripts/verify/schedconfirm.mjs` §2d checks this file against
+ * The preferred path retains the router's delta decode, CSR adjacency,
+ * `OFF_MAIN` rule, crossing penalty, split-staircase cost and 4.0x link-cost
+ * multiplier. Its actual edges and both door links determine `metres` and
+ * `hi`; its fast bound is capped by the separate floor search. The floor
+ * does not claim that the preferred route itself takes that little time.
+ * `scripts/verify/finder-correctness.mjs` independently checks the floor and
+ * route arithmetic. `scripts/verify/schedconfirm.mjs` §2d checks this file against
  * `window.wayfindRoute` on real pairs and prints the difference rather than
  * asserting the two are the same by inspection.
  *
@@ -138,8 +141,17 @@ function edgeCost(G, i) {
   return c;
 }
 
+function fastCost(G, index) {
+  const tune = G.tune, metres = G.W[index] / 100;
+  const travel = G.F[index] & F_STEPS
+    ? metres / tune.STAIR_SPEED_MPS + tune.STAIR_FIXED_S / (G.swEdges.get(G.S[index]) || 1)
+    : metres / tune.WALK_SPEED_HIGH_MS;
+  return travel + (G.F[index] & F_SIGNAL ? tune.SIGNAL_WAIT_LOW_S : 0);
+}
+
 /** Every graph node a building's doors reach, with the true metres to each. */
 function anchorsOf(G, code) {
+  if (G.runtimeAnchors && G.runtimeAnchors.has(code)) return G.runtimeAnchors.get(code);
   const ds = G.code && G.code[code];
   if (!ds || !ds.length) return null;
   const out = [];
@@ -157,22 +169,16 @@ function anchorsOf(G, code) {
  * door in this graph — SILENCE, never a guess, is the answer when the data is
  * not there.
  */
-export function routeBetween(G, fromCode, toCode) {
-  if (!G || !WALKG.on) return null;
-  const a = String(fromCode || '').toUpperCase(), b = String(toCode || '').toUpperCase();
-  if (!a || !b) return null;
-  if (a === b) return { lo: 0, hi: 0, metres: 0, flat: 0, stair: 0, signals: 0 };
-  const key = a + '>' + b;
-  if (WALKG.memo && G.memo.has(key)) return G.memo.get(key);
-
+function probePath(G, a, b, fast) {
   const seeds = anchorsOf(G, a), targets = anchorsOf(G, b);
   let res = null;
   if (seeds && targets) {
-    const mult = WALKG.linkCostMult;
+    const mult = fast ? 1 / G.tune.WALK_SPEED_HIGH_MS : WALKG.linkCostMult;
     const N = G.N;
     const dist = new Float64Array(N).fill(Infinity);
     const prevE = new Int32Array(N).fill(-1);
     const prevN = new Int32Array(N).fill(-1);
+    const seedLink = new Float64Array(N);
     const tmap = new Map();
     for (const t of targets) {
       const p = tmap.get(t.node);
@@ -210,7 +216,7 @@ export function routeBetween(G, fromCode, toCode) {
     };
     for (const s of seeds) {
       const sc = s.c * mult;
-      if (sc < dist[s.node]) { dist[s.node] = sc; push(s.node, sc); }
+      if (sc < dist[s.node]) { dist[s.node] = sc; seedLink[s.node] = s.c; push(s.node, sc); }
     }
     let best = null, left = tmap.size;
     while (hn.length) {
@@ -224,7 +230,7 @@ export function routeBetween(G, fromCode, toCode) {
       if (tmap.has(u)) {
         const t = tmap.get(u);
         const tot = d + t.c * mult;
-        if (!best || tot < best.cost) best = { cost: tot, node: u };
+        if (!best || tot < best.cost) best = { cost: tot, node: u, targetLink: t.c };
         tmap.delete(u); left--;
         if (!left) break;
       }
@@ -232,7 +238,7 @@ export function routeBetween(G, fromCode, toCode) {
         const e = G.eix[k];
         if (G.F[e] & F_OFFMAIN) continue;   // never route onto a stranded island
         const v = G.to[k];
-        const nd = d + edgeCost(G, e);
+        const nd = d + (fast ? fastCost(G, e) : edgeCost(G, e));
         if (nd < dist[v]) { dist[v] = nd; prevE[v] = e; prevN[v] = u; push(v, nd); }
       }
     }
@@ -249,6 +255,8 @@ export function routeBetween(G, fromCode, toCode) {
         if (G.F[e] & F_SIGNAL) signals++;
         u = prevN[u];
       }
+      const linkM = seedLink[u] + best.targetLink;
+      flat += linkM;
       const T = G.tune;
       const lowS = flat / T.WALK_SPEED_HIGH_MS + stair / T.STAIR_SPEED_MPS +
         sets.size * T.STAIR_FIXED_S + signals * T.SIGNAL_WAIT_LOW_S;
@@ -257,9 +265,29 @@ export function routeBetween(G, fromCode, toCode) {
         sets.size * T.STAIR_FIXED_S + signals * T.SIGNAL_WAIT_HIGH_S;
       let lo = Math.floor(lowS / 60), hi = Math.ceil(highS / 60);
       if (hi <= lo) hi = lo + 1;
-      res = { lo, hi, metres: Math.round(flat + stair), flat, stair, signals,
+      res = { lo, hi, metres: Math.round(flat + stair), flat, stair, signals, linkM, cost: best.cost,
         staircases: sets.size };
     }
+  }
+  return res;
+}
+
+export function routeBetween(G, fromCode, toCode) {
+  if (!G || !WALKG.on) return null;
+  const [a, b] = [String(fromCode || '').toUpperCase(), String(toCode || '').toUpperCase()].sort();
+  if (!a || !b) return null;
+  if (a === b) return anchorsOf(G, a)
+    ? { lo: 0, hi: 0, metres: 0, flat: 0, stair: 0, signals: 0, linkM: 0, staircases: 0, floorS: 0 }
+    : null;
+  const key = a + '>' + b;
+  if (WALKG.memo && G.memo.has(key)) return G.memo.get(key);
+  const res = probePath(G, a, b, false);
+  if (res) {
+    const fast = probePath(G, a, b, true);
+    if (!fast) return null;
+    res.floorS = fast.cost;
+    res.lo = Math.min(res.lo, Math.floor(fast.cost / 60));
+    delete res.cost;
   }
   // BOTH DIRECTIONS, and that is sound rather than a shortcut: every term in
   // edgeCost() is symmetric here (the router's incline model, which is not, is
@@ -308,13 +336,32 @@ export function releaseWalkGraph() { loadPromise = null; }
  * needs, and it is the reason this file is 300 lines and not 15,000.
  */
 export async function walkProbe(opts = {}) {
-  const G = await loadWalkGraph(opts.url);
+  let G = await loadWalkGraph(opts.url);
   if (!G) return null;
+  if (typeof opts.doorsForCode === 'function') {
+    G = { ...G, runtimeAnchors: new Map(), memo: new Map() };
+    const codes = [...new Set([...Object.keys(G.code || {}), ...(opts.codes || [])])];
+    for (const code of codes) {
+      const key = String(code).toUpperCase();
+      let doors;
+      try { doors = (await opts.doorsForCode(key))?.doors; }
+      catch { G.runtimeAnchors.set(key, null); continue; }
+      const anchors = anchorsOf(G, key) || [];
+      for (const door of doors || []) {
+        for (let index = 0; index < (door.nodes || []).length; index++) {
+          const node = door.nodes[index], cost = door.costM?.[index];
+          if (Number.isInteger(node) && node >= 0 && node < G.N &&
+              Number.isFinite(cost) && cost >= 0) anchors.push({ node, c: cost });
+        }
+      }
+      G.runtimeAnchors.set(key, anchors.length ? anchors : null);
+    }
+  }
   return {
     graph: G,
     asOf: G.asOf,
-    codes: Object.keys(G.code || {}),
-    has: (c) => !!(G.code && G.code[String(c || '').toUpperCase()]),
+    codes: [...new Set([...Object.keys(G.code || {}), ...(G.runtimeAnchors?.keys() || [])])],
+    has: (c) => !!anchorsOf(G, String(c || '').toUpperCase()),
     route: (a, b) => routeBetween(G, a, b),
     minutes: (a, b) => {
       const r = routeBetween(G, a, b);

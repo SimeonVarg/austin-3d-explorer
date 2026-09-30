@@ -9,6 +9,40 @@ real hours. It is in the repo now on purpose.
 It is dev-only tooling. It adds no build step and no runtime dependency to the
 site — the site is still plain static HTML/CSS/JS served from the repo root.
 
+## Finder correctness (Node only)
+
+`finder-correctness.mjs` runs the production route/schedule code in an isolated
+VM with synthetic schedules, empty storage and fetches restricted to public
+local graph/register JSON. It reads the public apartment catalog, exercises
+normal and mapped-step-free walks in both directions, checks route arithmetic,
+and compares synthetic graph searches with independent path-cost and fast-time
+oracles. Imported review state is checked across parser, confirmation, minimal
+storage and reload seams, including conflicting identities, clocks and calendar
+fields. The suite also reverses schedule and apartment order in fresh VMs.
+It never reads schedule images, private fixtures or browser storage.
+
+From the repo root, with a recent Node supporting `Object.groupBy`:
+
+```bash
+node scripts/verify/finder-correctness.mjs --output <local-scratch>/finder.json
+```
+
+No npm install, browser, server or GPU slot is required. Omitting `--output`
+prints the summary without saving the detailed matrix. Keep full JSON evidence
+in local scratch, not tracked screenshot/output folders. To keep a timing run
+undisturbed, set `FINDER_QUIET_PATH` to a marker file: the suite then pauses
+between batches for as long as that file exists. Unset, it never waits.
+
+Wrong identities, straight-line fallbacks, unit mistakes, omitted links and
+regression failures cause a nonzero exit. Unavailable buildings/apartments and
+walking/straight ratio outliers are reported separately: passing does not mean
+all apartment entrances are mapped or current real-world access is verified.
+The report records the graph hash and fails if it changes during verification.
+
+A few groups pin today's coverage on purpose: SMC must be unroutable, HLB must
+have no baked doors, and `wayfindSearch('Icon')` must contain `Ion Austin`.
+When a bake adds SMC or HLB doors, update those assertions in the same change.
+
 ## Setup
 
 ```bash
@@ -59,6 +93,10 @@ void if `_harness.html` and `index.html` have drifted apart.
 CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
 what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
 it means "still alive at the budget", nothing more.
+
+To run these checks on a rented NVIDIA GPU instead of this one GPU browser (up
+to four at once, frames brought back, session always stopped), see
+`scripts/colab/README.md`.
 
 ### CI: the checks on every pull request
 
@@ -1457,3 +1495,57 @@ one `regions-<route>-<pose>.jpg` per pose: the frame with the rectangles drawn o
 a labelled 5% grid, so the next rectangle is read off the picture rather than
 guessed. Re-draw, then `--from` to re-measure the frames you already have — no app
 load, about a minute for a full run.
+
+## On-demand area attach measurement
+
+`area-attach-meter.mjs` measures a real flight into Riverside on the normal
+`index.html` city. It does not start a server. Supply two already-served URLs:
+
+```sh
+node scripts/verify/area-attach-meter.mjs --arms before=http://127.0.0.1:8472,after=http://127.0.0.1:8476 --reps 3 --vsync on --stop-after-flight --out /tmp/area-runs
+```
+
+Run it with no other GPU browser open: two at once can crash a laptop, and
+they skew the frame gaps. Every arm gets a
+fresh hardware-GL browser with a 300-second watchdog and a 280-second work
+deadline. Repetitions alternate A,B,A,B,A,B; report the minimum
+of at least three complete repetitions per arm, with the renderer, viewport,
+DPR, vsync and CPU throttle. The desktop defaults are 1280x680 CSS at DPR1.5,
+no CPU throttle. Vsync defaults **off**: pass `--vsync on` for a normal paced
+browser. `--gpu low` rejects an NVIDIA renderer; choose an installed browser
+whose Windows GPU preference actually selects the integrated GPU.
+
+The attach window begins when the Riverside group is added and ends three
+seconds after its completion log. It includes **every** upload/filter slice,
+not just the final synchronous task. Include intervals that overlap this
+window even when a frozen frame ends beyond its tail; end-time-only
+selection can falsely report zero for a long freeze. Frame gaps include competing tile,
+shader, shadow and other rendering work. Nested span durations overlap and
+must not be added as exclusive costs. `--profile` adds 250-us CPU sampling;
+quote it with timing and do not mix profiled and unprofiled repetitions.
+Shared-machine numbers are a first look, not a quiet-machine performance verdict.
+
+`--shots DIR` retains the second JPEG at two fixed cameras, day and night,
+with matched exposure and frozen grain/twinkle. Check each shot readiness
+and compare pixels **and** images; missing source tiles are not visual proof.
+`--skip-geometry` omits optional retained-buffer hashing for a short capture
+batch. Geometry hashes include partitions and draw groups, so changing chunk
+boundaries intentionally changes them; compare expanded triangle attribute
+streams separately for geometry identity. `--cycles 2` checks settled
+unload/reload completeness, repeated hashes and renderer resource counts
+after forced collection. Heap bytes alone cannot establish a leak.
+
+`--phone` is Chromium emulation at 390x844 CSS/DPR3 with the authored phone
+profile. It is **not** physical-device, iPhone Safari, thermal or memory-headroom
+acceptance. CPU arrays freed by that profile cannot be honestly hashed; the
+report distinguishes exact retained bytes from estimates.
+
+The area scheduling knobs are `APARTMENTS.areas.sliceMs`,
+`geometryChunkTris` and `yieldMaxMs`. `?areaslice=0` restores synchronous
+area assembly/attach for comparison; core builds retain their existing path.
+Area masks use the same complete-footprint calculation, yielding between
+footprints and publishing only complete cached masks. Upload slices retain
+the old fallback until the new geometry has rendered.
+The time budget is cooperative: an indivisible MapLibre operation or a
+competing full-city render can still exceed it. No architecture, material
+or model-detail knob changes with area slicing.

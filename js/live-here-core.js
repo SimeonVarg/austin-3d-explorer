@@ -30,7 +30,7 @@
       if (!cache.has(key)) cache.set(key, Promise.resolve().then(() => route(from,to)).catch(() => ({ok:false,why:'load'})));
       const r = await cache.get(key);
       // A missing route never contributes zero to a successful comparison.
-      const ok = r?.ok && ['lo','hi','distM'].every(k => Number.isFinite(r[k]) && r[k] >= 0);
+      const ok = r?.ok && ['lo','hi','distM'].every(k => Number.isFinite(r[k]) && r[k] >= 0) && r.hi >= r.lo;
       return {from,to,kind,gap,route: ok ? r : {ok:false,why:r?.why || 'unavailable'}};
     }
     const week = [];
@@ -60,9 +60,16 @@
   // Import only the fields needed here. No names, identifiers, raw text or rooms.
   // Invalid/unresolved events stay visible for correction; never silently drop them.
   function imported(schedule) {
-    return (schedule?.events || []).map(r => ({code:r.code || '', days:(r.days || []).filter(d => days.includes(d)),
-      startMin:Number.isInteger(r.startMin) ? r.startMin : null, endMin:Number.isInteger(r.endMin) ? r.endMin : null,
-      needsReview:r.status === 'failed' || (r.confidence != null && r.confidence < 1) || !!r.problems?.length}));
+    return (Array.isArray(schedule?.events) ? schedule.events : []).map(event => {
+      const meeting = event || {}, meetingDays = Array.isArray(meeting.days) ? meeting.days : [];
+      return {code:meeting.code || '', days:meetingDays.filter(day => days.includes(day)),
+        startMin:Number.isInteger(meeting.startMin) ? meeting.startMin : null,
+        endMin:Number.isInteger(meeting.endMin) ? meeting.endMin : null,
+        needsReview:!!meeting.needsReview || meeting.status === 'failed' ||
+          !Array.isArray(meeting.days) || meetingDays.some(day => !days.includes(day)) ||
+          (meeting.confidence != null && (!Number.isFinite(meeting.confidence) || meeting.confidence !== 1)) ||
+          !!meeting.problems?.length};
+    });
   }
   const api = {days,validate,compare,imported};
   if (typeof module !== 'undefined') module.exports = api;

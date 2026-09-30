@@ -11,6 +11,7 @@
   "_run": "Per-script settings for scripts that DO run. args may use {out}, which becomes that script's artifact folder. est_s is the runtime measured on a GitHub runner; it only balances the shards. timeout_s is the kill ceiling.",
   "run": {
     "analytics-check.mjs": {"est_s": 60},
+    "apartment-area-filter.mjs": {"est_s": 10},
     "apartment-areas.mjs": {"est_s": 10},
     "apartment-filter-cache.mjs": {"est_s": 10},
     "apartment-frontage-filter.mjs": {"est_s": 10},
@@ -245,6 +246,7 @@
     "where-time-goes.mjs": "timing breakdown, exits 0",
     "places-lowpass-cost.mjs": "timing",
     "turnmeter.mjs": "timing (frame intervals while turning, hardware GL, headed), exits 0",
+    "area-attach-meter.mjs": "timing and matched captures: hardware GL, explicit before/after URLs, exits 0 without a visual verdict",
     "atlas-worker-pm.mjs": "correctness, but needs a GPU: turns through ~1,300 new tiles in headed hardware GL. CI covers the same code with facade-atlas-memory.mjs (both worker halves, in a vm) and the 10-view picture check",
     "moire-fps.mjs": "timing: an interleaved frame-time A/B in headed hardware Chrome, vsync off",
     "pattern-filter-cost.mjs": "timing: the far pattern filter's GPU cost per setting, one headed hardware page, exits 0"
