@@ -76,7 +76,7 @@ seconds of a video on AWS Kiro's socials. Proportion errors will be obvious to a
 who has been to Austin.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/ut-tower . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/ut-tower.js          (the generator; a standalone ES module)
@@ -90,7 +90,7 @@ will break them.
 Ports: workbench 3021, save-server 3031. Use no other ports.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-The reference build is Union on 24th in C:\Users\simip\Projects\utx-diorama — read
+The reference build is Union on 24th in the local reference project (utx-diorama) — read
 docs/UNION24_AUDIT.md, docs/U24_ROOFTOP_SPEC.md, docs/VISUAL_REFERENCE_PLAYBOOK.md and
 PROJECT_OVERVIEW.md (§ STANDING RULES) BEFORE you write any code. They are the distilled
 cost of getting one building right.
@@ -121,7 +121,7 @@ ffmpeg is on PATH: ffmpeg -i clip.mp4 -vf fps=1 out_%04d.png), enumerating a CDN
 gallery JSON feed, chasing a photographer credit for the full published shoot.
 
 *** GOOGLE STREET VIEW STATIC IS YOUR BEST TOOL AND MOST AGENTS MISS IT. ***
-A working GOOGLE_MAPS_API_KEY is in C:\Users\simip\Projects\utx-diorama\.env .
+A working GOOGLE_MAPS_API_KEY is in the local reference project (utx-diorama) .env file .
 Read it inside your script. NEVER print it, log it, or commit it.
   - Probe first (free): /streetview/metadata?location=LAT,LNG&key=... returns status +
     DATE. Only trust panoramas newer than the building's completion.
@@ -198,7 +198,7 @@ THIS IS THE BIGGEST MASS ON CAMPUS. In a flyover nothing else conveys scale like
 The bowl geometry, the seating rake and the video board are what sell it.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/dkr-stadium . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/dkr-stadium.js
@@ -212,7 +212,7 @@ right now. Touching a shared file will break them.
 Ports: workbench 3022, save-server 3032.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-The reference build is Union on 24th in C:\Users\simip\Projects\utx-diorama — read
+The reference build is Union on 24th in the local reference project (utx-diorama) — read
 docs/UNION24_AUDIT.md, docs/VISUAL_REFERENCE_PLAYBOOK.md and PROJECT_OVERVIEW.md
 (§ STANDING RULES) BEFORE writing code.
 
@@ -237,7 +237,7 @@ A stadium is unusually well documented: broadcast footage, drone flyovers on You
 UT Athletics media, seating-chart diagrams, and construction/expansion press photos.
 A SEATING CHART is effectively a dimensioned plan — find one.
 
-*** GOOGLE STREET VIEW STATIC. *** Key in C:\Users\simip\Projects\utx-diorama\.env —
+*** GOOGLE STREET VIEW STATIC. *** Key in the local reference project (utx-diorama) .env file —
 read it in-script, NEVER print or commit it. Probe /streetview/metadata first for the
 panorama DATE (this stadium has been expanded repeatedly; an old pano is a different
 building). Technique: stand at the frontage and LOOK UP (pitch 45/60/75, fov 90, sweep
@@ -293,7 +293,7 @@ campus. Its value in the flyover is the curved skin catching light, so the surfa
 geometry and the panel rhythm matter more than interior detail.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/moody-center . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/moody-center.js
@@ -306,7 +306,7 @@ right now. Touching a shared file will break them.
 Ports: workbench 3023, save-server 3033.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-Reference build: Union on 24th, C:\Users\simip\Projects\utx-diorama. Read
+Reference build: Union on 24th, the local reference project (utx-diorama). Read
 docs/UNION24_AUDIT.md, docs/VISUAL_REFERENCE_PLAYBOOK.md, PROJECT_OVERVIEW.md
 (§ STANDING RULES) BEFORE writing code.
 
@@ -332,7 +332,7 @@ photographer's portfolio, which has more frames), arena/venue sites, event photo
 drone footage on YouTube, and construction-era progress photos that reveal the structure
 under the skin.
 
-*** GOOGLE STREET VIEW STATIC. *** Key in C:\Users\simip\Projects\utx-diorama\.env —
+*** GOOGLE STREET VIEW STATIC. *** Key in the local reference project (utx-diorama) .env file —
 read in-script, NEVER print or commit. Probe /streetview/metadata for the DATE and only
 use panoramas AFTER April 2022 — anything earlier is the old Frank Erwin Center that
 stood nearby, which would be a catastrophic misidentification. Technique: stand at the
@@ -391,7 +391,7 @@ PROPORTION IS EVERYTHING — the pier rhythm, the cantilever depth, the plinth h
 the travertine coursing are the entire building. Small errors will be glaring.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/lbj-library . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/lbj-library.js
@@ -404,7 +404,7 @@ right now. Touching a shared file will break them.
 Ports: workbench 3024, save-server 3034.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-Reference build: Union on 24th, C:\Users\simip\Projects\utx-diorama. Read
+Reference build: Union on 24th, the local reference project (utx-diorama). Read
 docs/UNION24_AUDIT.md, docs/VISUAL_REFERENCE_PLAYBOOK.md, PROJECT_OVERVIEW.md
 (§ STANDING RULES) BEFORE writing code.
 
@@ -431,7 +431,7 @@ architectural surveys, SOM's own archive, the National Archives / LBJ Foundation
 Library of Congress, HABS documentation (which sometimes includes MEASURED DRAWINGS — if
 you find those, they are worth more than any photograph), plus university tour videos.
 
-*** GOOGLE STREET VIEW STATIC. *** Key in C:\Users\simip\Projects\utx-diorama\.env —
+*** GOOGLE STREET VIEW STATIC. *** Key in the local reference project (utx-diorama) .env file —
 read in-script, NEVER print or commit. Probe /streetview/metadata for the DATE.
 Technique: stand at the frontage and LOOK UP (pitch 45/60/75, fov 90, sweep ±25°).
 This building sits on a large open plaza with long clear sightlines, so stand-off ALSO
@@ -492,7 +492,7 @@ These share a precinct and a limestone/white palette, so derive the shared mater
 vocabulary ONCE and apply it — that is why they are grouped.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/arts-corridor . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/arts-corridor.js        (may import from js/heroes/arts/*.js which you also own)
@@ -506,7 +506,7 @@ Do NOT model the LBJ Library.
 Ports: workbench 3025, save-server 3035.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-Reference build: Union on 24th, C:\Users\simip\Projects\utx-diorama. Read
+Reference build: Union on 24th, the local reference project (utx-diorama). Read
 docs/UNION24_AUDIT.md, docs/VISUAL_REFERENCE_PLAYBOOK.md, PROJECT_OVERVIEW.md
 (§ STANDING RULES) BEFORE writing code.
 
@@ -533,7 +533,7 @@ Museums publish extensively: the Blanton's own site, architecture press, the Kel
 and Blanton press kits for "Austin" (which document the glass precisely), plus visitor
 photography on Maps and review sites for angles the professionals skipped.
 
-*** GOOGLE STREET VIEW STATIC. *** Key in C:\Users\simip\Projects\utx-diorama\.env —
+*** GOOGLE STREET VIEW STATIC. *** Key in the local reference project (utx-diorama) .env file —
 read in-script, NEVER print or commit. Probe /streetview/metadata for the DATE — "Austin"
 only exists after Feb 2018, and the Blanton's plaza was renovated in 2023, so date every
 pano. Technique: stand at the frontage and LOOK UP (pitch 45/60/75, fov 90, sweep ±25°).
@@ -598,7 +598,7 @@ These span 1930s campus revival to 1970s brutalism, so DO NOT force one vocabula
 them — derive each properly. What they share is site, scale and the campus limestone.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/drag-core . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/drag-core.js            (may import from js/heroes/drag/*.js which you also own)
@@ -612,7 +612,7 @@ Gregory Gym and the Texas Union. Do NOT model the Tower or Main Building.
 Ports: workbench 3026, save-server 3036.
 
 == THE METHOD THAT PRODUCED THE QUALITY BAR (follow it exactly) ==
-Reference build: Union on 24th, C:\Users\simip\Projects\utx-diorama. Read
+Reference build: Union on 24th, the local reference project (utx-diorama). Read
 docs/UNION24_AUDIT.md, docs/VISUAL_REFERENCE_PLAYBOOK.md, PROJECT_OVERVIEW.md
 (§ STANDING RULES) BEFORE writing code.
 
@@ -642,7 +642,7 @@ UT publishes campus master-plan documents, historic-preservation surveys and arc
 photography; the Texas Union and Gregory both have documented histories with elevation
 drawings. A HISTORIC SURVEY WITH MEASURED DRAWINGS beats any photograph — look for one.
 
-*** GOOGLE STREET VIEW STATIC. *** Key in C:\Users\simip\Projects\utx-diorama\.env —
+*** GOOGLE STREET VIEW STATIC. *** Key in the local reference project (utx-diorama) .env file —
 read in-script, NEVER print or commit. Probe /streetview/metadata for the DATE; The Drag
 has been repeatedly redeveloped, so an old pano may show a demolished neighbour.
 Technique: stand at the frontage and LOOK UP (pitch 45/60/75, fov 90, sweep ±25°).
@@ -706,7 +706,7 @@ austin-3d-explorer/research/union24th-area/buildings.json and DOSSIER.md has con
 addresses and neighbour relationships. READ THOSE FIRST.
 
 *** THE QUALITY BAR IS UNION ON 24TH, WHICH IS THEIR NEIGHBOUR AND IS ALREADY DONE. ***
-Read C:\Users\simip\Projects\utx-diorama\docs\UNION24_AUDIT.md and U24_ROOFTOP_SPEC.md.
+Read the local reference project (utx-diorama) docs/UNION24_AUDIT.md and U24_ROOFTOP_SPEC.md.
 That is the standard. Do NOT model Union on 24th — it is finished and owned elsewhere.
 
 These are all the same TYPOLOGY — student high-rises with a parking podium, a repeating
@@ -715,7 +715,7 @@ residential facade module, and a rooftop amenity deck. So derive the SHARED SYST
 is why seven are in one session.
 
 == YOUR SANDBOX — DO NOT LEAVE IT ==
-Repo: C:\Users\simip\Projects\austin-3d-explorer
+Repo: austin-3d-explorer
 Work in a git worktree on branch  hero/west-campus-towers . NEVER commit to main.
 You may CREATE and EDIT ONLY:
   js/heroes/west-campus-towers.js   (may import from js/heroes/wct/*.js which you also own)
@@ -765,7 +765,7 @@ VIRTUAL TOUR (tours.atlasbayvr.com) turned out to be the single richest source �
 panoramas, cube faces downloadable directly. LOOK FOR A VIRTUAL TOUR for each property.
 
 *** GOOGLE STREET VIEW STATIC — YOUR HIGHEST-VALUE TOOL. ***
-Key in C:\Users\simip\Projects\utx-diorama\.env — read in-script, NEVER print or commit.
+Key in the local reference project (utx-diorama) .env file — read in-script, NEVER print or commit.
   - Probe /streetview/metadata?location=LAT,LNG&key=... FIRST. It is free and returns the
     panorama DATE. West Campus has post-2024 coverage on W 24th and Rio Grande; other
     streets are 2011-2016. Only trust panoramas newer than each building's completion.

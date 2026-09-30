@@ -1,7 +1,8 @@
 from PIL import Image
 import colorsys
+import os
 
-img = Image.open(r"C:\Users\simip\Projects\austin-3d-explorer\.claude\worktrees\wf_540ab009-56c-2\shots\q\towerglow\before-tower-close-night.png")
+img = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "before-tower-close-night.png"))
 w, h = img.size
 print("size", w, h)
 

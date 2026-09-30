@@ -15,7 +15,7 @@ Run this in ONE session, alongside the window/facade work happening in the main 
 ---
 
 ```
-You are working on the Austin 3D Explorer (C:\Users\simip\Projects\austin-3d-explorer),
+You are working on the Austin 3D Explorer (the `austin-3d-explorer` repo),
 a MapLibre GL JS 5.24 flyover of UT Austin and West Campus that is going out on AWS
 Kiro's channels. Plain static HTML/CSS/JS, no build step. Serve the repo root with
 `python -m http.server 8099 --bind 127.0.0.1` (check whether one is already running
