@@ -74,7 +74,7 @@ def main():
         box(plan,z0+c['guardHeight']-c['edgeWidth'],z0+c['guardHeight'],'glassEdge')
         box(plan,z0+c['curbHeight'],z0+c['curbHeight']+c['mountHeight'],'guardMetal')
     assert crown['z0'] == z0 and crown['z1'] == z1
-    OUTPUT.write_text(json.dumps(model,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    OUTPUT.write_text(json.dumps(model,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     print(f'Icon crown: {z0:g}-{z1:g} m retained; {serial} guard components')
 
 

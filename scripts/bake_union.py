@@ -51,7 +51,7 @@ def build():
 
 def main():
  s=build()
- (OUT/'texas-union.json').write_text(json.dumps(s,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+ (OUT/'texas-union.json').write_text(json.dumps(s,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
  print('texas-union',len(s['blocks']),'blocks')
  return s
 

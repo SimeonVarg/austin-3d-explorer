@@ -8,6 +8,7 @@ generated details in welch-hall.json; it does not rebuild another bake.
 from pathlib import Path
 import copy
 import json
+from compact_models import compact
 import math
 
 PATH = Path(__file__).resolve().parents[1] / 'data/apartments/welch-hall.json'
@@ -372,7 +373,7 @@ def main():
             m[field]=token
     text=json.dumps(packed,indent=2)
     for token,buffer in replacements.items():text=text.replace(token,buffer)
-    PATH.write_text(text+'\n',encoding='utf-8')
+    PATH.write_text(compact(text),encoding='utf-8')
     print('Welch courtyard:',total,'detail triangles;',len(d['blocks']),'blocks')
 
 
