@@ -33451,3 +33451,21 @@ Final verification: both 538-frame desktop and phone-viewport films retain nonze
 Visual limits: the island remains deliberately stylized, with muted old-window traces briefly travelling onto upper rock faces. Physical-phone timing, thermal behavior and the real-city busy-load path were not evaluated in this stub-only task. Final animated comparison and contact sheet are for the owner's visual review; no deployment is claimed.
 
 Final rest proof also passes: with CSS, SVG and the separate satellite worker held at the same phase, the entire pre-tap stack screenshot is byte-identical (zero differing pixels), with identical main SVG and no errors. Final exports: out/desktop-before-after.webp (845,612 bytes), out/phone-after.webp (563,294 bytes), out/after-contact-sheet-24.jpg (373,861 bytes). All are labelled and below 1 MB. Full-resolution desktop and phone MP4s and reports remain in work/final2.
+
+## Sep 30 2026 - phone memory pass (branch claude/phone-memory)
+
+Three more lines in `js/mobile.js` `LITE.budget`, phone only (desktop gets no
+budget, so every reader keeps its old value):
+- `shadowSize: 1024` (`js/slopes.js`): the two sun shadow maps were a fixed
+  1536 on every device. 36 MB of targets -> 16 MB. Shadow edges a little coarser.
+- `packVertices: true` (was deferred Sep 27): at the 390x844 spawn and flight
+  views the only moved pixels are the shadow edges; the facades show no change.
+- `treesGeojsonFallback: false` (`js/app.js`): no archive means no trees on a
+  phone, never the 27.6 MB GeoJSON.
+
+`mobile-memory.mjs`, 390x844 DPR 3, NVIDIA, 3 interleaved reps, fresh browser
+each, auto-detect cancelled, `?drift=0` with the opening flight, min [range] MB:
+main peak 903 [903-1004] settled 831 [831-843], WebGL 551; branch peak 839
+[839-887] settled 739 [739-792], WebGL 464. GPU process private 1417 -> 1259.
+Note: the "~2.0 GB at the flight peak" in the mobile.js header is the pre-#310
+main; main before this pass was already ~0.9-1.0 GB page-held.

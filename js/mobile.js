@@ -153,11 +153,25 @@
       // half a degree. The one visible-in-a-diff cost: the fine brick-joint
       // grain on far walls sits a fraction of a brick along (see packGeometry).
       // false = exact vertices.
-      // DEFERRED (Sep 27 2026): its own visual gate still fails - packed vs
-      // exact in one page, The Standard by day 11,190 px changed (max 12/255),
-      // 21 Rio 5,348 - so phones ship exact vertices until someone accepts
-      // that picture. true turns it back on; nothing else changes.
-      packVertices: false,
+      // Sep 27 2026 it was deferred: its own close-up gate (packed vs exact,
+      // one page) moves The Standard by day 11,190 px (max 12/255) and 21 Rio
+      // 5,348 - the same grain, displaced. ON again Sep 30 2026 (phone memory
+      // pass): at the phone's own 390x844 spawn and flight views the frames
+      // were checked side by side and show no visible change, and the phone
+      // needs every MB it can get. false = exact vertices; nothing else moves.
+      packVertices: true,
+      // js/slopes.js SLOPES.sunlight.shadowSize: the two sun shadow maps
+      // (near, far). Desktop keeps 1536. Each map is a colour target plus a
+      // depth buffer, 8 bytes a texel: 2 x 1536^2 x 8 = 37.7 MB at 1536,
+      // 16.8 MB at 1024. The near map covers 480 m, so a texel goes from
+      // 0.31 m to 0.47 m: shadow edges slightly softer. null = desktop size.
+      shadowSize: 1024,
+      // js/app.js: the trees layer is streamed from data/tiles/trees.pmtiles.
+      // If that archive cannot be used, the app falls back to the whole
+      // data/trees.geojson (27.6 MB, ~80 MB parsed) - enough on its own to
+      // get a phone tab killed. false = a phone shows no trees instead.
+      // true = the desktop fallback.
+      treesGeojsonFallback: false,
       // js/slopes-apartments.js: balcony slabs and rails on the authored
       // buildings. Kept here; the `lighter` tier drops them.
       aptBalconies: true,

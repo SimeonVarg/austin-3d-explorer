@@ -195,7 +195,10 @@
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
-      shadows: true, shadowSize: 1536, shadowRadii: [240, 1400], shadowSnap: 20,
+      // shadowSize: texels per side of each of the two sun shadow maps. A phone
+      // takes js/mobile.js LITE.budget.shadowSize instead (desktop: no budget,
+      // 1536 as before).
+      shadows: true, shadowSize: (window.LITE_PROFILE?.budget?.shadowSize) || 1536, shadowRadii: [240, 1400], shadowSnap: 20,
       shadowDistance: 1500, shadowBias: .10, shadowNormalBias: .09,
       // shadowSnap is the NEAR map's grid; shadowSnapFar the far map's (null:
       // the same grid). Each map is redrawn only when ITS snapped centre
