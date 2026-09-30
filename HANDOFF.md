@@ -33520,6 +33520,32 @@ has not yet been loaded in a browser after these changes, and the existing brows
 suites that touch these files (schedconfirm, schedimg, img-import, live-here) were
 not run locally; they run in CI on the pull request, which is the browser gate.
 
+## September 30, 2026 - East Mall staircase correction (claude/east-mall-stairs)
+
+The site east of the Tower is an outdoor staircase, not a building. Retired
+the stale Computation Center / COM footprint through the existing building
+overrides, keyed by its Overture ID and OSM way. Scene loading, detail, labels,
+entrances, roofs, roofscape and walking obstacles consume that exclusion.
+Removed its label, 148 entrance pieces, five graph doors/code, roof cap and
+13 rooftop pieces. The original source outline also masks stale rooftop
+tiles, so default tiled detail cannot leave floating equipment behind.
+Historical snapshots and offline massing/survey caches remain source records.
+
+Cached East Mall steps and footways already exist and remain connected. No
+path coordinates were invented or changed; surviving graph nodes/edges and
+door values remain unchanged. Frozen walk-pair references shift only for the
+five retired doors, preserving their existing physical-door choices. Other
+unregistered campus candidates are listed separately and were not removed.
+
+Matched daylight views with labels on show the building and floating rooftop
+pieces gone. Labels have zero coverage gaps; a full entrance replay, detailed
+bake replay, 19 walk-bake gates, exclusion regression and idempotent migrations
+pass. Full verification is NOT green: two existing night unit tests, 14 frozen
+walk pairs and the existing wallplane ceiling remain red. Existing stale
+walkmeter oracle fixtures are also reported, not guessed into passing.
+The reviewing lane retains the local comparison/report and commits the
+explicit file list; this correction is not a claim of globally green checks.
+
 ## September 30, 2026 - Facade texture preparation
 
 js/facades.js now blends each mottle cell once per horizontal span instead of once per pixel, and the paint worker's final full-resolution tier reuses the buffer it was handed instead of copying it. Fractional cell widths still take the old per-pixel path, and earlier tiers keep their own buffers. Materials, geometry, texture sizes and repaint pacing are unchanged.

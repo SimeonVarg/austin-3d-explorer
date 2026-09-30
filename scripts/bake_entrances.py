@@ -102,6 +102,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `scripts/snapshot_parity.py` compares it against the manifest.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
+from building_exclusions import is_excluded, RETIRED_ENTRANCE_IDS
 
 # ══════════════════════════════════════════════════════════════════════
 #  ERA_BASELINE=1 — the before-number, produced by the after-instrument
@@ -1654,8 +1655,6 @@ SHELTER_OBS = {
                 "cantilevered upper block."),
     "WWH": dict(k="recess", src="[M] WWH: a recessed dark ground floor under "
                 "the brick mass."),
-    "COM": dict(k="recess", src="[M] COM: a recessed portal cut into the "
-                "limestone block."),
     "NUR": dict(k="recess", src="[M] Nursing: the entrance is behind the "
                 "brise-soleil, set back from the wall line."),
     "DFA": dict(k="recess", src="[M] DFA: the entrance is under the "
@@ -2184,7 +2183,6 @@ YEAR_UTDIRECT_URL = ("https://utdirect.utexas.edu/apps/campus/buildings/"
                      "information/nlogon/maps/UTM/%s/")
 YEAR_UTDIRECT_DATE = "2026-08-27"
 YEAR_UTDIRECT = {
-    "COM": 1961,    # COMPUTATION CENTER          — MOVES 5 doors E5 -> C
     "UPB": 1960,    # UNIVERSITY POLICE BUILDING  — MOVES 3 doors E5 -> C
     "ARC": 1977,    # ANIMAL RESOURCES CENTER     — MOVES 2 doors E5 -> C
     "NEZ": 2008,    # NORTH END ZONE BUILDING     — MOVES 6 doors, with REF_SPLIT
@@ -2811,7 +2809,6 @@ _BUILDING_ROWS = [
     (-97.740628, 30.285435, 'WMB', 'West Mall Office Building', 'office', None, None),
     (-97.742576, 30.285511, None, 'University Presbyterian Church', 'church', 'place_of_worship', None),
     (-97.746170, 30.285568, None, 'The Quarters Grayson House', 'apartments', None, None),
-    (-97.738531, 30.285637, 'COM', 'Computation Center', 'university', None, None),
     (-97.742082, 30.285656, None, 'Chipotle', 'yes', 'fast_food', None),
     (-97.743149, 30.285666, None, 'Moontower', 'apartments', None, None),
     (-97.742110, 30.285757, None, 'Sweetgreen', 'yes', 'fast_food', None),
@@ -3106,6 +3103,8 @@ def load_buildings():
     out = []
     for f in j["features"]:
         g, p = f["geometry"], f["properties"]
+        if is_excluded(p):
+            continue
         if g["type"] == "Polygon":
             rings = g["coordinates"]
         elif g["type"] == "MultiPolygon":
@@ -6721,7 +6720,22 @@ def retire_battle_east_only():
     print('Battle east: retired 94 legacy pieces and two arch records; other entries unchanged')
 
 
+def retire_excluded_only():
+    with open(OUT, encoding="utf-8") as source:
+        out = json.load(source)
+    before = len(out["features"])
+    out["features"] = [feature for feature in out["features"] if not is_excluded(feature["properties"])]
+    out["arches"] = {key: value for key, value in out.get("arches", {}).items() if not is_excluded(value)}
+    with open(OUT, "w", encoding="utf-8") as target:
+        json.dump(out, target, separators=(",", ":"))
+    print("Excluded building entries: retired %d pieces; other entries unchanged" % (before - len(out["features"])))
+
+
 def main():
+    if "--retire-excluded-only" in sys.argv:
+        assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
+        retire_excluded_only()
+        return
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Usage: python scripts/bake_entrances.py [--retire-gearing-court-only]")
         print("  default: full cached-source bake (SNAP_DATE optionally pins snapshot)")
@@ -6729,6 +6743,7 @@ def main():
         print("    other entries and four rear ramp slabs; checked idempotent reruns")
         print("  --refresh / --refresh-ut: refresh source observations")
         print("  --retire-battle-east-only: migrate the two obsolete east arch assemblies")
+        print("  --retire-excluded-only: remove stale-building entries without global placement")
         return
     if "--retire-battle-east-only" in sys.argv:
         assert len(sys.argv) == 2, "Targeted retirement cannot be combined with other flags"
@@ -7096,6 +7111,8 @@ def main():
     for b in sorted(scope, key=lambda b: b.bid):
         for c in sorted(b.ents, key=lambda c: (-c.score, c.x, c.y)):
             eid += 1
+            while eid in RETIRED_ENTRANCE_IDS:
+                eid += 1
             assemble(feats, b, c, eid, stats)
 
     gearing_retirement = retire_gearing_court_entry(feats)

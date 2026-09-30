@@ -14,6 +14,9 @@ rather than being silently resolved.
                                               graph, route the frozen pair
                                               list, and exit 1 if any route
                                               broke or got materially longer
+    python scripts/bake_walk.py --retire-excluded-only
+                                              retire excluded doors in place,
+                                              keeping geometry and provenance
 
 What it does NOT do, deliberately:
   * no route ever passes through a building — there is exactly one `indoor`
@@ -43,6 +46,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `walk_graph.json` and checked by `scripts/snapshot_parity.py`.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
+from building_exclusions import is_excluded
 
 SNAP_SOURCE = "buildings.enriched.geojson"
 SNAP_DATE = bake_facades.snapshot_date()
@@ -752,6 +756,8 @@ def build_obstacles():
     bclass = {}
     b = load(SNAP_REL)
     for ft in b["features"]:
+        if is_excluded(ft["properties"]):
+            continue
         bid = ft["properties"].get("id")
         bnames[bid] = ft["properties"].get("name") or "(unnamed footprint)"
         bclass[bid] = ft["properties"].get("building_class")
@@ -1181,6 +1187,8 @@ def build_doors():
     groups = {}
     for ft in d["features"]:
         p = ft["properties"]
+        if is_excluded(p):
+            continue
         key = (p.get("bid"), p.get("eid"))
         g = groups.get(key)
         if g is None:
@@ -1205,6 +1213,8 @@ def build_doors():
     # Curated street approaches carry explicit uncertainty through role/src.
     # They use the same collision checks and anchor limit as every other door.
     for approach in load("data/apartment-approaches.json")["approaches"]:
+        if is_excluded(approach):
+            continue
         out.append({k: approach[k] for k in
                     ("lon", "lat", "ref", "nm", "role", "src", "bid")})
     out.sort(key=lambda x: (x["ref"], x["nm"], x["lon"]))
@@ -1530,6 +1540,8 @@ def bake(verbose=True):
     # --- why is each missing code missing?  Printed with the health block --
     fp_names = defaultdict(list)
     for ft in load(SNAP_REL)["features"]:
+        if is_excluded(ft["properties"]):
+            continue
         nm = (ft["properties"].get("name") or "").strip()
         if nm:
             fp_names[nm.lower()].append(ft["properties"].get("id"))
@@ -2067,11 +2079,11 @@ def best_route(c, adj, a_key, b_key, prefer_main=True):
 def audit(c, adj, r):
     """Does this route cross a building, leave campus, or double back?
 
-    The layer test is not a nicety.  UT's East Mall is a pedestrian DECK built
-    over the Computation Center, drawn in OSM as `highway=pedestrian,
-    area=yes, layer=1`, and a naive footprint test calls every route across it
-    a route through a building.  An edge tagged `layer != 0` that overlaps a
-    footprint is a bridge or a deck, and is counted separately.
+    The layer test is not a nicety.  UT's East Mall terrace is drawn in OSM
+    as `highway=pedestrian, area=yes, layer=1`. Its outdoor stairs are not
+    a building; stale footprints are filtered before this audit. An edge
+    tagged `layer != 0` that overlaps a retained footprint is a bridge or
+    a deck, and is counted separately.
     """
     G, doors, edges = c["G"], c["doors"], c["edges"]
     nx, ny = G["nx"], G["ny"]
@@ -2289,11 +2301,60 @@ def do_regress():
     return 1 if bad else 0
 
 
+def retire_excluded_only():
+    out = load("data/walk_graph.json")
+    snapshot = "data/snapshots/%s/%s" % (out["snapshot"], out["snapshot_source"])
+    footprints = load(snapshot)["features"]
+    excluded_names = {feature["properties"].get("name") for feature in footprints
+                      if is_excluded(feature["properties"])} - {None, ""}
+    assert not any(feature["properties"].get("name") in excluded_names
+                   and not is_excluded(feature["properties"])
+                   for feature in footprints), "Excluded building name is ambiguous"
+    removed = {index for index, door in enumerate(out["d"])
+               if door[7] in excluded_names}
+    if not removed:
+        P("Excluded walk doors already retired; checked no-op")
+        return
+    doors = out["d"]
+    index_map = {}
+    for index in range(len(doors)):
+        if index not in removed:
+            index_map[index] = len(index_map)
+    removed_codes = set()
+    for section in ("code", "wc"):
+        entries = {}
+        for key, indices in out[section].items():
+            kept = [index_map[index] for index in indices if index not in removed]
+            if kept:
+                entries[key] = kept
+            elif section == "code":
+                removed_codes.add(key)
+        out[section] = entries
+    out["name"] = {name: code for name, code in out["name"].items()
+                   if code not in removed_codes}
+    out["d"] = [door for index, door in enumerate(doors) if index not in removed]
+    out["meta"]["doors"] -= len(removed)
+    out["meta"]["doors_linked"] -= sum(bool(doors[index][2]) for index in removed)
+    register_codes = {building["ref"] for building in
+                      load("data/ut_buildings.json")["buildings"]}
+    out["meta"]["routable_codes"] -= len(removed_codes & register_codes)
+    with open(os.path.join(ROOT, "data/walk_graph.json"), "w", encoding="utf-8") as target:
+        json.dump(out, target, separators=(",", ":"))
+    P("Excluded walk doors: retired %d; node/edge geometry and provenance unchanged"
+      % len(removed))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--routes", action="store_true")
     ap.add_argument("--regress", action="store_true")
+    ap.add_argument("--retire-excluded-only", action="store_true")
     a = ap.parse_args()
+    if a.retire_excluded_only:
+        if a.routes or a.regress:
+            ap.error("Targeted retirement cannot be combined with other flags")
+        retire_excluded_only()
+        return
     if a.regress:
         sys.exit(do_regress())
     c = bake()
