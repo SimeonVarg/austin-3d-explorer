@@ -117,6 +117,19 @@
     // and the assertion is untouched. Growing it instead took the canvas to 60%
     // and turned that check red.
     HORIZON_FADE: 0.036,
+    // ── THE SKY FOLLOWS THE BANK ──
+    // The flight controller BANKS the camera into a turn (controls.js, up to
+    // TUNE.BANK_MAX degrees of roll) and MapLibre rolls the whole world about
+    // the frame centre: the city, the ground and MapLibre's own sky all tilt.
+    // This file's 2D pass used to be drawn LEVEL, so at sunset the orange wash
+    // stayed a flat strip while the real horizon leaned under it: a band of
+    // plain blue sky between the two on the low side, orange smeared over the
+    // far city on the high side, and the sun disc stayed where a level camera
+    // would have put it. true rotates the whole pass about the frame centre by
+    // the bank (same angle and sign as the ground-haze fallback below); false
+    // is the old level pass, kept as a live A/B switch:
+    // `SKY_TUNE.ROLL_FOLLOW = false` from the console.
+    ROLL_FOLLOW: true,
     // ── THE DUSK CLOCK. One schedule, and it is the SUN'S ELEVATION ───
     //
     // THE DEFECT THIS REPLACES. The Aug 4 sweep read all 36 tour frames and
@@ -1576,7 +1589,37 @@
     const W = cv.clientWidth, H = cv.clientHeight;
     // Horizon first: it decides how tall the canvas has to be this frame.
     const hzPxEarly = horizonPx(map);
-    const dpr = resize(Math.max(0, hzPxEarly) + 0.5 * SKY_TUNE.HORIZON_FADE * H) || 1;
+
+    // The bank. Screen rotation about the frame centre, clockwise positive (the
+    // CSS / canvas sense). A positive roll lifts the RIGHT end of the horizon,
+    // so the angle is the negated roll: the sign and the measured reason are on
+    // cameraRollSin. Plain numbers only: this function runs on every frame the
+    // camera moves and allocates nothing for the bank.
+    const rollDeg = (SKY_TUNE.ROLL_FOLLOW !== false && map.getRoll) ? (map.getRoll() || 0) : 0;
+    const rolled = rollDeg !== 0;
+    const rotA = rolled ? rad(-rollDeg) : 0;
+    const rC = rolled ? Math.cos(rotA) : 1;
+    const rS = rolled ? Math.sin(rotA) : 0;
+    const hx = W / 2, hy = H / 2;
+    // Half the frame diagonal: every point of the (rotated) frame is inside this
+    // circle about the centre, so a level square this wide, centred on the
+    // frame, still covers the frame after the rotation.
+    const rExt = 0.5 * Math.hypot(W, H);
+
+    const fadePx = SKY_TUNE.HORIZON_FADE * H;
+    // How many canvas rows the pass needs. Level: down to the clip's lower edge.
+    // Banked: down to the LOWEST point of the tilted clip edge inside the frame,
+    // which is at the frame's left or right edge, not at the centre. That edge
+    // is the level line hz + fade/2 rotated by the bank: at screen x it sits at
+    //   hy + ((hz + fade/2 - hy) + (x - hx) * sin) / cos
+    // and the larger of the two ends is x = hx +- hx. Not clamped at row 0
+    // before the tilt: a horizon above the top of the frame can still dip into
+    // it at one side.
+    let needRows = Math.max(0, hzPxEarly) + 0.5 * fadePx;
+    if (rolled && rC > 0.2) {
+      needRows = Math.max(0, hy + ((hzPxEarly + 0.5 * fadePx - hy) + hx * Math.abs(rS)) / rC);
+    }
+    const dpr = resize(needRows) || 1;
 
     // Which body is lighting the sky, and in what colour. All hour-only — see
     // `hourMemo`, which also carries the two `radial-gradient(...)` strings and
@@ -1604,6 +1647,15 @@
     const vis = M.vis;
 
     const pos = pvec(M.vBody);
+    // The disc, its bloom (DOM or GL), and graphics.js's rays and flare all read
+    // this in SCREEN space. The projector knows nothing about the roll, so put
+    // the point where the rolled world puts it. Nothing else reads the
+    // unrotated value: the canvas washes below are drawn under the rotation.
+    if (rolled) {
+      const dx = pos.x - hx, dy = pos.y - hy;
+      pos.x = hx + rC * dx - rS * dy;
+      pos.y = hy + rS * dx + rC * dy;
+    }
     const showDisc = pos.front && vis > 0.01;
     const discFade = pos.fade;
 
@@ -1633,6 +1685,19 @@
     // ── Canvas pass ──
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, cssH);
+    // Everything below is drawn in LEVEL coordinates (the projector's) under one
+    // rotation about the frame centre, so the clip, the ellipse washes, the
+    // skyglow band, the stars, the clouds and the fade all lean with the world.
+    if (rolled) {
+      ctx.setTransform(dpr * rC, dpr * rS, -dpr * rS, dpr * rC,
+                       dpr * (hx - rC * hx + rS * hy), dpr * (hy - rS * hx - rC * hy));
+    }
+    // The level rect every full-width fill below uses. Level: exactly the frame,
+    // as before. Banked: the square of side 2*rExt about the frame centre, so
+    // the rotated frame's corners are still covered.
+    const bandL = rolled ? hx - rExt : 0;
+    const bandW = rolled ? 2 * rExt : W;
+    const bandT = rolled ? hy - rExt : 0;
     ctx.globalCompositeOperation = 'lighter';
 
     const S = Math.max(W, H);
@@ -1670,10 +1735,9 @@
     // erased again after the pass — see the note on HORIZON_FADE. Clipping is
     // still what stops the wash reaching the whole frame; the erase is only what
     // stops the clip's own edge being a line across the towers.
-    const fadePx = SKY_TUNE.HORIZON_FADE * H;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, W, Math.max(0, hzPx + 0.5 * fadePx));
+    ctx.rect(bandL, bandT, bandW, Math.max(0, hzPx + 0.5 * fadePx - bandT));
     ctx.clip();
 
     /** One elliptical glow lobe, additively composited. */
@@ -1700,7 +1764,7 @@
     if (B.night > 0.02) {
       const band = 7.5 * (H / (map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58));
       const y0 = hzPx - band, y1 = hzPx + 0.012 * H;
-      if (y1 > 0 && y0 < H) {
+      if (y1 > bandT && y0 < (rolled ? hy + rExt : H)) {
         const gs = M.glowStops;
         const g = ctx.createLinearGradient(0, y0, 0, y1);
         g.addColorStop(0.00, gs[0]);
@@ -1708,7 +1772,7 @@
         g.addColorStop(0.78, gs[2]);
         g.addColorStop(1.00, gs[3]);
         ctx.fillStyle = g;
-        ctx.fillRect(0, y0, W, y1 - y0);
+        ctx.fillRect(bandL, y0, bandW, y1 - y0);
       }
     }
 
@@ -1767,7 +1831,17 @@
       for (let si = 0; si < nStars; si++) {
         const s = stars[si];
         const q = memoOn ? pvec(s.v) : project(s.az, s.elev);
-        if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
+        if (!q.front) continue;
+        // Cull on where the star LANDS: a banked frame's corners map to level
+        // coordinates well outside the level frame, and a star just inside the
+        // real one must not be dropped for being outside that.
+        let sx = q.x, sy = q.y;
+        if (rolled) {
+          const dx = sx - hx, dy = sy - hy;
+          sx = hx + rC * dx - rS * dy;
+          sy = hy + rS * dx + rC * dy;
+        }
+        if (sx < -8 || sx > W + 8 || sy < -8 || sy > H) continue;
         drawn++;
         let a = B.stars * s.mag * SKY_TUNE.CITY_STARS;
         // Twinkle rides the existing redraw (camera moves, the auto cycle) —
@@ -1864,8 +1938,10 @@
     // out smoothly across the horizon instead of ending on a row. Done once over
     // the band rather than per lobe, so stars, clouds, the belt and both body
     // washes all land on the same falloff.
-    if (fadePx > 1 && hzPx + 0.5 * fadePx > 0) {
-      const y0 = Math.max(0, hzPx - 0.5 * fadePx);
+    if (fadePx > 1 && hzPx + 0.5 * fadePx > bandT) {
+      // Banked: no clamp at row 0, the ramp lives in the level frame and only
+      // the rotation puts it on screen.
+      const y0 = rolled ? hzPx - 0.5 * fadePx : Math.max(0, hzPx - 0.5 * fadePx);
       const y1 = hzPx + 0.5 * fadePx;
       ctx.globalCompositeOperation = 'destination-out';
       const g = ctx.createLinearGradient(0, y0, 0, y1);
@@ -1877,7 +1953,7 @@
       g.addColorStop(0.70, 'rgba(0,0,0,0.72)');
       g.addColorStop(1, 'rgba(0,0,0,1)');
       ctx.fillStyle = g;
-      ctx.fillRect(0, y0, W, y1 - y0);
+      ctx.fillRect(bandL, y0, bandW, y1 - y0);
     }
     ctx.globalCompositeOperation = 'source-over';
 
@@ -1907,6 +1983,11 @@
     // after the completed map render keeps bloom synchronized with the scene.
     window.skyFrame = {
       W, H, dpr, horizonPx: hzPx,
+      // The bank, for passes that compare against the horizon ROW (graphics.js):
+      // screen rotation about the frame centre, clockwise positive. The horizon
+      // is level at `horizonPx` only when rotCos is 1 and rotSin is 0; at screen
+      // x it is at H/2 + ((horizonPx - H/2) + (x - W/2) * rotSin) / rotCos.
+      rollDeg, rotSin: rS, rotCos: rC,
       sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
       moonUp: useMoon, colour: coreCol, haloColour: haloCol,
       golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,

@@ -369,6 +369,55 @@ check('sky canvas is a band, not a full-screen buffer',
   `${skyCv.cssH} css px tall of a ${skyCv.viewH} px viewport ` +
   `(${(100 * skyCv.cssH / skyCv.viewH).toFixed(0)}% — was 100%)`);
 
+// ── the band stays a band under the bank ──────────────────────────────
+//
+// The sky pass now FOLLOWS the camera roll (SKY_TUNE.ROLL_FOLLOW): under a
+// bank the horizon is a tilted line, so its lowest end sits below the level
+// horizon row and the canvas grows downward to cover it (js/sky.js resize()
+// via `needRows`). That growth is bounded and deliberately kept under half
+// the viewport — the same budget the level band lives inside — so the check
+// above stays true rather than being weakened.
+//
+// Why half still holds. At pitch 64 the horizon is ~0.06H down. The extra
+// rows a roll of r adds are (W/2)*|sin r| / cos r plus the frame-centre
+// term; at the flight controller's own ceiling (TUNE.BANK_MAX = 5 deg) that
+// is ~14% of H, and even at the 15 deg the sky-roll harness forces with the
+// self-heal shadowed out it is ~25% — both under 50%. So this asserts the
+// band does not blow past the budget WHEN ROLLED, which the pre-roll test
+// could not have caught because roll was always self-healed to 0. The bearing
+// spin below leaves roll at 0 again for the persistence checks that follow.
+const skyCvRoll = await page.evaluate(async () => {
+  const m = window.__map;
+  const supported = !!m.getRoll;
+  let cssH = null, viewH = m.getCanvas().clientHeight;
+  if (supported) {
+    // The controller self-heals roll to 0 on idle frames (controls.js), so
+    // force it and shadow setRoll to a no-op to HOLD it — the same way
+    // shots/roll/ did — then restore setRoll and level out afterwards.
+    const real = m.setRoll.bind(m);
+    m.jumpTo({ pitch: 64, bearing: 90 });
+    if (m.isEasing && m.isEasing()) m.stop();
+    real(15);
+    m.setRoll = () => {};
+    m.triggerRepaint();
+    await new Promise(r => setTimeout(r, 700));
+    const c = document.getElementById('sky-canvas');
+    cssH = parseFloat(c.style.height);
+    m.setRoll = real;
+    m.setRoll(0);
+    m.triggerRepaint();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  return { supported, cssH, viewH };
+});
+
+check('sky canvas stays under half the viewport at max bank',
+  !skyCvRoll.supported || skyCvRoll.cssH <= skyCvRoll.viewH * 0.5,
+  skyCvRoll.supported
+    ? `roll 15: ${skyCvRoll.cssH} css px of ${skyCvRoll.viewH} px ` +
+      `(${(100 * skyCvRoll.cssH / skyCvRoll.viewH).toFixed(0)}%)`
+    : 'build has no getRoll — sky is permanently level, nothing to grow');
+
 // ── persistence ───────────────────────────────────────────────────────
 
 await page.evaluate(() => { window.GFX.bloom = 0.77; window.applyGraphics(); });
