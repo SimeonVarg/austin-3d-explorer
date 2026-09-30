@@ -801,9 +801,10 @@ html.has-touch #joystick-zone{display:block}
 
 /* ── PHONE SWEEP (2026-09-29): three touch-layout defects ────────────────
    Found by walking a first visit at 390x844, 360x780 and 844x390 with touch.
-   None of these rules can reach a desktop: each sits behind html.has-touch
-   (set by js/controls.js from navigator.maxTouchPoints) and a phone-sized
-   media query. */
+   Each rule sits behind html.has-touch (set by js/controls.js from
+   navigator.maxTouchPoints) AND a phone-sized media query (max-width 640 px
+   or max-height 520 px), so a mouse desktop and a touch laptop or tablet at
+   a normal window size are both unchanged. */
 
 /* 1. "Switch modes" (#mode-launcher, z-index 59) floated ON TOP of the
    settings and recommendations sheets and covered their bottom-right button
@@ -842,14 +843,23 @@ html.has-touch #joystick-zone{display:block}
 }
 
 /* 3. The close crosses on the settings and recommendations panels were
-   15x13 px targets. The glyph stays exactly where it was; the button around
-   it grows to --touch-min, borrowing the header's own padding so the header
-   does not get taller. */
-html.has-touch #gfx-close,html.has-touch #fb-close{
-  width:var(--touch-min);height:var(--touch-min);flex:none;
-  display:flex;align-items:center;justify-content:flex-end;
-  margin:calc((13px - var(--touch-min)) / 2) -13px calc((13px - var(--touch-min)) / 2) 0;
-  padding:0 15px 0 0}
+   15x13 px targets. The button grows to --touch-min square. The first try
+   borrowed the header padding with negative margins, but the header is only
+   36 px tall: the panel's overflow clipped the top of the box and the panel
+   body (the preset row) painted over the bottom, so a tap there missed.
+   Hanging the box further into the body would steal taps from the right
+   preset button. So the header drops its vertical padding and is exactly
+   one tap target tall (45 px with its border, was 36): every pixel of the
+   44x44 box is inside the header and takes the tap. The glyph keeps its
+   15 px inset from the right edge. Phone sizes only, like 1 and 2. */
+@media(max-width:640px),(max-height:520px){
+  html.has-touch #gfx-head,html.has-touch #fb-head{padding-top:0;padding-bottom:0}
+  html.has-touch #gfx-close,html.has-touch #fb-close{
+    width:var(--touch-min);height:var(--touch-min);flex:none;
+    display:flex;align-items:center;justify-content:flex-end;
+    margin:0 -13px 0 0;                 /* flush with the panel's right edge */
+    padding:0 15px 0 0}
+}
 
 /* Attribution: present (license) but quiet — the old orange links were the
    brightest text in every golden-hour frame. */
