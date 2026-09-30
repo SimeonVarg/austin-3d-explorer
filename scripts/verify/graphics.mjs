@@ -369,6 +369,110 @@ check('sky canvas is a band, not a full-screen buffer',
   `${skyCv.cssH} css px tall of a ${skyCv.viewH} px viewport ` +
   `(${(100 * skyCv.cssH / skyCv.viewH).toFixed(0)}% — was 100%)`);
 
+// ── the band stays a band under the bank ──────────────────────────────
+//
+// The sky pass now FOLLOWS the camera roll (SKY_TUNE.ROLL_FOLLOW): under a
+// bank the horizon is a tilted line, so its lowest end sits below the level
+// horizon row and the canvas grows downward to cover it (js/sky.js resize()
+// via `needRows`). That growth is bounded and deliberately kept under half
+// the viewport — the same budget the level band lives inside — so the check
+// above stays true rather than being weakened.
+//
+// Why half still holds. At pitch 64 the horizon is ~0.06H down. The extra
+// rows a roll of r adds are (W/2)*|sin r| / cos r plus the frame-centre
+// term; at the flight controller's own ceiling (TUNE.BANK_MAX = 5 deg) that
+// is ~14% of H, and even at the 15 deg the sky-roll harness forces with the
+// self-heal shadowed out it is ~25% — both under 50%. So this asserts the
+// band does not blow past the budget WHEN ROLLED, which the pre-roll test
+// could not have caught because roll was always self-healed to 0. The bearing
+// spin below leaves roll at 0 again for the persistence checks that follow.
+const skyCvRoll = await page.evaluate(async () => {
+  const m = window.__map;
+  const supported = !!m.getRoll;
+  let cssH = null, viewH = m.getCanvas().clientHeight, needLow = null, rollSeen = null;
+  let pitchSeen = null, dropped = 0;
+  const fly = window.__fly;
+  const ticks0 = fly ? fly.ticks : null, sim0 = fly && fly.simTime ? fly.simTime() : null;
+  const fx0 = fly && fly.fx ? fly.fx() : null;
+  if (supported) {
+    // THE TEST MUST OWN THE CAMERA FOR THE WHOLE HOLD, not just the roll.
+    //
+    // The controller self-heals roll to 0 on idle frames (controls.js), so
+    // force it and shadow setRoll to a no-op to HOLD it, the same way
+    // shots/roll/ did. That alone was not enough, and CI proved it: the
+    // time-of-day block above dispatches a pointerdown on the canvas, which is
+    // a controller TAKEOVER (syncFromMap at the god-rays pose, pitch 84), and
+    // its feel effects keep it `driving` (fxLive) for a while after. Any frame
+    // it integrates then writes ITS pose through writeToMap(): jumpTo with
+    // pitch 84 and `roll: 0`, straight past the setRoll shadow. How long that
+    // window lasts in wall time depends on the frame rate, so a fast GPU or a
+    // very slow local SwiftShader can miss it; CI run 36658913134 did not, and
+    // read roll 0 with the horizon at 324 px (pitch 84) instead of 48 px.
+    // Reproduced on demand by tapping the canvas at pitch 84 right before the
+    // hold: the old hold read roll 0, horizon 323 px, needLow 338 px, exactly
+    // CI's numbers. So controller writes (they carry eventData {fly:true})
+    // are held off for the hold too, then both shadows come off.
+    const real = m.setRoll.bind(m);
+    const realJump = m.jumpTo;
+    m.jumpTo = function (opts, ed) {
+      if (ed && ed.fly) { dropped++; return this; }
+      return realJump.call(this, opts, ed);
+    };
+    m.jumpTo({ pitch: 64, bearing: 90 });
+    if (m.isEasing && m.isEasing()) m.stop();
+    real(15);
+    m.setRoll = () => {};
+    m.triggerRepaint();
+    await new Promise(r => setTimeout(r, 700));
+    const c = document.getElementById('sky-canvas');
+    cssH = parseFloat(c.style.height);
+    // Where the pass NEEDS rows down to: the lowest end of the tilted clip
+    // edge (horizon + half the fade), at the frame's left or right edge. The
+    // canvas height is quantised and only shrinks after two steps of slack, so
+    // cssH alone can be a high-water mark from an earlier, steeper pitch; the
+    // coverage check below is what proves the bank is actually accommodated.
+    const F = window.skyFrame;
+    const fade = window.SKY_TUNE.HORIZON_FADE * F.H;
+    needLow = F.H / 2 + ((F.horizonPx + 0.5 * fade - F.H / 2) + (F.W / 2) * Math.abs(F.rotSin)) / F.rotCos;
+    rollSeen = F.rollDeg;
+    pitchSeen = m.getPitch();
+    m.jumpTo = realJump;
+    m.setRoll = real;
+    m.setRoll(0);
+    m.triggerRepaint();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  const diag = fly ? { ticks: fly.ticks - ticks0, sim: sim0 === null ? null : fly.simTime() - sim0,
+                       live: fx0 && fx0.live } : null;
+  return { supported, cssH, viewH, needLow, rollSeen, pitchSeen, dropped, diag };
+});
+
+// Both checks below are about the BANKED frame, so both require that the sky
+// pass really drew the forced pose (roll 15 at pitch 64). A frame the
+// controller overwrote is a level frame at another pitch, and passing or
+// failing on it says nothing about the bank.
+const skyHeld = skyCvRoll.rollSeen === 15 && Math.abs(skyCvRoll.pitchSeen - 64) < 0.5;
+const skyHoldNote = skyCvRoll.supported
+  ? `sky pass saw roll ${skyCvRoll.rollSeen} at pitch ${skyCvRoll.pitchSeen && skyCvRoll.pitchSeen.toFixed(1)}; ` +
+    `${skyCvRoll.dropped} controller write(s) held off` +
+    (skyCvRoll.diag ? ` (controller: ${skyCvRoll.diag.ticks} ticks, ${skyCvRoll.diag.sim === null ? '?' : skyCvRoll.diag.sim.toFixed(2)} s sim, ` +
+      `feel effects live at start: ${skyCvRoll.diag.live})` : '')
+  : '';
+
+check('sky canvas stays under half the viewport at max bank',
+  !skyCvRoll.supported || (skyHeld && skyCvRoll.cssH <= skyCvRoll.viewH * 0.5),
+  skyCvRoll.supported
+    ? `roll 15: ${skyCvRoll.cssH} css px of ${skyCvRoll.viewH} px ` +
+      `(${(100 * skyCvRoll.cssH / skyCvRoll.viewH).toFixed(0)}%); ` + skyHoldNote
+    : 'build has no getRoll — sky is permanently level, nothing to grow');
+
+check('sky canvas reaches the low end of the banked horizon',
+  !skyCvRoll.supported || (skyHeld && skyCvRoll.cssH >= skyCvRoll.needLow),
+  skyCvRoll.supported
+    ? `needs rows to ${skyCvRoll.needLow.toFixed(1)} css px, ` +
+      `canvas is ${skyCvRoll.cssH} css px; ` + skyHoldNote
+    : 'build has no getRoll');
+
 // ── persistence ───────────────────────────────────────────────────────
 
 await page.evaluate(() => { window.GFX.bloom = 0.77; window.applyGraphics(); });

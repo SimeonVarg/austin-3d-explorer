@@ -1480,6 +1480,13 @@
     // it to know how far away a pixel is.
     if (elDof && GFX.dof > 0.01) {
       const hz = F.horizonPx;
+      // The bank (js/sky.js publishes it): the horizon is a TILTED line under a
+      // roll, so this band is rotated about the frame centre like the ground
+      // haze in sky.js, and hidden only when the whole tilted line is off the
+      // frame, not when its level-frame value is.
+      const rs = F.rotSin || 0, rc = F.rotCos || 1;
+      const hzL = rs ? F.H / 2 + ((hz - F.H / 2) - (F.W / 2) * rs) / rc : hz;   // at x = 0
+      const hzR = rs ? F.H / 2 + ((hz - F.H / 2) + (F.W / 2) * rs) / rc : hz;   // at x = W
       // Was `hz < -40`. js/sky.js collapses its own canvas clip once the horizon
       // is above -0.018*H (about -16 px at 900), so between those two thresholds
       // there was a ~1.25 degree window of pitch where the sky had stopped
@@ -1491,10 +1498,10 @@
       //
       // Above the viewport there is no ground band to blur, so the honest value
       // is zero.
-      if (hz < 0 || hz > F.H) {
+      if (Math.max(hzL, hzR) < 0 || Math.min(hzL, hzR) > F.H) {
         elDof.style.opacity = '0';
       } else {
-        const top = Math.max(0, hz);
+        const top = rs ? hz : Math.max(0, hz);
         // 0.34H from the horizon is not "the distance" at a high pitch — it is
         // the whole mid-ground, and it was visibly blurring buildings you were
         // flying past.
@@ -1502,6 +1509,14 @@
         elDof.style.opacity = '1';
         elDof.style.top = top.toFixed(0) + 'px';
         elDof.style.height = h.toFixed(0) + 'px';
+        // A rotated rectangle stops short of the frame's corners: grow it by the
+        // swing the rotation costs, both sides. Level: nothing, as before.
+        const padX = rs ? Math.abs(rs / rc) * F.H + 2 : 0;
+        elDof.style.left = elDof.style.right = (-padX).toFixed(0) + 'px';
+        elDof.style.transformOrigin = `${(F.W / 2 + padX).toFixed(0)}px ${(F.H / 2 - top).toFixed(0)}px`;
+        // rotate() is clockwise for a positive angle; rotSin/rotCos ARE that
+        // angle, so this is the same rotation sky.js drew the wash under.
+        elDof.style.transform = rs ? `rotate(${Math.atan2(rs, rc).toFixed(5)}rad)` : '';
         elDof.style.backdropFilter = elDof.style.webkitBackdropFilter =
           `blur(${(0.9 + 3.0 * GFX.dof).toFixed(2)}px)`;
       }
@@ -1699,7 +1714,12 @@
         // A ghost floating ABOVE the horizon is what creates the second-sun
         // illusion; one overlapping the city reads as a lens artifact. Damp
         // the sky ones instead of deleting them.
-        if (gy < F.horizonPx - r * 0.3) a *= FX_TUNE.GHOSTS.SKY_DAMP;
+        // The horizon under a bank is a tilted line: compare against its row at
+        // the ghost's own x. rotSin 0 is the old level `horizonPx`.
+        const grs = F.rotSin || 0;
+        const hzAt = grs ? F.H / 2 + ((F.horizonPx - F.H / 2) + (gx - F.W / 2) * grs) / (F.rotCos || 1)
+                         : F.horizonPx;
+        if (gy < hzAt - r * 0.3) a *= FX_TUNE.GHOSTS.SKY_DAMP;
         if (a < 0.003) continue;
         const rg = fx.createRadialGradient(gx, gy, 0, gx, gy, r);
         // Hollow centre with a bright rim — an iris ghost, not a soft blob.
