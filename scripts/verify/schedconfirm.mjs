@@ -591,9 +591,12 @@ const realGraph = await page.evaluate(async ([b, pairs]) => {
     misread: run('NEZ'), truth: run('MEZ'),
     weekMisread: run('NEZ', week), weekTruth: run('MEZ', week),
     loneMisread: run('NEZ', lone), loneTruth: run('MEZ', lone),
-    // THE OVER-ASK CONTROL FOR THE WIDENED CHECK. PAI/PAT are 250 m apart and
-    // this file's own §2c below reports the pair as unresolvable; widening the
-    // walk read from the day to the WEEK must not quietly start resolving it.
+    // THE OVER-ASK CONTROL FOR THE WIDENED CHECK. PAI/PAT are close enough
+    // that the WEEK read cannot lean on them: a mean can move by at most the
+    // pair distance and CONF.walk.weekGainMin is 3, so widening the walk read
+    // from the day to the WEEK must not quietly start asking about PAI on its
+    // own. (Door to door the pair does now separate at 262 m / 3 min — see the
+    // §2c assertion below — but that is a different signal from the week mean.)
     // s1 and s3 both put a real class in PAI 3.02, so if this fires it fires on
     // the corpus.
     weekPai: run('PAI', week),
@@ -706,11 +709,17 @@ if (realGraph.loaded) {
   note('THE RESIDUAL HOLE IS THE OTHER ' + (realGraph.sep.length - covered.size) + ': ' +
     realGraph.sep.map(s => s.pair).filter(p => !covered.has(p)).join(', '));
   // PAI/PAT NAMED ON ITS OWN, because it is the one that matters. Two real
-  // teaching buildings 250 m apart, and the corpus's own s3 has a class in
-  // PAI 3.02. Neither witness can see it.
-  ok(!covered.has('PAI/PAT'),
-    'PAI/PAT is honestly reported as STILL INVISIBLE rather than quietly counted as covered',
-    'two real teaching buildings, 250 m apart — a room register would settle it and this repo has none');
+  // teaching buildings, and the corpus's own s3 has a class in PAI 3.02. Once
+  // both door links count toward the walk (js/walkgraph.js now adds the seed
+  // and target link metres, not just the pavement between them), the pair
+  // measures 262 m / 3 min apart — over the 2.5 min separation line — so the
+  // graph resolves it rather than leaving it in the residual hole. The week
+  // read still cannot lean on it (weekPai above stays silent, because a mean
+  // can move by at most the pair distance and CONF.walk.weekGainMin is 3); the
+  // door-to-door separation is what changed, and it is the more honest number.
+  ok(covered.has('PAI/PAT'),
+    'PAI/PAT is now separated by the graph once both door links count, not left invisible',
+    'two real teaching buildings, 262 m / 3 min door to door apart');
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
