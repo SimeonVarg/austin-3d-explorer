@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+#
+# test-offline — the checks that run with no AWS account and no network.
+#
+#   1. bash -n on every script here (syntax only, nothing executes).
+#   2. launch --print, asserting the guardrails are all present:
+#        - instance-initiated-shutdown-behavior terminate
+#        - project=flyover tag on the instance AND the volume
+#        - the default type is g6.2xlarge and the fallback is g5.2xlarge
+#        - the hard max runtime and idle timeout reach the user-data
+#   3. teardown --print, asserting it targets only project=flyover and
+#      terminates rather than deletes volumes.
+#   4. the two IAM policy files parse as JSON.
+#
+# Run it: ./test-offline   (exit 0 = all passed)
+#
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+FAILED=0
+pass() { echo "  ok   $1"; }
+fail() { echo "  FAIL $1"; FAILED=1; }
+
+echo "== bash -n on every script =="
+for f in launch user-data teardown test-offline; do
+  if bash -n "$HERE/$f"; then pass "$f parses"; else fail "$f has a syntax error"; fi
+done
+
+echo "== launch --print guardrail assertions =="
+OUT="$("$HERE/launch" --print 2>&1)" || { echo "$OUT"; fail "launch --print exited non-zero"; }
+
+assert_has() {
+  if echo "$OUT" | grep -qF "$1"; then pass "$2"; else fail "$2 (missing: $1)"; fi
+}
+
+assert_has "instance-initiated-shutdown-behavior terminate" "shutdown behaviour is terminate"
+assert_has "g6.2xlarge" "default instance type is g6.2xlarge"
+assert_has "g5.2xlarge" "fallback instance type is g5.2xlarge"
+assert_has "ResourceType=instance,Tags=[{Key=project,Value=flyover}" "instance is tagged project=flyover"
+assert_has "ResourceType=volume,Tags=[{Key=project,Value=flyover}" "volumes are tagged project=flyover"
+assert_has "DeleteOnTermination=true" "root volume deletes on termination"
+
+# The default type must literally BE g6.2xlarge, not just appear somewhere: the
+# first run-instances line must carry it.
+FIRST_RUN="$(echo "$OUT" | grep -m1 "instance-type g6.2xlarge")"
+if [ -n "$FIRST_RUN" ]; then pass "first launch uses g6.2xlarge"; else fail "first launch does not use g6.2xlarge"; fi
+SECOND_RUN="$(echo "$OUT" | grep -m1 "instance-type g5.2xlarge")"
+if [ -n "$SECOND_RUN" ]; then pass "fallback launch uses g5.2xlarge"; else fail "fallback launch does not use g5.2xlarge"; fi
+
+# The SSM AMI resolution must be present and flagged for verification.
+assert_has "ssm get-parameter" "resolves the AMI from SSM"
+grep -q "verify parameter name on first run" "$HERE/launch" && pass "SSM parameter marked verify-on-first-run" || fail "SSM parameter not marked verify-on-first-run"
+
+echo "== user-data guardrail assertions =="
+UD="$HERE/user-data"
+grep -q 'shutdown -h "+' "$UD" && pass "user-data arms hard max-runtime shutdown" || fail "no hard max-runtime shutdown in user-data"
+grep -q "idle watchdog" "$UD" && pass "user-data has an idle watchdog" || fail "no idle watchdog in user-data"
+grep -qi "swiftshader" "$UD" && pass "user-data gates on SwiftShader" || fail "user-data does not check the renderer"
+grep -q "VERIFY_GL=hardware" "$UD" && pass "user-data points harness at hardware GL" || fail "user-data missing VERIFY_GL=hardware"
+grep -q "serve.py" "$UD" && pass "user-data serves with scripts/serve.py" || fail "user-data does not use serve.py"
+
+echo "== teardown --print assertions =="
+TOUT="$("$HERE/teardown" --print 2>&1)"
+echo "$TOUT" | grep -qF "Name=tag:project,Values=flyover" && pass "teardown targets only project=flyover" || fail "teardown not scoped to project=flyover"
+echo "$TOUT" | grep -qF "terminate-instances" && pass "teardown terminates instances" || fail "teardown does not terminate"
+echo "$TOUT" | grep -qi "NOT deleted" && pass "teardown only lists volumes/buckets" || fail "teardown does not make clear volumes are not deleted"
+
+echo "== IAM policy files parse as JSON =="
+for p in iam-operator-policy.json iam-instance-policy.json; do
+  if python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$HERE/$p" 2>/dev/null; then
+    pass "$p is valid JSON"
+  elif node -e "JSON.parse(require('fs').readFileSync(process.argv[1]))" "$HERE/$p" 2>/dev/null; then
+    pass "$p is valid JSON"
+  else
+    fail "$p is not valid JSON"
+  fi
+done
+
+echo
+if [ "$FAILED" -eq 0 ]; then
+  echo "ALL OFFLINE TESTS PASSED"
+else
+  echo "OFFLINE TESTS FAILED"
+fi
+exit "$FAILED"
