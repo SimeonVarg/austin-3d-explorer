@@ -1,5 +1,5 @@
 {
-  "_readme": "The Block on 25th West, 2501 Pearl St (the NE corner of Pearl x W 25th). Authored 2026-09-17 from austin-reference-images/block-on-25th. Frame (stored obb): +u EAST, +v NORTH; u 0 = the Pearl St (west) edge, v 0 = the W 25th St (south) edge. Five storeys, coping ~17 m, stair tower ~23 m (camera solves, 2026-09-16). Replaces the baked entry in data/neighborhood_apartments.json.",
+  "_readme": "The Block on 25th West, 2501 Pearl St (the NE corner of Pearl x W 25th). Authored 2026-09-17 from site photographs. Frame (stored obb): +u EAST, +v NORTH; u 0 = the Pearl St (west) edge, v 0 = the W 25th St (south) edge. Five storeys, coping ~17 m, stair tower ~23 m (camera solves, 2026-09-16). Replaces the baked entry in data/neighborhood_apartments.json.",
   "id": "3d9f61df-03ab-4b6f-8f47-8cd7463827be",
   "name": "Block on 25th West",
   "aliases": [
@@ -8,7 +8,7 @@
   ],
   "category": "apartment",
   "sources": {
-    "photos": "austin-reference-images/block-on-25th (8 files, notes.md)",
+    "photos": "site photographs (8 files, notes.md)",
     "footprint": "data/snapshots/2026-09-12/buildings.detailed.geojson"
   },
   "footprint": {
