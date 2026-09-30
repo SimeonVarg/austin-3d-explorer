@@ -78,6 +78,14 @@
   const DECK = 'roofscape-deck', MAJOR = 'roofscape-major', MINOR = 'roofscape-minor';
   const LAYERS = [DECK, MAJOR, MINOR];
   let anchors = [], initializing = false;
+  let excludedFootprints = [];
+  const exclusionsReady = fetch('data/building_overrides.json').then(response => {
+    if (!response.ok) throw new Error('building overrides HTTP ' + response.status);
+    return response.json();
+  }).then(data => {
+    excludedFootprints = Object.values(data.buildings).filter(override => override.exclude === true && override.geometry).map(override => override.geometry);
+  });
+  exclusionsReady.catch(error => console.error('[roofscape] building exclusions:', error));
   const anchorsReady = fetch('data/roof_anchors.json').then(r => {
     if (!r.ok) throw new Error('roof anchors HTTP ' + r.status);
     return r.json();
@@ -128,7 +136,11 @@
   function filterFor(tier) {
     const dens = detail();
     const base = ['all', ['!=', ['get', 'k'], 'deck'], ['==', ['get', 't'], tier]];
-    return dens >= 1 ? base : ['all', base, ['<=', ['get', 'd'], dens]];
+    return excludeRetired(dens >= 1 ? base : ['all', base, ['<=', ['get', 'd'], dens]]);
+  }
+
+  function excludeRetired(filter) {
+    return excludedFootprints.length ? ['all', filter, ...excludedFootprints.map(geometry => ['>', ['distance', geometry], 0])] : filter;
   }
 
   /**
@@ -147,7 +159,7 @@
   window.initRoofscape = async function initRoofscape(map) {
     if (!ROOFS.on || !map || map.getSource(SRC) || initializing) return;
     initializing = true;
-    try { await anchorsReady; }
+    try { await Promise.all([anchorsReady, exclusionsReady]); }
     catch (e) { initializing = false; throw e; }
     map.addSource(SRC, { type: 'geojson', data: 'data/roofscape.geojson' });
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
@@ -157,7 +169,7 @@
     if (!map.getLayer(DECK)) {
       map.addLayer({
         id: DECK, type: 'fill-extrusion', source: SRC, minzoom: ROOFS.deckMinZoom,
-        filter: ['==', ['get', 'k'], 'deck'],
+        filter: excludeRetired(['==', ['get', 'k'], 'deck']),
         paint: {
           'fill-extrusion-color': col,
           'fill-extrusion-height': placedHeight('h'),

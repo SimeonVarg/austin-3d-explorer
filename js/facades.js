@@ -2257,6 +2257,28 @@
   function applyMottle(d, RESF, SCALE, m) {
     const { cells, amp, cellPx, T } = m;
     const N = T / cellPx, C = cellPx * SCALE;
+    // A cell uses the same blend across its entire horizontal span. Keep
+    // exactly the old channel arithmetic and clamped writes, but compute
+    // the cell's blend once per span instead of once per pixel. Fractional
+    // cell widths retain the original division-based boundary behavior.
+    if (Number.isInteger(C) && C > 0) {
+      const CHANNELS = 4;
+      for (let y = 0; y < RESF; y++) {
+        const row = ((y / C) | 0) * N;
+        for (let x = 0, col = 0; x < RESF; x += C, col++) {
+          const t = cells[row + col];
+          if (!t) continue;
+          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255;
+          const end = (y * RESF + Math.min(x + C, RESF)) * CHANNELS;
+          for (let i = (y * RESF + x) * CHANNELS; i < end; i += CHANNELS) {
+            d[i]     += (tgt - d[i])     * k;
+            d[i + 1] += (tgt - d[i + 1]) * k;
+            d[i + 2] += (tgt - d[i + 2]) * k;
+          }
+        }
+      }
+      return;
+    }
     for (let y = 0; y < RESF; y++) {
       const row = ((y / C) | 0) * N;
       for (let x = 0; x < RESF; x++) {
@@ -3883,7 +3905,10 @@
         const outs = [], pms = [];
         for (let i = 0; i < j.tiers.length; i++) {
           const t = j.tiers[i];
-          const d = t.div > 1 ? decimate(raw, j.RESF, t.div) : new Uint8ClampedArray(raw);
+          // The final full-resolution tier can own the transferred input:
+          // prior decimations have separate buffers and no later tier reads it.
+          const d = t.div > 1 ? decimate(raw, j.RESF, t.div) :
+            (i === j.tiers.length - 1 ? raw : new Uint8ClampedArray(raw));
           self.PatternLowpass.blurWrap(d, t.res, t.r, t.a);
           outs.push(d.buffer);
           // El() of the same bytes, for the atlas patch MapLibre will do next.

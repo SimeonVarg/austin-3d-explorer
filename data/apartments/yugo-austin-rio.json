@@ -5,7 +5,7 @@
   "category": "apartment",
   "labelOverride": false,
   "aliases": [],
-  "sources": {"photo":"austin-reference-images/yugo-rio/yugo-rio__street-elevation__01.webp","footprint":"data/snapshots/2026-09-12/buildings.detailed.geojson","previous":"baked by scripts/bake_neighborhood_apartments.py until 2026-09-17"},
+  "sources": {"photo":"site photograph yugo-rio__street-elevation__01.webp","footprint":"data/snapshots/2026-09-12/buildings.detailed.geojson","previous":"baked by scripts/bake_neighborhood_apartments.py until 2026-09-17"},
   "footprint": {"ring":[[-97.7443044,30.2879929],[-97.7442529,30.2885082],[-97.7445338,30.2885291],[-97.7445854,30.2880139],[-97.7443044,30.2879929]],"holes":[]},
   "frame": {"obb":{"o":[-97.74458599488695,30.288013944941543],"ax":0.9961946980917455,"ay":-0.08715574274765817,"mx":96124.69778767656,"my":111320,"L":27.169402397036926,"W":57.60171241230173}},
   "levels": {"floors":[0,3.8,7.25,10.7,14.15,17.6,21.05,24.15]},

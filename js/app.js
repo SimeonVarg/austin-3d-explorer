@@ -249,7 +249,7 @@
   window.ROOF_CAP = ROOF_CAP;
 
   async function loadScene(date) {
-    const [buildings, parts, signs, extraNames, roofs, facadeGrids] = await Promise.all([
+    const [buildings, parts, signs, extraNames, roofs, facadeGrids, overrides] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
@@ -274,7 +274,14 @@
       // height-class templates, which is exactly the behaviour before this file
       // existed.
       getJSON('data/facade_grids.json', { buildings: [] }),
+      getJSON('data/building_overrides.json', { buildings: {} }),
     ]);
+
+    const excludedIds = new Set(Object.entries(overrides.buildings).filter(([, override]) => override.exclude === true).map(([id]) => id));
+    const excludedWays = new Set(Object.values(overrides.buildings).filter(override => override.exclude === true && override.osm_way_id != null).map(override => String(override.osm_way_id)));
+    const excluded = properties => ['id', 'bid', 'pid', 'building_id'].some(key => excludedIds.has(String(properties[key])))
+      || ['osm', 'osm_id', 'osm_way_id'].some(key => excludedWays.has(String(properties[key] || '').replace(/^(way\/|w)/, '')));
+    for (const collection of [buildings, parts, roofs]) collection.features = collection.features.filter(feature => !excluded(feature.properties || {}));
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
     // HERE — before quantisation and before the label pass — so it earns
@@ -1439,10 +1446,17 @@ window.CityLighting.install(map);
     // clone, or a branch where CI has not run), and then this is byte-identical
     // to what it always was. See scripts/tile.sh.
     const treeTiles = window.tileSource && window.tileSource('trees');
+    // A phone never takes the 27.6 MB GeoJSON fallback (js/mobile.js
+    // LITE.budget.treesGeojsonFallback): no archive means no trees there,
+    // not a parse that can get the tab killed. Desktop is unchanged.
+    const treeFallback = PHONE_BUDGET && PHONE_BUDGET.treesGeojsonFallback === false
+      ? { type:'FeatureCollection', features:[] }
+      : 'data/trees.geojson';
+    if (!treeTiles && typeof treeFallback !== 'string') console.warn('[mobile] trees archive unavailable: phone skips the trees GeoJSON fallback');
     if (!map.getSource('austin-trees')) {
       map.addSource('austin-trees', treeTiles
         ? treeTiles.source
-        : { type:'geojson', data:'data/trees.geojson' });
+        : { type:'geojson', data:treeFallback });
     }
     // Spread into BOTH tree layers. A vector source without `source-layer`
     // draws absolutely nothing and reports no error, which reads as "the trees

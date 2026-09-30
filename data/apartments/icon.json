@@ -6,7 +6,7 @@
     "reference": "https://www.rhodepartners.com/icon",
     "dimensions": "Footprint from snapshot. Facade widths, setbacks, reveals, roof subdivisions and floor spacing are derived from the cited exterior views; these are not survey measurements.",
     "placement": "https://www.iconataustin.com/; 2200 San Antonio Street. ArcGIS World GeocodeServer address match score 100 at -97.743084597282,30.285294489137. 28x30m envelope derived from facade bay counts and neighbor spacing; former Intervarsity footprint is retired, not reused as tower plan.",
-    "photos2026": "Owner photos 2026-09-14 (tower dusk, crown, context) + icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16; colours sampled from it"
+    "photos2026": "Site photos 2026-09-14 (tower dusk, crown, context) + icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the dusk aerial, 2026-09-16; colours sampled from it"
   },
   "footprint": {
     "ring": [
@@ -171,7 +171,7 @@
     "crownGlass": {
       "hex": "#34494d"
     },
-    "_src2026": "Sampled from icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: tower field #d0cecc in shade, lifted to the daylight white; grey piers #bbbbbb; floor ledges #b5b8b5; taupe window heads #746052; the podium's accent panels rust #95654f, brown #6d5a4f, olive #77705f, violet-grey #7c7583, pale grey #aaa8a9, blue-grey #7084a0, taupe #897366. The old wall was tan (#c5b597); every photograph shows white.",
+    "_src2026": "Sampled from icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the dusk aerial, 2026-09-16: tower field #d0cecc in shade, lifted to the daylight white; grey piers #bbbbbb; floor ledges #b5b8b5; taupe window heads #746052; the podium's accent panels rust #95654f, brown #6d5a4f, olive #77705f, violet-grey #7c7583, pale grey #aaa8a9, blue-grey #7084a0, taupe #897366. The old wall was tan (#c5b597); every photograph shows white.",
     "crownClerestory": {
       "hex": "#ccd7cc"
     },
@@ -370,7 +370,7 @@
       "glass": "glass",
       "frame": "ledge",
       "reveal": 0.2,
-      "_src": "tower (floors 6-30), icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: a white field; a grey concrete pier every THIRD window bay (big bays ~8.2 m of three ~2.72 m bays); a grey ledge at every floor; each window ~1.35 x 2.05 m under a taupe head ~0.4 m; the windows stand in straight vertical columns (the dusk aerial at full size; a stagger read as noise from 70 m)."
+      "_src": "tower (floors 6-30), icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the dusk aerial, 2026-09-16: a white field; a grey concrete pier every THIRD window bay (big bays ~8.2 m of three ~2.72 m bays); a grey ledge at every floor; each window ~1.35 x 2.05 m under a taupe head ~0.4 m; the windows stand in straight vertical columns (the dusk aerial at full size; a stagger read as noise from 70 m)."
     },
     "iconPodium": {
       "kind": "bays",
@@ -421,7 +421,7 @@
       "glass": "glass",
       "frame": "ledge",
       "reveal": 0.24,
-      "_src": "floors 2-5, icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the owner's dusk aerial, 2026-09-16: a bolder white grid, a proud white pier on EVERY bay line and a white band at every floor; one big ~1.55 x 1.8 m window per bay under a taupe head, and beside it on the left a ~0.5 m panel in one of seven colours, picked per bay and storey (and sometimes plain white). The panel stands on the viewer's LEFT of the window; this face's s runs right-to-left seen from outside, so the file says 'right'. It runs the whole storey between the white bands (2026-09-17, street photo)."
+      "_src": "floors 2-5, icon__south-elevation__02.jpg (Rhode Partners' photograph, frontal) and the dusk aerial, 2026-09-16: a bolder white grid, a proud white pier on EVERY bay line and a white band at every floor; one big ~1.55 x 1.8 m window per bay under a taupe head, and beside it on the left a ~0.5 m panel in one of seven colours, picked per bay and storey (and sometimes plain white). The panel stands on the viewer's LEFT of the window; this face's s runs right-to-left seen from outside, so the file says 'right'. It runs the whole storey between the white bands (2026-09-17, street photo)."
     },
     "crownGlass": {
       "kind": "storefront",
@@ -432,7 +432,7 @@
       "mullion": 1.1,
       "mullionW": 0.14,
       "reveal": 0.15,
-      "_src": "owner crown photo: a faceted glass room with slim white mullions ~1.1 m apart and a white head band"
+      "_src": "site crown photo: a faceted glass room with slim white mullions ~1.1 m apart and a white head band"
     },
     "crownRoom": {
       "kind": "flat",
@@ -16341,7 +16341,7 @@
         ],
         "h": 0.12,
         "tone": "water",
-        "_src": "owner crown photo: the pool on the east terrace, beside the glass room"
+        "_src": "site crown photo: the pool on the east terrace, beside the glass room"
       },
       {
         "id": "loungers",
@@ -16353,7 +16353,7 @@
         ],
         "h": 0.45,
         "tone": "pave",
-        "_src": "owner crown photo: loungers along the terrace (a look)"
+        "_src": "site crown photo: loungers along the terrace (a look)"
       }
     ]
   },

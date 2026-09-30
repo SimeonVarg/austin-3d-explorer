@@ -159,7 +159,7 @@
     },
     "southGrey": {
       "hex": "#a4aaab",
-      "_src": "the south face's blue-grey stucco: #697173 in shade (__02), #a1a8aa (__01); sampled 2026-09-18 off austin-reference-images/21-rio/south-and-east-elevations__02 (clean wall patches, brighter half) and __01"
+      "_src": "the south face's blue-grey stucco: #697173 in shade (__02), #a1a8aa (__01); sampled 2026-09-18 off the site photograph south-and-east-elevations__02 (clean wall patches, brighter half) and __01"
     },
     "southPale": {
       "hex": "#b9bfc0",

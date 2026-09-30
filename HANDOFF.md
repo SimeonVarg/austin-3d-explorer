@@ -33485,3 +33485,63 @@ Final verification: both 538-frame desktop and phone-viewport films retain nonze
 Visual limits: the island remains deliberately stylized, with muted old-window traces briefly travelling onto upper rock faces. Physical-phone timing, thermal behavior and the real-city busy-load path were not evaluated in this stub-only task. Final animated comparison and contact sheet are for the owner's visual review; no deployment is claimed.
 
 Final rest proof also passes: with CSS, SVG and the separate satellite worker held at the same phase, the entire pre-tap stack screenshot is byte-identical (zero differing pixels), with identical main SVG and no errors. Final exports: out/desktop-before-after.webp (845,612 bytes), out/phone-after.webp (563,294 bytes), out/after-contact-sheet-24.jpg (373,861 bytes). All are labelled and below 1 MB. Full-resolution desktop and phone MP4s and reports remain in work/final2.
+
+## Sep 30 2026 - phone memory pass (branch claude/phone-memory)
+
+Two more lines in `js/mobile.js` `LITE.budget`, phone only (desktop gets no
+budget, so every reader keeps its old value):
+- `shadowSize: 1024` (`js/slopes.js`): the two sun shadow maps were a fixed
+  1536 on every device. 36 MB of targets -> 16 MB. Shadow edges a little coarser.
+- `treesGeojsonFallback: false` (`js/app.js`): no archive means no trees on a
+  phone, never the 27.6 MB GeoJSON.
+- `packVertices` stays `false`. The first version of this PR turned it on;
+  review failed that because its Sep 27 close-up gate (The Standard, 21 Rio)
+  still fails and it is the owner's taste call. It also barely moves the peak
+  (Sep 27: 869 vs 861); it mainly lowers settled memory (~60 MB).
+
+`mobile-memory.mjs`, 390x844 DPR 3, iPhone UA, NVIDIA, no CPU throttle, 3
+interleaved reps, fresh browser each, auto-detect cancelled, opening flight on,
+min [range] MB, packing off in both arms:
+main peak 905 [905-1013] settled 844 [844-857], WebGL 534; branch peak 821
+[821-1010] settled 779 [779-793], WebGL 506. Peak ranges overlap, so this is a
+settled-memory win (~65 MB), not a proven peak win. The "~2.0 GB" in the
+mobile.js header is pre-#310 main; that line is now dated.
+Looks, 390x844: main vs main again 0 px; main vs branch 0.30% spawn, 2.6%
+flight, all on shadow edges (shots/phone-memory/*-before-after-diff.jpg).
+
+## September 30, 2026 - East Mall staircase correction (claude/east-mall-stairs)
+
+The site east of the Tower is an outdoor staircase, not a building. Retired
+the stale Computation Center / COM footprint through the existing building
+overrides, keyed by its Overture ID and OSM way. Scene loading, detail, labels,
+entrances, roofs, roofscape and walking obstacles consume that exclusion.
+Removed its label, 148 entrance pieces, five graph doors/code, roof cap and
+13 rooftop pieces. The original source outline also masks stale rooftop
+tiles, so default tiled detail cannot leave floating equipment behind.
+Historical snapshots and offline massing/survey caches remain source records.
+
+Cached East Mall steps and footways already exist and remain connected. No
+path coordinates were invented or changed; surviving graph nodes/edges and
+door values remain unchanged. Frozen walk-pair references shift only for the
+five retired doors, preserving their existing physical-door choices. Other
+unregistered campus candidates are listed separately and were not removed.
+
+Matched daylight views with labels on show the building and floating rooftop
+pieces gone. Labels have zero coverage gaps; a full entrance replay, detailed
+bake replay, 19 walk-bake gates, exclusion regression and idempotent migrations
+pass. Full verification is NOT green: two existing night unit tests, 14 frozen
+walk pairs and the existing wallplane ceiling remain red. Existing stale
+walkmeter oracle fixtures are also reported, not guessed into passing.
+The reviewing lane retains the local comparison/report and commits the
+explicit file list; this correction is not a claim of globally green checks.
+## September 30, 2026 - Facade texture preparation
+
+js/facades.js now blends each mottle cell once per horizontal span instead of once per pixel, and the paint worker's final full-resolution tier reuses the buffer it was handed instead of copying it. Fractional cell widths still take the old per-pixel path, and earlier tiers keep their own buffers. Materials, geometry, texture sizes and repaint pacing are unchanged.
+
+Proven without a browser: across 350 size, scale, cell and amplitude combinations (25,267,480 bytes) the new mottle output equals the old byte for byte; five worker tier orders give identical images and premultiplied copies; the 24-drawing, 48-tier facade repaint check passes.
+
+Speed: an isolated mottle benchmark, node only and not the app (512 x 512 RGBA, scale 2, 4-pixel cells, amplitude 0.05, five warmups, seven interleaved repetitions, eight calls per sample, minimum per call, both functions run in the same JavaScript realm as a browser worker would run them) measured about 6.4 ms per tile before and 4.2 ms after in one run, and 7.8 and 5.6 ms in a second: roughly 1.4 to 1.5 times faster, about 2 ms saved per tile. An earlier version of this benchmark ran both functions inside a node:vm sandbox and showed a much larger gap; that sandbox inflates the absolute cost about 20 times and the ratio with it, so those figures are not used. The isolated saving is small. In the real city the hour-change repaint took 20.6% less at best on an integrated AMD GPU (three runs each, median 11.5% less) and showed no win on an NVIDIA GPU (two baseline runs, four candidate runs). Those timings drifted between runs and the machine could not be certified quiet (pre-run CPU load was 3.9 to 11.9 percent, and candidate rounds ran progressively slower without a matching baseline), so pair results are not attributable to this patch. An earlier NVIDIA set (1280 x 800, two before and two after, main-thread instrumentation on) was mixed: the hour-change paced job took 9.0 and 5.0 s before against 9.3 and 7.1 s after, and the worst frame gap during a 12 s flight was 197 ms before against 288 ms after (minimums), while load-time facade drawing and the worst turn frame gap were lower after. Treat all of this as a first look, not a result.
+
+Appearance: day frames differ from the unchanged build by at most 2 of 255 per channel. Night frames differ by at most 56 of 255 (campus) and 48 of 255 (West Campus), with 232 and 21 pixels beyond 12; a repeat of the unchanged build gave 230 and 43 for the same two views, so that is scene noise (stars, ground lights). Downtown night and the hour change reached 16 and 17 of 255, with 19 and 15 pixels beyond 12 against 2 and 3 for the repeat, which is not fully accounted for by that noise.
+
+Still open: fresh walking-height and day/night comparisons, a console check on load and after moving the camera, and a quiet-machine timing with at least three interleaved pairs. Until then, do not claim faster turns, hour changes or flight.
