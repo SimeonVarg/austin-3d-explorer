@@ -104,7 +104,7 @@ moved per pose and flags a sabotage that moved nothing.
   folders — campus 169, West Campus 177, Guadalupe 73, downtown 76, other 55;
   by model status: 269 legacy prisms, 148 profiles, 81 tile-only, 43 authored
   JSON, 8 heroes. `scratchpad/lanes/refs/inventory.json` (local).
-- **Packs: 415 building folders** in `C:/Users/simip/Projects/austin-reference-images/`
+- **Packs: 415 building folders** in a local reference-images directory outside the repo
   (local, git-ignored, ~1.4 GB), each with `notes.md`, `sources.json` (licence
   per file) and a labelled contact sheet. Third-party photographs are
   reference-only and are **not** committed.

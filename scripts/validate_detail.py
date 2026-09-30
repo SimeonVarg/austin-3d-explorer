@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """Sanity-check raw Overpass counts and validate the emitted GeoJSON files."""
 import json
+import os
 import urllib.parse
 import urllib.request
 
 BBOX = "30.276,-97.752,30.296,-97.726"
-DATA_DIR = "C:/Users/simip/Projects/austin-3d-explorer/data"
+# Repo data dir, resolved relative to this script (scripts/ -> ../data).
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
 def overpass(query, ep="https://overpass-api.de/api/interpreter"):

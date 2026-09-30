@@ -13,7 +13,7 @@ Copy ONE block per agent. They are scoped so they can run at the same time.
 ## PASS A — REAL TREES, FURNITURE AND STREET LIFE
 
 ```
-You are enriching the Austin 3D Explorer (C:\Users\simip\Projects\austin-3d-explorer) —
+You are enriching the Austin 3D Explorer (the austin-3d-explorer repo) —
 a MapLibre GL 2.5D flyover of UT Austin and West Campus that is going to be featured on
 AWS Kiro's socials. Your job is to make the GROUND PLANE feel alive: real trees, real
 street furniture, real campus objects, placed where they actually are.
@@ -56,7 +56,7 @@ posts, planters, bus shelters, trash bins, tables, statues, banners, signs, scoo
    highway=street_lamp, tourism=artwork, leisure=pitch), UT Austin's own campus GIS /
    campus map / landscape master plan, NAIP or other aerial imagery for canopy detection,
    and Google Street View Static for verifying what is actually on a given block.
-   A Google Maps API key already exists at C:\Users\simip\Projects\utx-diorama\.env —
+   A Google Maps API key already exists at the local reference project (utx-diorama) .env file —
    read it in-script, NEVER print or commit it. Probe /streetview/metadata first for the
    panorama DATE.
 2. FILL THE GAPS HONESTLY. Where no dataset covers a real area (UT malls, interior
@@ -114,7 +114,7 @@ docs and let Simeon paste it.
 ## PASS B — TRIPLE THE RADIUS (cheap outer city)
 
 ```
-You are extending the Austin 3D Explorer (C:\Users\simip\Projects\austin-3d-explorer) —
+You are extending the Austin 3D Explorer (the austin-3d-explorer repo) —
 a MapLibre GL 2.5D flyover of UT Austin and West Campus that is going to be featured on
 AWS Kiro's socials. Right now the modelled world ends abruptly at a small bbox and the
 flyover has nothing beyond it. Your job is to TRIPLE THE RADIUS so the city reads as a
@@ -181,7 +181,7 @@ point of extending south, so the tall ones should still read as themselves.
 Never ask permission to go get better data. Overture Maps (the existing pipeline already
 pulls a versioned release — see config.sh), OSM/Overpass, City of Austin open data, and
 Google Street View Static for spot-checking. A Google Maps API key exists at
-C:\Users\simip\Projects\utx-diorama\.env — read it in-script, NEVER print or commit it.
+the local reference project (utx-diorama) .env file — read it in-script, NEVER print or commit it.
 
 == THE STANDARD ==
 This is going on a public feed. The bar is "a stranger scrolling past believes it is
