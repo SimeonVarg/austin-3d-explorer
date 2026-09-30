@@ -194,6 +194,12 @@
       lowZenith: '#6c91b3', lowHorizon: '#a0b6c8', sunset: '#ff963b',
       ground: '#484e51', groundBlend: .08,
       nightFadeStart: 0, nightFadeEnd: -6, warmElevation: 20,
+      // How far the atmosphere study's near-horizon colour swings toward its
+      // warm `sunset` hue as the sun drops (0..1, on the same `warm` weight the
+      // window reflections use). 1 keeps the sky just above the horizon warm at
+      // sunset so the golden wash meets a warm horizon, not a cold blue-grey
+      // band; 0 restores the old cool horizon. See js/timeofday.js presetAt.
+      horizonWarmAtSunset: 1,
       atmosphere: true, skyBlend: .72, saturation: 1.0,
       // shadowSize: texels per side of each of the two sun shadow maps. A phone
       // takes js/mobile.js LITE.budget.shadowSize instead (desktop: no budget,

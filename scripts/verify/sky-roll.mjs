@@ -49,6 +49,12 @@
  *      through) must not exceed the level camera's by more than AGREE_PX.
  *   3. Roll 0 with ROLL_FOLLOW on equals ROLL_FOLLOW off within LUMA_EPS mean
  *      luma over the whole frame: the fix cannot have moved the level render.
+ *   4. NO COLD BAND. At sunset, on the LEVEL camera, the sky in the clear rows
+ *      just above the horizon must be WARM (red - blue >= WARM_MIN), not the
+ *      cold blue-grey stripe production showed. The atmosphere study replaced
+ *      the warm sunset horizon with a cool colour that leaked through where the
+ *      wash feathers out; this asserts the sky just above the city stays warm,
+ *      which is the owner's reported defect.
  *
  * The rolled "before" arm (the old level pass) is measured and printed with
  * `--before`, never asserted. `--break` runs the old level pass in the "after"
@@ -69,6 +75,10 @@ import path from 'node:path';
 import { BASE, launch } from './chrome.mjs';
 import { decodePNG } from './lib/png.mjs';
 
+// Optional --url=<origin> overrides VERIFY_URL/BASE for the run.
+const urlArg = process.argv.find(a => a.startsWith('--url='));
+const BASE_URL = urlArg ? urlArg.slice('--url='.length) : BASE;
+
 const BREAK = process.argv.includes('--break');
 const shotsAt = process.argv.indexOf('--shots');
 const SHOTS = shotsAt > 0 ? process.argv[shotsAt + 1] : null;
@@ -87,6 +97,20 @@ const EDGE_FRAC = 0.5;    // the lower edge: where our paint falls to half that 
 const GAP_FRAC = 0.25;    // open sky under a quarter of it is the blue gap
 const WIN = 14;           // CSS px either side of a column to find a clear sub-column
 const LUMA_EPS = 1.0;     // roll 0, switch on vs off
+// ── THE COLD BAND (owner's sunset defect) ──
+// At sunset the sky just above the horizon is the WARMEST part of the frame,
+// not a cold blue-grey stripe. The band that showed on production was the
+// atmosphere study's cool horizon (#abc0d1) leaking through where the warm
+// wash feathers out. MEASURED, phone, sunset, level camera, the coolest of the
+// three columns' near-horizon red-minus-blue:
+//   production (main)  -18   (blue exceeds red at the frame edge: a cold band)
+//   fixed (branch)     116   (warm everywhere)
+// So 90 sits well clear of both: production fails by over 60, the fix passes by
+// over 20. Sampled on the composited frame (what a visitor sees), in the clear
+// sky rows just above the horizon.
+const WARM_MIN = 90;      // min (red - blue) of the coolest near-horizon sunset column; below this is the cold band
+const NEAR_HZ_LO = 6;     // CSS px above the horizon: bottom of the near-horizon sample
+const NEAR_HZ_HI = 34;    // CSS px above the horizon: top of the sample (inside the feather zone)
 const TOD_SETTLE_MS = 6000;   // lamps and window lights switch on after an hour change
 const LOAD_WAIT_MS = 240000;  // cap on waiting for the tiles after the veil lifts
 // Over campus looking west into the sunset, horizon inside the frame with room
@@ -269,6 +293,26 @@ function washAt(fr, x, S) {
   return { x, hz, V, edge, gap, d: hz - edge };
 }
 
+/**
+ * THE COLD BAND. The warmth (red - blue) of the composited sky in the clear
+ * rows just above the horizon at a column, averaged over NEAR_HZ_LO..NEAR_HZ_HI
+ * px. This is what a visitor sees at sunset, not our layer alone: a cold band
+ * is cold whether MapLibre or our wash painted it. Only counts rows the
+ * diagnostic frame says are sky (no tower standing in front). Returns null if
+ * the column has no clear near-horizon sky.
+ */
+function nearHorizonWarmth(on, diag, fit, x) {
+  const hz = Math.round(fit.at(x));
+  let sum = 0, n = 0;
+  for (let dy = NEAR_HZ_LO; dy <= NEAR_HZ_HI; dy++) {
+    const y = hz - dy; if (y < 0) continue;
+    if (!isSky(diag, x, y)) continue;   // a building/tree stands here, not sky
+    const c = px(on, x, y);
+    sum += c[0] - c[2]; n++;
+  }
+  return n ? { warmth: sum / n, n } : null;
+}
+
 function meanLumaDiff(a, b) {
   let s = 0; const n = a.width * a.height;
   for (let i = 0; i < n; i++) {
@@ -282,7 +326,7 @@ async function runSize(S) {
   const page = await browser.newPage(S.ctx);
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
-  await page.goto(`${BASE}/index.html?intro=0&drift=0`, { waitUntil: 'load', timeout: 180000 });
+  await page.goto(`${BASE_URL}/index.html?intro=0&drift=0`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded && window.__map.isStyleLoaded(), null, { timeout: 180000 });
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
   // Pose NOW, under the load veil, so the city loads its tiles and facades for
@@ -386,6 +430,27 @@ async function runSize(S) {
     const dl = Math.min(meanLumaDiff(level.on, lvOff1), meanLumaDiff(level.on, lvOff2));
     check(`[${S.name} ${t.name} roll 0] switch on matches switch off`, dl <= LUMA_EPS,
       `mean |dLuma| over the frame ${dl.toFixed(3)} (tol ${LUMA_EPS})`);
+
+    // THE COLD BAND (owner's defect), on the LEVEL camera. Only asserted at
+    // the warm hour where the wash shows: at sunset the sky just above the
+    // horizon must be WARM, not the cold blue-grey band production showed.
+    // Sampled in the composited frame (what a visitor sees), in clear sky
+    // columns, over the rows where the wash feathers toward the horizon.
+    if (t.name === 'sunset') {
+      let worstWarm = Infinity, warmParts = [], warmN = 0;
+      for (const f of COLS) {
+        const x = clearColumn(level.diag, level.fit, Math.round(f * (level.on.width - 1)));
+        if (x == null) { warmParts.push(`${Math.round(f * 100)}%: no clear sky column`); continue; }
+        const w = nearHorizonWarmth(level.on, level.diag, level.fit, x);
+        if (!w) { warmParts.push(`${Math.round(f * 100)}%: no near-horizon sky`); continue; }
+        warmN++;
+        worstWarm = Math.min(worstWarm, w.warmth);
+        warmParts.push(`${Math.round(f * 100)}%: x${x} red-blue ${w.warmth.toFixed(0)} over ${w.n} rows`);
+      }
+      check(`[${S.name} ${t.name} roll 0] no cold band above the horizon`,
+        warmN > 0 && worstWarm >= WARM_MIN,
+        `coolest near-horizon sky red-blue ${Number.isFinite(worstWarm) ? worstWarm.toFixed(0) : 'n/a'} (min ${WARM_MIN}) — ${warmParts.join(' | ')}`);
+    }
 
     const W = level.on.width, H = level.on.height, hx = W / 2, hy = H / 2;
     for (const roll of plan.rolls) {
