@@ -16,7 +16,9 @@
  * lifted and ~2.0 GB twelve seconds later: the opening flight crosses downtown
  * and every tile it loads carried a facade pattern atlas of up to 30 MB, and
  * MapLibre keeps ~30 of those tiles after they leave the screen. A phone tab is
- * killed far below that. Then two things turned one kill into Safari's error
+ * killed far below that. (Those are Sep 24 figures, before PR #310. On Sep 30
+ * the same test put main's flight peak at ~0.9-1.0 GB; see HANDOFF.md.)
+ * Then two things turned one kill into Safari's error
  * page, and both were ours:
  *
  *   1. SAFARI RELOADS A KILLED PAGE EXACTLY ONCE BY ITSELF, and shows "A
@@ -153,13 +155,13 @@
       // half a degree. The one visible-in-a-diff cost: the fine brick-joint
       // grain on far walls sits a fraction of a brick along (see packGeometry).
       // false = exact vertices.
-      // Sep 27 2026 it was deferred: its own close-up gate (packed vs exact,
-      // one page) moves The Standard by day 11,190 px (max 12/255) and 21 Rio
-      // 5,348 - the same grain, displaced. ON again Sep 30 2026 (phone memory
-      // pass): at the phone's own 390x844 spawn and flight views the frames
-      // were checked side by side and show no visible change, and the phone
-      // needs every MB it can get. false = exact vertices; nothing else moves.
-      packVertices: true,
+      // DEFERRED (Sep 27 2026): its own visual gate still fails - packed vs
+      // exact in one page, The Standard by day 11,190 px changed (max 12/255),
+      // 21 Rio 5,348 - so phones ship exact vertices until someone accepts
+      // that picture. true turns it back on; nothing else changes.
+      // Sep 30 2026: still off. Measured on vs off it barely moves the flight
+      // peak (HANDOFF.md); it mainly lowers settled memory. Owner's call.
+      packVertices: false,
       // js/slopes.js SLOPES.sunlight.shadowSize: the two sun shadow maps
       // (near, far). Desktop keeps 1536. Each map is a colour target plus a
       // depth buffer, 8 bytes a texel: 2 x 1536^2 x 8 = 37.7 MB at 1536,

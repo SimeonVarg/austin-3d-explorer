@@ -33454,18 +33454,23 @@ Final rest proof also passes: with CSS, SVG and the separate satellite worker he
 
 ## Sep 30 2026 - phone memory pass (branch claude/phone-memory)
 
-Three more lines in `js/mobile.js` `LITE.budget`, phone only (desktop gets no
+Two more lines in `js/mobile.js` `LITE.budget`, phone only (desktop gets no
 budget, so every reader keeps its old value):
 - `shadowSize: 1024` (`js/slopes.js`): the two sun shadow maps were a fixed
   1536 on every device. 36 MB of targets -> 16 MB. Shadow edges a little coarser.
-- `packVertices: true` (was deferred Sep 27): at the 390x844 spawn and flight
-  views the only moved pixels are the shadow edges; the facades show no change.
 - `treesGeojsonFallback: false` (`js/app.js`): no archive means no trees on a
   phone, never the 27.6 MB GeoJSON.
+- `packVertices` stays `false`. The first version of this PR turned it on;
+  review failed that because its Sep 27 close-up gate (The Standard, 21 Rio)
+  still fails and it is the owner's taste call. It also barely moves the peak
+  (Sep 27: 869 vs 861); it mainly lowers settled memory (~60 MB).
 
-`mobile-memory.mjs`, 390x844 DPR 3, NVIDIA, 3 interleaved reps, fresh browser
-each, auto-detect cancelled, `?drift=0` with the opening flight, min [range] MB:
-main peak 903 [903-1004] settled 831 [831-843], WebGL 551; branch peak 839
-[839-887] settled 739 [739-792], WebGL 464. GPU process private 1417 -> 1259.
-Note: the "~2.0 GB at the flight peak" in the mobile.js header is the pre-#310
-main; main before this pass was already ~0.9-1.0 GB page-held.
+`mobile-memory.mjs`, 390x844 DPR 3, iPhone UA, NVIDIA, no CPU throttle, 3
+interleaved reps, fresh browser each, auto-detect cancelled, opening flight on,
+min [range] MB, packing off in both arms:
+main peak 905 [905-1013] settled 844 [844-857], WebGL 534; branch peak 821
+[821-1010] settled 779 [779-793], WebGL 506. Peak ranges overlap, so this is a
+settled-memory win (~65 MB), not a proven peak win. The "~2.0 GB" in the
+mobile.js header is pre-#310 main; that line is now dated.
+Looks, 390x844: main vs main again 0 px; main vs branch 0.30% spawn, 2.6%
+flight, all on shadow edges (shots/phone-memory/*-before-after-diff.jpg).
