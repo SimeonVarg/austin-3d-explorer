@@ -57,6 +57,8 @@ const FLIGHTS = {
                   to: { center: [-97.7372, 30.2885], zoom: 16.42, pitch: 74, bearing: 200 } },
   'downtown-pan': { from: { center: [-97.7460, 30.2667], zoom: 16.3, pitch: 72, bearing: 25 },
                     to: { center: [-97.7400, 30.2687], zoom: 16.3, pitch: 72, bearing: 25 } },
+  'west-glide': { from: { center: [-97.7452, 30.2872], zoom: 16.6, pitch: 72, bearing: 300 },
+                  to: { center: [-97.7438, 30.2888], zoom: 16.6, pitch: 72, bearing: 300 } },
 };
 if (!FLIGHTS[FLIGHT]) { console.error('unknown --flight ' + FLIGHT); process.exit(2); }
 

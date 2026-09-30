@@ -131,8 +131,11 @@ const FLIGHTS = {
   // a slow pan over downtown
   'downtown-pan': { from: { center: [-97.7445, 30.2672], zoom: 16.3, pitch: 72, bearing: 25 },
                     to:   { center: [-97.7415, 30.2682], zoom: 16.3, pitch: 72, bearing: 25 }, frames: 90 },
-  // the drift-probe micro step: the same as spawn-orbit but a tenth the arc, for shimmer only
+  // the micro step: the same as spawn-orbit but a tenth the arc, for shimmer only
   'spawn-micro': { from: { ...POSES.spawn, bearing: 249.4 }, to: { ...POSES.spawn, bearing: 250.6 }, frames: 24 },
+  // a slow glide past the West Campus apartment towers, at the west-campus pose's height
+  'west-glide': { from: { center: [-97.7452, 30.2872], zoom: 16.6, pitch: 72, bearing: 300 },
+                  to:   { center: [-97.7438, 30.2888], zoom: 16.6, pitch: 72, bearing: 300 }, frames: 90 },
   // the before/after reel: a glide north over downtown's towers toward campus,
   // the landing flight's opening (5 s at 30 fps)
   'reel': { from: { ...POSES['intro-start'] },

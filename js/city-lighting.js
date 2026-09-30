@@ -49,6 +49,29 @@
   // MapLibre's own, exactly as before, so the integrated chip pays nothing,
   // not even the registers. A live `on` switch works only where it compiled.
   patternFilter.compiled=patternFilter.on;
+  // THIN LINES (moire, 2026-09-30): the downtown floor bands, balcony decks
+  // and guard rails are extrusions 0.1-0.9 m thick. Far away that is a fifth
+  // of a pixel, which MSAA draws as broken dashes that crawl in flight.
+  // In the named layers, a feature no thicker than its layer's number (m)
+  // whose wall projects under minPx is drawn minPx tall (its base moved down;
+  // its top, and so its roof face, stays where it is) at the matching
+  // coverage: alpha = true thickness / drawn thickness. So a 0.2 px band
+  // reads as a steady 1 px line at 20%, the way the 3x reference draws it.
+  // maxGrow caps the stretch (a band seen exactly edge-on). Nothing changes
+  // where the wall already projects minPx or more: every walking and street
+  // view. The pads (k='g', 0.45 m) are above the detail layer's 0.42 on
+  // purpose, so a park never turns see-through.
+  // OFF BY DEFAULT (2026-09-30): measured on NVIDIA, 1280x680 at DPR 1.5, MSAA
+  // on, against a 3x reference, it did not earn its place. Still frames were
+  // flat (downtown 0.216 -> 0.218, landing start 0.172 -> 0.175), the slow
+  // downtown pan crawled 6% less (shimmer 0.120 -> 0.113, 40 frames), and on the
+  // AMD integrated chip it read +2.8 ms a frame (3 of 3 reps slower, machine
+  // loaded). ?thinlines=1 turns it on for an A/B; CityLighting.thinLines.on is
+  // live. See HANDOFF, Sep 30 2026.
+  const thinLines={on:new URLSearchParams(location.search).get('thinlines')==='1',
+    minPx:1.25,maxGrow:40,
+    layers:{'outer-detail':0.42,'outer-landmark-glass':0.9,'outer-landmark-light':0.9}};
+  const thinFor=id=>thinLines.on&&id?thinLines.layers[id]||0:0;
   // Diffuse sky fill, in linear light. Upward-facing surfaces see more sky.
   // Shared by both building renderers; zeroes reproduce the previous balance.
   const balance={skyFill:0.12,roofFill:0.08};
@@ -643,16 +666,17 @@
       'night-tower-pool-fill','entrances-pool','signs-ground-glow','props-lit','props-lit-core']);
     const depthPool=id=>window.NIGHT_TUNE?.DEPTH_POOLS!==false&&groundLights.has(id);
     const painter=map.painter,drawFunctions=painter.drawFunctions;
-    let activeSolidSurface=0;
+    let activeSolidSurface=0,activeThin=0;
     // MapLibre treats circles after its first 3D layer as painter-ordered 2D
     // overlays, with depth testing disabled. A ground glow then crosses walls.
     // These seven ground-light layers use the existing 3D depth range, read-only.
     // MapLibre 5.24 dispatches the style type fill-extrusion through the
     // camelCase fillExtrusion method; a hyphenated property is never called.
     painter.drawFunctions={...drawFunctions,fillExtrusion(...args){
-      const previous=activeSolidSurface;
+      const previous=activeSolidSurface,previousThin=activeThin;
       activeSolidSurface=solidSurfaceFor(args[2]?.id);
-      try{return drawFunctions.fillExtrusion(...args);}finally{activeSolidSurface=previous;}
+      activeThin=thinFor(args[2]?.id);
+      try{return drawFunctions.fillExtrusion(...args);}finally{activeSolidSurface=previous;activeThin=previousThin;}
     },circle(...args){
       const p=args[0],layer=args[2],original=p.getDepthModeForSublayer;
       if(!depthPool(layer.id))return drawFunctions.circle(...args);
@@ -676,8 +700,24 @@
           source=replace(source,'float ele=get_elevation(circle_center);','float ele=get_elevation(circle_center)+u_cityPoolLift;');
         } else if(source.includes('in vec4 a_normal_ed;')) {
           kind=source.includes('out vec4 v_lighting;')?'pattern-vertex':'solid-vertex';
-          source=replace(source,'void main()',`uniform mat4 u_cityTileToLocal; out ${varying}\nvoid main()`);
+          source=replace(source,'void main()',`uniform mat4 u_cityTileToLocal; uniform vec3 u_cityThin; uniform vec2 u_cityViewport; out float v_cityThin; out ${varying}\nvoid main()`);
           source=replace(source,'vec2 posInTile=a_pos+u_fill_translate;',`vec2 posInTile=a_pos+u_fill_translate;
+            v_cityThin=1.0;
+            if(u_cityThin.x>0.0&&normal.z==0.0){
+              float cityTh=height-base;
+              if(cityTh>0.0&&cityTh<=u_cityThin.x){
+                vec4 c0=u_projection_matrix*vec4(posInTile,base,1.0),c1=u_projection_matrix*vec4(posInTile,height,1.0);
+                if(c0.w>0.0&&c1.w>0.0){
+                  float px=length((c1.xy/c1.w-c0.xy/c0.w)*0.5*u_cityViewport);
+                  if(px<u_cityThin.y){
+                    float drawn=cityTh*min(u_cityThin.y/max(px,1e-4),u_cityThin.z);
+                    float nb=max(0.0,height-drawn);
+                    v_cityThin=cityTh/max(height-nb,1e-4);
+                    if(t<=0.0)elevation=nb;
+                  }
+                }
+              }
+            }
             v_cityPos=(u_cityTileToLocal*vec4(posInTile,elevation,1.0)).xyz;
             v_cityNormal=normalize(vec3(-normal.x,normal.y,normal.z));
             v_cityAlbedo=${kind==='solid-vertex'?'color':'vec4(1.0)'};`);
@@ -690,7 +730,7 @@
           if(pattern||minimal) {
             kind=pattern?'pattern-fragment':'solid-fragment';
             const packing=`float unpackRGBAToDepth(vec4 v){return dot(v,vec4(255.0/256.0/16777216.0,255.0/256.0/65536.0,255.0/256.0/256.0,255.0/256.0));}`;
-            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern&&patternFilter.compiled?patternFilterGlsl:''}\nvoid main()`);
+            source=replace(source,'void main()',`in vec3 v_cityPos; in vec3 v_cityNormal; in vec4 v_cityAlbedo; in float v_cityThin;\n${uniforms}\n${packing}\n${glsl.replaceAll('texture2D(', 'texture(')}\n${pattern&&patternFilter.compiled?patternFilterGlsl:''}\nvoid main()`);
             if(pattern&&patternFilter.compiled) {
               const read=(ab,pos)=>`texture(u_image,${pos})`;
               const filtered=(ab,pos,v)=>`cityPatternTexel(u_image,${read(ab,pos)},${v},pattern_tl_${ab}/u_texsize,pattern_br_${ab}/u_texsize,u_texsize,cityPatternDist)`;
@@ -735,7 +775,7 @@
               else shaded=mix(shaded,max(shaded,albedo*u_cityNight.y),u_cityNight.x);
               fragColor=vec4(shaded*v_color.a,v_color.a);
               }`;
-            source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output);
+            source=replace(source,pattern?'fragColor=mixedColor*v_lighting;':'fragColor=v_color;',output+'\nfragColor*=v_cityThin;');
             stats.fragmentShaders++;
           }
         }
@@ -759,6 +799,8 @@
       const u={};
       for(const name of [...uniforms.matchAll(/uniform \w+ ([^;]+);/g)].flatMap(m=>m[1].split(',').map(s=>s.trim())))u[name]=gl.getUniformLocation(program,name);
       u.u_cityTileToLocal=gl.getUniformLocation(program,'u_cityTileToLocal');
+      u.u_cityThin=gl.getUniformLocation(program,'u_cityThin');
+      u.u_cityViewport=gl.getUniformLocation(program,'u_cityViewport');
       const projection=gl.getUniformLocation(program,'u_projection_matrix');
       const record={u,serial:-1,projection:null,tile:null,tileDirty:true};
       programs.set(program,record);if(projection)locations.set(projection,record);
@@ -797,6 +839,12 @@
       }
       if(surface===1||surface===3)stats.solidGlassDraws++;
       if(surface===2)stats.solidLightDraws++;
+      // Per layer, like the surface: a program is shared across layers.
+      if(u.u_cityThin){
+        const thin=activeThin,key=thin+'|'+thinLines.minPx+'|'+thinLines.maxGrow;
+        if(p.thin!==key){gl.uniform3f(u.u_cityThin,thin,thinLines.minPx,thinLines.maxGrow);p.thin=key;}
+        if(thin>0){gl.uniform2f(u.u_cityViewport,gl.drawingBufferWidth,gl.drawingBufferHeight);stats.thinDraws=(stats.thinDraws||0)+1;}
+      }
       if(p.serial!==serial) {
         for(const [name,slot] of Object.entries(u)) {
           if(!slot||name.startsWith('u_sunShadow')&&!name.includes('Matrix')||name==='u_cityTileToLocal'||name==='u_citySolidSurface')continue;
@@ -833,7 +881,7 @@
     }
     map.on('remove',()=>{painter.drawFunctions=drawFunctions;for(const [name,native] of Object.entries(originals))gl[name]=native;gl.deleteTexture(fallbackShadow);fallbackShadow=null;frame=null;});
   }
-  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,
+  window.CityLighting={uniforms,glsl,balance,landmarkMaterials,campusMaterials,glassRect,glassColour,install,stats,shadowProxy,proxyHash,patternFilter,thinLines,
     setBuildings(features){buildings=features;proxyDirty=true;},
     frame(U,inverse,textures){
       // Before either renderer draws. Materials retain this shared U object.
