@@ -18,7 +18,7 @@
     "S13": "The judge's fair-comparison package (scratchpad apts/judge/standard/, 2026-09-06): B.png = the S8 south-west oblique (Earth @30.28699,-97.74578,190a,220d,35y,45h,55t, imagery 12/2023) cropped to the building beside ours at the same camera. On the south face the white/rust bays run from the roof straight down to a ONE-storey dark base — twelve window rows show above the neighbouring garage's roof, where ours had nine over six storeys of charcoal screen; at the SW corner the dark base under the tower is two residential storeys (~6 m) with the cafe's glazing in it.",
     "S12": "js/westcampus.js SOLID: the West Campus pass's day/golden/night trios for a pool, deck paving, turf, shade, furniture, black steel rail, balcony slab, the jumbotron screen and the white sign letters — entered cool for top faces, dark at night, the pool lit.",
     "derived": "a number computed from the above and marked so; 'unknown' stays unknown.",
-    "S14": "Owner photographs 1-3 of 2026-09-06, transcribed by the lead in the session scratchpad (next/standard-owner-photos.md); the photographs are not on disk. Photo 1 (dusk oblique, the whole building; its content — garage right, The Block on 23rd far right, construction foreground — is the S6 view from the north-west): the pixel skin is solid charcoal rectangles on an off-white field, ~70/30 light/dark, on the blank flanks only; THE STANDARD vertical on both towers; the podium is LIGHT with rust accent strips on scattered bays and small black juliet balconies; charcoal at the ground floor and in the sign band at the podium top. Photo 2 (aerial over the deck): lap pool, a separate square spa with a raised edge, vivid turf patches, a row of blue loungers along the pool, teal chairs and tables on the turf, palms in square tiled planters, the jumbotron on the tower wall, cabanas with dark flat canopies on slender posts, a dark slatted privacy screen on one deck edge with the condensers behind it. Photo 3 (on the deck): the spa's coping reads 3 FT 0 IN, blue mosaic tile, string lights, balconies with black rails stepping up the tower. Eyeball hex in the transcription (~#e9e9e7 field, ~#4a4e54 marks, ~#c1622e rust, ~#35a8c8 pool, ~#7ac143 turf) — sampled values below cite the photograph they were measured on.",
+    "S14": "Site photographs 1-3 of 2026-09-06, transcribed in the session scratchpad; the photographs are not on disk. Photo 1 (dusk oblique, the whole building; its content — garage right, The Block on 23rd far right, construction foreground — is the S6 view from the north-west): the pixel skin is solid charcoal rectangles on an off-white field, ~70/30 light/dark, on the blank flanks only; THE STANDARD vertical on both towers; the podium is LIGHT with rust accent strips on scattered bays and small black juliet balconies; charcoal at the ground floor and in the sign band at the podium top. Photo 2 (aerial over the deck): lap pool, a separate square spa with a raised edge, vivid turf patches, a row of blue loungers along the pool, teal chairs and tables on the turf, palms in square tiled planters, the jumbotron on the tower wall, cabanas with dark flat canopies on slender posts, a dark slatted privacy screen on one deck edge with the condensers behind it. Photo 3 (on the deck): the spa's coping reads 3 FT 0 IN, blue mosaic tile, string lights, balconies with black rails stepping up the tower. Eyeball hex in the transcription (~#e9e9e7 field, ~#4a4e54 marks, ~#c1622e rust, ~#35a8c8 pool, ~#7ac143 turf) — sampled values below cite the photograph they were measured on.",
     "S15": "humphreys_00.jpg (= Ext_14, S5) read again at 3x crops on 2026-09-06 for the skins: the corner bay is charcoal for its FULL height above the storefront on both street faces with a four-storey glazed corner stack (floor-to-ceiling glass per floor, thin spandrels) at the corner and small black balconies beside it on the 23rd St face; its top storey (18.4-21.5) is windowless and carries the horizontal signs (letters ~0.85 m tall, the text block ~9 m long starting ~0.5 m from the corner on 23rd and ~1 m from it on Pearl); the podium beside it is light grey panel, one tall window per ~3.1 m bay with a storey-tall rust strip immediately LEFT of the window on every third bay and a juliet balcony (black rail, ~1.7 m wide, ~0.35 m deep) on those bays; tower B's west face is the pixel field at its north end with THE STANDARD vertical about three quarters of the way along the field from the north corner, then white bays with rust strips and tall windows, then — at the building's south-west corner — a stacked balcony column whose slabs and rails read from the north as a dark vertical stripe with two lit window columns (the 'dark charcoal panel' of S14 photo 1; it is balconies, not panel: the Earth mesh S8 shows the slabs projecting west); the pixel field also reaches the ground in a ~4 m strip on the Pearl podium under the tower's field, light podium either side of it.",
     "S16": "humphreys_01.jpg (S6) at 3-4x crops, 2026-09-06: tower A's north face is 25 m of pixel with ONE lit slit column at 0.29 of the width from the east end and THE STANDARD vertical at 0.68 from the east end (7-8 m from the west corner), the letters from ~2.8 m below the roof to ~15.5 m below it (12.7 m for twelve characters), on a plain white column clear of dark marks; the dark marks are ~1.3 m tall (two panel courses) and 2.4-7 m long, about 26 % of the field by k-means (#4c5153 dark / #9fa4a8 light at dusk), the field WHITE with a few mid-grey planks; tower B's north face has SIX bays of ~2.66 m over 15.95 m — a balcony column flush at the east corner, four window bays each with a rust strip immediately left of its window, a balcony column 2.1 m in from the west corner; the podium's north face has five window rows above the storefront, juliets on every third bay, and two one-storey dark louvre panels in the top storey just east of the corner bay.",
     "S17": "Google Earth 3D at the two recorded obliques (S8: SW @45h and NW @135h, imagery 12/2023), read at 4-6x crops on 2026-09-06 — daylight colour and the west face's composition: the south face is white-grey panel (k-means #d6dcda lit / #afb0a6 shaded) with rust strips (#a8553a-class) on ALTERNATE bay lines, about every 5 m over the 66 m bar — two tall dark windows between strips — over a one-storey dark base; tower B's west face is pixel on its north ~11 m with one slit column at its middle, white bays with dark window columns on the rest, the pixel strip reaching the street under the field's south end; a stacked balcony column projects west at the building's SW corner with a light bulkhead on the roof above it; tower A's north and west faces are pixel; the deck in plan: the pool along the 23rd St edge with a row of loungers on its south side, turf and teal chairs west of them, a dark-canopied cabana south of the turf, a small blue spa at the pool's west end.",
@@ -143,10 +143,10 @@
     "_heights_src": "roofA 57.2 + 1.0 parapet = 58.2 T.O. (S3): tower A is the 17-storey element — from the NW oblique (S8) its roof stands clearly above tower B's, and from the S (S8) a pixel-clad top rises above the continuous 9-row south elevation. Everything else (tower B, the bars round the light wells) is two storeys lower: 9 window rows above the ~20 m garage roof from the south (S8) = level 15's ceiling at 50.86. ±1 storey: read off the photogrammetry mesh, no drawing found."
   },
   "colours": {
-    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone. The 2026-09-06 pass re-sampled the wall tones in DAYLIGHT off the Earth obliques (S17) and cross-checked them against the owner's eyeball values (S14) — the previous tones were measured at blue hour (S9) and lifted, and read tan/cream beside Earth at the judge's camera.",
+    "_src": "day hex; golden and night come from js/westcampus.js's ramp() unless a full trio is given. Sources per tone. The 2026-09-06 pass re-sampled the wall tones in DAYLIGHT off the Earth obliques (S17) and cross-checked them against the eyeballed values (S14) — the previous tones were measured at blue hour (S9) and lifted, and read tan/cream beside Earth at the judge's camera.",
     "pixWhite": {
       "hex": "#ecedea",
-      "_src": "the pixel field's off-white: Earth's sunlit panel #dce2e1 (S20), the owner's ~#e9e9e7 (S14); set at the top of the family because the app's daylight draws #e2e3df as #b5a997 (S20) — was #e4e5e1"
+      "_src": "the pixel field's off-white: Earth's sunlit panel #dce2e1 (S20), the site photographs' ~#e9e9e7 (S14); set at the top of the family because the app's daylight draws #e2e3df as #b5a997 (S20) — was #e4e5e1"
     },
     "pixPale": {
       "hex": "#b9bab5",
@@ -154,7 +154,7 @@
     },
     "pixDark": {
       "hex": "#5c6064",
-      "_src": "the dark plank: S14 ~#4a4e54; S16 k-means #4c5153 at dusk; S17 #3c4653 in Earth's shade — the middle value 2026-09-16: lifted from #4a4e52 — owner photo 2 (daylight) samples the bars at #616365; the old value rendered near-black (#413f3b)."
+      "_src": "the dark plank: S14 ~#4a4e54; S16 k-means #4c5153 at dusk; S17 #3c4653 in Earth's shade — the middle value 2026-09-16: lifted from #4a4e52 — site photo 2 (daylight) samples the bars at #616365; the old value rendered near-black (#413f3b)."
     },
     "white": {
       "hex": "#eaece8",
@@ -357,13 +357,13 @@
       "#b0c24a",
       "#26301a"
     ],
-    "_planterLime_src": "owner photo 2/3: the long bright lime planter boxes along the turf and the south fence (a look, not sampled)",
+    "_planterLime_src": "site photo 2/3: the long bright lime planter boxes along the turf and the south fence (a look, not sampled)",
     "screenWall": [
       "#62656a",
       "#7a6f64",
       "#1c1e22"
     ],
-    "_screenWall_src": "owner photo 2: the jumbotron hangs on a freestanding mid-grey wall, not on the tower"
+    "_screenWall_src": "site photo 2: the jumbotron hangs on a freestanding mid-grey wall, not on the tower"
   },
   "skins": {
     "_src": "each skin is a rule; its numbers are below with their source",
@@ -396,7 +396,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8). 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "_src": "panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. Two slit columns per blank flank at ~0.45 and ~0.85 of its width, 0.9 x 2.2 m (S6, tower A's west face; S8). 2026-09-16 (site photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
       "stack": 0.15
     },
     "pixelA": {
@@ -428,7 +428,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "_src": "tower A's north face: one lit slit column at 0.29 of the width from the east end (S16) and one near the west corner (S8 NW); the vertical sign at 0.68 on its own white column. panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. 2026-09-16 (site photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
       "stack": 0.15
     },
     "pixelB": {
@@ -461,7 +461,7 @@
         "h": 2.2,
         "sill": 0.6
       },
-      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x). panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. This field, and the strip of it that reaches the street, carries occasional RUST planks (S19: Ext_14's right edge) — 4 %. 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "_src": "tower B's west face, the north 11 m: one slit column at the middle of the field (S17 NW at 6x). panel courses of 0.634 m (five per 3.17 m storey: S16/S19, tower A's north face at 2x of the 2560 px original — the storey 117 px, a mark 22 px) in planks of ~2.4 m in a running bond; the tone is decided per macro cell of ONE course by ONE plank (S19: the marks are one course tall, a minority two, never a clump — round 3 had macro [2,1], which stacked into T- and L-shaped blobs 2.5-3.8 m tall at the NW camera), and runs of one to three planks make marks 2.4, 4.8 and 7.2 m long (S14 photo 3's 'two or three distinct sizes', S16's 2.4-7 m); dark 24 % (S16 k-means 26 %, S19 25 %, S14 '~30 %'), a few mid-grey planks (S15), the rest white. This field, and the strip of it that reaches the street, carries occasional RUST planks (S19: Ext_14's right edge) — 4 %. 2026-09-16 (site photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
       "stack": 0.15
     },
     "pixelPlain": {
@@ -486,7 +486,7 @@
         4,
         56
       ],
-      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower; with tower B's rust planks (S19) 2026-09-16 (owner photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
+      "_src": "the pixel field with no slits: the ~4 m strip that reaches the street on the Pearl podium under tower B's field (S15, S17), and the podium's top storey under the tower; with tower B's rust planks (S19) 2026-09-16 (site photos 1-3, Ext_01 at full size): bars one course tall, separated by white courses almost everywhere; `stack` 0.15 lets a minority sit on the course below. Raw weights raised so the SURVIVING dark share stays ~24%; mid-grey planks cut to 4 (the photos show white and charcoal, the grey planks rendered as camouflage).",
       "stack": 0.15
     },
     "bays": {
@@ -1473,7 +1473,7 @@
                   "dot": 0.15,
                   "gap": 0.13,
                   "tone": "sign",
-                  "_src": "2026-09-16: letters ~1.05 m (owner photo 2: the name fills most of the sign band's height on 23rd)"
+                  "_src": "2026-09-16: letters ~1.05 m (site photo 2: the name fills most of the sign band's height on 23rd)"
                 }
               ]
             }
@@ -2127,7 +2127,7 @@
                     "tone": "pixWhite",
                     "pad": 0.6
                   },
-                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (owner photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
+                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (site photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
                 }
               ]
             }
@@ -2584,7 +2584,7 @@
                     "tone": "pixWhite",
                     "pad": 0.6
                   },
-                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (owner photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
+                  "_src": "2026-09-16: letters ~1.4 m tall, the name ~20 m down the tower (site photo 1 / Ext_01: the name runs from the 17th storey to about the 11th); was 0.95 m and 13 m, and read as a faint line"
                 }
               ]
             }
@@ -2596,7 +2596,7 @@
   ],
   "deck": {
     "z": 21.5,
-    "_src": "the level-7 amenity deck (S4) at the podium roof; the pool, west spa, turf, cabana, screen and rail are S9's read of the rectified z20 nadir in this frame, checked against the 2023 nadir (S8); the second spa, the palms, the loungers (a roofItems grid on the podium), the chairs, the cabana posts, the slatted screen and the condensers are the owner's photographs (S14) and S18, placed by eye against those",
+    "_src": "the level-7 amenity deck (S4) at the podium roof; the pool, west spa, turf, cabana, screen and rail are S9's read of the rectified z20 nadir in this frame, checked against the 2023 nadir (S8); the second spa, the palms, the loungers (a roofItems grid on the podium), the chairs, the cabana posts, the slatted screen and the condensers are the site photographs (S14) and S18, placed by eye against those",
     "items": [
       {
         "id": "pool",
@@ -2856,7 +2856,7 @@
         "z0": 0.0,
         "h": 0.7,
         "tone": "spaTile",
-        "_src": "2026-09-16, owner photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
+        "_src": "2026-09-16, site photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
       },
       {
         "id": "palmP1Trunk",
@@ -2893,7 +2893,7 @@
         "z0": 0.0,
         "h": 0.7,
         "tone": "spaTile",
-        "_src": "2026-09-16, owner photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
+        "_src": "2026-09-16, site photo 2: the two palms stand in tiled planters INSIDE the lap pool along its south edge, at roughly 45% and 70% of its length from the east spa — not on the deck beside it"
       },
       {
         "id": "palmP2Trunk",
@@ -2930,7 +2930,7 @@
         "z0": 0.0,
         "h": 0.8,
         "tone": "planterLime",
-        "_src": "owner photo 2: lime planter boxes behind the turf"
+        "_src": "site photo 2: lime planter boxes behind the turf"
       },
       {
         "id": "planterTurfWest",
@@ -2943,7 +2943,7 @@
         "z0": 0.0,
         "h": 0.8,
         "tone": "planterLime",
-        "_src": "owner photo 2: a lime planter at the west turf"
+        "_src": "site photo 2: a lime planter at the west turf"
       },
       {
         "id": "screenWall",
@@ -2956,7 +2956,7 @@
         "z0": 0.0,
         "h": 5.6,
         "tone": "screenWall",
-        "_src": "owner photo 2: the freestanding wall the screen hangs on"
+        "_src": "site photo 2: the freestanding wall the screen hangs on"
       }
     ]
   },

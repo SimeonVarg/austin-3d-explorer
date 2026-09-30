@@ -2,6 +2,7 @@
 """Fetch OSM building:part detail + coloured/material-tagged buildings for the
 UT Austin / West Campus bbox and emit parts.geojson + building_tags.geojson."""
 import json
+import os
 import re
 import sys
 import time
@@ -11,7 +12,8 @@ import urllib.request
 BBOX = "30.276,-97.752,30.296,-97.726"  # south,west,north,east
 PRIMARY = "https://overpass-api.de/api/interpreter"
 FALLBACK = "https://overpass.kumi.systems/api/interpreter"
-DATA_DIR = "C:/Users/simip/Projects/austin-3d-explorer/data"
+# Repo data dir, resolved relative to this script (scripts/ -> ../data).
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 warnings = []
 

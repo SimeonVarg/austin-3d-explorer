@@ -4,16 +4,16 @@
   "frames": [
     {
       "what": "route from the air",
-      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-air.png"
+      "file": "shots/walk/lit/wc-air.png"
     },
     {
       "what": "standing at a reported-dark pin",
       "note": "This entire corner of the GWB building is too dark.",
-      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-pin.png"
+      "file": "shots/walk/lit/wc-pin.png"
     },
     {
       "what": "the card",
-      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-card.png"
+      "file": "shots/walk/lit/wc-card.png"
     }
   ],
   "lit": {

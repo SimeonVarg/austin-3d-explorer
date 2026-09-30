@@ -55,7 +55,7 @@ same: warm sun, cool shade and strong glare on windows.
 
 ## 1. Which profile made the owner's frame
 
-The owner's screenshot is `C:/Users/simip/AppData/Local/Temp/codex-clipboard-fca62b1d-424d-4777-bef5-6b13703d09b2.png`.
+The owner's screenshot is a phone original kept in a local temp directory outside the repo.
 It is a phone original, so it is referenced here and not committed. I rendered
 the same view in each profile and compared pixel statistics over the same crop
 (x 150-860, y 90-640, with the UI excluded). "Chroma" is the mean of

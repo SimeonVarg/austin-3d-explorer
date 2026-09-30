@@ -74,6 +74,7 @@ from collections import Counter, OrderedDict
 import numpy as np
 from PIL import Image
 from scipy import ndimage
+from building_exclusions import EXCLUDED_GEOMETRIES, is_excluded
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPDIR = os.path.join(ROOT, "data", "snapshots")
@@ -691,7 +692,30 @@ def load_parking():
     return out
 
 
+def retire_excluded_only():
+    from shapely.geometry import shape
+    footprints = [shape(geometry) for geometry in EXCLUDED_GEOMETRIES]
+    for output in (OUT, OUT_DETAIL):
+        with open(output, encoding="utf-8") as source:
+            document = json.load(source)
+        retained = []
+        retired = 0
+        for feature in document["features"]:
+            polygon = shape(feature["geometry"])
+            if any(footprint.covers(polygon) for footprint in footprints):
+                retired += 1
+            else:
+                retained.append(feature)
+        document["features"] = retained
+        with open(output, "w", encoding="utf-8") as target:
+            json.dump(document, target, separators=(",", ":"))
+        print("Excluded roofscape: retired %d pieces from %s; other pieces unchanged" % (retired, os.path.basename(output)))
+
+
 def main():
+    if "--retire-excluded-only" in sys.argv:
+        retire_excluded_only()
+        return
     report = "--report" in sys.argv
     remeasure = "--remeasure" in sys.argv or not os.path.exists(SURVEY)
 
@@ -755,6 +779,8 @@ def main():
                 json.dump(cache, fh, separators=(",", ":"), sort_keys=True)
         p = f["properties"]
         bid = p.get("id")
+        if is_excluded(p):
+            continue
         h = p.get("final_height") or 0
         if h < MIN_H:
             stats["too_short"] += 1

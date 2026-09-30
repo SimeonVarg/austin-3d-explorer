@@ -1,9 +1,13 @@
 {
   "_what": "Per-building corrections applied by the BAKES, never to a generated snapshot. A re-bake of buildings.detailed.geojson would wipe an edit made there; this file survives, and every value in it is a one-line taste/accuracy knob (CLAUDE.md rule 11).",
-  "_read_by": "scripts/bake_roofs.py. Add a reader to another bake rather than copying the file.",
+  "_read_by": "scripts/bake_roofs.py, scripts/bake_detail.py, scripts/bake_entrances.py, scripts/bake_walk.py and scripts/bake_roofscape.py via scripts/building_exclusions.py; scripts/bake_labels.mjs, js/app.js and js/roofs.js. Add a reader to another bake rather than copying the file.",
   "_fields": {
     "name": "for humans; the id is what matches",
     "why": "the observation this correction answers, in the words of whoever asked",
+    "exclude": "true removes a stale building from the scene, labels, entrances and walking obstacles; keyed by Overture id with an optional osm_way_id",
+    "center": "longitude/latitude fallback for cached name records that carry no source id",
+    "geometry": "original source footprint for masking already-published rooftop tiles after their building is retired",
+    "retired_entrance_ids": "reserved entrance group ids so removing a stale building does not renumber surviving groups",
     "roof_run_m": "force the eave-to-deck tile run in metres. Use when the ring survey in bake_roofs.py under-reads a roof the photograph plainly shows — a roof diluted by shadow, canopy or a concrete perimeter walkway sits under RING_MIN and falls through to flat.",
     "roof_over_max_height": "let a building taller than MAX_HEIGHT_M grow a roof. The height gate exists because a tower is flat-topped; a mid-rise whose footprint includes low tile-roofed wings is the exception.",
     "roof_colour": "the roof's own day colour, exactly as an OSM roof:colour tag would be. rd/rg/rn are derived from it with bake_detail.py's make_roof_colors so the palette cannot drift.",
@@ -14,6 +18,15 @@
   "_colours_are_measured": "Every hex in this file was sampled off a photograph with green-dominant pixels rejected so foliage cannot vote, and the source frame is named in the `why` beside it. A guessed colour has cost this project a correction round every single time.",
 
   "buildings": {
+    "526f0b7f-19e1-4489-826c-bff4b095c961": {
+      "name": "Computation Center",
+      "osm_way_id": 129435969,
+      "center": [-97.7385309, 30.2856369],
+      "geometry": {"type":"Polygon","coordinates":[[[-97.7383762,30.2857395],[-97.7383627,30.285869],[-97.7386486,30.2858912],[-97.7386991,30.2854048],[-97.7384128,30.2853826],[-97.7383973,30.2855324],[-97.738472,30.2855381],[-97.738453,30.2857278],[-97.7383779,30.2857222],[-97.7383762,30.2857395]]]},
+      "retired_entrance_ids": [197, 198, 199, 200, 201],
+      "exclude": true,
+      "why": "The site is an outdoor staircase, not a building."
+    },
     "165236c4-c518-419b-a55a-87d5aedd45ce": {
       "name": "Jester West Hall",
       "why": "\"make jester look alot nicer if freshman r gonna see this then their dorm shouldnt look like a prison ... Some of jesters roofs should have the red brick pattern, some of should have a light gray flat concrete with roof details, the color is not accurate.\" Measured off the z19 nadir tile in data/imagery_cache: 28.1% of this footprint's roof pixels pass is_tile and 40.4% are neutral and bright (median 185,181,170) — a terracotta tile hip over the low wings around a light grey concrete deck, which is exactly what he described. The ring survey read 0.40 at the eave, under RING_MIN, and the height gate excluded it anyway.",

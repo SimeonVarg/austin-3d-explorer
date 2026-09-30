@@ -3,7 +3,7 @@ rem ---------------------------------------------------------------------------
 rem  watch.cmd - open a live window onto what the agents are doing.
 rem
 rem  Double-click this file, or run it from anywhere:
-rem      C:\Users\simip\Projects\austin-3d-explorer\scripts\watch.cmd
+rem      scripts\watch.cmd
 rem
 rem  Extras:
 rem      watch.cmd --list          what is running right now
