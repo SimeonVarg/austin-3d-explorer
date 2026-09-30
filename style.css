@@ -2189,3 +2189,65 @@ html.has-touch{--launcher-bottom:var(--drive-clear)}
 @media(max-width:650px){#load-city{display:flex;flex-direction:column;gap:20px;padding:28px 0;width:90%;margin:auto}.load-eyebrow{margin-bottom:14px}#load-city h1{font-size:32px;max-width:340px}.load-subtitle{font-size:13px;margin-top:12px}.load-story .mvh-stack{max-width:320px;margin-top:0;margin-left:auto;margin-right:auto;--mvh-w:min(100%,320px)}.load-caption{font-size:8px;text-align:center}.load-card{width:100%;padding:20px}#load-stages{gap:10px;font-size:11px}#load-estimate{margin-bottom:18px}.load-choice{margin-top:18px;padding-top:16px}.load-choice p{margin:7px 0 12px}#load-city footer{font-size:10px}.mode-grid{grid-template-columns:1fr}#mode-dialog{padding:18px}.mode-settings{gap:8px}#mode-launcher{right:10px;padding:10px 14px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){.load-route{animation:none}.load-rail i{transition:none}}
 @media(max-width:650px){.mode-settings select{font-size:16px}}
+/* The loading screen fits one phone screen, no page scroll: portrait phones
+   (max-width 650px) and phones on their side (max-height 520px). Desktop sizes
+   match neither query and keep the rules above untouched. Each spacing and the
+   headline is clamp(smallest, grows with the screen height, largest): about
+   its smallest on a 640px-tall screen and its largest by 844px (the old phone
+   sizes). The drawing takes whatever height is left (it is never cropped: its
+   width follows the height it gets). Every size is a knob in this one block.
+   --lf-vh is the
+   small viewport height (svh: the screen with the browser's bars showing, as in
+   an in-app browser), with plain vh where svh is missing. */
+@media(max-width:650px),(max-height:520px){
+  #load-city{
+    --lf-vh:1vh;
+    --lf-pad-y:clamp(8px,calc(var(--lf-vh)*7 - 35px),28px);          /* space above and below everything */
+    --lf-gap:clamp(6px,calc(var(--lf-vh)*6 - 32px),20px);            /* between the story, the card and the footer */
+    --lf-eyebrow-gap:clamp(6px,calc(var(--lf-vh)*4 - 20px),14px);    /* under AUSTIN 3D EXPLORER */
+    --lf-h1:clamp(22px,calc(var(--lf-vh)*5 - 10px),32px);            /* the headline */
+    --lf-subtitle:13px;                                              /* the line under the headline */
+    --lf-subtitle-gap:clamp(4px,calc(var(--lf-vh)*4 - 22px),12px);   /* above that line */
+    --lf-art-max-w:320px;                                            /* the drawing's width when there is room */
+    --lf-art-min-h:96px;                                             /* the drawing never gets shorter than this */
+    --lf-card-pad:clamp(12px,calc(var(--lf-vh)*4 - 14px),20px);      /* inside the card */
+    --lf-rail-gap:clamp(6px,calc(var(--lf-vh)*5 - 24px),18px);       /* above the progress rail (two thirds of it below) */
+    --lf-estimate-gap:clamp(6px,calc(var(--lf-vh)*5 - 24px),18px);   /* under "Ns in." */
+    --lf-stage-gap:clamp(4px,calc(var(--lf-vh)*3 - 15px),10px);      /* between the five stage rows */
+    --lf-choice-gap:clamp(8px,calc(var(--lf-vh)*5 - 24px),18px);     /* above and below the card's divider */
+    --lf-choice-p-gap:clamp(4px,calc(var(--lf-vh)*1.5 - 6px),7px);   /* above the choice line (1.7x below it) */
+    --lf-fine-gap:clamp(6px,calc(var(--lf-vh)*3 - 13px),12px);       /* above "Or ignore me." */
+    --lf-tap:44px;                                                   /* the smallest a button may get */
+    --lf-art-ratio:calc(680/372);                                    /* the drawing's shape (ART_W/ART_H in js/loader.js) */
+    --lf-art-reserve:12px;                                           /* the drawing's own 4px top margin + up to 8px pixel-snap margin */
+  }
+  @supports(height:1svh){#load-city{--lf-vh:1svh}}
+  #veil.loading-v2{align-items:flex-start}
+  #load-city{height:100vh;height:100svh;max-height:100%;margin:0 auto;
+    padding:max(var(--lf-pad-y),env(safe-area-inset-top)) env(safe-area-inset-right) max(var(--lf-pad-y),env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    gap:var(--lf-gap);justify-content:center}
+  .load-story{display:flex;flex-direction:column;min-height:0}
+  .load-eyebrow{margin-bottom:var(--lf-eyebrow-gap)}
+  #load-city h1{font-size:var(--lf-h1)}
+  .load-subtitle{font-size:var(--lf-subtitle);margin-top:var(--lf-subtitle-gap)}
+  .load-art{flex:0 1 calc(var(--lf-art-max-w) / var(--lf-art-ratio) + var(--lf-art-reserve));min-height:var(--lf-art-min-h);
+    container-type:size;display:flex;justify-content:center;align-items:flex-start}
+  .load-story .load-art .mvh-stack{--mvh-w:min(var(--lf-art-max-w),100cqw,calc((100cqh - var(--lf-art-reserve)) * var(--lf-art-ratio)));
+    width:var(--mvh-w);max-width:none;flex:none;margin-top:4px;margin-left:auto;margin-right:auto}
+  .load-card{padding:var(--lf-card-pad)}
+  .load-rail{margin:var(--lf-rail-gap) 0 calc(var(--lf-rail-gap) * .67)}
+  #load-estimate{margin-bottom:var(--lf-estimate-gap)}
+  #load-stages{gap:var(--lf-stage-gap)}
+  .load-choice{margin-top:var(--lf-choice-gap);padding-top:var(--lf-choice-gap)}
+  .load-choice p{margin:var(--lf-choice-p-gap) 0 calc(var(--lf-choice-p-gap) * 1.7)}
+  #load-modes{min-height:var(--lf-tap)}
+  .load-choice small{margin-top:var(--lf-fine-gap)}
+  .load-card,#load-city footer{flex:none}
+}
+/* On its side: the two columns stay; the story column is as tall as the screen
+   allows and the drawing may grow wider than in portrait. */
+@media(min-width:651px) and (max-height:520px){
+  #load-city{--lf-art-max-w:480px;grid-template-rows:minmax(0,1fr) auto;row-gap:var(--lf-gap);align-items:stretch}
+  .load-story{min-height:0}
+  .load-card{align-self:center}
+}
