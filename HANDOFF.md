@@ -1,5 +1,63 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 30 2026 - Riverside attach in slices (`claude/area-slice` branch, draft PR)
+
+When the camera reaches Riverside the area used to arrive in one long frame.
+`js/slopes-apartments.js` now builds it in chunks of about 24,000 triangles,
+shows one chunk per rendered frame while the old boxes stay in place, and works
+out the replacement masks and map filter changes in 50 ms pieces. The knobs are
+`APARTMENTS.areas.sliceMs`, `geometryChunkTris` and `yieldMaxMs`; `?areaslice=0`
+brings the one-piece attach back for a comparison. Models, materials and phone
+detail settings are untouched. First load runs through a few shared helpers that
+were edited (the map filter comparison, the replacement mask helper and the
+per-building culling ranges); they are meant to behave the same and the masks,
+filter plan and geometry were checked identical, but load time has not been
+shown neutral.
+
+Same city: the seven expanded triangle attribute streams, the replacement masks
+and all five area data files match the old code exactly (353 buildings, 618,286
+triangles on desktop; 280,982 at phone detail 0.5). Nine node suites pass.
+
+Timing, hardware Chrome on NVIDIA and Edge on AMD, 1280x680 at DPR 1.5, no CPU
+throttle, vsync off, fresh browser each run, minimum of the runs that finished:
+the worst frame while the area attaches falls from 1.78 s to 0.29 s (NVIDIA)
+and from 1.49 s to 0.26 s (AMD). A second set (NVIDIA, vsync on, three
+interleaved pairs) went from 4.93 s to 0.61 s. The cost: in the first set the
+area takes 3 to 7 s to fill in where it took about 1 s; in the second it takes
+about 10 to 11 s where it took 2.7 to 4.9 s. Fewer than five clean runs per
+side, so this is not a speed sign-off. Base is main before #351; rebase and
+re-verify before merging.
+
+Still open, so do not merge on the timing alone: matching day and night pictures
+with every map source loaded (the daylight view shows unfilled ground and blocks
+while the area fills), and two full desktop unload/reload cycles (one passed,
+the second ran out of time). Phone emulation at 390x844 passed two cycles;
+a real phone is untested. `scripts/verify/area-attach-meter.mjs` is the meter.
+
+### Sep 30 2026 - fill-in brought back near the one-piece time
+
+The first cut revealed one chunk per rendered frame and forced a whole-scene
+render between every mask and filter step, so filling Riverside in took 10 s
+where the one-piece attach took under 3 s, and daylight showed tan boxes and
+bare ground the whole time. Fixed in `js/slopes-apartments.js`: chunks now
+reveal a batch per frame (`APARTMENTS.areas.revealChunksPerFrame`, 8) so the
+GPU uploads still spread over a few frames but the reveal finishes fast, and the
+mask/filter work runs on a larger attach budget (`APARTMENTS.areas.attachSliceMs`,
+300 ms) with a cheap task yield instead of a forced render each step. Both are
+named knobs with the tradeoff written beside them.
+
+Re-measured with `area-attach-meter.mjs` against `origin/main` (NVIDIA RTX 3050
+Ti, ANGLE D3D11, 1280x680 CSS, DPR 1.5, vsync on, no CPU throttle, three
+interleaved A/B reps, minimum of each): on a quiet run the fill-in is 973 ms on
+main and 1046 ms on the branch (1.07x) and the worst attach frame falls from
+1598.8 ms to 732.8 ms; on a loaded run the fill-in is 1516 ms vs 1938 ms (1.28x)
+and the worst frame 2464.9 ms vs 915.8 ms. Fill-in stays within 1.5x of main and
+the worst-frame win holds. All four fixed cameras (Village and Element, day and
+night) captured source-ready on both arms and match main with no tan boxes or
+bare ground while filling. Nine node suites still pass; the area lifecycle suite
+gains a batch-reveal case and pins the per-frame cases to
+`revealChunksPerFrame` 1.
+
 ## Sep 29 2026 - Visit counting with Vercel Web Analytics (`claude/view-analytics`, PR open, not merged)
 
 `js/analytics.js` counts page views with Vercel Web Analytics, loaded the

@@ -1495,3 +1495,57 @@ one `regions-<route>-<pose>.jpg` per pose: the frame with the rectangles drawn o
 a labelled 5% grid, so the next rectangle is read off the picture rather than
 guessed. Re-draw, then `--from` to re-measure the frames you already have — no app
 load, about a minute for a full run.
+
+## On-demand area attach measurement
+
+`area-attach-meter.mjs` measures a real flight into Riverside on the normal
+`index.html` city. It does not start a server. Supply two already-served URLs:
+
+```sh
+node scripts/verify/area-attach-meter.mjs --arms before=http://127.0.0.1:8472,after=http://127.0.0.1:8476 --reps 3 --vsync on --stop-after-flight --out /tmp/area-runs
+```
+
+Run it with no other GPU browser open: two at once can crash a laptop, and
+they skew the frame gaps. Every arm gets a
+fresh hardware-GL browser with a 300-second watchdog and a 280-second work
+deadline. Repetitions alternate A,B,A,B,A,B; report the minimum
+of at least three complete repetitions per arm, with the renderer, viewport,
+DPR, vsync and CPU throttle. The desktop defaults are 1280x680 CSS at DPR1.5,
+no CPU throttle. Vsync defaults **off**: pass `--vsync on` for a normal paced
+browser. `--gpu low` rejects an NVIDIA renderer; choose an installed browser
+whose Windows GPU preference actually selects the integrated GPU.
+
+The attach window begins when the Riverside group is added and ends three
+seconds after its completion log. It includes **every** upload/filter slice,
+not just the final synchronous task. Include intervals that overlap this
+window even when a frozen frame ends beyond its tail; end-time-only
+selection can falsely report zero for a long freeze. Frame gaps include competing tile,
+shader, shadow and other rendering work. Nested span durations overlap and
+must not be added as exclusive costs. `--profile` adds 250-us CPU sampling;
+quote it with timing and do not mix profiled and unprofiled repetitions.
+Shared-machine numbers are a first look, not a quiet-machine performance verdict.
+
+`--shots DIR` retains the second JPEG at two fixed cameras, day and night,
+with matched exposure and frozen grain/twinkle. Check each shot readiness
+and compare pixels **and** images; missing source tiles are not visual proof.
+`--skip-geometry` omits optional retained-buffer hashing for a short capture
+batch. Geometry hashes include partitions and draw groups, so changing chunk
+boundaries intentionally changes them; compare expanded triangle attribute
+streams separately for geometry identity. `--cycles 2` checks settled
+unload/reload completeness, repeated hashes and renderer resource counts
+after forced collection. Heap bytes alone cannot establish a leak.
+
+`--phone` is Chromium emulation at 390x844 CSS/DPR3 with the authored phone
+profile. It is **not** physical-device, iPhone Safari, thermal or memory-headroom
+acceptance. CPU arrays freed by that profile cannot be honestly hashed; the
+report distinguishes exact retained bytes from estimates.
+
+The area scheduling knobs are `APARTMENTS.areas.sliceMs`,
+`geometryChunkTris` and `yieldMaxMs`. `?areaslice=0` restores synchronous
+area assembly/attach for comparison; core builds retain their existing path.
+Area masks use the same complete-footprint calculation, yielding between
+footprints and publishing only complete cached masks. Upload slices retain
+the old fallback until the new geometry has rendered.
+The time budget is cooperative: an indivisible MapLibre operation or a
+competing full-city render can still exceed it. No architecture, material
+or model-detail knob changes with area slicing.

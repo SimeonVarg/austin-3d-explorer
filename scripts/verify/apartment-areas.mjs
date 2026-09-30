@@ -61,9 +61,11 @@ const FILES = {
 };
 const TRIS = 100;                         // stub triangles per building
 
-function sandbox({ phone = false, search = '?slopes=0', lite = null } = {}) {
-  const requested = [], added = [], removedGroups = [];
+function sandbox({ phone = false, search = '?slopes=0', lite = null, frames = false } = {}) {
+  const requested = [], added = [], removedGroups = [], disposedGroups = [], disposedMaterials = [];
   const handlers = {};
+  const pendingFrames = new Map();
+  let nextFrame = 0;
   const layers = { 'buildings-3d': { filter: ['has', 'id'] }, 'buildings-labels': { field: ['get', 'name'] }, 'outer-3d': { filter: ['==', 't', 0] } };
   const cam = { center: CAMPUS, eye: CAMPUS };
   const map = {
@@ -89,10 +91,10 @@ function sandbox({ phone = false, search = '?slopes=0', lite = null } = {}) {
     root: {}, frames: 1000,
     onSwitch() {},
     fetchJSON(url) { requested.push(url); const d = FILES[url]; return d ? Promise.resolve(JSON.parse(JSON.stringify(d))) : Promise.reject(new Error('404 ' + url)); },
-    build() { return { triangles: 0, geometry: () => ({ dispose() {} }) }; },
+    build() { return { triangles: 0, geometry: () => ({ dispose() { disposedGroups.push('geometry'); } }) }; },
     // js/slopes.js buildChunked: the same triangles in several geometries
-    buildChunked() { return { triangles: 0, geometries: () => [{ dispose() {} }, { dispose() {} }] }; },
-    material: () => ({}),
+    buildChunked() { return { triangles: 0, geometries: () => [{ dispose() { disposedGroups.push('chunk'); } }, { dispose() { disposedGroups.push('chunk'); } }] }; },
+    material: () => ({ dispose() { disposedMaterials.push('material'); } }),
     add(g) { added.push(g.name); (window.test.groups = window.test.groups || {})[g.name] = g; },
     remove(g) { removedGroups.push(g.name); },
   };
@@ -104,6 +106,10 @@ function sandbox({ phone = false, search = '?slopes=0', lite = null } = {}) {
   const document = { getElementById: () => null, hidden: false };
   const ctx = vm.createContext({ window, location, document, URLSearchParams, console: { log() {}, warn() {}, error: console.error, info() {} },
     setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, performance, MessageChannel, Promise });
+  if (frames) {
+    ctx.requestAnimationFrame = callback => { pendingFrames.set(++nextFrame, callback); return nextFrame; };
+    ctx.cancelAnimationFrame = frame => pendingFrames.delete(frame);
+  }
   // Stub only the geometry: one yield per building, TRIS triangles each.
   const stub = `
     buildingOne = function* (B, spec) {
@@ -116,7 +122,13 @@ function sandbox({ phone = false, search = '?slopes=0', lite = null } = {}) {
   vm.runInContext(source.slice(0, at) + stub + source.slice(at), ctx);
   const emit = n => (handlers[n] || []).forEach(fn => fn());
   const moveTo = async (p, eye = p) => { cam.center = p; cam.eye = eye; emit('moveend'); await idleTicks(); };
-  return { window, map, layers, requested, added, removedGroups, moveTo, api: window.test, A: () => window.slopesApartments, groups: () => window.test.groups };
+  const renderFrame = async () => {
+    const callbacks = [...pendingFrames.values()];
+    pendingFrames.clear();
+    for (const callback of callbacks) callback(performance.now());
+    await idleTicks(5);
+  };
+  return { window, map, layers, requested, added, removedGroups, disposedGroups, disposedMaterials, moveTo, renderFrame, pendingFrames, api: window.test, A: () => window.slopesApartments, groups: () => window.test.groups };
 }
 async function booted(s) {
   assert.equal(await s.api.boot(), true, 'boot completes');
@@ -244,5 +256,150 @@ const area = s => s.A().areas.list[0];
   assert.ok(!s.added.includes('slopes-apartments-riverside'));
 }
 
-console.log('PASS: the start fetches the core only; a near camera builds an area as its own group and hides its boxes only once built; a desktop keeps it, a phone drops it past unloadM and forgets its files; ensureAt builds ahead of the camera; a core rebuild takes areas down and back without double counting; a dropped build takes back its counts; ?areas=eager is the old start; a chunked phone build gives the area every chunk; a paused (context-lost) phone builds no area');
+{
+  const current = sandbox();
+  await booted(current);
+  let observed = false;
+  const originalAdd = current.window.slopes.add;
+  current.window.slopes.add = group => {
+    originalAdd(group);
+    if (!group.name.endsWith('-riverside')) return;
+    observed = true;
+    assert.equal(area(current).state, 'attaching');
+    assert.equal(outerClause(current), false, 'legacy remains before area upload');
+    current.A().areas.unload('riverside');
+  };
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [false]);
+  assert.equal(observed, true);
+  assert.equal(area(current).state, 'idle');
+  assert.equal(current.A().count.triangles, 2 * TRIS);
+  assert.equal(current.A().count.buildings, 2);
+  assert.equal(current.disposedGroups.length, 2, 'cancelled chunks disposed once');
+  assert.equal(outerClause(current), false);
+}
+{
+  const current = sandbox();
+  await booted(current);
+  const originalFilter = current.map.setFilter;
+  let cancelled = false;
+  current.map.setFilter = (id, value) => {
+    originalFilter(id, value);
+    if (!cancelled && area(current).state === 'attaching' && JSON.stringify(value).includes('way/1')) {
+      cancelled = true;
+      current.A().areas.unload('riverside');
+    }
+  };
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [false]);
+  assert.equal(cancelled, true);
+  assert.equal(area(current).state, 'idle');
+  assert.equal(current.A().count.triangles, 2 * TRIS);
+  assert.equal(current.A().count.buildings, 2);
+  assert.equal(current.disposedGroups.length, 2);
+  assert.equal(outerClause(current), false, 'cancelled filter iterator cannot re-hide fallback');
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [true]);
+  assert.equal(area(current).state, 'on');
+  assert.equal(current.A().count.triangles, 5 * TRIS);
+}
+{
+  const current = sandbox();
+  await booted(current);
+  const material = current.window.slopes.material;
+  current.window.slopes.material = () => { throw new Error('area assembly failure'); };
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [false]);
+  assert.equal(area(current).state, 'failed');
+  assert.equal(current.A().count.buildings, 2, 'assembly failure restores core counters');
+  assert.equal(current.A().count.triangles, 2 * TRIS);
+  assert.deepEqual(Array.from(current.A().count.names).sort(), ['Core A', 'Core B']);
+  assert.equal(current.disposedGroups.length, 2, 'assembly failure disposes every chunk');
+  current.window.slopes.material = material;
+  current.A().areas.unload('riverside');
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [true]);
+  assert.equal(current.A().count.buildings, 5);
+}
+{
+  const current = sandbox({ frames: true });
+  await booted(current);
+  current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 1;   // one upload per rendered frame, deterministically
+  const result = current.A().areas.ensureAt(NEAR);
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
+  const group = current.groups()['slopes-apartments-riverside'];
+  assert.equal(area(current).state, 'attaching');
+  assert.deepEqual(group.children.map(child => child.visible), [true, false], 'only the first upload is exposed before a rendered frame');
+  assert.equal(outerClause(current), false);
+  await current.renderFrame();
+  assert.deepEqual(group.children.map(child => child.visible), [true, true]);
+  assert.equal(outerClause(current), false, 'fallback stays until every upload has a rendered frame');
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'on'; iteration++) await current.renderFrame();
+  assert.deepEqual(await result, [true]);
+  assert.ok(outerClause(current));
+  assert.equal(current.pendingFrames.size, 0, 'completed attach leaves no pending frame callback');
+  current.A().areas.unload('riverside');
+  assert.equal(current.disposedGroups.length, 2);
+}
+{
+  const current = sandbox({ frames: true });
+  await booted(current);
+  current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 1;   // one upload per rendered frame, deterministically
+  const result = current.A().areas.ensureAt(NEAR);
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
+  current.A().areas.unload('riverside');
+  await current.renderFrame();
+  assert.deepEqual(await result, [false]);
+  assert.equal(current.A().count.buildings, 2);
+  assert.equal(current.disposedGroups.length, 2);
+  assert.equal(current.pendingFrames.size, 0);
+}
+{
+  // revealChunksPerFrame batches uploads: at 2 (>= the 2 stub chunks) both are
+  // exposed together before any yield, so the fill-in does not spend a frame
+  // per chunk. This is the fix for the 10 s fill-in; one upload per frame was
+  // the regression. The fallback still stands until a frame has rendered.
+  const current = sandbox({ frames: true });
+  await booted(current);
+  current.window.APARTMENTS.areas.yieldMaxMs = 10000;
+  current.window.APARTMENTS.areas.revealChunksPerFrame = 2;
+  const result = current.A().areas.ensureAt(NEAR);
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'attaching'; iteration++) await idleTicks(5);
+  const group = current.groups()['slopes-apartments-riverside'];
+  assert.equal(area(current).state, 'attaching');
+  assert.deepEqual(group.children.map(child => child.visible), [true, true], 'a batch reveals its chunks together, not one per frame');
+  assert.equal(outerClause(current), false, 'fallback stays until a frame has rendered the batch');
+  for (let iteration = 0; iteration < 50 && area(current).state !== 'on'; iteration++) await current.renderFrame();
+  assert.deepEqual(await result, [true]);
+  assert.ok(outerClause(current));
+  assert.equal(current.pendingFrames.size, 0, 'completed attach leaves no pending frame callback');
+  current.A().areas.unload('riverside');
+  assert.equal(current.disposedGroups.length, 2);
+}
+{
+  const current = sandbox();
+  await booted(current);
+  const Mesh = current.window.THREE.Mesh;
+  current.window.THREE.Mesh = class { constructor() { throw new Error('mesh assembly failure'); } };
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [false]);
+  assert.equal(area(current).state, 'failed');
+  assert.equal(current.A().count.buildings, 2);
+  assert.equal(current.disposedGroups.length, 2);
+  assert.equal(current.disposedMaterials.length, 1, 'failed assembly disposes the newly allocated area material');
+  current.window.THREE.Mesh = Mesh;
+  current.A().areas.unload('riverside');
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [true]);
+  current.A().areas.unload('riverside');
+  assert.equal(current.disposedGroups.length, 4);
+  assert.equal(current.disposedMaterials.length, 2, 'successful area unload disposes its shared material once');
+}
+{
+  const current = sandbox();
+  await booted(current);
+  const read = current.map.getFilter;
+  current.map.getFilter = () => { throw new Error('stable layer filter must not be cloned'); };
+  assert.deepEqual(await current.A().areas.ensureAt(NEAR), [true]);
+  assert.ok(outerClause(current));
+  current.map.getFilter = read;
+  current.A().areas.unload('riverside');
+  assert.equal(outerClause(current), false);
+}
+console.log('PASS: nine area lifecycle cases, fallback retained until upload, mid-upload and mid-filter cancellation, rendered-frame upload sequencing, single disposal, successful retry exact accounting and failed-assembly rollback');
 process.exit(0);   // the module's own late-filter poll would keep the process alive for minutes
