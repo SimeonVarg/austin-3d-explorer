@@ -1,5 +1,39 @@
 # Austin 3D Explorer — Full Handoff
 
+## Sep 30 2026 - Sky banking check is still open (`sky-roll`, PR #348, not ready to merge)
+
+The sunset glow, horizon fade, stars and light position follow the camera's
+bank in a turn (PR #348). Its detector, `scripts/verify/sky-roll.mjs`, was cut
+so it can finish on CI's software renderer: phone size at DPR 2 (the sky pass
+draws at min(2, DPR), so the canvas under test is the same as at 3), the city
+is posed under the load veil and waits for its tiles before the first frame,
+one frame wait per capture, the diagnostic sky goes on once per size, and each
+size runs one roll of each sign and each magnitude. The thresholds and check
+predicates are unchanged (3 px edge, 3 px gap, 1.0 luma), but the default run
+now covers 4 of the 16 banked cases of the old grid (phone at sunset with -15
+and +5, desktop at dusk with -5 and +15). `--full` runs all 16, `--before`
+brings back the old-pass arm, `--break` must still fail. That the hour and
+size combinations add no coverage is reasoning from `js/sky.js`, not
+measured. `setSky` is called from a block body: returning the map made
+Playwright serialise the whole map back to Node, which cost 250-310 s of a
+software run.
+
+Where it stands, on the software renderer with a 600 s local watchdog: the
+phone half passes all 10 assertions (wash edge at most 1 px off the level
+camera against 3 allowed, no extra unpainted gap against 3 allowed, level
+camera switch on vs off mean luma difference 0.000 against 1.0). The desktop
+half sets up but is killed at 603.5 s, before its horizon frames. An earlier
+software run of this same detector crashed the desktop page ("Target
+crashed") just after the dusk hour was set, about 736 s in, so the desktop
+half of the default plan has not yet passed, and the browser close added at
+the end of the script has not yet run to the end in any run. The 10-minute
+target is not met. Timings are from a busy machine, so they are a first look
+only. Still to do before merging: a software run that finishes inside the
+target, the full hardware run with `--full --before`, `graphics.mjs` on both
+backends, `--break` failing on assertions rather than crashing, and labelled
+before/after frames at day, sunset, dusk and night. An emulated phone size is
+not a physical iPhone.
+
 ## Sep 29 2026 - Visit counting with Vercel Web Analytics (`claude/view-analytics`, PR open, not merged)
 
 `js/analytics.js` counts page views with Vercel Web Analytics, loaded the

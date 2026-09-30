@@ -17,9 +17,10 @@
  * page load, same pose, same hour.
  *
  * WHAT IT MEASURES, from screenshots (what a visitor sees, composited), at
- * phone (390x844, DPR 3, touch, iPhone UA: the phone graphics profile) and
+ * phone (390x844, DPR 2, touch, iPhone UA: the phone graphics profile) and
  * desktop (1100x800), at sunset (p 0.50) and dusk (p 0.62), at roll -15 / -5
- * / 0 / +5 / +15, in columns at 5% / 50% / 95% of the width:
+ * / 0 / +5 / +15, in columns at 5% / 50% / 95% of the width (which hour and
+ * which rolls on which size: PLAN, below; `--full` runs them all):
  *
  *   (a) THE CITY HORIZON. One diagnostic frame per roll: our sky layer and the
  *       depth fog hidden, MapLibre's own sky painted pure magenta with every
@@ -49,8 +50,9 @@
  *   3. Roll 0 with ROLL_FOLLOW on equals ROLL_FOLLOW off within LUMA_EPS mean
  *      luma over the whole frame: the fix cannot have moved the level render.
  *
- * The rolled "before" arm is measured and printed but not asserted. `--break`
- * runs the old level pass in the "after" arm too, and must exit 1.
+ * The rolled "before" arm (the old level pass) is measured and printed with
+ * `--before`, never asserted. `--break` runs the old level pass in the "after"
+ * arm, and must exit 1.
  *
  * THE BANK IS FORCED the way shots/roll/ forced it: the controller heals roll
  * back to 0 on every idle frame (controls.js ~1615, `map.setRoll(0)`), so after
@@ -58,7 +60,7 @@
  * updateSky runs on camera moves, not on every render, so after flipping the
  * switch the script calls it once itself.
  *
- *   VERIFY_URL=http://127.0.0.1:8442 node sky-roll.mjs [--break] [--shots DIR] [--size phone|desktop]
+ *   VERIFY_URL=http://127.0.0.1:8442 node sky-roll.mjs [--break] [--full] [--before] [--shots DIR] [--size phone|desktop]
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -86,15 +88,55 @@ const GAP_FRAC = 0.25;    // open sky under a quarter of it is the blue gap
 const WIN = 14;           // CSS px either side of a column to find a clear sub-column
 const LUMA_EPS = 1.0;     // roll 0, switch on vs off
 const TOD_SETTLE_MS = 6000;   // lamps and window lights switch on after an hour change
+const LOAD_WAIT_MS = 240000;  // cap on waiting for the tiles after the veil lifts
 // Over campus looking west into the sunset, horizon inside the frame with room
 // for a 15 deg tilt at both sizes, at a pitch the camera flies at.
 const POSE = { center: [-97.7434, 30.2857], zoom: 16.2, pitch: 76, bearing: -110 };
 
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+// PHONE_DPR 2, not an iPhone's 3. js/sky.js draws its pass at
+// min(2, devicePixelRatio) (resize()), so the canvas under test is the SAME at
+// 2 and at 3, and a CSS-px / device-px mix-up in the bank still shows (the
+// ratio is not 1). What 3 adds is 2.25x the MapLibre pixels to rasterise, and
+// on a software renderer that was most of the phone half's time.
+// The touch / small-screen phone profile does not read the ratio (js/mobile.js).
+const PHONE_DPR = 2;
 const SIZES = [
-  { name: 'phone', ctx: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: IPHONE_UA } },
+  { name: 'phone', ctx: { viewport: { width: 390, height: 844 }, deviceScaleFactor: PHONE_DPR, isMobile: true, hasTouch: true, userAgent: IPHONE_UA } },
   { name: 'desktop', ctx: { viewport: { width: 1100, height: 800 }, deviceScaleFactor: 1 } },
 ];
+// WHICH CASES RUN. A software renderer draws this scene at one frame every
+// 4-7 s, and every case is four screenshots, so the full grid (2 sizes x 2
+// hours x 4 rolls) ran past CI's 30-minute ceiling. The default keeps, on EACH
+// size, one roll of each sign and each magnitude, and gives each size its own
+// hour, so across the run both hours, both signs, both magnitudes and both
+// frame shapes are asserted:
+//   - the old level pass is 17 px off at 5 deg and 45 px at 15 deg (tolerance
+//     3), so any one banked case catches the original flat band;
+//   - a sign error rotates the wash the wrong way and doubles the error, so
+//     it fails at every banked case; one sign per magnitude still catches a
+//     bug that only breaks one side (an abs() in the wrong place);
+//   - 5 is the controller's own ceiling (a real turn), 15 the stress value;
+//   - the bank's geometry in the pass (the rotation, the rows it needs) reads
+//     the roll, the horizon and W x H, and the hour only sets colours and
+//     strengths (js/sky.js drawSky), so size x hour cross-terms add frames
+//     and no coverage.
+// `--full` runs every roll at both hours on both sizes.
+const FULL = process.argv.includes('--full');
+const PLAN = FULL ? null : {
+  phone: { times: ['sunset'], rolls: [-15, 5] },
+  desktop: { times: ['dusk'], rolls: [-5, 15] },
+};
+const planFor = (S) => {
+  const p = PLAN && PLAN[S.name];
+  const rolls = p ? p.rolls : ROLLS.filter(r => r !== 0);
+  return { times: p ? TIMES.filter(t => p.times.includes(t.name)) : TIMES,
+           rolls, diagRolls: [...new Set([...rolls, 0])].sort((a, b) => a - b) };
+};
+// The rolled "before" arm (the old level pass) is printed, never asserted, and
+// costs as many frames as the asserted arm. `--before` brings it back for a
+// side-by-side; `--break` is what proves the checks can go red.
+const BEFORE = process.argv.includes('--before');
 
 // `--size phone` or `--size desktop` runs one size only, so a slow machine can
 // split the run in two and each half finishes well inside its watchdog.
@@ -102,6 +144,10 @@ const sizeAt = process.argv.indexOf('--size');
 const ONLY = sizeAt > 0 ? process.argv[sizeAt + 1] : null;
 const RUN_SIZES = ONLY ? SIZES.filter(s => s.name === ONLY) : SIZES;
 if (!RUN_SIZES.length) { console.error(`unknown --size ${ONLY}`); process.exit(2); }
+
+// Elapsed wall clock on every step, so a slow runner's log says where the time went.
+const T0 = Date.now();
+const lap = (what) => console.log(`   [t ${((Date.now() - T0) / 1000).toFixed(1)} s] ${what}`);
 
 const results = [];
 // Printed the moment it is recorded, so a run the watchdog kills still leaves
@@ -113,9 +159,9 @@ const check = (name, pass, detail) => {
 
 // HARDWARE GL by default. Every assertion here is a tolerance (3 px, 1 luma)
 // measured inside ONE page on ONE renderer, never an exact hex, so the
-// determinism that makes SwiftShader the suite default buys nothing here, and
-// on SwiftShader a full-app DPR 3 phone run of this script took over 40
-// minutes and was killed by its own watchdog before the desktop half.
+// determinism that makes SwiftShader the suite default buys nothing here. CI
+// has no GPU, so there this IS SwiftShader: the default PLAN is sized for it
+// (the full grid at DPR 3 ran past CI's 30-minute ceiling).
 // VERIFY_GL=swiftshader still forces the software path.
 // Watchdog: 20 minutes per size on hardware; override with VERIFY_MAX_MS.
 const browser = await launch(chromium, {
@@ -134,15 +180,24 @@ async function settle(page) {
   await page.waitForTimeout(250);
 }
 
-/** Screenshot twice, trust the second; CSS-px resolution. */
+/**
+ * Screenshot twice, trust the second; CSS-px resolution. Each capture waits
+ * for a new frame (measured on SwiftShader: 8-19 s a capture even for a 4 px
+ * clip, i.e. it is drawing, not encoding), so the second comes a full frame
+ * after whatever the caller just changed (roll, layer visibility, the switch).
+ * No settle between them: that was two more frames a shot. A stale capture
+ * cannot pass here: an "off" frame equal to its "on" frame reads as no wash
+ * (not measured, and a case with nothing measured fails), and a frame from the
+ * previous roll puts the horizon in the wrong place.
+ */
 async function shoot(page, name) {
   const f = path.join(TMP, name + '.png');
   await page.screenshot({ path: f, scale: 'css' });
-  await settle(page);
   await page.screenshot({ path: f, scale: 'css' });
   return decodePNG(f);
 }
 
+/** Sets and holds the roll. No settle: the next shoot() waits for it. */
 async function setRoll(page, roll) {
   await page.evaluate((roll) => {
     const m = window.__map;
@@ -152,7 +207,6 @@ async function setRoll(page, roll) {
     m.__rollReal(roll);
     m.setRoll = () => {};           // hold it against the idle self-heal
   }, roll);
-  await settle(page);
 }
 
 const px = (img, x, y) => { const i = (y * img.width + x) * img.bpp; return [img.data[i], img.data[i + 1], img.data[i + 2]]; };
@@ -231,6 +285,11 @@ async function runSize(S) {
   await page.goto(`${BASE}/index.html?intro=0&drift=0`, { waitUntil: 'load', timeout: 180000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded && window.__map.isStyleLoaded(), null, { timeout: 180000 });
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+  // Pose NOW, under the load veil, so the city loads its tiles and facades for
+  // this view once, during the load, rather than loading the spawn view and
+  // then this one (measured: the first frame after a post-veil jump took
+  // 125-257 s on SwiftShader). Posed again below in case the reveal moves it.
+  await page.evaluate((pose) => { const m = window.__map; if (m.isEasing && m.isEasing()) m.stop(); m.jumpTo(pose); }, POSE);
   await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 300000 }).catch(() => {});
   const setup = await page.evaluate((pose) => {
     const m = window.__map;
@@ -250,7 +309,14 @@ async function runSize(S) {
              updateSky: typeof window.updateSky === 'function' };
   }, POSE);
   await page.waitForTimeout(3000);
+  // Wait for the city to finish loading before the first measured frame: the
+  // veil lifts while tiles are still arriving (measured on SwiftShader: done
+  // about 50 s after the reveal), and a frame taken mid-load is a moving
+  // target. MapLibre's own flags, polled, capped at LOAD_WAIT_MS.
+  const loadedAt = await page.waitForFunction(() => { const m = window.__map; return m.loaded() && m.areTilesLoaded(); },
+    null, { timeout: LOAD_WAIT_MS, polling: 1000 }).then(() => 'tiles loaded', () => 'still loading after the wait');
   await settle(page);
+  lap(`[${S.name}] page loaded and posed (${loadedAt})`);
   const okSetup = setup.roll && setup.skyLayer && setup.updateSky;
   check(`[${S.name}] setup`, okSetup,
     `getRoll ${setup.roll}, sky layer ${setup.skyLayer}, updateSky ${setup.updateSky}, phone profile ${setup.lite}, preset ${setup.preset}`);
@@ -258,68 +324,84 @@ async function runSize(S) {
 
   const vis = (id, v) => page.evaluate(({ id, v }) => { const m = window.__map; if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', v); }, { id, v });
   const follow = (f) => page.evaluate((f) => { window.SKY_TUNE.ROLL_FOLLOW = f; window.updateSky(window.__map, window.__todCurrentP); }, f);
+  const plan = planFor(S);
+  console.log(`   [${S.name}] hours ${plan.times.map(t => t.name).join(', ')}; banked rolls ${plan.rolls.join(', ')}${FULL ? ' (--full)' : ''}`);
 
-  // (a) The horizon per roll. Hour-independent: it is geometry.
+  // (a) The horizon per roll. Hour-independent: it is geometry. The diagnostic
+  // sky goes on ONCE for every roll and comes off once, instead of on and off
+  // around each roll: the roll is the only thing that differs.
   const diagBy = {};
   const skySaved = await page.evaluate(() => JSON.stringify(window.__map.getSky ? window.__map.getSky() : null));
-  for (const roll of ROLLS) {
+  await vis('sky-overlay', 'none'); await vis('aerial-fog', 'none');
+  // A BLOCK BODY, returning nothing. setSky returns the map, and an arrow that
+  // returns it makes Playwright serialise the whole map object graph back to
+  // Node (a probe that did so got the map back as a circular object). On
+  // SwiftShader the step holding this call took 250-310 s on every size, a
+  // third of the run; the same call with a block body takes under 50 ms.
+  lap(`[${S.name}] diagnostic sky: our layers hidden`);
+  await page.evaluate(() => { window.__map.setSky({
+    'sky-color': '#ff00ff', 'horizon-color': '#ff00ff', 'fog-color': '#00ff00',
+    'sky-horizon-blend': 0, 'horizon-fog-blend': 0, 'fog-ground-blend': 1, 'atmosphere-blend': 0,
+  }); });
+  lap(`[${S.name}] diagnostic sky on`);
+  for (const roll of plan.diagRolls) {
     await setRoll(page, roll);
-    await vis('sky-overlay', 'none'); await vis('aerial-fog', 'none');
-    await page.evaluate(() => window.__map.setSky({
-      'sky-color': '#ff00ff', 'horizon-color': '#ff00ff', 'fog-color': '#00ff00',
-      'sky-horizon-blend': 0, 'horizon-fog-blend': 0, 'fog-ground-blend': 1, 'atmosphere-blend': 0,
-    }));
-    await settle(page);
     const diag = await shoot(page, `${S.name}-diag-r${roll}`);
+    lap(`[${S.name}] horizon frame, roll ${roll}`);
     const fit = fitHorizon(diag);
     diagBy[roll] = { diag, fit };
     const deg = -Math.atan(fit.b) * 180 / Math.PI;
     check(`[${S.name} roll ${roll > 0 ? '+' : ''}${roll}] city horizon found and tilted by the roll`,
       fit.n > 20 && Math.abs(deg - roll) < 0.5,
       `line through ${fit.n} sky points, tilt ${deg.toFixed(2)} deg (right end up is +), y at centre ${fit.at(diag.width / 2).toFixed(1)}`);
-    await page.evaluate((s) => { const v = JSON.parse(s); if (v) window.__map.setSky(v); }, skySaved);
-    await vis('sky-overlay', 'visible'); await vis('aerial-fog', 'visible');
   }
+  await page.evaluate((s) => { const v = JSON.parse(s); if (v) window.__map.setSky(v); }, skySaved);
+  await vis('sky-overlay', 'visible'); await vis('aerial-fog', 'visible');
 
+  // Each shoot() waits for the change before it; nothing settles twice.
   const frame = async (tag, roll) => {
     const on = await shoot(page, tag);
-    await vis('sky-overlay', 'none'); await settle(page);
+    await vis('sky-overlay', 'none');
     const off = await shoot(page, tag + '-skyoff');
-    await vis('sky-overlay', 'visible'); await settle(page);
+    await vis('sky-overlay', 'visible');
     return { on, off, ...diagBy[roll] };
   };
 
-  for (const t of TIMES) {
-    await page.evaluate((p) => window.applyTimeOfDay(window.__map, p, true), t.p);
+  for (const t of plan.times) {
+    await page.evaluate((p) => { window.applyTimeOfDay(window.__map, p, true); }, t.p);
     await page.waitForTimeout(TOD_SETTLE_MS);
     await settle(page);
+    lap(`[${S.name} ${t.name}] hour set`);
 
     // The LEVEL camera: the reference every banked column is compared with.
     await setRoll(page, 0);
-    await follow(false); await settle(page);
+    await follow(false);
     const lvOff1 = await shoot(page, `${S.name}-${t.name}-r0-before`);
-    await follow(true); await settle(page);
+    await follow(true);
     const level = await frame(`${S.name}-${t.name}-r0-after`, 0);
-    await follow(false); await settle(page);
+    await follow(false);
     const lvOff2 = await shoot(page, `${S.name}-${t.name}-r0-before2`);
     // Two switch-off neighbours, so a scene still settling cannot pass for the switch.
+    lap(`[${S.name} ${t.name}] level camera frames`);
     const dl = Math.min(meanLumaDiff(level.on, lvOff1), meanLumaDiff(level.on, lvOff2));
     check(`[${S.name} ${t.name} roll 0] switch on matches switch off`, dl <= LUMA_EPS,
       `mean |dLuma| over the frame ${dl.toFixed(3)} (tol ${LUMA_EPS})`);
 
     const W = level.on.width, H = level.on.height, hx = W / 2, hy = H / 2;
-    for (const roll of ROLLS.filter(r => r !== 0)) {
+    for (const roll of plan.rolls) {
       await setRoll(page, roll);
       const arms = {};
-      for (const arm of ['before', 'after']) {
-        await follow(arm === 'after' && !BREAK); await settle(page);
+      const ARMS = BEFORE ? ['before', 'after'] : ['after'];
+      for (const arm of ARMS) {
+        await follow(arm === 'after' && !BREAK);
         arms[arm] = await frame(`${S.name}-${t.name}-r${roll}-${arm}`, roll);
+        lap(`[${S.name} ${t.name}] roll ${roll} ${arm} arm`);
       }
       const tag = `[${S.name} ${t.name} roll ${roll > 0 ? '+' : ''}${roll}]`;
       // The screen is the level frame rotated by -roll about the centre; take
       // each banked column's horizon point back into the level frame.
       const th = -roll * Math.PI / 180, c = Math.cos(th), s = Math.sin(th);
-      for (const arm of ['before', 'after']) {
+      for (const arm of ARMS) {
         const fr = arms[arm];
         let worstEdge = 0, worstGap = 0, measured = 0;
         const parts = [];
@@ -366,5 +448,6 @@ for (const r of results) console.log((r.pass ? ' PASS  ' : '*FAIL  ') + r.name +
 const passed = results.filter(r => r.pass).length;
 console.log(`\n${passed}/${results.length} passed${BREAK ? '  (--break: the level pass in both arms, must fail)' : ''}`);
 if (!SHOTS) try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) {}
+await browser.close();
 browser.__done();
 process.exit(results.length && passed === results.length ? 0 : 1);
