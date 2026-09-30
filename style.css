@@ -799,6 +799,68 @@ html.has-touch #joystick-zone{display:block}
   #date-select{max-width:112px;font-size:12px}
 }
 
+/* ── PHONE SWEEP (2026-09-29): three touch-layout defects ────────────────
+   Found by walking a first visit at 390x844, 360x780 and 844x390 with touch.
+   Each rule sits behind html.has-touch (set by js/controls.js from
+   navigator.maxTouchPoints) AND a phone-sized media query (max-width 640 px
+   or max-height 520 px), so a mouse desktop and a touch laptop or tablet at
+   a normal window size are both unchanged. */
+
+/* 1. "Switch modes" (#mode-launcher, z-index 59) floated ON TOP of the
+   settings and recommendations sheets and covered their bottom-right button
+   (Reset, Copy). The sheet is what the visitor opened, so the pill steps
+   aside while one is open, the same way the sheets already clear the stick. */
+@media(max-width:640px),(max-height:520px){
+  html.has-touch body.gfx-open #mode-launcher,
+  html.has-touch body.fb-open #mode-launcher{visibility:hidden}
+}
+
+/* 2. Landscape phone: BOOST sat on the time-of-day pill and hid half of its
+   play button, and the portrait touch sizes never applied (the play button
+   was 30 px, the slider 18 px thick, the top-right buttons 34 px), because
+   844 px is wider than the 640 px portrait block above. Here the controls
+   take --touch-min, and BOOST moves in from the right edge far enough to
+   clear the pill. --tod-clear is the pill's inset + its width + air. */
+@media(max-height:520px){
+  html.has-touch{
+    --tod-pill-w:calc(var(--touch-min) + 2 * 7px + 2px); /* slider + padding + border */
+    --tod-clear:calc(14px + var(--tod-pill-w) + var(--drive-air));
+    --boost-right:var(--tod-clear);
+  }
+  html.has-touch #tod-panel{gap:7px;padding:10px 7px}
+  html.has-touch #tod-slider-wrap{width:var(--touch-min)}
+  html.has-touch #tod-slider{height:var(--touch-min)}
+  html.has-touch #tod-sun svg,html.has-touch #tod-moon svg{width:12px;height:12px}
+  html.has-touch #tod-play{width:var(--touch-min);height:var(--touch-min);font-size:12px}
+  html.has-touch #gfx-button,html.has-touch #fb-button{width:var(--touch-min);height:var(--touch-min)}
+  html.has-touch #fb-button{right:calc(16px + var(--touch-min) + 8px)}
+}
+/* the panels hang under the (now taller) buttons with the same 8 px of air;
+   below 641 px wide they are bottom sheets instead (block above) */
+@media(max-height:520px) and (min-width:641px){
+  html.has-touch #gfx-panel,html.has-touch #fb-panel{top:calc(16px + var(--touch-min) + 8px);
+    max-height:calc(100vh - 140px)}   /* bottom edge unchanged: 60 + (100vh - 132) */
+}
+
+/* 3. The close crosses on the settings and recommendations panels were
+   15x13 px targets. The button grows to --touch-min square. The first try
+   borrowed the header padding with negative margins, but the header is only
+   36 px tall: the panel's overflow clipped the top of the box and the panel
+   body (the preset row) painted over the bottom, so a tap there missed.
+   Hanging the box further into the body would steal taps from the right
+   preset button. So the header drops its vertical padding and is exactly
+   one tap target tall (45 px with its border, was 36): every pixel of the
+   44x44 box is inside the header and takes the tap. The glyph keeps its
+   15 px inset from the right edge. Phone sizes only, like 1 and 2. */
+@media(max-width:640px),(max-height:520px){
+  html.has-touch #gfx-head,html.has-touch #fb-head{padding-top:0;padding-bottom:0}
+  html.has-touch #gfx-close,html.has-touch #fb-close{
+    width:var(--touch-min);height:var(--touch-min);flex:none;
+    display:flex;align-items:center;justify-content:flex-end;
+    margin:0 -13px 0 0;                 /* flush with the panel's right edge */
+    padding:0 15px 0 0}
+}
+
 /* Attribution: present (license) but quiet — the old orange links were the
    brightest text in every golden-hour frame. */
 .maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.55)!important;color:rgba(245,223,160,.5)!important;opacity:.75}
