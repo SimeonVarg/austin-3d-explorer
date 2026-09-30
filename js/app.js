@@ -1439,10 +1439,17 @@ window.CityLighting.install(map);
     // clone, or a branch where CI has not run), and then this is byte-identical
     // to what it always was. See scripts/tile.sh.
     const treeTiles = window.tileSource && window.tileSource('trees');
+    // A phone never takes the 27.6 MB GeoJSON fallback (js/mobile.js
+    // LITE.budget.treesGeojsonFallback): no archive means no trees there,
+    // not a parse that can get the tab killed. Desktop is unchanged.
+    const treeFallback = PHONE_BUDGET && PHONE_BUDGET.treesGeojsonFallback === false
+      ? { type:'FeatureCollection', features:[] }
+      : 'data/trees.geojson';
+    if (!treeTiles && typeof treeFallback !== 'string') console.warn('[mobile] trees archive unavailable: phone skips the trees GeoJSON fallback');
     if (!map.getSource('austin-trees')) {
       map.addSource('austin-trees', treeTiles
         ? treeTiles.source
-        : { type:'geojson', data:'data/trees.geojson' });
+        : { type:'geojson', data:treeFallback });
     }
     // Spread into BOTH tree layers. A vector source without `source-layer`
     // draws absolutely nothing and reports no error, which reads as "the trees
