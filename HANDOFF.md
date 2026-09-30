@@ -33475,6 +33475,51 @@ mobile.js header is pre-#310 main; that line is now dated.
 Looks, 390x844: main vs main again 0 px; main vs branch 0.30% spawn, 2.6%
 flight, all on shadow edges (shots/phone-memory/*-before-after-diff.jpg).
 
+## September 30, 2026 - Apartment finder answers
+
+The hidden finder preview (`?livehere=1`) now gives only answers it can stand
+behind. The city and the preview's look are unchanged. Code: `js/wayfind.js`,
+`js/walkgraph.js`, `js/live-here-core.js`, `js/schedconfirm.js`, plus a Node-only
+check, `scripts/verify/finder-correctness.mjs` (helper in
+`scripts/verify/lib/finder-runtime.mjs`). Branch: `claude/finder-answers`
+(opened as a draft).
+
+What changed in the answers:
+- A quiet route answer needs an exact building or apartment name. "Icon" no
+  longer answers as "Ion Austin", and "Jester West Hall" no longer answers as
+  "Jester East Hall".
+- The schedule check counts the door links at both ends and merges the runtime
+  entrance points. Its "does not fit" floor is a separate fastest-walk search.
+- A same-building outdoor walk is zero only when the building has usable doors.
+- An imported class that was uncertain, or had a malformed or conflicting time,
+  weekday, location or calendar field (exceptions, cancellations, foreign time
+  zones, unsupported recurrences, unclosed calendar files), stays marked for
+  review through saving and reloading instead of becoming a clean weekly class.
+
+Evidence, `node scripts/verify/finder-correctness.mjs`, Node v25.0.0, synthetic
+schedules and the public local JSON only, no browser: 78 of 78 groups pass.
+The matrix is 81 housing names x 21 class codes x 2 walking profiles (normal,
+mapped step-free) x both directions = 6,804 queries: 2,146 answered and 4,658
+explicitly unavailable (4,368 not found, 232 no door, 58 no mapped step-free
+route). On the comparable 6,468-query set, measured before the fixes, 148
+answers named the wrong apartment; now none do. Across 90 ordered campus pairs
+the schedule check had 18 missing and 6 overstated floors (1-2 min); now 0 and
+0. Independent Floyd-Warshall searches (seed 420930, 40 graphs of 7 nodes,
+tolerances 0.02 m and 0.02 s) match on 480 preferred-cost and 240 fast-time
+queries. Reversing the input order of meetings and apartments changes none of
+162 apartment/profile answers. `node scripts/verify/live-here-core.cjs` passes.
+The walk graph file is byte-identical (366,419 bytes).
+
+Still open: 52 of 81 housing names have no exact usable door and 72 of 230 known
+class codes have no route coverage; the graph and its bake were not touched.
+One mapped step-free pair (San Jacinto Hall to Patton Hall) is flagged at
+661.35 m walking against 216.37 m straight (ratio 3.06) and needs an entrance
+and accessibility review. Not proven: real-world entrance access, indoor travel,
+phone behaviour, or how accurately an uploaded schedule image is read. The preview
+has not yet been loaded in a browser after these changes, and the existing browser
+suites that touch these files (schedconfirm, schedimg, img-import, live-here) were
+not run locally; they run in CI on the pull request, which is the browser gate.
+
 ## September 30, 2026 - East Mall staircase correction (claude/east-mall-stairs)
 
 The site east of the Tower is an outdoor staircase, not a building. Retired
@@ -33500,6 +33545,7 @@ walk pairs and the existing wallplane ceiling remain red. Existing stale
 walkmeter oracle fixtures are also reported, not guessed into passing.
 The reviewing lane retains the local comparison/report and commits the
 explicit file list; this correction is not a claim of globally green checks.
+
 ## September 30, 2026 - Facade texture preparation
 
 js/facades.js now blends each mottle cell once per horizontal span instead of once per pixel, and the paint worker's final full-resolution tier reuses the buffer it was handed instead of copying it. Fractional cell widths still take the old per-pixel path, and earlier tiers keep their own buffers. Materials, geometry, texture sizes and repaint pacing are unchanged.
